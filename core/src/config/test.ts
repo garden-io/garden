@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joiArray, joiUserIdentifier, joi } from "./common"
+import { joiUserIdentifier, joi, joiSparseArray } from "./common"
 import { deline, dedent } from "../util/string"
 
 export interface BaseTestSpec {
@@ -19,7 +19,7 @@ export interface BaseTestSpec {
 export const baseTestSpecSchema = () =>
   joi.object().keys({
     name: joiUserIdentifier().required().description("The name of the test."),
-    dependencies: joiArray(joi.string()).description(deline`
+    dependencies: joiSparseArray(joi.string()).description(deline`
         The names of any services that must be running, and the names of any
         tasks that must be executed, before the test is run.
       `),

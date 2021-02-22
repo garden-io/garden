@@ -7,7 +7,7 @@
  */
 
 import { dependenciesSchema } from "../../../config/service"
-import { joiArray, joi, joiModuleIncludeDirective } from "../../../config/common"
+import { joi, joiModuleIncludeDirective, joiSparseArray } from "../../../config/common"
 import { GardenModule } from "../../../types/module"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plugin/module/configure"
 import { Service } from "../../../types/service"
@@ -66,18 +66,18 @@ export const kubernetesModuleSpecSchema = () =>
   joi.object().keys({
     build: baseBuildSpecSchema(),
     dependencies: dependenciesSchema(),
-    manifests: joiArray(kubernetesResourceSchema()).description(
+    manifests: joiSparseArray(kubernetesResourceSchema()).description(
       deline`
           List of Kubernetes resource manifests to deploy. Use this instead of the \`files\` field if you need to
           resolve template strings in any of the manifests.`
     ),
-    files: joiArray(joi.posixPath().subPathOnly()).description(
+    files: joiSparseArray(joi.posixPath().subPathOnly()).description(
       "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests."
     ),
     include: joiModuleIncludeDirective(dedent`
-    If neither \`include\` nor \`exclude\` is set, Garden automatically sets \`include\` to equal the
-    \`files\` directive so that only the Kubernetes manifests get included.
-  `),
+      If neither \`include\` nor \`exclude\` is set, Garden automatically sets \`include\` to equal the
+      \`files\` directive so that only the Kubernetes manifests get included.
+    `),
     namespace: namespaceNameSchema(),
     serviceResource: serviceResourceSchema()
       .description(
@@ -90,8 +90,8 @@ export const kubernetesModuleSpecSchema = () =>
         containerModule: containerModuleSchema(),
         hotReloadArgs: hotReloadArgsSchema(),
       }),
-    tasks: joiArray(kubernetesTaskSchema()),
-    tests: joiArray(kubernetesTestSchema()),
+    tasks: joiSparseArray(kubernetesTaskSchema()),
+    tests: joiSparseArray(kubernetesTestSchema()),
   })
 
 export async function configureKubernetesModule({

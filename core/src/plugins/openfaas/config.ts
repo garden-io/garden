@@ -10,7 +10,7 @@ import dedent = require("dedent")
 import { join } from "path"
 import { resolve as urlResolve } from "url"
 import { PluginContext } from "../../plugin-context"
-import { joiArray, joiProviderName, joi, joiEnvVars, DeepPrimitiveMap } from "../../config/common"
+import { joiProviderName, joi, joiEnvVars, DeepPrimitiveMap, joiSparseArray } from "../../config/common"
 import { GardenModule } from "../../types/module"
 import { Service } from "../../types/service"
 import { ExecModuleSpecBase, ExecTestSpec } from "../exec"
@@ -49,7 +49,7 @@ export const openfaasModuleSpecSchema = () =>
     .object()
     .keys({
       build: baseBuildSpecSchema(),
-      dependencies: joiArray(joi.string()).description(
+      dependencies: joiSparseArray(joi.string()).description(
         "The names of services/functions that this function depends on at runtime."
       ),
       env: joiEnvVars(),
@@ -62,7 +62,7 @@ export const openfaasModuleSpecSchema = () =>
         .string()
         .description("The image name to use for the built OpenFaaS container (defaults to the module name)"),
       lang: joi.string().required().description("The OpenFaaS language template to use to build this function."),
-      tests: joiArray(openfaasTestSchema()).description("A list of tests to run in the module."),
+      tests: joiSparseArray(openfaasTestSchema()).description("A list of tests to run in the module."),
     })
     .unknown(false)
     .description("The module specification for an OpenFaaS module.")

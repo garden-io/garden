@@ -22,6 +22,7 @@ import {
   BaseKeyDescription,
   NormalizeOptions,
   flattenSchema,
+  isArrayType,
 } from "./common"
 import { JoiDescription, JoiKeyDescription } from "./joi-schema"
 import { safeDumpYaml } from "../util/util"
@@ -143,9 +144,9 @@ export function renderSchemaDescriptionYaml(
     const comment: string[] = []
     const out: string[] = []
     const isFirstChild = parent && parent === prevDesc
-    const isArrayItem = parent && parent.type === "array"
+    const isArrayItem = parent && isArrayType(parent.type)
     const isFirstArrayItem = isArrayItem && isFirstChild
-    const isPrimitive = type !== "array" && type !== "object"
+    const isPrimitive = !isArrayType(type) && type !== "object"
 
     const presetValue = getPresetValue(desc)
 

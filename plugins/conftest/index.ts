@@ -17,7 +17,7 @@ import { matchGlobs, listDirectory } from "@garden-io/sdk/util/fs"
 
 // TODO: gradually get rid of these core dependencies, move some to SDK etc.
 import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider"
-import { joi, joiIdentifier, joiArray } from "@garden-io/core/build/src/config/common"
+import { joi, joiIdentifier, joiArray, joiSparseArray } from "@garden-io/core/build/src/config/common"
 import { TestModuleParams } from "@garden-io/core/build/src/types/plugin/module/testModule"
 import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
 import { PluginError, ConfigurationError } from "@garden-io/core/build/src/exceptions"
@@ -203,7 +203,7 @@ export const gardenPlugin = () => createGardenPlugin({
         sourceModule: joiIdentifier()
           .required()
           .description("Specify a helm module whose chart we want to test."),
-        runtimeDependencies: joiArray(joiIdentifier()).description(
+        runtimeDependencies: joiSparseArray(joiIdentifier()).description(
           "A list of runtime dependencies that need to be resolved before rendering the Helm chart."
         ),
       }),

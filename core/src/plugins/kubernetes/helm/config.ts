@@ -8,12 +8,12 @@
 
 import {
   joiPrimitive,
-  joiArray,
   joiIdentifier,
   joiUserIdentifier,
   DeepPrimitiveMap,
   joi,
   joiModuleIncludeDirective,
+  joiSparseArray,
 } from "../../../config/common"
 import { GardenModule } from "../../../types/module"
 import { containsSource } from "./common"
@@ -157,7 +157,7 @@ export const helmModuleSpecSchema = () =>
       Not used when \`base\` is specified.`
       )
       .default("."),
-    dependencies: joiArray(joiIdentifier()).description(
+    dependencies: joiSparseArray(joiIdentifier()).description(
       "List of names of services that should be deployed before this chart."
     ),
     namespace: namespaceNameSchema(),
@@ -188,8 +188,8 @@ export const helmModuleSpecSchema = () =>
       If neither \`include\` nor \`exclude\` is set and the module specifies a remote chart, Garden
       automatically sets \`ìnclude\` to \`[]\`.
     `),
-    tasks: joiArray(helmTaskSchema()).description("The task definitions for this module."),
-    tests: joiArray(helmTestSchema()).description("The test suite definitions for this module."),
+    tasks: joiSparseArray(helmTaskSchema()).description("The task definitions for this module."),
+    tests: joiSparseArray(helmTestSchema()).description("The test suite definitions for this module."),
     timeout: joi
       .number()
       .integer()
@@ -206,7 +206,7 @@ export const helmModuleSpecSchema = () =>
       When specified, these take precedence over the values in the \`values.yaml\` file (or the files specified
       in \`valueFiles\`).
     `),
-    valueFiles: joiArray(joi.posixPath().subPathOnly()).description(dedent`
+    valueFiles: joiSparseArray(joi.posixPath().subPathOnly()).description(dedent`
       Specify value files to use when rendering the Helm chart. These will take precedence over the \`values.yaml\` file
       bundled in the Helm chart, and should be specified in ascending order of precedence. Meaning, the last file in
       this list will have the highest precedence.

@@ -7,7 +7,15 @@
  */
 
 import { isEqual, merge, omit, take } from "lodash"
-import { joi, joiUserIdentifier, joiVariableName, joiIdentifier, joiEnvVars, PrimitiveMap } from "./common"
+import {
+  joi,
+  joiUserIdentifier,
+  joiVariableName,
+  joiIdentifier,
+  joiEnvVars,
+  PrimitiveMap,
+  joiSparseArray,
+} from "./common"
 import { DEFAULT_API_VERSION } from "../constants"
 import { deline, dedent } from "../util/string"
 import { defaultContainerLimits, ServiceLimitSpec } from "../plugins/container/config"
@@ -64,7 +72,7 @@ export const workflowConfigSchema = () =>
       kind: joi.string().default("Workflow").valid("Workflow"),
       name: joiUserIdentifier().required().description("The name of this workflow.").example("my-workflow"),
       description: joi.string().description("A description of the workflow."),
-      files: joi.array().items(workflowFileSchema()).description(dedent`
+      files: joiSparseArray(workflowFileSchema()).description(dedent`
           A list of files to write before starting the workflow.
 
           This is useful to e.g. create files required for provider authentication, and can be created from data stored in secrets or templated strings.
@@ -90,7 +98,7 @@ export const workflowConfigSchema = () =>
             .description("The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB)"),
         })
         .default(defaultContainerLimits),
-      steps: joi.array().items(workflowStepSchema()).required().min(1).description(deline`
+      steps: joiSparseArray(workflowStepSchema()).required().min(1).description(deline`
           The steps the workflow should run. At least one step is required. Steps are run sequentially.
           If a step fails, subsequent steps are skipped.
         `),

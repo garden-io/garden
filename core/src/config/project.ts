@@ -22,6 +22,7 @@ import {
   DeepPrimitiveMap,
   joiVariablesDescription,
   apiVersionSchema,
+  joiSparseArray,
 } from "./common"
 import { validateWithPath } from "./validation"
 import { resolveTemplateStrings } from "../template-string"
@@ -134,9 +135,9 @@ export const environmentSchema = () =>
 export const environmentsSchema = () =>
   joi
     .alternatives(
-      joi.array().items(environmentSchema()).unique("name"),
+      joiSparseArray(environmentSchema()).unique("name"),
       // Allow a string as a shorthand for { name: foo }
-      joi.array().items(joiUserIdentifier())
+      joiSparseArray(joiUserIdentifier())
     )
     .description("A list of environments to configure for the project.")
 
@@ -158,7 +159,7 @@ export const projectSourceSchema = () =>
   })
 
 export const projectSourcesSchema = () =>
-  joiArray(projectSourceSchema()).unique("name").description("A list of remote sources to import into project.")
+  joiSparseArray(projectSourceSchema()).unique("name").description("A list of remote sources to import into project.")
 
 export const linkedSourceSchema = () =>
   joi.object().keys({
@@ -296,7 +297,7 @@ export const projectDocsSchema = () =>
         .array()
         .items(environmentSchema())
         .description((<any>environmentsSchema().describe().flags).description),
-      providers: joiArray(providerConfigBaseSchema()).description(
+      providers: joiSparseArray(providerConfigBaseSchema()).description(
         "A list of providers that should be used for this project, and their configuration. " +
           "Please refer to individual plugins/providers for details on how to configure them."
       ),
@@ -313,7 +314,7 @@ export const projectDocsSchema = () =>
           `
         )
         .example("dev"),
-      dotIgnoreFiles: joiArray(joi.posixPath().filenameOnly())
+      dotIgnoreFiles: joiSparseArray(joi.posixPath().filenameOnly())
         .default(defaultDotIgnoreFiles)
         .description(
           deline`
@@ -326,7 +327,7 @@ export const projectDocsSchema = () =>
         )
         .example([".gardenignore", ".gitignore"]),
       modules: projectModulesSchema().description("Control where to scan for modules in the project."),
-      outputs: joiArray(projectOutputSchema())
+      outputs: joiSparseArray(projectOutputSchema())
         .unique("name")
         .description(
           dedent`

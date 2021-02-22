@@ -151,6 +151,7 @@ describe("ActionRouter", () => {
               allowPublish: true,
               build: { dependencies: [] },
               disabled: false,
+              generateFiles: [],
             },
           ],
         })

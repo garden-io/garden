@@ -455,9 +455,9 @@ When false, disables pushing this module to remote registries.
 
 A list of files to write to the module directory when resolving this module. This is useful to automatically generate (and template) any supporting files needed for the module.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[object]` | No       |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 ### `generateFiles[].sourcePath`
 
@@ -580,9 +580,9 @@ Maximum duration (in seconds) of the task's execution.
 
 A list of artifacts to copy after the task run.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[object]` | No       |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 ### `tasks[].artifacts[].source`
 
@@ -707,9 +707,9 @@ Key/value map of environment variables. Keys must be valid POSIX environment var
 
 A list of artifacts to copy after the test run.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[object]` | No       |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 ### `tests[].artifacts[].source`
 

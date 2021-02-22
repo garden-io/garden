@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joiArray, joiUserIdentifier, joi } from "./common"
+import { joiUserIdentifier, joi, joiSparseArray } from "./common"
 import { deline, dedent } from "../util/string"
 
 export interface TaskSpec {}
@@ -35,7 +35,7 @@ export const baseTaskSpecSchema = () =>
     .keys({
       name: joiUserIdentifier().required().description("The name of the task."),
       description: joi.string().optional().description("A description of the task."),
-      dependencies: joiArray(joi.string()).description(deline`
+      dependencies: joiSparseArray(joi.string()).description(deline`
         The names of any tasks that must be executed, and the names of any services that must be running, before this task is executed.
       `),
       disabled: joi
