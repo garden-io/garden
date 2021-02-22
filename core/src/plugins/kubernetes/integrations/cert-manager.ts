@@ -224,9 +224,9 @@ export async function setupCertManager({ ctx, provider, log, status }: SetupCert
     if (!systemCertManagerReady) {
       entry.setState("Installing to cert-manager namespace...")
       const api = await KubeApi.factory(log, ctx, provider)
-      await ensureNamespace(api, "cert-manager")
+      await ensureNamespace(api, { name: "cert-manager" }, log)
       const customResourcesPath = join(STATIC_DIR, "kubernetes", "system", "cert-manager", "cert-manager-crd.yaml")
-      const crd = await yaml.safeLoadAll((await readFile(customResourcesPath)).toString()).filter((x) => x)
+      const crd = yaml.safeLoadAll((await readFile(customResourcesPath)).toString()).filter((x) => x)
       entry.setState("Installing Custom Resources...")
       await apply({ log, ctx, provider, manifests: crd, validate: false })
 
@@ -252,7 +252,7 @@ export async function setupCertManager({ ctx, provider, log, status }: SetupCert
       const issuers: any[] = []
       const certificates: any[] = []
       const secretNames: string[] = []
-      const namespace = provider.config.namespace || ctx.projectName
+      const namespace = provider.config.namespace?.name || ctx.projectName
       provider.config.tlsCertificates
         .filter((cert) => cert.managedBy === "cert-manager")
         .map((cert) => {

@@ -48,8 +48,11 @@ providers:
     # `terraform` module configs, or you can place a `terraform.tfvars` file in each working directory.
     variables:
 
-    # The version of Terraform to use.
-    version: 0.12.26
+    # The version of Terraform to use. Set to `null` to use whichever version of `terraform` that is on your PATH.
+    version: 0.13.3
+
+    # Use the specified Terraform workspace.
+    workspace:
 ```
 ## Configuration Keys
 
@@ -162,9 +165,19 @@ A map of variables to use when applying Terraform stacks. You can define these h
 
 [providers](#providers) > version
 
-The version of Terraform to use.
+The version of Terraform to use. Set to `null` to use whichever version of `terraform` that is on your PATH.
 
-| Type     | Default     | Required |
-| -------- | ----------- | -------- |
-| `string` | `"0.12.26"` | No       |
+| Type     | Default    | Required |
+| -------- | ---------- | -------- |
+| `string` | `"0.13.3"` | No       |
+
+### `providers[].workspace`
+
+[providers](#providers) > workspace
+
+Use the specified Terraform workspace.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 

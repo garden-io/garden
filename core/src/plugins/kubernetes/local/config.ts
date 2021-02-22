@@ -6,7 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { KubernetesConfig, kubernetesConfigBase, k8sContextSchema, KubernetesProvider } from "../config"
+import {
+  KubernetesConfig,
+  kubernetesConfigBase,
+  k8sContextSchema,
+  KubernetesProvider,
+  namespaceSchema,
+} from "../config"
 import { ConfigureProviderParams } from "../../../types/plugin/provider/configureProvider"
 import { joiProviderName, joi } from "../../../config/common"
 import { getKubeConfig } from "../api"
@@ -37,12 +43,10 @@ export const configSchema = () =>
     .keys({
       name: joiProviderName("local-kubernetes"),
       context: k8sContextSchema().optional(),
-      namespace: joi
-        .string()
-        .description(
-          "Specify which namespace to deploy services to (defaults to the project name). " +
-            "Note that the framework generates other namespaces as well with this name as a prefix."
-        ),
+      namespace: namespaceSchema().description(
+        "Specify which namespace to deploy services to (defaults to the project name). " +
+          "Note that the framework generates other namespaces as well with this name as a prefix."
+      ),
       setupIngressController: joi
         .string()
         .allow("nginx", false, null)

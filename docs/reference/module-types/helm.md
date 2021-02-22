@@ -116,7 +116,9 @@ generateFiles:
     # This file may contain template strings, much like any other field in the configuration.
     sourcePath:
 
-    # POSIX-style filename to write the resolved file contents to, relative to the path of the module.
+    # POSIX-style filename to write the resolved file contents to, relative to the path of the module source directory
+    # (for remote modules this means the root of the module repository, otherwise the directory of the module
+    # configuration).
     #
     # Note that any existing file with the same name will be overwritten. If the path contains one or more
     # directories, they will be automatically created if missing.
@@ -124,6 +126,10 @@ generateFiles:
 
     # The desired file contents as a string.
     value:
+
+# Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more information
+# about failures and then manually roll back, instead of having Helm do it automatically on failure.
+atomicInstall: true
 
 # The name of another `helm` module to use as a base for this one. Use this to re-use a Helm chart across multiple
 # services. For example, you might have an organization-wide base chart for certain types of services.
@@ -143,7 +149,8 @@ chartPath: .
 # List of names of services that should be deployed before this chart.
 dependencies: []
 
-# Deploy to a different namespace than the default one configured in the provider.
+# A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
+# numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
 namespace:
 
 # Optionally override the release name used when installing (defaults to the module name).
@@ -648,7 +655,7 @@ This file may contain template strings, much like any other field in the configu
 
 [generateFiles](#generatefiles) > targetPath
 
-POSIX-style filename to write the resolved file contents to, relative to the path of the module.
+POSIX-style filename to write the resolved file contents to, relative to the path of the module source directory (for remote modules this means the root of the module repository, otherwise the directory of the module configuration).
 
 Note that any existing file with the same name will be overwritten. If the path contains one or more directories, they will be automatically created if missing.
 
@@ -665,6 +672,14 @@ The desired file contents as a string.
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `atomicInstall`
+
+Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more information about failures and then manually roll back, instead of having Helm do it automatically on failure.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
 
 ### `base`
 
@@ -714,7 +729,7 @@ List of names of services that should be deployed before this chart.
 
 ### `namespace`
 
-Deploy to a different namespace than the default one configured in the provider.
+A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
 
 | Type     | Required |
 | -------- | -------- |

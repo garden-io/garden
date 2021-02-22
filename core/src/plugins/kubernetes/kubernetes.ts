@@ -40,6 +40,7 @@ import { pvcModuleDefinition } from "./volumes/persistentvolumeclaim"
 import { getModuleTypeUrl, getProviderUrl } from "../../docs/common"
 import { helm3Spec } from "./helm/helm-cli"
 import { sternSpec } from "./logs"
+import { isString } from "lodash"
 
 export async function configureProvider({
   namespace,
@@ -49,8 +50,13 @@ export async function configureProvider({
 }: ConfigureProviderParams<KubernetesConfig>) {
   config._systemServices = []
 
+  // Convert string shorthand to canonical format
+  if (isString(config.namespace)) {
+    config.namespace = { name: config.namespace }
+  }
+
   if (!config.namespace) {
-    config.namespace = `${projectName}-${namespace}`
+    config.namespace = { name: `${projectName}-${namespace}` }
   }
 
   if (config.setupIngressController === "nginx") {
@@ -201,7 +207,7 @@ export const gardenPlugin = () =>
 
     For usage information, please refer to the [guides section](${DOCS_BASE_URL}/guides). A good place to start is
     the [Remote Kubernetes guide](${DOCS_BASE_URL}/guides/remote-kubernetes) guide if you're connecting to remote clusters.
-    The [demo-project](${DOCS_BASE_URL}/example-projects/getting-started/2-initialize-a-project) example project and guide are also helpful as an introduction.
+    The [Getting Started](${DOCS_BASE_URL}/getting-started/0-introduction) guide is also helpful as an introduction.
 
     Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](${localKubernetesUrl}) simplifies (and automates) the configuration and setup quite a bit.
   `,

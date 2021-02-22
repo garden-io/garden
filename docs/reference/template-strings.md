@@ -82,7 +82,7 @@ my-variable: ${local.projectPath}
 
 ### `${local.username}`
 
-The current username (as resolved by https://github.com/sindresorhus/username)
+The current username (as resolved by https://github.com/sindresorhus/username).
 
 | Type     |
 | -------- |
@@ -92,6 +92,20 @@ Example:
 
 ```yaml
 my-variable: ${local.username}
+```
+
+### `${local.usernameLowerCase}`
+
+The current username (as resolved by https://github.com/sindresorhus/username), with any upper case characters converted to lower case.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.usernameLowerCase}
 ```
 
 ### `${project.*}`
@@ -145,6 +159,14 @@ Example:
 ```yaml
 my-variable: ${git.branch}
 ```
+
+### `${secrets.<secret-name>}`
+
+The secret's value.
+
+| Type     |
+| -------- |
+| `string` |
 
 
 ## Environment configuration context
@@ -220,7 +242,7 @@ my-variable: ${local.projectPath}
 
 ### `${local.username}`
 
-The current username (as resolved by https://github.com/sindresorhus/username)
+The current username (as resolved by https://github.com/sindresorhus/username).
 
 | Type     |
 | -------- |
@@ -230,6 +252,20 @@ Example:
 
 ```yaml
 my-variable: ${local.username}
+```
+
+### `${local.usernameLowerCase}`
+
+The current username (as resolved by https://github.com/sindresorhus/username), with any upper case characters converted to lower case.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.usernameLowerCase}
 ```
 
 ### `${project.*}`
@@ -283,6 +319,14 @@ Example:
 ```yaml
 my-variable: ${git.branch}
 ```
+
+### `${secrets.<secret-name>}`
+
+The secret's value.
+
+| Type     |
+| -------- |
+| `string` |
 
 ### `${variables.*}`
 
@@ -390,7 +434,7 @@ my-variable: ${local.projectPath}
 
 ### `${local.username}`
 
-The current username (as resolved by https://github.com/sindresorhus/username)
+The current username (as resolved by https://github.com/sindresorhus/username).
 
 | Type     |
 | -------- |
@@ -400,6 +444,20 @@ Example:
 
 ```yaml
 my-variable: ${local.username}
+```
+
+### `${local.usernameLowerCase}`
+
+The current username (as resolved by https://github.com/sindresorhus/username), with any upper case characters converted to lower case.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.usernameLowerCase}
 ```
 
 ### `${project.*}`
@@ -453,6 +511,14 @@ Example:
 ```yaml
 my-variable: ${git.branch}
 ```
+
+### `${secrets.<secret-name>}`
+
+The secret's value.
+
+| Type     |
+| -------- |
+| `string` |
 
 ### `${variables.*}`
 
@@ -653,7 +719,7 @@ my-variable: ${local.projectPath}
 
 ### `${local.username}`
 
-The current username (as resolved by https://github.com/sindresorhus/username)
+The current username (as resolved by https://github.com/sindresorhus/username).
 
 | Type     |
 | -------- |
@@ -663,6 +729,20 @@ Example:
 
 ```yaml
 my-variable: ${local.username}
+```
+
+### `${local.usernameLowerCase}`
+
+The current username (as resolved by https://github.com/sindresorhus/username), with any upper case characters converted to lower case.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.usernameLowerCase}
 ```
 
 ### `${project.*}`
@@ -716,6 +796,14 @@ Example:
 ```yaml
 my-variable: ${git.branch}
 ```
+
+### `${secrets.<secret-name>}`
+
+The secret's value.
+
+| Type     |
+| -------- |
+| `string` |
 
 ### `${variables.*}`
 
@@ -1084,7 +1172,7 @@ my-variable: ${local.projectPath}
 
 ### `${local.username}`
 
-The current username (as resolved by https://github.com/sindresorhus/username)
+The current username (as resolved by https://github.com/sindresorhus/username).
 
 | Type     |
 | -------- |
@@ -1094,6 +1182,20 @@ Example:
 
 ```yaml
 my-variable: ${local.username}
+```
+
+### `${local.usernameLowerCase}`
+
+The current username (as resolved by https://github.com/sindresorhus/username), with any upper case characters converted to lower case.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.usernameLowerCase}
 ```
 
 ### `${project.*}`
@@ -1147,6 +1249,14 @@ Example:
 ```yaml
 my-variable: ${git.branch}
 ```
+
+### `${secrets.<secret-name>}`
+
+The secret's value.
+
+| Type     |
+| -------- |
+| `string` |
 
 ### `${variables.*}`
 
@@ -1512,7 +1622,7 @@ my-variable: ${local.projectPath}
 
 ### `${local.username}`
 
-The current username (as resolved by https://github.com/sindresorhus/username)
+The current username (as resolved by https://github.com/sindresorhus/username).
 
 | Type     |
 | -------- |
@@ -1522,6 +1632,20 @@ Example:
 
 ```yaml
 my-variable: ${local.username}
+```
+
+### `${local.usernameLowerCase}`
+
+The current username (as resolved by https://github.com/sindresorhus/username), with any upper case characters converted to lower case.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.usernameLowerCase}
 ```
 
 ### `${project.*}`
@@ -1575,6 +1699,14 @@ Example:
 ```yaml
 my-variable: ${git.branch}
 ```
+
+### `${secrets.<secret-name>}`
+
+The secret's value.
+
+| Type     |
+| -------- |
+| `string` |
 
 ### `${variables.*}`
 

@@ -403,10 +403,9 @@ export class ModuleResolver {
 
       if (fileSpec.sourcePath) {
         contents = (await readFile(fileSpec.sourcePath)).toString()
-        contents = await resolveTemplateString(contents, configContext)
       }
 
-      const resolvedContents = resolveTemplateString(contents, configContext)
+      const resolvedContents = resolveTemplateString(contents, configContext, { unescape: true })
       const targetDir = resolve(resolvedConfig.path, ...posix.dirname(fileSpec.targetPath).split(posix.sep))
       const targetPath = resolve(resolvedConfig.path, ...fileSpec.targetPath.split(posix.sep))
 

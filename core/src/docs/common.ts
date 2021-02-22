@@ -10,31 +10,67 @@ import { padEnd, max } from "lodash"
 import { DOCS_BASE_URL } from "../constants"
 import { getPackageVersion } from "../util/util"
 
-export interface NormalizedSchemaDescription {
+export abstract class BaseKeyDescription<T = any> {
   type: string
-  name: string
   allowedValuesOnly: boolean
-  allowedValues?: string
-  defaultValue?: string
   deprecated: boolean
   description?: string
   experimental: boolean
-  formattedExample?: string
-  formattedName: string
-  formattedType: string
-  fullKey: string
-  hasChildren: boolean
   internal: boolean
-  level: number
-  parent?: NormalizedSchemaDescription
   required: boolean
+  example?: T
+
+  constructor(public name: string | undefined, public level: number, public parent?: BaseKeyDescription) {
+    this.name = name
+    this.level = level
+    this.parent = parent
+  }
+
+  abstract getChildren(renderPatternKeys?: boolean): BaseKeyDescription[]
+  abstract getDefaultValue(): T | undefined
+  abstract formatExample(): string | undefined
+  abstract formatAllowedValues(): string | undefined
+
+  formatName() {
+    return this.name
+  }
+
+  formatType() {
+    return this.type
+  }
+
+  hasChildren(renderPatternKeys = false) {
+    return this.getChildren(renderPatternKeys).length > 0
+  }
+
+  fullKey() {
+    const formattedName = this.formatName()
+    const parentKey = this.parent?.fullKey()
+
+    if (parentKey && formattedName) {
+      return `${parentKey}.${this.formatName()}`
+    } else {
+      return parentKey || formattedName || ""
+    }
+  }
 }
 
 export interface NormalizeOptions {
-  level?: number
-  name?: string
-  parent?: NormalizedSchemaDescription
   renderPatternKeys?: boolean
+}
+
+// Maps a schema description into an array of descriptions and normalizes each entry.
+// Filters out internal descriptions.
+export function flattenSchema(
+  schemaDescription: BaseKeyDescription,
+  opts: NormalizeOptions = {}
+): BaseKeyDescription[] {
+  const { renderPatternKeys = false } = opts
+
+  const childDescriptions = schemaDescription.getChildren(renderPatternKeys).flatMap((c) => flattenSchema(c, opts))
+
+  const items = schemaDescription.name ? [schemaDescription, ...childDescriptions] : childDescriptions
+  return items.filter((key) => !key.internal)
 }
 
 export function indent(lines: string[], level: number) {
