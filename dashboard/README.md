@@ -9,14 +9,14 @@ All commands below assume that the current directory is root.
 To use with the Garden CLI, simply run a Garden command in watch mode inside some Garden project. E.g:
 
 ```sh
-cd examples/simple-project
-garden serve
+cd examples/demo-project
+garden dashboard
 ```
 
 or alternatively
 
 ```sh
-cd examples/simple-project
+cd examples/demo-project
 garden dev
 ```
 
@@ -27,7 +27,7 @@ and follow the dashboard link printed by the command.
 To develop the dashboard, first run:
 
 ```sh
-cd examples/simple-project # (or some other Garden project)
+cd examples/demo-project # (or some other Garden project)
 garden dashboard
 ```
 
