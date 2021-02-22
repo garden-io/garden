@@ -13,7 +13,7 @@ import { KubernetesModule } from "./kubernetes-module/config"
 import { ModuleVersion } from "../../vcs/vcs"
 import { KubernetesPluginContext, KubernetesProvider } from "./config"
 import { KubeApi } from "./api"
-import { getMetadataNamespace } from "./namespace"
+import { getAppNamespace } from "./namespace"
 import { RunTaskResult } from "../../types/plugin/task/runTask"
 import { deserializeValues } from "../../util/util"
 import { PluginContext } from "../../plugin-context"
@@ -35,7 +35,7 @@ export async function getTaskResult({
 }: GetTaskResultParams<ContainerModule | HelmModule | KubernetesModule>): Promise<RunTaskResult | null> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
-  const ns = await getMetadataNamespace(k8sCtx, log, k8sCtx.provider)
+  const ns = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
   const resultKey = getTaskResultKey(ctx, module, task.name, taskVersion)
 
   try {
@@ -95,7 +95,7 @@ export async function storeTaskResult({
 }: StoreTaskResultParams): Promise<RunTaskResult> {
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = await getMetadataNamespace(ctx, log, provider)
+  const namespace = await getAppNamespace(ctx, log, provider)
 
   // FIXME: We should store the logs separately, because of the 1MB size limit on ConfigMaps.
   const data: RunTaskResult = trimRunOutput(result)
@@ -136,7 +136,7 @@ export async function clearTaskResult({
 }: GetTaskResultParams<ContainerModule | HelmModule | KubernetesModule>) {
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = await getMetadataNamespace(ctx, log, provider)
+  const namespace = await getAppNamespace(ctx, log, provider)
 
   const key = getTaskResultKey(ctx, module, task.name, taskVersion)
 
