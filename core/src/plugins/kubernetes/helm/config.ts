@@ -47,6 +47,7 @@ export interface HelmModule
 export type HelmModuleConfig = HelmModule["_config"]
 
 export interface HelmServiceSpec {
+  atomicInstall: boolean
   base?: string
   chart?: string
   chartPath: string
@@ -123,6 +124,12 @@ const helmTestSchema = () =>
 
 export const helmModuleSpecSchema = () =>
   joi.object().keys({
+    atomicInstall: joi
+      .boolean()
+      .default(true)
+      .description(
+        "Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more information about failures and then manually roll back, instead of having Helm do it automatically on failure."
+      ),
     base: joiUserIdentifier()
       .description(
         deline`The name of another \`helm\` module to use as a base for this one. Use this to re-use a Helm chart across
@@ -175,12 +182,12 @@ export const helmModuleSpecSchema = () =>
       Use this, for example, if the chart should only be used as a base for other modules.`
       ),
     include: joiModuleIncludeDirective(dedent`
-    If neither \`include\` nor \`exclude\` is set, and the module has local chart sources, Garden
-    automatically sets \`include\` to: \`["*", "charts/**/*", "templates/**/*"]\`.
+      If neither \`include\` nor \`exclude\` is set, and the module has local chart sources, Garden
+      automatically sets \`include\` to: \`["*", "charts/**/*", "templates/**/*"]\`.
 
-    If neither \`include\` nor \`exclude\` is set and the module specifies a remote chart, Garden
-    automatically sets \`ìnclude\` to \`[]\`.
-  `),
+      If neither \`include\` nor \`exclude\` is set and the module specifies a remote chart, Garden
+      automatically sets \`ìnclude\` to \`[]\`.
+    `),
     tasks: joiArray(helmTaskSchema()).description("The task definitions for this module."),
     tests: joiArray(helmTestSchema()).description("The test suite definitions for this module."),
     timeout: joi

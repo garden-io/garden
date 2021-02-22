@@ -71,6 +71,7 @@ describe("configureHelmModule", () => {
           hotReloadable: true,
           sourceModuleName: "api-image",
           spec: {
+            atomicInstall: true,
             build: {
               dependencies: [],
             },
@@ -100,6 +101,7 @@ describe("configureHelmModule", () => {
         },
       ],
       spec: {
+        atomicInstall: true,
         build: {
           dependencies: [],
         },

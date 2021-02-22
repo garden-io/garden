@@ -39,12 +39,16 @@ describe("pull-image plugin command", () => {
 
   async function removeImage(module: GardenModule) {
     const imageId = containerHelpers.getLocalImageId(module, module.version)
-    await containerHelpers.dockerCli({
-      cwd: "/tmp",
-      args: ["rmi", imageId],
-      log: garden.log,
-      ctx,
-    })
+    try {
+      await containerHelpers.dockerCli({
+        cwd: "/tmp",
+        args: ["rmi", imageId],
+        log: garden.log,
+        ctx,
+      })
+    } catch {
+      // This is fine, the image may not already be there
+    }
   }
 
   async function ensureImagePulled(module: GardenModule) {

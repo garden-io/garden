@@ -65,23 +65,21 @@ export async function deployHelmService({
     ...(await getValueArgs(module, hotReload)),
   ]
 
+  if (module.spec.atomicInstall) {
+    // Make sure chart gets purged if it fails to install
+    commonArgs.push("--atomic")
+  }
+
   if (releaseStatus.state === "missing") {
     log.silly(`Installing Helm release ${releaseName}`)
-    const installArgs = [
-      "install",
-      releaseName,
-      chartPath,
-      // Make sure chart gets purged if it fails to install
-      "--atomic",
-      ...commonArgs,
-    ]
+    const installArgs = ["install", releaseName, chartPath, ...commonArgs]
     if (force && !ctx.production) {
       installArgs.push("--replace")
     }
     await helm({ ctx: k8sCtx, namespace, log, args: [...installArgs] })
   } else {
     log.silly(`Upgrading Helm release ${releaseName}`)
-    const upgradeArgs = ["upgrade", releaseName, chartPath, "--install", "--atomic", ...commonArgs]
+    const upgradeArgs = ["upgrade", releaseName, chartPath, "--install", ...commonArgs]
     await helm({ ctx: k8sCtx, namespace, log, args: [...upgradeArgs] })
   }
 
