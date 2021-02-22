@@ -18,6 +18,7 @@ import { InternalError } from "../exceptions"
 import { EnterpriseApi, AuthTokenResponse } from "./api"
 import { ClientAuthToken } from "../db/entities/client-auth-token"
 import { gardenEnv } from "../constants"
+import { isArray } from "lodash"
 
 /**
  * Logs in to Garden Enterprise if needed, and returns a valid client auth token.
@@ -114,9 +115,9 @@ export class AuthRedirectServer {
     http.get("/", async (ctx) => {
       const { jwt, rt, jwtval } = ctx.request.query
       const tokenResponse: AuthTokenResponse = {
-        token: jwt,
-        refreshToken: rt,
-        tokenValidity: jwtval,
+        token: getFirstValue(jwt),
+        refreshToken: getFirstValue(rt),
+        tokenValidity: parseInt(getFirstValue(jwtval), 10),
       }
       this.log.debug("Received client auth token")
       this.events.emit("receivedToken", tokenResponse)
@@ -131,4 +132,8 @@ export class AuthRedirectServer {
     })
     this.server = app.listen(this.port)
   }
+}
+
+function getFirstValue(v: string | string[]) {
+  return isArray(v) ? v[0] : v
 }

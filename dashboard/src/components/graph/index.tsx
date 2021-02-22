@@ -170,18 +170,20 @@ export const StackGraph: React.FC<Props> = ({
     }
 
     return (
-      <div
-        className={classes.join(" ")}
-        // tslint:disable-next-line: jsx-no-lambda
-        onClick={onClick}
-      >
-        <div className="type">
-          {capitalize(type)}
-          {disabled ? <i className="fas fa-ban" /> : ""}
+      <foreignObject x={0} y={0} height={event.height} width={event.width}>
+        <div
+          className={classes.join(" ")}
+          // tslint:disable-next-line: jsx-no-lambda
+          onClick={onClick}
+        >
+          <div className="type">
+            {capitalize(type)}
+            {disabled ? <i className="fas fa-ban" /> : ""}
+          </div>
+          <span className="module-name">{moduleName}</span>
+          {subName}
         </div>
-        <span className="module-name">{moduleName}</span>
-        {subName}
-      </div>
+      </foreignObject>
     )
   }
 
