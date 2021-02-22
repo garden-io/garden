@@ -104,7 +104,7 @@ import { DeployTask } from "./tasks/deploy"
 import { BuildDependencyConfig } from "./config/module"
 import { Profile } from "./util/profiling"
 import { ConfigGraph } from "./config-graph"
-import { ModuleConfigContext } from "./config/config-context"
+import { ModuleConfigContext } from "./config/template-contexts/module"
 import { GetDashboardPageParams, GetDashboardPageResult } from "./types/plugin/provider/getDashboardPage"
 import { GetModuleOutputsParams, GetModuleOutputsResult } from "./types/plugin/module/getModuleOutputs"
 

@@ -12,7 +12,7 @@ import { resolve } from "path"
 import { baseModuleSpecSchema } from "../config/module"
 import handlebars = require("handlebars")
 import { joi } from "../config/common"
-import { ModuleContext, ServiceRuntimeContext, TaskRuntimeContext } from "../config/config-context"
+import { ModuleContext, ServiceRuntimeContext, TaskRuntimeContext } from "../config/template-contexts/module"
 import { ModuleTypeDefinition } from "../types/plugin/plugin"
 import { renderConfigReference, renderTemplateStringReference, TEMPLATES_DIR } from "./config"
 

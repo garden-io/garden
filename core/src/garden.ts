@@ -45,7 +45,6 @@ import { LocalConfigStore, ConfigStore, GlobalConfigStore, LinkedSource } from "
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { BuildDependencyConfig, ModuleConfig } from "./config/module"
 import { ModuleResolver, moduleResolutionConcurrencyLimit } from "./resolve-module"
-import { OutputConfigContext, DefaultEnvironmentContext, ProviderConfigContext } from "./config/config-context"
 import { createPluginContext, CommandInfo } from "./plugin-context"
 import { ModuleAndRuntimeActionHandlers, RegisterPluginParam } from "./types/plugin/plugin"
 import { SUPPORTED_PLATFORMS, SupportedPlatform, DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "./constants"
@@ -90,6 +89,9 @@ import {
 import { TemplatedModuleConfig } from "./plugins/templated"
 import { BuildDirRsync } from "./build-staging/rsync"
 import { EnterpriseApi } from "./enterprise/api"
+import { DefaultEnvironmentContext } from "./config/template-contexts/project"
+import { OutputConfigContext } from "./config/template-contexts/module"
+import { ProviderConfigContext } from "./config/template-contexts/provider"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]

@@ -13,8 +13,7 @@ import {
   ScanContext,
   ContextResolveOutput,
   ContextKeySegment,
-  ModuleConfigContext,
-} from "./config/config-context"
+} from "./config/template-contexts/base"
 import { difference, uniq, isPlainObject, isNumber } from "lodash"
 import { Primitive, StringMap, isPrimitive, objectSpreadKey } from "./config/common"
 import { profile } from "./util/profiling"
@@ -22,6 +21,7 @@ import { dedent, deline, truncate } from "./util/string"
 import { isArray } from "util"
 import { ObjectWithName } from "./util/util"
 import { LogEntry } from "./logger/log-entry"
+import { ModuleConfigContext } from "./config/template-contexts/module"
 
 export type StringOrStringPromise = Promise<string> | string
 
