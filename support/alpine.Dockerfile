@@ -11,6 +11,7 @@ RUN apk add --no-cache \
   ca-certificates \
   tar \
   gzip \
+  openssh-client \
   libstdc++
 
 # Note: This is run with the dist/alpine-amd64 directory as the context root
