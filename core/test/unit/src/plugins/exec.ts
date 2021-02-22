@@ -102,6 +102,7 @@ describe("exec plugin", () => {
         disabled: false,
         timeout: null,
         spec: {
+          artifacts: [],
           name: "banana",
           command: ["echo", "BANANA"],
           env: {},
@@ -117,6 +118,7 @@ describe("exec plugin", () => {
         disabled: false,
         timeout: 999,
         spec: {
+          artifacts: [],
           name: "orange",
           command: ["echo", "ORANGE"],
           env: {},
@@ -134,6 +136,7 @@ describe("exec plugin", () => {
         timeout: null,
         spec: {
           name: "unit",
+          artifacts: [],
           dependencies: [],
           disabled: false,
           command: ["echo", "OK"],
@@ -162,6 +165,7 @@ describe("exec plugin", () => {
         timeout: null,
         spec: {
           name: "unit",
+          artifacts: [],
           dependencies: [],
           disabled: false,
           command: ["echo", "OK"],
@@ -189,6 +193,7 @@ describe("exec plugin", () => {
         spec: {
           name: "unit",
           dependencies: [],
+          artifacts: [],
           disabled: false,
           command: ["echo", "OK"],
           env: {},
@@ -217,6 +222,7 @@ describe("exec plugin", () => {
           name: "pwd",
           env: {},
           command: ["pwd"],
+          artifacts: [],
           dependencies: [],
           disabled: false,
           timeout: null,

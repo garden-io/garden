@@ -15399,10 +15399,10 @@ react-transition-group@^4.3.0:
     loose-envify "^1.4.0"
     prop-types "^15.6.2"
 
-react-use-gesture@^9.0.0:
-  version "9.0.4"
-  resolved "https://registry.yarnpkg.com/react-use-gesture/-/react-use-gesture-9.0.4.tgz#7e0428007df31b6d8daae37c2fb01e9f40283623"
-  integrity sha512-G0sbQY+HSm2gSVIlD+LE1unpVpG7YZRTr8TI72vo0Nu1lecJtvjbcY3ZLonEZLTtODJgLL6nBllMRXyy0bRSQA==
+react-use-gesture@^8.0.1:
+  version "8.0.1"
+  resolved "https://registry.yarnpkg.com/react-use-gesture/-/react-use-gesture-8.0.1.tgz#4360c0f7c9e26baf9fbe58f63fc9de7ef699c17f"
+  integrity sha512-CXzUNkulUdgouaAlvAsC5ZVo0fi9KGSBSk81WrE4kOIcJccpANe9zZkAYr5YZZhqpicIFxitsrGVS4wmoMun9A==
 
 react-zlib-js@^1.0.4:
   version "1.0.5"
@@ -15557,10 +15557,10 @@ readdirp@~3.5.0:
   dependencies:
     picomatch "^2.2.1"
 
-reaflow@^2.4.4:
-  version "2.7.0"
-  resolved "https://registry.yarnpkg.com/reaflow/-/reaflow-2.7.0.tgz#b3709a1139dcf7cb0c85ae00557f7061663a886e"
-  integrity sha512-CvAEp8FTsh95z3ToqOOHvHnkeccmMDLSQ7/9OExY2uDuBw29wyGJIJ/MHWkgJD1flHdYWtFbkd66VLOKohZ/5w==
+reaflow@^3.0.13:
+  version "3.0.13"
+  resolved "https://registry.yarnpkg.com/reaflow/-/reaflow-3.0.13.tgz#7e1344cb011aeaf654502f40f80e8f648752b4e2"
+  integrity sha512-EEPq/4atEpL1RVJxTaLaN8Y3zhYHo2rpLnMbAX7DlI88emJJPqJpTwsH4q5jHspfo2tnatqEe8vmvxXGHLL0mQ==
   dependencies:
     calculate-size "^1.1.1"
     classnames "^2.2.6"
@@ -15574,7 +15574,7 @@ reaflow@^2.4.4:
     rdk "^5.0.6"
     react-cool-dimensions "^1.2.0"
     react-fast-compare "^3.2.0"
-    react-use-gesture "^9.0.0"
+    react-use-gesture "^8.0.1"
     reakeys "^1.1.0"
     undoo "^0.5.0"
 

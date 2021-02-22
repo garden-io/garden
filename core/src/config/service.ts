@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joiIdentifier, joiArray, joiUserIdentifier, joi, joiVariables } from "./common"
+import { joiIdentifier, joiUserIdentifier, joi, joiVariables, joiSparseArray } from "./common"
 import { deline, dedent } from "../util/string"
 
 /**
@@ -22,7 +22,7 @@ export interface CommonServiceSpec {
 export const serviceOutputsSchema = joiVariables()
 
 export const dependenciesSchema = () =>
-  joiArray(joiIdentifier()).description(deline`
+  joiSparseArray(joiIdentifier()).description(deline`
     The names of any services that this service depends on at runtime, and the names of any
     tasks that should be executed before this service is deployed.
   `)

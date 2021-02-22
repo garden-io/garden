@@ -9,7 +9,6 @@
 import { GardenModule, FileCopySpec } from "../../types/module"
 import {
   joiUserIdentifier,
-  joiArray,
   PrimitiveMap,
   joiPrimitive,
   joi,
@@ -17,6 +16,7 @@ import {
   Primitive,
   joiModuleIncludeDirective,
   joiIdentifier,
+  joiSparseArray,
 } from "../../config/common"
 import { ArtifactSpec } from "./../../config/validation"
 import { Service, ingressHostnameSchema, linkUrlSchema } from "../../types/service"
@@ -337,7 +337,7 @@ const volumeSchema = () =>
     .oxor("hostPath", "module")
 
 export function getContainerVolumesSchema(targetType: string) {
-  return joiArray(volumeSchema()).unique("name").description(dedent`
+  return joiSparseArray(volumeSchema()).unique("name").description(dedent`
     List of volumes that should be mounted when deploying the ${targetType}.
 
     Note: If neither \`hostPath\` nor \`module\` is specified, an empty ephemeral volume is created and mounted when deploying the container.
@@ -363,7 +363,7 @@ const containerServiceSchema = () =>
         Whether to run the service as a daemon (to ensure exactly one instance runs per node).
         May not be supported by all providers.
       `),
-    ingresses: joiArray(ingressSchema())
+    ingresses: joiSparseArray(ingressSchema())
       .description("List of ingress endpoints that the service exposes.")
       .example([{ path: "/api", port: "http" }]),
     env: containerEnvVarsSchema(),
@@ -387,7 +387,7 @@ const containerServiceSchema = () =>
       )
       .example(["npm", "run", "dev"]),
     limits: limitsSchema().description("Specify resource limits for the service.").default(defaultContainerLimits),
-    ports: joiArray(portSchema()).unique("name").description("List of ports that the service container exposes."),
+    ports: joiSparseArray(portSchema()).unique("name").description("List of ports that the service container exposes."),
     replicas: joi.number().integer().description(deline`
       The number of instances of the service to deploy.
       Defaults to 3 for environments configured with \`production: true\`, otherwise 1.
@@ -584,12 +584,12 @@ export const containerModuleSpecSchema = () =>
     `),
       hotReload: hotReloadConfigSchema(),
       dockerfile: joi.posixPath().subPathOnly().description("POSIX-style name of Dockerfile, relative to module root."),
-      services: joiArray(containerServiceSchema())
+      services: joiSparseArray(containerServiceSchema())
         .unique("name")
         .description("A list of services to deploy from this container module."),
-      tests: joiArray(containerTestSchema()).description("A list of tests to run in the module."),
+      tests: joiSparseArray(containerTestSchema()).description("A list of tests to run in the module."),
       // We use the user-facing term "tasks" as the key here, instead of "tasks".
-      tasks: joiArray(containerTaskSchema()).description(deline`
+      tasks: joiSparseArray(containerTaskSchema()).description(deline`
         A list of tasks that can be run from this container module. These can be used as dependencies for services
         (executed before the service is deployed) or for other tasks.
       `),

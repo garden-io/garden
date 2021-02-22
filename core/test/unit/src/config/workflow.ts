@@ -23,6 +23,7 @@ describe("resolveWorkflowConfig", () => {
   let garden: TestGarden
 
   const defaults = {
+    files: [],
     limits: defaultContainerLimits,
     keepAliveHours: 48,
   }

@@ -119,6 +119,7 @@ export interface Schema extends Joi.Root {
   gitUrl: () => GitUrlSchema
   posixPath: () => PosixPathSchema
   hostname: () => Joi.StringSchema
+  sparseArray: () => Joi.ArraySchema
 }
 
 export let joi: Schema = Joi.extend({
@@ -393,6 +394,19 @@ joi = joi.extend({
   },
 })
 
+/**
+ * Add a joi.sparseArray() type, that both allows sparse arrays _and_ filters the falsy values out.
+ */
+joi = joi.extend({
+  base: Joi.array().sparse(true),
+  type: "sparseArray",
+  coerce: {
+    method(value) {
+      return { value: value && value.filter((v: any) => v !== undefined && v !== null) }
+    },
+  },
+})
+
 export const joiPrimitive = () =>
   joi
     .alternatives()
@@ -481,6 +495,9 @@ export const joiEnvVars = () =>
     )
 
 export const joiArray = (schema: Joi.Schema) => joi.array().items(schema).default([])
+
+// This allows null, empty string or undefined values on the item values and then filters them out
+export const joiSparseArray = (schema: Joi.Schema) => joi.sparseArray().items(schema.allow(null)).default([])
 
 export const joiRepositoryUrl = () =>
   joi

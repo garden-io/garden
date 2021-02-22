@@ -16,7 +16,7 @@ import {
   ContainerModuleConfig,
   ContainerTaskSpec,
 } from "../container/config"
-import { joiArray, joiProviderName, joi, joiModuleIncludeDirective } from "../../config/common"
+import { joiProviderName, joi, joiModuleIncludeDirective, joiSparseArray } from "../../config/common"
 import { GardenModule } from "../../types/module"
 import { resolve } from "path"
 import { RuntimeError, ConfigurationError } from "../../exceptions"
@@ -75,7 +75,7 @@ const mavenKeys = {
     .description("POSIX-style path to the packaged JAR artifact, relative to the module directory.")
     .example("target/my-module.jar"),
   jdkVersion: joi.number().integer().allow(8, 11, 13).default(8).description("The JDK version to use."),
-  mvnOpts: joiArray(joi.string()).description("Options to add to the `mvn package` command when building."),
+  mvnOpts: joiSparseArray(joi.string()).description("Options to add to the `mvn package` command when building."),
   useDefaultDockerfile: joi
     .boolean()
     .default(true)

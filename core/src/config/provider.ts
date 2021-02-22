@@ -7,7 +7,7 @@
  */
 
 import { deline } from "../util/string"
-import { joiIdentifier, joiUserIdentifier, joiArray, joi, joiIdentifierMap } from "./common"
+import { joiIdentifier, joiUserIdentifier, joiArray, joi, joiIdentifierMap, joiSparseArray } from "./common"
 import { collectTemplateReferences } from "../template-string"
 import { ConfigurationError } from "../exceptions"
 import { ModuleConfig, moduleConfigSchema } from "./module"
@@ -30,7 +30,7 @@ export interface GenericProviderConfig extends BaseProviderConfig {
 const providerFixedFieldsSchema = () =>
   joi.object().keys({
     name: joiIdentifier().required().description("The name of the provider plugin to use.").example("local-kubernetes"),
-    dependencies: joiArray(joiIdentifier())
+    dependencies: joiSparseArray(joiIdentifier())
       .description("List other providers that should be resolved before this one.")
       .example(["exec"]),
     environments: joi

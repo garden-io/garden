@@ -10,7 +10,7 @@ import Bluebird from "bluebird"
 import { mapValues } from "lodash"
 import { join } from "path"
 import cpy = require("cpy")
-import { joiArray, joiEnvVars, joi } from "../config/common"
+import { joiArray, joiEnvVars, joi, joiSparseArray } from "../config/common"
 import { validateWithPath, ArtifactSpec } from "../config/validation"
 import { createGardenPlugin } from "../types/plugin/plugin"
 import { GardenModule, getModuleKey } from "../types/module"
@@ -52,7 +52,7 @@ const artifactSchema = () =>
     target: joi.posixPath().relativeOnly().subPathOnly().default(".").description(artifactsTargetDescription),
   })
 
-const artifactsSchema = () => joi.array().items(artifactSchema())
+const artifactsSchema = () => joiSparseArray(artifactSchema())
 
 export interface ExecTestSpec extends BaseTestSpec {
   command: string[]
@@ -152,8 +152,8 @@ export const execModuleSpecSchema = () =>
         .default(false),
       build: execBuildSpecSchema(),
       env: joiEnvVars(),
-      tasks: joiArray(execTaskSpecSchema()).description("A list of tasks that can be run in this module."),
-      tests: joiArray(execTestSchema()).description("A list of tests to run in the module."),
+      tasks: joiSparseArray(execTaskSpecSchema()).description("A list of tasks that can be run in this module."),
+      tests: joiSparseArray(execTestSchema()).description("A list of tests to run in the module."),
     })
     .unknown(false)
     .description("The module specification for an exec module.")

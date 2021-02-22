@@ -124,3 +124,7 @@ export function getGitHubUrl(path: string) {
 export function templateStringLiteral(key: string) {
   return "`${" + key + "}`"
 }
+
+export function isArrayType(type: string) {
+  return type === "array" || type === "sparseArray"
+}

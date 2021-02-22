@@ -214,9 +214,9 @@ This is useful to e.g. create files required for provider authentication, and ca
 
 Note that you cannot reference provider configuration in template strings within this field, since they are resolved after these files are generated. This means you can reference the files specified here in your provider configurations.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[object]` | No       |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 ### `files[].path`
 
@@ -296,9 +296,9 @@ The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 
 
 The steps the workflow should run. At least one step is required. Steps are run sequentially. If a step fails, subsequent steps are skipped.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[object]` | Yes      |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | Yes      |
 
 ### `steps[].name`
 

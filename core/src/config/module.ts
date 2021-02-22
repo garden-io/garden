@@ -17,6 +17,7 @@ import {
   apiVersionSchema,
   DeepPrimitiveMap,
   joiVariables,
+  joiSparseArray,
 } from "./common"
 import { TestConfig, testConfigSchema } from "./test"
 import { TaskConfig, taskConfigSchema } from "./task"
@@ -55,7 +56,7 @@ export const buildDependencySchema = () =>
   joi.object().keys({
     name: joi.string().required().description("Module name to build ahead of this module."),
     plugin: joi.string().meta({ internal: true }).description("The name of plugin that provides the build dependency."),
-    copy: joiArray(copySchema()).description(
+    copy: joiSparseArray(copySchema()).description(
       "Specify one or more files or directories to copy from the built dependency to this module."
     ),
   })
@@ -132,7 +133,7 @@ export const baseBuildSpecSchema = () =>
   joi
     .object()
     .keys({
-      dependencies: joiArray(buildDependencySchema())
+      dependencies: joiSparseArray(buildDependencySchema())
         .description("A list of modules that must be built before this module is built.")
         .example([{ name: "some-other-module-name" }]),
     })
@@ -206,7 +207,7 @@ export const baseModuleSpecKeys = () => ({
     .boolean()
     .default(true)
     .description("When false, disables pushing this module to remote registries."),
-  generateFiles: joi.array().items(generatedFileSchema()).description(dedent`
+  generateFiles: joiSparseArray(generatedFileSchema()).description(dedent`
     A list of files to write to the module directory when resolving this module. This is useful to automatically generate (and template) any supporting files needed for the module.
   `),
 })

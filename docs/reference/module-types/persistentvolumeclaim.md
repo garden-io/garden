@@ -385,9 +385,9 @@ When false, disables pushing this module to remote registries.
 
 A list of files to write to the module directory when resolving this module. This is useful to automatically generate (and template) any supporting files needed for the module.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[object]` | No       |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 ### `generateFiles[].sourcePath`
 

@@ -8,7 +8,7 @@
 
 import Joi from "@hapi/joi"
 import { uniq, isFunction, extend, isArray, isPlainObject } from "lodash"
-import { BaseKeyDescription } from "./common"
+import { BaseKeyDescription, isArrayType } from "./common"
 import { findByName, safeDumpYaml } from "../util/util"
 import { JsonKeyDescription } from "./json-schema"
 
@@ -63,7 +63,7 @@ export class JoiKeyDescription extends BaseKeyDescription {
   }
 
   formatName() {
-    return this.type === "array" ? `${this.name}[]` : this.name
+    return isArrayType(this.type) ? `${this.name}[]` : this.name
   }
 
   formatExample() {
@@ -139,7 +139,7 @@ export class JoiKeyDescription extends BaseKeyDescription {
         )
       }
       return childDescriptions
-    } else if (this.joiDescription.type === "array" && this.joiDescription.items[0]) {
+    } else if (isArrayType(this.joiDescription.type) && this.joiDescription.items[0]) {
       // We only use the first array item
       return [
         new JoiKeyDescription({
@@ -176,7 +176,7 @@ function getObjectSchema(d: JoiDescription) {
 
 function formatType(joiDescription: JoiDescription) {
   const { type } = joiDescription
-  const items = type === "array" && joiDescription.items
+  const items = isArrayType(type) && joiDescription.items
 
   if (items && items.length > 0) {
     // We don't consider an array of primitives as children

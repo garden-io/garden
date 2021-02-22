@@ -15,9 +15,24 @@ import {
   joi,
   joiRepositoryUrl,
   joiPrimitive,
+  joiSparseArray,
 } from "../../../../src/config/common"
 import { validateSchema } from "../../../../src/config/validation"
 import { expectError } from "../../../helpers"
+
+describe("joiSparseArray", () => {
+  it("should filter out undefined values", () => {
+    const schema = joiSparseArray(joi.string()).sparse()
+    const { value } = schema.validate(["foo", undefined, "bar"])
+    expect(value).to.eql(["foo", "bar"])
+  })
+
+  it("should filter out null values", () => {
+    const schema = joiSparseArray(joi.string()).sparse()
+    const { value } = schema.validate(["foo", undefined, "bar", null, "baz"])
+    expect(value).to.eql(["foo", "bar", "baz"])
+  })
+})
 
 describe("envVarRegex", () => {
   it("should fail on invalid env variables", () => {

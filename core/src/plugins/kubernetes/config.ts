@@ -16,6 +16,7 @@ import {
   joiStringMap,
   StringMap,
   joiIdentifierDescription,
+  joiSparseArray,
 } from "../../config/common"
 import { Provider, providerConfigBaseSchema, GenericProviderConfig } from "../../config/provider"
 import {
@@ -268,7 +269,7 @@ const secretRef = joi
   .description("Reference to a Kubernetes secret.")
 
 const imagePullSecretsSchema = () =>
-  joiArray(secretRef).description(dedent`
+  joiSparseArray(secretRef).description(dedent`
     References to \`docker-registry\` secrets to use for authenticating with remote registries when pulling
     images. This is necessary if you reference private images in your module configuration, and is required
     when configuring a remote Kubernetes environment with buildMode=local.
@@ -488,7 +489,7 @@ export const kubernetesConfigBase = () =>
         These are all shared cluster-wide across all users and builds, so they should be resourced accordingly,
         factoring in how many concurrent builds you expect and how large your images and build contexts tend to be.
       `),
-    tlsCertificates: joiArray(tlsCertificateSchema())
+    tlsCertificates: joiSparseArray(tlsCertificateSchema())
       .unique("name")
       .description("One or more certificates to use for ingress."),
     certManager: joi
@@ -541,7 +542,7 @@ export const kubernetesConfigBase = () =>
       )
       .example({ disktype: "ssd" })
       .default(() => ({})),
-    registryProxyTolerations: joiArray(
+    registryProxyTolerations: joiSparseArray(
       joi.object().keys({
         effect: joi.string().allow("NoSchedule", "PreferNoSchedule", "NoExecute").description(dedent`
           "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
@@ -713,7 +714,7 @@ export const kubernetesTaskSchema = () =>
         .description("The arguments to pass to the container used for execution.")
         .example(["rake", "db:migrate"]),
       env: containerEnvVarsSchema(),
-      artifacts: joiArray(containerArtifactSchema()).description(artifactsDescription),
+      artifacts: joiSparseArray(containerArtifactSchema()).description(artifactsDescription),
     })
     .description("The task definitions for this module.")
 
@@ -739,7 +740,7 @@ export const kubernetesTestSchema = () =>
         .description("The arguments to pass to the container used for testing.")
         .example(["npm", "test"]),
       env: containerEnvVarsSchema(),
-      artifacts: joiArray(containerArtifactSchema()).description(artifactsDescription),
+      artifacts: joiSparseArray(containerArtifactSchema()).description(artifactsDescription),
     })
     .description("The test suite definitions for this module.")
 
