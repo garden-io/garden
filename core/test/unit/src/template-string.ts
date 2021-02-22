@@ -13,7 +13,7 @@ import {
   collectTemplateReferences,
   throwOnMissingSecretKeys,
 } from "../../../src/template-string"
-import { ConfigContext } from "../../../src/config/config-context"
+import { ConfigContext } from "../../../src/config/template-contexts/base"
 import { expectError } from "../../helpers"
 import stripAnsi = require("strip-ansi")
 import { dedent } from "../../../src/util/string"

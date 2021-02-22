@@ -9,7 +9,7 @@
 import { cloneDeep, keyBy } from "lodash"
 import { validateWithPath } from "./config/validation"
 import { resolveTemplateStrings, getModuleTemplateReferences, resolveTemplateString } from "./template-string"
-import { ContextResolveOpts, ModuleConfigContext, GenericContext } from "./config/config-context"
+import { ContextResolveOpts, GenericContext } from "./config/template-contexts/base"
 import { relative, resolve, posix } from "path"
 import { Garden } from "./garden"
 import { ConfigurationError, FilesystemError, PluginError } from "./exceptions"
@@ -26,6 +26,7 @@ import { DependencyValidationGraph } from "./util/validate-dependencies"
 import Bluebird from "bluebird"
 import { readFile, mkdirp, writeFile } from "fs-extra"
 import { LogEntry } from "./logger/log-entry"
+import { ModuleConfigContext } from "./config/template-contexts/module"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 40

@@ -15,7 +15,11 @@ import { Garden } from "../../garden"
 import { WorkflowStepSpec, WorkflowConfig, WorkflowFileSpec } from "../../config/workflow"
 import { LogEntry } from "../../logger/log-entry"
 import { GardenError, WorkflowScriptError } from "../../exceptions"
-import { WorkflowConfigContext, WorkflowStepConfigContext, WorkflowStepResult } from "../../config/config-context"
+import {
+  WorkflowConfigContext,
+  WorkflowStepConfigContext,
+  WorkflowStepResult,
+} from "../../config/template-contexts/workflow"
 import { resolveTemplateStrings, resolveTemplateString } from "../../template-string"
 import { ConfigurationError, FilesystemError } from "../../exceptions"
 import { posix, join } from "path"

@@ -25,7 +25,7 @@ import {
 } from "./common"
 import { validateWithPath } from "./validation"
 import { resolveTemplateStrings } from "../template-string"
-import { ProjectConfigContext, EnvironmentConfigContext } from "./config-context"
+import { ProjectConfigContext, EnvironmentConfigContext } from "./template-contexts/project"
 import { findByName, getNames } from "../util/util"
 import { ConfigurationError, ParameterError, ValidationError } from "../exceptions"
 import { PrimitiveMap } from "./common"

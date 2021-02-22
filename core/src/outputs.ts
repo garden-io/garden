@@ -8,7 +8,7 @@
 
 import { Garden } from "./garden"
 import { collectTemplateReferences, resolveTemplateStrings } from "./template-string"
-import { OutputConfigContext } from "./config/config-context"
+import { OutputConfigContext } from "./config/template-contexts/module"
 import { emptyRuntimeContext, prepareRuntimeContext } from "./runtime-context"
 import { DeployTask } from "./tasks/deploy"
 import { TaskTask } from "./tasks/task"

@@ -8,17 +8,13 @@
 
 import { resolve } from "path"
 import { TEMPLATES_DIR, renderTemplateStringReference } from "./config"
-import {
-  ProjectConfigContext,
-  ModuleConfigContext,
-  ProviderConfigContext,
-  OutputConfigContext,
-  WorkflowStepConfigContext,
-  EnvironmentConfigContext,
-} from "../config/config-context"
 import { readFileSync, writeFileSync } from "fs"
 import handlebars from "handlebars"
 import { GARDEN_CORE_ROOT } from "../constants"
+import { ProjectConfigContext, EnvironmentConfigContext } from "../config/template-contexts/project"
+import { ProviderConfigContext } from "../config/template-contexts/provider"
+import { ModuleConfigContext, OutputConfigContext } from "../config/template-contexts/module"
+import { WorkflowStepConfigContext } from "../config/template-contexts/workflow"
 
 export function writeTemplateStringReferenceDocs(docsRoot: string) {
   const referenceDir = resolve(docsRoot, "reference")
