@@ -1,4 +1,31 @@
 
+<a name="0.12.17"></a>
+## [0.12.17](https://github.com/garden-io/garden/compare/0.12.16...0.12.17) (2021-02-22)
+
+### Bug Fixes
+
+* **k8s:** garden publish command now works with any deploymentRegistry ([4fffdbfe](https://github.com/garden-io/garden/commit/4fffdbfe))
+
+### Code Refactoring
+
+* split up config-context module ([6919bc56](https://github.com/garden-io/garden/commit/6919bc56))
+* **k8s:** split container build module up ([c9d0a583](https://github.com/garden-io/garden/commit/c9d0a583))
+
+### Features
+
+* **config:** add ${command.name} and ${command.params} for templating ([d31922df](https://github.com/garden-io/garden/commit/d31922df))
+* **core:** lower case username for templates ([d6b94aaf](https://github.com/garden-io/garden/commit/d6b94aaf))
+* **helm:** allow disabling atomic installs/upgrades ([6247cef1](https://github.com/garden-io/garden/commit/6247cef1))
+* **k8s:** add `clusterBuildkit.nodeSelector` config option ([91376d7e](https://github.com/garden-io/garden/commit/91376d7e))
+* **k8s:** allow setting annotations and labels on project namespace ([6f24beed](https://github.com/garden-io/garden/commit/6f24beed))
+* **k8s:** add cluster-buildkit buildMode ([15f2ab51](https://github.com/garden-io/garden/commit/15f2ab51))
+* **publish:** add template-able --tag parameter to publish command ([51acfb2a](https://github.com/garden-io/garden/commit/51acfb2a))
+* **template:** allow escaping template strings for generated files ([86cd2ffa](https://github.com/garden-io/garden/commit/86cd2ffa))
+
+### Improvements
+
+* **dashboard:** better Stack Graph layout ([665d82ea](https://github.com/garden-io/garden/commit/665d82ea))
+
 <a name="0.12.16"></a>
 ## [0.12.16](https://github.com/garden-io/garden/compare/0.12.15...0.12.16) (2021-02-04)
 
