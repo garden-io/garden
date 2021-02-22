@@ -1618,7 +1618,7 @@ The default hostname configured on the provider.
 
 ### `${providers.<provider-name>.outputs.metadata-namespace}`
 
-The namespace used for Garden metadata.
+The namespace used for Garden metadata (currently always the same as app-namespace).
 
 | Type     |
 | -------- |
