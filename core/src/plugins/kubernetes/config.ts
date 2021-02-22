@@ -107,6 +107,7 @@ export interface KubernetesConfig extends GenericProviderConfig {
   buildMode: ContainerBuildMode
   clusterBuildkit?: {
     rootless?: boolean
+    nodeSelector?: StringMap
   }
   clusterDocker?: {
     enableBuildKit?: boolean
@@ -329,6 +330,16 @@ export const kubernetesConfigBase = () =>
             Please see [the buildkit docs](https://github.com/moby/buildkit/blob/master/docs/rootless.md) for caveats when using this mode.
             `
           ),
+        nodeSelector: joiStringMap(joi.string())
+          .description(
+            dedent`
+            Exposes the \`nodeSelector\` field on the PodSpec of the BuildKit deployment. This allows you to constrain the BuildKit daemon to only run on particular nodes.
+
+            [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
+            `
+          )
+          .example({ disktype: "ssd" })
+          .default(() => ({})),
       })
       .default(() => {})
       .description("Configuration options for the `cluster-buildkit` build mode."),
@@ -523,9 +534,10 @@ export const kubernetesConfigBase = () =>
     systemNodeSelector: joiStringMap(joi.string())
       .description(
         dedent`
-      Exposes the \`nodeSelector\` field on the PodSpec of system services. This allows you to constrain
-      the system services to only run on particular nodes. [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
-    `
+        Exposes the \`nodeSelector\` field on the PodSpec of system services. This allows you to constrain the system services to only run on particular nodes.
+
+        [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
+        `
       )
       .example({ disktype: "ssd" })
       .default(() => ({})),

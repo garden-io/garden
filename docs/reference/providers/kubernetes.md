@@ -50,6 +50,13 @@ providers:
       # using this mode.
       rootless: false
 
+      # Exposes the `nodeSelector` field on the PodSpec of the BuildKit deployment. This allows you to constrain the
+      # BuildKit daemon to only run on particular nodes.
+      #
+      # [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes
+      # guide to assigning Pods to nodes.
+      nodeSelector: {}
+
     # Configuration options for the `cluster-docker` build mode.
     clusterDocker:
       # Enable [BuildKit](https://github.com/moby/buildkit) support. This should in most cases work well and be more
@@ -250,10 +257,11 @@ providers:
       # for now).
       acmeChallengeType: HTTP-01
 
-    # Exposes the `nodeSelector` field on the PodSpec of system services. This allows you to constrain
-    # the system services to only run on particular nodes. [See
-    # here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to
-    # assigning Pods to nodes.
+    # Exposes the `nodeSelector` field on the PodSpec of system services. This allows you to constrain the system
+    # services to only run on particular nodes.
+    #
+    # [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide
+    # to assigning Pods to nodes.
     systemNodeSelector: {}
 
     # For setting tolerations on the registry-proxy when using in-cluster building.
@@ -421,6 +429,28 @@ Please see [the buildkit docs](https://github.com/moby/buildkit/blob/master/docs
 | Type      | Default | Required |
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
+
+### `providers[].clusterBuildkit.nodeSelector`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > nodeSelector
+
+Exposes the `nodeSelector` field on the PodSpec of the BuildKit deployment. This allows you to constrain the BuildKit daemon to only run on particular nodes.
+
+[See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
+
+Example:
+
+```yaml
+providers:
+  - clusterBuildkit:
+      ...
+      nodeSelector:
+          disktype: ssd
+```
 
 ### `providers[].clusterDocker`
 
@@ -1288,8 +1318,9 @@ providers:
 
 [providers](#providers) > systemNodeSelector
 
-Exposes the `nodeSelector` field on the PodSpec of system services. This allows you to constrain
-the system services to only run on particular nodes. [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
+Exposes the `nodeSelector` field on the PodSpec of system services. This allows you to constrain the system services to only run on particular nodes.
+
+[See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
