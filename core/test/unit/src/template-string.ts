@@ -345,6 +345,12 @@ describe("resolveTemplateString", async () => {
     expect(res).to.equal(true)
   })
 
+  it("should handle a logical AND where the first part is false but the second part is not resolvable", async () => {
+    // i.e. the 2nd clause should not need to be evaluated
+    const res = resolveTemplateString("${false && a}", new TestContext({}))
+    expect(res).to.equal(false)
+  })
+
   it("should handle a logical AND with an empty string as the first clause", async () => {
     const res = resolveTemplateString("${'' && true}", new TestContext({}))
     expect(res).to.equal("")

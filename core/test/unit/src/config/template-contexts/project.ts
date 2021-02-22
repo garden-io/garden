@@ -10,6 +10,7 @@ import { expect } from "chai"
 import stripAnsi = require("strip-ansi")
 import { ConfigContext } from "../../../../../src/config/template-contexts/base"
 import { ProjectConfigContext } from "../../../../../src/config/template-contexts/project"
+import { resolveTemplateString } from "../../../../../src/template-string"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
@@ -115,5 +116,56 @@ describe("ProjectConfigContext", () => {
     expect(c.resolve({ key: ["local", "usernameLowerCase"], nodePath: [], opts: {} })).to.eql({
       resolved: "someuser",
     })
+  })
+
+  it("should resolve the command name", () => {
+    const c = new ProjectConfigContext({
+      projectName: "some-project",
+      projectRoot: "/tmp",
+      artifactsPath: "/tmp",
+      branch: "main",
+      username: "SomeUser",
+      secrets: {},
+      commandInfo: { name: "test", args: {}, opts: {} },
+    })
+    expect(c.resolve({ key: ["command", "name"], nodePath: [], opts: {} })).to.eql({
+      resolved: "test",
+    })
+  })
+
+  it("should resolve command params (positive)", () => {
+    const c = new ProjectConfigContext({
+      projectName: "some-project",
+      projectRoot: "/tmp",
+      artifactsPath: "/tmp",
+      branch: "main",
+      username: "SomeUser",
+      secrets: {},
+      commandInfo: { name: "deploy", args: {}, opts: { "hot-reload": ["my-service"] } },
+    })
+
+    let result = resolveTemplateString(
+      "${command.name == 'deploy' && (command.params.hot-reload contains 'my-service')}",
+      c
+    )
+    expect(result).to.be.true
+  })
+
+  it("should resolve command params (negative)", () => {
+    const c = new ProjectConfigContext({
+      projectName: "some-project",
+      projectRoot: "/tmp",
+      artifactsPath: "/tmp",
+      branch: "main",
+      username: "SomeUser",
+      secrets: {},
+      commandInfo: { name: "test", args: {}, opts: {} },
+    })
+
+    let result = resolveTemplateString(
+      "${command.params contains 'hot-reload' && command.params.hot-reload contains 'my-service'}",
+      c
+    )
+    expect(result).to.be.false
   })
 })

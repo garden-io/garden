@@ -59,6 +59,7 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
     { name: "terraform" },
   ]
   const garden = await Garden.factory(__dirname, {
+    commandInfo: { name: "generate-docs", args: {}, opts: {} },
     config: {
       path: __dirname,
       apiVersion: "garden.io/v0",

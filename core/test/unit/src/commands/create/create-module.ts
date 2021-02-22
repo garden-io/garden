@@ -29,7 +29,7 @@ describe("CreateModuleCommand", () => {
   beforeEach(async () => {
     tmp = await makeTempDir()
     await exec("git", ["init"], { cwd: tmp.path })
-    garden = await makeDummyGarden(tmp.path)
+    garden = await makeDummyGarden(tmp.path, { commandInfo: { name: "create module", args: {}, opts: {} } })
   })
 
   afterEach(async () => {

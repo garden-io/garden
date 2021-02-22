@@ -29,6 +29,8 @@ import { resolve, join } from "path"
 import stripAnsi from "strip-ansi"
 import { keyBy } from "lodash"
 
+const commandInfo = { name: "test", args: {}, opts: {} }
+
 describe("resolveProjectConfig", () => {
   it("should pass through a canonical project config", async () => {
     const defaultEnvironment = "default"
@@ -53,6 +55,7 @@ describe("resolveProjectConfig", () => {
         branch: "main",
         username: "some-user",
         secrets: {},
+        commandInfo,
       })
     ).to.eql({
       ...config,
@@ -91,6 +94,7 @@ describe("resolveProjectConfig", () => {
         branch: "main",
         username: "some-user",
         secrets: {},
+        commandInfo,
       })
     ).to.eql({
       ...config,
@@ -145,6 +149,7 @@ describe("resolveProjectConfig", () => {
         branch: "main",
         username: "some-user",
         secrets: { foo: "banana" },
+        commandInfo,
       })
     ).to.eql({
       ...config,
@@ -219,6 +224,7 @@ describe("resolveProjectConfig", () => {
         branch: "main",
         username: "some-user",
         secrets: {},
+        commandInfo,
       })
     ).to.eql({
       ...config,
@@ -282,6 +288,7 @@ describe("resolveProjectConfig", () => {
       branch: "main",
       username: "some-user",
       secrets: {},
+      commandInfo,
     })
 
     expect(result.environments[0].variables).to.eql(config.environments[0].variables)
@@ -310,6 +317,7 @@ describe("resolveProjectConfig", () => {
         branch: "main",
         username: "some-user",
         secrets: {},
+        commandInfo,
       })
     ).to.eql({
       ...config,
@@ -343,6 +351,7 @@ describe("resolveProjectConfig", () => {
         branch: "main",
         username: "some-user",
         secrets: {},
+        commandInfo,
       })
     ).to.eql({
       ...config,
@@ -395,6 +404,7 @@ describe("resolveProjectConfig", () => {
         branch: "main",
         username: "some-user",
         secrets: {},
+        commandInfo,
       })
     ).to.eql({
       ...config,
@@ -470,6 +480,7 @@ describe("resolveProjectConfig", () => {
         branch: "main",
         username: "some-user",
         secrets: {},
+        commandInfo,
       })
     ).to.eql({
       ...config,
@@ -540,6 +551,7 @@ describe("pickEnvironment", () => {
           branch: "main",
           username,
           secrets: {},
+          commandInfo,
         }),
       "parameter"
     )
@@ -566,6 +578,7 @@ describe("pickEnvironment", () => {
         branch: "main",
         username,
         secrets: {},
+        commandInfo,
       })
     ).to.eql({
       environmentName: "default",
@@ -609,6 +622,7 @@ describe("pickEnvironment", () => {
         branch: "main",
         username,
         secrets: {},
+        commandInfo,
       })
     ).to.eql({
       environmentName: "default",
@@ -651,6 +665,7 @@ describe("pickEnvironment", () => {
         branch: "main",
         username,
         secrets: {},
+        commandInfo,
       })
     ).to.eql({
       environmentName: "default",
@@ -708,6 +723,7 @@ describe("pickEnvironment", () => {
       branch: "main",
       username,
       secrets: {},
+      commandInfo,
     })
 
     expect(result.variables).to.eql({
@@ -761,6 +777,7 @@ describe("pickEnvironment", () => {
       branch: "main",
       username,
       secrets: {},
+      commandInfo,
     })
 
     expect(result.variables).to.eql({
@@ -808,6 +825,7 @@ describe("pickEnvironment", () => {
       branch: "main",
       username,
       secrets: {},
+      commandInfo,
     })
 
     expect(result.variables).to.eql({
@@ -856,6 +874,7 @@ describe("pickEnvironment", () => {
       branch: "main",
       username,
       secrets: {},
+      commandInfo,
     })
 
     expect(result.variables).to.eql({
@@ -904,6 +923,7 @@ describe("pickEnvironment", () => {
       branch: "main",
       username,
       secrets: {},
+      commandInfo,
     })
 
     expect(result.variables).to.eql({
@@ -963,6 +983,7 @@ describe("pickEnvironment", () => {
       branch: "main",
       username,
       secrets: {},
+      commandInfo,
     })
 
     expect(result.variables).to.eql({
@@ -1023,6 +1044,7 @@ describe("pickEnvironment", () => {
       branch: "main",
       username,
       secrets: {},
+      commandInfo,
     })
 
     expect(result.variables).to.eql({
@@ -1055,6 +1077,7 @@ describe("pickEnvironment", () => {
       branch: "main",
       username,
       secrets: { foo: "banana" },
+      commandInfo,
     })
 
     expect(result.variables).to.eql({
@@ -1086,6 +1109,7 @@ describe("pickEnvironment", () => {
       branch: "main",
       username,
       secrets: {},
+      commandInfo,
     })
   })
 
@@ -1116,6 +1140,7 @@ describe("pickEnvironment", () => {
       branch: "main",
       username,
       secrets: {},
+      commandInfo,
     })
 
     expect(keyBy(result.providers, "name")["my-provider"].a).to.equal("${var.missing}")
@@ -1141,6 +1166,7 @@ describe("pickEnvironment", () => {
       branch: "main",
       username,
       secrets: {},
+      commandInfo,
     })
 
     expect(result.variables).to.eql({
@@ -1200,6 +1226,7 @@ describe("pickEnvironment", () => {
       branch: "main",
       username,
       secrets: {},
+      commandInfo,
     })
 
     expect(result.variables).to.eql({
@@ -1241,6 +1268,7 @@ describe("pickEnvironment", () => {
           branch: "main",
           username,
           secrets: {},
+          commandInfo,
         }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(
@@ -1278,6 +1306,7 @@ describe("pickEnvironment", () => {
           branch: "main",
           username,
           secrets: {},
+          commandInfo,
         }),
       (err) => expect(err.message).to.equal("Could not find varfile at path 'foo.env'")
     )
@@ -1312,6 +1341,7 @@ describe("pickEnvironment", () => {
           branch: "main",
           username,
           secrets: {},
+          commandInfo,
         }),
       (err) => expect(err.message).to.equal("Could not find varfile at path 'foo.env'")
     )
@@ -1338,6 +1368,7 @@ describe("pickEnvironment", () => {
         branch: "main",
         username,
         secrets: {},
+        commandInfo,
       })
     ).to.eql({
       environmentName: "default",
@@ -1369,6 +1400,7 @@ describe("pickEnvironment", () => {
         branch: "main",
         username,
         secrets: {},
+        commandInfo,
       })
     ).to.eql({
       environmentName: "default",
@@ -1400,6 +1432,7 @@ describe("pickEnvironment", () => {
         username,
         branch: "main",
         secrets: {},
+        commandInfo,
       })
     ).to.eql({
       environmentName: "default",
@@ -1432,6 +1465,7 @@ describe("pickEnvironment", () => {
           branch: "main",
           username,
           secrets: {},
+          commandInfo,
         }),
       (err) =>
         expect(err.message).to.equal(
@@ -1462,6 +1496,7 @@ describe("pickEnvironment", () => {
           branch: "main",
           username,
           secrets: {},
+          commandInfo,
         }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(

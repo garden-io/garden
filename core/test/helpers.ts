@@ -22,7 +22,7 @@ import {
   RegisterPluginParam,
   ModuleAndRuntimeActionHandlers,
 } from "../src/types/plugin/plugin"
-import { Garden, GardenOpts } from "../src/garden"
+import { Garden } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { mapValues, fromPairs } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
@@ -43,7 +43,7 @@ import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
 import { SuiteFunction, TestFunction } from "mocha"
 import { GardenError } from "../src/exceptions"
 import { AnalyticsGlobalConfig } from "../src/config-store"
-import { TestGarden, EventLogEntry } from "../src/util/testing"
+import { TestGarden, EventLogEntry, TestGardenOpts } from "../src/util/testing"
 import { Logger } from "../src/logger/logger"
 import { LogLevel } from "../src/logger/log-node"
 import { ExecInServiceParams, ExecInServiceResult } from "../src/types/plugin/service/execInService"
@@ -333,7 +333,7 @@ export const makeTestModule = (params: Partial<ModuleConfig> = {}) => {
 
 export const testPlugins = () => [testPlugin(), testPluginB(), testPluginC()]
 
-export const makeTestGarden = async (projectRoot: string, opts: GardenOpts = {}) => {
+export const makeTestGarden = async (projectRoot: string, opts: TestGardenOpts = {}) => {
   opts = { sessionId: uuidv4(), ...opts }
   const plugins = [...testPlugins(), ...(opts.plugins || [])]
   return TestGarden.factory(projectRoot, { ...opts, plugins })

@@ -27,6 +27,7 @@ describe("WorkflowConfigContext", () => {
   before(async () => {
     garden = await makeTestGardenA()
     garden["secrets"] = { someSecret: "someSecretValue" }
+    currentBranch = garden.vcsBranch
     c = new WorkflowConfigContext(garden)
   })
 

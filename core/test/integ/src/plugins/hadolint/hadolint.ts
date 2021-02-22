@@ -10,8 +10,7 @@ import tmp from "tmp-promise"
 import { ProjectConfig, defaultNamespace } from "../../../../../src/config/project"
 import execa = require("execa")
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
-import { Garden } from "../../../../../src/garden"
-import { getDataDir } from "../../../../helpers"
+import { getDataDir, TestGarden } from "../../../../helpers"
 import { expect } from "chai"
 import stripAnsi from "strip-ansi"
 import { dedent } from "../../../../../src/util/string"
@@ -58,7 +57,7 @@ describe("hadolint provider", () => {
   })
 
   it("should add a hadolint module for each container module with a Dockerfile", async () => {
-    const garden = await Garden.factory(tmpPath, {
+    const garden = await TestGarden.factory(tmpPath, {
       plugins: [],
       config: projectConfigFoo,
     })
@@ -120,7 +119,7 @@ describe("hadolint provider", () => {
       ],
     })
 
-    const garden = await Garden.factory(tmpPath, {
+    const garden = await TestGarden.factory(tmpPath, {
       plugins: [foo],
       config: {
         ...projectConfigFoo,
@@ -158,7 +157,7 @@ describe("hadolint provider", () => {
     const path = getDataDir("hadolint")
 
     it("should format warnings and errors nicely", async () => {
-      const garden = await Garden.factory(tmpPath, {
+      const garden = await TestGarden.factory(tmpPath, {
         plugins: [],
         config: projectConfigFoo,
       })
@@ -212,7 +211,7 @@ describe("hadolint provider", () => {
     })
 
     it("should prefer a .hadolint.yaml in the module root if it's available", async () => {
-      const garden = await Garden.factory(tmpPath, {
+      const garden = await TestGarden.factory(tmpPath, {
         plugins: [],
         config: projectConfigFoo,
       })
@@ -274,7 +273,7 @@ describe("hadolint provider", () => {
     })
 
     it("should use a .hadolint.yaml in the project root if there's none in the module root", async () => {
-      const garden = await Garden.factory(tmpPath, {
+      const garden = await TestGarden.factory(tmpPath, {
         plugins: [],
         config: projectConfigFoo,
       })
@@ -334,7 +333,7 @@ describe("hadolint provider", () => {
     })
 
     it("should set success=false with a linting warning if testFailureThreshold=warning", async () => {
-      const garden = await Garden.factory(tmpPath, {
+      const garden = await TestGarden.factory(tmpPath, {
         plugins: [],
         config: {
           ...projectConfigFoo,
@@ -381,7 +380,7 @@ describe("hadolint provider", () => {
     })
 
     it("should set success=true with a linting warning if testFailureThreshold=error", async () => {
-      const garden = await Garden.factory(tmpPath, {
+      const garden = await TestGarden.factory(tmpPath, {
         plugins: [],
         config: projectConfigFoo,
       })
@@ -425,7 +424,7 @@ describe("hadolint provider", () => {
     })
 
     it("should set success=true with warnings and errors if testFailureThreshold=none", async () => {
-      const garden = await Garden.factory(tmpPath, {
+      const garden = await TestGarden.factory(tmpPath, {
         plugins: [],
         config: {
           ...projectConfigFoo,

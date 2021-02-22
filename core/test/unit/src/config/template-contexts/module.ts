@@ -35,6 +35,7 @@ describe("ModuleConfigContext", () => {
     garden["secrets"] = { someSecret: "someSecretValue" }
     const graph = await garden.getConfigGraph(garden.log)
     const modules = graph.getModules()
+    currentBranch = garden.vcsBranch
 
     c = new ModuleConfigContext({
       garden,

@@ -16,8 +16,8 @@ import { makeTestGarden, dataDir, TestGarden, expectError } from "../../../helpe
 import { defaultConfigFilename, TempDirectory, makeTempDir, joinWithPosix } from "../../../../src/util/fs"
 import { BuildStaging, SyncParams } from "../../../../src/build-staging/build-staging"
 import { LogEntry } from "../../../../src/logger/log-entry"
-import { GardenOpts } from "../../../../src/garden"
 import Bluebird from "bluebird"
+import { TestGardenOpts } from "../../../../src/util/testing"
 
 /*
   Module dependency diagram for build-dir test project
@@ -31,7 +31,7 @@ import Bluebird from "bluebird"
 
 const projectRoot = join(dataDir, "test-projects", "build-dir")
 
-const makeGarden = async (opts: GardenOpts = {}) => {
+const makeGarden = async (opts: TestGardenOpts = {}) => {
   return await makeTestGarden(projectRoot, opts)
 }
 

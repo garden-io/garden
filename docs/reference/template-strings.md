@@ -108,6 +108,46 @@ Example:
 my-variable: ${local.usernameLowerCase}
 ```
 
+### `${command.*}`
+
+Information about the currently running command and its arguments.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${command.name}`
+
+The currently running Garden CLI command, without positional arguments or option flags. This can be handy to e.g. change some variables based on whether you're running `garden test` or some other specific command.
+
+Note that this will currently always resolve to `"run workflow"` when running Workflows, as opposed to individual workflow step commands. This may be revisited at a later time, but currently all configuration is resolved once for all workflow steps.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${command.name}
+```
+
+### `${command.params.*}`
+
+A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
+
+For example, to see if a service is in hot-reload mode, you might do something like `${command.params contains 'hot-reload' && command.params.hot-reload contains 'my-service'}`. Notice that you currently need to check both for the existence of the parameter, and also to correctly handle the array value.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${command.params.<name>}`
+
+| Type  |
+| ----- |
+| `any` |
+
 ### `${project.*}`
 
 Information about the Garden project.
@@ -267,6 +307,46 @@ Example:
 ```yaml
 my-variable: ${local.usernameLowerCase}
 ```
+
+### `${command.*}`
+
+Information about the currently running command and its arguments.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${command.name}`
+
+The currently running Garden CLI command, without positional arguments or option flags. This can be handy to e.g. change some variables based on whether you're running `garden test` or some other specific command.
+
+Note that this will currently always resolve to `"run workflow"` when running Workflows, as opposed to individual workflow step commands. This may be revisited at a later time, but currently all configuration is resolved once for all workflow steps.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${command.name}
+```
+
+### `${command.params.*}`
+
+A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
+
+For example, to see if a service is in hot-reload mode, you might do something like `${command.params contains 'hot-reload' && command.params.hot-reload contains 'my-service'}`. Notice that you currently need to check both for the existence of the parameter, and also to correctly handle the array value.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${command.params.<name>}`
+
+| Type  |
+| ----- |
+| `any` |
 
 ### `${project.*}`
 
@@ -459,6 +539,46 @@ Example:
 ```yaml
 my-variable: ${local.usernameLowerCase}
 ```
+
+### `${command.*}`
+
+Information about the currently running command and its arguments.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${command.name}`
+
+The currently running Garden CLI command, without positional arguments or option flags. This can be handy to e.g. change some variables based on whether you're running `garden test` or some other specific command.
+
+Note that this will currently always resolve to `"run workflow"` when running Workflows, as opposed to individual workflow step commands. This may be revisited at a later time, but currently all configuration is resolved once for all workflow steps.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${command.name}
+```
+
+### `${command.params.*}`
+
+A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
+
+For example, to see if a service is in hot-reload mode, you might do something like `${command.params contains 'hot-reload' && command.params.hot-reload contains 'my-service'}`. Notice that you currently need to check both for the existence of the parameter, and also to correctly handle the array value.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${command.params.<name>}`
+
+| Type  |
+| ----- |
+| `any` |
 
 ### `${project.*}`
 
@@ -745,6 +865,46 @@ Example:
 my-variable: ${local.usernameLowerCase}
 ```
 
+### `${command.*}`
+
+Information about the currently running command and its arguments.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${command.name}`
+
+The currently running Garden CLI command, without positional arguments or option flags. This can be handy to e.g. change some variables based on whether you're running `garden test` or some other specific command.
+
+Note that this will currently always resolve to `"run workflow"` when running Workflows, as opposed to individual workflow step commands. This may be revisited at a later time, but currently all configuration is resolved once for all workflow steps.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${command.name}
+```
+
+### `${command.params.*}`
+
+A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
+
+For example, to see if a service is in hot-reload mode, you might do something like `${command.params contains 'hot-reload' && command.params.hot-reload contains 'my-service'}`. Notice that you currently need to check both for the existence of the parameter, and also to correctly handle the array value.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${command.params.<name>}`
+
+| Type  |
+| ----- |
+| `any` |
+
 ### `${project.*}`
 
 Information about the Garden project.
@@ -1065,7 +1225,7 @@ The name of the parent module.
 
 ### `${template.*}`
 
-Information about the ModuleTemplate used when generating the module.
+Information about the undefined used when generating the module.
 
 | Type     |
 | -------- |
@@ -1073,7 +1233,7 @@ Information about the ModuleTemplate used when generating the module.
 
 ### `${template.name}`
 
-The name of the ModuleTemplate being resolved.
+The name of the undefined being resolved.
 
 | Type     |
 | -------- |
@@ -1081,7 +1241,7 @@ The name of the ModuleTemplate being resolved.
 
 ### `${inputs.*}`
 
-The inputs provided to the module through a ModuleTemplate, if applicable.
+The inputs provided to the module through a undefined, if applicable.
 
 | Type     | Default |
 | -------- | ------- |
@@ -1198,6 +1358,46 @@ Example:
 my-variable: ${local.usernameLowerCase}
 ```
 
+### `${command.*}`
+
+Information about the currently running command and its arguments.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${command.name}`
+
+The currently running Garden CLI command, without positional arguments or option flags. This can be handy to e.g. change some variables based on whether you're running `garden test` or some other specific command.
+
+Note that this will currently always resolve to `"run workflow"` when running Workflows, as opposed to individual workflow step commands. This may be revisited at a later time, but currently all configuration is resolved once for all workflow steps.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${command.name}
+```
+
+### `${command.params.*}`
+
+A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
+
+For example, to see if a service is in hot-reload mode, you might do something like `${command.params contains 'hot-reload' && command.params.hot-reload contains 'my-service'}`. Notice that you currently need to check both for the existence of the parameter, and also to correctly handle the array value.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${command.params.<name>}`
+
+| Type  |
+| ----- |
+| `any` |
+
 ### `${project.*}`
 
 Information about the Garden project.
@@ -1518,7 +1718,7 @@ The name of the parent module.
 
 ### `${template.*}`
 
-Information about the ModuleTemplate used when generating the module.
+Information about the undefined used when generating the module.
 
 | Type     |
 | -------- |
@@ -1526,7 +1726,7 @@ Information about the ModuleTemplate used when generating the module.
 
 ### `${template.name}`
 
-The name of the ModuleTemplate being resolved.
+The name of the undefined being resolved.
 
 | Type     |
 | -------- |
@@ -1534,7 +1734,7 @@ The name of the ModuleTemplate being resolved.
 
 ### `${inputs.*}`
 
-The inputs provided to the module through a ModuleTemplate, if applicable.
+The inputs provided to the module through a undefined, if applicable.
 
 | Type     | Default |
 | -------- | ------- |
@@ -1647,6 +1847,46 @@ Example:
 ```yaml
 my-variable: ${local.usernameLowerCase}
 ```
+
+### `${command.*}`
+
+Information about the currently running command and its arguments.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${command.name}`
+
+The currently running Garden CLI command, without positional arguments or option flags. This can be handy to e.g. change some variables based on whether you're running `garden test` or some other specific command.
+
+Note that this will currently always resolve to `"run workflow"` when running Workflows, as opposed to individual workflow step commands. This may be revisited at a later time, but currently all configuration is resolved once for all workflow steps.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${command.name}
+```
+
+### `${command.params.*}`
+
+A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
+
+For example, to see if a service is in hot-reload mode, you might do something like `${command.params contains 'hot-reload' && command.params.hot-reload contains 'my-service'}`. Notice that you currently need to check both for the existence of the parameter, and also to correctly handle the array value.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${command.params.<name>}`
+
+| Type  |
+| ----- |
+| `any` |
 
 ### `${project.*}`
 

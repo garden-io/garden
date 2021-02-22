@@ -13,7 +13,7 @@ import { gardenPlugin, configureExecModule } from "../../../../src/plugins/exec"
 import { GARDEN_BUILD_VERSION_FILENAME, DEFAULT_API_VERSION } from "../../../../src/constants"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { keyBy } from "lodash"
-import { getDataDir, makeTestModule, expectError } from "../../../helpers"
+import { getDataDir, makeTestModule, expectError, TestGarden } from "../../../helpers"
 import { TaskTask } from "../../../../src/tasks/task"
 import { readModuleVersionFile } from "../../../../src/vcs/vcs"
 import { dataDir, makeTestGarden } from "../../../helpers"
@@ -41,7 +41,7 @@ describe("exec plugin", () => {
   })
 
   it("should run a script on init in the project root, if configured", async () => {
-    const _garden = await Garden.factory(garden.projectRoot, {
+    const _garden = await TestGarden.factory(garden.projectRoot, {
       plugins: [],
       config: {
         apiVersion: DEFAULT_API_VERSION,
@@ -64,7 +64,7 @@ describe("exec plugin", () => {
   })
 
   it("should throw if a script configured and exits with a non-zero code", async () => {
-    const _garden = await Garden.factory(garden.projectRoot, {
+    const _garden = await TestGarden.factory(garden.projectRoot, {
       plugins: [],
       config: {
         apiVersion: DEFAULT_API_VERSION,

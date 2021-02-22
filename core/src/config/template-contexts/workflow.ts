@@ -41,6 +41,7 @@ export class WorkflowConfigContext extends EnvironmentConfigContext {
       username: garden.username,
       variables: garden.variables,
       secrets: garden.secrets,
+      commandInfo: garden.commandInfo,
     })
 
     const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName

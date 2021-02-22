@@ -14,6 +14,7 @@ import {
   configureTestModule,
   testModuleSpecSchema,
   cleanProject,
+  TestGarden,
 } from "../../../../helpers"
 import { GetTaskResultCommand } from "../../../../../src/commands/get/get-task-result"
 import { expect } from "chai"
@@ -65,7 +66,7 @@ describe("GetTaskResultCommand", () => {
   const command = new GetTaskResultCommand()
 
   beforeEach(async () => {
-    garden = await Garden.factory(projectRootB, { plugins: [testPlugin] })
+    garden = await TestGarden.factory(projectRootB, { plugins: [testPlugin] })
     log = garden.log
   })
 

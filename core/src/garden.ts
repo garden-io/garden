@@ -116,7 +116,7 @@ export type ModuleActionMap = {
 }
 
 export interface GardenOpts {
-  commandInfo?: CommandInfo
+  commandInfo: CommandInfo
   config?: ProjectConfig
   disablePortForwards?: boolean
   environmentName?: string
@@ -215,6 +215,7 @@ export class Garden {
   private readonly forceRefresh: boolean
   public readonly enterpriseApi: EnterpriseApi | null
   public readonly disablePortForwards: boolean
+  public readonly commandInfo: CommandInfo
 
   constructor(params: GardenParams) {
     this.buildStaging = params.buildStaging
@@ -246,6 +247,7 @@ export class Garden {
     this.vcs = params.vcs
     this.forceRefresh = !!params.forceRefresh
     this.enterpriseApi = params.enterpriseApi || null
+    this.commandInfo = params.opts.commandInfo
 
     // make sure we're on a supported platform
     const currentPlatform = platform()
@@ -287,129 +289,9 @@ export class Garden {
   static async factory<T extends typeof Garden>(
     this: T,
     currentDirectory: string,
-    opts: GardenOpts = {}
+    opts: GardenOpts
   ): Promise<InstanceType<T>> {
-    let { environmentName: environmentStr, config, gardenDirPath, plugins = [], disablePortForwards } = opts
-
-    if (!config) {
-      config = await findProjectConfig(currentDirectory)
-
-      if (!config) {
-        throw new ConfigurationError(
-          `Not a project directory (or any of the parent directories): ${currentDirectory}`,
-          { currentDirectory }
-        )
-      }
-    }
-
-    gardenDirPath = resolve(config.path, gardenDirPath || DEFAULT_GARDEN_DIR_NAME)
-    await ensureDir(gardenDirPath)
-
-    const artifactsPath = resolve(gardenDirPath, "artifacts")
-    await ensureDir(artifactsPath)
-
-    const _username = (await username()) || ""
-    const projectName = config.name
-    const log = opts.log || getLogger().placeholder()
-
-    // Connect to the state storage
-    await ensureConnected()
-
-    const { sources: projectSources, path: projectRoot } = config
-
-    const vcsBranch = (await new GitHandler(projectRoot, gardenDirPath, []).getBranchName(log, projectRoot)) || ""
-
-    const defaultEnvironmentName = resolveTemplateString(
-      config.defaultEnvironment,
-      new DefaultEnvironmentContext({ projectName, projectRoot, artifactsPath, branch: vcsBranch, username: _username })
-    ) as string
-
-    const defaultEnvironment = getDefaultEnvironmentName(defaultEnvironmentName, config)
-
-    if (!environmentStr) {
-      environmentStr = defaultEnvironment
-    }
-
-    const { environment: environmentName } = parseEnvironment(environmentStr)
-
-    const sessionId = opts.sessionId || null
-    const projectId = config.id || null
-    let secrets: StringMap = {}
-    const enterpriseApi = opts.enterpriseApi || null
-    if (!opts.noEnterprise && enterpriseApi?.isUserLoggedIn) {
-      const enterpriseInitResult = await enterpriseInit({ log, projectId, enterpriseApi, environmentName })
-      secrets = enterpriseInitResult.secrets
-    }
-
-    config = resolveProjectConfig({
-      defaultEnvironment: defaultEnvironmentName,
-      config,
-      artifactsPath,
-      branch: vcsBranch,
-      username: _username,
-      secrets,
-    })
-
-    const vcs = new GitHandler(projectRoot, gardenDirPath, config.dotIgnoreFiles)
-
-    let { namespace, providers, variables, production } = await pickEnvironment({
-      projectConfig: config,
-      envString: environmentStr,
-      artifactsPath,
-      branch: vcsBranch,
-      username: _username,
-      secrets,
-    })
-
-    // Allow overriding variables
-    variables = { ...variables, ...(opts.variables || {}) }
-
-    const legacyBuildSync =
-      opts.legacyBuildSync === undefined ? gardenEnv.GARDEN_LEGACY_BUILD_STAGE : opts.legacyBuildSync
-    const buildDirCls = legacyBuildSync ? BuildDirRsync : BuildStaging
-    const buildDir = await buildDirCls.factory(projectRoot, gardenDirPath)
-    const workingCopyId = await getWorkingCopyId(gardenDirPath)
-
-    // We always exclude the garden dir
-    const gardenDirExcludePattern = `${relative(projectRoot, gardenDirPath)}/**/*`
-    const moduleExcludePatterns = [
-      ...((config.modules || {}).exclude || []),
-      gardenDirExcludePattern,
-      ...fixedProjectExcludes,
-    ]
-
-    const garden = new this({
-      artifactsPath,
-      vcsBranch,
-      sessionId,
-      disablePortForwards,
-      projectId,
-      projectRoot,
-      projectName,
-      environmentName,
-      environmentConfigs: config.environments,
-      namespace,
-      variables,
-      secrets,
-      projectSources,
-      buildStaging: buildDir,
-      production,
-      gardenDirPath,
-      opts,
-      outputs: config.outputs || [],
-      plugins,
-      providerConfigs: providers,
-      moduleExcludePatterns,
-      workingCopyId,
-      dotIgnoreFiles: config.dotIgnoreFiles,
-      moduleIncludePatterns: (config.modules || {}).include,
-      log,
-      username: _username,
-      vcs,
-      forceRefresh: opts.forceRefresh,
-      enterpriseApi,
-    }) as InstanceType<T>
-
+    const garden = new this(await resolveGardenParams(currentDirectory, opts)) as InstanceType<T>
     return garden
   }
 
@@ -1221,6 +1103,138 @@ export class Garden {
   }
 
   //endregion
+}
+
+export async function resolveGardenParams(currentDirectory: string, opts: GardenOpts): Promise<GardenParams> {
+  let { environmentName: environmentStr, config, gardenDirPath, plugins = [], disablePortForwards } = opts
+
+  if (!config) {
+    config = await findProjectConfig(currentDirectory)
+
+    if (!config) {
+      throw new ConfigurationError(`Not a project directory (or any of the parent directories): ${currentDirectory}`, {
+        currentDirectory,
+      })
+    }
+  }
+
+  gardenDirPath = resolve(config.path, gardenDirPath || DEFAULT_GARDEN_DIR_NAME)
+  await ensureDir(gardenDirPath)
+
+  const artifactsPath = resolve(gardenDirPath, "artifacts")
+  await ensureDir(artifactsPath)
+
+  const _username = (await username()) || ""
+  const projectName = config.name
+  const log = opts.log || getLogger().placeholder()
+
+  // Connect to the state storage
+  await ensureConnected()
+
+  const { sources: projectSources, path: projectRoot } = config
+  const commandInfo = opts.commandInfo
+
+  const vcsBranch = (await new GitHandler(projectRoot, gardenDirPath, []).getBranchName(log, projectRoot)) || ""
+
+  const defaultEnvironmentName = resolveTemplateString(
+    config.defaultEnvironment,
+    new DefaultEnvironmentContext({
+      projectName,
+      projectRoot,
+      artifactsPath,
+      branch: vcsBranch,
+      username: _username,
+      commandInfo,
+    })
+  ) as string
+
+  const defaultEnvironment = getDefaultEnvironmentName(defaultEnvironmentName, config)
+
+  if (!environmentStr) {
+    environmentStr = defaultEnvironment
+  }
+
+  const { environment: environmentName } = parseEnvironment(environmentStr)
+
+  const sessionId = opts.sessionId || null
+  const projectId = config.id || null
+  let secrets: StringMap = {}
+  const enterpriseApi = opts.enterpriseApi || null
+  if (!opts.noEnterprise && enterpriseApi?.isUserLoggedIn) {
+    const enterpriseInitResult = await enterpriseInit({ log, projectId, enterpriseApi, environmentName })
+    secrets = enterpriseInitResult.secrets
+  }
+
+  config = resolveProjectConfig({
+    defaultEnvironment: defaultEnvironmentName,
+    config,
+    artifactsPath,
+    branch: vcsBranch,
+    username: _username,
+    secrets,
+    commandInfo,
+  })
+
+  const vcs = new GitHandler(projectRoot, gardenDirPath, config.dotIgnoreFiles)
+
+  let { namespace, providers, variables, production } = await pickEnvironment({
+    projectConfig: config,
+    envString: environmentStr,
+    artifactsPath,
+    branch: vcsBranch,
+    username: _username,
+    secrets,
+    commandInfo,
+  })
+
+  // Allow overriding variables
+  variables = { ...variables, ...(opts.variables || {}) }
+
+  const legacyBuildSync =
+    opts.legacyBuildSync === undefined ? gardenEnv.GARDEN_LEGACY_BUILD_STAGE : opts.legacyBuildSync
+  const buildDirCls = legacyBuildSync ? BuildDirRsync : BuildStaging
+  const buildDir = await buildDirCls.factory(projectRoot, gardenDirPath)
+  const workingCopyId = await getWorkingCopyId(gardenDirPath)
+
+  // We always exclude the garden dir
+  const gardenDirExcludePattern = `${relative(projectRoot, gardenDirPath)}/**/*`
+  const moduleExcludePatterns = [
+    ...((config.modules || {}).exclude || []),
+    gardenDirExcludePattern,
+    ...fixedProjectExcludes,
+  ]
+
+  return {
+    artifactsPath,
+    vcsBranch,
+    sessionId,
+    disablePortForwards,
+    projectId,
+    projectRoot,
+    projectName,
+    environmentName,
+    environmentConfigs: config.environments,
+    namespace,
+    variables,
+    secrets,
+    projectSources,
+    buildStaging: buildDir,
+    production,
+    gardenDirPath,
+    opts,
+    outputs: config.outputs || [],
+    plugins,
+    providerConfigs: providers,
+    moduleExcludePatterns,
+    workingCopyId,
+    dotIgnoreFiles: config.dotIgnoreFiles,
+    moduleIncludePatterns: (config.modules || {}).include,
+    log,
+    username: _username,
+    vcs,
+    forceRefresh: opts.forceRefresh,
+    enterpriseApi,
+  }
 }
 
 /**

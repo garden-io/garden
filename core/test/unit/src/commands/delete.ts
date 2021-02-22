@@ -7,8 +7,14 @@
  */
 
 import { DeleteSecretCommand, DeleteEnvironmentCommand, DeleteServiceCommand } from "../../../../src/commands/delete"
-import { Garden } from "../../../../src/garden"
-import { expectError, makeTestGardenA, getDataDir, configureTestModule, withDefaultGlobalOpts } from "../../../helpers"
+import {
+  expectError,
+  makeTestGardenA,
+  getDataDir,
+  configureTestModule,
+  withDefaultGlobalOpts,
+  TestGarden,
+} from "../../../helpers"
 import { expect } from "chai"
 import { ServiceStatus } from "../../../../src/types/service"
 import { EnvironmentStatus } from "../../../../src/types/plugin/provider/getEnvironmentStatus"
@@ -115,7 +121,7 @@ describe("DeleteEnvironmentCommand", () => {
   const plugins = [testProvider]
 
   it("should delete environment with services", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins })
+    const garden = await TestGarden.factory(projectRootB, { plugins })
     const log = garden.log
 
     const { result } = await command.action({
@@ -182,7 +188,7 @@ describe("DeleteServiceCommand", () => {
   const projectRootB = getDataDir("test-project-b")
 
   it("should return the status of the deleted service", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins })
+    const garden = await TestGarden.factory(projectRootB, { plugins })
     const log = garden.log
 
     const { result } = await command.action({
@@ -202,7 +208,7 @@ describe("DeleteServiceCommand", () => {
   })
 
   it("should return the status of the deleted services", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins })
+    const garden = await TestGarden.factory(projectRootB, { plugins })
     const log = garden.log
 
     const { result } = await command.action({
