@@ -9,7 +9,7 @@
 import AsyncLock from "async-lock"
 import chalk from "chalk"
 import split2 = require("split2")
-import { cloneDeep } from "lodash"
+import { cloneDeep, isEmpty } from "lodash"
 import {
   buildSyncVolumeName,
   dockerAuthSecretKey,
@@ -290,7 +290,7 @@ export function getBuildkitDeployment(provider: KubernetesProvider) {
   deployment.spec!.template.spec!.containers.push(getSocatContainer(registryHostname))
 
   // Set the configured nodeSelector, if any
-  if (provider.config.clusterBuildkit?.nodeSelector) {
+  if (!isEmpty(provider.config.clusterBuildkit?.nodeSelector)) {
     deployment.spec!.template.spec!.nodeSelector = provider.config.clusterBuildkit?.nodeSelector
   }
 
