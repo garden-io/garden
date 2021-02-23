@@ -87,7 +87,7 @@ async function readLogsFromApi({
 
   const logs = await getPodLogs({
     api,
-    namespace: pod.metadata.namespace || defaultNamespace,
+    namespace: pod.metadata?.namespace || defaultNamespace,
     pod,
     lineLimit: tail === -1 ? undefined : tail,
     timestamps: true,
@@ -137,7 +137,7 @@ async function followLogs({
 }) {
   const sternArgs = [
     `--context=${provider.config.context}`,
-    `--namespace=${pod.metadata.namespace || defaultNamespace}`,
+    `--namespace=${pod.metadata?.namespace || defaultNamespace}`,
     `--exclude-container=garden-*`,
     "--tail",
     String(tail),

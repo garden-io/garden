@@ -476,7 +476,7 @@ export class KubeApi {
     }
 
     if (!namespace) {
-      namespace = manifest.metadata.namespace
+      namespace = manifest.metadata?.namespace
     }
 
     if (!namespace) {

@@ -131,7 +131,7 @@ export async function checkResourceStatus(
 ) {
   const handler = objHandlers[manifest.kind]
 
-  if (manifest.metadata.namespace) {
+  if (manifest.metadata?.namespace) {
     namespace = manifest.metadata.namespace
   }
 
@@ -364,7 +364,7 @@ export async function compareDeployedResources(
     manifest.apiVersion = deployedResource.apiVersion
 
     // the namespace property is silently dropped when added to non-namespaced resources
-    if (manifest.metadata.namespace && deployedResource.metadata.namespace === undefined) {
+    if (manifest.metadata?.namespace && deployedResource.metadata?.namespace === undefined) {
       delete manifest.metadata.namespace
     }
 
@@ -420,7 +420,7 @@ export async function getDeployedResource(
   log: LogEntry
 ): Promise<KubernetesResource | null> {
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = resource.metadata.namespace || (await getAppNamespace(ctx, log, provider))
+  const namespace = resource.metadata?.namespace || (await getAppNamespace(ctx, log, provider))
 
   try {
     const res = await api.readBySpec({ namespace, manifest: resource, log })
