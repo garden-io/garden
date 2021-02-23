@@ -437,7 +437,13 @@ describe("kubernetes Pod runner functions", () => {
       await buildHelmModules(helmGarden, helmGraph)
       helmModule = helmGraph.getModule("artifacts")
 
-      helmManifests = await getChartResources(helmCtx, helmModule, false, helmLog)
+      helmManifests = await getChartResources({
+        ctx: helmCtx,
+        module: helmModule,
+        hotReload: false,
+        log: helmLog,
+        version: helmModule.version.versionString,
+      })
       helmBaseModule = getBaseModule(helmModule)
       helmResourceSpec = getServiceResourceSpec(helmModule, helmBaseModule)
       helmTarget = await findServiceResource({
@@ -605,6 +611,7 @@ describe("kubernetes Pod runner functions", () => {
         namespace,
         runtimeContext: { envVars: {}, dependencies: [] },
         image,
+        version: module.version.versionString,
       })
 
       expect(result.log.trim()).to.equal("ok")
@@ -626,6 +633,7 @@ describe("kubernetes Pod runner functions", () => {
         podName,
         runtimeContext: { envVars: {}, dependencies: [] },
         image,
+        version: module.version.versionString,
       })
 
       await expectError(
@@ -650,6 +658,7 @@ describe("kubernetes Pod runner functions", () => {
         runtimeContext: { envVars: {}, dependencies: [] },
         image,
         timeout: 4,
+        version: module.version.versionString,
       })
 
       // Note: Kubernetes doesn't always return the logs when commands time out.
@@ -675,6 +684,7 @@ describe("kubernetes Pod runner functions", () => {
           artifacts: task.spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
+          version: module.version.versionString,
         })
 
         expect(result.log.trim()).to.equal("ok")
@@ -701,6 +711,7 @@ describe("kubernetes Pod runner functions", () => {
           artifacts: task.spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
+          version: module.version.versionString,
         })
 
         await expectError(
@@ -726,6 +737,7 @@ describe("kubernetes Pod runner functions", () => {
           artifacts: task.spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
+          version: module.version.versionString,
         })
 
         expect(await pathExists(join(tmpDir.path, "subdir", "task.txt"))).to.be.true
@@ -749,6 +761,7 @@ describe("kubernetes Pod runner functions", () => {
           artifacts: task.spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
+          version: module.version.versionString,
         })
       })
 
@@ -769,6 +782,7 @@ describe("kubernetes Pod runner functions", () => {
           artifacts: task.spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
+          version: module.version.versionString,
         })
 
         expect(await pathExists(join(tmpDir.path, "my-task-report"))).to.be.true
@@ -793,6 +807,7 @@ describe("kubernetes Pod runner functions", () => {
           artifactsPath: tmpDir.path,
           image,
           timeout: 3,
+          version: module.version.versionString,
         })
 
         expect(result.log.trim()).to.equal("Command timed out. Here are the logs until the timeout occurred:\n\nbanana")
@@ -817,6 +832,7 @@ describe("kubernetes Pod runner functions", () => {
           artifactsPath: tmpDir.path,
           image,
           timeout: 3,
+          version: module.version.versionString,
         })
 
         expect(result.log.trim()).to.equal("Command timed out.")
@@ -854,6 +870,7 @@ describe("kubernetes Pod runner functions", () => {
               timeout: 20000,
               stdout: process.stdout,
               stderr: process.stderr,
+              version: module.version.versionString,
             }),
           (err) =>
             expect(err.message).to.equal(deline`
@@ -894,6 +911,7 @@ describe("kubernetes Pod runner functions", () => {
               timeout: 20000,
               stdout: process.stdout,
               stderr: process.stderr,
+              version: module.version.versionString,
             }),
           (err) =>
             expect(err.message).to.equal(deline`
@@ -923,6 +941,7 @@ describe("kubernetes Pod runner functions", () => {
               artifactsPath: tmpDir.path,
               description: "Foo",
               image,
+              version: module.version.versionString,
             }),
           (err) =>
             expect(err.message).to.equal(deline`

@@ -11,7 +11,7 @@ import { ContainerModule } from "../../container/config"
 import { RuntimeError, ConfigurationError } from "../../../exceptions"
 import { gardenAnnotationKey } from "../../../util/string"
 import { sortBy } from "lodash"
-import { Service } from "../../../types/service"
+import { GardenService } from "../../../types/service"
 import { LogEntry } from "../../../logger/log-entry"
 import { findServiceResource } from "../util"
 import { getAppNamespace, getModuleNamespace } from "../namespace"
@@ -43,7 +43,7 @@ export async function hotReloadK8s({
   service,
 }: {
   ctx: PluginContext
-  service: Service
+  service: GardenService
   log: LogEntry
   module: KubernetesModule | HelmModule
 }): Promise<HotReloadServiceResult> {
@@ -59,7 +59,13 @@ export async function hotReloadK8s({
   let baseModule: GardenModule | undefined = undefined
   if (module.type === "helm") {
     baseModule = getBaseModule(<HelmModule>module)
-    manifests = await getChartResources(ctx, service.module, true, log)
+    manifests = await getChartResources({
+      ctx: k8sCtx,
+      module: service.module,
+      hotReload: true,
+      log,
+      version: service.version,
+    })
   } else {
     const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
     manifests = await getManifests({ api, log, module: <KubernetesModule>module, defaultNamespace: namespace })

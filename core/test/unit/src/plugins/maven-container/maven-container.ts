@@ -96,16 +96,18 @@ describe("maven-container", () => {
 
     td.replace(garden.buildStaging, "syncDependencyProducts", () => null)
 
-    td.replace(Garden.prototype, "resolveVersion", async () => ({
+    td.replace(Garden.prototype, "resolveModuleVersion", async () => ({
       versionString: "1234",
       dependencyVersions: {},
       files: [],
     }))
+
+    td.replace(helpers, "checkDockerServerVersion", () => null)
   })
 
   async function getTestModule(moduleConfig: MavenContainerModuleConfig) {
     const parsed = await configure({ ctx, moduleConfig, log, base: configureBase })
-    return moduleFromConfig(garden, log, parsed.moduleConfig, [])
+    return moduleFromConfig({ garden, log, config: parsed.moduleConfig, buildDependencies: [] })
   }
 
   describe("configure", () => {

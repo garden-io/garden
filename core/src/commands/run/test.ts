@@ -130,14 +130,13 @@ export class RunTestCommand extends Command<Args, Opts> {
     const interactive = opts.interactive
 
     // Make sure all dependencies are ready and collect their outputs for the runtime context
-    const testTask = await TestTask.factory({
+    const testTask = new TestTask({
       force: true,
       forceBuild: opts["force-build"],
       garden,
       graph,
       log,
-      module,
-      testConfig,
+      test,
     })
 
     const dependencyResults = await garden.processTasks(await testTask.resolveDependencies())
@@ -151,7 +150,8 @@ export class RunTestCommand extends Command<Args, Opts> {
       garden,
       graph,
       dependencies,
-      version: module.version,
+      version: test.version,
+      moduleVersion: module.version.versionString,
       serviceStatuses,
       taskResults,
     })
@@ -168,8 +168,7 @@ export class RunTestCommand extends Command<Args, Opts> {
       silent: false,
       interactive,
       runtimeContext,
-      testConfig,
-      testVersion: testTask.version,
+      test,
     })
 
     return handleRunResult({ log, actionDescription: "test", result, interactive, graphResults: dependencyResults })

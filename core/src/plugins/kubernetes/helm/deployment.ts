@@ -33,7 +33,10 @@ export async function deployHelmService({
   let hotReloadSpec: ContainerHotReloadSpec | null = null
   let hotReloadTarget: HotReloadableResource | null = null
 
-  const manifests = await getChartResources(ctx, module, hotReload, log)
+  const k8sCtx = ctx as KubernetesPluginContext
+  const provider = k8sCtx.provider
+
+  const manifests = await getChartResources({ ctx: k8sCtx, module, hotReload, log, version: service.version })
 
   if (hotReload) {
     const resourceSpec = service.spec.serviceResource
@@ -41,9 +44,6 @@ export async function deployHelmService({
     hotReloadTarget = await findServiceResource({ ctx, log, module, baseModule, manifests, resourceSpec })
     hotReloadSpec = getHotReloadSpec(service)
   }
-
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const provider = k8sCtx.provider
 
   const chartPath = await getChartPath(module)
 
@@ -55,7 +55,7 @@ export async function deployHelmService({
   })
 
   const releaseName = getReleaseName(module)
-  const releaseStatus = await getReleaseStatus(k8sCtx, module, releaseName, log, hotReload)
+  const releaseStatus = await getReleaseStatus({ ctx: k8sCtx, service, releaseName, log, hotReload })
 
   const commonArgs = [
     "--namespace",
@@ -117,7 +117,7 @@ export async function deployHelmService({
   return {
     forwardablePorts,
     state: "ready",
-    version: module.version.versionString,
+    version: service.version,
     detail: { remoteResources: statuses.map((s) => s.resource) },
   }
 }

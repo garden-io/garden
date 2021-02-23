@@ -11,9 +11,9 @@ import chalk from "chalk"
 import { includes } from "lodash"
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults } from "./base"
-import { Service, ServiceStatus, getLinkUrl } from "../types/service"
+import { GardenService, ServiceStatus, getLinkUrl } from "../types/service"
 import { Garden } from "../garden"
-import { TaskTask, getTaskVersion } from "./task"
+import { TaskTask } from "./task"
 import { BuildTask } from "./build"
 import { ConfigGraph } from "../config-graph"
 import { startPortProxies } from "../proxy"
@@ -26,7 +26,7 @@ import { Profile } from "../util/profiling"
 export interface DeployTaskParams {
   garden: Garden
   graph: ConfigGraph
-  service: Service
+  service: GardenService
   force: boolean
   forceBuild: boolean
   fromWatch?: boolean
@@ -40,7 +40,7 @@ export class DeployTask extends BaseTask {
   concurrencyLimit = 10
 
   private graph: ConfigGraph
-  private service: Service
+  private service: GardenService
   private forceBuild: boolean
   private fromWatch: boolean
   private hotReloadServiceNames: string[]
@@ -55,7 +55,7 @@ export class DeployTask extends BaseTask {
     fromWatch = false,
     hotReloadServiceNames = [],
   }: DeployTaskParams) {
-    super({ garden, log, force, version: service.module.version })
+    super({ garden, log, force, version: service.version })
     this.graph = graph
     this.service = service
     this.forceBuild = forceBuild
@@ -102,7 +102,6 @@ export class DeployTask extends BaseTask {
           log: this.log,
           task,
           force: false,
-          version: await getTaskVersion(this.garden, this.graph, task),
         })
       })
 
@@ -122,7 +121,7 @@ export class DeployTask extends BaseTask {
       })
 
       const taskTasks = await Bluebird.map(deps.run, (task) => {
-        return TaskTask.factory({
+        return new TaskTask({
           task,
           garden: this.garden,
           log: this.log,
@@ -153,7 +152,7 @@ export class DeployTask extends BaseTask {
   }
 
   async process(dependencyResults: GraphResults): Promise<ServiceStatus> {
-    let version = this.version
+    const version = this.version
     const hotReload = includes(this.hotReloadServiceNames, this.service.name)
 
     const dependencies = this.graph.getDependencies({
@@ -170,7 +169,8 @@ export class DeployTask extends BaseTask {
       garden: this.garden,
       graph: this.graph,
       dependencies,
-      version: this.version,
+      version,
+      moduleVersion: this.service.module.version.versionString,
       serviceStatuses,
       taskResults,
     })
@@ -179,15 +179,13 @@ export class DeployTask extends BaseTask {
 
     let status = serviceStatuses[this.service.name]
 
-    const { versionString } = version
-
     const log = this.log.info({
       status: "active",
       section: this.service.name,
-      msg: `Deploying version ${versionString}...`,
+      msg: `Deploying version ${version}...`,
     })
 
-    if (!this.force && versionString === status.version && status.state === "ready") {
+    if (!this.force && version === status.version && status.state === "ready") {
       // already deployed and ready
       log.setSuccess({
         msg: chalk.green("Already deployed"),

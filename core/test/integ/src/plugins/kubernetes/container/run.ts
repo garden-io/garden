@@ -39,7 +39,6 @@ describe("runContainerTask", () => {
 
   it("should run a basic task", async () => {
     const task = graph.getTask("echo-task")
-    const version = task.module.version
 
     const testTask = new TaskTask({
       garden,
@@ -48,11 +47,10 @@ describe("runContainerTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      version,
     })
 
     const ctx = await garden.getPluginContext(provider)
-    await clearTaskResult({ ctx, log: garden.log, module: task.module, task, taskVersion: version })
+    await clearTaskResult({ ctx, log: garden.log, module: task.module, task })
 
     const key = testTask.getKey()
     const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
@@ -67,7 +65,6 @@ describe("runContainerTask", () => {
     const storedResult = await actions.getTaskResult({
       log: garden.log,
       task,
-      taskVersion: task.module.version,
     })
 
     expect(storedResult).to.exist
@@ -75,7 +72,6 @@ describe("runContainerTask", () => {
 
   it("should not store task results if cacheResult=false", async () => {
     const task = graph.getTask("echo-task")
-    const version = task.module.version
     task.config.cacheResult = false
 
     const testTask = new TaskTask({
@@ -85,11 +81,10 @@ describe("runContainerTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      version,
     })
 
     const ctx = await garden.getPluginContext(provider)
-    await clearTaskResult({ ctx, log: garden.log, module: task.module, task, taskVersion: version })
+    await clearTaskResult({ ctx, log: garden.log, module: task.module, task })
 
     await garden.processTasks([testTask], { throwOnError: true })
 
@@ -98,7 +93,6 @@ describe("runContainerTask", () => {
     const storedResult = await actions.getTaskResult({
       log: garden.log,
       task,
-      taskVersion: task.module.version,
     })
 
     expect(storedResult).to.not.exist
@@ -107,7 +101,6 @@ describe("runContainerTask", () => {
   it("should fail if an error occurs, but store the result", async () => {
     const task = graph.getTask("echo-task")
     task.config.spec.command = ["bork"] // this will fail
-    const version = task.module.version
 
     const testTask = new TaskTask({
       garden,
@@ -116,11 +109,10 @@ describe("runContainerTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      version,
     })
 
     const ctx = await garden.getPluginContext(provider)
-    await clearTaskResult({ ctx, log: garden.log, module: task.module, task, taskVersion: version })
+    await clearTaskResult({ ctx, log: garden.log, module: task.module, task })
 
     await expectError(
       async () => await garden.processTasks([testTask], { throwOnError: true }),
@@ -132,7 +124,6 @@ describe("runContainerTask", () => {
     const result = await actions.getTaskResult({
       log: garden.log,
       task,
-      taskVersion: version,
     })
 
     expect(result).to.exist
@@ -149,7 +140,6 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        version: task.module.version,
       })
 
       await emptyDir(garden.artifactsPath)
@@ -170,7 +160,6 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        version: task.module.version,
       })
       await emptyDir(garden.artifactsPath)
 
@@ -192,7 +181,6 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        version: task.module.version,
       })
 
       await emptyDir(garden.artifactsPath)
@@ -213,7 +201,6 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        version: task.module.version,
       })
 
       const result = await garden.processTasks([testTask])
@@ -239,7 +226,6 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        version: task.module.version,
       })
 
       const result = await garden.processTasks([testTask])

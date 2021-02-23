@@ -519,14 +519,14 @@ export function isPrimitive(value: any) {
   return typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value === null
 }
 
-const versionStringSchema = () =>
-  joi.string().regex(/^v/).required().description("String representation of the module version.")
+export const versionStringSchema = () =>
+  joi.string().regex(/^v/).required().description("A Stack Graph node (i.e. module, service, task or test) version.")
 
 const fileNamesSchema = () => joiArray(joi.string()).description("List of file paths included in the version.")
 
 export const treeVersionSchema = () =>
   joi.object().keys({
-    contentHash: joi.string().required().description("The hash of all files in the directory, after filtering."),
+    contentHash: joi.string().required().description("The hash of all files belonging to the Garden module."),
     files: fileNamesSchema(),
   })
 

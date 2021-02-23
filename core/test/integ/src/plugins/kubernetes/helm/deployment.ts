@@ -50,13 +50,19 @@ describe("deployHelmService", () => {
     })
 
     const releaseName = getReleaseName(service.module)
-    const status = await getReleaseStatus(ctx, service.module, releaseName, garden.log, false)
+    const status = await getReleaseStatus({
+      ctx,
+      service,
+      releaseName,
+      log: garden.log,
+      hotReload: false,
+    })
 
     expect(status.state).to.equal("ready")
     expect(status.detail["values"][".garden"]).to.eql({
       moduleName: "api",
       projectName: garden.projectName,
-      version: service.module.version.versionString,
+      version: service.version,
     })
   })
 
@@ -75,13 +81,19 @@ describe("deployHelmService", () => {
     })
 
     const releaseName = getReleaseName(service.module)
-    const status = await getReleaseStatus(ctx, service.module, releaseName, garden.log, true)
+    const status = await getReleaseStatus({
+      ctx,
+      service,
+      releaseName,
+      log: garden.log,
+      hotReload: true,
+    })
 
     expect(status.state).to.equal("ready")
     expect(status.detail["values"][".garden"]).to.eql({
       moduleName: "api",
       projectName: garden.projectName,
-      version: service.module.version.versionString,
+      version: service.version,
       hotReload: true,
     })
   })
@@ -104,7 +116,13 @@ describe("deployHelmService", () => {
     })
 
     const releaseName = getReleaseName(service.module)
-    const status = await getReleaseStatus(ctx, service.module, releaseName, garden.log, false)
+    const status = await getReleaseStatus({
+      ctx,
+      service,
+      releaseName,
+      log: garden.log,
+      hotReload: false,
+    })
 
     expect(status.state).to.equal("ready")
 

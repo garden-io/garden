@@ -95,7 +95,7 @@ export class RunTaskCommand extends Command<Args, Opts> {
       )
     }
 
-    const taskTask = await TaskTask.factory({ garden, graph, task, log, force: true, forceBuild: opts["force-build"] })
+    const taskTask = new TaskTask({ garden, graph, task, log, force: true, forceBuild: opts["force-build"] })
     const graphResults = await garden.processTasks([taskTask])
 
     return handleTaskResult({ log, actionDescription: "task", graphResults, key: taskTask.getKey() })

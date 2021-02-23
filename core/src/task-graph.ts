@@ -403,7 +403,7 @@ export class TaskGraph extends EventEmitter2 {
           key,
           batchId,
           startedAt: new Date(),
-          versionString: task.version.versionString,
+          versionString: task.version,
         })
         result = await node.process(dependencyResults)
         result.startedAt = startedAt
@@ -631,7 +631,7 @@ function metadataForLog(task: BaseTask, status: TaskLogStatus): LogEntryMetadata
       key: task.getKey(),
       status,
       uid: task.uid,
-      versionString: task.version.versionString,
+      versionString: task.version,
     },
   }
 }
@@ -751,7 +751,7 @@ class TaskNode {
   }
 
   getVersion() {
-    return this.task.version.versionString
+    return this.task.version
   }
 
   // For testing/debugging purposes

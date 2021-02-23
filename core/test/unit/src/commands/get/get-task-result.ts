@@ -123,8 +123,8 @@ describe("GetTaskResultCommand", () => {
     const name = "task-a"
 
     const graph = await garden.getConfigGraph(garden.log)
-    const module = graph.getModule("module-a")
-    const artifactKey = getArtifactKey("task", name, module.version.versionString)
+    const task = graph.getTask("task-a")
+    const artifactKey = getArtifactKey("task", name, task.version)
     const metadataPath = join(garden.artifactsPath, `.metadata.${artifactKey}.json`)
     const metadata = {
       key: artifactKey,

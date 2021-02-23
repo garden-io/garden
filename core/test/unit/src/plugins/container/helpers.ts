@@ -79,12 +79,12 @@ describe("containerHelpers", () => {
     ctx = await garden.getPluginContext(provider)
 
     td.replace(garden.buildStaging, "syncDependencyProducts", () => null)
-    td.replace(Garden.prototype, "resolveVersion", async () => dummyVersion)
+    td.replace(Garden.prototype, "resolveModuleVersion", async () => dummyVersion)
   })
 
   async function getTestModule(moduleConfig: ContainerModuleConfig) {
     const parsed = await configure({ ctx, moduleConfig, log })
-    return moduleFromConfig(garden, log, parsed.moduleConfig, [])
+    return moduleFromConfig({ garden, log, config: parsed.moduleConfig, buildDependencies: [] })
   }
 
   describe("getLocalImageId", () => {

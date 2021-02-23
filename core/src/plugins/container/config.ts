@@ -19,7 +19,7 @@ import {
   joiSparseArray,
 } from "../../config/common"
 import { ArtifactSpec } from "./../../config/validation"
-import { Service, ingressHostnameSchema, linkUrlSchema } from "../../types/service"
+import { GardenService, ingressHostnameSchema, linkUrlSchema } from "../../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
 import { ModuleSpec, ModuleConfig, baseBuildSpecSchema, BaseBuildSpec } from "../../config/module"
 import { CommonServiceSpec, ServiceConfig, baseServiceSpecSchema } from "../../config/service"
@@ -423,7 +423,7 @@ export const containerRegistryConfigSchema = () =>
     Important: If you specify this in combination with \`buildMode: cluster-docker\` or \`buildMode: kaniko\`, you must make sure \`imagePullSecrets\` includes authentication with the specified deployment registry, that has the appropriate write privileges (usually full write access to the configured \`deploymentRegistry.namespace\`).
   `)
 
-export interface ContainerService extends Service<ContainerModule> {}
+export interface ContainerService extends GardenService<ContainerModule> {}
 
 export const artifactsDescription = dedent`
   Specify artifacts to copy out of the container after the run. The artifacts are stored locally under

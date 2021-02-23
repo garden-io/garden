@@ -42,11 +42,7 @@ export class TestTask extends BaseTask {
     super({
       garden,
       log: garden.log,
-      version: {
-        versionString: (options && options.versionString) || "12345-6789",
-        dependencyVersions: {},
-        files: [],
-      },
+      version: (options && options.versionString) || "12345-6789",
       force,
     })
 
@@ -125,7 +121,7 @@ describe("task-graph", () => {
             dependencyResults: {},
           },
           dependencyResults: {},
-          version: task.version.versionString,
+          version: task.version,
         },
       }
 
@@ -162,7 +158,7 @@ describe("task-graph", () => {
             key: task.getKey(),
             name: task.name,
             type: task.type,
-            versionString: task.version.versionString,
+            versionString: task.version,
           },
         },
         { name: "taskComplete", payload: toGraphResultEventPayload(result["a"]!) },
@@ -212,7 +208,7 @@ describe("task-graph", () => {
             key: task.getKey(),
             type: "test",
             name: "a",
-            version: task.version.versionString,
+            version: task.version,
             output: { result: "result-a" },
           },
         },
@@ -250,7 +246,7 @@ describe("task-graph", () => {
             key: task.getKey(),
             name: task.name,
             type: task.type,
-            versionString: task.version.versionString,
+            versionString: task.version,
           },
         },
         { name: "taskError", payload: result["a"] },
@@ -448,7 +444,7 @@ describe("task-graph", () => {
           dependencyResults: {},
         },
         dependencyResults: {},
-        version: taskA.version.versionString,
+        version: taskA.version,
       }
       const resultB: GraphResult = {
         type: "test",
@@ -463,7 +459,7 @@ describe("task-graph", () => {
           dependencyResults: { a: resultA },
         },
         dependencyResults: { a: resultA },
-        version: taskB.version.versionString,
+        version: taskB.version,
       }
       const resultC: GraphResult = {
         type: "test",
@@ -478,7 +474,7 @@ describe("task-graph", () => {
           dependencyResults: { b: resultB },
         },
         dependencyResults: { b: resultB },
-        version: taskC.version.versionString,
+        version: taskC.version,
       }
 
       const expected: GraphResults = {
@@ -504,7 +500,7 @@ describe("task-graph", () => {
             b: resultB,
             c: resultC,
           },
-          version: taskD.version.versionString,
+          version: taskD.version,
         },
       }
 
@@ -735,7 +731,7 @@ describe("task-graph", () => {
           dependencyResults: {},
         },
         dependencyResults: {},
-        version: taskA.version.versionString,
+        version: taskA.version,
       }
 
       const filteredKeys: Set<string | number> = new Set([

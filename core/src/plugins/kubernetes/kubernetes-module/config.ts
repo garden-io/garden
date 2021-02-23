@@ -10,7 +10,7 @@ import { dependenciesSchema } from "../../../config/service"
 import { joi, joiModuleIncludeDirective, joiSparseArray } from "../../../config/common"
 import { GardenModule } from "../../../types/module"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plugin/module/configure"
-import { Service } from "../../../types/service"
+import { GardenService } from "../../../types/service"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { KubernetesResource } from "../types"
 import { deline, dedent } from "../../../util/string"
@@ -44,7 +44,7 @@ export interface KubernetesServiceSpec {
   tests: KubernetesTestSpec[]
 }
 
-export type KubernetesService = Service<KubernetesModule, ContainerModule>
+export type KubernetesService = GardenService<KubernetesModule, ContainerModule>
 
 const kubernetesResourceSchema = () =>
   joi

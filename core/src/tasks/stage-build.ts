@@ -36,7 +36,7 @@ export class StageBuildTask extends BaseTask {
   private extraDependencies: BaseTask[]
 
   constructor({ garden, graph, log, module, force, dependencies }: StageBuildTaskParams) {
-    super({ garden, log, force, version: module.version })
+    super({ garden, log, force, version: module.version.versionString })
     this.graph = graph
     this.module = module
     this.extraDependencies = dependencies || []

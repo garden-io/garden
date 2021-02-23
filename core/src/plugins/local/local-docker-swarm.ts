@@ -43,9 +43,7 @@ export const gardenPlugin = () =>
 
           async deployService({ ctx, module, service, runtimeContext, log }: DeployServiceParams<ContainerModule>) {
             // TODO: split this method up and test
-            const { versionString } = service.module.version
-
-            log.info({ section: service.name, msg: `Deploying version ${versionString}` })
+            log.info({ section: service.name, msg: `Deploying version ${service.version}` })
 
             const identifier = containerHelpers.getLocalImageId(module, module.version)
             const ports = service.spec.ports.map((p) => {
@@ -123,7 +121,7 @@ export const gardenPlugin = () =>
             let serviceId
 
             if (serviceStatus.externalId) {
-              const swarmService = await docker.getService(serviceStatus.externalId)
+              const swarmService = docker.getService(serviceStatus.externalId)
               swarmServiceStatus = await swarmService.inspect()
               opts.version = parseInt(swarmServiceStatus.Version.Index, 10)
               log.verbose({

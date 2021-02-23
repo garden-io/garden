@@ -89,9 +89,9 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
           service,
         })
     ),
-    ...(await Promise.all(
-      tasks.map((task) =>
-        TaskTask.factory({
+    ...tasks.map(
+      (task) =>
+        new TaskTask({
           force: false,
           forceBuild: false,
           garden,
@@ -99,8 +99,7 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
           log,
           task,
         })
-      )
-    )),
+    ),
   ]
 
   const dependencyResults: GraphResults = graphTasks.length > 0 ? await garden.processTasks(graphTasks) : {}
@@ -118,6 +117,7 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
       test: [],
     },
     version: garden.version,
+    moduleVersion: garden.version,
     serviceStatuses,
     taskResults,
   })

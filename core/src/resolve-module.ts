@@ -433,7 +433,12 @@ export class ModuleResolver {
       this.garden.cache.invalidateUp(cacheContext)
     }
 
-    const module = await moduleFromConfig(this.garden, this.log, resolvedConfig, dependencies)
+    const module = await moduleFromConfig({
+      garden: this.garden,
+      log: this.log,
+      config: resolvedConfig,
+      buildDependencies: dependencies,
+    })
 
     const moduleTypeDefinitions = await this.garden.getModuleTypes()
     const description = moduleTypeDefinitions[module.type]!

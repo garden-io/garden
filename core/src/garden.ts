@@ -212,7 +212,7 @@ export class Garden {
   public readonly rawOutputs: OutputSpec[]
   public readonly systemNamespace: string
   public readonly username?: string
-  public readonly version: ModuleVersion
+  public readonly version: string
   private readonly forceRefresh: boolean
   public readonly enterpriseApi: EnterpriseApi | null
   public readonly disablePortForwards: boolean
@@ -278,11 +278,7 @@ export class Garden {
     this.events = new EventBus()
 
     // TODO: actually resolve version, based on the VCS version of the plugin and its dependencies
-    this.version = {
-      versionString: getPackageVersion(),
-      dependencyVersions: {},
-      files: [],
-    }
+    this.version = getPackageVersion()
 
     this.disablePortForwards = gardenEnv.GARDEN_DISABLE_PORT_FORWARDS || params.disablePortForwards || false
   }
@@ -698,7 +694,9 @@ export class Garden {
         delete moduleConfig.configPath
 
         const resolvedConfig = await resolver.resolveModuleConfig(moduleConfig, resolvedModules)
-        resolvedModules.push(await moduleFromConfig(this, log, resolvedConfig, resolvedModules))
+        resolvedModules.push(
+          await moduleFromConfig({ garden: this, log, config: resolvedConfig, buildDependencies: resolvedModules })
+        )
         graph = undefined
       })
 
@@ -786,7 +784,7 @@ export class Garden {
         })
 
         module.buildDependencies = fromPairs(buildDeps.map((d) => [getModuleKey(d.name, d.plugin), d]))
-        module.version = await this.resolveVersion(module, buildDeps)
+        module.version = await this.resolveModuleVersion(module, buildDeps)
       },
       { concurrency: moduleResolutionConcurrencyLimit }
     )
@@ -795,11 +793,9 @@ export class Garden {
   }
 
   /**
-   * Given a module, and a list of dependencies, resolve the version for that combination of modules.
-   * The combined version is a either the latest dirty module version (if any), or the hash of the module version
-   * and the versions of its dependencies (in sorted order).
+   * Resolves the module version (i.e. build version) for the given configuration and its build dependencies.
    */
-  async resolveVersion(
+  async resolveModuleVersion(
     moduleConfig: ModuleConfig,
     moduleDependencies: (GardenModule | BuildDependencyConfig)[],
     force = false
@@ -823,7 +819,7 @@ export class Garden {
     const dependencies = await this.getRawModuleConfigs(dependencyKeys)
     const cacheContexts = dependencies.concat([moduleConfig]).map((c) => getModuleCacheContext(c))
 
-    const version = await this.vcs.resolveVersion(this.log, this.projectName, moduleConfig, dependencies)
+    const version = await this.vcs.resolveModuleVersion(this.log, this.projectName, moduleConfig, dependencies)
 
     this.cache.set(cacheKey, version, ...cacheContexts)
     return version

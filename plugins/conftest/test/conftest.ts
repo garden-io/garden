@@ -17,6 +17,7 @@ import { ProjectConfig } from "@garden-io/sdk/types"
 import { makeTestGarden } from "@garden-io/sdk/testing"
 
 import { TestTask } from "@garden-io/core/build/src/tasks/test"
+import { testFromConfig } from "@garden-io/core/build/src/types/test"
 
 describe("conftest provider", () => {
   const projectRoot = join(__dirname, "test-project")
@@ -45,14 +46,11 @@ describe("conftest provider", () => {
 
       const testTask = new TestTask({
         garden,
-        module,
         log: garden.log,
         graph,
-        testConfig: module.testConfigs[0],
+        test: testFromConfig(module, module.testConfigs[0]),
         force: true,
         forceBuild: false,
-        version: module.version,
-        _guard: true,
       })
 
       const key = testTask.getKey()
@@ -82,14 +80,11 @@ describe("conftest provider", () => {
 
       const testTask = new TestTask({
         garden,
-        module,
         log: garden.log,
         graph,
-        testConfig: module.testConfigs[0],
+        test: testFromConfig(module, module.testConfigs[0]),
         force: true,
         forceBuild: false,
-        version: module.version,
-        _guard: true,
       })
 
       const key = testTask.getKey()
@@ -110,14 +105,11 @@ describe("conftest provider", () => {
 
       const testTask = new TestTask({
         garden,
-        module,
         log: garden.log,
         graph,
-        testConfig: module.testConfigs[0],
+        test: testFromConfig(module, module.testConfigs[0]),
         force: true,
         forceBuild: false,
-        version: module.version,
-        _guard: true,
       })
 
       const key = testTask.getKey()
@@ -141,14 +133,11 @@ describe("conftest provider", () => {
 
       const testTask = new TestTask({
         garden,
-        module,
         log: garden.log,
         graph,
-        testConfig: module.testConfigs[0],
+        test: testFromConfig(module, module.testConfigs[0]),
         force: true,
         forceBuild: false,
-        version: module.version,
-        _guard: true,
       })
 
       const key = testTask.getKey()

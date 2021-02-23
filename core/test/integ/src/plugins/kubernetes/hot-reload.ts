@@ -13,8 +13,7 @@ import { deline } from "../../../../../src/util/string"
 import { ConfigGraph } from "../../../../../src/config-graph"
 import { getHelmTestGarden, buildHelmModules } from "./helm/common"
 import { getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
-import { PluginContext } from "../../../../../src/plugin-context"
-import { KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
+import { KubernetesProvider, KubernetesPluginContext } from "../../../../../src/plugins/kubernetes/config"
 import { findServiceResource, getServiceResourceSpec } from "../../../../../src/plugins/kubernetes/util"
 import {
   getHotReloadSpec,
@@ -94,12 +93,12 @@ describe("configureHotReload", () => {
   let garden: TestGarden
   let graph: ConfigGraph
   let provider: KubernetesProvider
-  let ctx: PluginContext
+  let ctx: KubernetesPluginContext
 
   before(async () => {
     garden = await getHelmTestGarden()
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = await garden.getPluginContext(provider)
+    ctx = (await garden.getPluginContext(provider)) as KubernetesPluginContext
   })
 
   beforeEach(async () => {
@@ -110,7 +109,7 @@ describe("configureHotReload", () => {
     const log = garden.log
     const service = graph.getService("two-containers")
     const module = service.module
-    const manifests = await getChartResources(ctx, module, true, log)
+    const manifests = await getChartResources({ ctx, module, hotReload: true, log, version: service.version })
     const resourceSpec = getServiceResourceSpec(module, undefined)
     const hotReloadSpec = getHotReloadSpec(service)
     const hotReloadTarget = await findServiceResource({

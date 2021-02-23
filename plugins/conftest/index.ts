@@ -143,7 +143,7 @@ export const gardenPlugin = () => createGardenPlugin({
           moduleConfig.testConfigs = [{ name: "test", dependencies: [], spec: {}, disabled: false, timeout: 10 }]
           return { moduleConfig }
         },
-        testModule: async ({ ctx, log, module, testConfig }: TestModuleParams<ConftestModule>) => {
+        testModule: async ({ ctx, log, module, test }: TestModuleParams<ConftestModule>) => {
           const startedAt = new Date()
           const provider = ctx.provider as ConftestProvider
 
@@ -157,10 +157,10 @@ export const gardenPlugin = () => createGardenPlugin({
 
           if (files.length === 0) {
             return {
-              testName: testConfig.name,
+              testName: test.name,
               moduleName: module.name,
               command: [],
-              version: module.version.versionString,
+              version: test.version,
               success: true,
               startedAt,
               completedAt: new Date(),
@@ -176,10 +176,10 @@ export const gardenPlugin = () => createGardenPlugin({
           const { success, formattedResult } = parseConftestResult(provider, log, result)
 
           return {
-            testName: testConfig.name,
+            testName: test.name,
             moduleName: module.name,
             command: ["conftest", ...args],
-            version: module.version.versionString,
+            version: test.version,
             success,
             startedAt,
             completedAt: new Date(),
@@ -222,7 +222,7 @@ export const gardenPlugin = () => createGardenPlugin({
           ]
           return { moduleConfig }
         },
-        testModule: async ({ ctx, log, module, testConfig }: TestModuleParams<ConftestModule>) => {
+        testModule: async ({ ctx, log, module, test }: TestModuleParams<ConftestModule>) => {
           const startedAt = new Date()
           const provider = ctx.provider as ConftestProvider
 
@@ -239,7 +239,13 @@ export const gardenPlugin = () => createGardenPlugin({
             })
           }
 
-          const templates = await renderTemplates(k8sCtx, sourceModule, false, log)
+          const templates = await renderTemplates({
+            ctx: k8sCtx,
+            module: sourceModule,
+            hotReload: false,
+            log,
+            version: sourceModule.version.versionString,
+          })
 
           // Run conftest, piping the rendered chart to stdin
           const args = prepareArgs(ctx, provider, module)
@@ -257,10 +263,10 @@ export const gardenPlugin = () => createGardenPlugin({
           const { success, formattedResult } = parseConftestResult(provider, log, result)
 
           return {
-            testName: testConfig.name,
+            testName: test.name,
             moduleName: module.name,
             command: ["conftest", ...args],
-            version: module.version.versionString,
+            version: test.version,
             success,
             startedAt,
             completedAt: new Date(),

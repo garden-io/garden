@@ -75,19 +75,3 @@ export const taskConfigSchema = () =>
         .description("The task's specification, as defined by its provider plugin."),
     })
     .description("The configuration for a module's task.")
-
-export const taskSchema = () =>
-  joi
-    .object()
-    .options({ presence: "required" })
-    .keys({
-      name: joiUserIdentifier().description("The name of the task."),
-      description: joi.string().optional().description("A description of the task."),
-      disabled: joi.boolean().default(false).description("Set to true if the task or its module is disabled."),
-      module: joi.object().unknown(true),
-      config: taskConfigSchema(),
-      spec: joi
-        .object()
-        .meta({ extendable: true })
-        .description("The configuration of the task (specific to each plugin)."),
-    })

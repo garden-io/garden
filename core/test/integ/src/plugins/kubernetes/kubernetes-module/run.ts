@@ -30,7 +30,6 @@ describe("runKubernetesTask", () => {
 
   it("should run a basic task and store its result", async () => {
     const task = graph.getTask("echo-task")
-    const version = task.module.version
 
     const testTask = new TaskTask({
       garden,
@@ -39,13 +38,12 @@ describe("runKubernetesTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      version,
     })
 
     // Clear any existing task result
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
     const ctx = await garden.getPluginContext(provider)
-    await clearTaskResult({ ctx, log: garden.log, module: task.module, task, taskVersion: version })
+    await clearTaskResult({ ctx, log: garden.log, module: task.module, task })
 
     const key = testTask.getKey()
     const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
@@ -61,7 +59,6 @@ describe("runKubernetesTask", () => {
     const storedResult = await actions.getTaskResult({
       log: garden.log,
       task,
-      taskVersion: task.module.version,
     })
 
     expect(storedResult).to.exist
@@ -69,7 +66,6 @@ describe("runKubernetesTask", () => {
 
   it("should not store task results if cacheResult=false", async () => {
     const task = graph.getTask("echo-task")
-    const version = task.module.version
     task.config.cacheResult = false
 
     const testTask = new TaskTask({
@@ -79,13 +75,12 @@ describe("runKubernetesTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      version,
     })
 
     // Clear any existing task result
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
     const ctx = await garden.getPluginContext(provider)
-    await clearTaskResult({ ctx, log: garden.log, module: task.module, task, taskVersion: version })
+    await clearTaskResult({ ctx, log: garden.log, module: task.module, task })
 
     await garden.processTasks([testTask], { throwOnError: true })
 
@@ -94,7 +89,6 @@ describe("runKubernetesTask", () => {
     const storedResult = await actions.getTaskResult({
       log: garden.log,
       task,
-      taskVersion: task.module.version,
     })
 
     expect(storedResult).to.not.exist
@@ -110,7 +104,6 @@ describe("runKubernetesTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      version: task.module.version,
     })
 
     const key = testTask.getKey()
@@ -134,7 +127,6 @@ describe("runKubernetesTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      version: task.module.version,
     })
 
     await expectError(
@@ -148,7 +140,6 @@ describe("runKubernetesTask", () => {
     const result = await actions.getTaskResult({
       log: garden.log,
       task,
-      taskVersion: task.module.version,
     })
 
     expect(result).to.exist
@@ -165,7 +156,6 @@ describe("runKubernetesTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        version: task.module.version,
       })
 
       await emptyDir(garden.artifactsPath)
@@ -177,7 +167,7 @@ describe("runKubernetesTask", () => {
     })
 
     it("should fail if an error occurs, but copy the artifacts out of the container", async () => {
-      const task = await graph.getTask("artifacts-task-fail")
+      const task = graph.getTask("artifacts-task-fail")
 
       const testTask = new TaskTask({
         garden,
@@ -186,7 +176,6 @@ describe("runKubernetesTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        version: task.module.version,
       })
       await emptyDir(garden.artifactsPath)
 
@@ -208,7 +197,6 @@ describe("runKubernetesTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        version: task.module.version,
       })
 
       await emptyDir(garden.artifactsPath)

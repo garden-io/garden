@@ -18,6 +18,7 @@ import { TestTask } from "../../../../../src/tasks/test"
 import { writeFile, remove, pathExists } from "fs-extra"
 import { join } from "path"
 import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
+import { testFromConfig } from "../../../../../src/types/test"
 
 describe("hadolint provider", () => {
   let tmpDir: tmp.DirectoryResult
@@ -183,14 +184,11 @@ describe("hadolint provider", () => {
 
       const testTask = new TestTask({
         garden,
-        module,
         log: garden.log,
         graph,
-        testConfig: module.testConfigs[0],
+        test: testFromConfig(module, module.testConfigs[0]),
         force: true,
         forceBuild: false,
-        version: module.version,
-        _guard: true,
       })
 
       const key = testTask.getKey()
@@ -248,14 +246,11 @@ describe("hadolint provider", () => {
 
       const testTask = new TestTask({
         garden,
-        module,
         log: garden.log,
         graph,
-        testConfig: module.testConfigs[0],
+        test: testFromConfig(module, module.testConfigs[0]),
         force: true,
         forceBuild: false,
-        version: module.version,
-        _guard: true,
       })
 
       const key = testTask.getKey()
@@ -308,14 +303,11 @@ describe("hadolint provider", () => {
 
       const testTask = new TestTask({
         garden,
-        module,
         log: garden.log,
         graph,
-        testConfig: module.testConfigs[0],
+        test: testFromConfig(module, module.testConfigs[0]),
         force: true,
         forceBuild: false,
-        version: module.version,
-        _guard: true,
       })
 
       const key = testTask.getKey()
@@ -362,14 +354,11 @@ describe("hadolint provider", () => {
 
       const testTask = new TestTask({
         garden,
-        module,
         log: garden.log,
         graph,
-        testConfig: module.testConfigs[0],
+        test: testFromConfig(module, module.testConfigs[0]),
         force: true,
         forceBuild: false,
-        version: module.version,
-        _guard: true,
       })
 
       const key = testTask.getKey()
@@ -406,14 +395,11 @@ describe("hadolint provider", () => {
 
       const testTask = new TestTask({
         garden,
-        module,
         log: garden.log,
         graph,
-        testConfig: module.testConfigs[0],
+        test: testFromConfig(module, module.testConfigs[0]),
         force: true,
         forceBuild: false,
-        version: module.version,
-        _guard: true,
       })
 
       const key = testTask.getKey()
@@ -453,14 +439,11 @@ describe("hadolint provider", () => {
 
       const testTask = new TestTask({
         garden,
-        module,
+        test: testFromConfig(module, module.testConfigs[0]),
         log: garden.log,
         graph,
-        testConfig: module.testConfigs[0],
         force: true,
         forceBuild: false,
-        version: module.version,
-        _guard: true,
       })
 
       const key = testTask.getKey()

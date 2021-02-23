@@ -154,12 +154,12 @@ spec:
   # ResourceRequirements describes the compute resource requirements.
   resources:
     # Limits describes the maximum amount of compute resources allowed. More info:
-    # https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+    # https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
     limits:
 
     # Requests describes the minimum amount of compute resources required. If Requests is omitted for a container, it
     # defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value. More info:
-    # https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+    # https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
     requests:
 
   # A label selector is a label query over a set of resources. The result of matchLabels and matchExpressions are
@@ -510,7 +510,7 @@ ResourceRequirements describes the compute resource requirements.
 
 [spec](#spec) > [resources](#specresources) > limits
 
-Limits describes the maximum amount of compute resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+Limits describes the maximum amount of compute resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
 
 | Type     | Required |
 | -------- | -------- |
@@ -520,7 +520,7 @@ Limits describes the maximum amount of compute resources allowed. More info: htt
 
 [spec](#spec) > [resources](#specresources) > requests
 
-Requests describes the minimum amount of compute resources required. If Requests is omitted for a container, it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+Requests describes the minimum amount of compute resources required. If Requests is omitted for a container, it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
 
 | Type     | Required |
 | -------- | -------- |

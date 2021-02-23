@@ -72,7 +72,6 @@ export class RunServiceCommand extends Command<Args, Opts> {
     const serviceName = args.service
     const graph = await garden.getConfigGraph(log)
     const service = graph.getService(serviceName, true)
-    const module = service.module
 
     if (service.disabled && !opts.force) {
       throw new CommandError(
@@ -107,7 +106,8 @@ export class RunServiceCommand extends Command<Args, Opts> {
       garden,
       graph,
       dependencies,
-      version: module.version,
+      version: service.version,
+      moduleVersion: service.module.version.versionString,
       serviceStatuses,
       taskResults,
     })

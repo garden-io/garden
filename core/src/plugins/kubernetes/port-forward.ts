@@ -19,7 +19,7 @@ import { registerCleanupFunction, sleep } from "../../util/util"
 import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
 import { KubernetesResource } from "./types"
-import { ForwardablePort, Service } from "../../types/service"
+import { ForwardablePort, GardenService } from "../../types/service"
 import { isBuiltIn } from "./util"
 import { LogEntry } from "../../logger/log-entry"
 import { RuntimeError } from "../../exceptions"
@@ -53,7 +53,7 @@ export function killPortForward(targetResource: string, targetPort: number, log?
   }
 }
 
-export function killPortForwards(service: Service, forwardablePorts: ForwardablePort[], log: LogEntry) {
+export function killPortForwards(service: GardenService, forwardablePorts: ForwardablePort[], log: LogEntry) {
   for (const port of forwardablePorts) {
     const targetResource = getTargetResource(service, port.targetName)
     killPortForward(targetResource, port.targetPort, log)
@@ -202,7 +202,7 @@ export async function getPortForwardHandler({
   }
 }
 
-function getTargetResource(service: Service, targetName?: string) {
+function getTargetResource(service: GardenService, targetName?: string) {
   return `Service/${targetName || service.name}`
 }
 

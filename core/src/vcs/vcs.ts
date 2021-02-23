@@ -25,6 +25,10 @@ import { dedent } from "../util/string"
 import { fixedProjectExcludes } from "../util/fs"
 import { TreeCache } from "../cache"
 import { getModuleCacheContext } from "../types/module"
+import { ServiceConfig } from "../config/service"
+import { TaskConfig } from "../config/task"
+import { TestConfig } from "../config/test"
+import { GardenModule } from "../types/module"
 
 const AsyncLock = require("async-lock")
 const scanLock = new AsyncLock()
@@ -160,7 +164,7 @@ export abstract class VcsHandler {
     return fileVersion || (await this.getTreeVersion(log, projectName, moduleConfig))
   }
 
-  async resolveVersion(
+  async resolveModuleVersion(
     log: LogEntry,
     projectName: string,
     moduleConfig: ModuleConfig,
@@ -172,29 +176,21 @@ export abstract class VcsHandler {
       context: `${this.name} tree version for module at ${moduleConfig.path}`,
     })
 
-    if (dependencies.length === 0) {
-      const versionString = getVersionString(moduleConfig, [{ ...treeVersion, name: moduleConfig.name }])
-      return {
-        versionString,
-        dependencyVersions: {},
-        files: treeVersion.files,
-      }
-    }
-
     const namedDependencyVersions = await Bluebird.map(dependencies, async (m: ModuleConfig) => ({
       name: m.name,
       ...(await this.resolveTreeVersion(log, projectName, m)),
     }))
     const dependencyVersions = mapValues(keyBy(namedDependencyVersions, "name"), (v) => omit(v, "name"))
 
-    // keep the module at the top of the chain, dependencies sorted by name
-    const allVersions: NamedTreeVersion[] = [{ name: moduleConfig.name, ...treeVersion }].concat(
+    const versionString = getModuleVersionString(
+      moduleConfig,
+      { name: moduleConfig.name, ...treeVersion },
       namedDependencyVersions
     )
 
     return {
       dependencyVersions,
-      versionString: getVersionString(moduleConfig, allVersions),
+      versionString,
       files: treeVersion.files,
     }
   }
@@ -269,19 +265,51 @@ export async function writeModuleVersionFile(path: string, version: ModuleVersio
  * commit hash is used, and that prefix consists of only numbers. This can cause errors in certain contexts
  * when the version string is used in template variables in configuration files.
  */
-export function getVersionString(moduleConfig: ModuleConfig, treeVersions: NamedTreeVersion[]) {
+export function getModuleVersionString(
+  moduleConfig: ModuleConfig,
+  treeVersion: NamedTreeVersion,
+  dependencyTreeVersions: NamedTreeVersion[]
+) {
   // TODO: allow overriding the prefix
-  return `${versionStringPrefix}${hashVersions(moduleConfig, treeVersions)}`
+  return `${versionStringPrefix}${hashModuleVersion(moduleConfig, treeVersion, dependencyTreeVersions)}`
 }
 
 /**
+ * Compute the version of the given module, based on its configuration and the versions of its build dependencies.
  * The versions argument should consist of moduleConfig's tree version, and the tree versions of its dependencies.
  */
-export function hashVersions(moduleConfig: ModuleConfig, versions: NamedTreeVersion[]) {
-  // We omit the configPath, path, and outputs fields as these can between users and runtimes
-  const configString = serializeConfig(omit(moduleConfig, ["configPath", "path", "outputs"]))
-  const versionStrings = sortBy(versions, "name").map((v) => `${v.name}_${v.contentHash}`)
+export function hashModuleVersion(
+  moduleConfig: ModuleConfig,
+  treeVersion: NamedTreeVersion,
+  dependencyTreeVersions: NamedTreeVersion[]
+) {
+  // If a build config is provided, we use that.
+  // Otherwise, we use the full module config, omitting the configPath, path, and outputs fields, as well as individual
+  // entity configuration fields, as these often vary between environments and runtimes but are unlikely to impact the
+  // build output.
+  const configToHash =
+    moduleConfig.buildConfig ||
+    omit(moduleConfig, ["configPath", "path", "outputs", "serviceConfigs", "taskConfigs", "testConfigs"])
+
+  const configString = serializeConfig(configToHash)
+
+  const versionStrings = sortBy([treeVersion, ...dependencyTreeVersions], "name").map(
+    (v) => `${v.name}_${v.contentHash}`
+  )
+
   return hashStrings([configString, ...versionStrings])
+}
+
+/**
+ * Return the version string for the given Stack Graph entity (i.e. service, task or test).
+ * It is simply a hash of the module version and the configuration of the entity.
+ *
+ * @param module        The module containing the entity in question
+ * @param entityConfig  The configuration of the entity
+ */
+export function getEntityVersion(module: GardenModule, entityConfig: ServiceConfig | TaskConfig | TestConfig) {
+  const configString = serializeConfig(entityConfig)
+  return `${versionStringPrefix}${hashStrings([module.version.versionString, configString])}`
 }
 
 function hashStrings(hashes: string[]) {

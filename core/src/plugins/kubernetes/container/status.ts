@@ -8,7 +8,7 @@
 
 import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
-import { Service, ServiceStatus, ForwardablePort } from "../../../types/service"
+import { GardenService, ServiceStatus, ForwardablePort } from "../../../types/service"
 import { createContainerManifests } from "./deployment"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { DeploymentError } from "../../../exceptions"
@@ -32,7 +32,6 @@ export type ContainerServiceStatus = ServiceStatus<ContainerStatusDetail>
 
 export async function getContainerServiceStatus({
   ctx,
-  module,
   service,
   runtimeContext,
   log,
@@ -40,7 +39,6 @@ export async function getContainerServiceStatus({
 }: GetServiceStatusParams<ContainerModule>): Promise<ContainerServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
-  const version = module.version
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, ctx, provider)
   const namespace = await getAppNamespace(k8sCtx, log, provider)
@@ -73,7 +71,7 @@ export async function getContainerServiceStatus({
     forwardablePorts,
     ingresses,
     state,
-    version: state === "ready" ? version.versionString : undefined,
+    version: state === "ready" ? service.version : undefined,
     detail: { remoteResources, workload },
   }
 }
@@ -86,7 +84,7 @@ export async function waitForContainerService(
   ctx: PluginContext,
   log: LogEntry,
   runtimeContext: RuntimeContext,
-  service: Service,
+  service: GardenService,
   hotReload: boolean
 ) {
   const startTime = new Date().getTime()

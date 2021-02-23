@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ServiceStatus, ServiceState, ForwardablePort } from "../../../types/service"
+import { ServiceStatus, ServiceState, ForwardablePort, GardenService } from "../../../types/service"
 import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
 import { LogEntry } from "../../../logger/log-entry"
 import { helm } from "./helm-cli"
@@ -35,6 +35,7 @@ export type HelmServiceStatus = ServiceStatus<HelmStatusDetail>
 export async function getServiceStatus({
   ctx,
   module,
+  service,
   log,
   hotReload,
 }: GetServiceStatusParams<HelmModule>): Promise<HelmServiceStatus> {
@@ -45,7 +46,7 @@ export async function getServiceStatus({
   let state: ServiceState
 
   try {
-    const helmStatus = await getReleaseStatus(k8sCtx, module, releaseName, log, hotReload)
+    const helmStatus = await getReleaseStatus({ ctx: k8sCtx, service, releaseName, log, hotReload })
     state = helmStatus.state
   } catch (err) {
     state = "missing"
@@ -61,7 +62,7 @@ export async function getServiceStatus({
   return {
     forwardablePorts,
     state,
-    version: state === "ready" ? module.version.versionString : undefined,
+    version: state === "ready" ? service.version : undefined,
     detail,
   }
 }
@@ -94,19 +95,25 @@ export async function getDeployedResources({
   )
 }
 
-export async function getReleaseStatus(
-  ctx: KubernetesPluginContext,
-  module: HelmModule,
-  releaseName: string,
-  log: LogEntry,
+export async function getReleaseStatus({
+  ctx,
+  service,
+  releaseName,
+  log,
+  hotReload,
+}: {
+  ctx: KubernetesPluginContext
+  service: GardenService
+  releaseName: string
+  log: LogEntry
   hotReload: boolean
-): Promise<ServiceStatus> {
+}): Promise<ServiceStatus> {
   try {
     log.silly(`Getting the release status for ${releaseName}`)
     const namespace = await getModuleNamespace({
       ctx,
       log,
-      module,
+      module: service.module,
       provider: ctx.provider,
     })
 
@@ -128,7 +135,7 @@ export async function getReleaseStatus(
       const deployedVersion = values[".garden"] && values[".garden"].version
       const hotReloadEnabled = values[".garden"] && values[".garden"].hotReload === true
 
-      if ((hotReload && !hotReloadEnabled) || !deployedVersion || deployedVersion !== module.version.versionString) {
+      if ((hotReload && !hotReloadEnabled) || !deployedVersion || deployedVersion !== service.version) {
         state = "outdated"
       }
     }

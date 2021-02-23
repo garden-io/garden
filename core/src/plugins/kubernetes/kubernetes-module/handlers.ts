@@ -12,7 +12,7 @@ import { cloneDeep, partition, set, uniq } from "lodash"
 import { KubernetesModule, configureKubernetesModule, KubernetesService } from "./config"
 import { KubernetesPluginContext } from "../config"
 import { BaseResource, KubernetesResource, KubernetesServerResource } from "../types"
-import { Service, ServiceStatus } from "../../../types/service"
+import { GardenService, ServiceStatus } from "../../../types/service"
 import { compareDeployedResources, waitForResources } from "../status/status"
 import { KubeApi } from "../api"
 import { ModuleAndRuntimeActionHandlers } from "../../../types/plugin/plugin"
@@ -101,7 +101,7 @@ export async function getKubernetesServiceStatus({
   return {
     forwardablePorts,
     state,
-    version: state === "ready" ? module.version.versionString : undefined,
+    version: state === "ready" ? service.version : undefined,
     detail: { remoteResources },
   }
 }
@@ -257,7 +257,7 @@ async function prepareManifestsForHotReload({
   manifests,
 }: {
   ctx: PluginContext
-  service: Service
+  service: GardenService
   log: LogEntry
   module: KubernetesModule
   hotReload: boolean

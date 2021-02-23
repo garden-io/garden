@@ -65,7 +65,7 @@ describe("kubernetes container deployment handlers", () => {
         blueGreen: false,
       })
 
-      const version = service.module.version.versionString
+      const buildVersion = service.module.version.versionString
 
       expect(resource).to.eql({
         kind: "Deployment",
@@ -86,7 +86,7 @@ describe("kubernetes container deployment handlers", () => {
               containers: [
                 {
                   name: "simple-service",
-                  image: "simple-service:" + version,
+                  image: "simple-service:" + buildVersion,
                   command: ["sh", "-c", "echo Server running... && nc -l -p 8080"],
                   env: [
                     { name: "POD_HOST_IP", valueFrom: { fieldRef: { fieldPath: "status.hostIP" } } },
@@ -131,7 +131,7 @@ describe("kubernetes container deployment handlers", () => {
         blueGreen: true,
       })
 
-      const version = service.module.version.versionString
+      const version = service.version
 
       expect(resource.metadata.name).to.equal("simple-service-" + version)
       expect(resource.metadata.labels).to.eql({

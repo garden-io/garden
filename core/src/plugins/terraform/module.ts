@@ -112,6 +112,7 @@ export async function getTerraformStatus({
   ctx,
   log,
   module,
+  service,
 }: GetServiceStatusParams<TerraformModule>): Promise<ServiceStatus> {
   const provider = ctx.provider as TerraformProvider
   const root = getModuleStackRoot(module)
@@ -129,7 +130,7 @@ export async function getTerraformStatus({
 
   return {
     state: status === "up-to-date" ? "ready" : "outdated",
-    version: module.version.versionString,
+    version: service.version,
     outputs: await getTfOutputs({ log, ctx, provider, root }),
     detail: {},
   }
@@ -139,6 +140,7 @@ export async function deployTerraform({
   ctx,
   log,
   module,
+  service,
 }: DeployServiceParams<TerraformModule>): Promise<ServiceStatus> {
   const provider = ctx.provider as TerraformProvider
   const workspace = module.spec.workspace || null
@@ -162,7 +164,7 @@ export async function deployTerraform({
 
   return {
     state: "ready",
-    version: module.version.versionString,
+    version: service.version,
     outputs: await getTfOutputs({ log, ctx, provider, root }),
     detail: {},
   }
@@ -172,6 +174,7 @@ export async function deleteTerraformModule({
   ctx,
   log,
   module,
+  service,
 }: DeleteServiceParams<TerraformModule>): Promise<ServiceStatus> {
   const provider = ctx.provider as TerraformProvider
 
@@ -194,7 +197,7 @@ export async function deleteTerraformModule({
 
   return {
     state: "missing",
-    version: module.version.versionString,
+    version: service.version,
     outputs: {},
     detail: {},
   }

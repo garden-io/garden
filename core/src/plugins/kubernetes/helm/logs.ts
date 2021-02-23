@@ -14,7 +14,7 @@ import { getChartResources } from "./common"
 import { getModuleNamespace } from "../namespace"
 
 export async function getServiceLogs(params: GetServiceLogsParams<HelmModule>) {
-  const { ctx, module, log } = params
+  const { ctx, module, log, service } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const namespace = await getModuleNamespace({
@@ -24,7 +24,7 @@ export async function getServiceLogs(params: GetServiceLogsParams<HelmModule>) {
     provider: k8sCtx.provider,
   })
 
-  const resources = await getChartResources(k8sCtx, module, false, log)
+  const resources = await getChartResources({ ctx: k8sCtx, module, hotReload: false, log, version: service.version })
 
   return streamK8sLogs({ ...params, provider, defaultNamespace: namespace, resources })
 }

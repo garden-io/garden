@@ -9,7 +9,6 @@
 import { deserializeValues } from "../../util/util"
 import { KubeApi } from "./api"
 import { GardenModule } from "../../types/module"
-import { ModuleVersion } from "../../vcs/vcs"
 import { ContainerModule } from "../container/config"
 import { HelmModule } from "./helm/config"
 import { KubernetesModule } from "./kubernetes-module/config"
@@ -23,19 +22,19 @@ import { upsertConfigMap } from "./util"
 import { trimRunOutput } from "./helm/common"
 import { getSystemNamespace } from "./namespace"
 import chalk from "chalk"
+import { GardenTest } from "../../types/test"
 
 export async function getTestResult({
   ctx,
   log,
   module,
-  testName,
-  testVersion,
+  test,
 }: GetTestResultParams<ContainerModule | HelmModule | KubernetesModule>): Promise<TestResult | null> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
   const testResultNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
 
-  const resultKey = getTestResultKey(k8sCtx, module, testName, testVersion)
+  const resultKey = getTestResultKey(k8sCtx, module, test)
 
   try {
     const res = await api.core.readNamespacedConfigMap(resultKey, testResultNamespace)
@@ -64,8 +63,8 @@ export async function getTestResult({
   }
 }
 
-export function getTestResultKey(ctx: PluginContext, module: GardenModule, testName: string, version: ModuleVersion) {
-  const key = `${ctx.projectName}--${module.name}--${testName}--${version.versionString}`
+export function getTestResultKey(ctx: PluginContext, module: GardenModule, test: GardenTest) {
+  const key = `${ctx.projectName}--${module.name}--${test.name}--${test.version}`
   const hash = hasha(key, { algorithm: "sha1" })
   return `test-result--${hash.slice(0, 32)}`
 }
@@ -74,8 +73,7 @@ interface StoreTestResultParams {
   ctx: PluginContext
   log: LogEntry
   module: GardenModule
-  testName: string
-  testVersion: ModuleVersion
+  test: GardenTest
   result: TestResult
 }
 
@@ -84,14 +82,7 @@ interface StoreTestResultParams {
  *
  * TODO: Implement a CRD for this.
  */
-export async function storeTestResult({
-  ctx,
-  log,
-  module,
-  testName,
-  testVersion,
-  result,
-}: StoreTestResultParams): Promise<TestResult> {
+export async function storeTestResult({ ctx, log, module, test, result }: StoreTestResultParams): Promise<TestResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
   const testResultNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
@@ -102,12 +93,12 @@ export async function storeTestResult({
     await upsertConfigMap({
       api,
       namespace: testResultNamespace,
-      key: getTestResultKey(k8sCtx, module, testName, testVersion),
+      key: getTestResultKey(k8sCtx, module, test),
       labels: {
         [gardenAnnotationKey("module")]: module.name,
-        [gardenAnnotationKey("test")]: testName,
+        [gardenAnnotationKey("test")]: test.name,
         [gardenAnnotationKey("moduleVersion")]: module.version.versionString,
-        [gardenAnnotationKey("version")]: testVersion.versionString,
+        [gardenAnnotationKey("version")]: test.version,
       },
       data,
     })

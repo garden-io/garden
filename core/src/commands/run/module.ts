@@ -111,7 +111,8 @@ export class RunModuleCommand extends Command<Args, Opts> {
       garden,
       graph,
       dependencies,
-      version: module.version,
+      version: module.version.versionString,
+      moduleVersion: module.version.versionString,
       serviceStatuses: {},
       taskResults: {},
     })

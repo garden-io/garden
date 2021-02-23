@@ -7,7 +7,6 @@
  */
 
 import { GraphResults } from "../task-graph"
-import { ModuleVersion } from "../vcs/vcs"
 import { v1 as uuidv1 } from "uuid"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
@@ -42,7 +41,7 @@ export interface TaskParams {
   garden: Garden
   log: LogEntry
   force?: boolean
-  version: ModuleVersion
+  version: string
 }
 
 @Profile()
@@ -56,7 +55,7 @@ export abstract class BaseTask {
   log: LogEntry
   uid: string
   force: boolean
-  version: ModuleVersion
+  version: string
 
   _resolvedDependencies?: BaseTask[]
 

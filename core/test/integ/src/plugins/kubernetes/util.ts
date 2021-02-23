@@ -14,7 +14,7 @@ import { ConfigGraph } from "../../../../../src/config-graph"
 import { Provider } from "../../../../../src/config/provider"
 import { DeployTask } from "../../../../../src/tasks/deploy"
 import { KubeApi } from "../../../../../src/plugins/kubernetes/api"
-import { KubernetesConfig } from "../../../../../src/plugins/kubernetes/config"
+import { KubernetesConfig, KubernetesPluginContext } from "../../../../../src/plugins/kubernetes/config"
 import {
   getWorkloadPods,
   getServiceResourceSpec,
@@ -23,7 +23,6 @@ import {
 } from "../../../../../src/plugins/kubernetes/util"
 import { createWorkloadManifest } from "../../../../../src/plugins/kubernetes/container/deployment"
 import { emptyRuntimeContext } from "../../../../../src/runtime-context"
-import { PluginContext } from "../../../../../src/plugin-context"
 import { getHelmTestGarden } from "./helm/common"
 import { deline } from "../../../../../src/util/string"
 import { getBaseModule, getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
@@ -36,14 +35,14 @@ import { getContainerTestGarden } from "./container/container"
 describe("util", () => {
   let helmGarden: TestGarden
   let helmGraph: ConfigGraph
-  let ctx: PluginContext
+  let ctx: KubernetesPluginContext
   let log: LogEntry
 
   before(async () => {
     helmGarden = await getHelmTestGarden()
     log = helmGarden.log
     const provider = await helmGarden.resolveProvider(log, "local-kubernetes")
-    ctx = await helmGarden.getPluginContext(provider)
+    ctx = (await helmGarden.getPluginContext(provider)) as KubernetesPluginContext
     helmGraph = await helmGarden.getConfigGraph(log)
     await buildModules()
   })
@@ -175,8 +174,14 @@ describe("util", () => {
 
   describe("findServiceResource", () => {
     it("should return the resource specified by serviceResource", async () => {
-      const module = await helmGraph.getModule("api")
-      const manifests = await getChartResources(ctx, module, false, log)
+      const module = helmGraph.getModule("api")
+      const manifests = await getChartResources({
+        ctx,
+        module,
+        hotReload: false,
+        log,
+        version: module.version.versionString,
+      })
       const result = await findServiceResource({
         ctx,
         log,
@@ -189,8 +194,14 @@ describe("util", () => {
     })
 
     it("should throw if no resourceSpec or serviceResource is specified", async () => {
-      const module = await helmGraph.getModule("api")
-      const manifests = await getChartResources(ctx, module, false, log)
+      const module = helmGraph.getModule("api")
+      const manifests = await getChartResources({
+        ctx,
+        module,
+        hotReload: false,
+        log,
+        version: module.version.versionString,
+      })
       delete module.spec.serviceResource
       await expectError(
         () => findServiceResource({ ctx, log, module, manifests, baseModule: undefined }),
@@ -204,8 +215,14 @@ describe("util", () => {
     })
 
     it("should throw if no resource of the specified kind is in the chart", async () => {
-      const module = await helmGraph.getModule("api")
-      const manifests = await getChartResources(ctx, module, false, log)
+      const module = helmGraph.getModule("api")
+      const manifests = await getChartResources({
+        ctx,
+        module,
+        hotReload: false,
+        log,
+        version: module.version.versionString,
+      })
       const resourceSpec = {
         ...module.spec.serviceResource,
         kind: "DaemonSet",
@@ -225,8 +242,14 @@ describe("util", () => {
     })
 
     it("should throw if matching resource is not found by name", async () => {
-      const module = await helmGraph.getModule("api")
-      const manifests = await getChartResources(ctx, module, false, log)
+      const module = helmGraph.getModule("api")
+      const manifests = await getChartResources({
+        ctx,
+        module,
+        hotReload: false,
+        log,
+        version: module.version.versionString,
+      })
       const resourceSpec = {
         ...module.spec.serviceResource,
         name: "foo",
@@ -246,8 +269,14 @@ describe("util", () => {
     })
 
     it("should throw if no name is specified and multiple resources are matched", async () => {
-      const module = await helmGraph.getModule("api")
-      const manifests = await getChartResources(ctx, module, false, log)
+      const module = helmGraph.getModule("api")
+      const manifests = await getChartResources({
+        ctx,
+        module,
+        hotReload: false,
+        log,
+        version: module.version.versionString,
+      })
       const deployment = find(manifests, (r) => r.kind === "Deployment")
       manifests.push(deployment!)
       await expectError(
@@ -261,9 +290,15 @@ describe("util", () => {
     })
 
     it("should resolve template string for resource name", async () => {
-      const module = await helmGraph.getModule("postgres")
+      const module = helmGraph.getModule("postgres")
       await buildHelmModule({ ctx, module, log })
-      const manifests = await getChartResources(ctx, module, false, log)
+      const manifests = await getChartResources({
+        ctx,
+        module,
+        hotReload: false,
+        log,
+        version: module.version.versionString,
+      })
       module.spec.serviceResource.name = `{{ template "postgresql.master.fullname" . }}`
       const result = await findServiceResource({
         ctx,
@@ -279,8 +314,14 @@ describe("util", () => {
 
   describe("getResourceContainer", () => {
     async function getDeployment() {
-      const module = await helmGraph.getModule("api")
-      const manifests = await getChartResources(ctx, module, false, log)
+      const module = helmGraph.getModule("api")
+      const manifests = await getChartResources({
+        ctx,
+        module,
+        hotReload: false,
+        log,
+        version: module.version.versionString,
+      })
       return <HotReloadableResource>find(manifests, (r) => r.kind === "Deployment")!
     }
 

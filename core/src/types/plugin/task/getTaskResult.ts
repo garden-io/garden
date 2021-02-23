@@ -9,7 +9,6 @@
 import { taskActionParamsSchema, PluginTaskActionParamsBase } from "../base"
 import { dedent, deline } from "../../../util/string"
 import { GardenModule } from "../../module"
-import { ModuleVersion } from "../../../vcs/vcs"
 import { joi, joiPrimitive, moduleVersionSchema } from "../../../config/common"
 
 export const taskVersionSchema = () =>
@@ -17,9 +16,7 @@ export const taskVersionSchema = () =>
     The task run's version. In addition to the parent module's version, this also
     factors in the module versions of the tasks's runtime dependencies (if any).`)
 
-export interface GetTaskResultParams<T extends GardenModule = GardenModule> extends PluginTaskActionParamsBase<T> {
-  taskVersion: ModuleVersion
-}
+export interface GetTaskResultParams<T extends GardenModule = GardenModule> extends PluginTaskActionParamsBase<T> {}
 
 export const taskResultSchema = () =>
   joi
@@ -53,9 +50,6 @@ export const getTaskResult = () => ({
     well as any runtime dependencies configured for the task, so it may not match the current version
     of the module itself.
   `,
-  paramsSchema: taskActionParamsSchema().keys({
-    taskVersion: taskVersionSchema(),
-  }),
-
+  paramsSchema: taskActionParamsSchema(),
   resultSchema: taskResultSchema().allow(null),
 })

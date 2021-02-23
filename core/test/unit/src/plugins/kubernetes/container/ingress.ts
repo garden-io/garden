@@ -335,7 +335,7 @@ describe("createIngressResources", () => {
 
     td.replace(garden.buildStaging, "syncDependencyProducts", () => null)
 
-    td.replace(Garden.prototype, "resolveVersion", async () => ({
+    td.replace(Garden.prototype, "resolveModuleVersion", async () => ({
       versionString: "1234",
       dependencyVersions: {},
       files: [],
@@ -413,7 +413,12 @@ describe("createIngressResources", () => {
     const ctx = await garden.getPluginContext(provider)
     ctx.tools["kubernetes.kubectl"] = new PluginTool(kubectlSpec)
     const parsed = await configure({ ctx, moduleConfig, log: garden.log })
-    const module = await moduleFromConfig(garden, garden.log, parsed.moduleConfig, [])
+    const module = await moduleFromConfig({
+      garden,
+      log: garden.log,
+      config: parsed.moduleConfig,
+      buildDependencies: [],
+    })
 
     return {
       name: spec.name,
@@ -428,6 +433,7 @@ describe("createIngressResources", () => {
       module,
       sourceModule: module,
       spec,
+      version: module.version.versionString,
     }
   }
 

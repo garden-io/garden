@@ -151,6 +151,8 @@ export async function configureMavenContainerModule(params: ConfigureModuleParam
     ? moduleConfig.spec.dockerfile || defaultDockerfileName
     : moduleConfig.spec.dockerfile
 
+  configured.moduleConfig.buildConfig.dockerfile = dockerfile
+
   return {
     moduleConfig: {
       ...configured.moduleConfig,

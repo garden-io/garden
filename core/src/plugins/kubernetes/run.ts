@@ -106,6 +106,7 @@ export async function runAndCopy({
   stdout,
   stderr,
   namespace,
+  version,
   volumes,
 }: RunModuleParams<GardenModule> & {
   image: string
@@ -119,6 +120,7 @@ export async function runAndCopy({
   stdout?: Writable
   stderr?: Writable
   namespace: string
+  version: string
   volumes?: ContainerVolumeSpec[]
 }): Promise<RunResult> {
   const provider = <KubernetesProvider>ctx.provider
@@ -171,6 +173,7 @@ export async function runAndCopy({
     podSpec,
     podName,
     namespace,
+    version,
   }
 
   if (getArtifacts) {
@@ -300,12 +303,14 @@ async function runWithoutArtifacts({
   podName,
   namespace,
   interactive,
+  version,
 }: RunModuleParams<GardenModule> & {
   api: KubeApi
   provider: KubernetesProvider
   podSpec: V1PodSpec
   podName: string
   namespace: string
+  version: string
 }): Promise<RunResult> {
   const pod: KubernetesResource<V1Pod> = {
     apiVersion: "v1",
@@ -336,7 +341,7 @@ async function runWithoutArtifacts({
       moduleName: module.name,
       startedAt,
       success: false,
-      version: module.version.versionString,
+      version,
     }
   }
 
@@ -350,7 +355,7 @@ async function runWithoutArtifacts({
     result = {
       ...res,
       moduleName: module.name,
-      version: module.version.versionString,
+      version,
     }
   } catch (err) {
     if (err.type === "timeout") {
@@ -360,7 +365,7 @@ async function runWithoutArtifacts({
       result = {
         log: err.detail.logs || err.message,
         moduleName: module.name,
-        version: module.version.versionString,
+        version,
         success: false,
         startedAt,
         completedAt: new Date(),
@@ -393,6 +398,7 @@ async function runWithArtifacts({
   stdout,
   stderr,
   namespace,
+  version,
 }: RunModuleParams<GardenModule> & {
   podSpec: V1PodSpec
   podName: string
@@ -406,6 +412,7 @@ async function runWithArtifacts({
   stdout?: Writable
   stderr?: Writable
   namespace: string
+  version: string
 }): Promise<RunResult> {
   const pod: KubernetesResource<V1Pod> = {
     apiVersion: "v1",
@@ -436,7 +443,7 @@ async function runWithArtifacts({
       moduleName: module.name,
       startedAt,
       success: false,
-      version: module.version.versionString,
+      version,
     }
   }
 
@@ -531,7 +538,7 @@ async function runWithArtifacts({
         ...res,
         log: (await runner.getMainContainerLogs()).trim() || res.log,
         moduleName: module.name,
-        version: module.version.versionString,
+        version,
       }
     } catch (err) {
       const res = err.detail.result
@@ -544,7 +551,7 @@ async function runWithArtifacts({
         result = {
           log: (await runner.getMainContainerLogs()).trim() || err.message,
           moduleName: module.name,
-          version: module.version.versionString,
+          version,
           success: false,
           startedAt,
           completedAt: new Date(),

@@ -15,7 +15,7 @@ import { GetServiceLogsResult, ServiceLogEntry } from "../../types/plugin/servic
 import { KubernetesResource, KubernetesPod } from "./types"
 import { getAllPods, getStaticLabelsFromPod, getSelectorString } from "./util"
 import { KubeApi } from "./api"
-import { Service } from "../../types/service"
+import { GardenService } from "../../types/service"
 import Stream from "ts-stream"
 import { LogEntry } from "../../logger/log-entry"
 import Bluebird from "bluebird"
@@ -30,7 +30,7 @@ interface GetAllLogsParams {
   defaultNamespace: string
   log: LogEntry
   provider: KubernetesProvider
-  service: Service
+  service: GardenService
   stream: Stream<ServiceLogEntry>
   follow: boolean
   tail: number
@@ -77,7 +77,7 @@ async function readLogsFromApi({
   log: LogEntry
   ctx: PluginContext
   provider: KubernetesProvider
-  service: Service
+  service: GardenService
   stream: Stream<ServiceLogEntry>
   tail?: number
   pod: KubernetesPod
@@ -129,7 +129,7 @@ async function followLogs({
   ctx: PluginContext
   log: LogEntry
   provider: KubernetesProvider
-  service: Service
+  service: GardenService
   stream: Stream<ServiceLogEntry>
   tail: number
   pod: KubernetesPod

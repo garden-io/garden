@@ -76,7 +76,7 @@ describe("GetServiceStatusTask", () => {
                   log,
                   startedAt: new Date(),
                   completedAt: new Date(),
-                  version: task.module.version.versionString,
+                  version: task.version,
                 }
               },
             },

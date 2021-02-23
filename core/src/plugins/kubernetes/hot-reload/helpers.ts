@@ -11,7 +11,7 @@ import { RuntimeError, ConfigurationError } from "../../../exceptions"
 import { resolve as resolvePath, dirname, posix } from "path"
 import { deline, gardenAnnotationKey } from "../../../util/string"
 import { set, flatten } from "lodash"
-import { Service } from "../../../types/service"
+import { GardenService } from "../../../types/service"
 import { LogEntry } from "../../../logger/log-entry"
 import { getResourceContainer, getServiceResourceSpec } from "../util"
 import { execInWorkload } from "../container/exec"
@@ -266,7 +266,7 @@ function rsyncTargetPath(path: string) {
 
 interface SyncToServiceParams {
   ctx: KubernetesPluginContext
-  service: Service
+  service: GardenService
   hotReloadSpec: ContainerHotReloadSpec
   namespace: string
   workload: KubernetesWorkload

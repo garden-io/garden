@@ -7,15 +7,13 @@
  */
 
 import { Command, CommandResult, CommandParams } from "../base"
-import { NotFoundError } from "../../exceptions"
 import { TestResult, testResultSchema } from "../../types/plugin/module/getTestResult"
-import { getTestVersion } from "../../tasks/test"
-import { findByName, getNames } from "../../util/util"
 import { printHeader } from "../../logger/util"
 import chalk from "chalk"
 import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
 import { joi, joiArray } from "../../config/common"
 import { StringParameter } from "../../cli/params"
+import { testFromModule } from "../../types/test"
 
 const getTestResultArgs = {
   module: new StringParameter({
@@ -71,31 +69,19 @@ export class GetTestResultCommand extends Command<Args> {
     const actions = await garden.getActionRouter()
 
     const module = graph.getModule(moduleName)
-
-    const testConfig = findByName(module.testConfigs, testName)
-
-    if (!testConfig) {
-      throw new NotFoundError(`Could not find test "${testName}" in module "${moduleName}"`, {
-        moduleName,
-        testName,
-        availableTests: getNames(module.testConfigs),
-      })
-    }
-
-    const testVersion = await getTestVersion(garden, graph, module, testConfig)
+    const test = testFromModule(module, testName)
 
     const testResult = await actions.getTestResult({
       log,
-      testName,
+      test,
       module,
-      testVersion,
     })
 
     let result: GetTestResultCommandResult = null
 
     if (testResult) {
       const artifacts = await getArtifactFileList({
-        key: getArtifactKey("test", testName, module.version.versionString),
+        key: getArtifactKey("test", testName, test.version),
         artifactsPath: garden.artifactsPath,
         log: garden.log,
       })

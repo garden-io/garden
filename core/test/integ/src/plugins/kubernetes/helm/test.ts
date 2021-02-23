@@ -15,6 +15,7 @@ import { TestTask } from "../../../../../../src/tasks/test"
 import { findByName } from "../../../../../../src/util/util"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
+import { testFromModule, testFromConfig } from "../../../../../../src/types/test"
 
 describe("testHelmModule", () => {
   let garden: TestGarden
@@ -31,11 +32,10 @@ describe("testHelmModule", () => {
   it("should run a basic test", async () => {
     const module = graph.getModule("artifacts")
 
-    const testTask = await TestTask.factory({
+    const testTask = new TestTask({
       garden,
       graph,
-      module,
-      testConfig: findByName(module.testConfigs, "echo-test")!,
+      test: testFromModule(module, "echo-test"),
       log: garden.log,
       force: true,
       forceBuild: false,
@@ -52,11 +52,10 @@ describe("testHelmModule", () => {
   it("should run a test in a different namespace, if configured", async () => {
     const module = graph.getModule("chart-with-namespace")
 
-    const testTask = await TestTask.factory({
+    const testTask = new TestTask({
       garden,
       graph,
-      module,
-      testConfig: findByName(module.testConfigs, "echo-test")!,
+      test: testFromModule(module, "echo-test"),
       log: garden.log,
       force: true,
       forceBuild: false,
@@ -76,16 +75,15 @@ describe("testHelmModule", () => {
     const testConfig = findByName(module.testConfigs, "echo-test")!
     testConfig.spec.command = ["bork"] // this will fail
 
+    const test = testFromConfig(module, testConfig)
+
     const testTask = new TestTask({
       garden,
       graph,
-      module,
-      testConfig,
+      test,
       log: garden.log,
       force: true,
       forceBuild: false,
-      version: module.version,
-      _guard: true,
     })
 
     await expectError(
@@ -99,8 +97,7 @@ describe("testHelmModule", () => {
     const result = await actions.getTestResult({
       log: garden.log,
       module,
-      testName: testConfig.name,
-      testVersion: testTask.version,
+      test,
     })
 
     expect(result).to.exist
@@ -110,11 +107,10 @@ describe("testHelmModule", () => {
     it("should copy artifacts out of the container", async () => {
       const module = graph.getModule("artifacts")
 
-      const testTask = await TestTask.factory({
+      const testTask = new TestTask({
         garden,
         graph,
-        module,
-        testConfig: findByName(module.testConfigs, "artifacts-test")!,
+        test: testFromModule(module, "artifacts-test"),
         log: garden.log,
         force: true,
         forceBuild: false,
@@ -129,18 +125,15 @@ describe("testHelmModule", () => {
     })
 
     it("should fail if an error occurs, but copy the artifacts out of the container", async () => {
-      const module = await graph.getModule("artifacts")
+      const module = graph.getModule("artifacts")
 
       const testTask = new TestTask({
         garden,
         graph,
-        module,
-        testConfig: findByName(module.testConfigs, "artifacts-test-fail")!,
+        test: testFromModule(module, "artifacts-test-fail"),
         log: garden.log,
         force: true,
         forceBuild: false,
-        version: module.version,
-        _guard: true,
       })
 
       await emptyDir(garden.artifactsPath)
@@ -156,11 +149,10 @@ describe("testHelmModule", () => {
     it("should handle globs when copying artifacts out of the container", async () => {
       const module = graph.getModule("artifacts")
 
-      const testTask = await TestTask.factory({
+      const testTask = new TestTask({
         garden,
         graph,
-        module,
-        testConfig: findByName(module.testConfigs, "globs-test")!,
+        test: testFromModule(module, "globs-test"),
         log: garden.log,
         force: true,
         forceBuild: false,

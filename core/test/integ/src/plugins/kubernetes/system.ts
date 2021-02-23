@@ -15,6 +15,7 @@ import { TestTask } from "../../../../../src/tasks/test"
 import { getSystemGarden } from "../../../../../src/plugins/kubernetes/system"
 import { getKubernetesSystemVariables } from "../../../../../src/plugins/kubernetes/init"
 import Bluebird = require("bluebird")
+import { testFromConfig } from "../../../../../src/types/test"
 
 describe("System services", () => {
   let garden: Garden
@@ -57,19 +58,17 @@ describe("System services", () => {
     const variables = getKubernetesSystemVariables(provider.config)
     const systemGarden = await getSystemGarden(ctx, variables, garden.log)
     const graph = await systemGarden.getConfigGraph(garden.log)
-    const modules = (await graph.getModules()).filter((module) => module.name.startsWith("conftest-"))
+    const modules = graph.getModules().filter((module) => module.name.startsWith("conftest-"))
 
     await Bluebird.map(modules, async (module) => {
+      const test = testFromConfig(module, module.testConfigs[0])
       const testTask = new TestTask({
         garden: systemGarden,
-        module,
+        test,
         log: garden.log,
         graph,
-        testConfig: module.testConfigs[0] || {},
         force: true,
         forceBuild: true,
-        version: module.version,
-        _guard: true,
       })
       const key = testTask.getKey()
       const result = await systemGarden.processTasks([testTask])

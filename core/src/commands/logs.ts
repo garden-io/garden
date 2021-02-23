@@ -11,7 +11,7 @@ import chalk from "chalk"
 import { maxBy } from "lodash"
 import { ServiceLogEntry } from "../types/plugin/service/getServiceLogs"
 import Bluebird = require("bluebird")
-import { Service } from "../types/service"
+import { GardenService } from "../types/service"
 import Stream from "ts-stream"
 import { LoggerType } from "../logger/logger"
 import dedent = require("dedent")
@@ -106,7 +106,7 @@ export class LogsCommand extends Command<Args, Opts> {
     const actions = await garden.getActionRouter()
     const voidLog = log.placeholder({ level: LogLevel.silly, childEntriesInheritLevel: true })
 
-    await Bluebird.map(services, async (service: Service<any>) => {
+    await Bluebird.map(services, async (service: GardenService<any>) => {
       const status = await actions.getServiceStatus({
         hotReload: false,
         log: voidLog,

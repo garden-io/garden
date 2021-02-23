@@ -9,7 +9,6 @@
 import { ConfigGraph } from "../../config-graph"
 import { Command, CommandResult, CommandParams } from "../base"
 import { printHeader } from "../../logger/util"
-import { getTaskVersion } from "../../tasks/task"
 import { RunTaskResult } from "../../types/plugin/task/runTask"
 import chalk from "chalk"
 import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
@@ -64,14 +63,13 @@ export class GetTaskResultCommand extends Command<Args> {
     const taskResult = await actions.getTaskResult({
       log,
       task,
-      taskVersion: await getTaskVersion(garden, graph, task),
     })
 
     let result: GetTaskResultCommandResult = null
 
     if (taskResult) {
       const artifacts = await getArtifactFileList({
-        key: getArtifactKey("task", task.name, task.module.version.versionString),
+        key: getArtifactKey("task", task.name, task.version),
         artifactsPath: garden.artifactsPath,
         log: garden.log,
       })

@@ -9,12 +9,11 @@
 import { dedent, deline } from "../../../util/string"
 import { GardenModule } from "../../module"
 import { PluginModuleActionParamsBase, moduleActionParamsSchema, RunResult, runResultSchema } from "../base"
-import { ModuleVersion } from "../../../vcs/vcs"
 import { joi, joiPrimitive, moduleVersionSchema } from "../../../config/common"
+import { GardenTest, testSchema } from "../../test"
 
 export interface GetTestResultParams<T extends GardenModule = GardenModule> extends PluginModuleActionParamsBase<T> {
-  testName: string
-  testVersion: ModuleVersion
+  test: GardenTest<T>
 }
 
 export interface TestResult extends RunResult {
@@ -46,8 +45,7 @@ export const getTestResult = () => ({
   `,
 
   paramsSchema: moduleActionParamsSchema().keys({
-    testName: joi.string().description("A unique name to identify the test run."),
-    testVersion: testVersionSchema(),
+    test: testSchema(),
   }),
 
   resultSchema: testResultSchema().allow(null),

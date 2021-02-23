@@ -30,7 +30,6 @@ describe("runHelmTask", () => {
 
   it("should run a basic task and store its result", async () => {
     const task = graph.getTask("echo-task")
-    const version = task.module.version
 
     const testTask = new TaskTask({
       garden,
@@ -39,7 +38,6 @@ describe("runHelmTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      version,
     })
 
     const key = testTask.getKey()
@@ -47,7 +45,7 @@ describe("runHelmTask", () => {
     // Clear any existing task result
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
     const ctx = await garden.getPluginContext(provider)
-    await clearTaskResult({ ctx, log: garden.log, module: task.module, task, taskVersion: version })
+    await clearTaskResult({ ctx, log: garden.log, module: task.module, task })
 
     const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
 
@@ -62,7 +60,6 @@ describe("runHelmTask", () => {
     const storedResult = await actions.getTaskResult({
       log: garden.log,
       task,
-      taskVersion: task.module.version,
     })
 
     expect(storedResult).to.exist
@@ -70,7 +67,6 @@ describe("runHelmTask", () => {
 
   it("should not store task results if cacheResult=false", async () => {
     const task = graph.getTask("echo-task")
-    const version = task.module.version
     task.config.cacheResult = false
 
     const testTask = new TaskTask({
@@ -80,13 +76,12 @@ describe("runHelmTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      version,
     })
 
     // Clear any existing task result
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
     const ctx = await garden.getPluginContext(provider)
-    await clearTaskResult({ ctx, log: garden.log, module: task.module, task, taskVersion: version })
+    await clearTaskResult({ ctx, log: garden.log, module: task.module, task })
 
     await garden.processTasks([testTask], { throwOnError: true })
 
@@ -95,7 +90,6 @@ describe("runHelmTask", () => {
     const storedResult = await actions.getTaskResult({
       log: garden.log,
       task,
-      taskVersion: task.module.version,
     })
 
     expect(storedResult).to.not.exist
@@ -111,7 +105,6 @@ describe("runHelmTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      version: task.module.version,
     })
 
     const key = testTask.getKey()
@@ -135,7 +128,6 @@ describe("runHelmTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      version: task.module.version,
     })
 
     await expectError(
@@ -149,7 +141,6 @@ describe("runHelmTask", () => {
     const result = await actions.getTaskResult({
       log: garden.log,
       task,
-      taskVersion: task.module.version,
     })
 
     expect(result).to.exist
@@ -166,7 +157,6 @@ describe("runHelmTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        version: task.module.version,
       })
 
       await emptyDir(garden.artifactsPath)
@@ -187,7 +177,6 @@ describe("runHelmTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        version: task.module.version,
       })
       await emptyDir(garden.artifactsPath)
 
@@ -209,7 +198,6 @@ describe("runHelmTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        version: task.module.version,
       })
 
       await emptyDir(garden.artifactsPath)

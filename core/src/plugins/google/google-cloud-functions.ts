@@ -8,7 +8,7 @@
 
 import { joiArray, joi } from "../../config/common"
 import { GardenModule } from "../../types/module"
-import { ServiceState, ServiceStatus, ingressHostnameSchema, Service } from "../../types/service"
+import { ServiceState, ServiceStatus, ingressHostnameSchema, GardenService } from "../../types/service"
 import { resolve } from "path"
 import { ExecTestSpec, execTestSchema } from "../exec"
 import { prepareEnvironment, gcloud, getEnvironmentStatus, GOOGLE_CLOUD_DEFAULT_REGION } from "./common"
@@ -46,7 +46,7 @@ export type GcfServiceSpec = GcfModuleSpec
 
 export interface GcfModule extends GardenModule<GcfModuleSpec, GcfServiceSpec, ExecTestSpec> {}
 
-function getGcfProject<T extends GcfModule>(service: Service<T>, provider: Provider<any>) {
+function getGcfProject<T extends GcfModule>(service: GardenService<T>, provider: Provider<any>) {
   return service.spec.project || provider.config.defaultProject || null
 }
 

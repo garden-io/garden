@@ -16,6 +16,7 @@ import { dedent } from "@garden-io/sdk/util/string"
 import { makeTestGarden } from "@garden-io/sdk/testing"
 
 import { TestTask } from "@garden-io/core/build/src/tasks/test"
+import { testFromConfig } from "@garden-io/core/build/src/types/test"
 
 describe("conftest-kubernetes provider", () => {
   const projectRoot = join(__dirname, "test-project")
@@ -72,14 +73,11 @@ describe("conftest-kubernetes provider", () => {
 
       const testTask = new TestTask({
         garden,
-        module,
         log: garden.log,
         graph,
-        testConfig: module.testConfigs[0],
+        test: testFromConfig(module, module.testConfigs[0]),
         force: true,
         forceBuild: true,
-        version: module.version,
-        _guard: true,
       })
 
       const key = testTask.getKey()

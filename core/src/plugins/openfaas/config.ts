@@ -12,7 +12,7 @@ import { resolve as urlResolve } from "url"
 import { PluginContext } from "../../plugin-context"
 import { joiProviderName, joi, joiEnvVars, DeepPrimitiveMap, joiSparseArray } from "../../config/common"
 import { GardenModule } from "../../types/module"
-import { Service } from "../../types/service"
+import { GardenService } from "../../types/service"
 import { ExecModuleSpecBase, ExecTestSpec } from "../exec"
 import { CommonServiceSpec } from "../../config/service"
 import { Provider, providerConfigBaseSchema, GenericProviderConfig } from "../../config/provider"
@@ -78,7 +78,7 @@ export const openfaasModuleOutputsSchema = () =>
 
 export interface OpenFaasModule extends GardenModule<OpenFaasModuleSpec, CommonServiceSpec, ExecTestSpec> {}
 export type OpenFaasModuleConfig = OpenFaasModule["_config"]
-export interface OpenFaasService extends Service<OpenFaasModule> {}
+export interface OpenFaasService extends GardenService<OpenFaasModule> {}
 
 export interface OpenFaasConfig extends GenericProviderConfig {
   gatewayUrl: string
