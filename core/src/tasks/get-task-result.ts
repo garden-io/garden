@@ -10,17 +10,15 @@ import chalk from "chalk"
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask, TaskType } from "./base"
 import { Garden } from "../garden"
-import { Task } from "../types/task"
+import { GardenTask } from "../types/task"
 import { RunTaskResult } from "../types/plugin/task/runTask"
-import { ModuleVersion } from "../vcs/vcs"
 import { Profile } from "../util/profiling"
 
 export interface GetTaskResultTaskParams {
   force: boolean
   garden: Garden
   log: LogEntry
-  task: Task
-  version: ModuleVersion
+  task: GardenTask
 }
 
 @Profile()
@@ -28,10 +26,10 @@ export class GetTaskResultTask extends BaseTask {
   type: TaskType = "get-task-result"
   concurrencyLimit = 20
 
-  private task: Task
+  private task: GardenTask
 
-  constructor({ force, garden, log, task, version }: GetTaskResultTaskParams) {
-    super({ garden, log, force, version })
+  constructor({ force, garden, log, task }: GetTaskResultTaskParams) {
+    super({ garden, log, force, version: task.version })
     this.task = task
   }
 
@@ -61,7 +59,6 @@ export class GetTaskResultTask extends BaseTask {
       result = await actions.getTaskResult({
         task: this.task,
         log,
-        taskVersion: this.version,
       })
     } catch (err) {
       log.setError()

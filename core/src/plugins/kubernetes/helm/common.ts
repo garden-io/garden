@@ -27,7 +27,6 @@ import { KubernetesPluginContext } from "../config"
 import { RunResult } from "../../../types/plugin/base"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants"
 import { dumpYaml } from "../../../util/util"
-import { getReleaseStatus } from "./status"
 
 const gardenValuesFilename = "garden-values.yml"
 
@@ -65,13 +64,19 @@ export async function containsBuildSource(module: HelmModule) {
   return containsChart(module.buildPath, module)
 }
 
+interface GetChartResourcesParams {
+  ctx: KubernetesPluginContext
+  module: GardenModule
+  hotReload: boolean
+  log: LogEntry
+  version: string
+}
+
 /**
  * Render the template in the specified Helm module (locally), and return all the resources in the chart.
  */
-export async function getChartResources(ctx: PluginContext, module: GardenModule, hotReload: boolean, log: LogEntry) {
-  const k8sCtx = <KubernetesPluginContext>ctx
-
-  const objects = <KubernetesResource[]>loadTemplate(await renderTemplates(k8sCtx, module, hotReload, log))
+export async function getChartResources(params: GetChartResourcesParams) {
+  const objects = <KubernetesResource[]>loadTemplate(await renderTemplates(params))
 
   const resources = objects.filter((obj) => {
     // Don't try to check status of hooks
@@ -94,12 +99,7 @@ export async function getChartResources(ctx: PluginContext, module: GardenModule
 /**
  * Renders the given Helm module and returns a multi-document YAML string.
  */
-export async function renderTemplates(
-  ctx: KubernetesPluginContext,
-  module: GardenModule,
-  hotReload: boolean,
-  log: LogEntry
-) {
+export async function renderTemplates({ ctx, module, hotReload, log, version }: GetChartResourcesParams) {
   log.debug("Preparing chart...")
 
   const chartPath = await getChartPath(module)
@@ -113,7 +113,7 @@ export async function renderTemplates(
   specValues[".garden"] = {
     moduleName: module.name,
     projectName: ctx.projectName,
-    version: module.version.versionString,
+    version,
   }
 
   const valuesPath = getGardenValuesPath(chartPath)
@@ -128,10 +128,6 @@ export async function renderTemplates(
     provider: ctx.provider,
     skipCreate: true,
   })
-
-  const releaseStatus = await getReleaseStatus(ctx, module, releaseName, log, hotReload)
-  // Use `install|upgrade --dry-run` since `template` doesn't render values that need to be retrieved from the cluster.
-  const cmd = releaseStatus.state === "missing" ? "install" : "upgrade"
 
   if (await pathExists(join(chartPath, "requirements.yaml"))) {
     await dependencyUpdate(ctx, log, namespace, chartPath)
@@ -150,7 +146,7 @@ export async function renderTemplates(
     log,
     namespace,
     args: [
-      cmd,
+      "install",
       releaseName,
       chartPath,
       "--dry-run",

@@ -20,7 +20,7 @@ describe("RunModuleCommand", () => {
   let log
 
   beforeEach(async () => {
-    td.replace(Garden.prototype, "resolveVersion", async () => testModuleVersion)
+    td.replace(Garden.prototype, "resolveModuleVersion", async () => testModuleVersion)
     garden = await makeTestGardenA()
     log = garden.log
   })

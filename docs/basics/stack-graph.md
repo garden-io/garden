@@ -39,6 +39,22 @@ Importantly, what happens within each of the actions that the graph describes—
 All the Garden plugins are currently built-in; we will soon release a plugin SDK to allow any user to easily make their
 own plugins.
 
+## Versions
+
+Garden generates a _Garden version_ for each module, service, task and test, based on a hash of the source files and configuration involved, as well as any build and runtime dependencies. When using Garden, you'll see various instances of `v-<some hash>` strings scattered around logs, e.g. when building, deploying, running tests etc.
+
+These versions are used by Garden and the Stack Graph to work out which actions need to be performed whenever you want to build, deploy, run a workflow, test your project etc. Specifically, Garden uses these generated versions to see which builds need to be performed, whether a deployed service is up-to-date, whether a test has already been run, and so on.
+
+Each version also factors in the versions of every dependency (both build and runtime dependencies, as is applicable for each case). This means that anytime a version of something that is _depended upon_ changes, every dependant's version also changes.
+
+The _precise_ semantics that go into a Garden version vary a bit by the module type and the specific entity involved, but generally it works as follows:
+
+1. A _module_ has a version that captures everything involved in a build, including hashes of source files any any specifics involved in building the image/artifact/etc, as well as the versions of any build dependencies. The _module version_ is sometimes referred to as the _build version_ of the module.
+2. A _service_ has a version that factors in the _module version_ of the module that defines it, as well as any specific configuration needed to deploy the service. This might for example include environment variables, hostnames etc. that wouldn't impact how the underlying code is _built_, but it does change how the service is deployed.
+3. _Tests_ and _tasks_ have a version that factors in the _module version_ of the module that defines it, as well as any specific configuration needed to run the task or test.
+
+A simple example would be a [Container Module](../guides/container-modules.md) with a `Dockerfile` next to it, as well as any number of services, tests and tasks. The _module version_ will reflect the source code and build arguments involved, and will be visible in the image tag. The services, tasks and tests will each have separate versions because those also factor in the service configuration, test commands, environment variables and so forth.
+
 ## Next Steps
 
 Head over to the [Getting Started](../getting-started/README.md) section to learn the basics on how to get up and running with Garden.

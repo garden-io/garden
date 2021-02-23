@@ -225,7 +225,7 @@ describe("validateKubernetesModule", () => {
     const module = await garden.resolveModule("with-source-module")
     const graph = await garden.getConfigGraph(garden.log)
     const imageModule = graph.getModule("api-image")
-    const { versionString } = imageModule.version
+    const imageVersion = imageModule.version.versionString
 
     const serviceResource = {
       kind: "Deployment",
@@ -315,7 +315,7 @@ describe("validateKubernetesModule", () => {
                     spec: {
                       containers: [
                         {
-                          image: `api-image:${versionString}`,
+                          image: `api-image:${imageVersion}`,
                           args: ["python", "app.py"],
                           name: "api",
                           ports: [
@@ -368,7 +368,7 @@ describe("validateKubernetesModule", () => {
                 spec: {
                   containers: [
                     {
-                      image: `api-image:${versionString}`,
+                      image: `api-image:${imageVersion}`,
                       args: ["python", "app.py"],
                       name: "api",
                       ports: [

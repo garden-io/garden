@@ -13,7 +13,7 @@ import { keyBy } from "lodash"
 import { ConfigContext } from "../../../../../src/config/template-contexts/base"
 import { expectError, makeTestGardenA, TestGarden } from "../../../../helpers"
 import { prepareRuntimeContext } from "../../../../../src/runtime-context"
-import { Service } from "../../../../../src/types/service"
+import { GardenService } from "../../../../../src/types/service"
 import { resolveTemplateString } from "../../../../../src/template-string"
 import { ModuleConfigContext } from "../../../../../src/config/template-contexts/module"
 import { WorkflowConfigContext, WorkflowStepConfigContext } from "../../../../../src/config/template-contexts/workflow"
@@ -81,7 +81,7 @@ describe("ModuleConfigContext", () => {
 
   it("should should resolve the version of a module", async () => {
     const config = await garden.resolveModule("module-a")
-    const { versionString } = await garden.resolveVersion(config, [])
+    const { versionString } = await garden.resolveModuleVersion(config, [])
     expect(c.resolve({ key: ["modules", "module-a", "version"], nodePath: [], opts: {} })).to.eql({
       resolved: versionString,
     })
@@ -111,7 +111,7 @@ describe("ModuleConfigContext", () => {
 
   context("runtimeContext is set", () => {
     let withRuntime: ModuleConfigContext
-    let serviceA: Service
+    let serviceA: GardenService
 
     before(async () => {
       const graph = await garden.getConfigGraph(garden.log)
@@ -129,7 +129,8 @@ describe("ModuleConfigContext", () => {
           run: [taskB],
           test: [],
         },
-        version: serviceA.module.version,
+        version: serviceA.version,
+        moduleVersion: serviceA.module.version.versionString,
         serviceStatuses: {
           "service-b": {
             state: "ready",
@@ -144,7 +145,7 @@ describe("ModuleConfigContext", () => {
             command: [],
             outputs: { moo: "boo" },
             success: true,
-            version: taskB.module.version.versionString,
+            version: taskB.version,
             startedAt: new Date(),
             completedAt: new Date(),
             log: "boo",

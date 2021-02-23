@@ -24,13 +24,13 @@ import {
 import { getModuleNamespace } from "../namespace"
 
 export async function testHelmModule(params: TestModuleParams<HelmModule>): Promise<TestResult> {
-  const { ctx, log, module, testConfig, testVersion } = params
+  const { ctx, log, module, test } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
   // Get the container spec to use for running
-  const manifests = await getChartResources(k8sCtx, module, false, log)
+  const manifests = await getChartResources({ ctx: k8sCtx, module, hotReload: false, log, version: test.version })
   const baseModule = getBaseModule(module)
-  const resourceSpec = testConfig.spec.resource || getServiceResourceSpec(module, baseModule)
+  const resourceSpec = test.config.spec.resource || getServiceResourceSpec(module, baseModule)
   const target = await findServiceResource({ ctx: k8sCtx, log, manifests, module, baseModule, resourceSpec })
   const container = getResourceContainer(target, resourceSpec.containerName)
   const namespace = await getModuleNamespace({
@@ -40,10 +40,10 @@ export async function testHelmModule(params: TestModuleParams<HelmModule>): Prom
     provider: k8sCtx.provider,
   })
 
-  const testName = testConfig.name
-  const { command, args } = testConfig.spec
+  const testName = test.name
+  const { command, args } = test.config.spec
   const image = container.image!
-  const timeout = testConfig.timeout || DEFAULT_TEST_TIMEOUT
+  const timeout = test.config.timeout || DEFAULT_TEST_TIMEOUT
 
   const result = await runAndCopy({
     ...params,
@@ -51,21 +51,21 @@ export async function testHelmModule(params: TestModuleParams<HelmModule>): Prom
     podSpec: getResourcePodSpec(target),
     command,
     args,
-    artifacts: testConfig.spec.artifacts,
-    envVars: testConfig.spec.env,
+    artifacts: test.config.spec.artifacts,
+    envVars: test.config.spec.env,
     image,
     namespace,
     podName: makePodName("test", module.name, testName),
     description: `Test '${testName}' in container module '${module.name}'`,
     timeout,
+    version: test.version,
   })
 
   return storeTestResult({
     ctx: k8sCtx,
     log,
     module,
-    testName,
-    testVersion,
+    test,
     result: {
       testName,
       ...result,

@@ -10,14 +10,22 @@ import {
   VcsHandler,
   TreeVersions,
   TreeVersion,
-  getVersionString,
+  getModuleVersionString,
   writeTreeVersionFile,
   readTreeVersionFile,
   GetFilesParams,
   VcsFile,
   getModuleTreeCacheKey,
+  hashModuleVersion,
 } from "../../../../src/vcs/vcs"
-import { projectRootA, makeTestGardenA, makeTestGarden, getDataDir, TestGarden } from "../../../helpers"
+import {
+  projectRootA,
+  makeTestGardenA,
+  makeTestGarden,
+  getDataDir,
+  TestGarden,
+  defaultModuleConfig,
+} from "../../../helpers"
 import { expect } from "chai"
 import { cloneDeep } from "lodash"
 import { ModuleConfig } from "../../../../src/config/module"
@@ -26,7 +34,7 @@ import { resolve, join } from "path"
 import td from "testdouble"
 import tmp from "tmp-promise"
 import { realpath, readFile, writeFile } from "fs-extra"
-import { GARDEN_VERSIONFILE_NAME } from "../../../../src/constants"
+import { DEFAULT_API_VERSION, GARDEN_VERSIONFILE_NAME } from "../../../../src/constants"
 import { defaultDotIgnoreFiles, fixedProjectExcludes } from "../../../../src/util/fs"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { findByName } from "../../../../src/util/util"
@@ -256,93 +264,13 @@ describe("VcsHandler", () => {
     })
   })
 
-  describe("getVersionString", () => {
-    it("should return a different version for a module when a variable used by it changes", async () => {
-      const templateGarden = await makeTestGarden(getDataDir("test-project-variable-versioning"))
-      const before = await templateGarden.resolveModule("module-a")
-
-      templateGarden.variables["echo-string"] = "something-else"
-
-      const after = await templateGarden.resolveModule("module-a")
-
-      expect(getVersionString(before, [])).to.not.eql(getVersionString(after, []))
-    })
-
-    it("should return the same version for a module when a variable not used by it changes", async () => {
-      const templateGarden = await makeTestGarden(getDataDir("test-project-variable-versioning"))
-      const before = await templateGarden.resolveModule("module-a")
-
-      templateGarden.variables["bla"] = "ble"
-
-      const after = await templateGarden.resolveModule("module-a")
-
-      expect(getVersionString(before, [])).to.eql(getVersionString(after, []))
-    })
-  })
-
-  context("internal helpers", () => {
-    const namedVersionA = {
-      name: "module-a",
-      contentHash: "qwerty",
-      files: [],
-    }
-
-    const namedVersionB = {
-      name: "module-b",
-      contentHash: "qwerty",
-      files: [],
-    }
-
-    const namedVersionC = {
-      name: "module-c",
-      contentHash: "qwerty",
-      files: [],
-    }
-
-    const namedVersions = [namedVersionA, namedVersionB, namedVersionC]
-
-    describe("hashVersions", () => {
-      it("is stable with respect to key order in moduleConfig", async () => {
-        const originalConfig = await gardenA.resolveModule("module-a")
-        const stirredConfig: any = cloneDeep(originalConfig)
-        delete stirredConfig.name
-        stirredConfig.name = originalConfig.name
-
-        expect(getVersionString(originalConfig, namedVersions)).to.eql(getVersionString(stirredConfig, namedVersions))
-      })
-
-      it("is stable with respect to named version order", async () => {
-        const config = await gardenA.resolveModule("module-a")
-
-        expect(getVersionString(config, [namedVersionA, namedVersionB, namedVersionC])).to.eql(
-          getVersionString(config, [namedVersionB, namedVersionA, namedVersionC])
-        )
-      })
-
-      it("should be stable between runtimes", async () => {
-        const projectRoot = getDataDir("test-projects", "fixed-version-hashes-1")
-
-        // fixed-version-hashes-1 expects this var to be set
-        process.env.MODULE_A_TEST_ENV_VAR = "foo"
-
-        const garden = await makeTestGarden(projectRoot)
-        const module = await garden.resolveModule("module-a")
-
-        const fixedVersionString = "v-6aec27c89f"
-        expect(module.version.versionString).to.eql(fixedVersionString)
-
-        delete process.env.TEST_ENV_VAR
-      })
-    })
-  })
-
-  describe("resolveVersion", () => {
+  describe("resolveModuleVersion", () => {
     it("should return module version if there are no dependencies", async () => {
       const module = await gardenA.resolveModule("module-a")
-      const result = await handlerA.resolveVersion(gardenA.log, gardenA.projectName, module, [])
+      const result = await handlerA.resolveModuleVersion(gardenA.log, gardenA.projectName, module, [])
 
       expect(result).to.eql({
-        versionString: getVersionString(module, [{ ...versionA, name: "module-a" }]),
+        versionString: getModuleVersionString(module, { ...versionA, name: "module-a" }, []),
         dependencyVersions: {},
         files: [],
       })
@@ -371,31 +299,32 @@ describe("VcsHandler", () => {
       }
       handlerA.setTestVersion(moduleC.path, versionC)
 
-      expect(await handlerA.resolveVersion(gardenA.log, gardenA.projectName, moduleC, [moduleA, moduleB])).to.eql({
-        versionString: getVersionString(moduleC, [
-          { ...versionA, name: "module-a" },
-          { ...versionB, name: "module-b" },
-          { ...versionC, name: "module-c" },
-        ]),
-        dependencyVersions: {
-          "module-a": versionA,
-          "module-b": versionB,
-        },
-        files: [],
-      })
+      expect(await handlerA.resolveModuleVersion(gardenA.log, gardenA.projectName, moduleC, [moduleA, moduleB])).to.eql(
+        {
+          versionString: getModuleVersionString(moduleC, { ...versionA, name: "module-a" }, [
+            { ...versionB, name: "module-b" },
+            { ...versionC, name: "module-c" },
+          ]),
+          dependencyVersions: {
+            "module-a": versionA,
+            "module-b": versionB,
+          },
+          files: [],
+        }
+      )
     })
 
     it("should not include module's garden.yml in version file list", async () => {
       const moduleConfig = await gardenA.resolveModule("module-a")
-      const version = await handlerA.resolveVersion(gardenA.log, gardenA.projectName, moduleConfig, [])
+      const version = await handlerA.resolveModuleVersion(gardenA.log, gardenA.projectName, moduleConfig, [])
       expect(version.files).to.not.include(moduleConfig.configPath!)
     })
 
     it("should be affected by changes to the module's config", async () => {
       const moduleConfig = await gardenA.resolveModule("module-a")
-      const version1 = await handlerA.resolveVersion(gardenA.log, gardenA.projectName, moduleConfig, [])
+      const version1 = await handlerA.resolveModuleVersion(gardenA.log, gardenA.projectName, moduleConfig, [])
       moduleConfig.name = "foo"
-      const version2 = await handlerA.resolveVersion(gardenA.log, gardenA.projectName, moduleConfig, [])
+      const version2 = await handlerA.resolveModuleVersion(gardenA.log, gardenA.projectName, moduleConfig, [])
       expect(version1).to.not.eql(version2)
     })
 
@@ -407,14 +336,97 @@ describe("VcsHandler", () => {
       const orgConfig = await readFile(configPath)
 
       try {
-        const version1 = await garden.vcs.resolveVersion(garden.log, garden.projectName, moduleConfigA1, [])
+        const version1 = await garden.vcs.resolveModuleVersion(garden.log, garden.projectName, moduleConfigA1, [])
         await writeFile(configPath, orgConfig + "\n---")
-        const version2 = await garden.vcs.resolveVersion(garden.log, garden.projectName, moduleConfigA1, [])
+        const version2 = await garden.vcs.resolveModuleVersion(garden.log, garden.projectName, moduleConfigA1, [])
         expect(version1).to.eql(version2)
       } finally {
         await writeFile(configPath, orgConfig)
       }
     })
+  })
+})
+
+describe("getModuleVersionString", () => {
+  const namedVersionA = {
+    name: "module-a",
+    contentHash: "qwerty",
+    files: [],
+  }
+
+  const namedVersionB = {
+    name: "module-b",
+    contentHash: "qwerty",
+    files: [],
+  }
+
+  const namedVersionC = {
+    name: "module-c",
+    contentHash: "qwerty",
+    files: [],
+  }
+
+  const dependencyVersions = [namedVersionB, namedVersionC]
+  const dummyTreeVersion = { name: "module-a", contentHash: "00000000000", files: [] }
+
+  it("should return a different version for a module when a variable used by it changes", async () => {
+    const templateGarden = await makeTestGarden(getDataDir("test-project-variable-versioning"))
+    const before = await templateGarden.resolveModule("module-a")
+
+    templateGarden.variables["echo-string"] = "something-else"
+
+    const after = await templateGarden.resolveModule("module-a")
+
+    expect(getModuleVersionString(before, dummyTreeVersion, [])).to.not.eql(
+      getModuleVersionString(after, dummyTreeVersion, [])
+    )
+  })
+
+  it("should return the same version for a module when a variable not used by it changes", async () => {
+    const templateGarden = await makeTestGarden(getDataDir("test-project-variable-versioning"))
+    const before = await templateGarden.resolveModule("module-a")
+
+    templateGarden.variables["bla"] = "ble"
+
+    const after = await templateGarden.resolveModule("module-a")
+
+    expect(getModuleVersionString(before, dummyTreeVersion, [])).to.eql(
+      getModuleVersionString(after, dummyTreeVersion, [])
+    )
+  })
+
+  it("is stable with respect to key order in moduleConfig", async () => {
+    const originalConfig = defaultModuleConfig
+    const stirredConfig: any = cloneDeep(originalConfig)
+    delete stirredConfig.name
+    stirredConfig.name = originalConfig.name
+
+    expect(getModuleVersionString(originalConfig, namedVersionA, dependencyVersions)).to.eql(
+      getModuleVersionString(stirredConfig, namedVersionA, dependencyVersions)
+    )
+  })
+
+  it("is stable with respect to dependency version order", async () => {
+    const config = defaultModuleConfig
+
+    expect(getModuleVersionString(config, namedVersionA, [namedVersionB, namedVersionC])).to.eql(
+      getModuleVersionString(config, namedVersionA, [namedVersionC, namedVersionB])
+    )
+  })
+
+  it("should be stable between runtimes", async () => {
+    const projectRoot = getDataDir("test-projects", "fixed-version-hashes-1")
+
+    // fixed-version-hashes-1 expects this var to be set
+    process.env.MODULE_A_TEST_ENV_VAR = "foo"
+
+    const garden = await makeTestGarden(projectRoot)
+    const module = await garden.resolveModule("module-a")
+
+    const fixedVersionString = "v-c8c9a1ad51"
+    expect(module.version.versionString).to.eql(fixedVersionString)
+
+    delete process.env.TEST_ENV_VAR
   })
 })
 
@@ -463,6 +475,109 @@ describe("writeTreeVersionFile", () => {
         contentHash: "foo",
         files: ["some/file"],
       })
+    })
+  })
+})
+
+describe("hashModuleVersion", () => {
+  function baseConfig() {
+    return {
+      apiVersion: DEFAULT_API_VERSION,
+      type: "test",
+      path: "/tmp",
+      name: "foo",
+      allowPublish: false,
+      build: { dependencies: [] },
+      disabled: false,
+      serviceConfigs: [],
+      taskConfigs: [],
+      testConfigs: [],
+      spec: {},
+    }
+  }
+
+  context("buildConfig is set", () => {
+    it("only uses the buildConfig for the module config hash", () => {
+      const config = {
+        ...baseConfig(),
+        buildConfig: {
+          something: "build specific",
+        },
+      }
+      const a = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [])
+      const b = hashModuleVersion(
+        {
+          ...config,
+          serviceConfigs: [{ name: "bla", dependencies: [], disabled: false, hotReloadable: false, spec: {} }],
+          taskConfigs: [{ name: "bla", dependencies: [], disabled: false, spec: {}, timeout: 123, cacheResult: false }],
+          testConfigs: [{ name: "bla", dependencies: [], disabled: false, spec: {}, timeout: 123 }],
+          spec: { foo: "bar" },
+        },
+        { name: "foo", contentHash: "abcdefabced", files: [] },
+        []
+      )
+      expect(a).to.equal(b)
+    })
+
+    it("factors in dependency versions", () => {
+      const config = {
+        ...baseConfig(),
+        buildConfig: {
+          something: "build specific",
+        },
+      }
+      const a = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [])
+      const b = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [
+        { name: "dep", contentHash: "blabalbalba", files: [] },
+      ])
+      expect(a).to.not.equal(b)
+    })
+  })
+
+  context("buildConfig is not set", () => {
+    it("is affected by changes to the spec field", () => {
+      const config = {
+        ...baseConfig(),
+      }
+      const a = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [])
+      const b = hashModuleVersion(
+        {
+          ...config,
+          spec: { foo: "bar" },
+        },
+        { name: "foo", contentHash: "abcdefabced", files: [] },
+        []
+      )
+      expect(a).to.not.equal(b)
+    })
+
+    it("omits generally-considered runtime fields", () => {
+      const config = {
+        ...baseConfig(),
+      }
+      const a = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [])
+      const b = hashModuleVersion(
+        {
+          ...config,
+          serviceConfigs: [{ name: "bla", dependencies: [], disabled: false, hotReloadable: false, spec: {} }],
+          taskConfigs: [{ name: "bla", dependencies: [], disabled: false, spec: {}, timeout: 123, cacheResult: false }],
+          testConfigs: [{ name: "bla", dependencies: [], disabled: false, spec: {}, timeout: 123 }],
+        },
+        { name: "foo", contentHash: "abcdefabced", files: [] },
+        []
+      )
+      expect(a).to.equal(b)
+    })
+
+    it("factors in dependency versions", () => {
+      const config = {
+        ...baseConfig(),
+      }
+      const a = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [])
+      const b = hashModuleVersion(config, { name: "foo", contentHash: "abcdefabced", files: [] }, [
+        { name: "dep", contentHash: "blabalbalba", files: [] },
+      ])
+      expect(a).to.not.equal(b)
     })
   })
 })

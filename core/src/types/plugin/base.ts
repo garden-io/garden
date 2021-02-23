@@ -10,9 +10,9 @@ import { LogEntry } from "../../logger/log-entry"
 import { PluginContext, pluginContextSchema } from "../../plugin-context"
 import { GardenModule, moduleSchema } from "../module"
 import { RuntimeContext, runtimeContextSchema } from "../../runtime-context"
-import { Service, serviceSchema } from "../service"
-import { Task } from "../task"
-import { taskSchema } from "../../config/task"
+import { GardenService, serviceSchema } from "../service"
+import { GardenTask } from "../task"
+import { taskSchema } from "../../types/task"
 import { joi } from "../../config/common"
 import { ActionHandlerParamsBase } from "./plugin"
 
@@ -47,7 +47,7 @@ export interface PluginServiceActionParamsBase<
   S extends GardenModule = GardenModule
 > extends PluginModuleActionParamsBase<M> {
   runtimeContext?: RuntimeContext
-  service: Service<M, S>
+  service: GardenService<M, S>
 }
 export const serviceActionParamsSchema = () =>
   moduleActionParamsSchema().keys({
@@ -57,7 +57,7 @@ export const serviceActionParamsSchema = () =>
 
 export interface PluginTaskActionParamsBase<T extends GardenModule = GardenModule>
   extends PluginModuleActionParamsBase<T> {
-  task: Task<T>
+  task: GardenTask<T>
 }
 export const taskActionParamsSchema = () =>
   moduleActionParamsSchema().keys({

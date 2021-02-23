@@ -49,6 +49,7 @@ export async function runHelmModule({
   })
   const baseModule = getBaseModule(module)
   const resourceSpec = getServiceResourceSpec(module, baseModule)
+  const version = module.version.versionString
 
   if (!resourceSpec) {
     throw new ConfigurationError(
@@ -58,7 +59,7 @@ export async function runHelmModule({
     )
   }
 
-  const manifests = await getChartResources(k8sCtx, module, false, log)
+  const manifests = await getChartResources({ ctx: k8sCtx, module, hotReload: false, log, version })
   const target = await findServiceResource({
     ctx: k8sCtx,
     log,
@@ -111,17 +112,23 @@ export async function runHelmModule({
   return {
     ...result,
     moduleName: module.name,
-    version: module.version.versionString,
+    version,
   }
 }
 
 export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<RunTaskResult> {
-  const { ctx, log, module, task, taskVersion } = params
+  const { ctx, log, module, task } = params
   // TODO: deduplicate this from testHelmModule
   const k8sCtx = <KubernetesPluginContext>ctx
 
   const { command, args } = task.spec
-  const manifests = await getChartResources(k8sCtx, module, false, log)
+  const manifests = await getChartResources({
+    ctx: k8sCtx,
+    module,
+    hotReload: false,
+    log,
+    version: module.version.versionString,
+  })
   const baseModule = getBaseModule(module)
   const resourceSpec = task.spec.resource || getServiceResourceSpec(module, baseModule)
   const target = await findServiceResource({
@@ -153,6 +160,7 @@ export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<Ru
     podName: makePodName("task", module.name, task.name),
     description: `Task '${task.name}' in container module '${module.name}'`,
     timeout: task.config.timeout || DEFAULT_TASK_TIMEOUT,
+    version: task.version,
   })
 
   const result: RunTaskResult = {
@@ -169,8 +177,7 @@ export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<Ru
       log,
       module,
       result,
-      taskVersion,
-      taskName: task.name,
+      task,
     })
   }
 

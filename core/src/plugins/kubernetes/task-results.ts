@@ -10,7 +10,6 @@ import { GetTaskResultParams } from "../../types/plugin/task/getTaskResult"
 import { ContainerModule } from "../container/config"
 import { HelmModule } from "./helm/config"
 import { KubernetesModule } from "./kubernetes-module/config"
-import { ModuleVersion } from "../../vcs/vcs"
 import { KubernetesPluginContext, KubernetesProvider } from "./config"
 import { KubeApi } from "./api"
 import { getAppNamespace } from "./namespace"
@@ -25,18 +24,18 @@ import { upsertConfigMap } from "./util"
 import { trimRunOutput } from "./helm/common"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "./constants"
 import chalk from "chalk"
+import { GardenTask } from "../../types/task"
 
 export async function getTaskResult({
   ctx,
   log,
   module,
   task,
-  taskVersion,
 }: GetTaskResultParams<ContainerModule | HelmModule | KubernetesModule>): Promise<RunTaskResult | null> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
   const ns = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
-  const resultKey = getTaskResultKey(ctx, module, task.name, taskVersion)
+  const resultKey = getTaskResultKey(ctx, module, task.name, task.version)
 
   try {
     const res = await api.core.readNamespacedConfigMap(resultKey, ns)
@@ -65,8 +64,8 @@ export async function getTaskResult({
   }
 }
 
-export function getTaskResultKey(ctx: PluginContext, module: GardenModule, taskName: string, version: ModuleVersion) {
-  const key = `${ctx.projectName}--${module.name}--${taskName}--${version.versionString}`
+export function getTaskResultKey(ctx: PluginContext, module: GardenModule, taskName: string, version: string) {
+  const key = `${ctx.projectName}--${module.name}--${taskName}--${version}`
   const hash = hasha(key, { algorithm: "sha1" })
   return `task-result--${hash.slice(0, 32)}`
 }
@@ -75,8 +74,7 @@ interface StoreTaskResultParams {
   ctx: PluginContext
   log: LogEntry
   module: GardenModule
-  taskName: string
-  taskVersion: ModuleVersion
+  task: GardenTask
   result: RunTaskResult
 }
 
@@ -89,8 +87,7 @@ export async function storeTaskResult({
   ctx,
   log,
   module,
-  taskName,
-  taskVersion,
+  task,
   result,
 }: StoreTaskResultParams): Promise<RunTaskResult> {
   const provider = <KubernetesProvider>ctx.provider
@@ -108,12 +105,12 @@ export async function storeTaskResult({
     await upsertConfigMap({
       api,
       namespace,
-      key: getTaskResultKey(ctx, module, taskName, taskVersion),
+      key: getTaskResultKey(ctx, module, task.name, task.version),
       labels: {
         [gardenAnnotationKey("module")]: module.name,
-        [gardenAnnotationKey("task")]: taskName,
+        [gardenAnnotationKey("task")]: task.name,
         [gardenAnnotationKey("moduleVersion")]: module.version.versionString,
-        [gardenAnnotationKey("version")]: taskVersion.versionString,
+        [gardenAnnotationKey("version")]: task.version,
       },
       data,
     })
@@ -132,13 +129,12 @@ export async function clearTaskResult({
   log,
   module,
   task,
-  taskVersion,
 }: GetTaskResultParams<ContainerModule | HelmModule | KubernetesModule>) {
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
   const namespace = await getAppNamespace(ctx, log, provider)
 
-  const key = getTaskResultKey(ctx, module, task.name, taskVersion)
+  const key = getTaskResultKey(ctx, module, task.name, task.version)
 
   try {
     await api.core.deleteNamespacedConfigMap(key, namespace)

@@ -241,6 +241,7 @@
     "build": "gulp pegjs",
     "check-package-lock": "git diff-index --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
     "clean": "shx rm -rf build",
+    "dev": "gulp pegjs-watch",
     "fix-format": "prettier --write \"{src,test}/**/*.ts\"",
     "lint": "tslint -p .",
     "migration:generate": "typeorm migration:generate --config ormconfig.js -n",

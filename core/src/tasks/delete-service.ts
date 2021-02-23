@@ -8,7 +8,7 @@
 
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask, TaskType } from "./base"
-import { Service, ServiceStatus } from "../types/service"
+import { GardenService, ServiceStatus } from "../types/service"
 import { Garden } from "../garden"
 import { ConfigGraph } from "../config-graph"
 import { GraphResults, GraphResult } from "../task-graph"
@@ -17,7 +17,7 @@ import { StageBuildTask } from "./stage-build"
 export interface DeleteServiceTaskParams {
   garden: Garden
   graph: ConfigGraph
-  service: Service
+  service: GardenService
   log: LogEntry
   includeDependants?: boolean
 }
@@ -27,11 +27,11 @@ export class DeleteServiceTask extends BaseTask {
   concurrencyLimit = 10
 
   private graph: ConfigGraph
-  private service: Service
+  private service: GardenService
   private includeDependants: boolean
 
   constructor({ garden, graph, log, service, includeDependants = false }: DeleteServiceTaskParams) {
-    super({ garden, log, force: false, version: service.module.version })
+    super({ garden, log, force: false, version: service.version })
     this.graph = graph
     this.service = service
     this.includeDependants = includeDependants

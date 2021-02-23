@@ -24,6 +24,7 @@ import { GARDEN_CORE_ROOT } from "../../../../../../src/constants"
 import { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
 import { V1Secret } from "@kubernetes/client-node"
 import { clusterInit } from "../../../../../../src/plugins/kubernetes/commands/cluster-init"
+import { testFromConfig, testFromModule } from "../../../../../../src/types/test"
 
 const root = getDataDir("test-projects", "container")
 const defaultEnvironment = process.env.GARDEN_INTEG_TEST_MODE === "remote" ? "cluster-docker" : "local"
@@ -126,7 +127,8 @@ describe("kubernetes container module handlers", () => {
           run: [],
           test: [],
         },
-        version: service.module.version,
+        version: service.version,
+        moduleVersion: service.module.version.versionString,
         serviceStatuses: {},
         taskResults: {},
       })
@@ -156,7 +158,8 @@ describe("kubernetes container module handlers", () => {
           run: [],
           test: [],
         },
-        version: service.module.version,
+        version: service.version,
+        moduleVersion: service.module.version.versionString,
         serviceStatuses: {},
         taskResults: {},
       })
@@ -181,13 +184,10 @@ describe("kubernetes container module handlers", () => {
       const testTask = new TestTask({
         garden,
         graph,
-        module,
-        testConfig: findByName(module.testConfigs, "echo-test")!,
+        test: testFromModule(module, "echo-test"),
         log: garden.log,
         force: true,
         forceBuild: false,
-        version: module.version,
-        _guard: true,
       })
 
       const result = await garden.processTasks([testTask], { throwOnError: true })
@@ -203,16 +203,15 @@ describe("kubernetes container module handlers", () => {
       const testConfig = findByName(module.testConfigs, "echo-test")!
       testConfig.spec.command = ["bork"] // this will fail
 
+      const test = testFromConfig(module, testConfig)
+
       const testTask = new TestTask({
         garden,
         graph,
-        module,
-        testConfig,
+        test,
         log: garden.log,
         force: true,
         forceBuild: false,
-        version: module.version,
-        _guard: true,
       })
 
       await expectError(
@@ -228,8 +227,7 @@ describe("kubernetes container module handlers", () => {
       const result = await actions.getTestResult({
         log: garden.log,
         module,
-        testName: testConfig.name,
-        testVersion: testTask.version,
+        test,
       })
 
       expect(result).to.exist
@@ -242,13 +240,10 @@ describe("kubernetes container module handlers", () => {
         const testTask = new TestTask({
           garden,
           graph,
-          module,
-          testConfig: findByName(module.testConfigs, "artifacts-test")!,
+          test: testFromModule(module, "artifacts-test"),
           log: garden.log,
           force: true,
           forceBuild: false,
-          version: module.version,
-          _guard: true,
         })
 
         await emptyDir(garden.artifactsPath)
@@ -265,13 +260,10 @@ describe("kubernetes container module handlers", () => {
         const testTask = new TestTask({
           garden,
           graph,
-          module,
-          testConfig: findByName(module.testConfigs, "artifacts-test-fail")!,
+          test: testFromModule(module, "artifacts-test-fail"),
           log: garden.log,
           force: true,
           forceBuild: false,
-          version: module.version,
-          _guard: true,
         })
 
         await emptyDir(garden.artifactsPath)
@@ -290,13 +282,10 @@ describe("kubernetes container module handlers", () => {
         const testTask = new TestTask({
           garden,
           graph,
-          module,
-          testConfig: findByName(module.testConfigs, "globs-test")!,
+          test: testFromModule(module, "globs-test"),
           log: garden.log,
           force: true,
           forceBuild: false,
-          version: module.version,
-          _guard: true,
         })
 
         await emptyDir(garden.artifactsPath)
@@ -313,13 +302,10 @@ describe("kubernetes container module handlers", () => {
         const testTask = new TestTask({
           garden,
           graph,
-          module,
-          testConfig: module.testConfigs[0],
+          test: testFromConfig(module, module.testConfigs[0]),
           log: garden.log,
           force: true,
           forceBuild: false,
-          version: module.version,
-          _guard: true,
         })
 
         const result = await garden.processTasks([testTask])
@@ -340,13 +326,10 @@ describe("kubernetes container module handlers", () => {
         const testTask = new TestTask({
           garden,
           graph,
-          module,
-          testConfig: module.testConfigs[0],
+          test: testFromConfig(module, module.testConfigs[0]),
           log: garden.log,
           force: true,
           forceBuild: false,
-          version: module.version,
-          _guard: true,
         })
 
         const result = await garden.processTasks([testTask])

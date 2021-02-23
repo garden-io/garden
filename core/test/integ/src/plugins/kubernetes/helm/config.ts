@@ -8,7 +8,7 @@
 
 import { resolve } from "path"
 import { expect } from "chai"
-import { cloneDeep } from "lodash"
+import { cloneDeep, omit } from "lodash"
 
 import { TestGarden, expectError } from "../../../../../helpers"
 import { PluginContext } from "../../../../../../src/plugin-context"
@@ -44,7 +44,37 @@ describe("configureHelmModule", () => {
     const module = await garden.resolveModule("api")
     const graph = await garden.getConfigGraph(garden.log)
     const imageModule = graph.getModule("api-image")
-    const { versionString } = imageModule.version
+
+    const imageVersion = imageModule.version.versionString
+
+    const spec = {
+      atomicInstall: true,
+      build: {
+        dependencies: [],
+      },
+      chartPath: ".",
+      dependencies: [],
+      releaseName: "api-release",
+      serviceResource: {
+        kind: "Deployment",
+        containerModule: "api-image",
+      },
+      skipDeploy: false,
+      tasks: [],
+      tests: [],
+      timeout: defaultHelmTimeout,
+      values: {
+        image: {
+          tag: imageVersion,
+        },
+        ingress: {
+          enabled: true,
+          paths: ["/"],
+          hosts: ["api.local.app.garden"],
+        },
+      },
+      valueFiles: [],
+    }
 
     expect(module._config).to.eql({
       apiVersion: "garden.io/v0",
@@ -63,6 +93,7 @@ describe("configureHelmModule", () => {
       name: "api",
       path: resolve(ctx.projectRoot, "api"),
       repositoryUrl: undefined,
+      buildConfig: omit(spec, ["atomicInstall", "serviceResource", "skipDeploy", "tasks", "tests"]),
       serviceConfigs: [
         {
           name: "api",
@@ -70,64 +101,10 @@ describe("configureHelmModule", () => {
           disabled: false,
           hotReloadable: true,
           sourceModuleName: "api-image",
-          spec: {
-            atomicInstall: true,
-            build: {
-              dependencies: [],
-            },
-            chartPath: ".",
-            dependencies: [],
-            releaseName: "api-release",
-            serviceResource: {
-              kind: "Deployment",
-              containerModule: "api-image",
-            },
-            skipDeploy: false,
-            tasks: [],
-            tests: [],
-            timeout: defaultHelmTimeout,
-            values: {
-              image: {
-                tag: versionString,
-              },
-              ingress: {
-                enabled: true,
-                paths: ["/"],
-                hosts: ["api.local.app.garden"],
-              },
-            },
-            valueFiles: [],
-          },
+          spec,
         },
       ],
-      spec: {
-        atomicInstall: true,
-        build: {
-          dependencies: [],
-        },
-        chartPath: ".",
-        dependencies: [],
-        releaseName: "api-release",
-        serviceResource: {
-          kind: "Deployment",
-          containerModule: "api-image",
-        },
-        skipDeploy: false,
-        tasks: [],
-        tests: [],
-        timeout: defaultHelmTimeout,
-        values: {
-          image: {
-            tag: versionString,
-          },
-          ingress: {
-            enabled: true,
-            paths: ["/"],
-            hosts: ["api.local.app.garden"],
-          },
-        },
-        valueFiles: [],
-      },
+      spec,
       testConfigs: [],
       type: "helm",
       taskConfigs: [],

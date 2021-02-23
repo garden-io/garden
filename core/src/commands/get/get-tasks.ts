@@ -11,7 +11,7 @@ import indentString from "indent-string"
 import { sortBy, omit, uniq } from "lodash"
 import { Command, CommandResult, CommandParams } from "../base"
 import { printHeader } from "../../logger/util"
-import { Task } from "../../types/task"
+import { GardenTask } from "../../types/task"
 import { StringsParameter } from "../../cli/params"
 
 const getTasksArgs = {
@@ -22,7 +22,7 @@ const getTasksArgs = {
 
 type Args = typeof getTasksArgs
 
-export function prettyPrintTask(task: Task): string {
+export function prettyPrintTask(task: GardenTask): string {
   let out = `${chalk.cyan.bold(task.name)}`
 
   if (task.spec.args || task.spec.args === null) {

@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { V1Container, V1Affinity, V1VolumeMount, V1PodSpec, V1Deployment, V1DaemonSet } from "@kubernetes/client-node"
-import { Service } from "../../../types/service"
+import { GardenService } from "../../../types/service"
 import { extend, find, keyBy, merge, set, omit } from "lodash"
 import { ContainerModule, ContainerService, ContainerVolumeSpec, ContainerServiceConfig } from "../../container/config"
 import { createIngressResources } from "./ingress"
@@ -135,7 +135,7 @@ export async function deployContainerServiceBlueGreen(
   } else {
     // A k8s service matching the current Garden service exist in the cluster.
     // Proceeding with blue-green deployment
-    const newVersion = service.module.version.versionString
+    const newVersion = service.version
     const versionKey = gardenAnnotationKey("version")
 
     // Remove Service manifest from generated resources
@@ -229,7 +229,6 @@ export async function createContainerManifests({
   blueGreen: boolean
 }) {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const version = service.module.version
   const provider = k8sCtx.provider
   const { production } = ctx
   const namespace = await getAppNamespace(k8sCtx, log, provider)
@@ -254,7 +253,7 @@ export async function createContainerManifests({
     set(obj, ["metadata", "labels", gardenAnnotationKey("module")], service.module.name)
     set(obj, ["metadata", "labels", gardenAnnotationKey("service")], service.name)
     set(obj, ["metadata", "annotations", gardenAnnotationKey("generated")], "true")
-    set(obj, ["metadata", "annotations", gardenAnnotationKey("version")], version.versionString)
+    set(obj, ["metadata", "annotations", gardenAnnotationKey("version")], service.version)
   }
 
   return { workload, manifests }
@@ -494,16 +493,16 @@ export async function createWorkloadManifest({
   return workload
 }
 
-function getDeploymentName(service: Service, blueGreen: boolean) {
-  return blueGreen ? `${service.name}-${service.module.version.versionString}` : service.name
+function getDeploymentName(service: GardenService, blueGreen: boolean) {
+  return blueGreen ? `${service.name}-${service.version}` : service.name
 }
 
-export function getDeploymentLabels(service: Service, blueGreen: boolean) {
+export function getDeploymentLabels(service: GardenService, blueGreen: boolean) {
   if (blueGreen) {
     return {
       [gardenAnnotationKey("module")]: service.module.name,
       [gardenAnnotationKey("service")]: service.name,
-      [gardenAnnotationKey("version")]: service.module.version.versionString,
+      [gardenAnnotationKey("version")]: service.version,
     }
   } else {
     return {
@@ -513,7 +512,7 @@ export function getDeploymentLabels(service: Service, blueGreen: boolean) {
   }
 }
 
-export function getDeploymentSelector(service: Service, blueGreen: boolean) {
+export function getDeploymentSelector(service: GardenService, blueGreen: boolean) {
   // Unfortunately we need this because matchLabels is immutable, and we had omitted the module annotation before
   // in the selector.
   return omit(getDeploymentLabels(service, blueGreen), gardenAnnotationKey("module"))

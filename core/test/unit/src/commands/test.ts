@@ -10,7 +10,6 @@ import { expect } from "chai"
 import { TestCommand } from "../../../../src/commands/test"
 import isSubset = require("is-subset")
 import { makeTestGardenA, taskResultOutputs, withDefaultGlobalOpts } from "../../../helpers"
-import { keyBy } from "lodash"
 
 describe("TestCommand", () => {
   const command = new TestCommand()
@@ -19,7 +18,6 @@ describe("TestCommand", () => {
     const garden = await makeTestGardenA()
     const log = garden.log
     const graph = await garden.getConfigGraph(log)
-    const modules = keyBy(graph.getModules(), "name")
 
     const { result } = await command.action({
       garden,
@@ -83,7 +81,7 @@ describe("TestCommand", () => {
         moduleName: "module-a",
         command: ["echo", "OK"],
         testName: "unit",
-        version: modules["module-a"].version.versionString,
+        version: graph.getTest("module-a", "unit").version,
         success: true,
         startedAt: dummyDate,
         completedAt: dummyDate,
@@ -96,7 +94,7 @@ describe("TestCommand", () => {
         moduleName: "module-a",
         command: ["echo", "OK"],
         testName: "integration",
-        version: modules["module-a"].version.versionString,
+        version: graph.getTest("module-a", "integration").version,
         success: true,
         startedAt: dummyDate,
         completedAt: dummyDate,
@@ -109,7 +107,7 @@ describe("TestCommand", () => {
         moduleName: "module-b",
         command: ["echo", "OK"],
         testName: "unit",
-        version: modules["module-b"].version.versionString,
+        version: graph.getTest("module-b", "unit").version,
         success: true,
         startedAt: dummyDate,
         completedAt: dummyDate,
@@ -122,7 +120,7 @@ describe("TestCommand", () => {
         moduleName: "module-c",
         command: ["echo", "OK"],
         testName: "unit",
-        version: modules["module-c"].version.versionString,
+        version: graph.getTest("module-c", "unit").version,
         success: true,
         startedAt: dummyDate,
         completedAt: dummyDate,
@@ -135,7 +133,7 @@ describe("TestCommand", () => {
         moduleName: "module-c",
         command: ["echo", "OK"],
         testName: "integ",
-        version: modules["module-c"].version.versionString,
+        version: graph.getTest("module-c", "integ").version,
         success: true,
         startedAt: dummyDate,
         completedAt: dummyDate,

@@ -24,7 +24,7 @@ import { getModuleNamespace } from "../namespace"
 import { DEFAULT_TASK_TIMEOUT } from "../../../constants"
 
 export async function runKubernetesTask(params: RunTaskParams<KubernetesModule>): Promise<RunTaskResult> {
-  const { ctx, log, module, task, taskVersion } = params
+  const { ctx, log, module, task } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getModuleNamespace({
     ctx: k8sCtx,
@@ -61,6 +61,7 @@ export async function runKubernetesTask(params: RunTaskParams<KubernetesModule>)
     podName: makePodName("task", module.name, task.name),
     description: `Task '${task.name}' in container module '${module.name}'`,
     timeout: task.config.timeout || DEFAULT_TASK_TIMEOUT,
+    version: task.version,
   })
 
   const result = {
@@ -77,8 +78,7 @@ export async function runKubernetesTask(params: RunTaskParams<KubernetesModule>)
       log,
       module,
       result,
-      taskVersion,
-      taskName: task.name,
+      task,
     })
   }
 

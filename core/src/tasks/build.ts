@@ -36,7 +36,7 @@ export class BuildTask extends BaseTask {
 
   constructor({ garden, graph, log, module, force }: BuildTaskParams & { _guard: true }) {
     // Note: The _guard attribute is to prevent accidentally bypassing the factory method
-    super({ garden, log, force, version: module.version })
+    super({ garden, log, force, version: module.version.versionString })
     this.graph = graph
     this.module = module
   }

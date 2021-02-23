@@ -15,7 +15,7 @@ import {
   ActionHandler,
   ModuleActionHandler,
 } from "../../../src/types/plugin/plugin"
-import { Service, ServiceState } from "../../../src/types/service"
+import { GardenService, ServiceState } from "../../../src/types/service"
 import { RuntimeContext, prepareRuntimeContext } from "../../../src/runtime-context"
 import { expectError, makeTestGardenA, stubModuleAction, projectRootA, TestGarden } from "../../helpers"
 import { ActionRouter } from "../../../src/actions"
@@ -23,7 +23,7 @@ import { LogEntry } from "../../../src/logger/log-entry"
 import { GardenModule } from "../../../src/types/module"
 import { ServiceLogEntry } from "../../../src/types/plugin/service/getServiceLogs"
 import Stream from "ts-stream"
-import { Task } from "../../../src/types/task"
+import { GardenTask } from "../../../src/types/task"
 import { expect } from "chai"
 import { omit } from "lodash"
 import { joi } from "../../../src/config/common"
@@ -37,6 +37,7 @@ import stripAnsi from "strip-ansi"
 import { emptyDir, pathExists, ensureFile, readFile } from "fs-extra"
 import { join } from "path"
 import { DashboardPage } from "../../../src/types/plugin/provider/getDashboardPage"
+import { testFromModule, testFromConfig } from "../../../src/types/test"
 
 const now = new Date()
 
@@ -45,9 +46,9 @@ describe("ActionRouter", () => {
   let log: LogEntry
   let actions: ActionRouter
   let module: GardenModule
-  let service: Service
+  let service: GardenService
   let runtimeContext: RuntimeContext
-  let task: Task
+  let task: GardenTask
 
   const projectConfig: ProjectConfig = {
     apiVersion: DEFAULT_API_VERSION,
@@ -80,7 +81,8 @@ describe("ActionRouter", () => {
         run: [],
         test: [],
       },
-      version: module.version,
+      version: module.version.versionString,
+      moduleVersion: module.version.versionString,
       serviceStatuses: {},
       taskResults: {},
     })
@@ -320,6 +322,13 @@ describe("ActionRouter", () => {
 
     describe("testModule", () => {
       it("should correctly call the corresponding plugin handler", async () => {
+        const test = testFromConfig(module, {
+          name: "test",
+          dependencies: [],
+          disabled: false,
+          timeout: 1234,
+          spec: {},
+        })
         const result = await actions.testModule({
           log,
           module,
@@ -329,14 +338,7 @@ describe("ActionRouter", () => {
             dependencies: [],
           },
           silent: false,
-          testConfig: {
-            name: "test",
-            dependencies: [],
-            disabled: false,
-            timeout: 1234,
-            spec: {},
-          },
-          testVersion: module.version,
+          test,
         })
         expect(result).to.eql({
           moduleName: module.name,
@@ -349,7 +351,7 @@ describe("ActionRouter", () => {
           success: true,
           startedAt: now,
           testName: "test",
-          version: module.version.versionString,
+          version: test.version,
         })
       })
 
@@ -364,14 +366,13 @@ describe("ActionRouter", () => {
             dependencies: [],
           },
           silent: false,
-          testConfig: {
+          test: testFromConfig(module, {
             name: "test",
             dependencies: [],
             disabled: false,
             timeout: 1234,
             spec: {},
-          },
-          testVersion: module.version,
+          }),
         })
         const event = garden.events.eventLog[0]
         expect(event).to.exist
@@ -402,7 +403,7 @@ describe("ActionRouter", () => {
           },
         }
 
-        module.testConfigs[0]
+        const test = testFromConfig(module, testConfig)
 
         await actions.testModule({
           log,
@@ -413,8 +414,7 @@ describe("ActionRouter", () => {
             dependencies: [],
           },
           silent: false,
-          testConfig,
-          testVersion: module.version,
+          test,
         })
 
         const targetPaths = testConfig.spec.artifacts.map((spec) => join(garden.artifactsPath, spec.source)).sort()
@@ -423,7 +423,7 @@ describe("ActionRouter", () => {
           expect(await pathExists(path)).to.be.true
         }
 
-        const metadataKey = `test.test.${module.version.versionString}`
+        const metadataKey = `test.test.${test.version}`
         const metadataFilename = `.metadata.${metadataKey}.json`
         const metadataPath = join(garden.artifactsPath, metadataFilename)
         expect(await pathExists(metadataPath)).to.be.true
@@ -438,11 +438,11 @@ describe("ActionRouter", () => {
 
     describe("getTestResult", () => {
       it("should correctly call the corresponding plugin handler", async () => {
+        const test = testFromModule(module, "unit")
         const result = await actions.getTestResult({
           log,
           module,
-          testName: "test",
-          testVersion: module.version,
+          test,
         })
         expect(result).to.eql({
           moduleName: module.name,
@@ -454,8 +454,8 @@ describe("ActionRouter", () => {
           },
           success: true,
           startedAt: now,
-          testName: "test",
-          version: module.version.versionString,
+          testName: "unit",
+          version: test.version,
         })
       })
     })
@@ -465,13 +465,12 @@ describe("ActionRouter", () => {
       await actions.getTestResult({
         log,
         module,
-        testName: "test",
-        testVersion: module.version,
+        test: testFromModule(module, "unit"),
       })
       const event = garden.events.eventLog[0]
       expect(event).to.exist
       expect(event.name).to.eql("testStatus")
-      expect(event.payload.testName).to.eql("test")
+      expect(event.payload.testName).to.eql("unit")
       expect(event.payload.moduleName).to.eql("module-a")
       expect(event.payload.status.state).to.eql("succeeded")
     })
@@ -614,7 +613,7 @@ describe("ActionRouter", () => {
           log: "bla bla",
           success: true,
           startedAt: now,
-          version: service.module.version.versionString,
+          version: service.version,
         })
       })
     })
@@ -636,7 +635,7 @@ describe("ActionRouter", () => {
         },
         success: true,
         startedAt: now,
-        version: task.module.version.versionString,
+        version: task.version,
       }
     })
 
@@ -645,7 +644,6 @@ describe("ActionRouter", () => {
         const result = await actions.getTaskResult({
           log,
           task,
-          taskVersion: task.module.version,
         })
         expect(result).to.eql(taskResult)
       })
@@ -655,7 +653,6 @@ describe("ActionRouter", () => {
         await actions.getTaskResult({
           log,
           task,
-          taskVersion: task.module.version,
         })
         const event = garden.events.eventLog[0]
         expect(event).to.exist
@@ -670,7 +667,7 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.getTaskResult({ log, task, taskVersion: task.module.version }),
+          () => actions.getTaskResult({ log, task }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from task 'task-a': key .foo must be a string"
@@ -684,7 +681,7 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.getTaskResult({ log, task, taskVersion: task.module.version }),
+          () => actions.getTaskResult({ log, task }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from task 'task-a': key .base must be a string"
@@ -703,7 +700,6 @@ describe("ActionRouter", () => {
             envVars: { FOO: "bar" },
             dependencies: [],
           },
-          taskVersion: task.module.version,
         })
         expect(result).to.eql(taskResult)
       })
@@ -718,7 +714,6 @@ describe("ActionRouter", () => {
             envVars: { FOO: "bar" },
             dependencies: [],
           },
-          taskVersion: task.module.version,
         })
         const event = garden.events.eventLog[0]
         expect(event).to.exist
@@ -742,7 +737,6 @@ describe("ActionRouter", () => {
                 envVars: { FOO: "bar" },
                 dependencies: [],
               },
-              taskVersion: task.module.version,
             }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
@@ -766,7 +760,6 @@ describe("ActionRouter", () => {
                 envVars: { FOO: "bar" },
                 dependencies: [],
               },
-              taskVersion: task.module.version,
             }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
@@ -799,7 +792,6 @@ describe("ActionRouter", () => {
             envVars: { FOO: "bar" },
             dependencies: [],
           },
-          taskVersion: _task.module.version,
         })
 
         const targetPaths = _task.spec.artifacts.map((spec) => join(garden.artifactsPath, spec.source)).sort()
@@ -808,7 +800,7 @@ describe("ActionRouter", () => {
           expect(await pathExists(path)).to.be.true
         }
 
-        const metadataKey = `task.task-a.${_task.module.version.versionString}`
+        const metadataKey = `task.task-a.${_task.version}`
         const metadataFilename = `.metadata.${metadataKey}.json`
         const metadataPath = join(garden.artifactsPath, metadataFilename)
         expect(await pathExists(metadataPath)).to.be.true
@@ -1538,7 +1530,8 @@ describe("ActionRouter", () => {
           run: [],
           test: [],
         },
-        version: serviceA.module.version,
+        version: serviceA.version,
+        moduleVersion: serviceA.module.version.versionString,
         serviceStatuses: {
           "service-b": {
             state: "ready",
@@ -1589,7 +1582,8 @@ describe("ActionRouter", () => {
           run: [],
           test: [],
         },
-        version: serviceA.module.version,
+        version: serviceA.version,
+        moduleVersion: serviceA.module.version.versionString,
         serviceStatuses: {},
         taskResults: {},
       })
@@ -1637,7 +1631,7 @@ describe("ActionRouter", () => {
           command: [],
           outputs: { moo: "boo" },
           success: true,
-          version: task.module.version.versionString,
+          version: task.version,
           startedAt: new Date(),
           completedAt: new Date(),
           log: "boo",
@@ -1653,7 +1647,7 @@ describe("ActionRouter", () => {
           command: [],
           outputs: { moo: "boo" },
           success: true,
-          version: task.module.version.versionString,
+          version: task.version,
           startedAt: new Date(),
           completedAt: new Date(),
           log: "boo",
@@ -1669,7 +1663,6 @@ describe("ActionRouter", () => {
           task: taskA,
           runtimeContext,
           log,
-          taskVersion: task.module.version,
           interactive: false,
         },
         defaultHandler: handler,
@@ -1700,7 +1693,8 @@ describe("ActionRouter", () => {
           run: [],
           test: [],
         },
-        version: taskA.module.version,
+        version: taskA.version,
+        moduleVersion: taskA.module.version.versionString,
         serviceStatuses: {
           "service-b": {
             state: "ready",
@@ -1718,7 +1712,6 @@ describe("ActionRouter", () => {
           task: taskA,
           runtimeContext: _runtimeContext,
           log,
-          taskVersion: task.module.version,
           interactive: false,
         },
         defaultHandler: async (params) => {
@@ -1730,7 +1723,8 @@ describe("ActionRouter", () => {
             command: [],
             outputs: { moo: "boo" },
             success: true,
-            version: task.module.version.versionString,
+            version: task.version,
+            moduleVersion: task.module.version.versionString,
             startedAt: new Date(),
             completedAt: new Date(),
             log: "boo",
@@ -1762,7 +1756,8 @@ describe("ActionRouter", () => {
           run: [],
           test: [],
         },
-        version: taskA.module.version,
+        version: taskA.version,
+        moduleVersion: taskA.module.version.versionString,
         // Omitting the service-b outputs here
         serviceStatuses: {},
         taskResults: {},
@@ -1777,7 +1772,6 @@ describe("ActionRouter", () => {
               task: taskA,
               runtimeContext: _runtimeContext,
               log,
-              taskVersion: task.module.version,
               interactive: false,
             },
             defaultHandler: async () => {
@@ -1922,11 +1916,19 @@ const testPlugin = createGardenPlugin({
             spec,
           }))
 
+          const testConfigs = (params.moduleConfig.spec.tests || []).map((spec) => ({
+            name: spec.name,
+            dependencies: spec.dependencies || [],
+            disabled: false,
+            spec,
+          }))
+
           return {
             moduleConfig: {
               ...params.moduleConfig,
               serviceConfigs,
               taskConfigs,
+              testConfigs,
             },
           }
         },
@@ -1977,7 +1979,7 @@ const testPlugin = createGardenPlugin({
           validateSchema(params, moduleActionDescriptions.testModule.paramsSchema)
 
           // Create artifacts, to test artifact copying
-          for (const artifact of params.testConfig.spec.artifacts || []) {
+          for (const artifact of params.test.config.spec.artifacts || []) {
             await ensureFile(join(params.artifactsPath, artifact.source))
           }
 
@@ -1991,8 +1993,8 @@ const testPlugin = createGardenPlugin({
             },
             success: true,
             startedAt: now,
-            testName: params.testConfig.name,
-            version: params.module.version.versionString,
+            testName: params.test.config.name,
+            version: params.test.version,
           }
         },
 
@@ -2008,8 +2010,8 @@ const testPlugin = createGardenPlugin({
             },
             success: true,
             startedAt: now,
-            testName: params.testName,
-            version: params.module.version.versionString,
+            testName: params.test.name,
+            version: params.test.version,
           }
         },
 
@@ -2050,7 +2052,7 @@ const testPlugin = createGardenPlugin({
             log: "bla bla",
             success: true,
             startedAt: now,
-            version: params.module.version.versionString,
+            version: params.service.version,
           }
         },
 
@@ -2079,7 +2081,7 @@ const testPlugin = createGardenPlugin({
             outputs: { base: "ok", foo: "ok" },
             success: true,
             startedAt: now,
-            version: params.module.version.versionString,
+            version: params.task.version,
           }
         },
 
@@ -2102,7 +2104,7 @@ const testPlugin = createGardenPlugin({
             outputs: { base: "ok", foo: "ok" },
             success: true,
             startedAt: now,
-            version: params.module.version.versionString,
+            version: params.task.version,
           }
         },
       },

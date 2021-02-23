@@ -12,7 +12,7 @@ import chalk = require("chalk")
 import { createServer, Server, Socket } from "net"
 const AsyncLock = require("async-lock")
 import getPort = require("get-port")
-import { Service, ServiceStatus, ForwardablePort } from "./types/service"
+import { GardenService, ServiceStatus, ForwardablePort } from "./types/service"
 import { Garden } from "./garden"
 import { registerCleanupFunction, sleep } from "./util/util"
 import { LogEntry } from "./logger/log-entry"
@@ -24,7 +24,7 @@ interface PortProxy {
   localPort: number
   localUrl: string
   server: Server
-  service: Service
+  service: GardenService
   spec: ForwardablePort
 }
 
@@ -38,7 +38,7 @@ registerCleanupFunction("kill-service-port-proxies", () => {
 
 const portLock = new AsyncLock()
 
-export async function startPortProxies(garden: Garden, log: LogEntry, service: Service, status: ServiceStatus) {
+export async function startPortProxies(garden: Garden, log: LogEntry, service: GardenService, status: ServiceStatus) {
   if (garden.disablePortForwards) {
     log.info({ msg: chalk.gray("Port forwards disabled") })
     return []
@@ -49,7 +49,7 @@ export async function startPortProxies(garden: Garden, log: LogEntry, service: S
   })
 }
 
-async function startPortProxy(garden: Garden, log: LogEntry, service: Service, spec: ForwardablePort) {
+async function startPortProxy(garden: Garden, log: LogEntry, service: GardenService, spec: ForwardablePort) {
   const key = getPortKey(service, spec)
   let proxy = activeProxies[key]
 
@@ -65,7 +65,12 @@ async function startPortProxy(garden: Garden, log: LogEntry, service: Service, s
   return proxy
 }
 
-async function createProxy(garden: Garden, log: LogEntry, service: Service, spec: ForwardablePort): Promise<PortProxy> {
+async function createProxy(
+  garden: Garden,
+  log: LogEntry,
+  service: GardenService,
+  spec: ForwardablePort
+): Promise<PortProxy> {
   const actions = await garden.getActionRouter()
   const key = getPortKey(service, spec)
   let fwd: GetPortForwardResult | null = null
@@ -254,11 +259,11 @@ function stopPortProxy(proxy: PortProxy, log?: LogEntry) {
   proxy.server.close()
 }
 
-function getHostname(service: Service, spec: ForwardablePort) {
+function getHostname(service: GardenService, spec: ForwardablePort) {
   return spec.targetName || service.name
 }
 
-function getPortKey(service: Service, spec: ForwardablePort) {
+function getPortKey(service: GardenService, spec: ForwardablePort) {
   return `${service.name}/${getHostname(service, spec)}:${spec.targetPort}`
 }
 

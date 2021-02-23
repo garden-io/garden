@@ -51,6 +51,12 @@ Alternatively you can hoist your `garden.yml` file so that it is at the same lev
 
 See this [GitHub issue](https://github.com/garden-io/garden/issues/1954) for more discussion on the two approaches.
 
+### What do all those `v-<something>` versions mean, and why are they sometimes different between building and deploying?
+
+These are the _Garden versions_ that are computed for each node in the Stack Graph at runtime, based on source files and configuration for each module, service, task and test. See [here](../basics/stack-graph.md#versions) for more information about how these work and how they're used.
+
+You may notice that a _build version_ (e.g. an image tag for a `container` module) is generally different from the version of a _service_ defined in the same module. This is because the _service version_ also factors in the runtime configuration for that service, which often differs between environments, but we don't want those changes to require a rebuild of the container image.
+
 ## Builds
 
 ### How do I target a specific image from a multi-stage Dockerfile?

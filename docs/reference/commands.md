@@ -1050,6 +1050,16 @@ providers:
         # The filesystem path of the module config file.
         configPath:
 
+        # The resolved build configuration of the module. If this is returned by the configure handler for the module
+        # type, we can provide more granular versioning for the module, with a separate build version (i.e. module
+        # version), as well as separate service, task and test versions, instead of applying the same version to all
+        # of them.
+        #
+        # When this is specified, it is **very important** that this field contains all configurable (or otherwise
+        # dynamic) parameters that will affect the built artifacts/images, aside from source files that is (the hash
+        # of those is separately computed).
+        buildConfig:
+
         # List of services configured by this module.
         serviceConfigs:
           - # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
@@ -1296,6 +1306,16 @@ moduleConfigs:
 
     # The filesystem path of the module config file.
     configPath:
+
+    # The resolved build configuration of the module. If this is returned by the configure handler for the module
+    # type, we can provide more granular versioning for the module, with a separate build version (i.e. module
+    # version), as well as separate service, task and test versions, instead of applying the same version to all of
+    # them.
+    #
+    # When this is specified, it is **very important** that this field contains all configurable (or otherwise
+    # dynamic) parameters that will affect the built artifacts/images, aside from source files that is (the hash of
+    # those is separately computed).
+    buildConfig:
 
     # List of services configured by this module.
     serviceConfigs:
@@ -1765,6 +1785,16 @@ modules:
     # The filesystem path of the module.
     path:
 
+    # The resolved build configuration of the module. If this is returned by the configure handler for the module
+    # type, we can provide more granular versioning for the module, with a separate build version (i.e. module
+    # version), as well as separate service, task and test versions, instead of applying the same version to all of
+    # them.
+    #
+    # When this is specified, it is **very important** that this field contains all configurable (or otherwise
+    # dynamic) parameters that will affect the built artifacts/images, aside from source files that is (the hash of
+    # those is separately computed).
+    buildConfig:
+
     # List of services configured by this module.
     serviceConfigs:
       - # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
@@ -1897,13 +1927,13 @@ modules:
     configPath:
 
     version:
-      # String representation of the module version.
+      # A Stack Graph node (i.e. module, service, task or test) version.
       versionString:
 
       # The version of each of the dependencies of the module.
       dependencyVersions:
         <name>:
-          # The hash of all files in the directory, after filtering.
+          # The hash of all files belonging to the Garden module.
           contentHash:
 
           # List of file paths included in the version.

@@ -77,7 +77,7 @@ describe("Garden", () => {
   })
 
   beforeEach(async () => {
-    td.replace(Garden.prototype, "resolveVersion", async () => testModuleVersion)
+    td.replace(Garden.prototype, "resolveModuleVersion", async () => testModuleVersion)
   })
 
   describe("factory", () => {
@@ -4134,7 +4134,7 @@ describe("Garden", () => {
     })
   })
 
-  describe("resolveVersion", () => {
+  describe("resolveModuleVersion", () => {
     beforeEach(() => td.reset())
 
     it("should return result from cache if available", async () => {
@@ -4147,7 +4147,7 @@ describe("Garden", () => {
       }
       garden.cache.set(["moduleVersions", config.name], version, getModuleCacheContext(config))
 
-      const result = await garden.resolveVersion(config, [])
+      const result = await garden.resolveModuleVersion(config, [])
 
       expect(result).to.eql(version)
     })
@@ -4159,7 +4159,7 @@ describe("Garden", () => {
       garden.cache.delete(["moduleVersions", "module-b"])
 
       const config = await garden.resolveModule("module-b")
-      const resolveStub = td.replace(garden.vcs, "resolveVersion")
+      const resolveStub = td.replace(garden.vcs, "resolveModuleVersion")
       const version: ModuleVersion = {
         versionString: "banana",
         dependencyVersions: {},
@@ -4168,7 +4168,7 @@ describe("Garden", () => {
 
       td.when(resolveStub(), { ignoreExtraArgs: true }).thenResolve(version)
 
-      const result = await garden.resolveVersion(config, [])
+      const result = await garden.resolveModuleVersion(config, [])
 
       expect(result).to.eql(version)
     })
@@ -4183,15 +4183,15 @@ describe("Garden", () => {
       }
       garden.cache.set(["moduleVersions", config.name], version, getModuleCacheContext(config))
 
-      const result = await garden.resolveVersion(config, [], true)
+      const result = await garden.resolveModuleVersion(config, [], true)
 
       expect(result).to.not.eql(version)
     })
 
     context("test against fixed version hashes", async () => {
-      const moduleAVersionString = "v-6aec27c89f"
-      const moduleBVersionString = "v-b201651929"
-      const moduleCVersionString = "v-878395c3ad"
+      const moduleAVersionString = "v-c8c9a1ad51"
+      const moduleBVersionString = "v-3ce10c22ec"
+      const moduleCVersionString = "v-684fcdddcb"
 
       it("should return the same module versions between runtimes", async () => {
         const projectRoot = getDataDir("test-projects", "fixed-version-hashes-1")

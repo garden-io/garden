@@ -18,10 +18,10 @@ import { getAppNamespace } from "../namespace"
 import { KubernetesPluginContext } from "../config"
 
 export async function testContainerModule(params: TestModuleParams<ContainerModule>): Promise<TestResult> {
-  const { ctx, module, testConfig, testVersion, log } = params
-  const { command, args } = testConfig.spec
-  const testName = testConfig.name
-  const timeout = testConfig.timeout || DEFAULT_TEST_TIMEOUT
+  const { ctx, module, test, log } = params
+  const { command, args, artifacts, env, volumes } = test.config.spec
+  const testName = test.name
+  const timeout = test.config.timeout || DEFAULT_TEST_TIMEOUT
   const k8sCtx = ctx as KubernetesPluginContext
 
   const image = containerHelpers.getDeploymentImageId(module, module.version, ctx.provider.config.deploymentRegistry)
@@ -31,22 +31,22 @@ export async function testContainerModule(params: TestModuleParams<ContainerModu
     ...params,
     command,
     args,
-    artifacts: testConfig.spec.artifacts,
-    envVars: testConfig.spec.env,
+    artifacts,
+    envVars: env,
     image,
     namespace,
     podName: makePodName("test", module.name, testName),
     description: `Test '${testName}' in container module '${module.name}'`,
     timeout,
-    volumes: testConfig.spec.volumes,
+    version: test.version,
+    volumes,
   })
 
   return storeTestResult({
     ctx,
     log,
     module,
-    testName,
-    testVersion,
+    test,
     result: {
       testName,
       ...result,

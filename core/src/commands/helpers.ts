@@ -7,7 +7,7 @@
  */
 
 import { ConfigGraph } from "../config-graph"
-import { Service } from "../types/service"
+import { GardenService } from "../types/service"
 
 export async function getHotReloadServiceNames(namesFromOpt: string[] | undefined, configGraph: ConfigGraph) {
   const names = namesFromOpt || []
@@ -44,6 +44,6 @@ export async function validateHotReloadServiceNames(
   return null
 }
 
-function supportsHotReloading(service: Service) {
+function supportsHotReloading(service: GardenService) {
   return service.config.hotReloadable
 }

@@ -82,7 +82,7 @@ describe("createServiceResources", () => {
           ],
           selector: {
             [gardenAnnotationKey("service")]: "service-a",
-            [gardenAnnotationKey("version")]: service.module.version.versionString,
+            [gardenAnnotationKey("version")]: service.version,
           },
           type: "ClusterIP",
         },

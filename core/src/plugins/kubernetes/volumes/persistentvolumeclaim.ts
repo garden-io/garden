@@ -23,7 +23,7 @@ import { KubernetesResource } from "../types"
 import { getKubernetesServiceStatus, deployKubernetesService } from "../kubernetes-module/handlers"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { getModuleTypeUrl } from "../../../docs/common"
-import { Service } from "../../../types/service"
+import { GardenService } from "../../../types/service"
 
 export interface PersistentVolumeClaimSpec extends BaseVolumeSpec {
   dependencies: string[]
@@ -32,6 +32,7 @@ export interface PersistentVolumeClaimSpec extends BaseVolumeSpec {
 }
 
 type PersistentVolumeClaimModule = GardenModule<PersistentVolumeClaimSpec, PersistentVolumeClaimSpec>
+type PersistentVolumeClaimService = GardenService<PersistentVolumeClaimModule>
 
 // Need to use a sync read to avoid having to refactor createGardenPlugin()
 // The `persistentvolumeclaim.json` file is copied from the handy
@@ -84,14 +85,14 @@ export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
     },
 
     async getServiceStatus(params: GetServiceStatusParams) {
-      params.service = getKubernetesService(params.module)
+      params.service = getKubernetesService(params.service)
       params.module = params.service.module
 
       return getKubernetesServiceStatus(params)
     },
 
     async deployService(params: DeployServiceParams) {
-      params.service = getKubernetesService(params.module)
+      params.service = getKubernetesService(params.service)
       params.module = params.service.module
 
       return deployKubernetesService(params)
@@ -102,18 +103,20 @@ export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
 /**
  * Maps a `persistentvolumeclaim` module to a `kubernetes` module (so we can re-use those handlers).
  */
-function getKubernetesService(pvcModule: PersistentVolumeClaimModule): Service<KubernetesModule, KubernetesModule> {
+function getKubernetesService(
+  pvcService: PersistentVolumeClaimService
+): GardenService<KubernetesModule, KubernetesModule> {
   const pvcManifest: KubernetesResource<V1PersistentVolumeClaim> = {
     apiVersion: "v1",
     kind: "PersistentVolumeClaim",
     metadata: {
-      name: pvcModule.name,
+      name: pvcService.name,
     },
-    spec: pvcModule.spec.spec,
+    spec: pvcService.spec.spec,
   }
 
   const spec = {
-    dependencies: pvcModule.spec.dependencies,
+    dependencies: pvcService.spec.dependencies,
     files: [],
     manifests: [pvcManifest],
     tasks: [],
@@ -121,12 +124,12 @@ function getKubernetesService(pvcModule: PersistentVolumeClaimModule): Service<K
   }
 
   const serviceConfig = {
-    ...pvcModule.serviceConfigs[0],
+    ...pvcService.config,
     spec,
   }
 
   const config: KubernetesModuleConfig = {
-    ...pvcModule,
+    ...pvcService.module,
     serviceConfigs: [serviceConfig],
     spec,
     taskConfigs: [],
@@ -134,11 +137,11 @@ function getKubernetesService(pvcModule: PersistentVolumeClaimModule): Service<K
   }
 
   const module: KubernetesModule = {
-    ...pvcModule,
+    ...pvcService.module,
     _config: config,
     ...config,
     spec: {
-      ...pvcModule.spec,
+      ...pvcService.spec,
       files: [],
       manifests: [pvcManifest],
       tasks: [],
@@ -147,11 +150,12 @@ function getKubernetesService(pvcModule: PersistentVolumeClaimModule): Service<K
   }
 
   return {
-    name: pvcModule.name,
+    name: pvcService.name,
     config: serviceConfig,
-    disabled: pvcModule.disabled,
+    disabled: pvcService.disabled,
     module,
     sourceModule: module,
     spec,
+    version: pvcService.version,
   }
 }

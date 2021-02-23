@@ -25,7 +25,7 @@ import {
 } from "../util"
 
 export async function testKubernetesModule(params: TestModuleParams<KubernetesModule>): Promise<TestResult> {
-  const { ctx, log, module, testConfig, testVersion } = params
+  const { ctx, log, module, test } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getModuleNamespace({
     ctx: k8sCtx,
@@ -37,14 +37,14 @@ export async function testKubernetesModule(params: TestModuleParams<KubernetesMo
 
   // Get the container spec to use for running
   const manifests = await getManifests({ api, log, module, defaultNamespace: namespace })
-  const resourceSpec = testConfig.spec.resource || getServiceResourceSpec(module, undefined)
+  const resourceSpec = test.config.spec.resource || getServiceResourceSpec(module, undefined)
   const target = await findServiceResource({ ctx: k8sCtx, log, manifests, module, resourceSpec, baseModule: undefined })
   const container = getResourceContainer(target, resourceSpec.containerName)
 
-  const testName = testConfig.name
-  const { command, args } = testConfig.spec
+  const testName = test.name
+  const { command, args } = test.config.spec
   const image = container.image!
-  const timeout = testConfig.timeout || DEFAULT_TEST_TIMEOUT
+  const timeout = test.config.timeout || DEFAULT_TEST_TIMEOUT
 
   const result = await runAndCopy({
     ...params,
@@ -52,21 +52,21 @@ export async function testKubernetesModule(params: TestModuleParams<KubernetesMo
     podSpec: getResourcePodSpec(target),
     command,
     args,
-    artifacts: testConfig.spec.artifacts,
-    envVars: testConfig.spec.env,
+    artifacts: test.config.spec.artifacts,
+    envVars: test.config.spec.env,
     image,
     namespace,
     podName: makePodName("test", module.name, testName),
     description: `Test '${testName}' in container module '${module.name}'`,
     timeout,
+    version: test.version,
   })
 
   return storeTestResult({
     ctx: k8sCtx,
     log,
     module,
-    testName,
-    testVersion,
+    test,
     result: {
       testName,
       ...result,

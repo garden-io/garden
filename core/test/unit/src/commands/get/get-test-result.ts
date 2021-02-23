@@ -52,7 +52,7 @@ const testPlugin = createGardenPlugin({
       schema: joi.object(),
       handlers: {
         configure: configureTestModule,
-        getTestResult: async (params: GetTestResultParams) => testResults[params.testName],
+        getTestResult: async (params: GetTestResultParams) => testResults[params.test.name],
       },
     },
   ],
@@ -124,8 +124,8 @@ describe("GetTestResultCommand", () => {
     const name = "unit"
 
     const graph = await garden.getConfigGraph(garden.log)
-    const module = graph.getModule("module-a")
-    const artifactKey = getArtifactKey("test", name, module.version.versionString)
+    const test = graph.getTest("module-a", "unit")
+    const artifactKey = getArtifactKey("test", name, test.version)
     const metadataPath = join(garden.artifactsPath, `.metadata.${artifactKey}.json`)
     const metadata = {
       key: artifactKey,

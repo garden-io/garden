@@ -21,7 +21,6 @@ import {
   getValueArgs,
   renderTemplates,
 } from "../../../../../../src/plugins/kubernetes/helm/common"
-import { PluginContext } from "../../../../../../src/plugin-context"
 import { LogEntry } from "../../../../../../src/logger/log-entry"
 import { BuildTask } from "../../../../../../src/tasks/build"
 import { deline, dedent } from "../../../../../../src/util/string"
@@ -70,13 +69,13 @@ export async function buildHelmModules(garden: Garden | TestGarden, graph: Confi
 describe("Helm common functions", () => {
   let garden: TestGarden
   let graph: ConfigGraph
-  let ctx: PluginContext
+  let ctx: KubernetesPluginContext
   let log: LogEntry
 
   before(async () => {
     garden = await getHelmTestGarden()
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = await garden.getPluginContext(provider)
+    ctx = (await garden.getPluginContext(provider)) as KubernetesPluginContext
     log = garden.log
     graph = await garden.getConfigGraph(garden.log)
     await buildHelmModules(garden, graph)
@@ -102,7 +101,13 @@ describe("Helm common functions", () => {
     it("should render and return the manifests for a local template", async () => {
       const module = graph.getModule("api")
       const imageModule = graph.getModule("api-image")
-      const templates = await renderTemplates(<KubernetesPluginContext>ctx, module, false, log)
+      const templates = await renderTemplates({
+        ctx,
+        module,
+        hotReload: false,
+        log,
+        version: module.version.versionString,
+      })
 
       expect(templates).to.eql(dedent`
       ---
@@ -185,7 +190,13 @@ describe("Helm common functions", () => {
 
     it("should render and return the manifests for a remote template", async () => {
       const module = graph.getModule("postgres")
-      const templates = await renderTemplates(<KubernetesPluginContext>ctx, module, false, log)
+      const templates = await renderTemplates({
+        ctx,
+        module,
+        hotReload: false,
+        log,
+        version: module.version.versionString,
+      })
 
       // The exact output will vary by K8s versions so we just validate that we get valid YAML and
       // the expected kinds.
@@ -200,7 +211,13 @@ describe("Helm common functions", () => {
   describe("getChartResources", () => {
     it("should render and return resources for a local template", async () => {
       const module = graph.getModule("api")
-      const resources = await getChartResources(ctx, module, false, log)
+      const resources = await getChartResources({
+        ctx,
+        module,
+        hotReload: false,
+        log,
+        version: module.version.versionString,
+      })
 
       expect(resources).to.eql([
         {
@@ -318,7 +335,13 @@ describe("Helm common functions", () => {
 
     it("should render and return resources for a remote template", async () => {
       const module = graph.getModule("postgres")
-      const resources = await getChartResources(ctx, module, false, log)
+      const resources = await getChartResources({
+        ctx,
+        module,
+        hotReload: false,
+        log,
+        version: module.version.versionString,
+      })
 
       // The exact output will vary by K8s versions so we just validate that we get valid YAML and
       // the expected kinds.
@@ -330,12 +353,19 @@ describe("Helm common functions", () => {
 
     it("should handle duplicate keys in template", async () => {
       const module = graph.getModule("duplicate-keys-in-template")
-      expect(await getChartResources(ctx, module, false, log)).to.not.throw
+      expect(await getChartResources({ ctx, module, hotReload: false, log, version: module.version.versionString })).to
+        .not.throw
     })
 
     it("should filter out resources with hooks", async () => {
       const module = graph.getModule("chart-with-test-pod")
-      const resources = await getChartResources(ctx, module, false, log)
+      const resources = await getChartResources({
+        ctx,
+        module,
+        hotReload: false,
+        log,
+        version: module.version.versionString,
+      })
 
       expect(resources).to.eql([
         {

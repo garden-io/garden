@@ -219,6 +219,7 @@ export interface ModuleConfig<M extends {} = any, S extends {} = any, T extends 
   path: string
   configPath?: string
   plugin?: string // used to identify modules that are bundled as part of a plugin
+  buildConfig?: object
   serviceConfigs: ServiceConfig<S>[]
   testConfigs: TestConfig<T>[]
   taskConfigs: TaskConfig<W>[]
@@ -242,6 +243,16 @@ export const moduleConfigSchema = () =>
       plugin: joiIdentifier()
         .meta({ internal: true })
         .description("The name of a the parent plugin of the module, if applicable."),
+      buildConfig: joi
+        .object()
+        .unknown(true)
+        .description(
+          dedent`
+          The resolved build configuration of the module. If this is returned by the configure handler for the module type, we can provide more granular versioning for the module, with a separate build version (i.e. module version), as well as separate service, task and test versions, instead of applying the same version to all of them.
+
+          When this is specified, it is **very important** that this field contains all configurable (or otherwise dynamic) parameters that will affect the built artifacts/images, aside from source files that is (the hash of those is separately computed).
+          `
+        ),
       serviceConfigs: joiArray(serviceConfigSchema()).description("List of services configured by this module."),
       taskConfigs: joiArray(taskConfigSchema()).description("List of tasks configured by this module."),
       testConfigs: joiArray(testConfigSchema()).description("List of tests configured by this module."),

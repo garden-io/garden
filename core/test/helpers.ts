@@ -299,7 +299,7 @@ export const testPluginC = () => {
   })
 }
 
-const defaultModuleConfig: ModuleConfig = {
+export const defaultModuleConfig: ModuleConfig = {
   apiVersion: DEFAULT_API_VERSION,
   type: "test",
   name: "test",

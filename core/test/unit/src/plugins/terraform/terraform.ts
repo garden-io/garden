@@ -320,7 +320,6 @@ describe("Terraform module type", () => {
       log: garden.log,
       force: false,
       forceBuild: false,
-      version: task.module.version,
     })
 
     return garden.processTasks([taskTask], { throwOnError: true })
@@ -569,7 +568,6 @@ describe("Terraform module type", () => {
         log: _garden.log,
         force: false,
         forceBuild: false,
-        version: task.module.version,
       })
 
       const result = await _garden.processTasks([taskTask], { throwOnError: true })

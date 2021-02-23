@@ -9,12 +9,11 @@
 import { includes } from "lodash"
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults } from "./base"
-import { Service, ServiceStatus } from "../types/service"
+import { GardenService, ServiceStatus } from "../types/service"
 import { Garden } from "../garden"
 import { ConfigGraph } from "../config-graph"
 import { GraphResults } from "../task-graph"
 import { prepareRuntimeContext } from "../runtime-context"
-import { getTaskVersion } from "./task"
 import Bluebird from "bluebird"
 import { GetTaskResultTask } from "./get-task-result"
 import chalk from "chalk"
@@ -23,7 +22,7 @@ import { Profile } from "../util/profiling"
 export interface GetServiceStatusTaskParams {
   garden: Garden
   graph: ConfigGraph
-  service: Service
+  service: GardenService
   force: boolean
   log: LogEntry
   hotReloadServiceNames?: string[]
@@ -35,11 +34,11 @@ export class GetServiceStatusTask extends BaseTask {
   concurrencyLimit = 20
 
   private graph: ConfigGraph
-  private service: Service
+  private service: GardenService
   private hotReloadServiceNames: string[]
 
   constructor({ garden, graph, log, service, force, hotReloadServiceNames = [] }: GetServiceStatusTaskParams) {
-    super({ garden, log, force, version: service.module.version })
+    super({ garden, log, force, version: service.version })
     this.graph = graph
     this.service = service
     this.hotReloadServiceNames = hotReloadServiceNames
@@ -65,7 +64,6 @@ export class GetServiceStatusTask extends BaseTask {
         log: this.log,
         task,
         force: false,
-        version: await getTaskVersion(this.garden, this.graph, task),
       })
     })
 
@@ -99,6 +97,7 @@ export class GetServiceStatusTask extends BaseTask {
       graph: this.graph,
       dependencies,
       version: this.version,
+      moduleVersion: this.service.module.version.versionString,
       serviceStatuses,
       taskResults,
     })

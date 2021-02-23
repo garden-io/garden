@@ -10,18 +10,16 @@ import { dedent } from "../../../util/string"
 import { GardenModule } from "../../module"
 import { PluginModuleActionParamsBase, artifactsPathSchema } from "../base"
 import { RuntimeContext } from "../../../runtime-context"
-import { ModuleVersion } from "../../../vcs/vcs"
-import { testConfigSchema } from "../../../config/test"
 import { runModuleBaseSchema } from "./runModule"
-import { testResultSchema, testVersionSchema } from "./getTestResult"
+import { testResultSchema } from "./getTestResult"
+import { GardenTest, testSchema } from "../../test"
 
 export interface TestModuleParams<T extends GardenModule = GardenModule> extends PluginModuleActionParamsBase<T> {
   artifactsPath: string
   interactive: boolean
   runtimeContext: RuntimeContext
   silent: boolean
-  testConfig: T["testConfigs"][0]
-  testVersion: ModuleVersion
+  test: GardenTest<T>
 }
 
 export const testModule = () => ({
@@ -40,8 +38,7 @@ export const testModule = () => ({
   `,
   paramsSchema: runModuleBaseSchema().keys({
     artifactsPath: artifactsPathSchema(),
-    testConfig: testConfigSchema(),
-    testVersion: testVersionSchema(),
+    test: testSchema(),
   }),
   resultSchema: testResultSchema(),
 })

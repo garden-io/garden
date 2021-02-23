@@ -10,8 +10,8 @@ import toposort from "toposort"
 import { flatten, pick, uniq, sortBy, pickBy } from "lodash"
 import { BuildDependencyConfig } from "./config/module"
 import { GardenModule, getModuleKey, moduleNeedsBuild } from "./types/module"
-import { Service, serviceFromConfig } from "./types/service"
-import { Task, taskFromConfig } from "./types/task"
+import { GardenService, serviceFromConfig } from "./types/service"
+import { GardenTask, taskFromConfig } from "./types/task"
 import { TestConfig } from "./config/test"
 import { uniqByName, pickKeys } from "./util/util"
 import { ConfigurationError } from "./exceptions"
@@ -22,6 +22,7 @@ import { TaskConfig } from "./config/task"
 import { makeTestTaskName } from "./tasks/helpers"
 import { TaskType, makeBaseKey } from "./tasks/base"
 import { ModuleTypeMap } from "./types/plugin/plugin"
+import { testFromModule, GardenTest } from "./types/test"
 
 // Each of these types corresponds to a Task class (e.g. BuildTask, DeployTask, ...).
 export type DependencyGraphNodeType = "build" | "deploy" | "run" | "test"
@@ -29,8 +30,8 @@ export type DependencyGraphNodeType = "build" | "deploy" | "run" | "test"
 // The primary output type (for dependencies and dependants).
 export type DependencyRelations = {
   build: GardenModule[]
-  deploy: Service[]
-  run: Task[]
+  deploy: GardenService[]
+  run: GardenTask[]
   test: TestConfig[]
 }
 
@@ -308,15 +309,23 @@ export class ConfigGraph {
   /**
    * Returns the Service with the specified name. Throws error if it doesn't exist.
    */
-  getService(name: string, includeDisabled?: boolean): Service {
+  getService(name: string, includeDisabled?: boolean): GardenService {
     return this.getServices({ names: [name], includeDisabled })[0]
   }
 
   /**
    * Returns the Task with the specified name. Throws error if it doesn't exist.
    */
-  getTask(name: string, includeDisabled?: boolean): Task {
+  getTask(name: string, includeDisabled?: boolean): GardenTask {
     return this.getTasks({ names: [name], includeDisabled })[0]
+  }
+
+  /**
+   * Returns the `testName` test from the `moduleName` module. Throws if either is not found.
+   */
+  getTest(moduleName: string, testName: string, includeDisabled?: boolean): GardenTest {
+    const module = this.getModule(moduleName, includeDisabled)
+    return testFromModule(module, testName)
   }
 
   /*

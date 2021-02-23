@@ -12,9 +12,7 @@ import { deepFilter } from "../../util/util"
 import { Command, CommandResult, CommandParams } from "../base"
 import { Garden } from "../../garden"
 import { ConfigGraph } from "../../config-graph"
-import { getTaskVersion } from "../../tasks/task"
 import { LogEntry } from "../../logger/log-entry"
-import { getTestVersion } from "../../tasks/test"
 import { runStatus, RunStatus } from "../../types/plugin/base"
 import chalk from "chalk"
 import { deline } from "../../util/string"
@@ -23,6 +21,7 @@ import { ServiceStatus, serviceStatusSchema } from "../../types/service"
 import { joi, joiIdentifierMap, joiStringMap } from "../../config/common"
 import { environmentStatusSchema } from "../../config/status"
 import { printHeader } from "../../logger/util"
+import { testFromConfig } from "../../types/test"
 
 export interface TestStatuses {
   [testKey: string]: RunStatus
@@ -116,19 +115,17 @@ export class GetStatusCommand extends Command {
 }
 
 async function getTestStatuses(garden: Garden, configGraph: ConfigGraph, log: LogEntry) {
-  const modules = await configGraph.getModules()
+  const modules = configGraph.getModules()
   const actions = await garden.getActionRouter()
 
   return fromPairs(
     flatten(
       await Bluebird.map(modules, async (module) => {
         return Bluebird.map(module.testConfigs, async (testConfig) => {
-          const testVersion = await getTestVersion(garden, configGraph, module, testConfig)
           const result = await actions.getTestResult({
             module,
             log,
-            testVersion,
-            testName: testConfig.name,
+            test: testFromConfig(module, testConfig),
           })
           return [`${module.name}.${testConfig.name}`, runStatus(result)]
         })
@@ -138,13 +135,12 @@ async function getTestStatuses(garden: Garden, configGraph: ConfigGraph, log: Lo
 }
 
 async function getTaskStatuses(garden: Garden, configGraph: ConfigGraph, log: LogEntry): Promise<TaskStatuses> {
-  const tasks = await configGraph.getTasks()
+  const tasks = configGraph.getTasks()
   const actions = await garden.getActionRouter()
 
   return fromPairs(
     await Bluebird.map(tasks, async (task) => {
-      const taskVersion = await getTaskVersion(garden, configGraph, task)
-      const result = await actions.getTaskResult({ task, taskVersion, log })
+      const result = await actions.getTaskResult({ task, log })
       return [task.name, runStatus(result)]
     })
   )

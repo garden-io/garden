@@ -8,7 +8,6 @@
 
 import { getEnvVarName } from "./util/util"
 import { PrimitiveMap, joiEnvVars, joiPrimitive, joi, joiIdentifier, moduleVersionSchema } from "./config/common"
-import { ModuleVersion } from "./vcs/vcs"
 import { Garden } from "./garden"
 import { ConfigGraph, DependencyRelations } from "./config-graph"
 import { ServiceStatus } from "./types/service"
@@ -67,7 +66,8 @@ interface PrepareRuntimeContextParams {
   dependencies: DependencyRelations
   serviceStatuses: { [name: string]: ServiceStatus }
   taskResults: { [name: string]: RunTaskResult }
-  version: ModuleVersion
+  version: string
+  moduleVersion: string
 }
 
 /**
@@ -84,11 +84,11 @@ export async function prepareRuntimeContext({
   serviceStatuses,
   taskResults,
   version,
+  moduleVersion,
 }: PrepareRuntimeContextParams): Promise<RuntimeContext> {
-  const { versionString } = version
   const envVars = {
-    GARDEN_VERSION: versionString, // TODO: deprecate, prefer the more verbose option
-    GARDEN_MODULE_VERSION: versionString,
+    GARDEN_VERSION: version,
+    GARDEN_MODULE_VERSION: moduleVersion,
   }
 
   // DEPRECATED: Remove in v0.13
@@ -127,7 +127,7 @@ export async function prepareRuntimeContext({
       name: service.name,
       outputs,
       type: "service",
-      version: service.module.version.versionString,
+      version: service.version,
     })
   }
 
@@ -143,7 +143,7 @@ export async function prepareRuntimeContext({
       name: task.name,
       outputs,
       type: "task",
-      version: task.module.version.versionString,
+      version: task.version,
     })
   }
 

@@ -41,8 +41,7 @@ describe("kubernetes task results", () => {
         ctx,
         log: garden.log,
         module: task.module,
-        taskName: task.name,
-        taskVersion: task.module.version,
+        task,
         result: {
           moduleName: task.module.name,
           taskName: task.name,
@@ -51,7 +50,7 @@ describe("kubernetes task results", () => {
           startedAt: new Date(),
           completedAt: new Date(),
           command: [],
-          version: task.module.version.versionString,
+          version: task.version,
           success: true,
         },
       })
@@ -63,7 +62,6 @@ describe("kubernetes task results", () => {
         log: garden.log,
         module: task.module,
         task,
-        taskVersion: task.module.version,
       })
 
       expect(stored).to.exist

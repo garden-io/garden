@@ -8,14 +8,13 @@
 
 import Bluebird from "bluebird"
 import chalk from "chalk"
-import { BaseTask, TaskParams, TaskType, getServiceStatuses, getRunTaskResults } from "../tasks/base"
+import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults } from "../tasks/base"
 import { Garden } from "../garden"
-import { Task } from "../types/task"
+import { GardenTask } from "../types/task"
 import { DeployTask } from "./deploy"
 import { LogEntry } from "../logger/log-entry"
 import { prepareRuntimeContext } from "../runtime-context"
 import { ConfigGraph } from "../config-graph"
-import { ModuleVersion } from "../vcs/vcs"
 import { BuildTask } from "./build"
 import { RunTaskResult } from "../types/plugin/task/runTask"
 import { GraphResults } from "../task-graph"
@@ -26,7 +25,7 @@ export interface TaskTaskParams {
   garden: Garden
   log: LogEntry
   graph: ConfigGraph
-  task: Task
+  task: GardenTask
   force: boolean
   forceBuild: boolean
 }
@@ -43,21 +42,15 @@ export class TaskTask extends BaseTask {
   type: TaskType = "task"
 
   private graph: ConfigGraph
-  private task: Task
+  private task: GardenTask
   private forceBuild: boolean
 
-  constructor({ garden, log, graph, task, version, force, forceBuild }: TaskTaskParams & TaskParams) {
-    super({ garden, log, force, version })
+  constructor({ garden, log, graph, task, force, forceBuild }: TaskTaskParams) {
+    super({ garden, log, force, version: task.version })
     this.graph = graph
     this.task = task
     this.force = force
     this.forceBuild = forceBuild
-  }
-
-  static async factory(initArgs: TaskTaskParams): Promise<TaskTask> {
-    const { garden, graph, task } = initArgs
-    const version = await getTaskVersion(garden, graph, task)
-    return new TaskTask({ ...initArgs, version })
   }
 
   async resolveDependencies(): Promise<BaseTask[]> {
@@ -83,7 +76,7 @@ export class TaskTask extends BaseTask {
     })
 
     const taskTasks = await Bluebird.map(deps.run, (task) => {
-      return TaskTask.factory({
+      return new TaskTask({
         task,
         log: this.log,
         garden: this.garden,
@@ -98,7 +91,6 @@ export class TaskTask extends BaseTask {
       garden: this.garden,
       log: this.log,
       task: this.task,
-      version: this.version,
     })
 
     return [...buildTasks, ...deployTasks, ...taskTasks, resultTask]
@@ -144,7 +136,8 @@ export class TaskTask extends BaseTask {
       garden: this.garden,
       graph: this.graph,
       dependencies,
-      version: this.task.module.version,
+      version: this.task.version,
+      moduleVersion: this.task.module.version.versionString,
       serviceStatuses,
       taskResults,
     })
@@ -158,7 +151,6 @@ export class TaskTask extends BaseTask {
         log,
         runtimeContext,
         interactive: false,
-        taskVersion: this.version,
       })
     } catch (err) {
       log.setError()
@@ -176,13 +168,4 @@ export class TaskTask extends BaseTask {
 
     return result
   }
-}
-
-/**
- * Determine the version of the task run, based on the version of the module and each of its dependencies.
- */
-export async function getTaskVersion(garden: Garden, graph: ConfigGraph, task: Task): Promise<ModuleVersion> {
-  const { module } = task
-  const moduleDeps = graph.resolveDependencyModules(module.build.dependencies, task.config.dependencies)
-  return garden.resolveVersion(module, moduleDeps)
 }

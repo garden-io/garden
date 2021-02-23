@@ -22,7 +22,7 @@ describe("RunServiceCommand", () => {
   const cmd = new RunServiceCommand()
 
   beforeEach(async () => {
-    td.replace(Garden.prototype, "resolveVersion", async () => testModuleVersion)
+    td.replace(Garden.prototype, "resolveModuleVersion", async () => testModuleVersion)
     garden = await makeTestGardenA()
     log = garden.log
   })

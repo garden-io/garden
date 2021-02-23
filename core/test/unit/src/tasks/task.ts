@@ -16,7 +16,7 @@ import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
 import { joi } from "../../../../src/config/common"
 import { RunTaskParams, RunTaskResult } from "../../../../src/types/plugin/task/runTask"
 import { TaskTask } from "../../../../src/tasks/task"
-import { Task } from "../../../../src/types/task"
+import { GardenTask } from "../../../../src/types/task"
 import { GetTaskResultParams } from "../../../../src/types/plugin/task/getTaskResult"
 
 describe("TaskTask", () => {
@@ -52,8 +52,8 @@ describe("TaskTask", () => {
       cache = {}
     })
 
-    const getKey = (task: Task) => {
-      return `${task.name}-${task.module.version.versionString}`
+    const getKey = (task: GardenTask) => {
+      return `${task.name}-${task.version}`
     }
 
     const testPlugin = createGardenPlugin({
@@ -77,7 +77,7 @@ describe("TaskTask", () => {
                 log,
                 startedAt: new Date(),
                 completedAt: new Date(),
-                version: task.module.version.versionString,
+                version: task.version,
               }
 
               cache[getKey(task)] = result
@@ -121,7 +121,7 @@ describe("TaskTask", () => {
       ])
 
       let graph = await garden.getConfigGraph(garden.log)
-      let taskTask = await TaskTask.factory({
+      let taskTask = new TaskTask({
         garden,
         graph,
         task: graph.getTask("test"),
@@ -171,7 +171,7 @@ describe("TaskTask", () => {
       ])
 
       let graph = await garden.getConfigGraph(garden.log)
-      let taskTask = await TaskTask.factory({
+      let taskTask = new TaskTask({
         garden,
         graph,
         task: graph.getTask("test"),

@@ -16,15 +16,13 @@ import {
 import { dedent } from "../../../util/string"
 import { GardenModule } from "../../module"
 import { RuntimeContext } from "../../../runtime-context"
-import { ModuleVersion } from "../../../vcs/vcs"
-import { taskVersionSchema, taskResultSchema } from "./getTaskResult"
+import { taskResultSchema } from "./getTaskResult"
 import { PrimitiveMap } from "../../../config/common"
 
 export interface RunTaskParams<T extends GardenModule = GardenModule> extends PluginTaskActionParamsBase<T> {
   artifactsPath: string
   interactive: boolean
   runtimeContext: RuntimeContext
-  taskVersion: ModuleVersion
   timeout?: number
 }
 
@@ -40,7 +38,6 @@ export const runTask = () => ({
   `,
   paramsSchema: taskActionParamsSchema().keys(runBaseParams()).keys({
     artifactsPath: artifactsPathSchema(),
-    taskVersion: taskVersionSchema(),
   }),
   resultSchema: taskResultSchema(),
 })

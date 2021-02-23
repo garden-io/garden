@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { mapValues } from "lodash"
+import { mapValues, omit } from "lodash"
 import { join } from "path"
 import cpy = require("cpy")
 import { joiArray, joiEnvVars, joi, joiSparseArray } from "../config/common"
@@ -192,6 +192,8 @@ export async function configureExecModule({
     projectRoot: ctx.projectRoot,
   })
 
+  moduleConfig.buildConfig = omit(moduleConfig.spec, ["tasks", "tests"])
+
   moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => ({
     name: t.name,
     cacheResult: false,
@@ -249,29 +251,29 @@ export async function buildExecModule({ module, log }: BuildModuleParams<ExecMod
 export async function testExecModule({
   log,
   module,
-  testConfig,
+  test,
   artifactsPath,
 }: TestModuleParams<ExecModule>): Promise<TestResult> {
   const startedAt = new Date()
-  const { command } = testConfig.spec
+  const { command } = test.config.spec
 
   const result = await exec(command.join(" "), [], {
     cwd: module.buildPath,
     env: {
       ...getDefaultEnvVars(module),
-      ...mapValues(testConfig.spec.env, (v) => v + ""),
+      ...mapValues(test.config.spec.env, (v) => v + ""),
     },
     reject: false,
     shell: true,
   })
 
-  await copyArtifacts(log, testConfig.spec.artifacts, module.buildPath, artifactsPath)
+  await copyArtifacts(log, test.config.spec.artifacts, module.buildPath, artifactsPath)
 
   return {
     moduleName: module.name,
     command,
-    testName: testConfig.name,
-    version: module.version.versionString,
+    testName: test.name,
+    version: test.version,
     success: result.exitCode === 0,
     startedAt,
     completedAt: new Date(),
@@ -315,7 +317,7 @@ export async function runExecTask(params: RunTaskParams<ExecModule>): Promise<Ru
     moduleName: module.name,
     taskName: task.name,
     command,
-    version: module.version.versionString,
+    version: task.version,
     success,
     log: outputLog,
     outputs: {

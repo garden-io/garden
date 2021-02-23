@@ -28,7 +28,8 @@ describe("prepareRuntimeContext", () => {
     const runtimeContext = await prepareRuntimeContext({
       garden,
       graph,
-      version: module.version,
+      version: module.version.versionString,
+      moduleVersion: module.version.versionString,
       dependencies: {
         build: [],
         deploy: [],
@@ -40,6 +41,7 @@ describe("prepareRuntimeContext", () => {
     })
 
     expect(runtimeContext.envVars.GARDEN_VERSION).to.equal(module.version.versionString)
+    expect(runtimeContext.envVars.GARDEN_MODULE_VERSION).to.equal(module.version.versionString)
   })
 
   it("should add project variables to the output envVars", async () => {
@@ -50,7 +52,8 @@ describe("prepareRuntimeContext", () => {
     const runtimeContext = await prepareRuntimeContext({
       garden,
       graph,
-      version: module.version,
+      version: module.version.versionString,
+      moduleVersion: module.version.versionString,
       dependencies: {
         build: [],
         deploy: [],
@@ -73,7 +76,8 @@ describe("prepareRuntimeContext", () => {
     const runtimeContext = await prepareRuntimeContext({
       garden,
       graph,
-      version: module.version,
+      version: module.version.versionString,
+      moduleVersion: module.version.versionString,
       dependencies: {
         build: [moduleB],
         deploy: [],
@@ -106,7 +110,8 @@ describe("prepareRuntimeContext", () => {
     const runtimeContext = await prepareRuntimeContext({
       garden,
       graph,
-      version: module.version,
+      version: module.version.versionString,
+      moduleVersion: module.version.versionString,
       dependencies: {
         build: [],
         deploy: [serviceB],
@@ -129,7 +134,7 @@ describe("prepareRuntimeContext", () => {
         name: "service-b",
         outputs,
         type: "service",
-        version: serviceB.module.version.versionString,
+        version: serviceB.version,
       },
     ])
   })
@@ -145,7 +150,8 @@ describe("prepareRuntimeContext", () => {
     const runtimeContext = await prepareRuntimeContext({
       garden,
       graph,
-      version: module.version,
+      version: module.version.versionString,
+      moduleVersion: module.version.versionString,
       dependencies: {
         build: [],
         deploy: [],
@@ -163,7 +169,7 @@ describe("prepareRuntimeContext", () => {
           startedAt: new Date(),
           success: true,
           taskName: "task-b",
-          version: taskB.module.version.versionString,
+          version: taskB.version,
         },
       },
     })
@@ -174,7 +180,7 @@ describe("prepareRuntimeContext", () => {
         name: "task-b",
         outputs,
         type: "task",
-        version: taskB.module.version.versionString,
+        version: taskB.version,
       },
     ])
   })
@@ -187,7 +193,8 @@ describe("prepareRuntimeContext", () => {
     const runtimeContext = await prepareRuntimeContext({
       garden,
       graph,
-      version: module.version,
+      version: module.version.versionString,
+      moduleVersion: module.version.versionString,
       dependencies: {
         build: [],
         deploy: [serviceB],

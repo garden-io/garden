@@ -188,6 +188,14 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
     }
   })
 
+  // All the config keys that affect the build version
+  moduleConfig.buildConfig = {
+    buildArgs: moduleConfig.spec.buildArgs,
+    targetImage: moduleConfig.spec.build?.targetImage,
+    extraFlags: moduleConfig.spec.extraFlags,
+    dockerfile: moduleConfig.spec.dockerfile,
+  }
+
   // Automatically set the include field based on the Dockerfile and config, if not explicitly set
   if (!(moduleConfig.include || moduleConfig.exclude)) {
     moduleConfig.include = await containerHelpers.autoResolveIncludes(moduleConfig, log)

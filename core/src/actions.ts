@@ -80,7 +80,7 @@ import { HotReloadServiceParams, HotReloadServiceResult } from "./types/plugin/s
 import { RunServiceParams } from "./types/plugin/service/runService"
 import { GetTaskResultParams } from "./types/plugin/task/getTaskResult"
 import { RunTaskParams, RunTaskResult } from "./types/plugin/task/runTask"
-import { ServiceStatus, ServiceStatusMap, ServiceState, Service } from "./types/service"
+import { ServiceStatus, ServiceStatusMap, ServiceState, GardenService } from "./types/service"
 import { Omit, getNames } from "./util/util"
 import { DebugInfoMap } from "./types/plugin/provider/getDebugInfo"
 import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "./types/plugin/provider/prepareEnvironment"
@@ -92,7 +92,7 @@ import { getServiceStatuses } from "./tasks/base"
 import { getRuntimeTemplateReferences, resolveTemplateStrings } from "./template-string"
 import { getPluginBases, getPluginDependencies, getModuleTypeBases } from "./plugins"
 import { ConfigureProviderParams, ConfigureProviderResult } from "./types/plugin/provider/configureProvider"
-import { Task } from "./types/task"
+import { GardenTask } from "./types/task"
 import { ConfigureModuleParams, ConfigureModuleResult } from "./types/plugin/module/configure"
 import { PluginContext } from "./plugin-context"
 import { DeleteServiceTask, deletedServiceStatuses } from "./tasks/delete-service"
@@ -376,7 +376,7 @@ export class ActionRouter implements TypeGuard {
     try {
       const result = await this.callModuleHandler({ params: { ...params, artifactsPath }, actionType: "testModule" })
       this.garden.events.emit("testStatus", {
-        testName: params.testConfig.name,
+        testName: params.test.name,
         moduleName: params.module.name,
         status: runStatus(result),
       })
@@ -387,7 +387,7 @@ export class ActionRouter implements TypeGuard {
         await this.copyArtifacts(
           params.log,
           artifactsPath,
-          getArtifactKey("test", params.testConfig.name, params.module.version.versionString)
+          getArtifactKey("test", params.test.name, params.test.version)
         )
       } finally {
         await tmpDir.cleanup()
@@ -404,7 +404,7 @@ export class ActionRouter implements TypeGuard {
       defaultHandler: async () => null,
     })
     this.garden.events.emit("testStatus", {
-      testName: params.testName,
+      testName: params.test.name,
       moduleName: params.module.name,
       status: runStatus(result),
     })
@@ -437,7 +437,7 @@ export class ActionRouter implements TypeGuard {
     return result
   }
 
-  private validateServiceOutputs(service: Service, result: ServiceStatus) {
+  private validateServiceOutputs(service: GardenService, result: ServiceStatus) {
     const spec = this.moduleTypes[service.module.type]
 
     if (spec.serviceOutputsSchema) {
@@ -547,7 +547,7 @@ export class ActionRouter implements TypeGuard {
         await this.copyArtifacts(
           params.log,
           artifactsPath,
-          getArtifactKey("task", params.task.name, params.task.module.version.versionString)
+          getArtifactKey("task", params.task.name, params.task.version)
         )
       } finally {
         await tmpDir.cleanup()
@@ -569,7 +569,7 @@ export class ActionRouter implements TypeGuard {
     return result
   }
 
-  private validateTaskOutputs(task: Task, result: RunTaskResult) {
+  private validateTaskOutputs(task: GardenTask, result: RunTaskResult) {
     const spec = this.moduleTypes[task.module.type]
 
     if (spec.taskOutputsSchema) {

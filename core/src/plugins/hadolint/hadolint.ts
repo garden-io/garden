@@ -158,7 +158,7 @@ export const gardenPlugin = () =>
             moduleConfig.testConfigs = [{ name: "lint", dependencies: [], spec: {}, timeout: 10, disabled: false }]
             return { moduleConfig }
           },
-          testModule: async ({ ctx, log, module, testConfig }: TestModuleParams<HadolintModule>) => {
+          testModule: async ({ ctx, log, module, test }: TestModuleParams<HadolintModule>) => {
             const dockerfilePath = join(module.path, module.spec.dockerfilePath)
             const startedAt = new Date()
             let dockerfile: string
@@ -242,10 +242,10 @@ export const gardenPlugin = () =>
             }
 
             return {
-              testName: testConfig.name,
+              testName: test.name,
               moduleName: module.name,
               command: ["hadolint", ...args],
-              version: module.version.versionString,
+              version: test.version,
               success,
               startedAt,
               completedAt: new Date(),

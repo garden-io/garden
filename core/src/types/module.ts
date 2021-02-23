@@ -86,13 +86,20 @@ export interface ModuleConfigMap<T extends ModuleConfig = ModuleConfig> {
   [key: string]: T
 }
 
-export async function moduleFromConfig(
-  garden: Garden,
-  log: LogEntry,
-  config: ModuleConfig,
+export async function moduleFromConfig({
+  garden,
+  log,
+  config,
+  buildDependencies,
+  forceVersion = false,
+}: {
+  garden: Garden
+  log: LogEntry
+  config: ModuleConfig
   buildDependencies: GardenModule[]
-): Promise<GardenModule> {
-  const version = await garden.resolveVersion(config, config.build.dependencies)
+  forceVersion?: boolean
+}): Promise<GardenModule> {
+  const version = await garden.resolveModuleVersion(config, config.build.dependencies, forceVersion)
   const actions = await garden.getActionRouter()
   const { outputs } = await actions.getModuleOutputs({ log, moduleConfig: config, version })
   const moduleTypes = await garden.getModuleTypes()

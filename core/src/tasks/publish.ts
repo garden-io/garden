@@ -40,7 +40,7 @@ export class PublishTask extends BaseTask {
   private tagTemplate?: string
 
   constructor({ garden, graph, log, module, forceBuild, tagTemplate }: PublishTaskParams) {
-    super({ garden, log, version: module.version })
+    super({ garden, log, version: module.version.versionString })
     this.graph = graph
     this.module = module
     this.forceBuild = forceBuild

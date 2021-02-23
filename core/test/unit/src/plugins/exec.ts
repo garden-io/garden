@@ -21,9 +21,9 @@ import { ModuleConfig } from "../../../../src/config/module"
 import { ConfigGraph } from "../../../../src/config-graph"
 import { pathExists, emptyDir } from "fs-extra"
 import { TestTask } from "../../../../src/tasks/test"
-import { findByName } from "../../../../src/util/util"
 import { defaultNamespace } from "../../../../src/config/project"
 import { readFile } from "fs-extra"
+import { testFromConfig } from "../../../../src/types/test"
 
 describe("exec plugin", () => {
   const projectRoot = resolve(dataDir, "test-project-exec")
@@ -235,7 +235,7 @@ describe("exec plugin", () => {
   it("should propagate task logs to runtime outputs", async () => {
     const _garden = await makeTestGarden(getDataDir("test-projects", "exec-task-outputs"))
     const _graph = await _garden.getConfigGraph(_garden.log)
-    const taskB = await _graph.getTask("task-b")
+    const taskB = _graph.getTask("task-b")
 
     const taskTask = new TaskTask({
       garden: _garden,
@@ -244,7 +244,6 @@ describe("exec plugin", () => {
       log: _garden.log,
       force: false,
       forceBuild: false,
-      version: taskB.module.version,
     })
     const results = await _garden.processTasks([taskTask])
 
@@ -268,7 +267,6 @@ describe("exec plugin", () => {
       log: _garden.log,
       force: false,
       forceBuild: false,
-      version: task.module.version,
     })
 
     await emptyDir(_garden.artifactsPath)
@@ -281,18 +279,15 @@ describe("exec plugin", () => {
   it("should copy artifacts after test runs", async () => {
     const _garden = await makeTestGarden(getDataDir("test-projects", "exec-artifacts"))
     const _graph = await _garden.getConfigGraph(_garden.log)
-    const module = _graph.getModule("module-a")
+    const test = _graph.getTest("module-a", "test-a")
 
     const testTask = new TestTask({
       garden: _garden,
       graph: _graph,
-      module,
-      testConfig: findByName(module.testConfigs, "test-a")!,
+      test,
       log: _garden.log,
       force: false,
       forceBuild: false,
-      version: module.version,
-      _guard: true,
     })
 
     await emptyDir(_garden.artifactsPath)
@@ -329,7 +324,6 @@ describe("exec plugin", () => {
   describe("build", () => {
     it("should write a build version file after building", async () => {
       const module = graph.getModule(moduleName)
-      const version = module.version
       const buildMetadataPath = module.buildMetadataPath
       const versionFilePath = join(buildMetadataPath, GARDEN_BUILD_VERSION_FILENAME)
 
@@ -339,7 +333,7 @@ describe("exec plugin", () => {
 
       const versionFileContents = await readModuleVersionFile(versionFilePath)
 
-      expect(versionFileContents).to.eql(version)
+      expect(versionFileContents).to.eql(module.version)
     })
 
     it("should run the build command in the module dir if local true", async () => {
@@ -373,7 +367,7 @@ describe("exec plugin", () => {
           dependencies: [],
         },
         silent: false,
-        testConfig: {
+        test: testFromConfig(module, {
           name: "test",
           dependencies: [],
           disabled: false,
@@ -381,8 +375,7 @@ describe("exec plugin", () => {
           spec: {
             command: ["pwd"],
           },
-        },
-        testVersion: module.version,
+        }),
       })
       expect(res.log).to.eql(join(projectRoot, "module-local"))
     })
@@ -399,7 +392,7 @@ describe("exec plugin", () => {
           dependencies: [],
         },
         silent: false,
-        testConfig: {
+        test: testFromConfig(module, {
           name: "test",
           dependencies: [],
           disabled: false,
@@ -407,8 +400,7 @@ describe("exec plugin", () => {
           spec: {
             command: ["echo", "$GARDEN_MODULE_VERSION"],
           },
-        },
-        testVersion: module.version,
+        }),
       })
       expect(res.log).to.equal(module.version.versionString)
     })
@@ -426,7 +418,6 @@ describe("exec plugin", () => {
           envVars: {},
           dependencies: [],
         },
-        taskVersion: task.module.version,
       })
       expect(res.log).to.eql(join(projectRoot, "module-local"))
     })
@@ -446,7 +437,6 @@ describe("exec plugin", () => {
           envVars: {},
           dependencies: [],
         },
-        taskVersion: task.module.version,
       })
 
       expect(res.log).to.equal(module.version.versionString)

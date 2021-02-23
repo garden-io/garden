@@ -8,20 +8,30 @@
 
 import normalizeUrl from "normalize-url"
 import { format } from "url"
-import { joiUserIdentifier, joi, joiIdentifier, joiArray, PrimitiveMap, joiVariables } from "../config/common"
+import {
+  joiUserIdentifier,
+  joi,
+  joiIdentifier,
+  joiArray,
+  PrimitiveMap,
+  joiVariables,
+  versionStringSchema,
+} from "../config/common"
 import { GardenModule } from "./module"
 import { ServiceConfig, serviceConfigSchema } from "../config/service"
 import dedent = require("dedent")
 import { uniq } from "lodash"
 import { ConfigGraph } from "../config-graph"
+import { getEntityVersion } from "../vcs/vcs"
 
-export interface Service<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule> {
+export interface GardenService<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule> {
   name: string
   module: M
   config: M["serviceConfigs"][0]
   disabled: boolean
   sourceModule: S
   spec: M["serviceConfigs"][0]["spec"]
+  version: string
 }
 
 export const serviceSchema = () =>
@@ -35,14 +45,16 @@ export const serviceSchema = () =>
       disabled: joi.boolean().default(false).description("Set to true if the service or its module is disabled."),
       config: serviceConfigSchema(),
       spec: joi.object().description("The raw configuration of the service (specific to each plugin)."),
+      version: versionStringSchema().description("The version of the service."),
     })
 
 export function serviceFromConfig<M extends GardenModule = GardenModule>(
   graph: ConfigGraph,
   module: M,
   config: ServiceConfig
-): Service<M> {
+): GardenService<M> {
   const sourceModule = config.sourceModuleName ? graph.getModule(config.sourceModuleName) : module
+  const version = getEntityVersion(module, config)
 
   return {
     name: config.name,
@@ -51,6 +63,7 @@ export function serviceFromConfig<M extends GardenModule = GardenModule>(
     disabled: module.disabled || config.disabled,
     sourceModule,
     spec: config.spec,
+    version,
   }
 }
 

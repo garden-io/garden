@@ -19,7 +19,7 @@ import { GardenModule } from "../../../types/module"
 import { containsSource } from "./common"
 import { ConfigurationError } from "../../../exceptions"
 import { deline, dedent } from "../../../util/string"
-import { Service } from "../../../types/service"
+import { GardenService } from "../../../types/service"
 import { ContainerModule } from "../../container/config"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plugin/module/configure"
@@ -36,6 +36,7 @@ import {
 } from "../config"
 import { posix } from "path"
 import { runPodSpecWhitelist } from "../run"
+import { omit } from "lodash"
 
 export const defaultHelmTimeout = 300
 
@@ -65,7 +66,7 @@ export interface HelmServiceSpec {
   valueFiles: string[]
 }
 
-export type HelmService = Service<HelmModule, ContainerModule>
+export type HelmService = GardenService<HelmModule, ContainerModule>
 
 const parameterValueSchema = () =>
   joi
@@ -258,6 +259,14 @@ export async function configureHelmModule({
     // We copy the chart on build
     moduleConfig.build.dependencies.push({ name: base, copy: [{ source: "*", target: "." }] })
   }
+
+  moduleConfig.buildConfig = omit(moduleConfig.spec, [
+    "atomicInstall",
+    "serviceResource",
+    "skipDeploy",
+    "tasks",
+    "tests",
+  ])
 
   moduleConfig.taskConfigs = tasks.map((spec) => {
     if (spec.resource && spec.resource.containerModule) {

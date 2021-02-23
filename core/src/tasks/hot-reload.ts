@@ -9,7 +9,7 @@
 import chalk from "chalk"
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask, TaskType } from "./base"
-import { Service } from "../types/service"
+import { GardenService } from "../types/service"
 import { Garden } from "../garden"
 import { ConfigGraph } from "../config-graph"
 import { Profile } from "../util/profiling"
@@ -20,7 +20,7 @@ interface Params {
   graph: ConfigGraph
   hotReloadServiceNames?: string[]
   log: LogEntry
-  service: Service
+  service: GardenService
 }
 
 @Profile()
@@ -30,10 +30,10 @@ export class HotReloadTask extends BaseTask {
 
   // private graph: ConfigGraph
   // private hotReloadServiceNames: string[]
-  private service: Service
+  private service: GardenService
 
   constructor({ garden, log, service, force }: Params) {
-    super({ garden, log, force, version: service.module.version })
+    super({ garden, log, force, version: service.version })
     // this.graph = graph
     // this.hotReloadServiceNames = hotReloadServiceNames || []
     this.service = service

@@ -16,13 +16,8 @@ import { PluginContext } from "../../../../../src/plugin-context"
 import { gardenPlugin, ContainerProvider } from "../../../../../src/plugins/container/container"
 import { dataDir, expectError, makeTestGarden } from "../../../../helpers"
 import { moduleFromConfig } from "../../../../../src/types/module"
-import { ModuleConfig } from "../../../../../src/config/module"
 import { LogEntry } from "../../../../../src/logger/log-entry"
-import {
-  ContainerModuleSpec,
-  ContainerModuleConfig,
-  defaultContainerLimits,
-} from "../../../../../src/plugins/container/config"
+import { ContainerModuleConfig, defaultContainerLimits } from "../../../../../src/plugins/container/config"
 import {
   containerHelpers as helpers,
   minDockerVersion,
@@ -42,7 +37,7 @@ describe("plugins.container", () => {
   const publishModule = handlers.publish!
   const getBuildStatus = handlers.getBuildStatus!
 
-  const baseConfig: ModuleConfig<ContainerModuleSpec, any, any> = {
+  const baseConfig: ContainerModuleConfig = {
     allowPublish: false,
     build: {
       dependencies: [],
@@ -82,18 +77,124 @@ describe("plugins.container", () => {
     ctx = await garden.getPluginContext(containerProvider)
 
     td.replace(garden.buildStaging, "syncDependencyProducts", () => null)
-
-    td.replace(Garden.prototype, "resolveVersion", async () => ({
-      versionString: "1234",
-      dependencyVersions: {},
-      files: [],
-    }))
   })
 
   async function getTestModule(moduleConfig: ContainerModuleConfig) {
     const parsed = await configure({ ctx, moduleConfig, log })
-    return moduleFromConfig(garden, log, parsed.moduleConfig, [])
+    return moduleFromConfig({ garden, log, config: parsed.moduleConfig, buildDependencies: [], forceVersion: true })
   }
+
+  it("has a stable build version even if a services, tests and tasks are added", async () => {
+    const baseModule = await getTestModule(baseConfig)
+    const withRuntime = await getTestModule({
+      ...baseConfig,
+      spec: {
+        ...baseConfig.spec,
+        services: [
+          {
+            name: "service-a",
+            annotations: {},
+            args: ["echo"],
+            dependencies: [],
+            daemon: false,
+            disabled: false,
+            ingresses: [],
+            env: {
+              SOME_ENV_VAR: "value",
+            },
+            limits: {
+              cpu: 123,
+              memory: 456,
+            },
+            ports: [],
+            replicas: 1,
+            volumes: [],
+          },
+        ],
+        tasks: [
+          {
+            name: "task-a",
+            args: ["echo", "OK"],
+            artifacts: [],
+            cacheResult: true,
+            dependencies: [],
+            disabled: false,
+            env: {
+              TASK_ENV_VAR: "value",
+            },
+            timeout: null,
+            volumes: [],
+          },
+        ],
+        tests: [
+          {
+            name: "unit",
+            args: ["echo", "OK"],
+            artifacts: [],
+            dependencies: [],
+            disabled: false,
+            env: {
+              TEST_ENV_VAR: "value",
+            },
+            timeout: null,
+            volumes: [],
+          },
+        ],
+      },
+    })
+    expect(baseModule.version.versionString).to.equal(withRuntime.version.versionString)
+  })
+
+  it("has different build version if buildArgs are added", async () => {
+    const baseModule = await getTestModule(baseConfig)
+    const changedBuild = await getTestModule({
+      ...baseConfig,
+      spec: {
+        ...baseConfig.spec,
+        buildArgs: { foo: "bar" },
+      },
+    })
+    expect(baseModule.version.versionString).to.not.equal(changedBuild.version.versionString)
+  })
+
+  it("has different build version if a targetImage is set", async () => {
+    const baseModule = await getTestModule(baseConfig)
+    const changedBuild = await getTestModule({
+      ...baseConfig,
+      spec: {
+        ...baseConfig.spec,
+        build: {
+          ...baseConfig.spec.build,
+          targetImage: "foo",
+        },
+      },
+    })
+    expect(baseModule.version.versionString).to.not.equal(changedBuild.version.versionString)
+  })
+
+  it("has different build version if extraFlags are added", async () => {
+    const baseModule = await getTestModule(baseConfig)
+    const changedBuild = await getTestModule({
+      ...baseConfig,
+      spec: {
+        ...baseConfig.spec,
+        extraFlags: ["foo"],
+      },
+    })
+    expect(baseModule.version.versionString).to.not.equal(changedBuild.version.versionString)
+  })
+
+  it("has different build version if dockerfile is changed", async () => {
+    const baseModule = await getTestModule(baseConfig)
+    const changedBuild = await getTestModule({
+      ...baseConfig,
+      spec: {
+        ...baseConfig.spec,
+        dockerfile: "foo.Dockerfile",
+      },
+    })
+    expect(baseModule.version.versionString).to.not.equal(changedBuild.version.versionString)
+  })
 
   describe("configureContainerModule", () => {
     it("should validate and parse a container module", async () => {
@@ -267,6 +368,12 @@ describe("plugins.container", () => {
                 volumes: [],
               },
             ],
+          },
+          buildConfig: {
+            buildArgs: {},
+            dockerfile: undefined,
+            extraFlags: [],
+            targetImage: undefined,
           },
           serviceConfigs: [
             {
@@ -742,6 +849,10 @@ describe("plugins.container", () => {
   })
 
   describe("build", () => {
+    beforeEach(() => {
+      td.replace(helpers, "checkDockerServerVersion", () => null)
+    })
+
     it("should pull image if image tag is set and the module doesn't container a Dockerfile", async () => {
       const config = cloneDeep(baseConfig)
       config.spec.image = "some/image"

@@ -12,11 +12,9 @@ import { find, includes } from "lodash"
 import minimatch = require("minimatch")
 
 import { GardenModule } from "../types/module"
-import { TestConfig } from "../config/test"
-import { ModuleVersion } from "../vcs/vcs"
 import { DeployTask } from "./deploy"
 import { TestResult } from "../types/plugin/module/getTestResult"
-import { BaseTask, TaskParams, TaskType, getServiceStatuses, getRunTaskResults } from "../tasks/base"
+import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults } from "../tasks/base"
 import { prepareRuntimeContext } from "../runtime-context"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
@@ -26,6 +24,7 @@ import { BuildTask } from "./build"
 import { TaskTask } from "./task"
 import { GraphResults } from "../task-graph"
 import { Profile } from "../util/profiling"
+import { GardenTest, testFromConfig } from "../types/test"
 
 class TestError extends Error {
   toString() {
@@ -37,8 +36,7 @@ export interface TestTaskParams {
   garden: Garden
   log: LogEntry
   graph: ConfigGraph
-  module: GardenModule
-  testConfig: TestConfig
+  test: GardenTest
   force: boolean
   forceBuild: boolean
   hotReloadServiceNames?: string[]
@@ -48,37 +46,18 @@ export interface TestTaskParams {
 export class TestTask extends BaseTask {
   type: TaskType = "test"
 
-  private module: GardenModule
+  private test: GardenTest
   private graph: ConfigGraph
-  private testConfig: TestConfig
   private forceBuild: boolean
   private hotReloadServiceNames: string[]
 
-  constructor({
-    garden,
-    graph,
-    log,
-    module,
-    testConfig,
-    force,
-    forceBuild,
-    version,
-    hotReloadServiceNames = [],
-  }: TestTaskParams & TaskParams & { _guard: true }) {
-    // Note: The _guard attribute is to prevent accidentally bypassing the factory method
-    super({ garden, log, force, version })
-    this.module = module
+  constructor({ garden, graph, log, test, force, forceBuild, hotReloadServiceNames = [] }: TestTaskParams) {
+    super({ garden, log, force, version: test.version })
+    this.test = test
     this.graph = graph
-    this.testConfig = testConfig
     this.force = force
     this.forceBuild = forceBuild
     this.hotReloadServiceNames = hotReloadServiceNames
-  }
-
-  static async factory(initArgs: TestTaskParams): Promise<TestTask> {
-    const { garden, graph, module, testConfig } = initArgs
-    const version = await getTestVersion(garden, graph, module, testConfig)
-    return new TestTask({ ...initArgs, version, _guard: true })
   }
 
   async resolveDependencies() {
@@ -99,12 +78,12 @@ export class TestTask extends BaseTask {
       garden: this.garden,
       graph: this.graph,
       log: this.log,
-      module: this.module,
+      module: this.test.module,
       force: this.forceBuild,
     })
 
     const taskTasks = await Bluebird.map(deps.run, (task) => {
-      return TaskTask.factory({
+      return new TaskTask({
         task,
         garden: this.garden,
         log: this.log,
@@ -130,11 +109,11 @@ export class TestTask extends BaseTask {
   }
 
   getName() {
-    return makeTestTaskName(this.module.name, this.testConfig.name)
+    return makeTestTaskName(this.test.module.name, this.test.name)
   }
 
   getDescription() {
-    return `running ${this.testConfig.name} tests in module ${this.module.name}`
+    return `running ${this.test.name} tests in module ${this.test.module.name}`
   }
 
   async process(dependencyResults: GraphResults): Promise<TestResult> {
@@ -143,8 +122,8 @@ export class TestTask extends BaseTask {
 
     if (testResult && testResult.success) {
       const passedEntry = this.log.info({
-        section: this.module.name,
-        msg: `${this.testConfig.name} tests`,
+        section: this.test.module.name,
+        msg: `${this.test.name} tests`,
       })
       passedEntry.setSuccess({
         msg: chalk.green("Already passed"),
@@ -154,14 +133,14 @@ export class TestTask extends BaseTask {
     }
 
     const log = this.log.info({
-      section: this.module.name,
-      msg: `Running ${this.testConfig.name} tests`,
+      section: this.test.module.name,
+      msg: `Running ${this.test.name} tests`,
       status: "active",
     })
 
     const dependencies = this.graph.getDependencies({
       nodeType: "test",
-      name: this.testConfig.name,
+      name: this.test.name,
       recursive: false,
     })
     const serviceStatuses = getServiceStatuses(dependencyResults)
@@ -171,7 +150,8 @@ export class TestTask extends BaseTask {
       garden: this.garden,
       graph: this.graph,
       dependencies,
-      version: this.module.version,
+      version: this.version,
+      moduleVersion: this.test.module.version.versionString,
       serviceStatuses,
       taskResults,
     })
@@ -183,11 +163,10 @@ export class TestTask extends BaseTask {
       result = await actions.testModule({
         log,
         interactive: false,
-        module: this.module,
+        module: this.test.module,
         runtimeContext,
         silent: true,
-        testConfig: this.testConfig,
-        testVersion: this.version,
+        test: this.test,
       })
     } catch (err) {
       log.setError()
@@ -218,9 +197,8 @@ export class TestTask extends BaseTask {
 
     return actions.getTestResult({
       log: this.log,
-      module: this.module,
-      testName: this.testConfig.name,
-      testVersion: this.version,
+      module: this.test.module,
+      test: this.test,
     })
   }
 }
@@ -252,33 +230,17 @@ export async function getTestTasks({
       (!filterNames || filterNames.length === 0 || find(filterNames, (n: string) => minimatch(test.name, n)))
   )
 
-  return Bluebird.map(configs, (test) =>
-    TestTask.factory({
-      garden,
-      graph,
-      log,
-      force,
-      forceBuild,
-      testConfig: test,
-      module,
-      hotReloadServiceNames,
-    })
+  return Bluebird.map(
+    configs,
+    (testConfig) =>
+      new TestTask({
+        garden,
+        graph,
+        log,
+        force,
+        forceBuild,
+        test: testFromConfig(module, testConfig),
+        hotReloadServiceNames,
+      })
   )
-}
-
-/**
- * Determine the version of the test run, based on the version of the module and each of its dependencies.
- */
-export async function getTestVersion(
-  garden: Garden,
-  graph: ConfigGraph,
-  module: GardenModule,
-  testConfig: TestConfig
-): Promise<ModuleVersion> {
-  const moduleDeps = graph
-    .resolveDependencyModules(module.build.dependencies, testConfig.dependencies)
-    // Don't include the module itself in the dependencies here
-    .filter((m) => m.name !== module.name)
-
-  return garden.resolveVersion(module, moduleDeps)
 }

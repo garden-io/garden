@@ -29,35 +29,36 @@ export async function runContainerModule(params: RunModuleParams<ContainerModule
     ...params,
     namespace,
     image,
+    version: module.version.versionString,
   })
 }
 
-export async function runContainerService({
-  ctx,
-  service,
-  interactive,
-  runtimeContext,
-  timeout,
-  log,
-}: RunServiceParams<ContainerModule>): Promise<RunResult> {
+export async function runContainerService(params: RunServiceParams<ContainerModule>): Promise<RunResult> {
+  const { module, ctx, log, service, runtimeContext, interactive, timeout } = params
   const { command, args, env } = service.spec
 
   runtimeContext.envVars = { ...runtimeContext.envVars, ...env }
 
-  return runContainerModule({
-    ctx,
-    module: service.module,
-    command,
+  const provider = <KubernetesProvider>ctx.provider
+
+  const image = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
+  const namespace = await getAppNamespace(ctx, log, provider)
+
+  return runAndCopy({
+    ...params,
     args,
-    interactive,
-    runtimeContext,
+    command,
     timeout,
-    log,
+    image,
+    interactive,
+    namespace,
+    runtimeContext,
+    version: service.version,
   })
 }
 
 export async function runContainerTask(params: RunTaskParams<ContainerModule>): Promise<RunTaskResult> {
-  const { ctx, log, module, task, taskVersion } = params
+  const { ctx, log, module, task } = params
   const { args, command } = task.spec
 
   const image = containerHelpers.getDeploymentImageId(module, module.version, ctx.provider.config.deploymentRegistry)
@@ -75,6 +76,7 @@ export async function runContainerTask(params: RunTaskParams<ContainerModule>): 
     podName: makePodName("task", module.name, task.name),
     description: `Task '${task.name}' in container module '${module.name}'`,
     timeout: task.spec.timeout || undefined,
+    version: task.version,
     volumes: task.spec.volumes,
   })
 
@@ -92,8 +94,7 @@ export async function runContainerTask(params: RunTaskParams<ContainerModule>): 
       log,
       module,
       result,
-      taskVersion,
-      taskName: task.name,
+      task,
     })
   }
 
