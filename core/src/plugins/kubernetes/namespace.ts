@@ -249,7 +249,7 @@ export async function getModuleNamespace({
   return getNamespace({
     log,
     ctx,
-    override: module.spec.namespace ? { name: module.spec.namespace } : undefined,
+    override: module.spec?.namespace ? { name: module.spec.namespace } : undefined,
     provider,
     skipCreate,
   })
