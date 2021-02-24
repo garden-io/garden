@@ -184,12 +184,12 @@ describe("Watcher", () => {
     it("containing both modules' names when a source file is changed for two co-located modules", async () => {
       const pathsChanged = [resolve(doubleModulePath, "foo.txt")]
       emitEvent(garden, "change", pathsChanged[0])
-      expect(getEventLog()).to.eql([
-        {
-          name: "moduleSourcesChanged",
-          payload: { names: ["module-b", "module-c"], pathsChanged },
-        },
-      ])
+      const event = getEventLog()[0]
+      event.payload.names = event.payload.names.sort()
+      expect(event).to.eql({
+        name: "moduleSourcesChanged",
+        payload: { names: ["module-b", "module-c"], pathsChanged },
+      })
     })
   })
 
