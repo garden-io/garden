@@ -1551,11 +1551,13 @@ workflowConfigs:
         # events](https://docs.github.com/en/developers/webhooks-and-events/webhook-events-and-payloads) that should
         # trigger this workflow.
         #
+        # See the Garden Enterprise documentation on [configuring
+        # workflows](https://enterprise.docs.garden.io/further-reading/workflows) for more details.
+        #
         # Supported events:
         #
-        # `create`, `pull-request`, `pull-request-closed`, `pull-request-created`, `pull-request-opened`,
-        # `pull-request-updated`, `push`, `release`, `release-created`, `release-deleted`, `release-edited`,
-        # `release-prereleased`, `release-published`, `release-unpublished`
+        # `pull-request`, `pull-request-closed`, `pull-request-merged`, `pull-request-opened`,
+        # `pull-request-reopened`, `pull-request-updated`
         #
         #
         events:
