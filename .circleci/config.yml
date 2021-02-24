@@ -525,6 +525,9 @@ jobs:
             # - We currently don't support in-cluster building on kind.
             yarn integ-kind -b
       - run:
+          name: Plugin tests
+          command: yarn run test:plugins
+      - run:
           name: Deploy demo-project
           command: ./bin/garden deploy --root examples/demo-project --logger-type basic
       - run:
