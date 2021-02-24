@@ -42,10 +42,10 @@ import stripAnsi from "strip-ansi"
 import { joi } from "../../../src/config/common"
 import { defaultDotIgnoreFiles, makeTempDir } from "../../../src/util/fs"
 import { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } from "fs-extra"
-import { dedent, deline } from "../../../src/util/string"
+import { dedent, deline, randomString } from "../../../src/util/string"
 import { ServiceState } from "../../../src/types/service"
 import execa from "execa"
-import { getLinkedSources } from "../../../src/util/ext-source-util"
+import { getLinkedSources, addLinkedSources } from "../../../src/util/ext-source-util"
 import { safeDump } from "js-yaml"
 
 describe("Garden", () => {
@@ -2949,13 +2949,14 @@ describe("Garden", () => {
         },
       })
 
-      const sourcePath = join(pathFoo, "sourcefile.log")
-      const targetPath = "targetfile.log"
-      await writeFile(sourcePath, "hello ${project.name}")
-
+      const sourcePath = randomString(8) + ".log"
+      const sourceFullPath = join(pathFoo, sourcePath)
       const tmpRepo = await makeTempDir({ git: true })
 
       try {
+        const targetPath = "targetfile.log"
+        await writeFile(sourceFullPath, "hello ${project.name}")
+
         garden.setModuleConfigs([
           {
             apiVersion: DEFAULT_API_VERSION,
@@ -2965,6 +2966,7 @@ describe("Garden", () => {
             build: { dependencies: [] },
             disabled: false,
             include: [],
+            configPath: join(pathFoo, "module-a.garden.yml"),
             path: pathFoo,
             serviceConfigs: [],
             taskConfigs: [],
@@ -2990,34 +2992,104 @@ describe("Garden", () => {
 
         expect(contents.toString()).to.equal("hello test")
       } finally {
+        await remove(sourceFullPath)
+        await tmpRepo.cleanup()
+      }
+    })
+
+    it("resolves and writes a module file in a linked remote module", async () => {
+      const garden = await makeTestGarden(pathFoo, {
+        config: {
+          apiVersion: DEFAULT_API_VERSION,
+          kind: "Project",
+          name: "test",
+          path: pathFoo,
+          defaultEnvironment: "default",
+          dotIgnoreFiles: [],
+          environments: [{ name: "default", defaultNamespace, variables: {} }],
+          providers: [{ name: "test-plugin" }],
+          variables: {},
+        },
+      })
+
+      const sourcePath = randomString(8) + ".log"
+      const sourceFullPath = join(pathFoo, sourcePath)
+      const tmpRepo = await makeTempDir({ git: true })
+
+      try {
+        const targetPath = "targetfile.log"
+        await writeFile(sourceFullPath, "hello ${project.name}")
+
+        garden.setModuleConfigs([
+          {
+            apiVersion: DEFAULT_API_VERSION,
+            name: "module-a",
+            type: "test",
+            allowPublish: false,
+            build: { dependencies: [] },
+            disabled: false,
+            include: [],
+            configPath: join(pathFoo, "module-a.garden.yml"),
+            path: pathFoo,
+            serviceConfigs: [],
+            taskConfigs: [],
+            testConfigs: [],
+            spec: {},
+            repositoryUrl: "file://" + tmpRepo.path + "#master",
+            generateFiles: [
+              {
+                sourcePath,
+                targetPath,
+              },
+            ],
+          },
+        ])
+
+        await addLinkedSources({
+          garden,
+          sourceType: "module",
+          sources: [{ name: "module-a", path: tmpRepo.path }],
+        })
+
+        const module = await garden.resolveModule("module-a")
+        expect(module.path).to.equal(tmpRepo.path)
+
+        const expectedTargetPath = join(module.path, targetPath)
+        const contents = await readFile(expectedTargetPath)
+
+        expect(contents.toString()).to.equal("hello test")
+      } finally {
+        await remove(sourceFullPath)
         await tmpRepo.cleanup()
       }
     })
 
     it("resolves and writes a module file in a module from a remote source", async () => {
-      const sourcePath = join(pathFoo, "sourcefile.log")
       const targetPath = "targetfile.log"
-      await writeFile(sourcePath, "hello ${project.name}")
 
       const tmpRepo = await makeTempDir({ git: true })
-
-      const moduleConfig = {
-        kind: "Module",
-        name: "module-a",
-        type: "test",
-        generateFiles: [
-          {
-            sourcePath,
-            targetPath,
-          },
-        ],
-      }
-
-      await writeFile(join(tmpRepo.path, "module-a.garden.yml"), safeDump(moduleConfig))
-      await exec("git", ["add", "."], { cwd: tmpRepo.path })
-      await exec("git", ["commit", "-m", "add module"], { cwd: tmpRepo.path })
+      const sourcePath = randomString(8) + ".log"
+      const sourceFullPath = join(tmpRepo.path, sourcePath)
 
       try {
+        await writeFile(sourceFullPath, "hello ${project.name}")
+
+        const moduleConfig = {
+          kind: "Module",
+          name: "module-a",
+          type: "test",
+          generateFiles: [
+            {
+              sourcePath,
+              targetPath,
+            },
+          ],
+        }
+
+        await writeFile(join(tmpRepo.path, "module-a.garden.yml"), safeDump(moduleConfig))
+        await exec("git", ["add", "."], { cwd: tmpRepo.path })
+        await exec("git", ["commit", "-m", "add module"], { cwd: tmpRepo.path })
+
         const garden = await makeTestGarden(pathFoo, {
           config: {
             apiVersion: DEFAULT_API_VERSION,
@@ -3043,6 +3115,67 @@ describe("Garden", () => {
 
         expect(contents.toString()).to.equal("hello test")
       } finally {
+        await remove(sourceFullPath)
+        await tmpRepo.cleanup()
+      }
+    })
+
+    it("resolves and writes a module file in a module from a linked remote source", async () => {
+      const targetPath = "targetfile.log"
+
+      const tmpRepo = await makeTempDir({ git: true })
+      const sourcePath = randomString(8) + ".log"
+      const sourceFullPath = join(tmpRepo.path, sourcePath)
+
+      try {
+        await writeFile(sourceFullPath, "hello ${project.name}")
+
+        const moduleConfig = {
+          kind: "Module",
+          name: "module-a",
+          type: "test",
+          generateFiles: [
+            {
+              sourcePath,
+              targetPath,
+            },
+          ],
+        }
+
+        await writeFile(join(tmpRepo.path, "module-a.garden.yml"), safeDump(moduleConfig))
+        await exec("git", ["add", "."], { cwd: tmpRepo.path })
+        await exec("git", ["commit", "-m", "add module"], { cwd: tmpRepo.path })
+
+        const garden = await makeTestGarden(pathFoo, {
+          config: {
+            apiVersion: DEFAULT_API_VERSION,
+            kind: "Project",
+            name: "test",
+            path: pathFoo,
+            defaultEnvironment: "default",
+            dotIgnoreFiles: [],
+            environments: [{ name: "default", defaultNamespace, variables: {} }],
+            providers: [{ name: "test-plugin" }],
+            sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#master" }],
+            variables: {},
+          },
+        })
+
+        await addLinkedSources({
+          garden,
+          sourceType: "project",
+          sources: [{ name: "remote-module", path: tmpRepo.path }],
+        })
+
+        const module = await garden.resolveModule("module-a")
+        expect(module.path).to.equal(tmpRepo.path)
+
+        const expectedTargetPath = join(module.path, targetPath)
+        const contents = await readFile(expectedTargetPath)
+
+        expect(contents.toString()).to.equal("hello test")
+      } finally {
+        await remove(sourceFullPath)
         await tmpRepo.cleanup()
       }
     })
