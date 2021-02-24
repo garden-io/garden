@@ -234,20 +234,12 @@ export const workflowStepSchema = () => {
 export type workflowStepModifier = "onSuccess" | "onError" | "always" | "never"
 
 export const triggerEvents = [
-  "create",
-  "push",
   "pull-request",
-  "pull-request-created",
-  "pull-request-updated",
   "pull-request-opened",
+  "pull-request-reopened",
+  "pull-request-updated",
   "pull-request-closed",
-  "release",
-  "release-published",
-  "release-unpublished",
-  "release-created",
-  "release-edited",
-  "release-deleted",
-  "release-prereleased",
+  "pull-request-merged",
 ]
 
 export interface TriggerSpec {
@@ -281,6 +273,8 @@ export const triggerSchema = () => {
       .description(
         dedent`
         A list of [GitHub events](https://docs.github.com/en/developers/webhooks-and-events/webhook-events-and-payloads) that should trigger this workflow.
+
+        See the Garden Enterprise documentation on [configuring workflows](https://enterprise.docs.garden.io/further-reading/workflows) for more details.
 
         Supported events:
 
