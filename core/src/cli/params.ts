@@ -20,6 +20,7 @@ import { LogLevel } from "../logger/log-node"
 import { safeDumpYaml } from "../util/util"
 import { resolve } from "path"
 import { isArray } from "lodash"
+import { gardenEnv } from "../constants"
 
 export const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {
@@ -256,6 +257,10 @@ export class EnvironmentOption extends StringParameter {
     // Validate the environment
     parseEnvironment(input)
     return input
+  }
+
+  getDefaultValue() {
+    return gardenEnv.GARDEN_ENVIRONMENT
   }
 }
 
