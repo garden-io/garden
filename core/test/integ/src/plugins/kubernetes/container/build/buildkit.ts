@@ -62,9 +62,18 @@ describe("ensureBuildkit", () => {
       })
 
       // Make sure deployment is there
-      await api.apps.readNamespacedDeployment(buildkitDeploymentName, namespace)
+      const deployment = await api.apps.readNamespacedDeployment(buildkitDeploymentName, namespace)
 
       expect(deployed).to.be.true
+      expect(deployment.spec.template.spec?.tolerations).to.eql([
+        {
+          key: "garden-build",
+          operator: "Equal",
+          value: "true",
+          effect: "NoSchedule",
+          tolerationSeconds: undefined,
+        },
+      ])
     })
 
     it("deploys buildkit with the configured nodeSelector", async () => {

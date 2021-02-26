@@ -434,6 +434,14 @@ const baseBuildkitDeployment: KubernetesDeployment = {
             emptyDir: {},
           },
         ],
+        tolerations: [
+          {
+            key: "garden-build",
+            operator: "Equal",
+            value: "true",
+            effect: "NoSchedule",
+          },
+        ],
       },
     },
   },
