@@ -53,6 +53,8 @@ export interface GetFilesParams {
   pathDescription?: string
   include?: string[]
   exclude?: string[]
+  filter?: (path: string) => boolean
+  pattern?: string
 }
 
 export interface RemoteSourceParams {
@@ -71,12 +73,12 @@ export abstract class VcsHandler {
   constructor(protected projectRoot: string, protected gardenDirPath: string, protected ignoreFiles: string[]) {}
 
   abstract name: string
-  abstract async getRepoRoot(log: LogEntry, path: string): Promise<string>
-  abstract async getFiles(params: GetFilesParams): Promise<VcsFile[]>
-  abstract async ensureRemoteSource(params: RemoteSourceParams): Promise<string>
-  abstract async updateRemoteSource(params: RemoteSourceParams): Promise<void>
-  abstract async getOriginName(log: LogEntry): Promise<string | undefined>
-  abstract async getBranchName(log: LogEntry, path: string): Promise<string | undefined>
+  abstract getRepoRoot(log: LogEntry, path: string): Promise<string>
+  abstract getFiles(params: GetFilesParams): Promise<VcsFile[]>
+  abstract ensureRemoteSource(params: RemoteSourceParams): Promise<string>
+  abstract updateRemoteSource(params: RemoteSourceParams): Promise<void>
+  abstract getOriginName(log: LogEntry): Promise<string | undefined>
+  abstract getBranchName(log: LogEntry, path: string): Promise<string | undefined>
 
   async getTreeVersion(log: LogEntry, projectName: string, moduleConfig: ModuleConfig): Promise<TreeVersion> {
     const configPath = moduleConfig.configPath

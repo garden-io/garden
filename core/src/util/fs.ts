@@ -151,10 +151,19 @@ export async function findConfigPathsInPath({
   include?: string[]
   exclude?: string[]
   log: LogEntry
-}) {
-  // TODO: we could make this lighter/faster using streaming
-  const files = await vcs.getFiles({ path: dir, pathDescription: "project root", include, exclude: exclude || [], log })
-  return files.map((f) => f.path).filter((f) => isConfigFilename(basename(f)))
+}): Promise<string[]> {
+  const paths = await vcs.getFiles({
+    path: dir,
+    pathDescription: "project root",
+    include,
+    exclude: exclude || [],
+    log,
+    // We specify both a pattern that is passed to `git`, and then double-check with a filter function
+    pattern: "*garden.y*ml",
+    filter: (f) => isConfigFilename(basename(f)),
+  })
+
+  return paths.map((f) => f.path)
 }
 
 /**
