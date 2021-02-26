@@ -1038,8 +1038,6 @@ export class ActionRouter implements TypeGuard {
     const wrapped = <T>Object.assign(
       async (params) => {
         // Override the base parameter, to recursively allow each base to call its base.
-        params.log.silly(`Calling base handler for ${handler.actionType} handler on plugin '${handler.pluginName}'`)
-
         return handler({ ...params, base })
       },
       { ...handler, base }

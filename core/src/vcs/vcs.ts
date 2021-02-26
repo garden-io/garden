@@ -89,13 +89,16 @@ export abstract class VcsHandler {
         ? [...(moduleConfig.exclude || []), ...fixedProjectExcludes]
         : moduleConfig.exclude
 
-    let files = await this.getFiles({
-      log,
-      path: moduleConfig.path,
-      pathDescription: "module root",
-      include: moduleConfig.include,
-      exclude,
-    })
+    let files =
+      moduleConfig.include?.length === 0
+        ? [] // No need to scan for files if nothing should be included
+        : await this.getFiles({
+            log,
+            path: moduleConfig.path,
+            pathDescription: "module root",
+            include: moduleConfig.include,
+            exclude,
+          })
 
     if (files.length > fileCountWarningThreshold) {
       await Warning.emit({
