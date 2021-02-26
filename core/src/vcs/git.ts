@@ -8,7 +8,7 @@
 
 import FilterStream from "streamfilter"
 import { join, resolve, relative, isAbsolute } from "path"
-import { flatten } from "lodash"
+import { flatten, isString } from "lodash"
 import { ensureDir, pathExists, createReadStream, Stats, realpath, readlink, lstat } from "fs-extra"
 import { PassThrough, Transform } from "stream"
 import hasha from "hasha"
@@ -48,7 +48,7 @@ export function parseGitUrl(url: string) {
 }
 
 interface GitCli {
-  (...args: string[]): Promise<string[]>
+  (...args: (string | undefined)[]): Promise<string[]>
 }
 
 interface Submodule {
@@ -63,9 +63,9 @@ export class GitHandler extends VcsHandler {
   repoRoots = new Map()
 
   gitCli(log: LogEntry, cwd: string): GitCli {
-    return async (...args: string[]) => {
+    return async (...args: (string | undefined)[]) => {
       log.silly(`Calling git in ${cwd} with args '${args.join(" ")}'`)
-      const { stdout } = await exec("git", args, { cwd, maxBuffer: 10 * 1024 * 1024 })
+      const { stdout } = await exec("git", args.filter(isString), { cwd, maxBuffer: 10 * 1024 * 1024 })
       return stdout.split("\n").filter((line) => line.length > 0)
     }
   }
@@ -107,7 +107,15 @@ export class GitHandler extends VcsHandler {
    * Returns a list of files, along with file hashes, under the given path, taking into account the configured
    * .ignore files, and the specified include/exclude filters.
    */
-  async getFiles({ log, path, pathDescription, include, exclude }: GetFilesParams): Promise<VcsFile[]> {
+  async getFiles({
+    log,
+    path,
+    pathDescription,
+    include,
+    exclude,
+    filter,
+    pattern,
+  }: GetFilesParams): Promise<VcsFile[]> {
     const git = this.gitCli(log, path)
     const gitRoot = await this.getRepoRoot(log, path)
 
@@ -123,7 +131,9 @@ export class GitHandler extends VcsHandler {
       this.ignoreFiles.length === 0
         ? []
         : flatten(
-            await Promise.all(this.ignoreFiles.map((f) => git("ls-files", "--ignored", "--exclude-per-directory", f)))
+            await Promise.all(
+              this.ignoreFiles.map((f) => git("ls-files", "--ignored", "--exclude-per-directory", f, pattern))
+            )
           )
     )
 
@@ -163,6 +173,11 @@ export class GitHandler extends VcsHandler {
 
       let { path: filePath, hash } = entry
 
+      // Check filter function, if provided
+      if (filter && !filter(filePath)) {
+        return
+      }
+
       // Ignore files that are tracked but still specified in ignore files
       if (trackedButIgnored.has(filePath)) {
         return
@@ -178,10 +193,11 @@ export class GitHandler extends VcsHandler {
 
     const lsFiles = (ignoreFile?: string) => {
       const args = ["ls-files", "-s", "--others", "--exclude", this.gardenDirPath]
+
       if (ignoreFile) {
         args.push("--exclude-per-directory", ignoreFile)
       }
-      args.push(path)
+      args.push(pattern ? join(path, pattern) : path)
 
       return execa("git", args, { cwd: path, buffer: false })
     }
@@ -207,7 +223,7 @@ export class GitHandler extends VcsHandler {
         return { input, output }
       })
 
-      await new Promise((_resolve, _reject) => {
+      await new Promise<void>((_resolve, _reject) => {
         // Note: The comparison function needs to account for git first returning untracked files, so we prefix with
         // a zero or one to indicate whether it's a tracked file or not, and then do a simple string comparison
         const intersection = new SortedStreamIntersection(
@@ -243,7 +259,7 @@ export class GitHandler extends VcsHandler {
       const splitStream = split2()
       splitStream.on("data", (line) => handleEntry(parseLine(line)))
 
-      await new Promise((_resolve, _reject) => {
+      await new Promise<void>((_resolve, _reject) => {
         const proc = lsFiles(this.ignoreFiles[0])
         proc.on("error", (err: execa.ExecaError) => {
           if (err.exitCode !== 128) {
