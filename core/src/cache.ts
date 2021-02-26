@@ -14,7 +14,7 @@ export type CacheKey = string[]
 export type CacheContext = string[]
 export type CurriedKey = string
 
-export type CacheValue = string | number | boolean | null | object
+export type CacheValue = any
 export type CacheValues = Map<CacheKey, CacheValue>
 
 interface CacheEntry {

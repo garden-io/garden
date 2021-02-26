@@ -12,7 +12,7 @@ import tmp from "tmp-promise"
 import { createFile, writeFile, realpath, mkdir, remove, symlink, ensureSymlink, lstat } from "fs-extra"
 import { join, resolve, basename, relative } from "path"
 
-import { expectError, makeTestGardenA } from "../../../helpers"
+import { expectError, makeTestGardenA, TestGarden } from "../../../helpers"
 import { getCommitIdFromRefList, parseGitUrl, GitHandler } from "../../../../src/vcs/git"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { hashRepoUrl } from "../../../../src/util/ext-source-util"
@@ -53,6 +53,7 @@ async function addToIgnore(tmpPath: string, pathToExclude: string, ignoreFilenam
 }
 
 describe("GitHandler", () => {
+  let garden: TestGarden
   let tmpDir: tmp.DirectoryResult
   let tmpPath: string
   let git: any
@@ -60,11 +61,11 @@ describe("GitHandler", () => {
   let log: LogEntry
 
   beforeEach(async () => {
-    const garden = await makeTestGardenA()
+    garden = await makeTestGardenA()
     log = garden.log
     tmpDir = await makeTempGitRepo()
     tmpPath = await realpath(tmpDir.path)
-    handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [defaultIgnoreFilename])
+    handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [defaultIgnoreFilename], garden.cache)
     git = (<any>handler).gitCli(log, tmpPath)
   })
 
@@ -330,7 +331,7 @@ describe("GitHandler", () => {
 
       const hash = "6e1ab2d7d26c1c66f27fea8c136e13c914e3f137"
 
-      const _handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [])
+      const _handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [], garden.cache)
 
       expect(await _handler.getFiles({ path: tmpPath, log })).to.eql([{ path, hash }])
     })
@@ -362,11 +363,12 @@ describe("GitHandler", () => {
       await git("add", pathD)
       await git("commit", "-m", "foo")
 
-      const _handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [
-        defaultIgnoreFilename,
-        ".testignore2",
-        ".testignore3",
-      ])
+      const _handler = new GitHandler(
+        tmpPath,
+        join(tmpPath, ".garden"),
+        [defaultIgnoreFilename, ".testignore2", ".testignore3"],
+        garden.cache
+      )
 
       const files = (await _handler.getFiles({ path: tmpPath, exclude: [], log })).filter(
         (f) => !f.path.includes(defaultIgnoreFilename)

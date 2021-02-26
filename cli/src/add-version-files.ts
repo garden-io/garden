@@ -14,6 +14,7 @@ import { resolve, relative } from "path"
 import Bluebird from "bluebird"
 import { STATIC_DIR, GARDEN_VERSIONFILE_NAME } from "@garden-io/core/build/src/constants"
 import { writeTreeVersionFile } from "@garden-io/core/build/src/vcs/vcs"
+import { TreeCache } from "@garden-io/core/build/src/cache"
 
 require("source-map-support").install()
 
@@ -34,7 +35,7 @@ async function addVersionFiles() {
     const path = config.path
     const versionFilePath = resolve(path, GARDEN_VERSIONFILE_NAME)
 
-    const vcsHandler = new GitHandler(STATIC_DIR, garden.gardenDirPath, garden.dotIgnoreFiles)
+    const vcsHandler = new GitHandler(STATIC_DIR, garden.gardenDirPath, garden.dotIgnoreFiles, new TreeCache())
     const treeVersion = await vcsHandler.getTreeVersion(garden.log, garden.projectName, config)
 
     // tslint:disable-next-line: no-console
