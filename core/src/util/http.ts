@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import _got, { Response } from "got"
+import _got, { Response, HTTPError as GotHttpError } from "got"
 import { bootstrap } from "global-agent"
 import { OptionsOfTextResponseBody, Headers } from "got"
 
@@ -22,3 +22,4 @@ export const got = _got
 export type GotOptions = OptionsOfTextResponseBody
 export type GotResponse<T = unknown> = Response<T>
 export type GotHeaders = Headers
+export { GotHttpError }

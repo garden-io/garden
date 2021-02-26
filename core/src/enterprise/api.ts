@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { got, GotResponse, GotHeaders } from "../util/http"
+import { got, GotResponse, GotHeaders, GotHttpError } from "../util/http"
 import { findProjectConfig } from "../config/base"
 import { CommandError, RuntimeError } from "../exceptions"
 import { LogEntry } from "../logger/log-entry"
@@ -22,6 +22,10 @@ export const authTokenHeader =
   gardenEnv.GARDEN_AUTH_TOKEN && !gardenEnv.GARDEN_GE_SCHEDULED ? "x-ci-token" : "x-access-auth-token"
 
 export const makeAuthHeader = (clientAuthToken: string) => ({ [authTokenHeader]: clientAuthToken })
+
+function is401Error(error: any): error is GotHttpError {
+  return error instanceof GotHttpError && error.response.statusCode === 401
+}
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
@@ -153,9 +157,7 @@ export class EnterpriseApi {
         }
         await this.saveAuthToken(tokenObj)
       } catch (err) {
-        const res = err.response
-
-        if (res && res.statusCode === 401) {
+        if (is401Error(err)) {
           this.log.debug({ msg: `Failed to refresh the token.` })
           await this.clearAuthToken()
           throw new RuntimeError(invalidCredentialsErrorMsg, {})
@@ -289,10 +291,7 @@ export class EnterpriseApi {
       await this.get(log, "token/verify")
       valid = true
     } catch (err) {
-      const res = err.response
-      if (res.statusCode === 401) {
-        valid = false
-      } else {
+      if (!is401Error(err)) {
         throw new RuntimeError(`An error occurred while verifying client auth token with platform: ${err.message}`, {})
       }
     }
