@@ -18,7 +18,7 @@ import {
 } from "../../../../src/vcs/vcs"
 import { projectRootA, makeTestGardenA, makeTestGarden, getDataDir, TestGarden } from "../../../helpers"
 import { expect } from "chai"
-import { cloneDeep } from "lodash"
+import { cloneDeep, isObject } from "lodash"
 import { ModuleConfig } from "../../../../src/config/module"
 import { GitHandler } from "../../../../src/vcs/git"
 import { resolve, join } from "path"
@@ -193,6 +193,15 @@ describe("VcsHandler", () => {
       })
       const moduleConfig = await gardenA.resolveModule("module-a")
       moduleConfig.path = gardenA.projectRoot
+      moduleConfig.include = []
+      await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
+    })
+
+    it("should not call getFiles is include: [] is set on the module", async () => {
+      td.replace(handlerA, "getFiles", async () => {
+        throw new Error("Nope!")
+      })
+      const moduleConfig = await gardenA.resolveModule("module-a")
       moduleConfig.include = []
       await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
     })

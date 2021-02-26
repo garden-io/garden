@@ -394,7 +394,6 @@ export class Garden {
   }
 
   async resolveProvider(log: LogEntry, name: string) {
-    this.log.silly(`Resolving provider ${name}`)
     if (name === "_default") {
       return defaultProvider
     }
@@ -402,6 +401,8 @@ export class Garden {
     if (this.resolvedProviders[name]) {
       return cloneDeep(this.resolvedProviders[name])
     }
+
+    this.log.silly(`Resolving provider ${name}`)
 
     const providers = await this.resolveProviders(log, false, [name])
     const provider = providers[name]
