@@ -348,8 +348,8 @@ export class GardenServer {
       })
     })
 
-    app.ws.use(<Koa.Middleware<websockify.MiddlewareContext<any>>>wsRouter.routes())
-    app.ws.use(<Koa.Middleware<websockify.MiddlewareContext<any>>>wsRouter.allowedMethods())
+    app.ws.use(<Koa.Middleware<any>>wsRouter.routes())
+    app.ws.use(<Koa.Middleware<any>>wsRouter.allowedMethods())
   }
 }
 

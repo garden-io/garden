@@ -15,7 +15,7 @@ export async function getResourceEvents(api: KubeApi, resource: KubernetesResour
     `involvedObject.kind=${resource.kind},` +
     `involvedObject.name=${resource.metadata.name}`
 
-  const namespace = resource.metadata.namespace
+  const namespace = resource.metadata?.namespace
 
   const res = namespace
     ? await api.core.listNamespacedEvent(namespace, undefined, undefined, undefined, fieldSelector)

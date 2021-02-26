@@ -10,7 +10,7 @@ import { cloneDeep, keyBy } from "lodash"
 import { validateWithPath } from "./config/validation"
 import { resolveTemplateStrings, getModuleTemplateReferences, resolveTemplateString } from "./template-string"
 import { ContextResolveOpts, GenericContext } from "./config/template-contexts/base"
-import { relative, resolve, posix } from "path"
+import { relative, resolve, posix, dirname } from "path"
 import { Garden } from "./garden"
 import { ConfigurationError, FilesystemError, PluginError } from "./exceptions"
 import { deline, dedent } from "./util/string"
@@ -403,7 +403,9 @@ export class ModuleResolver {
       let contents = fileSpec.value || ""
 
       if (fileSpec.sourcePath) {
-        contents = (await readFile(fileSpec.sourcePath)).toString()
+        const configDir = resolvedConfig.configPath ? dirname(resolvedConfig.configPath) : resolvedConfig.path
+        const sourcePath = resolve(configDir, fileSpec.sourcePath)
+        contents = (await readFile(sourcePath)).toString()
       }
 
       const resolvedContents = resolveTemplateString(contents, configContext, { unescape: true })

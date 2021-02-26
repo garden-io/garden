@@ -40,7 +40,7 @@ export async function waitForServiceEndpoints(
     }
 
     const serviceName = service.metadata.name
-    const serviceNamespace = service.metadata.namespace || namespace
+    const serviceNamespace = service.metadata?.namespace || namespace
 
     const pods = await getPods(api, serviceNamespace, selector)
     const readyPodNames = pods

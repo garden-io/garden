@@ -61,7 +61,7 @@ export async function getAllPods(
       }
 
       if (isWorkload(resource)) {
-        return getWorkloadPods(api, resource.metadata.namespace || defaultNamespace, <KubernetesWorkload>resource)
+        return getWorkloadPods(api, resource.metadata?.namespace || defaultNamespace, <KubernetesWorkload>resource)
       }
 
       return []
@@ -126,13 +126,13 @@ export async function getCurrentWorkloadPods(api: KubeApi, namespace: string, re
 export async function getWorkloadPods(api: KubeApi, namespace: string, resource: KubernetesWorkload) {
   // We don't match on the garden.io/version label because it can fall out of sync during hot reloads
   const selector = omit(getSelectorFromResource(resource), gardenAnnotationKey("version"))
-  const pods = await getPods(api, resource.metadata.namespace || namespace, selector)
+  const pods = await getPods(api, resource.metadata?.namespace || namespace, selector)
 
   if (resource.kind === "Deployment") {
     // Make sure we only return the pods from the current ReplicaSet
     const selectorString = labelSelectorToString(selector)
     const replicaSetRes = await api.apps.listNamespacedReplicaSet(
-      resource.metadata.namespace || namespace,
+      resource.metadata?.namespace || namespace,
       undefined, // pretty
       undefined, // allowWatchBookmarks
       undefined, // _continue

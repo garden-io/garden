@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import { intersection, cloneDeep } from "lodash"
 
 import { PluginContext } from "../../plugin-context"
@@ -100,7 +99,6 @@ interface GetNamespaceParams {
   override?: NamespaceConfig
   ctx: PluginContext
   provider: KubernetesProvider
-  suffix?: string
   skipCreate?: boolean
 }
 
@@ -108,20 +106,8 @@ interface GetNamespaceParams {
  * Resolves a namespace name given project context, provider config, and a (usually undefined) override, and then
  * ensures it exists in the target cluster (unless skipCreate=true).
  */
-// TODO: this feels convoluted (=a lot of parameters per line of function code), so let's consider refactoring
-export async function getNamespace({
-  log,
-  ctx,
-  override,
-  provider,
-  suffix,
-  skipCreate,
-}: GetNamespaceParams): Promise<string> {
+export async function getNamespace({ log, ctx, override, provider, skipCreate }: GetNamespaceParams): Promise<string> {
   const namespace = cloneDeep(override || provider.config.namespace)!
-
-  if (suffix) {
-    namespace.name = `${namespace.name}--${suffix}`
-  }
 
   if (!skipCreate) {
     const api = await KubeApi.factory(log, ctx, provider)
@@ -155,15 +141,6 @@ export async function getAppNamespace(ctx: PluginContext, log: LogEntry, provide
   })
 }
 
-export function getMetadataNamespace(ctx: PluginContext, log: LogEntry, provider: KubernetesProvider) {
-  return getNamespace({
-    log,
-    ctx,
-    provider,
-    suffix: "metadata",
-  })
-}
-
 export async function getAllNamespaces(api: KubeApi): Promise<string[]> {
   const allNamespaces = await api.core.listNamespace()
   return allNamespaces.items.map((n) => n.metadata.name)
@@ -191,10 +168,13 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
     )
   }
 
-  return Bluebird.props({
-    "app-namespace": getAppNamespace(k8sCtx, log, k8sCtx.provider),
-    "metadata-namespace": getMetadataNamespace(k8sCtx, log, k8sCtx.provider),
-  })
+  const ns = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+
+  // Including the metadata-namespace key for backwards-compatibility in provider outputs
+  return {
+    "app-namespace": ns,
+    "metadata-namespace": ns,
+  }
 }
 
 export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?: LogEntry) {
@@ -249,7 +229,7 @@ export async function getModuleNamespace({
   return getNamespace({
     log,
     ctx,
-    override: module.spec.namespace ? { name: module.spec.namespace } : undefined,
+    override: module.spec?.namespace ? { name: module.spec.namespace } : undefined,
     provider,
     skipCreate,
   })

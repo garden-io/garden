@@ -8,8 +8,8 @@
     "@types/eslint": "^6",
     "@types/lodash": "^4.14.153",
     "@types/node": "^12.12.16",
-    "@types/react": "^16.9.35",
-    "@types/react-dom": "^16.9.8",
+    "@types/react": "17.0.1",
+    "@types/react-dom": "17.0.1",
     "@types/react-router-dom": "^5.1.5",
     "@types/react-select": "^3.0.13",
     "@typescript-eslint/eslint-plugin-tslint": "^2.23.0",
@@ -23,7 +23,7 @@
     "tslint-no-unused": "^0.2.0-alpha.1",
     "tslint-plugin-prettier": "^2.3.0",
     "tslint-react": "^5.0.0",
-    "typescript": "^3.9.3"
+    "typescript": "4.1.5"
   },
   "dependencies": {
     "@emotion/core": "^10.0.28",
@@ -42,12 +42,12 @@
     "moment": "^2.26.0",
     "node-sass": "^4.14.1",
     "normalize-url": "4.5.0",
-    "react": "^16.13.1",
-    "react-content-loader": "^4.3.3",
-    "react-dom": "^16.13.1",
+    "react": "^17.0.1",
+    "react-content-loader": "^6.0.1",
+    "react-dom": "^17.0.1",
     "react-router-dom": "^5.2.0",
     "react-select": "^3.1.0",
-    "reaflow": "^2.4.4"
+    "reaflow": "^3.0.13"
   },
   "scripts": {
     "start": "react-scripts start",

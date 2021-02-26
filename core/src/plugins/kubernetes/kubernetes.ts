@@ -10,7 +10,7 @@ import Bluebird from "bluebird"
 
 import { createGardenPlugin } from "../../types/plugin/plugin"
 import { helmHandlers } from "./helm/handlers"
-import { getAppNamespace, getMetadataNamespace, getSystemNamespace } from "./namespace"
+import { getAppNamespace, getSystemNamespace } from "./namespace"
 import { getSecret, setSecret, deleteSecret } from "./secrets"
 import { getEnvironmentStatus, prepareEnvironment, cleanupEnvironment } from "./init"
 import { containerHandlers } from "./container/handlers"
@@ -164,8 +164,7 @@ export async function debugInfo({ ctx, log, includeProject }: GetDebugInfoParams
   const namespacesList = [systemNamespace, systemMetadataNamespace]
   if (includeProject) {
     const appNamespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
-    const appMetadataNamespace = await getMetadataNamespace(k8sCtx, log, k8sCtx.provider)
-    namespacesList.push(appNamespace, appMetadataNamespace)
+    namespacesList.push(appNamespace)
   }
   const namespaces = await Bluebird.map(namespacesList, async (ns) => {
     const nsEntry = entry.info({ section: ns, msg: "collecting namespace configuration", status: "active" })
@@ -191,7 +190,10 @@ export async function debugInfo({ ctx, log, includeProject }: GetDebugInfoParams
 const outputsSchema = joi.object().keys({
   "app-namespace": joiIdentifier().required().description("The primary namespace used for resource deployments."),
   "default-hostname": joi.string().description("The default hostname configured on the provider."),
-  "metadata-namespace": joiIdentifier().required().description("The namespace used for Garden metadata."),
+  "metadata-namespace": joiIdentifier()
+    .required()
+    .description("The namespace used for Garden metadata (currently always the same as app-namespace).")
+    .meta({ deprecated: true }),
 })
 
 const localKubernetesUrl = getProviderUrl("local-kubernetes")

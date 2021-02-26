@@ -135,7 +135,7 @@ function doClone(params: CopyParams) {
       }
       // Set the mtime on the cloned file to the same as the source file
       utimes(to, new Date(), sourceStats.mtimeMs / 1000, (utimesErr) => {
-        if (utimesErr) {
+        if (utimesErr && utimesErr.code !== "ENOENT") {
           return done(utimesErr)
         }
         done(null, { skipped: false })
