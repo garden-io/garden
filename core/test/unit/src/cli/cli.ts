@@ -20,7 +20,7 @@ import {
   TestEventBus,
   initTestLogger,
 } from "../../../helpers"
-import { GARDEN_CORE_ROOT } from "../../../../src/constants"
+import { gardenEnv, GARDEN_CORE_ROOT } from "../../../../src/constants"
 import { join, resolve } from "path"
 import { Command, CommandGroup, CommandParams, PrepareParams } from "../../../../src/commands/base"
 import { getPackageVersion } from "../../../../src/util/util"
@@ -190,6 +190,7 @@ describe("cli", () => {
         expect(logger.writers[0]).to.be.instanceOf(BasicTerminalWriter)
       })
     })
+
     it("shows group help text if specified command is a group", async () => {
       const cli = new GardenCli()
       const cmd = new UtilCommand()
@@ -575,6 +576,74 @@ describe("cli", () => {
           "disable-port-forwards": true,
         },
       })
+    })
+
+    it("allows setting env through GARDEN_ENVIRONMENT env variable", async () => {
+      class TestCommand extends Command {
+        name = "test-command"
+        alias = "some-alias"
+        help = ""
+        noProject = true
+
+        printHeader() {}
+        async action({ args, opts }) {
+          return { result: { args, opts } }
+        }
+      }
+
+      const cli = new GardenCli()
+      const cmd = new TestCommand()
+      cli.addCommand(cmd)
+
+      const saveEnv = gardenEnv.GARDEN_ENVIRONMENT
+
+      try {
+        gardenEnv.GARDEN_ENVIRONMENT = "foo"
+
+        const { code, result } = await cli.run({
+          args: ["test-command"],
+          exitOnError: false,
+        })
+
+        expect(code).to.equal(0)
+        expect(result.opts.env).to.equal("foo")
+      } finally {
+        gardenEnv.GARDEN_ENVIRONMENT = saveEnv
+      }
+    })
+
+    it("prefers --env over GARDEN_ENVIRONMENT env variable", async () => {
+      class TestCommand extends Command {
+        name = "test-command"
+        alias = "some-alias"
+        help = ""
+        noProject = true
+
+        printHeader() {}
+        async action({ args, opts }) {
+          return { result: { args, opts } }
+        }
+      }
+
+      const cli = new GardenCli()
+      const cmd = new TestCommand()
+      cli.addCommand(cmd)
+
+      const saveEnv = gardenEnv.GARDEN_ENVIRONMENT
+
+      try {
+        gardenEnv.GARDEN_ENVIRONMENT = "bar"
+
+        const { code, result } = await cli.run({
+          args: ["test-command", "--env", "foo"],
+          exitOnError: false,
+        })
+
+        expect(code).to.equal(0)
+        expect(result.opts.env).to.equal("foo")
+      } finally {
+        gardenEnv.GARDEN_ENVIRONMENT = saveEnv
+      }
     })
 
     it("correctly parses and passes arguments and options for a command", async () => {
