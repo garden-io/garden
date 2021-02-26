@@ -23,6 +23,11 @@ import { treeVersionSchema, moduleVersionSchema } from "../config/common"
 import { Warning } from "../db/entities/warning"
 import { dedent } from "../util/string"
 import { fixedProjectExcludes } from "../util/fs"
+import { TreeCache } from "../cache"
+import { getModuleCacheContext } from "../types/module"
+
+const AsyncLock = require("async-lock")
+const scanLock = new AsyncLock()
 
 export const versionStringPrefix = "v-"
 export const NEW_MODULE_VERSION = "0000000000"
@@ -70,7 +75,12 @@ export interface VcsFile {
 }
 
 export abstract class VcsHandler {
-  constructor(protected projectRoot: string, protected gardenDirPath: string, protected ignoreFiles: string[]) {}
+  constructor(
+    protected projectRoot: string,
+    protected gardenDirPath: string,
+    protected ignoreFiles: string[],
+    private cache: TreeCache
+  ) {}
 
   abstract name: string
   abstract getRepoRoot(log: LogEntry, path: string): Promise<string>
@@ -80,7 +90,12 @@ export abstract class VcsHandler {
   abstract getOriginName(log: LogEntry): Promise<string | undefined>
   abstract getBranchName(log: LogEntry, path: string): Promise<string | undefined>
 
-  async getTreeVersion(log: LogEntry, projectName: string, moduleConfig: ModuleConfig): Promise<TreeVersion> {
+  async getTreeVersion(
+    log: LogEntry,
+    projectName: string,
+    moduleConfig: ModuleConfig,
+    force = false
+  ): Promise<TreeVersion> {
     const configPath = moduleConfig.configPath
 
     // Apply project root excludes if the module config is in the project root and `include` isn't set
@@ -89,35 +104,54 @@ export abstract class VcsHandler {
         ? [...(moduleConfig.exclude || []), ...fixedProjectExcludes]
         : moduleConfig.exclude
 
-    let files =
-      moduleConfig.include?.length === 0
-        ? [] // No need to scan for files if nothing should be included
-        : await this.getFiles({
+    let result: TreeVersion = { contentHash: NEW_MODULE_VERSION, files: [] }
+
+    const cacheKey = getModuleTreeCacheKey(moduleConfig)
+
+    // Make sure we don't concurrently scan the exact same context
+    await scanLock.acquire(cacheKey.join(":"), async () => {
+      if (!force) {
+        const cached = this.cache.get(cacheKey)
+        if (cached) {
+          log.silly(`Got cached tree version for module ${moduleConfig.name} (key ${cacheKey})`)
+          result = cached
+          return
+        }
+      }
+
+      // No need to scan for files if nothing should be included
+      if (!(moduleConfig.include && moduleConfig.include.length === 0)) {
+        let files = await this.getFiles({
+          log,
+          path: moduleConfig.path,
+          pathDescription: "module root",
+          include: moduleConfig.include,
+          exclude,
+        })
+
+        if (files.length > fileCountWarningThreshold) {
+          await Warning.emit({
+            key: `${projectName}-filecount-${moduleConfig.name}`,
             log,
-            path: moduleConfig.path,
-            pathDescription: "module root",
-            include: moduleConfig.include,
-            exclude,
+            message: dedent`
+              Large number of files (${files.length}) found in module ${moduleConfig.name}. You may need to configure file exclusions.
+              See https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories for details.
+            `,
           })
+        }
 
-    if (files.length > fileCountWarningThreshold) {
-      await Warning.emit({
-        key: `${projectName}-filecount-${moduleConfig.name}`,
-        log,
-        message: dedent`
-          Large number of files (${files.length}) found in module ${moduleConfig.name}. You may need to configure file exclusions.
-          See https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories for details.
-        `,
-      })
-    }
+        files = sortBy(files, "path")
+          // Don't include the config file in the file list
+          .filter((f) => !configPath || f.path !== configPath)
 
-    files = sortBy(files, "path")
-      // Don't include the config file in the file list
-      .filter((f) => !configPath || f.path !== configPath)
+        result.contentHash = hashStrings(files.map((f) => f.hash))
+        result.files = files.map((f) => f.path)
+      }
 
-    const contentHash = files.length > 0 ? hashStrings(files.map((f) => f.hash)) : NEW_MODULE_VERSION
+      this.cache.set(cacheKey, result, getModuleCacheContext(moduleConfig))
+    })
 
-    return { contentHash, files: files.map((f) => f.path) }
+    return result
   }
 
   async resolveTreeVersion(log: LogEntry, projectName: string, moduleConfig: ModuleConfig): Promise<TreeVersion> {
@@ -255,4 +289,17 @@ function hashStrings(hashes: string[]) {
   const versionHash = createHash("sha256")
   versionHash.update(hashes.join("."))
   return versionHash.digest("hex").slice(0, 10)
+}
+
+export function getModuleTreeCacheKey(moduleConfig: ModuleConfig) {
+  const cacheKey = [moduleConfig.path]
+
+  if (moduleConfig.include) {
+    cacheKey.push("include", hashStrings(moduleConfig.include))
+  }
+  if (moduleConfig.exclude) {
+    cacheKey.push("exclude", hashStrings(moduleConfig.exclude))
+  }
+
+  return cacheKey
 }

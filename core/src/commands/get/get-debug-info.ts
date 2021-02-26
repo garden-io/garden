@@ -23,6 +23,7 @@ import { GitHandler } from "../../vcs/git"
 import { ValidationError } from "../../exceptions"
 import { ChoicesParameter, BooleanParameter } from "../../cli/params"
 import { printHeader } from "../../logger/util"
+import { TreeCache } from "../../cache"
 
 export const TEMP_DEBUG_ROOT = "tmp"
 export const SYSTEM_INFO_FILENAME_NO_EXT = "system-info"
@@ -65,7 +66,8 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
   }
 
   // Find all services paths
-  const vcs = new GitHandler(root, gardenDirPath, projectConfig.dotIgnoreFiles || defaultDotIgnoreFiles)
+  const cache = new TreeCache()
+  const vcs = new GitHandler(root, gardenDirPath, projectConfig.dotIgnoreFiles || defaultDotIgnoreFiles, cache)
   const include = projectConfig.modules && projectConfig.modules.include
   const exclude = projectConfig.modules && projectConfig.modules.exclude
   const paths = await findConfigPathsInPath({ vcs, dir: root, include, exclude, log })

@@ -137,6 +137,7 @@ export interface GardenParams {
   vcsBranch: string
   buildStaging: BuildStaging
   projectId: string | null
+  cache: TreeCache
   disablePortForwards?: boolean
   dotIgnoreFiles: string[]
   environmentName: string
@@ -248,6 +249,7 @@ export class Garden {
     this.forceRefresh = !!params.forceRefresh
     this.enterpriseApi = params.enterpriseApi || null
     this.commandInfo = params.opts.commandInfo
+    this.cache = params.cache
 
     // make sure we're on a supported platform
     const currentPlatform = platform()
@@ -265,7 +267,6 @@ export class Garden {
     // TODO: Support other VCS options.
     this.configStore = new LocalConfigStore(this.gardenDirPath)
     this.globalConfigStore = new GlobalConfigStore()
-    this.cache = new TreeCache()
 
     this.moduleConfigs = {}
     this.pluginModuleConfigs = []
@@ -1135,7 +1136,11 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
   const { sources: projectSources, path: projectRoot } = config
   const commandInfo = opts.commandInfo
 
-  const vcsBranch = (await new GitHandler(projectRoot, gardenDirPath, []).getBranchName(log, projectRoot)) || ""
+  const treeCache = new TreeCache()
+
+  // Note: another VcsHandler is created later, this one is temporary
+  const gitHandler = new GitHandler(projectRoot, gardenDirPath, [], treeCache)
+  const vcsBranch = (await gitHandler.getBranchName(log, projectRoot)) || ""
 
   const defaultEnvironmentName = resolveTemplateString(
     config.defaultEnvironment,
@@ -1176,7 +1181,7 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
     commandInfo,
   })
 
-  const vcs = new GitHandler(projectRoot, gardenDirPath, config.dotIgnoreFiles)
+  const vcs = new GitHandler(projectRoot, gardenDirPath, config.dotIgnoreFiles, treeCache)
 
   let { namespace, providers, variables, production } = await pickEnvironment({
     projectConfig: config,
@@ -1235,6 +1240,7 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
     vcs,
     forceRefresh: opts.forceRefresh,
     enterpriseApi,
+    cache: treeCache,
   }
 }
 

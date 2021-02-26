@@ -20,6 +20,7 @@ import { LoggerType } from "../logger/logger"
 import Bluebird from "bluebird"
 import { loadAndValidateYaml, findProjectConfig } from "../config/base"
 import { BooleanParameter, StringsParameter } from "../cli/params"
+import { TreeCache } from "../cache"
 
 const migrateOpts = {
   write: new BooleanParameter({ help: "Update the `garden.yml` in place." }),
@@ -90,7 +91,7 @@ export class MigrateCommand extends Command<Args, Opts> {
     if (args.configPaths && args.configPaths.length > 0) {
       configPaths = args.configPaths.map((path) => resolve(root, path))
     } else {
-      const vcs = new GitHandler(root, resolve(root, DEFAULT_GARDEN_DIR_NAME), [])
+      const vcs = new GitHandler(root, resolve(root, DEFAULT_GARDEN_DIR_NAME), [], new TreeCache())
       configPaths = await findConfigPathsInPath({
         dir: root,
         vcs,
