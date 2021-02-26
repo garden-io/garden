@@ -131,6 +131,17 @@ clusterBuildkit:
 
 You should also set the builder resource requests/limits. For this mode, the resource configuration applies to _each BuildKit deployment_, i.e. for _each project namespace_. See the [builder resources](../reference/providers/kubernetes.md#providersresourcesbuilder) reference for details.
 
+The BuildKit deployments will always have the following toleration set:
+
+```yaml
+key: "garden-build",
+operator: "Equal",
+value: "true",
+effect: "NoSchedule"
+```
+
+This allows you to set corresponding [Taints](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) on cluster nodes to control which nodes builder deployments are deployed to.
+
 ### cluster-docker
 
 The `cluster-docker` mode installs a standalone Docker daemon into your cluster, that is then used for builds across all users of the clusters, along with a handful of other supporting services.
