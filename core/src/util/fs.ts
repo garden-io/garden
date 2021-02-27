@@ -152,14 +152,29 @@ export async function findConfigPathsInPath({
   exclude?: string[]
   log: LogEntry
 }): Promise<string[]> {
+  if (include) {
+    include = include.map((path) => {
+      const split = path.split(posix.sep)
+      const last = split[split.length - 1]
+
+      if (last === "**" || last === "*") {
+        // Swap out a general wildcard on the last path segment with one that will specifically match Garden configs,
+        // to optimize the scan.
+        return split.slice(0, -1).concat(["*garden.y*ml"]).join(posix.sep)
+      } else {
+        return path
+      }
+    })
+  } else {
+    include = ["**/*garden.y*ml"]
+  }
+
   const paths = await vcs.getFiles({
     path: dir,
     pathDescription: "project root",
     include,
     exclude: exclude || [],
     log,
-    // We specify both a pattern that is passed to `git`, and then double-check with a filter function
-    pattern: "*garden.y*ml",
     filter: (f) => isConfigFilename(basename(f)),
   })
 

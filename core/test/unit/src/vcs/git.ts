@@ -240,11 +240,18 @@ describe("GitHandler", () => {
       expect(await handler.getFiles({ path: tmpPath, log })).to.eql([{ path: resolve(tmpPath, "my file.txt"), hash }])
     })
 
-    it("should filter out files that don't match the include filter, if specified", async () => {
+    it("should return nothing if include: []", async () => {
       const path = resolve(tmpPath, "foo.txt")
       await createFile(path)
 
       expect(await handler.getFiles({ path: tmpPath, include: [], log })).to.eql([])
+    })
+
+    it("should filter out files that don't match the include filter, if specified", async () => {
+      const path = resolve(tmpPath, "foo.txt")
+      await createFile(path)
+
+      expect(await handler.getFiles({ path: tmpPath, include: ["bar.*"], log })).to.eql([])
     })
 
     it("should include files that match the include filter, if specified", async () => {
@@ -271,11 +278,11 @@ describe("GitHandler", () => {
     })
 
     it("should respect include and exclude patterns, if both are specified", async () => {
-      const dir = resolve(tmpPath, "module-a")
-      const pathA = resolve(dir, "yes.txt")
+      const moduleDir = resolve(tmpPath, "module-a")
+      const pathA = resolve(moduleDir, "yes.txt")
       const pathB = resolve(tmpPath, "no.txt")
-      const pathC = resolve(dir, "yes.pass")
-      await mkdir(dir)
+      const pathC = resolve(moduleDir, "yes.pass")
+      await mkdir(moduleDir)
       await createFile(pathA)
       await createFile(pathB)
       await createFile(pathC)
@@ -425,7 +432,7 @@ describe("GitHandler", () => {
         submodulePath = await realpath(submodule.path)
         initFile = await commit("init", submodulePath)
 
-        await execa("git", ["submodule", "add", submodulePath, "sub"], { cwd: tmpPath })
+        await execa("git", ["submodule", "add", submodulePath, "sub", "--force"], { cwd: tmpPath })
         await execa("git", ["commit", "-m", "add submodule"], { cwd: tmpPath })
       })
 
@@ -454,10 +461,10 @@ describe("GitHandler", () => {
         const path = join(tmpPath, "sub", "x.foo")
         await createFile(path)
 
-        const files = await handler.getFiles({ path: tmpPath, log, include: ["sub/*.txt"] })
+        const files = await handler.getFiles({ path: tmpPath, log, include: ["**/*.txt"] })
         const paths = files.map((f) => relative(tmpPath, f.path)).sort()
 
-        expect(paths).to.eql([join("sub", initFile)])
+        expect(paths).to.include(join("sub", initFile))
       })
 
       it("should respect exclude filter when scanning a submodule", async () => {

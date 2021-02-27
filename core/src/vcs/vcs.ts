@@ -59,7 +59,6 @@ export interface GetFilesParams {
   include?: string[]
   exclude?: string[]
   filter?: (path: string) => boolean
-  pattern?: string
 }
 
 export interface RemoteSourceParams {
