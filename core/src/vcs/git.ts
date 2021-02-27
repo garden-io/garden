@@ -107,15 +107,12 @@ export class GitHandler extends VcsHandler {
    * Returns a list of files, along with file hashes, under the given path, taking into account the configured
    * .ignore files, and the specified include/exclude filters.
    */
-  async getFiles({
-    log,
-    path,
-    pathDescription,
-    include,
-    exclude,
-    filter,
-    pattern,
-  }: GetFilesParams): Promise<VcsFile[]> {
+  async getFiles({ log, path, pathDescription, include, exclude, filter }: GetFilesParams): Promise<VcsFile[]> {
+    if (include && include.length === 0) {
+      // No need to proceed, nothing should be included
+      return []
+    }
+
     const git = this.gitCli(log, path)
     const gitRoot = await this.getRepoRoot(log, path)
 
@@ -126,13 +123,22 @@ export class GitHandler extends VcsHandler {
         .map((modifiedRelPath) => resolve(gitRoot, modifiedRelPath))
     )
 
+    // Apply the include patterns to the ls-files queries. We use the 'glob' "magic word" (in git parlance)
+    // to make sure the path handling is consistent with normal POSIX-style globs used generally by Garden.
+    // Note: We unfortunately can't exclude at this level because it simply doesn't work in git, for reasons unknown.
+    const patterns = [...(include || []).map((p) => ":(glob)" + p)]
+    const lsFilesCommonArgs = ["--exclude", this.gardenDirPath]
+
     // List tracked but ignored files (we currently exclude those as well, so we need to query that specially)
+    // TODO: change in 0.13 to no longer exclude these
     const trackedButIgnored = new Set(
       this.ignoreFiles.length === 0
         ? []
         : flatten(
             await Promise.all(
-              this.ignoreFiles.map((f) => git("ls-files", "--ignored", "--exclude-per-directory", f, pattern))
+              this.ignoreFiles.map((f) =>
+                git("ls-files", "--ignored", ...lsFilesCommonArgs, "--exclude-per-directory", f)
+              )
             )
           )
     )
@@ -185,19 +191,19 @@ export class GitHandler extends VcsHandler {
 
       const resolvedPath = resolve(path, filePath)
 
-      // We push to the output array if it passes through the include/exclude filters.
-      if (matchPath(filePath, include, exclude) || submodulePaths.includes(resolvedPath)) {
+      // We push to the output array if it passes through the exclude filters.
+      if (matchPath(filePath, undefined, exclude) && !submodulePaths.includes(resolvedPath)) {
         files.push({ path: resolvedPath, hash })
       }
     }
 
     const lsFiles = (ignoreFile?: string) => {
-      const args = ["ls-files", "-s", "--others", "--exclude", this.gardenDirPath]
+      const args = ["ls-files", "-s", "--others", ...lsFilesCommonArgs]
 
       if (ignoreFile) {
         args.push("--exclude-per-directory", ignoreFile)
       }
-      args.push(pattern ? join(path, pattern) : path)
+      args.push(...patterns)
 
       return execa("git", args, { cwd: path, buffer: false })
     }
@@ -272,22 +278,25 @@ export class GitHandler extends VcsHandler {
     }
 
     // Resolve submodules
-    const withSubmodules = flatten(
-      await Bluebird.map(files, async (f) => {
-        if (submodulePaths.includes(f.path)) {
-          // This path is a submodule, so we recursively call getFiles for that path again.
-          // Note: We apply include/exclude filters after listing files from submodule
-          return (
-            await this.getFiles({ log, path: f.path, pathDescription: "submodule", exclude: [] })
-          ).filter((submoduleFile) => matchPath(relative(path, submoduleFile.path), include, exclude))
-        } else {
-          return [f]
-        }
-      })
-    )
+    // TODO: see about optimizing this further, avoiding scans when we're sure they'll not match includes/excludes etc.
+    await Bluebird.map(submodulePaths, async (submodulePath) => {
+      if (submodulePath.startsWith(path)) {
+        // Note: We apply include/exclude filters after listing files from submodule
+        const submoduleRelPath = relative(path, submodulePath)
+        files.push(
+          ...(await this.getFiles({
+            log,
+            path: submodulePath,
+            pathDescription: "submodule",
+            exclude: [],
+            filter: (p) => matchPath(join(submoduleRelPath, p), include, exclude),
+          }))
+        )
+      }
+    })
 
     // Make sure we have a fresh hash for each file
-    return Bluebird.map(withSubmodules, async (f) => {
+    return Bluebird.map(files, async (f) => {
       const resolvedPath = resolve(path, f.path)
       let output = { path: resolvedPath, hash: f.hash || "" }
       let stats: Stats
