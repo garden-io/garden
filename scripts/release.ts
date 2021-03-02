@@ -292,7 +292,7 @@ async function updateChangelog(version: string) {
     writeStream.write(changelog)
     writeStream.close()
     writeStream.on("close", () => {
-      resolve()
+      resolve(null)
     });
     writeStream.on("error", error => {
       reject(error)
