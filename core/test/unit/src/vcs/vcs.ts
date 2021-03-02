@@ -15,6 +15,7 @@ import {
   readTreeVersionFile,
   GetFilesParams,
   VcsFile,
+  getModuleTreeCacheKey,
 } from "../../../../src/vcs/vcs"
 import { projectRootA, makeTestGardenA, makeTestGarden, getDataDir, TestGarden } from "../../../helpers"
 import { expect } from "chai"
@@ -78,8 +79,8 @@ describe("VcsHandler", () => {
   }
 
   beforeEach(async () => {
-    handlerA = new TestVcsHandler(projectRootA, join(projectRootA, ".garden"), defaultDotIgnoreFiles)
     gardenA = await makeTestGardenA()
+    handlerA = new TestVcsHandler(projectRootA, join(projectRootA, ".garden"), defaultDotIgnoreFiles, gardenA.cache)
   })
 
   describe("getTreeVersion", () => {
@@ -127,7 +128,7 @@ describe("VcsHandler", () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
       const moduleConfig = await garden.resolveModule("module-a")
-      const handler = new GitHandler(garden.projectRoot, garden.gardenDirPath, garden.dotIgnoreFiles)
+      const handler = new GitHandler(garden.projectRoot, garden.gardenDirPath, garden.dotIgnoreFiles, garden.cache)
 
       const version = await handler.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
 
@@ -141,7 +142,7 @@ describe("VcsHandler", () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
       const moduleConfig = await garden.resolveModule("module-b")
-      const handler = new GitHandler(garden.projectRoot, garden.gardenDirPath, garden.dotIgnoreFiles)
+      const handler = new GitHandler(garden.projectRoot, garden.gardenDirPath, garden.dotIgnoreFiles, garden.cache)
 
       const version = await handler.getTreeVersion(garden.log, garden.projectName, moduleConfig)
 
@@ -152,7 +153,7 @@ describe("VcsHandler", () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
       const moduleConfig = await garden.resolveModule("module-c")
-      const handler = new GitHandler(garden.projectRoot, garden.gardenDirPath, garden.dotIgnoreFiles)
+      const handler = new GitHandler(garden.projectRoot, garden.gardenDirPath, garden.dotIgnoreFiles, garden.cache)
 
       const version = await handler.getTreeVersion(garden.log, garden.projectName, moduleConfig)
 
@@ -179,22 +180,54 @@ describe("VcsHandler", () => {
     it("should apply project-level excludes if module's path is same as root and no include is set", async () => {
       td.replace(handlerA, "getFiles", async ({ exclude }: GetFilesParams) => {
         expect(exclude).to.eql(fixedProjectExcludes)
-        return []
+        return [{ path: "foo", hash: "abcdef" }]
       })
       const moduleConfig = await gardenA.resolveModule("module-a")
       moduleConfig.path = gardenA.projectRoot
-      await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
+      const result = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
+      expect(result.files).to.eql(["foo"])
     })
 
     it("should not apply project-level excludes if module's path is same as root but include is set", async () => {
       td.replace(handlerA, "getFiles", async ({ exclude }: GetFilesParams) => {
         expect(exclude).to.be.undefined
-        return []
+        return [{ path: "foo", hash: "abcdef" }]
       })
       const moduleConfig = await gardenA.resolveModule("module-a")
       moduleConfig.path = gardenA.projectRoot
+      moduleConfig.include = ["foo"]
+      const result = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
+      expect(result.files).to.eql(["foo"])
+    })
+
+    it("should not call getFiles is include: [] is set on the module", async () => {
+      td.replace(handlerA, "getFiles", async () => {
+        throw new Error("Nope!")
+      })
+      const moduleConfig = await gardenA.resolveModule("module-a")
       moduleConfig.include = []
       await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
+    })
+
+    it("should get a cached tree version if available", async () => {
+      const moduleConfig = await gardenA.resolveModule("module-a")
+      const cacheKey = getModuleTreeCacheKey(moduleConfig)
+
+      const cachedResult = { contentHash: "abcdef", files: ["foo"] }
+      handlerA["cache"].set(cacheKey, cachedResult, ["foo", "bar"])
+
+      const result = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
+      expect(result).to.eql(cachedResult)
+    })
+
+    it("should cache the resolved version", async () => {
+      const moduleConfig = await gardenA.resolveModule("module-a")
+      const cacheKey = getModuleTreeCacheKey(moduleConfig)
+
+      const result = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
+      const cachedResult = handlerA["cache"].get(cacheKey)
+
+      expect(result).to.eql(cachedResult)
     })
   })
 

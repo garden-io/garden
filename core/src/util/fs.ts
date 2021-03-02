@@ -151,10 +151,34 @@ export async function findConfigPathsInPath({
   include?: string[]
   exclude?: string[]
   log: LogEntry
-}) {
-  // TODO: we could make this lighter/faster using streaming
-  const files = await vcs.getFiles({ path: dir, pathDescription: "project root", include, exclude: exclude || [], log })
-  return files.map((f) => f.path).filter((f) => isConfigFilename(basename(f)))
+}): Promise<string[]> {
+  if (include) {
+    include = include.map((path) => {
+      const split = path.split(posix.sep)
+      const last = split[split.length - 1]
+
+      if (last === "**" || last === "*") {
+        // Swap out a general wildcard on the last path segment with one that will specifically match Garden configs,
+        // to optimize the scan.
+        return split.slice(0, -1).concat(["*garden.y*ml"]).join(posix.sep)
+      } else {
+        return path
+      }
+    })
+  } else {
+    include = ["**/*garden.y*ml"]
+  }
+
+  const paths = await vcs.getFiles({
+    path: dir,
+    pathDescription: "project root",
+    include,
+    exclude: exclude || [],
+    log,
+    filter: (f) => isConfigFilename(basename(f)),
+  })
+
+  return paths.map((f) => f.path)
 }
 
 /**

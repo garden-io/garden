@@ -12,7 +12,7 @@ import tmp from "tmp-promise"
 import { createFile, writeFile, realpath, mkdir, remove, symlink, ensureSymlink, lstat } from "fs-extra"
 import { join, resolve, basename, relative } from "path"
 
-import { expectError, makeTestGardenA } from "../../../helpers"
+import { expectError, makeTestGardenA, TestGarden } from "../../../helpers"
 import { getCommitIdFromRefList, parseGitUrl, GitHandler } from "../../../../src/vcs/git"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { hashRepoUrl } from "../../../../src/util/ext-source-util"
@@ -53,6 +53,7 @@ async function addToIgnore(tmpPath: string, pathToExclude: string, ignoreFilenam
 }
 
 describe("GitHandler", () => {
+  let garden: TestGarden
   let tmpDir: tmp.DirectoryResult
   let tmpPath: string
   let git: any
@@ -60,11 +61,11 @@ describe("GitHandler", () => {
   let log: LogEntry
 
   beforeEach(async () => {
-    const garden = await makeTestGardenA()
+    garden = await makeTestGardenA()
     log = garden.log
     tmpDir = await makeTempGitRepo()
     tmpPath = await realpath(tmpDir.path)
-    handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [defaultIgnoreFilename])
+    handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [defaultIgnoreFilename], garden.cache)
     git = (<any>handler).gitCli(log, tmpPath)
   })
 
@@ -239,11 +240,18 @@ describe("GitHandler", () => {
       expect(await handler.getFiles({ path: tmpPath, log })).to.eql([{ path: resolve(tmpPath, "my file.txt"), hash }])
     })
 
-    it("should filter out files that don't match the include filter, if specified", async () => {
+    it("should return nothing if include: []", async () => {
       const path = resolve(tmpPath, "foo.txt")
       await createFile(path)
 
       expect(await handler.getFiles({ path: tmpPath, include: [], log })).to.eql([])
+    })
+
+    it("should filter out files that don't match the include filter, if specified", async () => {
+      const path = resolve(tmpPath, "foo.txt")
+      await createFile(path)
+
+      expect(await handler.getFiles({ path: tmpPath, include: ["bar.*"], log })).to.eql([])
     })
 
     it("should include files that match the include filter, if specified", async () => {
@@ -270,11 +278,11 @@ describe("GitHandler", () => {
     })
 
     it("should respect include and exclude patterns, if both are specified", async () => {
-      const dir = resolve(tmpPath, "module-a")
-      const pathA = resolve(dir, "yes.txt")
+      const moduleDir = resolve(tmpPath, "module-a")
+      const pathA = resolve(moduleDir, "yes.txt")
       const pathB = resolve(tmpPath, "no.txt")
-      const pathC = resolve(dir, "yes.pass")
-      await mkdir(dir)
+      const pathC = resolve(moduleDir, "yes.pass")
+      await mkdir(moduleDir)
       await createFile(pathA)
       await createFile(pathB)
       await createFile(pathC)
@@ -330,7 +338,7 @@ describe("GitHandler", () => {
 
       const hash = "6e1ab2d7d26c1c66f27fea8c136e13c914e3f137"
 
-      const _handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [])
+      const _handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [], garden.cache)
 
       expect(await _handler.getFiles({ path: tmpPath, log })).to.eql([{ path, hash }])
     })
@@ -362,11 +370,12 @@ describe("GitHandler", () => {
       await git("add", pathD)
       await git("commit", "-m", "foo")
 
-      const _handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [
-        defaultIgnoreFilename,
-        ".testignore2",
-        ".testignore3",
-      ])
+      const _handler = new GitHandler(
+        tmpPath,
+        join(tmpPath, ".garden"),
+        [defaultIgnoreFilename, ".testignore2", ".testignore3"],
+        garden.cache
+      )
 
       const files = (await _handler.getFiles({ path: tmpPath, exclude: [], log })).filter(
         (f) => !f.path.includes(defaultIgnoreFilename)
@@ -423,7 +432,7 @@ describe("GitHandler", () => {
         submodulePath = await realpath(submodule.path)
         initFile = await commit("init", submodulePath)
 
-        await execa("git", ["submodule", "add", submodulePath, "sub"], { cwd: tmpPath })
+        await execa("git", ["submodule", "add", submodulePath, "sub", "--force"], { cwd: tmpPath })
         await execa("git", ["commit", "-m", "add submodule"], { cwd: tmpPath })
       })
 
@@ -452,10 +461,10 @@ describe("GitHandler", () => {
         const path = join(tmpPath, "sub", "x.foo")
         await createFile(path)
 
-        const files = await handler.getFiles({ path: tmpPath, log, include: ["sub/*.txt"] })
+        const files = await handler.getFiles({ path: tmpPath, log, include: ["**/*.txt"] })
         const paths = files.map((f) => relative(tmpPath, f.path)).sort()
 
-        expect(paths).to.eql([join("sub", initFile)])
+        expect(paths).to.include(join("sub", initFile))
       })
 
       it("should respect exclude filter when scanning a submodule", async () => {
