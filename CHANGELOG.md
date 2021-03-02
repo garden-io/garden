@@ -1,4 +1,31 @@
 
+<a name="0.12.18"></a>
+## [0.12.18](https://github.com/garden-io/garden/compare/0.12.17...0.12.18) (2021-03-02)
+
+### Bug Fixes
+
+* **build-stage:** don't throw when setting utime on missing file ([3cbdfef4](https://github.com/garden-io/garden/commit/3cbdfef4))
+* **cli:** don't output file lists and dep versions in scan command ([8bdb7020](https://github.com/garden-io/garden/commit/8bdb7020))
+* **cli:** don't print "Tools" header in tools command ([07a06fd2](https://github.com/garden-io/garden/commit/07a06fd2))
+* **core:** slow initial scan of Garden config files ([5ea75458](https://github.com/garden-io/garden/commit/5ea75458))
+* **core:** error when using generateFiles in a remote module/source ([2a3fbae1](https://github.com/garden-io/garden/commit/2a3fbae1))
+* **k8s:** error with missing metadata field ([e2bbe0d2](https://github.com/garden-io/garden/commit/e2bbe0d2))
+* **k8s:** buildkitd deployment status incorrectly reported as outdated ([c99f247e](https://github.com/garden-io/garden/commit/c99f247e))
+
+### Features
+
+* **cli:** allow setting environment with GARDEN_ENVIRONMENT ([51d885d5](https://github.com/garden-io/garden/commit/51d885d5))
+* **config:** allow sparse arrays where appropriate in config schemas ([99b5c720](https://github.com/garden-io/garden/commit/99b5c720))
+* **k8s:** add garden-build toleration to garden-buildkit deployments ([e4bc2b7d](https://github.com/garden-io/garden/commit/e4bc2b7d))
+* **terraform:** add v0.14.7 as a supported version ([9a1ad238](https://github.com/garden-io/garden/commit/9a1ad238))
+
+### Improvements
+
+* **core:** faster file scanning on modules with includes set ([b841837f](https://github.com/garden-io/garden/commit/b841837f))
+* **core:** add caching and concurrency lock on directory scans ([03b6f10c](https://github.com/garden-io/garden/commit/03b6f10c))
+* **core:** don't scan for files if module has `include: []` ([05f0f1f6](https://github.com/garden-io/garden/commit/05f0f1f6))
+* **k8s:** get rid of separate metadata namespace ([07031128](https://github.com/garden-io/garden/commit/07031128))
+
 <a name="0.12.17"></a>
 ## [0.12.17](https://github.com/garden-io/garden/compare/0.12.16...0.12.17) (2021-02-22)
 
