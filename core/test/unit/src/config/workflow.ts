@@ -53,8 +53,6 @@ describe("resolveWorkflowConfig", () => {
           events: ["pull-request"],
           branches: ["feature*"],
           ignoreBranches: ["feature-ignored*"],
-          tags: ["v1*"],
-          ignoreTags: ["v1-ignored*"],
         },
       ],
     }
@@ -196,8 +194,6 @@ describe("resolveWorkflowConfig", () => {
           events: ["pull-request"],
           branches: ["feature*"],
           ignoreBranches: ["feature-ignored*"],
-          tags: ["v1*"],
-          ignoreTags: ["v1-ignored*"],
         },
       ],
     }
@@ -223,8 +219,6 @@ describe("resolveWorkflowConfig", () => {
           events: ["pull-request"],
           branches: ["feature*"],
           ignoreBranches: ["feature-ignored*"],
-          tags: ["v1*"],
-          ignoreTags: ["v1-ignored*"],
         },
       ],
     }
@@ -250,8 +244,6 @@ describe("resolveWorkflowConfig", () => {
           events: ["pull-request"],
           branches: ["feature*"],
           ignoreBranches: ["feature-ignored*"],
-          tags: ["v1*"],
-          ignoreTags: ["v1-ignored*"],
         },
       ],
     }
@@ -268,8 +260,6 @@ describe("resolveWorkflowConfig", () => {
       events: ["pull-request"],
       branches: ["feature*"],
       ignoreBranches: ["feature-ignored*"],
-      tags: ["v1*"],
-      ignoreTags: ["v1-ignored*"],
     }
     const config: WorkflowConfig = {
       ...defaults,

@@ -247,9 +247,9 @@ export interface TriggerSpec {
   namespace?: string
   events?: string[]
   branches?: string[]
-  tags?: string[]
+  baseBranches?: string[]
   ignoreBranches?: string[]
-  ignoreTags?: string[]
+  ignoreBaseBranches?: string[]
 }
 
 export const triggerSchema = () => {
@@ -282,26 +282,22 @@ export const triggerSchema = () => {
         \n
         `
       ),
-    branches: joi
-      .array()
-      .items(joi.string())
-      .unique()
-      .description("If specified, only run the workflow for branches matching one of these filters."),
-    tags: joi
-      .array()
-      .items(joi.string())
-      .unique()
-      .description("If specified, only run the workflow for tags matching one of these filters."),
-    ignoreBranches: joi
-      .array()
-      .items(joi.string())
-      .unique()
-      .description("If specified, do not run the workflow for branches matching one of these filters."),
-    ignoreTags: joi
-      .array()
-      .items(joi.string())
-      .unique()
-      .description("If specified, do not run the workflow for tags matching one of these filters."),
+    branches: joi.array().items(joi.string()).unique().description(deline`
+        If specified, only run the workflow for branches matching one of these filters. These filters refer to the
+        pull/merge request's head branch (e.g. \`my-feature-branch\`), not the base branch that the pull/merge request
+        would be merged into if approved (e.g. \`main\`).
+       `),
+    baseBranches: joi.array().items(joi.string()).unique().description(deline`
+        If specified, only run the workflow for pull/merge requests whose base branch matches one of these filters.
+      `),
+    ignoreBranches: joi.array().items(joi.string()).unique().description(deline`
+        If specified, do not run the workflow for branches matching one of these filters. These filters refer to the
+        pull/merge request's head branch (e.g. \`my-feature-branch\`), not the base branch that the pull/merge request
+        would be merged into if approved (e.g. \`main\`).
+      `),
+    ignoreBaseBranches: joi.array().items(joi.string()).unique().description(deline`
+        If specified, do not run the workflow for pull/merge requests whose base branch matches one of these filters.
+      `),
   })
 }
 
