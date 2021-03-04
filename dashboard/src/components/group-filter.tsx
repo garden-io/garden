@@ -15,11 +15,11 @@ interface FilterProps {
 }
 
 const Filter = styled.li<FilterProps>`
-  padding: 0.5rem;
+  padding: 0.4rem;
   border: 1px solid transparent;
   box-sizing: border-box;
-  font-size: 13px;
-  line-height: 19px;
+  font-size: 12px;
+  line-height: 13px;
   display: flex;
   align-items: center;
   text-align: center;
@@ -28,13 +28,13 @@ const Filter = styled.li<FilterProps>`
   background-color: ${(props) => (props.selected ? colors.gardenGreenDark : "white")};
   box-shadow: 0px 6px 18px rgba(0, 0, 0, 0.06);
   margin-right: 0.25rem;
-  border-radius: 4px;
-  height: 2rem;
+  border-radius: 3px;
+  height: 24px;
   transition: background-color 0.2s ease-in-out;
 
   &:hover {
     cursor: pointer;
-    background-color: ${(props) => (!props.selected ? "white" : colors.gardenPink)};
+    background-color: ${(props) => (!props.selected ? "white" : colors.gardenGreenDarker)};
   }
 `
 

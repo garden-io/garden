@@ -21,9 +21,11 @@ import { GraphOutput } from "@garden-io/core/build/src/commands/get/get-graph"
 import { loadGraph } from "../api/actions"
 import { getTestKey } from "../util/helpers"
 import { useApi, useUiState } from "../hooks"
+import { colors } from "../styles/variables"
 
 const Wrapper = styled.div`
-  padding-left: 0.75rem;
+  width: 100%;
+  background-color: ${colors.gardenWhite};
 `
 
 export interface StackGraphNode extends RenderedNode {

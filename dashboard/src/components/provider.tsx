@@ -10,6 +10,7 @@ import React, { useState } from "react"
 import { Frame } from "./frame"
 import Spinner from "./spinner"
 import styled from "@emotion/styled"
+import { menuHeight } from "../containers/menu"
 
 interface ProviderPageProps {
   url: string
@@ -17,10 +18,10 @@ interface ProviderPageProps {
 }
 
 const ProviderPageWrapper = styled.div`
-  flex: 0 auto;
   border: 0;
   width: 100%;
-  height: 100%;
+  height: calc(100vh - ${menuHeight});
+  padding: 1rem;
 `
 
 const ProviderPageFrame: React.FC<ProviderPageProps> = ({ url, active }) => {

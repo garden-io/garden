@@ -13,7 +13,7 @@ import { DependencyGraphNodeType } from "@garden-io/core/build/src/config-graph"
 import { PickFromUnion } from "@garden-io/core/build/src/util/util"
 
 interface UiState {
-  isSidebarOpen: boolean
+  isMenuOpen: boolean
   overview: {
     selectedIngress: ServiceIngress | null
     selectedEntity: SelectedEntity | null
@@ -58,7 +58,6 @@ export type SelectedEntity = {
 }
 
 interface UiActions {
-  toggleSidebar: () => void
   overviewToggleItemsView: (filterKey: OverviewSupportedFilterKeys) => void
   stackGraphToggleItemsView: (filterKey: StackGraphSupportedFilterKeys) => void
   selectGraphNode: SelectGraphNode
@@ -103,7 +102,7 @@ const INITIAL_UI_STATE: UiState = {
     visible: false,
     content: null,
   },
-  isSidebarOpen: true,
+  isMenuOpen: true,
   selectedGraphNode: null,
 }
 
@@ -115,14 +114,6 @@ interface UiStateAndActions {
 // FIXME: Use useReducer instead of useState to simplify updating
 const useUiStateProvider = () => {
   const [uiState, setState] = useState<UiState>(INITIAL_UI_STATE)
-
-  const toggleSidebar = () => {
-    setState(
-      produce(uiState, (draft) => {
-        draft.isSidebarOpen = !uiState.isSidebarOpen
-      })
-    )
-  }
 
   const overviewToggleItemsView = (filterKey: OverviewSupportedFilterKeys) => {
     setState(
@@ -219,7 +210,6 @@ const useUiStateProvider = () => {
   return {
     state: uiState,
     actions: {
-      toggleSidebar,
       overviewToggleItemsView,
       stackGraphToggleItemsView,
       selectGraphNode,

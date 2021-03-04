@@ -34,12 +34,16 @@ const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-size: 0.8rem;
 `
+
+const selectFontSize = "0.9rem"
 
 // TODO: Roll our own Select component instead of using react-select, it's an overkill.
 const selectStyles = {
   control: (base, state) => ({
     ...base,
+    "fontSize": selectFontSize,
     "boxShadow": state.isFocused ? `0 0 0 1px ${colors.gardenGrayLight}` : 0, // The box shadow adds width to the border
     "borderColor": state.isFocused ? colors.gardenGrayLight : base.borderColor,
     "&:hover": {
@@ -49,6 +53,7 @@ const selectStyles = {
   option: (base, state) => ({
     ...base,
     color: colors.gardenBlack,
+    fontSize: selectFontSize,
     backgroundColor: state.isSelected
       ? colors.gardenGreenDark
       : state.isFocused
@@ -104,7 +109,7 @@ class Logs extends Component<Props, State> {
     const filteredLogs = value === "all" ? flatten(Object.values(logs)) : logs[value]
 
     return (
-      <div className="pl-1">
+      <div className="pl-1" style={{ marginTop: "1rem", marginRight: "1rem" }}>
         <div
           className={cls(
             css`

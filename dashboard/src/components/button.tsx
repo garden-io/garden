@@ -12,8 +12,8 @@ import { colors } from "../styles/variables"
 export const TertiaryButton = styled.button`
   cursor: pointer;
   padding: 0;
-  font-size: 0.8125rem;
-  line-height: 1.1875rem;
+  font-size: 0.7rem;
+  line-height: 1rem;
   text-align: center;
   letter-spacing: 0.01em;
   color: ${colors.buttons.tertiary.default.color};
