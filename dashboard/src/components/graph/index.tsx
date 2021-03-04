@@ -12,9 +12,8 @@ import { Canvas, Node, Edge, MarkerArrow, NodeChildProps } from "reaflow"
 import React, { useState } from "react"
 import styled from "@emotion/styled"
 import { capitalize } from "lodash"
-import Card from "../card"
 import "./graph.scss"
-import { colors, fontMedium } from "../../styles/variables"
+import { colors } from "../../styles/variables"
 import Spinner, { SpinnerProps } from "../spinner"
 import { SelectGraphNode, StackGraphSupportedFilterKeys } from "../../contexts/ui"
 import { FiltersButton, Filters } from "../group-filter"
@@ -45,11 +44,6 @@ const selectedClassName = "selected"
 
 const Span = styled.span`
   margin-left: 1rem;
-`
-
-const Status = styled.p`
-  ${fontMedium}
-  color: grey;
 `
 
 const ProcessSpinner = styled<any, SpinnerProps>(Spinner)`
@@ -98,9 +92,8 @@ export const StackGraph: React.FC<Props> = ({
   onFilter,
 }) => {
   let spinner: React.ReactNode = null
-  let graphStatus = ""
+
   if (isProcessing) {
-    graphStatus = "Processing..."
     spinner = <ProcessSpinner background={colors.gardenWhite} size="2rem" />
   }
 
@@ -188,83 +181,83 @@ export const StackGraph: React.FC<Props> = ({
   }
 
   return (
-    <Card>
+    <div
+      className={cls(
+        css`
+          position: relative;
+        `
+      )}
+    >
       <div
         className={cls(
           css`
-            position: relative;
+            position: absolute;
+            bottom: 2.3rem;
+            left: 0.5rem;
           `
         )}
       >
-        <div
-          className={cls(
-            css`
-              position: absolute;
-              top: 1rem;
-              display: flex;
-            `
-          )}
-        >
-          <div className="ml-1">
-            <FiltersButton filters={filters} onFilter={onFilter} />
-            <div
-              className={css`
-                display: flex;
-              `}
-            >
-              <Status>{graphStatus}</Status>
-              {spinner}
-            </div>
-          </div>
-        </div>
-
-        <div id="chart">
-          <Canvas
-            readonly
-            fit
-            direction="RIGHT"
-            maxHeight={5000}
-            maxWidth={5000}
-            layoutOptions={{ "algorithm": "layered", "org.eclipse.elk.partitioning.activate": true }}
-            nodes={nodes}
-            edges={edges}
-            selections={selections}
-            node={<Node style={{ fill: "white", strokeWidth: 0 }}>{renderNode}</Node>}
-            edge={<Edge disabled style={{ stroke: "rgba(0, 0, 0, 0.2)", strokeWidth: "1.5px" }} />}
-            arrow={<MarkerArrow style={{ fill: "rgba(140, 140, 140)", strokeWidth: "5px" }} />}
-          />
-        </div>
-
-        <div
-          className={cls(
-            css`
-              position: absolute;
-              right: 1rem;
-              bottom: 1rem;
-              display: flex;
-              justify-content: flex-end;
-              font-size: 0.8em;
-            `,
-            "mr-1"
-          )}
-        >
-          {Object.entries(taskStates).map(([state, props]) => {
-            return (
-              <Span key={state}>
-                <span
-                  className={css`
-                    color: ${colors.taskState[state]};
-                    font-weight: bold;
-                  `}
-                >
-                  {props.indicator || defaultTaskIndicator}{" "}
-                </span>
-                {capitalize(state)}
-              </Span>
-            )
-          })}
-        </div>
+        {spinner}
       </div>
-    </Card>
+      <div
+        className={cls(
+          css`
+            position: absolute;
+            top: 1rem;
+            right: 1.5rem;
+            display: flex;
+          `
+        )}
+      >
+        <FiltersButton filters={filters} onFilter={onFilter} />
+      </div>
+
+      <div id="chart">
+        <Canvas
+          readonly
+          fit
+          direction="RIGHT"
+          maxHeight={5000}
+          maxWidth={5000}
+          layoutOptions={{ "algorithm": "layered", "org.eclipse.elk.partitioning.activate": true }}
+          nodes={nodes}
+          edges={edges}
+          selections={selections}
+          node={<Node style={{ fill: "white", strokeWidth: 0 }}>{renderNode}</Node>}
+          edge={<Edge disabled style={{ stroke: "rgba(0, 0, 0, 0.2)", strokeWidth: "1.5px" }} />}
+          arrow={<MarkerArrow style={{ fill: "rgba(140, 140, 140)", strokeWidth: "5px" }} />}
+        />
+      </div>
+
+      <div
+        className={cls(
+          css`
+            position: absolute;
+            right: 1rem;
+            bottom: 2.2rem;
+            display: flex;
+            justify-content: flex-end;
+            font-size: 0.8em;
+          `,
+          "mr-1"
+        )}
+      >
+        {Object.entries(taskStates).map(([state, props]) => {
+          return (
+            <Span key={state}>
+              <span
+                className={css`
+                  color: ${colors.taskState[state]};
+                  font-weight: bold;
+                `}
+              >
+                {props.indicator || defaultTaskIndicator}{" "}
+              </span>
+              {capitalize(state)}
+            </Span>
+          )
+        })}
+      </div>
+    </div>
   )
 }

@@ -15,7 +15,7 @@ import PageError from "../components/page-error"
 import Spinner from "../components/spinner"
 import { initApiStore } from "../api/actions"
 import ErrorBoundary from "../components/error-boundary"
-import Sidebar from "../containers/sidebar"
+import Menu, { menuHeight } from "./menu"
 import { useApi } from "../hooks"
 import ProviderPageFrame from "../components/provider"
 
@@ -24,19 +24,20 @@ const Logs = React.lazy(() => import("./logs"))
 const Overview = React.lazy(() => import("./overview"))
 
 const RouteWrapper = styled.div`
-  background-color: ${colors.gardenGrayLighter};
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   flex-grow: 1;
+  width: 100%;
   overflow-y: hidden;
-  padding: 1rem 1rem 1rem 2rem;
 `
 
-const SidebarWrapper = styled.div`
-  height: 100vh;
-  position: relative;
+const MenuWrapper = styled.div`
+  display: flex;
+  flex-direction: row;
+  height: ${menuHeight};
+  width: 100%;
   background: ${colors.gardenWhite};
-  box-shadow: 6px 0px 18px rgba(0, 0, 0, 0.06);
+  box-shadow: 6px 0px 18px rgba(0, 0, 0, 0.04);
 `
 
 const providerPageShown: { [path: string]: boolean } = {}
@@ -99,11 +100,11 @@ export default () => {
 
   return (
     <>
-      <SidebarWrapper>
-        <ErrorBoundary errorMsg={"Unable to load sidebar"}>
-          <Sidebar />
+      <MenuWrapper>
+        <ErrorBoundary errorMsg={"Unable to load menu"}>
+          <Menu />
         </ErrorBoundary>
-      </SidebarWrapper>
+      </MenuWrapper>
       <RouteWrapper>
         <ErrorBoundary errorMsg={"Unable to load page"}>{routes}</ErrorBoundary>
       </RouteWrapper>

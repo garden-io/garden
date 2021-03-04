@@ -59,7 +59,7 @@ export const TaskCard = ({
           <TertiaryButton
             onClick={handleEntitySelected}
             className={css`
-              margin-top: 0.5rem;
+              margin-top: 0.4rem;
             `}
           >
             Show result

@@ -24,6 +24,8 @@ import { InfoBox } from "./components/InfoBox"
 
 const AppWrapper = styled.div`
   display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
   height: 100vh;
   max-height: 100vh;
   overflow-y: hidden;
