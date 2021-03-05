@@ -140,7 +140,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     "type=inline",
     "--import-cache",
     `type=registry,ref=${deploymentImageName}`,
-    ...getDockerBuildFlags(module),
+    ...getBuildkitFlags(module),
   ]
 
   // Execute the build
@@ -236,7 +236,7 @@ export async function ensureBuildkit({
   })
 }
 
-function getDockerBuildFlags(module: ContainerModule) {
+export function getBuildkitFlags(module: ContainerModule) {
   const args: string[] = []
 
   for (const arg of getDockerBuildArgs(module)) {
@@ -244,7 +244,7 @@ function getDockerBuildFlags(module: ContainerModule) {
   }
 
   if (module.spec.build.targetImage) {
-    args.push("--opt", "target:" + module.spec.build.targetImage)
+    args.push("--opt", "target=" + module.spec.build.targetImage)
   }
 
   args.push(...(module.spec.extraFlags || []))
