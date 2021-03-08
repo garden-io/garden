@@ -1562,17 +1562,22 @@ workflowConfigs:
         #
         events:
 
-        # If specified, only run the workflow for branches matching one of these filters.
+        # If specified, only run the workflow for branches matching one of these filters. These filters refer to the
+        # pull/merge request's head branch (e.g. `my-feature-branch`), not the base branch that the pull/merge request
+        # would be merged into if approved (e.g. `main`).
         branches:
 
-        # If specified, only run the workflow for tags matching one of these filters.
-        tags:
+        # If specified, only run the workflow for pull/merge requests whose base branch matches one of these filters.
+        baseBranches:
 
-        # If specified, do not run the workflow for branches matching one of these filters.
+        # If specified, do not run the workflow for branches matching one of these filters. These filters refer to the
+        # pull/merge request's head branch (e.g. `my-feature-branch`), not the base branch that the pull/merge request
+        # would be merged into if approved (e.g. `main`).
         ignoreBranches:
 
-        # If specified, do not run the workflow for tags matching one of these filters.
-        ignoreTags:
+        # If specified, do not run the workflow for pull/merge requests whose base branch matches one of these
+        # filters.
+        ignoreBaseBranches:
 
 # The name of the project.
 projectName:
