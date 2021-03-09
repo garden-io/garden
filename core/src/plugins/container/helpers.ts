@@ -31,6 +31,7 @@ import titleize from "titleize"
 import { deline, stripQuotes } from "../../util/string"
 import { PluginContext } from "../../plugin-context"
 import { ModuleVersion } from "../../vcs/vcs"
+import { SpawnParams } from "../../util/ext-tools"
 
 interface DockerVersion {
   client?: string
@@ -323,6 +324,11 @@ const helpers = {
         cwd,
       })
     }
+  },
+
+  spawnDockerCli(params: SpawnParams & { ctx: PluginContext }) {
+    const docker = params.ctx.tools["container.docker"]
+    return docker.spawn(params)
   },
 
   hasDockerfile(config: ContainerModuleConfig, version: ModuleVersion): boolean {

@@ -20,12 +20,14 @@ import { LogEntry } from "../../../logger/log-entry"
 import { containerHelpers } from "../../container/helpers"
 import { RuntimeError } from "../../../exceptions"
 import { PodRunner } from "../run"
-import { inClusterRegistryHostname, gardenUtilDaemonDeploymentName } from "../constants"
+import { dockerAuthSecretKey, dockerAuthSecretName, inClusterRegistryHostname, k8sUtilImageName } from "../constants"
 import { getAppNamespace, getSystemNamespace } from "../namespace"
-import { getDeploymentPod } from "../util"
 import { getRegistryPortForward } from "../container/util"
+import { randomString } from "../../../util/string"
+import { buildkitAuthSecretName, ensureBuilderSecret } from "../container/build/buildkit"
 import { PluginContext } from "../../../plugin-context"
-import { buildkitDeploymentName } from "../container/build/buildkit"
+
+const tmpTarPath = "/tmp/image.tar"
 
 export const pullImage: PluginCommand = {
   name: "pull-image",
@@ -143,97 +145,120 @@ async function pullFromExternalRegistry(
   const buildMode = ctx.provider.config.buildMode
 
   let namespace: string
-  let deploymentName: string
+  let authSecretName: string
 
   if (buildMode === "cluster-buildkit") {
     namespace = await getAppNamespace(ctx, log, ctx.provider)
-    deploymentName = buildkitDeploymentName
+    authSecretName = buildkitAuthSecretName
+
+    await ensureBuilderSecret({
+      provider: ctx.provider,
+      log,
+      api,
+      namespace,
+      waitForUpdate: false,
+    })
   } else {
     namespace = await getSystemNamespace(ctx, ctx.provider, log)
-    deploymentName = gardenUtilDaemonDeploymentName
+    authSecretName = dockerAuthSecretName
   }
 
   const imageId = containerHelpers.getDeploymentImageId(module, module.version, ctx.provider.config.deploymentRegistry)
-  const tarName = `/tmp/${module.name}-${module.version.versionString}`
 
+  // See https://github.com/containers/skopeo for how all this works and the syntax
   const skopeoCommand = [
     "skopeo",
     "--command-timeout=300s",
     "--insecure-policy",
     "copy",
+    "--quiet",
     `docker://${imageId}`,
-    `docker-archive:${tarName}`,
+    `docker-archive:${tmpTarPath}:${localId}`,
   ]
 
-  const pod = await getDeploymentPod({
-    api,
-    deploymentName,
-    namespace,
-  })
   const runner = new PodRunner({
     api,
     ctx,
     provider: ctx.provider,
     namespace,
-    pod,
+    pod: {
+      apiVersion: "v1",
+      kind: "Pod",
+      metadata: {
+        name: `pull-image-${randomString(8)}`,
+        namespace,
+      },
+      spec: {
+        containers: [
+          {
+            name: "main",
+            image: k8sUtilImageName,
+            command: ["sleep", "360"],
+            volumeMounts: [
+              {
+                name: authSecretName,
+                mountPath: "/home/user/.docker",
+                readOnly: true,
+              },
+            ],
+          },
+        ],
+        volumes: [
+          {
+            name: authSecretName,
+            secret: {
+              secretName: authSecretName,
+              items: [{ key: dockerAuthSecretKey, path: "config.json" }],
+            },
+          },
+        ],
+      },
+    },
   })
 
-  await runner.exec({
-    command: ["sh", "-c", skopeoCommand.join(" ")],
-    containerName: "util",
-    log,
-    timeoutSec: 60 * 1000 * 5, // 5 minutes,
-  })
+  log.debug(`Pulling image ${imageId} from registry to local docker`)
 
   try {
-    await importImage({ module, runner, tarName, imageId, log, ctx })
-    await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["tag", imageId, localId], log, ctx })
+    await runner.start({ log })
+
+    await runner.exec({
+      log,
+      command: skopeoCommand,
+      tty: false,
+      timeoutSec: 60 * 1000 * 5, // 5 minutes,
+      buffer: true,
+    })
+
+    log.debug(`Loading image to local docker with ID ${localId}`)
+    await loadImage({ ctx, runner, log })
   } catch (err) {
-    throw new RuntimeError(`Failed pulling image for module ${module.name} with image id ${imageId}: ${err}`, {
+    throw new RuntimeError(`Failed pulling image ${imageId}: ${err.message}`, {
       err,
       imageId,
+      localId,
     })
   } finally {
-    try {
-      await runner.exec({
-        command: ["rm", "-rf", tarName],
-        containerName: "util",
-        log,
-      })
-    } catch (err) {
-      log.warn("Failed cleaning up temporary file: " + err.message)
-    }
+    await runner.stop()
   }
 }
 
-async function importImage({
-  module,
-  runner,
-  tarName,
-  imageId,
-  log,
-  ctx,
-}: {
-  module: GardenModule
-  runner: PodRunner
-  tarName: string
-  imageId: string
-  log: LogEntry
-  ctx: PluginContext
-}) {
-  const getOutputCommand = ["cat", tarName]
-
+async function loadImage({ ctx, runner, log }: { ctx: PluginContext; runner: PodRunner; log: LogEntry }) {
   await tmp.withFile(async ({ path }) => {
     let writeStream = fs.createWriteStream(path)
 
     await runner.exec({
-      command: getOutputCommand,
-      containerName: "util",
+      command: ["cat", tmpTarPath],
+      containerName: "main",
       log,
       stdout: writeStream,
+      buffer: false,
     })
 
-    const args = ["import", path, imageId]
-    await containerHelpers.dockerCli({ cwd: module.buildPath, args, log, ctx })
+    await containerHelpers.dockerCli({
+      ctx,
+      cwd: "/tmp",
+      args: ["load", "-i", path],
+      log,
+    })
   })
 }
