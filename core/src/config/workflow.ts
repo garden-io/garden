@@ -35,6 +35,7 @@ export interface WorkflowConfig {
   apiVersion: string
   description?: string
   name: string
+  envVars: PrimitiveMap
   kind: "Workflow"
   path: string
   configPath?: string
@@ -72,6 +73,9 @@ export const workflowConfigSchema = () =>
       kind: joi.string().default("Workflow").valid("Workflow"),
       name: joiUserIdentifier().required().description("The name of this workflow.").example("my-workflow"),
       description: joi.string().description("A description of the workflow."),
+      envVars: joiEnvVars().description(
+        "A map of environment variables to use for the workflow. These will be available to all steps in the workflow."
+      ),
       files: joiSparseArray(workflowFileSchema()).description(dedent`
           A list of files to write before starting the workflow.
 
@@ -192,9 +196,12 @@ export const workflowStepSchema = () => {
         )
         .example(["run", "task", "my-task"]),
       description: joi.string().description("A description of the workflow step."),
-      envVars: joiEnvVars().description(
-        "A map of environment variables to use when running script steps. Ignored for `command` steps."
-      ),
+      envVars: joiEnvVars().description(dedent`
+        A map of environment variables to use when running script steps. Ignored for \`command\` steps.
+
+        Note: Environment variables provided here take precedence over any environment variables configured at the
+        workflow level.
+      `),
       script: joi.string().description(
         dedent`
         A bash script to run. Note that the host running the workflow must have bash installed and on path.

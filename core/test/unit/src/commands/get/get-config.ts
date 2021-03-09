@@ -72,6 +72,7 @@ describe("GetConfigCommand", () => {
         keepAliveHours: 48,
         limits: defaultContainerLimits,
         path: garden.projectRoot,
+        envVars: {},
         steps: [{ command: ["run", "task", "foo"] }],
       },
     ]
