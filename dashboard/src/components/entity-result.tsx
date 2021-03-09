@@ -184,7 +184,6 @@ export default ({
           css`
             display: flex;
             flex-direction: column;
-            max-height: calc(100vh - 2rem);
           `
         )}
       >

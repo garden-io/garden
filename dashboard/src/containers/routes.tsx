@@ -26,9 +26,10 @@ const Overview = React.lazy(() => import("./overview"))
 const RouteWrapper = styled.div`
   display: flex;
   flex-direction: row;
-  flex-grow: 1;
+  align-content: flex-start;
   width: 100%;
-  overflow-y: hidden;
+  height: calc(100vh - ${menuHeight});
+  overflow-y: auto;
 `
 
 const MenuWrapper = styled.div`
