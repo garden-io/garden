@@ -77,6 +77,23 @@ steps:
       echo "Hello ${project.name}!"
 ```
 
+### Environment variables
+
+To explicitly provide environment variables to the steps of a workflow, you can use the `workflow.envVars` field:
+
+```yaml
+kind: Workflow
+name: my-workflow
+envVars:
+  MY_ENV_VAR: some-value
+  MY_PROJECT_VAR: ${var.my-var} # Use template strings
+  SECRET_ACCESS_TOKEN: ${secrets.SECRET_ACCESS_TOKEN} # Use a Garden Enterprise secret
+...
+```
+Workflow-level environment variables like this can be useful e.g. for providing templated values (such as secrets or project variables) to several script steps, or to initialize providers in the context of a CI system.
+
+Note that workflow-level environment variables apply to all steps of a workflow (both command and script steps).
+
 ### The `skip` and `when` options
 
 By default, a workflow step is run if all previous steps have been run without errors. Sometimes, it can be useful to override this default behavior with the `skip` and `when` fields on workflow steps.

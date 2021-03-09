@@ -1428,6 +1428,11 @@ workflowConfigs:
     # A description of the workflow.
     description:
 
+    # A map of environment variables to use for the workflow. These will be available to all steps in the workflow.
+    envVars:
+      # Number, string or boolean
+      <name>:
+
     # A list of files to write before starting the workflow.
     #
     # This is useful to e.g. create files required for provider authentication, and can be created from data stored in
@@ -1505,6 +1510,9 @@ workflowConfigs:
         description:
 
         # A map of environment variables to use when running script steps. Ignored for `command` steps.
+        #
+        # Note: Environment variables provided here take precedence over any environment variables configured at the
+        # workflow level.
         envVars:
           # Number, string or boolean
           <name>:
