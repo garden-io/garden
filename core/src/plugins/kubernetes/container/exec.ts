@@ -88,6 +88,7 @@ export async function execInWorkload({
     command,
     timeoutSec: 999999,
     tty: interactive,
+    buffer: true,
   })
 
   return { code: res.exitCode, output: res.log }

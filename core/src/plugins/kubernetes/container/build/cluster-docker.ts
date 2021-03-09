@@ -41,6 +41,7 @@ export const getClusterDockerBuildStatus: BuildStatusHandler = async (params) =>
       command: pushArgs,
       timeoutSec: 300,
       containerName: dockerDaemonContainerName,
+      buffer: true,
     })
     return { ready: true }
   } catch (err) {
