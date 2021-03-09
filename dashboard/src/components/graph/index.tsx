@@ -233,13 +233,13 @@ export const StackGraph: React.FC<Props> = ({
         className={cls(
           css`
             position: absolute;
-            right: 1rem;
+            right: 2rem;
             bottom: 2.2rem;
             display: flex;
             justify-content: flex-end;
             font-size: 0.8em;
-          `,
-          "mr-1"
+            background-color: white;
+          `
         )}
       >
         {Object.entries(taskStates).map(([state, props]) => {
