@@ -47,6 +47,7 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
+        envVars: {},
         path: garden.projectRoot,
         steps: [
           { command: ["deploy"], description: "deploy services" },
@@ -79,6 +80,7 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
+        envVars: {},
         path: garden.projectRoot,
         steps: [{ command: ["deploy"] }, { command: ["test"] }],
       },
@@ -119,6 +121,7 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
+        envVars: {},
         path: garden.projectRoot,
         steps: [{ command: ["deploy"] }, { command: ["build"], skip: true }, { command: ["test"] }],
       },
@@ -156,6 +159,7 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
+        envVars: {},
         path: garden.projectRoot,
         files: [],
         steps: [{ command: ["run", "task", "task-a"] }],
@@ -298,6 +302,7 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
+        envVars: {},
         path: garden.projectRoot,
         steps: [{ command: ["run", "task", "some-task"] }, { command: ["test"] }],
       },
@@ -358,6 +363,7 @@ describe("RunWorkflowCommand", () => {
         name: "workflow-a",
         kind: "Workflow",
         path: garden.projectRoot,
+        envVars: {},
         files: [{ path: ".garden/test.txt", data: "test" }],
         steps: [{ command: ["get", "outputs"] }],
       },
@@ -374,6 +380,7 @@ describe("RunWorkflowCommand", () => {
         name: "workflow-a",
         kind: "Workflow",
         path: garden.projectRoot,
+        envVars: {},
         files: [{ path: ".garden/test.txt", secretName: "test" }],
         steps: [{ command: ["get", "outputs"] }],
       },
@@ -395,6 +402,7 @@ describe("RunWorkflowCommand", () => {
         name: "workflow-a",
         kind: "Workflow",
         path: garden.projectRoot,
+        envVars: {},
         files: [{ path: ".garden/test.txt", secretName: "missing" }],
         steps: [{ command: ["get", "outputs"] }],
       },
@@ -414,6 +422,7 @@ describe("RunWorkflowCommand", () => {
         name: "workflow-a",
         kind: "Workflow",
         path: garden.projectRoot,
+        envVars: {},
         files: [{ path: "garden.yml/foo.txt", data: "foo" }],
         steps: [{ command: ["get", "outputs"] }],
       },
@@ -434,6 +443,7 @@ describe("RunWorkflowCommand", () => {
         name: "workflow-a",
         kind: "Workflow",
         path: garden.projectRoot,
+        envVars: {},
         files: [{ path: ".garden", data: "foo" }],
         steps: [{ command: ["get", "outputs"] }],
       },
@@ -455,6 +465,7 @@ describe("RunWorkflowCommand", () => {
         name: "workflow-a",
         kind: "Workflow",
         path: garden.projectRoot,
+        envVars: {},
         files: [],
         steps: [{ script: "pwd" }],
       },
@@ -469,6 +480,52 @@ describe("RunWorkflowCommand", () => {
     expect(result?.steps["step-1"].log).to.equal(garden.projectRoot)
   })
 
+  it("should include env vars from the workflow config, if provided", async () => {
+    garden.setWorkflowConfigs([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "workflow-a",
+        kind: "Workflow",
+        path: garden.projectRoot,
+        envVars: { TEST_VAR_A: "llama" },
+        files: [],
+        steps: [{ script: "echo $TEST_VAR_A" }],
+      },
+    ])
+
+    await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    expect(result).to.exist
+    expect(errors).to.not.exist
+    expect(result?.steps["step-1"].log).to.equal("llama")
+    delete process.env.TEST_VAR_A
+  })
+
+  it("should override env vars from the workflow config with script step env vars, if provided", async () => {
+    garden.setWorkflowConfigs([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "workflow-a",
+        kind: "Workflow",
+        path: garden.projectRoot,
+        envVars: { TEST_VAR_A: "llama" },
+        files: [],
+        steps: [{ script: "echo $TEST_VAR_A", envVars: { TEST_VAR_A: "bear" } }],
+      },
+    ])
+
+    await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    expect(result).to.exist
+    expect(errors).to.not.exist
+    expect(result?.steps["step-1"].log).to.equal("bear")
+    delete process.env.TEST_VAR_A
+  })
+
   it("should apply configured envVars when running script steps", async () => {
     garden.setWorkflowConfigs([
       {
@@ -477,6 +534,7 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         path: garden.projectRoot,
         files: [],
+        envVars: {},
         steps: [{ script: "echo $FOO $BAR", envVars: { FOO: "foo", BAR: 123 } }],
       },
     ])
@@ -498,6 +556,7 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         path: garden.projectRoot,
         files: [],
+        envVars: {},
         steps: [{ script: "pwd" }, { script: "echo fail!; exit 1", skip: true }],
       },
     ])
@@ -598,6 +657,7 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         path: garden.projectRoot,
         files: [],
+        envVars: {},
         steps: [
           {
             script: dedent`
@@ -624,6 +684,7 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         path: garden.projectRoot,
         files: [],
+        envVars: {},
         steps: [{ script: "echo boo!; exit 1" }],
       },
     ])
@@ -642,6 +703,7 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         path: garden.projectRoot,
         files: [],
+        envVars: {},
         steps: [{ command: ["get", "config"] }, { command: ["run", "task", "task-a"] }],
       },
     ])
@@ -668,6 +730,7 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         path: garden.projectRoot,
         files: [],
+        envVars: {},
         steps: [{ name: "test", command: ["run", "task", "task-a"] }],
       },
     ])
@@ -691,6 +754,7 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         path: garden.projectRoot,
         files: [],
+        envVars: {},
         steps: [{ command: ["get", "outputs"] }, { command: ["run", "task", "${steps.step-1.outputs.taskName}"] }],
       },
     ])
@@ -713,6 +777,7 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         path: garden.projectRoot,
         files: [],
+        envVars: {},
         steps: [{ command: ["get", "outputs"] }, { script: "echo ${steps.step-1.outputs.taskName}" }],
       },
     ])

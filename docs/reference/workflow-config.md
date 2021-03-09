@@ -27,6 +27,9 @@ name:
 # A description of the workflow.
 description:
 
+# A map of environment variables to use for the workflow. These will be available to all steps in the workflow.
+envVars: {}
+
 # A list of files to write before starting the workflow.
 #
 # This is useful to e.g. create files required for provider authentication, and can be created from data stored in
@@ -104,6 +107,9 @@ steps:
     description:
 
     # A map of environment variables to use when running script steps. Ignored for `command` steps.
+    #
+    # Note: Environment variables provided here take precedence over any environment variables configured at the
+    # workflow level.
     envVars: {}
 
     # A bash script to run. Note that the host running the workflow must have bash installed and on path.
@@ -211,6 +217,14 @@ A description of the workflow.
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `envVars`
+
+A map of environment variables to use for the workflow. These will be available to all steps in the workflow.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
 
 ### `files[]`
 
@@ -382,6 +396,9 @@ A description of the workflow step.
 [steps](#steps) > envVars
 
 A map of environment variables to use when running script steps. Ignored for `command` steps.
+
+Note: Environment variables provided here take precedence over any environment variables configured at the
+workflow level.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |

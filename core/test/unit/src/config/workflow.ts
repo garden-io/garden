@@ -42,6 +42,7 @@ describe("resolveWorkflowConfig", () => {
       name: "workflow-a",
       path: "/tmp/foo",
       description: "Sample workflow",
+      envVars: {},
       steps: [
         { description: "Deploy the stack", command: ["deploy"], skip: false, when: "onSuccess", envVars: {} },
         { command: ["test"], skip: false, when: "onSuccess", envVars: {} },
@@ -70,6 +71,7 @@ describe("resolveWorkflowConfig", () => {
       name: "workflow-a",
       path: "/tmp/foo",
       description: "Secret: ${secrets.foo}, var: ${variables.foo}",
+      envVars: {},
       steps: [
         {
           description: "Deploy the stack",
@@ -95,6 +97,7 @@ describe("resolveWorkflowConfig", () => {
       name: "workflow-a",
       path: "/tmp/foo",
       description: "foo",
+      envVars: {},
       steps: [
         {
           description: "Deploy the stack",
@@ -119,6 +122,7 @@ describe("resolveWorkflowConfig", () => {
       kind: "Workflow",
       name: "workflow-${secrets.foo}", // <--- should not be resolved, resulting in an error
       path: "/tmp/foo",
+      envVars: {},
       steps: [
         { description: "Deploy the stack", command: ["deploy"], skip: false, when: "onSuccess" },
         { command: ["test"], skip: false, when: "onSuccess" },
@@ -139,6 +143,7 @@ describe("resolveWorkflowConfig", () => {
       kind: "Workflow",
       name: "workflow-a",
       path: "/tmp/foo",
+      envVars: {},
       steps: [
         { description: "Deploy the stack", command: ["deploy"], skip: false, when: "onSuccess" },
         { command: ["test"], skip: false, when: "onSuccess" },
@@ -163,6 +168,7 @@ describe("resolveWorkflowConfig", () => {
       name: "workflow-a",
       path: "/tmp/foo",
       description: "Description",
+      envVars: {},
       steps: [{ description: "Deploy the stack", command: ["deploy"] }, { command: ["test"] }],
     }
 
@@ -184,6 +190,7 @@ describe("resolveWorkflowConfig", () => {
       name: "workflow-a",
       path: "/tmp/foo",
       description: "Sample workflow",
+      envVars: {},
       steps: [
         { description: "Do something silly", command: ["bork"] }, // <------
         { command: ["test"] },
@@ -212,6 +219,7 @@ describe("resolveWorkflowConfig", () => {
       name: "workflow-a",
       path: "/tmp/foo",
       description: "Sample workflow",
+      envVars: {},
       steps: [{ command: ["test", "--env=foo", "-l", "4"] }, { command: ["test", "--silent"] }],
       triggers: [
         {
@@ -237,6 +245,7 @@ describe("resolveWorkflowConfig", () => {
       name: "workflow-a",
       path: "/tmp/foo",
       description: "Sample workflow",
+      envVars: {},
       steps: [{ description: "Deploy the stack", command: ["deploy"] }, { command: ["test"] }],
       triggers: [
         {
@@ -268,6 +277,7 @@ describe("resolveWorkflowConfig", () => {
       name: "workflow-a",
       path: "/tmp/foo",
       description: "Sample workflow",
+      envVars: {},
       steps: [{ description: "Deploy the stack", command: ["deploy"] }, { command: ["test"] }],
     }
 
