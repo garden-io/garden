@@ -18,7 +18,6 @@ import EntityResult from "./entity-result"
 import ViewIngress from "../components/view-ingress"
 import { ServiceEntity, TestEntity, TaskEntity } from "../contexts/api"
 import { useApi, useUiState } from "../hooks"
-import { menuHeight } from "./menu"
 
 const Overview = styled.div`
   padding: 1rem 0.5rem;
