@@ -1,4 +1,21 @@
 
+<a name="0.12.19-0"></a>
+## [0.12.19-0](https://github.com/garden-io/garden/compare/0.12.18...0.12.19-0) (2021-02-26)
+
+### Bug Fixes
+
+* **enterprise:** handle requests that fail before reaching the server ([c21a1b43](https://github.com/garden-io/garden/commit/c21a1b43))
+* **k8s:** handle injected service mesh containers for tests+tasks ([a9f66970](https://github.com/garden-io/garden/commit/a9f66970))
+* **k8s:** typo in target image argument for buildkit ([88ad554a](https://github.com/garden-io/garden/commit/88ad554a))
+
+### Features
+
+* **enterprise:** add baseBranch trigger filters ([f0ecf9c8](https://github.com/garden-io/garden/commit/f0ecf9c8))
+
+### Improvements
+
+* **dashboard:** change menu layout and update styling ([a34fa07e](https://github.com/garden-io/garden/commit/a34fa07e))
+
 <a name="0.12.18"></a>
 ## [0.12.18](https://github.com/garden-io/garden/compare/0.12.17...0.12.18) (2021-03-02)
 
