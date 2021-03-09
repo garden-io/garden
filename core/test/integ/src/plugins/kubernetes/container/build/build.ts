@@ -195,6 +195,7 @@ describe("kubernetes build flow", () => {
         command: ["docker", "rmi", remoteId],
         timeoutSec: 300,
         containerName: dockerDaemonContainerName,
+        buffer: true,
       })
 
       // This should still report the build as ready, because it's in the registry
@@ -246,6 +247,7 @@ describe("kubernetes build flow", () => {
         command: ["docker", "rmi", remoteId],
         timeoutSec: 300,
         containerName: dockerDaemonContainerName,
+        buffer: true,
       })
 
       // This should still report the build as ready, because it's in the registry

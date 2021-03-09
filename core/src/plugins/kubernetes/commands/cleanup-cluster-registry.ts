@@ -354,6 +354,7 @@ async function deleteImagesFromDaemon({
     command: ["docker", "images", "--format", "{{.Repository}}:{{.Tag}}"],
     containerName: dockerDaemonContainerName,
     timeoutSec: 300,
+    buffer: true,
   })
 
   const imagesInDaemon = res.log
@@ -387,6 +388,7 @@ async function deleteImagesFromDaemon({
           command: ["docker", "rmi", ...images],
           containerName: dockerDaemonContainerName,
           timeoutSec: 600,
+          buffer: true,
         })
         log.setState(deline`
         Deleting images:
@@ -404,6 +406,7 @@ async function deleteImagesFromDaemon({
     command: ["docker", "image", "prune", "-f"],
     containerName: dockerDaemonContainerName,
     timeoutSec: 1000,
+    buffer: true,
   })
 
   log.setSuccess()
@@ -441,6 +444,7 @@ async function cleanupBuildSyncVolume({
     log,
     command: ["sh", "-c", 'stat /data/* -c "%n %X"'],
     timeoutSec: 300,
+    buffer: true,
   })
 
   // Remove directories last accessed more than workspaceSyncDirTtl ago
@@ -468,6 +472,7 @@ async function cleanupBuildSyncVolume({
         log,
         command: ["rm", "-rf", ...dirsToDelete],
         timeoutSec: 300,
+        buffer: true,
       }),
     { concurrency: 20 }
   )

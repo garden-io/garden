@@ -153,6 +153,7 @@ export async function skopeoBuildStatus({
       command: podCommand,
       timeoutSec: 300,
       containerName,
+      buffer: true,
     })
     return { ready: true }
   } catch (err) {
