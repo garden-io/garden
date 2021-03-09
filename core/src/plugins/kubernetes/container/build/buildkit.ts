@@ -197,19 +197,13 @@ export async function ensureBuildkit({
     const manifest = getBuildkitDeployment(provider)
     const status = await compareDeployedResources(ctx as KubernetesPluginContext, api, namespace, [manifest], deployLog)
 
-    // Ensure docker auth secret is available and up-to-date in the namespace
-    const authSecret = await prepareDockerAuth(api, provider, namespace)
-    authSecret.metadata.name = buildkitAuthSecretName
-    const existingSecret = await api.readOrNull({ log: deployLog, namespace, manifest: authSecret })
-
-    if (!existingSecret || authSecret.data?.[dockerAuthSecretKey] !== existingSecret.data?.[dockerAuthSecretKey]) {
-      deployLog.setState(chalk.gray(`-> Updating Docker auth secret in namespace ${namespace}`))
-      await api.upsert({ kind: "Secret", namespace, log: deployLog, obj: authSecret })
-      // Need to wait a little to ensure the secret is updated in the buildkit deployment
-      if (status.state === "ready") {
-        await sleep(5)
-      }
-    }
+    await ensureBuilderSecret({
+      provider,
+      log,
+      api,
+      namespace,
+      waitForUpdate: status.state === "ready",
+    })
 
     if (status.state === "ready") {
       return false
@@ -235,6 +229,34 @@ export async function ensureBuildkit({
     deployLog.setState({ append: true, msg: "Done!" })
     return true
   })
+}
+
+export async function ensureBuilderSecret({
+  provider,
+  log,
+  api,
+  namespace,
+  waitForUpdate,
+}: {
+  provider: KubernetesProvider
+  log: LogEntry
+  api: KubeApi
+  namespace: string
+  waitForUpdate: boolean
+}) {
+  // Ensure docker auth secret is available and up-to-date in the namespace
+  const authSecret = await prepareDockerAuth(api, provider, namespace)
+  authSecret.metadata.name = buildkitAuthSecretName
+  const existingSecret = await api.readOrNull({ log, namespace, manifest: authSecret })
+
+  if (!existingSecret || authSecret.data?.[dockerAuthSecretKey] !== existingSecret.data?.[dockerAuthSecretKey]) {
+    log.setState(chalk.gray(`-> Updating Docker auth secret in namespace ${namespace}`))
+    await api.upsert({ kind: "Secret", namespace, log, obj: authSecret })
+    // Need to wait a little to ensure the secret is updated in the buildkit deployment
+    if (waitForUpdate) {
+      await sleep(5)
+    }
+  }
 }
 
 export function getBuildkitFlags(module: ContainerModule) {

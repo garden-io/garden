@@ -488,7 +488,7 @@ async function runWithArtifacts({
         stderr,
         // Anything above two minutes for this would be unusual
         timeoutSec: 120,
-        buffer: false,
+        buffer: true,
       })
     } catch (err) {
       // TODO: fall back to copying `arc` (https://github.com/mholt/archiver) or similar into the container and
