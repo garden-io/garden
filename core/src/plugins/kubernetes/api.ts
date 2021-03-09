@@ -588,6 +588,7 @@ export class KubeApi {
    * Warning: Do not use tty=true unless you're actually attaching to a terminal, since collecting output will not work.
    */
   async execInPod({
+    buffer,
     namespace,
     podName,
     containerName,
@@ -598,6 +599,7 @@ export class KubeApi {
     tty,
     timeoutSec,
   }: {
+    buffer: boolean
     namespace: string
     podName: string
     containerName: string
@@ -612,8 +614,8 @@ export class KubeApi {
     const stderrCollector = new StringCollector()
     const combinedCollector = new StringCollector()
 
-    let _stdout: Writable = stdoutCollector
-    let _stderr: Writable = stderrCollector
+    let _stdout = stdout || null
+    let _stderr = stderr || null
 
     if (tty) {
       // We connect stdout and stderr directly.
@@ -633,22 +635,22 @@ export class KubeApi {
         const ttyStdin = stdin as ReadStream
         ttyStdin.setRawMode && ttyStdin.setRawMode(true)
       }
-    } else {
+    } else if (buffer) {
       /**
-       * Unless we're attaching a TTY to the output streams, we multiplex the outputs to both a StringCollector,
-       * and whatever stream the caller provided.
+       * Unless we're attaching a TTY to the output streams or buffer=false, we multiplex the outputs to both a
+       * StringCollector, and whatever stream the caller provided.
        */
       _stdout = new PassThrough()
       _stdout.pipe(stdoutCollector)
       _stdout.pipe(combinedCollector)
 
-      if (stdout) {
-        _stdout.pipe(stdout)
-      }
-
       _stderr = new PassThrough()
       _stderr.pipe(stderrCollector)
       _stderr.pipe(combinedCollector)
+
+      if (stdout) {
+        _stdout.pipe(stdout)
+      }
 
       if (stderr) {
         _stderr.pipe(stderr)

@@ -488,6 +488,7 @@ async function runWithArtifacts({
         stderr,
         // Anything above two minutes for this would be unusual
         timeoutSec: 120,
+        buffer: false,
       })
     } catch (err) {
       // TODO: fall back to copying `arc` (https://github.com/mholt/archiver) or similar into the container and
@@ -524,6 +525,7 @@ async function runWithArtifacts({
         stdout,
         stderr,
         timeoutSec,
+        buffer: true,
       })
       result = {
         ...res,
@@ -572,7 +574,7 @@ async function runWithArtifacts({
         ]
 
         try {
-          await new Promise((_resolve, reject) => {
+          await new Promise<void>((_resolve, reject) => {
             // Create an extractor to receive the tarball we will stream from the container
             // and extract to the artifacts directory.
             let done = 0
@@ -600,6 +602,7 @@ async function runWithArtifacts({
                 log,
                 stdout: extractor,
                 timeoutSec,
+                buffer: false,
               })
               .then(() => {
                 // Need to make sure both processes are complete before resolving (may happen in either order)
@@ -651,6 +654,7 @@ type ExecParams = StartParams & {
   stderr?: Writable
   stdin?: Readable
   tty?: boolean
+  buffer: boolean
 }
 
 type RunParams = StartParams & {
@@ -846,7 +850,7 @@ export class PodRunner extends PodRunnerParams {
    * Executes a command in the running Pod. Must be called after `start()`.
    */
   async exec(params: ExecParams) {
-    const { command, containerName: container, timeoutSec, tty = false, log } = params
+    const { command, containerName: container, timeoutSec, tty = false, log, buffer = true } = params
     let { stdout, stderr, stdin } = params
 
     if (tty) {
@@ -871,6 +875,7 @@ export class PodRunner extends PodRunnerParams {
       command,
       stdout,
       stderr,
+      buffer,
       stdin,
       tty,
       timeoutSec,

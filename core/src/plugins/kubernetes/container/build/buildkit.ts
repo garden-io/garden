@@ -162,6 +162,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     timeoutSec: buildTimeout,
     containerName: buildkitContainerName,
     stdout,
+    buffer: true,
   })
 
   buildLog = buildRes.log

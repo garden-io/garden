@@ -128,6 +128,7 @@ const remoteBuild: BuildHandler = async (params) => {
       timeoutSec: buildTimeout,
       containerName,
       stdout,
+      buffer: true,
     })
 
     buildLog = buildRes.log
@@ -144,6 +145,7 @@ const remoteBuild: BuildHandler = async (params) => {
       timeoutSec: 300,
       containerName,
       stdout,
+      buffer: true,
     })
 
     buildLog += pushRes.log
