@@ -1,4 +1,29 @@
 
+<a name="0.12.19"></a>
+## [0.12.19](https://github.com/garden-io/garden/compare/0.12.18...0.12.19) (2021-03-10)
+
+### Bug Fixes
+
+* **dashboard:** styling issues when scrollbars are always visible ([3940106f](https://github.com/garden-io/garden/commit/3940106f))
+* **dashboard:** visible scrollbar in overview cards ([463fa5b3](https://github.com/garden-io/garden/commit/463fa5b3))
+* **dashboard:** bad alignment of logs view with small amount of logs ([edaefae6](https://github.com/garden-io/garden/commit/edaefae6))
+* **enterprise:** handle requests that fail before reaching the server ([c21a1b43](https://github.com/garden-io/garden/commit/c21a1b43))
+* **k8s:** failures when publishing images from external registries ([63a993ad](https://github.com/garden-io/garden/commit/63a993ad))
+* **k8s:** potential memory issue when fetching artifacts ([5ac7822a](https://github.com/garden-io/garden/commit/5ac7822a))
+* **k8s:** handle injected service mesh containers for tests+tasks ([a9f66970](https://github.com/garden-io/garden/commit/a9f66970))
+* **k8s:** typo in target image argument for buildkit ([88ad554a](https://github.com/garden-io/garden/commit/88ad554a))
+
+### Features
+
+* **enterprise:** add baseBranch trigger filters ([f0ecf9c8](https://github.com/garden-io/garden/commit/f0ecf9c8))
+* **workflows:** workflow-level env variables ([#2295](https://github.com/garden-io/garden/issues/2295)) ([625cd10c](https://github.com/garden-io/garden/commit/625cd10c))
+
+### Improvements
+
+* **dashboard:** better rendering of entity status cards ([a18b74b2](https://github.com/garden-io/garden/commit/a18b74b2))
+* **dashboard:** add background color to legend ([22311844](https://github.com/garden-io/garden/commit/22311844))
+* **dashboard:** change menu layout and update styling ([a34fa07e](https://github.com/garden-io/garden/commit/a34fa07e))
+
 <a name="0.12.18"></a>
 ## [0.12.18](https://github.com/garden-io/garden/compare/0.12.17...0.12.18) (2021-03-02)
 
