@@ -19,7 +19,7 @@ export const EntityCardWrap = styled.div`
   width: 100%;
   margin-top: 1rem;
   padding: 0.75rem 0.75rem 0.4rem 0.75rem;
-  overflow-y: hidden;
+  overflow-x: hidden;
 
   &:first-of-type {
     margin-top: 0;
@@ -34,7 +34,7 @@ export const Header = styled.div`
   width: 100%;
   display: flex;
   justify-content: space-between;
-  overflow-y: hidden;
+  overflow-x: hidden;
 `
 
 export const Content = styled.div`
@@ -42,7 +42,7 @@ export const Content = styled.div`
   position: relative;
   max-height: 10rem;
   padding-top: 0.4rem;
-  overflow-y: hidden;
+  overflow-x: hidden;
   &:empty {
     display: none;
   }
