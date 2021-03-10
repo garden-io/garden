@@ -18,18 +18,14 @@ import EntityResult from "./entity-result"
 import ViewIngress from "../components/view-ingress"
 import { ServiceEntity, TestEntity, TaskEntity } from "../contexts/api"
 import { useApi, useUiState } from "../hooks"
-import { menuHeight } from "./menu"
 
 const Overview = styled.div`
   padding: 1rem 0.5rem;
-  height: calc(100vh - ${menuHeight});
 `
 
 const Modules = styled.div`
   display: flex;
   flex-wrap: wrap;
-  overflow-y: auto;
-  max-height: calc(100vh - 2rem);
   padding: 0 0 0 1rem;
 `
 

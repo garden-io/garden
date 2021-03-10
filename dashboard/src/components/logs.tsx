@@ -109,7 +109,7 @@ class Logs extends Component<Props, State> {
     const filteredLogs = value === "all" ? flatten(Object.values(logs)) : logs[value]
 
     return (
-      <div className="pl-1" style={{ marginTop: "1rem", marginRight: "1rem" }}>
+      <div className="pl-1" style={{ marginTop: "1rem", marginRight: "1rem", width: "100%" }}>
         <div
           className={cls(
             css`

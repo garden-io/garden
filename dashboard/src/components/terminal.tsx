@@ -25,6 +25,7 @@ const Term = styled.div`
   border-radius: 2px;
   max-height: calc(100vh - 12rem);
   overflow-y: auto;
+  width: 100%;
 `
 
 const P = styled.p`
