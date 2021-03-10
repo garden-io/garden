@@ -1,4 +1,24 @@
 
+<a name="0.12.19-1"></a>
+## [0.12.19-1](https://github.com/garden-io/garden/compare/0.12.19-0...0.12.19-1) (2021-03-10)
+
+### Bug Fixes
+
+* **dashboard:** styling issues when scrollbars are always visible ([5b482beb](https://github.com/garden-io/garden/commit/5b482beb))
+* **dashboard:** visible scrollbar in overview cards ([2ade02f6](https://github.com/garden-io/garden/commit/2ade02f6))
+* **dashboard:** bad alignment of logs view with small amount of logs ([aab60b19](https://github.com/garden-io/garden/commit/aab60b19))
+* **k8s:** failures when publishing images from external registries ([24b31743](https://github.com/garden-io/garden/commit/24b31743))
+* **k8s:** potential memory issue when fetching artifacts ([0a541c12](https://github.com/garden-io/garden/commit/0a541c12))
+
+### Features
+
+* **workflows:** workflow-level env variables ([#2295](https://github.com/garden-io/garden/issues/2295)) ([7bd8a6ad](https://github.com/garden-io/garden/commit/7bd8a6ad))
+
+### Improvements
+
+* **dashboard:** better rendering of entity status cards ([41f314a3](https://github.com/garden-io/garden/commit/41f314a3))
+* **dashboard:** add background color to legend ([63fed7d0](https://github.com/garden-io/garden/commit/63fed7d0))
+
 <a name="0.12.19-0"></a>
 ## [0.12.19-0](https://github.com/garden-io/garden/compare/0.12.18...0.12.19-0) (2021-02-26)
 
