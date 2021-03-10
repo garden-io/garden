@@ -107,6 +107,7 @@ describe("KubeApi", () => {
           containerName,
           command: ["/bin/sh", "-c", "echo some output"],
           tty: false,
+          buffer: true,
         })
         expect(res.stdout).to.equal("some output\n")
         expect(res.stderr).to.equal("")
@@ -131,6 +132,7 @@ describe("KubeApi", () => {
           containerName,
           command: ["/bin/sh", "-c", "exit 2"],
           tty: false,
+          buffer: true,
         })
         expect(res.stdout).to.equal("")
         expect(res.stderr).to.equal("")
@@ -156,6 +158,7 @@ describe("KubeApi", () => {
           command: ["/bin/sh", "-c", "echo foo && sleep 100"],
           tty: false,
           timeoutSec: 2,
+          buffer: true,
         })
         expect(res.stdout).to.equal("foo\n")
         expect(res.stderr).to.equal("")

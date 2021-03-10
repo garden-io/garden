@@ -10,7 +10,6 @@ import React, { useState } from "react"
 import { Frame } from "./frame"
 import Spinner from "./spinner"
 import styled from "@emotion/styled"
-import { menuHeight } from "../containers/menu"
 
 interface ProviderPageProps {
   url: string
@@ -20,7 +19,7 @@ interface ProviderPageProps {
 const ProviderPageWrapper = styled.div`
   border: 0;
   width: 100%;
-  height: calc(100vh - ${menuHeight});
+  height: 100%;
   padding: 1rem;
 `
 

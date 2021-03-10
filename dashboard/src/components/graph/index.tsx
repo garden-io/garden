@@ -19,6 +19,7 @@ import { SelectGraphNode, StackGraphSupportedFilterKeys } from "../../contexts/u
 import { FiltersButton, Filters } from "../group-filter"
 import { GraphOutputWithNodeStatus, StackGraphNode } from "../../containers/graph"
 import { getTextWidth } from "../../util/helpers"
+import { menuHeight } from "../../containers/menu"
 
 interface Node {
   id: string
@@ -212,7 +213,7 @@ export const StackGraph: React.FC<Props> = ({
         <FiltersButton filters={filters} onFilter={onFilter} />
       </div>
 
-      <div id="chart">
+      <div id="chart" style={{ height: `calc(100vh - ${menuHeight})` }}>
         <Canvas
           readonly
           fit
@@ -233,13 +234,13 @@ export const StackGraph: React.FC<Props> = ({
         className={cls(
           css`
             position: absolute;
-            right: 1rem;
-            bottom: 2.2rem;
+            right: 1.8rem;
+            bottom: 1.2rem;
             display: flex;
             justify-content: flex-end;
             font-size: 0.8em;
-          `,
-          "mr-1"
+            background-color: white;
+          `
         )}
       >
         {Object.entries(taskStates).map(([state, props]) => {

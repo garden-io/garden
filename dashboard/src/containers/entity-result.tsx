@@ -45,6 +45,7 @@ interface Props {
   type: EntityResultSupportedTypes
   name: string
   moduleName: string
+  cardProps?: any
   onClose: () => void
 }
 
@@ -80,7 +81,7 @@ function isEntityDisabled({
  *
  * If the node is of type "test" or "run", it loads the results as well.
  */
-export default ({ name, moduleName, type, onClose }: Props) => {
+export default ({ name, moduleName, type, onClose, cardProps }: Props) => {
   const {
     dispatch,
     store: { entities, requestStates },
@@ -123,6 +124,7 @@ export default ({ name, moduleName, type, onClose }: Props) => {
         name={name}
         type={type}
         moduleName={moduleName}
+        cardProps={cardProps}
         {...results}
       />
     )
@@ -144,6 +146,7 @@ export default ({ name, moduleName, type, onClose }: Props) => {
         name={name}
         type={type}
         moduleName={moduleName}
+        cardProps={cardProps}
         {...results}
       />
     )

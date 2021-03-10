@@ -55,12 +55,12 @@ describe("pull-image plugin command", () => {
     const imageId = containerHelpers.getLocalImageId(module, module.version)
     const imageHash = await containerHelpers.dockerCli({
       cwd: module.buildPath,
-      args: ["images", "-q", imageId],
+      args: ["run", imageId, "echo", "ok"],
       log: garden.log,
       ctx,
     })
 
-    expect(imageHash.stdout.length).to.be.greaterThan(0)
+    expect(imageHash.stdout.trim()).to.equal("ok")
   }
 
   grouped("cluster-docker", "remote-only").context("using an external cluster registry", () => {
