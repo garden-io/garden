@@ -9,6 +9,7 @@
 // No idea why tslint complains over this line
 // tslint:disable-next-line:no-unused
 import { IncomingMessage } from "http"
+import { Agent } from "https"
 import { ReadStream } from "tty"
 import {
   KubeConfig,
@@ -35,6 +36,7 @@ import request = require("request-promise")
 import requestErrors = require("request-promise/errors")
 import { safeLoad } from "js-yaml"
 import { readFile } from "fs-extra"
+import { lookup } from "dns-lookup-cache"
 
 import { Omit, safeDumpYaml, StringCollector, sleep } from "../../util/util"
 import { omitBy, isObject, isPlainObject, keyBy } from "lodash"
@@ -75,6 +77,8 @@ const cachedConfigs: { [context: string]: KubeConfig } = {}
 const cachedApiInfo: { [context: string]: ApiInfo } = {}
 const cachedApiResourceInfo: { [context: string]: ApiResourceMap } = {}
 const apiInfoLock = new AsyncLock()
+
+const requestAgent = new Agent({ lookup })
 
 // NOTE: be warned, the API of the client library is very likely to change
 
@@ -318,6 +322,7 @@ export class KubeApi {
       method: "get",
       json: true,
       resolveWithFullResponse: true,
+      agent: requestAgent,
       ...opts,
     }
 
@@ -514,7 +519,7 @@ export class KubeApi {
     try {
       await api[crudMap[kind].read](name, namespace)
       await api[crudMap[kind].replace](name, namespace, obj)
-      log.debug(`Patched ${kind} ${namespace}/${name}`)
+      log.debug(`Replaced ${kind} ${namespace}/${name}`)
     } catch (err) {
       if (err.statusCode === 404) {
         try {
@@ -539,6 +544,10 @@ export class KubeApi {
    */
   private wrapApi<T extends K8sApi>(api: T, config: KubeConfig): T {
     api.setDefaultAuthentication(config)
+
+    api.addInterceptor((opts) => {
+      opts.agent = requestAgent
+    })
 
     return new Proxy(api, {
       get: (target: T, name: string, receiver) => {
