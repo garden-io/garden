@@ -27,6 +27,7 @@ import Bluebird from "bluebird"
 import { readFile, mkdirp, writeFile } from "fs-extra"
 import { LogEntry } from "./logger/log-entry"
 import { ModuleConfigContext } from "./config/template-contexts/module"
+import { pathToCacheContext } from "./cache"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 40
@@ -425,6 +426,12 @@ export class ModuleResolver {
         )
       }
     })
+
+    // Make sure version is re-computed after writing files
+    if (!!resolvedConfig.generateFiles?.length) {
+      const cacheContext = pathToCacheContext(resolvedConfig.path)
+      this.garden.cache.invalidateUp(cacheContext)
+    }
 
     const module = await moduleFromConfig(this.garden, this.log, resolvedConfig, dependencies)
 
