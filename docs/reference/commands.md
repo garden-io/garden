@@ -503,13 +503,14 @@ serviceStatuses:
 
 **Deletes running services.**
 
-Deletes (i.e. un-deploys) the specified services. Note that this command does not take into account any
-services depending on the deleted service, and might therefore leave the project in an unstable state.
-Running `garden deploy` will re-deploy any missing services.
+Deletes (i.e. un-deploys) the specified services. Deletes all services in the project if no arguments are provided.
+Note that this command does not take into account any services depending on the deleted service/services, and might
+therefore leave the project in an unstable state. Running `garden deploy` will re-deploy any missing services.
 
 Examples:
 
     garden delete service my-service # deletes my-service
+    garden delete service            # deletes all deployed services in the project
 
 | Supported in workflows |   |
 | ---------------------- |---|
@@ -517,13 +518,13 @@ Examples:
 
 #### Usage
 
-    garden delete service <services> 
+    garden delete service [services] 
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `services` | Yes | The name(s) of the service(s) to delete. Use comma as a separator to specify multiple services.
+  | `services` | No | The name(s) of the service(s) to delete. Use comma as a separator to specify multiple services.
 
 
 #### Outputs

@@ -277,10 +277,10 @@ describe("processCliArgs", () => {
   // })
 
   it("throws an error when a required positional argument is missing", () => {
-    const cmd = new DeleteServiceCommand()
+    const cmd = new RunTaskCommand()
     expectError(
       () => parseAndProcess([], cmd),
-      (err) => expect(stripAnsi(err.message)).to.equal("Missing required argument services")
+      (err) => expect(stripAnsi(err.message)).to.equal("Missing required argument task")
     )
   })
 

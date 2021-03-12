@@ -162,6 +162,16 @@ describe("DeleteServiceCommand", () => {
       ingresses: [],
       detail: {},
     },
+    "service-c": {
+      state: "unknown",
+      ingresses: [],
+      detail: {},
+    },
+    "service-d": {
+      state: "unknown",
+      ingresses: [],
+      detail: {},
+    },
   }
 
   const testProvider = createGardenPlugin({
@@ -222,6 +232,26 @@ describe("DeleteServiceCommand", () => {
     expect(result).to.eql({
       "service-a": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
       "service-b": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
+    })
+  })
+
+  it("should delete all services if none are specified", async () => {
+    const garden = await TestGarden.factory(projectRootB, { plugins })
+    const log = garden.log
+
+    const { result } = await command.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: { services: undefined },
+      opts: withDefaultGlobalOpts({}),
+    })
+    expect(result).to.eql({
+      "service-a": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
+      "service-b": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
+      "service-c": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
+      "service-d": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
     })
   })
 
