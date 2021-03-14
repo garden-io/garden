@@ -9,9 +9,11 @@
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
 import dedent = require("dedent")
-import { login } from "../enterprise/auth"
-import { CommandError, ConfigurationError } from "../exceptions"
-import { findProjectConfig } from "../config/base"
+import { AuthTokenResponse, EnterpriseApi, getEnterpriseConfig } from "../enterprise/api"
+import { LogEntry } from "../logger/log-entry"
+import { ConfigurationError, InternalError } from "../exceptions"
+import { AuthRedirectServer } from "../enterprise/auth"
+import { EventBus } from "../events"
 
 export class LoginCommand extends Command {
   name = "login"
@@ -33,27 +35,46 @@ export class LoginCommand extends Command {
   }
 
   async action({ garden, log }: CommandParams): Promise<CommandResult> {
-    // Since this command has `noProject = true`, `garden` only has a placeholder project config.
-    // So we find and load it here, without resolving any template strings.
     const currentDirectory = garden.projectRoot
-    const projectConfig = await findProjectConfig(garden.projectRoot)
-    if (!projectConfig) {
-      throw new CommandError(`Not a project directory (or any of the parent directories): ${currentDirectory}`, {
-        currentDirectory,
-      })
+
+    // The Enterprise API is missing from the Garden class for commands with noProject
+    // so we initialize it here.
+    const enterpriseApi = await EnterpriseApi.factory(log, currentDirectory)
+    if (enterpriseApi) {
+      log.info({ msg: `You're already logged in to Garden Enteprise.` })
+      await enterpriseApi.close()
+      return {}
     }
 
-    if (!garden.enterpriseApi?.getDomain()) {
-      throw new ConfigurationError(`Error: Your project configuration does not specify a domain.`, {
-        enteprise: garden.enterpriseApi,
-      })
+    const config = await getEnterpriseConfig(currentDirectory)
+    if (!config) {
+      throw new ConfigurationError(`Project config is missing an enterprise domain and/or a project ID.`, {})
     }
-    log.info({ msg: `Logging in to ${garden.enterpriseApi?.getDomain()}.` })
 
-    await login(garden.enterpriseApi, log)
-
+    log.info({ msg: `Logging in to ${config.domain}...` })
+    const tokenResponse = await login(log, config.domain, garden.events)
+    await EnterpriseApi.saveAuthToken(log, tokenResponse)
     log.info({ msg: `Successfully logged in to Garden Enteprise.` })
-
     return {}
   }
+}
+
+export async function login(log: LogEntry, enterpriseDomain: string, events: EventBus) {
+  // Start auth redirect server and wait for its redirect handler to receive the redirect and finish running.
+  const server = new AuthRedirectServer(enterpriseDomain, events, log)
+  log.debug(`Redirecting to Garden Enterprise login page...`)
+  const response: AuthTokenResponse = await new Promise(async (resolve, _reject) => {
+    // The server resolves the promise with the new auth token once it's received the redirect.
+    await server.start()
+    events.once("receivedToken", (tokenResponse: AuthTokenResponse) => {
+      log.debug("Received client auth token.")
+      resolve(tokenResponse)
+    })
+  })
+  await server.close()
+  if (!response) {
+    throw new InternalError(`Error: Did not receive an auth token after logging in.`, {})
+  }
+
+  return response
 }

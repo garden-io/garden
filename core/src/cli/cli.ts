@@ -207,15 +207,18 @@ ${renderCommands(commands)}
     const footerLog = logger.placeholder()
 
     command.printHeader({ headerLog, args: parsedArgs, opts: parsedOpts })
+
     // Init enterprise API
-    const enterpriseApi = new EnterpriseApi(log)
-    await enterpriseApi.init(root, command)
+    let enterpriseApi: EnterpriseApi | null = null
+    if (!command.noProject) {
+      enterpriseApi = await EnterpriseApi.factory(log, root)
+    }
 
     // Init event & log streaming.
     const sessionId = uuidv4()
     const bufferedEventStream = new BufferedEventStream({
       log,
-      enterpriseApi,
+      enterpriseApi: enterpriseApi || undefined,
       sessionId,
     })
     const dashboardEventStream = new DashboardEventStream({ log, sessionId })
@@ -233,7 +236,7 @@ ${renderCommands(commands)}
       forceRefresh,
       variables: parsedCliVars,
       plugins: this.plugins,
-      enterpriseApi,
+      enterpriseApi: enterpriseApi || undefined,
     }
 
     let garden: Garden
@@ -292,7 +295,7 @@ ${renderCommands(commands)}
           }
         }
 
-        if (enterpriseApi.isUserLoggedIn) {
+        if (enterpriseApi) {
           log.silly(`Connecting Garden instance to GE BufferedEventStream`)
           bufferedEventStream.connect({
             garden,
@@ -348,7 +351,7 @@ ${renderCommands(commands)}
           await bufferedEventStream.close()
           await dashboardEventStream.close()
           await command.server?.close()
-          await enterpriseApi.close()
+          await enterpriseApi?.close()
         }
       }
     } while (result.restartRequired)
