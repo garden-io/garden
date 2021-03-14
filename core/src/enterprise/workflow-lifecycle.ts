@@ -43,7 +43,7 @@ export async function registerWorkflowRun({
   if (enterpriseApi) {
     let res
     try {
-      res = await enterpriseApi.post(log, "workflow-runs", { body: requestData })
+      res = await enterpriseApi.post("workflow-runs", { body: requestData })
     } catch (err) {
       log.error(`An error occurred while registering workflow run: ${err.message}`)
       throw err

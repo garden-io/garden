@@ -12,24 +12,18 @@ import { EnterpriseApi } from "./api"
 
 export interface GetSecretsParams {
   log: LogEntry
-  projectId: string
   environmentName: string
   enterpriseApi: EnterpriseApi
 }
 
-export async function getSecrets({
-  log,
-  projectId,
-  environmentName,
-  enterpriseApi,
-}: GetSecretsParams): Promise<StringMap> {
+export async function getSecrets({ log, environmentName, enterpriseApi }: GetSecretsParams): Promise<StringMap> {
   let secrets: StringMap = {}
 
   try {
-    const res = await enterpriseApi.get(log, `/secrets/projectUid/${projectId}/env/${environmentName}`)
-    if (res?.body?.status === "success") {
-      secrets = res.body.data
-    }
+    const res = await enterpriseApi.get<StringMap>(
+      `/secrets/projectUid/${enterpriseApi.projectId}/env/${environmentName}`
+    )
+    secrets = res.data
   } catch (err) {
     log.error("An error occurred while fetching secrets for the project.")
     log.debug(`Error: ${err.message}`)

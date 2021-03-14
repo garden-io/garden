@@ -77,7 +77,6 @@ import { Profile } from "./util/profiling"
 import username from "username"
 import { throwOnMissingSecretKeys, resolveTemplateString, resolveTemplateStrings } from "./template-string"
 import { WorkflowConfig, WorkflowConfigMap, resolveWorkflowConfig } from "./config/workflow"
-import { enterpriseInit } from "./enterprise/init"
 import { PluginTool, PluginTools } from "./util/ext-tools"
 import {
   ModuleTemplateResource,
@@ -92,6 +91,7 @@ import { EnterpriseApi } from "./enterprise/api"
 import { DefaultEnvironmentContext } from "./config/template-contexts/project"
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { ProviderConfigContext } from "./config/template-contexts/provider"
+import { getSecrets } from "./enterprise/get-secrets"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -1163,12 +1163,20 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
   const { environment: environmentName } = parseEnvironment(environmentStr)
 
   const sessionId = opts.sessionId || null
-  const projectId = config.id || null
+
   let secrets: StringMap = {}
   const enterpriseApi = opts.enterpriseApi || null
-  if (!opts.noEnterprise && enterpriseApi?.isUserLoggedIn) {
-    const enterpriseInitResult = await enterpriseInit({ log, projectId, enterpriseApi, environmentName })
-    secrets = enterpriseInitResult.secrets
+  if (!opts.noEnterprise && enterpriseApi) {
+    const enterpriseLog = log.info({ section: "garden-enterprise", msg: "Initializing...", status: "active" })
+
+    try {
+      secrets = await getSecrets({ log: enterpriseLog, environmentName, enterpriseApi })
+      enterpriseLog.setSuccess({ msg: chalk.green("Done"), append: true })
+      enterpriseLog.silly(`Fetched ${Object.keys(secrets).length} secrets from ${enterpriseApi.domain}`)
+    } catch (err) {
+      enterpriseLog.debug(`Fetching secrets failed with error: ${err.message}`)
+      enterpriseLog.setWarn()
+    }
   }
 
   config = resolveProjectConfig({
@@ -1215,7 +1223,7 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
     vcsBranch,
     sessionId,
     disablePortForwards,
-    projectId,
+    projectId: config.id || null,
     projectRoot,
     projectName,
     environmentName,

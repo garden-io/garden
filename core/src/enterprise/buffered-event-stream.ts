@@ -260,9 +260,11 @@ export class BufferedEventStream {
 
     try {
       await Bluebird.map(this.targets, (target) => {
-        if (target.enterprise && this.enterpriseApi?.getDomain()) {
+        if (target.enterprise && this.enterpriseApi?.domain) {
           this.log.silly(`Flushing ${description} to GE /${path}`)
-          return this.enterpriseApi.post(this.log, `${path}`, { body: data })
+          // Need to cast so the compiler doesn't complain that the two returns from the map
+          // aren't equivalent. Shouldn't matter in this case since we're not collecting the return value.
+          return this.enterpriseApi.post<any>(`${path}`, { body: data }) as any
         }
         const targetUrl = `${target.host}/${path}`
         this.log.silly(`Flushing ${description} to ${targetUrl}`)
