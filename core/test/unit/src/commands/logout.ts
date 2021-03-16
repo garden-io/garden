@@ -38,7 +38,7 @@ describe("LogoutCommand", () => {
     await cleanupAuthTokens()
   })
 
-  it("should logout from Gardne Enterprise", async () => {
+  it("should logout from Garden Enterprise", async () => {
     const postfix = randomString()
     const testToken = {
       token: `dummy-token-${postfix}`,
@@ -52,7 +52,6 @@ describe("LogoutCommand", () => {
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
 
-    // Save dummy token and mock some EnterpriesAPI methods
     await EnterpriseApi.saveAuthToken(garden.log, testToken)
     td.replace(EnterpriseApi.prototype, "checkClientAuthToken", async () => true)
     td.replace(EnterpriseApi.prototype, "startInterval", async () => {})
@@ -67,7 +66,10 @@ describe("LogoutCommand", () => {
     await command.action(makeCommandParams(garden))
 
     const tokenAfterLogout = await ClientAuthToken.findOne()
+    const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
+
     expect(tokenAfterLogout).to.not.exist
+    expect(logOutput).to.include("Succesfully logged out from Garden Enterprise.")
   })
 
   it("should be a no-op if the user is already logged out", async () => {
@@ -80,7 +82,76 @@ describe("LogoutCommand", () => {
     await command.action(makeCommandParams(garden))
 
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
-
     expect(logOutput).to.include("You're already logged out from Garden Enterprise.")
+  })
+
+  it("should remove token even if Enterprise API can't be initialised", async () => {
+    const postfix = randomString()
+    const testToken = {
+      token: `dummy-token-${postfix}`,
+      refreshToken: `dummy-refresh-token-${postfix}`,
+      tokenValidity: 60,
+    }
+
+    const command = new LogOutCommand()
+    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
+      noEnterprise: false,
+      commandInfo: { name: "foo", args: {}, opts: {} },
+    })
+
+    await EnterpriseApi.saveAuthToken(garden.log, testToken)
+    // Throw when initializing Enterprise API
+    td.replace(EnterpriseApi.prototype, "factory", async () => {
+      throw new Error("Not tonight")
+    })
+
+    // Double check token actually exists
+    const savedToken = await ClientAuthToken.findOne()
+    expect(savedToken).to.exist
+    expect(savedToken!.token).to.eql(testToken.token)
+    expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
+
+    await command.action(makeCommandParams(garden))
+
+    const tokenAfterLogout = await ClientAuthToken.findOne()
+    const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
+
+    expect(tokenAfterLogout).to.not.exist
+    expect(logOutput).to.include("Succesfully logged out from Garden Enterprise.")
+  })
+
+  it("should remove token even if API calls fail", async () => {
+    const postfix = randomString()
+    const testToken = {
+      token: `dummy-token-${postfix}`,
+      refreshToken: `dummy-refresh-token-${postfix}`,
+      tokenValidity: 60,
+    }
+
+    const command = new LogOutCommand()
+    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
+      noEnterprise: false,
+      commandInfo: { name: "foo", args: {}, opts: {} },
+    })
+
+    await EnterpriseApi.saveAuthToken(garden.log, testToken)
+    // Throw when using Enterprise API to call call logout endpoint
+    td.replace(EnterpriseApi.prototype, "post", async () => {
+      throw new Error("Not tonight")
+    })
+
+    // Double check token actually exists
+    const savedToken = await ClientAuthToken.findOne()
+    expect(savedToken).to.exist
+    expect(savedToken!.token).to.eql(testToken.token)
+    expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
+
+    await command.action(makeCommandParams(garden))
+
+    const tokenAfterLogout = await ClientAuthToken.findOne()
+    const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
+
+    expect(tokenAfterLogout).to.not.exist
+    expect(logOutput).to.include("Succesfully logged out from Garden Enterprise.")
   })
 })

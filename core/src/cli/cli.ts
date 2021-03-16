@@ -211,7 +211,7 @@ ${renderCommands(commands)}
     // Init enterprise API
     let enterpriseApi: EnterpriseApi | null = null
     if (!command.noProject) {
-      enterpriseApi = await EnterpriseApi.factory(log, root)
+      enterpriseApi = await EnterpriseApi.factory({ log, currentDirectory: root })
     }
 
     // Init event & log streaming.
@@ -351,7 +351,7 @@ ${renderCommands(commands)}
           await bufferedEventStream.close()
           await dashboardEventStream.close()
           await command.server?.close()
-          await enterpriseApi?.close()
+          enterpriseApi?.close()
         }
       }
     } while (result.restartRequired)

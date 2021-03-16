@@ -8,8 +8,9 @@
 
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
-import dedent = require("dedent")
 import { EnterpriseApi } from "../enterprise/api"
+import { ClientAuthToken } from "../db/entities/client-auth-token"
+import { dedent } from "../util/string"
 
 export class LogOutCommand extends Command {
   name = "logout"
@@ -26,24 +27,43 @@ export class LogOutCommand extends Command {
   }
 
   async action({ garden, log }: CommandParams): Promise<CommandResult> {
-    // The Enterprise API is missing from the Garden class for commands with noProject
-    // so we initialize it here.
-    const enterpriseApi = await EnterpriseApi.factory(log, garden.projectRoot)
-
-    if (!enterpriseApi) {
+    const token = await ClientAuthToken.findOne()
+    if (!token) {
       log.info({ msg: `You're already logged out from Garden Enterprise.` })
       return {}
     }
 
     try {
-      await enterpriseApi.logout()
+      // The Enterprise API is missing from the Garden class for commands with noProject
+      // so we initialize it here.
+      const enterpriseApi = await EnterpriseApi.factory({
+        log,
+        currentDirectory: garden.projectRoot,
+        skipLogging: true,
+      })
+
+      if (!enterpriseApi) {
+        return {}
+      }
+
+      await enterpriseApi.post("token/logout", {
+        headers: {
+          Cookie: `rt=${token?.refreshToken}`,
+        },
+      })
+      enterpriseApi.close()
+    } catch (err) {
+      const msg = dedent`
+      The following issue occurred while logging out from Garden Enterprise (your session will be cleared regardless): ${err.message}\n
+      `
+      log.warn({
+        symbol: "warning",
+        msg,
+      })
+    } finally {
       log.info({ msg: `Succesfully logged out from Garden Enterprise.` })
-    } catch (error) {
-      log.error(error)
+      await EnterpriseApi.clearAuthToken(log)
     }
-
-    await enterpriseApi.close()
-
     return {}
   }
 }
