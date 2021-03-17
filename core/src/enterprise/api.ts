@@ -94,8 +94,19 @@ export class EnterpriseApi {
    *
    * Returns null if the project is not configured for Garden Enterprise or if the user is not logged in.
    * Throws if the user is logged in but the token is invalid and can't be refreshed.
+   *
+   * Optionally skip logging during initialization. Useful for noProject commands that need to use the class
+   * without all the "flair".
    */
-  static async factory(log: LogEntry, currentDirectory: string) {
+  static async factory({
+    log,
+    currentDirectory,
+    skipLogging = false,
+  }: {
+    log: LogEntry
+    currentDirectory: string
+    skipLogging?: boolean
+  }) {
     log.debug("Initializing enterprise API client.")
 
     const config = await getEnterpriseConfig(currentDirectory)
@@ -113,7 +124,9 @@ export class EnterpriseApi {
     const api = new EnterpriseApi(log, config.domain, config.projectId)
     const tokenIsValid = await api.checkClientAuthToken()
 
-    const enterpriseLog = log.info({ section: "garden-enterprise", msg: "Connecting...", status: "active" })
+    const enterpriseLog = skipLogging
+      ? null
+      : log.info({ section: "garden-enterprise", msg: "Connecting...", status: "active" })
 
     if (gardenEnv.GARDEN_AUTH_TOKEN) {
       // Throw if using an invalid "CI" access token
@@ -126,13 +139,13 @@ export class EnterpriseApi {
     } else {
       // Refresh the token if it's invalid.
       if (!tokenIsValid) {
-        enterpriseLog.debug({ msg: `Current auth token is invalid, refreshing` })
+        enterpriseLog?.debug({ msg: `Current auth token is invalid, refreshing` })
         try {
           // We can assert the token exsists since we're not using GARDEN_AUTH_TOKEN
           await api.refreshToken(token!)
         } catch (err) {
-          enterpriseLog.setError({ msg: `Invalid session`, append: true })
-          enterpriseLog.warn(deline`
+          enterpriseLog?.setError({ msg: `Invalid session`, append: true })
+          enterpriseLog?.warn(deline`
           Your session is invalid and could not be refreshed. If you were previously logged
           in to another instance of Garden Enterprise, please log out first and then
           log back in again.
@@ -146,7 +159,7 @@ export class EnterpriseApi {
       api.startInterval()
     }
 
-    enterpriseLog.setSuccess({ msg: chalk.green("Ready"), append: true })
+    enterpriseLog?.setSuccess({ msg: chalk.green("Ready"), append: true })
     return api
   }
 
@@ -233,7 +246,7 @@ export class EnterpriseApi {
     }, this.intervalMsec)
   }
 
-  async close() {
+  close() {
     if (this.intervalId) {
       clearInterval(this.intervalId)
       this.intervalId = null
@@ -345,24 +358,5 @@ export class EnterpriseApi {
     }
     this.log.debug(`Checked client auth token with platform - valid: ${valid}`)
     return valid
-  }
-
-  async logout() {
-    const token = await ClientAuthToken.findOne()
-    if (!token || gardenEnv.GARDEN_AUTH_TOKEN) {
-      // No op when the user is not logged in or an access token is in use
-      return
-    }
-    try {
-      await this.post("token/logout", {
-        headers: {
-          Cookie: `rt=${token?.refreshToken}`,
-        },
-      })
-    } catch (error) {
-      this.log.debug({ msg: `An error occurred while logging out from Garden Enterprise: ${error.message}` })
-    } finally {
-      await EnterpriseApi.clearAuthToken(this.log)
-    }
   }
 }

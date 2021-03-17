@@ -39,10 +39,10 @@ export class LoginCommand extends Command {
 
     // The Enterprise API is missing from the Garden class for commands with noProject
     // so we initialize it here.
-    const enterpriseApi = await EnterpriseApi.factory(log, currentDirectory)
+    const enterpriseApi = await EnterpriseApi.factory({ log, currentDirectory, skipLogging: true })
     if (enterpriseApi) {
       log.info({ msg: `You're already logged in to Garden Enteprise.` })
-      await enterpriseApi.close()
+      enterpriseApi.close()
       return {}
     }
 
