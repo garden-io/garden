@@ -14,8 +14,10 @@ import {
   resolveWorkflowConfig,
   populateNamespaceForTriggers,
   TriggerSpec,
+  minimumWorkflowLimits,
+  defaultWorkflowRequests,
+  defaultWorkflowLimits,
 } from "../../../../src/config/workflow"
-import { defaultContainerLimits } from "../../../../src/plugins/container/config"
 import { EnvironmentConfig, defaultNamespace } from "../../../../src/config/project"
 import stripAnsi from "strip-ansi"
 
@@ -24,7 +26,10 @@ describe("resolveWorkflowConfig", () => {
 
   const defaults = {
     files: [],
-    limits: defaultContainerLimits,
+    resources: {
+      requests: defaultWorkflowRequests,
+      limits: defaultWorkflowLimits,
+    },
     keepAliveHours: 48,
   }
 
@@ -60,6 +65,40 @@ describe("resolveWorkflowConfig", () => {
 
     expect(resolveWorkflowConfig(garden, config)).to.eql({
       ...config,
+    })
+  })
+
+  it("should set workflow.resources.limits to workflow.limits if workflow.limits is specified", async () => {
+    const config: WorkflowConfig = {
+      ...defaults,
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Workflow",
+      name: "workflow-a",
+      path: "/tmp/foo",
+      description: "Sample workflow",
+      envVars: {},
+      limits: minimumWorkflowLimits, // <----
+      steps: [
+        { description: "Deploy the stack", command: ["deploy"], skip: false, when: "onSuccess", envVars: {} },
+        { command: ["test"], skip: false, when: "onSuccess", envVars: {} },
+      ],
+      triggers: [
+        {
+          environment: "local",
+          namespace: "default",
+          events: ["pull-request"],
+          branches: ["feature*"],
+          ignoreBranches: ["feature-ignored*"],
+        },
+      ],
+    }
+
+    expect(resolveWorkflowConfig(garden, config)).to.eql({
+      ...config,
+      resources: {
+        requests: defaultWorkflowRequests,
+        limits: minimumWorkflowLimits, // <-----
+      },
     })
   })
 
@@ -162,13 +201,14 @@ describe("resolveWorkflowConfig", () => {
   })
 
   it("should populate default values in the schema", async () => {
-    const config: WorkflowConfig = {
+    const config = <WorkflowConfig>{
       apiVersion: DEFAULT_API_VERSION,
       kind: "Workflow",
       name: "workflow-a",
       path: "/tmp/foo",
       description: "Description",
       envVars: {},
+      resources: {},
       steps: [{ description: "Deploy the stack", command: ["deploy"] }, { command: ["test"] }],
     }
 
