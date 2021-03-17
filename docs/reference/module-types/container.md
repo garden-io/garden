@@ -198,7 +198,12 @@ services:
     # them, using conditional expressions.
     disabled: false
 
-    # Annotations to attach to the service (Note: May not be applicable to all providers).
+    # Annotations to attach to the service _(note: May not be applicable to all providers)_.
+    #
+    # When using the Kubernetes provider, these annotations are applied to both Service and Pod resources. You can
+    # generally specify the annotations intended for both Pods or Services here, and the ones that don't apply on
+    # either side will be ignored (i.e. if you put a Service annotation here, it'll also appear on Pod specs but will
+    # be safely ignored there, and vice versa).
     annotations: {}
 
     # The command/entrypoint to run the container with when starting the service.
@@ -922,7 +927,9 @@ Note however that template strings referencing the service's outputs (i.e. runti
 
 [services](#services) > annotations
 
-Annotations to attach to the service (Note: May not be applicable to all providers).
+Annotations to attach to the service _(note: May not be applicable to all providers)_.
+
+When using the Kubernetes provider, these annotations are applied to both Service and Pod resources. You can generally specify the annotations intended for both Pods or Services here, and the ones that don't apply on either side will be ignored (i.e. if you put a Service annotation here, it'll also appear on Pod specs but will be safely ignored there, and vice versa).
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
