@@ -6,6 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { IncomingHttpHeaders } from "http"
+
 import { got, GotHeaders, GotHttpError } from "../util/http"
 import { findProjectConfig } from "../config/base"
 import { CommandError, EnterpriseApiError, RuntimeError } from "../exceptions"
@@ -42,9 +44,8 @@ export interface AuthTokenResponse {
   tokenValidity: number
 }
 
-export interface ApiResponse<T> {
-  status: string
-  data: T
+export type ApiFetchResponse<T> = T & {
+  headers: IncomingHttpHeaders
 }
 
 /**
@@ -293,7 +294,7 @@ export class EnterpriseApi {
     }
   }
 
-  private async apiFetch<T>(path: string, params: ApiFetchParams) {
+  private async apiFetch<T>(path: string, params: ApiFetchParams): Promise<ApiFetchResponse<T>> {
     const { method, headers } = params
     this.log.silly({ msg: `Calling enterprise API with ${method} ${path}` })
     const token = await EnterpriseApi.getAuthToken(this.log)
@@ -307,7 +308,7 @@ export class EnterpriseApi {
       json: params.body,
     }
 
-    const res = await got<ApiResponse<T>>(`${this.domain}/${this.apiPrefix}/${path}`, {
+    const res = await got<T>(`${this.domain}/${this.apiPrefix}/${path}`, {
       ...requestObj,
       responseType: "json",
     })
@@ -320,7 +321,7 @@ export class EnterpriseApi {
     }
 
     return {
-      data: res.body.data,
+      ...res.body,
       headers: res.headers,
     }
   }
