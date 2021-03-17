@@ -550,6 +550,9 @@ function workloadConfig({
       selector,
       template: {
         metadata: {
+          // Note: We only have the one set of annotations for both Service and Pod resources. One intended for the
+          // other will just be ignored since they don't overlap in any cases I could find with commonly used tools.
+          annotations: service.spec.annotations,
           labels,
         },
         spec: {

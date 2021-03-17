@@ -80,6 +80,7 @@ describe("kubernetes container deployment handlers", () => {
           selector: { matchLabels: { service: "simple-service" } },
           template: {
             metadata: {
+              annotations: {},
               labels: { module: "simple-service", service: "simple-service" },
             },
             spec: {
@@ -113,6 +114,27 @@ describe("kubernetes container deployment handlers", () => {
           revisionHistoryLimit: 3,
         },
       })
+    })
+
+    it("should attach service annotations to Pod template", async () => {
+      const service = graph.getService("simple-service")
+      const namespace = provider.config.namespace!.name!
+
+      service.spec.annotations = { "annotation.key": "someValue" }
+
+      const resource = await createWorkloadManifest({
+        api,
+        provider,
+        service,
+        runtimeContext: emptyRuntimeContext,
+        namespace,
+        enableHotReload: false,
+        log: garden.log,
+        production: false,
+        blueGreen: false,
+      })
+
+      expect(resource.spec.template?.metadata?.annotations).to.eql(service.spec.annotations)
     })
 
     it("should name the Deployment with a version suffix and set a version label if blueGreen=true", async () => {
