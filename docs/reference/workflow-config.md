@@ -56,12 +56,26 @@ files:
 # The number of hours to keep the workflow pod running after completion.
 keepAliveHours: 48
 
-limits:
-  # The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU)
-  cpu: 1000
+resources:
+  requests:
+    # The minimum amount of CPU the workflow needs in order to be scheduled, in millicpus (i.e. 1000 = 1 CPU).
+    cpu:
 
-  # The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB)
-  memory: 1024
+    # The minimum amount of RAM the workflow needs in order to be scheduled, in megabytes (i.e. 1024 = 1 GB).
+    memory:
+
+  limits:
+    # The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU).
+    cpu:
+
+    # The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB).
+    memory:
+
+  # The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU).
+  cpu:
+
+  # The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB).
+  memory:
 
 # The steps the workflow should run. At least one step is required. Steps are run sequentially. If a step fails,
 # subsequent steps are skipped.
@@ -286,31 +300,93 @@ The number of hours to keep the workflow pod running after completion.
 | -------- | ------- | -------- |
 | `number` | `48`    | No       |
 
-### `limits`
+### `resources`
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `resources.requests`
+
+[resources](#resources) > requests
+
+| Type     | Default                  | Required |
+| -------- | ------------------------ | -------- |
+| `object` | `{"cpu":50,"memory":64}` | No       |
+
+### `resources.requests.cpu`
+
+[resources](#resources) > [requests](#resourcesrequests) > cpu
+
+The minimum amount of CPU the workflow needs in order to be scheduled, in millicpus (i.e. 1000 = 1 CPU).
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `resources.requests.memory`
+
+[resources](#resources) > [requests](#resourcesrequests) > memory
+
+The minimum amount of RAM the workflow needs in order to be scheduled, in megabytes (i.e. 1024 = 1 GB).
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `resources.limits`
+
+[resources](#resources) > limits
 
 | Type     | Default                      | Required |
 | -------- | ---------------------------- | -------- |
 | `object` | `{"cpu":1000,"memory":1024}` | No       |
 
+### `resources.limits.cpu`
+
+[resources](#resources) > [limits](#resourceslimits) > cpu
+
+The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU).
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `resources.limits.memory`
+
+[resources](#resources) > [limits](#resourceslimits) > memory
+
+The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB).
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `limits`
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
 ### `limits.cpu`
 
 [limits](#limits) > cpu
 
-The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU)
+The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU).
 
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1000`  | No       |
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
 
 ### `limits.memory`
 
 [limits](#limits) > memory
 
-The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB)
+The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB).
 
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1024`  | No       |
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
 
 ### `steps[]`
 

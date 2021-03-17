@@ -18,7 +18,7 @@ import {
 } from "./common"
 import { DEFAULT_API_VERSION } from "../constants"
 import { deline, dedent } from "../util/string"
-import { defaultContainerLimits, ServiceLimitSpec } from "../plugins/container/config"
+import { ServiceLimitSpec } from "../plugins/container/config"
 import { Garden } from "../garden"
 import { WorkflowConfigContext } from "./template-contexts/workflow"
 import { resolveTemplateStrings } from "../template-string/template-string"
@@ -31,6 +31,28 @@ import { globalOptions } from "../cli/params"
 import { isTruthy, omitUndefined } from "../util/util"
 import { parseCliArgs, pickCommand } from "../cli/helpers"
 
+export const minimumWorkflowRequests = {
+  cpu: 50, // 50 millicpu
+  memory: 64, // 64MB
+}
+
+export const defaultWorkflowRequests = minimumWorkflowRequests
+
+export const minimumWorkflowLimits = {
+  cpu: 100, // 100 millicpu
+  memory: 64, // 64MB
+}
+
+export const defaultWorkflowLimits = {
+  cpu: 1000, // = 1000 millicpu = 1 CPU
+  memory: 1024, // = 1024MB = 1GB
+}
+
+export const defaultWorkflowResources = {
+  requests: defaultWorkflowRequests,
+  limits: defaultWorkflowLimits,
+}
+
 export interface WorkflowConfig {
   apiVersion: string
   description?: string
@@ -38,6 +60,10 @@ export interface WorkflowConfig {
   envVars: PrimitiveMap
   kind: "Workflow"
   path: string
+  resources: {
+    requests: ServiceLimitSpec
+    limits: ServiceLimitSpec
+  }
   configPath?: string
   keepAliveHours?: number
   files?: WorkflowFileSpec[]
@@ -60,6 +86,28 @@ export function makeRunConfig(
 }
 
 export interface WorkflowResource extends WorkflowConfig {}
+
+const workflowResourceRequestsSchema = () =>
+  joi.object().keys({
+    cpu: joi.number().min(minimumWorkflowRequests.cpu).description(deline`
+        The minimum amount of CPU the workflow needs in order to be scheduled, in millicpus (i.e. 1000 = 1 CPU).
+      `),
+    memory: joi.number().min(minimumWorkflowRequests.memory).description(deline`
+        The minimum amount of RAM the workflow needs in order to be scheduled, in megabytes (i.e. 1024 = 1 GB).
+      `),
+  })
+
+const workflowResourceLimitsSchema = () =>
+  joi.object().keys({
+    cpu: joi
+      .number()
+      .min(minimumWorkflowLimits.cpu)
+      .description("The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU)."),
+    memory: joi
+      .number()
+      .min(minimumWorkflowLimits.memory)
+      .description("The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB)."),
+  })
 
 export const workflowConfigSchema = () =>
   joi
@@ -87,21 +135,15 @@ export const workflowConfigSchema = () =>
         .number()
         .default(48)
         .description("The number of hours to keep the workflow pod running after completion."),
-      limits: joi
+      resources: joi
         .object()
         .keys({
-          cpu: joi
-            .number()
-            .default(defaultContainerLimits.cpu)
-            .min(500)
-            .description("The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU)"),
-          memory: joi
-            .number()
-            .default(defaultContainerLimits.memory)
-            .min(256)
-            .description("The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB)"),
+          requests: workflowResourceRequestsSchema().default(defaultWorkflowRequests),
+          limits: workflowResourceLimitsSchema().default(defaultWorkflowLimits),
         })
-        .default(defaultContainerLimits),
+        // .default(() => ({}))
+        .meta({ enterprise: true }),
+      limits: workflowResourceLimitsSchema().meta({ enterprise: true, deprecated: true }),
       steps: joiSparseArray(workflowStepSchema()).required().min(1).description(deline`
           The steps the workflow should run. At least one step is required. Steps are run sequentially.
           If a step fails, subsequent steps are skipped.
@@ -354,6 +396,17 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
         script: config.steps[i].script,
       })
     ),
+  }
+
+  /**
+   * TODO: Remove support for workflow.limits the next time we make a release with breaking changes.
+   *
+   * workflow.limits is deprecated, so we copy its values into workflow.resources.limits if workflow.limits
+   * is specified.
+   */
+
+  if (resolvedConfig.limits) {
+    resolvedConfig.resources.limits = resolvedConfig.limits
   }
 
   validateSteps(resolvedConfig)
