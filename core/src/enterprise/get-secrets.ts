@@ -20,7 +20,7 @@ export async function getSecrets({ log, environmentName, enterpriseApi }: GetSec
   let secrets: StringMap = {}
 
   try {
-    const res = await enterpriseApi.get<StringMap>(
+    const res = await enterpriseApi.get<{ status: string; data: StringMap }>(
       `/secrets/projectUid/${enterpriseApi.projectId}/env/${environmentName}`
     )
     secrets = res.data
