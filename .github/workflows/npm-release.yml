@@ -8,8 +8,10 @@ jobs:
   publish-npm-package:
     runs-on: macOS-latest
     steps:
-      - name: Add SHORT_SHA env property with commit short sha
-        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+      - name: Set Environment Variables
+        run: |
+          echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+          echo "CURRENT_CORE_VERSION=`node -e "console.log(require('./package.json').version);"`" >> $GITHUB_ENV
       - uses: actions/checkout@v1
       - name: Use Node.js 12.x
         uses: actions/setup-node@v1
@@ -19,12 +21,14 @@ jobs:
         run: |
           npm install
           npm build
-      - name: Change version if pre-release
+      - name: Publish edge version if pre-release
         if: github.event.release.prerelease == true
         working-directory: ./core
         run: |
-          npm version prerelease -preid=${SHORT_SHA}
-      - name: Release npm package
+          npm version $CURRENT_CORE_VERSION-edge.$SHORT_SHA
+          npm publish --tag edge
+      - name: Publish stable version if normal release
+        if: github.event.release.prerelease != true
         working-directory: ./core
         run: |
           echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > .npmrc
