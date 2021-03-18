@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,6 +11,7 @@ import { LogEntry } from "../logger/log-entry"
 import { EnterpriseApiError } from "../exceptions"
 import { gardenEnv } from "../constants"
 import { Garden } from "../garden"
+import { ApiFetchResponse } from "./api"
 
 export interface RegisterWorkflowRunParams {
   workflowConfig: WorkflowConfig
@@ -41,25 +42,22 @@ export async function registerWorkflowRun({
     requestData["workflowRunUid"] = gardenEnv.GARDEN_WORKFLOW_RUN_UID
   }
   if (enterpriseApi) {
-    let res
+    // TODO: Use API types package here.
+    let res: ApiFetchResponse<{ workflowRunUid: string; status: string }>
     try {
-      res = await enterpriseApi.post(log, "workflow-runs", { body: requestData })
+      res = await enterpriseApi.post("workflow-runs", { body: requestData })
     } catch (err) {
       log.error(`An error occurred while registering workflow run: ${err.message}`)
       throw err
     }
-    const body = res.body
 
-    if (body && body["workflowRunUid"] && body["status"] === "success") {
-      return body["workflowRunUid"]
+    if (res?.workflowRunUid && res?.status === "success") {
+      return res.workflowRunUid
     } else {
-      throw new EnterpriseApiError(
-        `Error while registering workflow run: Request failed with status ${body["status"]}`,
-        {
-          status: body["status"],
-          workflowRunUid: body["workflowRunUid"],
-        }
-      )
+      throw new EnterpriseApiError(`Error while registering workflow run: Request failed with status ${res?.status}`, {
+        status: res?.status,
+        workflowRunUid: res?.workflowRunUid,
+      })
     }
   }
   throw new EnterpriseApiError("Error while registering workflow run: Couldn't initialize API.", {})

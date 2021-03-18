@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,12 +19,15 @@ export const POD_LOG_LINES = 30
 export function checkPodStatus(pod: KubernetesServerResource<V1Pod>): ServiceState {
   const phase = pod.status!.phase
 
-  if (phase === "Pending") {
-    // Return "unhealthy" if image or command is invalid
+  // phase can be "Running" even if some containers have failed, so we need to check container statuses
+  if (phase === "Pending" || phase === "Running") {
     const containerStatuses = pod.status!.containerStatuses
 
     if (containerStatuses) {
+      let allTerminated = true
+
       for (const c of containerStatuses) {
+        // Return "unhealthy" if image or command is invalid
         if (
           c.state &&
           c.state.waiting &&
@@ -32,21 +35,27 @@ export function checkPodStatus(pod: KubernetesServerResource<V1Pod>): ServiceSta
         ) {
           return "unhealthy"
         }
-        if (c.state && c.state.terminated) {
-          if (c.state.terminated.exitCode === 0) {
-            return "stopped"
-          } else {
+
+        // One of the containers failed
+        if (c.state?.terminated) {
+          if (c.state?.terminated?.exitCode !== 0) {
             return "unhealthy"
           }
+        } else {
+          allTerminated = false
         }
+      }
+
+      if (phase === "Running") {
+        return "ready"
+      } else if (allTerminated) {
+        return "stopped"
       }
     }
 
     return "deploying"
   } else if (phase === "Failed") {
     return "unhealthy"
-  } else if (phase === "Running") {
-    return "ready"
   } else if (phase === "Succeeded" || phase === "Completed") {
     return "stopped"
   } else {

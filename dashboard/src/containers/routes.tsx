@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,7 +15,7 @@ import PageError from "../components/page-error"
 import Spinner from "../components/spinner"
 import { initApiStore } from "../api/actions"
 import ErrorBoundary from "../components/error-boundary"
-import Sidebar from "../containers/sidebar"
+import Menu, { menuHeight } from "./menu"
 import { useApi } from "../hooks"
 import ProviderPageFrame from "../components/provider"
 
@@ -24,19 +24,21 @@ const Logs = React.lazy(() => import("./logs"))
 const Overview = React.lazy(() => import("./overview"))
 
 const RouteWrapper = styled.div`
-  background-color: ${colors.gardenGrayLighter};
   display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  overflow-y: hidden;
-  padding: 1rem 1rem 1rem 2rem;
+  flex-direction: row;
+  align-content: flex-start;
+  width: 100%;
+  height: calc(100vh - ${menuHeight});
+  overflow-y: auto;
 `
 
-const SidebarWrapper = styled.div`
-  height: 100vh;
-  position: relative;
+const MenuWrapper = styled.div`
+  display: flex;
+  flex-direction: row;
+  height: ${menuHeight};
+  width: 100%;
   background: ${colors.gardenWhite};
-  box-shadow: 6px 0px 18px rgba(0, 0, 0, 0.06);
+  box-shadow: 6px 0px 18px rgba(0, 0, 0, 0.04);
 `
 
 const providerPageShown: { [path: string]: boolean } = {}
@@ -99,11 +101,11 @@ export default () => {
 
   return (
     <>
-      <SidebarWrapper>
-        <ErrorBoundary errorMsg={"Unable to load sidebar"}>
-          <Sidebar />
+      <MenuWrapper>
+        <ErrorBoundary errorMsg={"Unable to load menu"}>
+          <Menu />
         </ErrorBoundary>
-      </SidebarWrapper>
+      </MenuWrapper>
       <RouteWrapper>
         <ErrorBoundary errorMsg={"Unable to load page"}>{routes}</ErrorBoundary>
       </RouteWrapper>

@@ -6719,6 +6719,14 @@ dns-equal@^1.0.0:
   resolved "https://registry.yarnpkg.com/dns-equal/-/dns-equal-1.0.0.tgz#b39e7f1da6eb0a75ba9c17324b34753c47e0654d"
   integrity sha1-s55/HabrCnW6nBcySzR1PEfgZU0=
 
+dns-lookup-cache@^1.0.4:
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/dns-lookup-cache/-/dns-lookup-cache-1.0.4.tgz#fab28a97ef320215d9255ce866b7dc769acf1762"
+  integrity sha512-528ydOnvZQ+a0f+BfmBU4A5zGb05uvwxN/u96/yQdSA7Z8uwDXHXJ+FEPl5UI91Ga7SNyDT4csL9x4pWMHMCyg==
+  dependencies:
+    lodash "^4.17.11"
+    rr "^0.1.0"
+
 dns-packet@^1.3.1:
   version "1.3.1"
   resolved "https://registry.yarnpkg.com/dns-packet/-/dns-packet-1.3.1.tgz#12aa426981075be500b910eedcd0b47dd7deda5a"
@@ -16187,6 +16195,11 @@ roarr@^2.15.3:
     json-stringify-safe "^5.0.1"
     semver-compare "^1.0.0"
     sprintf-js "^1.1.2"
+
+rr@^0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/rr/-/rr-0.1.0.tgz#a18ec25ec94a67c35f210bb3a85d17914e79cd1e"
+  integrity sha1-oY7CXslKZ8NfIQuzqF0XkU55zR4=
 
 rsvp@^4.8.4:
   version "4.8.5"

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -658,7 +658,7 @@ export async function runScript({
     // Set a very large max buffer (we only hold one of these at a time, and want to avoid overflow errors)
     buffer: true,
     maxBuffer: 100 * 1024 * 1024,
-    env: mapValues(envVars, (v) => (v === undefined ? undefined : "" + v)),
+    env: toEnvVars(envVars || {}),
   })
 
   // Stream output to `log`, splitting by line
@@ -719,6 +719,10 @@ export class StringCollector extends Writable {
     }
     return Buffer.concat(this.chunks).toString("utf8")
   }
+}
+
+export function toEnvVars(vars: PrimitiveMap): { [key: string]: string | undefined } {
+  return mapValues(vars, (v) => (v === undefined ? undefined : "" + v))
 }
 
 /**

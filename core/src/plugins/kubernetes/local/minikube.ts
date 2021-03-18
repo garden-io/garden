@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,7 +19,7 @@ export async function setMinikubeDockerEnv() {
   try {
     minikubeEnv = (await exec("minikube", ["docker-env", "--shell=bash"])).stdout
   } catch (err) {
-    if ((<execa.ExecaError>err).stderr.includes("driver does not support")) {
+    if ((<execa.ExecaError>err).stderr?.includes("driver does not support")) {
       return
     }
     throw err

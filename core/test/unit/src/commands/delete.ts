@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -162,6 +162,16 @@ describe("DeleteServiceCommand", () => {
       ingresses: [],
       detail: {},
     },
+    "service-c": {
+      state: "unknown",
+      ingresses: [],
+      detail: {},
+    },
+    "service-d": {
+      state: "unknown",
+      ingresses: [],
+      detail: {},
+    },
   }
 
   const testProvider = createGardenPlugin({
@@ -222,6 +232,26 @@ describe("DeleteServiceCommand", () => {
     expect(result).to.eql({
       "service-a": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
       "service-b": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
+    })
+  })
+
+  it("should delete all services if none are specified", async () => {
+    const garden = await TestGarden.factory(projectRootB, { plugins })
+    const log = garden.log
+
+    const { result } = await command.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: { services: undefined },
+      opts: withDefaultGlobalOpts({}),
+    })
+    expect(result).to.eql({
+      "service-a": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
+      "service-b": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
+      "service-c": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
+      "service-d": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
     })
   })
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,6 +13,7 @@ import { LogEntryEventPayload } from "./enterprise/buffered-event-stream"
 import { ServiceStatus } from "./types/service"
 import { RunStatus } from "./types/plugin/base"
 import { Omit } from "./util/util"
+import { AuthTokenResponse } from "./enterprise/api"
 
 export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
 
@@ -89,6 +90,7 @@ export interface Events extends LoggerEvents {
   serversUpdated: {
     servers: { host: string; command: string }[]
   }
+  receivedToken: AuthTokenResponse
 
   // Watcher events
   configAdded: {

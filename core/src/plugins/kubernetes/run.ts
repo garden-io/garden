@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -488,6 +488,7 @@ async function runWithArtifacts({
         stderr,
         // Anything above two minutes for this would be unusual
         timeoutSec: 120,
+        buffer: true,
       })
     } catch (err) {
       // TODO: fall back to copying `arc` (https://github.com/mholt/archiver) or similar into the container and
@@ -524,6 +525,7 @@ async function runWithArtifacts({
         stdout,
         stderr,
         timeoutSec,
+        buffer: true,
       })
       result = {
         ...res,
@@ -572,7 +574,7 @@ async function runWithArtifacts({
         ]
 
         try {
-          await new Promise((_resolve, reject) => {
+          await new Promise<void>((_resolve, reject) => {
             // Create an extractor to receive the tarball we will stream from the container
             // and extract to the artifacts directory.
             let done = 0
@@ -600,6 +602,7 @@ async function runWithArtifacts({
                 log,
                 stdout: extractor,
                 timeoutSec,
+                buffer: false,
               })
               .then(() => {
                 // Need to make sure both processes are complete before resolving (may happen in either order)
@@ -651,6 +654,7 @@ type ExecParams = StartParams & {
   stderr?: Writable
   stdin?: Readable
   tty?: boolean
+  buffer: boolean
 }
 
 type RunParams = StartParams & {
@@ -686,13 +690,6 @@ export class PodRunner extends PodRunnerParams {
       throw new PluginError(`Pod spec for PodRunner must contain at least one container`, {
         spec,
       })
-    }
-
-    params.pod.metadata.annotations = {
-      ...(params.pod.metadata.annotations || {}),
-      // Workaround to make sure sidecars are not injected,
-      // due to https://github.com/kubernetes/kubernetes/issues/25908
-      "sidecar.istio.io/inject": "false",
     }
 
     Object.assign(this, params)
@@ -746,7 +743,7 @@ export class PodRunner extends PodRunnerParams {
     try {
       await this.createPod({ log, tty })
 
-      // Wait until Pod terminates
+      // Wait until main container terminates
       while (true) {
         const serverPod = await this.api.core.readNamespacedPodStatus(podName, namespace)
         const state = checkPodStatus(serverPod)
@@ -779,7 +776,8 @@ export class PodRunner extends PodRunnerParams {
           })
         }
 
-        if (state === "stopped") {
+        // reason "Completed" means main container is done, but sidecars or other containers possibly still alive
+        if (state === "stopped" || exitReason === "Completed") {
           success = exitCode === 0
           break
         }
@@ -852,7 +850,7 @@ export class PodRunner extends PodRunnerParams {
    * Executes a command in the running Pod. Must be called after `start()`.
    */
   async exec(params: ExecParams) {
-    const { command, containerName: container, timeoutSec, tty = false, log } = params
+    const { command, containerName: container, timeoutSec, tty = false, log, buffer = true } = params
     let { stdout, stderr, stdin } = params
 
     if (tty) {
@@ -877,6 +875,7 @@ export class PodRunner extends PodRunnerParams {
       command,
       stdout,
       stderr,
+      buffer,
       stdin,
       tty,
       timeoutSec,

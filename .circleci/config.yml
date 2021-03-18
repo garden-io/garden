@@ -559,7 +559,12 @@ jobs:
           command: |
             sudo snap install microk8s --classic --channel=<<parameters.kubernetesVersion>>/stable
             sudo microk8s.status --wait-ready --timeout=300
-            sudo microk8s.enable dns storage registry
+
+            # Workaround for some issue with snap/microk8s
+            sudo microk8s.enable storage registry dns || true
+            sleep 10
+            sudo microk8s.enable storage registry dns
+
             sudo usermod -a -G microk8s circleci
             echo "********* microk8s ready! ************"
 

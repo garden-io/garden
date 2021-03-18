@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/core",
-  "version": "0.12.18",
+  "version": "0.12.19",
   "description": "A full-featured development framework for containers and serverless",
   "repository": {
     "type": "git",
@@ -58,6 +58,7 @@
     "deline": "^1.0.4",
     "dependency-graph": "^0.9.0",
     "directory-tree": "^2.2.4",
+    "dns-lookup-cache": "^1.0.4",
     "docker-file-parser": "^1.0.4",
     "dockerode": "^3.2.0",
     "dotenv": "^8.2.0",

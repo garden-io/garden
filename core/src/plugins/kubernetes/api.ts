@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,6 +9,7 @@
 // No idea why tslint complains over this line
 // tslint:disable-next-line:no-unused
 import { IncomingMessage } from "http"
+import { Agent } from "https"
 import { ReadStream } from "tty"
 import {
   KubeConfig,
@@ -35,6 +36,7 @@ import request = require("request-promise")
 import requestErrors = require("request-promise/errors")
 import { safeLoad } from "js-yaml"
 import { readFile } from "fs-extra"
+import { lookup } from "dns-lookup-cache"
 
 import { Omit, safeDumpYaml, StringCollector, sleep } from "../../util/util"
 import { omitBy, isObject, isPlainObject, keyBy } from "lodash"
@@ -75,6 +77,8 @@ const cachedConfigs: { [context: string]: KubeConfig } = {}
 const cachedApiInfo: { [context: string]: ApiInfo } = {}
 const cachedApiResourceInfo: { [context: string]: ApiResourceMap } = {}
 const apiInfoLock = new AsyncLock()
+
+const requestAgent = new Agent({ lookup })
 
 // NOTE: be warned, the API of the client library is very likely to change
 
@@ -318,6 +322,7 @@ export class KubeApi {
       method: "get",
       json: true,
       resolveWithFullResponse: true,
+      agent: requestAgent,
       ...opts,
     }
 
@@ -514,7 +519,7 @@ export class KubeApi {
     try {
       await api[crudMap[kind].read](name, namespace)
       await api[crudMap[kind].replace](name, namespace, obj)
-      log.debug(`Patched ${kind} ${namespace}/${name}`)
+      log.debug(`Replaced ${kind} ${namespace}/${name}`)
     } catch (err) {
       if (err.statusCode === 404) {
         try {
@@ -539,6 +544,10 @@ export class KubeApi {
    */
   private wrapApi<T extends K8sApi>(api: T, config: KubeConfig): T {
     api.setDefaultAuthentication(config)
+
+    api.addInterceptor((opts) => {
+      opts.agent = requestAgent
+    })
 
     return new Proxy(api, {
       get: (target: T, name: string, receiver) => {
@@ -588,6 +597,7 @@ export class KubeApi {
    * Warning: Do not use tty=true unless you're actually attaching to a terminal, since collecting output will not work.
    */
   async execInPod({
+    buffer,
     namespace,
     podName,
     containerName,
@@ -598,6 +608,7 @@ export class KubeApi {
     tty,
     timeoutSec,
   }: {
+    buffer: boolean
     namespace: string
     podName: string
     containerName: string
@@ -612,8 +623,8 @@ export class KubeApi {
     const stderrCollector = new StringCollector()
     const combinedCollector = new StringCollector()
 
-    let _stdout: Writable = stdoutCollector
-    let _stderr: Writable = stderrCollector
+    let _stdout = stdout || null
+    let _stderr = stderr || null
 
     if (tty) {
       // We connect stdout and stderr directly.
@@ -633,22 +644,22 @@ export class KubeApi {
         const ttyStdin = stdin as ReadStream
         ttyStdin.setRawMode && ttyStdin.setRawMode(true)
       }
-    } else {
+    } else if (buffer) {
       /**
-       * Unless we're attaching a TTY to the output streams, we multiplex the outputs to both a StringCollector,
-       * and whatever stream the caller provided.
+       * Unless we're attaching a TTY to the output streams or buffer=false, we multiplex the outputs to both a
+       * StringCollector, and whatever stream the caller provided.
        */
       _stdout = new PassThrough()
       _stdout.pipe(stdoutCollector)
       _stdout.pipe(combinedCollector)
 
-      if (stdout) {
-        _stdout.pipe(stdout)
-      }
-
       _stderr = new PassThrough()
       _stderr.pipe(stderrCollector)
       _stderr.pipe(combinedCollector)
+
+      if (stdout) {
+        _stdout.pipe(stdout)
+      }
 
       if (stderr) {
         _stderr.pipe(stderr)

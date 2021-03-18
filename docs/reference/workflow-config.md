@@ -27,6 +27,9 @@ name:
 # A description of the workflow.
 description:
 
+# A map of environment variables to use for the workflow. These will be available to all steps in the workflow.
+envVars: {}
+
 # A list of files to write before starting the workflow.
 #
 # This is useful to e.g. create files required for provider authentication, and can be created from data stored in
@@ -104,6 +107,9 @@ steps:
     description:
 
     # A map of environment variables to use when running script steps. Ignored for `command` steps.
+    #
+    # Note: Environment variables provided here take precedence over any environment variables configured at the
+    # workflow level.
     envVars: {}
 
     # A bash script to run. Note that the host running the workflow must have bash installed and on path.
@@ -156,17 +162,21 @@ triggers:
     #
     events:
 
-    # If specified, only run the workflow for branches matching one of these filters.
+    # If specified, only run the workflow for branches matching one of these filters. These filters refer to the
+    # pull/merge request's head branch (e.g. `my-feature-branch`), not the base branch that the pull/merge request
+    # would be merged into if approved (e.g. `main`).
     branches:
 
-    # If specified, only run the workflow for tags matching one of these filters.
-    tags:
+    # If specified, only run the workflow for pull/merge requests whose base branch matches one of these filters.
+    baseBranches:
 
-    # If specified, do not run the workflow for branches matching one of these filters.
+    # If specified, do not run the workflow for branches matching one of these filters. These filters refer to the
+    # pull/merge request's head branch (e.g. `my-feature-branch`), not the base branch that the pull/merge request
+    # would be merged into if approved (e.g. `main`).
     ignoreBranches:
 
-    # If specified, do not run the workflow for tags matching one of these filters.
-    ignoreTags:
+    # If specified, do not run the workflow for pull/merge requests whose base branch matches one of these filters.
+    ignoreBaseBranches:
 ```
 
 ## Configuration Keys
@@ -207,6 +217,14 @@ A description of the workflow.
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `envVars`
+
+A map of environment variables to use for the workflow. These will be available to all steps in the workflow.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
 
 ### `files[]`
 
@@ -379,6 +397,9 @@ A description of the workflow step.
 
 A map of environment variables to use when running script steps. Ignored for `command` steps.
 
+Note: Environment variables provided here take precedence over any environment variables configured at the
+workflow level.
+
 | Type     | Default | Required |
 | -------- | ------- | -------- |
 | `object` | `{}`    | No       |
@@ -486,17 +507,17 @@ Supported events:
 
 [triggers](#triggers) > branches
 
-If specified, only run the workflow for branches matching one of these filters.
+If specified, only run the workflow for branches matching one of these filters. These filters refer to the pull/merge request's head branch (e.g. `my-feature-branch`), not the base branch that the pull/merge request would be merged into if approved (e.g. `main`).
 
 | Type            | Required |
 | --------------- | -------- |
 | `array[string]` | No       |
 
-### `triggers[].tags[]`
+### `triggers[].baseBranches[]`
 
-[triggers](#triggers) > tags
+[triggers](#triggers) > baseBranches
 
-If specified, only run the workflow for tags matching one of these filters.
+If specified, only run the workflow for pull/merge requests whose base branch matches one of these filters.
 
 | Type            | Required |
 | --------------- | -------- |
@@ -506,17 +527,17 @@ If specified, only run the workflow for tags matching one of these filters.
 
 [triggers](#triggers) > ignoreBranches
 
-If specified, do not run the workflow for branches matching one of these filters.
+If specified, do not run the workflow for branches matching one of these filters. These filters refer to the pull/merge request's head branch (e.g. `my-feature-branch`), not the base branch that the pull/merge request would be merged into if approved (e.g. `main`).
 
 | Type            | Required |
 | --------------- | -------- |
 | `array[string]` | No       |
 
-### `triggers[].ignoreTags[]`
+### `triggers[].ignoreBaseBranches[]`
 
-[triggers](#triggers) > ignoreTags
+[triggers](#triggers) > ignoreBaseBranches
 
-If specified, do not run the workflow for tags matching one of these filters.
+If specified, do not run the workflow for pull/merge requests whose base branch matches one of these filters.
 
 | Type            | Required |
 | --------------- | -------- |

@@ -1,20 +1,24 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { got, GotResponse, GotHeaders } from "../util/http"
+import { IncomingHttpHeaders } from "http"
+
+import { got, GotHeaders, GotHttpError } from "../util/http"
 import { findProjectConfig } from "../config/base"
-import { CommandError, RuntimeError } from "../exceptions"
+import { CommandError, EnterpriseApiError, RuntimeError } from "../exceptions"
 import { LogEntry } from "../logger/log-entry"
 import { gardenEnv } from "../constants"
 import { ClientAuthToken } from "../db/entities/client-auth-token"
 import { Cookie } from "tough-cookie"
 import { add, sub, isAfter } from "date-fns"
-import { Command } from "../commands/base"
+import { isObject } from "lodash"
+import { deline } from "../util/string"
+import chalk from "chalk"
 
 // If a GARDEN_AUTH_TOKEN is present and Garden is NOT running from a workflow runner pod,
 // switch to ci-token authentication method.
@@ -23,11 +27,16 @@ export const authTokenHeader =
 
 export const makeAuthHeader = (clientAuthToken: string) => ({ [authTokenHeader]: clientAuthToken })
 
+function is401Error(error: any): error is GotHttpError {
+  return error instanceof GotHttpError && error.response.statusCode === 401
+}
+
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
 export interface ApiFetchParams {
   headers: GotHeaders
   method: "GET" | "POST" | "PUT" | "PATCH" | "HEAD" | "DELETE"
+  body?: any
 }
 export interface AuthTokenResponse {
   token: string
@@ -35,141 +44,126 @@ export interface AuthTokenResponse {
   tokenValidity: number
 }
 
+export type ApiFetchResponse<T> = T & {
+  headers: IncomingHttpHeaders
+}
+
+/**
+ * A helper function that finds a project without resolving template strings and returns the enterprise
+ * config. Needed since the EnterpriseApi is generally used before initializing the Garden class.
+ */
+export async function getEnterpriseConfig(currentDirectory: string) {
+  const projectConfig = await findProjectConfig(currentDirectory)
+  if (!projectConfig) {
+    throw new CommandError(`Not a project directory (or any of the parent directories): ${currentDirectory}`, {
+      currentDirectory,
+    })
+  }
+
+  const domain = projectConfig.domain
+  const projectId = projectConfig.id
+  if (!domain || !projectId) {
+    return
+  }
+
+  return { domain, projectId }
+}
+
+/**
+ * The Enterprise API client.
+ *
+ * Can only be initialized if the user is actually logged in. Includes a handful of static helper methods
+ * for cases where the user is not logged in (e.g. the login method itself).
+ */
 export class EnterpriseApi {
   private intervalId: NodeJS.Timer | null
-  protected log: LogEntry
-  protected enterpriseDomain: string
-  protected intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
-  public isUserLoggedIn: boolean = false
-  protected apiPrefix = "api"
+  private log: LogEntry
+  private intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
+  private apiPrefix = "api"
+  public domain: string
+  public projectId: string
 
-  constructor(log: LogEntry) {
+  constructor(log: LogEntry, enterpriseDomain: string, projectId: string) {
     this.log = log
+    this.domain = enterpriseDomain
+    this.projectId = projectId
   }
 
-  getDomain() {
-    return this.enterpriseDomain
-  }
+  /**
+   * Initialize the Enterprise API.
+   *
+   * Returns null if the project is not configured for Garden Enterprise or if the user is not logged in.
+   * Throws if the user is logged in but the token is invalid and can't be refreshed.
+   *
+   * Optionally skip logging during initialization. Useful for noProject commands that need to use the class
+   * without all the "flair".
+   */
+  static async factory({
+    log,
+    currentDirectory,
+    skipLogging = false,
+  }: {
+    log: LogEntry
+    currentDirectory: string
+    skipLogging?: boolean
+  }) {
+    log.debug("Initializing enterprise API client.")
 
-  async init(currentDirectory: string, command?: Command) {
-    this.log.debug("Attempting to initialize EnterpriseAPI client.")
-
-    const commandAllowed = !["login", "logout"].includes(command?.getFullName() || "")
-    if (command && command.noProject && commandAllowed) {
-      return
+    const config = await getEnterpriseConfig(currentDirectory)
+    if (!config) {
+      log.debug("Enterprise domain and/or project ID missing. Aborting.")
+      return null
     }
 
-    const projectConfig = await findProjectConfig(currentDirectory)
-    if (!projectConfig) {
-      throw new CommandError(`Not a project directory (or any of the parent directories): ${currentDirectory}`, {
-        currentDirectory,
-      })
+    const token = await EnterpriseApi.getClientAuthTokenFromDb(log)
+    if (!token && !gardenEnv.GARDEN_AUTH_TOKEN) {
+      log.debug("User is not logged in. Aborting.")
+      return null
     }
-    const enterpriseDomain = projectConfig.domain
-    if (!enterpriseDomain) {
-      return
-    }
-    this.enterpriseDomain = enterpriseDomain
 
-    // Retrieve an authentication token
-    const authToken = await this.readAuthToken()
-    if (authToken && commandAllowed) {
-      // Verify a valid token is present
-      this.log.debug({ msg: `Refreshing auth token and trying to start refresh interval.` })
-      const tokenIsValid = await this.checkClientAuthToken(this.log)
+    const api = new EnterpriseApi(log, config.domain, config.projectId)
+    const tokenIsValid = await api.checkClientAuthToken()
 
+    const enterpriseLog = skipLogging
+      ? null
+      : log.info({ section: "garden-enterprise", msg: "Connecting...", status: "active" })
+
+    if (gardenEnv.GARDEN_AUTH_TOKEN) {
+      // Throw if using an invalid "CI" access token
       if (!tokenIsValid) {
-        // If the token is an Access Token and it's invalid we return.
-        if (gardenEnv.GARDEN_AUTH_TOKEN) {
-          throw new RuntimeError(
-            "The provided access token is expired or has been revoked, please create a new one from the Garden Enterprise UI.",
-            {}
-          )
-        } else {
-          // Try to refresh an expired JWT
-          // This will throw if it fails to refresh
-          await this.refreshToken()
+        throw new EnterpriseApiError(
+          "The provided access token is expired or has been revoked, please create a new one from the Garden Enterprise UI.",
+          {}
+        )
+      }
+    } else {
+      // Refresh the token if it's invalid.
+      if (!tokenIsValid) {
+        enterpriseLog?.debug({ msg: `Current auth token is invalid, refreshing` })
+        try {
+          // We can assert the token exsists since we're not using GARDEN_AUTH_TOKEN
+          await api.refreshToken(token!)
+        } catch (err) {
+          enterpriseLog?.setError({ msg: `Invalid session`, append: true })
+          enterpriseLog?.warn(deline`
+          Your session is invalid and could not be refreshed. If you were previously logged
+          in to another instance of Garden Enterprise, please log out first and then
+          log back in again.
+        `)
+          throw err
         }
       }
-      // At this point we can be sure the user is logged in because we have
-      // a valid token or refreshing the token did not go through.
-      // TODO: Refactor to make a bit more robust (cc @emanuele and @thsig, you
-      // know what I'm talking about.)
-      this.isUserLoggedIn = true
+
       // Start refresh interval if using JWT
-      if (!gardenEnv.GARDEN_AUTH_TOKEN) {
-        this.log.debug({ msg: `Starting refresh interval.` })
-        this.startInterval()
-      }
-    }
-  }
-
-  startInterval() {
-    this.log.debug({ msg: `Will run refresh function every ${this.intervalMsec} ms.` })
-    this.intervalId = setInterval(() => {
-      this.refreshToken().catch((err) => {
-        this.log.debug({ msg: "Something went wrong while trying to refresh the authentication token." })
-        this.log.debug({ msg: err.message })
-      })
-    }, this.intervalMsec)
-  }
-
-  async close() {
-    if (this.intervalId) {
-      clearInterval(this.intervalId)
-      this.intervalId = null
-    }
-  }
-
-  async refreshToken() {
-    const invalidCredentialsErrorMsg = "Your Garden Enteprise credentials have expired. Please login again."
-    const token = await ClientAuthToken.findOne()
-
-    if (!token || gardenEnv.GARDEN_AUTH_TOKEN) {
-      this.log.debug({ msg: "Nothing to refresh, returning." })
-      return
+      log.debug({ msg: `Starting refresh interval.` })
+      api.startInterval()
     }
 
-    if (isAfter(new Date(), sub(token.validity, { seconds: refreshThreshold }))) {
-      try {
-        const res = await this.get(this.log, "token/refresh", {
-          Cookie: `rt=${token?.refreshToken}`,
-        })
-
-        let cookies: any
-        if (res.headers["set-cookie"] instanceof Array) {
-          cookies = res.headers["set-cookie"].map((cookieStr) => {
-            return Cookie.parse(cookieStr)
-          })
-        } else {
-          cookies = [Cookie.parse(res.headers["set-cookie"] || "")]
-        }
-
-        const rt = cookies.find((cookie) => cookie.key === "rt")
-        const tokenObj = {
-          token: res.body.data.jwt,
-          refreshToken: rt.value || "",
-          tokenValidity: res.body.data.jwtValidity,
-        }
-        await this.saveAuthToken(tokenObj)
-      } catch (err) {
-        const res = err.response
-
-        if (res && res.statusCode === 401) {
-          this.log.debug({ msg: `Failed to refresh the token.` })
-          await this.clearAuthToken()
-          throw new RuntimeError(invalidCredentialsErrorMsg, {})
-        } else {
-          throw new RuntimeError(
-            `An error occurred while verifying client auth token with platform: ${err.message}`,
-            {}
-          )
-        }
-      }
-    }
+    enterpriseLog?.setSuccess({ msg: chalk.green("Ready"), append: true })
+    return api
   }
 
-  async saveAuthToken(tokenResponse: AuthTokenResponse) {
+  static async saveAuthToken(log: LogEntry, tokenResponse: AuthTokenResponse) {
     try {
       const manager = ClientAuthToken.getConnection().manager
       await manager.transaction(async (transactionalEntityManager) => {
@@ -183,10 +177,39 @@ export class EnterpriseApi {
           })
         )
       })
-      this.log.debug("Saved client auth token to local config db")
+      log.debug("Saved client auth token to local config db")
     } catch (error) {
-      this.log.error(`An error occurred while saving client auth token to local config db:\n${error.message}`)
+      log.error(`An error occurred while saving client auth token to local config db:\n${error.message}`)
     }
+  }
+
+  /**
+   * Returns the full client auth token from the local DB.
+   *
+   * In the inconsistent/erroneous case of more than one auth token existing in the local store, picks the first auth
+   * token and deletes all others.
+   */
+  static async getClientAuthTokenFromDb(log: LogEntry) {
+    const [tokens, tokenCount] = await ClientAuthToken.findAndCount()
+
+    const token = tokens[0] ? tokens[0] : undefined
+
+    if (tokenCount > 1) {
+      log.debug("More than one client auth token found, clearing up...")
+      try {
+        await ClientAuthToken.getConnection()
+          .createQueryBuilder()
+          .delete()
+          .from(ClientAuthToken)
+          .where("token != :token", { token: token?.token })
+          .execute()
+      } catch (error) {
+        log.error(`An error occurred while clearing up duplicate client auth tokens:\n${error.message}`)
+      }
+    }
+    log.silly(`Retrieved client auth token from local config db`)
+
+    return token
   }
 
   /**
@@ -195,108 +218,145 @@ export class EnterpriseApi {
    *
    * Note that the GARDEN_AUTH_TOKEN environment variable takes precedence over a persisted auth token if both are
    * present.
-   *
-   * In the inconsistent/erroneous case of more than one auth token existing in the local store, picks the first auth
-   * token and deletes all others.
    */
-  async readAuthToken(): Promise<string | null> {
+  static async getAuthToken(log: LogEntry): Promise<string | undefined> {
     const tokenFromEnv = gardenEnv.GARDEN_AUTH_TOKEN
     if (tokenFromEnv) {
-      this.log.silly("Read client auth token from env")
+      log.silly("Read client auth token from env")
       return tokenFromEnv
     }
-
-    const [tokens, tokenCount] = await ClientAuthToken.findAndCount()
-
-    const token = tokens[0] ? tokens[0].token : null
-
-    if (tokenCount > 1) {
-      this.log.debug("More than one client auth tokens found, clearing up...")
-      try {
-        await ClientAuthToken.getConnection()
-          .createQueryBuilder()
-          .delete()
-          .from(ClientAuthToken)
-          .where("token != :token", { token })
-          .execute()
-      } catch (error) {
-        this.log.error(`An error occurred while clearing up duplicate client auth tokens:\n${error.message}`)
-      }
-    }
-    this.log.silly(`Retrieved client auth token from local config db`)
-
-    return token
+    return (await EnterpriseApi.getClientAuthTokenFromDb(log))?.token
   }
 
   /**
    * If a persisted client auth token exists, deletes it.
    */
-  async clearAuthToken() {
+  static async clearAuthToken(log: LogEntry) {
     await ClientAuthToken.getConnection().createQueryBuilder().delete().from(ClientAuthToken).execute()
-    this.log.debug("Cleared persisted auth token (if any)")
+    log.debug("Cleared persisted auth token (if any)")
   }
 
-  private async apiFetch(log: LogEntry, path: string, params: ApiFetchParams, body?: any): Promise<GotResponse<any>> {
+  private startInterval() {
+    this.log.debug({ msg: `Will run refresh function every ${this.intervalMsec} ms.` })
+    this.intervalId = setInterval(() => {
+      this.refreshTokenIfExpired().catch((err) => {
+        this.log.debug({ msg: "Something went wrong while trying to refresh the authentication token." })
+        this.log.debug({ msg: err.message })
+      })
+    }, this.intervalMsec)
+  }
+
+  close() {
+    if (this.intervalId) {
+      clearInterval(this.intervalId)
+      this.intervalId = null
+    }
+  }
+
+  private async refreshTokenIfExpired() {
+    const token = await ClientAuthToken.findOne()
+
+    if (!token || gardenEnv.GARDEN_AUTH_TOKEN) {
+      this.log.debug({ msg: "Nothing to refresh, returning." })
+      return
+    }
+
+    if (isAfter(new Date(), sub(token.validity, { seconds: refreshThreshold }))) {
+      await this.refreshToken(token)
+    }
+  }
+
+  private async refreshToken(token: ClientAuthToken) {
+    try {
+      const res = await this.get<any>("token/refresh", {
+        Cookie: `rt=${token?.refreshToken}`,
+      })
+
+      let cookies: any
+      if (res.headers["set-cookie"] instanceof Array) {
+        cookies = res.headers["set-cookie"].map((cookieStr) => {
+          return Cookie.parse(cookieStr)
+        })
+      } else {
+        cookies = [Cookie.parse(res.headers["set-cookie"] || "")]
+      }
+
+      const rt = cookies.find((cookie: any) => cookie?.key === "rt")
+      const tokenObj = {
+        token: res.data.jwt,
+        refreshToken: rt.value || "",
+        tokenValidity: res.data.jwtValidity,
+      }
+      await EnterpriseApi.saveAuthToken(this.log, tokenObj)
+    } catch (err) {
+      this.log.debug({ msg: `Failed to refresh the token.` })
+      throw new RuntimeError(`An error occurred while verifying client auth token with platform: ${err.message}`, {})
+    }
+  }
+
+  private async apiFetch<T>(path: string, params: ApiFetchParams): Promise<ApiFetchResponse<T>> {
     const { method, headers } = params
-    log.silly({ msg: `Fetching enterprise APIs. ${method} ${path}` })
-    const clientAuthToken = await this.readAuthToken()
+    this.log.silly({ msg: `Calling enterprise API with ${method} ${path}` })
+    const token = await EnterpriseApi.getAuthToken(this.log)
     // TODO add more logging details
     const requestObj = {
       method,
       headers: {
         ...headers,
-        ...makeAuthHeader(clientAuthToken || ""),
+        ...makeAuthHeader(token || ""),
       },
-      json: body || undefined,
+      json: params.body,
     }
 
-    const res = await got(`${this.enterpriseDomain}/${this.apiPrefix}/${path}`, {
+    const res = await got<T>(`${this.domain}/${this.apiPrefix}/${path}`, {
       ...requestObj,
       responseType: "json",
     })
-    return res
+
+    if (!isObject(res.body)) {
+      throw new EnterpriseApiError(`Unexpected API response`, {
+        path,
+        body: res?.body,
+      })
+    }
+
+    return {
+      ...res.body,
+      headers: res.headers,
+    }
   }
 
-  // TODO Validate response
-  async get(log: LogEntry, path: string, headers?: GotHeaders) {
-    log.debug({ msg: `PATH ${path} headers ${JSON.stringify(headers, null, 2)}` })
-    return this.apiFetch(log, path, {
+  async get<T>(path: string, headers?: GotHeaders) {
+    return await this.apiFetch<T>(path, {
       headers: headers || {},
       method: "GET",
     })
   }
 
-  async post(log: LogEntry, path: string, payload: { body?: any; headers?: GotHeaders } = { body: {} }) {
+  async post<T>(path: string, payload: { body?: any; headers?: GotHeaders } = { body: {} }) {
     const { headers, body } = payload
-    return this.apiFetch(
-      log,
-      path,
-      {
-        headers: headers || {},
-        method: "POST",
-      },
-      body
-    )
+    return this.apiFetch<T>(path, {
+      headers: headers || {},
+      method: "POST",
+      body,
+    })
   }
 
   /**
    * Checks with the backend whether the provided client auth token is valid.
    */
-  async checkClientAuthToken(log: LogEntry): Promise<boolean> {
+  async checkClientAuthToken(): Promise<boolean> {
     let valid = false
     try {
-      log.debug(`Checking client auth token with platform: ${this.getDomain()}/token/verify`)
-      await this.get(log, "token/verify")
+      this.log.debug(`Checking client auth token with platform: ${this.domain}/token/verify`)
+      await this.get("token/verify")
       valid = true
     } catch (err) {
-      const res = err.response
-      if (res.statusCode === 401) {
-        valid = false
-      } else {
+      if (!is401Error(err)) {
         throw new RuntimeError(`An error occurred while verifying client auth token with platform: ${err.message}`, {})
       }
     }
-    log.debug(`Checked client auth token with platform - valid: ${valid}`)
+    this.log.debug(`Checked client auth token with platform - valid: ${valid}`)
     return valid
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,14 +19,14 @@ import { Field, Value, FieldWrap, NameField } from "./common"
 import { useUiState } from "../../hooks"
 
 const Wrap = styled.div`
-  padding: 1.2rem;
+  padding: 1rem;
   background: white;
   box-shadow: 0rem 0.375rem 1.125rem rgba(0, 0, 0, 0.06);
   border-radius: 0.25rem;
   margin: 0 1.3rem 1.3rem 0;
-  min-width: 17.5rem;
+  min-width: 17rem;
   flex: 1 1;
-  max-width: 20rem;
+  max-width: 18rem;
 `
 
 type CardWrapProps = {

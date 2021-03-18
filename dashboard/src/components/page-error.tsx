@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,6 +19,16 @@ interface Props {
   error?: AxiosError | string
 }
 
+const renderEmoji = (emoji: string, label: string) => {
+  return (
+    <>
+      <span role="img" aria-label={label} style={{ marginRight: "0.5em", fontSize: "0.8rem" }}>
+        {emoji}
+      </span>{" "}
+    </>
+  )
+}
+
 // TODO Style me + add prop interface
 const PageError: React.FC<Props> = ({ error }) => {
   let suggestion = <div />
@@ -33,9 +43,7 @@ const PageError: React.FC<Props> = ({ error }) => {
         <div>
           <P>Please look at the terminal logs displayed by the dashboard server for details.</P>
           <P color={colors.gardenGray}>
-            <span role="img" aria-label="Tip:">
-              💡
-            </span>{" "}
+            {renderEmoji("💡", "Tip:")}
             You can get more detailed logs by running the server with <code>--log-level=debug</code>.
           </P>
         </div>
@@ -50,17 +58,15 @@ const PageError: React.FC<Props> = ({ error }) => {
     <div
       className={cls(
         css`
+          width: 100%;
           text-align: center;
-        `,
-        "P-2"
+        `
       )}
     >
-      <H3 color={colors.gardenPink}>Whoops, something went wrong.</H3>
+      <H3 color={colors.gardenRed}>Whoops, something went wrong.</H3>
       {message && (
         <P>
-          <span role="img" aria-label="Error:">
-            ❌
-          </span>{" "}
+          {renderEmoji("❌", "Error:")}
           {message}
         </P>
       )}

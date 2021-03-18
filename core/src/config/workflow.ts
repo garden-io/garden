@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -35,6 +35,7 @@ export interface WorkflowConfig {
   apiVersion: string
   description?: string
   name: string
+  envVars: PrimitiveMap
   kind: "Workflow"
   path: string
   configPath?: string
@@ -72,6 +73,9 @@ export const workflowConfigSchema = () =>
       kind: joi.string().default("Workflow").valid("Workflow"),
       name: joiUserIdentifier().required().description("The name of this workflow.").example("my-workflow"),
       description: joi.string().description("A description of the workflow."),
+      envVars: joiEnvVars().description(
+        "A map of environment variables to use for the workflow. These will be available to all steps in the workflow."
+      ),
       files: joiSparseArray(workflowFileSchema()).description(dedent`
           A list of files to write before starting the workflow.
 
@@ -192,9 +196,12 @@ export const workflowStepSchema = () => {
         )
         .example(["run", "task", "my-task"]),
       description: joi.string().description("A description of the workflow step."),
-      envVars: joiEnvVars().description(
-        "A map of environment variables to use when running script steps. Ignored for `command` steps."
-      ),
+      envVars: joiEnvVars().description(dedent`
+        A map of environment variables to use when running script steps. Ignored for \`command\` steps.
+
+        Note: Environment variables provided here take precedence over any environment variables configured at the
+        workflow level.
+      `),
       script: joi.string().description(
         dedent`
         A bash script to run. Note that the host running the workflow must have bash installed and on path.
@@ -247,9 +254,9 @@ export interface TriggerSpec {
   namespace?: string
   events?: string[]
   branches?: string[]
-  tags?: string[]
+  baseBranches?: string[]
   ignoreBranches?: string[]
-  ignoreTags?: string[]
+  ignoreBaseBranches?: string[]
 }
 
 export const triggerSchema = () => {
@@ -282,26 +289,22 @@ export const triggerSchema = () => {
         \n
         `
       ),
-    branches: joi
-      .array()
-      .items(joi.string())
-      .unique()
-      .description("If specified, only run the workflow for branches matching one of these filters."),
-    tags: joi
-      .array()
-      .items(joi.string())
-      .unique()
-      .description("If specified, only run the workflow for tags matching one of these filters."),
-    ignoreBranches: joi
-      .array()
-      .items(joi.string())
-      .unique()
-      .description("If specified, do not run the workflow for branches matching one of these filters."),
-    ignoreTags: joi
-      .array()
-      .items(joi.string())
-      .unique()
-      .description("If specified, do not run the workflow for tags matching one of these filters."),
+    branches: joi.array().items(joi.string()).unique().description(deline`
+        If specified, only run the workflow for branches matching one of these filters. These filters refer to the
+        pull/merge request's head branch (e.g. \`my-feature-branch\`), not the base branch that the pull/merge request
+        would be merged into if approved (e.g. \`main\`).
+       `),
+    baseBranches: joi.array().items(joi.string()).unique().description(deline`
+        If specified, only run the workflow for pull/merge requests whose base branch matches one of these filters.
+      `),
+    ignoreBranches: joi.array().items(joi.string()).unique().description(deline`
+        If specified, do not run the workflow for branches matching one of these filters. These filters refer to the
+        pull/merge request's head branch (e.g. \`my-feature-branch\`), not the base branch that the pull/merge request
+        would be merged into if approved (e.g. \`main\`).
+      `),
+    ignoreBaseBranches: joi.array().items(joi.string()).unique().description(deline`
+        If specified, do not run the workflow for pull/merge requests whose base branch matches one of these filters.
+      `),
   })
 }
 

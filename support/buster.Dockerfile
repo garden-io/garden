@@ -26,13 +26,10 @@ ADD . /garden
 
 WORKDIR /project
 
-ENV GARDEN_DISABLE_ANALYTICS=true
-ENV GARDEN_DISABLE_VERSION_CHECK=true
-
 RUN ln -s /garden/garden /bin/garden \
   && chmod +x /bin/garden \
   && cd /garden/static \
   && git init \
-  && garden util fetch-tools --all --garden-image-build --logger-type=basic
+  && GARDEN_DISABLE_ANALYTICS=true GARDEN_DISABLE_VERSION_CHECK=true garden util fetch-tools --all --garden-image-build --logger-type=basic
 
 ENTRYPOINT ["/garden/garden"]

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,78 +14,19 @@ import bodyParser = require("koa-bodyparser")
 import Router = require("koa-router")
 import getPort = require("get-port")
 import { LogEntry } from "../logger/log-entry"
-import { InternalError } from "../exceptions"
-import { EnterpriseApi, AuthTokenResponse } from "./api"
-import { ClientAuthToken } from "../db/entities/client-auth-token"
-import { gardenEnv } from "../constants"
+import { AuthTokenResponse } from "./api"
 import { isArray } from "lodash"
-
-/**
- * Logs in to Garden Enterprise if needed, and returns a valid client auth token.
- */
-export async function login(enterpriseApi: EnterpriseApi, log: LogEntry): Promise<string> {
-  const savedToken = await enterpriseApi.readAuthToken()
-  // Ping platform with saved token (if it exists)
-  if (savedToken) {
-    log.debug("Local client auth token found, verifying it with platform...")
-    if (await enterpriseApi.checkClientAuthToken(log)) {
-      log.debug("Local client token is valid, no need for login.")
-      return savedToken
-    }
-  }
-
-  /**
-   * Else, start auth redirect server and wait for its redirect handler to receive
-   * the redirect and finish running.
-   */
-  const events = new EventEmitter2()
-  const server = new AuthRedirectServer(enterpriseApi, events, log)
-  log.debug(`Redirecting to Garden Enterprise login page...`)
-  const response: AuthTokenResponse = await new Promise(async (resolve, _reject) => {
-    // The server resolves the promise with the new auth token once it's received the redirect.
-    await server.start()
-    events.once("receivedToken", (tokenResponse: AuthTokenResponse) => {
-      log.debug("Received client auth token.")
-      resolve(tokenResponse)
-    })
-  })
-  await server.close()
-  if (!response) {
-    throw new InternalError(`Error: Did not receive an auth token after logging in.`, {})
-  }
-  await enterpriseApi.saveAuthToken(response)
-  return response.token
-}
-
-export async function logout(enterpriseApi: EnterpriseApi, log: LogEntry): Promise<void> {
-  const token = await ClientAuthToken.findOne()
-  if (!token || gardenEnv.GARDEN_AUTH_TOKEN) {
-    // Noop when the user is not logged in or an access token is in use
-    return
-  }
-  try {
-    await enterpriseApi.post(log, "token/logout", {
-      headers: {
-        Cookie: `rt=${token?.refreshToken}`,
-      },
-    })
-  } catch (error) {
-    log.debug({ msg: `An error occurred while logging out from Garden Enterprise: ${error.message}` })
-  } finally {
-    await enterpriseApi.clearAuthToken()
-  }
-}
 
 // TODO: Add analytics tracking
 export class AuthRedirectServer {
   private log: LogEntry
   private server: Server
   private app: Koa
-  private enterpriseApi: EnterpriseApi
+  private enterpriseDomain: string
   private events: EventEmitter2
 
-  constructor(enterpriseApi: EnterpriseApi, events: EventEmitter2, log: LogEntry, public port?: number) {
-    this.enterpriseApi = enterpriseApi
+  constructor(enterpriseDomain: string, events: EventEmitter2, log: LogEntry, public port?: number) {
+    this.enterpriseDomain = enterpriseDomain
     this.events = events
     this.log = log.placeholder()
   }
@@ -100,7 +41,7 @@ export class AuthRedirectServer {
     }
 
     await this.createApp()
-    await open(`${this.enterpriseApi.getDomain()}/clilogin/${this.port}`)
+    await open(`${this.enterpriseDomain}/clilogin/${this.port}`)
   }
 
   async close() {
@@ -121,7 +62,7 @@ export class AuthRedirectServer {
       }
       this.log.debug("Received client auth token")
       this.events.emit("receivedToken", tokenResponse)
-      ctx.redirect(`${this.enterpriseApi.getDomain()}/clilogin/success`)
+      ctx.redirect(`${this.enterpriseDomain}/clilogin/success`)
     })
 
     app.use(bodyParser())

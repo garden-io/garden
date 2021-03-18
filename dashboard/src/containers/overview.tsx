@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,14 +20,12 @@ import { ServiceEntity, TestEntity, TaskEntity } from "../contexts/api"
 import { useApi, useUiState } from "../hooks"
 
 const Overview = styled.div`
-  padding-top: 0.5rem;
+  padding: 1rem 0.5rem;
 `
 
 const Modules = styled.div`
   display: flex;
   flex-wrap: wrap;
-  overflow-y: auto;
-  max-height: calc(100vh - 2rem);
   padding: 0 0 0 1rem;
 `
 

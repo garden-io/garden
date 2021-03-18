@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,26 +16,30 @@ export interface SpinnerProps {
   background?: string
 }
 
+const color = colors.gardenGreenDark
+const colorRgba = colors.gardenPinkRgba
+
 // From https://projects.lukehaas.me/css-loaders/
 const Spinner = styled<any, SpinnerProps>("div")`
   font-size: ${(props) => props.fontSize || "6px"};
   margin: 50px auto;
   text-indent: -9999em;
-  width: ${(props) => props.size || "4.5rem"};
-  height: ${(props) => props.size || "4.5rem"};
+  opacity: 0.5;
+  width: ${(props) => props.size || "4rem"};
+  height: ${(props) => props.size || "4rem"};
   border-radius: 50%;
-  background: ${colors.gardenPink};
-  background: linear-gradient(to right, ${colors.gardenPink} 10%, ${colors.gardenPinkRgba} 42%);
+  background: ${color};
+  background: linear-gradient(to right, ${color} 10%, ${colorRgba} 42%);
   position: relative;
-  -webkit-animation: load3 1.4s infinite linear;
-  animation: load3 1.4s infinite linear;
+  -webkit-animation: load3 1.1s infinite linear;
+  animation: load3 1.1s infinite linear;
   -webkit-transform: translateZ(0);
   -ms-transform: translateZ(0);
   transform: translateZ(0);
   :before {
     width: 50%;
     height: 50%;
-    background: ${colors.gardenPink};
+    background: ${color};
     border-radius: 100% 0 0 0;
     position: absolute;
     top: 0;

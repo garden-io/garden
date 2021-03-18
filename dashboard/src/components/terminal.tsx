@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,13 +23,16 @@ interface Props {
 const Term = styled.div`
   background-color: ${colors.gardenBlack};
   border-radius: 2px;
-  max-height: calc(100vh - 9rem);
+  max-height: calc(100vh - 12rem);
   overflow-y: auto;
+  width: 100%;
 `
 
 const P = styled.p`
   color: ${colors.gardenWhite};
-  font-size: 0.8rem;
+  font-size: 0.65rem;
+  line-height: 0.7rem;
+  margin: 0.15rem;
 `
 
 const Service = styled.span`

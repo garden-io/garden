@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -144,6 +144,7 @@ describe("kubernetes Pod runner functions", () => {
         const res = await runner.exec({
           log,
           command: ["echo", "foo"],
+          buffer: true,
         })
 
         expect(res.log.trim()).to.equal("foo")
@@ -162,7 +163,7 @@ describe("kubernetes Pod runner functions", () => {
 
         await runner.start({ log })
         await expectError(
-          () => runner.exec({ log, command: ["sh", "-c", "sleep 100"], timeoutSec: 1 }),
+          () => runner.exec({ log, command: ["sh", "-c", "sleep 100"], timeoutSec: 1, buffer: true }),
           (err) => expect(err.message).to.equal("Command timed out after 1 seconds.")
         )
       })
@@ -180,7 +181,7 @@ describe("kubernetes Pod runner functions", () => {
 
         await runner.start({ log })
         await expectError(
-          () => runner.exec({ log, command: ["sh", "-c", "echo foo && exit 2"] }),
+          () => runner.exec({ log, command: ["sh", "-c", "echo foo && exit 2"], buffer: true }),
           (err) => expect(err.message.trim()).to.equal("Command exited with code 2:\nfoo")
         )
       })

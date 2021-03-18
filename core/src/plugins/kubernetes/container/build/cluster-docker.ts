@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -41,6 +41,7 @@ export const getClusterDockerBuildStatus: BuildStatusHandler = async (params) =>
       command: pushArgs,
       timeoutSec: 300,
       containerName: dockerDaemonContainerName,
+      buffer: true,
     })
     return { ready: true }
   } catch (err) {

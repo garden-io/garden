@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,10 +21,23 @@ import { GraphOutput } from "@garden-io/core/build/src/commands/get/get-graph"
 import { loadGraph } from "../api/actions"
 import { getTestKey } from "../util/helpers"
 import { useApi, useUiState } from "../hooks"
+import { colors } from "../styles/variables"
 
 const Wrapper = styled.div`
-  padding-left: 0.75rem;
+  position: relative;
+  width: 100%;
+  background-color: ${colors.gardenWhite};
 `
+
+const cardStyle = {
+  position: "absolute",
+  top: "0",
+  right: "1.5rem",
+  minWidth: "20rem",
+  maxWidth: "35rem",
+  maxHeight: "calc(100vh - 8rem)",
+  overflowY: "auto",
+}
 
 export interface StackGraphNode extends RenderedNode {
   status?: TaskState
@@ -99,14 +112,13 @@ export default () => {
     const node = graph.nodes.find((n) => n.key === selectedGraphNode)
     if (node) {
       moreInfoPane = (
-        <div className="col-xs-5 col-sm-5 col-md-4 col-lg-4 col-xl-4">
-          <EntityResult
-            name={node.name}
-            type={node.type as EntityResultSupportedTypes}
-            moduleName={node.moduleName}
-            onClose={clearGraphNodeSelection}
-          />
-        </div>
+        <EntityResult
+          name={node.name}
+          type={node.type as EntityResultSupportedTypes}
+          moduleName={node.moduleName}
+          onClose={clearGraphNodeSelection}
+          cardProps={{ style: cardStyle }}
+        />
       )
     }
   }
@@ -122,17 +134,15 @@ export default () => {
   }, {}) as Filters<StackGraphSupportedFilterKeys>
 
   return (
-    <Wrapper className="row">
-      <div className={moreInfoPane ? "col-xs-7 col-sm-7 col-md-8 col-lg-8 col-xl-8" : "col-xs"}>
-        <StackGraph
-          onGraphNodeSelected={selectGraphNode}
-          selectedGraphNode={selectedGraphNode}
-          graph={graphWithStatus}
-          filters={graphFilters}
-          onFilter={stackGraphToggleItemsView}
-          isProcessing={project.taskGraphProcessing}
-        />
-      </div>
+    <Wrapper>
+      <StackGraph
+        onGraphNodeSelected={selectGraphNode}
+        selectedGraphNode={selectedGraphNode}
+        graph={graphWithStatus}
+        filters={graphFilters}
+        onFilter={stackGraphToggleItemsView}
+        isProcessing={project.taskGraphProcessing}
+      />
       {moreInfoPane}
     </Wrapper>
   )

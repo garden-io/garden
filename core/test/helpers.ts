@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -47,6 +47,7 @@ import { TestGarden, EventLogEntry, TestGardenOpts } from "../src/util/testing"
 import { Logger } from "../src/logger/logger"
 import { LogLevel } from "../src/logger/log-node"
 import { ExecInServiceParams, ExecInServiceResult } from "../src/types/plugin/service/execInService"
+import { ClientAuthToken } from "../src/db/entities/client-auth-token"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus } from "../src/util/testing"
@@ -640,4 +641,8 @@ export function initTestLogger() {
       level: LogLevel.info,
     })
   } catch (_) {}
+}
+
+export async function cleanupAuthTokens() {
+  await ClientAuthToken.createQueryBuilder().delete().execute()
 }
