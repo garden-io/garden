@@ -14,12 +14,15 @@
     "npm": ">=5.0.0"
   },
   "preferGlobal": true,
-  "private": true,
   "files": [
     "build",
     "static"
   ],
   "main": "build/src/index.js",
+  "types": "build/src/index.d.ts",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
   "dependencies": {
     "@hapi/joi": "git+https://github.com/garden-io/joi.git#master",
     "@kubernetes/client-node": "git+https://github.com/garden-io/javascript.git#fix-websocket-basic-auth-yarn",

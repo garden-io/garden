@@ -1,0 +1,31 @@
+name: Release the core npm package
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish-npm-package:
+    runs-on: macOS-latest
+    steps:
+      - name: Add SHORT_SHA env property with commit short sha
+        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+      - uses: actions/checkout@v1
+      - name: Use Node.js 12.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12.x
+      - name: Build package
+        run: |
+          npm install
+          npm build
+      - name: Change version if pre-release
+        if: github.event.release.prerelease == true
+        working-directory: ./core
+        run: |
+          npm version prerelease -preid=${SHORT_SHA}
+      - name: Release npm package
+        working-directory: ./core
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > .npmrc
+          npm publish
