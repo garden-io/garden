@@ -333,6 +333,13 @@ export class EnterpriseApi {
     })
   }
 
+  async delete<T>(path: string, headers?: GotHeaders) {
+    return await this.apiFetch<T>(path, {
+      headers: headers || {},
+      method: "DELETE",
+    })
+  }
+
   async post<T>(path: string, payload: { body?: any; headers?: GotHeaders } = { body: {} }) {
     const { headers, body } = payload
     return this.apiFetch<T>(path, {

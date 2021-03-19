@@ -12,6 +12,7 @@ import { EnterpriseApiError } from "../exceptions"
 import { gardenEnv } from "../constants"
 import { Garden } from "../garden"
 import { ApiFetchResponse } from "./api"
+import { RegisterWorkflowRunResponse } from "@garden-io/platform-api-types"
 
 export interface RegisterWorkflowRunParams {
   workflowConfig: WorkflowConfig
@@ -43,7 +44,7 @@ export async function registerWorkflowRun({
   }
   if (enterpriseApi) {
     // TODO: Use API types package here.
-    let res: ApiFetchResponse<{ workflowRunUid: string; status: string }>
+    let res: ApiFetchResponse<RegisterWorkflowRunResponse>
     try {
       res = await enterpriseApi.post("workflow-runs", { body: requestData })
     } catch (err) {
