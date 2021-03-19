@@ -1373,6 +1373,11 @@
   resolved "https://registry.yarnpkg.com/@emotion/weak-memoize/-/weak-memoize-0.2.5.tgz#8eed982e2ee6f7f4e44c253e12962980791efd46"
   integrity sha512-6U71C2Wp7r5XtFtQzYrW5iKFT67OixrSxjI4MptCHzdSVlgabczzqLe0ZSgnub/5Kp4hSbpDB1tMytZY9pwxxA==
 
+"@garden-io/platform-api-types@1.14.0":
+  version "1.14.0"
+  resolved "https://registry.yarnpkg.com/@garden-io/platform-api-types/-/platform-api-types-1.14.0.tgz#711ddeb9d73e9149a89d9c9bd32ff9e018cfe42b"
+  integrity sha512-LOT815/pkIa2EIfHjecn9TW3S24dzsl6m8RODFhTAKrQlj7NAO+iWw9iznaPNIU6dCGpHJnvENRTc409TRzUMw==
+
 "@google-cloud/kms@^1.6.3":
   version "1.6.3"
   resolved "https://registry.yarnpkg.com/@google-cloud/kms/-/kms-1.6.3.tgz#bdfe617e813f940018fb50e51e4025af68c3f885"

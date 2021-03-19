@@ -145,7 +145,7 @@ export class StringsParameter extends Parameter<string[] | undefined> {
     } else if (!isArray(input)) {
       input = [input]
     }
-    return input.flatMap((v) => v.split(this.delimiter))
+    return input.flatMap((v) => String(v).split(this.delimiter))
   }
 }
 

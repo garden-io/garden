@@ -9,6 +9,7 @@
 import { LogEntry } from "../logger/log-entry"
 import { StringMap } from "../config/common"
 import { EnterpriseApi } from "./api"
+import { BaseResponse } from "@garden-io/platform-api-types"
 
 export interface GetSecretsParams {
   log: LogEntry
@@ -20,7 +21,7 @@ export async function getSecrets({ log, environmentName, enterpriseApi }: GetSec
   let secrets: StringMap = {}
 
   try {
-    const res = await enterpriseApi.get<{ status: string; data: StringMap }>(
+    const res = await enterpriseApi.get<BaseResponse>(
       `/secrets/projectUid/${enterpriseApi.projectId}/env/${environmentName}`
     )
     secrets = res.data
