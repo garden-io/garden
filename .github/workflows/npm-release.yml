@@ -11,7 +11,6 @@ jobs:
       - name: Set Environment Variables
         run: |
           echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
-          echo "CURRENT_CORE_VERSION=`node -e "console.log(require('./package.json').version);"`" >> $GITHUB_ENV
       - uses: actions/checkout@v1
       - name: Use Node.js 12.x
         uses: actions/setup-node@v1
@@ -21,15 +20,21 @@ jobs:
         run: |
           npm install
           npm build
+      - name: Setup npm registry authentication
+        working-directory: ./core
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > .npmrc
       - name: Publish edge version if pre-release
         if: github.event.release.prerelease == true
         working-directory: ./core
+        # We fetch the current version from the package.json because at this point the version has
+        # already been bumped during the pre-release process.
         run: |
+          CURRENT_CORE_VERSION=`node -e "console.log(require('./package.json').version);"`
           npm version $CURRENT_CORE_VERSION-edge.$SHORT_SHA
           npm publish --tag edge
       - name: Publish stable version if normal release
         if: github.event.release.prerelease != true
         working-directory: ./core
         run: |
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > .npmrc
           npm publish
