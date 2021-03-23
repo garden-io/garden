@@ -12,7 +12,7 @@ import {
   resolveTemplateStrings,
   collectTemplateReferences,
   throwOnMissingSecretKeys,
-} from "../../../src/template-string"
+} from "../../../src/template-string/template-string"
 import { ConfigContext } from "../../../src/config/template-contexts/base"
 import { expectError } from "../../helpers"
 import stripAnsi = require("strip-ansi")
@@ -1025,6 +1025,65 @@ describe("resolveTemplateString", async () => {
         (err) =>
           expect(stripAnsi(err.message)).to.equal(
             "Invalid template string (prefix content ${endif}): Found ${endif} block without a preceding ${if...} block."
+          )
+      )
+    })
+  })
+
+  context("helper functions", () => {
+    it("resolves a helper function with a string literal", () => {
+      const res = resolveTemplateString("${base64Encode('foo')}", new TestContext({}))
+      expect(res).to.equal("Zm9v")
+    })
+
+    it("resolves a helper function with multiple arguments", () => {
+      const res = resolveTemplateString("${split('a,b,c', ',')}", new TestContext({}))
+      expect(res).to.eql(["a", "b", "c"])
+    })
+
+    it("resolves a helper function with a template key reference", () => {
+      const res = resolveTemplateString("${base64Encode(a)}", new TestContext({ a: "foo" }))
+      expect(res).to.equal("Zm9v")
+    })
+
+    it("throws if an argument is missing", () => {
+      expectError(
+        () => resolveTemplateString("${base64Decode()}", new TestContext({})),
+        (err) =>
+          expect(stripAnsi(err.message)).to.equal(
+            "Invalid template string (${base64Decode()}): Missing argument 'string' for base64Decode helper function."
+          )
+      )
+    })
+
+    it("throws if a wrong argument type is passed", () => {
+      expectError(
+        () => resolveTemplateString("${base64Decode(a)}", new TestContext({ a: 1234 })),
+        (err) =>
+          expect(stripAnsi(err.message)).to.equal(
+            "Invalid template string (${base64Decode(a)}): Error validating argument 'string' for base64Decode helper function: value must be a string"
+          )
+      )
+    })
+
+    it("throws if the function can't be found", () => {
+      expectError(
+        () => resolveTemplateString("${floop('blop')}", new TestContext({})),
+        (err) =>
+          expect(
+            stripAnsi(err.message).startsWith(
+              "Invalid template string (${floop('blop')}): Could not find helper function 'floop'. Available helper functions: "
+            )
+          ).to.be.true
+      )
+    })
+
+    it("throws if the function fails", () => {
+      expectError(
+        () => resolveTemplateString("${jsonDecode('{]}')}", new TestContext({})),
+        (err) =>
+          expect(stripAnsi(err.message)).to.equal(
+            "Invalid template string (${jsonDecode('{]}')}): Error from helper function jsonDecode: Unexpected token ] in JSON at position 1"
           )
       )
     })

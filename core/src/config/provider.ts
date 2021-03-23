@@ -8,7 +8,7 @@
 
 import { deline } from "../util/string"
 import { joiIdentifier, joiUserIdentifier, joiArray, joi, joiIdentifierMap, joiSparseArray } from "./common"
-import { collectTemplateReferences } from "../template-string"
+import { collectTemplateReferences } from "../template-string/template-string"
 import { ConfigurationError } from "../exceptions"
 import { ModuleConfig, moduleConfigSchema } from "./module"
 import { uniq } from "lodash"

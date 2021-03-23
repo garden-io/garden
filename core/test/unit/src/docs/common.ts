@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joi } from "../../../../src/config/common"
-import { JoiKeyDescription, JoiDescription } from "../../../../src/docs/joi-schema"
+import { joi, JoiDescription } from "../../../../src/config/common"
+import { JoiKeyDescription } from "../../../../src/docs/joi-schema"
 import { flattenSchema } from "../../../../src/docs/common"
 import { expect } from "chai"
 

@@ -8,7 +8,11 @@
 
 import { cloneDeep, keyBy } from "lodash"
 import { validateWithPath } from "./config/validation"
-import { resolveTemplateStrings, getModuleTemplateReferences, resolveTemplateString } from "./template-string"
+import {
+  resolveTemplateStrings,
+  getModuleTemplateReferences,
+  resolveTemplateString,
+} from "./template-string/template-string"
 import { ContextResolveOpts, GenericContext } from "./config/template-contexts/base"
 import { relative, resolve, posix, dirname } from "path"
 import { Garden } from "./garden"

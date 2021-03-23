@@ -14,7 +14,7 @@ const sources = [
   "dashboard/src/**/*.scss",
   "core/src/**/*.ts",
   "core/test/**/*.ts",
-  "core/src/*.pegjs",
+  "core/src/**/*.pegjs",
 ]
 const licenseHeaderPath = "support/license-header-js.txt"
 

@@ -135,6 +135,16 @@ values:
   ...
 ```
 
+### Helper functions
+
+You can use a variety of helper functions in template strings, for things like string processing, parsing, conversions etc. You find a [full list in the reference docs](../reference/template-strings.md#helper-functions), but here are a couple of examples:
+
+* `${base64Encode('my value')}` encodes the `'my value'` string as base64.
+* `${base64Decode('bXkgdmFsdWU=')}` decodes the given base64 string.
+* `${replace(var.someVariable, "_", "-")}` returns the `someVariable` variable with all underscores replaced with dashes.
+
+Check out [the reference](../reference/template-strings.md#helper-functions) to explore all the available functions.
+
 ### Multi-line if/else statements
 
 In addition to the conditionals described above, you can use if/else blocks. These are particularly handy when templating multi-line strings and generated files in [module templates](./module-templates.md).

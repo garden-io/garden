@@ -13,9 +13,9 @@ import {
   sanitizeYamlStringForGitBook,
 } from "../../../../src/docs/config"
 import { expect } from "chai"
-import { joiArray, joi, joiEnvVars } from "../../../../src/config/common"
+import { joiArray, joi, joiEnvVars, JoiDescription } from "../../../../src/config/common"
 import { buildDependencySchema } from "../../../../src/config/module"
-import { JoiDescription, JoiKeyDescription } from "../../../../src/docs/joi-schema"
+import { JoiKeyDescription } from "../../../../src/docs/joi-schema"
 import { BaseKeyDescription, flattenSchema } from "../../../../src/docs/common"
 import { dedent } from "../../../../src/util/string"
 

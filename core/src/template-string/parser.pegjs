@@ -10,6 +10,7 @@
   const {
     buildBinaryExpression,
     buildLogicalExpression,
+    callHelperFunction,
     escapePrefix,
     getKey,
     getValue,
@@ -22,6 +23,22 @@
     resolveNested,
     TemplateStringError,
   } = options
+
+  function extractOptional(optional, index) {
+    return optional ? optional[index] : null;
+  }
+
+  function extractList(list, index) {
+    return list.map(function(element) { return element[index]; });
+  }
+
+  function buildList(head, tail, index) {
+    return [head].concat(extractList(tail, index));
+  }
+
+  function optionalList(value) {
+    return value !== null ? value : [];
+  }
 }
 
 TemplateString
@@ -159,6 +176,21 @@ MemberExpression
       return [head].concat(tail)
     }
 
+CallExpression
+  = callee:Identifier __ args:Arguments {
+      return callHelperFunction(callee, args)
+    }
+
+Arguments
+  = "(" __ args:(ArgumentList __)? ")" {
+      return optionalList(extractOptional(args, 0));
+    }
+
+ArgumentList
+  = head:Expression tail:(__ "," __ Expression)* {
+      return buildList(head, tail, 3);
+    }
+
 PrimaryExpression
   = v:NonStringLiteral {
     return v
@@ -167,6 +199,7 @@ PrimaryExpression
     // Allow nested template strings in literals
     return resolveNested(v)
   }
+  / CallExpression
   / key:MemberExpression {
     for (const part of key) {
       if (part._error) {

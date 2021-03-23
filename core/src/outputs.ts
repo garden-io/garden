@@ -7,7 +7,7 @@
  */
 
 import { Garden } from "./garden"
-import { collectTemplateReferences, resolveTemplateStrings } from "./template-string"
+import { collectTemplateReferences, resolveTemplateStrings } from "./template-string/template-string"
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { emptyRuntimeContext, prepareRuntimeContext } from "./runtime-context"
 import { DeployTask } from "./tasks/deploy"
