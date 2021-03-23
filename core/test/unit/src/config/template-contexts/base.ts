@@ -17,7 +17,7 @@ import {
 } from "../../../../../src/config/template-contexts/base"
 import { expectError } from "../../../../helpers"
 import { joi } from "../../../../../src/config/common"
-import { resolveTemplateStrings } from "../../../../../src/template-string"
+import { resolveTemplateStrings } from "../../../../../src/template-string/template-string"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>

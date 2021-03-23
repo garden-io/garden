@@ -25,7 +25,7 @@ import {
   joiSparseArray,
 } from "./common"
 import { validateWithPath } from "./validation"
-import { resolveTemplateStrings } from "../template-string"
+import { resolveTemplateStrings } from "../template-string/template-string"
 import { ProjectConfigContext, EnvironmentConfigContext } from "./template-contexts/project"
 import { findByName, getNames } from "../util/util"
 import { ConfigurationError, ParameterError, ValidationError } from "../exceptions"

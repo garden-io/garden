@@ -93,10 +93,9 @@ export function validateSchema<T>(
 
     const errorDetails = error.details.map((e) => {
       // render the key path in a much nicer way
-      let renderedPath = "."
+      let renderedPath = ""
 
       if (e.path.length) {
-        renderedPath = ""
         let d = description
 
         for (const part of e.path) {
@@ -118,7 +117,10 @@ export function validateSchema<T>(
       }
 
       // a little hack to always use full key paths instead of just the label
-      e.message = e.message.replace(joiLabelPlaceholderRegex, "key " + chalk.underline(renderedPath || "."))
+      e.message = e.message.replace(
+        joiLabelPlaceholderRegex,
+        renderedPath ? "key " + chalk.underline(renderedPath) : "value"
+      )
       e.message = e.message.replace(joiPathPlaceholderRegex, chalk.underline(renderedPath || "."))
       // FIXME: remove once we've customized the error output from AJV in customObject.jsonSchema()
       e.message = e.message.replace(/should NOT have/g, "should not have")

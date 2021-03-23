@@ -10,7 +10,7 @@ import { expect } from "chai"
 import stripAnsi = require("strip-ansi")
 import { ConfigContext } from "../../../../../src/config/template-contexts/base"
 import { ProjectConfigContext } from "../../../../../src/config/template-contexts/project"
-import { resolveTemplateString } from "../../../../../src/template-string"
+import { resolveTemplateString } from "../../../../../src/template-string/template-string"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>

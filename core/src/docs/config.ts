@@ -13,7 +13,7 @@ import { resolve } from "path"
 import { projectDocsSchema } from "../config/project"
 import { get, isFunction } from "lodash"
 import handlebars = require("handlebars")
-import { joi } from "../config/common"
+import { joi, JoiDescription } from "../config/common"
 import { STATIC_DIR } from "../constants"
 import {
   indent,
@@ -24,7 +24,7 @@ import {
   flattenSchema,
   isArrayType,
 } from "./common"
-import { JoiDescription, JoiKeyDescription } from "./joi-schema"
+import { JoiKeyDescription } from "./joi-schema"
 import { safeDumpYaml } from "../util/util"
 
 export const TEMPLATES_DIR = resolve(STATIC_DIR, "docs", "templates")

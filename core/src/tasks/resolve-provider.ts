@@ -15,7 +15,7 @@ import {
   getProviderTemplateReferences,
   ProviderMap,
 } from "../config/provider"
-import { resolveTemplateStrings } from "../template-string"
+import { resolveTemplateStrings } from "../template-string/template-string"
 import { ConfigurationError, PluginError } from "../exceptions"
 import { keyBy, omit, flatten, uniq } from "lodash"
 import { GraphResults } from "../task-graph"

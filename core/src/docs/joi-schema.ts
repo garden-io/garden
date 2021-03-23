@@ -6,24 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi from "@hapi/joi"
 import { uniq, isFunction, extend, isArray, isPlainObject } from "lodash"
 import { BaseKeyDescription, isArrayType } from "./common"
 import { findByName, safeDumpYaml } from "../util/util"
 import { JsonKeyDescription } from "./json-schema"
-
-// Need this to fix the Joi typing
-export interface JoiDescription extends Joi.Description {
-  type: string
-  name: string
-  level: number
-  flags?: {
-    default?: any
-    description?: string
-    presence?: string
-    only?: boolean
-  }
-}
+import { JoiDescription } from "../config/common"
 
 export class JoiKeyDescription extends BaseKeyDescription {
   private joiDescription: JoiDescription

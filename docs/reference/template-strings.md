@@ -5,14 +5,157 @@ title: Template Strings
 
 # Template string reference
 
-Below you'll find the schema of the keys available when interpolating template strings (see our [Variables and Templating](../using-garden/variables-and-templating.md) guide for more information and usage examples).
+Below you'll find the schema of the keys available when interpolating template strings (see our [Variables and Templating](../using-garden/variables-and-templating.md) guide for more information and usage examples), as well as the list of available helper functions you can use in template strings.
 
-Note that there are four sections below, since different configuration sections have different keys available to them. Please make sure to refer to the correct section.
+Note that there are multiple sections below, since different configuration sections have different keys available to them. Please make sure to refer to the correct section.
+
+## Helper functions
+
+### base64Decode
+
+Decodes the given base64-encoded string.
+
+Usage: `base64Decode(string)`
+
+Examples:
+* `${base64Decode("bXkgdmFsdWU=")}` -> `"my value"`
+
+### base64Encode
+
+Encodes the given string as base64.
+
+Usage: `base64Encode(string)`
+
+Examples:
+* `${base64Encode("my value")}` -> `"bXkgdmFsdWU="`
+
+### camelCase
+
+Converts the given string to a valid camelCase identifier, changing the casing and removing characters as necessary.
+
+Usage: `camelCase(string)`
+
+Examples:
+* `${camelCase("Foo Bar")}` -> `"fooBar"`
+* `${camelCase("--foo-bar--")}` -> `"fooBar"`
+* `${camelCase("__FOO_BAR__")}` -> `"fooBar"`
+
+### isEmpty
+
+Returns true if the given value is an empty string, object, array, null or undefined.
+
+Usage: `isEmpty([value])`
+
+Examples:
+* `${isEmpty({})}` -> `true`
+* `${isEmpty({"not":"empty"})}` -> `false`
+* `${isEmpty([])}` -> `true`
+* `${isEmpty([1,2,3])}` -> `false`
+* `${isEmpty("")}` -> `true`
+* `${isEmpty("not empty")}` -> `false`
+* `${isEmpty(null)}` -> `true`
+
+### jsonDecode
+
+Decodes the given JSON-encoded string.
+
+Usage: `jsonDecode(string)`
+
+Examples:
+* `${jsonDecode("{\"foo\": \"bar\"}")}` -> `{"foo":"bar"}`
+* `${jsonDecode("\"JSON encoded string\"")}` -> `"JSON encoded string"`
+* `${jsonDecode("[\"my\", \"json\", \"array\"]")}` -> `["my","json","array"]`
+
+### jsonEncode
+
+Encodes the given value as JSON.
+
+Usage: `jsonEncode(value)`
+
+Examples:
+* `${jsonEncode(["some","array"])}` -> `"[\"some\",\"array\"]"`
+* `${jsonEncode({"some":"object"})}` -> `"{\"some\":\"object\"}"`
+
+### kebabCase
+
+Converts the given string to a valid kebab-case identifier, changing to all lowercase and removing characters as necessary.
+
+Usage: `kebabCase(string)`
+
+Examples:
+* `${kebabCase("Foo Bar")}` -> `"foo-bar"`
+* `${kebabCase("fooBar")}` -> `"foo-bar"`
+* `${kebabCase("__FOO_BAR__")}` -> `"foo-bar"`
+
+### lower
+
+Convert the given string to all lowercase.
+
+Usage: `lower(string)`
+
+Examples:
+* `${lower("Some String")}` -> `"some string"`
+
+### replace
+
+Replaces all occurrences of a given substring in a string.
+
+Usage: `replace(string, substring, replacement)`
+
+Examples:
+* `${replace("string_with_underscores", "_", "-")}` -> `"string-with-underscores"`
+* `${replace("remove.these.dots", ".", "")}` -> `"removethesedots"`
+
+### slice
+
+Slices a string or array at the specified start/end offsets. Note that you can use a negative number for the end offset to count backwards from the end.
+
+Usage: `slice(input, start, [end])`
+
+Examples:
+* `${slice("ThisIsALongStringThatINeedAPartOf", 11, -7)}` -> `"StringThatINeed"`
+* `${slice(".foo", 1)}` -> `"foo"`
+
+### split
+
+Splits the given string by a substring (e.g. a comma, colon etc.).
+
+Usage: `split(string, separator)`
+
+Examples:
+* `${split("a,b,c", ",")}` -> `["a","b","c"]`
+* `${split("1:2:3:4", ":")}` -> `["1","2","3","4"]`
+
+### trim
+
+Trims whitespace (or other specified characters) off the ends of the given string.
+
+Usage: `trim(string, [characters])`
+
+Examples:
+* `${trim("   some string with surrounding whitespace ")}` -> `"some string with surrounding whitespace"`
+
+### upper
+
+Converts the given string to all uppercase.
+
+Usage: `upper(string)`
+
+Examples:
+* `${upper("Some String")}` -> `"SOME STRING"`
+
+### uuidv4
+
+Generates a random v4 UUID.
+
+Usage: `uuidv4()`
+
+Examples:
+* `${uuidv4()}` -> `1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed`
 
 ## Project configuration context
 
 The following keys are available in any template strings within project definitions in `garden.yml` config files, except the `name` field (which cannot be templated). See the [Environment](#environment-configuration-context) and [Provider](#provider-configuration-context) sections below for additional keys available when configuring `environments` and `providers`, respectively.
-
 
 ### `${local.*}`
 
@@ -212,7 +355,6 @@ The secret's value.
 ## Environment configuration context
 
 The following keys are available in template strings under the `environments` key in project configs. Additional keys are available for the `environments[].providers` field, see the [Provider](#provider-configuration-context) section below for those.
-
 
 ### `${local.*}`
 
@@ -444,7 +586,6 @@ Number, string or boolean
 The following keys are available in template strings under the `providers` key (or `environments[].providers) in project configs.
 
 Providers can also reference outputs defined by other providers, via the `${providers.<provider-name>.outputs}` key. For details on which outputs are available for a given provider, please refer to the [reference](https://docs.garden.io/reference/providers) docs for the provider in question, and look for the _Outputs_ section.
-
 
 ### `${local.*}`
 
@@ -769,7 +910,6 @@ Modules can reference outputs defined by providers, via the `${providers.<provid
 
 Modules can also reference outputs defined by other modules, via the `${modules.<module-name>.outputs}` key, as well as service and task outputs via the `${runtime.services.<service-name>.outputs}` and `${runtime.tasks.<task-name>.outputs}` keys.
 For details on which outputs are available for a given module type, please refer to the [reference](https://docs.garden.io/reference/module-types) docs for the module type in question, and look for the _Outputs_ section.
-
 
 ### `${local.*}`
 
@@ -1315,7 +1455,6 @@ Output values can reference outputs defined by providers, via the `${providers.<
 Output values may also reference outputs defined by modules, via the `${modules.<module-name>.outputs}` key, as well as service and task outputs via the `${runtime.services.<service-name>.outputs}` and `${runtime.tasks.<task-name>.outputs}` keys.
 For details on which outputs are available for a given module type, please refer to the [reference](https://docs.garden.io/reference/module-types) docs for the module type in question, and look for the _Outputs_ section.
 
-
 ### `${local.*}`
 
 Context variables that are specific to the currently running environment/machine.
@@ -1766,7 +1905,6 @@ The task output value. Refer to individual [module type references](https://docs
 The below keys are available in template strings for Workflow configurations.
 
 Note that the `{steps.*}` key is only available for the `steps[].command` and `steps[].script` fields in Workflow configs, and may only reference previous steps in the same workflow. See below for more details.
-
 
 ### `${local.*}`
 

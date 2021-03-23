@@ -6,32 +6,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GardenBaseError, ConfigurationError } from "./exceptions"
+import { GardenBaseError, ConfigurationError, TemplateStringError } from "../exceptions"
 import {
   ConfigContext,
   ContextResolveOpts,
   ScanContext,
   ContextResolveOutput,
   ContextKeySegment,
-} from "./config/template-contexts/base"
+} from "../config/template-contexts/base"
 import { difference, uniq, isPlainObject, isNumber } from "lodash"
-import { Primitive, StringMap, isPrimitive, objectSpreadKey } from "./config/common"
-import { profile } from "./util/profiling"
-import { dedent, deline, truncate } from "./util/string"
-import { isArray } from "util"
-import { ObjectWithName } from "./util/util"
-import { LogEntry } from "./logger/log-entry"
-import { ModuleConfigContext } from "./config/template-contexts/module"
+import { Primitive, StringMap, isPrimitive, objectSpreadKey } from "../config/common"
+import { profile } from "../util/profiling"
+import { dedent, deline, truncate } from "../util/string"
+import { ObjectWithName } from "../util/util"
+import { LogEntry } from "../logger/log-entry"
+import { ModuleConfigContext } from "../config/template-contexts/module"
+import { callHelperFunction } from "./functions"
 
 export type StringOrStringPromise = Promise<string> | string
 
 const missingKeyExceptionType = "template-string-missing-key"
 const passthroughExceptionType = "template-string-passthrough"
 const escapePrefix = "$${"
-
-class TemplateStringError extends GardenBaseError {
-  type = "template-string"
-}
 
 export class TemplateStringMissingKeyException extends GardenBaseError {
   type = missingKeyExceptionType
@@ -45,7 +41,7 @@ let _parser: any
 
 function getParser() {
   if (!_parser) {
-    _parser = require("./template-string-parser")
+    _parser = require("./parser")
   }
 
   return _parser
@@ -90,7 +86,7 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
       resolveNested: (nested: string) => resolveTemplateString(nested, context, opts),
       buildBinaryExpression,
       buildLogicalExpression,
-      isArray,
+      isArray: Array.isArray,
       ConfigurationError,
       TemplateStringError,
       missingKeyExceptionType,
@@ -101,6 +97,7 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
       optionalSuffix: "}?",
       isPlainObject,
       isPrimitive,
+      callHelperFunction,
     })
 
     const outputs: ResolvedClause[] = parsed.map((p: any) => {
@@ -205,7 +202,7 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
 ): T {
   if (typeof value === "string") {
     return <T>resolveTemplateString(value, context, opts)
-  } else if (isArray(value)) {
+  } else if (Array.isArray(value)) {
     return <T>(<unknown>value.map((v) => resolveTemplateStrings(v, context, opts)))
   } else if (isPlainObject(value)) {
     // Resolve $merge keys, depth-first, leaves-first
@@ -380,7 +377,7 @@ function buildBinaryExpression(head: any, tail: any) {
     if (operator === "+") {
       if (isNumber(left) && isNumber(right)) {
         return left + right
-      } else if (isArray(left) && isArray(right)) {
+      } else if (Array.isArray(left) && Array.isArray(right)) {
         return left.concat(right)
       } else {
         const err = new TemplateStringError(
