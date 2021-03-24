@@ -415,6 +415,14 @@ Example:
 my-variable: ${modules.my-module.buildPath}
 ```
 
+### `${modules.<module-name>.name}`
+
+The name of the module.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${modules.<module-name>.path}`
 
 The local path of the module.

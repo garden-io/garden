@@ -67,6 +67,7 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
         resolvedProviders: {},
         modules: [],
         runtimeContext: emptyRuntimeContext,
+        partialRuntimeResolution: false,
       })
     )
   }

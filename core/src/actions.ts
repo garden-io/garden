@@ -861,11 +861,10 @@ export class ActionRouter implements TypeGuard {
       const configContext = new ModuleConfigContext({
         garden: this.garden,
         resolvedProviders: providers,
-        dependencies: modules,
+        modules,
         runtimeContext,
-        parentName: module.parentName,
-        templateName: module.templateName,
-        inputs: module.inputs,
+        moduleConfig: module,
+        buildPath: module.buildPath,
         partialRuntimeResolution: false,
       })
 
@@ -924,11 +923,10 @@ export class ActionRouter implements TypeGuard {
       const configContext = new ModuleConfigContext({
         garden: this.garden,
         resolvedProviders: providers,
-        dependencies: modules,
+        modules,
         runtimeContext,
-        parentName: module.parentName,
-        templateName: module.templateName,
-        inputs: module.inputs,
+        moduleConfig: module,
+        buildPath: module.buildPath,
         partialRuntimeResolution: false,
       })
 

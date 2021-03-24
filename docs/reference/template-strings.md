@@ -1107,6 +1107,28 @@ Example:
 my-variable: ${modules.<module-name>.buildPath}
 ```
 
+### `${modules.<module-name>.name}`
+
+The name of the module.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${modules.<module-name>.path}`
+
+The local path of the module.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${modules.<module-name>.path}
+```
+
 ### `${modules.<module-name>.outputs.*}`
 
 The outputs defined by the module (see individual module type [references](https://docs.garden.io/reference/module-types) for details).
@@ -1122,20 +1144,6 @@ The module output value. Refer to individual [module type references](https://do
 | Type                        |
 | --------------------------- |
 | `string | number | boolean` |
-
-### `${modules.<module-name>.path}`
-
-The local path of the module.
-
-| Type     |
-| -------- |
-| `string` |
-
-Example:
-
-```yaml
-my-variable: ${modules.<module-name>.path}
-```
 
 ### `${modules.<module-name>.version}`
 
@@ -1207,6 +1215,20 @@ The task output value. Refer to individual [module type references](https://docs
 | --------------------------- |
 | `string | number | boolean` |
 
+### `${inputs.*}`
+
+The inputs provided to the module through a undefined, if applicable.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${inputs.<input-key>}`
+
+| Type                                             |
+| ------------------------------------------------ |
+| `string | number | boolean | link | array[link]` |
+
 ### `${parent.*}`
 
 Information about the parent module (if the module is a submodule, e.g. generated in a templated module).
@@ -1239,19 +1261,49 @@ The name of the undefined being resolved.
 | -------- |
 | `string` |
 
-### `${inputs.*}`
+### `${this.*}`
 
-The inputs provided to the module through a undefined, if applicable.
+Information about the module currently being resolved.
 
-| Type     | Default |
-| -------- | ------- |
-| `object` | `{}`    |
+| Type     |
+| -------- |
+| `object` |
 
-### `${inputs.<input-key>}`
+### `${this.buildPath}`
 
-| Type                                             |
-| ------------------------------------------------ |
-| `string | number | boolean | link | array[link]` |
+The build path of the module.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${this.buildPath}
+```
+
+### `${this.name}`
+
+The name of the module.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${this.path}`
+
+The local path of the module.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${this.path}
+```
 
 
 ## Output configuration context
@@ -1600,6 +1652,28 @@ Example:
 my-variable: ${modules.<module-name>.buildPath}
 ```
 
+### `${modules.<module-name>.name}`
+
+The name of the module.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${modules.<module-name>.path}`
+
+The local path of the module.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${modules.<module-name>.path}
+```
+
 ### `${modules.<module-name>.outputs.*}`
 
 The outputs defined by the module (see individual module type [references](https://docs.garden.io/reference/module-types) for details).
@@ -1615,20 +1689,6 @@ The module output value. Refer to individual [module type references](https://do
 | Type                        |
 | --------------------------- |
 | `string | number | boolean` |
-
-### `${modules.<module-name>.path}`
-
-The local path of the module.
-
-| Type     |
-| -------- |
-| `string` |
-
-Example:
-
-```yaml
-my-variable: ${modules.<module-name>.path}
-```
 
 ### `${modules.<module-name>.version}`
 
@@ -1699,52 +1759,6 @@ The task output value. Refer to individual [module type references](https://docs
 | Type                        |
 | --------------------------- |
 | `string | number | boolean` |
-
-### `${parent.*}`
-
-Information about the parent module (if the module is a submodule, e.g. generated in a templated module).
-
-| Type     |
-| -------- |
-| `object` |
-
-### `${parent.name}`
-
-The name of the parent module.
-
-| Type     |
-| -------- |
-| `string` |
-
-### `${template.*}`
-
-Information about the undefined used when generating the module.
-
-| Type     |
-| -------- |
-| `object` |
-
-### `${template.name}`
-
-The name of the undefined being resolved.
-
-| Type     |
-| -------- |
-| `string` |
-
-### `${inputs.*}`
-
-The inputs provided to the module through a undefined, if applicable.
-
-| Type     | Default |
-| -------- | ------- |
-| `object` | `{}`    |
-
-### `${inputs.<input-key>}`
-
-| Type                                             |
-| ------------------------------------------------ |
-| `string | number | boolean | link | array[link]` |
 
 
 ## Workflow configuration context

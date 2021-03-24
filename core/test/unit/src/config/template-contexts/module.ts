@@ -17,6 +17,7 @@ import { GardenService } from "../../../../../src/types/service"
 import { resolveTemplateString } from "../../../../../src/template-string"
 import { ModuleConfigContext } from "../../../../../src/config/template-contexts/module"
 import { WorkflowConfigContext, WorkflowStepConfigContext } from "../../../../../src/config/template-contexts/workflow"
+import { GardenModule } from "../../../../../src/types/module"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
@@ -29,21 +30,22 @@ let currentBranch: string
 describe("ModuleConfigContext", () => {
   let garden: TestGarden
   let c: ModuleConfigContext
+  let module: GardenModule
 
   before(async () => {
     garden = await makeTestGardenA()
     garden["secrets"] = { someSecret: "someSecretValue" }
     const graph = await garden.getConfigGraph(garden.log)
     const modules = graph.getModules()
+    module = graph.getModule("module-b")
     currentBranch = garden.vcsBranch
 
     c = new ModuleConfigContext({
       garden,
       resolvedProviders: keyBy(await garden.resolveProviders(garden.log), "name"),
-      dependencies: modules,
-      parentName: undefined,
-      templateName: undefined,
-      inputs: {},
+      modules,
+      moduleConfig: module,
+      buildPath: module.buildPath,
       partialRuntimeResolution: false,
     })
   })
@@ -90,6 +92,24 @@ describe("ModuleConfigContext", () => {
   it("should resolve the outputs of a module", async () => {
     expect(c.resolve({ key: ["modules", "module-a", "outputs", "foo"], nodePath: [], opts: {} })).to.eql({
       resolved: "bar",
+    })
+  })
+
+  it("should resolve this.buildPath", async () => {
+    expect(c.resolve({ key: ["this", "buildPath"], nodePath: [], opts: {} })).to.eql({
+      resolved: module.buildPath,
+    })
+  })
+
+  it("should resolve this.path", async () => {
+    expect(c.resolve({ key: ["this", "path"], nodePath: [], opts: {} })).to.eql({
+      resolved: module.path,
+    })
+  })
+
+  it("should resolve this.name", async () => {
+    expect(c.resolve({ key: ["this", "name"], nodePath: [], opts: {} })).to.eql({
+      resolved: module.name,
     })
   })
 
@@ -156,11 +176,10 @@ describe("ModuleConfigContext", () => {
       withRuntime = new ModuleConfigContext({
         garden,
         resolvedProviders: keyBy(await garden.resolveProviders(garden.log), "name"),
-        dependencies: modules,
+        modules,
+        moduleConfig: serviceA.module,
+        buildPath: serviceA.module.buildPath,
         runtimeContext,
-        parentName: undefined,
-        templateName: undefined,
-        inputs: {},
         partialRuntimeResolution: false,
       })
     })
