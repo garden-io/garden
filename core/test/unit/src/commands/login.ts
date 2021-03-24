@@ -16,10 +16,11 @@ import stripAnsi from "strip-ansi"
 import { makeDummyGarden } from "../../../../src/cli/cli"
 import { Garden } from "../../../../src"
 import { ClientAuthToken } from "../../../../src/db/entities/client-auth-token"
-import { randomString } from "../../../../src/util/string"
+import { dedent, randomString } from "../../../../src/util/string"
 import { EnterpriseApi } from "../../../../src/enterprise/api"
 import { LogLevel } from "../../../../src/logger/log-node"
 import { gardenEnv } from "../../../../src/constants"
+import { EnterpriseApiError } from "../../../../src/exceptions"
 
 function makeCommandParams(garden: Garden) {
   const log = garden.log
@@ -166,6 +167,44 @@ describe("LoginCommand", () => {
       () => command.action(makeCommandParams(garden)),
       (err) => expect(stripAnsi(err.message)).to.match(/bummer/)
     )
+  })
+
+  it("should throw and print a helpful message on 401 errors", async () => {
+    const postfix = randomString()
+    const testToken = {
+      token: `dummy-token-${postfix}`,
+      refreshToken: `dummy-refresh-token-${postfix}`,
+      tokenValidity: 60,
+    }
+
+    const command = new LoginCommand()
+    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
+      noEnterprise: false,
+      commandInfo: { name: "foo", args: {}, opts: {} },
+    })
+
+    await EnterpriseApi.saveAuthToken(garden.log, testToken)
+    td.replace(EnterpriseApi.prototype, "checkClientAuthToken", async () => false)
+    td.replace(EnterpriseApi.prototype, "refreshToken", async () => {
+      throw new EnterpriseApiError("bummer", { statusCode: 401 })
+    })
+
+    const savedToken = await ClientAuthToken.findOne()
+    expect(savedToken).to.exist
+    expect(savedToken!.token).to.eql(testToken.token)
+    expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
+
+    await expectError(
+      () => command.action(makeCommandParams(garden)),
+      (err) => expect(stripAnsi(err.message)).to.match(/bummer/)
+    )
+
+    const logOutput = getLogMessages(garden.log, (entry) => entry.level <= LogLevel.info).join("\n")
+
+    expect(logOutput).to.include(dedent`
+      Looks like your session token is invalid. If you were previously logged into a different instance
+      of Garden Enterprise, log out first before logging in.
+    `)
   })
 
   context("GARDEN_AUTH_TOKEN set in env", () => {
