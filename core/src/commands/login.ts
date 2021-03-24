@@ -39,11 +39,23 @@ export class LoginCommand extends Command {
 
     // The Enterprise API is missing from the Garden class for commands with noProject
     // so we initialize it here.
-    const enterpriseApi = await EnterpriseApi.factory({ log, currentDirectory, skipLogging: true })
-    if (enterpriseApi) {
-      log.info({ msg: `You're already logged in to Garden Enteprise.` })
-      enterpriseApi.close()
-      return {}
+    try {
+      const enterpriseApi = await EnterpriseApi.factory({ log, currentDirectory, skipLogging: true })
+      if (enterpriseApi) {
+        log.info({ msg: `You're already logged in to Garden Enteprise.` })
+        enterpriseApi.close()
+        return {}
+      }
+    } catch (err) {
+      if (err?.detail?.statusCode === 401) {
+        const msg = dedent`
+          Looks like your session token is invalid. If you were previously logged into a different instance
+          of Garden Enterprise, log out first before logging in.
+        `
+        log.warn({ msg, symbol: "warning" })
+        log.info("")
+      }
+      throw err
     }
 
     const config = await getEnterpriseConfig(currentDirectory)

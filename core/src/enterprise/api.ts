@@ -10,7 +10,7 @@ import { IncomingHttpHeaders } from "http"
 
 import { got, GotHeaders, GotHttpError } from "../util/http"
 import { findProjectConfig } from "../config/base"
-import { CommandError, EnterpriseApiError, RuntimeError } from "../exceptions"
+import { CommandError, EnterpriseApiError } from "../exceptions"
 import { LogEntry } from "../logger/log-entry"
 import { gardenEnv } from "../constants"
 import { ClientAuthToken } from "../db/entities/client-auth-token"
@@ -268,7 +268,8 @@ export class EnterpriseApi {
 
   private async refreshToken(token: ClientAuthToken) {
     try {
-      const res = await this.get<any>("token/refresh", {
+      let res: any
+      res = await this.get<any>("token/refresh", {
         Cookie: `rt=${token?.refreshToken}`,
       })
 
@@ -290,7 +291,11 @@ export class EnterpriseApi {
       await EnterpriseApi.saveAuthToken(this.log, tokenObj)
     } catch (err) {
       this.log.debug({ msg: `Failed to refresh the token.` })
-      throw new RuntimeError(`An error occurred while verifying client auth token with platform: ${err.message}`, {})
+      const detail = is401Error(err) ? { statusCode: err.response.statusCode } : {}
+      throw new EnterpriseApiError(
+        `An error occurred while verifying client auth token with Garden Enterprise: ${err.message}`,
+        detail
+      )
     }
   }
 
@@ -355,15 +360,18 @@ export class EnterpriseApi {
   async checkClientAuthToken(): Promise<boolean> {
     let valid = false
     try {
-      this.log.debug(`Checking client auth token with platform: ${this.domain}/token/verify`)
+      this.log.debug(`Checking client auth token with Garden Enterprise: ${this.domain}/token/verify`)
       await this.get("token/verify")
       valid = true
     } catch (err) {
       if (!is401Error(err)) {
-        throw new RuntimeError(`An error occurred while verifying client auth token with platform: ${err.message}`, {})
+        throw new EnterpriseApiError(
+          `An error occurred while verifying client auth token with Garden Enterprise: ${err.message}`,
+          {}
+        )
       }
     }
-    this.log.debug(`Checked client auth token with platform - valid: ${valid}`)
+    this.log.debug(`Checked client auth token with Garden Enterprise - valid: ${valid}`)
     return valid
   }
 }
