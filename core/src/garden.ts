@@ -610,6 +610,7 @@ export class Garden {
       resolvedProviders: providers,
       modules,
       runtimeContext,
+      partialRuntimeResolution: false,
     })
   }
 

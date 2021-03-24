@@ -26,7 +26,7 @@ import { DependencyValidationGraph } from "./util/validate-dependencies"
 import Bluebird from "bluebird"
 import { readFile, mkdirp, writeFile } from "fs-extra"
 import { LogEntry } from "./logger/log-entry"
-import { ModuleConfigContext } from "./config/template-contexts/module"
+import { ModuleConfigContext, ModuleConfigContextParams } from "./config/template-contexts/module"
 import { pathToCacheContext } from "./cache"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
@@ -82,7 +82,8 @@ export class ModuleResolver {
       }
     }
     for (const rawConfig of this.rawConfigs) {
-      const deps = this.getModuleDependenciesFromTemplateStrings(rawConfig)
+      const buildPath = await this.garden.buildStaging.buildPath(rawConfig)
+      const deps = this.getModuleDependenciesFromTemplateStrings(rawConfig, buildPath)
       for (const graph of [fullGraph, processingGraph]) {
         for (const dep of deps) {
           graph.addNode(dep.name)
@@ -156,7 +157,8 @@ export class ModuleResolver {
             // in the graph and move on to make sure we fully resolve the dependencies and don't run into circular
             // dependencies.
             if (!foundNewDependency) {
-              resolvedModules[moduleName] = await this.resolveModule(resolvedConfig, resolvedDependencies)
+              const buildPath = await this.garden.buildStaging.buildPath(resolvedConfig)
+              resolvedModules[moduleName] = await this.resolveModule(resolvedConfig, buildPath, resolvedDependencies)
               processingGraph.removeNode(moduleName)
             }
           } catch (err) {
@@ -183,16 +185,14 @@ export class ModuleResolver {
   /**
    * Returns module configs for each module that is referenced in a ${modules.*} template string in the raw config.
    */
-  private getModuleDependenciesFromTemplateStrings(rawConfig: ModuleConfig) {
+  private getModuleDependenciesFromTemplateStrings(rawConfig: ModuleConfig, buildPath: string) {
     const configContext = new ModuleConfigContext({
       garden: this.garden,
       resolvedProviders: this.resolvedProviders,
-      moduleName: rawConfig.name,
-      dependencies: [],
+      moduleConfig: rawConfig,
+      buildPath,
+      modules: [],
       runtimeContext: this.runtimeContext,
-      parentName: rawConfig.parentName,
-      templateName: rawConfig.templateName,
-      inputs: rawConfig.inputs,
       partialRuntimeResolution: true,
     })
 
@@ -228,14 +228,15 @@ export class ModuleResolver {
     const garden = this.garden
     let inputs = {}
 
-    const templateContextParams = {
+    const buildPath = await this.garden.buildStaging.buildPath(config)
+
+    const templateContextParams: ModuleConfigContextParams = {
       garden,
       resolvedProviders: this.resolvedProviders,
-      dependencies,
+      modules: dependencies,
+      moduleConfig: config,
+      buildPath,
       runtimeContext: this.runtimeContext,
-      parentName: config.parentName,
-      templateName: config.templateName,
-      inputs,
       partialRuntimeResolution: true,
     }
 
@@ -262,6 +263,8 @@ export class ModuleResolver {
         schema: template.inputsSchema,
         projectRoot: garden.projectRoot,
       })
+
+      config.inputs = inputs
     }
 
     // Now resolve just references to inputs on the config
@@ -272,8 +275,7 @@ export class ModuleResolver {
     // And finally fully resolve the config
     const configContext = new ModuleConfigContext({
       ...templateContextParams,
-      inputs,
-      moduleName: config.name,
+      moduleConfig: config,
     })
 
     config = resolveTemplateStrings({ ...config, inputs: {} }, configContext, {
@@ -386,17 +388,15 @@ export class ModuleResolver {
     return config
   }
 
-  private async resolveModule(resolvedConfig: ModuleConfig, dependencies: GardenModule[]) {
+  private async resolveModule(resolvedConfig: ModuleConfig, buildPath: string, dependencies: GardenModule[]) {
     // Write module files
     const configContext = new ModuleConfigContext({
       garden: this.garden,
       resolvedProviders: this.resolvedProviders,
-      moduleName: resolvedConfig.name,
-      dependencies,
+      moduleConfig: resolvedConfig,
+      buildPath,
+      modules: dependencies,
       runtimeContext: this.runtimeContext,
-      parentName: resolvedConfig.parentName,
-      templateName: resolvedConfig.templateName,
-      inputs: resolvedConfig.inputs,
       partialRuntimeResolution: true,
     })
 

@@ -88,14 +88,12 @@ export class PublishTask extends BaseTask {
 
       const templateContext = new ModuleTagContext({
         garden: this.garden,
-        module,
+        moduleConfig: module,
         resolvedProviders,
-        moduleName: module.name,
-        dependencies,
+        module,
+        buildPath: module.buildPath,
+        modules: dependencies,
         runtimeContext: emptyRuntimeContext,
-        parentName: module.parentName,
-        templateName: module.templateName,
-        inputs: module.inputs,
         partialRuntimeResolution: true,
       })
 
