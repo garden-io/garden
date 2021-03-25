@@ -1,0 +1,15 @@
+kind: Module
+name: hot-reload
+description: Test module for a simple hot reloadable service
+type: container
+hotReload:
+  sync:
+    - target: /tmp
+services:
+  - name: hot-reload
+    command: [sh, -c, "echo Server running... && nc -l -p 8080"]
+    healthCheck:
+      command: ["echo", "ok"]
+    ports:
+      - name: http
+        containerPort: 8080

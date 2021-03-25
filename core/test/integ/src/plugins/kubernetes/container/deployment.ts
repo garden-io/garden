@@ -137,6 +137,37 @@ describe("kubernetes container deployment handlers", () => {
       expect(resource.spec.template?.metadata?.annotations).to.eql(service.spec.annotations)
     })
 
+    it("should increase liveness probes when in hot-reload mode", async () => {
+      const service = graph.getService("hot-reload")
+      const namespace = provider.config.namespace!.name!
+
+      const resource = await createWorkloadManifest({
+        api,
+        provider,
+        service,
+        runtimeContext: emptyRuntimeContext,
+        namespace,
+        enableHotReload: true,
+        log: garden.log,
+        production: false,
+        blueGreen: false,
+      })
+
+      // Find the spec for the actual app container (as opposed to the rsync container)
+      const containerSpec = resource.spec.template?.spec?.containers.find((c) => c.name === "hot-reload")
+
+      expect(containerSpec!.livenessProbe).to.eql({
+        initialDelaySeconds: 90,
+        periodSeconds: 10,
+        timeoutSeconds: 3,
+        successThreshold: 1,
+        failureThreshold: 30,
+        exec: {
+          command: ["echo", "ok"],
+        },
+      })
+    })
+
     it("should name the Deployment with a version suffix and set a version label if blueGreen=true", async () => {
       const service = graph.getService("simple-service")
       const namespace = provider.config.namespace!.name!
