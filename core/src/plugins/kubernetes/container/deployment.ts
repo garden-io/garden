@@ -372,7 +372,7 @@ export async function createWorkloadManifest({
   }
 
   if (spec.healthCheck) {
-    configureHealthCheck(container, spec)
+    configureHealthCheck(container, spec, enableHotReload)
   }
 
   if (spec.volumes && spec.volumes.length) {
@@ -570,7 +570,7 @@ function workloadConfig({
   }
 }
 
-function configureHealthCheck(container: V1Container, spec: ContainerServiceConfig["spec"]): void {
+function configureHealthCheck(container: V1Container, spec: ContainerServiceConfig["spec"], hotReload: boolean): void {
   const readinessPeriodSeconds = 1
   const readinessFailureThreshold = 90
 
@@ -582,16 +582,17 @@ function configureHealthCheck(container: V1Container, spec: ContainerServiceConf
     failureThreshold: readinessFailureThreshold,
   }
 
-  /*
-   * We wait for the effective failure duration (period * threshold) of the readiness probe before starting the
-   * liveness probe.
-   */
+  // We wait for the effective failure duration (period * threshold) of the readiness probe before starting the
+  // liveness probe.
+  // We also increase the periodSeconds and failureThreshold when in hot reload mode. This is to prevent
+  // K8s from restarting the pod when liveness probes fail during build or server restarts on a
+  // hot reload event.
   container.livenessProbe = {
     initialDelaySeconds: readinessPeriodSeconds * readinessFailureThreshold,
-    periodSeconds: 5,
+    periodSeconds: hotReload ? 10 : 5,
     timeoutSeconds: 3,
     successThreshold: 1,
-    failureThreshold: 3,
+    failureThreshold: hotReload ? 30 : 3,
   }
 
   const portsByName = keyBy(spec.ports, "name")
