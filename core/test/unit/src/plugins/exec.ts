@@ -442,4 +442,22 @@ describe("exec plugin", () => {
       expect(res.log).to.equal(module.version.versionString)
     })
   })
+  describe("runExecModule", () => {
+    it("should run the module with the args that are passed through the command", async () => {
+      const module = graph.getModule("module-local")
+      const actions = await garden.getActionRouter()
+      const res = await actions.runModule({
+        log,
+        module,
+        command: [],
+        args: ["echo", "hello", "world"],
+        interactive: false,
+        runtimeContext: {
+          envVars: {},
+          dependencies: [],
+        },
+      })
+      expect(res.log).to.eql("hello world")
+    })
+  })
 })
