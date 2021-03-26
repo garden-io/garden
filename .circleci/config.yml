@@ -334,6 +334,20 @@ jobs:
             TAG=gardendev/garden-aws-gcloud:${CIRCLE_SHA1}
             docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/aws-gcloud.Dockerfile dist/alpine-amd64
             docker push ${TAG}
+  build-docker-aws-gcloud-azure:
+    <<: *node-config
+    steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - checkout
+      - *attach-workspace
+      - run:
+          name: Build image and push to registry
+          command: |
+            docker login -u $DOCKER_USER -p $DOCKER_PASS
+            TAG=gardendev/garden-aws-gcloud-azure:${CIRCLE_SHA1}
+            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/aws-gcloud-azure.Dockerfile dist/alpine-amd64
+            docker push ${TAG}
   build-docker-buster:
     <<: *node-config
     steps:
@@ -791,6 +805,10 @@ workflows:
           context: docker
           requires: [build-docker-alpine]
       - build-docker-aws-gcloud:
+          <<: *only-internal-prs
+          context: docker
+          requires: [build-docker-alpine]
+      - build-docker-aws-gcloud-azure:
           <<: *only-internal-prs
           context: docker
           requires: [build-docker-alpine]
