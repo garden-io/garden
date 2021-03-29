@@ -97,7 +97,7 @@ case via the `kubectl create secret docker-registry` helper.
 _Note that you do not need to configure the authentication and imagePullSecrets when using GKE along with GCR,
 as long as your deployment registry is in the same project as the GKE cluster._
 
-The lovely folks at [Heptio](https://heptio.com) have prepared good guides on how to configure private registries
+The lovely folks at Heptio have prepared good guides on how to configure private registries
 for Kubernetes, which you can find [here](http://docs.heptio.com/content/private-registries.html).
 
 Once you've created the auth secret in the cluster, you can configure the registry and the secrets in your
