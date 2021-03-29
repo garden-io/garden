@@ -1200,8 +1200,14 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
   // Allow overriding variables
   variables = { ...variables, ...(opts.variables || {}) }
 
+  // Use the legacy build sync mode if
+  // A) GARDEN_LEGACY_BUILD_STAGE=true is set or
+  // B) if running Windows and GARDEN_EXPERIMENTAL_BUILD_STAGE != true (until #2299 is properly fixed)
   const legacyBuildSync =
-    opts.legacyBuildSync === undefined ? gardenEnv.GARDEN_LEGACY_BUILD_STAGE : opts.legacyBuildSync
+    opts.legacyBuildSync === undefined
+      ? gardenEnv.GARDEN_LEGACY_BUILD_STAGE || (platform() === "win32" && !gardenEnv.GARDEN_EXPERIMENTAL_BUILD_STAGE)
+      : opts.legacyBuildSync
+
   const buildDirCls = legacyBuildSync ? BuildDirRsync : BuildStaging
   const buildDir = await buildDirCls.factory(projectRoot, gardenDirPath)
   const workingCopyId = await getWorkingCopyId(gardenDirPath)
