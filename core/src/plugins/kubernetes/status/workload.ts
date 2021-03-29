@@ -17,7 +17,7 @@ import {
   V1StatefulSet,
   V1StatefulSetSpec,
   V1DeploymentStatus,
-  V1Event,
+  CoreV1Event,
 } from "@kubernetes/client-node"
 import dedent = require("dedent")
 import { getCurrentWorkloadPods } from "../util"
@@ -44,7 +44,7 @@ export async function checkWorkloadStatus({ api, namespace, resource }: StatusHa
   const workload = <Workload>resource
 
   let _pods: KubernetesPod[]
-  let _events: V1Event[]
+  let _events: CoreV1Event[]
 
   const getPods = async () => {
     if (!_pods) {
