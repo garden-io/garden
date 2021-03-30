@@ -12,7 +12,7 @@ import { makeTestGardenA, withDefaultGlobalOpts } from "../../../../helpers"
 import { GetConfigCommand } from "../../../../../src/commands/get/get-config"
 import { sortBy } from "lodash"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
-import { WorkflowConfig } from "../../../../../src/config/workflow"
+import { defaultWorkflowResources, WorkflowConfig } from "../../../../../src/config/workflow"
 import { defaultContainerLimits } from "../../../../../src/plugins/container/config"
 
 describe("GetConfigCommand", () => {
@@ -73,6 +73,7 @@ describe("GetConfigCommand", () => {
         limits: defaultContainerLimits,
         path: garden.projectRoot,
         envVars: {},
+        resources: defaultWorkflowResources,
         steps: [{ command: ["run", "task", "foo"] }],
       },
     ]

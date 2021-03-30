@@ -1697,11 +1697,25 @@ workflowConfigs:
     # The number of hours to keep the workflow pod running after completion.
     keepAliveHours:
 
-    limits:
-      # The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU)
+    resources:
+      requests:
+        # The minimum amount of CPU the workflow needs in order to be scheduled, in millicpus (i.e. 1000 = 1 CPU).
+        cpu:
+
+        # The minimum amount of RAM the workflow needs in order to be scheduled, in megabytes (i.e. 1024 = 1 GB).
+        memory:
+
+      limits:
+        # The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU).
+        cpu:
+
+        # The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB).
+        memory:
+
+      # The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU).
       cpu:
 
-      # The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB)
+      # The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB).
       memory:
 
     # The steps the workflow should run. At least one step is required. Steps are run sequentially. If a step fails,

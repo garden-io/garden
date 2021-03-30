@@ -11,13 +11,13 @@ const { resolve, join } = require("path")
 const gulp = require("gulp")
 const pegjs = require("gulp-pegjs")
 
-const pegjsSources = resolve(__dirname, "src", "*.pegjs")
+const pegjsSources = resolve(__dirname, "src", "template-string", "*.pegjs")
 const destDir = resolve(__dirname, "build")
 
 gulp.task("pegjs", () =>
   gulp.src(pegjsSources)
     .pipe(pegjs({ format: "commonjs" }))
-    .pipe(gulp.dest(join(destDir, "src"))),
+    .pipe(gulp.dest(join(destDir, "src", "template-string"))),
 )
 
 gulp.task("pegjs-watch", () =>

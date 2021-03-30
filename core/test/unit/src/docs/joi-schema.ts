@@ -7,8 +7,8 @@
  */
 
 import { expect } from "chai"
-import { joi } from "../../../../src/config/common"
-import { JoiDescription, JoiKeyDescription } from "../../../../src/docs/joi-schema"
+import { joi, JoiDescription } from "../../../../src/config/common"
+import { JoiKeyDescription } from "../../../../src/docs/joi-schema"
 import { testJsonSchema } from "./json-schema"
 
 describe("JoiKeyDescription", () => {

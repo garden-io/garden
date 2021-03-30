@@ -75,7 +75,11 @@ import { ensureConnected } from "./db/connection"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
 import { Profile } from "./util/profiling"
 import username from "username"
-import { throwOnMissingSecretKeys, resolveTemplateString, resolveTemplateStrings } from "./template-string"
+import {
+  throwOnMissingSecretKeys,
+  resolveTemplateString,
+  resolveTemplateStrings,
+} from "./template-string/template-string"
 import { WorkflowConfig, WorkflowConfigMap, resolveWorkflowConfig } from "./config/workflow"
 import { PluginTool, PluginTools } from "./util/ext-tools"
 import {

@@ -22,7 +22,7 @@ import { defaultDotIgnoreFiles } from "../../../../../src/util/fs"
 import { dedent } from "../../../../../src/util/string"
 import stripAnsi from "strip-ansi"
 import { LogEntry } from "../../../../../src/logger/log-entry"
-import { WorkflowStepSpec } from "../../../../../src/config/workflow"
+import { defaultWorkflowResources, WorkflowStepSpec } from "../../../../../src/config/workflow"
 
 describe("RunWorkflowCommand", () => {
   const cmd = new RunWorkflowCommand()
@@ -48,6 +48,7 @@ describe("RunWorkflowCommand", () => {
         name: "workflow-a",
         kind: "Workflow",
         envVars: {},
+        resources: defaultWorkflowResources,
         path: garden.projectRoot,
         steps: [
           { command: ["deploy"], description: "deploy services" },
@@ -81,6 +82,7 @@ describe("RunWorkflowCommand", () => {
         name: "workflow-a",
         kind: "Workflow",
         envVars: {},
+        resources: defaultWorkflowResources,
         path: garden.projectRoot,
         steps: [{ command: ["deploy"] }, { command: ["test"] }],
       },
@@ -122,6 +124,7 @@ describe("RunWorkflowCommand", () => {
         name: "workflow-a",
         kind: "Workflow",
         envVars: {},
+        resources: defaultWorkflowResources,
         path: garden.projectRoot,
         steps: [{ command: ["deploy"] }, { command: ["build"], skip: true }, { command: ["test"] }],
       },
@@ -160,6 +163,7 @@ describe("RunWorkflowCommand", () => {
         name: "workflow-a",
         kind: "Workflow",
         envVars: {},
+        resources: defaultWorkflowResources,
         path: garden.projectRoot,
         files: [],
         steps: [{ command: ["run", "task", "task-a"] }],
@@ -303,6 +307,7 @@ describe("RunWorkflowCommand", () => {
         name: "workflow-a",
         kind: "Workflow",
         envVars: {},
+        resources: defaultWorkflowResources,
         path: garden.projectRoot,
         steps: [{ command: ["run", "task", "some-task"] }, { command: ["test"] }],
       },
@@ -364,6 +369,7 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         path: garden.projectRoot,
         envVars: {},
+        resources: defaultWorkflowResources,
         files: [{ path: ".garden/test.txt", data: "test" }],
         steps: [{ command: ["get", "outputs"] }],
       },
@@ -381,6 +387,7 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         path: garden.projectRoot,
         envVars: {},
+        resources: defaultWorkflowResources,
         files: [{ path: ".garden/test.txt", secretName: "test" }],
         steps: [{ command: ["get", "outputs"] }],
       },
@@ -403,6 +410,7 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         path: garden.projectRoot,
         envVars: {},
+        resources: defaultWorkflowResources,
         files: [{ path: ".garden/test.txt", secretName: "missing" }],
         steps: [{ command: ["get", "outputs"] }],
       },
@@ -423,6 +431,7 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         path: garden.projectRoot,
         envVars: {},
+        resources: defaultWorkflowResources,
         files: [{ path: "garden.yml/foo.txt", data: "foo" }],
         steps: [{ command: ["get", "outputs"] }],
       },
@@ -444,6 +453,7 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         path: garden.projectRoot,
         envVars: {},
+        resources: defaultWorkflowResources,
         files: [{ path: ".garden", data: "foo" }],
         steps: [{ command: ["get", "outputs"] }],
       },
@@ -466,6 +476,7 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         path: garden.projectRoot,
         envVars: {},
+        resources: defaultWorkflowResources,
         files: [],
         steps: [{ script: "pwd" }],
       },
@@ -488,6 +499,7 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         path: garden.projectRoot,
         envVars: { TEST_VAR_A: "llama" },
+        resources: defaultWorkflowResources,
         files: [],
         steps: [{ script: "echo $TEST_VAR_A" }],
       },
@@ -511,6 +523,7 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         path: garden.projectRoot,
         envVars: { TEST_VAR_A: "llama" },
+        resources: defaultWorkflowResources,
         files: [],
         steps: [{ script: "echo $TEST_VAR_A", envVars: { TEST_VAR_A: "bear" } }],
       },
@@ -535,6 +548,7 @@ describe("RunWorkflowCommand", () => {
         path: garden.projectRoot,
         files: [],
         envVars: {},
+        resources: defaultWorkflowResources,
         steps: [{ script: "echo $FOO $BAR", envVars: { FOO: "foo", BAR: 123 } }],
       },
     ])
@@ -557,6 +571,7 @@ describe("RunWorkflowCommand", () => {
         path: garden.projectRoot,
         files: [],
         envVars: {},
+        resources: defaultWorkflowResources,
         steps: [{ script: "pwd" }, { script: "echo fail!; exit 1", skip: true }],
       },
     ])
@@ -658,6 +673,7 @@ describe("RunWorkflowCommand", () => {
         path: garden.projectRoot,
         files: [],
         envVars: {},
+        resources: defaultWorkflowResources,
         steps: [
           {
             script: dedent`
@@ -685,6 +701,7 @@ describe("RunWorkflowCommand", () => {
         path: garden.projectRoot,
         files: [],
         envVars: {},
+        resources: defaultWorkflowResources,
         steps: [{ script: "echo boo!; exit 1" }],
       },
     ])
@@ -704,6 +721,7 @@ describe("RunWorkflowCommand", () => {
         path: garden.projectRoot,
         files: [],
         envVars: {},
+        resources: defaultWorkflowResources,
         steps: [{ command: ["get", "config"] }, { command: ["run", "task", "task-a"] }],
       },
     ])
@@ -731,6 +749,7 @@ describe("RunWorkflowCommand", () => {
         path: garden.projectRoot,
         files: [],
         envVars: {},
+        resources: defaultWorkflowResources,
         steps: [{ name: "test", command: ["run", "task", "task-a"] }],
       },
     ])
@@ -755,6 +774,7 @@ describe("RunWorkflowCommand", () => {
         path: garden.projectRoot,
         files: [],
         envVars: {},
+        resources: defaultWorkflowResources,
         steps: [{ command: ["get", "outputs"] }, { command: ["run", "task", "${steps.step-1.outputs.taskName}"] }],
       },
     ])
@@ -778,6 +798,7 @@ describe("RunWorkflowCommand", () => {
         path: garden.projectRoot,
         files: [],
         envVars: {},
+        resources: defaultWorkflowResources,
         steps: [{ command: ["get", "outputs"] }, { script: "echo ${steps.step-1.outputs.taskName}" }],
       },
     ])

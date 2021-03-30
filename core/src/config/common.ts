@@ -49,6 +49,19 @@ interface MetadataKeys {
   keyPlaceholder?: string
 }
 
+// Need this to fix the Joi typing
+export interface JoiDescription extends Joi.Description {
+  type: string
+  name: string
+  level: number
+  flags?: {
+    default?: any
+    description?: string
+    presence?: string
+    only?: boolean
+  }
+}
+
 // Unfortunately we need to explicitly extend each type (just extending the AnySchema doesn't work).
 declare module "@hapi/joi" {
   export interface AnySchema {

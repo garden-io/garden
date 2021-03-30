@@ -14,7 +14,7 @@ import {
   resolveTemplateString,
   TemplateStringMissingKeyException,
   TemplateStringPassthroughException,
-} from "../../template-string"
+} from "../../template-string/template-string"
 import { joi } from "../common"
 import { KeyedSet } from "../../util/keyed-set"
 import { naturalList } from "../../util/string"

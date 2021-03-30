@@ -15,6 +15,8 @@ import { ProjectConfigContext, EnvironmentConfigContext } from "../config/templa
 import { ProviderConfigContext } from "../config/template-contexts/provider"
 import { ModuleConfigContext, OutputConfigContext } from "../config/template-contexts/module"
 import { WorkflowStepConfigContext } from "../config/template-contexts/workflow"
+import { helperFunctions } from "../template-string/functions"
+import { sortBy } from "lodash"
 
 export function writeTemplateStringReferenceDocs(docsRoot: string) {
   const referenceDir = resolve(docsRoot, "reference")
@@ -47,6 +49,7 @@ export function writeTemplateStringReferenceDocs(docsRoot: string) {
   const templatePath = resolve(TEMPLATES_DIR, "template-strings.hbs")
   const template = handlebars.compile(readFileSync(templatePath).toString())
   const markdown = template({
+    helperFunctions: sortBy(Object.values(helperFunctions), "name"),
     projectContext,
     environmentContext,
     providerContext,

@@ -20,7 +20,7 @@ import {
   WorkflowStepConfigContext,
   WorkflowStepResult,
 } from "../../config/template-contexts/workflow"
-import { resolveTemplateStrings, resolveTemplateString } from "../../template-string"
+import { resolveTemplateStrings, resolveTemplateString } from "../../template-string/template-string"
 import { ConfigurationError, FilesystemError } from "../../exceptions"
 import { posix, join } from "path"
 import { ensureDir, writeFile } from "fs-extra"
