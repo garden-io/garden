@@ -212,6 +212,12 @@ export const kubectlSpec: PluginToolSpec = {
       sha256: "2583b1c9fbfc5443a722fb04cf0cc83df18e45880a2cf1f6b52d9f595c5beb88",
     },
     {
+      platform: "linux",
+      architecture: "arm64",
+      url: "https://storage.googleapis.com/kubernetes-release/release/v1.20.2/bin/linux/aarch64/kubectl",
+      sha256: "37fdba9fcd43cafba11ac4f82692e41aca41b59f44fd968fd84c263d71af580f",
+    },
+    {
       platform: "windows",
       architecture: "amd64",
       url: "https://storage.googleapis.com/kubernetes-release/release/v1.20.2/bin/windows/amd64/kubectl.exe",

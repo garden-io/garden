@@ -10,7 +10,7 @@ import Bluebird from "bluebird"
 import chalk from "chalk"
 import { ensureDir } from "fs-extra"
 import dedent from "dedent"
-import { platform, arch } from "os"
+import { platform } from "os"
 import { relative, resolve, join } from "path"
 import { flatten, sortBy, fromPairs, keyBy, mapValues, cloneDeep, groupBy } from "lodash"
 const AsyncLock = require("async-lock")
@@ -257,14 +257,9 @@ export class Garden {
 
     // make sure we're on a supported platform
     const currentPlatform = platform()
-    const currentArch = arch()
 
     if (!SUPPORTED_PLATFORMS.includes(<SupportedPlatform>currentPlatform)) {
       throw new RuntimeError(`Unsupported platform: ${currentPlatform}`, { platform: currentPlatform })
-    }
-
-    if (currentArch !== "x64") {
-      throw new RuntimeError(`Unsupported CPU architecture: ${currentArch}`, { arch: currentArch })
     }
 
     this.configsScanned = false
