@@ -1,4 +1,11 @@
 
+<a name="0.12.20-1"></a>
+## [0.12.20-1](https://github.com/garden-io/garden/compare/0.12.20-0...0.12.20-1) (2021-03-29)
+
+### Improvements
+
+* **k8s:** update k8s client library ([6c5bea16](https://github.com/garden-io/garden/commit/6c5bea16))
+
 <a name="0.12.20-0"></a>
 ## [0.12.20-0](https://github.com/garden-io/garden/compare/0.12.19...0.12.20-0) (2021-03-17)
 
