@@ -1,4 +1,35 @@
 
+<a name="0.12.20"></a>
+## [0.12.20](https://github.com/garden-io/garden/compare/0.12.19...0.12.20) (2021-03-29)
+
+### Bug Fixes
+
+* **core:** default back to rsync build staging on Windows ([d96e490e](https://github.com/garden-io/garden/commit/d96e490e))
+* **core:** potential edge-case issue with versions and generateFiles ([7a74588a](https://github.com/garden-io/garden/commit/7a74588a))
+* **core:** fix logout when authenticated against different GE instance ([ace99fc0](https://github.com/garden-io/garden/commit/ace99fc0))
+* **enterprise:** fix api response shape ([8e0ac895](https://github.com/garden-io/garden/commit/8e0ac895))
+* **k8s:** bad error message when failing to get build status ([d8481b23](https://github.com/garden-io/garden/commit/d8481b23))
+
+### Code Refactoring
+
+* **core:** refactor enterprise api ([51f4807a](https://github.com/garden-io/garden/commit/51f4807a))
+
+### Features
+
+* **config:** add `this` context when resolving modules ([4b242404](https://github.com/garden-io/garden/commit/4b242404))
+* **enterprise:** add requests to workflows ([d33194c0](https://github.com/garden-io/garden/commit/d33194c0))
+* **enterprise:** add utility commands to manage enterprise resources ([9ac421ce](https://github.com/garden-io/garden/commit/9ac421ce))
+* **k8s:** apply container service annotations to Pod templates as well ([f5abdd48](https://github.com/garden-io/garden/commit/f5abdd48))
+* **template:** add template helper functions ([c08afe7b](https://github.com/garden-io/garden/commit/c08afe7b))
+
+### Improvements
+
+* **cli:** allow `garden delete services` with no arguments ([6a728e51](https://github.com/garden-io/garden/commit/6a728e51))
+* **core:** more granular version hashes ([d6f13737](https://github.com/garden-io/garden/commit/d6f13737))
+* **enterprise:** better error message on login 401 errors ([b84239b3](https://github.com/garden-io/garden/commit/b84239b3))
+* **k8s:** update k8s client library ([2ab568e6](https://github.com/garden-io/garden/commit/2ab568e6))
+* **k8s:** cache DNS lookups for cluster hostnames ([667646bd](https://github.com/garden-io/garden/commit/667646bd))
+
 <a name="0.12.19"></a>
 ## [0.12.19](https://github.com/garden-io/garden/compare/0.12.18...0.12.19) (2021-03-10)
 
