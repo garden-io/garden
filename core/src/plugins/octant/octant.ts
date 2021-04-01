@@ -108,6 +108,16 @@ export const gardenPlugin = () =>
             },
           },
           {
+            platform: "linux",
+            architecture: "arm64",
+            url: "https://github.com/vmware-tanzu/octant/releases/download/v0.15.0/octant_0.15.0_Linux-arm64.tar.gz",
+            sha256: "c66aa1dd8ffedc02c9e7b70ff9b686114e83189a02bb62e942e08344b1f3aae4",
+            extract: {
+              format: "tar",
+              targetPath: "octant_0.15.0_Linux-arm64/octant",
+            },
+          },
+          {
             platform: "windows",
             architecture: "amd64",
             url: "https://github.com/vmware-tanzu/octant/releases/download/v0.15.0/octant_0.15.0_Windows-64bit.zip",

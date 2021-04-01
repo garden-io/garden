@@ -8,20 +8,27 @@
 
 import { InternalError } from "../exceptions"
 import { GardenPluginCallback } from "../types/plugin/plugin"
+import { arch } from "os"
 
 // These plugins are always registered and the providers documented
-export const getSupportedPlugins = () =>
-  [
+export const getSupportedPlugins = () => {
+  let lst = [
     require("./container/container"),
     require("./exec"),
-    require("./hadolint/hadolint"),
     require("./kubernetes/kubernetes"),
     require("./kubernetes/local/local"),
     require("./maven-container/maven-container"),
     require("./octant/octant"),
     require("./openfaas/openfaas"),
     require("./terraform/terraform"),
-  ].map(resolvePluginFromModule)
+  ]
+  // hadolint is not currently available on arm64 
+  // https://github.com/hadolint/hadolint/issues/411
+  if (arch() !== "arm64") {
+    lst.push(require("./hadolint/hadolint"))
+  }
+  return lst.map(resolvePluginFromModule)
+}
 
 // These plugins are always registered
 export const getBuiltinPlugins = () =>

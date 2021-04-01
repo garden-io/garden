@@ -201,20 +201,42 @@ export const sternSpec: PluginToolSpec = {
     {
       platform: "darwin",
       architecture: "amd64",
-      url: "https://github.com/wercker/stern/releases/download/1.11.0/stern_darwin_amd64",
-      sha256: "7aea3b6691d47b3fb844dfc402905790665747c1e6c02c5cabdd41994533d7e9",
+      url: "https://github.com/stern/stern/releases/download/v1.14.0/stern_1.14.0_darwin_amd64.tar.gz",
+      sha256: "b1b5236b466a90bf1f416cbe22e25524dedf699043e35b1edc812dc3980926cc",
+      extract: {
+        format: "tar",
+        targetPath: "darwin-amd64/stern",
+      }
     },
     {
       platform: "linux",
       architecture: "amd64",
-      url: "https://github.com/wercker/stern/releases/download/1.11.0/stern_linux_amd64",
-      sha256: "e0b39dc26f3a0c7596b2408e4fb8da533352b76aaffdc18c7ad28c833c9eb7db",
+      url: "https://github.com/stern/stern/releases/download/v1.14.0/stern_1.14.0_linux_amd64.tar.gz",
+      sha256: "8324882802c7052827c9f53b24586e818c768b6f5a8ece8a224abc4e470b01a1",
+      extract: {
+        format: "tar",
+        targetPath: "linux-amd64/stern",
+      }
+    },
+    {
+      platform: "linux",
+      architecture: "arm64",
+      url: "https://github.com/stern/stern/releases/download/v1.14.0/stern_1.14.0_linux_arm64.tar.gz",
+      sha256: "00f7390a4372d1e25c331950b1110f387ccd22df78bee887c54faee2cbe49470",
+      extract: {
+        format: "tar",
+        targetPath: "linux-arm64/stern",
+      }
     },
     {
       platform: "windows",
       architecture: "amd64",
-      url: "https://github.com/wercker/stern/releases/download/1.11.0/stern_windows_amd64.exe",
-      sha256: "75708b9acf6ef0eeffbe1f189402adc0405f1402e6b764f1f5152ca288e3109e",
+      url: "https://github.com/stern/stern/releases/download/v1.14.0/stern_1.14.0_windows_amd64.tar.gz",
+      sha256: "f19fff8b1079af5f80e3e841398e6e2e7356095332e9697f7c5cf253000b324f",
+      extract: {
+        format: "tar",
+        targetPath: "windows-amd64/stern",
+      }
     },
   ],
 }
