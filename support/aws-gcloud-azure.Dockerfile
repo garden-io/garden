@@ -6,6 +6,7 @@ RUN gcloud components install kubectl
 FROM gardendev/garden:${TAG}
 
 ENV CLOUDSDK_PYTHON=python3
+ENV KUBELOGIN_VERSION=v0.0.9
 
 COPY --from=gcloud /google-cloud-sdk /google-cloud-sdk
 
@@ -30,4 +31,7 @@ RUN apk add --virtual=build gcc libffi-dev musl-dev openssl-dev make py3-pip\
   && /azure-cli/bin/python -m pip --no-cache-dir install azure-cli \
   && echo "#!/usr/bin/env sh" > /usr/bin/az \
   && echo '/azure-cli/bin/python -m azure.cli "$@"' >> /usr/bin/az \
-  && chmod +x /usr/bin/az
+  && chmod +x /usr/bin/az \
+  && wget https://github.com/Azure/kubelogin/releases/download/${KUBELOGIN_VERSION}/kubelogin-linux-amd64.zip \
+  && unzip kubelogin-linux-amd64.zip \
+  && cp bin/linux_amd64/kubelogin /usr/bin/
