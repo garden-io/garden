@@ -75,6 +75,16 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
         },
       },
       {
+        platform: "linux",
+        architecture: "arm64",
+        url: "https://releases.hashicorp.com/terraform/0.12.26/terraform_0.12.26_linux_arm.zip",
+        sha256: "8036807501c16a5b643fa68cbee78ca6b2fa3ede43b56af7e9ff95bcf1302130",
+        extract: {
+          format: "zip",
+          targetPath: "terraform",
+        },
+      },
+      {
         platform: "windows",
         architecture: "amd64",
         url: "https://releases.hashicorp.com/terraform/0.12.26/terraform_0.12.26_windows_amd64.zip",
@@ -112,6 +122,16 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
         },
       },
       {
+        platform: "linux",
+        architecture: "arm64",
+        url: "https://releases.hashicorp.com/terraform/0.13.3/terraform_0.13.3_linux_arm.zip",
+        sha256: "c5274bcc6cc597467d9c90ee6f22281496d91da0bc1f899dd185f9c7bedaf207",
+        extract: {
+          format: "zip",
+          targetPath: "terraform",
+        },
+      },
+      {
         platform: "windows",
         architecture: "amd64",
         url: "https://releases.hashicorp.com/terraform/0.13.3/terraform_0.13.3_windows_amd64.zip",
@@ -143,6 +163,16 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
         architecture: "amd64",
         url: "https://releases.hashicorp.com/terraform/0.14.7/terraform_0.14.7_linux_amd64.zip",
         sha256: "6b66e1faf0ad4ece28c42a1877e95bbb1355396231d161d78b8ca8a99accc2d7",
+        extract: {
+          format: "zip",
+          targetPath: "terraform",
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "arm64",
+        url: "https://releases.hashicorp.com/terraform/0.14.7/terraform_0.14.7_linux_arm64.zip",
+        sha256: "0a621f1dc411953b955aaf2d7d46b2f350bd3a85a2284ec994ae41419844120b",
         extract: {
           format: "zip",
           targetPath: "terraform",

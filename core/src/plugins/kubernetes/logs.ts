@@ -206,7 +206,7 @@ export const sternSpec: PluginToolSpec = {
       extract: {
         format: "tar",
         targetPath: "darwin-amd64/stern",
-      }
+      },
     },
     {
       platform: "linux",
@@ -216,7 +216,7 @@ export const sternSpec: PluginToolSpec = {
       extract: {
         format: "tar",
         targetPath: "linux-amd64/stern",
-      }
+      },
     },
     {
       platform: "linux",
@@ -226,7 +226,7 @@ export const sternSpec: PluginToolSpec = {
       extract: {
         format: "tar",
         targetPath: "linux-arm64/stern",
-      }
+      },
     },
     {
       platform: "windows",
@@ -236,7 +236,7 @@ export const sternSpec: PluginToolSpec = {
       extract: {
         format: "tar",
         targetPath: "windows-amd64/stern",
-      }
+      },
     },
   ],
 }

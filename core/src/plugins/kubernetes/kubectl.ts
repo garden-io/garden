@@ -214,7 +214,7 @@ export const kubectlSpec: PluginToolSpec = {
     {
       platform: "linux",
       architecture: "arm64",
-      url: "https://storage.googleapis.com/kubernetes-release/release/v1.20.2/bin/linux/aarch64/kubectl",
+      url: "https://storage.googleapis.com/kubernetes-release/release/v1.20.2/bin/linux/arm64/kubectl",
       sha256: "37fdba9fcd43cafba11ac4f82692e41aca41b59f44fd968fd84c263d71af580f",
     },
     {

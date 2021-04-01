@@ -22,7 +22,7 @@ export const getSupportedPlugins = () => {
     require("./openfaas/openfaas"),
     require("./terraform/terraform"),
   ]
-  // hadolint is not currently available on arm64 
+  // hadolint is not currently available on arm64
   // https://github.com/hadolint/hadolint/issues/411
   if (arch() !== "arm64") {
     lst.push(require("./hadolint/hadolint"))
