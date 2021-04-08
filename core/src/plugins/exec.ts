@@ -34,6 +34,8 @@ import { ExecaError } from "execa"
 import { artifactsTargetDescription } from "./container/config"
 import chalk = require("chalk")
 import { renderMessageWithDivider } from "../logger/util"
+import { RunModuleParams } from "../types/plugin/module/runModule"
+import { RunResult } from "../types/plugin/base"
 
 const execPathDoc = dedent`
   By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
@@ -328,6 +330,45 @@ export async function runExecTask(params: RunTaskParams<ExecModule>): Promise<Ru
   }
 }
 
+export async function runExecModule(params: RunModuleParams<ExecModule>): Promise<RunResult> {
+  const { module, args, interactive } = params
+  const startedAt = new Date()
+
+  let completedAt: Date
+  let outputLog: string
+  let success = true
+
+  if (args && args.length) {
+    const commandResult = await exec(args.join(" "), [], {
+      cwd: module.buildPath,
+      env: {
+        ...getDefaultEnvVars(module),
+        ...mapValues(module.spec.env, (v) => v.toString()),
+      },
+      stdio: interactive ? "inherit" : undefined,
+      reject: false,
+      shell: true,
+    })
+
+    completedAt = new Date()
+    outputLog = (commandResult.stdout + commandResult.stderr).trim()
+    success = commandResult.exitCode === 0
+  } else {
+    completedAt = startedAt
+    outputLog = ""
+  }
+
+  return {
+    moduleName: module.name,
+    command: [],
+    version: module.version.versionString,
+    success,
+    log: outputLog,
+    startedAt,
+    completedAt,
+  }
+}
+
 export const execPlugin = () =>
   createGardenPlugin({
     name: "exec",
@@ -376,6 +417,7 @@ export const execPlugin = () =>
           configure: configureExecModule,
           build: buildExecModule,
           runTask: runExecTask,
+          runModule: runExecModule,
           testModule: testExecModule,
         },
       },
