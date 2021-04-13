@@ -10,7 +10,7 @@ import { join } from "path"
 import { ConfigurationError } from "../../exceptions"
 import { ServiceStatus, ServiceIngress, ServiceProtocol } from "../../types/service"
 import { testExecModule } from "../exec"
-import { getNamespace } from "../kubernetes/namespace"
+import { getNamespaceStatus } from "../kubernetes/namespace"
 import { findByName, sleep } from "../../util/util"
 import { KubeApi } from "../kubernetes/api"
 import { waitForResources } from "../kubernetes/status/status"
@@ -233,7 +233,7 @@ async function getFunctionNamespace(
   return (
     (config.values && config.values.functionNamespace) ||
     // Default to K8s app namespace
-    (await getNamespace({
+    (await getNamespaceStatus({
       log,
       ctx,
       provider: getK8sProvider(dependencies),

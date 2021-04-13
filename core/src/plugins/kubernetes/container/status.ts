@@ -18,7 +18,7 @@ import { ContainerModule } from "../../container/config"
 import { KubeApi } from "../api"
 import { compareDeployedResources } from "../status/status"
 import { getIngresses } from "./ingress"
-import { getAppNamespace } from "../namespace"
+import { getAppNamespaceStatus } from "../namespace"
 import { KubernetesPluginContext } from "../config"
 import { RuntimeContext } from "../../../runtime-context"
 import { KubernetesServerResource, KubernetesWorkload } from "../types"
@@ -41,7 +41,8 @@ export async function getContainerServiceStatus({
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = await getAppNamespace(k8sCtx, log, provider)
+  const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  const namespace = namespaceStatus.namespaceName
 
   // FIXME: [objects, matched] and ingresses can be run in parallel
   const { workload, manifests } = await createContainerManifests({
@@ -71,6 +72,7 @@ export async function getContainerServiceStatus({
     forwardablePorts,
     ingresses,
     state,
+    namespaceStatuses: [namespaceStatus],
     version: state === "ready" ? service.version : undefined,
     detail: { remoteResources, workload },
   }

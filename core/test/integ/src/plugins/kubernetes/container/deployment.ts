@@ -347,6 +347,13 @@ describe("kubernetes container deployment handlers", () => {
         expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
           `${service.name}:${service.module.version.versionString}`
         )
+        expect(status.namespaceStatuses).to.eql([
+          {
+            pluginName: "local-kubernetes",
+            namespaceName: "container-default",
+            state: "ready",
+          },
+        ])
       })
 
       it("should deploy a service referencing a volume module", async () => {

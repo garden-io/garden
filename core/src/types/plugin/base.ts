@@ -13,7 +13,7 @@ import { RuntimeContext, runtimeContextSchema } from "../../runtime-context"
 import { GardenService, serviceSchema } from "../service"
 import { GardenTask } from "../task"
 import { taskSchema } from "../../types/task"
-import { joi } from "../../config/common"
+import { joi, joiIdentifier } from "../../config/common"
 import { ActionHandlerParamsBase } from "./plugin"
 
 export interface PluginActionContextParams extends ActionHandlerParamsBase {
@@ -33,6 +33,24 @@ export const actionParamsSchema = () =>
     ctx: pluginContextSchema().required(),
     log: logEntrySchema(),
   })
+
+export type NamespaceState = "ready" | "missing"
+
+// When needed, we can make this type generic and add e.g. a detail for plugin-specific metadata.
+export interface NamespaceStatus {
+  pluginName: string
+  namespaceName: string
+  state: NamespaceState
+}
+
+export const namespaceStatusSchema = () =>
+  joi.object().keys({
+    pluginName: joi.string(),
+    namespaceName: joiIdentifier(),
+    state: joi.string().valid("ready", "missing"),
+  })
+
+export const namespaceStatusesSchema = () => joi.array().items(namespaceStatusSchema())
 
 export interface PluginModuleActionParamsBase<T extends GardenModule = GardenModule> extends PluginActionParamsBase {
   module: T

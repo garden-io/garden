@@ -31,6 +31,7 @@ import { emptyRuntimeContext } from "../../../../../../src/runtime-context"
 import Bluebird from "bluebird"
 import { buildHelmModules } from "../helm/common"
 import { gardenAnnotationKey } from "../../../../../../src/util/string"
+import { getServiceStatuses } from "../../../../../../src/tasks/base"
 
 describe("kubernetes-module handlers", () => {
   let tmpDir: tmp.DirectoryResult
@@ -156,7 +157,14 @@ describe("kubernetes-module handlers", () => {
         hotReload: false,
         runtimeContext: emptyRuntimeContext,
       }
-      await deployKubernetesService(deployParams)
+      const status = await deployKubernetesService(deployParams)
+      expect(status.namespaceStatuses).to.eql([
+        {
+          pluginName: "local-kubernetes",
+          namespaceName: "kubernetes-module-test-default",
+          state: "ready",
+        },
+      ])
     })
 
     it("should toggle hot reload", async () => {
@@ -216,15 +224,30 @@ describe("kubernetes-module handlers", () => {
         graph,
         log,
         service: graph.getService("namespace-resource"),
-        force: false,
+        force: true,
         forceBuild: false,
       })
-      await garden.processTasks([deployTask], { throwOnError: true })
+      const results = await garden.processTasks([deployTask], { throwOnError: true })
+      const status = getServiceStatuses(results)["namespace-resource"]
       ns1Resource = await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log)
 
       expect(ns1Manifest, "ns1Manifest").to.exist
       expect(ns1Manifest!.metadata.name).to.match(/ns-1/)
       expect(ns1Resource, "ns1Resource").to.exist
+      // Here, we expect one status for the app namespace, and one status for the namespace resource defined by
+      // this module.
+      expect(status.namespaceStatuses).to.eql([
+        {
+          pluginName: "local-kubernetes",
+          namespaceName: "kubernetes-module-test-default",
+          state: "ready",
+        },
+        {
+          pluginName: "local-kubernetes",
+          namespaceName: "kubernetes-module-ns-1",
+          state: "ready",
+        },
+      ])
 
       // This should result in a new namespace with a new name being deployed.
       garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-module-ns-2")])

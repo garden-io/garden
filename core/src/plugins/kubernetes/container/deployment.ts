@@ -15,7 +15,7 @@ import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
 import { waitForResources, compareDeployedResources } from "../status/status"
 import { apply, deleteObjectsBySelector } from "../kubectl"
-import { getAppNamespace } from "../namespace"
+import { getAppNamespace, getAppNamespaceStatus } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
@@ -59,7 +59,8 @@ export async function deployContainerServiceRolling(
   const { ctx, service, runtimeContext, log, hotReload } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
-  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+  const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  const namespace = namespaceStatus.namespaceName
 
   const { manifests } = await createContainerManifests({
     ctx: k8sCtx,
@@ -78,7 +79,7 @@ export async function deployContainerServiceRolling(
   await waitForResources({
     namespace,
     ctx,
-    provider: k8sCtx.provider,
+    provider,
     serviceName: service.name,
     resources: manifests,
     log,
@@ -89,7 +90,10 @@ export async function deployContainerServiceRolling(
   // Make sure port forwards work after redeployment
   killPortForwards(service, status.forwardablePorts || [], log)
 
-  return status
+  return {
+    ...status,
+    namespaceStatuses: [namespaceStatus],
+  }
 }
 
 export async function deployContainerServiceBlueGreen(
@@ -97,7 +101,8 @@ export async function deployContainerServiceBlueGreen(
 ): Promise<ContainerServiceStatus> {
   const { ctx, service, runtimeContext, log, hotReload } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+  const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  const namespace = namespaceStatus.namespaceName
 
   // Create all the resource manifests for the Garden service which will be deployed
   const { manifests } = await createContainerManifests({
@@ -210,7 +215,10 @@ export async function deployContainerServiceBlueGreen(
   // Make sure port forwards work after redeployment
   killPortForwards(service, status.forwardablePorts || [], log)
 
-  return status
+  return {
+    ...status,
+    namespaceStatuses: [namespaceStatus],
+  }
 }
 
 export async function createContainerManifests({

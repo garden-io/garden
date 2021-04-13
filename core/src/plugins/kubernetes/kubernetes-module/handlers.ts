@@ -30,13 +30,14 @@ import { testKubernetesModule } from "./test"
 import { runKubernetesTask } from "./run"
 import { getTestResult } from "../test-results"
 import { getTaskResult } from "../task-results"
-import { getModuleNamespace } from "../namespace"
+import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
 import { hotReloadK8s } from "../hot-reload/hot-reload"
 import { findServiceResource, getServiceResourceSpec } from "../util"
 import { getHotReloadSpec, configureHotReload, getHotReloadContainerName } from "../hot-reload/helpers"
 import { LogEntry } from "../../../logger/log-entry"
 import { PluginContext } from "../../../plugin-context"
 import { V1Deployment, V1DaemonSet, V1StatefulSet } from "@kubernetes/client-node"
+import { NamespaceStatus } from "../../../types/plugin/base"
 
 export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<KubernetesModule>> = {
   build,
@@ -73,13 +74,14 @@ export async function getKubernetesServiceStatus({
   hotReload,
 }: GetServiceStatusParams<KubernetesModule>): Promise<KubernetesServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getModuleNamespace({
+  const namespaceStatus = await getModuleNamespaceStatus({
     ctx: k8sCtx,
     log,
     module,
     provider: k8sCtx.provider,
     skipCreate: true,
   })
+  const namespace = namespaceStatus.namespaceName
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
   // FIXME: We're currently reading the manifests from the module source dir (instead of build dir)
   // because the build may not have been staged.
@@ -103,6 +105,7 @@ export async function getKubernetesServiceStatus({
     state,
     version: state === "ready" ? service.version : undefined,
     detail: { remoteResources },
+    namespaceStatuses: [namespaceStatus],
   }
 }
 
@@ -112,14 +115,16 @@ export async function deployKubernetesService(
   const { ctx, module, service, log, hotReload } = params
 
   const k8sCtx = <KubernetesPluginContext>ctx
-  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
+  const provider = k8sCtx.provider
+  const api = await KubeApi.factory(log, ctx, provider)
 
-  const namespace = await getModuleNamespace({
+  const namespaceStatus = await getModuleNamespaceStatus({
     ctx: k8sCtx,
     log,
     module,
-    provider: k8sCtx.provider,
+    provider,
   })
+  const namespace = namespaceStatus.namespaceName
 
   const manifests = await getManifests({ api, log, module, defaultNamespace: namespace })
 
@@ -129,11 +134,11 @@ export async function deployKubernetesService(
 
   if (namespaceManifests.length > 0) {
     // Don't prune namespaces
-    await apply({ log, ctx, provider: k8sCtx.provider, manifests: namespaceManifests })
+    await apply({ log, ctx, provider, manifests: namespaceManifests })
     await waitForResources({
       namespace,
       ctx,
-      provider: k8sCtx.provider,
+      provider,
       serviceName: service.name,
       resources: namespaceManifests,
       log,
@@ -151,11 +156,11 @@ export async function deployKubernetesService(
       manifests,
     })
 
-    await apply({ log, ctx, provider: k8sCtx.provider, manifests: preparedForHotReload, pruneSelector })
+    await apply({ log, ctx, provider, manifests: preparedForHotReload, pruneSelector })
     await waitForResources({
       namespace,
       ctx,
-      provider: k8sCtx.provider,
+      provider,
       serviceName: service.name,
       resources: preparedForHotReload,
       log,
@@ -167,7 +172,25 @@ export async function deployKubernetesService(
   // Make sure port forwards work after redeployment
   killPortForwards(service, status.forwardablePorts || [], log)
 
-  return status
+  const namespaceStatuses = [namespaceStatus]
+
+  if (namespaceManifests.length > 0) {
+    namespaceStatuses.push(
+      ...namespaceManifests.map(
+        (m) =>
+          ({
+            pluginName: provider.name,
+            namespaceName: m.metadata.name,
+            state: "ready",
+          } as NamespaceStatus)
+      )
+    )
+  }
+
+  return {
+    ...status,
+    namespaceStatuses,
+  }
 }
 
 async function deleteService(params: DeleteServiceParams): Promise<KubernetesServiceStatus> {
@@ -217,7 +240,17 @@ async function deleteService(params: DeleteServiceParams): Promise<KubernetesSer
     })
   }
 
-  return { state: "missing", detail: { remoteResources: [] } }
+  const status: KubernetesServiceStatus = { state: "missing", detail: { remoteResources: [] } }
+
+  if (namespaceManifests.length > 0) {
+    status.namespaceStatuses = namespaceManifests.map((m) => ({
+      namespaceName: m.metadata.name,
+      state: "missing",
+      pluginName: provider.name,
+    }))
+  }
+
+  return status
 }
 
 async function getServiceLogs(params: GetServiceLogsParams<KubernetesModule>) {

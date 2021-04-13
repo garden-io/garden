@@ -23,6 +23,7 @@ import { Garden, ModuleActionMap } from "./garden"
 import { LogEntry } from "./logger/log-entry"
 import { GardenModule } from "./types/module"
 import {
+  NamespaceStatus,
   PluginActionContextParams,
   PluginActionParamsBase,
   PluginModuleActionParamsBase,
@@ -63,7 +64,7 @@ import {
   ModuleActionHandler,
   ActionHandler,
 } from "./types/plugin/plugin"
-import { CleanupEnvironmentParams } from "./types/plugin/provider/cleanupEnvironment"
+import { CleanupEnvironmentParams, CleanupEnvironmentResult } from "./types/plugin/provider/cleanupEnvironment"
 import { DeleteSecretParams, DeleteSecretResult } from "./types/plugin/provider/deleteSecret"
 import {
   EnvironmentStatusMap,
@@ -235,22 +236,32 @@ export class ActionRouter implements TypeGuard {
   ): Promise<PrepareEnvironmentResult> {
     const { pluginName } = params
 
-    return this.callActionHandler({
+    const res = await this.callActionHandler({
       actionType: "prepareEnvironment",
       pluginName,
       params: omit(params, ["pluginName"]),
       defaultHandler: async () => ({ status: { ready: true, outputs: {} } }),
     })
+
+    this.emitNamespaceEvents(res.status.namespaceStatuses)
+
+    return res
   }
 
-  async cleanupEnvironment(params: RequirePluginName<ActionRouterParams<CleanupEnvironmentParams>>) {
+  async cleanupEnvironment(
+    params: RequirePluginName<ActionRouterParams<CleanupEnvironmentParams>>
+  ): Promise<CleanupEnvironmentResult> {
     const { pluginName } = params
-    return this.callActionHandler({
+    const res = await this.callActionHandler({
       actionType: "cleanupEnvironment",
       pluginName,
       params: omit(params, ["pluginName"]),
       defaultHandler: async () => ({}),
     })
+
+    this.emitNamespaceEvents(res.namespaceStatuses)
+
+    return res
   }
 
   async getSecret(params: RequirePluginName<ActionRouterParams<GetSecretParams>>): Promise<GetSecretResult> {
@@ -423,6 +434,7 @@ export class ActionRouter implements TypeGuard {
       serviceName: params.service.name,
       status: omit(result, "detail"),
     })
+    this.emitNamespaceEvents(result.namespaceStatuses)
     this.validateServiceOutputs(params.service, result)
     return result
   }
@@ -433,6 +445,7 @@ export class ActionRouter implements TypeGuard {
       serviceName: params.service.name,
       status: omit(result, "detail"),
     })
+    this.emitNamespaceEvents(result.namespaceStatuses)
     this.validateServiceOutputs(params.service, result)
     return result
   }
@@ -485,6 +498,8 @@ export class ActionRouter implements TypeGuard {
       actionType: "deleteService",
       defaultHandler: dummyDeleteServiceHandler,
     })
+
+    this.emitNamespaceEvents(result.namespaceStatuses)
 
     log.setSuccess({
       msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
@@ -744,6 +759,15 @@ export class ActionRouter implements TypeGuard {
     await writeFile(metadataPath, JSON.stringify(metadata))
 
     return files
+  }
+
+  private emitNamespaceEvents(namespaceStatuses: NamespaceStatus[] | undefined) {
+    if (namespaceStatuses && namespaceStatuses.length > 0) {
+      for (const status of namespaceStatuses) {
+        const { pluginName, state, namespaceName } = status
+        this.garden.events.emit("namespaceStatus", { pluginName, state, namespaceName })
+      }
+    }
   }
 
   // TODO: find a nicer way to do this (like a type-safe wrapper function)

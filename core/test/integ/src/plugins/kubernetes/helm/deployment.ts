@@ -39,7 +39,7 @@ describe("deployHelmService", () => {
     const graph = await garden.getConfigGraph(garden.log)
     const service = graph.getService("api")
 
-    await deployHelmService({
+    const status = await deployHelmService({
       ctx,
       log: garden.log,
       module: service.module,
@@ -50,7 +50,7 @@ describe("deployHelmService", () => {
     })
 
     const releaseName = getReleaseName(service.module)
-    const status = await getReleaseStatus({
+    const releaseStatus = await getReleaseStatus({
       ctx,
       service,
       releaseName,
@@ -58,12 +58,19 @@ describe("deployHelmService", () => {
       hotReload: false,
     })
 
-    expect(status.state).to.equal("ready")
-    expect(status.detail["values"][".garden"]).to.eql({
+    expect(releaseStatus.state).to.equal("ready")
+    expect(releaseStatus.detail["values"][".garden"]).to.eql({
       moduleName: "api",
       projectName: garden.projectName,
       version: service.version,
     })
+    expect(status.namespaceStatuses).to.eql([
+      {
+        pluginName: "local-kubernetes",
+        namespaceName: "helm-test-default",
+        state: "ready",
+      },
+    ])
   })
 
   it("should deploy a chart with hotReload enabled", async () => {

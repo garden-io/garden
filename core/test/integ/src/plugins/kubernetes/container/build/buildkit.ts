@@ -16,7 +16,7 @@ import {
   buildkitAuthSecretName,
 } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit"
 import { KubeApi } from "../../../../../../../src/plugins/kubernetes/api"
-import { getNamespace } from "../../../../../../../src/plugins/kubernetes/namespace"
+import { getNamespaceStatus } from "../../../../../../../src/plugins/kubernetes/namespace"
 import { expect } from "chai"
 import { cloneDeep } from "lodash"
 import { buildDockerAuthConfig } from "../../../../../../../src/plugins/kubernetes/init"
@@ -38,7 +38,7 @@ describe("ensureBuildkit", () => {
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = await garden.getPluginContext(provider)
     api = await KubeApi.factory(garden.log, ctx, provider)
-    namespace = await getNamespace({ log: garden.log, ctx, provider })
+    namespace = (await getNamespaceStatus({ log: garden.log, ctx, provider })).namespaceName
   })
 
   after(async () => {

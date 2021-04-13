@@ -19,7 +19,7 @@ import { Provider, providerConfigBaseSchema, GenericProviderConfig } from "../..
 import { union } from "lodash"
 import { ContainerModule } from "../container/config"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../types/plugin/module/configure"
-import { getNamespace } from "../kubernetes/namespace"
+import { getNamespaceStatus } from "../kubernetes/namespace"
 import { LogEntry } from "../../logger/log-entry"
 import { baseBuildSpecSchema } from "../../config/module"
 import { DEFAULT_BUILD_TIMEOUT } from "../container/helpers"
@@ -217,7 +217,7 @@ export async function getOpenfaasModuleOutputs({ ctx, log, moduleConfig }: GetMo
 
 async function getInternalGatewayUrl(ctx: PluginContext<OpenFaasConfig>, log: LogEntry) {
   const k8sProvider = getK8sProvider(ctx.provider.dependencies)
-  const namespace = await getNamespace({
+  const namespace = await getNamespaceStatus({
     log,
     ctx,
     provider: k8sProvider,

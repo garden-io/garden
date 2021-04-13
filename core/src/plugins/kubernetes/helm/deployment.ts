@@ -19,7 +19,7 @@ import { DeployServiceParams } from "../../../types/plugin/service/deployService
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 import { getForwardablePorts, killPortForwards } from "../port-forward"
 import { findServiceResource, getServiceResourceSpec } from "../util"
-import { getModuleNamespace } from "../namespace"
+import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
 import { getHotReloadSpec, configureHotReload, getHotReloadContainerName } from "../hot-reload/helpers"
 
 export async function deployHelmService({
@@ -47,12 +47,13 @@ export async function deployHelmService({
 
   const chartPath = await getChartPath(module)
 
-  const namespace = await getModuleNamespace({
+  const namespaceStatus = await getModuleNamespaceStatus({
     ctx: k8sCtx,
     log,
     module,
     provider: k8sCtx.provider,
   })
+  const namespace = namespaceStatus.namespaceName
 
   const releaseName = getReleaseName(module)
   const releaseStatus = await getReleaseStatus({ ctx: k8sCtx, service, releaseName, log, hotReload })
@@ -119,6 +120,7 @@ export async function deployHelmService({
     state: "ready",
     version: service.version,
     detail: { remoteResources: statuses.map((s) => s.resource) },
+    namespaceStatuses: [namespaceStatus],
   }
 }
 
