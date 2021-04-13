@@ -56,6 +56,7 @@ describe("runHelmTask", () => {
     expect(result!.output.log.trim()).to.equal("ok")
     expect(result!.output).to.have.property("outputs")
     expect(result!.output.outputs.log.trim()).to.equal("ok")
+    expect(result!.output.namespaceStatus).to.exist
 
     // We also verify that, despite the task failing, its result was still saved.
     const actions = await garden.getActionRouter()

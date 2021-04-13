@@ -11,7 +11,7 @@ import { EventEmitter2 } from "eventemitter2"
 import { GraphResult } from "./task-graph"
 import { LogEntryEventPayload } from "./enterprise/buffered-event-stream"
 import { ServiceStatus } from "./types/service"
-import { RunStatus } from "./types/plugin/base"
+import { NamespaceStatus, RunStatus } from "./types/plugin/base"
 import { Omit } from "./util/util"
 import { AuthTokenResponse } from "./enterprise/api"
 
@@ -161,6 +161,7 @@ export interface Events extends LoggerEvents {
     serviceName: string
     status: Omit<ServiceStatus, "detail">
   }
+  namespaceStatus: NamespaceStatus
 
   // Workflow events
   workflowRunning: {}
@@ -208,11 +209,12 @@ export const eventNames: EventName[] = [
   "taskStatus",
   "testStatus",
   "serviceStatus",
+  "namespaceStatus",
   "workflowRunning",
   "workflowComplete",
   "workflowError",
   "workflowStepProcessing",
   "workflowStepSkipped",
-  "workflowStepError",
   "workflowStepComplete",
+  "workflowStepError",
 ]

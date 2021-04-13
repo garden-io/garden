@@ -61,6 +61,7 @@ describe("runContainerTask", () => {
     expect(result!.output.log.trim()).to.equal("ok")
     expect(result!.output).to.have.property("outputs")
     expect(result!.output.outputs.log.trim()).to.equal("ok")
+    expect(result!.output.namespaceStatus).to.exist
 
     // Verify that the result was saved
     const actions = await garden.getActionRouter()

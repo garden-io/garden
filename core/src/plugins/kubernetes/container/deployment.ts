@@ -15,7 +15,7 @@ import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
 import { waitForResources, compareDeployedResources } from "../status/status"
 import { apply, deleteObjectsBySelector } from "../kubectl"
-import { getAppNamespace } from "../namespace"
+import { getAppNamespace, getAppNamespaceStatus } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
@@ -106,7 +106,8 @@ export async function deployContainerServiceRolling(params: DeployServiceParams<
   const { ctx, service, runtimeContext, log, devMode, hotReload } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
-  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+  const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  const namespace = namespaceStatus.namespaceName
 
   const { manifests } = await createContainerManifests({
     ctx: k8sCtx,
@@ -126,7 +127,7 @@ export async function deployContainerServiceRolling(params: DeployServiceParams<
   await waitForResources({
     namespace,
     ctx,
-    provider: k8sCtx.provider,
+    provider,
     serviceName: service.name,
     resources: manifests,
     log,
@@ -136,7 +137,8 @@ export async function deployContainerServiceRolling(params: DeployServiceParams<
 export async function deployContainerServiceBlueGreen(params: DeployServiceParams<ContainerModule>) {
   const { ctx, service, runtimeContext, log, devMode, hotReload } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+  const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  const namespace = namespaceStatus.namespaceName
 
   // Create all the resource manifests for the Garden service which will be deployed
   const { manifests } = await createContainerManifests({

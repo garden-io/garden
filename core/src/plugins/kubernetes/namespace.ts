@@ -23,6 +23,7 @@ import { KubernetesModule } from "./kubernetes-module/config"
 import { V1Namespace } from "@kubernetes/client-node"
 import { isSubset } from "../../util/is-subset"
 import chalk from "chalk"
+import { NamespaceStatus } from "../../types/plugin/base"
 
 const GARDEN_VERSION = getPackageVersion()
 type CreateNamespaceStatus = "pending" | "created"
@@ -30,7 +31,8 @@ const created: { [name: string]: CreateNamespaceStatus } = {}
 
 /**
  * Makes sure the given namespace exists and has the configured annotations and labels.
- * Returns true if the namespace was created or updated, false if nothing was done.
+ *
+ * Returns the namespace resource if it was created or updated, or null if nothing was done.
  */
 export async function ensureNamespace(api: KubeApi, namespace: NamespaceConfig, log: LogEntry) {
   if (!created[namespace.name]) {
@@ -94,6 +96,26 @@ export async function ensureNamespace(api: KubeApi, namespace: NamespaceConfig, 
   return null
 }
 
+/**
+ * Returns `true` if the namespace exists, `false` otherwise.
+ */
+export async function namespaceExists(api: KubeApi, name: string): Promise<boolean> {
+  if (created[name]) {
+    return true
+  }
+
+  try {
+    await api.core.readNamespace(name)
+    return true
+  } catch (err) {
+    if (err.statusCode === 404) {
+      return false
+    } else {
+      throw err
+    }
+  }
+}
+
 interface GetNamespaceParams {
   log: LogEntry
   override?: NamespaceConfig
@@ -105,16 +127,33 @@ interface GetNamespaceParams {
 /**
  * Resolves a namespace name given project context, provider config, and a (usually undefined) override, and then
  * ensures it exists in the target cluster (unless skipCreate=true).
+ *
+ * Returns a namespace status (which includes the namespace's name).
  */
-export async function getNamespace({ log, ctx, override, provider, skipCreate }: GetNamespaceParams): Promise<string> {
+export async function getNamespaceStatus({
+  log,
+  ctx,
+  override,
+  provider,
+  skipCreate,
+}: GetNamespaceParams): Promise<NamespaceStatus> {
   const namespace = cloneDeep(override || provider.config.namespace)!
 
+  const api = await KubeApi.factory(log, ctx, provider)
   if (!skipCreate) {
-    const api = await KubeApi.factory(log, ctx, provider)
     await ensureNamespace(api, namespace, log)
+    return {
+      pluginName: provider.name,
+      namespaceName: namespace.name,
+      state: "ready",
+    }
+  } else {
+    return {
+      pluginName: provider.name,
+      namespaceName: namespace.name,
+      state: (await namespaceExists(api, namespace.name)) ? "ready" : "missing",
+    }
   }
-
-  return namespace.name
 }
 
 export async function getSystemNamespace(
@@ -133,8 +172,25 @@ export async function getSystemNamespace(
   return namespace.name
 }
 
-export async function getAppNamespace(ctx: PluginContext, log: LogEntry, provider: KubernetesProvider) {
-  return getNamespace({
+export async function getAppNamespace(
+  ctx: PluginContext,
+  log: LogEntry,
+  provider: KubernetesProvider
+): Promise<string> {
+  const status = await getNamespaceStatus({
+    log,
+    ctx,
+    provider,
+  })
+  return status.namespaceName
+}
+
+export async function getAppNamespaceStatus(
+  ctx: PluginContext,
+  log: LogEntry,
+  provider: KubernetesProvider
+): Promise<NamespaceStatus> {
+  return getNamespaceStatus({
     log,
     ctx,
     provider,
@@ -168,7 +224,7 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
     )
   }
 
-  const ns = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+  const ns = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
 
   // Including the metadata-namespace key for backwards-compatibility in provider outputs
   return {
@@ -225,8 +281,31 @@ export async function getModuleNamespace({
   module: HelmModule | KubernetesModule
   provider: KubernetesProvider
   skipCreate?: boolean
-}) {
-  return getNamespace({
+}): Promise<string> {
+  const status = await getModuleNamespaceStatus({
+    ctx,
+    log,
+    module,
+    provider,
+    skipCreate,
+  })
+  return status.namespaceName
+}
+
+export async function getModuleNamespaceStatus({
+  ctx,
+  log,
+  module,
+  provider,
+  skipCreate,
+}: {
+  ctx: KubernetesPluginContext
+  log: LogEntry
+  module: HelmModule | KubernetesModule
+  provider: KubernetesProvider
+  skipCreate?: boolean
+}): Promise<NamespaceStatus> {
+  return getNamespaceStatus({
     log,
     ctx,
     override: module.spec?.namespace ? { name: module.spec.namespace } : undefined,

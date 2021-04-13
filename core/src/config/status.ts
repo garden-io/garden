@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { namespaceStatusesSchema } from "../types/plugin/base"
 import { joi, joiVariables } from "./common"
 
 export const environmentStatusSchema = () =>
@@ -18,6 +19,7 @@ export const environmentStatusSchema = () =>
         .optional()
         .meta({ extendable: true })
         .description("Use this to include additional information that is specific to the provider."),
+      namespaceStatuses: namespaceStatusesSchema().optional(),
       outputs: joiVariables()
         .meta({ extendable: true })
         .description("Output variables that modules and other variables can reference."),

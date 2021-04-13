@@ -49,6 +49,8 @@ describe("testKubernetesModule", () => {
     expect(result).to.exist
     expect(result).to.have.property("output")
     expect(result!.output.log.trim()).to.equal("ok")
+    expect(result!.output.namespaceStatus).to.exist
+    expect(result!.output.namespaceStatus.namespaceName).to.equal("kubernetes-module-test-default")
   })
 
   it("should run a test in different namespace, if configured", async () => {
@@ -71,6 +73,8 @@ describe("testKubernetesModule", () => {
     expect(result).to.exist
     expect(result).to.have.property("output")
     expect(result!.output.log.trim()).to.equal(module.spec.namespace)
+    expect(result!.output.namespaceStatus).to.exist
+    expect(result!.output.namespaceStatus.namespaceName).to.equal(module.spec.namespace)
   })
 
   it("should fail if an error occurs, but store the result", async () => {
