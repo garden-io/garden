@@ -40,6 +40,7 @@ import { DashboardEventStream } from "../server/dashboard-event-stream"
 import { GardenPluginCallback } from "../types/plugin/plugin"
 import { renderError } from "../logger/renderers"
 import { EnterpriseApi } from "../enterprise/api"
+import { findProjectConfigOrFail } from "../config/base"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   const environments = gardenOpts.environmentName
@@ -204,14 +205,17 @@ ${renderCommands(commands)}
     // the screen the logs are printed.
     const headerLog = logger.placeholder()
     const log = logger.placeholder()
+    const enterpriseLog = logger.placeholder()
     const footerLog = logger.placeholder()
 
     command.printHeader({ headerLog, args: parsedArgs, opts: parsedOpts })
 
+    const projectConfig = await findProjectConfigOrFail(root)
+
     // Init enterprise API
     let enterpriseApi: EnterpriseApi | null = null
     if (!command.noProject) {
-      enterpriseApi = await EnterpriseApi.factory({ log, currentDirectory: root })
+      enterpriseApi = await EnterpriseApi.factory({ log: enterpriseLog, projectConfig })
     }
 
     // Init event & log streaming.
@@ -312,7 +316,7 @@ ${renderCommands(commands)}
         // Register log file writers. We need to do this after the Garden class is initialised because
         // the file writers depend on the project root.
         await this.initFileWriters(logger, garden.projectRoot, garden.gardenDirPath)
-        analytics = await AnalyticsHandler.init(garden, log)
+        analytics = await AnalyticsHandler.init(garden, projectConfig, log)
         analytics.trackCommand(command.getFullName())
 
         // tslint:disable-next-line: no-floating-promises

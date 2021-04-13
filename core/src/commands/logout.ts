@@ -11,6 +11,8 @@ import { printHeader } from "../logger/util"
 import { EnterpriseApi } from "../enterprise/api"
 import { ClientAuthToken } from "../db/entities/client-auth-token"
 import { dedent } from "../util/string"
+import { findProjectConfigOrFail } from "../config/base"
+import { ConfigurationError } from "../exceptions"
 
 export class LogOutCommand extends Command {
   name = "logout"
@@ -33,12 +35,16 @@ export class LogOutCommand extends Command {
       return {}
     }
 
+    const projectConfig = await findProjectConfigOrFail(garden.projectRoot)
+    if (!projectConfig.domain || !projectConfig.id) {
+      throw new ConfigurationError(`Project config is missing an enterprise domain and/or a project ID.`, {})
+    }
     try {
       // The Enterprise API is missing from the Garden class for commands with noProject
       // so we initialize it here.
       const enterpriseApi = await EnterpriseApi.factory({
         log,
-        currentDirectory: garden.projectRoot,
+        projectConfig,
         skipLogging: true,
       })
 

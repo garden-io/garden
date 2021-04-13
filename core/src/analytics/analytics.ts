@@ -15,12 +15,13 @@ import { getPackageVersion, uuidv4, sleep } from "../util/util"
 import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY, gardenEnv } from "../constants"
 import { LogEntry } from "../logger/log-entry"
 import hasha = require("hasha")
-import { Garden } from "../garden"
+import { DummyGarden, Garden } from "../garden"
 import { AnalyticsType } from "./analytics-types"
 import dedent from "dedent"
 import { getGitHubUrl } from "../docs/common"
 import { InternalError } from "../exceptions"
 import { Profile } from "../util/profiling"
+import { ProjectResource } from "../config/project"
 
 const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 
@@ -57,6 +58,8 @@ interface ProjectMetadata {
 interface AnalyticsEventProperties {
   projectId: string
   projectName: string
+  enterpriseProjectId?: string
+  enterpriseDomain?: string
   ciName: string | null
   system: SystemInfo
   isCI: boolean
@@ -125,6 +128,8 @@ export class AnalyticsHandler {
   private globalConfigStore: GlobalConfigStore
   private projectId = ""
   private projectName = ""
+  private enterpriseProjectId?: string
+  private enterpriseDomain?: string
   private ciName = ci.name
   private systemConfig: SystemInfo
   private isCI = ci.isCI
@@ -158,9 +163,9 @@ export class AnalyticsHandler {
     }
   }
 
-  static async init(garden: Garden, log: LogEntry) {
+  static async init(garden: Garden, projectConfig: ProjectResource, log: LogEntry) {
     if (!AnalyticsHandler.instance) {
-      AnalyticsHandler.instance = await new AnalyticsHandler(garden, log).factory()
+      AnalyticsHandler.instance = await new AnalyticsHandler(garden, log).factory(projectConfig)
     } else {
       /**
        * This init is called from within the do while loop in the cli
@@ -192,7 +197,7 @@ export class AnalyticsHandler {
    * @returns
    * @memberof AnalyticsHandler
    */
-  private async factory() {
+  private async factory(projectConfig: ProjectResource) {
     const globalConf = await this.globalConfigStore.get()
     this.analyticsConfig = {
       ...this.analyticsConfig,
@@ -200,8 +205,13 @@ export class AnalyticsHandler {
     }
 
     const originName = await this.garden.vcs.getOriginName(this.log)
-    this.projectName = hasha(this.garden.projectName, { algorithm: "sha256" })
-    this.projectId = originName ? hasha(originName, { algorithm: "sha256" }) : this.projectName
+    this.projectName = this.hash(projectConfig.name)
+    this.projectId = originName ? this.hash(originName) : this.projectName
+    // The enterprise project ID is the UID for this project in Garden Enterprise that the user puts
+    // in the project level Garden configuration. Not to be confused with the anonymized project ID we generate from
+    // the project name for the purpose of analytics.
+    this.enterpriseProjectId = projectConfig.id ? this.hash(projectConfig.id) : undefined
+    this.enterpriseDomain = projectConfig.domain ? this.hash(projectConfig.domain) : undefined
 
     const gitHubUrl = getGitHubUrl("README.md#Analytics")
     if (this.analyticsConfig.firstRun || this.analyticsConfig.showOptInMessage) {
@@ -238,6 +248,9 @@ export class AnalyticsHandler {
 
     this.projectMetadata = await this.generateProjectMetadata()
 
+    console.log("project name", projectConfig.name, this.projectName)
+    console.log("project ID", projectConfig.id, this.projectId)
+
     return this
   }
 
@@ -245,6 +258,10 @@ export class AnalyticsHandler {
     if (AnalyticsHandler.instance) {
       AnalyticsHandler.instance.garden = garden
     }
+  }
+
+  public hash(val: string) {
+    return hasha(val, { algorithm: "sha512" })
   }
 
   /**
@@ -283,6 +300,8 @@ export class AnalyticsHandler {
     return {
       projectId: this.projectId,
       projectName: this.projectName,
+      enterpriseProjectId: this.enterpriseProjectId,
+      enterpriseDomain: this.enterpriseDomain,
       ciName: this.ciName,
       system: this.systemConfig,
       isCI: this.isCI,

@@ -10,13 +10,14 @@ import { expect } from "chai"
 import nock from "nock"
 import { isEqual } from "lodash"
 
-import { makeTestGardenA, TestGarden, enableAnalytics } from "../../../helpers"
+import { makeTestGardenA, TestGarden, enableAnalytics, getDataDir, makeTestGarden } from "../../../helpers"
 import { AnalyticsHandler } from "../../../../src/analytics/analytics"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 
 describe("AnalyticsHandler", () => {
   const host = "https://api.segment.io"
   const scope = nock(host)
+  const remoteOriginUrl = "https://github.com/garden-io/garden.git"
   let analytics: AnalyticsHandler
   let garden: TestGarden
   let resetAnalyticsConfig: Function
@@ -54,8 +55,8 @@ describe("AnalyticsHandler", () => {
         type: "Run Command",
         properties: {
           name: "testCommand",
-          projectId: analytics["projectId"],
-          projectName: analytics["projectName"],
+          projectId: analytics.hash(remoteOriginUrl),
+          projectName: analytics.hash("test-project-a"),
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
@@ -96,8 +97,8 @@ describe("AnalyticsHandler", () => {
         type: "Run Command",
         properties: {
           name: "testCommand",
-          projectId: analytics["projectId"],
-          projectName: analytics["projectName"],
+          projectId: analytics.hash(remoteOriginUrl),
+          projectName: analytics.hash("test-project-a"),
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
@@ -105,6 +106,38 @@ describe("AnalyticsHandler", () => {
           projectMetadata: {
             modulesCount: 1,
             moduleTypes: ["test"],
+            tasksCount: 0,
+            servicesCount: 0,
+            testsCount: 0,
+          },
+        },
+      })
+    })
+    it("should include enterprise metadata", async () => {
+      scope.post(`/v1/batch`).reply(200)
+
+      const root = getDataDir("test-projects", "login", "has-domain-and-id")
+      garden = await makeTestGarden(root)
+
+      analytics = await AnalyticsHandler.init(garden, garden.log)
+
+      const event = analytics.trackCommand("testCommand")
+
+      expect(event).to.eql({
+        type: "Run Command",
+        properties: {
+          name: "testCommand",
+          projectId: analytics.hash(remoteOriginUrl),
+          projectName: analytics.hash("login"),
+          enterpriseDomain: analytics.hash("http://dummy-domain.com"),
+          enterpriseProjectId: analytics.hash("dummy-id"),
+          ciName: analytics["ciName"],
+          system: analytics["systemConfig"],
+          isCI: analytics["isCI"],
+          sessionId: "asdf",
+          projectMetadata: {
+            modulesCount: 0,
+            moduleTypes: [],
             tasksCount: 0,
             servicesCount: 0,
             testsCount: 0,

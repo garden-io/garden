@@ -12,7 +12,7 @@ import yamlLint from "yaml-lint"
 import { readFile } from "fs-extra"
 import { omit, isPlainObject, isArray } from "lodash"
 import { ModuleResource, coreModuleSpecSchema, baseModuleSchemaKeys, BuildDependencyConfig } from "./module"
-import { ConfigurationError, FilesystemError } from "../exceptions"
+import { CommandError, ConfigurationError, FilesystemError } from "../exceptions"
 import { DEFAULT_API_VERSION } from "../constants"
 import { ProjectResource } from "../config/project"
 import { validateWithPath } from "./validation"
@@ -216,6 +216,16 @@ export function prepareTemplateResource(spec: any, configPath: string): ModuleTe
   return spec
 }
 
+export async function findProjectConfigOrFail(path: string) {
+  const projectConfig = await findProjectConfig(path)
+  if (!projectConfig) {
+    throw new CommandError(`Not a project directory (or any of the parent directories): ${path}`, {
+      currentDirectory: path,
+    })
+  }
+  return projectConfig
+}
+
 export async function findProjectConfig(path: string, allowInvalid = false): Promise<ProjectResource | undefined> {
   let sepCount = path.split(sep).length - 1
 
@@ -233,6 +243,7 @@ export async function findProjectConfig(path: string, allowInvalid = false): Pro
         })
       } else if (projectSpecs.length > 0) {
         return <ProjectResource>projectSpecs[0]
+      } else {
       }
     }
 

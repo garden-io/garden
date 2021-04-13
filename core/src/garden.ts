@@ -128,6 +128,7 @@ export interface GardenOpts {
   gardenDirPath?: string
   legacyBuildSync?: boolean
   log?: LogEntry
+  enterpriseLog?: LogEntry
   noEnterprise?: boolean
   persistent?: boolean
   plugins?: RegisterPluginParam[]
@@ -140,7 +141,8 @@ export interface GardenParams {
   artifactsPath: string
   vcsBranch: string
   buildStaging: BuildStaging
-  projectId: string | null
+  projectId?: string
+  enterpriseDomain?: string
   cache: TreeCache
   disablePortForwards?: boolean
   dotIgnoreFiles: string[]
@@ -149,6 +151,7 @@ export interface GardenParams {
   namespace: string
   gardenDirPath: string
   log: LogEntry
+  enterpriseLog: LogEntry
   moduleIncludePatterns?: string[]
   moduleExcludePatterns?: string[]
   opts: GardenOpts
@@ -182,7 +185,8 @@ export class Garden {
   private readonly taskGraph: TaskGraph
   private watcher: Watcher
   private asyncLock: any
-  public readonly projectId: string | null
+  public readonly projectId?: string
+  public readonly enterpriseDomain?: string
   public sessionId: string | null
   public readonly configStore: ConfigStore
   public readonly globalConfigStore: GlobalConfigStore
@@ -225,6 +229,7 @@ export class Garden {
   constructor(params: GardenParams) {
     this.buildStaging = params.buildStaging
     this.projectId = params.projectId
+    this.enterpriseDomain = params.enterpriseDomain
     this.sessionId = params.sessionId
     this.environmentName = params.environmentName
     this.environmentConfigs = params.environmentConfigs
@@ -1101,7 +1106,8 @@ export class Garden {
       workflowConfigs: sortBy(workflowConfigs, "name"),
       projectName: this.projectName,
       projectRoot: this.projectRoot,
-      projectId: this.projectId || undefined,
+      projectId: this.projectId,
+      enterpriseDomain: this.enterpriseDomain,
     }
   }
 
@@ -1130,6 +1136,7 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
   const _username = (await username()) || ""
   const projectName = config.name
   const log = opts.log || getLogger().placeholder()
+  const enterpriseLog = opts.enterpriseLog || log.placeholder()
 
   // Connect to the state storage
   await ensureConnected()
@@ -1168,7 +1175,7 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
   let secrets: StringMap = {}
   const enterpriseApi = opts.enterpriseApi || null
   if (!opts.noEnterprise && enterpriseApi) {
-    const enterpriseLog = log.info({ section: "garden-enterprise", msg: "Initializing...", status: "active" })
+    enterpriseLog.setState({ msg: "Initializing...", status: "active" })
 
     try {
       secrets = await getSecrets({ log: enterpriseLog, environmentName, enterpriseApi })
@@ -1230,7 +1237,8 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
     vcsBranch,
     sessionId,
     disablePortForwards,
-    projectId: config.id || null,
+    projectId: config.id,
+    enterpriseDomain: config.domain,
     projectRoot,
     projectName,
     environmentName,
@@ -1251,6 +1259,7 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
     dotIgnoreFiles: config.dotIgnoreFiles,
     moduleIncludePatterns: (config.modules || {}).include,
     log,
+    enterpriseLog,
     username: _username,
     vcs,
     forceRefresh: opts.forceRefresh,
@@ -1282,4 +1291,5 @@ export interface ConfigDump {
   projectName: string
   projectRoot: string
   projectId?: string
+  enterpriseDomain?: string
 }

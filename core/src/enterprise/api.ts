@@ -9,8 +9,7 @@
 import { IncomingHttpHeaders } from "http"
 
 import { got, GotHeaders, GotHttpError } from "../util/http"
-import { findProjectConfig } from "../config/base"
-import { CommandError, EnterpriseApiError } from "../exceptions"
+import { EnterpriseApiError } from "../exceptions"
 import { LogEntry } from "../logger/log-entry"
 import { gardenEnv } from "../constants"
 import { ClientAuthToken } from "../db/entities/client-auth-token"
@@ -19,6 +18,7 @@ import { add, sub, isAfter } from "date-fns"
 import { isObject } from "lodash"
 import { deline } from "../util/string"
 import chalk from "chalk"
+import { ProjectResource } from "../config/project"
 
 // If a GARDEN_AUTH_TOKEN is present and Garden is NOT running from a workflow runner pod,
 // switch to ci-token authentication method.
@@ -46,27 +46,6 @@ export interface AuthTokenResponse {
 
 export type ApiFetchResponse<T> = T & {
   headers: IncomingHttpHeaders
-}
-
-/**
- * A helper function that finds a project without resolving template strings and returns the enterprise
- * config. Needed since the EnterpriseApi is generally used before initializing the Garden class.
- */
-export async function getEnterpriseConfig(currentDirectory: string) {
-  const projectConfig = await findProjectConfig(currentDirectory)
-  if (!projectConfig) {
-    throw new CommandError(`Not a project directory (or any of the parent directories): ${currentDirectory}`, {
-      currentDirectory,
-    })
-  }
-
-  const domain = projectConfig.domain
-  const projectId = projectConfig.id
-  if (!domain || !projectId) {
-    return
-  }
-
-  return { domain, projectId }
 }
 
 /**
@@ -100,17 +79,16 @@ export class EnterpriseApi {
    */
   static async factory({
     log,
-    currentDirectory,
+    projectConfig,
     skipLogging = false,
   }: {
     log: LogEntry
-    currentDirectory: string
+    projectConfig: ProjectResource
     skipLogging?: boolean
   }) {
     log.debug("Initializing enterprise API client.")
 
-    const config = await getEnterpriseConfig(currentDirectory)
-    if (!config) {
+    if (!projectConfig.domain || !projectConfig.id) {
       log.debug("Enterprise domain and/or project ID missing. Aborting.")
       return null
     }
@@ -121,12 +99,12 @@ export class EnterpriseApi {
       return null
     }
 
-    const api = new EnterpriseApi(log, config.domain, config.projectId)
+    const api = new EnterpriseApi(log, projectConfig.domain, projectConfig.id)
     const tokenIsValid = await api.checkClientAuthToken()
 
     const enterpriseLog = skipLogging
       ? null
-      : log.info({ section: "garden-enterprise", msg: "Connecting...", status: "active" })
+      : log.info({ section: "garden-enterprise", msg: "Authorizing...", status: "active" })
 
     if (gardenEnv.GARDEN_AUTH_TOKEN) {
       // Throw if using an invalid "CI" access token

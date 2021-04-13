@@ -9,11 +9,12 @@
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
 import dedent = require("dedent")
-import { AuthTokenResponse, EnterpriseApi, getEnterpriseConfig } from "../enterprise/api"
+import { AuthTokenResponse, EnterpriseApi } from "../enterprise/api"
 import { LogEntry } from "../logger/log-entry"
 import { ConfigurationError, InternalError } from "../exceptions"
 import { AuthRedirectServer } from "../enterprise/auth"
 import { EventBus } from "../events"
+import { findProjectConfigOrFail } from "../config/base"
 
 export class LoginCommand extends Command {
   name = "login"
@@ -35,12 +36,15 @@ export class LoginCommand extends Command {
   }
 
   async action({ garden, log }: CommandParams): Promise<CommandResult> {
-    const currentDirectory = garden.projectRoot
+    const projectConfig = await findProjectConfigOrFail(garden.projectRoot)
 
+    if (!projectConfig.domain || !projectConfig.id) {
+      throw new ConfigurationError(`Project config is missing an enterprise domain and/or a project ID.`, {})
+    }
     // The Enterprise API is missing from the Garden class for commands with noProject
     // so we initialize it here.
     try {
-      const enterpriseApi = await EnterpriseApi.factory({ log, currentDirectory, skipLogging: true })
+      const enterpriseApi = await EnterpriseApi.factory({ log, projectConfig, skipLogging: true })
       if (enterpriseApi) {
         log.info({ msg: `You're already logged in to Garden Enteprise.` })
         enterpriseApi.close()
@@ -58,13 +62,8 @@ export class LoginCommand extends Command {
       throw err
     }
 
-    const config = await getEnterpriseConfig(currentDirectory)
-    if (!config) {
-      throw new ConfigurationError(`Project config is missing an enterprise domain and/or a project ID.`, {})
-    }
-
-    log.info({ msg: `Logging in to ${config.domain}...` })
-    const tokenResponse = await login(log, config.domain, garden.events)
+    log.info({ msg: `Logging in to ${projectConfig.domain}...` })
+    const tokenResponse = await login(log, projectConfig.domain, garden.events)
     await EnterpriseApi.saveAuthToken(log, tokenResponse)
     log.info({ msg: `Successfully logged in to Garden Enteprise.` })
     return {}
