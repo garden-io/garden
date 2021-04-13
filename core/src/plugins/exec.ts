@@ -351,7 +351,9 @@ export async function runExecModule(params: RunModuleParams<ExecModule>): Promis
     })
 
     completedAt = new Date()
-    outputLog = (commandResult.stdout + commandResult.stderr).trim()
+    // Despite the types saying otherwise, stdout and stderr can be undefined when in
+    // interactive mode.
+    outputLog = ((commandResult.stdout || "") + (commandResult.stderr || "")).trim()
     success = commandResult.exitCode === 0
   } else {
     completedAt = startedAt
