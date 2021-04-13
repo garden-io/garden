@@ -15,7 +15,7 @@ import { getBaseModule, getReleaseName, loadTemplate } from "./common"
 import { KubernetesPluginContext } from "../config"
 import { getForwardablePorts } from "../port-forward"
 import { KubernetesServerResource } from "../types"
-import { getModuleNamespace } from "../namespace"
+import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
 import { findServiceResource, getServiceResourceSpec } from "../util"
 import chalk from "chalk"
 import { startDevModeSync } from "../dev-mode"
@@ -49,6 +49,13 @@ export async function getServiceStatus({
 
   const detail: HelmStatusDetail = {}
   let state: ServiceState
+
+  const namespaceStatus = await getModuleNamespaceStatus({
+    ctx: k8sCtx,
+    log,
+    module,
+    provider: k8sCtx.provider,
+  })
 
   try {
     const helmStatus = await getReleaseStatus({ ctx: k8sCtx, service, releaseName, log, devMode, hotReload })
@@ -108,6 +115,7 @@ export async function getServiceStatus({
     state,
     version: state === "ready" ? service.version : undefined,
     detail,
+    namespaceStatuses: [namespaceStatus],
   }
 }
 

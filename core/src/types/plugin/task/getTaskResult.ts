@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { taskActionParamsSchema, PluginTaskActionParamsBase } from "../base"
+import { taskActionParamsSchema, PluginTaskActionParamsBase, namespaceStatusSchema } from "../base"
 import { dedent, deline } from "../../../util/string"
 import { GardenModule } from "../../module"
 import { joi, joiPrimitive, moduleVersionSchema } from "../../../config/common"
@@ -39,6 +39,7 @@ export const taskResultSchema = () =>
         .object()
         .pattern(/.+/, joiPrimitive())
         .description("A map of primitive values, output from the task."),
+      namespaceStatus: namespaceStatusSchema().optional(),
     })
 
 export const getTaskResult = () => ({

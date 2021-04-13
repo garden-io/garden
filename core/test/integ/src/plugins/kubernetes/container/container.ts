@@ -143,6 +143,7 @@ describe("kubernetes container module handlers", () => {
       })
 
       expect(result.success).to.be.true
+      expect(result.namespaceStatus).to.exist
       expect(result.log.trim()).to.eql("ok")
     })
 
@@ -197,6 +198,7 @@ describe("kubernetes container module handlers", () => {
       const key = "test.simple.echo-test"
       expect(result).to.have.property(key)
       expect(result[key]!.output.log.trim()).to.equal("ok")
+      expect(result[key]!.output.namespaceStatus).to.exist
     })
 
     it("should fail if an error occurs, but store the result", async () => {

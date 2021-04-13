@@ -112,6 +112,15 @@ deployments:
     # Additional detail, specific to the provider.
     detail:
 
+    namespaceStatuses:
+      - pluginName:
+
+        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
+        # letter, and cannot end with a dash) and must not be longer than 63 characters.
+        namespaceName:
+
+        state:
+
     # The ID used for the service by the provider (if not the same as the service name).
     externalId:
 
@@ -204,6 +213,15 @@ tests:
 
     # The output log from the run.
     log:
+
+    namespaceStatus:
+      pluginName:
+
+      # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
+      # letter, and cannot end with a dash) and must not be longer than 63 characters.
+      namespaceName:
+
+      state:
 
     # A map of primitive values, output from the test.
     outputs:
@@ -422,6 +440,15 @@ providerStatuses:
     # Use this to include additional information that is specific to the provider.
     detail:
 
+    namespaceStatuses:
+      - pluginName:
+
+        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
+        # letter, and cannot end with a dash) and must not be longer than 63 characters.
+        namespaceName:
+
+        state:
+
     # Output variables that modules and other variables can reference.
     outputs:
       <name>:
@@ -437,6 +464,15 @@ serviceStatuses:
 
     # Additional detail, specific to the provider.
     detail:
+
+    namespaceStatuses:
+      - pluginName:
+
+        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
+        # letter, and cannot end with a dash) and must not be longer than 63 characters.
+        namespaceName:
+
+        state:
 
     # The ID used for the service by the provider (if not the same as the service name).
     externalId:
@@ -536,6 +572,15 @@ Examples:
 
   # Additional detail, specific to the provider.
   detail:
+
+  namespaceStatuses:
+    - pluginName:
+
+      # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
+      # letter, and cannot end with a dash) and must not be longer than 63 characters.
+      namespaceName:
+
+      state:
 
   # The ID used for the service by the provider (if not the same as the service name).
   externalId:
@@ -687,6 +732,15 @@ deployments:
     # Additional detail, specific to the provider.
     detail:
 
+    namespaceStatuses:
+      - pluginName:
+
+        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
+        # letter, and cannot end with a dash) and must not be longer than 63 characters.
+        namespaceName:
+
+        state:
+
     # The ID used for the service by the provider (if not the same as the service name).
     externalId:
 
@@ -779,6 +833,15 @@ tests:
 
     # The output log from the run.
     log:
+
+    namespaceStatus:
+      pluginName:
+
+      # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
+      # letter, and cannot end with a dash) and must not be longer than 63 characters.
+      namespaceName:
+
+      state:
 
     # A map of primitive values, output from the test.
     outputs:
@@ -1411,6 +1474,15 @@ providers:
 
       # Use this to include additional information that is specific to the provider.
       detail:
+
+      namespaceStatuses:
+        - pluginName:
+
+          # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
+          # letter, and cannot end with a dash) and must not be longer than 63 characters.
+          namespaceName:
+
+          state:
 
       # Output variables that modules and other variables can reference.
       outputs:
@@ -2234,6 +2306,15 @@ providers:
     # Use this to include additional information that is specific to the provider.
     detail:
 
+    namespaceStatuses:
+      - pluginName:
+
+        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
+        # letter, and cannot end with a dash) and must not be longer than 63 characters.
+        namespaceName:
+
+        state:
+
     # Output variables that modules and other variables can reference.
     outputs:
       <name>:
@@ -2249,6 +2330,15 @@ services:
 
     # Additional detail, specific to the provider.
     detail:
+
+    namespaceStatuses:
+      - pluginName:
+
+        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
+        # letter, and cannot end with a dash) and must not be longer than 63 characters.
+        namespaceName:
+
+        state:
 
     # The ID used for the service by the provider (if not the same as the service name).
     externalId:
@@ -2406,6 +2496,15 @@ outputs:
   # Number, string or boolean
   <name>:
 
+namespaceStatus:
+  pluginName:
+
+  # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
+  # and cannot end with a dash) and must not be longer than 63 characters.
+  namespaceName:
+
+  state:
+
 # Local file paths to any exported artifacts from the task run.
 artifacts:
 ```
@@ -2454,6 +2553,15 @@ completedAt:
 
 # The output log from the run.
 log:
+
+namespaceStatus:
+  pluginName:
+
+  # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
+  # and cannot end with a dash) and must not be longer than 63 characters.
+  namespaceName:
+
+  state:
 
 # A map of primitive values, output from the test.
 outputs:
@@ -2788,6 +2896,15 @@ deployments:
     # Additional detail, specific to the provider.
     detail:
 
+    namespaceStatuses:
+      - pluginName:
+
+        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
+        # letter, and cannot end with a dash) and must not be longer than 63 characters.
+        namespaceName:
+
+        state:
+
     # The ID used for the service by the provider (if not the same as the service name).
     externalId:
 
@@ -2880,6 +2997,15 @@ tests:
 
     # The output log from the run.
     log:
+
+    namespaceStatus:
+      pluginName:
+
+      # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
+      # letter, and cannot end with a dash) and must not be longer than 63 characters.
+      namespaceName:
+
+      state:
 
     # A map of primitive values, output from the test.
     outputs:
@@ -3062,6 +3188,15 @@ result:
     # Number, string or boolean
     <name>:
 
+  namespaceStatus:
+    pluginName:
+
+    # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
+    # and cannot end with a dash) and must not be longer than 63 characters.
+    namespaceName:
+
+    state:
+
   # Set to true if the build was not attempted, e.g. if a dependency build failed.
   aborted:
 
@@ -3137,6 +3272,15 @@ result:
 
   # The output log from the run.
   log:
+
+  namespaceStatus:
+    pluginName:
+
+    # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
+    # and cannot end with a dash) and must not be longer than 63 characters.
+    namespaceName:
+
+    state:
 
   # A map of primitive values, output from the test.
   outputs:
@@ -3317,6 +3461,15 @@ deployments:
     # Additional detail, specific to the provider.
     detail:
 
+    namespaceStatuses:
+      - pluginName:
+
+        # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
+        # letter, and cannot end with a dash) and must not be longer than 63 characters.
+        namespaceName:
+
+        state:
+
     # The ID used for the service by the provider (if not the same as the service name).
     externalId:
 
@@ -3409,6 +3562,15 @@ tests:
 
     # The output log from the run.
     log:
+
+    namespaceStatus:
+      pluginName:
+
+      # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
+      # letter, and cannot end with a dash) and must not be longer than 63 characters.
+      namespaceName:
+
+      state:
 
     # A map of primitive values, output from the test.
     outputs:

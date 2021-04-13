@@ -25,7 +25,7 @@ import { KubernetesProvider, KubernetesPluginContext } from "../../config"
 import { PluginContext } from "../../../../plugin-context"
 import { prepareDockerAuth, getRegistryHostname } from "../../init"
 import { BuildStatusHandler, skopeoBuildStatus, BuildHandler, syncToBuildSync, getSocatContainer } from "./common"
-import { getNamespace } from "../../namespace"
+import { getNamespaceStatus } from "../../namespace"
 import { containerHelpers } from "../../../container/helpers"
 import { LogLevel } from "../../../../logger/log-node"
 import { renderOutputStream, sleep } from "../../../../util/util"
@@ -49,7 +49,7 @@ export const getBuildkitBuildStatus: BuildStatusHandler = async (params) => {
   const provider = k8sCtx.provider
 
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = await getNamespace({ log, ctx, provider })
+  const namespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
 
   await ensureBuildkit({
     ctx,
@@ -75,7 +75,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
   const { ctx, module, log } = params
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = await getNamespace({ log, ctx, provider })
+  const namespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
 
   await ensureBuildkit({
     ctx,
