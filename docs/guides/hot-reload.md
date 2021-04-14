@@ -25,7 +25,7 @@ name: test-service
 type: container
 hotReload:
   sync:
-  - target: /app/
+  - target: /app
 services:
   - name: test-service
     args: [npm, start]             # runs `node main.js`
@@ -43,9 +43,9 @@ You can configure several such `source`/`target` pairs, but note that the `sourc
 ```yaml
   hotReload:
     sync:
-      - source: /foo
+      - source: foo
         target: /app/foo
-      - source: /bar
+      - source: bar
         target: /app/bar
 ```
 
@@ -64,7 +64,7 @@ name: node-service
 type: container
 hotReload:
   sync:
-    - target: /app/
+    - target: /app
   postSyncCommand: [touch, /app/hotreloadfile]
 services:
   - name: node-service
