@@ -57,6 +57,9 @@ interface ProjectMetadata {
 interface AnalyticsEventProperties {
   projectId: string
   projectName: string
+  enterpriseProjectId?: string
+  enterpriseDomain?: string
+  isLoggedIn: boolean
   ciName: string | null
   system: SystemInfo
   isCI: boolean
@@ -125,6 +128,9 @@ export class AnalyticsHandler {
   private globalConfigStore: GlobalConfigStore
   private projectId = ""
   private projectName = ""
+  private enterpriseProjectId?: string
+  private enterpriseDomain?: string
+  private isLoggedIn: boolean
   private ciName = ci.name
   private systemConfig: SystemInfo
   private isCI = ci.isCI
@@ -141,6 +147,7 @@ export class AnalyticsHandler {
     this.log = log
     this.garden = garden
     this.sessionId = garden.sessionId
+    this.isLoggedIn = !!garden.enterpriseApi
     this.globalConfigStore = new GlobalConfigStore()
     // Events that are queued or flushed but the network response hasn't returned
     this.pendingEvents = new Map()
@@ -200,8 +207,13 @@ export class AnalyticsHandler {
     }
 
     const originName = await this.garden.vcs.getOriginName(this.log)
-    this.projectName = hasha(this.garden.projectName, { algorithm: "sha256" })
-    this.projectId = originName ? hasha(originName, { algorithm: "sha256" }) : this.projectName
+    this.projectName = this.hash(this.garden.projectName)
+    this.projectId = originName ? this.hash(originName) : this.projectName
+    // The enterprise project ID is the UID for this project in Garden Enterprise that the user puts
+    // in the project level Garden configuration. Not to be confused with the anonymized project ID we generate from
+    // the project name for the purpose of analytics.
+    this.enterpriseProjectId = this.garden.projectId ? this.hash(this.garden.projectId) : undefined
+    this.enterpriseDomain = this.garden.enterpriseDomain ? this.hash(this.garden.enterpriseDomain) : undefined
 
     const gitHubUrl = getGitHubUrl("README.md#Analytics")
     if (this.analyticsConfig.firstRun || this.analyticsConfig.showOptInMessage) {
@@ -239,6 +251,10 @@ export class AnalyticsHandler {
     this.projectMetadata = await this.generateProjectMetadata()
 
     return this
+  }
+
+  public hash(val: string) {
+    return hasha(val, { algorithm: "sha512" })
   }
 
   static async refreshGarden(garden: Garden) {
@@ -283,6 +299,9 @@ export class AnalyticsHandler {
     return {
       projectId: this.projectId,
       projectName: this.projectName,
+      enterpriseProjectId: this.enterpriseProjectId,
+      enterpriseDomain: this.enterpriseDomain,
+      isLoggedIn: this.isLoggedIn,
       ciName: this.ciName,
       system: this.systemConfig,
       isCI: this.isCI,

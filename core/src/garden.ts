@@ -140,7 +140,8 @@ export interface GardenParams {
   artifactsPath: string
   vcsBranch: string
   buildStaging: BuildStaging
-  projectId: string | null
+  projectId?: string
+  enterpriseDomain?: string
   cache: TreeCache
   disablePortForwards?: boolean
   dotIgnoreFiles: string[]
@@ -182,7 +183,8 @@ export class Garden {
   private readonly taskGraph: TaskGraph
   private watcher: Watcher
   private asyncLock: any
-  public readonly projectId: string | null
+  public readonly projectId?: string
+  public readonly enterpriseDomain?: string
   public sessionId: string | null
   public readonly configStore: ConfigStore
   public readonly globalConfigStore: GlobalConfigStore
@@ -225,6 +227,7 @@ export class Garden {
   constructor(params: GardenParams) {
     this.buildStaging = params.buildStaging
     this.projectId = params.projectId
+    this.enterpriseDomain = params.enterpriseDomain
     this.sessionId = params.sessionId
     this.environmentName = params.environmentName
     this.environmentConfigs = params.environmentConfigs
@@ -1113,7 +1116,8 @@ export class Garden {
       workflowConfigs: sortBy(workflowConfigs, "name"),
       projectName: this.projectName,
       projectRoot: this.projectRoot,
-      projectId: this.projectId || undefined,
+      projectId: this.projectId,
+      domain: this.enterpriseDomain,
     }
   }
 
@@ -1184,7 +1188,7 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
 
     try {
       secrets = await getSecrets({ log: enterpriseLog, environmentName, enterpriseApi })
-      enterpriseLog.setSuccess({ msg: chalk.green("Done"), append: true })
+      enterpriseLog.setSuccess({ msg: chalk.green("Ready"), append: true })
       enterpriseLog.silly(`Fetched ${Object.keys(secrets).length} secrets from ${enterpriseApi.domain}`)
     } catch (err) {
       enterpriseLog.debug(`Fetching secrets failed with error: ${err.message}`)
@@ -1242,7 +1246,8 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
     vcsBranch,
     sessionId,
     disablePortForwards,
-    projectId: config.id || null,
+    projectId: config.id,
+    enterpriseDomain: config.domain,
     projectRoot,
     projectName,
     environmentName,
@@ -1294,4 +1299,5 @@ export interface ConfigDump {
   projectName: string
   projectRoot: string
   projectId?: string
+  domain?: string
 }

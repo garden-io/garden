@@ -1847,6 +1847,9 @@ projectRoot:
 
 # The project ID (Garden Enterprise only).
 projectId:
+
+# The Garden Enterprise domain (Garden Enterprise only).
+domain:
 ```
 
 ### garden get linked-repos
