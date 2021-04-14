@@ -812,6 +812,32 @@ describe("RunWorkflowCommand", () => {
     expect(result).to.exist
     expect(result?.steps["step-2"].log).to.equal("task-a")
   })
+
+  it("should only resolve the workflow that's being run", async () => {
+    garden.setWorkflowConfigs([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "workflow-to-run",
+        kind: "Workflow",
+        path: garden.projectRoot,
+        envVars: {},
+        resources: defaultWorkflowResources,
+        steps: [{ command: ["deploy"] }],
+      },
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "some-other-workflow",
+        kind: "Workflow",
+        path: garden.projectRoot,
+        envVars: { FOO: "${secrets.missing}" }, // <--- should not be resolved, so no error should be thrown
+        resources: defaultWorkflowResources,
+        steps: [{ command: ["deploy"] }],
+      },
+    ])
+
+    // This workflow should run without errors, despite a missing secret being referenced in a separate workflow config.
+    await cmd.action({ ...defaultParams, args: { workflow: "workflow-to-run" } })
+  })
 })
 
 function getWorkflowEvents(garden: TestGarden) {

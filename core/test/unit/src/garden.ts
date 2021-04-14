@@ -2261,7 +2261,7 @@ describe("Garden", () => {
       const garden = await makeTestGarden(resolve(dataDir, "test-projects", "custom-config-names"))
       await garden.scanAndAddConfigs()
 
-      const workflows = garden.getWorkflowConfigs()
+      const workflows = await garden.getRawWorkflowConfigs()
       expect(getNames(workflows)).to.eql(["workflow-a", "workflow-b"])
     })
 
@@ -2465,22 +2465,6 @@ describe("Garden", () => {
       await expectError(
         () => garden.scanAndAddConfigs(),
         (err) => expect(err.message).to.match(/Module module-a: missing/)
-      )
-    })
-
-    it.skip("should throw an error if references to missing secrets are present in a workflow config", async () => {
-      const garden = await makeTestGarden(join(dataDir, "missing-secrets", "workflow"))
-      await expectError(
-        () => garden.scanAndAddConfigs(),
-        (err) => expect(err.message).to.match(/Workflow test-workflow: missing/)
-      )
-    })
-
-    it("should throw an error if an invalid workflow config is present", async () => {
-      const garden = await makeTestGarden(join(dataDir, "test-project-invalid-workflow"))
-      await expectError(
-        () => garden.scanAndAddConfigs(),
-        (err) => expect(stripAnsi(err.message)).to.match(/key .triggers must be an array/)
       )
     })
   })

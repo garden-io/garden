@@ -560,11 +560,21 @@ export class Garden {
     return this.tools
   }
 
-  getWorkflowConfig(name: string): WorkflowConfig {
-    return this.getWorkflowConfigs([name])[0]
+  /**
+   * When running workflows via the `run workflow` command, we only resolve the workflow being executed.
+   */
+  async getWorkflowConfig(name: string): Promise<WorkflowConfig> {
+    return resolveWorkflowConfig(this, await this.getRawWorkflowConfig(name))
   }
 
-  getWorkflowConfigs(names?: string[]): WorkflowConfig[] {
+  async getRawWorkflowConfig(name: string): Promise<WorkflowConfig> {
+    return (await this.getRawWorkflowConfigs([name]))[0]
+  }
+
+  async getRawWorkflowConfigs(names?: string[]): Promise<WorkflowConfig[]> {
+    if (!this.configsScanned) {
+      await this.scanAndAddConfigs()
+    }
     if (names) {
       return Object.values(pickKeys(this.workflowConfigs, names, "workflow"))
     } else {
@@ -971,7 +981,7 @@ export class Garden {
       })
     }
 
-    this.workflowConfigs[key] = resolveWorkflowConfig(this, config)
+    this.workflowConfigs[key] = config
   }
 
   /**
@@ -1072,13 +1082,16 @@ export class Garden {
   }): Promise<ConfigDump> {
     let providers: ConfigDump["providers"] = []
     let moduleConfigs: ModuleConfig[]
+    let workflowConfigs: WorkflowConfig[]
 
     if (partial) {
       providers = this.getRawProviderConfigs()
       moduleConfigs = await this.getRawModuleConfigs()
+      workflowConfigs = await this.getRawWorkflowConfigs()
     } else {
       const graph = await this.getConfigGraph(log)
       const modules = graph.getModules({ includeDisabled })
+      workflowConfigs = (await this.getRawWorkflowConfigs()).map((config) => resolveWorkflowConfig(this, config))
 
       moduleConfigs = sortBy(
         modules.map((m) => m._config),
@@ -1088,7 +1101,6 @@ export class Garden {
       providers = Object.values(await this.resolveProviders(log))
     }
 
-    const workflowConfigs = await this.getWorkflowConfigs()
     const allEnvironmentNames = this.environmentConfigs.map((c) => c.name)
 
     return {

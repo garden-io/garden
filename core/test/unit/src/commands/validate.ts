@@ -51,4 +51,24 @@ describe("commands.validate", () => {
       "configuration"
     )
   })
+
+  it("should fail validating the bad-workflow project", async () => {
+    const root = join(dataDir, "validate", "bad-workflow")
+    const garden = await TestGarden.factory(root)
+    const log = garden.log
+    const command = new ValidateCommand()
+
+    await expectError(
+      async () =>
+        await command.action({
+          garden,
+          log,
+          headerLog: log,
+          footerLog: log,
+          args: {},
+          opts: withDefaultGlobalOpts({}),
+        }),
+      "configuration"
+    )
+  })
 })

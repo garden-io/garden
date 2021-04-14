@@ -1,0 +1,9 @@
+kind: Project
+name: bad-workflow-project
+
+---
+
+kind: Workflow
+steps:
+  - script: [echo, "${var.MISSING_VAR}"]
+
