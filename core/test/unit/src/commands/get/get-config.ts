@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import { pick } from "lodash"
-import { makeTestGardenA, withDefaultGlobalOpts } from "../../../../helpers"
+import { getDataDir, makeTestGarden, makeTestGardenA, withDefaultGlobalOpts } from "../../../../helpers"
 import { GetConfigCommand } from "../../../../../src/commands/get/get-config"
 import { sortBy } from "lodash"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
@@ -37,8 +37,9 @@ describe("GetConfigCommand", () => {
     expect(res.result?.moduleConfigs).to.deep.equal(expectedModuleConfigs)
   })
 
-  it("should include the project name, id and all environment names", async () => {
-    const garden = await makeTestGardenA()
+  it("should include the project name, id, domain and all environment names", async () => {
+    const root = getDataDir("test-projects", "login", "has-domain-and-id")
+    const garden = await makeTestGarden(root)
     const log = garden.log
     const command = new GetConfigCommand()
 
@@ -53,9 +54,10 @@ describe("GetConfigCommand", () => {
       })
     ).result
 
-    expect(pick(result, ["projectName", "projectId", "allEnvironmentNames"])).to.eql({
-      projectName: "test-project-a",
-      projectId: "test-project-id",
+    expect(pick(result, ["domain", "projectName", "projectId", "allEnvironmentNames"])).to.eql({
+      projectName: "has-domain-and-id",
+      projectId: "dummy-id",
+      domain: "http://dummy-domain.com",
       allEnvironmentNames: ["local", "other"],
     })
   })
