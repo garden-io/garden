@@ -18,8 +18,8 @@ jobs:
           node-version: 12.x
       - name: Build package
         run: |
-          npm install
-          npm build
+          yarn
+          yarn build
       - name: Setup npm registry authentication
         working-directory: ./core
         run: |
