@@ -32,7 +32,9 @@ const activeProxies: { [key: string]: PortProxy } = {}
 
 registerCleanupFunction("kill-service-port-proxies", () => {
   for (const proxy of Object.values(activeProxies)) {
-    stopPortProxy(proxy)
+    try {
+      stopPortProxy(proxy)
+    } catch {}
   }
 })
 
