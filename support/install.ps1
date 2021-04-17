@@ -4,48 +4,12 @@
 #
 # 1. Check if Chocolatey is installed, installs it if missing.
 # 2. Installs and/or upgrades dependencies using Chocolatey.
-# 3. Checks whether Hyper-V is enabled.
-# 4. Checks whether Kubernetes is the default orchestrator for Docker.
-# 5. Installs or updates the garden binary.
+# 3. Installs or updates the garden binary.
 #
 # To execute it run the following command in PowerShell:
 # Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/garden-io/garden/master/support/install.ps1'))
 #
 # For more information visit https://docs.garden.io/
-
-Function CheckHyperV {
-    $hyperv = Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V-All -Online
-    if($hyperv) {
-        return $true
-    } else {
-        return $false
-    }
-}
-
-Function EnableHyperV {
-    # if ((New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) -eq $false) {
-    #     ContinueYN("To check whether Hyper-V is enabled (and enable it if necessary), please run as Administrator. If you choose to continue the Hyper-V check will be skipped.")
-    #     return
-    # }
-    $hyperv = Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V-All -Online
-    if($hyperv.State -ne "Enabled") {
-        Write-Host "- WARNING: Hyper-V is being enabled. You will need to restart your computer for the changes to take effect (This is required for Docker for Windows to run)."
-        # For testing, disable with: Disable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All
-        Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
-    } else {
-        Write-Host "- Hyper-V is enabled."
-    }
-}
-
-Function CheckKubernetes {
-    $dockerConfigPath = (Join-Path $HOME .docker\config.json)
-    $dockerConfigParsed = (Get-Content $dockerConfigPath | Out-String | ConvertFrom-Json)
-    if ($dockerConfigParsed.stackOrchestrator -ne "kubernetes") {
-        Write-Host "- WARNING: Kubernetes is not enabled as the default orchestrator for Docker. Please enable it in the Kubernetes section of Docker for Windows's settings."
-    } else {
-        Write-Host "- Kubernetes is enabled."
-    }
-}
 
 Function CheckChocolatey {
     if ((CheckIfExists("chocolatey")) -eq $false) {
@@ -110,18 +74,6 @@ Write-Host "- Installing Chocolatey dependencies..."
 choco upgrade -y git rsync
 
 [Console]::ResetColor()
-
-if (CheckHyperV) {
-    Write-Host "Hyper-V is available. Would you like to install Docker for Windows? (y/n)"
-    $response = Read-Host
-    if ( $response -eq "y" ) {
-        EnableHyperV
-        choco upgrade -y docker-for-windows
-        CheckKubernetes
-    }
-} else {
-    Write-Host "Hyper-V is NOT available. Docker for Windows is not available on this machine." -ForegroundColor Yellow
-}
 
 # Install the garden binary
 $homedir = Resolve-Path "~"
@@ -192,7 +144,4 @@ Write-Host("
 Garden CLI successfully installed!
 You can now run the garden command in your shell (you may need to restart your sessions for changes to PATH to take effect).
 Please head over to https://docs.garden.io for more information on how to get started.
-
-Note: Please see the logs above for any warnings. If Docker for Windows was just installed and/or
-      Hyper-V was just enabled, you may need to restart your computer before using Docker.
 ")
