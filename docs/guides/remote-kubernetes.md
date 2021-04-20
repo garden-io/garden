@@ -16,7 +16,7 @@ hosted Kubernetes providers, and for configuring your Garden project to connect 
 
 ## Requirements
 
-Garden is committed to supporting the _latest six_ stable versions of Kubernetes (i.e. if the latest stable version is v1.17.x, Garden supports v1.12.x and newer). Any conformant cluster should work fine.
+Garden is committed to supporting the _latest six_ stable versions of Kubernetes (i.e. if the latest stable version is v1.21.x, Garden supports v1.16.x and newer). Any conformant cluster should work fine.
 
 Using [in-cluster building](./in-cluster-building.md) introduces additional requirements. Please look at the [in-cluster building guide](./in-cluster-building.md) for details.
 
