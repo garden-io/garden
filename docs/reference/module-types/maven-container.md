@@ -159,7 +159,7 @@ hotReload:
   # Specify one or more source files or directories to automatically sync into the running container.
   sync:
     - # POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be
-      # a relative path if provided. Defaults to the module's top-level directory if no value is provided.
+      # a relative path. Defaults to the module's top-level directory if no value is provided.
       source: .
 
       # POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not
@@ -213,6 +213,36 @@ services:
     # Whether to run the service as a daemon (to ensure exactly one instance runs per node). May not be supported by
     # all providers.
     daemon: false
+
+    # **EXPERIMENTAL**
+    #
+    # Specifies which files or directories to sync to which paths inside the running containers of the service when
+    # it's in dev mode, and overrides for the container command and/or arguments.
+    #
+    # Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden
+    # deploy` command.
+    devMode:
+      # Override the default container arguments when in dev mode.
+      args:
+
+      # Override the default container command (i.e. entrypoint) when in dev mode.
+      command:
+
+      # Specify one or more source files or directories to automatically sync with the running container.
+      sync:
+        - # POSIX-style path of the directory to sync to the target, relative to the module's top-level directory.
+          # Must be a relative path. Defaults to the module's top-level directory if no value is provided.
+          source: .
+
+          # POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not
+          # allowed.
+          target:
+
+          # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
+          exclude:
+
+          # The sync mode to use for the given paths.
+          mode: one-way
 
     # List of ingress endpoints that the service exposes.
     ingresses:
@@ -828,7 +858,7 @@ Specify one or more source files or directories to automatically sync into the r
 
 [hotReload](#hotreload) > [sync](#hotreloadsync) > source
 
-POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be a relative path if provided. Defaults to the module's top-level directory if no value is provided.
+POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be a relative path. Defaults to the module's top-level directory if no value is provided.
 
 | Type        | Default | Required |
 | ----------- | ------- | -------- |
@@ -998,6 +1028,122 @@ Whether to run the service as a daemon (to ensure exactly one instance runs per 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
+
+### `services[].devMode`
+
+[services](#services) > devMode
+
+**EXPERIMENTAL**
+
+Specifies which files or directories to sync to which paths inside the running containers of the service when it's in dev mode, and overrides for the container command and/or arguments.
+
+Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy` command.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `services[].devMode.args[]`
+
+[services](#services) > [devMode](#servicesdevmode) > args
+
+Override the default container arguments when in dev mode.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `services[].devMode.command[]`
+
+[services](#services) > [devMode](#servicesdevmode) > command
+
+Override the default container command (i.e. entrypoint) when in dev mode.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `services[].devMode.sync[]`
+
+[services](#services) > [devMode](#servicesdevmode) > sync
+
+Specify one or more source files or directories to automatically sync with the running container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `services[].devMode.sync[].source`
+
+[services](#services) > [devMode](#servicesdevmode) > [sync](#servicesdevmodesync) > source
+
+POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be a relative path. Defaults to the module's top-level directory if no value is provided.
+
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `"."`   | No       |
+
+Example:
+
+```yaml
+services:
+  - devMode:
+      ...
+      sync:
+        - source: "src"
+```
+
+### `services[].devMode.sync[].target`
+
+[services](#services) > [devMode](#servicesdevmode) > [sync](#servicesdevmodesync) > target
+
+POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not allowed.
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
+
+Example:
+
+```yaml
+services:
+  - devMode:
+      ...
+      sync:
+        - target: "/app/src"
+```
+
+### `services[].devMode.sync[].exclude[]`
+
+[services](#services) > [devMode](#servicesdevmode) > [sync](#servicesdevmodesync) > exclude
+
+Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
+
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | No       |
+
+Example:
+
+```yaml
+services:
+  - devMode:
+      ...
+      sync:
+        - exclude:
+            - dist/**/*
+            - '*.log'
+```
+
+### `services[].devMode.sync[].mode`
+
+[services](#services) > [devMode](#servicesdevmode) > [sync](#servicesdevmodesync) > mode
+
+The sync mode to use for the given paths.
+
+| Type     | Default     | Required |
+| -------- | ----------- | -------- |
+| `string` | `"one-way"` | No       |
 
 ### `services[].ingresses[]`
 

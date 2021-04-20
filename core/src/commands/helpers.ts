@@ -17,6 +17,7 @@ export async function getDevModeServiceNames(namesFromOpt: string[] | undefined,
     return names
   }
 }
+
 export async function getHotReloadServiceNames(namesFromOpt: string[] | undefined, configGraph: ConfigGraph) {
   const names = namesFromOpt || []
   if (names.includes("*")) {

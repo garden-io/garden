@@ -53,6 +53,15 @@ describe("configureHelmModule", () => {
         dependencies: [],
       },
       chartPath: ".",
+      devMode: {
+        sync: [
+          {
+            mode: "two-way",
+            source: ".",
+            target: "/app",
+          },
+        ],
+      },
       dependencies: [],
       releaseName: "api-release",
       serviceResource: {

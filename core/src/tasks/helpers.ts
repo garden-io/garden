@@ -55,9 +55,8 @@ export async function getModuleWatchTasks({
   const serviceNamesUsingModule = [...module.serviceNames, ...dependantSourceModuleServiceNames]
 
   /**
-   * If a service is deployed with hot reloading or dev modenabled, we don't rebuild its module
-   * (or its sourceModule, if the service instead uses a sourceModule) when its
-   * sources change.
+   * If a service is deployed with hot reloading or has dev mode enabled, we don't rebuild its module
+   * (or its sourceModule, if the service instead uses a sourceModule) when its sources change.
    *
    * Therefore, we skip adding a build task for module if one of its services is in
    * hotReloadServiceNames, or if one of its build dependants' services is in

@@ -39,7 +39,15 @@ export class GetServiceStatusTask extends BaseTask {
   private devModeServiceNames: string[]
   private hotReloadServiceNames: string[]
 
-  constructor({ garden, graph, log, service, force, devModeServiceNames, hotReloadServiceNames }: GetServiceStatusTaskParams) {
+  constructor({
+    garden,
+    graph,
+    log,
+    service,
+    force,
+    devModeServiceNames,
+    hotReloadServiceNames,
+  }: GetServiceStatusTaskParams) {
     super({ garden, log, force, version: service.version })
     this.graph = graph
     this.service = service

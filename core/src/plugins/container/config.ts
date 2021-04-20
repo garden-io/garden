@@ -17,7 +17,6 @@ import {
   joiModuleIncludeDirective,
   joiIdentifier,
   joiSparseArray,
-  joiArray,
 } from "../../config/common"
 import { ArtifactSpec } from "./../../config/validation"
 import { GardenService, ingressHostnameSchema, linkUrlSchema } from "../../types/service"

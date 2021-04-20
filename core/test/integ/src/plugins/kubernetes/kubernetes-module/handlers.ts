@@ -114,6 +114,9 @@ describe("kubernetes-module handlers", () => {
   after(async () => {
     garden.setModuleConfigs(moduleConfigBackup)
     await tmpDir.cleanup()
+    if (garden) {
+      await garden.close()
+    }
   })
 
   describe("getServiceStatus", () => {
@@ -204,6 +207,51 @@ describe("kubernetes-module handlers", () => {
       expect(res1[0].metadata.annotations![gardenAnnotationKey("hot-reload")]).to.equal("false")
       expect(res2[0].metadata.annotations![gardenAnnotationKey("hot-reload")]).to.equal("true")
       expect(res3[0].metadata.annotations![gardenAnnotationKey("hot-reload")]).to.equal("false")
+    })
+
+    it("should toggle devMode", async () => {
+      const graph = await garden.getConfigGraph(garden.log)
+      const service = graph.getService("with-source-module")
+      const namespace = await getModuleNamespace({
+        ctx,
+        log,
+        module: service.module,
+        provider: ctx.provider,
+        skipCreate: true,
+      })
+      const deployParams = {
+        ctx,
+        log: garden.log,
+        module: service.module,
+        service,
+        force: false,
+        devMode: false,
+        hotReload: false,
+        runtimeContext: emptyRuntimeContext,
+      }
+      const manifests = await getManifests({
+        api,
+        log,
+        module: service.module,
+        defaultNamespace: namespace,
+        readFromSrcDir: true,
+      })
+
+      // // Deploy without dev mode
+      await deployKubernetesService(deployParams)
+      const res1 = await findDeployedResources(manifests, log)
+
+      // Deploy with dev mode
+      await deployKubernetesService({ ...deployParams, devMode: true })
+      const res2 = await findDeployedResources(manifests, log)
+
+      // // Deploy without hot reload again
+      await deployKubernetesService(deployParams)
+      const res3 = await findDeployedResources(manifests, log)
+
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("false")
+      expect(res2[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("true")
+      expect(res3[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("false")
     })
 
     it("should not delete previously deployed namespace resources", async () => {

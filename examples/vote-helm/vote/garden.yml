@@ -2,6 +2,11 @@ kind: Module
 description: Helm chart for the voting UI
 type: helm
 name: vote
+devMode:
+  sync:
+    - target: /app/src
+      source: src
+      mode: two-way
 serviceResource:
   kind: Deployment
   containerModule: vote-image

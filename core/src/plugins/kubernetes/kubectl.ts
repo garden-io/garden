@@ -170,27 +170,44 @@ class Kubectl extends PluginTool {
 
   prepareArgs(params: KubectlParams) {
     const { namespace, configPath, args } = params
-
-    const opts: string[] = []
-
-    if (this.provider.config.context) {
-      opts.push(`--context=${this.provider.config.context}`)
-    }
-
-    if (this.provider.config.kubeconfig) {
-      opts.push(`--kubeconfig=${this.provider.config.kubeconfig}`)
-    }
-
-    if (namespace) {
-      opts.push(`--namespace=${namespace}`)
-    }
-
-    if (configPath) {
-      opts.push(`--kubeconfig=${configPath}`)
-    }
+    const opts = prepareConnectionOpts({
+      provider: this.provider,
+      configPath,
+      namespace,
+    })
 
     return { ...params, args: opts.concat(args) }
   }
+}
+
+export function prepareConnectionOpts({
+  provider,
+  configPath,
+  namespace,
+}: {
+  provider: KubernetesProvider
+  configPath?: string
+  namespace?: string
+}): string[] {
+  const opts: string[] = []
+
+  if (provider.config.context) {
+    opts.push(`--context=${provider.config.context}`)
+  }
+
+  if (provider.config.kubeconfig) {
+    opts.push(`--kubeconfig=${provider.config.kubeconfig}`)
+  }
+
+  if (namespace) {
+    opts.push(`--namespace=${namespace}`)
+  }
+
+  if (configPath) {
+    opts.push(`--kubeconfig=${configPath}`)
+  }
+
+  return opts
 }
 
 export const kubectlSpec: PluginToolSpec = {

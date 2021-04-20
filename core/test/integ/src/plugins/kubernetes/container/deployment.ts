@@ -7,12 +7,13 @@
  */
 
 import { expect } from "chai"
+import { join } from "path"
 import { Garden } from "../../../../../../src/garden"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { emptyRuntimeContext } from "../../../../../../src/runtime-context"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { createWorkloadManifest } from "../../../../../../src/plugins/kubernetes/container/deployment"
-import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
+import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { V1Secret } from "@kubernetes/client-node"
 import { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
 import { cloneDeep, keyBy } from "lodash"
@@ -21,10 +22,16 @@ import { DeployTask } from "../../../../../../src/tasks/deploy"
 import { getServiceStatuses } from "../../../../../../src/tasks/base"
 import { expectError, grouped } from "../../../../../helpers"
 import stripAnsi = require("strip-ansi")
+import { gardenAnnotationKey } from "../../../../../../src/util/string"
+import { execInWorkload } from "../../../../../../src/plugins/kubernetes/container/exec"
+import { getContainerServiceStatus } from "../../../../../../src/plugins/kubernetes/container/status"
+import { sleep } from "../../../../../../src/util/util"
+import { pathExists, readFile, remove, writeFile } from "fs-extra"
 
 describe("kubernetes container deployment handlers", () => {
   let garden: Garden
   let graph: ConfigGraph
+  let ctx: KubernetesPluginContext
   let provider: KubernetesProvider
   let api: KubeApi
 
@@ -41,7 +48,8 @@ describe("kubernetes container deployment handlers", () => {
   const init = async (environmentName: string) => {
     garden = await getContainerTestGarden(environmentName)
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    api = await KubeApi.factory(garden.log, await garden.getPluginContext(provider), provider)
+    ctx = <KubernetesPluginContext>await garden.getPluginContext(provider)
+    api = await KubeApi.factory(garden.log, ctx, provider)
   }
 
   describe("createWorkloadManifest", () => {
@@ -172,11 +180,78 @@ describe("kubernetes container deployment handlers", () => {
     })
 
     it("should configure the service for sync with dev mode enabled", async () => {
-      throw "TODO"
+      const service = graph.getService("dev-mode")
+      const namespace = provider.config.namespace!.name!
+
+      const resource = await createWorkloadManifest({
+        api,
+        provider,
+        service,
+        runtimeContext: emptyRuntimeContext,
+        namespace,
+        enableDevMode: true, // <----
+        enableHotReload: false,
+        log: garden.log,
+        production: false,
+        blueGreen: false,
+      })
+
+      expect(resource.metadata.annotations![gardenAnnotationKey("dev-mode")]).to.eq("true")
+
+      const initContainer = resource.spec.template?.spec?.initContainers![0]
+      expect(initContainer).to.exist
+      expect(initContainer!.name).to.eq("garden-dev-init")
+      expect(initContainer!.volumeMounts).to.exist
+      expect(initContainer!.volumeMounts![0]).to.eql({ name: "garden", mountPath: "/.garden" })
+
+      expect(resource.spec.template?.spec?.initContainers).to.eql([
+        {
+          name: "garden-dev-init",
+          image: "gardendev/k8s-sync:0.1.1",
+          command: ["/bin/sh", "-c", "cp /usr/local/bin/mutagen-agent /.garden/mutagen-agent"],
+          imagePullPolicy: "IfNotPresent",
+          volumeMounts: [
+            {
+              name: "garden",
+              mountPath: "/.garden",
+            },
+          ],
+        },
+      ])
+
+      const appContainerSpec = resource.spec.template?.spec?.containers.find((c) => c.name === "dev-mode")
+      expect(appContainerSpec!.volumeMounts).to.exist
+      expect(appContainerSpec!.volumeMounts![0]!.name).to.eq("garden")
     })
 
     it("should increase liveness probes when in dev mode", async () => {
-      throw "TODO"
+      const service = graph.getService("dev-mode")
+      const namespace = provider.config.namespace!.name!
+
+      const resource = await createWorkloadManifest({
+        api,
+        provider,
+        service,
+        runtimeContext: emptyRuntimeContext,
+        namespace,
+        enableDevMode: true, // <----
+        enableHotReload: false,
+        log: garden.log,
+        production: false,
+        blueGreen: false,
+      })
+
+      const appContainerSpec = resource.spec.template?.spec?.containers.find((c) => c.name === "dev-mode")
+      expect(appContainerSpec!.livenessProbe).to.eql({
+        initialDelaySeconds: 90,
+        periodSeconds: 10,
+        timeoutSeconds: 3,
+        successThreshold: 1,
+        failureThreshold: 30,
+        exec: {
+          command: ["echo", "ok"],
+        },
+      })
     })
 
     it("should name the Deployment with a version suffix and set a version label if blueGreen=true", async () => {
@@ -393,6 +468,69 @@ describe("kubernetes container deployment handlers", () => {
         expect(resources.Deployment.spec.template.spec.containers[0].volumeMounts).to.eql([
           { name: "test", mountPath: "/volume" },
         ])
+      })
+
+      it("should deploy a service in dev mode and successfully set up the sync", async () => {
+        const service = graph.getService("dev-mode")
+        const module = service.module
+        const log = garden.log
+        const deployTask = new DeployTask({
+          garden,
+          graph,
+          log,
+          service,
+          force: true,
+          forceBuild: false,
+          devModeServiceNames: [service.name],
+          hotReloadServiceNames: [],
+        })
+
+        await garden.processTasks([deployTask], { throwOnError: true })
+        const status = await getContainerServiceStatus({
+          ctx,
+          module,
+          service,
+          runtimeContext: emptyRuntimeContext,
+          log,
+          devMode: true,
+          hotReload: false,
+        })
+
+        // First, we create a file locally and verify that it gets synced into the pod
+        await writeFile(join(module.path, "made_locally"), "foo")
+        await sleep(300)
+        const execRes = await execInWorkload({
+          command: ["/bin/sh", "-c", "cat /tmp/made_locally"],
+          ctx,
+          provider,
+          log,
+          namespace: provider.config.namespace!.name!,
+          workload: status.detail.workload!,
+          interactive: false,
+        })
+        expect(execRes.output.trim()).to.eql("foo")
+
+        // Then, we create a file in the pod and verify that it gets synced back
+        await execInWorkload({
+          command: ["/bin/sh", "-c", "echo bar > /tmp/made_in_pod"],
+          ctx,
+          provider,
+          log,
+          namespace: provider.config.namespace!.name!,
+          workload: status.detail.workload!,
+          interactive: false,
+        })
+        await sleep(300)
+        const localPath = join(module.path, "made_in_pod")
+        expect(await pathExists(localPath)).to.eql(true)
+        expect((await readFile(localPath)).toString().trim()).to.eql("bar")
+
+        // Clean up the files we created locally
+        for (const filename of ["made_locally", "made_in_pod"]) {
+          try {
+            await remove(join(module.path, filename))
+          } catch {}
+        }
       })
     })
 
