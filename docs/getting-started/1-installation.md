@@ -96,6 +96,14 @@ The things the script will check for are the following:
 
 To later upgrade to the newest version, simply re-run the above script.
 
+We also recommend adding an exclusion folder for the `.garden` directory in your repository root to Windows Defender:
+```powershell
+Add-MpPreference -ExclusionPath "C:\Path\To\Your\Repo\.garden"
+```
+This will significantly speed up the first Garden build of large projects on Windows machines.
+
+Note that you must run Powershell with elevated permissions when you execute this command.
+
 ## Linux
 
 ### Step 1: Install core dependencies
