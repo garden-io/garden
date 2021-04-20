@@ -13,15 +13,17 @@ import { readFile } from "fs-extra"
 
 import { printHeader } from "../../../logger/util"
 import { Command, CommandParams, CommandResult } from "../../base"
-import { ApiCommandError, getProject, handleBulkOperationResult, noApiMsg } from "../helpers"
+import {
+  ApiCommandError,
+  getProject,
+  handleBulkOperationResult,
+  makeSecretFromResponse,
+  noApiMsg,
+  SecretResult,
+} from "../helpers"
 import { dedent, deline } from "../../../util/string"
 import { StringsParameter, PathParameter, IntegerParameter, StringParameter } from "../../../cli/params"
 import { StringMap } from "../../../config/common"
-
-export interface SecretsCreateCommandResult {
-  errors: ApiCommandError[]
-  results: CreateSecretResponse[]
-}
 
 export const secretsCreateArgs = {
   secrets: new StringsParameter({
@@ -76,12 +78,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     printHeader(headerLog, "Create secrets", "lock")
   }
 
-  async action({
-    garden,
-    log,
-    opts,
-    args,
-  }: CommandParams<Args, Opts>): Promise<CommandResult<SecretsCreateCommandResult>> {
+  async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<SecretResult[]>> {
     // Apparently TS thinks that optional params are always defined so we need to cast them to their
     // true type here.
     const envName = opts["scope-to-env"] as string | undefined
@@ -157,14 +154,14 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
 
     let count = 1
     const errors: ApiCommandError[] = []
-    const results: CreateSecretResponse[] = []
+    const results: SecretResult[] = []
     for (const [name, value] of secretsToCreate) {
       cmdLog.setState({ msg: `Creating secrets... → ${count}/${secretsToCreate.length}` })
       count++
       try {
         const body = { environmentId, userId, projectId: project.id, name, value }
         const res = await api.post<CreateSecretResponse>(`/secrets`, { body })
-        results.push(res)
+        results.push(makeSecretFromResponse(res.data))
       } catch (err) {
         errors.push({
           identifier: name,
@@ -173,15 +170,13 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       }
     }
 
-    handleBulkOperationResult({
+    return handleBulkOperationResult({
       log,
       cmdLog,
       action: "create",
       resource: "secret",
       errors,
-      successCount: results.length,
+      results,
     })
-
-    return { result: { errors, results } }
   }
 }

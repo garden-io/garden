@@ -13,26 +13,10 @@ import { ListSecretsResponse } from "@garden-io/platform-api-types"
 import { printHeader } from "../../../logger/util"
 import { dedent, deline, renderTable } from "../../../util/string"
 import { Command, CommandParams, CommandResult } from "../../base"
-import { applyFilter, getProject, noApiMsg } from "../helpers"
+import { applyFilter, getProject, makeSecretFromResponse, noApiMsg, SecretResult } from "../helpers"
 import chalk from "chalk"
 import { sortBy } from "lodash"
 import { StringsParameter } from "../../../cli/params"
-
-interface Secret {
-  id: number
-  createdAt: string
-  updatedAt: string
-  name: string
-  environment?: {
-    name: string
-    id: number
-  }
-  user?: {
-    name: string
-    id: number
-    vcsUsername: string
-  }
-}
 
 export const secretsListOpts = {
   "filter-envs": new StringsParameter({
@@ -67,7 +51,7 @@ export class SecretsListCommand extends Command<{}, Opts> {
     printHeader(headerLog, "List secrets", "lock")
   }
 
-  async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<Secret[]>> {
+  async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<SecretResult[]>> {
     const envFilter = opts["filter-envs"] || []
     const nameFilter = opts["filter-names"] || []
     const userFilter = opts["filter-user-ids"] || []
@@ -81,28 +65,7 @@ export class SecretsListCommand extends Command<{}, Opts> {
 
     const q = stringify({ projectId: project.id })
     const res = await api.get<ListSecretsResponse>(`/secrets?${q}`)
-    const secrets = res.data.map((secret) => {
-      const ret: Secret = {
-        name: secret.name,
-        id: secret.id,
-        updatedAt: secret.updatedAt,
-        createdAt: secret.createdAt,
-      }
-      if (secret.environment) {
-        ret["environment"] = {
-          name: secret.environment.name,
-          id: secret.environment.id,
-        }
-      }
-      if (secret.user) {
-        ret["user"] = {
-          name: secret.user.name,
-          id: secret.user.id,
-          vcsUsername: secret.user.vcsUsername,
-        }
-      }
-      return ret
-    })
+    const secrets = res.data.map((secret) => makeSecretFromResponse(secret))
 
     log.info("")
 

@@ -12,19 +12,10 @@ import { GetAllUsersResponse } from "@garden-io/platform-api-types"
 import { printHeader } from "../../../logger/util"
 import { dedent, deline, renderTable } from "../../../util/string"
 import { Command, CommandParams, CommandResult } from "../../base"
-import { applyFilter, getProject, noApiMsg } from "../helpers"
+import { applyFilter, getProject, makeUserFromResponse, noApiMsg, UserResult } from "../helpers"
 import chalk from "chalk"
 import { sortBy } from "lodash"
 import { StringsParameter } from "../../../cli/params"
-
-interface User {
-  id: number
-  createdAt: string
-  updatedAt: string
-  name: string
-  vcsUsername: string
-  groups: string[]
-}
 
 export const usersListOpts = {
   "filter-names": new StringsParameter({
@@ -55,7 +46,7 @@ export class UsersListCommand extends Command<{}, Opts> {
     printHeader(headerLog, "List users", "information_desk_person")
   }
 
-  async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<User[]>> {
+  async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<UserResult[]>> {
     const nameFilter = opts["filter-names"] || []
     const groupFilter = opts["filter-groups"] || []
 
@@ -73,20 +64,11 @@ export class UsersListCommand extends Command<{}, Opts> {
       : "VCS"
 
     let page = 0
-    let users: User[] = []
+    let users: UserResult[] = []
     let hasMore = true
     while (hasMore) {
       const res = await api.get<GetAllUsersResponse>(`/users?page=${page}`)
-      users.push(
-        ...res.data.map((user) => ({
-          id: user.id,
-          name: user.name,
-          vcsUsername: user.vcsUsername,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
-          groups: user.groups.map((g) => g.name),
-        }))
-      )
+      users.push(...res.data.map((user) => makeUserFromResponse(user)))
       if (res.data.length === 0) {
         hasMore = false
       } else {
@@ -103,7 +85,12 @@ export class UsersListCommand extends Command<{}, Opts> {
 
     const filtered = sortBy(users, "name")
       .filter((user) => applyFilter(nameFilter, user.name))
-      .filter((user) => applyFilter(groupFilter, user.groups))
+      .filter((user) =>
+        applyFilter(
+          groupFilter,
+          user.groups.map((g) => g.name)
+        )
+      )
 
     if (filtered.length === 0) {
       log.info("No users found in project that match filters.")
@@ -116,7 +103,7 @@ export class UsersListCommand extends Command<{}, Opts> {
         chalk.cyan.bold(u.name),
         String(u.id),
         u.vcsUsername,
-        u.groups.join(", "),
+        u.groups.map((g) => g.name).join(", "),
         new Date(u.createdAt).toUTCString(),
       ]
     })
