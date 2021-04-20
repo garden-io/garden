@@ -33,6 +33,9 @@ describe("deployHelmService", () => {
   after(async () => {
     const actions = await garden.getActionRouter()
     await actions.deleteServices(garden.log)
+    if (garden) {
+      await garden.close()
+    }
   })
 
   it("should deploy a chart", async () => {
@@ -79,7 +82,7 @@ describe("deployHelmService", () => {
       service,
       force: false,
       devMode: false,
-      hotReload: true,
+      hotReload: true, // <----
       runtimeContext: emptyRuntimeContext,
     })
 
@@ -90,7 +93,7 @@ describe("deployHelmService", () => {
       releaseName,
       log: garden.log,
       devMode: false,
-      hotReload: true,
+      hotReload: true, // <----
     })
 
     expect(status.state).to.equal("ready")
@@ -98,12 +101,42 @@ describe("deployHelmService", () => {
       moduleName: "api",
       projectName: garden.projectName,
       version: service.version,
-      hotReload: true,
+      hotReload: true, // <----
     })
   })
 
   it("should deploy a chart with devMode enabled", async () => {
-    throw "TODO"
+    const graph = await garden.getConfigGraph(garden.log)
+    const service = graph.getService("api")
+
+    const releaseName = getReleaseName(service.module)
+    await deployHelmService({
+      ctx,
+      log: garden.log,
+      module: service.module,
+      service,
+      force: false,
+      devMode: true, // <-----
+      hotReload: false,
+      runtimeContext: emptyRuntimeContext,
+    })
+
+    const status = await getReleaseStatus({
+      ctx,
+      service,
+      releaseName,
+      log: garden.log,
+      devMode: true, // <-----
+      hotReload: false,
+    })
+
+    expect(status.state).to.equal("ready")
+    expect(status.detail["values"][".garden"]).to.eql({
+      moduleName: "api",
+      projectName: garden.projectName,
+      version: service.version,
+      devMode: true,
+    })
   })
 
   it("should deploy a chart with an alternate namespace set", async () => {

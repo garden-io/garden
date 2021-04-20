@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,8 +20,11 @@ import { PluginContext } from "../../plugin-context"
 import { join } from "path"
 import { safeDump, safeLoad } from "js-yaml"
 import { ConfigurationError } from "../../exceptions"
-import { ensureMutagenDaemon } from "./mutagen"
+import { ensureMutagenDaemon, killSyncDaemon } from "./mutagen"
 import { joiIdentifier } from "../../config/common"
+import { KubernetesPluginContext } from "./config"
+import { prepareConnectionOpts } from "./kubectl"
+import { sleep } from "../../util/util"
 
 const syncUtilImageName = "gardendev/k8s-sync:0.1.1"
 const mutagenAgentPath = "/.garden/mutagen-agent"
@@ -138,7 +141,6 @@ export async function startDevModeSync({
   if (spec.sync.length === 0) {
     return
   }
-
   namespace = target.metadata.namespace || namespace
   const resourceName = `${target.kind}/${target.metadata.name}`
   const key = `${target.kind}--${namespace}--${target.metadata.name}`
@@ -170,17 +172,22 @@ export async function startDevModeSync({
     const kubectlPath = await kubectl.getPath(log)
 
     const mutagen = ctx.tools["kubernetes.mutagen"]
-    const dataDir = await ensureMutagenDaemon(log, mutagen)
+    let dataDir = await ensureMutagenDaemon(log, mutagen)
+
+    const k8sCtx = <KubernetesPluginContext>ctx
 
     // Configure Mutagen with all the syncs
     const syncConfigs = fromPairs(
       spec.sync.map((s, i) => {
+        const connectionOpts = prepareConnectionOpts({
+          provider: k8sCtx.provider,
+          namespace,
+        })
         const command = [
           kubectlPath,
           "exec",
           "-i",
-          "--namespace",
-          namespace,
+          ...connectionOpts,
           "--container",
           containerName,
           `${target.kind}/${target.metadata.name}`,
@@ -212,25 +219,63 @@ export async function startDevModeSync({
       sync: {},
     }
 
-    const configPath = join(dataDir, "mutagen.yml")
-
-    if (await pathExists(configPath)) {
-      config = safeLoad((await readFile(configPath)).toString())
-    }
-
-    config.sync = { ...config.sync, ...syncConfigs }
-
-    await writeFile(configPath, safeDump(config))
-
     // Commit the configuration to the Mutagen daemon
-    await mutagen.exec({
-      cwd: dataDir,
-      args: ["project", "start"],
-      log,
-      env: {
-        MUTAGEN_DATA_DIRECTORY: dataDir,
-      },
-    })
+
+    let loops = 0
+    const maxRetries = 10
+    while (true) {
+      // When deploying Helm services with dev mode, sometimes the first deployment (e.g. when the namespace has just
+      // been created) will fail because the daemon can't connect to the pod (despite the call to `waitForResources`)
+      // in the Helm deployment handler.
+      //
+      // In addition, when several services are deployed with dev mode, we occasionally need to retry restarting the
+      // mutagen daemon after the first try (we need to restart it to reload the updated mutagen project, which
+      // needs to contain representations of all the sync specs).
+      //
+      // When either of those happens, we simply kill the mutagen daemon, wait, and try again (up to a fixed number
+      // of retries).
+      //
+      // TODO: Maybe there's a more elegant way to do this?
+      try {
+        const configPath = join(dataDir, "mutagen.yml")
+
+        if (await pathExists(configPath)) {
+          config = safeLoad((await readFile(configPath)).toString())
+        }
+
+        config.sync = { ...config.sync, ...syncConfigs }
+
+        await writeFile(configPath, safeDump(config))
+
+        await mutagen.exec({
+          cwd: dataDir,
+          args: ["project", "start"],
+          log,
+          env: {
+            MUTAGEN_DATA_DIRECTORY: dataDir,
+          },
+        })
+        break
+      } catch (err) {
+        const unableToConnect = err.message.match(/unable to connect to beta/)
+        const alreadyRunning = err.message.match(/project already running/)
+        if ((unableToConnect || alreadyRunning) && loops < 10) {
+          loops += 1
+          if (unableToConnect) {
+            log.setState(`Synchronization daemon failed to connect, retrying (attempt ${loops}/${maxRetries})...`)
+          } else if (alreadyRunning) {
+            log.setState(`Project already running, retrying (attempt ${loops}/${maxRetries})...`)
+          }
+          await killSyncDaemon(false)
+          await sleep(2000 + loops * 500)
+          dataDir = await ensureMutagenDaemon(log, mutagen)
+        } else {
+          log.setError(err.message)
+          throw err
+        }
+      }
+    }
+    log.setSuccess("Synchronization daemon started")
 
     // TODO: Attach to Mutagen GRPC to poll for sync updates
 

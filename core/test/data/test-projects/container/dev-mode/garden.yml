@@ -1,0 +1,16 @@
+kind: Module
+name: dev-mode
+description: Test module for a simple hot reloadable service
+type: container
+services:
+  - name: dev-mode
+    command: [sh, -c, "echo Server running... && nc -l -p 8080"]
+    devMode:
+      sync:
+        - target: /tmp
+          mode: two-way
+    healthCheck:
+      command: ["echo", "ok"]
+    ports:
+      - name: http
+        containerPort: 8080

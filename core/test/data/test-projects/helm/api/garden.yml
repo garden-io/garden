@@ -3,6 +3,10 @@ description: The API backend for the voting UI
 type: helm
 name: api
 releaseName: api-release
+devMode:
+  sync:
+  - target: /app
+    mode: two-way
 serviceResource:
   kind: Deployment
   containerModule: api-image

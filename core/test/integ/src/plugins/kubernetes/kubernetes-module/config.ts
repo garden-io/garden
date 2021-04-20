@@ -288,6 +288,15 @@ describe("validateKubernetesModule", () => {
               dependencies: [],
             },
             dependencies: [],
+            devMode: {
+              sync: [
+                {
+                  mode: "one-way",
+                  source: "*",
+                  target: "/app",
+                },
+              ],
+            },
             files: [],
             manifests: [
               {
@@ -341,6 +350,15 @@ describe("validateKubernetesModule", () => {
           dependencies: [],
         },
         dependencies: [],
+        devMode: {
+          sync: [
+            {
+              mode: "one-way",
+              source: "*",
+              target: "/app",
+            },
+          ],
+        },
         files: [],
         manifests: [
           {

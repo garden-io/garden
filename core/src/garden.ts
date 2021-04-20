@@ -96,6 +96,7 @@ import { DefaultEnvironmentContext } from "./config/template-contexts/project"
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { ProviderConfigContext } from "./config/template-contexts/provider"
 import { getSecrets } from "./enterprise/get-secrets"
+import { killSyncDaemon } from "./plugins/kubernetes/mutagen"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -305,6 +306,7 @@ export class Garden {
   async close() {
     this.events.removeAllListeners()
     this.watcher && (await this.watcher.stop())
+    await killSyncDaemon()
   }
 
   async getPluginContext(provider: Provider) {

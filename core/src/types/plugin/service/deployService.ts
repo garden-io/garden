@@ -29,7 +29,7 @@ export const deployService = () => ({
     Called by the \`garden deploy\` and \`garden dev\` commands.
   `,
   paramsSchema: serviceActionParamsSchema().keys({
-    devMode: joi.boolean().default(false).description("Whether to configure the service for development."),
+    devMode: joi.boolean().default(false).description("Whether the service should be configured in dev mode."),
     force: joi.boolean().description("Whether to force a re-deploy, even if the service is already deployed."),
     runtimeContext: runtimeContextSchema(),
     hotReload: joi.boolean().default(false).description("Whether to configure the service for hot-reloading."),

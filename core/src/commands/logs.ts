@@ -19,7 +19,6 @@ import { LogLevel } from "../logger/log-node"
 import { emptyRuntimeContext } from "../runtime-context"
 import { StringsParameter, BooleanParameter, IntegerParameter } from "../cli/params"
 import { printHeader } from "../logger/util"
-import { sleep } from "../util/util"
 
 const logsArgs = {
   services: new StringsParameter({
@@ -108,36 +107,23 @@ export class LogsCommand extends Command<Args, Opts> {
     const voidLog = log.placeholder({ level: LogLevel.silly, childEntriesInheritLevel: true })
 
     await Bluebird.map(services, async (service: GardenService<any>) => {
-      while (true) {
-        const status = await actions.getServiceStatus({
-          devMode: false,
-          hotReload: false,
-          log: voidLog,
-          // This shouldn't matter for this context, we're just checking if the service is up or not
-          runtimeContext: emptyRuntimeContext,
-          service,
-        })
+      const status = await actions.getServiceStatus({
+        devMode: false,
+        hotReload: false,
+        log: voidLog,
+        // This shouldn't matter for this context, we're just checking if the service is up or not
+        runtimeContext: emptyRuntimeContext,
+        service,
+      })
 
-        if (status.state === "ready" || status.state === "outdated") {
-          await actions.getServiceLogs({ log, service, stream, follow, tail })
-          return
-        } else if (follow) {
-          await stream.write({
-            serviceName: service.name,
-            timestamp: new Date(),
-            msg: chalk.yellow(`<Service not running (state: ${status.state}). Trying again in 5 seconds.>`),
-          })
-          await sleep(5000)
-        } else {
-          await stream.write({
-            serviceName: service.name,
-            timestamp: new Date(),
-            msg: chalk.yellow(
-              `<Service not running (state: ${status.state}). Please deploy the service and try again.>`
-            ),
-          })
-          return
-        }
+      if (status.state === "ready" || status.state === "outdated") {
+        await actions.getServiceLogs({ log, service, stream, follow, tail })
+      } else {
+        await stream.write({
+          serviceName: service.name,
+          timestamp: new Date(),
+          msg: chalk.yellow(`<Service not running (state: ${status.state}). Please deploy the service and try again.>`),
+        })
       }
     })
 

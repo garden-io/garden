@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,8 @@
  */
 
 import chalk from "chalk"
-import { mkdirp, removeSync } from "fs-extra"
+import { join } from "path"
+import { mkdirp, remove, removeSync } from "fs-extra"
 import respawn from "respawn"
 import { LogEntry } from "../../logger/log-entry"
 import { PluginToolSpec } from "../../types/plugin/tools"
@@ -21,12 +22,26 @@ let daemonProc: any
 let mutagenTmp: TempDirectory
 
 registerCleanupFunction("kill-sync-daaemon", () => {
+  stopDaemonProc()
+  mutagenTmp && removeSync(mutagenTmp.path)
+})
+
+export async function killSyncDaemon(clearTmpDir = true) {
+  stopDaemonProc()
+  if (mutagenTmp) {
+    await remove(join(mutagenTmp.path, "mutagen.yml.lock"))
+  }
+
+  if (clearTmpDir) {
+    mutagenTmp && (await remove(mutagenTmp.path))
+  }
+}
+
+function stopDaemonProc() {
   try {
     daemonProc?.stop()
   } catch {}
-
-  mutagenTmp && removeSync(mutagenTmp.path)
-})
+}
 
 export async function ensureMutagenDaemon(log: LogEntry, mutagen: PluginTool) {
   if (!mutagenTmp) {
@@ -62,11 +77,13 @@ export async function ensureMutagenDaemon(log: LogEntry, mutagen: PluginTool) {
     log.root.warn(chalk.yellow(crashMessage))
   })
 
-  daemonProc.on("exit", (code: number) => {
-    if (code !== 0) {
-      log.root.warn(chalk.yellow(`Synchronization daemon exited with code ${code}.`))
-    }
-  })
+  // TODO: Reenable. This log line creates too much noise when daemon restarts are required during deployments
+  // (see dev-mode.ts).
+  // daemonProc.on("exit", (code: number) => {
+  //   if (code !== 0) {
+  //     log.root.warn(chalk.yellow(`Synchronization daemon exited with code ${code}.`))
+  //   }
+  // })
 
   daemonProc.on("stdout", (data: Buffer) => {
     log.silly({ section: "mutagen", msg: data.toString() })
@@ -85,7 +102,6 @@ export async function ensureMutagenDaemon(log: LogEntry, mutagen: PluginTool) {
 
       setTimeout(() => {
         if (daemonProc.status === "running") {
-          log.info("→ Synchronization daemon started")
           resolved = true
           resolve(dataDir)
         }

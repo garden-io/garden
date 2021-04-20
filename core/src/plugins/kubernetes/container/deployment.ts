@@ -113,7 +113,7 @@ export async function deployContainerServiceRolling(params: DeployServiceParams<
     log,
     service,
     runtimeContext,
-    enableDevMode: !!devMode,
+    enableDevMode: devMode,
     enableHotReload: hotReload,
     blueGreen: false,
   })
@@ -144,7 +144,7 @@ export async function deployContainerServiceBlueGreen(params: DeployServiceParam
     log,
     service,
     runtimeContext,
-    enableDevMode: !!devMode,
+    enableDevMode: devMode,
     enableHotReload: hotReload,
     blueGreen: true,
   })
@@ -418,7 +418,7 @@ export async function createWorkloadManifest({
   }
 
   if (spec.healthCheck) {
-    configureHealthCheck(container, spec, enableHotReload)
+    configureHealthCheck(container, spec, enableHotReload || enableDevMode)
   }
 
   if (spec.volumes && spec.volumes.length) {
@@ -625,7 +625,7 @@ function workloadConfig({
   }
 }
 
-function configureHealthCheck(container: V1Container, spec: ContainerServiceConfig["spec"], hotReload: boolean): void {
+function configureHealthCheck(container: V1Container, spec: ContainerServiceConfig["spec"], dev: boolean): void {
   const readinessPeriodSeconds = 1
   const readinessFailureThreshold = 90
 
@@ -644,10 +644,10 @@ function configureHealthCheck(container: V1Container, spec: ContainerServiceConf
   // hot reload event.
   container.livenessProbe = {
     initialDelaySeconds: readinessPeriodSeconds * readinessFailureThreshold,
-    periodSeconds: hotReload ? 10 : 5,
+    periodSeconds: dev ? 10 : 5,
     timeoutSeconds: 3,
     successThreshold: 1,
-    failureThreshold: hotReload ? 30 : 3,
+    failureThreshold: dev ? 30 : 3,
   }
 
   const portsByName = keyBy(spec.ports, "name")

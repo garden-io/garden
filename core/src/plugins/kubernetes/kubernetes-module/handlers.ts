@@ -344,6 +344,7 @@ async function prepareManifestsForSync({
   const hotReloadSpec = hotReload ? getHotReloadSpec(service) : null
 
   if (devMode && devModeSpec) {
+    // The "dev-mode" annotation is set in `configureDevMode`.
     configureDevMode({
       target,
       spec: devModeSpec,
