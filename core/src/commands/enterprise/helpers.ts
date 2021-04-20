@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GetProjectResponse } from "@garden-io/platform-api-types"
+import { GetProjectResponse, SecretResponse, UserResponse } from "@garden-io/platform-api-types"
 import { EnterpriseApi } from "../../enterprise/api"
 import { dedent } from "../../util/string"
 
@@ -16,10 +16,45 @@ import minimatch from "minimatch"
 import pluralize from "pluralize"
 import chalk from "chalk"
 import inquirer from "inquirer"
+import { CommandError } from "../../exceptions"
+import { CommandResult } from "../base"
+
+export interface DeleteResult {
+  id: number
+  status: string
+}
 
 export interface ApiCommandError {
   identifier: string | number
   message?: string
+}
+
+export interface SecretResult {
+  id: number
+  createdAt: string
+  updatedAt: string
+  name: string
+  environment?: {
+    name: string
+    id: number
+  }
+  user?: {
+    name: string
+    id: number
+    vcsUsername: string
+  }
+}
+
+export interface UserResult {
+  id: number
+  createdAt: string
+  updatedAt: string
+  name: string
+  vcsUsername: string
+  groups: {
+    id: number
+    name: string
+  }[]
 }
 
 export const noApiMsg = (action: string, resource: string) => dedent`
@@ -31,21 +66,61 @@ export async function getProject(api: EnterpriseApi, projectUid: string) {
   return res.data
 }
 
-export function handleBulkOperationResult({
+export function makeUserFromResponse(user: UserResponse): UserResult {
+  return {
+    id: user.id,
+    name: user.name,
+    vcsUsername: user.vcsUsername,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+    groups: user.groups.map((g) => ({ id: g.id, name: g.name })),
+  }
+}
+
+export function makeSecretFromResponse(res: SecretResponse): SecretResult {
+  const secret = {
+    name: res.name,
+    id: res.id,
+    updatedAt: res.updatedAt,
+    createdAt: res.createdAt,
+  }
+  if (res.environment) {
+    secret["environment"] = {
+      name: res.environment.name,
+      id: res.environment.id,
+    }
+  }
+  if (res.user) {
+    secret["user"] = {
+      name: res.user.name,
+      id: res.user.id,
+      vcsUsername: res.user.vcsUsername,
+    }
+  }
+  return secret
+}
+
+/**
+ * Helper function for consistenly logging outputs for enterprise bulk operation commands.
+ *
+ * Throws if any errors exist after logging the relavant output.
+ */
+export function handleBulkOperationResult<T>({
   log,
+  results,
   errors,
   action,
   cmdLog,
   resource,
-  successCount,
 }: {
   log: LogEntry
   cmdLog: LogEntry
+  results: T[]
   errors: ApiCommandError[]
   action: "create" | "delete"
-  successCount: number
   resource: "secret" | "user"
-}) {
+}): CommandResult<T[]> {
+  const successCount = results.length
   const totalCount = errors.length + successCount
 
   log.info("")
@@ -66,9 +141,7 @@ export function handleBulkOperationResult({
       })
       .join("\n")
     log.error(dedent`
-      Failed ${actionVerb} ${errors.length}/${totalCount} ${pluralize(resource)}.
-
-      See errors below:
+      Failed ${actionVerb} ${errors.length}/${totalCount} ${pluralize(resource)}. See errors below:
 
       ${errorMsgs}\n
     `)
@@ -81,7 +154,15 @@ export function handleBulkOperationResult({
     log.info({
       msg: `Successfully ${action === "create" ? "created" : "deleted"} ${successCount} ${resourceStr}!`,
     })
+    log.info("")
   }
+
+  // Ensure command exits with code 1.
+  if (errors.length > 0) {
+    throw new CommandError("Command failed.", { errors })
+  }
+
+  return { result: results }
 }
 
 export function applyFilter(filter: string[], val?: string | string[]) {

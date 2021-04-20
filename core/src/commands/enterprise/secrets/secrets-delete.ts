@@ -12,12 +12,7 @@ import { CommandError, ConfigurationError } from "../../../exceptions"
 import { printHeader } from "../../../logger/util"
 import { dedent, deline } from "../../../util/string"
 import { Command, CommandParams, CommandResult } from "../../base"
-import { ApiCommandError, confirmDelete, handleBulkOperationResult, noApiMsg } from "../helpers"
-
-export interface SecretsDeleteCommandResult {
-  errors: ApiCommandError[]
-  results: BaseResponse[]
-}
+import { ApiCommandError, confirmDelete, DeleteResult, handleBulkOperationResult, noApiMsg } from "../helpers"
 
 export const secretsDeleteArgs = {
   ids: new StringsParameter({
@@ -44,7 +39,7 @@ export class SecretsDeleteCommand extends Command<Args> {
     printHeader(headerLog, "Delete secrets", "lock")
   }
 
-  async action({ garden, args, log }: CommandParams<Args>): Promise<CommandResult<SecretsDeleteCommandResult>> {
+  async action({ garden, args, log, opts }: CommandParams<Args>): Promise<CommandResult<DeleteResult[]>> {
     const secretsToDelete = (args.ids || []).map((id) => parseInt(id, 10))
     if (secretsToDelete.length === 0) {
       throw new CommandError(`No secret IDs provided.`, {
@@ -52,7 +47,7 @@ export class SecretsDeleteCommand extends Command<Args> {
       })
     }
 
-    if (!(await confirmDelete("secret", secretsToDelete.length))) {
+    if (!opts.yes && !(await confirmDelete("secret", secretsToDelete.length))) {
       return {}
     }
 
@@ -65,13 +60,13 @@ export class SecretsDeleteCommand extends Command<Args> {
 
     let count = 1
     const errors: ApiCommandError[] = []
-    const results: BaseResponse[] = []
+    const results: DeleteResult[] = []
     for (const id of secretsToDelete) {
       cmdLog.setState({ msg: `Deleting secrets... → ${count}/${secretsToDelete.length}` })
       count++
       try {
         const res = await api.delete<BaseResponse>(`/secrets/${id}`)
-        results.push(res)
+        results.push({ id, status: res.status })
       } catch (err) {
         errors.push({
           identifier: id,
@@ -80,15 +75,13 @@ export class SecretsDeleteCommand extends Command<Args> {
       }
     }
 
-    handleBulkOperationResult({
+    return handleBulkOperationResult({
       log,
       cmdLog,
       errors,
       action: "delete",
       resource: "secret",
-      successCount: results.length,
+      results,
     })
-
-    return { result: { errors, results } }
   }
 }

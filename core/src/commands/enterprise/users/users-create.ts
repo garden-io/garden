@@ -13,24 +13,15 @@ import { readFile } from "fs-extra"
 
 import { printHeader } from "../../../logger/util"
 import { Command, CommandParams, CommandResult } from "../../base"
-import { ApiCommandError, handleBulkOperationResult, noApiMsg } from "../helpers"
+import { ApiCommandError, handleBulkOperationResult, makeUserFromResponse, noApiMsg, UserResult } from "../helpers"
 import { dedent, deline } from "../../../util/string"
 import { StringsParameter, PathParameter } from "../../../cli/params"
 import { StringMap } from "../../../config/common"
 import { chunk } from "lodash"
 import Bluebird = require("bluebird")
 
+// This is the limit set by the API.
 const MAX_USERS_PER_REQUEST = 100
-
-export interface ErrorResponse {
-  message: string
-  status: string
-}
-
-export interface UsersCreateCommandResult {
-  errors: ApiCommandError[]
-  results: UserResponse[]
-}
 
 export const secretsCreateArgs = {
   users: new StringsParameter({
@@ -83,12 +74,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
     printHeader(headerLog, "Create users", "lock")
   }
 
-  async action({
-    garden,
-    log,
-    opts,
-    args,
-  }: CommandParams<Args, Opts>): Promise<CommandResult<UsersCreateCommandResult>> {
+  async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<UserResult[]>> {
     const addToGroups = (opts["add-to-groups"] || []).map((groupId) => parseInt(groupId, 10))
     const fromFile = opts["from-file"] as string | undefined
     let users: StringMap
@@ -122,7 +108,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
       throw new ConfigurationError(noApiMsg("create", "users"), {})
     }
 
-    const cmdLog = log.info({ status: "active", section: "groups-command", msg: "Creating users..." })
+    const cmdLog = log.info({ status: "active", section: "users-command", msg: "Creating users..." })
 
     const usersToCreate = Object.entries(users).map(([vcsUsername, name]) => ({
       name,
@@ -137,7 +123,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
     let count = 1
 
     const errors: ApiCommandError[] = []
-    const results: UserResponse[] = []
+    const results: UserResult[] = []
     await Bluebird.map(
       batches,
       async (userBatch) => {
@@ -154,7 +140,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
           }
           const res = await api.post<CreateUserBulkResponse>(`/users/bulk`, { body })
           const successes = res.data.filter((d) => d.statusCode === 200).map((d) => d.user) as UserResponse[]
-          results.push(...successes)
+          results.push(...successes.map((s) => makeUserFromResponse(s)))
 
           const failures = res.data
             .filter((d) => d.statusCode !== 200)
@@ -173,15 +159,13 @@ export class UsersCreateCommand extends Command<Args, Opts> {
       { concurrency }
     )
 
-    handleBulkOperationResult({
+    return handleBulkOperationResult({
       log,
       cmdLog,
       errors,
       action: "create",
       resource: "user",
-      successCount: results.length,
+      results,
     })
-
-    return { result: { errors, results } }
   }
 }
