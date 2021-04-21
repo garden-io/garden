@@ -1027,7 +1027,7 @@ services:
   - ingresses:
       - path: /api
         port: http
-      - annotations:
+        annotations:
             nginx.ingress.kubernetes.io/proxy-body-size: '0'
 ```
 
