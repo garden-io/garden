@@ -71,7 +71,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
   async action({ garden, log, args, opts }: CommandParams<Args, {}>): Promise<CommandResult<WorkflowRunOutput>> {
     const outerLog = log.placeholder()
     // Prepare any configured files before continuing
-    const workflow = garden.getWorkflowConfig(args.workflow)
+    const workflow = await garden.getWorkflowConfig(args.workflow)
 
     // Merge any workflow-level environment variables into process.env.
     for (const [key, value] of Object.entries(toEnvVars(workflow.envVars))) {
