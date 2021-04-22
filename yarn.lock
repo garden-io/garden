@@ -1653,10 +1653,10 @@
   dependencies:
     "@jsdevtools/file-path-filter" "^3.0.2"
 
-"@kubernetes/client-node@^0.14.0":
-  version "0.14.0"
-  resolved "https://registry.yarnpkg.com/@kubernetes/client-node/-/client-node-0.14.0.tgz#a02806f3b6fdb68fb51d451ee8ff01faa446f557"
-  integrity sha512-/37JHuEUAQ5GQ4kLKBmCYvGgf5W1KZWKreKGWFYH8VvT2Hl/o0aJZasu2w0EHEfmE11JCn0X9arVmOTyVCYvww==
+"@kubernetes/client-node@^0.14.3":
+  version "0.14.3"
+  resolved "https://registry.yarnpkg.com/@kubernetes/client-node/-/client-node-0.14.3.tgz#5ed9b88873419080547f22cb74eb502bf6671fca"
+  integrity sha512-9hHGDNm2JEFQcRTpDxVoAVr0fowU+JH/l5atCXY9VXwvFM18pW5wr2LzLP+Q2Rh+uQv7Moz4gEjEKSCgVKykEQ==
   dependencies:
     "@types/js-yaml" "^3.12.1"
     "@types/node" "^10.12.0"
