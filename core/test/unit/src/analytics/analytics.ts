@@ -10,13 +10,15 @@ import { expect } from "chai"
 import nock from "nock"
 import { isEqual } from "lodash"
 
-import { makeTestGardenA, TestGarden, enableAnalytics } from "../../../helpers"
+import { makeTestGardenA, TestGarden, enableAnalytics, getDataDir, makeTestGarden } from "../../../helpers"
 import { AnalyticsHandler } from "../../../../src/analytics/analytics"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
+import { isCI } from "ci-info"
 
 describe("AnalyticsHandler", () => {
   const host = "https://api.segment.io"
   const scope = nock(host)
+  let remoteOriginUrl: string
   let analytics: AnalyticsHandler
   let garden: TestGarden
   let resetAnalyticsConfig: Function
@@ -24,11 +26,14 @@ describe("AnalyticsHandler", () => {
   before(async () => {
     garden = await makeTestGardenA()
     resetAnalyticsConfig = await enableAnalytics(garden)
+    // In CI we can make assumptions about the origin URL, otherwise not.
+    // We're hard coding it like this so that we can validate that we're actually
+    // hashing it properly.
+    remoteOriginUrl = isCI ? "git@github.com:garden-io/garden.git" : (await garden.vcs.getOriginName(garden.log))!
   })
 
   beforeEach(async () => {
     garden = await makeTestGardenA()
-    garden["sessionId"] = "asdf"
   })
 
   afterEach(async () => {
@@ -47,19 +52,21 @@ describe("AnalyticsHandler", () => {
       scope.post(`/v1/batch`).reply(200)
 
       analytics = await AnalyticsHandler.init(garden, garden.log)
-
       const event = analytics.trackCommand("testCommand")
 
       expect(event).to.eql({
         type: "Run Command",
         properties: {
           name: "testCommand",
-          projectId: analytics["projectId"],
-          projectName: analytics["projectName"],
+          projectId: analytics.hash(remoteOriginUrl),
+          projectName: analytics.hash("test-project-a"),
+          enterpriseProjectId: undefined,
+          enterpriseDomain: undefined,
+          isLoggedIn: false,
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
-          sessionId: "asdf",
+          sessionId: analytics["sessionId"],
           projectMetadata: {
             modulesCount: 3,
             moduleTypes: ["test"],
@@ -96,15 +103,51 @@ describe("AnalyticsHandler", () => {
         type: "Run Command",
         properties: {
           name: "testCommand",
-          projectId: analytics["projectId"],
-          projectName: analytics["projectName"],
+          projectId: analytics.hash(remoteOriginUrl),
+          projectName: analytics.hash("test-project-a"),
+          enterpriseProjectId: undefined,
+          enterpriseDomain: undefined,
+          isLoggedIn: false,
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
-          sessionId: "asdf",
+          sessionId: analytics["sessionId"],
           projectMetadata: {
             modulesCount: 1,
             moduleTypes: ["test"],
+            tasksCount: 0,
+            servicesCount: 0,
+            testsCount: 0,
+          },
+        },
+      })
+    })
+    it("should include enterprise metadata", async () => {
+      scope.post(`/v1/batch`).reply(200)
+
+      const root = getDataDir("test-projects", "login", "has-domain-and-id")
+      garden = await makeTestGarden(root)
+
+      analytics = await AnalyticsHandler.init(garden, garden.log)
+
+      const event = analytics.trackCommand("testCommand")
+
+      expect(event).to.eql({
+        type: "Run Command",
+        properties: {
+          name: "testCommand",
+          projectId: analytics.hash(remoteOriginUrl),
+          projectName: analytics.hash("has-domain-and-id"),
+          enterpriseDomain: analytics.hash("http://dummy-domain.com"),
+          enterpriseProjectId: analytics.hash("dummy-id"),
+          isLoggedIn: false,
+          ciName: analytics["ciName"],
+          system: analytics["systemConfig"],
+          isCI: analytics["isCI"],
+          sessionId: analytics["sessionId"],
+          projectMetadata: {
+            modulesCount: 0,
+            moduleTypes: [],
             tasksCount: 0,
             servicesCount: 0,
             testsCount: 0,
@@ -280,10 +323,13 @@ describe("AnalyticsHandler", () => {
             name: "test-command-A",
             projectId: analytics["projectId"],
             projectName: analytics["projectName"],
+            enterpriseProjectId: undefined,
+            enterpriseDomain: undefined,
+            isLoggedIn: false,
             ciName: analytics["ciName"],
             system: analytics["systemConfig"],
             isCI: analytics["isCI"],
-            sessionId: "asdf",
+            sessionId: analytics["sessionId"],
             projectMetadata: {
               modulesCount: 3,
               moduleTypes: ["test"],

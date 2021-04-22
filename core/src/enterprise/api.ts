@@ -126,7 +126,7 @@ export class EnterpriseApi {
 
     const enterpriseLog = skipLogging
       ? null
-      : log.info({ section: "garden-enterprise", msg: "Connecting...", status: "active" })
+      : log.info({ section: "garden-enterprise", msg: "Authorizing...", status: "active" })
 
     if (gardenEnv.GARDEN_AUTH_TOKEN) {
       // Throw if using an invalid "CI" access token
@@ -159,7 +159,7 @@ export class EnterpriseApi {
       api.startInterval()
     }
 
-    enterpriseLog?.setSuccess({ msg: chalk.green("Ready"), append: true })
+    enterpriseLog?.setSuccess({ msg: chalk.green("Done"), append: true })
     return api
   }
 

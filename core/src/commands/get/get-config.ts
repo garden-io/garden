@@ -51,6 +51,7 @@ export class GetConfigCommand extends Command<{}, Opts> {
       projectName: joi.string().description("The name of the project."),
       projectRoot: joi.string().description("The local path to the project root."),
       projectId: joi.string().optional().description("The project ID (Garden Enterprise only)."),
+      domain: joi.string().optional().description("The Garden Enterprise domain (Garden Enterprise only)."),
     })
 
   options = getConfigOptions

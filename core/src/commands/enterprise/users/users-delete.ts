@@ -12,12 +12,7 @@ import { CommandError, ConfigurationError } from "../../../exceptions"
 import { printHeader } from "../../../logger/util"
 import { dedent, deline } from "../../../util/string"
 import { Command, CommandParams, CommandResult } from "../../base"
-import { ApiCommandError, confirmDelete, handleBulkOperationResult, noApiMsg } from "../helpers"
-
-export interface UsersDeleteCommandResult {
-  errors: ApiCommandError[]
-  results: BaseResponse[]
-}
+import { ApiCommandError, confirmDelete, DeleteResult, handleBulkOperationResult, noApiMsg } from "../helpers"
 
 export const usersDeleteArgs = {
   ids: new StringsParameter({
@@ -44,7 +39,7 @@ export class UsersDeleteCommand extends Command<Args> {
     printHeader(headerLog, "Delete users", "lock")
   }
 
-  async action({ garden, args, log }: CommandParams<Args>): Promise<CommandResult<UsersDeleteCommandResult>> {
+  async action({ garden, args, log, opts }: CommandParams<Args>): Promise<CommandResult<DeleteResult[]>> {
     const usersToDelete = (args.ids || []).map((id) => parseInt(id, 10))
     if (usersToDelete.length === 0) {
       throw new CommandError(`No user IDs provided.`, {
@@ -52,7 +47,7 @@ export class UsersDeleteCommand extends Command<Args> {
       })
     }
 
-    if (!(await confirmDelete("user", usersToDelete.length))) {
+    if (!opts.yes && !(await confirmDelete("user", usersToDelete.length))) {
       return {}
     }
 
@@ -65,13 +60,13 @@ export class UsersDeleteCommand extends Command<Args> {
 
     let count = 1
     const errors: ApiCommandError[] = []
-    const results: BaseResponse[] = []
+    const results: DeleteResult[] = []
     for (const id of usersToDelete) {
       cmdLog.setState({ msg: `Deleting users... → ${count}/${usersToDelete.length}` })
       count++
       try {
         const res = await api.delete<BaseResponse>(`/users/${id}`)
-        results.push(res)
+        results.push({ id, status: res.status })
       } catch (err) {
         errors.push({
           identifier: id,
@@ -80,15 +75,13 @@ export class UsersDeleteCommand extends Command<Args> {
       }
     }
 
-    handleBulkOperationResult({
+    return handleBulkOperationResult({
       log,
       cmdLog,
       errors,
       action: "delete",
       resource: "user",
-      successCount: results.length,
+      results,
     })
-
-    return { result: { errors, results } }
   }
 }

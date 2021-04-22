@@ -89,7 +89,6 @@ describe("loadConfigResources", () => {
         path: projectPathA,
         configPath,
         name: "test-project-a",
-        id: "test-project-id",
         environments: [
           {
             name: "local",

@@ -1,6 +1,7 @@
 kind: Project
-name: login
+name: has-domain-and-id
 domain: http://dummy-domain.com
 id: dummy-id
 environments:
-  - test
+  - name: local
+  - name: other
