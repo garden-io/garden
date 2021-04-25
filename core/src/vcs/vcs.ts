@@ -312,7 +312,7 @@ export function getEntityVersion(module: GardenModule, entityConfig: ServiceConf
   return `${versionStringPrefix}${hashStrings([module.version.versionString, configString])}`
 }
 
-function hashStrings(hashes: string[]) {
+export function hashStrings(hashes: string[]) {
   const versionHash = createHash("sha256")
   versionHash.update(hashes.join("."))
   return versionHash.digest("hex").slice(0, 10)

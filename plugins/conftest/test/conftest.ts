@@ -48,7 +48,7 @@ describe("conftest provider", () => {
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0]),
+        test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
       })
@@ -82,7 +82,7 @@ describe("conftest provider", () => {
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0]),
+        test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
       })
@@ -107,7 +107,7 @@ describe("conftest provider", () => {
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0]),
+        test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
       })
@@ -135,7 +135,7 @@ describe("conftest provider", () => {
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0]),
+        test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
       })

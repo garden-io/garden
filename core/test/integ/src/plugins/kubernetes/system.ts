@@ -61,7 +61,7 @@ describe("System services", () => {
     const modules = graph.getModules().filter((module) => module.name.startsWith("conftest-"))
 
     await Bluebird.map(modules, async (module) => {
-      const test = testFromConfig(module, module.testConfigs[0])
+      const test = testFromConfig(module, module.testConfigs[0], graph)
       const testTask = new TestTask({
         garden: systemGarden,
         test,

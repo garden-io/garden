@@ -125,7 +125,7 @@ async function getTestStatuses(garden: Garden, configGraph: ConfigGraph, log: Lo
           const result = await actions.getTestResult({
             module,
             log,
-            test: testFromConfig(module, testConfig),
+            test: testFromConfig(module, testConfig, configGraph),
           })
           return [`${module.name}.${testConfig.name}`, runStatus(result)]
         })

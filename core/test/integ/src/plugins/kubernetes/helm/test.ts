@@ -35,7 +35,7 @@ describe("testHelmModule", () => {
     const testTask = new TestTask({
       garden,
       graph,
-      test: testFromModule(module, "echo-test"),
+      test: testFromModule(module, "echo-test", graph),
       log: garden.log,
       force: true,
       forceBuild: false,
@@ -55,7 +55,7 @@ describe("testHelmModule", () => {
     const testTask = new TestTask({
       garden,
       graph,
-      test: testFromModule(module, "echo-test"),
+      test: testFromModule(module, "echo-test", graph),
       log: garden.log,
       force: true,
       forceBuild: false,
@@ -75,7 +75,7 @@ describe("testHelmModule", () => {
     const testConfig = findByName(module.testConfigs, "echo-test")!
     testConfig.spec.command = ["bork"] // this will fail
 
-    const test = testFromConfig(module, testConfig)
+    const test = testFromConfig(module, testConfig, graph)
 
     const testTask = new TestTask({
       garden,
@@ -110,7 +110,7 @@ describe("testHelmModule", () => {
       const testTask = new TestTask({
         garden,
         graph,
-        test: testFromModule(module, "artifacts-test"),
+        test: testFromModule(module, "artifacts-test", graph),
         log: garden.log,
         force: true,
         forceBuild: false,
@@ -130,7 +130,7 @@ describe("testHelmModule", () => {
       const testTask = new TestTask({
         garden,
         graph,
-        test: testFromModule(module, "artifacts-test-fail"),
+        test: testFromModule(module, "artifacts-test-fail", graph),
         log: garden.log,
         force: true,
         forceBuild: false,
@@ -152,7 +152,7 @@ describe("testHelmModule", () => {
       const testTask = new TestTask({
         garden,
         graph,
-        test: testFromModule(module, "globs-test"),
+        test: testFromModule(module, "globs-test", graph),
         log: garden.log,
         force: true,
         forceBuild: false,

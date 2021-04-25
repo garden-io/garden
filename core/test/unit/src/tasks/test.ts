@@ -34,7 +34,7 @@ describe("TestTask", () => {
         garden,
         log,
         graph,
-        test: testFromConfig(moduleA, testConfig),
+        test: testFromConfig(moduleA, testConfig, graph),
         force: true,
         forceBuild: false,
       })

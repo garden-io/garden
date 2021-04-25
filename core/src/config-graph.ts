@@ -325,7 +325,7 @@ export class ConfigGraph {
    */
   getTest(moduleName: string, testName: string, includeDisabled?: boolean): GardenTest {
     const module = this.getModule(moduleName, includeDisabled)
-    return testFromModule(module, testName)
+    return testFromModule(module, testName, this)
   }
 
   /*
