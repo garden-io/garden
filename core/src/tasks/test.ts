@@ -239,7 +239,7 @@ export async function getTestTasks({
         log,
         force,
         forceBuild,
-        test: testFromConfig(module, testConfig),
+        test: testFromConfig(module, testConfig, graph),
         hotReloadServiceNames,
       })
   )

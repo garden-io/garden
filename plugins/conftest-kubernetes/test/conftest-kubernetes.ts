@@ -75,7 +75,7 @@ describe("conftest-kubernetes provider", () => {
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0]),
+        test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: true,
       })

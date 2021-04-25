@@ -113,7 +113,7 @@ export class RunTestCommand extends Command<Args, Opts> {
       })
     }
 
-    const test = testFromConfig(module, testConfig)
+    const test = testFromConfig(module, testConfig, graph)
 
     if ((module.disabled || test.disabled) && !opts.force) {
       throw new CommandError(

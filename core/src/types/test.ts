@@ -8,10 +8,14 @@
 
 import { GardenModule } from "./module"
 import { TestConfig, testConfigSchema } from "../config/test"
-import { getEntityVersion } from "../vcs/vcs"
+import { getEntityVersion, hashStrings, versionStringPrefix } from "../vcs/vcs"
 import { findByName } from "../util/util"
 import { NotFoundError } from "../exceptions"
 import { joi, joiUserIdentifier, versionStringSchema } from "../config/common"
+import { ConfigGraph } from "../config-graph"
+import { makeTestTaskName } from "../tasks/helpers"
+import { sortBy } from "lodash"
+import { serializeConfig } from "../config/module"
 
 export interface GardenTest<M extends GardenModule = GardenModule> {
   name: string
@@ -35,23 +39,43 @@ export const testSchema = () =>
       version: versionStringSchema().description("The version of the test."),
     })
 
-export function testFromConfig<M extends GardenModule = GardenModule>(module: M, config: TestConfig): GardenTest<M> {
+export function testFromConfig<M extends GardenModule = GardenModule>(
+  module: M,
+  config: TestConfig,
+  graph: ConfigGraph
+): GardenTest<M> {
+  const deps = graph.getDependencies({
+    nodeType: "test",
+    name: makeTestTaskName(module.name, config.name),
+    recursive: true,
+  })
+  // We sort the dependencies by type and name to avoid unnecessary cache invalidation due to possible ordering changes.
+  const depHashes = [
+    ...sortBy(deps.build, (mod) => mod.name).map((mod) => mod.version),
+    ...sortBy(deps.deploy, (s) => s.module.name).map((s) => serializeConfig(s)),
+    ...sortBy(deps.run, (t) => t.module.name).map((t) => serializeConfig(t)),
+  ]
+  const version = `${versionStringPrefix}${hashStrings([getEntityVersion(module, config), ...depHashes])}`
   return {
     name: config.name,
     module,
     disabled: module.disabled || config.disabled,
     config,
     spec: config.spec,
-    version: getEntityVersion(module, config),
+    version,
   }
 }
 
-export function testFromModule<M extends GardenModule = GardenModule>(module: M, name: string): GardenTest<M> {
+export function testFromModule<M extends GardenModule = GardenModule>(
+  module: M,
+  name: string,
+  graph: ConfigGraph
+): GardenTest<M> {
   const config = findByName(module.testConfigs, name)
 
   if (!config) {
     throw new NotFoundError(`Could not find test ${name} in module ${module.name}`, { module, name })
   }
 
-  return testFromConfig(module, config)
+  return testFromConfig(module, config, graph)
 }
