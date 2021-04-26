@@ -23,12 +23,10 @@ jobs:
       - name: Setup npm registry authentication
         working-directory: ./core
         run: |
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > .npmrc
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
       - name: Publish edge version if pre-release
         if: github.event.release.prerelease == true
         working-directory: ./core
-        # We fetch the current version from the package.json because at this point the version has
-        # already been bumped during the pre-release process.
         run: |
           CURRENT_CORE_VERSION=`node -e "console.log(require('./package.json').version);"`
           npm version $CURRENT_CORE_VERSION-edge.$SHORT_SHA
