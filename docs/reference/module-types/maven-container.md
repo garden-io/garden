@@ -292,6 +292,12 @@ services:
       # Set this to check the service's health by checking if this TCP port is accepting connections.
       tcpPort:
 
+      # The maximum number of seconds to wait until the readiness check counts as failed.
+      readinessTimeoutSeconds: 3
+
+      # The maximum number of seconds to wait until the liveness check counts as failed.
+      livenessTimeoutSeconds: 3
+
     # If this module uses the `hotReload` field, the container will be run with this command/entrypoint when the
     # service is deployed with hot reloading enabled.
     hotReloadCommand:
@@ -1321,6 +1327,26 @@ Set this to check the service's health by checking if this TCP port is accepting
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `services[].healthCheck.readinessTimeoutSeconds`
+
+[services](#services) > [healthCheck](#serviceshealthcheck) > readinessTimeoutSeconds
+
+The maximum number of seconds to wait until the readiness check counts as failed.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `3`     | No       |
+
+### `services[].healthCheck.livenessTimeoutSeconds`
+
+[services](#services) > [healthCheck](#serviceshealthcheck) > livenessTimeoutSeconds
+
+The maximum number of seconds to wait until the liveness check counts as failed.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `3`     | No       |
 
 ### `services[].hotReloadCommand[]`
 
