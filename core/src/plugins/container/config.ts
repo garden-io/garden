@@ -69,6 +69,8 @@ export interface ServiceHealthCheckSpec {
   }
   command?: string[]
   tcpPort?: string
+  readinessTimeoutSeconds?: number
+  livenessTimeoutSeconds?: number
 }
 
 export interface ServiceLimitSpec {
@@ -289,6 +291,16 @@ const healthCheckSchema = () =>
       tcpPort: joi
         .string()
         .description("Set this to check the service's health by checking if this TCP port is accepting connections."),
+      readinessTimeoutSeconds: joi
+        .number()
+        .min(1)
+        .default(3)
+        .description("The maximum number of seconds to wait until the readiness check counts as failed."),
+      livenessTimeoutSeconds: joi
+        .number()
+        .min(1)
+        .default(3)
+        .description("The maximum number of seconds to wait until the liveness check counts as failed."),
     })
     .xor("httpGet", "command", "tcpPort")
 

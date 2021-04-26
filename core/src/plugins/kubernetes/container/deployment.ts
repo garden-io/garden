@@ -634,7 +634,7 @@ function configureHealthCheck(container: V1Container, spec: ContainerServiceConf
   container.readinessProbe = {
     initialDelaySeconds: 2,
     periodSeconds: readinessPeriodSeconds,
-    timeoutSeconds: 3,
+    timeoutSeconds: spec.healthCheck?.readinessTimeoutSeconds || 3,
     successThreshold: 2,
     failureThreshold: readinessFailureThreshold,
   }
@@ -647,7 +647,7 @@ function configureHealthCheck(container: V1Container, spec: ContainerServiceConf
   container.livenessProbe = {
     initialDelaySeconds: readinessPeriodSeconds * readinessFailureThreshold,
     periodSeconds: dev ? 10 : 5,
-    timeoutSeconds: 3,
+    timeoutSeconds: spec.healthCheck?.livenessTimeoutSeconds || 3,
     successThreshold: 1,
     failureThreshold: dev ? 30 : 3,
   }

@@ -239,6 +239,8 @@ describe("plugins.container", () => {
                   path: "/health",
                   port: "http",
                 },
+                livenessTimeoutSeconds: 10,
+                readinessTimeoutSeconds: 10,
               },
               limits: {
                 cpu: 123,
@@ -329,7 +331,11 @@ describe("plugins.container", () => {
                 env: {
                   SOME_ENV_VAR: "value",
                 },
-                healthCheck: { httpGet: { path: "/health", port: "http" } },
+                healthCheck: {
+                  httpGet: { path: "/health", port: "http" },
+                  readinessTimeoutSeconds: 10,
+                  livenessTimeoutSeconds: 10,
+                },
                 limits: {
                   cpu: 123,
                   memory: 456,
@@ -398,7 +404,11 @@ describe("plugins.container", () => {
                 env: {
                   SOME_ENV_VAR: "value",
                 },
-                healthCheck: { httpGet: { path: "/health", port: "http" } },
+                healthCheck: {
+                  httpGet: { path: "/health", port: "http" },
+                  readinessTimeoutSeconds: 10,
+                  livenessTimeoutSeconds: 10,
+                },
                 limits: {
                   cpu: 123,
                   memory: 456,
