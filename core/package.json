@@ -18,11 +18,11 @@
     "build",
     "static"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "build/src/index.js",
   "types": "build/src/index.d.ts",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com/"
-  },
   "dependencies": {
     "@hapi/joi": "git+https://github.com/garden-io/joi.git#master",
     "@kubernetes/client-node": "^0.14.0",
