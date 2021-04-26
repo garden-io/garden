@@ -10,6 +10,7 @@ import { expect } from "chai"
 import { TestCommand } from "../../../../src/commands/test"
 import isSubset = require("is-subset")
 import { makeTestGardenA, taskResultOutputs, withDefaultGlobalOpts } from "../../../helpers"
+import { ModuleConfig } from "../../../../src/config/module"
 
 describe("TestCommand", () => {
   const command = new TestCommand()
@@ -30,6 +31,7 @@ describe("TestCommand", () => {
         "force": true,
         "force-build": true,
         "watch": false,
+        "skip-dependants": false,
       }),
     })
 
@@ -160,6 +162,7 @@ describe("TestCommand", () => {
         "force": true,
         "force-build": true,
         "watch": false,
+        "skip-dependants": false,
       }),
     })
 
@@ -192,6 +195,7 @@ describe("TestCommand", () => {
         "force": true,
         "force-build": true,
         "watch": false,
+        "skip-dependants": false,
       }),
     })
 
@@ -248,6 +252,7 @@ describe("TestCommand", () => {
         "force": true,
         "force-build": false,
         "watch": false,
+        "skip-dependants": false,
       }),
     })
 
@@ -284,6 +289,7 @@ describe("TestCommand", () => {
         "force": true,
         "force-build": false,
         "watch": false,
+        "skip-dependants": false,
       }),
     })
 
@@ -301,6 +307,90 @@ describe("TestCommand", () => {
       "test.module-a.integration",
       "test.module-a.unit",
       "test.module-b.unit",
+    ])
+  })
+
+  it("should skip dependant modules if --skip-dependants is passed", async () => {
+    const garden = await makeTestGardenA()
+    const log = garden.log
+
+    const moduleConfigs: ModuleConfig[] = [
+      {
+        apiVersion: "garden.io/v0",
+        kind: "Module",
+        name: "module-a",
+        include: [],
+        build: { dependencies: [] },
+        path: garden.projectRoot,
+        serviceConfigs: [],
+        disabled: false,
+        allowPublish: false,
+        spec: {
+          services: [{ name: "service-a" }],
+          tests: [
+            { name: "unit", command: ["echo", "OK"] },
+            { name: "integration", command: ["echo", "OK"], dependencies: ["service-a"] },
+          ],
+          tasks: [],
+          build: { command: ["echo", "A"], dependencies: [] },
+        },
+        testConfigs: [],
+        type: "test",
+        taskConfigs: [],
+      },
+      {
+        apiVersion: "garden.io/v0",
+        kind: "Module",
+        name: "module-b",
+        include: [],
+        build: { dependencies: [] },
+        path: garden.projectRoot,
+        serviceConfigs: [],
+        disabled: false,
+        allowPublish: false,
+        spec: {
+          services: [{ name: "service-b" }],
+          tests: [
+            { name: "unit", command: ["echo", "OK"] },
+            { name: "integration", command: ["echo", "OK"], dependencies: ["service-a"] }, // <--- depends on service-a
+          ],
+          tasks: [],
+          build: { command: ["echo", "A"], dependencies: [] },
+        },
+        testConfigs: [],
+        type: "test",
+        taskConfigs: [],
+      },
+    ]
+
+    garden.setModuleConfigs(moduleConfigs)
+
+    const { result, errors } = await command.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: { modules: ["module-a"] },
+      opts: withDefaultGlobalOpts({
+        "name": undefined,
+        "force": true,
+        "force-build": false,
+        "watch": false,
+        "skip-dependants": true, // <----
+      }),
+    })
+
+    if (errors) {
+      throw errors[0]
+    }
+
+    expect(Object.keys(taskResultOutputs(result!)).sort()).to.eql([
+      "build.module-a",
+      "deploy.service-a",
+      "get-service-status.service-a",
+      "stage-build.module-a",
+      "test.module-a.integration",
+      "test.module-a.unit",
     ])
   })
 })
