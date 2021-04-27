@@ -113,7 +113,7 @@ export class RunTestCommand extends Command<Args, Opts> {
       })
     }
 
-    const test = testFromConfig(module, testConfig)
+    const test = testFromConfig(module, testConfig, graph)
 
     if ((module.disabled || test.disabled) && !opts.force) {
       throw new CommandError(
@@ -137,6 +137,8 @@ export class RunTestCommand extends Command<Args, Opts> {
       graph,
       log,
       test,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
 
     const dependencyResults = await garden.processTasks(await testTask.resolveDependencies())

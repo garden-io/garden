@@ -38,11 +38,13 @@ import { emptyDir, pathExists, ensureFile, readFile } from "fs-extra"
 import { join } from "path"
 import { DashboardPage } from "../../../src/types/plugin/provider/getDashboardPage"
 import { testFromModule, testFromConfig } from "../../../src/types/test"
+import { ConfigGraph } from "../../../src/config-graph"
 
 const now = new Date()
 
 describe("ActionRouter", () => {
   let garden: TestGarden
+  let graph: ConfigGraph
   let log: LogEntry
   let actions: ActionRouter
   let module: GardenModule
@@ -69,7 +71,7 @@ describe("ActionRouter", () => {
     })
     log = garden.log
     actions = await garden.getActionRouter()
-    const graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph(garden.log)
     module = graph.getModule("module-a")
     service = graph.getService("service-a")
     runtimeContext = await prepareRuntimeContext({
@@ -127,7 +129,7 @@ describe("ActionRouter", () => {
 
     describe("augmentGraph", () => {
       it("should return modules and/or dependency relations to add to the stack graph", async () => {
-        const graph = await garden.getConfigGraph(garden.log)
+        graph = await garden.getConfigGraph(garden.log)
         const modules = graph.getModules()
         const providers = await garden.resolveProviders(garden.log)
         const result = await actions.augmentGraph({
@@ -322,13 +324,17 @@ describe("ActionRouter", () => {
 
     describe("testModule", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const test = testFromConfig(module, {
-          name: "test",
-          dependencies: [],
-          disabled: false,
-          timeout: 1234,
-          spec: {},
-        })
+        const test = testFromConfig(
+          module,
+          {
+            name: "test",
+            dependencies: [],
+            disabled: false,
+            timeout: 1234,
+            spec: {},
+          },
+          graph
+        )
         const result = await actions.testModule({
           log,
           module,
@@ -366,13 +372,17 @@ describe("ActionRouter", () => {
             dependencies: [],
           },
           silent: false,
-          test: testFromConfig(module, {
-            name: "test",
-            dependencies: [],
-            disabled: false,
-            timeout: 1234,
-            spec: {},
-          }),
+          test: testFromConfig(
+            module,
+            {
+              name: "test",
+              dependencies: [],
+              disabled: false,
+              timeout: 1234,
+              spec: {},
+            },
+            graph
+          ),
         })
         const event = garden.events.eventLog[0]
         expect(event).to.exist
@@ -403,7 +413,7 @@ describe("ActionRouter", () => {
           },
         }
 
-        const test = testFromConfig(module, testConfig)
+        const test = testFromConfig(module, testConfig, graph)
 
         await actions.testModule({
           log,
@@ -438,7 +448,7 @@ describe("ActionRouter", () => {
 
     describe("getTestResult", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const test = testFromModule(module, "unit")
+        const test = testFromModule(module, "unit", graph)
         const result = await actions.getTestResult({
           log,
           module,
@@ -465,7 +475,7 @@ describe("ActionRouter", () => {
       await actions.getTestResult({
         log,
         module,
-        test: testFromModule(module, "unit"),
+        test: testFromModule(module, "unit", graph),
       })
       const event = garden.events.eventLog[0]
       expect(event).to.exist
@@ -479,13 +489,19 @@ describe("ActionRouter", () => {
   describe("service actions", () => {
     describe("getServiceStatus", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.getServiceStatus({ log, service, runtimeContext, hotReload: false })
+        const result = await actions.getServiceStatus({
+          log,
+          service,
+          runtimeContext,
+          devMode: false,
+          hotReload: false,
+        })
         expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } })
       })
 
       it("should emit a serviceStatus event", async () => {
         garden.events.eventLog = []
-        await actions.getServiceStatus({ log, service, runtimeContext, hotReload: false })
+        await actions.getServiceStatus({ log, service, runtimeContext, devMode: false, hotReload: false })
         const event = garden.events.eventLog[0]
         expect(event).to.exist
         expect(event.name).to.eql("serviceStatus")
@@ -499,7 +515,7 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.getServiceStatus({ log, service, runtimeContext, hotReload: false }),
+          () => actions.getServiceStatus({ log, service, runtimeContext, devMode: false, hotReload: false }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from service 'service-a': key .foo must be a string"
@@ -513,7 +529,7 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.getServiceStatus({ log, service, runtimeContext, hotReload: false }),
+          () => actions.getServiceStatus({ log, service, runtimeContext, devMode: false, hotReload: false }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from service 'service-a': key .base must be a string"
@@ -524,13 +540,20 @@ describe("ActionRouter", () => {
 
     describe("deployService", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.deployService({ log, service, runtimeContext, force: true, hotReload: false })
+        const result = await actions.deployService({
+          log,
+          service,
+          runtimeContext,
+          force: true,
+          devMode: false,
+          hotReload: false,
+        })
         expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } })
       })
 
       it("should emit a serviceStatus event", async () => {
         garden.events.eventLog = []
-        await actions.deployService({ log, service, runtimeContext, force: true, hotReload: false })
+        await actions.deployService({ log, service, runtimeContext, force: true, devMode: false, hotReload: false })
         const event = garden.events.eventLog[0]
         expect(event).to.exist
         expect(event.name).to.eql("serviceStatus")
@@ -544,7 +567,7 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.deployService({ log, service, runtimeContext, force: true, hotReload: false }),
+          () => actions.deployService({ log, service, runtimeContext, force: true, devMode: false, hotReload: false }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from service 'service-a': key .foo must be a string"
@@ -558,7 +581,7 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.deployService({ log, service, runtimeContext, force: true, hotReload: false }),
+          () => actions.deployService({ log, service, runtimeContext, force: true, devMode: false, hotReload: false }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from service 'service-a': key .base must be a string"
@@ -771,7 +794,7 @@ describe("ActionRouter", () => {
       it("should copy artifacts exported by the handler to the artifacts directory", async () => {
         await emptyDir(garden.artifactsPath)
 
-        const graph = await garden.getConfigGraph(garden.log)
+        graph = await garden.getConfigGraph(garden.log)
         const _task = graph.getTask("task-a")
 
         _task.spec.artifacts = [
@@ -1435,7 +1458,7 @@ describe("ActionRouter", () => {
         },
       })
 
-      const graph = await garden.getConfigGraph(garden.log)
+      graph = await garden.getConfigGraph(garden.log)
       const moduleA = graph.getModule("module-a")
 
       const base = Object.assign(
@@ -1474,7 +1497,7 @@ describe("ActionRouter", () => {
         },
       })
 
-      const graph = await garden.getConfigGraph(garden.log)
+      graph = await garden.getConfigGraph(garden.log)
       const serviceA = graph.getService("service-a")
 
       const base = Object.assign(
@@ -1499,6 +1522,7 @@ describe("ActionRouter", () => {
           service: serviceA,
           runtimeContext,
           log,
+          devMode: false,
           hotReload: false,
           force: false,
         },
@@ -1517,7 +1541,7 @@ describe("ActionRouter", () => {
 
       garden["moduleConfigs"]["module-a"].spec.foo = "${runtime.services.service-b.outputs.foo}"
 
-      const graph = await garden.getConfigGraph(garden.log)
+      graph = await garden.getConfigGraph(garden.log)
       const serviceA = graph.getService("service-a")
       const serviceB = graph.getService("service-b")
 
@@ -1548,6 +1572,7 @@ describe("ActionRouter", () => {
           service: serviceA,
           runtimeContext: _runtimeContext,
           log,
+          devMode: false,
           hotReload: false,
           force: false,
         },
@@ -1570,7 +1595,7 @@ describe("ActionRouter", () => {
 
       garden["moduleConfigs"]["module-a"].spec.services[0].foo = "${runtime.services.service-b.outputs.foo}"
 
-      const graph = await garden.getConfigGraph(garden.log)
+      graph = await garden.getConfigGraph(garden.log)
       const serviceA = graph.getService("service-a")
 
       const _runtimeContext = await prepareRuntimeContext({
@@ -1596,6 +1621,7 @@ describe("ActionRouter", () => {
               service: serviceA,
               runtimeContext: _runtimeContext,
               log,
+              devMode: false,
               hotReload: false,
               force: false,
             },
@@ -1621,7 +1647,7 @@ describe("ActionRouter", () => {
         },
       })
 
-      const graph = await garden.getConfigGraph(garden.log)
+      graph = await garden.getConfigGraph(garden.log)
       const taskA = graph.getTask("task-a")
 
       const base = Object.assign(
@@ -1680,7 +1706,7 @@ describe("ActionRouter", () => {
 
       garden["moduleConfigs"]["module-a"].spec.tasks[0].foo = "${runtime.services.service-b.outputs.foo}"
 
-      const graph = await garden.getConfigGraph(garden.log)
+      graph = await garden.getConfigGraph(garden.log)
       const taskA = graph.getTask("task-a")
       const serviceB = graph.getService("service-b")
 
@@ -1744,7 +1770,7 @@ describe("ActionRouter", () => {
 
       garden["moduleConfigs"]["module-a"].spec.tasks[0].foo = "${runtime.services.service-b.outputs.foo}"
 
-      const graph = await garden.getConfigGraph(garden.log)
+      graph = await garden.getConfigGraph(garden.log)
       const taskA = graph.getTask("task-a")
 
       const _runtimeContext = await prepareRuntimeContext({

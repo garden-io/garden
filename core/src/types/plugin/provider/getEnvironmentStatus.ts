@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginActionParamsBase, actionParamsSchema } from "../base"
+import { PluginActionParamsBase, actionParamsSchema, NamespaceStatus } from "../base"
 import { dedent } from "../../../util/string"
 import { environmentStatusSchema } from "../../../config/status"
 
@@ -15,6 +15,7 @@ export interface GetEnvironmentStatusParams extends PluginActionParamsBase {}
 export interface EnvironmentStatus<O extends {} = any, D extends {} = any> {
   ready: boolean
   detail?: D
+  namespaceStatuses?: NamespaceStatus[]
   outputs: O
   disableCache?: boolean
   cached?: boolean

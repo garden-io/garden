@@ -98,8 +98,8 @@ describe("PreReleaseTests", () => {
   if (project === "demo-project") {
     describe("demo-project", () => {
       describe("top-level sanity checks", () => {
-        it("runs the dev command", async () => {
-          const gardenWatch = watchWithEnv(["dev"])
+        it("runs the deploy command", async () => {
+          const gardenWatch = watchWithEnv(["deploy", "--watch"])
 
           const testSteps = [
             taskCompletedStep("deploy.backend", 1),
@@ -156,9 +156,9 @@ describe("PreReleaseTests", () => {
 
   if (project === "hot-reload") {
     describe("hot-reload", () => {
-      it("runs the dev command with hot reloading enabled", async () => {
+      it("runs the deploy command with hot reloading enabled", async () => {
         const hotReloadProjectPath = resolve(examplesDir, "hot-reload")
-        const gardenWatch = watchWithEnv(["dev", "--hot=node-service"])
+        const gardenWatch = watchWithEnv(["deploy", "--hot=node-service"])
 
         const testSteps = [
           waitingForChangesStep(),
@@ -187,7 +187,7 @@ describe("PreReleaseTests", () => {
       })
 
       it("should get logs after a hot reload event", async () => {
-        const gardenWatch = watchWithEnv(["dev", "--hot=node-service"])
+        const gardenWatch = watchWithEnv(["deploy", "--hot=node-service"])
         const hotReloadProjectPath = resolve(examplesDir, "hot-reload")
 
         const testSteps = [
@@ -211,9 +211,9 @@ describe("PreReleaseTests", () => {
 
         await gardenWatch.run({ testSteps })
       })
-      it("runs the dev command with hot reloading enabled, using a post-sync command", async () => {
+      it("runs the deploy command with hot reloading enabled, using a post-sync command", async () => {
         const hotReloadProjectPath = resolve(examplesDir, "hot-reload-post-sync-command")
-        const gardenWatch = watchWithEnv(["dev", "--hot=node-service"])
+        const gardenWatch = watchWithEnv(["deploy", "--hot=node-service"])
 
         const testSteps = [
           waitingForChangesStep(),
@@ -245,8 +245,8 @@ describe("PreReleaseTests", () => {
 
   if (project === "vote-helm") {
     describe("vote-helm: helm & dependency calculations", () => {
-      it("runs the dev command", async () => {
-        const gardenWatch = watchWithEnv(["dev"])
+      it("runs the deploy command", async () => {
+        const gardenWatch = watchWithEnv(["deploy", "--watch"])
 
         const testSteps = [
           waitingForChangesStep(),
@@ -264,8 +264,8 @@ describe("PreReleaseTests", () => {
 
   if (project === "vote") {
     describe("vote: dependency calculations", () => {
-      it("runs the dev command", async () => {
-        const gardenWatch = watchWithEnv(["dev"])
+      it("runs the deploy command", async () => {
+        const gardenWatch = watchWithEnv(["deploy", "--watch"])
 
         const testSteps = [
           waitingForChangesStep(),
@@ -297,8 +297,8 @@ describe("PreReleaseTests", () => {
 
   if (project === "deployment-strategies") {
     describe("deployment-strategies: top-level sanity checks", () => {
-      it("runs the dev command", async () => {
-        const gardenWatch = watchWithEnv(["dev"])
+      it("runs the deploy command", async () => {
+        const gardenWatch = watchWithEnv(["deploy", "--watch"])
 
         const testSteps = [
           taskCompletedStep("deploy.backend", 1),

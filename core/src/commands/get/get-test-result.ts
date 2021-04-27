@@ -69,7 +69,7 @@ export class GetTestResultCommand extends Command<Args> {
     const actions = await garden.getActionRouter()
 
     const module = graph.getModule(moduleName)
-    const test = testFromModule(module, testName)
+    const test = testFromModule(module, testName, graph)
 
     const testResult = await actions.getTestResult({
       log,

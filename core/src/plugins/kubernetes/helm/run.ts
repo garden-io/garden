@@ -25,7 +25,7 @@ import { RunTaskParams, RunTaskResult } from "../../../types/plugin/task/runTask
 import { uniqByName } from "../../../util/util"
 import { prepareEnvVars } from "../util"
 import { KubeApi } from "../api"
-import { getModuleNamespace } from "../namespace"
+import { getModuleNamespaceStatus } from "../namespace"
 import { DEFAULT_TASK_TIMEOUT } from "../../../constants"
 import { KubernetesPod } from "../types"
 
@@ -41,7 +41,7 @@ export async function runHelmModule({
 }: RunModuleParams<HelmModule>): Promise<RunResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const namespace = await getModuleNamespace({
+  const namespaceStatus = await getModuleNamespaceStatus({
     ctx: k8sCtx,
     log,
     module,
@@ -50,6 +50,7 @@ export async function runHelmModule({
   const baseModule = getBaseModule(module)
   const resourceSpec = getServiceResourceSpec(module, baseModule)
   const version = module.version.versionString
+  const namespace = namespaceStatus.namespaceName
 
   if (!resourceSpec) {
     throw new ConfigurationError(
@@ -59,7 +60,7 @@ export async function runHelmModule({
     )
   }
 
-  const manifests = await getChartResources({ ctx: k8sCtx, module, hotReload: false, log, version })
+  const manifests = await getChartResources({ ctx: k8sCtx, module, devMode: false, hotReload: false, log, version })
   const target = await findServiceResource({
     ctx: k8sCtx,
     log,
@@ -113,6 +114,7 @@ export async function runHelmModule({
     ...result,
     moduleName: module.name,
     version,
+    namespaceStatus,
   }
 }
 
@@ -125,6 +127,7 @@ export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<Ru
   const manifests = await getChartResources({
     ctx: k8sCtx,
     module,
+    devMode: false,
     hotReload: false,
     log,
     version: module.version.versionString,
@@ -140,12 +143,13 @@ export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<Ru
     resourceSpec,
   })
   const container = getResourceContainer(target, resourceSpec.containerName)
-  const namespace = await getModuleNamespace({
+  const namespaceStatus = await getModuleNamespaceStatus({
     ctx: k8sCtx,
     log,
     module,
     provider: k8sCtx.provider,
   })
+  const namespace = namespaceStatus.namespaceName
 
   const res = await runAndCopy({
     ...params,
@@ -166,6 +170,7 @@ export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<Ru
   const result: RunTaskResult = {
     ...res,
     taskName: task.name,
+    namespaceStatus,
     outputs: {
       log: res.log || "",
     },

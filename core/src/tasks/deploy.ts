@@ -31,7 +31,8 @@ export interface DeployTaskParams {
   forceBuild: boolean
   fromWatch?: boolean
   log: LogEntry
-  hotReloadServiceNames?: string[]
+  devModeServiceNames: string[]
+  hotReloadServiceNames: string[]
 }
 
 @Profile()
@@ -43,6 +44,7 @@ export class DeployTask extends BaseTask {
   private service: GardenService
   private forceBuild: boolean
   private fromWatch: boolean
+  private devModeServiceNames: string[]
   private hotReloadServiceNames: string[]
 
   constructor({
@@ -53,25 +55,29 @@ export class DeployTask extends BaseTask {
     force,
     forceBuild,
     fromWatch = false,
-    hotReloadServiceNames = [],
+    devModeServiceNames,
+    hotReloadServiceNames,
   }: DeployTaskParams) {
     super({ garden, log, force, version: service.version })
     this.graph = graph
     this.service = service
     this.forceBuild = forceBuild
     this.fromWatch = fromWatch
+    this.devModeServiceNames = devModeServiceNames
     this.hotReloadServiceNames = hotReloadServiceNames
   }
 
   async resolveDependencies() {
     const dg = this.graph
 
-    // We filter out service dependencies on services configured for hot reloading (if any)
+    const skipServiceDeps = [...this.hotReloadServiceNames, ...this.devModeServiceNames]
+
+    // We filter out service dependencies on services configured for hot reloading or dev mode (if any)
     const deps = dg.getDependencies({
       nodeType: "deploy",
       name: this.getName(),
       recursive: false,
-      filter: (depNode) => !(depNode.type === "deploy" && includes(this.hotReloadServiceNames, depNode.name)),
+      filter: (depNode) => !(depNode.type === "deploy" && includes(skipServiceDeps, depNode.name)),
     })
 
     const statusTask = new GetServiceStatusTask({
@@ -80,11 +86,12 @@ export class DeployTask extends BaseTask {
       log: this.log,
       service: this.service,
       force: false,
+      devModeServiceNames: this.devModeServiceNames,
       hotReloadServiceNames: this.hotReloadServiceNames,
     })
 
-    if (this.fromWatch && includes(this.hotReloadServiceNames, this.service.name)) {
-      // Only need to get existing statuses and results when hot-reloading
+    if (this.fromWatch && includes(skipServiceDeps, this.service.name)) {
+      // Only need to get existing statuses and results when hot-reloading or in dev mode
       const dependencyStatusTasks = deps.deploy.map((service) => {
         return new GetServiceStatusTask({
           garden: this.garden,
@@ -92,6 +99,7 @@ export class DeployTask extends BaseTask {
           log: this.log,
           service,
           force: false,
+          devModeServiceNames: this.devModeServiceNames,
           hotReloadServiceNames: this.hotReloadServiceNames,
         })
       })
@@ -116,6 +124,7 @@ export class DeployTask extends BaseTask {
           force: false,
           forceBuild: this.forceBuild,
           fromWatch: this.fromWatch,
+          devModeServiceNames: this.devModeServiceNames,
           hotReloadServiceNames: this.hotReloadServiceNames,
         })
       })
@@ -128,6 +137,8 @@ export class DeployTask extends BaseTask {
           graph: this.graph,
           force: false,
           forceBuild: this.forceBuild,
+          devModeServiceNames: this.devModeServiceNames,
+          hotReloadServiceNames: this.hotReloadServiceNames,
         })
       })
 
@@ -153,7 +164,9 @@ export class DeployTask extends BaseTask {
 
   async process(dependencyResults: GraphResults): Promise<ServiceStatus> {
     const version = this.version
-    const hotReload = includes(this.hotReloadServiceNames, this.service.name)
+
+    const devMode = includes(this.devModeServiceNames, this.service.name)
+    const hotReload = !devMode && includes(this.hotReloadServiceNames, this.service.name)
 
     const dependencies = this.graph.getDependencies({
       nodeType: "deploy",
@@ -198,6 +211,7 @@ export class DeployTask extends BaseTask {
           runtimeContext,
           log,
           force: this.force,
+          devMode,
           hotReload,
         })
       } catch (err) {

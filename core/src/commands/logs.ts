@@ -108,6 +108,7 @@ export class LogsCommand extends Command<Args, Opts> {
 
     await Bluebird.map(services, async (service: GardenService<any>) => {
       const status = await actions.getServiceStatus({
+        devMode: false,
         hotReload: false,
         log: voidLog,
         // This shouldn't matter for this context, we're just checking if the service is up or not

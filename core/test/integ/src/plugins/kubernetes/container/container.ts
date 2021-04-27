@@ -143,6 +143,7 @@ describe("kubernetes container module handlers", () => {
       })
 
       expect(result.success).to.be.true
+      expect(result.namespaceStatus).to.exist
       expect(result.log.trim()).to.eql("ok")
     })
 
@@ -184,10 +185,12 @@ describe("kubernetes container module handlers", () => {
       const testTask = new TestTask({
         garden,
         graph,
-        test: testFromModule(module, "echo-test"),
+        test: testFromModule(module, "echo-test", graph),
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const result = await garden.processTasks([testTask], { throwOnError: true })
@@ -195,6 +198,7 @@ describe("kubernetes container module handlers", () => {
       const key = "test.simple.echo-test"
       expect(result).to.have.property(key)
       expect(result[key]!.output.log.trim()).to.equal("ok")
+      expect(result[key]!.output.namespaceStatus).to.exist
     })
 
     it("should fail if an error occurs, but store the result", async () => {
@@ -203,7 +207,7 @@ describe("kubernetes container module handlers", () => {
       const testConfig = findByName(module.testConfigs, "echo-test")!
       testConfig.spec.command = ["bork"] // this will fail
 
-      const test = testFromConfig(module, testConfig)
+      const test = testFromConfig(module, testConfig, graph)
 
       const testTask = new TestTask({
         garden,
@@ -212,6 +216,8 @@ describe("kubernetes container module handlers", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       await expectError(
@@ -240,10 +246,12 @@ describe("kubernetes container module handlers", () => {
         const testTask = new TestTask({
           garden,
           graph,
-          test: testFromModule(module, "artifacts-test"),
+          test: testFromModule(module, "artifacts-test", graph),
           log: garden.log,
           force: true,
           forceBuild: false,
+          devModeServiceNames: [],
+          hotReloadServiceNames: [],
         })
 
         await emptyDir(garden.artifactsPath)
@@ -260,10 +268,12 @@ describe("kubernetes container module handlers", () => {
         const testTask = new TestTask({
           garden,
           graph,
-          test: testFromModule(module, "artifacts-test-fail"),
+          test: testFromModule(module, "artifacts-test-fail", graph),
           log: garden.log,
           force: true,
           forceBuild: false,
+          devModeServiceNames: [],
+          hotReloadServiceNames: [],
         })
 
         await emptyDir(garden.artifactsPath)
@@ -282,10 +292,12 @@ describe("kubernetes container module handlers", () => {
         const testTask = new TestTask({
           garden,
           graph,
-          test: testFromModule(module, "globs-test"),
+          test: testFromModule(module, "globs-test", graph),
           log: garden.log,
           force: true,
           forceBuild: false,
+          devModeServiceNames: [],
+          hotReloadServiceNames: [],
         })
 
         await emptyDir(garden.artifactsPath)
@@ -302,10 +314,12 @@ describe("kubernetes container module handlers", () => {
         const testTask = new TestTask({
           garden,
           graph,
-          test: testFromConfig(module, module.testConfigs[0]),
+          test: testFromConfig(module, module.testConfigs[0], graph),
           log: garden.log,
           force: true,
           forceBuild: false,
+          devModeServiceNames: [],
+          hotReloadServiceNames: [],
         })
 
         const result = await garden.processTasks([testTask])
@@ -326,10 +340,12 @@ describe("kubernetes container module handlers", () => {
         const testTask = new TestTask({
           garden,
           graph,
-          test: testFromConfig(module, module.testConfigs[0]),
+          test: testFromConfig(module, module.testConfigs[0], graph),
           log: garden.log,
           force: true,
           forceBuild: false,
+          devModeServiceNames: [],
+          hotReloadServiceNames: [],
         })
 
         const result = await garden.processTasks([testTask])

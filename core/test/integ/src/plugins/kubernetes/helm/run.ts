@@ -38,6 +38,8 @@ describe("runHelmTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
 
     const key = testTask.getKey()
@@ -54,6 +56,7 @@ describe("runHelmTask", () => {
     expect(result!.output.log.trim()).to.equal("ok")
     expect(result!.output).to.have.property("outputs")
     expect(result!.output.outputs.log.trim()).to.equal("ok")
+    expect(result!.output.namespaceStatus).to.exist
 
     // We also verify that, despite the task failing, its result was still saved.
     const actions = await garden.getActionRouter()
@@ -76,6 +79,8 @@ describe("runHelmTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
 
     // Clear any existing task result
@@ -105,6 +110,8 @@ describe("runHelmTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
 
     const key = testTask.getKey()
@@ -128,6 +135,8 @@ describe("runHelmTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
 
     await expectError(
@@ -157,6 +166,8 @@ describe("runHelmTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -177,6 +188,8 @@ describe("runHelmTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
       await emptyDir(garden.artifactsPath)
 
@@ -198,6 +211,8 @@ describe("runHelmTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)

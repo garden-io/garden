@@ -49,6 +49,8 @@ describe("kubernetes", () => {
         graph,
         log: garden.log,
         service,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       await garden.processTasks([deployTask], { throwOnError: true })

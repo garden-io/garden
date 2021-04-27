@@ -28,6 +28,8 @@ export interface TaskTaskParams {
   task: GardenTask
   force: boolean
   forceBuild: boolean
+  devModeServiceNames: string[]
+  hotReloadServiceNames: string[]
 }
 
 class RunTaskError extends Error {
@@ -44,13 +46,26 @@ export class TaskTask extends BaseTask {
   private graph: ConfigGraph
   private task: GardenTask
   private forceBuild: boolean
+  private devModeServiceNames: string[]
+  private hotReloadServiceNames: string[]
 
-  constructor({ garden, log, graph, task, force, forceBuild }: TaskTaskParams) {
+  constructor({
+    garden,
+    log,
+    graph,
+    task,
+    force,
+    forceBuild,
+    devModeServiceNames,
+    hotReloadServiceNames,
+  }: TaskTaskParams) {
     super({ garden, log, force, version: task.version })
     this.graph = graph
     this.task = task
     this.force = force
     this.forceBuild = forceBuild
+    this.devModeServiceNames = devModeServiceNames
+    this.hotReloadServiceNames = hotReloadServiceNames
   }
 
   async resolveDependencies(): Promise<BaseTask[]> {
@@ -72,6 +87,8 @@ export class TaskTask extends BaseTask {
         graph: this.graph,
         force: false,
         forceBuild: false,
+        devModeServiceNames: this.devModeServiceNames,
+        hotReloadServiceNames: this.hotReloadServiceNames,
       })
     })
 
@@ -83,6 +100,8 @@ export class TaskTask extends BaseTask {
         graph: this.graph,
         force: false,
         forceBuild: false,
+        devModeServiceNames: this.devModeServiceNames,
+        hotReloadServiceNames: this.hotReloadServiceNames,
       })
     })
 

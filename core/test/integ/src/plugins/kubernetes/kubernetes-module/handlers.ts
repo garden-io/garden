@@ -31,6 +31,7 @@ import { emptyRuntimeContext } from "../../../../../../src/runtime-context"
 import Bluebird from "bluebird"
 import { buildHelmModules } from "../helm/common"
 import { gardenAnnotationKey } from "../../../../../../src/util/string"
+import { getServiceStatuses } from "../../../../../../src/tasks/base"
 
 describe("kubernetes-module handlers", () => {
   let tmpDir: tmp.DirectoryResult
@@ -114,6 +115,9 @@ describe("kubernetes-module handlers", () => {
   after(async () => {
     garden.setModuleConfigs(moduleConfigBackup)
     await tmpDir.cleanup()
+    if (garden) {
+      await garden.close()
+    }
   })
 
   describe("getServiceStatus", () => {
@@ -126,6 +130,7 @@ describe("kubernetes-module handlers", () => {
         module: service.module,
         service,
         force: false,
+        devMode: false,
         hotReload: false,
         runtimeContext: emptyRuntimeContext,
       }
@@ -153,10 +158,18 @@ describe("kubernetes-module handlers", () => {
         module: service.module,
         service,
         force: false,
+        devMode: false,
         hotReload: false,
         runtimeContext: emptyRuntimeContext,
       }
-      await deployKubernetesService(deployParams)
+      const status = await deployKubernetesService(deployParams)
+      expect(status.namespaceStatuses).to.eql([
+        {
+          pluginName: "local-kubernetes",
+          namespaceName: "kubernetes-module-test-default",
+          state: "ready",
+        },
+      ])
     })
 
     it("should toggle hot reload", async () => {
@@ -175,6 +188,7 @@ describe("kubernetes-module handlers", () => {
         module: service.module,
         service,
         force: false,
+        devMode: false,
         hotReload: false,
         runtimeContext: emptyRuntimeContext,
       }
@@ -203,6 +217,51 @@ describe("kubernetes-module handlers", () => {
       expect(res3[0].metadata.annotations![gardenAnnotationKey("hot-reload")]).to.equal("false")
     })
 
+    it("should toggle devMode", async () => {
+      const graph = await garden.getConfigGraph(garden.log)
+      const service = graph.getService("with-source-module")
+      const namespace = await getModuleNamespace({
+        ctx,
+        log,
+        module: service.module,
+        provider: ctx.provider,
+        skipCreate: true,
+      })
+      const deployParams = {
+        ctx,
+        log: garden.log,
+        module: service.module,
+        service,
+        force: false,
+        devMode: false,
+        hotReload: false,
+        runtimeContext: emptyRuntimeContext,
+      }
+      const manifests = await getManifests({
+        api,
+        log,
+        module: service.module,
+        defaultNamespace: namespace,
+        readFromSrcDir: true,
+      })
+
+      // // Deploy without dev mode
+      await deployKubernetesService(deployParams)
+      const res1 = await findDeployedResources(manifests, log)
+
+      // Deploy with dev mode
+      await deployKubernetesService({ ...deployParams, devMode: true })
+      const res2 = await findDeployedResources(manifests, log)
+
+      // // Deploy without hot reload again
+      await deployKubernetesService(deployParams)
+      const res3 = await findDeployedResources(manifests, log)
+
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("false")
+      expect(res2[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("true")
+      expect(res3[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("false")
+    })
+
     it("should not delete previously deployed namespace resources", async () => {
       garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-module-ns-1")])
       let graph = await garden.getConfigGraph(log)
@@ -216,15 +275,32 @@ describe("kubernetes-module handlers", () => {
         graph,
         log,
         service: graph.getService("namespace-resource"),
-        force: false,
+        force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
-      await garden.processTasks([deployTask], { throwOnError: true })
+      const results = await garden.processTasks([deployTask], { throwOnError: true })
+      const status = getServiceStatuses(results)["namespace-resource"]
       ns1Resource = await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log)
 
       expect(ns1Manifest, "ns1Manifest").to.exist
       expect(ns1Manifest!.metadata.name).to.match(/ns-1/)
       expect(ns1Resource, "ns1Resource").to.exist
+      // Here, we expect one status for the app namespace, and one status for the namespace resource defined by
+      // this module.
+      expect(status.namespaceStatuses).to.eql([
+        {
+          pluginName: "local-kubernetes",
+          namespaceName: "kubernetes-module-test-default",
+          state: "ready",
+        },
+        {
+          pluginName: "local-kubernetes",
+          namespaceName: "kubernetes-module-ns-1",
+          state: "ready",
+        },
+      ])
 
       // This should result in a new namespace with a new name being deployed.
       garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-module-ns-2")])
@@ -239,6 +315,8 @@ describe("kubernetes-module handlers", () => {
         service: graph.getService("namespace-resource"),
         force: true,
         forceBuild: true,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
       await garden.processTasks([deployTask2], { throwOnError: true })
       ns2Resource = await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log)

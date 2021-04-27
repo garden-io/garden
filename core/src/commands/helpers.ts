@@ -9,6 +9,15 @@
 import { ConfigGraph } from "../config-graph"
 import { GardenService } from "../types/service"
 
+export async function getDevModeServiceNames(namesFromOpt: string[] | undefined, configGraph: ConfigGraph) {
+  const names = namesFromOpt || []
+  if (names.includes("*")) {
+    return configGraph.getServices().map((s) => s.name)
+  } else {
+    return names
+  }
+}
+
 export async function getHotReloadServiceNames(namesFromOpt: string[] | undefined, configGraph: ConfigGraph) {
   const names = namesFromOpt || []
   if (names.includes("*")) {

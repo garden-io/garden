@@ -149,6 +149,42 @@ chartPath: .
 # List of names of services that should be deployed before this chart.
 dependencies: []
 
+# **EXPERIMENTAL**
+#
+# Specifies which files or directories to sync to which paths inside the running containers of the service when it's
+# in dev mode, and overrides for the container command and/or arguments.
+#
+# Note that `serviceResource` must also be specified to enable dev mode.
+#
+# Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy`
+# command.
+devMode:
+  # Override the default container arguments when in dev mode.
+  args:
+
+  # Override the default container command (i.e. entrypoint) when in dev mode.
+  command:
+
+  # Specify one or more source files or directories to automatically sync with the running container.
+  sync:
+    - # POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be
+      # a relative path. Defaults to the module's top-level directory if no value is provided.
+      source: .
+
+      # POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not
+      # allowed.
+      target:
+
+      # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
+      exclude:
+
+      # The sync mode to use for the given paths.
+      mode: one-way
+
+  # Optionally specify the name of a specific container to sync to. If not specified, the first container in the
+  # workload is used.
+  containerName:
+
 # A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
 # numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
 namespace:
@@ -726,6 +762,129 @@ List of names of services that should be deployed before this chart.
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
 | `array[string]` | `[]`    | No       |
+
+### `devMode`
+
+**EXPERIMENTAL**
+
+Specifies which files or directories to sync to which paths inside the running containers of the service when it's in dev mode, and overrides for the container command and/or arguments.
+
+Note that `serviceResource` must also be specified to enable dev mode.
+
+Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy` command.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `devMode.args[]`
+
+[devMode](#devmode) > args
+
+Override the default container arguments when in dev mode.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `devMode.command[]`
+
+[devMode](#devmode) > command
+
+Override the default container command (i.e. entrypoint) when in dev mode.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `devMode.sync[]`
+
+[devMode](#devmode) > sync
+
+Specify one or more source files or directories to automatically sync with the running container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `devMode.sync[].source`
+
+[devMode](#devmode) > [sync](#devmodesync) > source
+
+POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be a relative path. Defaults to the module's top-level directory if no value is provided.
+
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `"."`   | No       |
+
+Example:
+
+```yaml
+devMode:
+  ...
+  sync:
+    - source: "src"
+```
+
+### `devMode.sync[].target`
+
+[devMode](#devmode) > [sync](#devmodesync) > target
+
+POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not allowed.
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
+
+Example:
+
+```yaml
+devMode:
+  ...
+  sync:
+    - target: "/app/src"
+```
+
+### `devMode.sync[].exclude[]`
+
+[devMode](#devmode) > [sync](#devmodesync) > exclude
+
+Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
+
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | No       |
+
+Example:
+
+```yaml
+devMode:
+  ...
+  sync:
+    - exclude:
+        - dist/**/*
+        - '*.log'
+```
+
+### `devMode.sync[].mode`
+
+[devMode](#devmode) > [sync](#devmodesync) > mode
+
+The sync mode to use for the given paths.
+
+| Type     | Default     | Required |
+| -------- | ----------- | -------- |
+| `string` | `"one-way"` | No       |
+
+### `devMode.containerName`
+
+[devMode](#devmode) > containerName
+
+Optionally specify the name of a specific container to sync to. If not specified, the first container in the workload is used.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `namespace`
 

@@ -25,20 +25,23 @@ import { getTestTasks } from "../tasks/test"
 import { printHeader } from "../logger/util"
 import { startServer } from "../server/server"
 import { StringsParameter, BooleanParameter } from "../cli/params"
+import { deline } from "../util/string"
 
 export const testArgs = {
   modules: new StringsParameter({
-    help:
-      "The name(s) of the module(s) to test (skip to test all modules). " +
-      "Use comma as a separator to specify multiple modules.",
+    help: deline`
+      The name(s) of the module(s) to test (skip to test all modules).
+      Use comma as a separator to specify multiple modules.
+    `,
   }),
 }
 
 export const testOpts = {
   "name": new StringsParameter({
-    help:
-      "Only run tests with the specfied name (e.g. unit or integ). " +
-      "Accepts glob patterns (e.g. integ* would run both 'integ' and 'integration')",
+    help: deline`
+      Only run tests with the specfied name (e.g. unit or integ).
+      Accepts glob patterns (e.g. integ* would run both 'integ' and 'integration').
+    `,
     alias: "n",
   }),
   "force": new BooleanParameter({
@@ -50,6 +53,12 @@ export const testOpts = {
     help: "Watch for changes in module(s) and auto-test.",
     alias: "w",
     cliOnly: true,
+  }),
+  "skip-dependants": new BooleanParameter({
+    help: deline`
+      When using the modules argument, only run tests for those modules (and skip tests in other modules with
+      dependencies on those modules).
+    `,
   }),
 }
 
@@ -115,11 +124,16 @@ export class TestCommand extends Command<Args, Opts> {
     }
 
     const graph = await garden.getConfigGraph(log)
+    const skipDependants = opts["skip-dependants"]
+    let modules: GardenModule[]
 
-    const modules: GardenModule[] = args.modules
-      ? graph.withDependantModules(graph.getModules({ names: args.modules }))
-      : // All modules are included in this case, so there's no need to compute dependants.
-        graph.getModules()
+    if (args.modules) {
+      modules = skipDependants
+        ? graph.getModules({ names: args.modules })
+        : graph.withDependantModules(graph.getModules({ names: args.modules }))
+    } else {
+      modules = graph.getModules()
+    }
 
     const filterNames = opts.name || []
     const force = opts.force
@@ -135,6 +149,8 @@ export class TestCommand extends Command<Args, Opts> {
           filterNames,
           force,
           forceBuild,
+          devModeServiceNames: [],
+          hotReloadServiceNames: [],
         })
       )
     )
@@ -159,6 +175,8 @@ export class TestCommand extends Command<Args, Opts> {
               filterNames,
               force,
               forceBuild,
+              devModeServiceNames: [],
+              hotReloadServiceNames: [],
             })
           )
         )

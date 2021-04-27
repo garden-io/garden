@@ -9,7 +9,7 @@
 import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
 import { GardenService, ServiceStatus, ForwardablePort } from "../../../types/service"
-import { createContainerManifests } from "./deployment"
+import { createContainerManifests, startContainerDevSync } from "./deployment"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { DeploymentError } from "../../../exceptions"
 import { sleep } from "../../../util/util"
@@ -18,7 +18,7 @@ import { ContainerModule } from "../../container/config"
 import { KubeApi } from "../api"
 import { compareDeployedResources } from "../status/status"
 import { getIngresses } from "./ingress"
-import { getAppNamespace } from "../namespace"
+import { getAppNamespaceStatus } from "../namespace"
 import { KubernetesPluginContext } from "../config"
 import { RuntimeContext } from "../../../runtime-context"
 import { KubernetesServerResource, KubernetesWorkload } from "../types"
@@ -35,13 +35,15 @@ export async function getContainerServiceStatus({
   service,
   runtimeContext,
   log,
+  devMode,
   hotReload,
 }: GetServiceStatusParams<ContainerModule>): Promise<ContainerServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, ctx, provider)
-  const namespace = await getAppNamespace(k8sCtx, log, provider)
+  const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  const namespace = namespaceStatus.namespaceName
 
   // FIXME: [objects, matched] and ingresses can be run in parallel
   const { workload, manifests } = await createContainerManifests({
@@ -49,6 +51,7 @@ export async function getContainerServiceStatus({
     log,
     service,
     runtimeContext,
+    enableDevMode: devMode,
     enableHotReload: hotReload,
     blueGreen: provider.config.deploymentStrategy === "blue-green",
   })
@@ -67,13 +70,26 @@ export async function getContainerServiceStatus({
       }
     })
 
-  return {
+  const status = {
     forwardablePorts,
     ingresses,
     state,
+    namespaceStatuses: [namespaceStatus],
     version: state === "ready" ? service.version : undefined,
     detail: { remoteResources, workload },
   }
+
+  if (state === "ready" && devMode) {
+    // If the service is already deployed, we still need to make sure the sync is started
+    await startContainerDevSync({
+      ctx: <KubernetesPluginContext>ctx,
+      log,
+      status,
+      service,
+    })
+  }
+
+  return status
 }
 
 /**
@@ -85,6 +101,7 @@ export async function waitForContainerService(
   log: LogEntry,
   runtimeContext: RuntimeContext,
   service: GardenService,
+  devMode: boolean,
   hotReload: boolean
 ) {
   const startTime = new Date().getTime()
@@ -96,6 +113,7 @@ export async function waitForContainerService(
       service,
       runtimeContext,
       module: service.module,
+      devMode,
       hotReload,
     })
 

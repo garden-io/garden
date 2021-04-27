@@ -35,10 +35,12 @@ describe("testKubernetesModule", () => {
     const testTask = new TestTask({
       garden,
       graph,
-      test: testFromModule(module, "echo-test"),
+      test: testFromModule(module, "echo-test", graph),
       log: garden.log,
       force: true,
       forceBuild: false,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
 
     const key = testTask.getKey()
@@ -47,6 +49,8 @@ describe("testKubernetesModule", () => {
     expect(result).to.exist
     expect(result).to.have.property("output")
     expect(result!.output.log.trim()).to.equal("ok")
+    expect(result!.output.namespaceStatus).to.exist
+    expect(result!.output.namespaceStatus.namespaceName).to.equal("kubernetes-module-test-default")
   })
 
   it("should run a test in different namespace, if configured", async () => {
@@ -55,10 +59,12 @@ describe("testKubernetesModule", () => {
     const testTask = new TestTask({
       garden,
       graph,
-      test: testFromModule(module, "with-namespace-test"),
+      test: testFromModule(module, "with-namespace-test", graph),
       log: garden.log,
       force: true,
       forceBuild: false,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
 
     const key = testTask.getKey()
@@ -67,6 +73,8 @@ describe("testKubernetesModule", () => {
     expect(result).to.exist
     expect(result).to.have.property("output")
     expect(result!.output.log.trim()).to.equal(module.spec.namespace)
+    expect(result!.output.namespaceStatus).to.exist
+    expect(result!.output.namespaceStatus.namespaceName).to.equal(module.spec.namespace)
   })
 
   it("should fail if an error occurs, but store the result", async () => {
@@ -75,7 +83,7 @@ describe("testKubernetesModule", () => {
     const testConfig = findByName(module.testConfigs, "echo-test")!
     testConfig.spec.command = ["bork"] // this will fail
 
-    const test = testFromConfig(module, testConfig)
+    const test = testFromConfig(module, testConfig, graph)
 
     const testTask = new TestTask({
       garden,
@@ -84,6 +92,8 @@ describe("testKubernetesModule", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
 
     await expectError(
@@ -110,10 +120,12 @@ describe("testKubernetesModule", () => {
       const testTask = new TestTask({
         garden,
         graph,
-        test: testFromModule(module, "artifacts-test"),
+        test: testFromModule(module, "artifacts-test", graph),
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -130,10 +142,12 @@ describe("testKubernetesModule", () => {
       const testTask = new TestTask({
         garden,
         graph,
-        test: testFromModule(module, "artifacts-test-fail"),
+        test: testFromModule(module, "artifacts-test-fail", graph),
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -152,10 +166,12 @@ describe("testKubernetesModule", () => {
       const testTask = new TestTask({
         garden,
         graph,
-        test: testFromModule(module, "globs-test"),
+        test: testFromModule(module, "globs-test", graph),
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)

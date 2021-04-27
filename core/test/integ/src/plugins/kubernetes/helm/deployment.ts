@@ -33,37 +33,49 @@ describe("deployHelmService", () => {
   after(async () => {
     const actions = await garden.getActionRouter()
     await actions.deleteServices(garden.log)
+    if (garden) {
+      await garden.close()
+    }
   })
 
   it("should deploy a chart", async () => {
     const graph = await garden.getConfigGraph(garden.log)
     const service = graph.getService("api")
 
-    await deployHelmService({
+    const status = await deployHelmService({
       ctx,
       log: garden.log,
       module: service.module,
       service,
       force: false,
+      devMode: false,
       hotReload: false,
       runtimeContext: emptyRuntimeContext,
     })
 
     const releaseName = getReleaseName(service.module)
-    const status = await getReleaseStatus({
+    const releaseStatus = await getReleaseStatus({
       ctx,
       service,
       releaseName,
       log: garden.log,
+      devMode: false,
       hotReload: false,
     })
 
-    expect(status.state).to.equal("ready")
-    expect(status.detail["values"][".garden"]).to.eql({
+    expect(releaseStatus.state).to.equal("ready")
+    expect(releaseStatus.detail["values"][".garden"]).to.eql({
       moduleName: "api",
       projectName: garden.projectName,
       version: service.version,
     })
+    expect(status.namespaceStatuses).to.eql([
+      {
+        pluginName: "local-kubernetes",
+        namespaceName: "helm-test-default",
+        state: "ready",
+      },
+    ])
   })
 
   it("should deploy a chart with hotReload enabled", async () => {
@@ -76,7 +88,8 @@ describe("deployHelmService", () => {
       module: service.module,
       service,
       force: false,
-      hotReload: true,
+      devMode: false,
+      hotReload: true, // <----
       runtimeContext: emptyRuntimeContext,
     })
 
@@ -86,7 +99,8 @@ describe("deployHelmService", () => {
       service,
       releaseName,
       log: garden.log,
-      hotReload: true,
+      devMode: false,
+      hotReload: true, // <----
     })
 
     expect(status.state).to.equal("ready")
@@ -94,7 +108,41 @@ describe("deployHelmService", () => {
       moduleName: "api",
       projectName: garden.projectName,
       version: service.version,
-      hotReload: true,
+      hotReload: true, // <----
+    })
+  })
+
+  it("should deploy a chart with devMode enabled", async () => {
+    const graph = await garden.getConfigGraph(garden.log)
+    const service = graph.getService("api")
+
+    const releaseName = getReleaseName(service.module)
+    await deployHelmService({
+      ctx,
+      log: garden.log,
+      module: service.module,
+      service,
+      force: false,
+      devMode: true, // <-----
+      hotReload: false,
+      runtimeContext: emptyRuntimeContext,
+    })
+
+    const status = await getReleaseStatus({
+      ctx,
+      service,
+      releaseName,
+      log: garden.log,
+      devMode: true, // <-----
+      hotReload: false,
+    })
+
+    expect(status.state).to.equal("ready")
+    expect(status.detail["values"][".garden"]).to.eql({
+      moduleName: "api",
+      projectName: garden.projectName,
+      version: service.version,
+      devMode: true,
     })
   })
 
@@ -111,6 +159,7 @@ describe("deployHelmService", () => {
       module: service.module,
       service,
       force: false,
+      devMode: false,
       hotReload: false,
       runtimeContext: emptyRuntimeContext,
     })
@@ -121,6 +170,7 @@ describe("deployHelmService", () => {
       service,
       releaseName,
       log: garden.log,
+      devMode: false,
       hotReload: false,
     })
 

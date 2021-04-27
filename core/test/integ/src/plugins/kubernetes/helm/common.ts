@@ -104,6 +104,7 @@ describe("Helm common functions", () => {
       const templates = await renderTemplates({
         ctx,
         module,
+        devMode: false,
         hotReload: false,
         log,
         version: module.version.versionString,
@@ -193,6 +194,7 @@ describe("Helm common functions", () => {
       const templates = await renderTemplates({
         ctx,
         module,
+        devMode: false,
         hotReload: false,
         log,
         version: module.version.versionString,
@@ -214,6 +216,7 @@ describe("Helm common functions", () => {
       const resources = await getChartResources({
         ctx,
         module,
+        devMode: false,
         hotReload: false,
         log,
         version: module.version.versionString,
@@ -338,6 +341,7 @@ describe("Helm common functions", () => {
       const resources = await getChartResources({
         ctx,
         module,
+        devMode: false,
         hotReload: false,
         log,
         version: module.version.versionString,
@@ -353,8 +357,16 @@ describe("Helm common functions", () => {
 
     it("should handle duplicate keys in template", async () => {
       const module = graph.getModule("duplicate-keys-in-template")
-      expect(await getChartResources({ ctx, module, hotReload: false, log, version: module.version.versionString })).to
-        .not.throw
+      expect(
+        await getChartResources({
+          ctx,
+          module,
+          devMode: false,
+          hotReload: false,
+          log,
+          version: module.version.versionString,
+        })
+      ).to.not.throw
     })
 
     it("should filter out resources with hooks", async () => {
@@ -362,6 +374,7 @@ describe("Helm common functions", () => {
       const resources = await getChartResources({
         ctx,
         module,
+        devMode: false,
         hotReload: false,
         log,
         version: module.version.versionString,
@@ -472,14 +485,26 @@ describe("Helm common functions", () => {
       const module = graph.getModule("api")
       module.spec.valueFiles = []
       const gardenValuesPath = getGardenValuesPath(module.buildPath)
-      expect(await getValueArgs(module, false)).to.eql(["--values", gardenValuesPath])
+      expect(await getValueArgs(module, false, false)).to.eql(["--values", gardenValuesPath])
+    })
+
+    it("should add a --set flag if devMode=true", async () => {
+      const module = graph.getModule("api")
+      module.spec.valueFiles = []
+      const gardenValuesPath = getGardenValuesPath(module.buildPath)
+      expect(await getValueArgs(module, true, false)).to.eql([
+        "--values",
+        gardenValuesPath,
+        "--set",
+        "\\.garden.devMode=true",
+      ])
     })
 
     it("should add a --set flag if hotReload=true", async () => {
       const module = graph.getModule("api")
       module.spec.valueFiles = []
       const gardenValuesPath = getGardenValuesPath(module.buildPath)
-      expect(await getValueArgs(module, true)).to.eql([
+      expect(await getValueArgs(module, false, true)).to.eql([
         "--values",
         gardenValuesPath,
         "--set",
@@ -492,7 +517,7 @@ describe("Helm common functions", () => {
       module.spec.valueFiles = ["foo.yaml", "bar.yaml"]
       const gardenValuesPath = getGardenValuesPath(module.buildPath)
 
-      expect(await getValueArgs(module, false)).to.eql([
+      expect(await getValueArgs(module, false, false)).to.eql([
         "--values",
         resolve(module.buildPath, "foo.yaml"),
         "--values",

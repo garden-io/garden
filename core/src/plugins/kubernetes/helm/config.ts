@@ -37,6 +37,7 @@ import {
 import { posix } from "path"
 import { runPodSpecWhitelist } from "../run"
 import { omit } from "lodash"
+import { kubernetesDevModeSchema, KubernetesDevModeSpec } from "../dev-mode"
 
 export const defaultHelmTimeout = 300
 
@@ -53,6 +54,7 @@ export interface HelmServiceSpec {
   chart?: string
   chartPath: string
   dependencies: string[]
+  devMode?: KubernetesDevModeSpec
   namespace?: string
   releaseName?: string
   repo?: string
@@ -161,6 +163,7 @@ export const helmModuleSpecSchema = () =>
     dependencies: joiSparseArray(joiIdentifier()).description(
       "List of names of services that should be deployed before this chart."
     ),
+    devMode: kubernetesDevModeSchema(),
     namespace: namespaceNameSchema(),
     releaseName: joiIdentifier().description(
       "Optionally override the release name used when installing (defaults to the module name)."

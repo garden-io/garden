@@ -39,7 +39,8 @@ export interface TestTaskParams {
   test: GardenTest
   force: boolean
   forceBuild: boolean
-  hotReloadServiceNames?: string[]
+  devModeServiceNames: string[]
+  hotReloadServiceNames: string[]
 }
 
 @Profile()
@@ -49,14 +50,25 @@ export class TestTask extends BaseTask {
   private test: GardenTest
   private graph: ConfigGraph
   private forceBuild: boolean
+  private devModeServiceNames: string[]
   private hotReloadServiceNames: string[]
 
-  constructor({ garden, graph, log, test, force, forceBuild, hotReloadServiceNames = [] }: TestTaskParams) {
+  constructor({
+    garden,
+    graph,
+    log,
+    test,
+    force,
+    forceBuild,
+    devModeServiceNames,
+    hotReloadServiceNames,
+  }: TestTaskParams) {
     super({ garden, log, force, version: test.version })
     this.test = test
     this.graph = graph
     this.force = force
     this.forceBuild = forceBuild
+    this.devModeServiceNames = devModeServiceNames
     this.hotReloadServiceNames = hotReloadServiceNames
   }
 
@@ -71,7 +83,11 @@ export class TestTask extends BaseTask {
       nodeType: "test",
       name: this.getName(),
       recursive: false,
-      filter: (depNode) => !(depNode.type === "deploy" && includes(this.hotReloadServiceNames, depNode.name)),
+      filter: (depNode) =>
+        !(
+          depNode.type === "deploy" &&
+          includes([...this.devModeServiceNames, ...this.hotReloadServiceNames], depNode.name)
+        ),
     })
 
     const buildTasks = await BuildTask.factory({
@@ -90,6 +106,8 @@ export class TestTask extends BaseTask {
         graph: this.graph,
         force: this.force,
         forceBuild: this.forceBuild,
+        devModeServiceNames: this.devModeServiceNames,
+        hotReloadServiceNames: this.hotReloadServiceNames,
       })
     })
 
@@ -102,6 +120,8 @@ export class TestTask extends BaseTask {
           service,
           force: false,
           forceBuild: this.forceBuild,
+          devModeServiceNames: this.devModeServiceNames,
+          hotReloadServiceNames: this.hotReloadServiceNames,
         })
     )
 
@@ -209,6 +229,7 @@ export async function getTestTasks({
   graph,
   module,
   filterNames,
+  devModeServiceNames,
   hotReloadServiceNames,
   force = false,
   forceBuild = false,
@@ -218,7 +239,8 @@ export async function getTestTasks({
   graph: ConfigGraph
   module: GardenModule
   filterNames?: string[]
-  hotReloadServiceNames?: string[]
+  devModeServiceNames: string[]
+  hotReloadServiceNames: string[]
   force?: boolean
   forceBuild?: boolean
 }) {
@@ -239,7 +261,8 @@ export async function getTestTasks({
         log,
         force,
         forceBuild,
-        test: testFromConfig(module, testConfig),
+        test: testFromConfig(module, testConfig, graph),
+        devModeServiceNames,
         hotReloadServiceNames,
       })
   )

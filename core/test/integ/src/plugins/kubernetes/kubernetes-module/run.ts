@@ -38,6 +38,8 @@ describe("runKubernetesTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
 
     // Clear any existing task result
@@ -53,6 +55,7 @@ describe("runKubernetesTask", () => {
     expect(result!.output.log.trim()).to.equal("ok")
     expect(result!.output).to.have.property("outputs")
     expect(result!.output.outputs.log.trim()).to.equal("ok")
+    expect(result!.output.namespaceStatus).to.exist
 
     // Verify that the result was saved
     const actions = await garden.getActionRouter()
@@ -75,6 +78,8 @@ describe("runKubernetesTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
 
     // Clear any existing task result
@@ -104,6 +109,8 @@ describe("runKubernetesTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
 
     const key = testTask.getKey()
@@ -127,6 +134,8 @@ describe("runKubernetesTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
 
     await expectError(
@@ -156,6 +165,8 @@ describe("runKubernetesTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -176,6 +187,8 @@ describe("runKubernetesTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
       await emptyDir(garden.artifactsPath)
 
@@ -197,6 +210,8 @@ describe("runKubernetesTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)

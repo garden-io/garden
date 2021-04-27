@@ -13,7 +13,7 @@ import { runAndCopy } from "../run"
 import { KubernetesPluginContext } from "../config"
 import { TestModuleParams } from "../../../types/plugin/module/testModule"
 import { TestResult } from "../../../types/plugin/module/getTestResult"
-import { getModuleNamespace } from "../namespace"
+import { getModuleNamespaceStatus } from "../namespace"
 import { KubeApi } from "../api"
 import { getManifests } from "./common"
 import {
@@ -27,13 +27,14 @@ import {
 export async function testKubernetesModule(params: TestModuleParams<KubernetesModule>): Promise<TestResult> {
   const { ctx, log, module, test } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getModuleNamespace({
+  const namespaceStatus = await getModuleNamespaceStatus({
     ctx: k8sCtx,
     log,
     module,
     provider: k8sCtx.provider,
   })
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
+  const namespace = namespaceStatus.namespaceName
 
   // Get the container spec to use for running
   const manifests = await getManifests({ api, log, module, defaultNamespace: namespace })
@@ -69,6 +70,7 @@ export async function testKubernetesModule(params: TestModuleParams<KubernetesMo
     test,
     result: {
       testName,
+      namespaceStatus,
       ...result,
     },
   })

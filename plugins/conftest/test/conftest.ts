@@ -48,9 +48,11 @@ describe("conftest provider", () => {
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0]),
+        test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()
@@ -82,9 +84,11 @@ describe("conftest provider", () => {
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0]),
+        test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()
@@ -107,9 +111,11 @@ describe("conftest provider", () => {
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0]),
+        test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()
@@ -135,9 +141,11 @@ describe("conftest provider", () => {
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0]),
+        test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()

@@ -147,6 +147,8 @@ describe("DeployTask", () => {
         forceBuild: false,
         fromWatch: false,
         log: garden.log,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       expect((await forcedDeployTask.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
@@ -159,6 +161,8 @@ describe("DeployTask", () => {
         forceBuild: false,
         fromWatch: false,
         log: garden.log,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       expect((await unforcedDeployTask.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
@@ -171,6 +175,8 @@ describe("DeployTask", () => {
         forceBuild: false,
         fromWatch: true,
         log: garden.log,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       expect((await deployTaskFromWatch.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
@@ -188,6 +194,8 @@ describe("DeployTask", () => {
         force: true,
         forceBuild: false,
         log: garden.log,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const result = await garden.processTasks([deployTask], { throwOnError: true })

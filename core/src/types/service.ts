@@ -23,6 +23,7 @@ import dedent = require("dedent")
 import { uniq } from "lodash"
 import { ConfigGraph } from "../config-graph"
 import { getEntityVersion } from "../vcs/vcs"
+import { NamespaceStatus, namespaceStatusesSchema } from "./plugin/base"
 
 export interface GardenService<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule> {
   name: string
@@ -179,6 +180,7 @@ const forwardablePortSchema = () => joi.object().keys(forwardablePortKeys())
 export interface ServiceStatus<T = {}> {
   createdAt?: string
   detail: T
+  namespaceStatuses?: NamespaceStatus[]
   externalId?: string
   externalVersion?: string
   forwardablePorts?: ForwardablePort[]
@@ -200,6 +202,7 @@ export const serviceStatusSchema = () =>
   joi.object().keys({
     createdAt: joi.string().description("When the service was first deployed by the provider."),
     detail: joi.object().meta({ extendable: true }).description("Additional detail, specific to the provider."),
+    namespaceStatuses: namespaceStatusesSchema().optional(),
     externalId: joi
       .string()
       .description("The ID used for the service by the provider (if not the same as the service name)."),

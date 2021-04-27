@@ -186,9 +186,11 @@ describe("hadolint provider", () => {
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0]),
+        test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()
@@ -248,9 +250,11 @@ describe("hadolint provider", () => {
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0]),
+        test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()
@@ -305,9 +309,11 @@ describe("hadolint provider", () => {
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0]),
+        test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()
@@ -356,9 +362,11 @@ describe("hadolint provider", () => {
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0]),
+        test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()
@@ -397,9 +405,11 @@ describe("hadolint provider", () => {
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0]),
+        test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()
@@ -439,11 +449,13 @@ describe("hadolint provider", () => {
 
       const testTask = new TestTask({
         garden,
-        test: testFromConfig(module, module.testConfigs[0]),
+        test: testFromConfig(module, module.testConfigs[0], graph),
         log: garden.log,
         graph,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()

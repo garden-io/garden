@@ -244,6 +244,8 @@ describe("exec plugin", () => {
       log: _garden.log,
       force: false,
       forceBuild: false,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
     const results = await _garden.processTasks([taskTask])
 
@@ -267,6 +269,8 @@ describe("exec plugin", () => {
       log: _garden.log,
       force: false,
       forceBuild: false,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
 
     await emptyDir(_garden.artifactsPath)
@@ -288,6 +292,8 @@ describe("exec plugin", () => {
       log: _garden.log,
       force: false,
       forceBuild: false,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
 
     await emptyDir(_garden.artifactsPath)
@@ -367,15 +373,19 @@ describe("exec plugin", () => {
           dependencies: [],
         },
         silent: false,
-        test: testFromConfig(module, {
-          name: "test",
-          dependencies: [],
-          disabled: false,
-          timeout: 1234,
-          spec: {
-            command: ["pwd"],
+        test: testFromConfig(
+          module,
+          {
+            name: "test",
+            dependencies: [],
+            disabled: false,
+            timeout: 1234,
+            spec: {
+              command: ["pwd"],
+            },
           },
-        }),
+          graph
+        ),
       })
       expect(res.log).to.eql(join(projectRoot, "module-local"))
     })
@@ -392,15 +402,19 @@ describe("exec plugin", () => {
           dependencies: [],
         },
         silent: false,
-        test: testFromConfig(module, {
-          name: "test",
-          dependencies: [],
-          disabled: false,
-          timeout: 1234,
-          spec: {
-            command: ["echo", "$GARDEN_MODULE_VERSION"],
+        test: testFromConfig(
+          module,
+          {
+            name: "test",
+            dependencies: [],
+            disabled: false,
+            timeout: 1234,
+            spec: {
+              command: ["echo", "$GARDEN_MODULE_VERSION"],
+            },
           },
-        }),
+          graph
+        ),
       })
       expect(res.log).to.equal(module.version.versionString)
     })

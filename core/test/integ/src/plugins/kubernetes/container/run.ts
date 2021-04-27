@@ -47,6 +47,8 @@ describe("runContainerTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
 
     const ctx = await garden.getPluginContext(provider)
@@ -59,6 +61,7 @@ describe("runContainerTask", () => {
     expect(result!.output.log.trim()).to.equal("ok")
     expect(result!.output).to.have.property("outputs")
     expect(result!.output.outputs.log.trim()).to.equal("ok")
+    expect(result!.output.namespaceStatus).to.exist
 
     // Verify that the result was saved
     const actions = await garden.getActionRouter()
@@ -81,6 +84,8 @@ describe("runContainerTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
 
     const ctx = await garden.getPluginContext(provider)
@@ -109,6 +114,8 @@ describe("runContainerTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
 
     const ctx = await garden.getPluginContext(provider)
@@ -140,6 +147,8 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -160,6 +169,8 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
       await emptyDir(garden.artifactsPath)
 
@@ -181,6 +192,8 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -201,6 +214,8 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const result = await garden.processTasks([testTask])
@@ -226,6 +241,8 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const result = await garden.processTasks([testTask])
