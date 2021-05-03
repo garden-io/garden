@@ -38,7 +38,7 @@ import { ArtifactSpec } from "../../config/validation"
 import { V1Toleration } from "@kubernetes/client-node"
 import { runPodSpecWhitelist } from "./run"
 
-export const DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:debug-v1.2.0"
+export const DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:v1.6.0-debug"
 export interface ProviderSecretRef {
   name: string
   namespace: string
@@ -116,6 +116,8 @@ export interface KubernetesConfig extends GenericProviderConfig {
   kaniko?: {
     image?: string
     extraFlags?: string[]
+    namespace?: string | null
+    nodeSelector?: StringMap
   }
   context: string
   defaultHostname?: string
@@ -150,7 +152,7 @@ export const defaultResources: KubernetesResources = {
       memory: 8192,
     },
     requests: {
-      cpu: 200,
+      cpu: 100,
       memory: 512,
     },
   },
@@ -362,17 +364,34 @@ export const kubernetesConfigBase = () =>
     kaniko: joi
       .object()
       .keys({
+        extraFlags: joi
+          .array()
+          .items(joi.string())
+          .description(
+            `Specify extra flags to use when building the container image with kaniko. Flags set on \`container\` modules take precedence over these.`
+          ),
         image: joi
           .string()
           .default(DEFAULT_KANIKO_IMAGE)
+          .description(`Change the kaniko image (repository/image:tag) to use when building in kaniko mode.`),
+        namespace: joi
+          .string()
+          .allow(null)
+          .default(defaultSystemNamespace)
           .description(
-            deline`
-            Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
-          `
+            dedent`
+              Choose the namespace where the Kaniko pods will be run. Set to \`null\` to use the project namespace.
+
+              **IMPORTANT: The default namespace will change to the project namespace instead of the garden-system namespace in an upcoming release!**
+            `
           ),
-        extraFlags: joi.array().items(joi.string()).description(deline`
-        Specify extra flags to use when building the container image with kaniko.
-        Flags set on container module take precedence over these.`),
+        nodeSelector: joiStringMap(joi.string()).description(
+          dedent`
+            Exposes the \`nodeSelector\` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes.
+
+            [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
+          `
+        ),
       })
       .default(() => {})
       .description("Configuration options for the `kaniko` build mode."),

@@ -44,7 +44,7 @@ name: your-project
       - name: kubernetes
         context: <name-of-your-gke-kubernetes-context>
         defaultHostname: your-project.yourdomain.com     # <- replace this with your intended ingress hostname
-        buildMode: cluster-docker                        # <- (optional) enable in-cluster building
+        buildMode: kaniko                                # <- (optional) enable in-cluster building
         setupIngressController: nginx                    # <- skip this if you want to install your own ingress controller
 ```
 
@@ -98,7 +98,7 @@ environments:
       - name: kubernetes
         context: <name-of-your-azure-kubernetes-context>
         defaultHostname: your-project.yourdomain.com     # <- replace this with your intended ingress hostname
-        buildMode: cluster-docker                        # <- (optional) enable in-cluster building
+        buildMode: kaniko                              # <- (optional) enable in-cluster building
         setupIngressController: nginx                    # <- skip this if you want to install your own ingress controller
   - name: some-other-environment
     ...
@@ -133,7 +133,7 @@ environments:
       - name: kubernetes
         context: <name-of-your-eks-kubernetes-context>
         defaultHostname: your-project.yourdomain.com     # <- replace this with your intended ingress hostname
-        buildMode: cluster-docker                        # <- (optional) enable in-cluster building
+        buildMode: kaniko                                # <- (optional) enable in-cluster building
         setupIngressController: nginx                    # <- skip this if you want to install your own ingress controller
   - name: some-other-environment
     ...
@@ -172,7 +172,7 @@ environments:
       - name: kubernetes
         context: <name-of-your-kops-kubernetes-context>
         defaultHostname: your-project.yourdomain.com     # <- replace this with your intended ingress hostname
-        buildMode: cluster-docker                        # <- (optional) enable in-cluster building
+        buildMode: kaniko                                # <- (optional) enable in-cluster building
         setupIngressController: nginx                    # <- skip this if you want to install your own ingress controller
     ...
 ```

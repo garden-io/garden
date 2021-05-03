@@ -72,10 +72,6 @@ export async function configureProvider({
 
   // TODO: clean this up, this is getting confusing here
   if (buildMode !== "local-docker") {
-    if (buildMode !== "cluster-buildkit") {
-      config._systemServices.push("build-sync", "util")
-    }
-
     const usingInClusterRegistry =
       !config.deploymentRegistry || config.deploymentRegistry.hostname === inClusterRegistryHostname
 
@@ -92,20 +88,16 @@ export async function configureProvider({
       config._systemServices.push("docker-registry", "registry-proxy")
     }
 
-    if (buildMode !== "cluster-buildkit" && (!usingInClusterRegistry || buildMode === "kaniko")) {
-      // If using an external registry and kaniko or cluster-docker, we need the util service
-      // Also the kaniko buildMode needs the util service even if using an in-cluster registry
-      config._systemServices.push("util")
-    }
-
     if (buildMode === "cluster-docker") {
-      config._systemServices.push("docker-daemon")
+      config._systemServices.push("build-sync", "util", "docker-daemon")
+
+      // Set up an NFS provisioner if the user doesn't explicitly set a storage class for the shared sync volume
+      if (!config.storage.sync.storageClass) {
+        config._systemServices.push("nfs-provisioner")
+      }
     }
 
-    // Set up an NFS provisioner if not using cluster-buildkit, and the user doesn't explicitly set a storage class for
-    // the shared sync volume
     if (buildMode !== "cluster-buildkit" && !config.storage.sync.storageClass) {
-      config._systemServices.push("nfs-provisioner")
     }
   } else if (config.name !== "local-kubernetes" && !config.deploymentRegistry) {
     throw new ConfigurationError(`kubernetes: must specify deploymentRegistry in config if using local build mode`, {

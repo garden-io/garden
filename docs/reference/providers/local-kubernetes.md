@@ -61,12 +61,25 @@ providers:
 
     # Configuration options for the `kaniko` build mode.
     kaniko:
-      # Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
-      image: 'gcr.io/kaniko-project/executor:debug-v1.2.0'
-
-      # Specify extra flags to use when building the container image with kaniko. Flags set on container module take
-      # precedence over these.
+      # Specify extra flags to use when building the container image with kaniko. Flags set on `container` modules
+      # take precedence over these.
       extraFlags:
+
+      # Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
+      image: 'gcr.io/kaniko-project/executor:v1.6.0-debug'
+
+      # Choose the namespace where the Kaniko pods will be run. Set to `null` to use the project namespace.
+      #
+      # **IMPORTANT: The default namespace will change to the project namespace instead of the garden-system namespace
+      # in an upcoming release!**
+      namespace: garden-system
+
+      # Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko
+      # pods to only run on particular nodes.
+      #
+      # [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes
+      # guide to assigning Pods to nodes.
+      nodeSelector:
 
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
@@ -116,7 +129,7 @@ providers:
 
         requests:
           # CPU request in millicpu.
-          cpu: 200
+          cpu: 100
 
           # Memory request in megabytes.
           memory: 512
@@ -444,6 +457,16 @@ Configuration options for the `kaniko` build mode.
 | -------- | -------- |
 | `object` | No       |
 
+### `providers[].kaniko.extraFlags[]`
+
+[providers](#providers) > [kaniko](#providerskaniko) > extraFlags
+
+Specify extra flags to use when building the container image with kaniko. Flags set on `container` modules take precedence over these.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
 ### `providers[].kaniko.image`
 
 [providers](#providers) > [kaniko](#providerskaniko) > image
@@ -452,17 +475,31 @@ Change the kaniko image (repository/image:tag) to use when building in kaniko mo
 
 | Type     | Default                                         | Required |
 | -------- | ----------------------------------------------- | -------- |
-| `string` | `"gcr.io/kaniko-project/executor:debug-v1.2.0"` | No       |
+| `string` | `"gcr.io/kaniko-project/executor:v1.6.0-debug"` | No       |
 
-### `providers[].kaniko.extraFlags[]`
+### `providers[].kaniko.namespace`
 
-[providers](#providers) > [kaniko](#providerskaniko) > extraFlags
+[providers](#providers) > [kaniko](#providerskaniko) > namespace
 
-Specify extra flags to use when building the container image with kaniko. Flags set on container module take precedence over these.
+Choose the namespace where the Kaniko pods will be run. Set to `null` to use the project namespace.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+**IMPORTANT: The default namespace will change to the project namespace instead of the garden-system namespace in an upcoming release!**
+
+| Type     | Default           | Required |
+| -------- | ----------------- | -------- |
+| `string` | `"garden-system"` | No       |
+
+### `providers[].kaniko.nodeSelector`
+
+[providers](#providers) > [kaniko](#providerskaniko) > nodeSelector
+
+Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes.
+
+[See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
 ### `providers[].defaultHostname`
 
@@ -552,7 +589,7 @@ Resource requests and limits for the in-cluster builder, container registry and 
 
 | Type     | Default                                                                                                                                                                                                                                                    | Required |
 | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| `object` | `{"builder":{"limits":{"cpu":4000,"memory":8192},"requests":{"cpu":200,"memory":512}},"registry":{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}},"sync":{"limits":{"cpu":500,"memory":512},"requests":{"cpu":100,"memory":90}}}` | No       |
+| `object` | `{"builder":{"limits":{"cpu":4000,"memory":8192},"requests":{"cpu":100,"memory":512}},"registry":{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}},"sync":{"limits":{"cpu":500,"memory":512},"requests":{"cpu":100,"memory":90}}}` | No       |
 
 ### `providers[].resources.builder`
 
@@ -568,7 +605,7 @@ When `buildMode` is `cluster-docker`, this applies to the single Docker Daemon t
 
 | Type     | Default                                                                     | Required |
 | -------- | --------------------------------------------------------------------------- | -------- |
-| `object` | `{"limits":{"cpu":4000,"memory":8192},"requests":{"cpu":200,"memory":512}}` | No       |
+| `object` | `{"limits":{"cpu":4000,"memory":8192},"requests":{"cpu":100,"memory":512}}` | No       |
 
 ### `providers[].resources.builder.limits`
 
@@ -630,7 +667,7 @@ providers:
 
 | Type     | Default                    | Required |
 | -------- | -------------------------- | -------- |
-| `object` | `{"cpu":200,"memory":512}` | No       |
+| `object` | `{"cpu":100,"memory":512}` | No       |
 
 ### `providers[].resources.builder.requests.cpu`
 
@@ -640,7 +677,7 @@ CPU request in millicpu.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `200`   | No       |
+| `number` | `100`   | No       |
 
 Example:
 
@@ -652,7 +689,7 @@ providers:
         ...
         requests:
           ...
-          cpu: 200
+          cpu: 100
 ```
 
 ### `providers[].resources.builder.requests.memory`

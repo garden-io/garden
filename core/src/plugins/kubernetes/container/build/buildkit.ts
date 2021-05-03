@@ -9,22 +9,25 @@
 import AsyncLock from "async-lock"
 import chalk from "chalk"
 import split2 = require("split2")
-import { cloneDeep, isEmpty } from "lodash"
-import {
-  buildSyncVolumeName,
-  dockerAuthSecretKey,
-  inClusterRegistryHostname,
-  k8sUtilImageName,
-  rsyncPortName,
-} from "../../constants"
+import { isEmpty } from "lodash"
+import { buildSyncVolumeName, dockerAuthSecretKey, inClusterRegistryHostname } from "../../constants"
 import { KubeApi } from "../../api"
 import { KubernetesDeployment } from "../../types"
 import { LogEntry } from "../../../../logger/log-entry"
 import { waitForResources, compareDeployedResources } from "../../status/status"
 import { KubernetesProvider, KubernetesPluginContext } from "../../config"
 import { PluginContext } from "../../../../plugin-context"
-import { prepareDockerAuth } from "../../init"
-import { BuildStatusHandler, skopeoBuildStatus, BuildHandler, syncToBuildSync, getSocatContainer } from "./common"
+import {
+  BuildStatusHandler,
+  skopeoBuildStatus,
+  BuildHandler,
+  syncToBuildSync,
+  getSocatContainer,
+  getUtilContainer,
+  utilRsyncPort,
+  ensureBuilderSecret,
+  builderToleration,
+} from "./common"
 import { getNamespaceStatus } from "../../namespace"
 import { containerHelpers } from "../../../container/helpers"
 import { LogLevel } from "../../../../logger/log-node"
@@ -33,13 +36,10 @@ import { ContainerModule } from "../../../container/config"
 import { getDockerBuildArgs } from "../../../container/build"
 import { getDeploymentPod, millicpuToString, megabytesToString } from "../../util"
 import { PodRunner } from "../../run"
-import { V1Container } from "@kubernetes/client-node"
 
 export const buildkitImageName = "gardendev/buildkit:v0.8.1-4"
 export const buildkitDeploymentName = "garden-buildkit"
-export const buildkitAuthSecretName = "garden-docker-auth"
 const buildkitContainerName = "buildkitd"
-const utilRsyncPort = 8730
 
 const deployLock = new AsyncLock()
 
@@ -51,7 +51,7 @@ export const getBuildkitBuildStatus: BuildStatusHandler = async (params) => {
   const api = await KubeApi.factory(log, ctx, provider)
   const namespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
 
-  await ensureBuildkit({
+  const { authSecret } = await ensureBuildkit({
     ctx,
     provider,
     log,
@@ -62,7 +62,7 @@ export const getBuildkitBuildStatus: BuildStatusHandler = async (params) => {
   return skopeoBuildStatus({
     namespace,
     deploymentName: buildkitDeploymentName,
-    containerName: utilContainer.name,
+    containerName: getUtilContainer(authSecret.metadata.name).name,
     log,
     api,
     ctx,
@@ -190,23 +190,27 @@ export async function ensureBuildkit({
   api: KubeApi
   namespace: string
 }) {
-  return deployLock.acquire("deploy", async () => {
+  return deployLock.acquire(namespace, async () => {
     const deployLog = log.placeholder()
 
-    // Check status of the buildkit deployment
-    const manifest = getBuildkitDeployment(provider)
-    const status = await compareDeployedResources(ctx as KubernetesPluginContext, api, namespace, [manifest], deployLog)
-
-    await ensureBuilderSecret({
+    // Make sure auth secret is in place
+    const { authSecret, updated: secretUpdated } = await ensureBuilderSecret({
       provider,
       log,
       api,
       namespace,
-      waitForUpdate: status.state === "ready",
     })
 
+    // Check status of the buildkit deployment
+    const manifest = getBuildkitDeployment(provider, authSecret.metadata.name)
+    const status = await compareDeployedResources(ctx as KubernetesPluginContext, api, namespace, [manifest], deployLog)
+
     if (status.state === "ready") {
-      return false
+      // Need to wait a little to ensure the secret is updated in the deployment
+      if (secretUpdated) {
+        await sleep(1000)
+      }
+      return { authSecret, updated: false }
     }
 
     // Deploy the buildkit daemon
@@ -227,36 +231,9 @@ export async function ensureBuildkit({
     })
 
     deployLog.setState({ append: true, msg: "Done!" })
-    return true
+
+    return { authSecret, updated: true }
   })
-}
-
-export async function ensureBuilderSecret({
-  provider,
-  log,
-  api,
-  namespace,
-  waitForUpdate,
-}: {
-  provider: KubernetesProvider
-  log: LogEntry
-  api: KubeApi
-  namespace: string
-  waitForUpdate: boolean
-}) {
-  // Ensure docker auth secret is available and up-to-date in the namespace
-  const authSecret = await prepareDockerAuth(api, provider, namespace)
-  authSecret.metadata.name = buildkitAuthSecretName
-  const existingSecret = await api.readOrNull({ log, namespace, manifest: authSecret })
-
-  if (!existingSecret || authSecret.data?.[dockerAuthSecretKey] !== existingSecret.data?.[dockerAuthSecretKey]) {
-    log.setState(chalk.gray(`-> Updating Docker auth secret in namespace ${namespace}`))
-    await api.upsert({ kind: "Secret", namespace, log, obj: authSecret })
-    // Need to wait a little to ensure the secret is updated in the buildkit deployment
-    if (waitForUpdate) {
-      await sleep(5)
-    }
-  }
 }
 
 export function getBuildkitFlags(module: ContainerModule) {
@@ -275,8 +252,97 @@ export function getBuildkitFlags(module: ContainerModule) {
   return args
 }
 
-export function getBuildkitDeployment(provider: KubernetesProvider) {
-  const deployment = cloneDeep(baseBuildkitDeployment)
+export function getBuildkitDeployment(provider: KubernetesProvider, authSecretName: string) {
+  const deployment: KubernetesDeployment = {
+    apiVersion: "apps/v1",
+    kind: "Deployment",
+    metadata: {
+      labels: {
+        app: buildkitDeploymentName,
+      },
+      name: buildkitDeploymentName,
+    },
+    spec: {
+      replicas: 1,
+      selector: {
+        matchLabels: {
+          app: buildkitDeploymentName,
+        },
+      },
+      template: {
+        metadata: {
+          labels: {
+            app: buildkitDeploymentName,
+          },
+        },
+        spec: {
+          containers: [
+            {
+              name: buildkitContainerName,
+              image: buildkitImageName,
+              args: ["--addr", "unix:///run/buildkit/buildkitd.sock"],
+              readinessProbe: {
+                exec: {
+                  command: ["buildctl", "debug", "workers"],
+                },
+                initialDelaySeconds: 3,
+                periodSeconds: 5,
+              },
+              livenessProbe: {
+                exec: {
+                  command: ["buildctl", "debug", "workers"],
+                },
+                initialDelaySeconds: 5,
+                periodSeconds: 30,
+              },
+              securityContext: {
+                privileged: true,
+              },
+              volumeMounts: [
+                {
+                  name: authSecretName,
+                  mountPath: "/.docker",
+                  readOnly: true,
+                },
+                {
+                  name: buildSyncVolumeName,
+                  mountPath: "/garden-build",
+                },
+              ],
+              env: [
+                {
+                  name: "DOCKER_CONFIG",
+                  value: "/.docker",
+                },
+              ],
+            },
+            // Attach a util container for the rsync server and to use skopeo
+            getUtilContainer(authSecretName),
+          ],
+          volumes: [
+            {
+              name: authSecretName,
+              secret: {
+                secretName: authSecretName,
+                items: [
+                  {
+                    key: dockerAuthSecretKey,
+                    path: "config.json",
+                  },
+                ],
+              },
+            },
+            {
+              name: buildSyncVolumeName,
+              emptyDir: {},
+            },
+          ],
+          tolerations: [builderToleration],
+        },
+      },
+    },
+  }
+
   const buildkitContainer = deployment.spec!.template.spec!.containers[0]
 
   // Optionally run buildkit in rootless mode
@@ -319,154 +385,4 @@ export function getBuildkitDeployment(provider: KubernetesProvider) {
   }
 
   return deployment
-}
-
-const utilContainer: V1Container = {
-  name: "util",
-  image: k8sUtilImageName,
-  imagePullPolicy: "IfNotPresent",
-  command: ["/rsync-server.sh"],
-  env: [
-    // This makes sure the server is accessible on any IP address, because CIDRs can be different across clusters.
-    // K8s can be trusted to secure the port. - JE
-    { name: "ALLOW", value: "0.0.0.0/0" },
-    {
-      name: "RSYNC_PORT",
-      value: "" + utilRsyncPort,
-    },
-  ],
-  volumeMounts: [
-    {
-      name: buildkitAuthSecretName,
-      mountPath: "/home/user/.docker",
-      readOnly: true,
-    },
-    {
-      name: buildSyncVolumeName,
-      mountPath: "/data",
-    },
-  ],
-  ports: [
-    {
-      name: rsyncPortName,
-      protocol: "TCP",
-      containerPort: utilRsyncPort,
-    },
-  ],
-  readinessProbe: {
-    initialDelaySeconds: 1,
-    periodSeconds: 1,
-    timeoutSeconds: 3,
-    successThreshold: 2,
-    failureThreshold: 5,
-    tcpSocket: { port: <object>(<unknown>rsyncPortName) },
-  },
-  resources: {
-    // This should be ample
-    limits: {
-      cpu: "256m",
-      memory: "512Mi",
-    },
-  },
-  securityContext: {
-    runAsUser: 1000,
-    runAsGroup: 1000,
-  },
-}
-
-const baseBuildkitDeployment: KubernetesDeployment = {
-  apiVersion: "apps/v1",
-  kind: "Deployment",
-  metadata: {
-    labels: {
-      app: buildkitDeploymentName,
-    },
-    name: buildkitDeploymentName,
-  },
-  spec: {
-    replicas: 1,
-    selector: {
-      matchLabels: {
-        app: buildkitDeploymentName,
-      },
-    },
-    template: {
-      metadata: {
-        labels: {
-          app: buildkitDeploymentName,
-        },
-      },
-      spec: {
-        containers: [
-          {
-            name: buildkitContainerName,
-            image: buildkitImageName,
-            args: ["--addr", "unix:///run/buildkit/buildkitd.sock"],
-            readinessProbe: {
-              exec: {
-                command: ["buildctl", "debug", "workers"],
-              },
-              initialDelaySeconds: 3,
-              periodSeconds: 5,
-            },
-            livenessProbe: {
-              exec: {
-                command: ["buildctl", "debug", "workers"],
-              },
-              initialDelaySeconds: 5,
-              periodSeconds: 30,
-            },
-            securityContext: {
-              privileged: true,
-            },
-            volumeMounts: [
-              {
-                name: buildkitAuthSecretName,
-                mountPath: "/.docker",
-                readOnly: true,
-              },
-              {
-                name: buildSyncVolumeName,
-                mountPath: "/garden-build",
-              },
-            ],
-            env: [
-              {
-                name: "DOCKER_CONFIG",
-                value: "/.docker",
-              },
-            ],
-          },
-          // Attach a util container for the rsync server and to use skopeo
-          utilContainer,
-        ],
-        volumes: [
-          {
-            name: buildkitAuthSecretName,
-            secret: {
-              secretName: buildkitAuthSecretName,
-              items: [
-                {
-                  key: dockerAuthSecretKey,
-                  path: "config.json",
-                },
-              ],
-            },
-          },
-          {
-            name: buildSyncVolumeName,
-            emptyDir: {},
-          },
-        ],
-        tolerations: [
-          {
-            key: "garden-build",
-            operator: "Equal",
-            value: "true",
-            effect: "NoSchedule",
-          },
-        ],
-      },
-    },
-  },
 }

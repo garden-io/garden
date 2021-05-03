@@ -8,6 +8,7 @@ environments:
   - name: cluster-docker-auth
   - name: cluster-docker-remote-registry
   - name: kaniko
+  - name: kaniko-project-namespace
   - name: kaniko-image-override
   - name: kaniko-remote-registry
   - name: cluster-buildkit
@@ -41,6 +42,11 @@ providers:
   - <<: *clusterDocker
     environments: [kaniko]
     buildMode: kaniko
+  - <<: *clusterDocker
+    environments: [kaniko-project-namespace]
+    buildMode: kaniko
+    kaniko:
+      namespace: null
   - <<: *clusterDocker
     environments: [kaniko-remote-registry]
     buildMode: kaniko

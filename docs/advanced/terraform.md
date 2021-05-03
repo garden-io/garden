@@ -47,7 +47,7 @@ providers:
     kubeconfig: ${providers.terraform.outputs.kubeconfig_path}
     context: gke
     defaultHostname: terraform-gke-${local.username}.dev-2.sys.garden
-    buildMode: cluster-docker
+    buildMode: kaniko
 ```
 
 The `initRoot` parameter tells Garden that there is a Terraform working directory at the specified path. If you don't specify this, Garden doesn't attempt to apply a stack when initializing the provider.

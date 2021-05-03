@@ -9,6 +9,37 @@ to set it up.
 
 This guide assumes you've already read through the [Remote Kubernetes](./remote-kubernetes.md) guide.
 
+## tl;dr
+
+If in doubt, use the following setup for builds:
+
+- [**`kaniko`**](#kaniko) build mode, which works well for most scenarios.
+- Use the project namespace for build pods.
+- [Connect a remote deployment registry](#Configuring-a-deployment-registry) to use for built images. _Note: You can also skip this and use the included in-cluster registry while testing, but be aware that you may hit scaling issues as you go._
+
+Here's a basic configuration example:
+
+```yaml
+kind: Project
+name: my-project
+...
+providers:
+  - name: kubernetes
+    # Use the kaniko build mode
+    buildMode: kaniko
+    kaniko:
+      namespace: null  # <--- use the project namespace for builds
+    # Recommended: Configure a remote registry
+    deploymentRegistry:
+      hostname: my-private-registry.com      # <--- the hostname of your registry
+      namespace: my-project                  # <--- the namespace to use within your registry
+    imagePullSecrets:
+      - name: my-deployment-registry-secret  # <--- the name and namespace of a valid Kubernetes imagePullSecret
+        namespace: default
+```
+
+The only tricky bit would be connecting the remote registry, so we suggest reading more about that [below](#Configuring-a-deployment-registry).
+
 ## Security considerations
 
 First off, you should only use in-cluster building in development and testing clusters! Production clusters should not run the builder services for multiple reasons, both to do with resource and security concerns.
@@ -23,7 +54,7 @@ The specific requirements vary by the [_build mode_](#build-modes) used, and whe
 
 In all cases you'll need at least 2GB of RAM _on top of your own service requirements_. More RAM is strongly recommended if you have many concurrent developers or CI builds.
 
-For the [`cluster-docker`](#cluster-docker) and [`kaniko`](#kaniko) modes, and the (optional) in-cluster image registry, support for `PersistentVolumeClaim`s is required, with enough disk space for layer caches and built images. The in-cluster registry also requires support for `hostPort`, and for reaching `hostPort`s from the node/Kubelet. This should work out-of-the-box in most standard setups, but clusters using Cilium for networking may need to configure this specifically, for example.
+For the [`cluster-docker`](#cluster-docker) mode, and the (optional) in-cluster image registry, support for `PersistentVolumeClaim`s is required, with enough disk space for layer caches and built images. The in-cluster registry also requires support for `hostPort`, and for reaching `hostPort`s from the node/Kubelet. This should work out-of-the-box in most standard setups, but clusters using Cilium for networking may need to configure this specifically, for example.
 
 You can—_and should_—adjust the allocated resources and storage in the provider configuration, under
 [resources](../reference/providers/kubernetes.md#providersresources) and
@@ -36,8 +67,8 @@ We also strongly recommend a separate image registry to use for built images. Ga
 
 Garden supports multiple methods for building images and making them available to the cluster:
 
-1. [**`kaniko`**](#kaniko) — Individual [Kaniko](https://github.com/GoogleContainerTools/kaniko) pods created for each build in the `garden-system` namespace.
-2. [**`cluster-buildkit`**](#cluster-buildkit) _(experimental)_— A [BuildKit](https://github.com/moby/buildkit) deployment created for each project namespace.
+1. [**`kaniko`**](#kaniko) — Individual [Kaniko](https://github.com/GoogleContainerTools/kaniko) pods created for each build.
+2. [**`cluster-buildkit`**](#cluster-buildkit) — A [BuildKit](https://github.com/moby/buildkit) deployment created for each project namespace.
 3. [**`cluster-docker`**](#cluster-docker) — A single Docker daemon installed in the `garden-system` namespace and shared between users/deployments.
 4. `local-docker` — Build using the local Docker daemon on the developer/CI machine before pushing to the cluster/registry.
 
@@ -47,9 +78,11 @@ The other modes—which are why you're reading this guide—all build your image
 
 The remote building options each have some pros and cons. You'll find more details below but **here are our general recommendations** at the moment:
 
-- [**`kaniko`**](#kaniko) is a solid choice for most cases and is _currently our first recommendation_. It is battle-tested among Garden's most demanding users (including the Garden team itself). It also scales horizontally, since individual Pods are created for each build.
-- [**`cluster-buildkit`**](#cluster-buildkit) is a new addition and is for now considered experimental, **but** we are hoping to make that the default in the future. Unlike the other options, which deploy cluster-wide services in the `garden-system` namespace, a [BuildKit](https://github.com/moby/buildkit) Deployment is dynamically created in each project namespace and requires no other cluster-wide services. This mode also offers a _rootless_ option, which runs without any elevated privileges, in clusters that support it.
-- [**`cluster-docker`**](#cluster-docker) was the first implementation included with Garden. It's pretty quick and efficient for small team setups, but relies on a single Docker daemon for all users of a cluster, and also requires supporting services in `garden-system` and some operations to keep it from filling its data volume. It is *no longer recommended* and we may deprecate it in future releases.
+- [**`kaniko`**](#kaniko) is a solid choice for most cases and is _currently our first recommendation_. It is battle-tested among Garden's most demanding users (including the Garden team itself). It also scales horizontally and elastically, since individual Pods are created for each build. It doesn't require priviliged containers to run and requires no shared cluster-wide services.
+- [**`cluster-buildkit`**](#cluster-buildkit) is a new addition and is meant to replace the `cluster-docker` mode. Unlike the `cluster-docker` mode, which deploys cluster-wide services in the `garden-system` namespace, a [BuildKit](https://github.com/moby/buildkit) Deployment is dynamically created in each project namespace and much like Kaniko requires no other cluster-wide services. This mode also offers a _rootless_ option, which runs without any elevated privileges, in clusters that support it.
+- [**`cluster-docker`**](#cluster-docker) was the first implementation included with Garden. It's pretty quick and efficient for small team setups, but relies on a single Docker daemon for all users of a cluster, and also requires supporting services in `garden-system` and some operations to keep it from filling its data volume. It is **no longer recommended** and we may remove it in future releases.
+
+Generally we recommend picking either `kaniko` or `cluster-buildkit`, based on your usage patterns and scalability requirements. For ephemeral namespaces, `kaniko` is generally the better option, since the persistent BuildKit deployment won't have a warm cache anyway. For long-lived namespaces, like the ones a developer uses while working, `cluster-buildkit` may be a more performant option.
 
 Let's look at how each mode works in more detail, and how you configure them:
 
@@ -57,25 +90,23 @@ Let's look at how each mode works in more detail, and how you configure them:
 
 This mode uses an individual [Kaniko](https://github.com/GoogleContainerTools/kaniko) Pod for each image build.
 
-The Kaniko project provides a compelling alternative to the standard Docker daemon because it can run without special privileges on the cluster, and is thus more secure. It may also scale better because it doesn't rely on a single daemon shared across users, so builds are executed in individual Pods and don't share the same resources of a single Pod. This also removes the need to provision another persistent volume, which the Docker daemon needs for its layer cache.
+The Kaniko project provides a compelling alternative to a Docker daemon because it can run without special privileges on the cluster, and is thus more secure. It also scales better because it doesn't rely on a single daemon shared across multiple users and/or builds; builds are executed in individual Pods and thus scale horizontally and elastically.
 
 In this mode, builds are executed as follows:
 
-1. Your code (build context) is synchronized to a sync service in the cluster, making it available to Kaniko pods.
-2. A Kaniko pod is created for the build in the `garden-system` namespace.
+1. Your code (build context) is synchronized to a sync service in the cluster, which holds a cache of the build context, so that each change can be uploaded quickly.
+2. A Kaniko pod is created, which pulls the build context from the sync service, and performs the build.
 3. Kaniko pulls caches from the [deployment registry](#configuring-a-deployment-registry), builds the image, and then pushes the built image back to the registry, which makes it available to the cluster.
-
-#### Comparison
-
-The trade-off compared to the [`cluster-docker`](#cluster-docker) is generally in performance, partly because it relies only on the Docker registry to cache layers, and has no local cache. There are also some occasional issues and incompatibilities, so your mileage may vary.
-
-Compared to [`cluster-buildkit`](#cluster-buildkit), Kaniko may be a bit slower because it has no local cache. It also requires cluster-wide services to be installed and operated, and for each user to have access to those services in the `garden-system` namespace, which can be a problem in some environments. It is however currently considered more "battle-tested", since the [`cluster-buildkit`](#cluster-buildkit) mode is a recent addition.
 
 #### Configuration and requirements
 
-Enable this by setting `buildMode: kaniko` in your `kubernetes` provider configuration, and running `garden plugins kubernetes cluster-init --env=<env-name>` to install required cluster-wide service.
+{% hint style="info" %}
+As of Garden v0.12.22, the `kaniko` build mode no longer requires shared system services or an NFS provisioner, nor running `cluster-init` ahead of usage.
+{% endhint %}
 
-By default, Garden will install an NFS volume provisioner into `garden-system` in order to be able to efficiently synchronize build sources to the cluster and then attaching those to the Kaniko pods. You can also [specify a storageClass](../reference/providers/kubernetes.md#providersstoragesyncstorageclass) to provide another _ReadWriteMany_ capable storage class to use instead of NFS. This may be advisable if your cloud provider provides a good alternative, or if you already have such a provisioner installed.
+Enable this by setting `buildMode: kaniko` in your `kubernetes` provider configuration.
+
+_As of Garden v0.12.22, we also recommend setting `kaniko.namespace: null` in the `kubernetes` provider configuration, so that builder pods are started in the project namespace instead of the `garden-system` namespace, which is the current default. This will become the default in Garden v0.13._
 
 Note the difference in how resources for the builder are allocated between Kaniko and the other modes. For this mode, the resource configuration applies to _each Kaniko pod_. See the [builder resources](../reference/providers/kubernetes.md#providersresourcesbuilder) reference for details.
 
@@ -91,9 +122,22 @@ This does not appear to be an issue for GCR on GCP. We haven't tested this on ot
 
 You can provide extra arguments to Kaniko via the [`extraFlags`](../reference/providers/kubernetes.md#providerskanikoextraFlags) field. Users with projects with a large number of files should take a look at the `--snapshoteMode=redo` and `--use-new-run` options as these can provide [significant performance improvements](https://github.com/GoogleContainerTools/kaniko/releases/tag/v1.0.0). Please refer to the [official docs](https://github.com/GoogleContainerTools/kaniko#additional-flags) for the full list of available flags.
 
+The Kaniko pods will always have the following toleration set:
+
+```yaml
+key: "garden-build",
+operator: "Equal",
+value: "true",
+effect: "NoSchedule"
+```
+
+This allows you to set corresponding [Taints](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) on cluster nodes to control which nodes builder deployments are deployed to. You can also configure a [`nodeSelector`](../reference/providers/kubernetes.md#providerskanikonodeSelector) to serve the same purpose.
+
 ### cluster-buildkit
 
 With this mode, a [BuildKit](https://github.com/moby/buildkit) Deployment is dynamically created in each project namespace to perform in-cluster builds.
+
+Much like [`kaniko`](#kaniko) (and unlike [`cluster-docker`](#cluster-docker)), this mode requires no cluster-wide services or permissions to be managed, and thus no permissions outside of a single namespace for each user/project.
 
 In this mode, builds are executed as follows:
 
@@ -101,30 +145,15 @@ In this mode, builds are executed as follows:
 2. Your code (build context) is synchronized directly to the BuildKit deployment.
 3. BuildKit imports caches from the [deployment registry](#configuring-a-deployment-registry), builds the image, and then pushes the built image and caches back to the registry.
 
-#### Comparison
-
-_This mode is a recent addition and is still considered experimental_. **However**, the general plan is for this to become the recommended approach, because it has several benefits compared to the alternatives.
-
-- It requires **no cluster-wide services or permissions** to be managed, and thus no permissions outside of a single namespace for each user/project.
-- By extension, operators/users **don't need to run a cluster initialization command** ahead of building and deploying projects. The BuildKit deployment is automatically installed and updated ahead of builds, as needed.
-- It **does not rely on persistent volumes**. Other modes need to either install an NFS provisioner, or for a ReadWriteMany storage class to be provided and configured by the user.
-- BuildKit offers a [rootless](https://github.com/moby/buildkit/blob/master/docs/rootless.md) mode (see below for how to enable it and some caveats). If it's supported on your cluster, this coupled with the per-namespace isolation, makes `cluster-buildkit` by far the most secure option.
-- BuildKit is a very efficient builder, and uses a combination of local and registry-based caching, so it **should perform better than [`kaniko`](#kaniko)** in most cases, and for long-running namespaces as good as [`cluster-docker`](#cluster-docker).
-
-Beyond being less tested in the wild (for the moment), there are a couple of drawbacks to consider:
-
-- It doesn't scale quite as horizontally as Kaniko, since there is a single deployment per each project namespace, instead of a pod for every single build.
-- The local cache is ephemeral, and local to each project namespace. This means users only share a cache at the registry level, much like with Kaniko. The [`cluster-docker`](#cluster-docker) daemon has a persistent local cache that is shared across a cluster (but in turn needs to be maintained and [cleaned up](#cleaning-up-cached-images)). The effect of this is most pronounced for short-lived namespaces, e.g. ones created in CI runs, where the local cache won't exist ahead of the builds.
-
 #### Configuration and requirements
 
-Enable this mode by setting `buildMode: cluster-buildkit` in your `kubernetes` provider configuration. Unlike other remote building modes, no further cluster-wide installation or initialization is required.
+Enable this mode by setting `buildMode: cluster-buildkit` in your `kubernetes` provider configuration.
 
 In order to enable [rootless](https://github.com/moby/buildkit/blob/master/docs/rootless.md) mode, add the following to your `kubernetes` provider configuration:
 
 ```yaml
 clusterBuildkit:
-  rootless: false
+  rootless: true
 ```
 
 *Note that not all clusters can currently support rootless operation, and that you may need to configure your cluster with this in mind. Please see the [BuildKits docs](https://github.com/moby/buildkit/blob/master/docs/rootless.md) for details.*
@@ -140,27 +169,21 @@ value: "true",
 effect: "NoSchedule"
 ```
 
-This allows you to set corresponding [Taints](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) on cluster nodes to control which nodes builder deployments are deployed to.
+This allows you to set corresponding [Taints](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) on cluster nodes to control which nodes builder deployments are deployed to. You can also configure a [`nodeSelector`](../reference/providers/kubernetes.md#providersclusterbuildkitnodeselector) to serve the same purpose.
 
 ### cluster-docker
 
-The `cluster-docker` mode installs a standalone Docker daemon into your cluster, that is then used for builds across all users of the clusters, along with a handful of other supporting services.
-
 {% hint style="warning" %}
-The `cluster-docker` build mode may be deprecated in an upcoming release.
+The `cluster-docker` build mode may be deprecated and removed in an upcoming release. Please consider `kaniko` or `cluster-buildkit` instead.
 {% endhint %}
+
+The `cluster-docker` mode installs a standalone Docker daemon into your cluster, that is then used for builds across all users of the clusters, along with a handful of other supporting services.
 
 In this mode, builds are executed as follows:
 
 1. Your code (build context) is synchronized to a sync service in the cluster, making it available to the Docker daemon.
 2. A build is triggered in the Docker daemon.
 3. The built image is pushed to the [deployment registry](#configuring-a-deployment-registry), which makes it available to the cluster.
-
-#### Comparison
-
-The Docker daemon is of course tried and tested, and is an efficient builder. However, it's not designed with multi-tenancy and is a slightly awkward fit for the context of building images in a shared cluster. It also requires a fair bit of operation and several supporting services deployed along-side it in the `garden-system`  namespace.
-
-*As of now, we only recommend this option for certain scenarios, e.g. clusters serving individuals, small teams or other low-load setups.*
 
 #### Configuration and requirements
 
@@ -174,7 +197,7 @@ Optionally, you can also enable [BuildKit](https://github.com/moby/buildkit) to 
 
 ```yaml
 clusterDocker:
-  enableBuildKit: false
+  enableBuildKit: true
 ```
 
 Make sure your cluster has enough resources and storage to support the required services, and keep in mind that these

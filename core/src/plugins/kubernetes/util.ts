@@ -17,7 +17,7 @@ import { KubernetesResource, KubernetesWorkload, KubernetesPod, KubernetesServer
 import { splitLast, serializeValues, findByName } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
 import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util/string"
-import { MAX_CONFIGMAP_DATA_SIZE, dockerAuthSecretName, dockerAuthSecretKey } from "./constants"
+import { MAX_CONFIGMAP_DATA_SIZE, systemDockerAuthSecretName } from "./constants"
 import { ContainerEnvVars } from "../container/config"
 import { ConfigurationError, PluginError } from "../../exceptions"
 import { ServiceResourceSpec, KubernetesProvider } from "./config"
@@ -600,19 +600,6 @@ export function makePodName(type: string, ...parts: string[]) {
 }
 
 /**
- * Gets the Docker auth volume details to be mounted into a container.
- */
-export function getDockerAuthVolume() {
-  return {
-    name: dockerAuthSecretName,
-    secret: {
-      secretName: dockerAuthSecretName,
-      items: [{ key: dockerAuthSecretKey, path: "config.json" }],
-    },
-  }
-}
-
-/**
  * Creates a skopeo container configuration to be execued by a PodRunner.
  *
  * @param command the skopeo command to execute
@@ -624,7 +611,7 @@ export function getSkopeoContainer(command: string) {
     command: ["sh", "-c", command],
     volumeMounts: [
       {
-        name: dockerAuthSecretName,
+        name: systemDockerAuthSecretName,
         mountPath: "/root/.docker",
         readOnly: true,
       },

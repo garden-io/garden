@@ -48,7 +48,7 @@ export const clusterInit: PluginCommand = {
         ctx: k8sCtx,
         log,
         namespace: systemNamespace,
-        args: ["delete", "--purge", "garden-nfs-provisioner"],
+        args: ["uninstall", "garden-nfs-provisioner"],
       })
     } catch (_) {}
 

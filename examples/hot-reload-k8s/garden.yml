@@ -18,4 +18,4 @@ providers:
     context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
     namespace: hot-reload-k8s-testing-${local.username}
     defaultHostname: ${var.default-hostname}
-    buildMode: cluster-docker
+    buildMode: kaniko

@@ -13,4 +13,4 @@ providers:
     kubeconfig: ${providers.terraform.outputs.kubeconfig_path}
     context: gke
     defaultHostname: terraform-gke-${local.username}.dev-2.sys.garden
-    buildMode: cluster-docker
+    buildMode: kaniko

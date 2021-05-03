@@ -24,6 +24,7 @@ import { getSystemNamespace } from "../../../../../../../src/plugins/kubernetes/
 import { getDockerDaemonPodRunner } from "../../../../../../../src/plugins/kubernetes/container/build/cluster-docker"
 import { k8sPublishContainerModule } from "../../../../../../../src/plugins/kubernetes/container/publish"
 import { LogEntry } from "../../../../../../../src/logger/log-entry"
+import { cloneDeep } from "lodash"
 
 describe("kubernetes build flow", () => {
   let garden: Garden
@@ -53,7 +54,7 @@ describe("kubernetes build flow", () => {
   }
 
   async function buildImage(moduleName: string) {
-    const module = graph.getModule(moduleName)
+    const module = cloneDeep(graph.getModule(moduleName))
     const key = `${currentEnv}.${module.name}.${module.version.versionString}`
 
     if (builtImages[key]) {
@@ -112,7 +113,7 @@ describe("kubernetes build flow", () => {
         log,
         ctx,
       })
-      buildImage[`${currentEnv}.${module.name}.${module.version.versionString}`] = false
+      builtImages[`${currentEnv}.${module.name}.${module.version.versionString}`] = false
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
@@ -261,7 +262,7 @@ describe("kubernetes build flow", () => {
     })
 
     it("should return ready=false status when image doesn't exist in registry", async () => {
-      const module = graph.getModule("remote-registry-test")
+      const module = cloneDeep(graph.getModule("remote-registry-test"))
       await garden.buildStaging.syncFromSrc(module, garden.log)
 
       module.version.versionString = "v-0000000000"
@@ -403,6 +404,28 @@ describe("kubernetes build flow", () => {
     })
   })
 
+  grouped("kaniko", "remote-only").context("kaniko-project-namespace mode", () => {
+    before(async () => {
+      await init("kaniko-project-namespace")
+    })
+
+    it("should build a simple container", async () => {
+      await buildImage("simple-service")
+    })
+
+    it("should get the build status from the registry", async () => {
+      const module = await buildImage("simple-service")
+
+      const status = await k8sGetContainerBuildStatus({
+        ctx,
+        log,
+        module,
+      })
+
+      expect(status.ready).to.be.true
+    })
+  })
+
   grouped("kaniko", "remote-only").context("kaniko-remote-registry mode", () => {
     before(async () => {
       await init("kaniko-remote-registry")
@@ -425,7 +448,7 @@ describe("kubernetes build flow", () => {
     })
 
     it("should return ready=false status when image doesn't exist in registry", async () => {
-      const module = graph.getModule("remote-registry-test")
+      const module = cloneDeep(graph.getModule("remote-registry-test"))
       await garden.buildStaging.syncFromSrc(module, garden.log)
 
       module.version.versionString = "v-0000000000"
@@ -615,7 +638,7 @@ describe("kubernetes build flow", () => {
     })
 
     it("should return ready=false status when image doesn't exist in registry", async () => {
-      const module = graph.getModule("remote-registry-test")
+      const module = cloneDeep(graph.getModule("remote-registry-test"))
       await garden.buildStaging.syncFromSrc(module, garden.log)
 
       module.version.versionString = "v-0000000000"

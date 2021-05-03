@@ -11,6 +11,8 @@ import { PluginCommand } from "../../../types/plugin/command"
 import { getKubernetesSystemVariables } from "../init"
 import { KubernetesPluginContext } from "../config"
 import { getSystemGarden } from "../system"
+import { getSystemNamespace } from "../namespace"
+import { helm } from "../helm/helm-cli"
 
 export const uninstallGardenServices: PluginCommand = {
   name: "uninstall-garden-services",
@@ -36,10 +38,23 @@ export const uninstallGardenServices: PluginCommand = {
     const serviceNames = services.map((s) => s.name).filter((name) => name !== "nfs-provisioner")
     const serviceStatuses = await actions.deleteServices(log, serviceNames)
 
-    if (k8sCtx.provider.config._systemServices.includes("nfs-provisioner")) {
-      const service = graph.getService("nfs-provisioner")
-      await actions.deleteService({ service, log })
-    }
+    const systemNamespace = await getSystemNamespace(ctx, k8sCtx.provider, log)
+    try {
+      await helm({
+        ctx: k8sCtx,
+        log,
+        namespace: systemNamespace,
+        args: ["uninstall", "garden-nfs-provisioner"],
+      })
+    } catch (_) {}
+    try {
+      await helm({
+        ctx: k8sCtx,
+        log,
+        namespace: systemNamespace,
+        args: ["uninstall", "garden-nfs-provisioner-v2"],
+      })
+    } catch (_) {}
 
     log.info("")
 

@@ -32,7 +32,7 @@ import {
 import { ConfigurationError } from "../../exceptions"
 import Bluebird from "bluebird"
 import { readSecret } from "./secrets"
-import { dockerAuthSecretName, dockerAuthSecretKey } from "./constants"
+import { systemDockerAuthSecretName, dockerAuthSecretKey } from "./constants"
 import { V1Secret, V1Toleration } from "@kubernetes/client-node"
 import { KubernetesResource } from "./types"
 import { compareDeployedResources } from "./status/status"
@@ -504,7 +504,7 @@ export async function prepareDockerAuth(
     apiVersion: "v1",
     kind: "Secret",
     metadata: {
-      name: dockerAuthSecretName,
+      name: systemDockerAuthSecretName,
       namespace,
     },
     data: {
