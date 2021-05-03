@@ -258,7 +258,10 @@ function stopPortProxy(proxy: PortProxy, log?: LogEntry) {
   // TODO: call stopPortForward handler
   log && log.debug(`Stopping port forward to ${proxy.key}`)
   delete activeProxies[proxy.key]
-  proxy.server.close()
+
+  try {
+    proxy.server.close()
+  } catch {}
 }
 
 function getHostname(service: GardenService, spec: ForwardablePort) {
