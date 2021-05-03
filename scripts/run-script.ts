@@ -12,21 +12,13 @@ import wrapAnsi from "wrap-ansi"
 import stripAnsi from "strip-ansi"
 import { resolve } from "path"
 
-const colors = [
-	chalk.red,
-	chalk.green,
-	chalk.yellow,
-	chalk.magenta,
-	chalk.cyan,
-]
+const colors = [chalk.red, chalk.green, chalk.yellow, chalk.magenta, chalk.cyan]
 
 const lineChar = "┄"
 const yarnPath = resolve(__dirname, "..", ".yarn", "releases", "yarn-1.22.5.js")
 
 export async function getPackages({ scope, ignore }: { scope?: string; ignore?: string } = {}) {
-  let packages = JSON.parse(
-    (await execa("node", [yarnPath, "--silent", "workspaces", "info"])).stdout
-  )
+  let packages = JSON.parse((await execa("node", [yarnPath, "--silent", "workspaces", "info"])).stdout)
 
   if (scope) {
     packages = pickBy(packages, (_, k) => minimatch(k, scope))
@@ -69,12 +61,12 @@ async function runInPackages(args: string[]) {
   console.log(
     chalk.cyanBright(
       `\nRunning script ${chalk.whiteBright(script)} in package(s) ` +
-      chalk.whiteBright(Object.keys(packages).join(", "))
+        chalk.whiteBright(Object.keys(packages).join(", "))
     )
   )
 
   // Make sure subprocesses inherit color support level
-  process.env.FORCE_COLOR = chalk.supportsColor.level.toString()
+  process.env.FORCE_COLOR = chalk.supportsColor.level?.toString() || "0"
 
   const maxNameLength = max(packageList.map((p) => p.shortName.length)) as number
   let lastPackage: string = ""
@@ -131,9 +123,7 @@ async function runInPackages(args: string[]) {
 
     if (result.exitCode && result.exitCode !== 0) {
       if (bail) {
-        console.log(
-          chalk.redBright(`\n${script} script in package ${packageName} failed with code ${result.exitCode}`)
-        )
+        console.log(chalk.redBright(`\n${script} script in package ${packageName} failed with code ${result.exitCode}`))
         process.exit(result.exitCode)
       } else {
         failed.push(packageName)
@@ -177,8 +167,7 @@ async function runInPackages(args: string[]) {
   }
 }
 
-runInPackages(process.argv.slice(2))
-  .catch((err) => {
-    console.log(chalk.redBright(err))
-    process.exit(1)
-  })
+runInPackages(process.argv.slice(2)).catch((err) => {
+  console.log(chalk.redBright(err))
+  process.exit(1)
+})

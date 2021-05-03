@@ -1,4 +1,26 @@
 
+<a name="0.12.21"></a>
+## [0.12.21](https://github.com/garden-io/garden/compare/0.12.20...0.12.21) (2021-04-26)
+
+### Bug Fixes
+
+* **cli:** don't complain in port forward cleanup handler ([af5bc97f](https://github.com/garden-io/garden/commit/af5bc97f))
+* **core:** include deps in test version ([8e7ce4ca](https://github.com/garden-io/garden/commit/8e7ce4ca))
+* **core:** handle undefined stdout/stderr on exec module failures ([b439c866](https://github.com/garden-io/garden/commit/b439c866))
+* **enterprise:** ensure exit code and --yes flag work ([65303d41](https://github.com/garden-io/garden/commit/65303d41))
+
+### Features
+
+* dev mode with much better container syncing ([9537765b](https://github.com/garden-io/garden/commit/9537765b))
+* **commands:** skip-dependants opt for test cmd ([6a7d6c56](https://github.com/garden-io/garden/commit/6a7d6c56))
+* **enterprise:** stream namespace events ([f0431b5b](https://github.com/garden-io/garden/commit/f0431b5b))
+* **workflows:** only resolve config being run ([3ad56c82](https://github.com/garden-io/garden/commit/3ad56c82))
+
+### Improvements
+
+* **core:** add runModule handler to exec module ([48914c11](https://github.com/garden-io/garden/commit/48914c11))
+* **core:** increase liveness probes when in hot-reload mode ([25eb6344](https://github.com/garden-io/garden/commit/25eb6344))
+
 <a name="0.12.20"></a>
 ## [0.12.20](https://github.com/garden-io/garden/compare/0.12.19...0.12.20) (2021-03-29)
 
