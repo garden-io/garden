@@ -19,4 +19,4 @@ providers:
         secretRef:
           name: garden-example-tls
           namespace: default
-    buildMode: cluster-docker
+    buildMode: kaniko

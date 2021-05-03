@@ -50,7 +50,7 @@ providers:
     environments: [preview]
     context: my-preview-cluster
     defaultHostname: ${environment.namespace}.preview.my-domain
-    buildMode: cluster-docker
+    buildMode: kaniko
 ```
 
 Notice that we're using the `CIRCLE_BRANCH` environment variable to label the project namespace. This ensures that each pull request gets deployed into its own namespace.

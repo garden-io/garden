@@ -24,6 +24,6 @@ tests:
     args: [echo, ok]
   - name: integ
     args: [python, /app/test.py]
-    timeout: 60
+    timeout: 200
     dependencies:
       - api

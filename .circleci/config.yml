@@ -192,10 +192,12 @@ jobs:
             - plugins/
   build-dist:
     <<: *node-config
+    resource_class: large
     steps:
       - build_dist
   build-dist-edge:
     <<: *node-config
+    resource_class: large
     steps:
       - build_dist:
           version: edge

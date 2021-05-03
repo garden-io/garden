@@ -30,6 +30,7 @@ import {
   Exec,
   Attach,
   V1Deployment,
+  V1Service,
 } from "@kubernetes/client-node"
 import AsyncLock = require("async-lock")
 import request = require("request-promise")
@@ -103,14 +104,6 @@ const apiTypes: { [key: string]: K8sApiConstructor<any> } = {
 }
 
 const crudMap = {
-  Secret: {
-    cls: new V1Secret(),
-    group: "core",
-    read: "readNamespacedSecret",
-    create: "createNamespacedSecret",
-    replace: "replaceNamespacedSecret",
-    delete: "deleteNamespacedSecret",
-  },
   Deployment: {
     cls: new V1Deployment(),
     group: "apps",
@@ -118,6 +111,25 @@ const crudMap = {
     create: "createNamespacedDeployment",
     replace: "replaceNamespacedDeployment",
     delete: "deleteNamespacedDeployment",
+    patch: "patchNamespacedDeployment",
+  },
+  Secret: {
+    cls: new V1Secret(),
+    group: "core",
+    read: "readNamespacedSecret",
+    create: "createNamespacedSecret",
+    replace: "replaceNamespacedSecret",
+    delete: "deleteNamespacedSecret",
+    patch: "patchNamespacedSecret",
+  },
+  Service: {
+    cls: new V1Service(),
+    group: "core",
+    read: "readNamespacedService",
+    create: "createNamespacedService",
+    replace: null,
+    delete: "deleteNamespacedService",
+    patch: "patchNamespacedService",
   },
 }
 
@@ -547,19 +559,27 @@ export class KubeApi {
 
     log.debug(`Upserting ${kind} ${namespace}/${name}`)
 
-    try {
+    const replace = async () => {
       await api[crudMap[kind].read](name, namespace)
-      await api[crudMap[kind].replace](name, namespace, obj)
-      log.debug(`Replaced ${kind} ${namespace}/${name}`)
+      if (api[crudMap[kind].replace]) {
+        await api[crudMap[kind].replace](name, namespace, obj)
+        log.debug(`Replaced ${kind} ${namespace}/${name}`)
+      } else {
+        await api[crudMap[kind].patch](name, namespace, obj)
+        log.debug(`Patched ${kind} ${namespace}/${name}`)
+      }
+    }
+
+    try {
+      await replace()
     } catch (err) {
       if (err.statusCode === 404) {
         try {
           await api[crudMap[kind].create](namespace, <any>obj)
           log.debug(`Created ${kind} ${namespace}/${name}`)
         } catch (err) {
-          if (err.statusCode === 409) {
-            log.debug(`Patched ${kind} ${namespace}/${name}`)
-            await api[crudMap[kind].replace](name, namespace, obj)
+          if (err.statusCode === 409 || err.statusCode === 422) {
+            await replace()
           } else {
             throw err
           }
@@ -592,7 +612,7 @@ export class KubeApi {
 
           if (name.startsWith("patch")) {
             // patch the patch bug... (https://github.com/kubernetes-client/javascript/issues/19)
-            target["defaultHeaders"] = { ...defaultHeaders, "content-type": "application/strategic-merge-patch+json" }
+            target["defaultHeaders"] = { ...defaultHeaders, "content-type": "application/merge-patch+json" }
           }
 
           const output = target[name](...args)

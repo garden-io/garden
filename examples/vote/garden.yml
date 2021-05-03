@@ -19,7 +19,7 @@ providers:
     environments: [remote]
     # Replace these values as appropriate
     context: ${var.remoteContext}
-    buildMode: cluster-docker
+    buildMode: kaniko
   - name: kubernetes
     environments: [testing]
     context: ${var.remoteContext}

@@ -486,7 +486,7 @@ export const containerRegistryConfigSchema = () =>
   }).description(dedent`
     The registry where built containers should be pushed to, and then pulled to the cluster when deploying services.
 
-    Important: If you specify this in combination with \`buildMode: cluster-docker\` or \`buildMode: kaniko\`, you must make sure \`imagePullSecrets\` includes authentication with the specified deployment registry, that has the appropriate write privileges (usually full write access to the configured \`deploymentRegistry.namespace\`).
+    Important: If you specify this in combination with in-cluster building, you must make sure \`imagePullSecrets\` includes authentication with the specified deployment registry, that has the appropriate write privileges (usually full write access to the configured \`deploymentRegistry.namespace\`).
   `)
 
 export interface ContainerService extends GardenService<ContainerModule> {}

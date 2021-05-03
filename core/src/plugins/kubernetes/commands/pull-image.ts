@@ -20,12 +20,17 @@ import { LogEntry } from "../../../logger/log-entry"
 import { containerHelpers } from "../../container/helpers"
 import { RuntimeError } from "../../../exceptions"
 import { PodRunner } from "../run"
-import { dockerAuthSecretKey, dockerAuthSecretName, inClusterRegistryHostname, k8sUtilImageName } from "../constants"
+import {
+  dockerAuthSecretKey,
+  systemDockerAuthSecretName,
+  inClusterRegistryHostname,
+  k8sUtilImageName,
+} from "../constants"
 import { getAppNamespace, getSystemNamespace } from "../namespace"
 import { getRegistryPortForward } from "../container/util"
 import { randomString } from "../../../util/string"
-import { buildkitAuthSecretName, ensureBuilderSecret } from "../container/build/buildkit"
 import { PluginContext } from "../../../plugin-context"
+import { ensureBuilderSecret } from "../container/build/common"
 
 const tmpTarPath = "/tmp/image.tar"
 const imagePullTimeoutSeconds = 60 * 20
@@ -150,18 +155,18 @@ async function pullFromExternalRegistry(
 
   if (buildMode === "cluster-buildkit") {
     namespace = await getAppNamespace(ctx, log, ctx.provider)
-    authSecretName = buildkitAuthSecretName
 
-    await ensureBuilderSecret({
+    const { authSecret } = await ensureBuilderSecret({
       provider: ctx.provider,
       log,
       api,
       namespace,
-      waitForUpdate: false,
     })
+
+    authSecretName = authSecret.metadata.name
   } else {
     namespace = await getSystemNamespace(ctx, ctx.provider, log)
-    authSecretName = dockerAuthSecretName
+    authSecretName = systemDockerAuthSecretName
   }
 
   const imageId = containerHelpers.getDeploymentImageId(module, module.version, ctx.provider.config.deploymentRegistry)

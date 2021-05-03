@@ -13,7 +13,6 @@ import { PluginContext } from "../../../../../../../src/plugin-context"
 import {
   ensureBuildkit,
   buildkitDeploymentName,
-  buildkitAuthSecretName,
 } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit"
 import { KubeApi } from "../../../../../../../src/plugins/kubernetes/api"
 import { getNamespaceStatus } from "../../../../../../../src/plugins/kubernetes/namespace"
@@ -53,7 +52,7 @@ describe("ensureBuildkit", () => {
         await api.apps.deleteNamespacedDeployment(buildkitDeploymentName, namespace)
       } catch {}
 
-      const deployed = await ensureBuildkit({
+      const { updated } = await ensureBuildkit({
         ctx,
         provider,
         log: garden.log,
@@ -64,7 +63,7 @@ describe("ensureBuildkit", () => {
       // Make sure deployment is there
       const deployment = await api.apps.readNamespacedDeployment(buildkitDeploymentName, namespace)
 
-      expect(deployed).to.be.true
+      expect(updated).to.be.true
       expect(deployment.spec.template.spec?.tolerations).to.eql([
         {
           key: "garden-build",
@@ -99,21 +98,21 @@ describe("ensureBuildkit", () => {
     })
 
     it("creates a docker auth secret from configured imagePullSecrets", async () => {
-      await ensureBuildkit({
+      const { authSecret } = await ensureBuildkit({
         ctx,
         provider,
         log: garden.log,
         api,
         namespace,
       })
-      await api.core.readNamespacedSecret(buildkitAuthSecretName, namespace)
+      await api.core.readNamespacedSecret(authSecret.metadata.name, namespace)
     })
 
     it("creates an empty docker auth secret if there are no imagePullSecrets", async () => {
       const _provider = cloneDeep(provider)
       _provider.config.imagePullSecrets = []
 
-      await ensureBuildkit({
+      const { authSecret } = await ensureBuildkit({
         ctx,
         provider: _provider,
         log: garden.log,
@@ -121,7 +120,7 @@ describe("ensureBuildkit", () => {
         namespace,
       })
 
-      const secret = await api.core.readNamespacedSecret(buildkitAuthSecretName, namespace)
+      const secret = await api.core.readNamespacedSecret(authSecret.metadata.name, namespace)
       const expectedConfig = await buildDockerAuthConfig([], api)
 
       const decoded = JSON.parse(Buffer.from(secret.data![dockerAuthSecretKey], "base64").toString())
@@ -136,14 +135,14 @@ describe("ensureBuildkit", () => {
         api,
         namespace,
       })
-      const deployed = await ensureBuildkit({
+      const { updated } = await ensureBuildkit({
         ctx,
         provider,
         log: garden.log,
         api,
         namespace,
       })
-      expect(deployed).to.be.false
+      expect(updated).to.be.false
     })
   })
 
@@ -179,14 +178,14 @@ describe("ensureBuildkit", () => {
 
       provider.config.clusterBuildkit = { rootless: true }
 
-      const deployed = await ensureBuildkit({
+      const { updated } = await ensureBuildkit({
         ctx,
         provider,
         log: garden.log,
         api,
         namespace,
       })
-      expect(deployed).to.be.true
+      expect(updated).to.be.true
     })
   })
 })

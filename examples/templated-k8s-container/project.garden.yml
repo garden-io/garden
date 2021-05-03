@@ -12,4 +12,4 @@ providers:
     context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
     namespace: templated-k8s-container-testing-${local.username}
     defaultHostname: ${local.username}-templated-k8s-container.dev-1.sys.garden
-    buildMode: cluster-docker
+    buildMode: kaniko
