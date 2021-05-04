@@ -21,7 +21,7 @@ import { getDockerAuthVolume } from "../../util"
 import { KubernetesProvider, KubernetesPluginContext, DEFAULT_KANIKO_IMAGE } from "../../config"
 import { ConfigurationError } from "../../../../exceptions"
 import { PodRunner } from "../../run"
-import { getRegistryHostname, getKubernetesSystemVariables } from "../../init"
+import { getKubernetesSystemVariables } from "../../init"
 import { Writable } from "stream"
 import { getSystemNamespace } from "../../namespace"
 import { dedent } from "../../../../util/string"
@@ -101,7 +101,6 @@ export async function runKaniko({
   const api = await KubeApi.factory(log, ctx, provider)
 
   const podName = makePodName("kaniko", namespace, module.name)
-  const registryHostname = getRegistryHostname(provider.config)
   const k8sSystemVars = getKubernetesSystemVariables(provider.config)
   const syncDataVolumeName = k8sSystemVars["sync-volume-name"]
   const commsVolumeName = "comms"
@@ -185,7 +184,7 @@ export async function runKaniko({
 
   if (provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname) {
     spec.containers = spec.containers.concat([
-      getSocatContainer(registryHostname),
+      getSocatContainer(provider),
       // This is a workaround so that the kaniko executor can wait until socat starts, and so that the socat proxy
       // doesn't just keep running after the build finishes. Doing this in the kaniko Pod is currently not possible
       // because of https://github.com/GoogleContainerTools/distroless/issues/225

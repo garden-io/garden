@@ -23,6 +23,7 @@ import { normalizeLocalRsyncPath } from "../../../../util/fs"
 import { exec } from "../../../../util/util"
 import { InternalError, RuntimeError } from "../../../../exceptions"
 import { LogEntry } from "../../../../logger/log-entry"
+import { getInClusterRegistryHostname } from "../../init"
 
 const inClusterRegistryPort = 5000
 
@@ -198,7 +199,9 @@ export async function getUtilDaemonPodRunner({
   })
 }
 
-export function getSocatContainer(registryHostname: string) {
+export function getSocatContainer(provider: KubernetesProvider) {
+  const registryHostname = getInClusterRegistryHostname(provider.config)
+
   return {
     name: "proxy",
     image: "gardendev/socat:0.1.0",

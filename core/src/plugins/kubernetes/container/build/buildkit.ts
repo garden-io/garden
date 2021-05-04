@@ -23,7 +23,7 @@ import { LogEntry } from "../../../../logger/log-entry"
 import { waitForResources, compareDeployedResources } from "../../status/status"
 import { KubernetesProvider, KubernetesPluginContext } from "../../config"
 import { PluginContext } from "../../../../plugin-context"
-import { prepareDockerAuth, getRegistryHostname } from "../../init"
+import { prepareDockerAuth } from "../../init"
 import { BuildStatusHandler, skopeoBuildStatus, BuildHandler, syncToBuildSync, getSocatContainer } from "./common"
 import { getNamespaceStatus } from "../../namespace"
 import { containerHelpers } from "../../../container/helpers"
@@ -308,9 +308,10 @@ export function getBuildkitDeployment(provider: KubernetesProvider) {
     },
   }
 
-  // We need a proxy sidecar to be able to reach the in-cluster registry from the Pod
-  const registryHostname = getRegistryHostname(provider.config)
-  deployment.spec!.template.spec!.containers.push(getSocatContainer(registryHostname))
+  if (provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname) {
+    // We need a proxy sidecar to be able to reach the in-cluster registry from the Pod
+    deployment.spec!.template.spec!.containers.push(getSocatContainer(provider))
+  }
 
   // Set the configured nodeSelector, if any
   if (!isEmpty(provider.config.clusterBuildkit?.nodeSelector)) {
