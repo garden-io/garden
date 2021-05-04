@@ -269,6 +269,8 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
       log,
       serviceName: "docker-registry",
       resources: [modifiedDeployment],
+      // The progress deadline is fairly high, so the timeout needs to be extended
+      timeoutSec: 1000,
     })
 
     // Run garbage collection
@@ -311,6 +313,8 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
       log,
       serviceName: "docker-registry",
       resources: [modifiedDeployment],
+      // The progress deadline is fairly high, so the timeout needs to be extended
+      timeoutSec: 1000,
     })
   }
 
@@ -465,17 +469,24 @@ async function cleanupBuildSyncVolume({
   // Delete the directories
   log.info(`Deleting ${dirsToDelete.length} workspace directories.`)
 
+  let deleted = 0
+
   await Bluebird.map(
     chunk(dirsToDelete, 100),
-    () =>
-      runner.exec({
+    async (dirs) => {
+      await runner.exec({
         log,
-        command: ["rm", "-rf", ...dirsToDelete],
+        command: ["rm", "-rf", ...dirs],
         timeoutSec: 300,
         buffer: true,
-      }),
+      })
+      deleted += dirs.length
+      log.info(`-> ${deleted} / ${dirsToDelete.length}`)
+    },
     { concurrency: 20 }
   )
+
+  log.info("Done!")
 
   log.setSuccess()
 }
