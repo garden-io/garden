@@ -377,7 +377,7 @@ export function getKubernetesSystemVariables(config: KubernetesConfig) {
   return {
     "namespace": systemNamespace,
 
-    "registry-hostname": getRegistryHostname(config),
+    "registry-hostname": getInClusterRegistryHostname(config),
     "builder-mode": config.buildMode,
 
     "builder-limits-cpu": millicpuToString(config.resources.builder.limits.cpu),
@@ -415,7 +415,7 @@ export function getKubernetesSystemVariables(config: KubernetesConfig) {
   }
 }
 
-export function getRegistryHostname(config: KubernetesConfig) {
+export function getInClusterRegistryHostname(config: KubernetesConfig) {
   const systemNamespace = config.gardenSystemNamespace
   return `garden-docker-registry.${systemNamespace}.svc.cluster.local`
 }
