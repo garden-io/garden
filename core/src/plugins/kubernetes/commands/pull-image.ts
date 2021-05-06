@@ -28,6 +28,7 @@ import { buildkitAuthSecretName, ensureBuilderSecret } from "../container/build/
 import { PluginContext } from "../../../plugin-context"
 
 const tmpTarPath = "/tmp/image.tar"
+const imagePullTimeoutSeconds = 60 * 20
 
 export const pullImage: PluginCommand = {
   name: "pull-image",
@@ -168,7 +169,7 @@ async function pullFromExternalRegistry(
   // See https://github.com/containers/skopeo for how all this works and the syntax
   const skopeoCommand = [
     "skopeo",
-    "--command-timeout=300s",
+    `--command-timeout=${imagePullTimeoutSeconds}s`,
     "--insecure-policy",
     "copy",
     "--quiet",
@@ -193,7 +194,7 @@ async function pullFromExternalRegistry(
           {
             name: "main",
             image: k8sUtilImageName,
-            command: ["sleep", "360"],
+            command: ["sleep", "" + (imagePullTimeoutSeconds + 10)],
             volumeMounts: [
               {
                 name: authSecretName,
@@ -201,6 +202,12 @@ async function pullFromExternalRegistry(
                 readOnly: true,
               },
             ],
+            resources: {
+              requests: {
+                cpu: "100m",
+                memory: "256M",
+              },
+            },
           },
         ],
         volumes: [
@@ -225,7 +232,7 @@ async function pullFromExternalRegistry(
       log,
       command: skopeoCommand,
       tty: false,
-      timeoutSec: 60 * 1000 * 5, // 5 minutes,
+      timeoutSec: imagePullTimeoutSeconds + 10,
       buffer: true,
     })
 
@@ -252,6 +259,7 @@ async function loadImage({ ctx, runner, log }: { ctx: PluginContext; runner: Pod
       log,
       stdout: writeStream,
       buffer: false,
+      timeoutSec: imagePullTimeoutSeconds,
     })
 
     await containerHelpers.dockerCli({
