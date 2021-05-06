@@ -24,6 +24,6 @@ export const inClusterRegistryHostname = "127.0.0.1:5000"
 export const gardenUtilDaemonDeploymentName = "garden-util-daemon"
 export const dockerDaemonDeploymentName = "garden-docker-daemon"
 
-export const k8sUtilImageName = "gardendev/k8s-util:0.3.5"
+export const k8sUtilImageName = "gardendev/k8s-util:0.4.0"
 export const dockerDaemonContainerName = "docker-daemon"
 export const skopeoDaemonContainerName = "util"
