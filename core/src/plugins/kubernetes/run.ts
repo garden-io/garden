@@ -20,6 +20,7 @@ import {
   RuntimeError,
   ConfigurationError,
   ParameterError,
+  OutOfMemoryError,
 } from "../../exceptions"
 import { KubernetesProvider } from "./config"
 import { Writable, Readable } from "stream"
@@ -333,18 +334,6 @@ async function runWithoutArtifacts({
   let result: RunResult
   const startedAt = new Date()
 
-  const timedOutResult = (logs: string) => {
-    return {
-      command: runner.getFullCommand(),
-      completedAt: new Date(),
-      log: "Command timed out." + (logs ? ` Here are the logs until the timeout occurred:\n\n${logs}` : ""),
-      moduleName: module.name,
-      startedAt,
-      success: false,
-      version,
-    }
-  }
-
   try {
     const res = await runner.runAndWait({
       log,
@@ -358,8 +347,19 @@ async function runWithoutArtifacts({
       version,
     }
   } catch (err) {
-    if (err.type === "timeout") {
-      result = timedOutResult(err.detail.logs)
+    if (err.type === "out-of-memory" || err.type === "timeout") {
+      // Command timed out or the pod container exceeded its memory limits
+      const errorLog =
+        err.type === "out-of-memory" ? makeOutOfMemoryErrorLog(err.detail.logs) : makeTimeOutErrorLog(err.detail.logs)
+      result = {
+        log: errorLog,
+        moduleName: module.name,
+        version,
+        success: false,
+        startedAt,
+        completedAt: new Date(),
+        command: runner.getFullCommand(),
+      }
     } else if (err.type === "pod-runner") {
       // Command exited with non-zero code
       result = {
@@ -434,18 +434,6 @@ async function runWithArtifacts({
 
   let result: RunResult
   const startedAt = new Date()
-
-  const timedOutResult = (logs: string) => {
-    return {
-      command: runner.getFullCommand(),
-      completedAt: new Date(),
-      log: "Command timed out." + (logs ? ` Here are the logs until the timeout occurred:\n\n${logs}` : ""),
-      moduleName: module.name,
-      startedAt,
-      success: false,
-      version,
-    }
-  }
 
   const timeoutSec = timeout || defaultTimeout
 
@@ -543,9 +531,20 @@ async function runWithArtifacts({
     } catch (err) {
       const res = err.detail.result
 
-      if (err.type === "timeout") {
-        // Command timed out
-        result = timedOutResult((await runner.getMainContainerLogs()).trim())
+      if (err.type === "out-of-memory" || err.type === "timeout") {
+        // Command timed out or the pod container exceeded its memory limits
+        const containerLogs = (await runner.getMainContainerLogs()).trim()
+        const errorLog =
+          err.type === "out-of-memory" ? makeOutOfMemoryErrorLog(containerLogs) : makeTimeOutErrorLog(containerLogs)
+        result = {
+          log: errorLog,
+          moduleName: module.name,
+          version,
+          success: false,
+          startedAt,
+          completedAt: new Date(),
+          command: cmd,
+        }
       } else if (err.type === "pod-runner" && res && res.exitCode) {
         // Command exited with non-zero code
         result = {
@@ -638,6 +637,18 @@ async function runWithArtifacts({
   }
 
   return result
+}
+function makeTimeOutErrorLog(containerLogs: string) {
+  return (
+    "Command timed out." + (containerLogs ? ` Here are the logs until the timeout occurred:\n\n${containerLogs}` : "")
+  )
+}
+
+function makeOutOfMemoryErrorLog(containerLogs?: string) {
+  return (
+    "The Pod container was OOMKilled." +
+    (containerLogs ? ` Here are the logs until the out-of-memory event occurred:\n\n${containerLogs}` : "")
+  )
 }
 
 class PodRunnerParams {
@@ -759,6 +770,17 @@ export class PodRunner extends PodRunnerParams {
         const terminated = mainContainerStatus?.state?.terminated
         const exitReason = terminated?.reason
         const exitCode = terminated?.exitCode
+
+        // We've seen instances were Pods are OOMKilled but the exit code is 0 and the state that
+        // Garden computes is "stopped". However in those instances the exitReason is still "OOMKilled"
+        // and we handle that case specifically here.
+        if (exitCode === 137 || exitReason === "OOMKilled") {
+          const msg = `Pod container was OOMKilled.`
+          throw new OutOfMemoryError(msg, {
+            logs: (await getDebugLogs()) || msg,
+            serverPod,
+          })
+        }
 
         if (state === "unhealthy") {
           if (

@@ -93,6 +93,10 @@ export class TimeoutError extends GardenBaseError {
   type = "timeout"
 }
 
+export class OutOfMemoryError extends GardenBaseError {
+  type = "out-of-memory"
+}
+
 export class NotFoundError extends GardenBaseError {
   type = "not-found"
 }
