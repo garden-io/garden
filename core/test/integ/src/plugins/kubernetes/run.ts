@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import td from "testdouble"
 import tmp from "tmp-promise"
 import { expectError } from "../../../../helpers"
 import { pathExists } from "fs-extra"
@@ -30,7 +31,11 @@ import {
   makePodName,
 } from "../../../../../src/plugins/kubernetes/util"
 import { getContainerTestGarden } from "./container/container"
-import { KubernetesPod, KubernetesResource } from "../../../../../src/plugins/kubernetes/types"
+import {
+  KubernetesPod,
+  KubernetesResource,
+  KubernetesServerResource,
+} from "../../../../../src/plugins/kubernetes/types"
 import { PluginContext } from "../../../../../src/plugin-context"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { sleep, StringCollector } from "../../../../../src/util/util"
@@ -38,7 +43,7 @@ import { buildHelmModules, getHelmTestGarden } from "./helm/common"
 import { getBaseModule, getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
 import { getModuleNamespace } from "../../../../../src/plugins/kubernetes/namespace"
 import { GardenModule } from "../../../../../src/types/module"
-import { V1Container, V1DaemonSet, V1Deployment, V1StatefulSet } from "@kubernetes/client-node"
+import { V1Container, V1DaemonSet, V1Deployment, V1Pod, V1StatefulSet } from "@kubernetes/client-node"
 
 describe("kubernetes Pod runner functions", () => {
   let garden: Garden
@@ -355,6 +360,164 @@ describe("kubernetes Pod runner functions", () => {
         await expectError(
           () => runner.runAndWait({ log, remove: true, tty: false }),
           (err) => expect(err.message).to.include("Failed to start Pod")
+        )
+      })
+
+      it("should throw if Pod OOMs with exit code 137", async () => {
+        const mockApi = await KubeApi.factory(garden.log, ctx, provider)
+        const core = td.replace(mockApi, "core")
+
+        const pod = makePod(["sh", "-c", "echo foo"])
+        pod.spec.containers[0].resources = {
+          limits: {
+            memory: "8Mi",
+          },
+        }
+
+        runner = new PodRunner({
+          ctx,
+          pod,
+          namespace,
+          api: mockApi,
+          provider,
+        })
+
+        // We mock the pod status result to fake an OOMKilled event.
+        // (I tried manually generating an OOM event which worked locally but not on Minkube in CI)
+        const readNamespacedPodStatusRes: Partial<KubernetesServerResource<V1Pod>> = {
+          apiVersion: "v1",
+          kind: "Pod",
+          metadata: {
+            name: runner.podName,
+            namespace: "container-default",
+          },
+          spec: {
+            containers: [
+              {
+                command: ["sh", "-c", "echo foo"],
+                image: "busybox",
+                imagePullPolicy: "Always",
+                name: "main",
+              },
+            ],
+          },
+          status: {
+            conditions: [
+              {
+                lastProbeTime: undefined,
+                lastTransitionTime: new Date(),
+                status: "True",
+                type: "PodScheduled",
+              },
+            ],
+            containerStatuses: [
+              {
+                image: "busybox:latest",
+                imageID: "docker-pullable://busybox@sha256:some-hash",
+                lastState: {},
+                name: "main",
+                ready: true,
+                restartCount: 0,
+                started: true,
+                state: {
+                  terminated: {
+                    reason: "OOMKilled",
+                    exitCode: 137,
+                  },
+                },
+              },
+            ],
+            phase: "Running",
+            startTime: new Date(),
+          },
+        }
+        td.when(core.readNamespacedPodStatus(runner.podName, namespace)).thenResolve(readNamespacedPodStatusRes)
+
+        await expectError(
+          () => runner.runAndWait({ log, remove: true, tty: false }),
+          (err) => {
+            expect(err.type).to.eql("out-of-memory")
+            expect(err.message).to.include("OOMKilled")
+          }
+        )
+      })
+
+      it("should throw if exit reason is OOMKilled, even if exit code is 0", async () => {
+        const mockApi = await KubeApi.factory(garden.log, ctx, provider)
+        const core = td.replace(mockApi, "core")
+
+        const pod = makePod(["sh", "-c", "echo foo"])
+        pod.spec.containers[0].resources = {
+          limits: {
+            memory: "8Mi",
+          },
+        }
+
+        runner = new PodRunner({
+          ctx,
+          pod,
+          namespace,
+          api: mockApi,
+          provider,
+        })
+
+        // Here we're specifically testing the case where the exit code is 0 but the exit reason
+        // is "OOMKilled" which is something we've seen happen "in the wild".
+        const readNamespacedPodStatusRes: Partial<KubernetesServerResource<V1Pod>> = {
+          apiVersion: "v1",
+          kind: "Pod",
+          metadata: {
+            name: runner.podName,
+            namespace: "container-default",
+          },
+          spec: {
+            containers: [
+              {
+                command: ["sh", "-c", "echo foo"],
+                image: "busybox",
+                imagePullPolicy: "Always",
+                name: "main",
+              },
+            ],
+          },
+          status: {
+            conditions: [
+              {
+                lastProbeTime: undefined,
+                lastTransitionTime: new Date(),
+                status: "True",
+                type: "PodScheduled",
+              },
+            ],
+            containerStatuses: [
+              {
+                image: "busybox:latest",
+                imageID: "docker-pullable://busybox@sha256:some-hash",
+                lastState: {},
+                name: "main",
+                ready: true,
+                restartCount: 0,
+                started: true,
+                state: {
+                  terminated: {
+                    reason: "OOMKilled",
+                    exitCode: 0, // <-----
+                  },
+                },
+              },
+            ],
+            phase: "Running",
+            startTime: new Date(),
+          },
+        }
+        td.when(core.readNamespacedPodStatus(runner.podName, namespace)).thenResolve(readNamespacedPodStatusRes)
+
+        await expectError(
+          () => runner.runAndWait({ log, remove: true, tty: false }),
+          (err) => {
+            expect(err.type).to.eql("out-of-memory")
+            expect(err.message).to.include("OOMKilled")
+          }
         )
       })
 
