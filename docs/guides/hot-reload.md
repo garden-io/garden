@@ -1,6 +1,6 @@
 # Hot Reload
 
-{% hint style="info"}
+{% hint style="info" %}
 Check out the section below on the brand-new, faster (and still experimental) dev mode—which includes bidirectional sync!
 {% endhint %}
 
