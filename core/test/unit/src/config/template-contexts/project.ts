@@ -10,6 +10,7 @@ import { expect } from "chai"
 import stripAnsi = require("strip-ansi")
 import { ConfigContext } from "../../../../../src/config/template-contexts/base"
 import { ProjectConfigContext } from "../../../../../src/config/template-contexts/project"
+import { gardenEnv } from "../../../../../src/constants"
 import { resolveTemplateString } from "../../../../../src/template-string/template-string"
 import { deline } from "../../../../../src/util/string"
 
@@ -254,5 +255,25 @@ describe("ProjectConfigContext", () => {
       c
     )
     expect(result).to.be.false
+  })
+
+  it("should resolve cloud workflow context variables", () => {
+    const backup = gardenEnv.GARDEN_CLOUD_PR_NUMBER
+    gardenEnv.GARDEN_CLOUD_PR_NUMBER = 123
+    const c = new ProjectConfigContext({
+      projectName: "some-project",
+      projectRoot: "/tmp",
+      artifactsPath: "/tmp",
+      branch: "main",
+      username: "some-user",
+      secrets: {},
+      commandInfo: { name: "test", args: {}, opts: {} },
+    })
+    expect(c.resolve({ key: ["workflow", "pullRequestNumber"], nodePath: [], opts: {} })).to.eql({
+      resolved: 123,
+    })
+    let result = resolveTemplateString("${workflow.runNumber || 555}", c)
+    expect(result).to.eql(555)
+    gardenEnv.GARDEN_CLOUD_PR_NUMBER = backup
   })
 })

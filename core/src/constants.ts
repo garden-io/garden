@@ -68,5 +68,8 @@ export const gardenEnv = {
   GARDEN_SKIP_TESTS: env.get("GARDEN_SKIP_TESTS").required(false).default("").asString(),
   GARDEN_HARD_CONCURRENCY_LIMIT: env.get("GARDEN_HARD_CONCURRENCY_LIMIT").required(false).default(50).asInt(),
   GARDEN_TASK_CONCURRENCY_LIMIT: env.get("GARDEN_TASK_CONCURRENCY_LIMIT").required(false).default(6).asInt(),
-  GARDEN_WORKFLOW_RUN_UID: env.get("GARDEN_WORKFLOW_RUN_UID").required(false).asString(),
+  GARDEN_CLOUD_WORKFLOW_RUN_UID: env.get("GARDEN_WORKFLOW_RUN_UID").required(false).asString(),
+  GARDEN_CLOUD_REPO_NAME: env.get("GARDEN_REPO_NAME").required(false).asString(),
+  GARDEN_CLOUD_RUN_NUMBER: env.get("GARDEN_RUN_NUMBER").required(false).asInt(),
+  GARDEN_CLOUD_PR_NUMBER: env.get("GARDEN_PR_NUMBER").required(false).asInt(),
 }
