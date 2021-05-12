@@ -19,7 +19,7 @@ import { KubeApi, KubernetesError } from "./api"
 import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util/string"
 import { MAX_CONFIGMAP_DATA_SIZE, systemDockerAuthSecretName } from "./constants"
 import { ContainerEnvVars } from "../container/config"
-import { ConfigurationError, PluginError } from "../../exceptions"
+import { ConfigurationError, DeploymentError, PluginError } from "../../exceptions"
 import { ServiceResourceSpec, KubernetesProvider } from "./config"
 import { LogEntry } from "../../logger/log-entry"
 import { PluginContext } from "../../plugin-context"
@@ -28,6 +28,7 @@ import { KubernetesModule } from "./kubernetes-module/config"
 import { getChartPath, renderHelmTemplateString } from "./helm/common"
 import { HotReloadableResource } from "./hot-reload/hot-reload"
 import { ProviderMap } from "../../config/provider"
+import { PodRunner } from "./run"
 
 export const skopeoImage = "gardendev/skopeo:1.41.0-2"
 
@@ -192,6 +193,54 @@ export async function getPods(
         // Filter out evicted pods
         !(pod.status && pod.status.reason && pod.status.reason.includes("Evicted"))
     )
+}
+
+export async function execInWorkload({
+  ctx,
+  provider,
+  log,
+  namespace,
+  workload,
+  command,
+  interactive,
+}: {
+  ctx: PluginContext
+  provider: KubernetesProvider
+  log: LogEntry
+  namespace: string
+  workload: KubernetesWorkload
+  command: string[]
+  interactive: boolean
+}) {
+  const api = await KubeApi.factory(log, ctx, provider)
+  const pods = await getCurrentWorkloadPods(api, namespace, workload)
+
+  const pod = pods[0]
+
+  if (!pod) {
+    // This should not happen because of the prior status check, but checking to be sure
+    throw new DeploymentError(`Could not find running pod for ${workload.kind}/${workload.metadata.name}`, {
+      workload,
+    })
+  }
+
+  const runner = new PodRunner({
+    api,
+    ctx,
+    provider,
+    namespace,
+    pod,
+  })
+
+  const res = await runner.exec({
+    log,
+    command,
+    timeoutSec: 999999,
+    tty: interactive,
+    buffer: true,
+  })
+
+  return { code: res.exitCode, output: res.log }
 }
 
 /**

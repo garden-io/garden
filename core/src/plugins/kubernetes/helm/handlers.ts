@@ -26,6 +26,7 @@ import chalk = require("chalk")
 import { SuggestModulesParams, SuggestModulesResult } from "../../../types/plugin/module/suggestModules"
 import { getReleaseName } from "./common"
 import { hotReloadK8s } from "../hot-reload/hot-reload"
+import { execInHelmService } from "./exec"
 
 export const helmHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModule>> = {
   build: buildHelmModule,
@@ -37,7 +38,7 @@ export const helmHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModule>> =
       },
     }
   },
-  // TODO: add execInService handler
+  execInService: execInHelmService,
   deleteService,
   deployService: deployHelmService,
   // Use the same getPortForward handler as container and kubernetes-module, except set the namespace

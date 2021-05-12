@@ -8,18 +8,19 @@
 
 import { includes } from "lodash"
 import { DeploymentError } from "../../../exceptions"
-import { ContainerModule } from "../../container/config"
+import { KubernetesModule } from "./config"
 import { getAppNamespace } from "../namespace"
-import { getContainerServiceStatus } from "./status"
 import { KubernetesPluginContext } from "../config"
-import { execInWorkload } from "../util"
+import { execInWorkload, findServiceResource, getServiceResourceSpec } from "../util"
+import { getKubernetesServiceStatus } from "./handlers"
 import { ExecInServiceParams } from "../../../types/plugin/service/execInService"
 
-export async function execInService(params: ExecInServiceParams<ContainerModule>) {
+export async function execInKubernetesService(params: ExecInServiceParams<KubernetesModule>) {
   const { ctx, log, service, command, interactive } = params
+  const module = service.module
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const status = await getContainerServiceStatus({
+  const status = await getKubernetesServiceStatus({
     ...params,
     // The runtime context doesn't matter here. We're just checking if the service is running.
     runtimeContext: {
@@ -31,13 +32,23 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
   })
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
+  const serviceResourceSpec = getServiceResourceSpec(module, undefined)
+  const serviceResource = await findServiceResource({
+    ctx,
+    log,
+    module,
+    baseModule: undefined,
+    manifests: status.detail.remoteResources,
+    resourceSpec: serviceResourceSpec,
+  })
+
   // TODO: this check should probably live outside of the plugin
-  if (!status.detail.workload || !includes(["ready", "outdated"], status.state)) {
+  if (!serviceResource || !includes(["ready", "outdated"], status.state)) {
     throw new DeploymentError(`Service ${service.name} is not running`, {
       name: service.name,
       state: status.state,
     })
   }
 
-  return execInWorkload({ ctx, provider, log, namespace, workload: status.detail.workload, command, interactive })
+  return execInWorkload({ ctx, provider, log, namespace, workload: serviceResource, command, interactive })
 }
