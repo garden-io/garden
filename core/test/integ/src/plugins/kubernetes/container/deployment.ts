@@ -23,10 +23,10 @@ import { getServiceStatuses } from "../../../../../../src/tasks/base"
 import { expectError, grouped } from "../../../../../helpers"
 import stripAnsi = require("strip-ansi")
 import { gardenAnnotationKey } from "../../../../../../src/util/string"
-import { execInWorkload } from "../../../../../../src/plugins/kubernetes/container/exec"
 import { getContainerServiceStatus } from "../../../../../../src/plugins/kubernetes/container/status"
 import { sleep } from "../../../../../../src/util/util"
 import { pathExists, readFile, remove, writeFile } from "fs-extra"
+import { execInWorkload } from "../../../../../../src/plugins/kubernetes/util"
 
 describe("kubernetes container deployment handlers", () => {
   let garden: Garden
