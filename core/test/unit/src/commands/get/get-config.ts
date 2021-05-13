@@ -13,7 +13,7 @@ import { GetConfigCommand } from "../../../../../src/commands/get/get-config"
 import { sortBy } from "lodash"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { defaultWorkflowResources, WorkflowConfig } from "../../../../../src/config/workflow"
-import { defaultContainerLimits } from "../../../../../src/plugins/container/config"
+import { defaultContainerLimits, defaultContainerResources } from "../../../../../src/plugins/container/config"
 
 describe("GetConfigCommand", () => {
   it("should get the project configuration", async () => {
@@ -488,10 +488,8 @@ describe("GetConfigCommand", () => {
             daemon: false,
             ingresses: [],
             env: {},
-            limits: {
-              cpu: 1000,
-              memory: 1024,
-            },
+            cpu: defaultContainerResources.cpu,
+            memory: defaultContainerResources.memory,
             ports: [],
             volumes: [],
           },
@@ -569,6 +567,8 @@ describe("GetConfigCommand", () => {
             disabled: false,
             timeout: null,
             env: {},
+            cpu: defaultContainerResources.cpu,
+            memory: defaultContainerResources.memory,
             volumes: [],
           },
           timeout: null,
@@ -638,7 +638,7 @@ describe("GetConfigCommand", () => {
       })
 
       const expectedModuleConfigs = (await garden.resolveModules({ log })).map((m) => m._config)
-      // Remove the disabled task
+      // Remove the disabled test
       expectedModuleConfigs[0].testConfigs = [
         {
           name: "test-enabled",
@@ -650,6 +650,8 @@ describe("GetConfigCommand", () => {
             disabled: false,
             timeout: null,
             env: {},
+            cpu: defaultContainerResources.cpu,
+            memory: defaultContainerResources.memory,
             volumes: [],
           },
           timeout: null,

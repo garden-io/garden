@@ -26,7 +26,7 @@ import { containerHelpers } from "../../container/helpers"
 import { LogEntry } from "../../../logger/log-entry"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
-import { millicpuToString, kilobytesToString, prepareEnvVars, workloadTypes } from "../util"
+import { prepareEnvVars, workloadTypes } from "../util"
 import { gardenAnnotationKey, deline } from "../../../util/string"
 import { RuntimeContext } from "../../../runtime-context"
 import { resolve } from "path"
@@ -35,6 +35,7 @@ import { prepareImagePullSecrets } from "../secrets"
 import { configureHotReload } from "../hot-reload/helpers"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { hotReloadableKinds, HotReloadableResource } from "../hot-reload/hot-reload"
+import { getResourceRequirements } from "./util"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters
@@ -387,22 +388,14 @@ export async function createWorkloadManifest({
   const registryConfig = provider.config.deploymentRegistry
   const imageId = containerHelpers.getDeploymentImageId(service.module, service.module.version, registryConfig)
 
+  const { cpu, memory, limits } = spec
+
   const container: V1Container = {
     name: service.name,
     image: imageId,
     env,
     ports: [],
-    // TODO: make these configurable
-    resources: {
-      requests: {
-        cpu: DEFAULT_CPU_REQUEST,
-        memory: DEFAULT_MEMORY_REQUEST,
-      },
-      limits: {
-        cpu: millicpuToString(spec.limits.cpu),
-        memory: kilobytesToString(spec.limits.memory * 1024),
-      },
-    },
+    resources: getResourceRequirements({ cpu, memory }, limits),
     imagePullPolicy: "IfNotPresent",
     securityContext: {
       allowPrivilegeEscalation: false,

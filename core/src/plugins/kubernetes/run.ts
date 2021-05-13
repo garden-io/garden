@@ -29,7 +29,7 @@ import { KubeApi } from "./api"
 import { getPodLogs, checkPodStatus } from "./status/pod"
 import { KubernetesResource, KubernetesPod } from "./types"
 import { RunModuleParams } from "../../types/plugin/module/runModule"
-import { ContainerEnvVars, ContainerVolumeSpec } from "../container/config"
+import { ContainerEnvVars, ContainerResourcesSpec, ContainerVolumeSpec } from "../container/config"
 import { prepareEnvVars, makePodName } from "./util"
 import { deline } from "../../util/string"
 import { ArtifactSpec } from "../../config/validation"
@@ -40,6 +40,7 @@ import { PluginContext } from "../../plugin-context"
 import { waitForResources, ResourceStatus } from "./status/status"
 import { cloneDeep, pick } from "lodash"
 import { RuntimeContext } from "../../runtime-context"
+import { getResourceRequirements } from "./container/util"
 
 // Default timeout for individual run/exec operations
 const defaultTimeout = 600
@@ -103,6 +104,7 @@ export async function runAndCopy({
   artifacts = [],
   artifactsPath,
   envVars = {},
+  resources,
   description,
   stdout,
   stderr,
@@ -117,6 +119,7 @@ export async function runAndCopy({
   artifacts?: ArtifactSpec[]
   artifactsPath?: string
   envVars?: ContainerEnvVars
+  resources?: ContainerResourcesSpec
   description?: string
   stdout?: Writable
   stderr?: Writable
@@ -147,6 +150,7 @@ export async function runAndCopy({
     provider,
     runtimeContext,
     envVars,
+    resources,
     description,
     errorMetadata,
     mainContainerName,
@@ -205,6 +209,7 @@ export async function prepareRunPodSpec({
   command,
   runtimeContext,
   envVars,
+  resources,
   description,
   errorMetadata,
   mainContainerName,
@@ -223,6 +228,7 @@ export async function prepareRunPodSpec({
   provider: KubernetesProvider
   runtimeContext: RuntimeContext
   envVars: ContainerEnvVars
+  resources?: ContainerResourcesSpec
   description: string
   errorMetadata: any
   mainContainerName: string
@@ -239,9 +245,12 @@ export async function prepareRunPodSpec({
     ...(container && container.env ? container.env : []),
   ])
 
+  const resourceRequirements = resources ? { resources: getResourceRequirements(resources) } : {}
+
   const containers: V1Container[] = [
     {
       ...(container || {}),
+      ...resourceRequirements,
       // We always override the following attributes
       name: mainContainerName,
       image,
@@ -253,14 +262,14 @@ export async function prepareRunPodSpec({
 
   const imagePullSecrets = await prepareImagePullSecrets({ api, provider, namespace, log })
 
-  podSpec = {
+  const preparedPodSpec = {
     ...pick(podSpec || {}, runPodSpecWhitelist),
     containers,
     imagePullSecrets,
   }
 
   if (volumes) {
-    configureVolumes(module, podSpec, volumes)
+    configureVolumes(module, preparedPodSpec, volumes)
   }
 
   if (getArtifacts) {
@@ -278,17 +287,17 @@ export async function prepareRunPodSpec({
 
     // We start the container with a named pipe and tail that, to get the logs from the actual command
     // we plan on running. Then we sleep, so that we can copy files out of the container.
-    podSpec.containers[0].command = ["sh", "-c", "mkfifo /tmp/output && cat /tmp/output && sleep 86400"]
+    preparedPodSpec.containers[0].command = ["sh", "-c", "mkfifo /tmp/output && cat /tmp/output && sleep 86400"]
   } else {
     if (args) {
-      podSpec.containers[0].args = args
+      preparedPodSpec.containers[0].args = args
     }
     if (command) {
-      podSpec.containers[0].command = command
+      preparedPodSpec.containers[0].command = command
     }
   }
 
-  return podSpec
+  return preparedPodSpec
 }
 
 async function runWithoutArtifacts({

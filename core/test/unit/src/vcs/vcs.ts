@@ -423,7 +423,7 @@ describe("getModuleVersionString", () => {
     const garden = await makeTestGarden(projectRoot)
     const module = await garden.resolveModule("module-a")
 
-    const fixedVersionString = "v-c8c9a1ad51"
+    const fixedVersionString = "v-0e0d9afd11"
     expect(module.version.versionString).to.eql(fixedVersionString)
 
     delete process.env.TEST_ENV_VAR

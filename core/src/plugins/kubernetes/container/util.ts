@@ -13,6 +13,9 @@ import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesPluginContext } from "../config"
 import { getSystemNamespace } from "../namespace"
 import { got, GotTextOptions } from "../../../util/http"
+import { ContainerResourcesSpec, ServiceLimitSpec } from "../../container/config"
+import { V1ResourceRequirements } from "@kubernetes/client-node"
+import { kilobytesToString, millicpuToString } from "../util"
 
 export async function queryRegistry(ctx: KubernetesPluginContext, log: LogEntry, path: string, opts?: GotTextOptions) {
   const registryFwd = await getRegistryPortForward(ctx, log)
@@ -32,4 +35,22 @@ export async function getRegistryPortForward(ctx: KubernetesPluginContext, log: 
     targetResource: `Deployment/${CLUSTER_REGISTRY_DEPLOYMENT_NAME}`,
     port: CLUSTER_REGISTRY_PORT,
   })
+}
+
+export function getResourceRequirements(
+  resources: ContainerResourcesSpec,
+  limits?: ServiceLimitSpec
+): V1ResourceRequirements {
+  const maxCpu = limits?.cpu || resources.cpu.max
+  const maxMemory = limits?.memory || resources.memory.max
+  return {
+    requests: {
+      cpu: millicpuToString(resources.cpu.min),
+      memory: kilobytesToString(resources.memory.min * 1024),
+    },
+    limits: {
+      cpu: millicpuToString(maxCpu),
+      memory: kilobytesToString(maxMemory * 1024),
+    },
+  }
 }

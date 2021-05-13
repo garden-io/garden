@@ -178,19 +178,7 @@ describe("RunWorkflowCommand", () => {
 
     expect(result).to.exist
     expect(errors).to.not.exist
-    expect(stripAnsi(result?.steps["step-1"].log!).trim()).to.equal(dedent`
-      Checking result...
-      Done
-      Running...
-      Done (took 0 sec)
-
-      Task output:
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      echo OK
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-      Done! ✔️
-    `)
+    expect(stripAnsi(result?.steps["step-1"].log!).trim()).to.match(/echo OK/)
   })
 
   it("should abort subsequent steps if a command returns an error", async () => {

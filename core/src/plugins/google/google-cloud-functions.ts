@@ -18,7 +18,7 @@ import { Provider, providerConfigBaseSchema } from "../../config/provider"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../types/plugin/module/configure"
 import { DeployServiceParams } from "../../types/plugin/service/deployService"
 import { GetServiceStatusParams } from "../../types/plugin/service/getServiceStatus"
-import { ServiceLimitSpec } from "../container/config"
+import { ContainerResourcesSpec, ServiceLimitSpec } from "../container/config"
 import { gardenAnnotationKey } from "../../util/string"
 
 const gcfModuleSpecSchema = () =>
@@ -36,7 +36,9 @@ export interface GcfModuleSpec extends CommonServiceSpec {
   entrypoint?: string
   function: string
   hostname?: string
-  limits: ServiceLimitSpec
+  limits?: ServiceLimitSpec
+  cpu: ContainerResourcesSpec["cpu"]
+  memory: ContainerResourcesSpec["memory"]
   path: string
   project?: string
   tests: ExecTestSpec[]

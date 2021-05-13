@@ -306,13 +306,21 @@ services:
     # deployed with hot reloading enabled.
     hotReloadArgs:
 
-    # Specify resource limits for the service.
-    limits:
+    cpu:
+      # The minimum amount of CPU the service needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1
+      # CPU)
+      min: 10
+
       # The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)
-      cpu: 1000
+      max: 1000
+
+    memory:
+      # The minimum amount of RAM the service needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1
+      # GB)
+      min: 90
 
       # The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)
-      memory: 1024
+      max: 90
 
     # List of ports that the service container exposes.
     ports:
@@ -424,6 +432,22 @@ tests:
     # `GARDEN`) and values must be primitives or references to secrets.
     env: {}
 
+    cpu:
+      # The minimum amount of CPU the test needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1
+      # CPU)
+      min: 10
+
+      # The maximum amount of CPU the test can use, in millicpus (i.e. 1000 = 1 CPU)
+      max: 1000
+
+    memory:
+      # The minimum amount of RAM the test needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1
+      # GB)
+      min: 90
+
+      # The maximum amount of RAM the test can use, in megabytes (i.e. 1024 = 1 GB)
+      max: 90
+
     # List of volumes that should be mounted when deploying the test.
     #
     # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
@@ -510,6 +534,22 @@ tasks:
     # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
     # `GARDEN`) and values must be primitives or references to secrets.
     env: {}
+
+    cpu:
+      # The minimum amount of CPU the task needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1
+      # CPU)
+      min: 10
+
+      # The maximum amount of CPU the task can use, in millicpus (i.e. 1000 = 1 CPU)
+      max: 1000
+
+    memory:
+      # The minimum amount of RAM the task needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1
+      # GB)
+      min: 90
+
+      # The maximum amount of RAM the task can use, in megabytes (i.e. 1024 = 1 GB)
+      max: 90
 
     # List of volumes that should be mounted when deploying the task.
     #
@@ -1393,9 +1433,9 @@ services:
 
 Specify resource limits for the service.
 
-| Type     | Default                      | Required |
-| -------- | ---------------------------- | -------- |
-| `object` | `{"cpu":1000,"memory":1024}` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
 ### `services[].limits.cpu`
 
@@ -1403,9 +1443,9 @@ Specify resource limits for the service.
 
 The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)
 
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1000`  | No       |
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
 
 ### `services[].limits.memory`
 
@@ -1413,9 +1453,65 @@ The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)
 
 The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)
 
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `services[].cpu`
+
+[services](#services) > cpu
+
+| Type     | Default                 | Required |
+| -------- | ----------------------- | -------- |
+| `object` | `{"min":10,"max":1000}` | No       |
+
+### `services[].cpu.min`
+
+[services](#services) > [cpu](#servicescpu) > min
+
+The minimum amount of CPU the service needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1 CPU)
+
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `1024`  | No       |
+| `number` | `10`    | No       |
+
+### `services[].cpu.max`
+
+[services](#services) > [cpu](#servicescpu) > max
+
+The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `1000`  | No       |
+
+### `services[].memory`
+
+[services](#services) > memory
+
+| Type     | Default                 | Required |
+| -------- | ----------------------- | -------- |
+| `object` | `{"min":90,"max":1024}` | No       |
+
+### `services[].memory.min`
+
+[services](#services) > [memory](#servicesmemory) > min
+
+The minimum amount of RAM the service needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1 GB)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `90`    | No       |
+
+### `services[].memory.max`
+
+[services](#services) > [memory](#servicesmemory) > max
+
+The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `90`    | No       |
 
 ### `services[].ports[]`
 
@@ -1758,6 +1854,62 @@ tests:
         - {}
 ```
 
+### `tests[].cpu`
+
+[tests](#tests) > cpu
+
+| Type     | Default                 | Required |
+| -------- | ----------------------- | -------- |
+| `object` | `{"min":10,"max":1000}` | No       |
+
+### `tests[].cpu.min`
+
+[tests](#tests) > [cpu](#testscpu) > min
+
+The minimum amount of CPU the test needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1 CPU)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `10`    | No       |
+
+### `tests[].cpu.max`
+
+[tests](#tests) > [cpu](#testscpu) > max
+
+The maximum amount of CPU the test can use, in millicpus (i.e. 1000 = 1 CPU)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `1000`  | No       |
+
+### `tests[].memory`
+
+[tests](#tests) > memory
+
+| Type     | Default                 | Required |
+| -------- | ----------------------- | -------- |
+| `object` | `{"min":90,"max":1024}` | No       |
+
+### `tests[].memory.min`
+
+[tests](#tests) > [memory](#testsmemory) > min
+
+The minimum amount of RAM the test needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1 GB)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `90`    | No       |
+
+### `tests[].memory.max`
+
+[tests](#tests) > [memory](#testsmemory) > max
+
+The maximum amount of RAM the test can use, in megabytes (i.e. 1024 = 1 GB)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `90`    | No       |
+
 ### `tests[].volumes[]`
 
 [tests](#tests) > volumes
@@ -2016,6 +2168,62 @@ tasks:
               key: some-key
         - {}
 ```
+
+### `tasks[].cpu`
+
+[tasks](#tasks) > cpu
+
+| Type     | Default                 | Required |
+| -------- | ----------------------- | -------- |
+| `object` | `{"min":10,"max":1000}` | No       |
+
+### `tasks[].cpu.min`
+
+[tasks](#tasks) > [cpu](#taskscpu) > min
+
+The minimum amount of CPU the task needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1 CPU)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `10`    | No       |
+
+### `tasks[].cpu.max`
+
+[tasks](#tasks) > [cpu](#taskscpu) > max
+
+The maximum amount of CPU the task can use, in millicpus (i.e. 1000 = 1 CPU)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `1000`  | No       |
+
+### `tasks[].memory`
+
+[tasks](#tasks) > memory
+
+| Type     | Default                 | Required |
+| -------- | ----------------------- | -------- |
+| `object` | `{"min":90,"max":1024}` | No       |
+
+### `tasks[].memory.min`
+
+[tasks](#tasks) > [memory](#tasksmemory) > min
+
+The minimum amount of RAM the task needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1 GB)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `90`    | No       |
+
+### `tasks[].memory.max`
+
+[tasks](#tasks) > [memory](#tasksmemory) > max
+
+The maximum amount of RAM the task can use, in megabytes (i.e. 1024 = 1 GB)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `90`    | No       |
 
 ### `tasks[].volumes[]`
 
