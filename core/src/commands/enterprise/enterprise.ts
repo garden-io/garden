@@ -15,8 +15,8 @@ import { UsersCommand } from "./users/users"
 export class EnterpriseCommand extends CommandGroup {
   name = "enterprise"
   help = dedent`
-    [EXPERIMENTAL] Manage Garden Enterprise resources such as users, groups and secrets. Requires
-    Garden Enterprise 1.14.0 or higher.
+    [EXPERIMENTAL] Manage Garden Enterprise resources such as users, groups and secrets.
+    Requires Garden Enterprise 1.14.0 or higher.
   `
 
   subCommands = [SecretsCommand, UsersCommand, GroupsCommand]

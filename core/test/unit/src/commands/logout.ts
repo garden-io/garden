@@ -8,26 +8,13 @@
 
 import { expect } from "chai"
 import td from "testdouble"
-import { withDefaultGlobalOpts, getDataDir, cleanupAuthTokens, getLogMessages } from "../../../helpers"
+import { getDataDir, cleanupAuthTokens, getLogMessages, makeCommandParams } from "../../../helpers"
 import { makeDummyGarden } from "../../../../src/cli/cli"
-import { Garden } from "../../../../src"
 import { ClientAuthToken } from "../../../../src/db/entities/client-auth-token"
 import { randomString } from "../../../../src/util/string"
 import { EnterpriseApi } from "../../../../src/enterprise/api"
 import { LogLevel } from "../../../../src/logger/log-node"
 import { LogOutCommand } from "../../../../src/commands/logout"
-
-function makeCommandParams(garden: Garden) {
-  const log = garden.log
-  return {
-    garden,
-    log,
-    headerLog: log,
-    footerLog: log,
-    args: {},
-    opts: withDefaultGlobalOpts({}),
-  }
-}
 
 describe("LogoutCommand", () => {
   beforeEach(async () => {
@@ -63,7 +50,7 @@ describe("LogoutCommand", () => {
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
-    await command.action(makeCommandParams(garden))
+    await command.action(makeCommandParams({ garden, args: {}, opts: {} }))
 
     const tokenAfterLogout = await ClientAuthToken.findOne()
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
@@ -79,7 +66,7 @@ describe("LogoutCommand", () => {
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
 
-    await command.action(makeCommandParams(garden))
+    await command.action(makeCommandParams({ garden, args: {}, opts: {} }))
 
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
     expect(logOutput).to.include("You're already logged out from Garden Enterprise.")
@@ -111,7 +98,7 @@ describe("LogoutCommand", () => {
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
-    await command.action(makeCommandParams(garden))
+    await command.action(makeCommandParams({ garden, args: {}, opts: {} }))
 
     const tokenAfterLogout = await ClientAuthToken.findOne()
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
@@ -146,7 +133,7 @@ describe("LogoutCommand", () => {
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
-    await command.action(makeCommandParams(garden))
+    await command.action(makeCommandParams({ garden, args: {}, opts: {} }))
 
     const tokenAfterLogout = await ClientAuthToken.findOne()
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")

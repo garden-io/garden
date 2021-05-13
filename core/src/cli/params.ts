@@ -14,7 +14,7 @@ import { joi, DeepPrimitiveMap } from "../config/common"
 import { ParameterError } from "../exceptions"
 import { parseEnvironment } from "../config/project"
 import { LOGGER_TYPES, getLogLevelChoices, envSupportsEmoji } from "../logger/logger"
-import { deline } from "../util/string"
+import { dedent, deline } from "../util/string"
 import chalk = require("chalk")
 import { LogLevel } from "../logger/log-node"
 import { safeDumpYaml } from "../util/util"
@@ -30,6 +30,15 @@ export const OUTPUT_RENDERERS = {
     // Convert data to JSON object so that `safeDumpYaml` renders any errors.
     return safeDumpYaml(JSON.parse(JSON.stringify(data)), { noRefs: true })
   },
+}
+
+export const validDurationUnits = ["d", "h", "m", "s"]
+
+function splitDuration(duration: string) {
+  return duration
+    .trim()
+    .split(/([0-9]+)/)
+    .filter(Boolean)
 }
 
 export interface ParameterConstructor<T> {
@@ -155,6 +164,49 @@ export class PathParameter extends Parameter<string> {
 
   coerce(input?: string): string {
     return resolve(process.cwd(), input || ".")
+  }
+}
+
+export class DurationParameter extends Parameter<string> {
+  type = "moment"
+  schema = joi.string()
+
+  coerce(input: string): string {
+    const parts = splitDuration(input)
+    const expectedType = dedent`
+      Duration where unit is one of ${validDurationUnits.join(
+        ", "
+      )} and length is an integer. For example '1d', '10m', '20s'.
+    `
+    if (parts.length !== 2) {
+      throw new ParameterError(`Could not parse "${input}" as duration`, {
+        expectedType,
+        input,
+      })
+    }
+    const length = parseInt(parts[0], 10)
+    const unit = parts[1]
+    if (isNaN(length)) {
+      throw new ParameterError(
+        `Could not parse "${input}" as duration, length must be an integer. Received ${length}`,
+        {
+          expectedType,
+          input,
+        }
+      )
+    }
+    if (!validDurationUnits.includes(unit)) {
+      throw new ParameterError(
+        `Could not parse "${input}" as duration, unit must be one of ${validDurationUnits.join(
+          ", "
+        )}. Received ${unit}`,
+        {
+          expectedType,
+          input,
+        }
+      )
+    }
+    return input
   }
 }
 

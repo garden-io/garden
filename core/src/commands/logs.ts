@@ -8,17 +8,19 @@
 
 import { Command, CommandResult, CommandParams } from "./base"
 import chalk from "chalk"
-import { maxBy } from "lodash"
+import { maxBy, sortBy } from "lodash"
 import { ServiceLogEntry } from "../types/plugin/service/getServiceLogs"
 import Bluebird = require("bluebird")
 import { GardenService } from "../types/service"
 import Stream from "ts-stream"
-import { LoggerType } from "../logger/logger"
-import dedent = require("dedent")
+import { LoggerType, logLevelMap } from "../logger/logger"
+import { StringsParameter, BooleanParameter, IntegerParameter, DurationParameter } from "../cli/params"
+import { printHeader, renderDivider } from "../logger/util"
+import stripAnsi = require("strip-ansi")
 import { LogLevel } from "../logger/log-node"
-import { emptyRuntimeContext } from "../runtime-context"
-import { StringsParameter, BooleanParameter, IntegerParameter } from "../cli/params"
-import { printHeader } from "../logger/util"
+import hasAnsi = require("has-ansi")
+import { dedent } from "../util/string"
+import { formatSection } from "../logger/renderers"
 
 const logsArgs = {
   services: new StringsParameter({
@@ -29,35 +31,70 @@ const logsArgs = {
 }
 
 const logsOpts = {
-  follow: new BooleanParameter({
+  "follow": new BooleanParameter({
     help: "Continuously stream new logs from the service(s).",
     alias: "f",
     cliOnly: true,
   }),
-  tail: new IntegerParameter({
-    help: "Number of lines to show for each service. Defaults to -1, showing all log lines.",
+  "tail": new IntegerParameter({
+    help: dedent`
+      Number of lines to show for each service. Defaults to showing all log lines (up to a certain limit). Takes precedence over
+      the \`--since\` flag if both are set. Note that we don't recommend using a large value here when in follow mode.
+    `,
     alias: "t",
-    defaultValue: -1,
   }),
-  // TODO
-  // since: new MomentParameter({ help: "Retrieve logs from the specified point onwards" }),
+  "show-container": new BooleanParameter({
+    help: "Show the name of the container with log output. May not apply to all providers",
+    defaultValue: false,
+  }),
+  "timestamps": new BooleanParameter({
+    help: "Show timestamps with log output.",
+  }),
+  "since": new DurationParameter({
+    help: dedent`
+      Only show logs newer than a relative duration like 5s, 2m, or 3h. Defaults to \`"1m"\` when \`--follow\` is true
+      unless \`--tail\` is set. Note that we don't recommend using a large value here when in follow mode.
+    `,
+  }),
+  "original-color": new BooleanParameter({
+    help: "Show the original color output of the logs instead of color coding them.",
+    defaultValue: false,
+  }),
+  "hide-service": new BooleanParameter({
+    help: "Hide the service name and render the logs directly.",
+    defaultValue: false,
+  }),
 }
 
 type Args = typeof logsArgs
 type Opts = typeof logsOpts
+
+export const colors = ["green", "cyan", "magenta", "yellow", "blueBright", "red"]
+
+/**
+ * Skip empty entries.
+ */
+function skipEntry(entry: ServiceLogEntry) {
+  const validDate = entry.timestamp && entry.timestamp instanceof Date && !isNaN(entry.timestamp.getTime())
+  return !entry.msg && !validDate
+}
 
 export class LogsCommand extends Command<Args, Opts> {
   name = "logs"
   help = "Retrieves the most recent logs for the specified service(s)."
 
   description = dedent`
-    Outputs logs for all or specified services, and optionally waits for news logs to come in.
+    Outputs logs for all or specified services, and optionally waits for news logs to come in. Defaults
+    to getting logs from the last minute when in \`--follow\` mode. You can change this with the \`--since\` option.
 
     Examples:
 
-        garden logs               # prints latest logs from all services
-        garden logs my-service    # prints latest logs for my-service
-        garden logs -t            # keeps running and streams all incoming logs to the console
+        garden logs                       # interleaves color-coded logs from all services (up to a certain limit)
+        garden logs --since 2d            # interleaves color-coded logs from all services from the last 2 days
+        garden logs --tail 100            # interleaves the last 100 log lines from all services
+        garden logs service-a,service-b   # interleaves color-coded logs for service-a and service-b
+        garden logs --follow              # keeps running and streams all incoming logs to the console
+        garden logs --original-color      # interleaves logs from all services and prints the original output color
   `
 
   arguments = logsArgs
@@ -72,61 +109,129 @@ export class LogsCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ServiceLogEntry[]>> {
-    const { follow, tail } = opts
+    const { follow, timestamps } = opts
+    let tail = opts.tail as number | undefined
+    let since = opts.since as string | undefined
+    const originalColor = opts["original-color"]
+    const showContainer = opts["show-container"]
+    const hideService = opts["hide-service"]
+
+    if (tail) {
+      // Tail takes precedence over since...
+      since = undefined
+    } else if (follow && !since) {
+      // ...but if tail is not set and we're in follow mode, we default to getting the most recent logs.
+      since = "1m"
+    }
+
     const graph = await garden.getConfigGraph(log)
-    const services = graph.getServices({ names: args.services })
+    const allServices = graph.getServices()
+    const services = args.services ? allServices.filter((s) => args.services?.includes(s.name)) : allServices
+
     const serviceNames = services.map((s) => s.name).filter(Boolean)
     const maxServiceName = (maxBy(serviceNames, (serviceName) => serviceName.length) || "").length
+    // If the container name should be displayed, we align the output wrt to the longest container name
+    let maxContainerName = 1
 
     const result: ServiceLogEntry[] = []
     const stream = new Stream<ServiceLogEntry>()
+    let details: string = ""
 
-    void stream.forEach((entry) => {
-      // TODO: color each service differently for easier visual parsing
-      let timestamp = "                        "
+    if (tail) {
+      details = ` (showing last ${tail} lines from each service)`
+    } else if (since) {
+      details = ` (from the last '${since}' for each service)`
+    }
 
-      // bad timestamp values can cause crash if not caught
-      if (entry.timestamp) {
+    log.info("")
+    log.info(chalk.white.bold("Service logs" + details + ":"))
+    log.info(chalk.white.bold(renderDivider()))
+    log.root.stop()
+
+    // Map all service names in the project to a specific color. This ensures
+    // that in most cases services have the same color (unless any have been added/removed),
+    // regardless of what params you pass to the command.
+    const allServiceNames = allServices
+      .map((s) => s.name)
+      .filter(Boolean)
+      .sort()
+    const colorMap = allServiceNames.reduce((acc, serviceName, idx) => {
+      const color = colors[idx % colors.length]
+      acc[serviceName] = color
+      return acc
+    }, {})
+
+    const formatEntry = (entry: ServiceLogEntry) => {
+      const style = chalk[colorMap[entry.serviceName]]
+      const sectionStyle = style.bold
+      const serviceLog = originalColor ? entry.msg : stripAnsi(entry.msg)
+
+      let timestamp: string | undefined
+      let container: string | undefined
+
+      if (timestamps && entry.timestamp) {
+        timestamp = "                        "
         try {
           timestamp = entry.timestamp.toISOString()
         } catch {}
       }
 
-      log.info({
-        section: entry.serviceName,
-        msg: `${chalk.yellowBright(timestamp)} → ${chalk.white(entry.msg)}`,
-        maxSectionWidth: maxServiceName,
-      })
+      if (showContainer && entry.containerName) {
+        maxContainerName = Math.max(maxContainerName, entry.containerName.length)
+        container = entry.containerName
+      }
 
-      if (!follow) {
+      let out = ""
+      if (!hideService) {
+        out += `${sectionStyle(formatSection(entry.serviceName, maxServiceName))} → `
+      }
+      if (container) {
+        out += `${sectionStyle(formatSection(container, maxContainerName))} → `
+      }
+      if (timestamp) {
+        out += `${chalk.gray(timestamp)} → `
+      }
+      if (originalColor) {
+        // If the line doesn't have ansi encoding, we color it white to prevent logger from applying styles.
+        out += hasAnsi(serviceLog) ? serviceLog : chalk.white(serviceLog)
+      } else {
+        out += style(serviceLog)
+      }
+
+      return out
+    }
+
+    void stream.forEach((entry) => {
+      // Skip emtpy entries
+      if (skipEntry(entry)) {
+        return
+      }
+
+      if (follow) {
+        const levelStr = logLevelMap[entry.level || LogLevel.info] || "info"
+        const msg = formatEntry(entry)
+        log[levelStr]({ msg })
+      } else {
         result.push(entry)
       }
     })
 
     const actions = await garden.getActionRouter()
-    const voidLog = log.placeholder({ level: LogLevel.silly, childEntriesInheritLevel: true })
 
     await Bluebird.map(services, async (service: GardenService<any>) => {
-      const status = await actions.getServiceStatus({
-        devMode: false,
-        hotReload: false,
-        log: voidLog,
-        // This shouldn't matter for this context, we're just checking if the service is up or not
-        runtimeContext: emptyRuntimeContext,
-        service,
-      })
-
-      if (status.state === "ready" || status.state === "outdated") {
-        await actions.getServiceLogs({ log, service, stream, follow, tail })
-      } else {
-        await stream.write({
-          serviceName: service.name,
-          timestamp: new Date(),
-          msg: chalk.yellow(`<Service not running (state: ${status.state}). Please deploy the service and try again.>`),
-        })
-      }
+      await actions.getServiceLogs({ log, service, stream, follow, tail, since })
     })
 
-    return { result }
+    const sorted = sortBy(result, "timestamp")
+
+    if (!follow) {
+      for (const entry of sorted) {
+        const levelStr = logLevelMap[entry.level || LogLevel.info] || "info"
+        const msg = formatEntry(entry)
+        log[levelStr]({ msg })
+      }
+    }
+
+    return { result: sorted }
   }
 }

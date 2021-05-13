@@ -78,6 +78,7 @@ export async function getPodLogs({
   byteLimit,
   lineLimit,
   timestamps,
+  sinceSeconds,
 }: {
   api: KubeApi
   namespace: string
@@ -86,6 +87,7 @@ export async function getPodLogs({
   byteLimit?: number
   lineLimit?: number
   timestamps?: boolean
+  sinceSeconds?: number
 }) {
   let podContainers = pod.spec!.containers.map((c) => c.name).filter((n) => !n.match(/garden-/))
 
@@ -99,7 +101,6 @@ export async function getPodLogs({
     const follow = false
     const insecureSkipTLSVerify = false
     const pretty = undefined
-    const sinceSeconds = undefined
 
     try {
       log = await api.core.readNamespacedPodLog(
