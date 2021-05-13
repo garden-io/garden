@@ -271,6 +271,12 @@ export async function testExecModule({
 
   await copyArtifacts(log, test.config.spec.artifacts, module.buildPath, artifactsPath)
 
+  const outputLog = (result.stdout + result.stderr).trim()
+  if (outputLog) {
+    const prefix = `Finished running test ${chalk.white(test.name)}. Here is the output:`
+    log.verbose(renderMessageWithDivider(prefix, outputLog, false, chalk.gray))
+  }
+
   return {
     moduleName: module.name,
     command,
@@ -279,7 +285,7 @@ export async function testExecModule({
     success: result.exitCode === 0,
     startedAt,
     completedAt: new Date(),
-    log: result.stdout + result.stderr,
+    log: outputLog,
   }
 }
 
@@ -311,6 +317,11 @@ export async function runExecTask(params: RunTaskParams<ExecModule>): Promise<Ru
   } else {
     completedAt = startedAt
     outputLog = ""
+  }
+
+  if (outputLog) {
+    const prefix = `Finished running task ${chalk.white(task.name)}. Here is the output:`
+    log.verbose(renderMessageWithDivider(prefix, outputLog, false, chalk.gray))
   }
 
   await copyArtifacts(log, task.spec.artifacts, module.buildPath, artifactsPath)
