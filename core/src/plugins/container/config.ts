@@ -34,6 +34,17 @@ export const defaultContainerLimits: ServiceLimitSpec = {
   memory: 1024, // = 1024MB = 1GB
 }
 
+export const defaultContainerResources: ContainerResourcesSpec = {
+  cpu: {
+    min: 10,
+    max: 1000,
+  },
+  memory: {
+    min: 90, // This is the minimum in some clusters.
+    max: 1024,
+  },
+}
+
 export interface ContainerIngressSpec {
   annotations: Annotations
   linkUrl?: string
@@ -73,9 +84,23 @@ export interface ServiceHealthCheckSpec {
   livenessTimeoutSeconds?: number
 }
 
+/**
+ * DEPRECATED: Use `ContainerResourcesSpec` instead.
+ */
 export interface ServiceLimitSpec {
   cpu: number
   memory: number
+}
+
+export interface ContainerResourcesSpec {
+  cpu: {
+    min: number
+    max: number
+  }
+  memory: {
+    min: number
+    max: number
+  }
 }
 
 interface Annotations {
@@ -93,7 +118,9 @@ export interface ContainerServiceSpec extends CommonServiceSpec {
   healthCheck?: ServiceHealthCheckSpec
   hotReloadCommand?: string[]
   hotReloadArgs?: string[]
-  limits: ServiceLimitSpec
+  limits?: ServiceLimitSpec
+  cpu: ContainerResourcesSpec["cpu"]
+  memory: ContainerResourcesSpec["memory"]
   ports: ServicePortSpec[]
   replicas?: number
   volumes: ContainerVolumeSpec[]
@@ -308,14 +335,40 @@ const limitsSchema = () =>
   joi.object().keys({
     cpu: joi
       .number()
-      .default(defaultContainerLimits.cpu)
       .min(10)
-      .description("The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)"),
+      .description("The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)")
+      .meta({ deprecated: true }),
     memory: joi
       .number()
-      .default(defaultContainerLimits.memory)
       .min(64)
-      .description("The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)"),
+      .description("The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)")
+      .meta({ deprecated: true }),
+  })
+
+export const containerCpuSchema = (targetType: string) =>
+  joi.object().keys({
+    min: joi.number().default(defaultContainerResources.cpu.min).description(deline`
+          The minimum amount of CPU the ${targetType} needs to be available for it to be deployed, in millicpus
+          (i.e. 1000 = 1 CPU)
+        `),
+    max: joi
+      .number()
+      .default(defaultContainerResources.cpu.max)
+      .min(10)
+      .description(`The maximum amount of CPU the ${targetType} can use, in millicpus (i.e. 1000 = 1 CPU)`),
+  })
+
+export const containerMemorySchema = (targetType: string) =>
+  joi.object().keys({
+    min: joi.number().default(defaultContainerResources.memory.min).description(deline`
+        The minimum amount of RAM the ${targetType} needs to be available for it to be deployed, in megabytes
+        (i.e. 1024 = 1 GB)
+      `),
+    max: joi
+      .number()
+      .default(defaultContainerResources.memory.min)
+      .min(64)
+      .description(`The maximum amount of RAM the ${targetType} can use, in megabytes (i.e. 1024 = 1 GB)`),
   })
 
 export const portSchema = () =>
@@ -452,7 +505,9 @@ const containerServiceSchema = () =>
         these arguments when the service is deployed with hot reloading enabled.`
       )
       .example(["npm", "run", "dev"]),
-    limits: limitsSchema().description("Specify resource limits for the service.").default(defaultContainerLimits),
+    limits: limitsSchema().description("Specify resource limits for the service.").meta({ deprecated: true }),
+    cpu: containerCpuSchema("service").default(defaultContainerResources.cpu),
+    memory: containerMemorySchema("service").default(defaultContainerResources.memory),
     ports: joiSparseArray(portSchema()).unique("name").description("List of ports that the service container exposes."),
     replicas: joi.number().integer().description(deline`
       The number of instances of the service to deploy.
@@ -537,6 +592,8 @@ export interface ContainerTestSpec extends BaseTestSpec {
   artifacts: ArtifactSpec[]
   command?: string[]
   env: ContainerEnvVars
+  cpu: ContainerResourcesSpec["cpu"]
+  memory: ContainerResourcesSpec["memory"]
   volumes: ContainerVolumeSpec[]
 }
 
@@ -554,6 +611,8 @@ export const containerTestSchema = () =>
       .description("The command/entrypoint used to run the test inside the container.")
       .example(commandExample),
     env: containerEnvVarsSchema(),
+    cpu: containerCpuSchema("test").default(defaultContainerResources.cpu),
+    memory: containerMemorySchema("test").default(defaultContainerResources.memory),
     volumes: getContainerVolumesSchema("test"),
   })
 
@@ -563,6 +622,8 @@ export interface ContainerTaskSpec extends BaseTaskSpec {
   cacheResult: boolean
   command?: string[]
   env: ContainerEnvVars
+  cpu: ContainerResourcesSpec["cpu"]
+  memory: ContainerResourcesSpec["memory"]
   volumes: ContainerVolumeSpec[]
 }
 
@@ -582,6 +643,8 @@ export const containerTaskSchema = () =>
         .description("The command/entrypoint used to run the task inside the container.")
         .example(commandExample),
       env: containerEnvVarsSchema(),
+      cpu: containerCpuSchema("task").default(defaultContainerResources.cpu),
+      memory: containerMemorySchema("task").default(defaultContainerResources.memory),
       volumes: getContainerVolumesSchema("task"),
     })
     .description("A task that can be run in the container.")

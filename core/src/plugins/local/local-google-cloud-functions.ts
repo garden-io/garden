@@ -95,7 +95,8 @@ export const gardenPlugin = () =>
                 ],
                 env: {},
                 healthCheck: { tcpPort: "http" },
-                limits: s.spec.limits,
+                cpu: s.spec.cpu,
+                memory: s.spec.memory,
                 ports: [
                   {
                     name: "http",

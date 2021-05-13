@@ -44,6 +44,8 @@ import { getBaseModule, getChartResources } from "../../../../../src/plugins/kub
 import { getModuleNamespace } from "../../../../../src/plugins/kubernetes/namespace"
 import { GardenModule } from "../../../../../src/types/module"
 import { V1Container, V1DaemonSet, V1Deployment, V1Pod, V1StatefulSet } from "@kubernetes/client-node"
+import { getResourceRequirements } from "../../../../../src/plugins/kubernetes/container/util"
+import { ContainerResourcesSpec } from "../../../../../src/plugins/container/config"
 
 describe("kubernetes Pod runner functions", () => {
   let garden: Garden
@@ -590,6 +592,17 @@ describe("kubernetes Pod runner functions", () => {
     let helmContainer: V1Container
     let helmNamespace: string
 
+    const resources: ContainerResourcesSpec = {
+      cpu: {
+        min: 123,
+        max: 456,
+      },
+      memory: {
+        min: 123,
+        max: 456,
+      },
+    }
+
     before(async () => {
       helmGarden = await getHelmTestGarden()
       helmProvider = <KubernetesProvider>await helmGarden.resolveProvider(helmGarden.log, "local-kubernetes")
@@ -670,6 +683,102 @@ describe("kubernetes Pod runner functions", () => {
             command: ["echo", "foo"],
           },
         ],
+        imagePullSecrets: [],
+        volumes: [],
+      })
+    })
+
+    it("should apply resources to the main container when no pod spec is provided", async () => {
+      const generatedPodSpec = await prepareRunPodSpec({
+        podSpec: undefined, // <------
+        getArtifacts: false,
+        api: helmApi,
+        provider: helmProvider,
+        log: helmLog,
+        module: helmModule,
+        args: ["sh", "-c"],
+        command: ["echo", "foo"],
+        runtimeContext: { envVars: {}, dependencies: [] },
+        envVars: {},
+        resources, // <---
+        description: "Helm module",
+        errorMetadata: {},
+        mainContainerName: "main",
+        image: "foo",
+        container: helmContainer,
+        namespace: helmNamespace,
+        volumes: [],
+      })
+
+      expect(generatedPodSpec).to.eql({
+        containers: [
+          {
+            name: "main",
+            image: "foo",
+            imagePullPolicy: "IfNotPresent",
+            args: ["sh", "-c"],
+            ports: [
+              {
+                name: "http",
+                containerPort: 80,
+                protocol: "TCP",
+              },
+            ],
+            resources: getResourceRequirements(resources),
+            env: [],
+            volumeMounts: [],
+            command: ["echo", "foo"],
+          },
+        ],
+        imagePullSecrets: [],
+        volumes: [],
+      })
+    })
+
+    it("should apply resources to the main container when a pod spec is provided", async () => {
+      const podSpec = getResourcePodSpec(helmTarget)
+      const generatedPodSpec = await prepareRunPodSpec({
+        podSpec, // <------
+        getArtifacts: false,
+        api: helmApi,
+        provider: helmProvider,
+        log: helmLog,
+        module: helmModule,
+        args: ["sh", "-c"],
+        command: ["echo", "foo"],
+        runtimeContext: { envVars: {}, dependencies: [] },
+        envVars: {},
+        resources, // <---
+        description: "Helm module",
+        errorMetadata: {},
+        mainContainerName: "main",
+        image: "foo",
+        container: helmContainer,
+        namespace: helmNamespace,
+        volumes: [],
+      })
+
+      expect(generatedPodSpec).to.eql({
+        containers: [
+          {
+            name: "main",
+            image: "foo",
+            imagePullPolicy: "IfNotPresent",
+            args: ["sh", "-c"],
+            ports: [
+              {
+                name: "http",
+                containerPort: 80,
+                protocol: "TCP",
+              },
+            ],
+            resources: getResourceRequirements(resources),
+            env: [],
+            volumeMounts: [],
+            command: ["echo", "foo"],
+          },
+        ],
+        shareProcessNamespace: true,
         imagePullSecrets: [],
         volumes: [],
       })

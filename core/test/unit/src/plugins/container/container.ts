@@ -17,7 +17,7 @@ import { gardenPlugin, ContainerProvider } from "../../../../../src/plugins/cont
 import { dataDir, expectError, makeTestGarden } from "../../../../helpers"
 import { moduleFromConfig } from "../../../../../src/types/module"
 import { LogEntry } from "../../../../../src/logger/log-entry"
-import { ContainerModuleConfig, defaultContainerLimits } from "../../../../../src/plugins/container/config"
+import { ContainerModuleConfig, defaultContainerResources } from "../../../../../src/plugins/container/config"
 import {
   containerHelpers as helpers,
   minDockerVersion,
@@ -36,6 +36,9 @@ describe("plugins.container", () => {
   const build = handlers.build!
   const publishModule = handlers.publish!
   const getBuildStatus = handlers.getBuildStatus!
+
+  const defaultCpu = defaultContainerResources.cpu
+  const defaultMemory = defaultContainerResources.memory
 
   const baseConfig: ContainerModuleConfig = {
     allowPublish: false,
@@ -106,6 +109,8 @@ describe("plugins.container", () => {
               cpu: 123,
               memory: 456,
             },
+            cpu: defaultCpu,
+            memory: defaultMemory,
             ports: [],
             replicas: 1,
             volumes: [],
@@ -122,6 +127,8 @@ describe("plugins.container", () => {
             env: {
               TASK_ENV_VAR: "value",
             },
+            cpu: defaultCpu,
+            memory: defaultMemory,
             timeout: null,
             volumes: [],
           },
@@ -136,6 +143,8 @@ describe("plugins.container", () => {
             env: {
               TEST_ENV_VAR: "value",
             },
+            cpu: defaultCpu,
+            memory: defaultMemory,
             timeout: null,
             volumes: [],
           },
@@ -246,6 +255,8 @@ describe("plugins.container", () => {
                 cpu: 123,
                 memory: 456,
               },
+              cpu: defaultCpu,
+              memory: defaultMemory,
               ports: [
                 {
                   name: "http",
@@ -269,6 +280,8 @@ describe("plugins.container", () => {
               env: {
                 TASK_ENV_VAR: "value",
               },
+              cpu: defaultCpu,
+              memory: defaultMemory,
               timeout: null,
               volumes: [],
             },
@@ -283,6 +296,8 @@ describe("plugins.container", () => {
               env: {
                 TEST_ENV_VAR: "value",
               },
+              cpu: defaultCpu,
+              memory: defaultMemory,
               timeout: null,
               volumes: [],
             },
@@ -340,6 +355,8 @@ describe("plugins.container", () => {
                   cpu: 123,
                   memory: 456,
                 },
+                cpu: defaultCpu,
+                memory: defaultMemory,
                 ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
                 replicas: 1,
                 volumes: [],
@@ -356,6 +373,8 @@ describe("plugins.container", () => {
                 env: {
                   TASK_ENV_VAR: "value",
                 },
+                cpu: defaultCpu,
+                memory: defaultMemory,
                 timeout: null,
                 volumes: [],
               },
@@ -370,6 +389,8 @@ describe("plugins.container", () => {
                 env: {
                   TEST_ENV_VAR: "value",
                 },
+                cpu: defaultCpu,
+                memory: defaultMemory,
                 timeout: null,
                 volumes: [],
               },
@@ -413,6 +434,8 @@ describe("plugins.container", () => {
                   cpu: 123,
                   memory: 456,
                 },
+                cpu: defaultCpu,
+                memory: defaultMemory,
                 ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
                 replicas: 1,
                 volumes: [],
@@ -434,6 +457,8 @@ describe("plugins.container", () => {
                 env: {
                   TASK_ENV_VAR: "value",
                 },
+                cpu: defaultCpu,
+                memory: defaultMemory,
                 name: "task-a",
                 timeout: null,
                 volumes: [],
@@ -455,6 +480,8 @@ describe("plugins.container", () => {
                 env: {
                   TEST_ENV_VAR: "value",
                 },
+                cpu: defaultCpu,
+                memory: defaultMemory,
                 timeout: null,
                 volumes: [],
               },
@@ -499,6 +526,8 @@ describe("plugins.container", () => {
                 cpu: 123,
                 memory: 456,
               },
+              cpu: defaultCpu,
+              memory: defaultMemory,
               ports: [],
               replicas: 1,
               volumes: [
@@ -554,6 +583,8 @@ describe("plugins.container", () => {
               dependencies: [],
               disabled: false,
               env: {},
+              cpu: defaultCpu,
+              memory: defaultMemory,
               timeout: null,
               volumes: [
                 {
@@ -607,6 +638,8 @@ describe("plugins.container", () => {
               dependencies: [],
               disabled: false,
               env: {},
+              cpu: defaultCpu,
+              memory: defaultMemory,
               timeout: null,
               volumes: [
                 {
@@ -664,7 +697,8 @@ describe("plugins.container", () => {
                   port: "bla",
                 },
               ],
-              limits: defaultContainerLimits,
+              cpu: defaultCpu,
+              memory: defaultMemory,
               env: {},
               ports: [],
               replicas: 1,
@@ -680,6 +714,8 @@ describe("plugins.container", () => {
               dependencies: [],
               disabled: false,
               env: {},
+              cpu: defaultCpu,
+              memory: defaultMemory,
               timeout: null,
               volumes: [],
             },
@@ -692,6 +728,8 @@ describe("plugins.container", () => {
               dependencies: [],
               disabled: false,
               env: {},
+              cpu: defaultCpu,
+              memory: defaultMemory,
               timeout: null,
               volumes: [],
             },
@@ -741,7 +779,8 @@ describe("plugins.container", () => {
                   port: "bla",
                 },
               },
-              limits: defaultContainerLimits,
+              cpu: defaultCpu,
+              memory: defaultMemory,
               ports: [],
               replicas: 1,
               volumes: [],
@@ -756,6 +795,8 @@ describe("plugins.container", () => {
               dependencies: [],
               disabled: false,
               env: {},
+              cpu: defaultCpu,
+              memory: defaultMemory,
               timeout: null,
               volumes: [],
             },
@@ -803,7 +844,8 @@ describe("plugins.container", () => {
               healthCheck: {
                 tcpPort: "bla",
               },
-              limits: defaultContainerLimits,
+              cpu: defaultCpu,
+              memory: defaultMemory,
               ports: [],
               replicas: 1,
               volumes: [],
@@ -818,6 +860,8 @@ describe("plugins.container", () => {
               dependencies: [],
               disabled: false,
               env: {},
+              cpu: defaultCpu,
+              memory: defaultMemory,
               timeout: null,
               volumes: [],
             },

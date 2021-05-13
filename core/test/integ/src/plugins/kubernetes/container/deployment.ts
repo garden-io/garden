@@ -26,7 +26,8 @@ import { gardenAnnotationKey } from "../../../../../../src/util/string"
 import { getContainerServiceStatus } from "../../../../../../src/plugins/kubernetes/container/status"
 import { sleep } from "../../../../../../src/util/util"
 import { pathExists, readFile, remove, writeFile } from "fs-extra"
-import { execInWorkload } from "../../../../../../src/plugins/kubernetes/util"
+import { execInWorkload, kilobytesToString, millicpuToString } from "../../../../../../src/plugins/kubernetes/util"
+import { getResourceRequirements } from "../../../../../../src/plugins/kubernetes/container/util"
 
 describe("kubernetes container deployment handlers", () => {
   let garden: Garden
@@ -76,6 +77,8 @@ describe("kubernetes container deployment handlers", () => {
 
       const buildVersion = service.module.version.versionString
 
+      const spec = service.spec
+
       expect(resource).to.eql({
         kind: "Deployment",
         apiVersion: "apps/v1",
@@ -108,7 +111,7 @@ describe("kubernetes container deployment handlers", () => {
                     { name: "POD_UID", valueFrom: { fieldRef: { fieldPath: "metadata.uid" } } },
                   ],
                   ports: [{ name: "http", protocol: "TCP", containerPort: 8080 }],
-                  resources: { requests: { cpu: "10m", memory: "90Mi" }, limits: { cpu: "1", memory: "1Gi" } },
+                  resources: getResourceRequirements({ cpu: spec.cpu, memory: spec.memory }),
                   imagePullPolicy: "IfNotPresent",
                   securityContext: { allowPrivilegeEscalation: false },
                 },
@@ -145,6 +148,36 @@ describe("kubernetes container deployment handlers", () => {
       })
 
       expect(resource.spec.template?.metadata?.annotations).to.eql(service.spec.annotations)
+    })
+
+    it("should override max resources with limits if limits are specified", async () => {
+      const service = graph.getService("simple-service")
+      const namespace = provider.config.namespace!.name!
+
+      const limits = {
+        cpu: 123,
+        memory: 321,
+      }
+
+      service.spec.limits = limits
+
+      const resource = await createWorkloadManifest({
+        api,
+        provider,
+        service,
+        runtimeContext: emptyRuntimeContext,
+        namespace,
+        enableDevMode: false,
+        enableHotReload: false,
+        log: garden.log,
+        production: false,
+        blueGreen: false,
+      })
+
+      expect(resource.spec.template?.spec?.containers[0].resources?.limits).to.eql({
+        cpu: millicpuToString(limits.cpu),
+        memory: kilobytesToString(limits.memory * 1024),
+      })
     })
 
     it("should increase liveness probes when in hot-reload mode", async () => {

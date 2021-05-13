@@ -69,7 +69,7 @@ export async function runContainerService(params: RunServiceParams<ContainerModu
 
 export async function runContainerTask(params: RunTaskParams<ContainerModule>): Promise<RunTaskResult> {
   const { ctx, log, module, task } = params
-  const { args, command } = task.spec
+  const { args, command, artifacts, env, cpu, memory, timeout, volumes } = task.spec
 
   const image = containerHelpers.getDeploymentImageId(module, module.version, ctx.provider.config.deploymentRegistry)
   const k8sCtx = ctx as KubernetesPluginContext
@@ -79,15 +79,16 @@ export async function runContainerTask(params: RunTaskParams<ContainerModule>): 
     ...params,
     command,
     args,
-    artifacts: task.spec.artifacts,
-    envVars: task.spec.env,
+    artifacts,
+    envVars: env,
+    resources: { cpu, memory },
     image,
     namespace: namespaceStatus.namespaceName,
     podName: makePodName("task", module.name, task.name),
     description: `Task '${task.name}' in container module '${module.name}'`,
-    timeout: task.spec.timeout || undefined,
+    timeout: timeout || undefined,
+    volumes,
     version: task.version,
-    volumes: task.spec.volumes,
   })
 
   const result: RunTaskResult = {
