@@ -255,5 +255,6 @@ export const gardenPlugin = () =>
         handlers: containerHandlers,
       },
     ],
+    // DEPRECATED: Remove stern in v0.13
     tools: [kubectlSpec, helm3Spec, mutagenCliSpec, sternSpec],
   })

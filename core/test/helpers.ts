@@ -30,14 +30,14 @@ import { GARDEN_CORE_ROOT, LOCAL_CONFIG_FILENAME, DEFAULT_API_VERSION, gardenEnv
 import { isPromise, uuidv4 } from "../src/util/util"
 import { LogEntry } from "../src/logger/log-entry"
 import timekeeper = require("timekeeper")
-import { ParameterValues, globalOptions, GlobalOptions } from "../src/cli/params"
+import { ParameterValues, globalOptions, GlobalOptions, Parameters } from "../src/cli/params"
 import { RunModuleParams } from "../src/types/plugin/module/runModule"
 import { ConfigureModuleParams } from "../src/types/plugin/module/configure"
 import { RunServiceParams } from "../src/types/plugin/service/runService"
 import { RunResult } from "../src/types/plugin/base"
 import { ExternalSourceType, getRemoteSourceRelPath, hashRepoUrl } from "../src/util/ext-source-util"
 import { ActionRouter } from "../src/actions"
-import { ProcessCommandResult } from "../src/commands/base"
+import { CommandParams, ProcessCommandResult } from "../src/commands/base"
 import stripAnsi from "strip-ansi"
 import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
 import { SuiteFunction, TestFunction } from "mocha"
@@ -645,4 +645,24 @@ export function initTestLogger() {
 
 export async function cleanupAuthTokens() {
   await ClientAuthToken.createQueryBuilder().delete().execute()
+}
+
+export function makeCommandParams<T extends Parameters = {}, U extends Parameters = {}>({
+  garden,
+  args,
+  opts,
+}: {
+  garden: Garden
+  args: T
+  opts: U
+}): CommandParams<T, U> {
+  const log = garden.log
+  return {
+    garden,
+    log,
+    headerLog: log,
+    footerLog: log,
+    args,
+    opts: withDefaultGlobalOpts(opts),
+  }
 }

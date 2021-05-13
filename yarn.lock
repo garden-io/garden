@@ -13538,6 +13538,11 @@ parse-asn1@^5.0.0, parse-asn1@^5.1.5:
     pbkdf2 "^3.0.3"
     safe-buffer "^5.1.1"
 
+parse-duration@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/parse-duration/-/parse-duration-1.0.0.tgz#8605651745f61088f6fb14045c887526c291858c"
+  integrity sha512-X4kUkCTHU1N/kEbwK9FpUJ0UZQa90VzeczfS704frR30gljxDG0pSziws06XlK+CGRSo/1wtG1mFIdBFQTMQNw==
+
 parse-entities@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/parse-entities/-/parse-entities-2.0.0.tgz#53c6eb5b9314a1f4ec99fa0fdf7ce01ecda0cbe8"
@@ -17784,10 +17789,10 @@ ts-pnp@^1.1.6:
   resolved "https://registry.yarnpkg.com/ts-pnp/-/ts-pnp-1.2.0.tgz#a500ad084b0798f1c3071af391e65912c86bca92"
   integrity sha512-csd+vJOb/gkzvcCHgTGSChYpy5f1/XKNsmvBGO4JXS+z1v2HobugDz4s1IeFXM3wZB44uczs+eazB5Q/ccdhQw==
 
-ts-stream@^2.0.1:
-  version "2.0.2"
-  resolved "https://registry.yarnpkg.com/ts-stream/-/ts-stream-2.0.2.tgz#5ce2ecd97b73b50cee748eef3b5bebfe0dbdc740"
-  integrity sha512-uzlo7pwDcbhlImCikr895lYkm5fpbEvlANM62Z0IoNFdb03futr3bo3BaO4RdONqL1J7gieDP/LyiCycnD+ljg==
+ts-stream@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/ts-stream/-/ts-stream-3.0.0.tgz#7f3c1749a8345695cb43ca10cf64c96908f909dd"
+  integrity sha512-inSYkFNWYRDKu+fEriDeTV8KP6BLx/CujUb047sIuMH1YUZcUdjYpwiGsXVyWIEREOFb02e0z6b/cK8lG1i4cw==
   dependencies:
     "@types/node" "*"
 

@@ -33,6 +33,7 @@ import {
   Attach,
   V1Deployment,
   V1Service,
+  Log,
 } from "@kubernetes/client-node"
 import AsyncLock = require("async-lock")
 import request = require("request-promise")
@@ -796,6 +797,10 @@ export class KubeApi {
   }) {
     const handler = new Attach(this.config, new WebSocketHandler(this.config))
     return handler.attach(namespace, podName, containerName, stdout || null, stderr || null, stdin || null, tty)
+  }
+
+  getLogger() {
+    return new Log(this.config)
   }
 
   /**

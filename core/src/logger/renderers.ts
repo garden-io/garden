@@ -30,13 +30,12 @@ const cliPadEnd = (s: string, width: number): string => {
   return diff <= 0 ? s : s + repeat(" ", diff)
 }
 
-function styleSection(section: string, width: number = MAX_SECTION_WIDTH) {
+export function formatSection(section: string, width: number = MAX_SECTION_WIDTH) {
   const minWidth = Math.min(width, MAX_SECTION_WIDTH)
-  const formattedSection = [section]
+  return [section]
     .map((s) => cliTruncate(s, minWidth))
     .map((s) => cliPadEnd(s, minWidth))
     .pop()
-  return chalk.cyan.italic(formattedSection)
 }
 
 export const msgStyle = (s: string) => (hasAnsi(s) ? s : chalk.gray(s))
@@ -166,11 +165,12 @@ export function renderData(entry: LogEntry): string {
 }
 
 export function renderSection(entry: LogEntry): string {
+  const style = chalk.cyan.italic
   const { msg: msg, section, maxSectionWidth } = entry.getLatestMessage()
   if (section && msg) {
-    return `${styleSection(section, maxSectionWidth)} → `
+    return `${style(formatSection(section, maxSectionWidth))} → `
   } else if (section) {
-    return styleSection(section, maxSectionWidth)
+    return style(formatSection(section, maxSectionWidth))
   }
   return ""
 }

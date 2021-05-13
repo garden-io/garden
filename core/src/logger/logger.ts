@@ -25,6 +25,14 @@ import { range } from "lodash"
 export type LoggerType = "quiet" | "basic" | "fancy" | "fullscreen" | "json"
 export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "basic", "fancy", "fullscreen", "json"])
 
+export const logLevelMap = {
+  [LogLevel.error]: "error",
+  [LogLevel.warn]: "warn",
+  [LogLevel.info]: "info",
+  [LogLevel.verbose]: "verbose",
+  [LogLevel.debug]: "debug",
+  [LogLevel.silly]: "silly",
+}
 const getLogLevelNames = () => getEnumKeys(LogLevel)
 const getNumericLogLevels = () => range(getLogLevelNames().length)
 // Allow string or numeric log levels as CLI choices

@@ -8,31 +8,18 @@
 
 import { expect } from "chai"
 import td from "testdouble"
-import { withDefaultGlobalOpts, expectError, getDataDir, cleanupAuthTokens, getLogMessages } from "../../../helpers"
+import { expectError, getDataDir, cleanupAuthTokens, getLogMessages, makeCommandParams } from "../../../helpers"
 import { AuthRedirectServer } from "../../../../src/enterprise/auth"
 
 import { LoginCommand } from "../../../../src/commands/login"
 import stripAnsi from "strip-ansi"
 import { makeDummyGarden } from "../../../../src/cli/cli"
-import { Garden } from "../../../../src"
 import { ClientAuthToken } from "../../../../src/db/entities/client-auth-token"
 import { dedent, randomString } from "../../../../src/util/string"
 import { EnterpriseApi } from "../../../../src/enterprise/api"
 import { LogLevel } from "../../../../src/logger/log-node"
 import { gardenEnv } from "../../../../src/constants"
 import { EnterpriseApiError } from "../../../../src/exceptions"
-
-function makeCommandParams(garden: Garden) {
-  const log = garden.log
-  return {
-    garden,
-    log,
-    headerLog: log,
-    footerLog: log,
-    args: {},
-    opts: withDefaultGlobalOpts({}),
-  }
-}
 
 // In the tests below we stub out the auth redirect server but still emit the
 // token received event.
@@ -64,7 +51,7 @@ describe("LoginCommand", () => {
       garden.events.emit("receivedToken", testToken)
     }, 500)
 
-    await command.action(makeCommandParams(garden))
+    await command.action(makeCommandParams({ garden, args: {}, opts: {} }))
 
     const savedToken = await ClientAuthToken.findOne()
     expect(savedToken).to.exist
@@ -90,7 +77,7 @@ describe("LoginCommand", () => {
     td.replace(EnterpriseApi.prototype, "checkClientAuthToken", async () => true)
     td.replace(EnterpriseApi.prototype, "startInterval", async () => {})
 
-    await command.action(makeCommandParams(garden))
+    await command.action(makeCommandParams({ garden, args: {}, opts: {} }))
 
     const savedToken = await ClientAuthToken.findOne()
     expect(savedToken).to.exist
@@ -119,7 +106,7 @@ describe("LoginCommand", () => {
       garden.events.emit("receivedToken", testToken)
     }, 500)
 
-    await command.action(makeCommandParams(garden))
+    await command.action(makeCommandParams({ garden, args: {}, opts: {} }))
     const savedToken = await ClientAuthToken.findOne()
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
@@ -132,7 +119,7 @@ describe("LoginCommand", () => {
     })
     const command = new LoginCommand()
     await expectError(
-      () => command.action(makeCommandParams(garden)),
+      () => command.action(makeCommandParams({ garden, args: {}, opts: {} })),
       (err) =>
         expect(stripAnsi(err.message)).to.match(/Project config is missing an enterprise domain and\/or a project ID./)
     )
@@ -164,7 +151,7 @@ describe("LoginCommand", () => {
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
     await expectError(
-      () => command.action(makeCommandParams(garden)),
+      () => command.action(makeCommandParams({ garden, args: {}, opts: {} })),
       (err) => expect(stripAnsi(err.message)).to.match(/bummer/)
     )
   })
@@ -195,7 +182,7 @@ describe("LoginCommand", () => {
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
     await expectError(
-      () => command.action(makeCommandParams(garden)),
+      () => command.action(makeCommandParams({ garden, args: {}, opts: {} })),
       (err) => expect(stripAnsi(err.message)).to.match(/bummer/)
     )
 
@@ -222,7 +209,7 @@ describe("LoginCommand", () => {
 
       td.replace(EnterpriseApi.prototype, "checkClientAuthToken", async () => true)
 
-      await command.action(makeCommandParams(garden))
+      await command.action(makeCommandParams({ garden, args: {}, opts: {} }))
 
       const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
@@ -239,7 +226,7 @@ describe("LoginCommand", () => {
       td.replace(EnterpriseApi.prototype, "checkClientAuthToken", async () => false)
 
       await expectError(
-        () => command.action(makeCommandParams(garden)),
+        () => command.action(makeCommandParams({ garden, args: {}, opts: {} })),
         (err) =>
           expect(stripAnsi(err.message)).to.match(
             /The provided access token is expired or has been revoked, please create a new one from the Garden Enterprise UI./

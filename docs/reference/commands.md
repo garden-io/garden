@@ -2690,13 +2690,17 @@ sources:
 
 **Retrieves the most recent logs for the specified service(s).**
 
-Outputs logs for all or specified services, and optionally waits for news logs to come in.
+Outputs logs for all or specified services, and optionally waits for news logs to come in. Defaults
+to getting logs from the last minute when in `--follow` mode. You can change this with the `--since` option.
 
 Examples:
 
-    garden logs               # prints latest logs from all services
-    garden logs my-service    # prints latest logs for my-service
-    garden logs -t            # keeps running and streams all incoming logs to the console
+    garden logs                       # interleaves color-coded logs from all services (up to a certain limit)
+    garden logs --since 2d            # interleaves color-coded logs from all services from the last 2 days
+    garden logs --tail 100            # interleaves the last 100 log lines from all services
+    garden logs service-a,service-b   # interleaves color-coded logs for service-a and service-b
+    garden logs --follow              # keeps running and streams all incoming logs to the console
+    garden logs --original-color      # interleaves logs from all services and prints the original output color
 
 | Supported in workflows |   |
 | ---------------------- |---|
@@ -2717,7 +2721,14 @@ Examples:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--follow` | `-f` | boolean | Continuously stream new logs from the service(s).
-  | `--tail` | `-t` | number | Number of lines to show for each service. Defaults to -1, showing all log lines.
+  | `--tail` | `-t` | number | Number of lines to show for each service. Defaults to showing all log lines (up to a certain limit). Takes precedence over
+the &#x60;--since&#x60; flag if both are set. Note that we don&#x27;t recommend using a large value here when in follow mode.
+  | `--show-container` |  | boolean | Show the name of the container with log output. May not apply to all providers
+  | `--timestamps` |  | boolean | Show timestamps with log output.
+  | `--since` |  | moment | Only show logs newer than a relative duration like 5s, 2m, or 3h. Defaults to &#x60;&quot;1m&quot;&#x60; when &#x60;--follow&#x60; is true
+unless &#x60;--tail&#x60; is set. Note that we don&#x27;t recommend using a large value here when in follow mode.
+  | `--original-color` |  | boolean | Show the original color output of the logs instead of color coding them.
+  | `--hide-service` |  | boolean | Hide the service name and render the logs directly.
 
 
 ### garden migrate

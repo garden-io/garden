@@ -54,6 +54,7 @@ export type Unpacked<T> = T extends (infer U)[]
   : T extends Promise<infer W>
   ? W
   : T
+export type ExcludesFalsy = <T>(x: T | false | null | undefined) => x is T
 
 const MAX_BUFFER_SIZE = 1024 * 1024
 
@@ -359,7 +360,7 @@ export async function dumpYamlMulti(yamlPath: string, objects: object[]) {
 /**
  * Splits the input string on the first occurrence of `delimiter`.
  */
-export function splitFirst(s: string, delimiter: string) {
+export function splitFirst(s, delimiter) {
   const parts = s.split(delimiter)
   return [parts[0], parts.slice(1).join(delimiter)]
 }
