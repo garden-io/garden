@@ -23,7 +23,7 @@ import { LogEntry } from "../logger/log-entry"
 import { STATIC_DIR, VERSION_CHECK_URL, gardenEnv } from "../constants"
 import { printWarningMessage } from "../logger/util"
 import { GlobalConfigStore, globalConfigKeys } from "../config-store"
-import { got, GotResponse } from "../util/http"
+import { got } from "../util/http"
 import { getUserId } from "../analytics/analytics"
 import minimist = require("minimist")
 import { renderTable, tablePresets, naturalList } from "../util/string"
@@ -77,15 +77,15 @@ export async function checkForUpdates(config: GlobalConfigStore, logger: LogEntr
       headers["X-ci-name"] = ci.name
     }
 
-    const res = await got(`${VERSION_CHECK_URL}?${qs.stringify(query)}`, { headers }).json<GotResponse<any>>()
+    const res = await got(`${VERSION_CHECK_URL}?${qs.stringify(query)}`, { headers }).json<any>()
     const configObj = await config.get()
     const showMessage =
       configObj.lastVersionCheck && moment().subtract(1, "days").isAfter(moment(configObj.lastVersionCheck.lastRun))
 
     // we check again for lastVersionCheck because in the first run it doesn't exist
     if (showMessage || !configObj.lastVersionCheck) {
-      if (res.body.status === "OUTDATED") {
-        printWarningMessage(logger, res.body.message)
+      if (res.status === "OUTDATED") {
+        res.message && printWarningMessage(logger, res.message)
         await config.set([globalConfigKeys.lastVersionCheck], { lastRun: new Date() })
       }
     }
