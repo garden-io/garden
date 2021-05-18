@@ -95,9 +95,13 @@ export class ServiceRuntimeContext extends ConfigContext {
   )
   public outputs: PrimitiveMap
 
-  constructor(root: ConfigContext, outputs: PrimitiveMap) {
+  @schema(joi.string().required().description("The current version of the service.").example(exampleVersion))
+  public version: string
+
+  constructor(root: ConfigContext, outputs: PrimitiveMap, version: string) {
     super(root)
     this.outputs = outputs
+    this.version = version
   }
 }
 
@@ -118,6 +122,9 @@ export class TaskRuntimeContext extends ServiceRuntimeContext {
       .meta({ keyPlaceholder: "<output-name>" })
   )
   public outputs: PrimitiveMap
+
+  @schema(joi.string().required().description("The current version of the task.").example(exampleVersion))
+  public version: string
 }
 
 class RuntimeConfigContext extends ConfigContext {
@@ -146,9 +153,9 @@ class RuntimeConfigContext extends ConfigContext {
     if (runtimeContext) {
       for (const dep of runtimeContext.dependencies) {
         if (dep.type === "service") {
-          this.services.set(dep.name, new ServiceRuntimeContext(this, dep.outputs))
+          this.services.set(dep.name, new ServiceRuntimeContext(this, dep.outputs, dep.version))
         } else if (dep.type === "task") {
-          this.tasks.set(dep.name, new TaskRuntimeContext(this, dep.outputs))
+          this.tasks.set(dep.name, new TaskRuntimeContext(this, dep.outputs, dep.version))
         }
       }
     }
