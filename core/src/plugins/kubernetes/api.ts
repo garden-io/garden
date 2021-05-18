@@ -10,9 +10,9 @@
 // tslint:disable-next-line:no-unused
 import { IncomingMessage } from "http"
 import { Agent } from "https"
+import { ReadStream } from "tty"
 import chalk from "chalk"
 import httpStatusCodes from "http-status-codes"
-import { ReadStream } from "tty"
 import {
   KubeConfig,
   V1Secret,
@@ -344,7 +344,7 @@ export class KubeApi {
     // apply auth
     await this.config.applyToRequest(requestOpts)
 
-    return await requestWithRetry(log, path, async () => {
+    return await requestWithRetry(log, `Kubernetes API: ${path}`, async () => {
       try {
         log.silly(`${requestOpts.method.toUpperCase()} ${url}`)
         return await request(requestOpts)
@@ -620,7 +620,7 @@ export class KubeApi {
             target["defaultHeaders"] = { ...defaultHeaders, "content-type": "application/merge-patch+json" }
           }
 
-          return requestWithRetry(log, name, () => {
+          return requestWithRetry(log, `Kubernetes API: ${name}`, () => {
             const output = target[name](...args)
             target["defaultHeaders"] = defaultHeaders
 
@@ -896,6 +896,8 @@ function handleRequestPromiseError(err: Error) {
 /**
  * Helper function for retrying failed k8s API requests, using exponential backoff.
  *
+ * Note: When using the Got library, don't use this helper, but instead rely on Got's built-in retry functionality.
+ *
  * Only retries the request when it fails with an error that matches certain status codes and/or error
  * message contents (see the `shouldRetry` helper for details).
  *
@@ -916,12 +918,12 @@ async function requestWithRetry<R>(
       return await req()
     } catch (err) {
       if (shouldRetry(err)) {
-        retryLog = retryLog || log.warn("")
+        retryLog = retryLog || log.debug("")
         if (usedRetries <= maxRetries) {
           const sleepMsec = minTimeoutMs + usedRetries * minTimeoutMs
           retryLog.setState(deline`
-            Kubernetes API: ${description} failed with error ${err.message}, retrying in ${sleepMsec}ms
-            (#${usedRetries}/${maxRetries})
+            ${description} failed with error ${err.message}, retrying in ${sleepMsec}ms
+            (${usedRetries}/${maxRetries})
           `)
           await sleep(sleepMsec)
           return await retry(usedRetries + 1)
@@ -943,19 +945,32 @@ async function requestWithRetry<R>(
 /**
  * This helper determines whether an error thrown by a k8s API request should result in the request being retried.
  *
+ * Looks for a list of matching error messages. Also checks for status codes for the following error classes:
+ * - `KubernetesError` (when handling wrapped k8s API errors)
+ * - `requestErrors.StatusCodeError` (when using the `request` library)
+ *
  * Add more error codes / regexes / filters etc. here as needed.
  */
 function shouldRetry(err: any): boolean {
-  const code = err.statusCode
   const msg = err.message || ""
+  let code: number | undefined = undefined
+  if (err instanceof requestErrors.StatusCodeError || err instanceof KubernetesError) {
+    code = err.statusCode
+  }
   return (code && statusCodesForRetry.includes(code)) || !!errorMessageRegexesForRetry.find((regex) => msg.match(regex))
 }
 
 const statusCodesForRetry: number[] = [
-  httpStatusCodes.BAD_GATEWAY,
-  httpStatusCodes.GATEWAY_TIMEOUT,
   httpStatusCodes.REQUEST_TIMEOUT,
+  httpStatusCodes.TOO_MANY_REQUESTS,
+  httpStatusCodes.BAD_GATEWAY,
   httpStatusCodes.SERVICE_UNAVAILABLE,
+  httpStatusCodes.GATEWAY_TIMEOUT,
+
+  // Clouflare-specific status codes
+  521, // Web Server Is Down
+  522, // Connection Timed Out
+  524, // A Timeout Occurred
 ]
 
-const errorMessageRegexesForRetry = [/getaddrinfo ENOTFOUND/, /getaddrinfo EAI_AGAIN/]
+const errorMessageRegexesForRetry = [/ETIMEDOUT/, /ENOTFOUND/, /EAI_AGAIN/]

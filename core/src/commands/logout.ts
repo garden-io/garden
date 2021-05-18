@@ -46,11 +46,7 @@ export class LogOutCommand extends Command {
         return {}
       }
 
-      await enterpriseApi.post("token/logout", {
-        headers: {
-          Cookie: `rt=${token?.refreshToken}`,
-        },
-      })
+      await enterpriseApi.post("token/logout", { headers: { Cookie: `rt=${token?.refreshToken}` } })
       enterpriseApi.close()
     } catch (err) {
       const msg = dedent`

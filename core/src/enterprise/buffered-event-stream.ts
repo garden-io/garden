@@ -191,6 +191,7 @@ export class BufferedEventStream {
     }
     try {
       await this.flushAll()
+      this.log.debug("Done flushing all events and log entries.")
     } catch (err) {
       /**
        * We don't throw an exception here, since a failure to stream events and log entries doesn't mean that the
@@ -264,7 +265,12 @@ export class BufferedEventStream {
           this.log.silly(`Flushing ${description} to GE /${path}`)
           // Need to cast so the compiler doesn't complain that the two returns from the map
           // aren't equivalent. Shouldn't matter in this case since we're not collecting the return value.
-          return this.enterpriseApi.post<any>(`${path}`, { body: data }) as any
+          return this.enterpriseApi.post<any>(`${path}-foo`, {
+            body: data,
+            retry: true,
+            retryDescription: `Flushing ${description}`,
+            maxRetries: 5,
+          }) as any
         }
         const targetUrl = `${target.host}/${path}`
         this.log.silly(`Flushing ${description} to ${targetUrl}`)
@@ -298,7 +304,6 @@ export class BufferedEventStream {
     try {
       while (this.bufferedEvents.length > 0 || this.bufferedLogEntries.length > 0) {
         this.log.silly(`remaining: ${this.bufferedEvents.length} events, ${this.bufferedLogEntries.length} log entries`)
-        // while (this.bufferedEvents.length > 0 || this.bufferedLogEntries.length > 0) {
         flushPromises.push(this.flushBuffered())
       }
     } catch (err) {

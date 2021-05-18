@@ -46,7 +46,11 @@ export async function registerWorkflowRun({
     // TODO: Use API types package here.
     let res: ApiFetchResponse<RegisterWorkflowRunResponse>
     try {
-      res = await enterpriseApi.post("workflow-runs", { body: requestData })
+      res = await enterpriseApi.post("workflow-runs", {
+        body: requestData,
+        retry: true,
+        retryDescription: "Registering workflow run",
+      })
     } catch (err) {
       log.error(`An error occurred while registering workflow run: ${err.message}`)
       throw err

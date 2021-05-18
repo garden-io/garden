@@ -8,7 +8,7 @@
 
 import { IncomingHttpHeaders } from "http"
 
-import { got, GotHeaders, GotHttpError } from "../util/http"
+import { got, GotHeaders, GotHttpError, GotJsonOptions } from "../util/http"
 import { findProjectConfig } from "../config/base"
 import { CommandError, EnterpriseApiError } from "../exceptions"
 import { LogEntry } from "../logger/log-entry"
@@ -36,8 +36,26 @@ const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity
 export interface ApiFetchParams {
   headers: GotHeaders
   method: "GET" | "POST" | "PUT" | "PATCH" | "HEAD" | "DELETE"
+  retry: boolean
+  retryDescription?: string
+  maxRetries?: number
   body?: any
 }
+
+export interface ApiFetchOptions {
+  headers?: GotHeaders
+  /**
+   * True by default except for api.post (where retry = true must explicitly be passed, since retries aren't always
+   * safe / desirable for such requests).
+   */
+  retry?: boolean
+  maxRetries?: number
+  /**
+   * An optional prefix to use for retry error messages.
+   */
+  retryDescription?: string
+}
+
 export interface AuthTokenResponse {
   token: string
   refreshToken: string
@@ -269,9 +287,7 @@ export class EnterpriseApi {
   private async refreshToken(token: ClientAuthToken) {
     try {
       let res: any
-      res = await this.get<any>("token/refresh", {
-        Cookie: `rt=${token?.refreshToken}`,
-      })
+      res = await this.get<any>("token/refresh", { headers: { Cookie: `rt=${token?.refreshToken}` } })
 
       let cookies: any
       if (res.headers["set-cookie"] instanceof Array) {
@@ -300,7 +316,7 @@ export class EnterpriseApi {
   }
 
   private async apiFetch<T>(path: string, params: ApiFetchParams): Promise<ApiFetchResponse<T>> {
-    const { method, headers } = params
+    const { method, headers, retry, retryDescription } = params
     this.log.silly({ msg: `Calling enterprise API with ${method} ${path}` })
     const token = await EnterpriseApi.getAuthToken(this.log)
     // TODO add more logging details
@@ -313,10 +329,52 @@ export class EnterpriseApi {
       json: params.body,
     }
 
-    const res = await got<T>(`${this.domain}/${this.apiPrefix}/${path}`, {
+    const requestOptions: GotJsonOptions = {
       ...requestObj,
       responseType: "json",
-    })
+    }
+
+    if (retry) {
+      let retryLog: LogEntry | undefined = undefined
+      const retryLimit = params.maxRetries || 3
+      requestOptions.retry = {
+        methods: ["GET", "POST", "PUT", "DELETE"], // We explicitly include the POST method if `retry = true`.
+        statusCodes: [
+          408, // Request Timeout
+          // 413, // Payload Too Large: No use in retrying.
+          429, // Too Many Requests
+          // 500, // Internal Server Error: Generally not safe to retry without potentially creating duplicate data.
+          502, // Bad Gateway
+          503, // Service Unavailable
+          504, // Gateway Timeout
+
+          // Cloudflare-specific status codes
+          521, // Web Server Is Down
+          522, // Connection Timed Out
+          524, // A Timeout Occurred
+        ],
+        limit: retryLimit,
+      }
+      requestOptions.hooks = {
+        beforeRetry: [
+          (_options, error, retryCount) => {
+            if (error) {
+              const description = retryDescription || "Request"
+              retryLog = retryLog || this.log.debug("")
+              const statusCodeDescription = error.code ? ` (status code ${error.code})` : ``
+              retryLog.setState(deline`
+                ${description} failed with error ${error.message}${statusCodeDescription},
+                retrying (${retryCount}/${retryLimit})
+              `)
+            }
+          },
+        ],
+      }
+    } else {
+      requestOptions.retry = 0 // Disables retry
+    }
+
+    const res = await got<T>(`${this.domain}/${this.apiPrefix}/${path}`, requestOptions)
 
     if (!isObject(res.body)) {
       throw new EnterpriseApiError(`Unexpected API response`, {
@@ -331,26 +389,37 @@ export class EnterpriseApi {
     }
   }
 
-  async get<T>(path: string, headers?: GotHeaders) {
+  async get<T>(path: string, opts: ApiFetchOptions = {}) {
+    const { headers, retry, retryDescription, maxRetries } = opts
     return await this.apiFetch<T>(path, {
-      headers: headers || {},
       method: "GET",
+      headers: headers || {},
+      retry: retry === false ? false : true, // defaults to true unless false is explicitly passed
+      retryDescription,
+      maxRetries,
     })
   }
 
-  async delete<T>(path: string, headers?: GotHeaders) {
+  async delete<T>(path: string, opts: ApiFetchOptions = {}) {
+    const { headers, retry, retryDescription, maxRetries } = opts
     return await this.apiFetch<T>(path, {
-      headers: headers || {},
       method: "DELETE",
+      headers: headers || {},
+      retry: retry === false ? false : true, // defaults to true unless false is explicitly passed
+      retryDescription,
+      maxRetries,
     })
   }
 
-  async post<T>(path: string, payload: { body?: any; headers?: GotHeaders } = { body: {} }) {
-    const { headers, body } = payload
+  async post<T>(path: string, opts: ApiFetchOptions & { body?: any } = {}) {
+    const { body, headers, retry, retryDescription, maxRetries } = opts
     return this.apiFetch<T>(path, {
-      headers: headers || {},
       method: "POST",
-      body,
+      body: body || {},
+      headers: headers || {},
+      retry: retry === true ? true : false, // defaults to false unless true is explicitly passed
+      retryDescription,
+      maxRetries,
     })
   }
 
