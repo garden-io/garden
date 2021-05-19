@@ -37,7 +37,7 @@ export async function runKubernetesTask(params: RunTaskParams<KubernetesModule>)
 
   // Get the container spec to use for running
   const { command, args } = task.spec
-  const manifests = await getManifests({ api, log, module, defaultNamespace: namespace })
+  const manifests = await getManifests({ ctx, api, log, module, defaultNamespace: namespace })
   const resourceSpec = task.spec.resource || getServiceResourceSpec(module, undefined)
   const target = await findServiceResource({
     ctx: k8sCtx,

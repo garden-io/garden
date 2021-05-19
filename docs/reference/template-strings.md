@@ -1331,6 +1331,20 @@ The service output value. Refer to individual [module type references](https://d
 | --------------------------- |
 | `string | number | boolean` |
 
+### `${runtime.services.<service-name>.version}`
+
+The current version of the service.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${runtime.services.<service-name>.version}
+```
+
 ### `${runtime.tasks.*}`
 
 Runtime information from the tasks that the service/task being run depends on.
@@ -1354,6 +1368,20 @@ The task output value. Refer to individual [module type references](https://docs
 | Type                        |
 | --------------------------- |
 | `string | number | boolean` |
+
+### `${runtime.tasks.<task-name>.version}`
+
+The current version of the task.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${runtime.tasks.<task-name>.version}
+```
 
 ### `${inputs.*}`
 
@@ -1875,6 +1903,20 @@ The service output value. Refer to individual [module type references](https://d
 | --------------------------- |
 | `string | number | boolean` |
 
+### `${runtime.services.<service-name>.version}`
+
+The current version of the service.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${runtime.services.<service-name>.version}
+```
+
 ### `${runtime.tasks.*}`
 
 Runtime information from the tasks that the service/task being run depends on.
@@ -1898,6 +1940,20 @@ The task output value. Refer to individual [module type references](https://docs
 | Type                        |
 | --------------------------- |
 | `string | number | boolean` |
+
+### `${runtime.tasks.<task-name>.version}`
+
+The current version of the task.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${runtime.tasks.<task-name>.version}
+```
 
 
 ## Workflow configuration context

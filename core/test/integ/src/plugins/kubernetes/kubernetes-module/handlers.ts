@@ -193,6 +193,7 @@ describe("kubernetes-module handlers", () => {
         runtimeContext: emptyRuntimeContext,
       }
       const manifests = await getManifests({
+        ctx,
         api,
         log,
         module: service.module,
@@ -238,6 +239,7 @@ describe("kubernetes-module handlers", () => {
         runtimeContext: emptyRuntimeContext,
       }
       const manifests = await getManifests({
+        ctx,
         api,
         log,
         module: service.module,
@@ -267,7 +269,7 @@ describe("kubernetes-module handlers", () => {
       let graph = await garden.getConfigGraph(log)
       let k8smodule = graph.getModule("namespace-resource")
       const defaultNamespace = await getModuleNamespace({ ctx, log, module: k8smodule, provider: ctx.provider })
-      let manifests = await getManifests({ api, log, module: k8smodule, defaultNamespace })
+      let manifests = await getManifests({ ctx, api, log, module: k8smodule, defaultNamespace })
       ns1Manifest = manifests.find((resource) => resource.kind === "Namespace")
 
       const deployTask = new DeployTask({
@@ -306,7 +308,7 @@ describe("kubernetes-module handlers", () => {
       garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-module-ns-2")])
       graph = await garden.getConfigGraph(log)
       k8smodule = graph.getModule("namespace-resource")
-      manifests = await getManifests({ api, log, module: k8smodule, defaultNamespace })
+      manifests = await getManifests({ ctx, api, log, module: k8smodule, defaultNamespace })
       ns2Manifest = manifests.find((resource) => resource.kind === "Namespace")
       const deployTask2 = new DeployTask({
         garden,

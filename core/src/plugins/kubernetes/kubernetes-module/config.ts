@@ -74,7 +74,7 @@ export const kubernetesModuleSpecSchema = () =>
           resolve template strings in any of the manifests.`
     ),
     files: joiSparseArray(joi.posixPath().subPathOnly()).description(
-      "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests."
+      "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests."
     ),
     include: joiModuleIncludeDirective(dedent`
       If neither \`include\` nor \`exclude\` is set, Garden automatically sets \`include\` to equal the

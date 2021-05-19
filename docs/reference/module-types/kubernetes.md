@@ -148,7 +148,8 @@ manifests:
       # The name of the resource.
       name:
 
-# POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests.
+# POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any
+# Garden template strings, which will be resolved before applying the manifests.
 files: []
 
 # A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
@@ -693,7 +694,7 @@ The name of the resource.
 
 ### `files[]`
 
-POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests.
+POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests.
 
 | Type               | Default | Required |
 | ------------------ | ------- | -------- |
@@ -1444,5 +1445,45 @@ Example:
 
 ```yaml
 my-variable: ${modules.my-module.version}
+```
+
+
+### Service Outputs
+
+The following keys are available via the `${runtime.services.<service-name>}` template string key for `kubernetes` module services.
+Note that these are only resolved when deploying/running dependants of the service, so they are not usable for every field.
+
+### `${runtime.services.<service-name>.version}`
+
+The current version of the service.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${runtime.services.my-service.version}
+```
+
+
+### Task Outputs
+
+The following keys are available via the `${runtime.tasks.<task-name>}` template string key for `kubernetes` module tasks.
+Note that these are only resolved when deploying/running dependants of the task, so they are not usable for every field.
+
+### `${runtime.tasks.<task-name>.version}`
+
+The current version of the task.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${runtime.tasks.my-tasks.version}
 ```
 

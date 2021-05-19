@@ -12,6 +12,8 @@ import { Provider, providerSchema, GenericProviderConfig } from "./config/provid
 import { deline } from "./util/string"
 import { joi, joiVariables, joiStringMap, DeepPrimitiveMap } from "./config/common"
 import { PluginTool } from "./util/ext-tools"
+import { ConfigContext, ContextResolveOpts } from "./config/template-contexts/base"
+import { resolveTemplateStrings } from "./template-string/template-string"
 
 type WrappedFromGarden = Pick<
   Garden,
@@ -31,10 +33,13 @@ export interface CommandInfo {
   opts: DeepPrimitiveMap
 }
 
+type ResolveTemplateStringsOpts = Omit<ContextResolveOpts, "stack">
+
 export interface PluginContext<C extends GenericProviderConfig = GenericProviderConfig> extends WrappedFromGarden {
   command: CommandInfo
   projectSources: SourceConfig[]
   provider: Provider<C>
+  resolveTemplateStrings: <T>(o: T, opts?: ResolveTemplateStringsOpts) => T
   tools: { [key: string]: PluginTool }
 }
 
@@ -68,6 +73,11 @@ export const pluginContextSchema = () =>
       projectRoot: joi.string().description("The absolute path of the project root."),
       projectSources: projectSourcesSchema(),
       provider: providerSchema().description("The provider being used for this context.").id("ctxProviderSchema"),
+      resolveTemplateStrings: joi
+        .function()
+        .description(
+          "Helper function to resolve template strings, given the same templating context as was used to render the configuration before calling the handler. Accepts any data type, and returns the same data type back with all template strings resolved."
+        ),
       sessionId: joi.string().description("The unique ID of the currently active session."),
       tools: joiStringMap(joi.object()),
       workingCopyId: joi.string().description("A unique ID assigned to the current project working copy."),
@@ -76,7 +86,8 @@ export const pluginContextSchema = () =>
 export async function createPluginContext(
   garden: Garden,
   provider: Provider,
-  command: CommandInfo
+  command: CommandInfo,
+  templateContext: ConfigContext
 ): Promise<PluginContext> {
   return {
     command,
@@ -87,6 +98,9 @@ export async function createPluginContext(
     projectSources: garden.getProjectSources(),
     provider,
     production: garden.production,
+    resolveTemplateStrings: <T>(o: T, opts?: ResolveTemplateStringsOpts) => {
+      return resolveTemplateStrings(o, templateContext, opts || {})
+    },
     sessionId: garden.sessionId,
     tools: await garden.getTools(),
     workingCopyId: garden.workingCopyId,

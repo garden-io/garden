@@ -24,6 +24,7 @@ import { GetServiceStatusParams } from "../../../../src/types/plugin/service/get
 import { DeployServiceParams } from "../../../../src/types/plugin/service/deployService"
 import { RunTaskParams, RunTaskResult } from "../../../../src/types/plugin/task/runTask"
 import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
+import { sortBy } from "lodash"
 
 const placeholderTimestamp = new Date()
 
@@ -205,19 +206,24 @@ describe("DeployCommand", () => {
       },
     })
 
-    expect(getRuntimeStatusEvents(garden.events.eventLog)).to.eql([
-      { name: "taskStatus", payload: { taskName: "task-a", status: { state: "not-implemented" } } },
-      { name: "taskStatus", payload: { taskName: "task-c", status: { state: "not-implemented" } } },
-      { name: "serviceStatus", payload: { serviceName: "service-c", status: { state: "ready" } } },
-      { name: "serviceStatus", payload: { serviceName: "service-d", status: { state: "unknown" } } },
+    const sortedEvents = sortBy(
+      getRuntimeStatusEvents(garden.events.eventLog),
+      (e) => `${e.name}.${e.payload.taskName || e.payload.serviceName}.${e.payload.status.state}`
+    )
+
+    expect(sortedEvents).to.eql([
       { name: "serviceStatus", payload: { serviceName: "service-a", status: { state: "ready" } } },
-      { name: "serviceStatus", payload: { serviceName: "service-b", status: { state: "unknown" } } },
-      { name: "serviceStatus", payload: { serviceName: "service-c", status: { state: "ready" } } },
-      { name: "serviceStatus", payload: { serviceName: "service-d", status: { state: "ready" } } },
-      { name: "taskStatus", payload: { taskName: "task-c", status: { state: "succeeded" } } },
-      { name: "taskStatus", payload: { taskName: "task-a", status: { state: "succeeded" } } },
       { name: "serviceStatus", payload: { serviceName: "service-a", status: { state: "ready" } } },
       { name: "serviceStatus", payload: { serviceName: "service-b", status: { state: "ready" } } },
+      { name: "serviceStatus", payload: { serviceName: "service-b", status: { state: "unknown" } } },
+      { name: "serviceStatus", payload: { serviceName: "service-c", status: { state: "ready" } } },
+      { name: "serviceStatus", payload: { serviceName: "service-c", status: { state: "ready" } } },
+      { name: "serviceStatus", payload: { serviceName: "service-d", status: { state: "ready" } } },
+      { name: "serviceStatus", payload: { serviceName: "service-d", status: { state: "unknown" } } },
+      { name: "taskStatus", payload: { taskName: "task-a", status: { state: "not-implemented" } } },
+      { name: "taskStatus", payload: { taskName: "task-a", status: { state: "succeeded" } } },
+      { name: "taskStatus", payload: { taskName: "task-c", status: { state: "not-implemented" } } },
+      { name: "taskStatus", payload: { taskName: "task-c", status: { state: "succeeded" } } },
     ])
   })
 

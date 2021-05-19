@@ -97,6 +97,7 @@ import { OutputConfigContext } from "./config/template-contexts/module"
 import { ProviderConfigContext } from "./config/template-contexts/provider"
 import { getSecrets } from "./enterprise/get-secrets"
 import { killSyncDaemon } from "./plugins/kubernetes/mutagen"
+import { ConfigContext } from "./config/template-contexts/base"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -309,8 +310,20 @@ export class Garden {
     await killSyncDaemon()
   }
 
-  async getPluginContext(provider: Provider) {
-    return createPluginContext(this, provider, this.opts.commandInfo)
+  /**
+   * Returns a new PluginContext, i.e. the `ctx` object that's passed to plugin handlers.
+   *
+   * The object contains a helper to resolve template strings. By default the templating context is set to the
+   * provider template context. Callers should specify the appropriate templating for the handler that will be
+   * called with the PluginContext.
+   */
+  async getPluginContext(provider: Provider, templateContext?: ConfigContext) {
+    return createPluginContext(
+      this,
+      provider,
+      this.opts.commandInfo,
+      templateContext || new ProviderConfigContext(this, provider.dependencies)
+    )
   }
 
   async clearBuilds() {

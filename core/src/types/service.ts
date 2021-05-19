@@ -177,7 +177,7 @@ export const forwardablePortKeys = () => ({
 
 const forwardablePortSchema = () => joi.object().keys(forwardablePortKeys())
 
-export interface ServiceStatus<T = {}> {
+export interface ServiceStatus<T = any> {
   createdAt?: string
   detail: T
   namespaceStatuses?: NamespaceStatus[]

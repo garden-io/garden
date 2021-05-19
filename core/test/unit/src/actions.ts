@@ -1446,6 +1446,26 @@ describe("ActionRouter", () => {
 
       expect(result).to.eql({ value: "foo" })
     })
+
+    it("should call the handler with the template context for the provider", async () => {
+      const emptyActions = new ActionRouter(garden, [], [], {})
+
+      const handler: ActionHandler<any, any> = async ({ ctx }) => {
+        const resolved = ctx.resolveTemplateStrings("${environment.name}")
+        return { ready: true, outputs: { resolved } }
+      }
+
+      const result = await emptyActions["callActionHandler"]({
+        actionType: "getEnvironmentStatus", // Doesn't matter which one it is
+        pluginName: "test-plugin",
+        params: {
+          log,
+        },
+        defaultHandler: handler,
+      })
+
+      expect(result.outputs?.resolved).to.equal("default")
+    })
   })
 
   describe("callModuleHandler", () => {
@@ -1484,6 +1504,36 @@ describe("ActionRouter", () => {
         },
         defaultHandler: handler,
       })
+    })
+
+    it("should call the handler with the template context for the module", async () => {
+      const emptyActions = new ActionRouter(garden, [], [], {
+        test: {
+          name: "test",
+          docs: "test",
+          handlers: {},
+        },
+      })
+
+      graph = await garden.getConfigGraph(garden.log)
+      const moduleA = graph.getModule("module-a")
+      const moduleB = graph.getModule("module-b")
+
+      const handler: ModuleActionHandler<any, any> = async ({ ctx }) => {
+        const resolved = ctx.resolveTemplateStrings("${modules.module-a.version}")
+        return { ready: true, detail: { resolved } }
+      }
+
+      const result = await emptyActions["callModuleHandler"]({
+        actionType: "getBuildStatus", // Doesn't matter which one it is
+        params: {
+          module: moduleB,
+          log,
+        },
+        defaultHandler: handler,
+      })
+
+      expect(result.detail?.resolved).to.equal(moduleA.version.versionString)
     })
   })
 
@@ -1528,6 +1578,57 @@ describe("ActionRouter", () => {
         },
         defaultHandler: handler,
       })
+    })
+
+    it("should call the handler with the template context for the service", async () => {
+      const emptyActions = new ActionRouter(garden, [], [], {
+        test: {
+          name: "test",
+          docs: "test",
+          handlers: {},
+        },
+      })
+
+      graph = await garden.getConfigGraph(garden.log)
+      const serviceA = graph.getService("service-a")
+      const serviceB = graph.getService("service-b")
+
+      const handler: ModuleActionHandler<any, any> = async ({ ctx }) => {
+        const resolved = ctx.resolveTemplateStrings("${runtime.services.service-a.version}")
+        return { forwardablePorts: [], state: <ServiceState>"ready", detail: { resolved } }
+      }
+
+      const _runtimeContext = await prepareRuntimeContext({
+        garden,
+        graph,
+        dependencies: {
+          build: [],
+          deploy: [serviceA],
+          run: [],
+          test: [],
+        },
+        version: module.version.versionString,
+        moduleVersion: module.version.versionString,
+        serviceStatuses: {
+          "service-a": { state: "ready", detail: {} },
+        },
+        taskResults: {},
+      })
+
+      const { result } = await emptyActions["callServiceHandler"]({
+        actionType: "deployService", // Doesn't matter which one it is
+        params: {
+          service: serviceB,
+          runtimeContext: _runtimeContext,
+          log,
+          devMode: false,
+          hotReload: false,
+          force: false,
+        },
+        defaultHandler: handler,
+      })
+
+      expect(result.detail?.resolved).to.equal(serviceA.version)
     })
 
     it("should interpolate runtime template strings", async () => {
@@ -1693,6 +1794,70 @@ describe("ActionRouter", () => {
         },
         defaultHandler: handler,
       })
+    })
+
+    it("should call the handler with the template context for the task", async () => {
+      const emptyActions = new ActionRouter(garden, [], [], {
+        test: {
+          name: "test",
+          docs: "test",
+          handlers: {},
+        },
+      })
+
+      graph = await garden.getConfigGraph(garden.log)
+      const taskA = graph.getTask("task-a")
+      const serviceB = graph.getService("service-b")
+
+      const _runtimeContext = await prepareRuntimeContext({
+        garden,
+        graph,
+        dependencies: {
+          build: [],
+          deploy: [serviceB],
+          run: [],
+          test: [],
+        },
+        version: taskA.version,
+        moduleVersion: taskA.module.version.versionString,
+        serviceStatuses: {
+          "service-b": {
+            state: "ready",
+            outputs: { foo: "bar" },
+            detail: {},
+          },
+        },
+        taskResults: {},
+      })
+
+      const { result } = await emptyActions["callTaskHandler"]({
+        actionType: "runTask",
+        params: {
+          artifactsPath: "/tmp", // Not used in this test
+          task: taskA,
+          runtimeContext: _runtimeContext,
+          log,
+          interactive: false,
+        },
+        defaultHandler: async ({ ctx }) => {
+          const resolved = ctx.resolveTemplateStrings("${runtime.services.service-b.version}")
+
+          return {
+            moduleName: "module-a",
+            taskName: "task-a",
+            command: [],
+            outputs: { resolved },
+            success: true,
+            version: task.version,
+            moduleVersion: task.module.version.versionString,
+            startedAt: new Date(),
+            completedAt: new Date(),
+            log: "boo",
+          }
+        },
+      })
+
+      expect(result.outputs?.resolved).to.equal(serviceB.version)
     })
 
     it("should interpolate runtime template strings", async () => {
