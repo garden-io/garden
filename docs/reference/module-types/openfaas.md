@@ -577,3 +577,43 @@ The full URL to query this service _from within_ the cluster.
 | -------- |
 | `string` |
 
+
+### Service Outputs
+
+The following keys are available via the `${runtime.services.<service-name>}` template string key for `openfaas` module services.
+Note that these are only resolved when deploying/running dependants of the service, so they are not usable for every field.
+
+### `${runtime.services.<service-name>.version}`
+
+The current version of the service.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${runtime.services.my-service.version}
+```
+
+
+### Task Outputs
+
+The following keys are available via the `${runtime.tasks.<task-name>}` template string key for `openfaas` module tasks.
+Note that these are only resolved when deploying/running dependants of the task, so they are not usable for every field.
+
+### `${runtime.tasks.<task-name>.version}`
+
+The current version of the task.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${runtime.tasks.my-tasks.version}
+```
+

@@ -15,6 +15,7 @@ export interface GetBuildStatusParams<T extends GardenModule = GardenModule> ext
 
 export interface BuildStatus {
   ready: boolean
+  detail?: any
 }
 
 export const getBuildStatus = () => ({
@@ -26,5 +27,6 @@ export const getBuildStatus = () => ({
   paramsSchema: moduleActionParamsSchema(),
   resultSchema: joi.object().keys({
     ready: joi.boolean().required().description("Whether an up-to-date build is ready for the module."),
+    detail: joi.any().description("Optional provider-specific information about the build."),
   }),
 })

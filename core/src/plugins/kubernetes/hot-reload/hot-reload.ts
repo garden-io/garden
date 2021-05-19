@@ -69,7 +69,7 @@ export async function hotReloadK8s({
     })
   } else {
     const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
-    manifests = await getManifests({ api, log, module: <KubernetesModule>module, defaultNamespace: namespace })
+    manifests = await getManifests({ ctx, api, log, module: <KubernetesModule>module, defaultNamespace: namespace })
   }
 
   const resourceSpec = service.spec.serviceResource

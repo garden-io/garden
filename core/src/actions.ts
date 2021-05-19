@@ -108,6 +108,7 @@ import { ConfigGraph } from "./config-graph"
 import { ModuleConfigContext } from "./config/template-contexts/module"
 import { GetDashboardPageParams, GetDashboardPageResult } from "./types/plugin/provider/getDashboardPage"
 import { GetModuleOutputsParams, GetModuleOutputsResult } from "./types/plugin/module/getModuleOutputs"
+import { ConfigContext } from "./config/template-contexts/base"
 
 const maxArtifactLogLines = 5 // max number of artifacts to list in console after task+test runs
 
@@ -785,11 +786,15 @@ export class ActionRouter implements TypeGuard {
   }
 
   // TODO: find a nicer way to do this (like a type-safe wrapper function)
-  private async commonParams(handler: WrappedActionHandler<any, any>, log: LogEntry): Promise<PluginActionParamsBase> {
+  private async commonParams(
+    handler: WrappedActionHandler<any, any>,
+    log: LogEntry,
+    templateContext?: ConfigContext
+  ): Promise<PluginActionParamsBase> {
     const provider = await this.garden.resolveProvider(log, handler.pluginName)
 
     return {
-      ctx: await this.garden.getPluginContext(provider),
+      ctx: await this.garden.getPluginContext(provider, templateContext),
       log,
       base: handler.base,
     }
@@ -849,8 +854,19 @@ export class ActionRouter implements TypeGuard {
       defaultHandler: defaultHandler as WrappedModuleAndRuntimeActionHandlers[T],
     })
 
+    const providers = await this.garden.resolveProviders(log)
+    const graph = await this.garden.getConfigGraph(log)
+    const templateContext = new ModuleConfigContext({
+      garden: this.garden,
+      resolvedProviders: providers,
+      modules: graph.getModules(),
+      moduleConfig: module,
+      buildPath: module.buildPath,
+      partialRuntimeResolution: true,
+    })
+
     const handlerParams = {
-      ...(await this.commonParams(handler, (<any>params).log)),
+      ...(await this.commonParams(handler, (<any>params).log, templateContext)),
       ...params,
       module: omit(module, ["_config"]),
     }
@@ -882,6 +898,20 @@ export class ActionRouter implements TypeGuard {
       defaultHandler: defaultHandler as ModuleAndRuntimeActionHandlers[T],
     })
 
+    const providers = await this.garden.resolveProviders(log)
+    const graph = await this.garden.getConfigGraph(log, runtimeContext)
+
+    const modules = graph.getModules()
+    const templateContext = new ModuleConfigContext({
+      garden: this.garden,
+      resolvedProviders: providers,
+      modules,
+      runtimeContext,
+      moduleConfig: module,
+      buildPath: module.buildPath,
+      partialRuntimeResolution: false,
+    })
+
     // Resolve ${runtime.*} template strings if needed.
     const runtimeContextIsEmpty = runtimeContext
       ? Object.keys(runtimeContext.envVars).length === 0 && runtimeContext.dependencies.length === 0
@@ -890,28 +920,16 @@ export class ActionRouter implements TypeGuard {
     if (!runtimeContextIsEmpty && getRuntimeTemplateReferences(module).length > 0) {
       log.silly(`Resolving runtime template strings for service '${service.name}'`)
 
-      const providers = await this.garden.resolveProviders(log)
-      const graph = await this.garden.getConfigGraph(log, runtimeContext)
+      // Resolve the service again
       service = graph.getService(service.name)
-      module = service.module
-
-      const modules = graph.getModules()
-      const configContext = new ModuleConfigContext({
-        garden: this.garden,
-        resolvedProviders: providers,
-        modules,
-        runtimeContext,
-        moduleConfig: module,
-        buildPath: module.buildPath,
-        partialRuntimeResolution: false,
-      })
+      module = omit(service.module, ["_config"])
 
       // Set allowPartial=false to ensure all required strings are resolved.
-      service.config = resolveTemplateStrings(service.config, configContext, { allowPartial: false })
+      service.config = resolveTemplateStrings(service.config, templateContext, { allowPartial: false })
     }
 
     const handlerParams = {
-      ...(await this.commonParams(handler, log)),
+      ...(await this.commonParams(handler, log, templateContext)),
       ...params,
       service,
       module,
@@ -948,32 +966,39 @@ export class ActionRouter implements TypeGuard {
       defaultHandler: defaultHandler as ModuleAndRuntimeActionHandlers[T],
     })
 
+    const providers = await this.garden.resolveProviders(log)
+    const graph = await this.garden.getConfigGraph(log, runtimeContext)
+    module = task.module
+
+    const modules = graph.getModules()
+    const templateContext = new ModuleConfigContext({
+      garden: this.garden,
+      resolvedProviders: providers,
+      modules,
+      runtimeContext,
+      moduleConfig: module,
+      buildPath: module.buildPath,
+      partialRuntimeResolution: false,
+    })
+
     // Resolve ${runtime.*} template strings if needed.
-    if (runtimeContext && getRuntimeTemplateReferences(module).length > 0) {
+    const runtimeContextIsEmpty = runtimeContext
+      ? Object.keys(runtimeContext.envVars).length === 0 && runtimeContext.dependencies.length === 0
+      : true
+
+    if (!runtimeContextIsEmpty && getRuntimeTemplateReferences(module).length > 0) {
       log.silly(`Resolving runtime template strings for task '${task.name}'`)
 
-      const providers = await this.garden.resolveProviders(log)
-      const graph = await this.garden.getConfigGraph(log, runtimeContext)
+      // Resolve the task again
       task = graph.getTask(task.name)
       module = task.module
 
-      const modules = graph.getModules()
-      const configContext = new ModuleConfigContext({
-        garden: this.garden,
-        resolvedProviders: providers,
-        modules,
-        runtimeContext,
-        moduleConfig: module,
-        buildPath: module.buildPath,
-        partialRuntimeResolution: false,
-      })
-
       // Set allowPartial=false to ensure all required strings are resolved.
-      task.config = resolveTemplateStrings(task.config, configContext, { allowPartial: false })
+      task.config = resolveTemplateStrings(task.config, templateContext, { allowPartial: false })
     }
 
     const handlerParams: any = {
-      ...(await this.commonParams(handler, (<any>params).log)),
+      ...(await this.commonParams(handler, (<any>params).log, templateContext)),
       ...params,
       module,
       task,

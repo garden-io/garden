@@ -531,6 +531,20 @@ my-variable: ${modules.my-module.version}
 The following keys are available via the `${runtime.services.<service-name>}` template string key for `terraform` module services.
 Note that these are only resolved when deploying/running dependants of the service, so they are not usable for every field.
 
+### `${runtime.services.<service-name>.version}`
+
+The current version of the service.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${runtime.services.my-service.version}
+```
+
 ### `${runtime.services.<service-name>.outputs.*}`
 
 A map of all the outputs defined in the Terraform stack.
@@ -544,4 +558,24 @@ A map of all the outputs defined in the Terraform stack.
 | Type                                             |
 | ------------------------------------------------ |
 | `string | number | boolean | link | array[link]` |
+
+
+### Task Outputs
+
+The following keys are available via the `${runtime.tasks.<task-name>}` template string key for `terraform` module tasks.
+Note that these are only resolved when deploying/running dependants of the task, so they are not usable for every field.
+
+### `${runtime.tasks.<task-name>.version}`
+
+The current version of the task.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${runtime.tasks.my-tasks.version}
+```
 

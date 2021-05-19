@@ -65,9 +65,9 @@ interface KubernetesStatusDetail {
 
 export type KubernetesServiceStatus = ServiceStatus<KubernetesStatusDetail>
 
-async function build({ module, log }: BuildModuleParams<KubernetesModule>): Promise<BuildResult> {
+async function build({ ctx, module, log }: BuildModuleParams<KubernetesModule>): Promise<BuildResult> {
   // Get the manifests here, just to validate that the files are there and are valid YAML
-  await readManifests(module, log)
+  await readManifests(ctx, module, log)
   return { fresh: true }
 }
 
@@ -92,7 +92,7 @@ export async function getKubernetesServiceStatus({
   // FIXME: We're currently reading the manifests from the module source dir (instead of build dir)
   // because the build may not have been staged.
   // This means that manifests added via the `build.dependencies[].copy` field will not be included.
-  const manifests = await getManifests({ api, log, module, defaultNamespace: namespace, readFromSrcDir: true })
+  const manifests = await getManifests({ ctx, api, log, module, defaultNamespace: namespace, readFromSrcDir: true })
   const prepareResult = await prepareManifestsForSync({
     ctx,
     log,
@@ -160,7 +160,7 @@ export async function deployKubernetesService(
   })
   const namespace = namespaceStatus.namespaceName
 
-  const manifests = await getManifests({ api, log, module, defaultNamespace: namespace })
+  const manifests = await getManifests({ ctx, api, log, module, defaultNamespace: namespace })
 
   // We separate out manifests for namespace resources, since we don't want to apply a prune selector
   // when applying them.
@@ -255,7 +255,7 @@ async function deleteService(params: DeleteServiceParams): Promise<KubernetesSer
   })
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, ctx, provider)
-  const manifests = await getManifests({ api, log, module, defaultNamespace: namespace })
+  const manifests = await getManifests({ ctx, api, log, module, defaultNamespace: namespace })
 
   /**
    * We separate out manifests for namespace resources, since we need to delete each of them by name.
@@ -315,7 +315,7 @@ async function getServiceLogs(params: GetServiceLogsParams<KubernetesModule>) {
     provider: k8sCtx.provider,
   })
   const api = await KubeApi.factory(log, ctx, provider)
-  const manifests = await getManifests({ api, log, module, defaultNamespace: namespace })
+  const manifests = await getManifests({ ctx, api, log, module, defaultNamespace: namespace })
 
   return streamK8sLogs({ ...params, provider, defaultNamespace: namespace, resources: manifests })
 }

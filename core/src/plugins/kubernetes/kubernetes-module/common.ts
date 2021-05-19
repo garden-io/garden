@@ -17,25 +17,28 @@ import { KubernetesResource } from "../types"
 import { KubeApi } from "../api"
 import { gardenAnnotationKey } from "../../../util/string"
 import { LogEntry } from "../../../logger/log-entry"
+import { PluginContext } from "../../../plugin-context"
 
 /**
  * Reads the manifests and makes sure each has a namespace set (when applicable) and adds annotations.
  * Use this when applying to the cluster, or comparing against deployed resources.
  */
 export async function getManifests({
+  ctx,
   api,
   log,
   module,
   defaultNamespace,
   readFromSrcDir = false,
 }: {
+  ctx: PluginContext
   api: KubeApi
   log: LogEntry
   module: KubernetesModule
   defaultNamespace: string
   readFromSrcDir?: boolean
 }): Promise<KubernetesResource[]> {
-  const manifests = await readManifests(module, log, readFromSrcDir)
+  const manifests = await readManifests(ctx, module, log, readFromSrcDir)
 
   return Bluebird.map(manifests, async (manifest) => {
     // Ensure a namespace is set, if not already set, and if required by the resource type
@@ -88,13 +91,20 @@ export async function getManifests({
  *
  * TODO: Remove this once we're checking for kubernetes module service statuses with version hashes.
  */
-export async function readManifests(module: KubernetesModule, log: LogEntry, readFromSrcDir = false) {
+export async function readManifests(
+  ctx: PluginContext,
+  module: KubernetesModule,
+  log: LogEntry,
+  readFromSrcDir = false
+) {
   const fileManifests = flatten(
     await Bluebird.map(module.spec.files, async (path) => {
       const manifestPath = readFromSrcDir ? module.path : module.buildPath
       const absPath = resolve(manifestPath, path)
       log.debug(`Reading manifest for module ${module.name} from path ${absPath}`)
-      return safeLoadAll((await readFile(absPath)).toString())
+      const str = (await readFile(absPath)).toString()
+      const resolved = ctx.resolveTemplateStrings(str, { allowPartial: true, unescape: true })
+      return safeLoadAll(resolved)
     })
   )
 
