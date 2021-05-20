@@ -8,13 +8,14 @@
 
 import logSymbols from "log-symbols"
 import nodeEmoji from "node-emoji"
-import { cloneDeep, merge } from "lodash"
+import { cloneDeep, merge, round } from "lodash"
 
-import { LogNode, LogLevel, CreateNodeParams, PlaceholderOpts } from "./log-node"
+import { LogLevel, LogNode } from "./logger"
 import { Omit } from "../util/util"
 import { getChildEntries, findParentEntry } from "./util"
 import { GardenError } from "../exceptions"
-import { Logger } from "./logger"
+import { CreateNodeParams, Logger, PlaceholderOpts } from "./logger"
+import uniqid from "uniqid"
 
 export type EmojiName = keyof typeof nodeEmoji.emoji
 export type LogSymbol = keyof typeof logSymbols | "empty"
@@ -38,8 +39,6 @@ export interface TaskMetadata {
 export interface WorkflowStepMetadata {
   index: number
 }
-
-export const EVENT_LOG_LEVEL = LogLevel.debug
 
 interface MessageBase {
   msg?: string
@@ -76,7 +75,14 @@ export interface LogEntryConstructor extends LogEntryParams {
   isPlaceholder?: boolean
 }
 
-function resolveParams(params?: string | UpdateLogEntryParams): UpdateLogEntryParams {
+function resolveCreateParams(level: LogLevel, params: string | LogEntryParams): CreateNodeParams {
+  if (typeof params === "string") {
+    return { msg: params, level }
+  }
+  return { ...params, level }
+}
+
+function resolveUpdateParams(params?: string | UpdateLogEntryParams): UpdateLogEntryParams {
   if (typeof params === "string") {
     return { msg: params }
   } else if (!params) {
@@ -86,25 +92,30 @@ function resolveParams(params?: string | UpdateLogEntryParams): UpdateLogEntryPa
   }
 }
 
-// FIXME: Refactor to better distinguish between normal log entries and placeholder
-// log entries and to get rid of these "god" interfaces.
-// We should also better distinguish between message data and log entry data
-// and enforce that some message data is set for non-placeholder entries.
-export class LogEntry extends LogNode {
+export class LogEntry implements LogNode {
   private messages: LogEntryMessage[]
   private metadata?: LogEntryMetadata
+  public readonly parent?: LogEntry
+  public readonly timestamp: Date
+  public readonly key: string
+  public readonly level: LogLevel
   public readonly root: Logger
   public readonly fromStdStream?: boolean
   public readonly indent?: number
   public readonly errorData?: GardenError
   public readonly childEntriesInheritLevel?: boolean
   public readonly id?: string
+  public children: LogEntry[]
   public isPlaceholder: boolean
   public revision: number
 
   constructor(params: LogEntryConstructor) {
-    super(params.level, params.parent, params.id)
-
+    this.key = uniqid()
+    this.children = []
+    this.timestamp = new Date()
+    this.level = params.level
+    this.parent = params.parent
+    this.id = params.id
     this.root = params.root
     this.fromStdStream = params.fromStdStream
     this.indent = params.indent
@@ -138,7 +149,7 @@ export class LogEntry extends LogNode {
    * 2. append is always set explicitly (the next message does not inherit the previous value)
    * 3. next metadata is merged with the previous metadata
    */
-  protected update(updateParams: UpdateLogEntryParams): void {
+  private update(updateParams: UpdateLogEntryParams): void {
     this.revision = this.revision + 1
     const latestMessage = this.getLatestMessage()
 
@@ -196,7 +207,7 @@ export class LogEntry extends LogNode {
     }
   }
 
-  protected createNode(params: CreateNodeParams) {
+  private createNode(params: CreateNodeParams) {
     const indent = params.indent !== undefined ? params.indent : (this.indent || 0) + 1
 
     // If childEntriesInheritLevel is set to true, all children must have a level geq to the level
@@ -219,8 +230,37 @@ export class LogEntry extends LogNode {
     })
   }
 
-  protected onGraphChange(node: LogEntry) {
-    this.root.onGraphChange(node)
+  private addNode(params: CreateNodeParams): LogEntry {
+    const entry = this.createNode(params)
+    if (this.root.storeEntries) {
+      this.children.push(entry)
+    }
+    this.root.onGraphChange(entry)
+    return entry
+  }
+
+  silly(params: string | LogEntryParams): LogEntry {
+    return this.addNode(resolveCreateParams(LogLevel.silly, params))
+  }
+
+  debug(params: string | LogEntryParams): LogEntry {
+    return this.addNode(resolveCreateParams(LogLevel.debug, params))
+  }
+
+  verbose(params: string | LogEntryParams): LogEntry {
+    return this.addNode(resolveCreateParams(LogLevel.verbose, params))
+  }
+
+  info(params: string | LogEntryParams): LogEntry {
+    return this.addNode(resolveCreateParams(LogLevel.info, params))
+  }
+
+  warn(params: string | LogEntryParams): LogEntry {
+    return this.addNode(resolveCreateParams(LogLevel.warn, params))
+  }
+
+  error(params: string | LogEntryParams): LogEntry {
+    return this.addNode(resolveCreateParams(LogLevel.error, params))
   }
 
   getMetadata() {
@@ -265,44 +305,44 @@ export class LogEntry extends LogNode {
 
   // Preserves status
   setState(params?: string | UpdateLogEntryParams): LogEntry {
-    this.deepUpdate({ ...resolveParams(params) })
-    this.onGraphChange(this)
+    this.deepUpdate({ ...resolveUpdateParams(params) })
+    this.root.onGraphChange(this)
     return this
   }
 
   setDone(params?: string | Omit<UpdateLogEntryParams, "status">): LogEntry {
-    this.deepUpdate({ ...resolveParams(params), status: "done" })
-    this.onGraphChange(this)
+    this.deepUpdate({ ...resolveUpdateParams(params), status: "done" })
+    this.root.onGraphChange(this)
     return this
   }
 
   setSuccess(params?: string | Omit<UpdateLogEntryParams, "status" & "symbol">): LogEntry {
     this.deepUpdate({
-      ...resolveParams(params),
+      ...resolveUpdateParams(params),
       symbol: "success",
       status: "success",
     })
-    this.onGraphChange(this)
+    this.root.onGraphChange(this)
     return this
   }
 
   setError(params?: string | Omit<UpdateLogEntryParams, "status" & "symbol">): LogEntry {
     this.deepUpdate({
-      ...resolveParams(params),
+      ...resolveUpdateParams(params),
       symbol: "error",
       status: "error",
     })
-    this.onGraphChange(this)
+    this.root.onGraphChange(this)
     return this
   }
 
   setWarn(param?: string | Omit<UpdateLogEntryParams, "status" & "symbol">): LogEntry {
     this.deepUpdate({
-      ...resolveParams(param),
+      ...resolveUpdateParams(param),
       symbol: "warning",
       status: "warn",
     })
-    this.onGraphChange(this)
+    this.root.onGraphChange(this)
     return this
   }
 
@@ -314,7 +354,7 @@ export class LogEntry extends LogNode {
     // Stop gracefully if still in active state
     if (this.getLatestMessage().status === "active") {
       this.update({ symbol: "empty", status: "done" })
-      this.onGraphChange(this)
+      this.root.onGraphChange(this)
     }
     return this
   }
@@ -334,5 +374,12 @@ export class LogEntry extends LogNode {
       .filter((entry) => (filter ? filter(entry) : true))
       .flatMap((entry) => entry.getMessages()?.map((message) => message.msg))
       .join("\n")
+  }
+
+  /**
+   * Returns the duration in seconds, defaults to 2 decimal precision
+   */
+  getDuration(precision: number = 2): number {
+    return round((new Date().getTime() - this.timestamp.getTime()) / 1000, precision)
   }
 }

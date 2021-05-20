@@ -8,19 +8,18 @@
 
 import { expect } from "chai"
 
-import { LogLevel } from "../../../../src/logger/log-node"
-import { getLogger, Logger } from "../../../../src/logger/logger"
+import { getLogger, Logger, LogLevel } from "../../../../src/logger/logger"
 import { LogEntryEventPayload } from "../../../../src/enterprise/buffered-event-stream"
 import { freezeTime } from "../../../helpers"
 
 const logger: Logger = getLogger()
 
-beforeEach(() => {
-  // tslint:disable-next-line: prettier
-  (logger["children"] as any) = []
-})
-
 describe("Logger", () => {
+  beforeEach(() => {
+    // tslint:disable-next-line: prettier
+    (logger["children"] as any) = []
+  })
+
   describe("events", () => {
     let loggerEvents: LogEntryEventPayload[] = []
     let listener = (event: LogEntryEventPayload) => loggerEvents.push(event)
@@ -147,7 +146,48 @@ describe("Logger", () => {
       })
     })
   })
+  describe("addNode", () => {
+    it("should add new child entries to the respective node", () => {
+      logger.error("error")
+      logger.warn("warn")
+      logger.info("info")
+      logger.verbose("verbose")
+      logger.debug("debug")
+      logger.silly("silly")
 
+      const prevLength = logger.children.length
+      const entry = logger.children[0]
+      const nested = entry.info("nested")
+      const deepNested = nested.info("deep")
+
+      expect(logger.children[0].children).to.have.lengthOf(1)
+      expect(logger.children[0].children[0]).to.eql(nested)
+      expect(logger.children[0].children[0].children[0]).to.eql(deepNested)
+      expect(logger.children).to.have.lengthOf(prevLength)
+    })
+    it("should not store entires if storeEntries=false", () => {
+      const loggerB = new Logger({
+        level: LogLevel.info,
+        writers: [],
+        storeEntries: false,
+      })
+
+      loggerB.error("error")
+      loggerB.warn("warn")
+      const entry = loggerB.info("info")
+      loggerB.verbose("verbose")
+      loggerB.debug("debug")
+      loggerB.silly("silly")
+
+      const nested = entry.info("nested")
+      const deepNested = nested.info("deep")
+
+      expect(logger.children).to.eql([])
+      expect(entry.children).to.eql([])
+      expect(nested.children).to.eql([])
+      expect(deepNested.children).to.eql([])
+    })
+  })
   describe("findById", () => {
     it("should return the first log entry with a matching id and undefined otherwise", () => {
       logger.info({ msg: "0" })

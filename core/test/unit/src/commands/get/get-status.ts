@@ -19,7 +19,7 @@ import { TestGarden, getLogMessages } from "../../../../helpers"
 import { GetStatusCommand } from "../../../../../src/commands/get/get-status"
 import { withDefaultGlobalOpts } from "../../../../helpers"
 import { expect } from "chai"
-import { LogLevel } from "../../../../../src/logger/log-node"
+import { LogLevel } from "../../../../../src/logger/logger"
 
 describe("GetStatusCommand", () => {
   let tmpDir: tmp.DirectoryResult

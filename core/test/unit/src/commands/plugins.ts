@@ -12,7 +12,7 @@ import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
 import { writeFile } from "fs-extra"
 import { join } from "path"
 import { dedent } from "../../../../src/util/string"
-import { LogLevel } from "../../../../src/logger/log-node"
+import { LogLevel } from "../../../../src/logger/logger"
 import { expect } from "chai"
 import chalk from "chalk"
 const _loggerUtil = require("../../../../src/logger/util")

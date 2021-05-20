@@ -10,8 +10,7 @@ import { expect } from "chai"
 import chalk from "chalk"
 import stripAnsi from "strip-ansi"
 
-import { LogLevel } from "../../../../../src/logger/log-node"
-import { getLogger, Logger } from "../../../../../src/logger/logger"
+import { getLogger, Logger, LogLevel } from "../../../../../src/logger/logger"
 import { renderError } from "../../../../../src/logger/renderers"
 import { render } from "../../../../../src/logger/writers/file-writer"
 

@@ -115,13 +115,13 @@ export async function processModules({
 
     garden.events.on("_restart", () => {
       log.debug({ symbol: "info", msg: `Manual restart triggered` })
-      resolve()
+      resolve({})
     })
 
     garden.events.on("_exit", () => {
       log.debug({ symbol: "info", msg: `Manual exit triggered` })
       restartRequired = false
-      resolve()
+      resolve({})
     })
 
     garden.events.on("projectConfigChanged", async () => {
@@ -130,7 +130,7 @@ export async function processModules({
           symbol: "info",
           msg: `Project configuration changed, reloading...`,
         })
-        resolve()
+        resolve({})
       }
     })
 
@@ -140,7 +140,7 @@ export async function processModules({
           symbol: "info",
           msg: `Garden config added at ${event.path}, reloading...`,
         })
-        resolve()
+        resolve({})
       }
     })
 
@@ -150,7 +150,7 @@ export async function processModules({
           symbol: "info",
           msg: `Garden config at ${event.path} removed, reloading...`,
         })
-        resolve()
+        resolve({})
       }
     })
 
@@ -163,7 +163,7 @@ export async function processModules({
           section,
           msg: `Module configuration changed, reloading...`,
         })
-        resolve()
+        resolve({})
       }
     })
 

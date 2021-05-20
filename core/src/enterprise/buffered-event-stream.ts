@@ -13,7 +13,7 @@ import { Events, EventName, EventBus, eventNames } from "../events"
 import { LogEntryMetadata, LogEntry, LogEntryMessage } from "../logger/log-entry"
 import { got } from "../util/http"
 
-import { LogLevel } from "../logger/log-node"
+import { LogLevel } from "../logger/logger"
 import { Garden } from "../garden"
 import { EnterpriseApi, makeAuthHeader } from "./api"
 

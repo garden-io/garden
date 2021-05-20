@@ -8,8 +8,7 @@
 
 import { TestGarden, TestGardenOpts } from "@garden-io/core/build/src/util/testing"
 import { uuidv4 } from "@garden-io/core/build/src/util/util"
-import { Logger } from "@garden-io/core/build/src/logger/logger"
-import { LogLevel } from "@garden-io/core/build/src/logger/log-node"
+import { Logger, LogLevel } from "@garden-io/core/build/src/logger/logger"
 
 export { makeTempDir } from "@garden-io/core/build/src/util/fs"
 
@@ -18,6 +17,7 @@ export const makeTestGarden = async (projectRoot: string, opts: TestGardenOpts =
   try {
     Logger.initialize({
       level: LogLevel.info,
+      type: "quiet",
     })
   } catch (_) {}
 

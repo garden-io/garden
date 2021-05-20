@@ -17,7 +17,7 @@ import { PluginError } from "../../exceptions"
 import { DeepPrimitiveMap } from "../../config/common"
 import { combineStates } from "../../types/service"
 import { defaultDotIgnoreFiles } from "../../util/fs"
-import { LogLevel } from "../../logger/log-node"
+import { LogLevel } from "../../logger/logger"
 import { defaultNamespace } from "../../config/project"
 
 const systemProjectPath = join(STATIC_DIR, "kubernetes", "system")

@@ -11,7 +11,7 @@ import { dirname, isAbsolute } from "path"
 import { ensureDir, truncate } from "fs-extra"
 import stripAnsi from "strip-ansi"
 
-import { LogLevel } from "../log-node"
+import { LogLevel } from "../logger"
 import { LogEntry } from "../log-entry"
 import { Writer } from "./base"
 import { renderError, renderMsg } from "../renderers"

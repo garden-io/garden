@@ -28,13 +28,14 @@ import { UtilCommand } from "../../../../src/commands/util/util"
 import { StringParameter } from "../../../../src/cli/params"
 import stripAnsi from "strip-ansi"
 import { ToolsCommand } from "../../../../src/commands/tools"
-import { envSupportsEmoji, Logger, getLogger } from "../../../../src/logger/logger"
+import { Logger, getLogger } from "../../../../src/logger/logger"
 import { safeLoad } from "js-yaml"
 import { GardenProcess } from "../../../../src/db/entities/garden-process"
 import { ensureConnected } from "../../../../src/db/connection"
 import { startServer, GardenServer } from "../../../../src/server/server"
 import { FancyTerminalWriter } from "../../../../src/logger/writers/fancy-terminal-writer"
 import { BasicTerminalWriter } from "../../../../src/logger/writers/basic-terminal-writer"
+import { envSupportsEmoji } from "../../../../src/logger/util"
 
 describe("cli", () => {
   before(async () => {
@@ -142,7 +143,7 @@ describe("cli", () => {
         await cli.run({ args: ["test-command"], exitOnError: false })
 
         const logger = getLogger()
-        expect(logger.writers[0]).to.be.instanceOf(FancyTerminalWriter)
+        expect(logger.getWriters()[0]).to.be.instanceOf(FancyTerminalWriter)
       })
       it("uses the basic logger if log level > info", async () => {
         class TestCommand extends Command {
@@ -166,7 +167,7 @@ describe("cli", () => {
         })
 
         const logger = getLogger()
-        expect(logger.writers[0]).to.be.instanceOf(BasicTerminalWriter)
+        expect(logger.getWriters()[0]).to.be.instanceOf(BasicTerminalWriter)
       })
       it("uses the basic logger if --show-timestamps flag is set to true", async () => {
         class TestCommand extends Command {
@@ -187,7 +188,7 @@ describe("cli", () => {
         await cli.run({ args: ["--logger-type=fancy", "--show-timestamps", "test-command"], exitOnError: false })
 
         const logger = getLogger()
-        expect(logger.writers[0]).to.be.instanceOf(BasicTerminalWriter)
+        expect(logger.getWriters()[0]).to.be.instanceOf(BasicTerminalWriter)
       })
     })
 

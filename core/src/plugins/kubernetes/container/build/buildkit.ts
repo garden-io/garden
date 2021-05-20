@@ -30,7 +30,7 @@ import {
 } from "./common"
 import { getNamespaceStatus } from "../../namespace"
 import { containerHelpers } from "../../../container/helpers"
-import { LogLevel } from "../../../../logger/log-node"
+import { LogLevel } from "../../../../logger/logger"
 import { renderOutputStream, sleep } from "../../../../util/util"
 import { ContainerModule } from "../../../container/config"
 import { getDockerBuildArgs } from "../../../container/build"

@@ -9,13 +9,21 @@
 import nodeEmoji from "node-emoji"
 import chalk, { Chalk } from "chalk"
 import CircularJSON from "circular-json"
-import { LogNode, LogLevel } from "./log-node"
+import { LogLevel } from "./logger"
+import { Logger } from "./logger"
 import { LogEntry, LogEntryParams, EmojiName } from "./log-entry"
 import { deepMap, deepFilter, safeDumpYaml } from "../util/util"
 import { padEnd, isEmpty } from "lodash"
 import { dedent } from "../util/string"
 import hasAnsi from "has-ansi"
 import { GardenError } from "../exceptions"
+
+// Add platforms/terminals?
+export function envSupportsEmoji() {
+  return (
+    process.platform === "darwin" || process.env.TERM_PROGRAM === "Hyper" || process.env.TERM_PROGRAM === "HyperTerm"
+  )
+}
 
 export interface Node {
   children: any[]
@@ -25,7 +33,7 @@ export type LogOptsResolvers = { [K in keyof LogEntryParams]?: Function }
 
 export type ProcessNode<T extends Node = Node> = (node: T) => boolean
 
-function traverseChildren<T extends Node, U extends Node>(node: T | U, cb: ProcessNode<U>, reverse = false) {
+function traverseChildren<T extends Node>(node: Node, cb: ProcessNode<T>, reverse = false) {
   const children = node.children
   for (let i = 0; i < children.length; i++) {
     const index = reverse ? children.length - 1 - i : i
@@ -38,26 +46,26 @@ function traverseChildren<T extends Node, U extends Node>(node: T | U, cb: Proce
 }
 
 // Parent (T|U) can have different type then child (U)
-export function getChildNodes<T extends Node, U extends Node>(node: T | U): U[] {
+export function getChildNodes<T extends Node, U extends Node>(node: T): U[] {
   let childNodes: U[] = []
-  traverseChildren<T, U>(node, (child) => {
+  traverseChildren<U>(node, (child) => {
     childNodes.push(child)
     return true
   })
   return childNodes
 }
 
-export function getChildEntries(node: LogNode): LogEntry[] {
-  return getChildNodes<LogNode, LogEntry>(node)
+export function getChildEntries(node: Logger | LogEntry): LogEntry[] {
+  return getChildNodes(node)
 }
 
 export function findParentEntry(entry: LogEntry, predicate: ProcessNode<LogEntry>): LogEntry | null {
   return predicate(entry) ? entry : entry.parent ? findParentEntry(entry.parent, predicate) : null
 }
 
-export function findLogNode(node: LogNode, predicate: ProcessNode<LogNode>): LogEntry | void {
+export function findLogEntry(node: Logger | LogEntry, predicate: ProcessNode<LogEntry>): LogEntry | void {
   let found: LogEntry | undefined
-  traverseChildren<LogNode, LogEntry>(node, (entry) => {
+  traverseChildren<LogEntry>(node, (entry) => {
     if (predicate(entry)) {
       found = entry
       return false
@@ -76,11 +84,11 @@ export function findLogNode(node: LogNode, predicate: ProcessNode<LogNode>): Log
  * @param level  maximum log level to include
  * @param lines  how many lines to aim for
  */
-export function tailChildEntries(node: LogNode | LogEntry, level: LogLevel, lines: number): LogEntry[] {
+export function tailChildEntries(node: Logger | LogEntry, level: LogLevel, lines: number): LogEntry[] {
   let output: LogEntry[] = []
   let outputLines = 0
 
-  traverseChildren<LogNode, LogEntry>(node, (entry) => {
+  traverseChildren<LogEntry>(node, (entry) => {
     if (entry.level <= level) {
       output.push(entry)
       const msg = entry.getLatestMessage().msg || ""

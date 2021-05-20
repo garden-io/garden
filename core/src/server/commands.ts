@@ -13,7 +13,7 @@ import { joi } from "../config/common"
 import { validateSchema } from "../config/validation"
 import { extend, mapValues, omitBy } from "lodash"
 import { Garden } from "../garden"
-import { LogLevel } from "../logger/log-node"
+import { LogLevel } from "../logger/logger"
 import { LogEntry } from "../logger/log-entry"
 import { Parameters, ParameterValues, globalOptions } from "../cli/params"
 

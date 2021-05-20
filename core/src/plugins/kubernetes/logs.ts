@@ -25,7 +25,7 @@ import { getPodLogs } from "./status/pod"
 import { splitFirst } from "../../util/util"
 import { Writable } from "stream"
 import request from "request"
-import { LogLevel } from "../../logger/log-node"
+import { LogLevel } from "../../logger/logger"
 
 // When not following logs, the entire log is read into memory and sorted.
 // We therefore set a maximum on the number of lines we fetch.

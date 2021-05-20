@@ -24,13 +24,13 @@ import { RunTaskCommand } from "../../../../src/commands/run/task"
 import { RunTestCommand } from "../../../../src/commands/run/test"
 import { PublishCommand } from "../../../../src/commands/publish"
 import { BuildCommand } from "../../../../src/commands/build"
-import { getLogLevelChoices, parseLogLevel } from "../../../../src/logger/logger"
 import stripAnsi from "strip-ansi"
 import { Command } from "../../../../src/commands/base"
 import { dedent } from "../../../../src/util/string"
 import { LogsCommand } from "../../../../src/commands/logs"
 import { getAllCommands } from "../../../../src/commands/commands"
 import { DeepPrimitiveMap } from "../../../../src/config/common"
+import { getLogLevelChoices, parseLogLevel } from "../../../../src/logger/logger"
 
 const validLogLevels = ["error", "warn", "info", "verbose", "debug", "silly", "0", "1", "2", "3", "4", "5"]
 

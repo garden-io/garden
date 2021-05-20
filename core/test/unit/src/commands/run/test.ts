@@ -17,7 +17,7 @@ import {
   getLogMessages,
 } from "../../../../helpers"
 import { RunTestCommand } from "../../../../../src/commands/run/test"
-import { LogLevel } from "../../../../../src/logger/log-node"
+import { LogLevel } from "../../../../../src/logger/logger"
 import { dedent } from "../../../../../src/util/string"
 import { renderDivider } from "../../../../../src/logger/util"
 

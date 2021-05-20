@@ -11,7 +11,7 @@ import { ContainerModule } from "./config"
 import { ConfigurationError } from "../../exceptions"
 import { GetBuildStatusParams } from "../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams } from "../../types/plugin/module/build"
-import { LogLevel } from "../../logger/log-node"
+import { LogLevel } from "../../logger/logger"
 import { createOutputStream } from "../../util/util"
 import { PrimitiveMap } from "../../config/common"
 
