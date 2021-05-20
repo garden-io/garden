@@ -265,7 +265,7 @@ export class BufferedEventStream {
           this.log.silly(`Flushing ${description} to GE /${path}`)
           // Need to cast so the compiler doesn't complain that the two returns from the map
           // aren't equivalent. Shouldn't matter in this case since we're not collecting the return value.
-          return this.enterpriseApi.post<any>(`${path}-foo`, {
+          return this.enterpriseApi.post<any>(path, {
             body: data,
             retry: true,
             retryDescription: `Flushing ${description}`,
