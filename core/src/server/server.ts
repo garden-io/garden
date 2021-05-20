@@ -31,7 +31,7 @@ import { joi } from "../config/common"
 import { randomString } from "../util/string"
 import { authTokenHeader } from "../enterprise/api"
 import { ApiEventBatch } from "../enterprise/buffered-event-stream"
-import { LogLevel } from "../logger/log-node"
+import { LogLevel } from "../logger/logger"
 
 // Note: This is different from the `garden dashboard` default port.
 // We may no longer embed servers in watch processes from 0.13 onwards.

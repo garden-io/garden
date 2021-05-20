@@ -17,7 +17,7 @@ import { makeDummyGarden } from "../../../../src/cli/cli"
 import { ClientAuthToken } from "../../../../src/db/entities/client-auth-token"
 import { dedent, randomString } from "../../../../src/util/string"
 import { EnterpriseApi } from "../../../../src/enterprise/api"
-import { LogLevel } from "../../../../src/logger/log-node"
+import { LogLevel } from "../../../../src/logger/logger"
 import { gardenEnv } from "../../../../src/constants"
 import { EnterpriseApiError } from "../../../../src/exceptions"
 

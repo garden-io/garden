@@ -14,9 +14,7 @@ import { shutdown, sleep, getPackageVersion, uuidv4 } from "../util/util"
 import { Command, CommandResult, CommandGroup } from "../commands/base"
 import { GardenError, PluginError, toGardenError, GardenBaseError } from "../exceptions"
 import { Garden, GardenOpts, DummyGarden } from "../garden"
-import { getLogger, Logger, LoggerType, getWriterInstance, parseLogLevel } from "../logger/logger"
-import { LogLevel } from "../logger/log-node"
-import { BasicTerminalWriter } from "../logger/writers/basic-terminal-writer"
+import { getLogger, Logger, LoggerType, LogLevel, parseLogLevel } from "../logger/logger"
 import { FileWriter, FileWriterConfig } from "../logger/writers/file-writer"
 
 import {
@@ -61,22 +59,6 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   gardenOpts.config = config
 
   return DummyGarden.factory(root, { noEnterprise: true, ...gardenOpts })
-}
-
-function initLogger({
-  level,
-  loggerType,
-  emoji,
-  showTimestamps,
-}: {
-  level: LogLevel
-  loggerType: LoggerType
-  emoji: boolean
-  showTimestamps: boolean
-}) {
-  const writer = getWriterInstance(loggerType, level)
-  const writers = writer ? [writer] : undefined
-  return Logger.initialize({ level, writers, showTimestamps, useEmoji: emoji })
 }
 
 export interface RunOutput {
@@ -134,7 +116,7 @@ ${renderCommands(commands)}
       },
     ]
     for (const config of logConfigs) {
-      logger.writers.push(await FileWriter.factory(config))
+      logger.addWriter(await FileWriter.factory(config))
     }
     this.fileWritersInitialized = true
   }
@@ -194,11 +176,9 @@ ${renderCommands(commands)}
 
     if (silent || output) {
       loggerType = "quiet"
-    } else if (loggerType === "fancy" && (level > LogLevel.info || showTimestamps)) {
-      loggerType = "basic"
     }
 
-    const logger = initLogger({ level, loggerType, emoji, showTimestamps })
+    const logger = Logger.initialize({ level, type: loggerType, useEmoji: emoji, showTimestamps })
 
     // Currently we initialise empty placeholder entries and pass those to the
     // framework as opposed to the logger itself. This is to give better control over where on
@@ -474,7 +454,7 @@ ${renderCommands(commands)}
     } catch (_) {
       logger = Logger.initialize({
         level: LogLevel.info,
-        writers: [new BasicTerminalWriter()],
+        type: "basic",
       })
     }
 
@@ -492,7 +472,7 @@ ${renderCommands(commands)}
         })
       }
 
-      if (logger.writers.find((w) => w instanceof FileWriter)) {
+      if (logger.getWriters().find((w) => w instanceof FileWriter)) {
         logger.info(`\nSee ${ERROR_LOG_FILENAME} for detailed error message`)
         await waitForOutputFlush()
       }

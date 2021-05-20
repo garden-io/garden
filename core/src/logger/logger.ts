@@ -6,12 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogNode, CreateNodeParams, PlaceholderOpts } from "./log-node"
-import { LogEntry, EVENT_LOG_LEVEL } from "./log-entry"
-import { getChildEntries, findLogNode } from "./util"
+import { LogEntry, LogEntryMetadata, LogEntryParams } from "./log-entry"
+import { getChildEntries, findLogEntry } from "./util"
 import { Writer } from "./writers/base"
-import { InternalError, ParameterError } from "../exceptions"
-import { LogLevel } from "./log-node"
+import { CommandError, InternalError, ParameterError } from "../exceptions"
 import { BasicTerminalWriter } from "./writers/basic-terminal-writer"
 import { FancyTerminalWriter } from "./writers/fancy-terminal-writer"
 import { JsonTerminalWriter } from "./writers/json-terminal-writer"
@@ -25,19 +23,19 @@ import { range } from "lodash"
 export type LoggerType = "quiet" | "basic" | "fancy" | "fullscreen" | "json"
 export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "basic", "fancy", "fullscreen", "json"])
 
-export const logLevelMap = {
-  [LogLevel.error]: "error",
-  [LogLevel.warn]: "warn",
-  [LogLevel.info]: "info",
-  [LogLevel.verbose]: "verbose",
-  [LogLevel.debug]: "debug",
-  [LogLevel.silly]: "silly",
+export enum LogLevel {
+  error = 0,
+  warn = 1,
+  info = 2,
+  verbose = 3,
+  debug = 4,
+  silly = 5,
 }
+
 const getLogLevelNames = () => getEnumKeys(LogLevel)
 const getNumericLogLevels = () => range(getLogLevelNames().length)
 // Allow string or numeric log levels as CLI choices
 export const getLogLevelChoices = () => [...getLogLevelNames(), ...getNumericLogLevels().map(String)]
-
 export function parseLogLevel(level: string): LogLevel {
   let lvl: LogLevel
   const parsed = parseInt(level, 10)
@@ -57,12 +55,16 @@ export function parseLogLevel(level: string): LogLevel {
   return lvl
 }
 
-// Add platforms/terminals?
-export function envSupportsEmoji() {
-  return (
-    process.platform === "darwin" || process.env.TERM_PROGRAM === "Hyper" || process.env.TERM_PROGRAM === "HyperTerm"
-  )
+export const logLevelMap = {
+  [LogLevel.error]: "error",
+  [LogLevel.warn]: "warn",
+  [LogLevel.info]: "info",
+  [LogLevel.verbose]: "verbose",
+  [LogLevel.debug]: "debug",
+  [LogLevel.silly]: "silly",
 }
+
+const eventLogLevel = LogLevel.debug
 
 export function getWriterInstance(loggerType: LoggerType, level: LogLevel) {
   switch (loggerType) {
@@ -79,19 +81,64 @@ export function getWriterInstance(loggerType: LoggerType, level: LogLevel) {
   }
 }
 
-export interface LoggerConfig {
+export interface LoggerConfigBase {
   level: LogLevel
+  storeEntries?: boolean
   showTimestamps?: boolean
-  writers?: Writer[]
   useEmoji?: boolean
 }
 
-export class Logger extends LogNode {
-  public writers: Writer[]
+export interface LoggerConfig extends LoggerConfigBase {
+  type: LoggerType
+}
+
+export interface LoggerConstructor extends LoggerConfigBase {
+  writers: Writer[]
+  storeEntries: boolean
+}
+
+export interface CreateNodeParams extends LogEntryParams {
+  level: LogLevel
+  isPlaceholder?: boolean
+}
+
+export interface PlaceholderOpts {
+  level?: number
+  childEntriesInheritLevel?: boolean
+  indent?: number
+  metadata?: LogEntryMetadata
+}
+
+export interface LogNode {
+  silly(params: string | LogEntryParams): LogEntry
+  debug(params: string | LogEntryParams): LogEntry
+  verbose(params: string | LogEntryParams): LogEntry
+  info(params: string | LogEntryParams): LogEntry
+  warn(params: string | LogEntryParams): LogEntry
+  error(params: string | LogEntryParams): LogEntry
+}
+
+function resolveParams(level: LogLevel, params: string | LogEntryParams): CreateNodeParams {
+  if (typeof params === "string") {
+    return { msg: params, level }
+  }
+  return { ...params, level }
+}
+
+export class Logger implements LogNode {
   public events: EventBus
   public useEmoji: boolean
   public showTimestamps: boolean
+  public level: LogLevel
+  public children: LogEntry[]
+  /**
+   * Whether or not the log entries are stored in-memory on the logger instance.
+   * Defaults to false except when the FancyWriter is used, in which case storing the entries
+   * is required. Otherwise useful for testing.
+   */
+  public storeEntries: boolean
 
+  private writers: Writer[]
   private static instance?: Logger
 
   static getInstance() {
@@ -101,6 +148,10 @@ export class Logger extends LogNode {
     return Logger.instance
   }
 
+  /**
+   * Initializes the logger as a singleton from config. Also ensures that the logger settings make sense
+   * in the context of environment variables and writer types.
+   */
   static initialize(config: LoggerConfig): Logger {
     if (Logger.instance) {
       return Logger.instance
@@ -113,31 +164,42 @@ export class Logger extends LogNode {
       try {
         config.level = parseLogLevel(gardenEnv.GARDEN_LOG_LEVEL)
       } catch (err) {
-        // Log warning if level invalid but continue process.
-        // Using console logger since Garden logger hasn't been intialised.
-        console.warn("Warning:", err.message)
+        throw new CommandError(`Invalid log level set for GARDEN_LOG_LEVEL: ${err.message}`, {})
       }
     }
 
     // GARDEN_LOGGER_TYPE env variable takes precedence over the config param
     if (gardenEnv.GARDEN_LOGGER_TYPE) {
-      const loggerType = <LoggerType>gardenEnv.GARDEN_LOGGER_TYPE
+      const loggerTypeFromEnv = <LoggerType>gardenEnv.GARDEN_LOGGER_TYPE
 
-      if (!LOGGER_TYPES.has(loggerType)) {
-        throw new ParameterError(`Invalid logger type specified: ${loggerType}`, {
+      if (!LOGGER_TYPES.has(loggerTypeFromEnv)) {
+        throw new ParameterError(`Invalid logger type specified: ${loggerTypeFromEnv}`, {
           loggerType: gardenEnv.GARDEN_LOGGER_TYPE,
           availableTypes: LOGGER_TYPES,
         })
       }
 
-      const writer = getWriterInstance(loggerType, config.level)
-      instance = new Logger({
-        writers: writer ? [writer] : undefined,
-        level: config.level,
-      })
-      instance.debug(`Setting logger type to ${loggerType} (from GARDEN_LOGGER_TYPE)`)
-    } else {
-      instance = new Logger(config)
+      config.type = loggerTypeFromEnv
+    }
+
+    // The fancy logger doesn't play well with high log levels and/or timestamps
+    // so we enforce that the type is set to basic.
+    if (config.type === "fancy" && (config.level > LogLevel.info || config.showTimestamps)) {
+      config.type = "basic"
+    }
+
+    const writer = getWriterInstance(config.type, config.level)
+    // This should probably be a property on the writer itself but feels like an unncessary
+    // indirection for now.
+    const storeEntries = writer instanceof FancyTerminalWriter || config.storeEntries || false
+
+    instance = new Logger({ ...config, storeEntries, writers: writer ? [writer] : [] })
+
+    if (gardenEnv.GARDEN_LOG_LEVEL) {
+      instance.debug(`Setting log level to ${gardenEnv.GARDEN_LOG_LEVEL} (from GARDEN_LOG_LEVEL)`)
+    }
+    if (gardenEnv.GARDEN_LOGGER_TYPE) {
+      instance.debug(`Setting logger type to ${gardenEnv.GARDEN_LOGGER_TYPE} (from GARDEN_LOGGER_TYPE)`)
     }
 
     Logger.instance = instance
@@ -151,25 +213,35 @@ export class Logger extends LogNode {
     Logger.instance = undefined
   }
 
-  constructor(config: LoggerConfig) {
-    super(config.level)
+  constructor(config: LoggerConstructor) {
+    this.level = config.level
+    this.children = []
     this.writers = config.writers || []
     this.useEmoji = config.useEmoji === false ? false : true
     this.showTimestamps = !!config.showTimestamps
     this.events = new EventBus()
+    this.storeEntries = config.storeEntries
   }
 
-  protected createNode(params: CreateNodeParams): LogEntry {
-    return new LogEntry({ ...params, root: this })
+  private addNode(params: CreateNodeParams): LogEntry {
+    const entry = new LogEntry({ ...params, root: this })
+    if (this.storeEntries) {
+      this.children.push(entry)
+    }
+    this.onGraphChange(entry)
+    return entry
   }
 
-  placeholder({ level = LogLevel.info, indent, metadata }: PlaceholderOpts = {}): LogEntry {
-    // Ensure placeholder child entries align with parent context
-    return this.addNode({ level, indent: indent || -1, isPlaceholder: true, metadata })
+  addWriter(writer: Writer) {
+    this.writers.push(writer)
+  }
+
+  getWriters() {
+    return this.writers
   }
 
   onGraphChange(entry: LogEntry) {
-    if (entry.level <= EVENT_LOG_LEVEL && !entry.isPlaceholder) {
+    if (entry.level <= eventLogLevel && !entry.isPlaceholder) {
       this.events.emit("logEntry", formatLogEntryForEventStream(entry))
     }
     for (const writer of this.writers) {
@@ -179,20 +251,60 @@ export class Logger extends LogNode {
     }
   }
 
+  silly(params: string | LogEntryParams): LogEntry {
+    return this.addNode(resolveParams(LogLevel.silly, params))
+  }
+
+  debug(params: string | LogEntryParams): LogEntry {
+    return this.addNode(resolveParams(LogLevel.debug, params))
+  }
+
+  verbose(params: string | LogEntryParams): LogEntry {
+    return this.addNode(resolveParams(LogLevel.verbose, params))
+  }
+
+  info(params: string | LogEntryParams): LogEntry {
+    return this.addNode(resolveParams(LogLevel.info, params))
+  }
+
+  warn(params: string | LogEntryParams): LogEntry {
+    return this.addNode(resolveParams(LogLevel.warn, params))
+  }
+
+  error(params: string | LogEntryParams): LogEntry {
+    return this.addNode(resolveParams(LogLevel.error, params))
+  }
+
+  placeholder({ level = LogLevel.info, indent, metadata }: PlaceholderOpts = {}): LogEntry {
+    // Ensure placeholder child entries align with parent context
+    return this.addNode({ level, indent: indent || -1, isPlaceholder: true, metadata })
+  }
+
   getLogEntries(): LogEntry[] {
+    if (!this.storeEntries) {
+      throw new InternalError(`Cannot get entries when storeEntries=false`, {})
+    }
     return getChildEntries(this).filter((entry) => !entry.fromStdStream)
   }
 
   filterBySection(section: string): LogEntry[] {
+    if (!this.storeEntries) {
+      throw new InternalError(`Cannot filter entries when storeEntries=false`, {})
+    }
     return getChildEntries(this).filter((entry) => entry.getLatestMessage().section === section)
   }
 
   findById(id: string): LogEntry | void {
-    return findLogNode(this, (node) => node.id === id)
+    if (!this.storeEntries) {
+      throw new InternalError(`Cannot find entry when storeEntries=false`, {})
+    }
+    return findLogEntry(this, (node) => node.id === id)
   }
 
   stop(): void {
-    this.getLogEntries().forEach((e) => e.stop())
+    if (this.storeEntries) {
+      this.getLogEntries().forEach((e) => e.stop())
+    }
     this.writers.forEach((writer) => writer.stop())
   }
 

@@ -20,8 +20,8 @@ import execa from "execa"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { formatForTerminal } from "../../../../src/logger/renderers"
 import chalk from "chalk"
-import { LogLevel } from "../../../../src/logger/log-node"
 import { LogEntry } from "../../../../src/logger/log-entry"
+import { LogLevel } from "../../../../src/logger/logger"
 
 function makeCommandParams({
   garden,

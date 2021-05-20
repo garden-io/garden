@@ -20,7 +20,7 @@ import {
   projectTestFailsRoot,
   testPluginB,
 } from "../../../../helpers"
-import { LogLevel } from "../../../../../src/logger/log-node"
+import { LogLevel } from "../../../../../src/logger/logger"
 import { renderDivider } from "../../../../../src/logger/util"
 import { dedent } from "../../../../../src/util/string"
 import { runExecTask } from "../../../../../src/plugins/exec"

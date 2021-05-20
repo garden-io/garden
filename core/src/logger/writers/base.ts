@@ -8,7 +8,7 @@
 
 import { LogEntry } from "../log-entry"
 import { Logger } from "../logger"
-import { LogLevel } from "../log-node"
+import { LogLevel } from "../logger"
 
 export abstract class Writer {
   abstract type: string

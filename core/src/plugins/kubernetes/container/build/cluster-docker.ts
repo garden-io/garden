@@ -24,7 +24,7 @@ import {
 } from "./common"
 import { posix } from "path"
 import split2 = require("split2")
-import { LogLevel } from "../../../../logger/log-node"
+import { LogLevel } from "../../../../logger/logger"
 import { renderOutputStream } from "../../../../util/util"
 import { getDockerBuildFlags } from "../../../container/build"
 import { containerHelpers } from "../../../container/helpers"

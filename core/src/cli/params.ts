@@ -13,14 +13,14 @@ import stringify from "json-stringify-safe"
 import { joi, DeepPrimitiveMap } from "../config/common"
 import { ParameterError } from "../exceptions"
 import { parseEnvironment } from "../config/project"
-import { LOGGER_TYPES, getLogLevelChoices, envSupportsEmoji } from "../logger/logger"
+import { getLogLevelChoices, LOGGER_TYPES, LogLevel } from "../logger/logger"
 import { dedent, deline } from "../util/string"
 import chalk = require("chalk")
-import { LogLevel } from "../logger/log-node"
 import { safeDumpYaml } from "../util/util"
 import { resolve } from "path"
 import { isArray } from "lodash"
 import { gardenEnv } from "../constants"
+import { envSupportsEmoji } from "../logger/util"
 
 export const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {

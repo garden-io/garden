@@ -12,7 +12,7 @@ import { dedent } from "../../../util/string"
 import { GardenModule } from "../../module"
 import { runtimeContextSchema } from "../../../runtime-context"
 import { joi } from "../../../config/common"
-import { LogLevel } from "../../../logger/log-node"
+import { LogLevel } from "../../../logger/logger"
 import { string } from "@hapi/joi"
 
 export interface GetServiceLogsParams<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule>

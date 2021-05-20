@@ -44,8 +44,7 @@ import { SuiteFunction, TestFunction } from "mocha"
 import { GardenError } from "../src/exceptions"
 import { AnalyticsGlobalConfig } from "../src/config-store"
 import { TestGarden, EventLogEntry, TestGardenOpts } from "../src/util/testing"
-import { Logger } from "../src/logger/logger"
-import { LogLevel } from "../src/logger/log-node"
+import { Logger, LogLevel } from "../src/logger/logger"
 import { ExecInServiceParams, ExecInServiceResult } from "../src/types/plugin/service/execInService"
 import { ClientAuthToken } from "../src/db/entities/client-auth-token"
 
@@ -639,6 +638,8 @@ export function initTestLogger() {
   try {
     Logger.initialize({
       level: LogLevel.info,
+      storeEntries: true,
+      type: "quiet",
     })
   } catch (_) {}
 }

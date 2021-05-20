@@ -14,8 +14,7 @@ import chalk from "chalk"
 
 import { formatForTerminal, renderMsg, getLeftOffset } from "../renderers"
 import { LogEntry } from "../log-entry"
-import { Logger } from "../logger"
-import { LogLevel } from "../log-node"
+import { Logger, LogLevel } from "../logger"
 import { getChildEntries, getTerminalWidth, interceptStream } from "../util"
 import { Writer } from "./base"
 

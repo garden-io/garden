@@ -43,7 +43,7 @@ import {
 import { cloneDeep, differenceBy, isEmpty } from "lodash"
 import chalk from "chalk"
 import split2 from "split2"
-import { LogLevel } from "../../../../logger/log-node"
+import { LogLevel } from "../../../../logger/logger"
 import { renderOutputStream, sleep } from "../../../../util/util"
 import { getDockerBuildFlags } from "../../../container/build"
 import { containerHelpers } from "../../../container/helpers"

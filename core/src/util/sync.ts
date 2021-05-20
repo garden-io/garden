@@ -8,7 +8,7 @@
 
 import { exec } from "./util"
 import { LogEntry } from "../logger/log-entry"
-import { LogLevel } from "../logger/log-node"
+import { LogLevel } from "../logger/logger"
 
 /**
  * Syncs `sourcePath` with `destinationPath` using `syncOpts`. Adds options to `syncOpts` as appropriate for the

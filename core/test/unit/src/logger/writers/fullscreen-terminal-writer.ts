@@ -9,9 +9,8 @@
 import { expect } from "chai"
 import blessed from "neo-blessed"
 
-import { Logger } from "../../../../../src/logger/logger"
+import { Logger, LogLevel } from "../../../../../src/logger/logger"
 import { FullscreenTerminalWriter } from "../../../../../src/logger/writers/fullscreen-terminal-writer"
-import { LogLevel } from "../../../../../src/logger/log-node"
 import stripAnsi from "strip-ansi"
 import { dedent } from "../../../../../src/util/string"
 import { Writable, WritableOptions } from "stream"
@@ -41,7 +40,7 @@ describe("FullscreenTerminalWriter", () => {
   beforeEach(() => {
     // Setting a very long spin interval so that we can control it manually
     writer = new TestWriter(LogLevel.info, 99999999)
-    logger = new Logger({ level: LogLevel.info, writers: [writer] })
+    logger = new Logger({ level: LogLevel.info, storeEntries: true, writers: [writer] })
   })
 
   function getStrippedContent() {

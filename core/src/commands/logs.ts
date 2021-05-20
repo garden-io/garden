@@ -13,11 +13,10 @@ import { ServiceLogEntry } from "../types/plugin/service/getServiceLogs"
 import Bluebird = require("bluebird")
 import { GardenService } from "../types/service"
 import Stream from "ts-stream"
-import { LoggerType, logLevelMap, parseLogLevel } from "../logger/logger"
+import { LoggerType, logLevelMap, LogLevel, parseLogLevel } from "../logger/logger"
 import { StringsParameter, BooleanParameter, IntegerParameter, DurationParameter } from "../cli/params"
 import { printHeader, renderDivider } from "../logger/util"
 import stripAnsi = require("strip-ansi")
-import { LogLevel } from "../logger/log-node"
 import hasAnsi = require("has-ansi")
 import { dedent } from "../util/string"
 import { formatSection } from "../logger/renderers"
