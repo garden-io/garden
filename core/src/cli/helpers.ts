@@ -29,6 +29,7 @@ import minimist = require("minimist")
 import { renderTable, tablePresets, naturalList } from "../util/string"
 import { globalOptions, GlobalOptions } from "./params"
 import { Command, CommandGroup } from "../commands/base"
+import { DeepPrimitiveMap } from "../config/common"
 
 export const cliStyles = {
   heading: (str: string) => chalk.white.bold(str),
@@ -292,6 +293,19 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
     args: <DefaultArgs & ParameterValues<A>>processedArgs,
     opts: <ParameterValues<GlobalOptions> & ParameterValues<O>>processedOpts,
   }
+}
+
+export function optionsWithAliasValues<A extends Parameters, O extends Parameters>(
+  command: Command<A, O>,
+  parsedOpts: DeepPrimitiveMap
+): DeepPrimitiveMap {
+  const withAliases = { ...parsedOpts } // Create a new object instead of mutating.
+  for (const [name, spec] of Object.entries(command.options || {})) {
+    if (spec.alias) {
+      withAliases[spec.alias] = parsedOpts[name]
+    }
+  }
+  return withAliases
 }
 
 export function renderCommands(commands: Command[]) {

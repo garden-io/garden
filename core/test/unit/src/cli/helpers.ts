@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { pickCommand, processCliArgs } from "../../../../src/cli/helpers"
+import { optionsWithAliasValues, pickCommand, processCliArgs } from "../../../../src/cli/helpers"
 import { Parameters } from "../../../../src/cli/params"
 import { expectError } from "../../../helpers"
 import { getPackageVersion } from "../../../../src/util/util"
@@ -30,6 +30,7 @@ import { Command } from "../../../../src/commands/base"
 import { dedent } from "../../../../src/util/string"
 import { LogsCommand } from "../../../../src/commands/logs"
 import { getAllCommands } from "../../../../src/commands/commands"
+import { DeepPrimitiveMap } from "../../../../src/config/common"
 
 const validLogLevels = ["error", "warn", "info", "verbose", "debug", "silly", "0", "1", "2", "3", "4", "5"]
 
@@ -166,6 +167,14 @@ describe("parseCliArgs", () => {
   })
 })
 
+function parseAndProcess<A extends Parameters, O extends Parameters>(
+  args: string[],
+  command: Command<A, O>,
+  cli = true
+) {
+  return processCliArgs({ parsedArgs: parseCliArgs({ stringArgs: args, command, cli }), command, cli })
+}
+
 describe("processCliArgs", () => {
   let garden: TestGarden
   let log: LogEntry
@@ -181,14 +190,6 @@ describe("processCliArgs", () => {
       footerLog: log,
     }
   })
-
-  function parseAndProcess<A extends Parameters, O extends Parameters>(
-    args: string[],
-    command: Command<A, O>,
-    cli = true
-  ) {
-    return processCliArgs({ parsedArgs: parseCliArgs({ stringArgs: args, command, cli }), command, cli })
-  }
 
   it("correctly handles blank arguments", () => {
     const cmd = new BuildCommand()
@@ -443,5 +444,16 @@ describe("processCliArgs", () => {
       args,
       opts: withDefaultGlobalOpts(opts),
     })
+  })
+})
+
+describe("optionsWithAliasValues", () => {
+  it("populates alias keys when option values are provided", async () => {
+    const cmd = new DeployCommand()
+
+    const { opts } = parseAndProcess(["service-a,service-b", "--dev=service-a,service-b"], cmd)
+    const withAliasValues = optionsWithAliasValues(cmd, <DeepPrimitiveMap>opts)
+    expect(withAliasValues["dev-mode"]).to.eql(["service-a", "service-b"])
+    expect(withAliasValues["dev"]).to.eql(["service-a", "service-b"]) // We expect the alias to be populated too
   })
 })
