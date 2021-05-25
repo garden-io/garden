@@ -281,6 +281,8 @@ A map of all parameters set when calling the current command. This includes both
 
 For example, to see if a service is in hot-reload mode, you might do something like `${command.params contains 'hot-reload' && command.params.hot-reload contains 'my-service'}`. Notice that you currently need to check both for the existence of the parameter, and also to correctly handle the array value.
 
+Option values can be referenced by the option's default name (e.g. `dev-mode`) or its alias (e.g. `dev`) if one is defined for that option.
+
 | Type     |
 | -------- |
 | `object` |
@@ -479,6 +481,8 @@ my-variable: ${command.name}
 A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
 
 For example, to see if a service is in hot-reload mode, you might do something like `${command.params contains 'hot-reload' && command.params.hot-reload contains 'my-service'}`. Notice that you currently need to check both for the existence of the parameter, and also to correctly handle the array value.
+
+Option values can be referenced by the option's default name (e.g. `dev-mode`) or its alias (e.g. `dev`) if one is defined for that option.
 
 | Type     |
 | -------- |
@@ -710,6 +714,8 @@ my-variable: ${command.name}
 A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
 
 For example, to see if a service is in hot-reload mode, you might do something like `${command.params contains 'hot-reload' && command.params.hot-reload contains 'my-service'}`. Notice that you currently need to check both for the existence of the parameter, and also to correctly handle the array value.
+
+Option values can be referenced by the option's default name (e.g. `dev-mode`) or its alias (e.g. `dev`) if one is defined for that option.
 
 | Type     |
 | -------- |
@@ -1034,6 +1040,8 @@ my-variable: ${command.name}
 A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
 
 For example, to see if a service is in hot-reload mode, you might do something like `${command.params contains 'hot-reload' && command.params.hot-reload contains 'my-service'}`. Notice that you currently need to check both for the existence of the parameter, and also to correctly handle the array value.
+
+Option values can be referenced by the option's default name (e.g. `dev-mode`) or its alias (e.g. `dev`) if one is defined for that option.
 
 | Type     |
 | -------- |
@@ -1607,6 +1615,8 @@ A map of all parameters set when calling the current command. This includes both
 
 For example, to see if a service is in hot-reload mode, you might do something like `${command.params contains 'hot-reload' && command.params.hot-reload contains 'my-service'}`. Notice that you currently need to check both for the existence of the parameter, and also to correctly handle the array value.
 
+Option values can be referenced by the option's default name (e.g. `dev-mode`) or its alias (e.g. `dev`) if one is defined for that option.
+
 | Type     |
 | -------- |
 | `object` |
@@ -2085,6 +2095,8 @@ my-variable: ${command.name}
 A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
 
 For example, to see if a service is in hot-reload mode, you might do something like `${command.params contains 'hot-reload' && command.params.hot-reload contains 'my-service'}`. Notice that you currently need to check both for the existence of the parameter, and also to correctly handle the array value.
+
+Option values can be referenced by the option's default name (e.g. `dev-mode`) or its alias (e.g. `dev`) if one is defined for that option.
 
 | Type     |
 | -------- |

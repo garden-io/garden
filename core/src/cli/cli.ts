@@ -27,6 +27,7 @@ import {
   processCliArgs,
   pickCommand,
   parseCliArgs,
+  optionsWithAliasValues,
 } from "./helpers"
 import { Parameters, globalOptions, OUTPUT_RENDERERS, GlobalOptions, ParameterValues } from "./params"
 import { defaultEnvironments, ProjectConfig, defaultNamespace, parseEnvironment } from "../config/project"
@@ -227,7 +228,7 @@ ${renderCommands(commands)}
       commandInfo: {
         name: command.getFullName(),
         args: parsedArgs,
-        opts: parsedOpts,
+        opts: optionsWithAliasValues(command, parsedOpts),
       },
       disablePortForwards,
       environmentName,
