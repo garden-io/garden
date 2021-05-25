@@ -463,7 +463,7 @@ describe("createIngressResources", () => {
 
     expect(ingresses).to.eql([
       {
-        apiVersion: "extensions/v1beta1",
+        apiVersion: "networking.k8s.io/v1beta1",
         kind: "Ingress",
         metadata: {
           name: `${service.name}-0`,
@@ -507,7 +507,7 @@ describe("createIngressResources", () => {
 
     expect(ingresses).to.eql([
       {
-        apiVersion: "extensions/v1beta1",
+        apiVersion: "networking.k8s.io/v1beta1",
         kind: "Ingress",
         metadata: {
           name: `${service.name}-0`,
@@ -560,7 +560,7 @@ describe("createIngressResources", () => {
 
     expect(ingresses).to.eql([
       {
-        apiVersion: "extensions/v1beta1",
+        apiVersion: "networking.k8s.io/v1beta1",
         kind: "Ingress",
         metadata: {
           name: `${service.name}-0`,
@@ -590,7 +590,7 @@ describe("createIngressResources", () => {
         },
       },
       {
-        apiVersion: "extensions/v1beta1",
+        apiVersion: "networking.k8s.io/v1beta1",
         kind: "Ingress",
         metadata: {
           name: `${service.name}-1`,
@@ -636,7 +636,7 @@ describe("createIngressResources", () => {
 
     expect(ingresses).to.eql([
       {
-        apiVersion: "extensions/v1beta1",
+        apiVersion: "networking.k8s.io/v1beta1",
         kind: "Ingress",
         metadata: {
           name: `${service.name}-0`,
@@ -803,7 +803,7 @@ describe("createIngressResources", () => {
 
     expect(ingresses).to.eql([
       {
-        apiVersion: "extensions/v1beta1",
+        apiVersion: "networking.k8s.io/v1beta1",
         kind: "Ingress",
         metadata: {
           name: `${service.name}-0`,
@@ -876,7 +876,7 @@ describe("createIngressResources", () => {
 
     expect(ingresses).to.eql([
       {
-        apiVersion: "extensions/v1beta1",
+        apiVersion: "networking.k8s.io/v1beta1",
         kind: "Ingress",
         metadata: {
           name: `${service.name}-0`,

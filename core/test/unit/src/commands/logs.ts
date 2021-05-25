@@ -404,7 +404,7 @@ describe("LogsCommand", () => {
         // ...when we get the logs for all of them...
         await command.action(makeCommandParams({ garden: gardenMultiService }))
 
-        const out = getLogOutput(gardenMultiService, logMsg)
+        const out = getLogOutput(gardenMultiService, logMsg).sort() // <----
         const color2 = chalk[colors[1]]
 
         // ...then they each get assigned a unique color...
