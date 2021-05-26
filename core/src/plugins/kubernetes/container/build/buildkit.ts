@@ -87,11 +87,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
 
   const localId = containerHelpers.getLocalImageId(module, module.version)
   const deploymentImageName = containerHelpers.getDeploymentImageName(module, provider.config.deploymentRegistry)
-  const deploymentImageId = containerHelpers.getDeploymentImageId(
-    module,
-    module.version,
-    provider.config.deploymentRegistry
-  )
+  const deploymentImageId = module.outputs["deployment-image-id"]
   const dockerfile = module.spec.dockerfile || "Dockerfile"
 
   const { contextPath } = await syncToBuildSync({

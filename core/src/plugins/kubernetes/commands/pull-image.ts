@@ -123,7 +123,7 @@ async function pullFromInClusterRegistry(
   localId: string
 ) {
   const fwd = await getRegistryPortForward(ctx, log)
-  const imageId = containerHelpers.getDeploymentImageId(module, module.version, ctx.provider.config.deploymentRegistry)
+  const imageId = module.outputs["deployment-image-id"]
   const pullImageId = containerHelpers.unparseImageId({
     ...containerHelpers.parseImageId(imageId),
     // Note: using localhost directly here has issues with Docker for Mac.
@@ -169,7 +169,7 @@ async function pullFromExternalRegistry(
     authSecretName = systemDockerAuthSecretName
   }
 
-  const imageId = containerHelpers.getDeploymentImageId(module, module.version, ctx.provider.config.deploymentRegistry)
+  const imageId = module.outputs["deployment-image-id"]
 
   // See https://github.com/containers/skopeo for how all this works and the syntax
   const skopeoCommand = [

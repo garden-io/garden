@@ -8,7 +8,6 @@
 
 import pRetry from "p-retry"
 import { ContainerModule, ContainerRegistryConfig } from "../../../container/config"
-import { containerHelpers } from "../../../container/helpers"
 import { GetBuildStatusParams, BuildStatus } from "../../../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams, BuildResult } from "../../../../types/plugin/module/build"
 import { getDeploymentPod } from "../../util"
@@ -136,7 +135,7 @@ export async function skopeoBuildStatus({
     // This is validated in the provider configure handler, so this is an internal error if it happens
     throw new InternalError(`Expected configured deploymentRegistry for remote build`, { config: provider.config })
   }
-  const remoteId = containerHelpers.getDeploymentImageId(module, module.version, deploymentRegistry)
+  const remoteId = module.outputs["deployment-image-id"]
   const inClusterRegistry = deploymentRegistry?.hostname === inClusterRegistryHostname
   const skopeoCommand = ["skopeo", "--command-timeout=30s", "inspect", "--raw", "--authfile", "/.docker/config.json"]
   if (inClusterRegistry) {
@@ -234,7 +233,7 @@ export function getSocatContainer(provider: KubernetesProvider) {
 }
 
 export async function getManifestInspectArgs(module: ContainerModule, deploymentRegistry: ContainerRegistryConfig) {
-  const remoteId = containerHelpers.getDeploymentImageId(module, module.version, deploymentRegistry)
+  const remoteId = module.outputs["deployment-image-id"]
 
   const dockerArgs = ["manifest", "inspect", remoteId]
   if (isLocalHostname(deploymentRegistry.hostname)) {

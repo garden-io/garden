@@ -69,8 +69,8 @@ export const localBuild: BuildHandler = async (params) => {
     return buildResult
   }
 
-  const localId = containerHelpers.getLocalImageId(module, module.version)
-  const remoteId = containerHelpers.getDeploymentImageId(module, module.version, ctx.provider.config.deploymentRegistry)
+  const localId = module.outputs["local-image-id"]
+  const remoteId = module.outputs["deployment-image-id"]
 
   log.setState({ msg: `Pushing image ${remoteId} to cluster...` })
 

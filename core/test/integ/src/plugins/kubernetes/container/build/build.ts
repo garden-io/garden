@@ -43,6 +43,10 @@ describe("kubernetes build flow", () => {
     }
   })
 
+  beforeEach(async () => {
+    graph = await garden.getConfigGraph(garden.log)
+  })
+
   const init = async (environmentName: string) => {
     currentEnv = environmentName
     garden = await getContainerTestGarden(environmentName)
@@ -92,7 +96,7 @@ describe("kubernetes build flow", () => {
     it("should push to configured deploymentRegistry if specified", async () => {
       const module = await buildImage("remote-registry-test")
 
-      const remoteId = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
+      const remoteId = module.outputs["deployment-image-id"]
       // This throws if the image doesn't exist
       await containerHelpers.dockerCli({
         cwd: module.buildPath,
@@ -105,7 +109,7 @@ describe("kubernetes build flow", () => {
     it("should get the build status from the deploymentRegistry", async () => {
       const module = await buildImage("remote-registry-test")
 
-      const remoteId = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
+      const remoteId = module.outputs["deployment-image-id"]
 
       await containerHelpers.dockerCli({
         cwd: module.buildPath,
@@ -186,7 +190,7 @@ describe("kubernetes build flow", () => {
       const module = await buildImage("remote-registry-test")
 
       // Clear the image tag from the in-cluster builder
-      const remoteId = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
+      const remoteId = module.outputs["deployment-image-id"]
       const api = await KubeApi.factory(garden.log, ctx, provider)
 
       const runner = await getDockerDaemonPodRunner({ api, systemNamespace, ctx, provider })
@@ -213,7 +217,7 @@ describe("kubernetes build flow", () => {
       const module = graph.getModule("simple-service")
       await garden.buildStaging.syncFromSrc(module, garden.log)
 
-      module.spec.image = "127.0.0.1:5000/boop/skee-bop-ba-doo"
+      module.outputs["deployment-image-id"] = "127.0.0.1:5000/boop/skee-bop-ba-doo"
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
@@ -238,7 +242,7 @@ describe("kubernetes build flow", () => {
       const module = await buildImage("remote-registry-test")
 
       // Clear the image tag from the in-cluster builder
-      const remoteId = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
+      const remoteId = module.outputs["deployment-image-id"]
       const api = await KubeApi.factory(garden.log, ctx, provider)
 
       const runner = await getDockerDaemonPodRunner({ api, systemNamespace, ctx, provider })
@@ -265,7 +269,7 @@ describe("kubernetes build flow", () => {
       const module = cloneDeep(graph.getModule("remote-registry-test"))
       await garden.buildStaging.syncFromSrc(module, garden.log)
 
-      module.version.versionString = "v-0000000000"
+      module.outputs["deployment-image-id"] = module.outputs["deployment-image-id"].split(":")[0] + "v-0000000000"
 
       // This should still report the build as ready, because it's in the registry
       const status = await k8sGetContainerBuildStatus({
@@ -375,7 +379,7 @@ describe("kubernetes build flow", () => {
       const module = graph.getModule("simple-service")
       await garden.buildStaging.syncFromSrc(module, garden.log)
 
-      module.spec.image = "skee-ba-dee-skoop"
+      module.outputs["deployment-image-id"] = "127.0.0.1:5000/boop/skee-bop-dee-boo"
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
@@ -451,7 +455,7 @@ describe("kubernetes build flow", () => {
       const module = cloneDeep(graph.getModule("remote-registry-test"))
       await garden.buildStaging.syncFromSrc(module, garden.log)
 
-      module.version.versionString = "v-0000000000"
+      module.outputs["deployment-image-id"] = module.outputs["deployment-image-id"].split(":")[0] + "v-0000000000"
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
@@ -529,7 +533,7 @@ describe("kubernetes build flow", () => {
       const module = graph.getModule("simple-service")
       await garden.buildStaging.syncFromSrc(module, garden.log)
 
-      module.spec.image = "skee-ba-dee-skoop"
+      module.outputs["deployment-image-id"] = "127.0.0.1:5000/boop/skee-bop-ba-doop"
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
@@ -587,7 +591,7 @@ describe("kubernetes build flow", () => {
       const module = graph.getModule("simple-service")
       await garden.buildStaging.syncFromSrc(module, garden.log)
 
-      module.spec.image = "skee-ba-dee-skoop"
+      module.outputs["deployment-image-id"] = "127.0.0.1:5000/boop/skee-bop-ba-doobie"
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
@@ -641,7 +645,7 @@ describe("kubernetes build flow", () => {
       const module = cloneDeep(graph.getModule("remote-registry-test"))
       await garden.buildStaging.syncFromSrc(module, garden.log)
 
-      module.version.versionString = "v-0000000000"
+      module.outputs["deployment-image-id"] = module.outputs["deployment-image-id"].split(":")[0] + "v-0000000000"
 
       const status = await k8sGetContainerBuildStatus({
         ctx,

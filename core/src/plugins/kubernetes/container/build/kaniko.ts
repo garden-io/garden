@@ -46,7 +46,6 @@ import split2 from "split2"
 import { LogLevel } from "../../../../logger/log-node"
 import { renderOutputStream, sleep } from "../../../../util/util"
 import { getDockerBuildFlags } from "../../../container/build"
-import { containerHelpers } from "../../../container/helpers"
 import { compareDeployedResources, waitForResources } from "../../status/status"
 
 export const DEFAULT_KANIKO_FLAGS = ["--cache=true"]
@@ -93,12 +92,8 @@ export const kanikoBuild: BuildHandler = async (params) => {
 
   const projectNamespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
 
-  const localId = containerHelpers.getLocalImageId(module, module.version)
-  const deploymentImageId = containerHelpers.getDeploymentImageId(
-    module,
-    module.version,
-    provider.config.deploymentRegistry
-  )
+  const localId = module.outputs["local-image-id"]
+  const deploymentImageId = module.outputs["deployment-image-id"]
   const dockerfile = module.spec.dockerfile || "Dockerfile"
 
   let { authSecret } = await ensureUtilDeployment({
