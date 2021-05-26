@@ -8,12 +8,12 @@
 
 import { Command, CommandResult, CommandParams } from "./base"
 import chalk from "chalk"
-import { maxBy, sortBy } from "lodash"
+import { sortBy } from "lodash"
 import { ServiceLogEntry } from "../types/plugin/service/getServiceLogs"
 import Bluebird = require("bluebird")
 import { GardenService } from "../types/service"
 import Stream from "ts-stream"
-import { LoggerType, logLevelMap } from "../logger/logger"
+import { LoggerType, logLevelMap, parseLogLevel } from "../logger/logger"
 import { StringsParameter, BooleanParameter, IntegerParameter, DurationParameter } from "../cli/params"
 import { printHeader, renderDivider } from "../logger/util"
 import stripAnsi = require("strip-ansi")
@@ -115,6 +115,7 @@ export class LogsCommand extends Command<Args, Opts> {
     const originalColor = opts["original-color"]
     const showContainer = opts["show-container"]
     const hideService = opts["hide-service"]
+    const logLevel = parseLogLevel(opts["log-level"])
 
     if (tail) {
       // Tail takes precedence over since...
@@ -128,9 +129,8 @@ export class LogsCommand extends Command<Args, Opts> {
     const allServices = graph.getServices()
     const services = args.services ? allServices.filter((s) => args.services?.includes(s.name)) : allServices
 
-    const serviceNames = services.map((s) => s.name).filter(Boolean)
-    const maxServiceName = (maxBy(serviceNames, (serviceName) => serviceName.length) || "").length
     // If the container name should be displayed, we align the output wrt to the longest container name
+    let maxServiceName = 1
     let maxContainerName = 1
 
     const result: ServiceLogEntry[] = []
@@ -165,6 +165,7 @@ export class LogsCommand extends Command<Args, Opts> {
       const style = chalk[colorMap[entry.serviceName]]
       const sectionStyle = style.bold
       const serviceLog = originalColor ? entry.msg : stripAnsi(entry.msg)
+      const entryLevel = entry.level || LogLevel.info
 
       let timestamp: string | undefined
       let container: string | undefined
@@ -177,8 +178,12 @@ export class LogsCommand extends Command<Args, Opts> {
       }
 
       if (showContainer && entry.containerName) {
-        maxContainerName = Math.max(maxContainerName, entry.containerName.length)
         container = entry.containerName
+      }
+
+      if (entryLevel <= logLevel) {
+        maxServiceName = Math.max(maxServiceName, entry.serviceName.length)
+        maxContainerName = container ? Math.max(maxContainerName, container.length) : maxContainerName
       }
 
       let out = ""

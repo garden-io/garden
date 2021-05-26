@@ -20,6 +20,8 @@ import execa from "execa"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { formatForTerminal } from "../../../../src/logger/renderers"
 import chalk from "chalk"
+import { LogLevel } from "../../../../src/logger/log-node"
+import { LogEntry } from "../../../../src/logger/log-entry"
 
 function makeCommandParams({
   garden,
@@ -84,14 +86,12 @@ async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPlugin) {
 }
 
 // Returns all entries that match the logMsg as string, sorted by service name.
-function getLogOutput(garden: TestGarden, msg: string) {
-  const entries = garden.log.getChildEntries().filter((e) => e.getLatestMessage().msg?.includes(msg))!
-  return (
-    entries
-      // .sort((a, b) => (stripAnsi(a.getLatestMessage().msg!) > stripAnsi(b.getLatestMessage().msg!) ? 1 : -1))
-      .map((e) => formatForTerminal(e, "basic").trim())
-  )
-  // .join("\n")
+function getLogOutput(garden: TestGarden, msg: string, extraFilter: (e: LogEntry) => boolean = () => true) {
+  const entries = garden.log
+    .getChildEntries()
+    .filter(extraFilter)
+    .filter((e) => e.getLatestMessage().msg?.includes(msg))!
+  return entries.map((e) => formatForTerminal(e, "basic").trim())
 }
 
 describe("LogsCommand", () => {
@@ -270,61 +270,6 @@ describe("LogsCommand", () => {
         `${color.bold("test-service-a")} → ${color.bold("my-container")} → ${color("Yes, this is log")}`
       )
     })
-    it("should align content wrt to container names when visible", async () => {
-      const getServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
-        void stream.write({
-          containerName: "short",
-          serviceName: "test-service-a",
-          msg: logMsgWithColor,
-          timestamp,
-        })
-        void stream.write({
-          containerName: "very-long",
-          serviceName: "test-service-a",
-          msg: logMsgWithColor,
-          timestamp,
-        })
-        void stream.write({
-          containerName: "short",
-          serviceName: "test-service-a",
-          msg: logMsgWithColor,
-          timestamp,
-        })
-        void stream.write({
-          containerName: "very-very-long",
-          serviceName: "test-service-a",
-          msg: logMsgWithColor,
-          timestamp,
-        })
-        void stream.write({
-          containerName: "short",
-          serviceName: "test-service-a",
-          msg: logMsgWithColor,
-          timestamp,
-        })
-        return {}
-      }
-      const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-
-      const command = new LogsCommand()
-      await command.action(makeCommandParams({ garden, opts: { "show-container": true } }))
-
-      const out = getLogOutput(garden, logMsg)
-
-      expect(out[0]).to.eql(`${color.bold("test-service-a")} → ${color.bold("short")} → ${color("Yes, this is log")}`)
-      expect(out[1]).to.eql(
-        `${color.bold("test-service-a")} → ${color.bold("very-long")} → ${color("Yes, this is log")}`
-      )
-      expect(out[2]).to.eql(
-        `${color.bold("test-service-a")} → ${color.bold("short    ")} → ${color("Yes, this is log")}`
-      )
-      expect(out[3]).to.eql(
-        `${color.bold("test-service-a")} → ${color.bold("very-very-long")} → ${color("Yes, this is log")}`
-      )
-      expect(out[4]).to.eql(
-        `${color.bold("test-service-a")} → ${color.bold("short         ")} → ${color("Yes, this is log")}`
-      )
-    })
     it("should optionally show timestamps", async () => {
       const garden = await makeGarden(tmpDir, makeTestPlugin())
       const command = new LogsCommand()
@@ -345,29 +290,55 @@ describe("LogsCommand", () => {
 
       expect(out[0]).to.eql(`${color.bold("test-service-a")} → ${originalColor("Yes, this is log")}`)
     })
-    context("multiple services", () => {
-      let gardenMultiService: TestGarden
-      const getServiceLogsHandler = async ({ stream, service }: GetServiceLogsParams) => {
-        if (service.name === "test-service-a") {
-          void stream.write({
-            containerName: "my-container",
-            serviceName: "test-service-a",
-            msg: logMsg,
-            timestamp,
-          })
-        } else {
-          void stream.write({
-            containerName: "my-container",
-            serviceName: "test-service-b",
-            msg: logMsg,
-            timestamp,
-          })
+    context("mutliple services", () => {
+      it("should align content for visible entries", async () => {
+        const getServiceLogsHandler = async ({ stream, service }: GetServiceLogsParams) => {
+          if (service.name === "a-short") {
+            void stream.write({
+              containerName: "short",
+              serviceName: "a-short",
+              msg: logMsgWithColor,
+              timestamp: new Date("2021-05-13T20:01:00.000Z"), // <--- 1
+            })
+            void stream.write({
+              containerName: "short",
+              serviceName: "a-short",
+              msg: logMsgWithColor,
+              timestamp: new Date("2021-05-13T20:03:00.000Z"), // <--- 3
+            })
+            void stream.write({
+              containerName: "short",
+              serviceName: "a-short",
+              msg: logMsgWithColor,
+              timestamp: new Date("2021-05-13T20:06:00.000Z"), // <--- 6
+            })
+          } else if (service.name === "b-not-short") {
+            void stream.write({
+              containerName: "not-short",
+              serviceName: "b-not-short",
+              msg: logMsgWithColor,
+              timestamp: new Date("2021-05-13T20:02:00.000Z"), // <--- 2
+            })
+          } else if (service.name === "c-by-far-the-longest-of-the-bunch") {
+            void stream.write({
+              containerName: "by-far-the-longest-of-the-bunch",
+              serviceName: "c-by-far-the-longest-of-the-bunch",
+              msg: logMsgWithColor,
+              timestamp: new Date("2021-05-13T20:04:00.000Z"), // <--- 4
+              level: LogLevel.verbose,
+            })
+          } else if (service.name === "d-very-very-long") {
+            void stream.write({
+              containerName: "very-very-long",
+              serviceName: "d-very-very-long",
+              msg: logMsgWithColor,
+              timestamp: new Date("2021-05-13T20:05:00.000Z"), // <--- 5
+            })
+          }
+          return {}
         }
-        return {}
-      }
-      beforeEach(async () => {
-        gardenMultiService = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-        gardenMultiService.setModuleConfigs([
+        const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
+        garden.setModuleConfigs([
           {
             apiVersion: DEFAULT_API_VERSION,
             name: "test",
@@ -378,14 +349,28 @@ describe("LogsCommand", () => {
             path: tmpDir.path,
             serviceConfigs: [
               {
-                name: "test-service-a",
+                name: "a-short",
                 dependencies: [],
                 disabled: false,
                 hotReloadable: false,
                 spec: {},
               },
               {
-                name: "test-service-b",
+                name: "b-not-short",
+                dependencies: [],
+                disabled: false,
+                hotReloadable: false,
+                spec: {},
+              },
+              {
+                name: "c-by-far-the-longest-of-the-bunch",
+                dependencies: [],
+                disabled: false,
+                hotReloadable: false,
+                spec: {},
+              },
+              {
+                name: "d-very-very-long",
                 dependencies: [],
                 disabled: false,
                 hotReloadable: false,
@@ -397,30 +382,82 @@ describe("LogsCommand", () => {
             spec: { bla: "fla" },
           },
         ])
-      })
-      it("should give each service a unique color", async () => {
-        // Given a project with multiple services...
+
+        // Entries are color coded by their alphabetical order
+        const colA = chalk[colors[0]]
+        const colB = chalk[colors[1]]
+        const colD = chalk[colors[3]]
         const command = new LogsCommand()
-        // ...when we get the logs for all of them...
-        await command.action(makeCommandParams({ garden: gardenMultiService }))
+        await command.action(makeCommandParams({ garden, opts: { "show-container": true } }))
 
-        const out = getLogOutput(gardenMultiService, logMsg)
-        const color2 = chalk[colors[1]]
+        const out = getLogOutput(garden, logMsg, (entry) => entry.level === LogLevel.info)
 
-        // ...then they each get assigned a unique color...
-        expect(out[0]).to.eql(`${color.bold("test-service-a")} → ${color("Yes, this is log")}`)
-        expect(out[1]).to.eql(`${color2.bold("test-service-b")} → ${color2("Yes, this is log")}`)
+        expect(out[0]).to.eql(`${colA.bold("a-short")} → ${colA.bold("short")} → ${colA(logMsg)}`)
+        expect(out[1]).to.eql(`${colB.bold("b-not-short")} → ${colB.bold("not-short")} → ${colB(logMsg)}`)
+        expect(out[2]).to.eql(`${colA.bold("a-short    ")} → ${colA.bold("short    ")} → ${colA(logMsg)}`)
+        expect(out[3]).to.eql(`${colD.bold("d-very-very-long")} → ${colD.bold("very-very-long")} → ${colD(logMsg)}`)
+        expect(out[4]).to.eql(`${colA.bold("a-short         ")} → ${colA.bold("short         ")} → ${colA(logMsg)}`)
       })
-      it("should assign the same color to each service, regardless of which service logs are streamed", async () => {
-        const command = new LogsCommand()
-        await command.action(makeCommandParams({ garden: gardenMultiService, args: { services: ["test-service-b"] } }))
+    })
+    it("should assign the same color to each service, regardless of which service logs are streamed", async () => {
+      const getServiceLogsHandler = async ({ stream, service }: GetServiceLogsParams) => {
+        if (service.name === "test-service-a") {
+          void stream.write({
+            containerName: "my-container",
+            serviceName: "test-service-a",
+            msg: logMsg,
+            timestamp: new Date("2021-05-13T20:00:00.000Z"),
+          })
+        } else {
+          void stream.write({
+            containerName: "my-container",
+            serviceName: "test-service-b",
+            msg: logMsg,
+            timestamp: new Date("2021-05-13T20:01:00.000Z"),
+          })
+        }
+        return {}
+      }
+      const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          name: "test",
+          type: "test",
+          allowPublish: false,
+          disabled: false,
+          build: { dependencies: [] },
+          path: tmpDir.path,
+          serviceConfigs: [
+            {
+              name: "test-service-a",
+              dependencies: [],
+              disabled: false,
+              hotReloadable: false,
+              spec: {},
+            },
+            {
+              name: "test-service-b",
+              dependencies: [],
+              disabled: false,
+              hotReloadable: false,
+              spec: {},
+            },
+          ],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: { bla: "fla" },
+        },
+      ])
+      const command = new LogsCommand()
+      // Only get logs for test-service-b.
+      await command.action(makeCommandParams({ garden, args: { services: ["test-service-b"] } }))
 
-        const out = getLogOutput(gardenMultiService, logMsg)
-        const color2 = chalk[colors[1]]
+      const out = getLogOutput(garden, logMsg)
+      const color2 = chalk[colors[1]]
 
-        // Assert that the service gets the "second" color, even though its the only one we're fetching logs for.
-        expect(out[0]).to.eql(`${color2.bold("test-service-b")} → ${color2("Yes, this is log")}`)
-      })
+      // Assert that the service gets the "second" color, even though its the only one we're fetching logs for.
+      expect(out[0]).to.eql(`${color2.bold("test-service-b")} → ${color2("Yes, this is log")}`)
     })
   })
 })
