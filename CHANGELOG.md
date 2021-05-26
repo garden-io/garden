@@ -1,4 +1,33 @@
 
+<a name="0.12.22-0"></a>
+## [0.12.22-0](https://github.com/garden-io/garden/compare/0.12.21...0.12.22-0) (2021-05-26)
+
+### Bug Fixes
+
+* **cli:** missing version update message ([a8fa1a34](https://github.com/garden-io/garden/commit/a8fa1a34))
+* **cloud:** retry streaming on network error ([93ecf062](https://github.com/garden-io/garden/commit/93ecf062))
+* **core:** catch EPIPE error when closing port proxies ([bdb00854](https://github.com/garden-io/garden/commit/bdb00854))
+* **core:** ensure pod runner throws when container is OOMKilled ([9dd044a3](https://github.com/garden-io/garden/commit/9dd044a3))
+* **k8s:** timeout/OOM error when pulling large image to local docker ([d92ed5f7](https://github.com/garden-io/garden/commit/d92ed5f7))
+* **k8s:** unnecessary socat sidecar being deployed with BuildKit ([e4f22def](https://github.com/garden-io/garden/commit/e4f22def))
+* **k8s:** errors in cleanup-cluster-registry command ([e17d9362](https://github.com/garden-io/garden/commit/e17d9362))
+* **k8s:** automatic retry for failed API requests ([72165da7](https://github.com/garden-io/garden/commit/72165da7))
+
+### Features
+
+* **config:** add version key to runtime.* template context ([1c647414](https://github.com/garden-io/garden/commit/1c647414))
+* **container:** custom min/max resources ([2c6353bc](https://github.com/garden-io/garden/commit/2c6353bc))
+* **k8s:** resolve template strings in kubernetes module manifest files ([07a7fd83](https://github.com/garden-io/garden/commit/07a7fd83))
+* **k8s:** add exec to kubernetes and helm modules ([ea11bb6a](https://github.com/garden-io/garden/commit/ea11bb6a))
+* **template:** add timeout definitions for container module healthcheck ([d716c9ad](https://github.com/garden-io/garden/commit/d716c9ad))
+
+### Improvements
+
+* **core:** better alignment for logs command ([80487643](https://github.com/garden-io/garden/commit/80487643))
+* **core:** better logs command ([3778d238](https://github.com/garden-io/garden/commit/3778d238))
+* **exec:** show test and task logs when log level is verbose ([9fd19afe](https://github.com/garden-io/garden/commit/9fd19afe))
+* **k8s:** get rid of NFS when using kaniko build mode ([143e5372](https://github.com/garden-io/garden/commit/143e5372))
+
 <a name="0.12.21"></a>
 ## [0.12.21](https://github.com/garden-io/garden/compare/0.12.20...0.12.21) (2021-04-26)
 
