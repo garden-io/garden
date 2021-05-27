@@ -40,6 +40,8 @@ export class WorkflowConfigContext extends EnvironmentConfigContext {
       branch: garden.vcsBranch,
       username: garden.username,
       variables: garden.variables,
+      loggedIn: !!garden.enterpriseApi,
+      enterpriseDomain: garden.enterpriseApi?.domain,
       secrets: garden.secrets,
       commandInfo: garden.commandInfo,
     })
