@@ -54,7 +54,10 @@ export async function resolveModuleTemplate(
     ...resource,
     modules: [],
   }
-  const context = new ProjectConfigContext({ ...garden, branch: garden.vcsBranch })
+  const branch = garden.vcsBranch
+  const loggedIn = !!garden.enterpriseApi
+  const enterpriseDomain = garden.enterpriseApi?.domain
+  const context = new ProjectConfigContext({ ...garden, branch, loggedIn, enterpriseDomain })
   const resolved = resolveTemplateStrings(partial, context)
 
   // Validate the partial config
@@ -112,7 +115,10 @@ export async function resolveTemplatedModule(
   // Resolve template strings for fields. Note that inputs are partially resolved, and will be fully resolved later
   // when resolving the resolving the resulting modules. Inputs that are used in module names must however be resolvable
   // immediately.
-  const templateContext = new EnvironmentConfigContext({ ...garden, branch: garden.vcsBranch })
+  const branch = garden.vcsBranch
+  const loggedIn = !!garden.enterpriseApi
+  const enterpriseDomain = garden.enterpriseApi?.domain
+  const templateContext = new EnvironmentConfigContext({ ...garden, branch, loggedIn, enterpriseDomain })
   const resolvedWithoutInputs = resolveTemplateStrings(
     { ...config, spec: omit(config.spec, "inputs") },
     templateContext
@@ -160,6 +166,8 @@ export async function resolveTemplatedModule(
   const context = new ModuleTemplateConfigContext({
     ...garden,
     branch: garden.vcsBranch,
+    loggedIn: !!garden.enterpriseApi,
+    enterpriseDomain,
     parentName: resolved.name,
     templateName: template.name,
     inputs: partiallyResolvedInputs,

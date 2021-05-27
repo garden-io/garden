@@ -8,8 +8,9 @@
 
 import { LogEntry } from "../logger/log-entry"
 import { StringMap } from "../config/common"
-import { EnterpriseApi } from "./api"
+import { EnterpriseApi, isGotError } from "./api"
 import { BaseResponse } from "@garden-io/platform-api-types"
+import { deline } from "../util/string"
 
 export interface GetSecretsParams {
   log: LogEntry
@@ -26,9 +27,22 @@ export async function getSecrets({ log, environmentName, enterpriseApi }: GetSec
     )
     secrets = res.data
   } catch (err) {
-    log.error("An error occurred while fetching secrets for the project.")
-    log.debug(`Error: ${err.message}`)
-    throw err
+    if (isGotError(err, 404)) {
+      log.debug("No secrets were received from Garden Enterprise.")
+      log.debug("")
+      log.debug(deline`
+        Either the environment ${environmentName} does not exist in Garden Enterprise, or no project
+        with the id in your project configuration exists in Garden Enterprise.
+      `)
+      log.debug("")
+      log.debug(deline`
+        Please visit ${enterpriseApi.domain} to review the environments and projects currently
+        in the system.
+      `)
+    } else {
+      log.error("An error occurred while fetching secrets for the project.")
+      throw err
+    }
   }
 
   const emptyKeys = Object.keys(secrets).filter((key) => !secrets[key])

@@ -29,9 +29,11 @@ import { resolve, join } from "path"
 import stripAnsi from "strip-ansi"
 import { keyBy } from "lodash"
 
+const enterpriseDomain = "https://garden.mydomain.com"
 const commandInfo = { name: "test", args: {}, opts: {} }
 
 describe("resolveProjectConfig", () => {
+
   it("should pass through a canonical project config", async () => {
     const defaultEnvironment = "default"
     const config: ProjectConfig = {
@@ -54,6 +56,8 @@ describe("resolveProjectConfig", () => {
         artifactsPath: "/tmp",
         branch: "main",
         username: "some-user",
+        loggedIn: true,
+        enterpriseDomain,
         secrets: {},
         commandInfo,
       })
@@ -93,6 +97,8 @@ describe("resolveProjectConfig", () => {
         artifactsPath: "/tmp",
         branch: "main",
         username: "some-user",
+        loggedIn: true,
+        enterpriseDomain,
         secrets: {},
         commandInfo,
       })
@@ -148,6 +154,8 @@ describe("resolveProjectConfig", () => {
         artifactsPath: "/tmp",
         branch: "main",
         username: "some-user",
+        loggedIn: true,
+        enterpriseDomain,
         secrets: { foo: "banana" },
         commandInfo,
       })
@@ -223,6 +231,8 @@ describe("resolveProjectConfig", () => {
         artifactsPath: "/tmp",
         branch: "main",
         username: "some-user",
+        loggedIn: true,
+        enterpriseDomain,
         secrets: {},
         commandInfo,
       })
@@ -287,6 +297,8 @@ describe("resolveProjectConfig", () => {
       artifactsPath: "/tmp",
       branch: "main",
       username: "some-user",
+      loggedIn: true,
+      enterpriseDomain,
       secrets: {},
       commandInfo,
     })
@@ -316,6 +328,8 @@ describe("resolveProjectConfig", () => {
         artifactsPath: "/tmp",
         branch: "main",
         username: "some-user",
+        loggedIn: true,
+        enterpriseDomain,
         secrets: {},
         commandInfo,
       })
@@ -350,6 +364,8 @@ describe("resolveProjectConfig", () => {
         artifactsPath: "/tmp",
         branch: "main",
         username: "some-user",
+        loggedIn: true,
+        enterpriseDomain,
         secrets: {},
         commandInfo,
       })
@@ -403,6 +419,8 @@ describe("resolveProjectConfig", () => {
         artifactsPath: "/tmp",
         branch: "main",
         username: "some-user",
+        loggedIn: true,
+        enterpriseDomain,
         secrets: {},
         commandInfo,
       })
@@ -479,6 +497,8 @@ describe("resolveProjectConfig", () => {
         artifactsPath: "/tmp",
         branch: "main",
         username: "some-user",
+        loggedIn: true,
+        enterpriseDomain,
         secrets: {},
         commandInfo,
       })
@@ -550,6 +570,8 @@ describe("pickEnvironment", () => {
           artifactsPath,
           branch: "main",
           username,
+          loggedIn: true,
+          enterpriseDomain,
           secrets: {},
           commandInfo,
         }),
@@ -577,6 +599,8 @@ describe("pickEnvironment", () => {
         artifactsPath,
         branch: "main",
         username,
+        loggedIn: true,
+        enterpriseDomain,
         secrets: {},
         commandInfo,
       })
@@ -621,6 +645,8 @@ describe("pickEnvironment", () => {
         artifactsPath,
         branch: "main",
         username,
+        loggedIn: true,
+        enterpriseDomain,
         secrets: {},
         commandInfo,
       })
@@ -664,6 +690,8 @@ describe("pickEnvironment", () => {
         artifactsPath,
         branch: "main",
         username,
+        loggedIn: true,
+        enterpriseDomain,
         secrets: {},
         commandInfo,
       })
@@ -722,6 +750,8 @@ describe("pickEnvironment", () => {
       artifactsPath,
       branch: "main",
       username,
+      loggedIn: true,
+      enterpriseDomain,
       secrets: {},
       commandInfo,
     })
@@ -776,6 +806,8 @@ describe("pickEnvironment", () => {
       artifactsPath,
       branch: "main",
       username,
+      loggedIn: true,
+      enterpriseDomain,
       secrets: {},
       commandInfo,
     })
@@ -824,6 +856,8 @@ describe("pickEnvironment", () => {
       artifactsPath,
       branch: "main",
       username,
+      loggedIn: true,
+      enterpriseDomain,
       secrets: {},
       commandInfo,
     })
@@ -873,6 +907,8 @@ describe("pickEnvironment", () => {
       artifactsPath,
       branch: "main",
       username,
+      loggedIn: true,
+      enterpriseDomain,
       secrets: {},
       commandInfo,
     })
@@ -922,6 +958,8 @@ describe("pickEnvironment", () => {
       artifactsPath,
       branch: "main",
       username,
+      loggedIn: true,
+      enterpriseDomain,
       secrets: {},
       commandInfo,
     })
@@ -982,6 +1020,8 @@ describe("pickEnvironment", () => {
       artifactsPath,
       branch: "main",
       username,
+      loggedIn: true,
+      enterpriseDomain,
       secrets: {},
       commandInfo,
     })
@@ -1043,6 +1083,8 @@ describe("pickEnvironment", () => {
       artifactsPath,
       branch: "main",
       username,
+      loggedIn: true,
+      enterpriseDomain,
       secrets: {},
       commandInfo,
     })
@@ -1076,6 +1118,8 @@ describe("pickEnvironment", () => {
       artifactsPath,
       branch: "main",
       username,
+      loggedIn: true,
+      enterpriseDomain,
       secrets: { foo: "banana" },
       commandInfo,
     })
@@ -1108,6 +1152,8 @@ describe("pickEnvironment", () => {
       artifactsPath,
       branch: "main",
       username,
+      loggedIn: true,
+      enterpriseDomain,
       secrets: {},
       commandInfo,
     })
@@ -1139,6 +1185,8 @@ describe("pickEnvironment", () => {
       artifactsPath,
       branch: "main",
       username,
+      loggedIn: true,
+      enterpriseDomain,
       secrets: {},
       commandInfo,
     })
@@ -1165,6 +1213,8 @@ describe("pickEnvironment", () => {
       artifactsPath,
       branch: "main",
       username,
+      loggedIn: true,
+      enterpriseDomain,
       secrets: {},
       commandInfo,
     })
@@ -1225,6 +1275,8 @@ describe("pickEnvironment", () => {
       artifactsPath,
       branch: "main",
       username,
+      loggedIn: true,
+      enterpriseDomain,
       secrets: {},
       commandInfo,
     })
@@ -1267,6 +1319,8 @@ describe("pickEnvironment", () => {
           artifactsPath,
           branch: "main",
           username,
+          loggedIn: true,
+          enterpriseDomain,
           secrets: {},
           commandInfo,
         }),
@@ -1305,6 +1359,8 @@ describe("pickEnvironment", () => {
           artifactsPath,
           branch: "main",
           username,
+          loggedIn: true,
+          enterpriseDomain,
           secrets: {},
           commandInfo,
         }),
@@ -1340,6 +1396,8 @@ describe("pickEnvironment", () => {
           artifactsPath,
           branch: "main",
           username,
+          loggedIn: true,
+          enterpriseDomain,
           secrets: {},
           commandInfo,
         }),
@@ -1367,6 +1425,8 @@ describe("pickEnvironment", () => {
         artifactsPath,
         branch: "main",
         username,
+        loggedIn: true,
+        enterpriseDomain,
         secrets: {},
         commandInfo,
       })
@@ -1399,6 +1459,8 @@ describe("pickEnvironment", () => {
         artifactsPath,
         branch: "main",
         username,
+        loggedIn: true,
+        enterpriseDomain,
         secrets: {},
         commandInfo,
       })
@@ -1431,6 +1493,8 @@ describe("pickEnvironment", () => {
         artifactsPath,
         username,
         branch: "main",
+        loggedIn: true,
+        enterpriseDomain,
         secrets: {},
         commandInfo,
       })
@@ -1464,6 +1528,8 @@ describe("pickEnvironment", () => {
           artifactsPath,
           branch: "main",
           username,
+          loggedIn: true,
+          enterpriseDomain,
           secrets: {},
           commandInfo,
         }),
@@ -1495,6 +1561,8 @@ describe("pickEnvironment", () => {
           artifactsPath,
           branch: "main",
           username,
+          loggedIn: true,
+          enterpriseDomain,
           secrets: {},
           commandInfo,
         }),

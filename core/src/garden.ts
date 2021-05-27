@@ -1211,12 +1211,17 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
     }
   }
 
+  const loggedIn = !!enterpriseApi
+  const enterpriseDomain = enterpriseApi?.domain
+
   config = resolveProjectConfig({
     defaultEnvironment: defaultEnvironmentName,
     config,
     artifactsPath,
     branch: vcsBranch,
     username: _username,
+    loggedIn,
+    enterpriseDomain,
     secrets,
     commandInfo,
   })
@@ -1229,6 +1234,8 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
     artifactsPath,
     branch: vcsBranch,
     username: _username,
+    loggedIn,
+    enterpriseDomain,
     secrets,
     commandInfo,
   })

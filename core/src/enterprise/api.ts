@@ -27,8 +27,12 @@ export const authTokenHeader =
 
 export const makeAuthHeader = (clientAuthToken: string) => ({ [authTokenHeader]: clientAuthToken })
 
+export function isGotError(error: any, statusCode: number): error is GotHttpError {
+  return error instanceof GotHttpError && error.response.statusCode === statusCode
+}
+
 function is401Error(error: any): error is GotHttpError {
-  return error instanceof GotHttpError && error.response.statusCode === 401
+  return isGotError(error, 401)
 }
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed

@@ -1556,30 +1556,6 @@ describe("Garden", () => {
       await expectError(() => garden.resolveProviders(garden.log))
     })
 
-    it.skip("should throw if providers reference missing secrets in template strings", async () => {
-      const test = createGardenPlugin({
-        name: "test",
-      })
-
-      const projectConfig: ProjectConfig = {
-        apiVersion: "garden.io/v0",
-        kind: "Project",
-        name: "test",
-        path: projectRootA,
-        defaultEnvironment: "default",
-        dotIgnoreFiles: defaultDotIgnoreFiles,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
-        providers: [{ name: "test", foo: "${secrets.missing}" }], // < ------
-        variables: {},
-      }
-
-      const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins: [test] })
-      await expectError(
-        () => garden.resolveProviders(garden.log),
-        (err) => expect(err.message).to.match(/Provider test: missing/)
-      )
-    })
-
     it("should add plugin modules if returned by the provider", async () => {
       const pluginModule: ModuleConfig = {
         apiVersion: DEFAULT_API_VERSION,
