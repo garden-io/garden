@@ -186,6 +186,12 @@ export class EnterpriseApi {
   }
 
   static async saveAuthToken(log: LogEntry, tokenResponse: AuthTokenResponse) {
+    if (!tokenResponse.token) {
+      throw new EnterpriseApiError(
+        `Received a null/empty client auth token while logging in. Please contact your system administrator.`,
+        { tokenResponse }
+      )
+    }
     try {
       const manager = ClientAuthToken.getConnection().manager
       await manager.transaction(async (transactionalEntityManager) => {
@@ -201,7 +207,10 @@ export class EnterpriseApi {
       })
       log.debug("Saved client auth token to local config db")
     } catch (error) {
-      log.error(`An error occurred while saving client auth token to local config db:\n${error.message}`)
+      throw new EnterpriseApiError(
+        `An error occurred while saving client auth token to local config db:\n${error.message}`,
+        { tokenResponse }
+      )
     }
   }
 
