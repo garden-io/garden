@@ -33,7 +33,6 @@ const enterpriseDomain = "https://garden.mydomain.com"
 const commandInfo = { name: "test", args: {}, opts: {} }
 
 describe("resolveProjectConfig", () => {
-
   it("should pass through a canonical project config", async () => {
     const defaultEnvironment = "default"
     const config: ProjectConfig = {

@@ -59,7 +59,9 @@ describe("EnterpriseApi", () => {
           },
         ],
         async (token) => {
-          await EnterpriseApi.saveAuthToken(log, token)
+          try {
+            await EnterpriseApi.saveAuthToken(log, token)
+          } catch (err) {}
         }
       )
       const count = await ClientAuthToken.count()
