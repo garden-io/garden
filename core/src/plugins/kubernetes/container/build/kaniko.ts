@@ -23,7 +23,7 @@ import { KubernetesProvider, KubernetesPluginContext, DEFAULT_KANIKO_IMAGE } fro
 import { BuildError, ConfigurationError } from "../../../../exceptions"
 import { PodRunner } from "../../run"
 import { Writable } from "stream"
-import { getNamespaceStatus, getSystemNamespace } from "../../namespace"
+import { ensureNamespace, getNamespaceStatus, getSystemNamespace } from "../../namespace"
 import { dedent } from "../../../../util/string"
 import { RunResult } from "../../../../types/plugin/base"
 import { PluginContext } from "../../../../plugin-context"
@@ -150,6 +150,8 @@ export const kanikoBuild: BuildHandler = async (params) => {
 
     authSecret = secretRes.authSecret
   }
+
+  await ensureNamespace(api, { name: kanikoNamespace }, log)
 
   // Execute the build
   const args = [
