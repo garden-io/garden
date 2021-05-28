@@ -650,6 +650,11 @@ export async function runScript({
   script: string
   envVars?: PrimitiveMap
 }) {
+  envVars = envVars || {}
+
+  // Workaround for https://github.com/vercel/pkg/issues/897
+  envVars.PKG_EXECPATH = ""
+
   // Run the script, capturing any errors
   const proc = execa("bash", ["-s"], {
     all: true,

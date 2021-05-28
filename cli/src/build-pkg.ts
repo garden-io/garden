@@ -21,7 +21,7 @@ require("source-map-support").install()
 const repoRoot = resolve(GARDEN_CLI_ROOT, "..")
 const tmpDir = resolve(repoRoot, "tmp", "pkg")
 const tmpStaticDir = resolve(tmpDir, "static")
-const pkgPath = resolve(repoRoot, "node_modules", ".bin", "pkg")
+const pkgPath = resolve(repoRoot, "cli", "node_modules", ".bin", "pkg")
 const pkgFetchPath = resolve(repoRoot, "node_modules", ".bin", "pkg-fetch")
 const distPath = resolve(repoRoot, "dist")
 const sqliteBinFilename = "better_sqlite3.node"
