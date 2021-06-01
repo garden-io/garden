@@ -57,6 +57,6 @@ A simple example would be a [Container Module](../guides/container-modules.md) w
 
 ## Next Steps
 
-Head over to the [Getting Started](../getting-started/README.md) section to learn the basics on how to get up and running with Garden.
+Head over to the [Getting Started](../getting-started/0-introduction.md) section to learn the basics on how to get up and running with Garden.
 
-If you or your team has already set up a Garden project, you can also skip over to the [Using Garden](../using-garden/README.md) section, to learn more about the concepts and how to interact with Garden.
+If you or your team has already set up a Garden project, you can also skip over to the **Using Garden** section, to learn more about the concepts and how to interact with Garden.
