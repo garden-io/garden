@@ -2606,6 +2606,24 @@ garden get debug-info --include-project  # include provider info for the project
 Note that this may include sensitive data, depending on the provider and your configuration.
 
 
+### garden get vaccine
+
+**Get notifications and appointments open up at the Berlin vaccination centers.**
+
+Check for openings at Berlin's vaccination centers at a 2
+second interval. If it finds one, you'll receive a notification
+with links to book an appointment.
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
+
+#### Usage
+
+    garden get vaccine 
+
+
+
 ### garden link source
 
 **Link a remote source to a local directory.**

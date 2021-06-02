@@ -20,6 +20,7 @@ import { GetLinkedReposCommand } from "./get-linked-repos"
 import { GetOutputsCommand } from "./get-outputs"
 import { GetDoddiCommand } from "./get-doddi"
 import { GetModulesCommand } from "./get-modules"
+import { GetVaccineCommand } from "./get-vaccine"
 
 export class GetCommand extends CommandGroup {
   name = "get"
@@ -39,5 +40,6 @@ export class GetCommand extends CommandGroup {
     GetTaskResultCommand,
     GetTestResultCommand,
     GetDebugInfoCommand,
+    GetVaccineCommand,
   ]
 }

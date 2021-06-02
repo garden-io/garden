@@ -459,7 +459,6 @@ ${renderCommands(commands)}
     }
 
     let code = 0
-
     if (gardenErrors.length > 0) {
       for (const error of gardenErrors) {
         const entry = logger.error({
@@ -479,7 +478,6 @@ ${renderCommands(commands)}
 
       code = 1
     }
-
     if (exitOnError) {
       logger.stop()
       logger.cleanup()
