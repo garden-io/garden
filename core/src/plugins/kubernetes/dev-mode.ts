@@ -119,6 +119,7 @@ export function configureDevMode({ target, spec, containerName }: ConfigureDevMo
 
 const mutagenModeMap = {
   "one-way": "one-way-safe",
+  "one-way-replica": "one-way-replica",
   "two-way": "two-way-safe",
 }
 

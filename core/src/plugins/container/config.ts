@@ -178,7 +178,7 @@ const hotReloadConfigSchema = () =>
     with this module as their \`sourceModule\`.
   `)
 
-export type SyncMode = "one-way" | "two-way"
+export type SyncMode = "one-way" | "one-way-replica" | "two-way"
 
 export interface DevModeSyncSpec {
   source: string
@@ -196,7 +196,7 @@ const devModeSyncSchema = () =>
       .example(["dist/**/*", "*.log"]),
     mode: joi
       .string()
-      .allow("one-way", "two-way")
+      .allow("one-way", "one-way-replica", "two-way")
       .default("one-way")
       .description("The sync mode to use for the given paths."),
   })
