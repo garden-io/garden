@@ -70,7 +70,7 @@ export class StageBuildTask extends BaseTask {
     let log: LogEntry | undefined = undefined
 
     if (this.module.version.files.length > 0) {
-      log = this.log.info({
+      log = this.log.verbose({
         section: this.getName(),
         msg: `Syncing module sources (${pluralize("file", this.module.version.files.length, true)})...`,
         status: "active",
