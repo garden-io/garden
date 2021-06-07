@@ -338,6 +338,11 @@ services:
         # `servicePort:80 -> containerPort:8080 -> process:8080`
         containerPort:
 
+        # Specify a preferred local port to attach to when creating a port-forward to the service port. If this port
+        # is
+        # busy, a warning will be shown and an alternative port chosen.
+        localPort:
+
         # The port exposed on the service. Defaults to `containerPort` if not specified.
         # This is the port you use when calling a service from another service within the cluster. For example, if
         # your service name is my-service and the service port is 8090, you would call it with:
@@ -1562,6 +1567,25 @@ Example:
 services:
   - ports:
       - containerPort: 8080
+```
+
+### `services[].ports[].localPort`
+
+[services](#services) > [ports](#servicesports) > localPort
+
+Specify a preferred local port to attach to when creating a port-forward to the service port. If this port is
+busy, a warning will be shown and an alternative port chosen.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+Example:
+
+```yaml
+services:
+  - ports:
+      - localPort: 10080
 ```
 
 ### `services[].ports[].servicePort`
