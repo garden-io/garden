@@ -14,7 +14,6 @@ import { cloneDeep, partition, set, uniq } from "lodash"
 import { LogEntry } from "../../../logger/log-entry"
 import { PluginContext } from "../../../plugin-context"
 import { NamespaceStatus } from "../../../types/plugin/base"
-import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
 import { ModuleAndRuntimeActionHandlers } from "../../../types/plugin/plugin"
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
@@ -37,14 +36,13 @@ import { getTaskResult } from "../task-results"
 import { getTestResult } from "../test-results"
 import { BaseResource, KubernetesResource, KubernetesServerResource } from "../types"
 import { findServiceResource, getServiceResourceSpec } from "../util"
-import { gardenNamespaceAnnotationValue, getManifests, readManifests } from "./common"
+import { gardenNamespaceAnnotationValue, getManifests } from "./common"
 import { configureKubernetesModule, KubernetesModule, KubernetesService } from "./config"
 import { execInKubernetesService } from "./exec"
 import { runKubernetesTask } from "./run"
 import { testKubernetesModule } from "./test"
 
 export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<KubernetesModule>> = {
-  build,
   configure: configureKubernetesModule,
   deleteService,
   execInService: execInKubernetesService,
@@ -64,12 +62,6 @@ interface KubernetesStatusDetail {
 }
 
 export type KubernetesServiceStatus = ServiceStatus<KubernetesStatusDetail>
-
-async function build({ ctx, module, log }: BuildModuleParams<KubernetesModule>): Promise<BuildResult> {
-  // Get the manifests here, just to validate that the files are there and are valid YAML
-  await readManifests(ctx, module, log)
-  return { fresh: true }
-}
 
 export async function getKubernetesServiceStatus({
   ctx,
