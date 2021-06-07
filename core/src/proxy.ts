@@ -28,6 +28,8 @@ interface PortProxy {
   spec: ForwardablePort
 }
 
+const defaultLocalIp = "127.0.0.1"
+
 const activeProxies: { [key: string]: PortProxy } = {}
 
 registerCleanupFunction("kill-service-port-proxies", () => {
@@ -76,14 +78,6 @@ async function createProxy(
   const actions = await garden.getActionRouter()
   const key = getPortKey(service, spec)
   let fwd: GetPortForwardResult | null = null
-
-  // get preferred IP from db
-  const localAddress = await LocalAddress.resolve({
-    projectName: garden.projectName,
-    moduleName: service.module.name,
-    serviceName: service.name,
-    hostname: getHostname(service, spec),
-  })
 
   const getPortForward = async () => {
     if (fwd) {
@@ -203,18 +197,31 @@ async function createProxy(
     })
   }
 
-  let localIp = localAddress.getIp()
+  let localIp = defaultLocalIp
   let localPort: number | undefined
+  const preferredLocalPort = spec.preferredLocalPort || spec.targetPort
+
+  if (!spec.preferredLocalPort) {
+    // Only try a non-default IP if a preferred port isn't set
+    const preferredLocalAddress = await LocalAddress.resolve({
+      projectName: garden.projectName,
+      moduleName: service.module.name,
+      serviceName: service.name,
+      hostname: getHostname(service, spec),
+    })
+
+    localIp = preferredLocalAddress.getIp()
+  }
 
   while (true) {
     try {
-      localPort = await getPort({ host: localIp, port: spec.targetPort })
+      localPort = await getPort({ host: localIp, port: preferredLocalPort })
     } catch (err) {
       if (err.errno === "EADDRNOTAVAIL") {
         // If we're not allowed to bind to other 127.x.x.x addresses, we fall back to localhost. This will almost always
         // be the case on Mac, until we come up with something more clever (that doesn't require sudo).
-        localIp = "127.0.0.1"
-        localPort = await getPort({ host: localIp, port: spec.targetPort })
+        localIp = defaultLocalIp
+        localPort = await getPort({ host: localIp, port: preferredLocalPort })
       } else {
         throw err
       }
@@ -244,6 +251,12 @@ async function createProxy(
     })
 
     if (started) {
+      if (spec.preferredLocalPort && (localIp !== defaultLocalIp || localPort !== spec.preferredLocalPort)) {
+        log.warn(
+          chalk.yellow(`→ Unable to bind port forward ${key} to preferred local port ${spec.preferredLocalPort}`)
+        )
+      }
+
       return { key, server, service, spec, localPort, localUrl }
     } else {
       // Need to retry on different port

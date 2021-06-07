@@ -59,6 +59,7 @@ export interface ServicePortSpec {
   name: string
   protocol: ServicePortProtocol
   containerPort: number
+  localPort?: number
   // Defaults to containerPort
   servicePort: number
   hostPort?: number
@@ -387,6 +388,15 @@ export const portSchema = () =>
         The service port maps to the container port:
 
         \`servicePort:80 -> containerPort:8080 -> process:8080\``),
+    localPort: joi
+      .number()
+      .example(10080)
+      .description(
+        dedent`
+        Specify a preferred local port to attach to when creating a port-forward to the service port. If this port is
+        busy, a warning will be shown and an alternative port chosen.
+        `
+      ),
     servicePort: joi
       .number()
       .default((context) => context.containerPort)

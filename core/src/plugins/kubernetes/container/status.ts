@@ -65,6 +65,7 @@ export async function getContainerServiceStatus({
         name: p.name,
         protocol: "TCP",
         targetPort: p.servicePort,
+        preferredLocalPort: p.localPort,
         // TODO: this needs to be configurable
         // urlProtocol: "http",
       }

@@ -157,6 +157,7 @@ export const serviceIngressSchema = () =>
 export interface ForwardablePort {
   name?: string
   // TODO: support other protocols
+  preferredLocalPort?: number
   protocol: "TCP"
   targetName?: string
   targetPort: number
@@ -167,6 +168,7 @@ export const forwardablePortKeys = () => ({
   name: joiIdentifier().description(
     "A descriptive name for the port. Should correspond to user-configured ports where applicable."
   ),
+  preferredLocalPort: joi.number().integer().description("The preferred local port to use for forwarding."),
   protocol: joi.string().allow("TCP").default("TCP").description("The protocol of the port."),
   targetName: joi.string().description("The target name/hostname to forward to (defaults to the service name)."),
   targetPort: joi.number().integer().required().description("The target port on the service."),

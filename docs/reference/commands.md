@@ -132,6 +132,9 @@ deployments:
       - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
         name:
 
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
+
         # The protocol of the port.
         protocol:
 
@@ -485,6 +488,9 @@ serviceStatuses:
       - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
         name:
 
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
+
         # The protocol of the port.
         protocol:
 
@@ -592,6 +598,9 @@ Examples:
   forwardablePorts:
     - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
       name:
+
+      # The preferred local port to use for forwarding.
+      preferredLocalPort:
 
       # The protocol of the port.
       protocol:
@@ -751,6 +760,9 @@ deployments:
     forwardablePorts:
       - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
         name:
+
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
 
         # The protocol of the port.
         protocol:
@@ -2351,6 +2363,9 @@ services:
       - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
         name:
 
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
+
         # The protocol of the port.
         protocol:
 
@@ -2945,6 +2960,9 @@ deployments:
       - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
         name:
 
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
+
         # The protocol of the port.
         protocol:
 
@@ -3509,6 +3527,9 @@ deployments:
     forwardablePorts:
       - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
         name:
+
+        # The preferred local port to use for forwarding.
+        preferredLocalPort:
 
         # The protocol of the port.
         protocol:
