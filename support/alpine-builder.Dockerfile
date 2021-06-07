@@ -27,7 +27,7 @@ ADD sdk /tmp/sdk
 WORKDIR /tmp/cli
 
 RUN apk add --no-cache python make gcc g++ --virtual .build-deps && \
-  yarn --production && \
+  yarn && \
   # Fix for error in this particular package
   rm -rf node_modules/es-get-iterator/test && \
   apk del .build-deps
@@ -36,6 +36,6 @@ ADD static /garden/static
 
 # Create the binary
 RUN mkdir -p /garden \
-  && ../pkg/node_modules/.bin/pkg --target node12-alpine-x64 . --output /garden/garden \
+  && node_modules/.bin/pkg --target node12-alpine-x64 . --output /garden/garden \
   && cp node_modules/better-sqlite3/build/Release/better_sqlite3.node /garden \
   && /garden/garden version

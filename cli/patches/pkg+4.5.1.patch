@@ -1,0 +1,13 @@
+diff --git a/node_modules/pkg/prelude/bootstrap.js b/node_modules/pkg/prelude/bootstrap.js
+index b87902f..4e94661 100644
+--- a/node_modules/pkg/prelude/bootstrap.js
++++ b/node_modules/pkg/prelude/bootstrap.js
+@@ -1512,7 +1512,7 @@ function payloadFileSync(pointer) {
+     }
+     var opts = args[pos];
+     if (!opts.env) opts.env = require('util')._extend({}, process.env);
+-    if (opts.env.PKG_EXECPATH === 'PKG_INVOKE_NODEJS') return;
++    if (opts.env.PKG_EXECPATH !== undefined) return;
+     opts.env.PKG_EXECPATH = EXECPATH;
+   }
+ 
