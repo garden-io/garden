@@ -3,3 +3,6 @@ name: util
 description: Long lived utility containers.
 type: helm
 releaseName: garden-util-daemon
+values:
+  nodeSelector: ${var.system-node-selector}
+  tolerations: ${var.system-tolerations}
