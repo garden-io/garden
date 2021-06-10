@@ -135,7 +135,7 @@ generateFiles:
     # The desired file contents as a string.
     value:
 
-# If set to true, Garden will run the build command, tests, and tasks in the module source directory,
+# If set to true, Garden will run the build command, services, tests, and tasks in the module source directory,
 # instead of in the Garden build directory (under .garden/build/<module-name>).
 #
 # Garden will therefore not stage the build for local exec modules. This means that include/exclude filters
@@ -145,6 +145,56 @@ local: false
 # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
 # `GARDEN`) and values must be primitives.
 env: {}
+
+# A list of services to deploy from this module.
+services:
+  - # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
+    # and cannot end with a dash), cannot contain consecutive dashes or start with `garden`, or be longer than 63
+    # characters.
+    name:
+
+    # The names of any services that this service depends on at runtime, and the names of any tasks that should be
+    # executed before this service is deployed.
+    dependencies: []
+
+    # Set this to `true` to disable the service. You can use this with conditional template strings to enable/disable
+    # services based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name
+    # != "prod"}`). This can be handy when you only need certain services for specific environments, e.g. only for
+    # development.
+    #
+    # Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a runtime
+    # dependency for another service, test or task.
+    #
+    # Note however that template strings referencing the service's outputs (i.e. runtime outputs) will fail to resolve
+    # when the service is disabled, so you need to make sure to provide alternate values for those if you're using
+    # them, using conditional expressions.
+    disabled: false
+
+    # The command to run to deploy the service.
+    #
+    # By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+    # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
+    deployCommand:
+
+    # Optionally set a command to check the status of the service. If this is specified, it is run before the
+    # `deployCommand`. If the command runs successfully and returns exit code of 0, the service is considered
+    # already deployed and the `deployCommand` is not run.
+    #
+    # If this is not specified, the service is always reported as "unknown", so it's highly recommended to specify
+    # this command if possible.
+    #
+    # By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+    # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
+    statusCommand:
+
+    # Optionally set a command to clean the service up, e.g. when running `garden delete env`.
+    #
+    # By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+    # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
+    cleanupCommand:
+
+    # Environment variables to set when running the deploy and status commands.
+    env: {}
 
 # A list of tasks that can be run in this module.
 tasks:
@@ -189,8 +239,7 @@ tasks:
     # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
     command:
 
-    # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
-    # `GARDEN`) and values must be primitives.
+    # Environment variables to set when running the command.
     env: {}
 
 # A list of tests to run in the module.
@@ -217,8 +266,7 @@ tests:
     # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
     command:
 
-    # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
-    # `GARDEN`) and values must be primitives.
+    # Environment variables to set when running the command.
     env: {}
 
     # A list of artifacts to copy after the test run.
@@ -494,7 +542,7 @@ The desired file contents as a string.
 
 ### `local`
 
-If set to true, Garden will run the build command, tests, and tasks in the module source directory,
+If set to true, Garden will run the build command, services, tests, and tasks in the module source directory,
 instead of in the Garden build directory (under .garden/build/<module-name>).
 
 Garden will therefore not stage the build for local exec modules. This means that include/exclude filters
@@ -507,6 +555,102 @@ and ignore files are not applied to local exec modules.
 ### `env`
 
 Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
+
+### `services[]`
+
+A list of services to deploy from this module.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `services[].name`
+
+[services](#services) > name
+
+Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash), cannot contain consecutive dashes or start with `garden`, or be longer than 63 characters.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `services[].dependencies[]`
+
+[services](#services) > dependencies
+
+The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
+
+### `services[].disabled`
+
+[services](#services) > disabled
+
+Set this to `true` to disable the service. You can use this with conditional template strings to enable/disable services based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name != "prod"}`). This can be handy when you only need certain services for specific environments, e.g. only for development.
+
+Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a runtime dependency for another service, test or task.
+
+Note however that template strings referencing the service's outputs (i.e. runtime outputs) will fail to resolve when the service is disabled, so you need to make sure to provide alternate values for those if you're using them, using conditional expressions.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
+
+### `services[].deployCommand[]`
+
+[services](#services) > deployCommand
+
+The command to run to deploy the service.
+
+By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | Yes      |
+
+### `services[].statusCommand[]`
+
+[services](#services) > statusCommand
+
+Optionally set a command to check the status of the service. If this is specified, it is run before the
+`deployCommand`. If the command runs successfully and returns exit code of 0, the service is considered
+already deployed and the `deployCommand` is not run.
+
+If this is not specified, the service is always reported as "unknown", so it's highly recommended to specify
+this command if possible.
+
+By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `services[].cleanupCommand[]`
+
+[services](#services) > cleanupCommand
+
+Optionally set a command to clean the service up, e.g. when running `garden delete env`.
+
+By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `services[].env`
+
+[services](#services) > env
+
+Environment variables to set when running the deploy and status commands.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
@@ -621,7 +765,7 @@ If the top level `local` directive is set to `true`, the command runs in the mod
 
 [tasks](#tasks) > env
 
-Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
+Environment variables to set when running the command.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
@@ -695,7 +839,7 @@ If the top level `local` directive is set to `true`, the command runs in the mod
 
 [tests](#tests) > env
 
-Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
+Environment variables to set when running the command.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
