@@ -12,9 +12,9 @@ import { join } from "path"
 import cpy = require("cpy")
 import { joiArray, joiEnvVars, joi, joiSparseArray } from "../config/common"
 import { validateWithPath, ArtifactSpec } from "../config/validation"
-import { createGardenPlugin } from "../types/plugin/plugin"
+import { createGardenPlugin, ServiceActionHandlers } from "../types/plugin/plugin"
 import { GardenModule, getModuleKey } from "../types/module"
-import { CommonServiceSpec } from "../config/service"
+import { baseServiceSpecSchema, CommonServiceSpec } from "../config/service"
 import { BaseTestSpec, baseTestSpecSchema } from "../config/test"
 import { writeModuleVersionFile } from "../vcs/vcs"
 import { GARDEN_BUILD_VERSION_FILENAME } from "../constants"
@@ -56,6 +56,56 @@ const artifactSchema = () =>
 
 const artifactsSchema = () => joiSparseArray(artifactSchema())
 
+export interface ExecServiceSpec extends CommonServiceSpec {
+  cleanupCommand?: string[]
+  deployCommand: string[]
+  statusCommand?: string[]
+  env: { [key: string]: string }
+}
+
+export const execServiceSchema = () =>
+  baseServiceSpecSchema()
+    .keys({
+      deployCommand: joi
+        .array()
+        .items(joi.string().allow(""))
+        .description(
+          dedent`
+          The command to run to deploy the service.
+
+          ${execPathDoc}
+          `
+        )
+        .required(),
+      statusCommand: joi
+        .array()
+        .items(joi.string().allow(""))
+        .description(
+          dedent`
+          Optionally set a command to check the status of the service. If this is specified, it is run before the
+          \`deployCommand\`. If the command runs successfully and returns exit code of 0, the service is considered
+          already deployed and the \`deployCommand\` is not run.
+
+          If this is not specified, the service is always reported as "unknown", so it's highly recommended to specify
+          this command if possible.
+
+          ${execPathDoc}
+          `
+        ),
+      cleanupCommand: joi
+        .array()
+        .items(joi.string().allow(""))
+        .description(
+          dedent`
+          Optionally set a command to clean the service up, e.g. when running \`garden delete env\`.
+
+          ${execPathDoc}
+          `
+        ),
+      env: joiEnvVars().description("Environment variables to set when running the deploy and status commands."),
+    })
+    .description("A service to deploy using shell commands.")
+
 export interface ExecTestSpec extends BaseTestSpec {
   command: string[]
   env: { [key: string]: string }
@@ -70,13 +120,13 @@ export const execTestSchema = () =>
         .items(joi.string().allow(""))
         .description(
           dedent`
-        The command to run to test the module.
+          The command to run to test the module.
 
-        ${execPathDoc}
-      `
+          ${execPathDoc}
+          `
         )
         .required(),
-      env: joiEnvVars(),
+      env: joiEnvVars().description("Environment variables to set when running the command."),
       artifacts: artifactsSchema().description("A list of artifacts to copy after the test run."),
     })
     .description("The test specification of an exec module.")
@@ -96,13 +146,13 @@ export const execTaskSpecSchema = () =>
         .items(joi.string().allow(""))
         .description(
           dedent`
-        The command to run.
+          The command to run.
 
-        ${execPathDoc}
-      `
+          ${execPathDoc}
+          `
         )
         .required(),
-      env: joiEnvVars(),
+      env: joiEnvVars().description("Environment variables to set when running the command."),
     })
     .description("A task that can be run in this module.")
 
@@ -113,6 +163,7 @@ interface ExecBuildSpec extends BaseBuildSpec {
 export interface ExecModuleSpecBase extends ModuleSpec {
   build: ExecBuildSpec
   env: { [key: string]: string }
+  services: ExecServiceSpec[]
   tasks: ExecTaskSpec[]
   tests: ExecTestSpec[]
 }
@@ -144,23 +195,24 @@ export const execModuleSpecSchema = () =>
         .boolean()
         .description(
           dedent`
-        If set to true, Garden will run the build command, tests, and tasks in the module source directory,
-        instead of in the Garden build directory (under .garden/build/<module-name>).
+          If set to true, Garden will run the build command, services, tests, and tasks in the module source directory,
+          instead of in the Garden build directory (under .garden/build/<module-name>).
 
-        Garden will therefore not stage the build for local exec modules. This means that include/exclude filters
-        and ignore files are not applied to local exec modules.
-      `
+          Garden will therefore not stage the build for local exec modules. This means that include/exclude filters
+          and ignore files are not applied to local exec modules.
+          `
         )
         .default(false),
       build: execBuildSpecSchema(),
       env: joiEnvVars(),
+      services: joiSparseArray(execServiceSchema()).description("A list of services to deploy from this module."),
       tasks: joiSparseArray(execTaskSpecSchema()).description("A list of tasks that can be run in this module."),
       tests: joiSparseArray(execTestSchema()).description("A list of tests to run in the module."),
     })
     .unknown(false)
     .description("The module specification for an exec module.")
 
-export interface ExecModule extends GardenModule<ExecModuleSpec, CommonServiceSpec, ExecTestSpec, ExecTaskSpec> {}
+export interface ExecModule extends GardenModule<ExecModuleSpec, ExecServiceSpec, ExecTestSpec, ExecTaskSpec> {}
 
 export async function configureExecModule({
   ctx,
@@ -195,6 +247,14 @@ export async function configureExecModule({
   })
 
   moduleConfig.buildConfig = omit(moduleConfig.spec, ["tasks", "tests"])
+
+  moduleConfig.serviceConfigs = moduleConfig.spec.services.map((s) => ({
+    name: s.name,
+    dependencies: s.dependencies,
+    disabled: s.disabled,
+    hotReloadable: false,
+    spec: s,
+  }))
 
   moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => ({
     name: t.name,
@@ -382,6 +442,67 @@ export async function runExecModule(params: RunModuleParams<ExecModule>): Promis
   }
 }
 
+export const getExecServiceStatus: ServiceActionHandlers["getServiceStatus"] = async (params) => {
+  const { module, service } = params
+
+  if (service.spec.statusCommand) {
+    const result = await exec(service.spec.statusCommand.join(" "), [], {
+      cwd: module.buildPath,
+      env: {
+        ...getDefaultEnvVars(module),
+        ...mapValues(service.spec.env, (v) => v + ""),
+      },
+      reject: false,
+      shell: true,
+    })
+
+    return { state: result.exitCode === 0 ? "ready" : "outdated", detail: { statusCommandOutput: result.all } }
+  } else {
+    return { state: "unknown", detail: {} }
+  }
+}
+
+export const deployExecService: ServiceActionHandlers["deployService"] = async (params) => {
+  const { module, service } = params
+
+  const result = await exec(service.spec.deployCommand.join(" "), [], {
+    cwd: module.buildPath,
+    env: {
+      ...getDefaultEnvVars(module),
+      ...mapValues(service.spec.env, (v) => v + ""),
+    },
+    reject: true,
+    shell: true,
+  })
+
+  return { state: "ready", detail: { deployCommandOutput: result.all } }
+}
+
+export const deleteExecService: ServiceActionHandlers["deleteService"] = async (params) => {
+  const { module, service, log } = params
+
+  if (service.spec.cleanupCommand) {
+    const result = await exec(service.spec.cleanupCommand.join(" "), [], {
+      cwd: module.buildPath,
+      env: {
+        ...getDefaultEnvVars(module),
+        ...mapValues(service.spec.env, (v) => v + ""),
+      },
+      reject: true,
+      shell: true,
+    })
+
+    return { state: "missing", detail: { cleanupCommandOutput: result.all } }
+  } else {
+    log.warn({
+      section: service.name,
+      symbol: "warning",
+      msg: chalk.gray(`Missing cleanupCommand, unable to clean up service`),
+    })
+    return { state: "unknown", detail: {} }
+  }
+}
+
 export const execPlugin = () =>
   createGardenPlugin({
     name: "exec",
@@ -429,6 +550,9 @@ export const execPlugin = () =>
         handlers: {
           configure: configureExecModule,
           build: buildExecModule,
+          deployService: deployExecService,
+          deleteService: deleteExecService,
+          getServiceStatus: getExecServiceStatus,
           runTask: runExecTask,
           runModule: runExecModule,
           testModule: testExecModule,

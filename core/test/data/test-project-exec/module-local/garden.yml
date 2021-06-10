@@ -7,3 +7,15 @@ build:
 tasks:
   - name: pwd
     command: [pwd]
+services:
+  - name: touch
+    deployCommand: [touch deployed.log && echo deployed]
+    statusCommand: [test -f deployed.log && echo already deployed]
+    cleanupCommand: [rm -f deployed.log && echo cleaned up]
+  - name: echo
+    deployCommand: [echo, deployed $NAME]
+    env:
+      NAME: echo service
+  - name: error
+    deployCommand: [sh, -c "echo fail! && exit 1"]
+    cleanupCommand: [sh, -c "echo fail! && exit 1"]

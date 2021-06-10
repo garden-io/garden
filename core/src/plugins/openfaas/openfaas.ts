@@ -114,6 +114,7 @@ const templateModuleConfig: ExecModuleConfig = {
       dependencies: [],
     },
     env: {},
+    services: [],
     tasks: [],
     tests: [],
   },

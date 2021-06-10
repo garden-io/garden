@@ -15,3 +15,8 @@ tests:
     command: [echo, OK]
     env:
       FOO: boo
+services:
+  - name: apple
+    deployCommand: [touch deployed.log && echo deployed]
+    statusCommand: [test -f deployed.log && echo already deployed]
+    cleanupCommand: [rm -f deployed.log && echo cleaned up]
