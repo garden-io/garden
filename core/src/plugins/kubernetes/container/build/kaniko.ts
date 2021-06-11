@@ -381,13 +381,21 @@ async function runKaniko({
             echo "Copying from ${sourceUrl} to ${contextPath}"
             mkdir -p ${contextPath}
             n=0
-            until [ "$n" -ge 30 ]
+            until [ "$n" -ge 20 ]
             do
-              rsync ${syncArgs.join(" ")} && break
+              rsync ${syncArgs.join(" ")} && echo "Done!" && exit 0
               n=$((n+1))
-              sleep 1
+              if [ "$n" -lt 20 ]
+                then
+                echo "----------------------------"
+                echo "Retrying ($n/20)..."
+                echo "----------------------------"
+                sleep 1
+              fi
             done
-            echo "Done!"
+            echo "----------------------------"
+            echo "Failed!"
+            exit 1
           `,
         ],
         imagePullPolicy: "IfNotPresent",
