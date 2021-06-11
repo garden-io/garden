@@ -44,11 +44,10 @@ export const commonSyncArgs = [
   "--recursive",
   // Copy symlinks (Note: These are sanitized while syncing to the build staging dir)
   "--links",
-  // Preserve permissions
-  "--perms",
   // Preserve modification times
   "--times",
   "--compress",
+  "--executability",
 ]
 
 export const builderToleration = {
@@ -93,7 +92,16 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
   // https://stackoverflow.com/questions/1636889/rsync-how-can-i-configure-it-to-create-target-directory-on-server
   let src = normalizeLocalRsyncPath(`${buildRoot}`) + `/./${module.name}/`
   const destination = `rsync://localhost:${syncFwd.localPort}/volume/${ctx.workingCopyId}/`
-  const syncArgs = [...commonSyncArgs, "--relative", "--delete", "--temp-dir", "/tmp", src, destination]
+  const syncArgs = [
+    ...commonSyncArgs,
+    "--relative",
+    "--delete",
+    "--chown=user:user",
+    "--temp-dir",
+    "/tmp",
+    src,
+    destination,
+  ]
 
   log.debug(`Syncing from ${src} to ${destination}`)
   // We retry a couple of times, because we may get intermittent connection issues or concurrency issues

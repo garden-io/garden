@@ -117,7 +117,7 @@ export class BuildDirRsync extends BuildStaging {
       // Preserve owner + group
       "--owner",
       "--group",
-      // Copy permissions
+      // Preserve permissions
       "--perms",
       // Copy symlinks
       "--links",
