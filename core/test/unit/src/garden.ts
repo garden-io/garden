@@ -2158,6 +2158,70 @@ describe("Garden", () => {
     })
   })
 
+  describe("getProjectSources", () => {
+    it("should correctly resolve template strings in remote source configs", async () => {
+      const remoteTag = "feature-branch"
+      process.env.TEST_ENV_VAR = "foo"
+      const garden = await makeTestGarden(pathFoo, {
+        config: {
+          apiVersion: DEFAULT_API_VERSION,
+          kind: "Project",
+          name: "test",
+          path: pathFoo,
+          defaultEnvironment: "default",
+          dotIgnoreFiles: [],
+          environments: [{ name: "default", defaultNamespace, variables: { remoteTag } }],
+          providers: [{ name: "test-plugin" }],
+          variables: { sourceName: "${local.env.TEST_ENV_VAR}" },
+          sources: [
+            {
+              name: "${var.sourceName}",
+              repositoryUrl: "git://github.com/foo/bar.git#${var.remoteTag}",
+            },
+          ],
+        },
+      })
+
+      const sources = garden.getProjectSources()
+
+      expect(sources).to.eql([{ name: "foo", repositoryUrl: "git://github.com/foo/bar.git#feature-branch" }])
+
+      delete process.env.TEST_ENV_VAR
+    })
+
+    it("should validate the resolved remote sources", async () => {
+      const remoteTag = "feature-branch"
+      process.env.TEST_ENV_VAR = "foo"
+      const garden = await makeTestGarden(pathFoo, {
+        config: {
+          apiVersion: DEFAULT_API_VERSION,
+          kind: "Project",
+          name: "test",
+          path: pathFoo,
+          defaultEnvironment: "default",
+          dotIgnoreFiles: [],
+          environments: [{ name: "default", defaultNamespace, variables: { remoteTag } }],
+          providers: [{ name: "test-plugin" }],
+          variables: { sourceName: 123 },
+          sources: [
+            {
+              name: "${var.sourceName}",
+              repositoryUrl: "git://github.com/foo/bar.git#${var.remoteTag}",
+            },
+          ],
+        },
+      })
+
+      expectError(
+        () => garden.getProjectSources(),
+        (err) =>
+          expect(stripAnsi(err.message)).to.equal("Error validating remote source: key [0][name] must be a string")
+      )
+
+      delete process.env.TEST_ENV_VAR
+    })
+  })
+
   describe("scanForConfigs", () => {
     it("should find all garden configs in the project directory", async () => {
       const garden = await makeTestGardenA()

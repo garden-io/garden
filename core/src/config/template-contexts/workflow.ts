@@ -10,46 +10,13 @@ import { joiIdentifierMap, DeepPrimitiveMap, joiVariables } from "../common"
 import { Garden } from "../../garden"
 import { joi } from "../common"
 import { dedent } from "../../util/string"
-import { EnvironmentConfigContext } from "./project"
-import { schema, EnvironmentContext, ConfigContext, ErrorContext } from "./base"
+import { RemoteSourceConfigContext } from "./project"
+import { schema, ConfigContext, ErrorContext } from "./base"
 
 /**
  * This context is available for template strings in all workflow config fields except `name` and `triggers[]`.
  */
-export class WorkflowConfigContext extends EnvironmentConfigContext {
-  @schema(
-    EnvironmentContext.getSchema().description("Information about the environment that Garden is running against.")
-  )
-  public environment: EnvironmentContext
-
-  // Overriding to update the description. Same schema as base.
-  @schema(
-    joiVariables()
-      .description(
-        "A map of all variables defined in the project configuration, including environment-specific variables."
-      )
-      .meta({ keyPlaceholder: "<variable-name>" })
-  )
-  public variables: DeepPrimitiveMap
-
-  constructor(garden: Garden) {
-    super({
-      projectName: garden.projectName,
-      projectRoot: garden.projectRoot,
-      artifactsPath: garden.artifactsPath,
-      branch: garden.vcsBranch,
-      username: garden.username,
-      variables: garden.variables,
-      loggedIn: !!garden.enterpriseApi,
-      enterpriseDomain: garden.enterpriseApi?.domain,
-      secrets: garden.secrets,
-      commandInfo: garden.commandInfo,
-    })
-
-    const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName
-    this.environment = new EnvironmentContext(this, garden.environmentName, fullEnvName, garden.namespace)
-  }
-}
+export class WorkflowConfigContext extends RemoteSourceConfigContext {}
 
 class WorkflowStepContext extends ConfigContext {
   @schema(joi.string().description("The full output log from the step."))

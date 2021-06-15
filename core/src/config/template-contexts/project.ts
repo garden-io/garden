@@ -11,8 +11,9 @@ import chalk from "chalk"
 import { PrimitiveMap, joiIdentifierMap, joiStringMap, joiPrimitive, DeepPrimitiveMap, joiVariables } from "../common"
 import { joi } from "../common"
 import { deline, dedent } from "../../util/string"
-import { schema, ConfigContext, ContextKeySegment } from "./base"
+import { schema, ConfigContext, ContextKeySegment, EnvironmentContext } from "./base"
 import { CommandInfo } from "../../plugin-context"
+import { Garden } from "../../garden"
 
 class LocalContext extends ConfigContext {
   @schema(
@@ -296,5 +297,40 @@ export class EnvironmentConfigContext extends ProjectConfigContext {
   constructor(params: EnvironmentConfigContextParams) {
     super(params)
     this.variables = this.var = params.variables
+  }
+}
+
+export class RemoteSourceConfigContext extends EnvironmentConfigContext {
+  @schema(
+    EnvironmentContext.getSchema().description("Information about the environment that Garden is running against.")
+  )
+  public environment: EnvironmentContext
+
+  // Overriding to update the description. Same schema as base.
+  @schema(
+    joiVariables()
+      .description(
+        "A map of all variables defined in the project configuration, including environment-specific variables."
+      )
+      .meta({ keyPlaceholder: "<variable-name>" })
+  )
+  public variables: DeepPrimitiveMap
+
+  constructor(garden: Garden) {
+    super({
+      projectName: garden.projectName,
+      projectRoot: garden.projectRoot,
+      artifactsPath: garden.artifactsPath,
+      branch: garden.vcsBranch,
+      username: garden.username,
+      variables: garden.variables,
+      loggedIn: !!garden.enterpriseApi,
+      enterpriseDomain: garden.enterpriseApi?.domain,
+      secrets: garden.secrets,
+      commandInfo: garden.commandInfo,
+    })
+
+    const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName
+    this.environment = new EnvironmentContext(this, garden.environmentName, fullEnvName, garden.namespace)
   }
 }

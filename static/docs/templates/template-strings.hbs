@@ -29,6 +29,11 @@ Examples:
 The following keys are available in any template strings within project definitions in `garden.yml` config files, except the `name` field (which cannot be templated). See the [Environment](#environment-configuration-context) and [Provider](#provider-configuration-context) sections below for additional keys available when configuring `environments` and `providers`, respectively.
 {{{projectContext}}}
 
+## Remote source configuration context
+
+The following keys are available in template strings under the `sources` key in project configs.
+{{{remoteSourceContext}}}
+
 ## Environment configuration context
 
 The following keys are available in template strings under the `environments` key in project configs. Additional keys are available for the `environments[].providers` field, see the [Provider](#provider-configuration-context) section below for those.
@@ -36,7 +41,7 @@ The following keys are available in template strings under the `environments` k
 
 ## Provider configuration context
 
-The following keys are available in template strings under the `providers` key (or `environments[].providers) in project configs.
+The following keys are available in template strings under the `providers` key (or `environments[].providers`) in project configs.
 
 Providers can also reference outputs defined by other providers, via the `${providers.<provider-name>.outputs}` key. For details on which outputs are available for a given provider, please refer to the [reference](https://docs.garden.io/reference/providers) docs for the provider in question, and look for the _Outputs_ section.
 {{{providerContext}}}
