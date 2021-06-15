@@ -11,7 +11,11 @@ import { TEMPLATES_DIR, renderTemplateStringReference } from "./config"
 import { readFileSync, writeFileSync } from "fs"
 import handlebars from "handlebars"
 import { GARDEN_CORE_ROOT } from "../constants"
-import { ProjectConfigContext, EnvironmentConfigContext } from "../config/template-contexts/project"
+import {
+  ProjectConfigContext,
+  EnvironmentConfigContext,
+  RemoteSourceConfigContext,
+} from "../config/template-contexts/project"
 import { ProviderConfigContext } from "../config/template-contexts/provider"
 import { ModuleConfigContext, OutputConfigContext } from "../config/template-contexts/module"
 import { WorkflowStepConfigContext } from "../config/template-contexts/workflow"
@@ -26,12 +30,16 @@ export function writeTemplateStringReferenceDocs(docsRoot: string) {
     schema: ProjectConfigContext.getSchema().required(),
   })
 
-  const providerContext = renderTemplateStringReference({
-    schema: ProviderConfigContext.getSchema().required(),
+  const remoteSourceContext = renderTemplateStringReference({
+    schema: RemoteSourceConfigContext.getSchema().required(),
   })
 
   const environmentContext = renderTemplateStringReference({
     schema: EnvironmentConfigContext.getSchema().required(),
+  })
+
+  const providerContext = renderTemplateStringReference({
+    schema: ProviderConfigContext.getSchema().required(),
   })
 
   const moduleContext = renderTemplateStringReference({
@@ -51,6 +59,7 @@ export function writeTemplateStringReferenceDocs(docsRoot: string) {
   const markdown = template({
     helperFunctions: sortBy(Object.values(helperFunctions), "name"),
     projectContext,
+    remoteSourceContext,
     environmentContext,
     providerContext,
     moduleContext,

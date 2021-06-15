@@ -418,16 +418,16 @@ export function resolveProjectConfig({
   secrets: PrimitiveMap
   commandInfo: CommandInfo
 }): ProjectConfig {
-  // Resolve template strings for non-environment-specific fields
-  const { environments = [], name } = config
+  // Resolve template strings for non-environment-specific fields (apart from `sources`).
+  const { environments = [], name, sources = [] } = config
 
   const globalConfig = resolveTemplateStrings(
     {
       apiVersion: config.apiVersion,
-      sources: config.sources,
       varfile: config.varfile,
       variables: config.variables,
       environments: [],
+      sources: [],
     },
     new ProjectConfigContext({
       projectName: name,
@@ -450,6 +450,7 @@ export function resolveProjectConfig({
       name,
       defaultEnvironment,
       environments: [],
+      sources: [],
     },
     schema: projectSchema(),
     configType: "project",
@@ -477,6 +478,7 @@ export function resolveProjectConfig({
     ...config,
     environments: config.environments || [],
     providers,
+    sources,
   }
 
   config.defaultEnvironment = getDefaultEnvironmentName(defaultEnvironment, config)

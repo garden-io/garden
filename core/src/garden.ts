@@ -28,6 +28,7 @@ import {
   EnvironmentConfig,
   parseEnvironment,
   getDefaultEnvironmentName,
+  projectSourcesSchema,
 } from "./config/project"
 import { findByName, pickKeys, getPackageVersion, getNames, findByNames, duplicatesByKey, uuidv4 } from "./util/util"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
@@ -92,12 +93,13 @@ import {
 import { TemplatedModuleConfig } from "./plugins/templated"
 import { BuildDirRsync } from "./build-staging/rsync"
 import { EnterpriseApi } from "./enterprise/api"
-import { DefaultEnvironmentContext } from "./config/template-contexts/project"
+import { DefaultEnvironmentContext, RemoteSourceConfigContext } from "./config/template-contexts/project"
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { ProviderConfigContext } from "./config/template-contexts/provider"
 import { getSecrets } from "./enterprise/get-secrets"
 import { killSyncDaemon } from "./plugins/kubernetes/mutagen"
 import { ConfigContext } from "./config/template-contexts/base"
+import { validateSchema } from "./config/validation"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -1023,8 +1025,11 @@ export class Garden {
    * Returns the configured project sources, and resolves any template strings on them.
    */
   public getProjectSources() {
-    const context = new ProviderConfigContext(this, {})
-    return resolveTemplateStrings(this.projectSources, context)
+    const context = new RemoteSourceConfigContext(this)
+    const resolved = validateSchema(resolveTemplateStrings(this.projectSources, context), projectSourcesSchema(), {
+      context: "remote source",
+    })
+    return resolved
   }
 
   /**

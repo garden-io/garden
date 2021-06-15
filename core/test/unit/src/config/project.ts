@@ -109,7 +109,7 @@ describe("resolveProjectConfig", () => {
     })
   })
 
-  it("should resolve template strings on fields other than environment and provider configs", async () => {
+  it("should resolve template strings on fields other than environments, providers and remote sources", async () => {
     const repositoryUrl = "git://github.com/foo/bar.git#boo"
     const defaultEnvironment = "default"
 
@@ -141,6 +141,7 @@ describe("resolveProjectConfig", () => {
         platform: "${local.platform}",
         secret: "${secrets.foo}",
         projectPath: "${local.projectPath}",
+        envVar: "${local.env.TEST_ENV_VAR}",
       },
     }
 
@@ -173,7 +174,7 @@ describe("resolveProjectConfig", () => {
       outputs: [],
       sources: [
         {
-          name: "foo",
+          name: "${local.env.TEST_ENV_VAR}",
           repositoryUrl,
         },
       ],
@@ -182,6 +183,7 @@ describe("resolveProjectConfig", () => {
         platform: platform(),
         secret: "banana",
         projectPath: config.path,
+        envVar: "foo",
       },
     })
 
@@ -303,6 +305,71 @@ describe("resolveProjectConfig", () => {
     })
 
     expect(result.environments[0].variables).to.eql(config.environments[0].variables)
+  })
+
+  it("should pass through templated fields on remote source configs", async () => {
+    const repositoryUrl = "git://github.com/foo/bar.git#boo"
+    const defaultEnvironment = "default"
+
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: "/tmp/foo",
+      defaultEnvironment,
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [
+        {
+          name: "default",
+          defaultNamespace,
+          variables: {},
+        },
+      ],
+      providers: [],
+      sources: [
+        {
+          name: "${local.env.TEST_ENV_VAR}",
+          repositoryUrl,
+        },
+      ],
+      variables: {},
+    }
+
+    process.env.TEST_ENV_VAR = "foo"
+
+    expect(
+      resolveProjectConfig({
+        defaultEnvironment,
+        config,
+        artifactsPath: "/tmp",
+        branch: "main",
+        username: "some-user",
+        loggedIn: true,
+        enterpriseDomain,
+        secrets: {},
+        commandInfo,
+      })
+    ).to.eql({
+      ...config,
+      environments: [
+        {
+          name: "default",
+          defaultNamespace,
+          variables: {},
+        },
+      ],
+      outputs: [],
+      sources: [
+        {
+          name: "${local.env.TEST_ENV_VAR}",
+          repositoryUrl,
+        },
+      ],
+      varfile: defaultVarfilePath,
+      variables: {},
+    })
+
+    delete process.env.TEST_ENV_VAR
   })
 
   it("should set defaultEnvironment to first environment if not configured", async () => {
