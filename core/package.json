@@ -24,6 +24,7 @@
   "main": "build/src/index.js",
   "types": "build/src/index.d.ts",
   "dependencies": {
+    "@codenamize/codenamize": "^1.1.1",
     "@hapi/joi": "git+https://github.com/garden-io/joi.git#master",
     "@kubernetes/client-node": "^0.14.3",
     "JSONStream": "^1.3.5",

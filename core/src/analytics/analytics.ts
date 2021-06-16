@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import codenamize = require("@codenamize/codenamize")
 import segmentClient = require("analytics-node")
 import { platform, release } from "os"
 import ci = require("ci-info")
@@ -55,9 +56,13 @@ interface ProjectMetadata {
 
 interface AnalyticsEventProperties {
   projectId: string
+  projectIdV2: string
   projectName: string
+  projectNameV2: string
   enterpriseProjectId?: string
+  enterpriseProjectIdV2?: string
   enterpriseDomain?: string
+  enterpriseDomainV2?: string
   isLoggedIn: boolean
   ciName: string | null
   system: SystemInfo
@@ -127,8 +132,12 @@ export class AnalyticsHandler {
   private globalConfigStore: GlobalConfigStore
   private projectId = ""
   private projectName = ""
+  private projectIdV2 = ""
+  private projectNameV2 = ""
   private enterpriseProjectId?: string
   private enterpriseDomain?: string
+  private enterpriseProjectIdV2?: string
+  private enterpriseDomainV2?: string
   private isLoggedIn: boolean
   private ciName = ci.name
   private systemConfig: SystemInfo
@@ -203,13 +212,28 @@ export class AnalyticsHandler {
     }
 
     const originName = await this.garden.vcs.getOriginName(this.log)
-    this.projectName = this.hash(this.garden.projectName)
-    this.projectId = originName ? this.hash(originName) : this.projectName
+
+    const projectName = this.garden.projectName
+    this.projectName = this.hash(projectName)
+    this.projectNameV2 = this.hashV2(projectName)
+
+    const projectId = originName || this.projectName
+    this.projectId = this.hash(projectId)
+    this.projectIdV2 = this.hashV2(projectId)
+
     // The enterprise project ID is the UID for this project in Garden Enterprise that the user puts
     // in the project level Garden configuration. Not to be confused with the anonymized project ID we generate from
     // the project name for the purpose of analytics.
-    this.enterpriseProjectId = this.garden.projectId ? this.hash(this.garden.projectId) : undefined
-    this.enterpriseDomain = this.garden.enterpriseDomain ? this.hash(this.garden.enterpriseDomain) : undefined
+    const enterpriseProjectId = this.garden.projectId
+    if (enterpriseProjectId) {
+      this.enterpriseProjectId = this.hash(enterpriseProjectId)
+      this.enterpriseProjectIdV2 = this.hashV2(enterpriseProjectId)
+    }
+    const enterpriseDomain = this.garden.enterpriseDomain
+    if (enterpriseDomain) {
+      this.enterpriseDomain = this.hash(enterpriseDomain)
+      this.enterpriseDomainV2 = this.hashV2(enterpriseDomain)
+    }
 
     const gitHubUrl = getGitHubUrl("README.md#Analytics")
     if (this.analyticsConfig.firstRun || this.analyticsConfig.showOptInMessage) {
@@ -232,9 +256,12 @@ export class AnalyticsHandler {
       await this.globalConfigStore.set([globalConfigKeys.analytics], this.analyticsConfig)
 
       if (this.segment && analyticsEnabled) {
+        const userId = getUserId({ analytics: this.analyticsConfig })
+        const userIdV2 = this.hashV2(userId)
         this.segment.identify({
-          userId: getUserId({ analytics: this.analyticsConfig }),
+          userId,
           traits: {
+            userIdV2,
             platform: platform(),
             platformVersion: release(),
             gardenVersion: getPackageVersion(),
@@ -247,6 +274,20 @@ export class AnalyticsHandler {
     this.projectMetadata = await this.generateProjectMetadata()
 
     return this
+  }
+
+  /**
+   * Prepend a human readable string to the hashed value to make anonymized IDs easier to recognise.
+   * This readable string consists of two adjectives, followed by a noun.
+   *
+   * Also truncates the hash part to 32 char (from 128).
+   *
+   * Example: dysfunctional-graceful-request_433c84996726070996f369dfc00dd202
+   */
+  public hashV2(val: string) {
+    const readable = codenamize({ seed: val, adjectiveCount: 2 })
+    const hash = this.hash(val).slice(0, 32)
+    return `${readable}_${hash}`
   }
 
   public hash(val: string) {
@@ -294,9 +335,13 @@ export class AnalyticsHandler {
   private getBasicAnalyticsProperties(): AnalyticsEventProperties {
     return {
       projectId: this.projectId,
+      projectIdV2: this.projectIdV2,
       projectName: this.projectName,
+      projectNameV2: this.projectNameV2,
       enterpriseProjectId: this.enterpriseProjectId,
+      enterpriseProjectIdV2: this.enterpriseProjectIdV2,
       enterpriseDomain: this.enterpriseDomain,
+      enterpriseDomainV2: this.enterpriseDomainV2,
       isLoggedIn: this.isLoggedIn,
       ciName: this.ciName,
       system: this.systemConfig,
@@ -502,7 +547,7 @@ export class AnalyticsHandler {
         if (err && this.log) {
           this.log.debug(`Error flushing analytics: ${err}`)
         }
-        resolve()
+        resolve({})
       })
     })
   }

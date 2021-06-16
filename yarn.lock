@@ -1134,6 +1134,14 @@
     exec-sh "^0.3.2"
     minimist "^1.2.0"
 
+"@codenamize/codenamize@^1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@codenamize/codenamize/-/codenamize-1.1.1.tgz#adbe0888046d2552d7311e4aa3d236cdd23cbca4"
+  integrity sha512-ybCigE+ikx9Xm3R5di+7hQuZhA6FYWMv94FrX1Q/nKbESa8AR6Glr0GymzdmMChdKj4kuYaZJ7MCwi99CTnE5Q==
+  dependencies:
+    big-integer "^1.6.36"
+    underscore "^1.9.1"
+
 "@commitlint/cli@^8.3.5":
   version "8.3.5"
   resolved "https://registry.yarnpkg.com/@commitlint/cli/-/cli-8.3.5.tgz#6d93a3a8b2437fa978999d3f6a336bcc70be3fd3"
@@ -4227,7 +4235,7 @@ better-sqlite3@^7.1.0:
     prebuild-install "^5.3.3"
     tar "^6.0.5"
 
-big-integer@^1.6.17:
+big-integer@^1.6.17, big-integer@^1.6.36:
   version "1.6.48"
   resolved "https://registry.yarnpkg.com/big-integer/-/big-integer-1.6.48.tgz#8fd88bd1632cba4a1c8c3e3d7159f08bb95b4b9e"
   integrity sha512-j51egjPa7/i+RdiRuJbPdJ2FIUYYPhvYLjzoYbcMMm62ooO6F94fETG4MTs46zPAF9Brs04OajboA/qTGuz78w==
