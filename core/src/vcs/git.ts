@@ -127,7 +127,7 @@ export class GitHandler extends VcsHandler {
     // to make sure the path handling is consistent with normal POSIX-style globs used generally by Garden.
     // Note: We unfortunately can't exclude at this level because it simply doesn't work in git, for reasons unknown.
     const patterns = [...(include || []).map((p) => ":(glob)" + p)]
-    const lsFilesCommonArgs = ["--exclude", this.gardenDirPath]
+    const lsFilesCommonArgs = ["--cached", "--exclude", this.gardenDirPath]
 
     // List tracked but ignored files (we currently exclude those as well, so we need to query that specially)
     // TODO: change in 0.13 to no longer exclude these
