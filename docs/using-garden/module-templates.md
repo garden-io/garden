@@ -17,7 +17,7 @@ This feature was introduced in Garden 0.12.7. Please make sure you have an up-to
 
 ## How it works
 
-We'll use the [`templated-k8s-container example`](https://github.com/garden-io/garden/tree/0.12.22/examples/templated-k8s-container) to illustrate how module templates work. This example has a `k8s-container` template, that generates one `container` module for building an image, and one `kubernetes` module for deploying that image. A template like this is useful to customize the Kubernetes manifests for your services, but of course it's just one simple example of what you could do.
+We'll use the [`templated-k8s-container example`](https://github.com/garden-io/garden/tree/0.12.23/examples/templated-k8s-container) to illustrate how module templates work. This example has a `k8s-container` template, that generates one `container` module for building an image, and one `kubernetes` module for deploying that image. A template like this is useful to customize the Kubernetes manifests for your services, but of course it's just one simple example of what you could do.
 
 The template is defined like this:
 
@@ -158,7 +158,7 @@ Garden will then scan that repo when starting up, and you can reference the temp
 
 - [ModuleTemplate reference docs](../reference/module-template-config.md).
 - [`templated` module type reference docs](../reference/module-types/templated.md).
-- [`templated-k8s-container example`](https://github.com/garden-io/garden/tree/0.12.22/examples/templated-k8s-container).
+- [`templated-k8s-container example`](https://github.com/garden-io/garden/tree/0.12.23/examples/templated-k8s-container).
 
 ## Next steps
 

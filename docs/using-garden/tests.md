@@ -49,7 +49,7 @@ For full test configuration by module type, please take a look at our [reference
 
 ### Integration Testing
 
-Below is an example of a `frontend` module that has a `unit` test and an `integ` test that depends on a `backend` module. The `integ` test checks whether the frontend gets the correct response from the backend. The example is based on our [vote example project](https://github.com/garden-io/garden/tree/0.12.22/examples/vote).
+Below is an example of a `frontend` module that has a `unit` test and an `integ` test that depends on a `backend` module. The `integ` test checks whether the frontend gets the correct response from the backend. The example is based on our [vote example project](https://github.com/garden-io/garden/tree/0.12.23/examples/vote).
 
 Here's the configuration for `frontend` module:
 

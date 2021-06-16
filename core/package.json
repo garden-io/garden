@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/core",
-  "version": "0.12.22",
+  "version": "0.12.23",
   "description": "A full-featured development framework for containers and serverless",
   "repository": {
     "type": "git",

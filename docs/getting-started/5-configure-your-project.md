@@ -6,7 +6,7 @@ Garden is a powerful and flexible tool, and there are several things to learn al
 
 1. Place the project configuration you created for the example, which will be all set to connect to your cluster, in your own project root.
 2. Go through the [Using Garden](../using-garden/README.md) documentation section. This will cover all the key concepts, and introduce all the moving parts, including the different module types that Garden supports.
-3. Have a look at the [examples](https://github.com/garden-io/garden/tree/0.12.22/examples) folder in the Garden repository, which offers several usage examples that you can refer to while building out your project.
+3. Have a look at the [examples](https://github.com/garden-io/garden/tree/0.12.23/examples) folder in the Garden repository, which offers several usage examples that you can refer to while building out your project.
 4. Set up your modules, getting them building and deploying, **one at a time**.
 5. Make sure your whole project builds and deploys successfully.
 6. Start thinking about tests. Garden excels at managing all the different test suites in your stack, especially integration and end-to-end tests that need to run inside your deployment environment.
