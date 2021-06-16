@@ -18,6 +18,11 @@ import { isCI } from "ci-info"
 describe("AnalyticsHandler", () => {
   const host = "https://api.segment.io"
   const scope = nock(host)
+  // The sha512 hash of "test-project-a"
+  const projectName =
+    "95048f63dc14db38ed4138ffb6ff89992abdc19b8c899099c52a94f8fcc0390eec6480385cfa5014f84c0a14d4984825ce3bf25db1386d2b5382b936899df675"
+  // The codenamize version + the sha512 hash of "test-project-a"
+  const projectNameV2 = "discreet-sudden-struggle_95048f63dc14db38ed4138ffb6ff8999"
   let remoteOriginUrl: string
   let analytics: AnalyticsHandler
   let garden: TestGarden
@@ -59,9 +64,13 @@ describe("AnalyticsHandler", () => {
         properties: {
           name: "testCommand",
           projectId: analytics.hash(remoteOriginUrl),
-          projectName: analytics.hash("test-project-a"),
+          projectIdV2: analytics.hashV2(remoteOriginUrl),
+          projectName,
+          projectNameV2,
           enterpriseProjectId: undefined,
+          enterpriseProjectIdV2: undefined,
           enterpriseDomain: undefined,
+          enterpriseDomainV2: undefined,
           isLoggedIn: false,
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
@@ -104,9 +113,13 @@ describe("AnalyticsHandler", () => {
         properties: {
           name: "testCommand",
           projectId: analytics.hash(remoteOriginUrl),
-          projectName: analytics.hash("test-project-a"),
+          projectIdV2: analytics.hashV2(remoteOriginUrl),
+          projectName,
+          projectNameV2,
           enterpriseProjectId: undefined,
+          enterpriseProjectIdV2: undefined,
           enterpriseDomain: undefined,
+          enterpriseDomainV2: undefined,
           isLoggedIn: false,
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
@@ -137,9 +150,13 @@ describe("AnalyticsHandler", () => {
         properties: {
           name: "testCommand",
           projectId: analytics.hash(remoteOriginUrl),
+          projectIdV2: analytics.hashV2(remoteOriginUrl),
           projectName: analytics.hash("has-domain-and-id"),
+          projectNameV2: analytics.hashV2("has-domain-and-id"),
           enterpriseDomain: analytics.hash("http://dummy-domain.com"),
+          enterpriseDomainV2: analytics.hashV2("http://dummy-domain.com"),
           enterpriseProjectId: analytics.hash("dummy-id"),
+          enterpriseProjectIdV2: analytics.hashV2("dummy-id"),
           isLoggedIn: false,
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
@@ -322,9 +339,13 @@ describe("AnalyticsHandler", () => {
           properties: {
             name: "test-command-A",
             projectId: analytics["projectId"],
+            projectIdV2: analytics["projectIdV2"],
             projectName: analytics["projectName"],
+            projectNameV2: analytics["projectNameV2"],
             enterpriseProjectId: undefined,
+            enterpriseProjectIdV2: undefined,
             enterpriseDomain: undefined,
+            enterpriseDomainV2: undefined,
             isLoggedIn: false,
             ciName: analytics["ciName"],
             system: analytics["systemConfig"],

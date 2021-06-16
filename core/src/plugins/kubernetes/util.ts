@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { get, flatten, uniqBy, sortBy, omit, chain, sample, isEmpty, find } from "lodash"
+import { get, flatten, sortBy, omit, chain, sample, isEmpty, find } from "lodash"
 import { V1Pod, V1EnvVar, V1Container, V1PodSpec } from "@kubernetes/client-node"
 import { apply as jsonMerge } from "json-merge-patch"
 import chalk from "chalk"
