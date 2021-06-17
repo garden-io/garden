@@ -2459,6 +2459,27 @@ tests:
 
 
 
+### garden get tests
+
+**Lists the tests defined in your project's modules.**
+
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
+
+#### Usage
+
+    garden get tests [tests] 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `tests` | No | Specify tests(s) to list. Use comma as a separator to specify multiple tests.
+
+
+
 ### garden get task-result
 
 **Outputs the latest execution result of a provided task.**

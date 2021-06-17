@@ -21,6 +21,7 @@ import { GetOutputsCommand } from "./get-outputs"
 import { GetDoddiCommand } from "./get-doddi"
 import { GetModulesCommand } from "./get-modules"
 import { GetVaccineCommand } from "./get-vaccine"
+import { GetTestsCommand } from "./get-tests"
 
 export class GetCommand extends CommandGroup {
   name = "get"
@@ -37,6 +38,7 @@ export class GetCommand extends CommandGroup {
     GetSecretCommand,
     GetStatusCommand,
     GetTasksCommand,
+    GetTestsCommand,
     GetTaskResultCommand,
     GetTestResultCommand,
     GetDebugInfoCommand,
