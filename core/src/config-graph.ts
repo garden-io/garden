@@ -22,7 +22,7 @@ import { TaskConfig } from "./config/task"
 import { makeTestTaskName } from "./tasks/helpers"
 import { TaskType, makeBaseKey } from "./tasks/base"
 import { ModuleTypeMap } from "./types/plugin/plugin"
-import { testFromModule, GardenTest } from "./types/test"
+import { testFromModule, GardenTest, testFromConfig } from "./types/test"
 
 // Each of these types corresponds to a Task class (e.g. BuildTask, DeployTask, ...).
 export type DependencyGraphNodeType = "build" | "deploy" | "run" | "test"
@@ -357,6 +357,21 @@ export class ConfigGraph {
     const configs = Object.values(names ? pickKeys(taskConfigs, names, "task") : taskConfigs)
 
     return configs.map((c) => taskFromConfig(this.getModule(c.moduleKey, true), c.config))
+  }
+
+  /**
+   * Returns all tests defined in this configuration graph, or the ones specified.
+   * Note that test names are not unique, so a given name can return multiple tests.
+   */
+  getTests({ names, includeDisabled = false }: { names?: string[]; includeDisabled?: boolean } = {}) {
+    const testConfigs = includeDisabled ? this.testConfigs : pickBy(this.testConfigs, (t) => !this.isDisabled(t))
+
+    // We need to filter by full test name, i.e <module-name>.<test-name>
+    const fullTestNames = names ? Object.keys(testConfigs).filter((name) => names.includes(name.split(".")[1])) : names
+
+    const configs = Object.values(fullTestNames ? pickKeys(testConfigs, fullTestNames, "test") : testConfigs)
+
+    return configs.map((c) => testFromConfig(this.getModule(c.moduleKey, true), c.config, this))
   }
 
   /*
