@@ -260,7 +260,7 @@ export async function configureHelmModule({
     }
 
     // We copy the chart on build
-    moduleConfig.build.dependencies.push({ name: base, copy: [{ source: "*", target: "." }] })
+    moduleConfig.build.dependencies.push({ name: base, copy: [{ source: "*", target: ".", copyToSourceDir: false }] })
   }
 
   moduleConfig.buildConfig = omit(moduleConfig.spec, [

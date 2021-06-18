@@ -242,10 +242,10 @@ describe("ActionRouter", () => {
           ...moduleConfigA,
           build: {
             dependencies: [
-              { name: "module-b", copy: [{ source: "1", target: "1" }] },
-              { name: "module-b", copy: [{ source: "2", target: "2" }] },
-              { name: "module-b", copy: [{ source: "2", target: "2" }] },
-              { name: "module-c", copy: [{ source: "3", target: "3" }] },
+              { name: "module-b", copy: [{ source: "1", target: "1", copyToSourceDir: false }] },
+              { name: "module-b", copy: [{ source: "2", target: "2", copyToSourceDir: false }] },
+              { name: "module-b", copy: [{ source: "2", target: "2", copyToSourceDir: false }] },
+              { name: "module-c", copy: [{ source: "3", target: "3", copyToSourceDir: false }] },
             ],
           },
         }
@@ -255,13 +255,13 @@ describe("ActionRouter", () => {
           {
             name: "module-b",
             copy: [
-              { source: "1", target: "1" },
-              { source: "2", target: "2" },
+              { source: "1", target: "1", copyToSourceDir: false },
+              { source: "2", target: "2", copyToSourceDir: false },
             ],
           },
           {
             name: "module-c",
-            copy: [{ source: "3", target: "3" }],
+            copy: [{ source: "3", target: "3", copyToSourceDir: false }],
           },
         ])
       })

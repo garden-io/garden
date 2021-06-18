@@ -27,6 +27,7 @@ import { templateKind } from "./module-template"
 export interface BuildCopySpec {
   source: string
   target: string
+  copyToSourceDir: boolean
 }
 
 // TODO: allow : delimited string (e.g. some.file:some-dir/)
@@ -41,9 +42,18 @@ const copySchema = () =>
       .required()
       .description("POSIX-style path or filename of the directory or file(s) to copy to the target."),
     target: joi.posixPath().subPathOnly().default("").description(dedent`
-        POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-        Defaults to to same as source path.
+        POSIX-style path or filename to copy the directory or file(s), relative to the build directory (or the module
+        source directory if \`copyToSourceDir = true\`). Defaults to to same as source path.
       `),
+    copyToSourceDir: joi
+      .boolean()
+      .description(
+        dedent`
+          If set to true, Garden will copy the directory or file(s) to the module source directory, instead of the
+          Garden build directory (under \`.garden/build/<module-name>\`).
+        `
+      )
+      .default(false),
   })
 
 export interface BuildDependencyConfig {

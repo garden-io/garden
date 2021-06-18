@@ -14,3 +14,4 @@ build:
           target: e/
         - source: some-dir/e2.txt
           target: e/build/
+          copyToSourceDir: true

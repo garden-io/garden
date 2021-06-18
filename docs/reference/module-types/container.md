@@ -50,9 +50,14 @@ build:
         - # POSIX-style path or filename of the directory or file(s) to copy to the target.
           source:
 
-          # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-          # Defaults to to same as source path.
+          # POSIX-style path or filename to copy the directory or file(s), relative to the build directory (or the
+          # module
+          # source directory if `copyToSourceDir = true`). Defaults to to same as source path.
           target: ''
+
+          # If set to true, Garden will copy the directory or file(s) to the module source directory, instead of the
+          # Garden build directory (under `.garden/build/<module-name>`).
+          copyToSourceDir: false
 
   # For multi-stage Dockerfiles, specify which image to build (see
   # https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for details).
@@ -694,12 +699,23 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
 
-POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-Defaults to to same as source path.
+POSIX-style path or filename to copy the directory or file(s), relative to the build directory (or the module
+source directory if `copyToSourceDir = true`). Defaults to to same as source path.
 
 | Type        | Default | Required |
 | ----------- | ------- | -------- |
 | `posixPath` | `""`    | No       |
+
+### `build.dependencies[].copy[].copyToSourceDir`
+
+[build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > copyToSourceDir
+
+If set to true, Garden will copy the directory or file(s) to the module source directory, instead of the
+Garden build directory (under `.garden/build/<module-name>`).
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 ### `build.targetImage`
 

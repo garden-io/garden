@@ -53,13 +53,18 @@ build:
         - # POSIX-style path or filename of the directory or file(s) to copy to the target.
           source:
 
-          # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-          # Defaults to to same as source path.
+          # POSIX-style path or filename to copy the directory or file(s), relative to the build directory (or the
+          # module
+          # source directory if `copyToSourceDir = true`). Defaults to to same as source path.
           target: ''
+
+          # If set to true, Garden will copy the directory or file(s) to the module source directory, instead of the
+          # Garden build directory (under `.garden/build/<module-name>`).
+          copyToSourceDir: false
 
   # The command to run to perform the build.
   #
-  # By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+  # By default, the command is run inside the Garden build directory (under `.garden/build/<module-name>`).
   # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
   command: []
 
@@ -136,7 +141,7 @@ generateFiles:
     value:
 
 # If set to true, Garden will run the build command, services, tests, and tasks in the module source directory,
-# instead of in the Garden build directory (under .garden/build/<module-name>).
+# instead of in the Garden build directory (under `.garden/build/<module-name>`).
 #
 # Garden will therefore not stage the build for local exec modules. This means that include/exclude filters
 # and ignore files are not applied to local exec modules.
@@ -172,7 +177,7 @@ services:
 
     # The command to run to deploy the service.
     #
-    # By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+    # By default, the command is run inside the Garden build directory (under `.garden/build/<module-name>`).
     # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
     deployCommand:
 
@@ -183,13 +188,13 @@ services:
     # If this is not specified, the service is always reported as "unknown", so it's highly recommended to specify
     # this command if possible.
     #
-    # By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+    # By default, the command is run inside the Garden build directory (under `.garden/build/<module-name>`).
     # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
     statusCommand:
 
     # Optionally set a command to clean the service up, e.g. when running `garden delete env`.
     #
-    # By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+    # By default, the command is run inside the Garden build directory (under `.garden/build/<module-name>`).
     # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
     cleanupCommand:
 
@@ -235,7 +240,7 @@ tasks:
 
     # The command to run.
     #
-    # By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+    # By default, the command is run inside the Garden build directory (under `.garden/build/<module-name>`).
     # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
     command:
 
@@ -262,7 +267,7 @@ tests:
 
     # The command to run to test the module.
     #
-    # By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+    # By default, the command is run inside the Garden build directory (under `.garden/build/<module-name>`).
     # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
     command:
 
@@ -384,12 +389,23 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
 
-POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-Defaults to to same as source path.
+POSIX-style path or filename to copy the directory or file(s), relative to the build directory (or the module
+source directory if `copyToSourceDir = true`). Defaults to to same as source path.
 
 | Type        | Default | Required |
 | ----------- | ------- | -------- |
 | `posixPath` | `""`    | No       |
+
+### `build.dependencies[].copy[].copyToSourceDir`
+
+[build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > copyToSourceDir
+
+If set to true, Garden will copy the directory or file(s) to the module source directory, instead of the
+Garden build directory (under `.garden/build/<module-name>`).
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 ### `build.command[]`
 
@@ -397,7 +413,7 @@ Defaults to to same as source path.
 
 The command to run to perform the build.
 
-By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+By default, the command is run inside the Garden build directory (under `.garden/build/<module-name>`).
 If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
 
 | Type            | Default | Required |
@@ -543,7 +559,7 @@ The desired file contents as a string.
 ### `local`
 
 If set to true, Garden will run the build command, services, tests, and tasks in the module source directory,
-instead of in the Garden build directory (under .garden/build/<module-name>).
+instead of in the Garden build directory (under `.garden/build/<module-name>`).
 
 Garden will therefore not stage the build for local exec modules. This means that include/exclude filters
 and ignore files are not applied to local exec modules.
@@ -608,7 +624,7 @@ Note however that template strings referencing the service's outputs (i.e. runti
 
 The command to run to deploy the service.
 
-By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+By default, the command is run inside the Garden build directory (under `.garden/build/<module-name>`).
 If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
 
 | Type            | Required |
@@ -626,7 +642,7 @@ already deployed and the `deployCommand` is not run.
 If this is not specified, the service is always reported as "unknown", so it's highly recommended to specify
 this command if possible.
 
-By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+By default, the command is run inside the Garden build directory (under `.garden/build/<module-name>`).
 If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
 
 | Type            | Required |
@@ -639,7 +655,7 @@ If the top level `local` directive is set to `true`, the command runs in the mod
 
 Optionally set a command to clean the service up, e.g. when running `garden delete env`.
 
-By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+By default, the command is run inside the Garden build directory (under `.garden/build/<module-name>`).
 If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
 
 | Type            | Required |
@@ -754,7 +770,7 @@ A POSIX-style path to copy the artifacts to, relative to the project artifacts d
 
 The command to run.
 
-By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+By default, the command is run inside the Garden build directory (under `.garden/build/<module-name>`).
 If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
 
 | Type            | Required |
@@ -828,7 +844,7 @@ Maximum duration (in seconds) of the test run.
 
 The command to run to test the module.
 
-By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+By default, the command is run inside the Garden build directory (under `.garden/build/<module-name>`).
 If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
 
 | Type            | Required |

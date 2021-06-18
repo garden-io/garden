@@ -128,6 +128,7 @@ export const gardenPlugin = () =>
                     {
                       source: "child/Dockerfile",
                       target: "Dockerfile",
+                      copyToSourceDir: false,
                     },
                   ],
                 },
