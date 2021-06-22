@@ -36,7 +36,7 @@ import { baseTaskSpecSchema, BaseTaskSpec, cacheResultSchema } from "../../confi
 import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { ArtifactSpec } from "../../config/validation"
 import { V1Toleration } from "@kubernetes/client-node"
-import { runPodSpecWhitelist } from "./run"
+import { runPodSpecIncludeFields } from "./run"
 
 export const DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:v1.6.0-debug"
 export interface ProviderSecretRef {
@@ -708,7 +708,7 @@ export const hotReloadArgsSchema = () =>
     .description("If specified, overrides the arguments for the main container when running in hot-reload mode.")
     .example(["nodemon", "my-server.js"])
 
-const runPodSpecWhitelistDescription = runPodSpecWhitelist.map((f) => `* \`${f}\``).join("\n")
+const runPodSpecWhitelistDescription = runPodSpecIncludeFields.map((f) => `* \`${f}\``).join("\n")
 
 export const kubernetesTaskSchema = () =>
   baseTaskSpecSchema()

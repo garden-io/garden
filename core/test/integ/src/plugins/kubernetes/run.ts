@@ -43,7 +43,7 @@ import { buildHelmModules, getHelmTestGarden } from "./helm/common"
 import { getBaseModule, getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
 import { getModuleNamespace } from "../../../../../src/plugins/kubernetes/namespace"
 import { GardenModule } from "../../../../../src/types/module"
-import { V1Container, V1DaemonSet, V1Deployment, V1Pod, V1StatefulSet } from "@kubernetes/client-node"
+import { V1Container, V1DaemonSet, V1Deployment, V1Pod, V1PodSpec, V1StatefulSet } from "@kubernetes/client-node"
 import { getResourceRequirements } from "../../../../../src/plugins/kubernetes/container/util"
 import { ContainerResourcesSpec } from "../../../../../src/plugins/container/config"
 
@@ -784,10 +784,10 @@ describe("kubernetes Pod runner functions", () => {
       })
     })
 
-    it("should include only whitelisted pod spec fields in the generated pod spec", async () => {
+    it("should include only the right pod spec fields in the generated pod spec", async () => {
       const podSpec = getResourcePodSpec(helmTarget)
       expect(podSpec).to.eql({
-        // This field is *not* whitelisted in `runPodSpecWhitelist`, so it shouldn't appear in the
+        // This field is *not* included in `runPodSpecIncludeFields`, so it shouldn't appear in the
         // generated pod spec below.
         terminationGracePeriodSeconds: 60,
         containers: [
@@ -806,7 +806,7 @@ describe("kubernetes Pod runner functions", () => {
             resources: {},
           },
         ],
-        // This field is whitelisted in `runPodSpecWhitelist`, so it *should* appear in the generated
+        // This field is included in `runPodSpecIncludeFields`, so it *should* appear in the generated
         // pod spec below.
         shareProcessNamespace: true,
       })
@@ -831,9 +831,9 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       expect(generatedPodSpec).to.eql({
-        // `shareProcessNamespace` is not blacklisted, so it should be propagated to here.
+        // `shareProcessNamespace` is not excluded, so it should be propagated to here.
         shareProcessNamespace: true,
-        // `terminationGracePeriodSeconds` *is* blacklisted, so it should not appear here.
+        // `terminationGracePeriodSeconds` *is* excluded, so it should not appear here.
         containers: [
           {
             name: "main",
@@ -847,6 +847,78 @@ describe("kubernetes Pod runner functions", () => {
                 protocol: "TCP",
               },
             ],
+            resources: {},
+            env: [],
+            volumeMounts: [],
+            command: ["echo", "foo"],
+          },
+        ],
+        imagePullSecrets: [],
+        volumes: [],
+      })
+    })
+
+    it("should omit excluded container fields from the generated pod spec", async () => {
+      const podSpec = getResourcePodSpec(helmTarget)
+      const probe = {
+        initialDelaySeconds: 90,
+        periodSeconds: 10,
+        timeoutSeconds: 3,
+        successThreshold: 1,
+        failureThreshold: 30,
+        exec: {
+          command: ["echo", "ok"],
+        },
+      }
+      const podSpecWithProbes: V1PodSpec = {
+        ...podSpec,
+        containers: [
+          {
+            ...podSpec!.containers[0]!,
+            // These two fields are excluded, so they should be omitted from the generated pod spec.
+            livenessProbe: probe,
+            readinessProbe: probe,
+          },
+        ],
+      }
+      const generatedPodSpec = await prepareRunPodSpec({
+        podSpec: podSpecWithProbes, // <------
+        getArtifacts: false,
+        api: helmApi,
+        provider: helmProvider,
+        log: helmLog,
+        module: helmModule,
+        args: ["sh", "-c"],
+        command: ["echo", "foo"],
+        runtimeContext: { envVars: {}, dependencies: [] },
+        envVars: {},
+        description: "Helm module",
+        errorMetadata: {},
+        mainContainerName: "main",
+        image: "foo",
+        container: helmContainer,
+        namespace: helmNamespace,
+        volumes: [],
+      })
+
+      expect(generatedPodSpec).to.eql({
+        // `shareProcessNamespace` is not excluded, so it should be propagated to here.
+        shareProcessNamespace: true,
+        // `terminationGracePeriodSeconds` *is* excluded, so it should not appear here.
+        containers: [
+          {
+            name: "main",
+            image: "foo",
+            imagePullPolicy: "IfNotPresent",
+            args: ["sh", "-c"],
+            ports: [
+              {
+                name: "http",
+                containerPort: 80,
+                protocol: "TCP",
+              },
+            ],
+            // We expect `livenessProbe` and `readinessProbe` to be omitted here.
             resources: {},
             env: [],
             volumeMounts: [],
