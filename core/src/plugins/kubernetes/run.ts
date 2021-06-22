@@ -9,6 +9,7 @@
 import { resolve } from "path"
 import tar from "tar"
 import tmp from "tmp-promise"
+import { cloneDeep, omit, pick } from "lodash"
 import { V1PodSpec, V1Pod, V1Container } from "@kubernetes/client-node"
 import { RunResult } from "../../types/plugin/base"
 import { GardenModule } from "../../types/module"
@@ -38,7 +39,6 @@ import { prepareImagePullSecrets } from "./secrets"
 import { configureVolumes } from "./container/deployment"
 import { PluginContext } from "../../plugin-context"
 import { waitForResources, ResourceStatus } from "./status/status"
-import { cloneDeep, pick } from "lodash"
 import { RuntimeContext } from "../../runtime-context"
 import { getResourceRequirements } from "./container/util"
 
@@ -49,10 +49,13 @@ const defaultTimeout = 600
  * When a `podSpec` is passed to `runAndCopy`, only these fields will be used for the runner's pod spec
  * (and, in some cases, overridden/populated in `runAndCopy`).
  *
+ * Additionally, the keys in `runContainerExcludeFields` below will be omitted from the container used in the
+ * runner's pod spec.
+ *
  * See: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#podspec-v1-core
  */
-export const runPodSpecWhitelist: (keyof V1PodSpec)[] = [
-  // "activeDeadlineSeconds", // <-- for clarity, we leave the non-whitelisted fields here commented out.
+export const runPodSpecIncludeFields: (keyof V1PodSpec)[] = [
+  // "activeDeadlineSeconds", // <-- for clarity, we leave the excluded fields here commented out.
   "affinity",
   "automountServiceAccountToken",
   "containers",
@@ -87,6 +90,8 @@ export const runPodSpecWhitelist: (keyof V1PodSpec)[] = [
   "topologySpreadConstraints",
   "volumes",
 ]
+
+export const runContainerExcludeFields: (keyof V1Container)[] = ["readinessProbe", "livenessProbe"]
 
 export async function runAndCopy({
   ctx,
@@ -249,7 +254,7 @@ export async function prepareRunPodSpec({
 
   const containers: V1Container[] = [
     {
-      ...(container || {}),
+      ...omit(container || {}, runContainerExcludeFields),
       ...resourceRequirements,
       // We always override the following attributes
       name: mainContainerName,
@@ -263,7 +268,7 @@ export async function prepareRunPodSpec({
   const imagePullSecrets = await prepareImagePullSecrets({ api, provider, namespace, log })
 
   const preparedPodSpec = {
-    ...pick(podSpec || {}, runPodSpecWhitelist),
+    ...pick(podSpec || {}, runPodSpecIncludeFields),
     containers,
     imagePullSecrets,
   }
