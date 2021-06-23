@@ -87,6 +87,7 @@ export const pluginContextSchema = () =>
     })
 
 interface PluginEvents {
+  abort: { reason?: string }
   log: { data: Buffer }
 }
 

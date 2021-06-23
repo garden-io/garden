@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult, CommandParams } from "./base"
+import { Command, CommandResult, CommandParams, PrepareParams } from "./base"
 import chalk from "chalk"
 import { sortBy } from "lodash"
 import { ServiceLogEntry } from "../types/plugin/service/getServiceLogs"
@@ -20,6 +20,7 @@ import stripAnsi = require("strip-ansi")
 import hasAnsi = require("has-ansi")
 import { dedent } from "../util/string"
 import { formatSection } from "../logger/renderers"
+import { PluginEventBroker } from "../plugin-context"
 
 const logsArgs = {
   services: new StringsParameter({
@@ -33,7 +34,6 @@ const logsOpts = {
   "follow": new BooleanParameter({
     help: "Continuously stream new logs from the service(s).",
     alias: "f",
-    cliOnly: true,
   }),
   "tail": new IntegerParameter({
     help: dedent`
@@ -99,12 +99,22 @@ export class LogsCommand extends Command<Args, Opts> {
   arguments = logsArgs
   options = logsOpts
 
+  private events?: PluginEventBroker
+
   getLoggerType(): LoggerType {
     return "basic"
   }
 
   printHeader({ headerLog }) {
     printHeader(headerLog, "Logs", "scroll")
+  }
+
+  async prepare({ opts }: PrepareParams<Args, Opts>) {
+    return { persistent: !!opts.follow }
+  }
+
+  terminate() {
+    this.events?.emit("abort", {})
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ServiceLogEntry[]>> {
@@ -206,7 +216,7 @@ export class LogsCommand extends Command<Args, Opts> {
     }
 
     void stream.forEach((entry) => {
-      // Skip emtpy entries
+      // Skip empty entries
       if (skipEntry(entry)) {
         return
       }
@@ -214,6 +224,7 @@ export class LogsCommand extends Command<Args, Opts> {
       if (follow) {
         const levelStr = logLevelMap[entry.level || LogLevel.info] || "info"
         const msg = formatEntry(entry)
+        this.emit(log, JSON.stringify({ msg, timestamp: entry.timestamp?.getTime(), level: levelStr }))
         log[levelStr]({ msg })
       } else {
         result.push(entry)
@@ -221,9 +232,10 @@ export class LogsCommand extends Command<Args, Opts> {
     })
 
     const actions = await garden.getActionRouter()
+    this.events = new PluginEventBroker()
 
     await Bluebird.map(services, async (service: GardenService<any>) => {
-      await actions.getServiceLogs({ log, service, stream, follow, tail, since })
+      await actions.getServiceLogs({ log, service, stream, follow, tail, since, events: this.events })
     })
 
     const sorted = sortBy(result, "timestamp")

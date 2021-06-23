@@ -28,6 +28,7 @@ import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
 import chalk = require("chalk")
 import { StringsParameter, BooleanParameter } from "../cli/params"
+import { Garden } from "../garden"
 
 export const deployArgs = {
   services: new StringsParameter({
@@ -100,6 +101,8 @@ export class DeployCommand extends Command<Args, Opts> {
   arguments = deployArgs
   options = deployOpts
 
+  private garden?: Garden
+
   outputsSchema = () => processCommandResultSchema()
 
   private isPersistent = (opts) => !!opts.watch || !!opts["hot-reload"]
@@ -118,6 +121,10 @@ export class DeployCommand extends Command<Args, Opts> {
     return { persistent }
   }
 
+  terminate() {
+    this.garden?.events.emit("_exit", {})
+  }
+
   async action({
     garden,
     log,
@@ -125,6 +132,8 @@ export class DeployCommand extends Command<Args, Opts> {
     args,
     opts,
   }: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
+    this.garden = garden
+
     if (this.server) {
       this.server.setGarden(garden)
     }
