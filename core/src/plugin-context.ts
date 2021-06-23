@@ -16,6 +16,7 @@ import { ConfigContext, ContextResolveOpts } from "./config/template-contexts/ba
 import { resolveTemplateStrings } from "./template-string/template-string"
 import { LogEntry } from "./logger/log-entry"
 import { logEntrySchema } from "./types/plugin/base"
+import { EventEmitter } from "eventemitter3"
 
 type WrappedFromGarden = Pick<
   Garden,
@@ -40,6 +41,7 @@ type ResolveTemplateStringsOpts = Omit<ContextResolveOpts, "stack">
 export interface PluginContext<C extends GenericProviderConfig = GenericProviderConfig> extends WrappedFromGarden {
   command: CommandInfo
   log: LogEntry
+  events: PluginEventBroker
   projectSources: SourceConfig[]
   provider: Provider<C>
   resolveTemplateStrings: <T>(o: T, opts?: ResolveTemplateStringsOpts) => T
@@ -63,6 +65,7 @@ export const pluginContextSchema = () =>
         })
         .description("Information about the command being executed, if applicable."),
       environmentName: environmentNameSchema(),
+      events: joi.any().description("An event emitter, used for communication during handler execution."),
       gardenDirPath: joi.string().description(deline`
         The absolute path of the project's Garden dir. This is the directory the contains builds, logs and
         other meta data. A custom path can be set when initialising the Garden class. Defaults to \`.garden\`.
@@ -87,14 +90,24 @@ export const pluginContextSchema = () =>
       workingCopyId: joi.string().description("A unique ID assigned to the current project working copy."),
     })
 
+interface PluginEvents {
+  log: { data: Buffer }
+}
+
+type PluginEventType = keyof PluginEvents
+
+export class PluginEventBroker extends EventEmitter<PluginEvents, PluginEventType> {}
+
 export async function createPluginContext(
   garden: Garden,
   provider: Provider,
   command: CommandInfo,
-  templateContext: ConfigContext
+  templateContext: ConfigContext,
+  events?: PluginEventBroker
 ): Promise<PluginContext> {
   return {
     command,
+    events: events || new PluginEventBroker(),
     environmentName: garden.environmentName,
     gardenDirPath: garden.gardenDirPath,
     log: garden.log,

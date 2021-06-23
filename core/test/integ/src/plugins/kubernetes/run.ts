@@ -1234,8 +1234,6 @@ describe("kubernetes Pod runner functions", () => {
               description: "Foo",
               image: _image,
               timeout: 20000,
-              stdout: process.stdout,
-              stderr: process.stderr,
               version: module.version.versionString,
             }),
           (err) =>
@@ -1276,8 +1274,6 @@ describe("kubernetes Pod runner functions", () => {
               description: "Foo",
               image: _image,
               timeout: 20000,
-              stdout: process.stdout,
-              stderr: process.stderr,
               version: module.version.versionString,
             }),
           (err) =>

@@ -20,6 +20,11 @@ export class DashboardEventStream extends BufferedEventStream {
   private targetPollIntervalId?: NodeJS.Timeout
   private ignoreHost: string | undefined
 
+  constructor(params) {
+    super(params)
+    this.eventNames.push("log")
+  }
+
   connect(params: ConnectBufferedEventStreamParams & { ignoreHost?: string }) {
     // Need this so the dashboard command doesn't try to send events to itself.
     // We can't ignore by PID because we wouldn't be able to unit test easily.
