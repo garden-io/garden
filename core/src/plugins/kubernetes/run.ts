@@ -23,7 +23,7 @@ import {
   OutOfMemoryError,
 } from "../../exceptions"
 import { KubernetesProvider } from "./config"
-import { Writable, Readable } from "stream"
+import { Writable, Readable, PassThrough } from "stream"
 import { uniqByName, sleep } from "../../util/util"
 import { KubeApi } from "./api"
 import { getPodLogs, checkPodStatus } from "./status/pod"
@@ -106,8 +106,6 @@ export async function runAndCopy({
   envVars = {},
   resources,
   description,
-  stdout,
-  stderr,
   namespace,
   version,
   volumes,
@@ -121,8 +119,6 @@ export async function runAndCopy({
   envVars?: ContainerEnvVars
   resources?: ContainerResourcesSpec
   description?: string
-  stdout?: Writable
-  stderr?: Writable
   namespace: string
   version: string
   volumes?: ContainerVolumeSpec[]
@@ -164,6 +160,13 @@ export async function runAndCopy({
     podName = makePodName("run", module.name)
   }
 
+  const outputStream = new PassThrough()
+
+  outputStream.on("error", () => {})
+  outputStream.on("data", (data: Buffer) => {
+    ctx.events.emit("log", { timestamp: new Date().getTime(), data })
+  })
+
   const runParams = {
     ctx,
     api,
@@ -179,6 +182,8 @@ export async function runAndCopy({
     podName,
     namespace,
     version,
+    stdout: outputStream,
+    stderr: outputStream,
   }
 
   if (getArtifacts) {
@@ -189,8 +194,6 @@ export async function runAndCopy({
       artifactsPath: artifactsPath!,
       description,
       errorMetadata,
-      stdout,
-      stderr,
     })
   } else {
     return runWithoutArtifacts(runParams)
@@ -311,6 +314,8 @@ async function runWithoutArtifacts({
   timeout,
   podSpec,
   podName,
+  stdout,
+  stderr,
   namespace,
   interactive,
   version,
@@ -319,6 +324,8 @@ async function runWithoutArtifacts({
   provider: KubernetesProvider
   podSpec: V1PodSpec
   podName: string
+  stdout: Writable
+  stderr: Writable
   namespace: string
   version: string
 }): Promise<RunResult> {
@@ -349,6 +356,8 @@ async function runWithoutArtifacts({
       remove: true,
       timeoutSec: timeout || defaultTimeout,
       tty: !!interactive,
+      stdout,
+      stderr,
     })
     result = {
       ...res,
@@ -418,8 +427,8 @@ async function runWithArtifacts({
   artifactsPath: string
   description?: string
   errorMetadata: any
-  stdout?: Writable
-  stderr?: Writable
+  stdout: Writable
+  stderr: Writable
   namespace: string
   version: string
 }): Promise<RunResult> {
