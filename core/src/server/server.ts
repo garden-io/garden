@@ -250,9 +250,11 @@ export class GardenServer {
 
       const batch = ctx.request.body as ApiEventBatch
       this.debugLog.debug(`Received ${batch.events.length} events from session ${batch.sessionId}`)
+      this.debugLog.silly(JSON.stringify(batch.events, null, 2))
 
       // Pipe the events to the incoming stream, which websocket listeners will then receive
       batch.events.forEach((e) => this.incomingEvents.emit(e.name, e.payload))
+      // batch.events.forEach((e) => this.garden!.events.emit(e.name, e.payload))
 
       ctx.status = 200
     })

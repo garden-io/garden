@@ -20,6 +20,7 @@ import {
 import { makeTestGardenA, withDefaultGlobalOpts, TestGarden } from "../../../helpers"
 import { GlobalOptions, ParameterValues } from "../../../../src/cli/params"
 import { BaseTask } from "../../../../src/tasks/base"
+import { prepareSessionSettings } from "../../../../src/commands/base"
 
 describe("DevCommand", () => {
   const command = new DevCommand()
@@ -35,7 +36,7 @@ describe("DevCommand", () => {
   ) {
     const log = garden.log
 
-    await command.prepare({ log, footerLog: log, headerLog: log, args, opts })
+    const { sessionSettings } = await command.prepare({ log, footerLog: log, headerLog: log, args, opts })
 
     const promise = command
       .action({
@@ -45,6 +46,7 @@ describe("DevCommand", () => {
         footerLog: log,
         args,
         opts,
+        sessionSettings,
       })
       .then(({ errors }) => {
         if (errors) {
@@ -73,7 +75,7 @@ describe("DevCommand", () => {
     expect(command.protected).to.be.true
   })
 
-  it("should deploy, run and test everything in a project", async () => {
+  it("should deploy, run and test everything in a project and emit a sessionSettings event", async () => {
     const garden = await makeTestGardenA()
 
     const args = { services: undefined }
@@ -114,6 +116,24 @@ describe("DevCommand", () => {
       "test.module-c.unit",
     ])
 
+    const sessionSettingsEvent = garden.events.eventLog.find((e) => e.name === "sessionSettings")
+    expect(sessionSettingsEvent).to.exist
+    expect(sessionSettingsEvent).to.eql({
+      name: "sessionSettings",
+      payload: {
+        buildModuleNames: [],
+        deployServiceNames: ["*"],
+        devModeServiceNames: ["*"],
+        forceBuild: false,
+        forceDeploy: false,
+        forceTest: false,
+        hotReloadServiceNames: [],
+        skipDeployServiceNames: [],
+        testConfigNames: ["*"],
+        testModuleNames: ["*"],
+      },
+    })
+
     return promise
   })
 
@@ -121,21 +141,21 @@ describe("DevCommand", () => {
     const garden = await makeTestGardenA()
     const log = garden.log
     const graph = await garden.getConfigGraph({ log, emit: false })
-    const modules = graph.getModules()
+
+    const sessionSettings = prepareSessionSettings({
+      deployServiceNames: ["*"],
+      testModuleNames: ["*"],
+      // Note: service-a is a runtime dependency of module-a's integration test spec, so in this test case
+      // we're implicitly verifying that tests with runtime dependencies on services being deployed with
+      // hot reloading don't request non-hot-reload-enabled deploys for those same services.
+      hotReloadServiceNames: ["service-a"],
+    })
 
     const initialTasks = await getDevCommandInitialTasks({
       garden,
       log,
       graph,
-      modules,
-      services: graph.getServices(),
-      devModeServiceNames: [],
-      // Note: service-a is a runtime dependency of module-a's integration test spec, so in this test case
-      // we're implicitly verifying that tests with runtime dependencies on services being deployed with
-      // hot reloading don't request non-hot-reload-enabled deploys for those same services.
-      hotReloadServiceNames: ["service-a"],
-      skipTests: false,
-      forceDeploy: false,
+      sessionSettings,
     })
 
     const withDeps = async (task: BaseTask) => {
@@ -292,16 +312,18 @@ describe("getDevCommandWatchTasks", () => {
     const log = garden.log
     const graph = await garden.getConfigGraph({ log, emit: false })
 
+    const sessionSettings = prepareSessionSettings({
+      deployServiceNames: ["*"],
+      devModeServiceNames: [],
+      testModuleNames: ["*"],
+    })
+
     const watchTasks = await getDevCommandWatchTasks({
       garden,
       log,
       updatedGraph: graph,
       module: graph.getModule("module-b"),
-      servicesWatched: graph.getServices().map((s) => s.name),
-      devModeServiceNames: [],
-      hotReloadServiceNames: [],
-      testNames: undefined,
-      skipTests: false,
+      sessionSettings,
     })
 
     const results = await garden.processTasks(watchTasks)
@@ -309,17 +331,9 @@ describe("getDevCommandWatchTasks", () => {
       "build.module-a",
       "build.module-b",
       "build.module-c",
-      "deploy.service-a",
-      "deploy.service-b",
-      "deploy.service-c",
-      "get-service-status.service-a",
-      "get-service-status.service-b",
-      "get-service-status.service-c",
-      "get-task-result.task-c",
       "stage-build.module-a",
       "stage-build.module-b",
       "stage-build.module-c",
-      "task.task-c",
       "test.module-b.unit",
       "test.module-c.integ",
       "test.module-c.unit",

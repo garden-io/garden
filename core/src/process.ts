@@ -8,19 +8,27 @@
 
 import Bluebird from "bluebird"
 import chalk from "chalk"
-import { keyBy, flatten } from "lodash"
+import { keyBy, flatten, without, uniq } from "lodash"
 
 import { GardenModule } from "./types/module"
 import { BaseTask } from "./tasks/base"
 import { GraphResults } from "./task-graph"
 import { isModuleLinked } from "./util/ext-source-util"
 import { Garden } from "./garden"
-import { LogEntry } from "./logger/log-entry"
+import { EmojiName, LogEntry } from "./logger/log-entry"
 import { ConfigGraph } from "./config-graph"
-import { dedent } from "./util/string"
+import { dedent, naturalList } from "./util/string"
 import { ConfigurationError } from "./exceptions"
 import { uniqByName } from "./util/util"
 import { renderDivider } from "./logger/util"
+import { SessionSettings } from "./commands/base"
+import { Events } from "./events"
+import { BuildTask } from "./tasks/build"
+import { DeployTask } from "./tasks/deploy"
+import { filterTestConfigs, TestTask } from "./tasks/test"
+import { testFromConfig } from "./types/test"
+import { applySessionSettings } from "./commands/dev"
+import { TaskTask } from "./tasks/task"
 
 export type ProcessHandler = (graph: ConfigGraph, module: GardenModule) => Promise<BaseTask[]>
 
@@ -39,6 +47,7 @@ interface ProcessParams {
    * Use this if the behavior should be different on watcher changes than on initial processing
    */
   changeHandler: ProcessHandler
+  sessionSettings?: SessionSettings
 }
 
 export interface ProcessModulesParams extends ProcessParams {
@@ -62,6 +71,7 @@ export async function processModules({
   skipWatchModules,
   watch,
   changeHandler,
+  sessionSettings,
 }: ProcessModulesParams): Promise<ProcessResults> {
   log.silly("Starting processModules")
 
@@ -236,6 +246,132 @@ export async function processModules({
       await garden.processTasks(moduleTasks)
     })
 
+    if (sessionSettings) {
+      // Handle Cloud events
+      const params = {
+        garden,
+        graph,
+        log,
+      }
+      garden.events.on("buildRequested", async (event: Events["buildRequested"]) => {
+        try {
+          graph = await garden.getConfigGraph({ log, emit: false })
+          log.info("")
+          log.info({ emoji: "hammer", msg: chalk.yellow(`Build requested for ${chalk.white(event.moduleName)}`) })
+          const tasks = await cloudEventHandlers.buildRequested({ ...params, request: event })
+          await garden.processTasks(tasks)
+        } catch (err) {
+          log.error(err.message)
+        }
+      })
+      garden.events.on("deployRequested", async (event: Events["deployRequested"]) => {
+        try {
+          graph = await garden.getConfigGraph({ log, emit: false })
+          let prefix: string
+          let emoji: EmojiName
+          if (event.hotReload) {
+            emoji = "fire"
+            prefix = `Hot reload-enabled deployment`
+          } else {
+            if (event.devMode) {
+              emoji = "zap"
+              prefix = `Dev-mode deployment`
+            } else {
+              emoji = "rocket"
+              prefix = "Deployment"
+            }
+          }
+          const msg = `${prefix} requested for ${chalk.white(event.serviceName)}`
+          log.info("")
+          log.info({ emoji, msg: chalk.yellow(msg) })
+          const deployTask = await cloudEventHandlers.deployRequested({ ...params, request: event, sessionSettings })
+          await garden.processTasks([deployTask])
+        } catch (err) {
+          log.error(err.message)
+        }
+      })
+      garden.events.on("testRequested", async (event: Events["testRequested"]) => {
+        try {
+          graph = await garden.getConfigGraph({ log, emit: false })
+          const testNames = event.testNames
+          let suffix = ""
+          if (testNames) {
+            suffix = ` (only ${chalk.white(naturalList(testNames))})`
+          }
+          const msg = chalk.yellow(`Tests requested for ${chalk.white(event.moduleName)}${suffix}`)
+          log.info("")
+          log.info({ emoji: "thermometer", msg })
+          const testTasks = await cloudEventHandlers.testRequested({ ...params, request: event, sessionSettings })
+          await garden.processTasks(testTasks)
+        } catch (err) {
+          log.error(err.message)
+        }
+      })
+      garden.events.on("taskRequested", async (event: Events["taskRequested"]) => {
+        try {
+          graph = await garden.getConfigGraph({ log, emit: false })
+          const msg = chalk.yellow(`Run requested for task ${chalk.white(event.taskName)}`)
+          log.info("")
+          log.info({ emoji: "runner", msg })
+          const taskTask = await cloudEventHandlers.taskRequested({ ...params, request: event, sessionSettings })
+          await garden.processTasks([taskTask])
+        } catch (err) {
+          log.error(err.message)
+        }
+      })
+      garden.events.on("setBuildOnWatch", (event: Events["setBuildOnWatch"]) => {
+        try {
+          const { moduleName, build } = event
+          cloudEventHandlers.setBuildOnWatch(graph, moduleName, build, sessionSettings)
+          const moduleNames = sessionSettings.buildModuleNames
+          let msg
+          if (moduleNames.length === 0) {
+            msg = `Not rebuilding when sources change unless required by deploys or tests`
+          } else {
+            msg = `Now rebuilding ${chalk.white(naturalList(moduleNames))} when sources change`
+          }
+          log.info("")
+          log.info({ emoji: "recycle", msg: chalk.yellow(msg) })
+        } catch (err) {
+          log.error(err.message)
+        }
+      })
+      garden.events.on("setDeployOnWatch", (event: Events["setDeployOnWatch"]) => {
+        try {
+          const { serviceName, deploy } = event
+          cloudEventHandlers.setDeployOnWatch(graph, serviceName, deploy, sessionSettings)
+          const serviceNames = sessionSettings.deployServiceNames
+          let msg
+          if (serviceNames.length === 0) {
+            msg = `Not redeploying on watch unless required by tests`
+          } else {
+            msg = `Now redeploying ${chalk.white(naturalList(serviceNames))} when sources change`
+          }
+          log.info("")
+          log.info({ emoji: "recycle", msg: chalk.yellow(msg) })
+        } catch (err) {
+          log.error(err.message)
+        }
+      })
+      garden.events.on("setTestOnWatch", (event: Events["setTestOnWatch"]) => {
+        try {
+          const { moduleName, test } = event
+          cloudEventHandlers.setTestOnWatch(graph, moduleName, test, sessionSettings)
+          const moduleNames = sessionSettings.testModuleNames
+          let msg
+          if (moduleNames.length === 0) {
+            msg = `Not running tests when sources change`
+          } else {
+            msg = `Now running tests for ${chalk.white(naturalList(moduleNames))} when sources change`
+          }
+          log.info("")
+          log.info({ emoji: "recycle", msg: chalk.yellow(msg) })
+        } catch (err) {
+          log.error(err.message)
+        }
+      })
+    }
+
     waiting()
   })
 
@@ -243,6 +379,138 @@ export async function processModules({
     taskResults: {}, // TODO: Return latest results for each task key processed between restarts?
     restartRequired,
   }
+}
+
+export interface CloudEventHandlerCommonParams {
+  garden: Garden
+  graph: ConfigGraph
+  log: LogEntry
+}
+
+export const cloudEventHandlers = {
+  buildRequested: async (params: CloudEventHandlerCommonParams & { request: Events["buildRequested"] }) => {
+    const { garden, graph, log } = params
+    const { moduleName, force } = params.request
+    const tasks = await BuildTask.factory({
+      garden,
+      log,
+      graph,
+      module: graph.getModule(moduleName),
+      force,
+    })
+    return tasks
+  },
+  testRequested: async (
+    params: CloudEventHandlerCommonParams & { request: Events["testRequested"]; sessionSettings: SessionSettings }
+  ) => {
+    const { garden, graph, log, sessionSettings } = params
+    const { moduleName, testNames, force, forceBuild } = params.request
+    const module = graph.getModule(moduleName)
+    return filterTestConfigs(module.testConfigs, testNames).map((config) => {
+      return new TestTask({
+        garden,
+        graph,
+        log,
+        force,
+        forceBuild,
+        test: testFromConfig(module, config, graph),
+        devModeServiceNames: sessionSettings.devModeServiceNames,
+        hotReloadServiceNames: sessionSettings.hotReloadServiceNames,
+      })
+    })
+  },
+  deployRequested: async (
+    params: CloudEventHandlerCommonParams & { request: Events["deployRequested"]; sessionSettings: SessionSettings }
+  ) => {
+    const { garden, graph, log, sessionSettings } = params
+    const { serviceName, devMode, hotReload, force, forceBuild } = params.request
+    const allServiceNames = graph.getServices().map((s) => s.name)
+
+    sessionSettings.devModeServiceNames = devMode
+      ? addToSessionSettingsList(serviceName, sessionSettings.devModeServiceNames)
+      : removeFromSessionSettingsList(serviceName, sessionSettings.devModeServiceNames, allServiceNames)
+
+    if (!devMode) {
+      sessionSettings.hotReloadServiceNames = hotReload
+        ? addToSessionSettingsList(serviceName, sessionSettings.hotReloadServiceNames)
+        : removeFromSessionSettingsList(serviceName, sessionSettings.hotReloadServiceNames, allServiceNames)
+    }
+
+    const { hotReloadServiceNames, devModeServiceNames } = applySessionSettings(graph, sessionSettings)
+
+    const deployTask = new DeployTask({
+      garden,
+      log,
+      graph,
+      service: graph.getService(serviceName),
+      force,
+      forceBuild,
+      fromWatch: true,
+      hotReloadServiceNames,
+      devModeServiceNames,
+    })
+    return deployTask
+  },
+  taskRequested: async (
+    params: CloudEventHandlerCommonParams & { request: Events["taskRequested"]; sessionSettings: SessionSettings }
+  ) => {
+    const { garden, graph, log, sessionSettings } = params
+    const { taskName, force, forceBuild } = params.request
+    return new TaskTask({
+      garden,
+      log,
+      graph,
+      task: graph.getTask(taskName),
+      hotReloadServiceNames: sessionSettings.hotReloadServiceNames,
+      devModeServiceNames: sessionSettings.devModeServiceNames,
+      force,
+      forceBuild,
+    })
+  },
+  setBuildOnWatch: (
+    graph: ConfigGraph,
+    moduleName: Events["setBuildOnWatch"]["moduleName"],
+    build: Events["setBuildOnWatch"]["build"],
+    sessionSettings: SessionSettings
+  ) => {
+    const allModuleNames = graph.getModules().map((m) => m.name)
+    sessionSettings.buildModuleNames = build
+      ? addToSessionSettingsList(moduleName, sessionSettings.buildModuleNames)
+      : removeFromSessionSettingsList(moduleName, sessionSettings.buildModuleNames, allModuleNames)
+    return sessionSettings
+  },
+  setDeployOnWatch: (
+    graph: ConfigGraph,
+    serviceName: Events["setDeployOnWatch"]["serviceName"],
+    deploy: Events["setDeployOnWatch"]["deploy"],
+    sessionSettings: SessionSettings
+  ) => {
+    const allServiceNames = graph.getServices().map((s) => s.name)
+    sessionSettings.deployServiceNames = deploy
+      ? addToSessionSettingsList(serviceName, sessionSettings.deployServiceNames)
+      : removeFromSessionSettingsList(serviceName, sessionSettings.deployServiceNames, allServiceNames)
+    return sessionSettings
+  },
+  setTestOnWatch: (
+    graph: ConfigGraph,
+    moduleName: Events["setTestOnWatch"]["moduleName"],
+    test: Events["setTestOnWatch"]["test"],
+    sessionSettings: SessionSettings
+  ) => {
+    const allModuleNames = graph.getModules().map((m) => m.name)
+    sessionSettings.testModuleNames = test
+      ? addToSessionSettingsList(moduleName, sessionSettings.testModuleNames)
+      : removeFromSessionSettingsList(moduleName, sessionSettings.testModuleNames, allModuleNames)
+    return sessionSettings
+  },
+}
+
+function addToSessionSettingsList(name: string, currentList: string[]): string[] {
+  return currentList[0] === "*" ? currentList : uniq([...currentList, name])
+}
+
+function removeFromSessionSettingsList(name: string, currentList: string[], fullList: string[]): string[] {
+  return currentList[0] === "*" ? without(fullList, name) : without(currentList, name)
 }
 
 /**

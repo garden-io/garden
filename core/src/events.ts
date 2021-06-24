@@ -17,6 +17,7 @@ import { AuthTokenResponse } from "./cloud/api"
 import { RenderedActionGraph } from "./config-graph"
 import { BuildState } from "./types/plugin/module/build"
 import { CommandInfo } from "./plugin-context"
+import { SessionSettings } from "./commands/base"
 
 export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
 
@@ -265,6 +266,43 @@ export interface Events extends LoggerEvents {
     index: number
     durationMsec: number
   }
+
+  // Cloud UI events
+  sessionSettings: SessionSettings
+  buildRequested: {
+    moduleName: string
+    force: boolean
+  }
+  deployRequested: {
+    serviceName: string
+    devMode: boolean
+    hotReload: boolean
+    force: boolean
+    forceBuild: boolean
+  }
+  testRequested: {
+    moduleName: string
+    force: boolean
+    forceBuild: boolean
+    testNames?: string[] // If not provided, run all tests for the module
+  }
+  taskRequested: {
+    taskName: string
+    force: boolean
+    forceBuild: boolean
+  }
+  setBuildOnWatch: {
+    moduleName: string
+    build: boolean
+  }
+  setDeployOnWatch: {
+    serviceName: string
+    deploy: boolean
+  }
+  setTestOnWatch: {
+    moduleName: string
+    test: boolean
+  }
 }
 
 export type EventName = keyof Events
@@ -308,4 +346,12 @@ export const pipedEventNames: EventName[] = [
   "workflowStepError",
   "workflowStepProcessing",
   "workflowStepSkipped",
+  "sessionSettings",
+  "buildRequested",
+  "deployRequested",
+  "testRequested",
+  "taskRequested",
+  "setBuildOnWatch",
+  "setDeployOnWatch",
+  "setTestOnWatch",
 ]

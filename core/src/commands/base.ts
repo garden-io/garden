@@ -30,6 +30,7 @@ import { renderOptions, renderCommands, renderArguments, getCliStyles } from "..
 import { GlobalOptions, ParameterValues, Parameters } from "../cli/params"
 import { GardenServer } from "../server/server"
 import { GardenCli } from "../cli/cli"
+import { CloudApi } from "../cloud/api"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -63,11 +64,24 @@ export interface PrepareParams<T extends Parameters = {}, U extends Parameters =
   headerLog: LogEntry
   footerLog: LogEntry
   log: LogEntry
+  cloudApi?: CloudApi
 }
 
 export interface CommandParams<T extends Parameters = {}, U extends Parameters = {}> extends PrepareParams<T, U> {
   cli?: GardenCli
   garden: Garden
+  sessionSettings?: SessionSettings
+}
+
+interface PrepareOutput {
+  /**
+   * Commands should set this to true if the command is long-running.
+   */
+  persistent: boolean
+  /**
+   * Currently only used for the `dev` command.
+   */
+  sessionSettings?: SessionSettings
 }
 
 type DataCallback = (data: string) => void
@@ -459,6 +473,66 @@ export async function handleTaskResult({
   printFooter(log)
 
   return { result: { result: prepareProcessResult(result), graphResults } }
+}
+
+/**
+ * Determines which tasks (and with which settings) will be executed by a command.
+ *
+ * This applies both to the initial set of tasks that's run when a command starts (or immediately after a restart
+ * when garden config changes), and to the set of tasks that's processed when module sources change.
+ */
+export interface SessionSettings {
+  forceBuild: boolean
+  forceDeploy: boolean
+  forceTest: boolean
+  /**
+   * `["*"]` means: include build tasks for all modules.
+   * `[]` means: don't include build tasks for any modules (except as dependencies of other added tasks)
+   */
+  buildModuleNames: string[]
+  /**
+   * `["*"]` means: include deploy tasks for all services.
+   * `[]` means: don't include deploy tasks for any services (except as dependencies of other added tasks)
+   */
+  deployServiceNames: string[]
+  skipDeployServiceNames: string[]
+  /**
+   * `["*"]` means: include test tasks for all modules.
+   * `[]` means: don't include test tasks for any modules.
+   */
+  testModuleNames: string[]
+  /**
+   * `["*"]` means: don't filter on test config name
+   * `[]` is not allowed.
+   */
+  testConfigNames: string[] // E.g. from the `--name` option of the `test` command.
+  /**
+   * `["*"]` means: deploy all services indicated by `deployServiceNames` in dev mode.
+   * `[]` means: don't deploy any service in dev mode.
+   */
+  devModeServiceNames: string[]
+  /**
+   * `["*"]` means: deploy all services indicated by `deployServiceNames` with hot reloading.
+   * `[]` means: don't deploy any service with hot reloading.
+   */
+  hotReloadServiceNames: string[]
+}
+
+export function prepareSessionSettings(params: Partial<SessionSettings>): SessionSettings {
+  const settings = {
+    forceBuild: false,
+    forceDeploy: false,
+    forceTest: false,
+    buildModuleNames: [],
+    deployServiceNames: [],
+    skipDeployServiceNames: [],
+    testModuleNames: [],
+    testConfigNames: [],
+    devModeServiceNames: [],
+    hotReloadServiceNames: [],
+    ...params,
+  }
+  return settings
 }
 
 export type ProcessResultMetadata = {
