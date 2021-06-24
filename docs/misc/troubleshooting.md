@@ -7,6 +7,22 @@ title: Troubleshooting
 
 _This section could (obviously) use more work. Contributions are most appreciated!_
 
+### I'm getting 401 auth errors on Azure.
+
+When running Garden commands against an Azure AKS cluster with RBAC enabled, an error like the following may appear:
+
+```
+Failed resolving provider Kubernetes. Here's the output:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Got error from Kubernetes API - Unauthorized
+
+StatusCodeError from Kubernetes API - 401 -
+{"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"Unauthorized","reason":"Unauthorized","code":401}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+This happens because Azure with [RBAC enabled](https://docs.microsoft.com/en-us/azure/aks/manage-azure-rbac) uses a different authentication mechanism that the Kubernetes client library doesn't support. The solution is to use [Kubelogin](https://github.com/Azure/kubelogin). See also this [GitHub issue](https://github.com/garden-io/garden/issues/2330).
+
 ### I have a huge number of files in my repository and Garden is eating all my CPU/RAM.
 
 This issue often comes up on Linux, and in other scenarios where the filesystem doesn't support event-based file watching.
