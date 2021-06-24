@@ -28,7 +28,7 @@ describe("WorkflowConfigContext", () => {
     garden = await makeTestGardenA()
     garden["secrets"] = { someSecret: "someSecretValue" }
     currentBranch = garden.vcsBranch
-    c = new WorkflowConfigContext(garden)
+    c = new WorkflowConfigContext(garden, garden.variables)
   })
 
   it("should resolve local env variables", async () => {

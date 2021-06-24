@@ -2873,6 +2873,184 @@ describe("Garden", () => {
       await garden.resolveModules({ log: garden.log })
     })
 
+    context("module variables", () => {
+      let garden: TestGarden
+
+      const test = createGardenPlugin({
+        name: "test",
+        createModuleTypes: [
+          {
+            name: "test",
+            docs: "test",
+            schema: joi.object().keys({ bla: joi.any() }),
+            handlers: {},
+          },
+        ],
+      })
+
+      beforeEach(async () => {
+        garden = await TestGarden.factory(pathFoo, {
+          plugins: [test],
+          config: {
+            apiVersion: DEFAULT_API_VERSION,
+            kind: "Project",
+            name: "test",
+            path: pathFoo,
+            defaultEnvironment: "default",
+            dotIgnoreFiles: [],
+            environments: [{ name: "default", defaultNamespace, variables: { some: "variable" } }],
+            providers: [{ name: "test" }],
+            variables: {},
+          },
+        })
+      })
+
+      it("resolves referenced project variables", async () => {
+        garden.setModuleConfigs([
+          {
+            apiVersion: DEFAULT_API_VERSION,
+            name: "module-a",
+            type: "test",
+            allowPublish: false,
+            build: { dependencies: [] },
+            disabled: false,
+            path: pathFoo,
+            serviceConfigs: [],
+            taskConfigs: [],
+            testConfigs: [],
+            spec: {
+              bla: "${var.some}",
+            },
+          },
+        ])
+
+        const module = await garden.resolveModule("module-a")
+
+        expect(module.spec.bla).to.equal("variable")
+      })
+
+      it("resolves referenced module variables", async () => {
+        garden.setModuleConfigs([
+          {
+            apiVersion: DEFAULT_API_VERSION,
+            name: "module-a",
+            type: "test",
+            allowPublish: false,
+            build: { dependencies: [] },
+            disabled: false,
+            path: pathFoo,
+            serviceConfigs: [],
+            taskConfigs: [],
+            testConfigs: [],
+            spec: {
+              bla: "${var.foo}",
+            },
+            variables: {
+              foo: "bar",
+            },
+          },
+        ])
+
+        const module = await garden.resolveModule("module-a")
+
+        expect(module.spec.bla).to.equal("bar")
+      })
+
+      it("prefers module variables over project variables", async () => {
+        garden.setModuleConfigs([
+          {
+            apiVersion: DEFAULT_API_VERSION,
+            name: "module-a",
+            type: "test",
+            allowPublish: false,
+            build: { dependencies: [] },
+            disabled: false,
+            path: pathFoo,
+            serviceConfigs: [],
+            taskConfigs: [],
+            testConfigs: [],
+            spec: {
+              bla: "${var.some}",
+            },
+            variables: {
+              some: "foo",
+            },
+          },
+        ])
+
+        const module = await garden.resolveModule("module-a")
+
+        expect(module.spec.bla).to.equal("foo")
+      })
+
+      it("resolves project variables in module variables", async () => {
+        garden.setModuleConfigs([
+          {
+            apiVersion: DEFAULT_API_VERSION,
+            name: "module-a",
+            type: "test",
+            allowPublish: false,
+            build: { dependencies: [] },
+            disabled: false,
+            path: pathFoo,
+            serviceConfigs: [],
+            taskConfigs: [],
+            testConfigs: [],
+            spec: {
+              bla: "${var.some}",
+            },
+            variables: {
+              some: "prefix-${var.some}",
+            },
+          },
+        ])
+
+        const module = await garden.resolveModule("module-a")
+
+        expect(module.spec.bla).to.equal("prefix-variable")
+      })
+
+      it("exposes module vars to other modules", async () => {
+        garden.setModuleConfigs([
+          {
+            apiVersion: DEFAULT_API_VERSION,
+            name: "module-a",
+            type: "test",
+            allowPublish: false,
+            build: { dependencies: [] },
+            disabled: false,
+            path: pathFoo,
+            serviceConfigs: [],
+            taskConfigs: [],
+            testConfigs: [],
+            spec: {},
+            variables: {
+              foo: "bar",
+            },
+          },
+          {
+            apiVersion: DEFAULT_API_VERSION,
+            name: "module-b",
+            type: "test",
+            allowPublish: false,
+            build: { dependencies: [] },
+            disabled: false,
+            path: projectRootA,
+            serviceConfigs: [],
+            taskConfigs: [],
+            testConfigs: [],
+            spec: {
+              bla: "${modules.module-a.var.foo}",
+            },
+          },
+        ])
+
+        const module = await garden.resolveModule("module-b")
+
+        expect(module.spec.bla).to.equal("bar")
+      })
+    })
+
     it("resolves and writes a module file with a string value", async () => {
       const projectRoot = getDataDir("test-projects", "module-templates")
       const filePath = resolve(projectRoot, "module-a.log")

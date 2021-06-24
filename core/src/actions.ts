@@ -856,15 +856,13 @@ export class ActionRouter implements TypeGuard {
 
     const providers = await this.garden.resolveProviders(log)
     const graph = await this.garden.getConfigGraph(log)
-    const templateContext = new ModuleConfigContext({
+    const templateContext = ModuleConfigContext.fromModule({
       garden: this.garden,
       resolvedProviders: providers,
+      module,
       modules: graph.getModules(),
-      moduleConfig: module,
-      buildPath: module.buildPath,
-      partialRuntimeResolution: true,
+      partialRuntimeResolution: false,
     })
-
     const handlerParams = {
       ...(await this.commonParams(handler, (<any>params).log, templateContext)),
       ...params,
@@ -887,7 +885,7 @@ export class ActionRouter implements TypeGuard {
     defaultHandler?: ServiceActionHandlers[T]
   }) {
     let { log, service, runtimeContext } = params
-    let module = omit(service.module, ["_config"])
+    let module = service.module
 
     log.silly(`Getting ${actionType} handler for service ${service.name}`)
 
@@ -902,13 +900,12 @@ export class ActionRouter implements TypeGuard {
     const graph = await this.garden.getConfigGraph(log, runtimeContext)
 
     const modules = graph.getModules()
-    const templateContext = new ModuleConfigContext({
+    const templateContext = ModuleConfigContext.fromModule({
       garden: this.garden,
       resolvedProviders: providers,
+      module,
       modules,
       runtimeContext,
-      moduleConfig: module,
-      buildPath: module.buildPath,
       partialRuntimeResolution: false,
     })
 
@@ -922,7 +919,7 @@ export class ActionRouter implements TypeGuard {
 
       // Resolve the service again
       service = graph.getService(service.name)
-      module = omit(service.module, ["_config"])
+      module = service.module
 
       // Set allowPartial=false to ensure all required strings are resolved.
       service.config = resolveTemplateStrings(service.config, templateContext, { allowPartial: false })
@@ -932,7 +929,7 @@ export class ActionRouter implements TypeGuard {
       ...(await this.commonParams(handler, log, templateContext)),
       ...params,
       service,
-      module,
+      module: omit(service.module, ["_config"]),
       runtimeContext,
     }
 
@@ -955,7 +952,7 @@ export class ActionRouter implements TypeGuard {
   }) {
     let { task, log } = params
     const runtimeContext = params["runtimeContext"] as RuntimeContext | undefined
-    let module = omit(task.module, ["_config"])
+    let module = task.module
 
     log.silly(`Getting ${actionType} handler for task ${module.name}.${task.name}`)
 
@@ -968,16 +965,14 @@ export class ActionRouter implements TypeGuard {
 
     const providers = await this.garden.resolveProviders(log)
     const graph = await this.garden.getConfigGraph(log, runtimeContext)
-    module = task.module
 
     const modules = graph.getModules()
-    const templateContext = new ModuleConfigContext({
+    const templateContext = ModuleConfigContext.fromModule({
       garden: this.garden,
       resolvedProviders: providers,
+      module,
       modules,
       runtimeContext,
-      moduleConfig: module,
-      buildPath: module.buildPath,
       partialRuntimeResolution: false,
     })
 
@@ -1000,7 +995,7 @@ export class ActionRouter implements TypeGuard {
     const handlerParams: any = {
       ...(await this.commonParams(handler, (<any>params).log, templateContext)),
       ...params,
-      module,
+      module: omit(task.module, ["_config"]),
       task,
     }
 

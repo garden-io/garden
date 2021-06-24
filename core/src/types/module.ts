@@ -12,7 +12,15 @@ import { ModuleConfig, moduleConfigSchema } from "../config/module"
 import { ModuleVersion } from "../vcs/vcs"
 import { pathToCacheContext } from "../cache"
 import { Garden } from "../garden"
-import { joiArray, joiIdentifier, joiIdentifierMap, joi, moduleVersionSchema, PrimitiveMap } from "../config/common"
+import {
+  joiArray,
+  joiIdentifier,
+  joiIdentifierMap,
+  joi,
+  moduleVersionSchema,
+  PrimitiveMap,
+  DeepPrimitiveMap,
+} from "../config/common"
 import { getModuleTypeBases } from "../plugins"
 import { ModuleType } from "./plugin/plugin"
 import { moduleOutputsSchema } from "./plugin/module/getModuleOutputs"
@@ -42,6 +50,8 @@ export interface GardenModule<M extends {} = any, S extends {} = any, T extends 
 
   taskNames: string[]
   taskDependencyNames: string[]
+
+  variables: DeepPrimitiveMap
 
   compatibleTypes: string[]
   _config: ModuleConfig<M, S, T, W>
@@ -126,6 +136,8 @@ export async function moduleFromConfig({
     taskDependencyNames: uniq(
       flatten(config.taskConfigs.map((taskConfig) => taskConfig.dependencies).filter((deps) => !!deps))
     ),
+
+    variables: config.variables || {},
 
     compatibleTypes,
     _config: config,

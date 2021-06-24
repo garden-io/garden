@@ -316,18 +316,18 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
   )
   public variables: DeepPrimitiveMap
 
-  constructor(garden: Garden) {
+  constructor(garden: Garden, variables: DeepPrimitiveMap) {
     super({
       projectName: garden.projectName,
       projectRoot: garden.projectRoot,
       artifactsPath: garden.artifactsPath,
       branch: garden.vcsBranch,
       username: garden.username,
-      variables: garden.variables,
       loggedIn: !!garden.enterpriseApi,
       enterpriseDomain: garden.enterpriseApi?.domain,
       secrets: garden.secrets,
       commandInfo: garden.commandInfo,
+      variables,
     })
 
     const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName

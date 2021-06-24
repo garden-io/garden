@@ -218,6 +218,7 @@ describe("validateKubernetesModule", () => {
         },
       ],
       type: "kubernetes",
+      variables: undefined,
     })
   })
 
@@ -425,6 +426,7 @@ describe("validateKubernetesModule", () => {
         },
       ],
       type: "kubernetes",
+      variables: undefined,
     })
   })
 

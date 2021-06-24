@@ -140,6 +140,11 @@ generateFiles:
     # The desired file contents as a string.
     value:
 
+# A map of variables scoped to this particular module. These are resolved before any other parts of the module
+# configuration and take precedence over project-scoped variables. They may reference project-scoped variables, and
+# generally use any template strings normally allowed when resolving modules.
+variables:
+
 # Specify build arguments to use when building the container image.
 #
 # Note: Garden will always set a `GARDEN_MODULE_VERSION` argument with the module version at build time.
@@ -852,6 +857,14 @@ The desired file contents as a string.
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `variables`
+
+A map of variables scoped to this particular module. These are resolved before any other parts of the module configuration and take precedence over project-scoped variables. They may reference project-scoped variables, and generally use any template strings normally allowed when resolving modules.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
 ### `buildArgs`
 
@@ -2352,6 +2365,20 @@ Example:
 ```yaml
 my-variable: ${modules.my-module.path}
 ```
+
+### `${modules.<module-name>.var.*}`
+
+A map of all variables defined in the module.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${modules.<module-name>.var.<variable-name>}`
+
+| Type                                             |
+| ------------------------------------------------ |
+| `string | number | boolean | link | array[link]` |
 
 ### `${modules.<module-name>.version}`
 

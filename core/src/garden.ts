@@ -324,7 +324,7 @@ export class Garden {
       this,
       provider,
       this.opts.commandInfo,
-      templateContext || new ProviderConfigContext(this, provider.dependencies)
+      templateContext || new ProviderConfigContext(this, provider.dependencies, this.variables)
     )
   }
 
@@ -642,6 +642,7 @@ export class Garden {
     return new OutputConfigContext({
       garden: this,
       resolvedProviders: providers,
+      variables: this.variables,
       modules,
       runtimeContext,
       partialRuntimeResolution: false,
@@ -1025,7 +1026,7 @@ export class Garden {
    * Returns the configured project sources, and resolves any template strings on them.
    */
   public getProjectSources() {
-    const context = new RemoteSourceConfigContext(this)
+    const context = new RemoteSourceConfigContext(this, this.variables)
     const resolved = validateSchema(resolveTemplateStrings(this.projectSources, context), projectSourcesSchema(), {
       context: "remote source",
     })

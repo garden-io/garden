@@ -192,6 +192,7 @@ export class ModuleResolver {
   private getModuleDependenciesFromTemplateStrings(rawConfig: ModuleConfig, buildPath: string) {
     const configContext = new ModuleConfigContext({
       garden: this.garden,
+      variables: this.garden.variables,
       resolvedProviders: this.resolvedProviders,
       moduleConfig: rawConfig,
       buildPath,
@@ -236,6 +237,7 @@ export class ModuleResolver {
 
     const templateContextParams: ModuleConfigContextParams = {
       garden,
+      variables: garden.variables,
       resolvedProviders: this.resolvedProviders,
       modules: dependencies,
       moduleConfig: config,
@@ -244,7 +246,7 @@ export class ModuleResolver {
       partialRuntimeResolution: true,
     }
 
-    // First resolve and validate the inputs field, because template module inputs may not be fully resolved at this
+    // Resolve and validate the inputs field, because template module inputs may not be fully resolved at this
     // time.
     // TODO: This whole complicated procedure could be much improved and simplified by implementing lazy resolution on
     // values... I'll be looking into that. - JE
@@ -271,6 +273,14 @@ export class ModuleResolver {
       config.inputs = inputs
     }
 
+    // Resolve the variables field before resolving everything else
+    const rawVariables = config.variables
+    const resolvedVariables = resolveTemplateStrings(
+      cloneDeep(rawVariables || {}),
+      new ModuleConfigContext(templateContextParams),
+      { allowPartial: false }
+    )
+
     // Now resolve just references to inputs on the config
     config = resolveTemplateStrings(cloneDeep(config), new GenericContext({ inputs }), {
       allowPartial: true,
@@ -280,12 +290,14 @@ export class ModuleResolver {
     const configContext = new ModuleConfigContext({
       ...templateContextParams,
       moduleConfig: config,
+      variables: { ...garden.variables, ...resolvedVariables },
     })
 
-    config = resolveTemplateStrings({ ...config, inputs: {} }, configContext, {
+    config = resolveTemplateStrings({ ...config, inputs: {}, variables: {} }, configContext, {
       allowPartial: false,
     })
 
+    config.variables = rawVariables ? resolvedVariables : undefined
     config.inputs = inputs
 
     const moduleTypeDefinitions = await garden.getModuleTypes()
@@ -397,6 +409,7 @@ export class ModuleResolver {
     const configContext = new ModuleConfigContext({
       garden: this.garden,
       resolvedProviders: this.resolvedProviders,
+      variables: { ...this.garden.variables, ...resolvedConfig.variables },
       moduleConfig: resolvedConfig,
       buildPath,
       modules: dependencies,

@@ -86,6 +86,7 @@ interface ModuleSpecCommon {
   path?: string
   repositoryUrl?: string
   type: string
+  variables?: DeepPrimitiveMap
 }
 
 export interface AddModuleSpec extends ModuleSpecCommon {
@@ -209,6 +210,9 @@ export const baseModuleSpecKeys = () => ({
     .description("When false, disables pushing this module to remote registries."),
   generateFiles: joiSparseArray(generatedFileSchema()).description(dedent`
     A list of files to write to the module directory when resolving this module. This is useful to automatically generate (and template) any supporting files needed for the module.
+  `),
+  variables: joiVariables().default(() => undefined).description(dedent`
+    A map of variables scoped to this particular module. These are resolved before any other parts of the module configuration and take precedence over project-scoped variables. They may reference project-scoped variables, and generally use any template strings normally allowed when resolving modules.
   `),
 })
 

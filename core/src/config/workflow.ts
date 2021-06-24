@@ -323,7 +323,7 @@ export const triggerSchema = () => {
         dedent`
         A list of [GitHub events](https://docs.github.com/en/developers/webhooks-and-events/webhook-events-and-payloads) that should trigger this workflow.
 
-        See the Garden Enterprise documentation on [configuring workflows](https://enterprise.docs.garden.io/getting-started/workflows) for more details.
+        See the Garden Cloud documentation on [configuring workflows](https://cloud.docs.garden.io/getting-started/workflows) for more details.
 
         Supported events:
 
@@ -356,7 +356,7 @@ export interface WorkflowConfigMap {
 
 export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
   const log = garden.log
-  const context = new WorkflowConfigContext(garden)
+  const context = new WorkflowConfigContext(garden, garden.variables)
 
   log.silly(`Resolving template strings for workflow ${config.name}`)
 

@@ -20,14 +20,14 @@ interface TestValues {
 describe("ProviderConfigContext", () => {
   it("should set an empty namespace and environment.fullName to environment.name if no namespace is set", async () => {
     const garden = await makeTestGarden(projectRootA, { environmentName: "local" })
-    const c = new ProviderConfigContext(garden, await garden.resolveProviders(garden.log))
+    const c = new ProviderConfigContext(garden, await garden.resolveProviders(garden.log), garden.variables)
 
     expect(c.resolve({ key: ["environment", "name"], nodePath: [], opts: {} })).to.eql({ resolved: "local" })
   })
 
   it("should set environment.namespace and environment.fullName to properly if namespace is set", async () => {
     const garden = await makeTestGarden(projectRootA, { environmentName: "foo.local" })
-    const c = new ProviderConfigContext(garden, await garden.resolveProviders(garden.log))
+    const c = new ProviderConfigContext(garden, await garden.resolveProviders(garden.log), garden.variables)
 
     expect(c.resolve({ key: ["environment", "name"], nodePath: [], opts: {} })).to.eql({ resolved: "local" })
     expect(c.resolve({ key: ["environment", "namespace"], nodePath: [], opts: {} })).to.eql({ resolved: "foo" })

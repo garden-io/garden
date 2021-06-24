@@ -43,6 +43,7 @@ describe("ModuleConfigContext", () => {
     c = new ModuleConfigContext({
       garden,
       resolvedProviders: keyBy(await garden.resolveProviders(garden.log), "name"),
+      variables: garden.variables,
       modules,
       moduleConfig: module,
       buildPath: module.buildPath,
@@ -176,6 +177,7 @@ describe("ModuleConfigContext", () => {
       withRuntime = new ModuleConfigContext({
         garden,
         resolvedProviders: keyBy(await garden.resolveProviders(garden.log), "name"),
+        variables: garden.variables,
         modules,
         moduleConfig: serviceA.module,
         buildPath: serviceA.module.buildPath,
@@ -219,7 +221,7 @@ describe("WorkflowConfigContext", () => {
   before(async () => {
     garden = await makeTestGardenA()
     garden["secrets"] = { someSecret: "someSecretValue" }
-    c = new WorkflowConfigContext(garden)
+    c = new WorkflowConfigContext(garden, garden.variables)
   })
 
   it("should resolve local env variables", async () => {

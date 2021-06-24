@@ -127,6 +127,11 @@ generateFiles:
     # The desired file contents as a string.
     value:
 
+# A map of variables scoped to this particular module. These are resolved before any other parts of the module
+# configuration and take precedence over project-scoped variables. They may reference project-scoped variables, and
+# generally use any template strings normally allowed when resolving modules.
+variables:
+
 # Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more information
 # about failures and then manually roll back, instead of having Helm do it automatically on failure.
 atomicInstall: true
@@ -708,6 +713,14 @@ The desired file contents as a string.
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `variables`
+
+A map of variables scoped to this particular module. These are resolved before any other parts of the module configuration and take precedence over project-scoped variables. They may reference project-scoped variables, and generally use any template strings normally allowed when resolving modules.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
 ### `atomicInstall`
 
@@ -1665,6 +1678,20 @@ Example:
 ```yaml
 my-variable: ${modules.my-module.path}
 ```
+
+### `${modules.<module-name>.var.*}`
+
+A map of all variables defined in the module.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${modules.<module-name>.var.<variable-name>}`
+
+| Type                                             |
+| ------------------------------------------------ |
+| `string | number | boolean | link | array[link]` |
 
 ### `${modules.<module-name>.version}`
 

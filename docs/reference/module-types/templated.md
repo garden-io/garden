@@ -12,7 +12,7 @@ A special module type, for rendering [module templates](../../using-garden/modul
 Specify the name of a ModuleTemplate with the `template` field, and provide any expected inputs using the `inputs` field. The generated modules becomes sub-modules of this module.
 
 Note that the following common Module configuration fields are disallowed for this module type:
-`build`, `description`, `include`, `exclude`, `repositoryUrl`, `allowPublish` and `generateFiles`
+`build`, `description`, `include`, `exclude`, `repositoryUrl`, `allowPublish`, `generateFiles` and `variables`
 
 Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-overview.md).
@@ -124,6 +124,11 @@ generateFiles:
 
     # The desired file contents as a string.
     value:
+
+# A map of variables scoped to this particular module. These are resolved before any other parts of the module
+# configuration and take precedence over project-scoped variables. They may reference project-scoped variables, and
+# generally use any template strings normally allowed when resolving modules.
+variables:
 
 # The ModuleTemplate to use to generate the sub-modules of this module.
 template:
@@ -375,6 +380,14 @@ The desired file contents as a string.
 | -------- | -------- |
 | `string` | No       |
 
+### `variables`
+
+A map of variables scoped to this particular module. These are resolved before any other parts of the module configuration and take precedence over project-scoped variables. They may reference project-scoped variables, and generally use any template strings normally allowed when resolving modules.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
 ### `template`
 
 The ModuleTemplate to use to generate the sub-modules of this module.
@@ -436,6 +449,20 @@ Example:
 ```yaml
 my-variable: ${modules.my-module.path}
 ```
+
+### `${modules.<module-name>.var.*}`
+
+A map of all variables defined in the module.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${modules.<module-name>.var.<variable-name>}`
+
+| Type                                             |
+| ------------------------------------------------ |
+| `string | number | boolean | link | array[link]` |
 
 ### `${modules.<module-name>.version}`
 

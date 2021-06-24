@@ -117,6 +117,7 @@ describe("configureHelmModule", () => {
       testConfigs: [],
       type: "helm",
       taskConfigs: [],
+      variables: undefined,
     })
   })
 

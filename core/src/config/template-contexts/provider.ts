@@ -7,7 +7,7 @@
  */
 
 import { mapValues } from "lodash"
-import { PrimitiveMap, joiIdentifierMap, joiPrimitive } from "../common"
+import { PrimitiveMap, joiIdentifierMap, joiPrimitive, DeepPrimitiveMap } from "../common"
 import { Provider, GenericProviderConfig, ProviderMap } from "../provider"
 import { Garden } from "../../garden"
 import { joi } from "../common"
@@ -63,8 +63,8 @@ export class ProviderConfigContext extends WorkflowConfigContext {
   )
   public providers: Map<string, ProviderContext>
 
-  constructor(garden: Garden, resolvedProviders: ProviderMap) {
-    super(garden)
+  constructor(garden: Garden, resolvedProviders: ProviderMap, variables: DeepPrimitiveMap) {
+    super(garden, variables)
 
     this.providers = new Map(Object.entries(mapValues(resolvedProviders, (p) => new ProviderContext(this, p))))
   }

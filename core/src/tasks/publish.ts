@@ -89,6 +89,7 @@ export class PublishTask extends BaseTask {
       const templateContext = new ModuleTagContext({
         garden: this.garden,
         moduleConfig: module,
+        variables: { ...this.garden.variables, ...module.variables },
         resolvedProviders,
         module,
         buildPath: module.buildPath,

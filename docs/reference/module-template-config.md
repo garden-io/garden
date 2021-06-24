@@ -147,6 +147,11 @@ modules:
         # The desired file contents as a string.
         value:
 
+    # A map of variables scoped to this particular module. These are resolved before any other parts of the module
+    # configuration and take precedence over project-scoped variables. They may reference project-scoped variables,
+    # and generally use any template strings normally allowed when resolving modules.
+    variables:
+
     # POSIX-style path of a sub-directory to set as the module root. If the directory does not exist, it is
     # automatically created.
     path:
@@ -461,6 +466,16 @@ The desired file contents as a string.
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `modules[].variables`
+
+[modules](#modules) > variables
+
+A map of variables scoped to this particular module. These are resolved before any other parts of the module configuration and take precedence over project-scoped variables. They may reference project-scoped variables, and generally use any template strings normally allowed when resolving modules.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
 ### `modules[].path`
 
