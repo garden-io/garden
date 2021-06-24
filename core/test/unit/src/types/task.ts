@@ -23,7 +23,7 @@ describe("taskFromConfig", () => {
     }
 
     const garden = await makeTestGardenA()
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const module = graph.getModule("module-a")
     const task = taskFromConfig(module, config)
 
@@ -41,7 +41,7 @@ describe("taskFromConfig", () => {
     }
 
     const garden = await makeTestGardenA()
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const module = graph.getModule("module-a")
     module.disabled = true
     const task = taskFromConfig(module, config)

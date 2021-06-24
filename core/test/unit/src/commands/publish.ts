@@ -103,7 +103,7 @@ describe("PublishCommand", () => {
       res.durationMsec = 0
     }
 
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: false })
     const modules = keyBy(graph.getModules(), "name")
 
     expect(published).to.eql({

@@ -107,12 +107,13 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
 
   let buildLog = ""
 
-  // Stream debug log to a status line
+  // Stream verbose logs to a status line
   const outputStream = split2()
   const statusLine = log.placeholder({ level: LogLevel.verbose })
 
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
+    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
     statusLine.setState(renderOutputStream(line.toString()))
   })
 

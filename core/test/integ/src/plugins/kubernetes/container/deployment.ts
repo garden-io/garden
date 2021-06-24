@@ -37,7 +37,7 @@ describe("kubernetes container deployment handlers", () => {
   let api: KubeApi
 
   beforeEach(async () => {
-    graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
   after(async () => {

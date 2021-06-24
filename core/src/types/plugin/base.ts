@@ -15,6 +15,7 @@ import { GardenTask } from "../task"
 import { taskSchema } from "../../types/task"
 import { joi, joiIdentifier } from "../../config/common"
 import { ActionHandlerParamsBase } from "./plugin"
+import { deline } from "../../util/string"
 
 export interface PluginActionContextParams extends ActionHandlerParamsBase {
   ctx: PluginContext
@@ -29,10 +30,16 @@ export interface PluginActionParamsBase extends PluginActionContextParams {
 export const logEntrySchema = () =>
   joi.object().description("Logging context handler that the handler can use to log messages and progress.").required()
 
+export const pluginEventBrokerSchema = () =>
+  joi.object().description(deline`
+    Event broker that the handler can use to emit events that are handled by the action and/or command that called it.
+  `)
+
 export const actionParamsSchema = () =>
   joi.object().keys({
     ctx: pluginContextSchema().required(),
     log: logEntrySchema(),
+    events: pluginEventBrokerSchema(),
   })
 
 export type NamespaceState = "ready" | "missing"

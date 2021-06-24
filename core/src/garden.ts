@@ -665,8 +665,20 @@ export class Garden {
    * Resolve the raw module configs and return a new instance of ConfigGraph.
    * The graph instance is immutable and represents the configuration at the point of calling this method.
    * For long-running processes, you need to call this again when any module or configuration has been updated.
+   *
+   * If `emit = true` is passed, a `stackGraph` event with a rendered DAG representation of the graph will be emitted.
+   * When implementing a new command that calls this method and also streams events, make sure that the first
+   * call to `getConfigGraph` in the command uses `emit = true` to ensure that the graph event gets streamed.
    */
-  async getConfigGraph(log: LogEntry, runtimeContext?: RuntimeContext) {
+  async getConfigGraph({
+    log,
+    runtimeContext,
+    emit,
+  }: {
+    log: LogEntry
+    runtimeContext?: RuntimeContext
+    emit: boolean
+  }) {
     const resolvedProviders = await this.resolveProviders(log)
     const rawConfigs = await this.getRawModuleConfigs()
 
@@ -836,6 +848,10 @@ export class Garden {
       },
       { concurrency: moduleResolutionConcurrencyLimit }
     )
+
+    if (emit) {
+      this.events.emit("stackGraph", graph.render())
+    }
 
     return graph
   }
@@ -1125,7 +1141,7 @@ export class Garden {
       moduleConfigs = await this.getRawModuleConfigs()
       workflowConfigs = await this.getRawWorkflowConfigs()
     } else {
-      const graph = await this.getConfigGraph(log)
+      const graph = await this.getConfigGraph({ log, emit: false })
       const modules = graph.getModules({ includeDisabled })
       workflowConfigs = (await this.getRawWorkflowConfigs()).map((config) => resolveWorkflowConfig(this, config))
 

@@ -120,7 +120,7 @@ describe("TaskTask", () => {
         },
       ])
 
-      let graph = await garden.getConfigGraph(garden.log)
+      let graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       let taskTask = new TaskTask({
         garden,
         graph,
@@ -172,7 +172,7 @@ describe("TaskTask", () => {
         },
       ])
 
-      let graph = await garden.getConfigGraph(garden.log)
+      let graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       let taskTask = new TaskTask({
         garden,
         graph,

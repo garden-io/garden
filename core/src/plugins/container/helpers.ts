@@ -293,7 +293,8 @@ const helpers = {
     log,
     ctx,
     ignoreError = false,
-    outputStream,
+    stdout,
+    stderr,
     timeout,
   }: {
     cwd: string
@@ -301,7 +302,8 @@ const helpers = {
     log: LogEntry
     ctx: PluginContext
     ignoreError?: boolean
-    outputStream?: Writable
+    stdout?: Writable
+    stderr?: Writable
     timeout?: number
   }) {
     const docker = ctx.tools["container.docker"]
@@ -313,7 +315,8 @@ const helpers = {
         env: { ...process.env, DOCKER_CLI_EXPERIMENTAL: "enabled" },
         ignoreError,
         log,
-        stdout: outputStream,
+        stdout,
+        stderr,
         timeoutSec: timeout,
       })
       return res

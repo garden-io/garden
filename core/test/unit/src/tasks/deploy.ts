@@ -128,7 +128,7 @@ describe("DeployTask", () => {
       },
     }
 
-    graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
   after(async () => {

@@ -119,6 +119,7 @@ export class TestCommand extends Command<Args, Opts> {
 
   async action({
     garden,
+    isWorkflowStepCommand,
     log,
     footerLog,
     args,
@@ -130,7 +131,7 @@ export class TestCommand extends Command<Args, Opts> {
       this.server.setGarden(garden)
     }
 
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: !isWorkflowStepCommand })
     const skipDependants = opts["skip-dependants"]
     let modules: GardenModule[]
 

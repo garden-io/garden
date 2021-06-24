@@ -119,7 +119,7 @@ describe("DevCommand", () => {
   it("should initially deploy services with hot reloading when requested", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: false })
     const modules = graph.getModules()
 
     const initialTasks = await getDevCommandInitialTasks({
@@ -282,7 +282,7 @@ describe("getDevCommandWatchTasks", () => {
   it("should deploy, run and test appropriately on watch change", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: false })
 
     const watchTasks = await getDevCommandWatchTasks({
       garden,

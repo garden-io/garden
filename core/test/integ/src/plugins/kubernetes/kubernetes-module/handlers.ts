@@ -108,7 +108,7 @@ describe("kubernetes-module handlers", () => {
       taskConfigs: [],
     }
 
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     await buildHelmModules(garden, graph)
   })
 
@@ -122,7 +122,7 @@ describe("kubernetes-module handlers", () => {
 
   describe("getServiceStatus", () => {
     it("should return missing status for a manifest with a missing resource type", async () => {
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const service = graph.getService("module-simple")
       const deployParams = {
         ctx,
@@ -150,7 +150,7 @@ describe("kubernetes-module handlers", () => {
 
   describe("deployKubernetesService", () => {
     it("should successfully deploy when serviceResource doesn't have a containerModule", async () => {
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const service = graph.getService("module-simple")
       const deployParams = {
         ctx,
@@ -173,7 +173,7 @@ describe("kubernetes-module handlers", () => {
     })
 
     it("should toggle hot reload", async () => {
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const service = graph.getService("with-source-module")
       const namespace = await getModuleNamespace({
         ctx,
@@ -219,7 +219,7 @@ describe("kubernetes-module handlers", () => {
     })
 
     it("should toggle devMode", async () => {
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const service = graph.getService("with-source-module")
       const namespace = await getModuleNamespace({
         ctx,
@@ -266,7 +266,7 @@ describe("kubernetes-module handlers", () => {
 
     it("should not delete previously deployed namespace resources", async () => {
       garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-module-ns-1")])
-      let graph = await garden.getConfigGraph(log)
+      let graph = await garden.getConfigGraph({ log, emit: false })
       let k8smodule = graph.getModule("namespace-resource")
       const defaultNamespace = await getModuleNamespace({ ctx, log, module: k8smodule, provider: ctx.provider })
       let manifests = await getManifests({ ctx, api, log, module: k8smodule, defaultNamespace })
@@ -306,7 +306,7 @@ describe("kubernetes-module handlers", () => {
 
       // This should result in a new namespace with a new name being deployed.
       garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-module-ns-2")])
-      graph = await garden.getConfigGraph(log)
+      graph = await garden.getConfigGraph({ log, emit: false })
       k8smodule = graph.getModule("namespace-resource")
       manifests = await getManifests({ ctx, api, log, module: k8smodule, defaultNamespace })
       ns2Manifest = manifests.find((resource) => resource.kind === "Namespace")
@@ -340,7 +340,7 @@ describe("kubernetes-module handlers", () => {
       expect(await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log), "ns1resource").to.exist
       expect(await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log), "ns2resource").to.exist
 
-      const graph = await garden.getConfigGraph(log)
+      const graph = await garden.getConfigGraph({ log, emit: false })
       const deleteServiceTask = new DeleteServiceTask({
         garden,
         graph,

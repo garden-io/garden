@@ -26,7 +26,7 @@ describe("conftest-kubernetes provider", () => {
       plugins: [gardenPlugin, conftestPlugin],
     })
 
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const helmModule = graph.getModule("helm")
     const module = graph.getModule("conftest-helm")
 
@@ -47,7 +47,7 @@ describe("conftest-kubernetes provider", () => {
       plugins: [gardenPlugin, conftestPlugin],
     })
 
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const kubernetesModule = graph.getModule("kubernetes")
     const module = graph.getModule("conftest-kubernetes")
 
@@ -68,7 +68,7 @@ describe("conftest-kubernetes provider", () => {
         plugins: [gardenPlugin, conftestPlugin],
       })
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("conftest-helm")
 
       const testTask = new TestTask({

@@ -59,6 +59,10 @@ export interface PrepareParams<T extends Parameters = {}, U extends Parameters =
 
 export interface CommandParams<T extends Parameters = {}, U extends Parameters = {}> extends PrepareParams<T, U> {
   garden: Garden
+  /**
+   * Only use when running a workflow step command (in which case `true` should be passed).
+   */
+  isWorkflowStepCommand?: boolean
 }
 
 interface PrepareOutput {
@@ -66,7 +70,7 @@ interface PrepareOutput {
   persistent: boolean
 }
 
-type DataCallback = (data: any) => void
+type DataCallback = (data: string) => void
 
 export abstract class Command<T extends Parameters = {}, U extends Parameters = {}> {
   abstract name: string
@@ -339,7 +343,7 @@ export function printResult({
 
 /**
  * Handles the command result and logging for commands that return a result of type RunResult. E.g.
- * the `run test` and `run service` commands.
+ * the ``run service` command.
  */
 export async function handleRunResult<T extends RunResult>({
   log,
@@ -381,23 +385,25 @@ export async function handleRunResult<T extends RunResult>({
 
 /**
  * Handles the command result and logging for commands the return a result of type TaskResult. E.g.
- * the `run task` command.
+ * the `run task` and `run test` commands.
  */
 export async function handleTaskResult({
   log,
   actionDescription,
   graphResults,
   key,
+  interactive = false,
 }: {
   log: LogEntry
   actionDescription: string
   graphResults: GraphResults
   key: string
+  interactive?: boolean
 }) {
   const result = graphResults[key]!
 
   // If there's an error, the task graph prints it
-  if (!result.error && result.output.log) {
+  if (!interactive && !result.error && result.output.log) {
     printResult({ log, result: result.output.log, success: true, actionDescription })
   }
 

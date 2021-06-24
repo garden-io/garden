@@ -71,7 +71,7 @@ describe("GetModulesCommand", () => {
 
     expect(command.outputsSchema().validate(res.result).error).to.be.undefined
 
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: false })
     const moduleA = graph.getModule("module-a")
 
     expect(res.result).to.eql({ modules: { "module-a": omit(moduleA, ["_config"]) } })

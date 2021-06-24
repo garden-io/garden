@@ -66,7 +66,7 @@ describe("kubernetes Pod runner functions", () => {
   })
 
   beforeEach(async () => {
-    graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
   after(async () => {
@@ -553,23 +553,6 @@ describe("kubernetes Pod runner functions", () => {
           `)
           expect(res.success).to.be.true
         })
-
-        it("throws if also specifying stdout or stderr", async () => {
-          const pod = makePod(["sh", "-c", "echo foo"])
-
-          runner = new PodRunner({
-            ctx,
-            pod,
-            namespace,
-            api,
-            provider,
-          })
-
-          await expectError(
-            () => runner.runAndWait({ log, remove: true, tty: true, stdout: new StringCollector() }),
-            (err) => expect(err.message).to.equal("Cannot set both tty and stdout/stderr/stdin streams")
-          )
-        })
       })
     })
   })
@@ -606,7 +589,7 @@ describe("kubernetes Pod runner functions", () => {
       helmCtx = <KubernetesPluginContext>await helmGarden.getPluginContext(helmProvider)
       helmApi = await KubeApi.factory(helmGarden.log, helmCtx, helmProvider)
       helmLog = helmGarden.log
-      helmGraph = await helmGarden.getConfigGraph(helmLog)
+      helmGraph = await helmGarden.getConfigGraph({ log: helmLog, emit: false })
       await buildHelmModules(helmGarden, helmGraph)
       helmModule = helmGraph.getModule("artifacts")
 

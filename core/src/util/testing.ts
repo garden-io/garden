@@ -117,7 +117,7 @@ export class TestGarden extends Garden {
     runtimeContext?: RuntimeContext
     includeDisabled?: boolean
   }): Promise<GardenModule[]> {
-    const graph = await this.getConfigGraph(log, runtimeContext)
+    const graph = await this.getConfigGraph({ log, runtimeContext, emit: false })
     return graph.getModules({ includeDisabled })
   }
 

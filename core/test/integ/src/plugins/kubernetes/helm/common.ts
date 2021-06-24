@@ -77,12 +77,12 @@ describe("Helm common functions", () => {
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = (await garden.getPluginContext(provider)) as KubernetesPluginContext
     log = garden.log
-    graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     await buildHelmModules(garden, graph)
   })
 
   beforeEach(async () => {
-    graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
   describe("containsSource", () => {

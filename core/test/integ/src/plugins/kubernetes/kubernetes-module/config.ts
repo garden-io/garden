@@ -145,7 +145,7 @@ describe("configureKubernetesModule", () => {
 
   it("should validate a Kubernetes module that has a source module", async () => {
     const module = await garden.resolveModule("with-source-module")
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const imageModule = graph.getModule("api-image")
     const imageVersion = imageModule.version.versionString
 

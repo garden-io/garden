@@ -1602,7 +1602,7 @@ describe("Garden", () => {
 
       const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins: [test] })
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       expect(graph.getModule("test--foo")).to.exist
     })
 
@@ -3540,7 +3540,7 @@ describe("Garden", () => {
       ])
 
       await expectError(
-        () => garden.getConfigGraph(garden.log),
+        () => garden.getConfigGraph({ log: garden.log, emit: false }),
         (err) =>
           expect(err.message).to.equal(dedent`
           Detected circular dependencies between module configurations:
@@ -3554,7 +3554,7 @@ describe("Garden", () => {
       const root = resolve(dataDir, "test-projects", "module-templates")
       const garden = await makeTestGarden(root)
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const moduleA = graph.getModule("foo-test-a")
 
       expect(moduleA.spec.extraFlags).to.eql(["testValue"])
@@ -3570,7 +3570,7 @@ describe("Garden", () => {
       moduleA.inputs = { name: "test", value: 123 }
 
       await expectError(
-        () => garden.getConfigGraph(garden.log),
+        () => garden.getConfigGraph({ log: garden.log, emit: false }),
         (err) =>
           expect(stripAnsi(err.message)).to.equal(dedent`
           Failed resolving one or more modules:
@@ -4401,7 +4401,7 @@ describe("Garden", () => {
         process.env.MODULE_A_TEST_ENV_VAR = "foo"
 
         const garden = await makeTestGarden(projectRoot)
-        const graph = await garden.getConfigGraph(garden.log)
+        const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const moduleA = graph.getModule("module-a")
         const moduleB = graph.getModule("module-b")
         const moduleC = graph.getModule("module-c")
@@ -4418,7 +4418,7 @@ describe("Garden", () => {
         process.env.MODULE_A_TEST_ENV_VAR = "foo"
 
         const garden = await makeTestGarden(projectRoot)
-        const graph = await garden.getConfigGraph(garden.log)
+        const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const moduleA = graph.getModule("module-a")
         const moduleB = graph.getModule("module-b")
         const moduleC = graph.getModule("module-c")
@@ -4435,7 +4435,7 @@ describe("Garden", () => {
         process.env.MODULE_A_TEST_ENV_VAR = "bar"
 
         const garden = await makeTestGarden(projectRoot)
-        const graph = await garden.getConfigGraph(garden.log)
+        const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const moduleA = graph.getModule("module-a")
         const moduleB = graph.getModule("module-b")
         const moduleC = graph.getModule("module-c")

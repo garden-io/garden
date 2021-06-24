@@ -42,7 +42,7 @@ describe("configureHelmModule", () => {
 
   it("should validate a Helm module", async () => {
     const module = await garden.resolveModule("api")
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const imageModule = graph.getModule("api-image")
 
     const imageVersion = imageModule.version.versionString

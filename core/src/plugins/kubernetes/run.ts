@@ -768,12 +768,17 @@ export class PodRunner extends PodRunnerParams {
     const mainContainerName = this.getMainContainerName()
 
     if (tty) {
-      if (stdout || stderr || stdin) {
-        throw new ParameterError(`Cannot set both tty and stdout/stderr/stdin streams`, { params })
+      if (stdout) {
+        stdout.pipe(process.stdout)
+      } else {
+        stdout = process.stdout
+      }
+      if (stderr) {
+        stderr.pipe(process.stderr)
+      } else {
+        stderr = process.stderr
       }
 
-      stdout = process.stdout
-      stderr = process.stderr
       stdin = process.stdin
     }
 
@@ -841,6 +846,15 @@ export class PodRunner extends PodRunnerParams {
         if (!attached && (tty || stdout || stderr)) {
           // Try to attach to Pod to stream logs
           try {
+            /**
+             * TODO: We miss out on any pod log lines that get written before we manage to attach to the pod. Thi
+             *  means that we can't guarantee that we'll pipe logs from the first 1-2 seconds (more, if several retries
+             * of this `while`-loop are needed) of the runner pod's execution to the `stdout`/`stderr` streams
+             * provided to this method.
+             *
+             * If this becomes a problem, we may need to come up with a different approach to ensure we stream those
+             * first few log lines.
+             */
             await this.api.attachToPod({
               namespace,
               podName,

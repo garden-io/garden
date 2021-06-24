@@ -120,7 +120,7 @@ describe("BuildStagingRsync", () => {
 
   describe("sync", () => {
     it("should not sync symlinks that point outside the module root", async () => {
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("symlink-outside-module")
 
       await garden.buildStaging.syncFromSrc(module, garden.log)

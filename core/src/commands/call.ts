@@ -66,11 +66,11 @@ export class CallCommand extends Command<Args> {
     printHeader(headerLog, "Call", "telephone_receiver")
   }
 
-  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<CallResult>> {
+  async action({ garden, isWorkflowStepCommand, log, args }: CommandParams<Args>): Promise<CommandResult<CallResult>> {
     let [serviceName, path] = splitFirst(args.serviceAndPath, "/")
 
     // TODO: better error when service doesn't exist
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: !isWorkflowStepCommand })
     const service = graph.getService(serviceName)
     // No need for full context, since we're just checking if the service is running.
     const runtimeContext = emptyRuntimeContext

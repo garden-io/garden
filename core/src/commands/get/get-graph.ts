@@ -24,7 +24,7 @@ export class GetGraphCommand extends Command {
   }
 
   async action({ garden, log }: CommandParams): Promise<CommandResult<GraphOutput>> {
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: false })
     const renderedGraph = graph.render()
     const output: GraphOutput = {
       nodes: renderedGraph.nodes,

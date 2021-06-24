@@ -71,7 +71,7 @@ describe("ActionRouter", () => {
     })
     log = garden.log
     actions = await garden.getActionRouter()
-    graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     module = graph.getModule("module-a")
     service = graph.getService("service-a")
     runtimeContext = await prepareRuntimeContext({
@@ -129,7 +129,7 @@ describe("ActionRouter", () => {
 
     describe("augmentGraph", () => {
       it("should return modules and/or dependency relations to add to the stack graph", async () => {
-        graph = await garden.getConfigGraph(garden.log)
+        graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const modules = graph.getModules()
         const providers = await garden.resolveProviders(garden.log)
         const result = await actions.augmentGraph({
@@ -931,7 +931,7 @@ describe("ActionRouter", () => {
       it("should copy artifacts exported by the handler to the artifacts directory", async () => {
         await emptyDir(garden.artifactsPath)
 
-        graph = await garden.getConfigGraph(garden.log)
+        graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const _task = graph.getTask("task-a")
 
         _task.spec.artifacts = [
@@ -1616,7 +1616,7 @@ describe("ActionRouter", () => {
         },
       })
 
-      graph = await garden.getConfigGraph(garden.log)
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const moduleA = graph.getModule("module-a")
 
       const base = Object.assign(
@@ -1654,7 +1654,7 @@ describe("ActionRouter", () => {
         },
       })
 
-      graph = await garden.getConfigGraph(garden.log)
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const moduleA = graph.getModule("module-a")
       const moduleB = graph.getModule("module-b")
 
@@ -1687,7 +1687,7 @@ describe("ActionRouter", () => {
         },
       })
 
-      graph = await garden.getConfigGraph(garden.log)
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const serviceA = graph.getService("service-a")
 
       const base = Object.assign(
@@ -1730,7 +1730,7 @@ describe("ActionRouter", () => {
         },
       })
 
-      graph = await garden.getConfigGraph(garden.log)
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const serviceA = graph.getService("service-a")
       const serviceB = graph.getService("service-b")
 
@@ -1784,7 +1784,7 @@ describe("ActionRouter", () => {
 
       garden["moduleConfigs"]["module-a"].spec.foo = "${runtime.services.service-b.outputs.foo}"
 
-      graph = await garden.getConfigGraph(garden.log)
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const serviceA = graph.getService("service-a")
       const serviceB = graph.getService("service-b")
 
@@ -1839,7 +1839,7 @@ describe("ActionRouter", () => {
 
       garden["moduleConfigs"]["module-a"].spec.services[0].foo = "${runtime.services.service-b.outputs.foo}"
 
-      graph = await garden.getConfigGraph(garden.log)
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const serviceA = graph.getService("service-a")
 
       const _runtimeContext = await prepareRuntimeContext({
@@ -1892,7 +1892,7 @@ describe("ActionRouter", () => {
         },
       })
 
-      graph = await garden.getConfigGraph(garden.log)
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const taskA = graph.getTask("task-a")
 
       const base = Object.assign(
@@ -1950,7 +1950,7 @@ describe("ActionRouter", () => {
         },
       })
 
-      graph = await garden.getConfigGraph(garden.log)
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const taskA = graph.getTask("task-a")
       const serviceB = graph.getService("service-b")
 
@@ -2017,7 +2017,7 @@ describe("ActionRouter", () => {
 
       garden["moduleConfigs"]["module-a"].spec.tasks[0].foo = "${runtime.services.service-b.outputs.foo}"
 
-      graph = await garden.getConfigGraph(garden.log)
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const taskA = graph.getTask("task-a")
       const serviceB = graph.getService("service-b")
 
@@ -2082,7 +2082,7 @@ describe("ActionRouter", () => {
 
       garden["moduleConfigs"]["module-a"].spec.tasks[0].foo = "${runtime.services.service-b.outputs.foo}"
 
-      graph = await garden.getConfigGraph(garden.log)
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const taskA = graph.getTask("task-a")
 
       const _runtimeContext = await prepareRuntimeContext({

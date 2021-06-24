@@ -354,7 +354,6 @@ export class GardenServer {
       }
 
       // Make sure we clean up listeners when connections end.
-      // TODO: detect broken connections - https://github.com/websockets/ws#how-to-detect-and-close-broken-connections
       websocket.on("close", cleanup)
 
       // Respond to commands.

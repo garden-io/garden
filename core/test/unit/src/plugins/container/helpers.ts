@@ -400,7 +400,7 @@ describe("containerHelpers", () => {
     it("should return true if module config explicitly sets a Dockerfile", async () => {
       td.replace(helpers, "hasDockerfile", () => true)
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("module-a")
 
       module.spec.dockerfile = "Dockerfile"

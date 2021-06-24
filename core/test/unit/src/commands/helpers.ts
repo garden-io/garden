@@ -16,7 +16,7 @@ describe("getDevModeServiceNames", () => {
 
   before(async () => {
     const garden = await makeTestGardenA()
-    graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
   it("should return all services if --dev-mode=* is set", async () => {

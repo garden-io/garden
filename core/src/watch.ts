@@ -283,7 +283,7 @@ export class Watcher extends EventEmitter {
 
   private async updateModules() {
     this.log.silly(`Watcher: Updating list of modules`)
-    const graph = await this.garden.getConfigGraph(this.log)
+    const graph = await this.garden.getConfigGraph({ log: this.log, emit: false })
     this.modules = graph.getModules()
   }
 

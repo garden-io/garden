@@ -371,11 +371,24 @@ export class ActionRouter implements TypeGuard {
   }
 
   async build<T extends GardenModule>(params: ModuleActionRouterParams<BuildModuleParams<T>>): Promise<BuildResult> {
+    const actionUid = uuidv4()
+    params.events = params.events || new PluginEventBroker()
     let result: BuildResult
     const startedAt = new Date()
     const moduleName = params.module.name
     const moduleVersion = params.module.version.versionString
-    const actionUid = uuidv4()
+    params.events.on("log", ({ timestamp, data }) => {
+      this.garden.events.emit("log", {
+        timestamp,
+        actionUid,
+        entity: {
+          type: "build",
+          key: `${moduleName}`,
+          moduleName,
+        },
+        data: data.toString(),
+      })
+    })
     this.garden.events.emit("buildStatus", {
       moduleName,
       moduleVersion,
@@ -448,9 +461,11 @@ export class ActionRouter implements TypeGuard {
       params.events.on("log", ({ timestamp, data }) => {
         this.garden.events.emit("log", {
           timestamp,
+          actionUid,
           entity: {
             type: "test",
-            key: `${params.module.name}.${params.test.name}`,
+            key: `${moduleName}.${testName}`,
+            moduleName,
           },
           data: data.toString(),
         })
@@ -524,17 +539,31 @@ export class ActionRouter implements TypeGuard {
 
   async deployService(params: ServiceActionRouterParams<DeployServiceParams>): Promise<ServiceStatus> {
     const actionUid = uuidv4()
+    params.events = params.events || new PluginEventBroker()
     const serviceName = params.service.name
     const moduleVersion = params.service.module.version.versionString
     const moduleName = params.service.module.name
+    params.events.on("log", ({ timestamp, data }) => {
+      this.garden.events.emit("log", {
+        timestamp,
+        actionUid,
+        entity: {
+          type: "deploy",
+          key: `${serviceName}`,
+          moduleName,
+        },
+        data: data.toString(),
+      })
+    })
     const serviceVersion = params.service.version
+    const deployStartedAt = new Date()
     this.garden.events.emit("serviceStatus", {
       serviceName,
       moduleName,
       moduleVersion,
       serviceVersion,
       actionUid,
-      status: { state: "deploying" },
+      status: { state: "deploying", deployStartedAt },
     })
     const { result } = await this.callServiceHandler({ params, actionType: "deployService" })
     this.garden.events.emit("serviceStatus", {
@@ -543,7 +572,11 @@ export class ActionRouter implements TypeGuard {
       moduleVersion,
       serviceVersion,
       actionUid,
-      status: omit(result, "detail"),
+      status: {
+        ...omit(result, "detail"),
+        deployStartedAt,
+        deployCompletedAt: new Date(),
+      },
     })
     this.emitNamespaceEvents(result.namespaceStatuses)
     this.validateServiceOutputs(params.service, result)
@@ -669,9 +702,11 @@ export class ActionRouter implements TypeGuard {
       params.events.on("log", ({ timestamp, data }) => {
         this.garden.events.emit("log", {
           timestamp,
+          actionUid,
           entity: {
             type: "task",
-            key: `${params.task.module.name}.${params.task.name}`,
+            key: taskName,
+            moduleName,
           },
           data: data.toString(),
         })
@@ -801,9 +836,7 @@ export class ActionRouter implements TypeGuard {
   /**
    * Deletes all or specified services in the environment.
    */
-  async deleteServices(log: LogEntry, names?: string[]) {
-    const graph = await this.garden.getConfigGraph(log)
-
+  async deleteServices(graph: ConfigGraph, log: LogEntry, names?: string[]) {
     const servicesLog = log.info({ msg: chalk.white("Deleting services..."), status: "active" })
 
     const services = graph.getServices({ names })
@@ -1051,7 +1084,7 @@ export class ActionRouter implements TypeGuard {
       log.silly(`Resolving runtime template strings for service '${service.name}'`)
 
       // Resolve the graph again (TODO: avoid this somehow!)
-      graph = await this.garden.getConfigGraph(log, runtimeContext)
+      graph = await this.garden.getConfigGraph({ log, runtimeContext, emit: false })
 
       // Resolve the service again
       service = graph.getService(service.name)
@@ -1120,7 +1153,7 @@ export class ActionRouter implements TypeGuard {
       log.silly(`Resolving runtime template strings for task '${task.name}'`)
 
       // Resolve the graph again (TODO: avoid this somehow!)
-      graph = await this.garden.getConfigGraph(log, runtimeContext)
+      graph = await this.garden.getConfigGraph({ log, runtimeContext, emit: false })
 
       // Resolve the task again
       task = graph.getTask(task.name)

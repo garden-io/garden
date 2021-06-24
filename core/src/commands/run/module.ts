@@ -90,7 +90,7 @@ export class RunModuleCommand extends Command<Args, Opts> {
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunModuleOutput>> {
     const moduleName = args.module
 
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: false })
     const module = graph.getModule(moduleName)
 
     const actions = await garden.getActionRouter()
