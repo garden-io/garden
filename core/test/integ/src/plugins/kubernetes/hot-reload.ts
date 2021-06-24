@@ -31,12 +31,12 @@ describe("getHotReloadSpec", () => {
 
   before(async () => {
     garden = await getHelmTestGarden()
-    graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     await buildHelmModules(garden, graph)
   })
 
   beforeEach(async () => {
-    graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
   it("should retrieve the hot reload spec on the service's source module", async () => {
@@ -106,7 +106,7 @@ describe("configureHotReload", () => {
   })
 
   beforeEach(async () => {
-    graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
   it("should only mount the sync volume on the main/resource container", async () => {

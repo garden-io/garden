@@ -18,7 +18,7 @@ describe("TestCommand", () => {
   it("should run all tests in a simple project", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: false })
 
     const { result } = await command.action({
       garden,

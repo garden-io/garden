@@ -66,9 +66,14 @@ export class GetStatusCommand extends Command {
     printHeader(headerLog, "Get status", "pager")
   }
 
-  async action({ garden, log, opts }: CommandParams): Promise<CommandResult<StatusCommandResult>> {
+  async action({
+    garden,
+    isWorkflowStepCommand,
+    log,
+    opts,
+  }: CommandParams): Promise<CommandResult<StatusCommandResult>> {
     const actions = await garden.getActionRouter()
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: !isWorkflowStepCommand })
 
     const envStatus = await garden.getEnvironmentStatus(log)
     const serviceStatuses = await actions.getServiceStatuses({ log, graph })

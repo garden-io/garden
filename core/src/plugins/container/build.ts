@@ -12,8 +12,9 @@ import { ConfigurationError } from "../../exceptions"
 import { GetBuildStatusParams } from "../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams } from "../../types/plugin/module/build"
 import { LogLevel } from "../../logger/logger"
-import { createOutputStream } from "../../util/util"
+import { renderOutputStream } from "../../util/util"
 import { PrimitiveMap } from "../../config/common"
+import split2 from "split2"
 
 export async function getContainerBuildStatus({ ctx, module, log }: GetBuildStatusParams<ContainerModule>) {
   const identifier = await containerHelpers.imageExistsLocally(module, log, ctx)
@@ -64,14 +65,22 @@ export async function buildContainerModule({ ctx, module, log }: BuildModulePara
     cmdOpts.push("--file", containerHelpers.getDockerfileBuildPath(module))
   }
 
-  // Stream log to a status line
-  const outputStream = createOutputStream(log.placeholder({ level: LogLevel.verbose }))
+  // Stream verbose log to a status line
+  const outputStream = split2()
+  const statusLine = log.placeholder({ level: LogLevel.verbose })
+
+  outputStream.on("error", () => {})
+  outputStream.on("data", (line: Buffer) => {
+    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
+    statusLine.setState(renderOutputStream(line.toString()))
+  })
   const timeout = module.spec.build.timeout
   const res = await containerHelpers.dockerCli({
     cwd: module.buildPath,
     args: [...cmdOpts, buildPath],
     log,
-    outputStream,
+    stdout: outputStream,
+    stderr: outputStream,
     timeout,
     ctx,
   })

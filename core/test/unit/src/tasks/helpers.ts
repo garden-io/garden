@@ -84,7 +84,7 @@ describe("TaskHelpers", () => {
         },
       ])
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("module-a", true)
 
       const tasks = await getModuleWatchTasks({
@@ -150,7 +150,7 @@ describe("TaskHelpers", () => {
         },
       ])
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("module-a", true)
 
       const tasks = await getModuleWatchTasks({
@@ -209,7 +209,7 @@ describe("TaskHelpers", () => {
         },
       ])
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = await graph.getModule("module-b", true)
 
       const tasks = await getModuleWatchTasks({
@@ -262,7 +262,7 @@ describe("TaskHelpers", () => {
 
       for (const { moduleName, expectedTasks } of expectedBaseKeysByChangedModule) {
         it(`returns the correct set of tasks for ${moduleName} with dependants`, async () => {
-          const graph = await depGarden.getConfigGraph(depGarden.log)
+          const graph = await depGarden.getConfigGraph({ log: depGarden.log, emit: false })
           const module = graph.getModule(<string>moduleName)
 
           const tasks = await getModuleWatchTasks({
@@ -306,7 +306,7 @@ describe("TaskHelpers", () => {
           },
         ])
 
-        const graph = await garden.getConfigGraph(garden.log)
+        const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const module = graph.getModule("module-a", true)
 
         const tasks = await getModuleWatchTasks({
@@ -372,7 +372,7 @@ describe("TaskHelpers", () => {
           },
         ])
 
-        const graph = await garden.getConfigGraph(garden.log)
+        const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const module = graph.getModule("module-a", true)
 
         const tasks = await getModuleWatchTasks({
@@ -425,7 +425,7 @@ describe("TaskHelpers", () => {
 
       for (const { moduleName, expectedTasks } of expectedBaseKeysByChangedModule) {
         it(`returns the correct set of tasks for ${moduleName} with dependants`, async () => {
-          const graph = await depGarden.getConfigGraph(depGarden.log)
+          const graph = await depGarden.getConfigGraph({ log: depGarden.log, emit: false })
           const module = graph.getModule(<string>moduleName)
 
           const tasks = await getModuleWatchTasks({
@@ -469,7 +469,7 @@ describe("TaskHelpers", () => {
           },
         ])
 
-        const graph = await garden.getConfigGraph(garden.log)
+        const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const module = graph.getModule("module-a", true)
 
         const tasks = await getModuleWatchTasks({
@@ -535,7 +535,7 @@ describe("TaskHelpers", () => {
           },
         ])
 
-        const graph = await garden.getConfigGraph(garden.log)
+        const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const module = graph.getModule("module-a", true)
 
         const tasks = await getModuleWatchTasks({

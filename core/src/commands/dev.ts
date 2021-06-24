@@ -119,6 +119,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
 
   async action({
     garden,
+    isWorkflowStepCommand,
     log,
     footerLog,
     args,
@@ -127,7 +128,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
     this.garden = garden
     this.server?.setGarden(garden)
 
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: !isWorkflowStepCommand })
     const modules = graph.getModules()
 
     const skipTests = opts["skip-tests"]

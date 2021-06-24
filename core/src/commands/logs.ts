@@ -134,7 +134,7 @@ export class LogsCommand extends Command<Args, Opts> {
       since = "1m"
     }
 
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: false })
     const allServices = graph.getServices()
     const services = args.services ? allServices.filter((s) => args.services?.includes(s.name)) : allServices
 

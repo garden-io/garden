@@ -30,7 +30,7 @@ import dedent = require("dedent")
 import { getPods, hashManifest } from "../util"
 import { checkWorkloadStatus } from "./workload"
 import { checkWorkloadPodStatus } from "./pod"
-import { gardenAnnotationKey, stableStringify } from "../../../util/string"
+import { deline, gardenAnnotationKey, stableStringify } from "../../../util/string"
 
 export interface ResourceStatus<T = BaseResource> {
   state: ServiceState
@@ -184,12 +184,16 @@ export async function waitForResources({
   let loops = 0
   let lastMessage: string | undefined
   const startTime = new Date().getTime()
+  const emitLog = (msg: string) =>
+    ctx.events.emit("log", { timestamp: new Date().getTime(), data: Buffer.from(msg, "utf-8") })
 
+  const waitingMsg = `Waiting for resources to be ready...`
   const statusLine = log.info({
     symbol: "info",
     section: serviceName,
-    msg: `Waiting for resources to be ready...`,
+    msg: waitingMsg,
   })
+  emitLog(waitingMsg)
 
   const api = await KubeApi.factory(log, ctx, provider)
   let statuses: ResourceStatus[]
@@ -204,7 +208,9 @@ export async function waitForResources({
       const resource = status.resource
       const statusMessage = `${resource.kind} ${resource.metadata.name} is "${status.state}"`
 
-      log.debug(`Status of ${statusMessage}`)
+      const statusLogMsg = `Status of ${statusMessage}`
+      log.debug(statusLogMsg)
+      emitLog(statusLogMsg)
 
       if (status.state === "unhealthy") {
         let msg = `Error deploying ${serviceName || "resources"}: ${status.lastMessage || statusMessage}`
@@ -213,6 +219,7 @@ export async function waitForResources({
           msg += "\n\n" + status.logs
         }
 
+        emitLog(msg)
         throw new DeploymentError(msg, {
           serviceName,
           status,
@@ -222,10 +229,12 @@ export async function waitForResources({
       if (status.lastMessage && (!lastMessage || status.lastMessage !== lastMessage)) {
         lastMessage = status.lastMessage
         const symbol = status.warning === true ? "warning" : "info"
+        const statusUpdateLogMsg = `${status.resource.kind}/${status.resource.metadata.name}: ${status.lastMessage}`
         statusLine.setState({
           symbol,
-          msg: `${status.resource.kind}/${status.resource.metadata.name}: ${status.lastMessage}`,
+          msg: statusUpdateLogMsg,
         })
+        emitLog(statusUpdateLogMsg)
       }
     }
 
@@ -239,14 +248,17 @@ export async function waitForResources({
     const now = new Date().getTime()
 
     if (now - startTime > timeoutSec * 1000) {
-      throw new DeploymentError(
-        `Timed out waiting for ${serviceName || "resources"} to deploy after ${timeoutSec} seconds`,
-        { statuses }
-      )
+      const deploymentErrMsg = deline`
+        Timed out waiting for ${serviceName || "resources"} to deploy after ${timeoutSec} seconds
+      `
+      emitLog(deploymentErrMsg)
+      throw new DeploymentError(deploymentErrMsg, { statuses })
     }
   }
 
-  statusLine.setState({ symbol: "info", section: serviceName, msg: `Resources ready` })
+  const readyMsg = `Resources ready`
+  emitLog(readyMsg)
+  statusLine.setState({ symbol: "info", section: serviceName, msg: readyMsg })
 
   return statuses
 }

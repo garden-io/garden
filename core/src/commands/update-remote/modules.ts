@@ -74,7 +74,7 @@ export async function updateRemoteModules({
   args: ParameterValues<Args>
 }) {
   const { modules: moduleNames } = args
-  const graph = await garden.getConfigGraph(log)
+  const graph = await garden.getConfigGraph({ log, emit: false })
   const modules = graph.getModules({ names: moduleNames })
 
   const moduleSources = <SourceConfig[]>modules

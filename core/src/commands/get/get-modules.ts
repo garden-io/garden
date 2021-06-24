@@ -58,7 +58,7 @@ export class GetModulesCommand extends Command {
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>) {
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: false })
 
     const modules: OutputModule[] = sortBy(
       graph

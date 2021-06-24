@@ -96,12 +96,13 @@ export const clusterDockerBuild: BuildHandler = async (params) => {
 
   let buildLog = ""
 
-  // Stream debug log to a status line
+  // Stream verbose logs to a status line
   const stdout = split2()
   const statusLine = log.placeholder({ level: LogLevel.verbose })
 
   stdout.on("error", () => {})
   stdout.on("data", (line: Buffer) => {
+    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
     statusLine.setState(renderOutputStream(line.toString()))
   })
 

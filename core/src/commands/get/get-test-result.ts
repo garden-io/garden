@@ -61,11 +61,16 @@ export class GetTestResultCommand extends Command<Args> {
     )
   }
 
-  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<GetTestResultCommandResult>> {
+  async action({
+    garden,
+    isWorkflowStepCommand,
+    log,
+    args,
+  }: CommandParams<Args>): Promise<CommandResult<GetTestResultCommandResult>> {
     const testName = args.name
     const moduleName = args.module
 
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: !isWorkflowStepCommand })
     const actions = await garden.getActionRouter()
 
     const module = graph.getModule(moduleName)

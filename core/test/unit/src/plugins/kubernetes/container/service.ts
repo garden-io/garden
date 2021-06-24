@@ -24,7 +24,7 @@ describe("createServiceResources", () => {
   })
 
   it("should return service resources", async () => {
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const service = graph.getService("service-a")
 
     const resources = await createServiceResources(service, "my-namespace", false)
@@ -57,7 +57,7 @@ describe("createServiceResources", () => {
   })
 
   it("should pin to specific deployment version if blueGreen=true", async () => {
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const service = graph.getService("service-a")
 
     const resources = await createServiceResources(service, "my-namespace", true)
@@ -91,7 +91,7 @@ describe("createServiceResources", () => {
   })
 
   it("should add annotations if configured", async () => {
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const service: ContainerService = graph.getService("service-a")
 
     service.spec.annotations = { my: "annotation" }
@@ -128,7 +128,7 @@ describe("createServiceResources", () => {
   })
 
   it("should create a NodePort service if a nodePort is specified", async () => {
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const service: ContainerService = graph.getService("service-a")
 
     service.spec.ports[0].nodePort = 12345
@@ -164,7 +164,7 @@ describe("createServiceResources", () => {
   })
 
   it("should create a NodePort service without nodePort set if nodePort is specified as true", async () => {
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const service: ContainerService = graph.getService("service-a")
 
     service.spec.ports[0].nodePort = true

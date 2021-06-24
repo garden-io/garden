@@ -14,7 +14,7 @@ describe("getBuildkitFlags", () => {
   it("should correctly format the build target option", async () => {
     const projectRoot = getDataDir("test-project-container")
     const garden = await makeTestGarden(projectRoot)
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const module = graph.getModule("module-a")
 
     module.spec.build.targetImage = "foo"

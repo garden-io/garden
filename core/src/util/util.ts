@@ -227,6 +227,11 @@ export interface SpawnOutput {
 }
 
 // TODO Dump output to a log file if it exceeds the MAX_BUFFER_SIZE
+
+/**
+ * Note: For line-by-line stdout/stderr streaming, both `opts.stdout` and `opts.stderr` must be defined. This is a
+ * result of how Node's child process spawning works (which this function wraps).
+ */
 export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
   const {
     timeoutSec: timeout = 0,

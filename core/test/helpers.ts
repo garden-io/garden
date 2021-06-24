@@ -333,7 +333,7 @@ export const makeTestModule = (params: Partial<ModuleConfig> = {}) => {
 
 export const testPlugins = () => [testPlugin(), testPluginB(), testPluginC()]
 
-export const makeTestGarden = async (projectRoot: string, opts: TestGardenOpts = {}) => {
+export const makeTestGarden = async (projectRoot: string, opts: TestGardenOpts = {}): Promise<TestGarden> => {
   opts = { sessionId: uuidv4(), ...opts }
   const plugins = [...testPlugins(), ...(opts.plugins || [])]
   return TestGarden.factory(projectRoot, { ...opts, plugins })

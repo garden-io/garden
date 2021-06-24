@@ -242,6 +242,7 @@ describe("GardenServer", () => {
       onMessage((req) => {
         expect(req).to.eql({
           type: "error",
+          requestId: "ksdhgalsdkjghalsjkg",
           message: "Message should contain an `id` field with a UUID value",
         })
         done()

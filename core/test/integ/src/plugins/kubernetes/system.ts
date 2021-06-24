@@ -37,7 +37,7 @@ describe("System services", () => {
     const ctx = <KubernetesPluginContext>await garden.getPluginContext(provider)
     const variables = getKubernetesSystemVariables(provider.config)
     const systemGarden = await getSystemGarden(ctx, variables, garden.log)
-    const graph = await systemGarden.getConfigGraph(garden.log)
+    const graph = await systemGarden.getConfigGraph({ log: garden.log, emit: false })
     const conftestModuleNames = (await graph.getModules())
       .filter((module) => module.name.startsWith("conftest-"))
       .map((m) => m.name)
@@ -57,7 +57,7 @@ describe("System services", () => {
     const ctx = <KubernetesPluginContext>await garden.getPluginContext(provider)
     const variables = getKubernetesSystemVariables(provider.config)
     const systemGarden = await getSystemGarden(ctx, variables, garden.log)
-    const graph = await systemGarden.getConfigGraph(garden.log)
+    const graph = await systemGarden.getConfigGraph({ log: garden.log, emit: false })
     const modules = graph.getModules().filter((module) => module.name.startsWith("conftest-"))
 
     await Bluebird.map(modules, async (module) => {

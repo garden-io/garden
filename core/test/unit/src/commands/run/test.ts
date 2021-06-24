@@ -50,6 +50,7 @@ describe("RunTestCommand", () => {
       moduleName: "module-a",
       log: "OK",
       success: true,
+      error: undefined,
       testName: "unit",
     })
   })
@@ -171,7 +172,7 @@ describe("RunTestCommand", () => {
 
     const logOutput = getLogMessages(log, (entry) => entry.level === LogLevel.error).join("\n")
     expect(logOutput).to.include(dedent`
-    \nTest failed with error:
+    \nFailed running unit tests in module module. Here is the output:
     ${renderDivider()}
     test-error
     ${renderDivider()}

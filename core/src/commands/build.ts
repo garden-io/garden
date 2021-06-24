@@ -90,6 +90,7 @@ export class BuildCommand extends Command<Args, Opts> {
 
   async action({
     garden,
+    isWorkflowStepCommand,
     log,
     footerLog,
     args,
@@ -103,7 +104,7 @@ export class BuildCommand extends Command<Args, Opts> {
 
     await garden.clearBuilds()
 
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: !isWorkflowStepCommand })
     const modules = graph.getModules({ names: args.modules })
     const moduleNames = modules.map((m) => m.name)
 

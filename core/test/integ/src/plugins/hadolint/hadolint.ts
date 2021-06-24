@@ -96,7 +96,7 @@ describe("hadolint provider", () => {
       },
     }
 
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const module = graph.getModule("hadolint-foo")
 
     expect(module.path).to.equal(tmpPath)
@@ -144,7 +144,7 @@ describe("hadolint provider", () => {
       },
     }
 
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const module = graph.getModule("hadolint-foo")
 
     expect(module.path).to.equal(tmpPath)
@@ -179,7 +179,7 @@ describe("hadolint provider", () => {
         },
       }
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
 
       const testTask = new TestTask({
@@ -243,7 +243,7 @@ describe("hadolint provider", () => {
         },
       }
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
 
       const testTask = new TestTask({
@@ -302,7 +302,7 @@ describe("hadolint provider", () => {
         },
       }
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
 
       const testTask = new TestTask({
@@ -355,7 +355,7 @@ describe("hadolint provider", () => {
         },
       }
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
 
       const testTask = new TestTask({
@@ -398,7 +398,7 @@ describe("hadolint provider", () => {
         },
       }
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
 
       const testTask = new TestTask({
@@ -444,7 +444,7 @@ describe("hadolint provider", () => {
         },
       }
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
 
       const testTask = new TestTask({

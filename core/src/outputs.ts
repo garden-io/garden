@@ -74,7 +74,7 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
   }
 
   // Make sure all referenced services and tasks are ready and collect their outputs for the runtime context
-  const graph = await garden.getConfigGraph(log)
+  const graph = await garden.getConfigGraph({ log, emit: false })
   const modules = graph.getModules({ names: needModules })
   const services = graph.getServices({ names: needServices })
   const tasks = graph.getTasks({ names: needTasks })

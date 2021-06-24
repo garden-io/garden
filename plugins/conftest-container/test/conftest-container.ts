@@ -38,7 +38,7 @@ describe("conftest-container provider", () => {
       config: projectConfig,
     })
 
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const containerModule = graph.getModule("container")
     const module = graph.getModule("conftest-container")
 
@@ -74,7 +74,7 @@ describe("conftest-container provider", () => {
       },
     })
 
-    let graph = await garden.getConfigGraph(garden.log)
+    let graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const containerModule = graph.getModule("container")
 
     garden["moduleConfigs"] = {
@@ -93,7 +93,7 @@ describe("conftest-container provider", () => {
       },
     }
 
-    graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const module = graph.getModule("conftest-foo")
 
     expect(module.path).to.equal(projectRoot)

@@ -424,7 +424,7 @@ describe("filesForSync", () => {
 
   before(async () => {
     garden = await makeTestGarden(projectRoot)
-    graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
   it("should respect module include and exclude", async () => {

@@ -207,7 +207,7 @@ describe("DeployCommand", () => {
       },
     })
 
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
     const sortedEvents = sortBy(
       getRuntimeStatusEvents(garden.events.eventLog),

@@ -100,7 +100,7 @@ describe("GetDebugInfoCommand", () => {
 
       // we first check if the main garden.yml exists
       expect(await pathExists(join(gardenDebugTmp, defaultConfigFilename))).to.equal(true)
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       // Check that each module config files have been copied over and
       // the folder structure is maintained
@@ -129,7 +129,7 @@ describe("GetDebugInfoCommand", () => {
 
         // we first check if the project.garden.yml exists
         expect(await pathExists(join(debugTmp, defaultProjectConfigFilename))).to.equal(true)
-        const graph = await _garden.getConfigGraph(_garden.log)
+        const graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 
         // Check that each module config files have been copied over and
         // the folder structure is maintained
