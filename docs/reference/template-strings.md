@@ -1594,6 +1594,20 @@ The module output value. Refer to individual [module type references](https://do
 | --------------------------- |
 | `string | number | boolean` |
 
+### `${modules.<module-name>.var.*}`
+
+A map of all variables defined in the module.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${modules.<module-name>.var.<variable-name>}`
+
+| Type                                             |
+| ------------------------------------------------ |
+| `string | number | boolean | link | array[link]` |
+
 ### `${modules.<module-name>.version}`
 
 The current version of the module.
@@ -2167,6 +2181,20 @@ The module output value. Refer to individual [module type references](https://do
 | Type                        |
 | --------------------------- |
 | `string | number | boolean` |
+
+### `${modules.<module-name>.var.*}`
+
+A map of all variables defined in the module.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${modules.<module-name>.var.<variable-name>}`
+
+| Type                                             |
+| ------------------------------------------------ |
+| `string | number | boolean | link | array[link]` |
 
 ### `${modules.<module-name>.version}`
 

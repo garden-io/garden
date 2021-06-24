@@ -128,6 +128,13 @@ generateFiles:
     # The desired file contents as a string.
     value:
 
+# A map of variables to use when applying the stack. You can define these here or you can place a
+# `terraform.tfvars` file in the working directory root.
+#
+# If you specified `variables` in the `terraform` provider config, those will be included but the variables
+# specified here take precedence.
+variables:
+
 # If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete env` or `garden delete
 # service <module name>`.
 allowDestroy: false
@@ -147,13 +154,6 @@ dependencies: []
 
 # Specify the path to the working directory root—i.e. where your Terraform files are—relative to the module root.
 root: .
-
-# A map of variables to use when applying the stack. You can define these here or you can place a
-# `terraform.tfvars` file in the working directory root.
-#
-# If you specified `variables` in the `terraform` provider config, those will be included but the variables
-# specified here take precedence.
-variables:
 
 # The version of Terraform to use. Defaults to the version set in the provider config.
 # Set to `null` to use whichever version of `terraform` that is on your PATH.
@@ -400,6 +400,18 @@ The desired file contents as a string.
 | -------- | -------- |
 | `string` | No       |
 
+### `variables`
+
+A map of variables to use when applying the stack. You can define these here or you can place a
+`terraform.tfvars` file in the working directory root.
+
+If you specified `variables` in the `terraform` provider config, those will be included but the variables
+specified here take precedence.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
 ### `allowDestroy`
 
 If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete env` or `garden delete service <module name>`.
@@ -437,18 +449,6 @@ Specify the path to the working directory root—i.e. where your Terraform files
 | Type        | Default | Required |
 | ----------- | ------- | -------- |
 | `posixPath` | `"."`   | No       |
-
-### `variables`
-
-A map of variables to use when applying the stack. You can define these here or you can place a
-`terraform.tfvars` file in the working directory root.
-
-If you specified `variables` in the `terraform` provider config, those will be included but the variables
-specified here take precedence.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
 
 ### `version`
 
@@ -510,6 +510,20 @@ Example:
 ```yaml
 my-variable: ${modules.my-module.path}
 ```
+
+### `${modules.<module-name>.var.*}`
+
+A map of all variables defined in the module.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${modules.<module-name>.var.<variable-name>}`
+
+| Type                                             |
+| ------------------------------------------------ |
+| `string | number | boolean | link | array[link]` |
 
 ### `${modules.<module-name>.version}`
 

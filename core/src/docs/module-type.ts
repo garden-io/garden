@@ -12,7 +12,7 @@ import { resolve } from "path"
 import { baseModuleSpecSchema } from "../config/module"
 import handlebars = require("handlebars")
 import { joi } from "../config/common"
-import { ModuleContext, ServiceRuntimeContext, TaskRuntimeContext } from "../config/template-contexts/module"
+import { ModuleReferenceContext, ServiceRuntimeContext, TaskRuntimeContext } from "../config/template-contexts/module"
 import { ModuleTypeDefinition } from "../types/plugin/plugin"
 import { renderConfigReference, renderTemplateStringReference, TEMPLATES_DIR } from "./config"
 
@@ -64,7 +64,7 @@ export function renderModuleTypeReference(name: string, definitions: { [name: st
   }
 
   const moduleOutputsReference = renderTemplateStringReference({
-    schema: ModuleContext.getSchema().keys({
+    schema: ModuleReferenceContext.getSchema().keys({
       outputs: getOutputsSchema(desc, "moduleOutputsSchema").required(),
     }),
     prefix: "modules",

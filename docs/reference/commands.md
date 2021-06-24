@@ -1343,6 +1343,12 @@ providers:
         # When false, disables pushing this module to remote registries.
         allowPublish:
 
+        # A map of variables scoped to this particular module. These are resolved before any other parts of the module
+        # configuration and take precedence over project-scoped variables. They may reference project-scoped
+        # variables, and generally use any template strings normally allowed when resolving modules.
+        variables:
+          <name>:
+
         # The filesystem path of the module.
         path:
 
@@ -1608,6 +1614,12 @@ moduleConfigs:
 
     # When false, disables pushing this module to remote registries.
     allowPublish:
+
+    # A map of variables scoped to this particular module. These are resolved before any other parts of the module
+    # configuration and take precedence over project-scoped variables. They may reference project-scoped variables,
+    # and generally use any template strings normally allowed when resolving modules.
+    variables:
+      <name>:
 
     # The filesystem path of the module.
     path:
@@ -1902,8 +1914,8 @@ workflowConfigs:
         # events](https://docs.github.com/en/developers/webhooks-and-events/webhook-events-and-payloads) that should
         # trigger this workflow.
         #
-        # See the Garden Enterprise documentation on [configuring
-        # workflows](https://enterprise.docs.garden.io/getting-started/workflows) for more details.
+        # See the Garden Cloud documentation on [configuring
+        # workflows](https://cloud.docs.garden.io/getting-started/workflows) for more details.
         #
         # Supported events:
         #
@@ -2106,6 +2118,12 @@ modules:
 
     # When false, disables pushing this module to remote registries.
     allowPublish:
+
+    # A map of variables scoped to this particular module. These are resolved before any other parts of the module
+    # configuration and take precedence over project-scoped variables. They may reference project-scoped variables,
+    # and generally use any template strings normally allowed when resolving modules.
+    variables:
+      <name>:
 
     # The filesystem path of the module.
     path:

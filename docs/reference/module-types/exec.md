@@ -135,6 +135,11 @@ generateFiles:
     # The desired file contents as a string.
     value:
 
+# A map of variables scoped to this particular module. These are resolved before any other parts of the module
+# configuration and take precedence over project-scoped variables. They may reference project-scoped variables, and
+# generally use any template strings normally allowed when resolving modules.
+variables:
+
 # If set to true, Garden will run the build command, services, tests, and tasks in the module source directory,
 # instead of in the Garden build directory (under .garden/build/<module-name>).
 #
@@ -540,6 +545,14 @@ The desired file contents as a string.
 | -------- | -------- |
 | `string` | No       |
 
+### `variables`
+
+A map of variables scoped to this particular module. These are resolved before any other parts of the module configuration and take precedence over project-scoped variables. They may reference project-scoped variables, and generally use any template strings normally allowed when resolving modules.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
 ### `local`
 
 If set to true, Garden will run the build command, services, tests, and tasks in the module source directory,
@@ -918,6 +931,20 @@ Example:
 ```yaml
 my-variable: ${modules.my-module.path}
 ```
+
+### `${modules.<module-name>.var.*}`
+
+A map of all variables defined in the module.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${modules.<module-name>.var.<variable-name>}`
+
+| Type                                             |
+| ------------------------------------------------ |
+| `string | number | boolean | link | array[link]` |
 
 ### `${modules.<module-name>.version}`
 

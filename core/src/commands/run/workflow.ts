@@ -80,7 +80,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 
     await registerAndSetUid(garden, log, workflow)
     garden.events.emit("workflowRunning", {})
-    const templateContext = new WorkflowConfigContext(garden)
+    const templateContext = new WorkflowConfigContext(garden, garden.variables)
     const files = resolveTemplateStrings(workflow.files || [], templateContext)
 
     // Write all the configured files for the workflow

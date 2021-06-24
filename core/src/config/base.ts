@@ -153,6 +153,17 @@ export function prepareModuleResource(spec: any, configPath: string, projectRoot
     dependencies = spec.build.dependencies.map((dep: any) => (typeof dep === "string" ? { name: dep, copy: [] } : dep))
   }
 
+  const cleanedSpec = {
+    ...omit(spec, baseModuleSchemaKeys()),
+    build: { ...spec.build, dependencies },
+  }
+
+  // Had a bit of a naming conflict in the terraform module type with the new module variables concept...
+  // FIXME: remove this hack sometime after 0.13
+  if (spec.type === "terraform") {
+    cleanedSpec["variables"] = spec.variables
+  }
+
   // Built-in keys are validated here and the rest are put into the `spec` field
   const config: ModuleResource = {
     apiVersion: spec.apiVersion || DEFAULT_API_VERSION,
@@ -171,10 +182,7 @@ export function prepareModuleResource(spec: any, configPath: string, projectRoot
     path: dirname(configPath),
     repositoryUrl: spec.repositoryUrl,
     serviceConfigs: [],
-    spec: {
-      ...omit(spec, baseModuleSchemaKeys()),
-      build: { ...spec.build, dependencies },
-    },
+    spec: cleanedSpec,
     testConfigs: [],
     type: spec.type,
     taskConfigs: [],

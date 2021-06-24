@@ -49,7 +49,7 @@ class ModuleThisContext extends ConfigContext {
   }
 }
 
-export class ModuleContext extends ModuleThisContext {
+export class ModuleReferenceContext extends ModuleThisContext {
   @schema(
     joiIdentifierMap(
       joiPrimitive().description(
@@ -67,12 +67,20 @@ export class ModuleContext extends ModuleThisContext {
   )
   public outputs: PrimitiveMap
 
+  @schema(
+    joiVariables()
+      .description("A map of all variables defined in the module.")
+      .meta({ keyPlaceholder: "<variable-name>" })
+  )
+  public var: DeepPrimitiveMap
+
   @schema(joi.string().required().description("The current version of the module.").example(exampleVersion))
   public version: string
 
   constructor(root: ConfigContext, module: GardenModule) {
     super(root, module.buildPath, module.name, module.path)
     this.outputs = module.outputs
+    this.var = module.variables
     this.version = module.version.versionString
   }
 }
@@ -215,6 +223,7 @@ export class ModuleTemplateConfigContext extends ProjectConfigContext {
 export interface OutputConfigContextParams {
   garden: Garden
   resolvedProviders: ProviderMap
+  variables: DeepPrimitiveMap
   modules: GardenModule[]
   // We only supply this when resolving configuration in dependency order.
   // Otherwise we pass `${runtime.*} template strings through for later resolution.
@@ -227,7 +236,7 @@ export interface OutputConfigContextParams {
  */
 export class OutputConfigContext extends ProviderConfigContext {
   @schema(
-    joiIdentifierMap(ModuleContext.getSchema())
+    joiIdentifierMap(ModuleReferenceContext.getSchema())
       .description("Retrieve information about modules that are defined in the project.")
       .meta({ keyPlaceholder: "<module-name>" })
   )
@@ -244,14 +253,15 @@ export class OutputConfigContext extends ProviderConfigContext {
   constructor({
     garden,
     resolvedProviders,
+    variables,
     modules,
     runtimeContext,
     partialRuntimeResolution,
   }: OutputConfigContextParams) {
-    super(garden, resolvedProviders)
+    super(garden, resolvedProviders, variables)
 
     this.modules = new Map(
-      modules.map((config) => <[string, ModuleContext]>[config.name, new ModuleContext(this, config)])
+      modules.map((config) => <[string, ModuleReferenceContext]>[config.name, new ModuleReferenceContext(this, config)])
     )
 
     this.runtime = new RuntimeConfigContext(this, partialRuntimeResolution, runtimeContext)
@@ -269,8 +279,7 @@ export interface ModuleConfigContextParams extends OutputConfigContextParams {
 }
 
 /**
- * This context is available for template strings under the `module` key in configuration files.
- * It is a superset of the context available under the `project` key.
+ * Used to resolve module configuration.
  */
 export class ModuleConfigContext extends OutputConfigContext {
   @schema(
@@ -300,6 +309,7 @@ export class ModuleConfigContext extends OutputConfigContext {
   constructor({
     garden,
     resolvedProviders,
+    variables,
     moduleConfig,
     buildPath,
     modules,
@@ -309,6 +319,7 @@ export class ModuleConfigContext extends OutputConfigContext {
     super({
       garden,
       resolvedProviders,
+      variables,
       modules,
       runtimeContext,
       partialRuntimeResolution,
@@ -327,5 +338,18 @@ export class ModuleConfigContext extends OutputConfigContext {
     this.inputs = moduleConfig.inputs || {}
 
     this.this = new ModuleThisContext(this, buildPath, moduleConfig.name, moduleConfig.path)
+  }
+
+  static fromModule(
+    params: Omit<ModuleConfigContextParams, "moduleConfig" | "variables" | "buildPath"> & { module: GardenModule }
+  ) {
+    const { module, garden } = params
+
+    return new ModuleConfigContext({
+      ...params,
+      moduleConfig: module,
+      buildPath: module.buildPath,
+      variables: { ...garden.variables, ...module.variables },
+    })
   }
 }

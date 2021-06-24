@@ -355,6 +355,10 @@ The order of precedence across the varfiles and project config fields is as foll
 4. Configured project-wide varfile (defaults to `garden.env`).
 5. The project-wide `variables` field.
 
+{% hint style="warning" %}
+Note that [Module variables](#module-variables) always take precedence over any of the above, in the context of the module being resolved.
+{% endhint %}
+
 When you specify variables in multiple places, we merge the different objects and files using a [JSON Merge Patch](https://tools.ietf.org/html/rfc7396).
 
 Here's an example, where we have some project variables defined in our project config, and environment-specific values—including secret data—in varfiles:
@@ -389,6 +393,48 @@ services:
       LOG_LEVEL: ${var.log-level}
       DATABASE_PASSWORD: ${var.database-password}
 ```
+
+## Module variables
+
+Each Garden module can specify its own set of variables that can be re-used within the module, and referenced by other dependant modules via template strings.
+
+Simply specify the `variables` field on the module, same as in the project configuration. For example:
+
+```yaml
+# my-service/garden.yml
+kind: Module
+name: my-service
+variables:
+  # This overrides the project-level hostname variable
+  hostname: my-service.${var.hostname}
+  # You can specify maps or lists as variables
+  envVars:
+    LOG_LEVEL: debug
+    DATABASE_PASSWORD: ${var.database-password}
+services:
+  - name: my-service
+    ...
+    ingresses:
+      - path: /
+        port: http
+        # This resolves to the hostname variable set above, not the project-level hostname variable
+        hostname: ${var.hostname}
+    # Referencing the above envVar module variable
+    env: ${var.envVars}
+tests:
+  - name: my-test
+    ...
+    # Re-using the envVar module variable
+    env: ${var.envVars}
+```
+
+Notice that you can override variables defined at the project-level, and even reference project-scoped variables when defining the module variables.
+
+Also notice the generally handy use-case of re-using a common value (in this case a map of environment variables) in multiple spots in the module configuration.
+
+### Referencing module variables
+
+On top of that, you can reference the resolved module variables in other modules. With the above example, another module might for example reference `${modules.my-service.var.hostname}`. For larger projects this can be much cleaner than, say, hoisting a lot of variables up to the project level.
 
 ## Provider outputs
 

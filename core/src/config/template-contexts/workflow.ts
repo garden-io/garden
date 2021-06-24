@@ -75,7 +75,7 @@ export class WorkflowStepConfigContext extends WorkflowConfigContext {
     resolvedSteps: { [name: string]: WorkflowStepResult }
     stepName: string
   }) {
-    super(garden)
+    super(garden, garden.variables)
 
     this.steps = new Map<string, WorkflowStepContext | ErrorContext>()
 
