@@ -463,7 +463,7 @@ export const getExecServiceStatus: ServiceActionHandlers["getServiceStatus"] = a
 }
 
 export const deployExecService: ServiceActionHandlers["deployService"] = async (params) => {
-  const { module, service } = params
+  const { module, service, log } = params
 
   const result = await exec(service.spec.deployCommand.join(" "), [], {
     cwd: module.buildPath,
@@ -474,6 +474,12 @@ export const deployExecService: ServiceActionHandlers["deployService"] = async (
     reject: true,
     shell: true,
   })
+
+  const outputLog = (result.stdout + result.stderr).trim()
+  if (outputLog) {
+    const prefix = `Finished deploying service ${chalk.white(service.name)}. Here is the output:`
+    log.verbose(renderMessageWithDivider(prefix, outputLog, false, chalk.gray))
+  }
 
   return { state: "ready", detail: { deployCommandOutput: result.all } }
 }
