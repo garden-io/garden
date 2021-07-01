@@ -262,6 +262,19 @@ describe("GitHandler", () => {
       expect(await handler.getFiles({ path: tmpPath, include: ["foo.*"], exclude: [], log })).to.eql([{ path, hash }])
     })
 
+    it("should include a directory that's explicitly included by exact name", async () => {
+      const subdirName = "subdir"
+      const subdir = resolve(tmpPath, subdirName)
+      await mkdir(subdir)
+      const path = resolve(tmpPath, subdirName, "foo.txt")
+      const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      await createFile(path)
+
+      expect(await handler.getFiles({ path: tmpPath, include: [subdirName], exclude: [], log })).to.eql([
+        { path, hash },
+      ])
+    })
+
     it("should include hidden files that match the include filter, if specified", async () => {
       const path = resolve(tmpPath, ".foo")
       const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
@@ -447,6 +460,20 @@ describe("GitHandler", () => {
         expect(paths).to.eql([".gitmodules", join("sub", initFile)])
       })
 
+      it("should include tracked files in submodules when multiple dotignore files are set", async () => {
+        const _handler = new GitHandler(
+          tmpPath,
+          join(tmpPath, ".garden"),
+          [defaultIgnoreFilename, ".gardenignore"],
+          garden.cache
+        )
+
+        const files = await _handler.getFiles({ path: tmpPath, log })
+        const paths = files.map((f) => relative(tmpPath, f.path))
+
+        expect(paths).to.eql([".gitmodules", join("sub", initFile)])
+      })
+
       it("should include untracked files in submodules", async () => {
         const path = join(tmpPath, "sub", "x.txt")
         await createFile(path)
@@ -464,6 +491,7 @@ describe("GitHandler", () => {
         const files = await handler.getFiles({ path: tmpPath, log, include: ["**/*.txt"] })
         const paths = files.map((f) => relative(tmpPath, f.path)).sort()
 
+        expect(paths).to.not.include(join("sub", path))
         expect(paths).to.include(join("sub", initFile))
       })
 
@@ -475,6 +503,46 @@ describe("GitHandler", () => {
         const paths = files.map((f) => relative(tmpPath, f.path)).sort()
 
         expect(paths).to.eql([".gitmodules", join("sub", "x.foo")])
+      })
+
+      it("should respect include filter with ./ prefix when scanning a submodule", async () => {
+        const path = join(tmpPath, "sub", "x.foo")
+        await createFile(path)
+
+        const files = await handler.getFiles({ path: tmpPath, log, include: ["./sub/*.txt"] })
+        const paths = files.map((f) => relative(tmpPath, f.path)).sort()
+
+        expect(paths).to.not.include(join("sub", path))
+        expect(paths).to.include(join("sub", initFile))
+      })
+
+      it("should include the whole submodule contents when an include directly specifies its path", async () => {
+        const files = await handler.getFiles({ path: tmpPath, log, include: ["sub"] })
+        const paths = files.map((f) => relative(tmpPath, f.path)).sort()
+
+        expect(paths).to.include(join("sub", initFile))
+      })
+
+      it("should include a whole directory within a submodule when an include specifies its path", async () => {
+        const subdirName = "subdir"
+        const subdir = resolve(submodulePath, subdirName)
+        await mkdir(subdir)
+        const relPath = join("sub", subdirName, "foo.txt")
+        const path = resolve(tmpPath, relPath)
+        await createFile(path)
+        await commit(relPath, submodulePath)
+
+        const files = await handler.getFiles({ path: tmpPath, log, include: ["sub/subdir"] })
+        const paths = files.map((f) => relative(tmpPath, f.path)).sort()
+
+        expect(paths).to.eql([relPath])
+      })
+
+      it("should include the whole submodule when a surrounding include matches it", async () => {
+        const files = await handler.getFiles({ path: tmpPath, log, include: ["**/*"] })
+        const paths = files.map((f) => relative(tmpPath, f.path)).sort()
+
+        expect(paths).to.include(join("sub", initFile))
       })
 
       context("submodule contains another submodule", () => {
