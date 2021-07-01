@@ -7,16 +7,16 @@
  */
 
 import FilterStream from "streamfilter"
-import { join, resolve, relative, isAbsolute } from "path"
+import { join, resolve, relative, isAbsolute, posix } from "path"
 import { flatten, isString } from "lodash"
-import { ensureDir, pathExists, createReadStream, Stats, realpath, readlink, lstat } from "fs-extra"
+import { ensureDir, pathExists, createReadStream, Stats, realpath, readlink, lstat, stat } from "fs-extra"
 import { PassThrough, Transform } from "stream"
 import hasha from "hasha"
 import split2 = require("split2")
 import { VcsHandler, RemoteSourceParams, VcsFile, GetFilesParams } from "./vcs"
 import { ConfigurationError, RuntimeError } from "../exceptions"
 import Bluebird from "bluebird"
-import { matchPath } from "../util/fs"
+import { joinWithPosix, matchPath } from "../util/fs"
 import { deline } from "../util/string"
 import { splitLast, exec } from "../util/util"
 import { LogEntry } from "../logger/log-entry"
@@ -24,6 +24,7 @@ import parseGitConfig from "parse-git-config"
 import { Profile } from "../util/profiling"
 import { SortedStreamIntersection } from "../util/streams"
 import execa = require("execa")
+import isGlob = require("is-glob")
 
 export function getCommitIdFromRefList(refList: string[]): string {
   try {
@@ -64,7 +65,7 @@ export class GitHandler extends VcsHandler {
 
   gitCli(log: LogEntry, cwd: string): GitCli {
     return async (...args: (string | undefined)[]) => {
-      log.silly(`Calling git in ${cwd} with args '${args.join(" ")}'`)
+      log.silly(`Calling git with args '${args.join(" ")}' in ${cwd}`)
       const { stdout } = await exec("git", args.filter(isString), { cwd, maxBuffer: 10 * 1024 * 1024 })
       return stdout.split("\n").filter((line) => line.length > 0)
     }
@@ -107,11 +108,20 @@ export class GitHandler extends VcsHandler {
    * Returns a list of files, along with file hashes, under the given path, taking into account the configured
    * .ignore files, and the specified include/exclude filters.
    */
-  async getFiles({ log, path, pathDescription, include, exclude, filter }: GetFilesParams): Promise<VcsFile[]> {
+  async getFiles({
+    log,
+    path,
+    pathDescription = "directory",
+    include,
+    exclude,
+    filter,
+  }: GetFilesParams): Promise<VcsFile[]> {
     if (include && include.length === 0) {
       // No need to proceed, nothing should be included
       return []
     }
+
+    log = log.debug(`Scanning ${pathDescription} at ${path}\nIncludes: ${include}\nExcludes:${exclude}`)
 
     const git = this.gitCli(log, path)
     const gitRoot = await this.getRepoRoot(log, path)
@@ -122,6 +132,8 @@ export class GitHandler extends VcsHandler {
         // The output here is relative to the git root, and not the directory `path`
         .map((modifiedRelPath) => resolve(gitRoot, modifiedRelPath))
     )
+
+    const absExcludes = exclude ? exclude.map((p) => resolve(path, p)) : undefined
 
     // Apply the include patterns to the ls-files queries. We use the 'glob' "magic word" (in git parlance)
     // to make sure the path handling is consistent with normal POSIX-style globs used generally by Garden.
@@ -144,7 +156,11 @@ export class GitHandler extends VcsHandler {
     )
 
     // List all submodule paths in the current repo
-    const submodulePaths = (await this.getSubmodules(gitRoot)).map((s) => join(gitRoot, s.path))
+    const submodules = await this.getSubmodules(gitRoot)
+    const submodulePaths = submodules.map((s) => join(gitRoot, s.path))
+    if (submodules.length > 0) {
+      log.silly(`Submodules listed at ${submodules.map((s) => `${s.path} (${s.url})`).join(", ")}`)
+    }
 
     const files: VcsFile[] = []
 
@@ -205,6 +221,7 @@ export class GitHandler extends VcsHandler {
       }
       args.push(...patterns)
 
+      log.silly(`Calling git with args '${args.join(" ")}' in ${path}`)
       return execa("git", args, { cwd: path, buffer: false })
     }
 
@@ -277,26 +294,33 @@ export class GitHandler extends VcsHandler {
       })
     }
 
-    // Resolve submodules
-    // TODO: see about optimizing this further, avoiding scans when we're sure they'll not match includes/excludes etc.
-    await Bluebird.map(submodulePaths, async (submodulePath) => {
-      if (submodulePath.startsWith(path)) {
-        // Note: We apply include/exclude filters after listing files from submodule
-        const submoduleRelPath = relative(path, submodulePath)
-        files.push(
-          ...(await this.getFiles({
-            log,
-            path: submodulePath,
-            pathDescription: "submodule",
-            exclude: [],
-            filter: (p) => matchPath(join(submoduleRelPath, p), include, exclude),
-          }))
-        )
-      }
-    })
+    if (submodulePaths.length > 0) {
+      // Need to automatically add `**/*` to directory paths, to match git behavior when filtering.
+      const augmentedIncludes = await augmentGlobs(path, include)
+      const augmentedExcludes = await augmentGlobs(path, exclude)
+
+      // Resolve submodules
+      // TODO: see about optimizing this, avoiding scans when we're sure they'll not match includes/excludes etc.
+      await Bluebird.map(submodulePaths, async (submodulePath) => {
+        if (submodulePath.startsWith(path) && !absExcludes?.includes(submodulePath)) {
+          // Note: We apply include/exclude filters after listing files from submodule
+          const submoduleRelPath = relative(path, submodulePath)
+
+          files.push(
+            ...(await this.getFiles({
+              log,
+              path: submodulePath,
+              pathDescription: "submodule",
+              exclude: [],
+              filter: (p) => matchPath(join(submoduleRelPath, p), augmentedIncludes, augmentedExcludes),
+            }))
+          )
+        }
+      })
+    }
 
     // Make sure we have a fresh hash for each file
-    return Bluebird.map(files, async (f) => {
+    const result = await Bluebird.map(files, async (f) => {
       const resolvedPath = resolve(path, f.path)
       let output = { path: resolvedPath, hash: f.hash || "" }
       let stats: Stats
@@ -356,6 +380,10 @@ export class GitHandler extends VcsHandler {
 
       return output
     }).filter((f) => f.hash !== "")
+
+    log.debug(`Found ${result.length} files in ${pathDescription} ${path}`)
+
+    return result
   }
 
   private async cloneRemoteSource(
@@ -510,3 +538,27 @@ const notInRepoRootErrorMessage = (path: string) => deline`
     Please run \`git init\` if you're starting a new project and repository, or move the project to an
     existing repository, and try again.
   `
+
+/**
+ * Given a list of POSIX-style globs/paths and a `basePath`, find paths that point to a directory and append `**\/*`
+ * to them, such that they'll be matched consistently between git and our internal pattern matching.
+ */
+async function augmentGlobs(basePath: string, globs?: string[]) {
+  if (!globs) {
+    return globs
+  }
+
+  return Bluebird.map(globs, async (pattern) => {
+    if (isGlob(pattern, { strict: false })) {
+      // Pass globs through directly (they won't match a specific directory)
+      return pattern
+    }
+
+    try {
+      const isDir = (await stat(joinWithPosix(basePath, pattern))).isDirectory()
+      return isDir ? posix.join(pattern, "**/*") : pattern
+    } catch {
+      return pattern
+    }
+  })
+}

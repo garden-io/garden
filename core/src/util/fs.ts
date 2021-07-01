@@ -12,8 +12,6 @@ import glob from "glob"
 import tmp from "tmp-promise"
 import _spawn from "cross-spawn"
 import { pathExists, readFile, writeFile, lstat, realpath } from "fs-extra"
-import minimatch = require("minimatch")
-import { some } from "lodash"
 import { join, basename, win32, posix } from "path"
 import { platform } from "os"
 
@@ -23,6 +21,7 @@ import { LogEntry } from "../logger/log-entry"
 import { ModuleConfig } from "../config/module"
 import pathIsInside from "path-is-inside"
 import { uuidv4, exec } from "./util"
+import micromatch from "micromatch"
 
 export const defaultConfigFilename = "garden.yml"
 const metadataFilename = "metadata.json"
@@ -235,7 +234,7 @@ export async function listDirectory(path: string, { recursive = true } = {}): Pr
  * Given a list of `paths`, return a list of paths that match any of the given `patterns`
  */
 export function matchGlobs(paths: string[], patterns: string[]): string[] {
-  return paths.filter((path) => some(patterns, (pattern) => minimatch(path, pattern, { dot: true })))
+  return micromatch(paths, patterns, { dot: true })
 }
 
 /**
