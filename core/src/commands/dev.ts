@@ -92,6 +92,8 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
   arguments = devArgs
   options = devOpts
 
+  private garden?: Garden
+
   printHeader({ headerLog }) {
     printHeader(headerLog, "Dev", "keyboard")
   }
@@ -109,6 +111,10 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
     return { persistent: true }
   }
 
+  terminate() {
+    this.garden?.events.emit("_exit", {})
+  }
+
   async action({
     garden,
     log,
@@ -116,6 +122,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
     args,
     opts,
   }: CommandParams<DevCommandArgs, DevCommandOpts>): Promise<CommandResult> {
+    this.garden = garden
     this.server?.setGarden(garden)
 
     const graph = await garden.getConfigGraph(log)

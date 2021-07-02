@@ -148,6 +148,14 @@ export interface Events extends LoggerEvents {
   watchingForChanges: {}
 
   // Runtime status events
+  log: {
+    timestamp: number
+    entity: {
+      type: string
+      key: string
+    }
+    data: string
+  }
   taskStatus: {
     taskName: string
     status: RunStatus
@@ -186,7 +194,7 @@ export interface Events extends LoggerEvents {
 export type EventName = keyof Events
 
 // Note: Does not include logger events.
-export const eventNames: EventName[] = [
+export const pipedEventNames: EventName[] = [
   "_exit",
   "_restart",
   "_test",

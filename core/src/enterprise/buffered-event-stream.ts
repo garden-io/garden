@@ -9,7 +9,7 @@
 import Bluebird from "bluebird"
 import { omit } from "lodash"
 
-import { Events, EventName, EventBus, eventNames } from "../events"
+import { Events, EventName, EventBus, pipedEventNames } from "../events"
 import { LogEntryMetadata, LogEntry, LogEntryMessage } from "../logger/log-entry"
 import { got } from "../util/http"
 
@@ -100,6 +100,7 @@ export class BufferedEventStream {
   protected targets: StreamTarget[]
   protected streamEvents: boolean
   protected streamLogEntries: boolean
+  protected eventNames: EventName[]
 
   protected garden: Garden
   private workflowRunUid: string | undefined
@@ -132,6 +133,7 @@ export class BufferedEventStream {
     this.bufferedEvents = []
     this.bufferedLogEntries = []
     this.targets = []
+    this.eventNames = pipedEventNames
   }
 
   connect({ garden, targets, streamEvents, streamLogEntries }: ConnectBufferedEventStreamParams) {
@@ -162,7 +164,7 @@ export class BufferedEventStream {
   subscribeToGardenEvents(eventBus: EventBus) {
     // We maintain this map to facilitate unsubscribing from events when the Garden instance is closed.
     const gardenEventListeners = {}
-    for (const gardenEventName of eventNames) {
+    for (const gardenEventName of this.eventNames) {
       const listener = (payload: LogEntryEventPayload) => this.streamEvent(gardenEventName, payload)
       gardenEventListeners[gardenEventName] = listener
       eventBus.on(gardenEventName, listener)

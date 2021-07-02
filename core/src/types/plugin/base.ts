@@ -7,7 +7,7 @@
  */
 
 import { LogEntry } from "../../logger/log-entry"
-import { PluginContext, pluginContextSchema } from "../../plugin-context"
+import { PluginContext, pluginContextSchema, PluginEventBroker } from "../../plugin-context"
 import { GardenModule, moduleSchema } from "../module"
 import { RuntimeContext, runtimeContextSchema } from "../../runtime-context"
 import { GardenService, serviceSchema } from "../service"
@@ -21,6 +21,7 @@ export interface PluginActionContextParams extends ActionHandlerParamsBase {
 }
 
 export interface PluginActionParamsBase extends PluginActionContextParams {
+  events?: PluginEventBroker
   log: LogEntry
 }
 

@@ -66,6 +66,8 @@ interface PrepareOutput {
   persistent: boolean
 }
 
+type DataCallback = (data: any) => void
+
 export abstract class Command<T extends Parameters = {}, U extends Parameters = {}> {
   abstract name: string
   abstract help: string
@@ -87,7 +89,13 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   streamLogEntries: boolean = false // Set to true to stream log entries for the command
   server: GardenServer | undefined = undefined
 
+  subscribers: DataCallback[]
+  terminated: boolean
+
   constructor(private parent?: CommandGroup) {
+    this.subscribers = []
+    this.terminated = false
+
     // Make sure arguments and options don't have overlapping key names.
     if (this.arguments && this.options) {
       for (const key of Object.keys(this.options)) {
@@ -166,6 +174,34 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
    */
   async prepare(_: PrepareParams<T, U>): Promise<PrepareOutput> {
     return { persistent: false }
+  }
+
+  /**
+   * Called by e.g. the WebSocket server to terminate persistent commands.
+   */
+  terminate() {
+    this.terminated = true
+  }
+
+  /**
+   * Subscribe to any data emitted by commands via the .emit() method
+   */
+  subscribe(cb: (data: string) => void) {
+    this.subscribers.push(cb)
+  }
+
+  /**
+   * Emit data to all subscribers
+   */
+  emit(log: LogEntry, data: string) {
+    for (const subscriber of this.subscribers) {
+      // Ignore any errors here
+      try {
+        subscriber(data)
+      } catch (err) {
+        log.debug(`Error when calling subscriber on ${this.getFullName()} command: ${err.message}`)
+      }
+    }
   }
 
   abstract printHeader(params: PrintHeaderParams<T, U>): void

@@ -19,13 +19,13 @@ import getPort = require("get-port")
 import { omit } from "lodash"
 
 import { Garden } from "../garden"
-import { prepareCommands, resolveRequest, CommandMap } from "./commands"
+import { prepareCommands, parseRequest } from "./commands"
 import { DASHBOARD_STATIC_DIR, gardenEnv } from "../constants"
 import { LogEntry } from "../logger/log-entry"
-import { CommandResult } from "../commands/base"
+import { Command, CommandResult } from "../commands/base"
 import { toGardenError, GardenError } from "../exceptions"
 import { EventName, Events, EventBus, GardenEventListener } from "../events"
-import { ValueOf } from "../util/util"
+import { uuidv4, ValueOf } from "../util/util"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { joi } from "../config/common"
 import { randomString } from "../util/string"
@@ -69,6 +69,7 @@ export class GardenServer {
   private incomingEvents: EventBus
   private statusLog: LogEntry
   private serversUpdatedListener: GardenEventListener<"serversUpdated">
+  private activePersistentRequests: { [requestId: string]: { command: Command; connId: string } }
 
   public port: number | undefined
   public readonly authKey: string
@@ -80,6 +81,7 @@ export class GardenServer {
     this.port = port
     this.authKey = randomString(64)
     this.incomingEvents = new EventBus()
+    this.activePersistentRequests = {}
 
     this.serversUpdatedListener = ({ servers }) => {
       // Update status log line with new `garden dashboard` server, if any
@@ -149,7 +151,7 @@ export class GardenServer {
 
   private async createApp() {
     // prepare request-command map
-    const commands = await prepareCommands()
+    const commands = prepareCommands()
 
     const app = websockify(new Koa())
     const http = new Router()
@@ -177,7 +179,29 @@ export class GardenServer {
 
       this.analytics.trackApi("POST", ctx.originalUrl, { ...ctx.request.body })
 
-      const result = await resolveRequest(ctx, this.garden, this.debugLog, commands, ctx.request.body)
+      const { command, log, args, opts } = parseRequest(ctx, this.debugLog, commands, ctx.request.body)
+
+      const { persistent } = await command.prepare({
+        log,
+        headerLog: log,
+        footerLog: log,
+        args,
+        opts,
+      })
+
+      if (persistent) {
+        ctx.throw(400, "Attempted to run persistent command (e.g. a watch/follow command). Aborting.")
+      }
+
+      const result = await command.action({
+        garden: this.garden,
+        log,
+        headerLog: log,
+        footerLog: log,
+        args,
+        opts,
+      })
+
       ctx.status = 200
       ctx.response.body = result
     })
@@ -244,7 +268,7 @@ export class GardenServer {
       app.use(mount(route, serve(DASHBOARD_STATIC_DIR)))
     }
 
-    this.addWebsocketEndpoint(app, commands)
+    this.addWebsocketEndpoint(app)
 
     return app
   }
@@ -259,13 +283,15 @@ export class GardenServer {
    * Websocket connections, and clients can send commands over the socket and receive results on the
    * same connection.
    */
-  private addWebsocketEndpoint(app: websockify.App, commands: CommandMap) {
+  private addWebsocketEndpoint(app: websockify.App) {
     const wsRouter = new Router()
 
     wsRouter.get("/ws", async (ctx) => {
       if (!this.garden) {
         return this.notReady(ctx)
       }
+
+      const connId = uuidv4()
 
       // TODO: require auth key on connections here, from 0.13.0 onwards
 
@@ -274,34 +300,73 @@ export class GardenServer {
 
       // Helper to make JSON messages, make them type-safe, and to log errors.
       const send = <T extends ServerWebsocketMessageType>(type: T, payload: ServerWebsocketMessages[T]) => {
-        websocket.send(JSON.stringify({ type, ...(<object>payload) }), (err) => {
+        const event = { type, ...(<object>payload) }
+        this.log.debug(`Send event: ${JSON.stringify(event)}`)
+        websocket.send(JSON.stringify(event), (err) => {
           if (err) {
-            const error = toGardenError(err)
-            this.debugLog.debug({ error })
+            this.debugLog.debug({ error: toGardenError(err) })
           }
         })
       }
+
+      const error = (message: string, requestId?: string) => {
+        this.log.debug(message)
+        return send("error", { message, requestId })
+      }
+
+      // Set up heartbeat to detect dead connections
+      let isAlive = true
+
+      let heartbeatInterval = setInterval(() => {
+        if (!isAlive) {
+          this.log.debug(`Connection ${connId} timed out.`)
+          websocket.terminate()
+        }
+
+        isAlive = false
+        this.log.debug(`Connection ${connId} ping.`)
+        websocket.ping(() => {})
+      }, 1000)
+
+      websocket.on("pong", () => {
+        this.log.debug(`Connection ${connId} pong.`)
+        isAlive = true
+      })
 
       // Pipe everything from the event bus to the socket, as well as from the /events endpoint
       const eventListener = (name: EventName, payload: any) => send("event", { name, payload })
       this.garden.events.onAny(eventListener)
       this.incomingEvents.onAny(eventListener)
 
-      // Make sure we clean up listeners when connections end.
-      // TODO: detect broken connections - https://github.com/websockets/ws#how-to-detect-and-close-broken-connections
-      websocket.on("close", () => {
+      const cleanup = () => {
+        this.log.debug(`Connection ${connId} terminated, cleaning up.`)
+        clearInterval(heartbeatInterval)
+
         this.garden && this.garden.events.offAny(eventListener)
         this.incomingEvents.offAny(eventListener)
-      })
+
+        for (const [id, req] of Object.entries(this.activePersistentRequests)) {
+          if (connId === req.connId) {
+            req.command.terminate()
+            delete this.activePersistentRequests[id]
+          }
+        }
+      }
+
+      // Make sure we clean up listeners when connections end.
+      // TODO: detect broken connections - https://github.com/websockets/ws#how-to-detect-and-close-broken-connections
+      websocket.on("close", cleanup)
 
       // Respond to commands.
       websocket.on("message", (msg) => {
         let request: any
 
+        this.log.debug("Got request: " + msg)
+
         try {
           request = JSON.parse(msg.toString())
         } catch {
-          return send("error", { message: "Could not parse message as JSON" })
+          return error("Could not parse message as JSON")
         }
 
         const requestId = request.id
@@ -309,36 +374,94 @@ export class GardenServer {
         try {
           joi.attempt(requestId, joi.string().uuid().required())
         } catch {
-          return send("error", {
-            message: "Message should contain an `id` field with a UUID value",
-          })
+          return error("Message should contain an `id` field with a UUID value", requestId)
         }
 
         try {
           joi.attempt(request.type, joi.string().required())
         } catch {
-          return send("error", {
-            message: "Message should contain a type field",
-          })
+          return error("Message should contain a type field")
         }
 
         if (request.type === "command") {
-          if (!this.garden) {
-            send("error", { requestId, message: notReadyMessage })
-            return
+          // Start a command
+          const garden = this.garden
+
+          if (!garden) {
+            return send("error", { requestId, message: notReadyMessage })
           }
 
-          resolveRequest(ctx, this.garden, this.debugLog, commands, omit(request, ["id", "type"]))
-            .then((result) => {
-              send("commandResult", {
-                requestId,
-                result: result.result,
-                errors: result.errors,
+          try {
+            const commands = prepareCommands()
+            const { command, log, args, opts } = parseRequest(
+              ctx,
+              this.debugLog,
+              commands,
+              omit(request, ["id", "type"])
+            )
+
+            command
+              .prepare({
+                log,
+                headerLog: log,
+                footerLog: log,
+                args,
+                opts,
               })
-            })
-            .catch((err) => {
-              send("error", { requestId, message: err.message })
-            })
+              .then((prepareResult) => {
+                const { persistent } = prepareResult
+
+                if (persistent) {
+                  send("commandStart", {
+                    requestId,
+                    args,
+                    opts,
+                  })
+                  this.activePersistentRequests[requestId] = { command, connId }
+
+                  command.subscribe((data: any) => {
+                    send("commandOutput", {
+                      requestId,
+                      command: command.getFullName(),
+                      data,
+                    })
+                  })
+                }
+
+                // TODO: validate result schema
+                return command.action({
+                  garden,
+                  log,
+                  headerLog: log,
+                  footerLog: log,
+                  args,
+                  opts,
+                })
+              })
+              .then((result) => {
+                send("commandResult", {
+                  requestId,
+                  result: result.result,
+                  errors: result.errors,
+                })
+              })
+              .catch((err) => {
+                error(err.message, requestId)
+              })
+          } catch (err) {
+            return error(err.message, requestId)
+          }
+        } else if (request.type === "commandStatus") {
+          const r = this.activePersistentRequests[requestId]
+          const status = r ? "active" : "not found"
+          send("commandStatus", {
+            requestId,
+            status,
+          })
+        } else if (request.type === "abortCommand") {
+          const req = this.activePersistentRequests[requestId]
+          req.command.terminate()
+          delete this.activePersistentRequests[requestId]
         } else {
           return send("error", {
             requestId,
@@ -354,10 +477,24 @@ export class GardenServer {
 }
 
 interface ServerWebsocketMessages {
+  commandOutput: {
+    requestId: string
+    command: string
+    data: string
+  }
   commandResult: {
     requestId: string
     result: CommandResult<any>
     errors?: GardenError[]
+  }
+  commandStatus: {
+    requestId: string
+    status: "active" | "not found"
+  }
+  commandStart: {
+    requestId: string
+    args: object
+    opts: object
   }
   error: {
     requestId?: string
