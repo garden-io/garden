@@ -13,6 +13,7 @@ import { joi } from "../common"
 import { deline, dedent } from "../../util/string"
 import { schema, ConfigContext, ContextKeySegment } from "./base"
 import { CommandInfo } from "../../plugin-context"
+import { gardenEnv } from "../../constants"
 
 class LocalContext extends ConfigContext {
   @schema(
@@ -75,6 +76,38 @@ class LocalContext extends ConfigContext {
     this.projectPath = projectRoot
     this.username = username
     this.usernameLowerCase = username ? username.toLowerCase() : undefined
+  }
+}
+
+class CloudWorkflowContext extends ConfigContext {
+  @schema(
+    joi
+      .string()
+      .description("The globally unique UID of the workflow run.")
+      .example("6016fedb-39ad-4490-98a4-d6e3cf2dfabf")
+  )
+  public runUid?: string
+
+  @schema(
+    joi
+      .number()
+      .description("The run number of this workflow. This is incremented across all workflows within a given project.")
+      .example(4)
+  )
+  public runNumber?: number
+
+  @schema(joi.string().description("The name of the repo that was cloned to run this workflow").example("my-repo"))
+  public repoName?: string
+
+  @schema(joi.number().description("The number of the pull/merge request that triggered this workflow.").example(105))
+  public pullRequestNumber?: number
+
+  constructor(root: ConfigContext) {
+    super(root)
+    this.runUid = gardenEnv.GARDEN_CLOUD_WORKFLOW_RUN_UID
+    this.runNumber = gardenEnv.GARDEN_CLOUD_RUN_NUMBER
+    this.repoName = gardenEnv.GARDEN_CLOUD_REPO_NAME
+    this.pullRequestNumber = gardenEnv.GARDEN_CLOUD_PR_NUMBER
   }
 }
 
@@ -174,6 +207,16 @@ export class DefaultEnvironmentContext extends ConfigContext {
   )
   public local: LocalContext
 
+  @schema(
+    CloudWorkflowContext.getSchema().description(
+      deline`
+        Context variables that are specific to the currently running Garden Cloud workflow. These values are only
+        available for workflows triggered by Garden Cloud in response to VCS event (e.g. from GitHub or GitLab).
+      `
+    )
+  )
+  public workflow: CloudWorkflowContext
+
   @schema(CommandContext.getSchema().description("Information about the currently running command and its arguments."))
   public command: CommandContext
 
@@ -195,6 +238,7 @@ export class DefaultEnvironmentContext extends ConfigContext {
   }: DefaultEnvironmentContextParams) {
     super()
     this.local = new LocalContext(this, artifactsPath, projectRoot, username)
+    this.workflow = new CloudWorkflowContext(this)
     this.git = new GitContext(this, branch)
     this.project = new ProjectContext(this, projectName)
     this.command = new CommandContext(this, commandInfo)
