@@ -69,7 +69,7 @@ export async function getAllPods(
     })
   )
 
-  return <KubernetesServerResource<V1Pod>[]>deduplicateResources(pods)
+  return <KubernetesServerResource<V1Pod>[]>pods
 }
 
 /**
@@ -264,10 +264,6 @@ export function isWorkload(resource: KubernetesResource) {
 export function isBuiltIn(resource: KubernetesResource) {
   const apiGroup = getApiGroup(resource)
   return apiGroup.endsWith("k8s.io") || !apiGroup.includes(".")
-}
-
-export function deduplicateResources(resources: KubernetesResource[]) {
-  return uniqBy(resources, (r) => `${r.apiVersion}/${r.kind}`)
 }
 
 /**

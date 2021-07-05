@@ -591,6 +591,8 @@ async function runWithArtifacts({
           // Files to match. The .DS_Store file is a trick to avoid errors when no files are matched. The file is
           // ignored later when copying from the temp directory. See https://github.com/sindresorhus/cpy#ignorejunk
           `$(ls ${sourcePath} 2>/dev/null) /tmp/.DS_Store`,
+          // Fix issue https://github.com/garden-io/garden/issues/2445
+          "| cat",
         ]
 
         try {
