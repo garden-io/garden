@@ -45,7 +45,7 @@ You can also deploy `kubernetes` and `helm` modules to their own namespaces.
 
 ### How do I share code between modules?
 
-You can use the [copy directive](https://docs.garden.io/reference/module-types/container#build-dependencies-copy) of the `build.dependencies[]` field for that. See e.g. [this example project](https://github.com/garden-io/garden/tree/0.12.22/examples/build-dependencies).
+You can use the [copy directive](https://docs.garden.io/reference/module-types/container#build-dependencies-copy) of the `build.dependencies[]` field for that. See e.g. [this example project](https://github.com/garden-io/garden/tree/0.12.23/examples/build-dependencies).
 
 Alternatively you can hoist your `garden.yml` file so that it is at the same level or parent to all relevant build context and use the `include` field.
 
@@ -65,7 +65,7 @@ Use the [`targetImage` field](https://docs.garden.io/reference/module-types/cont
 
 ### How do I use base images?
 
-See [this example project](https://github.com/garden-io/garden/tree/0.12.22/examples/base-image).
+See [this example project](https://github.com/garden-io/garden/tree/0.12.23/examples/base-image).
 
 ### Can I use runtime variables in container builds (e.g. from tasks)?
 
@@ -112,11 +112,11 @@ include: [frontend/**/*]
 
 Note that you can put multiple Garden configuration files in the same directory, e.g. `project.garden.yml`, `api.garden.yml` and `frontend.garden.yml`.
 
-If you need the Dockerfile outside of the module root because you want to share it with other modules, you should consider having a single base image instead and then let each module have its own Dockerfile that's built on the base image. See the [base image example project](https://github.com/garden-io/garden/tree/0.12.22/examples/base-image) for an example of this.
+If you need the Dockerfile outside of the module root because you want to share it with other modules, you should consider having a single base image instead and then let each module have its own Dockerfile that's built on the base image. See the [base image example project](https://github.com/garden-io/garden/tree/0.12.23/examples/base-image) for an example of this.
 
 ### How do I include files/dirs (e.g. shared libraries) from outside the module root with the build context?
 
-See [this example project](https://github.com/garden-io/garden/tree/0.12.22/examples/build-dependencies).
+See [this example project](https://github.com/garden-io/garden/tree/0.12.23/examples/build-dependencies).
 
 ### How do I add Docker specific flags to the build command?
 
@@ -130,7 +130,7 @@ You can use the `dockerfile` field. For example:
 dockerfile: "${environment.name == 'prod' ? Dockerfile.prod : Dockerfile.dev}"
 ```
 
-See also the [base image example project](https://github.com/garden-io/garden/tree/0.12.22/examples/base-image) for an example of this.
+See also the [base image example project](https://github.com/garden-io/garden/tree/0.12.23/examples/base-image) for an example of this.
 
 ## Remote Building
 

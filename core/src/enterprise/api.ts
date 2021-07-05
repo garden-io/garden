@@ -27,8 +27,12 @@ export const authTokenHeader =
 
 export const makeAuthHeader = (clientAuthToken: string) => ({ [authTokenHeader]: clientAuthToken })
 
+export function isGotError(error: any, statusCode: number): error is GotHttpError {
+  return error instanceof GotHttpError && error.response.statusCode === statusCode
+}
+
 function is401Error(error: any): error is GotHttpError {
-  return error instanceof GotHttpError && error.response.statusCode === 401
+  return isGotError(error, 401)
 }
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
@@ -182,6 +186,12 @@ export class EnterpriseApi {
   }
 
   static async saveAuthToken(log: LogEntry, tokenResponse: AuthTokenResponse) {
+    if (!tokenResponse.token) {
+      throw new EnterpriseApiError(
+        `Received a null/empty client auth token while logging in. Please contact your system administrator.`,
+        { tokenResponse }
+      )
+    }
     try {
       const manager = ClientAuthToken.getConnection().manager
       await manager.transaction(async (transactionalEntityManager) => {
@@ -197,7 +207,10 @@ export class EnterpriseApi {
       })
       log.debug("Saved client auth token to local config db")
     } catch (error) {
-      log.error(`An error occurred while saving client auth token to local config db:\n${error.message}`)
+      throw new EnterpriseApiError(
+        `An error occurred while saving client auth token to local config db:\n${error.message}`,
+        { tokenResponse }
+      )
     }
   }
 

@@ -69,6 +69,14 @@ export abstract class ConfigContext {
     return joi.object().keys(schemas).required()
   }
 
+  /**
+   * Override this method to add more context to error messages thrown in the `resolve` method when a missing key is
+   * referenced.
+   */
+  getMissingKeyErrorFooter(_key: ContextKeySegment, _path: ContextKeySegment[]): string {
+    return ""
+  }
+
   resolve({ key, nodePath, opts }: ContextResolveParams): ContextResolveOutput {
     const path = renderKeyPath(key)
     const fullPath = renderKeyPath(nodePath.concat(key))
@@ -177,6 +185,10 @@ export abstract class ConfigContext {
 
         if (available && available.length) {
           message += chalk.red(" Available keys: " + naturalList(available.sort().map((k) => chalk.white(k))) + ".")
+        }
+        const messageFooter = this.getMissingKeyErrorFooter(nextKey, nestedNodePath.slice(0, -1))
+        if (messageFooter) {
+          message += `\n\n${messageFooter}`
         }
       }
 

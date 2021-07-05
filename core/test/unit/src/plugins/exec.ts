@@ -22,8 +22,9 @@ import { ConfigGraph } from "../../../../src/config-graph"
 import { pathExists, emptyDir } from "fs-extra"
 import { TestTask } from "../../../../src/tasks/test"
 import { defaultNamespace } from "../../../../src/config/project"
-import { readFile } from "fs-extra"
+import { readFile, remove } from "fs-extra"
 import { testFromConfig } from "../../../../src/types/test"
+import { dedent } from "../../../../src/util/string"
 
 describe("exec plugin", () => {
   const projectRoot = resolve(dataDir, "test-project-exec")
@@ -93,7 +94,23 @@ describe("exec plugin", () => {
       command: ["echo", "A"],
       dependencies: [],
     })
-    expect(moduleA.serviceConfigs).to.eql([])
+    expect(moduleA.serviceConfigs).to.eql([
+      {
+        dependencies: [],
+        disabled: false,
+        hotReloadable: false,
+        name: "apple",
+        spec: {
+          cleanupCommand: ["rm -f deployed.log && echo cleaned up"],
+          dependencies: [],
+          deployCommand: ["touch deployed.log && echo deployed"],
+          disabled: false,
+          env: {},
+          name: "apple",
+          statusCommand: ["test -f deployed.log && echo already deployed"],
+        },
+      },
+    ])
     expect(moduleA.taskConfigs).to.eql([
       {
         name: "banana",
@@ -210,7 +227,50 @@ describe("exec plugin", () => {
       command: ["pwd"],
       dependencies: [],
     })
-    expect(moduleLocal.serviceConfigs).to.eql([])
+    expect(moduleLocal.serviceConfigs).to.eql([
+      {
+        dependencies: [],
+        disabled: false,
+        hotReloadable: false,
+        name: "touch",
+        spec: {
+          cleanupCommand: ["rm -f deployed.log && echo cleaned up"],
+          dependencies: [],
+          deployCommand: ["touch deployed.log && echo deployed"],
+          disabled: false,
+          env: {},
+          name: "touch",
+          statusCommand: ["test -f deployed.log && echo already deployed"],
+        },
+      },
+      {
+        dependencies: [],
+        disabled: false,
+        hotReloadable: false,
+        name: "echo",
+        spec: {
+          dependencies: [],
+          deployCommand: ["echo", "deployed $NAME"],
+          disabled: false,
+          env: { NAME: "echo service" },
+          name: "echo",
+        },
+      },
+      {
+        dependencies: [],
+        disabled: false,
+        hotReloadable: false,
+        name: "error",
+        spec: {
+          cleanupCommand: ["sh", '-c "echo fail! && exit 1"'],
+          dependencies: [],
+          deployCommand: ["sh", '-c "echo fail! && exit 1"'],
+          disabled: false,
+          env: {},
+          name: "error",
+        },
+      },
+    ])
     expect(moduleLocal.taskConfigs).to.eql([
       {
         name: "pwd",
@@ -456,6 +516,7 @@ describe("exec plugin", () => {
       expect(res.log).to.equal(module.version.versionString)
     })
   })
+
   describe("runExecModule", () => {
     it("should run the module with the args that are passed through the command", async () => {
       const module = graph.getModule("module-local")
@@ -472,6 +533,188 @@ describe("exec plugin", () => {
         },
       })
       expect(res.log).to.eql("hello world")
+    })
+  })
+
+  context("services", () => {
+    const touchFilePath = join(projectRoot, "module-local", "deployed.log")
+
+    beforeEach(async () => {
+      await remove(touchFilePath)
+    })
+
+    describe("deployExecService", () => {
+      it("runs the service's deploy command with the specified env vars", async () => {
+        const service = graph.getService("echo")
+        const actions = await garden.getActionRouter()
+        const res = await actions.deployService({
+          devMode: false,
+          force: false,
+          hotReload: false,
+          log,
+          service,
+          runtimeContext: {
+            envVars: {},
+            dependencies: [],
+          },
+        })
+        expect(res.detail.deployCommandOutput).to.eql("deployed echo service")
+      })
+
+      it("throws if deployCommand returns with non-zero code", async () => {
+        const service = graph.getService("error")
+        const actions = await garden.getActionRouter()
+        await expectError(
+          async () =>
+            await actions.deployService({
+              devMode: false,
+              force: false,
+              hotReload: false,
+              log,
+              service,
+              runtimeContext: {
+                envVars: {},
+                dependencies: [],
+              },
+            }),
+          (err) =>
+            expect(err.message).to.equal(dedent`
+            Command "sh -c "echo fail! && exit 1"" failed with code 1:
+
+            Here's the full output:
+
+            fail!
+            `)
+        )
+      })
+    })
+
+    describe("getExecServiceStatus", async () => {
+      it("returns 'unknown' if no statusCommand is set", async () => {
+        const service = graph.getService("error")
+        const actions = await garden.getActionRouter()
+        const res = await actions.getServiceStatus({
+          devMode: false,
+          hotReload: false,
+          log,
+          service,
+          runtimeContext: {
+            envVars: {},
+            dependencies: [],
+          },
+        })
+        expect(res.state).to.equal("unknown")
+      })
+
+      it("returns 'ready' if statusCommand returns zero exit code", async () => {
+        const service = graph.getService("touch")
+        const actions = await garden.getActionRouter()
+        await actions.deployService({
+          devMode: false,
+          hotReload: false,
+          force: false,
+          log,
+          service,
+          runtimeContext: {
+            envVars: {},
+            dependencies: [],
+          },
+        })
+        const res = await actions.getServiceStatus({
+          devMode: false,
+          hotReload: false,
+          log,
+          service,
+          runtimeContext: {
+            envVars: {},
+            dependencies: [],
+          },
+        })
+        expect(res.state).to.equal("ready")
+        expect(res.detail.statusCommandOutput).to.equal("already deployed")
+      })
+
+      it("returns 'outdated' if statusCommand returns non-zero exit code", async () => {
+        const service = graph.getService("touch")
+        const actions = await garden.getActionRouter()
+        const res = await actions.getServiceStatus({
+          devMode: false,
+          hotReload: false,
+          log,
+          service,
+          runtimeContext: {
+            envVars: {},
+            dependencies: [],
+          },
+        })
+        expect(res.state).to.equal("outdated")
+      })
+    })
+
+    describe("deleteExecService", async () => {
+      it("runs the cleanup command if set", async () => {
+        const service = graph.getService("touch")
+        const actions = await garden.getActionRouter()
+        await actions.deployService({
+          devMode: false,
+          hotReload: false,
+          force: false,
+          log,
+          service,
+          runtimeContext: {
+            envVars: {},
+            dependencies: [],
+          },
+        })
+        const res = await actions.deleteService({
+          log,
+          service,
+          runtimeContext: {
+            envVars: {},
+            dependencies: [],
+          },
+        })
+        expect(res.state).to.equal("missing")
+        expect(res.detail.cleanupCommandOutput).to.equal("cleaned up")
+      })
+
+      it("returns 'unknown' state if no cleanupCommand is set", async () => {
+        const service = graph.getService("echo")
+        const actions = await garden.getActionRouter()
+        const res = await actions.deleteService({
+          log,
+          service,
+          runtimeContext: {
+            envVars: {},
+            dependencies: [],
+          },
+        })
+        expect(res.state).to.equal("unknown")
+      })
+
+      it("throws if cleanupCommand returns with non-zero code", async () => {
+        const service = graph.getService("error")
+        const actions = await garden.getActionRouter()
+        await expectError(
+          async () =>
+            await actions.deleteService({
+              log,
+              service,
+              runtimeContext: {
+                envVars: {},
+                dependencies: [],
+              },
+            }),
+          (err) =>
+            expect(err.message).to.equal(dedent`
+            Command "sh -c "echo fail! && exit 1"" failed with code 1:
+
+            Here's the full output:
+
+            fail!
+            `)
+        )
+      })
     })
   })
 })

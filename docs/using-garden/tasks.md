@@ -86,7 +86,7 @@ tasks:
       - postgres
 ```
 
-The full example is [available here](https://github.com/garden-io/garden/tree/0.12.22/examples/vote-helm/postgres/garden.yml). There's [also a version](https://github.com/garden-io/garden/tree/0.12.22/examples/vote) that uses the `container` module type instead of Helm charts.
+The full example is [available here](https://github.com/garden-io/garden/tree/0.12.23/examples/vote-helm/postgres/garden.yml). There's [also a version](https://github.com/garden-io/garden/tree/0.12.23/examples/vote) that uses the `container` module type instead of Helm charts.
 
 ## Advanced
 

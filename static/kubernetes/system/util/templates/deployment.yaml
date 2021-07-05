@@ -11,7 +11,6 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-    matchLabels:
       app.kubernetes.io/name: {{ include "garden-util.name" . }}
       app.kubernetes.io/instance: {{ .Release.Name }}
   template:
@@ -22,7 +21,7 @@ spec:
     spec:
       volumes:
         - name: docker-config
-          secret: 
+          secret:
             secretName: builder-docker-config
             items:
               - key: .dockerconfigjson

@@ -8,10 +8,12 @@
 
 import uuid from "uuid"
 import { TemplateStringError } from "../exceptions"
-import { keyBy, mapValues, escapeRegExp, trim, isEmpty, camelCase, kebabCase } from "lodash"
+import { keyBy, mapValues, escapeRegExp, trim, isEmpty, camelCase, kebabCase, isArrayLike } from "lodash"
 import { joi, JoiDescription } from "../config/common"
 import Joi from "@hapi/joi"
 import { validateSchema } from "../config/validation"
+import { safeLoad, safeLoadAll } from "js-yaml"
+import { safeDumpYaml } from "../util/util"
 
 interface TemplateHelperFunction {
   name: string
@@ -187,6 +189,53 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
     exampleArguments: [[]],
     exampleOutput: "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed",
     fn: () => uuid.v4(),
+  },
+  {
+    name: "yamlDecode",
+    description:
+      "Decodes the given YAML-encoded string. Note that for multi-document YAML strings, you need to set the 2nd argument to true (see below).",
+    arguments: {
+      string: joi.string().required().description("The YAML-encoded string to decode."),
+      multiDocument: joi.boolean().description("Set to true if you'd like to parse a multi-document YAML string."),
+    },
+    outputSchema: joi.any(),
+    exampleArguments: [["a: 1\nb: 2\n"], ["a: 1\nb: 2\n---\na: 3\nb: 4\n", true]],
+    fn: (str: string, multi?: boolean) => (multi ? safeLoadAll(str) : safeLoad(str)),
+  },
+  {
+    name: "yamlEncode",
+    description: "Encodes the given value as YAML.",
+    arguments: {
+      value: joi.any().required().description("The value to encode as YAML."),
+      multiDocument: joi.boolean().description("Set to true if you'd like to output a multi-document YAML string."),
+    },
+    outputSchema: joi.string(),
+    exampleArguments: [
+      [{ my: "simple document" }],
+      [
+        [
+          { a: 1, b: 2 },
+          { a: 3, b: 4 },
+        ],
+        true,
+      ],
+    ],
+    fn: (value: any, multiDocument?: boolean) => {
+      if (multiDocument) {
+        if (!isArrayLike(value)) {
+          throw new TemplateStringError(
+            `yamlEncode: Set multiDocument=true but value is not an array (got ${typeof value})`,
+            {
+              value,
+              multiDocument,
+            }
+          )
+        }
+        return "---" + value.map(safeDumpYaml).join("---")
+      } else {
+        return safeDumpYaml(value)
+      }
+    },
   },
 ]
 

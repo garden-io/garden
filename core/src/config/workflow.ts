@@ -417,7 +417,7 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
 }
 
 /**
- * Get all commands whitelisted for workflows
+ * Get all commands that are allowed in workflows
  */
 function getStepCommands() {
   return getCoreCommands()

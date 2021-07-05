@@ -153,6 +153,26 @@ Usage: `uuidv4()`
 Examples:
 * `${uuidv4()}` -> `1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed`
 
+### yamlDecode
+
+Decodes the given YAML-encoded string. Note that for multi-document YAML strings, you need to set the 2nd argument to true (see below).
+
+Usage: `yamlDecode(string, [multiDocument])`
+
+Examples:
+* `${yamlDecode("a: 1\nb: 2\n")}` -> `{"a":1,"b":2}`
+* `${yamlDecode("a: 1\nb: 2\n---\na: 3\nb: 4\n", true)}` -> `[{"a":1,"b":2},{"a":3,"b":4}]`
+
+### yamlEncode
+
+Encodes the given value as YAML.
+
+Usage: `yamlEncode(value, [multiDocument])`
+
+Examples:
+* `${yamlEncode({"my":"simple document"})}` -> `"my: simple document\n"`
+* `${yamlEncode([{"a":1,"b":2},{"a":3,"b":4}], true)}` -> `"---a: 1\nb: 2\n---a: 3\nb: 4\n"`
+
 ## Project configuration context
 
 The following keys are available in any template strings within project definitions in `garden.yml` config files, except the `name` field (which cannot be templated). See the [Environment](#environment-configuration-context) and [Provider](#provider-configuration-context) sections below for additional keys available when configuring `environments` and `providers`, respectively.

@@ -107,11 +107,11 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
   let buildLog = ""
 
   // Stream debug log to a status line
-  const stdout = split2()
+  const outputStream = split2()
   const statusLine = log.placeholder({ level: LogLevel.verbose })
 
-  stdout.on("error", () => {})
-  stdout.on("data", (line: Buffer) => {
+  outputStream.on("error", () => {})
+  outputStream.on("data", (line: Buffer) => {
     statusLine.setState(renderOutputStream(line.toString()))
   })
 
@@ -161,7 +161,8 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     command,
     timeoutSec: buildTimeout,
     containerName: buildkitContainerName,
-    stdout,
+    stdout: outputStream,
+    stderr: outputStream,
     buffer: true,
   })
 

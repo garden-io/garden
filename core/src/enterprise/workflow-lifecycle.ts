@@ -11,8 +11,9 @@ import { LogEntry } from "../logger/log-entry"
 import { EnterpriseApiError } from "../exceptions"
 import { gardenEnv } from "../constants"
 import { Garden } from "../garden"
-import { ApiFetchResponse } from "./api"
+import { ApiFetchResponse, isGotError } from "./api"
 import { RegisterWorkflowRunResponse } from "@garden-io/platform-api-types"
+import { deline } from "../util/string"
 
 export interface RegisterWorkflowRunParams {
   workflowConfig: WorkflowConfig
@@ -52,8 +53,19 @@ export async function registerWorkflowRun({
         retryDescription: "Registering workflow run",
       })
     } catch (err) {
-      log.error(`An error occurred while registering workflow run: ${err.message}`)
-      throw err
+      if (isGotError(err, 422)) {
+        const errMsg = deline`
+          Workflow run registration failed due to mismatch between CLI and API versions. Please make sure your Garden
+          CLI version is compatible with your version of Garden Enterprise. See error.log for details
+          on the failed registration request payload.
+        `
+        throw new EnterpriseApiError(errMsg, {
+          requestData,
+        })
+      } else {
+        log.error(`An error occurred while registering workflow run: ${err.message}`)
+        throw err
+      }
     }
 
     if (res?.workflowRunUid && res?.status === "success") {

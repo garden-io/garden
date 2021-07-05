@@ -52,7 +52,7 @@ Run `garden --env=remote plugins kubernetes cluster-init`, then `garden dev --en
 
 ### Optional: Use in-cluster building with GCR and Kaniko
 
-Take a look at the [gke example project](https://github.com/garden-io/garden/tree/0.12.22/examples/gke)) to see the additional steps required to set up in-cluster building on GKE with Kaniko and GCR as a deployment registry.
+Take a look at the [gke example project](https://github.com/garden-io/garden/tree/0.12.23/examples/gke)) to see the additional steps required to set up in-cluster building on GKE with Kaniko and GCR as a deployment registry.
 
 ### Optional: Configure DNS
 

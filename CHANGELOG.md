@@ -1,4 +1,31 @@
 
+<a name="0.12.23"></a>
+## [0.12.23](https://github.com/garden-io/garden/compare/0.12.22...0.12.23) (2021-06-16)
+
+### Bug Fixes
+
+* **core:** support git 2.32.0 ([32cb2d7f](https://github.com/garden-io/garden/commit/32cb2d7f))
+* **k8s:** remove unnecessary build step for kubernetes modules ([26d4d125](https://github.com/garden-io/garden/commit/26d4d125))
+* **k8s:** ensure project namespace exists ahead of kaniko build ([a1c9c67c](https://github.com/garden-io/garden/commit/a1c9c67c))
+* **workflows:** error when running `garden` in a workflow script step ([dd812238](https://github.com/garden-io/garden/commit/dd812238))
+
+### Code Refactoring
+
+* **logger:** do not store entries in-memory unless needed ([d512a430](https://github.com/garden-io/garden/commit/d512a430))
+
+### Features
+
+* add one-way-replica as additional devMode.sync.mode ([bcb16e82](https://github.com/garden-io/garden/commit/bcb16e82))
+* **container:** allow specifying preferred local port for port-forwards ([ba9838bf](https://github.com/garden-io/garden/commit/ba9838bf))
+* **core:** allow opt aliases in ${command.params} ([ce8b2aad](https://github.com/garden-io/garden/commit/ce8b2aad))
+* **exec:** add services to exec modules ([852db05a](https://github.com/garden-io/garden/commit/852db05a))
+
+### Improvements
+
+* **cloud:** better API errors ([5b959581](https://github.com/garden-io/garden/commit/5b959581))
+* **cloud:** better secrets errors ([7d64bdcc](https://github.com/garden-io/garden/commit/7d64bdcc))
+* **core:** tweak log output during builds ([3766ad28](https://github.com/garden-io/garden/commit/3766ad28))
+
 <a name="0.12.22"></a>
 ## [0.12.22](https://github.com/garden-io/garden/compare/0.12.21...0.12.22) (2021-05-26)
 

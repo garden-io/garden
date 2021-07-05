@@ -122,11 +122,11 @@ export const kanikoBuild: BuildHandler = async (params) => {
   let buildLog = ""
 
   // Stream debug log to a status line
-  const stdout = split2()
+  const outputStream = split2()
   const statusLine = log.placeholder({ level: LogLevel.verbose })
 
-  stdout.on("error", () => {})
-  stdout.on("data", (line: Buffer) => {
+  outputStream.on("error", () => {})
+  outputStream.on("data", (line: Buffer) => {
     statusLine.setState(renderOutputStream(line.toString()))
   })
 
@@ -180,7 +180,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
     authSecretName: authSecret.metadata.name,
     module,
     args,
-    outputStream: stdout,
+    outputStream,
   })
 
   buildLog = buildRes.log
@@ -497,6 +497,7 @@ async function runKaniko({
     remove: true,
     timeoutSec: module.spec.build.timeout,
     stdout: outputStream,
+    stderr: outputStream,
     tty: false,
   })
 

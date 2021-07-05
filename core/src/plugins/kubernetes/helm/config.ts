@@ -35,7 +35,7 @@ import {
   hotReloadArgsSchema,
 } from "../config"
 import { posix } from "path"
-import { runPodSpecWhitelist } from "../run"
+import { runPodSpecIncludeFields } from "../run"
 import { omit } from "lodash"
 import { kubernetesDevModeSchema, KubernetesDevModeSpec } from "../dev-mode"
 
@@ -99,7 +99,7 @@ const helmServiceResourceSchema = () =>
     hotReloadArgs: hotReloadArgsSchema(),
   })
 
-const runPodSpecWhitelistDescription = runPodSpecWhitelist.map((f) => `* \`${f}\``).join("\n")
+const runPodSpecWhitelistDescription = runPodSpecIncludeFields.map((f) => `* \`${f}\``).join("\n")
 
 const helmTaskSchema = () =>
   kubernetesTaskSchema().keys({

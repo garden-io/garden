@@ -117,15 +117,6 @@ export class BuildTask extends BaseTask {
 
     let log: LogEntry
 
-    const logSuccess = () => {
-      if (log) {
-        log.setSuccess({
-          msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
-          append: true,
-        })
-      }
-    }
-
     if (this.force) {
       log = this.log.info({
         section: this.getName(),
@@ -142,7 +133,10 @@ export class BuildTask extends BaseTask {
       const status = await actions.getBuildStatus({ log: this.log, module })
 
       if (status.ready) {
-        logSuccess()
+        log.setSuccess({
+          msg: chalk.green(`Already built`),
+          append: true,
+        })
         return { fresh: false }
       }
 
@@ -162,7 +156,10 @@ export class BuildTask extends BaseTask {
       throw err
     }
 
-    logSuccess()
+    log.setSuccess({
+      msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
+      append: true,
+    })
     return result
   }
 }
