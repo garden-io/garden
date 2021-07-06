@@ -25,6 +25,7 @@ import { ServiceState } from "../../../types/service"
 import { EnvironmentStatus } from "../../../types/plugin/provider/getEnvironmentStatus"
 import { PrimitiveMap } from "../../../config/common"
 import chalk from "chalk"
+import { defaultIngressClass } from "../constants"
 
 /**
  * Given an array of certificate names, check if they are all existing and Ready.
@@ -263,6 +264,7 @@ export async function setupCertManager({ ctx, provider, log, status }: SetupCert
 
             const issuerManifest = getClusterIssuerFromTls({
               name: issuerName,
+              ingressClass: provider.config.ingressClass || defaultIngressClass,
               tlsManager,
               tlsCertificate: cert,
             })
@@ -316,6 +318,7 @@ export function getCertificateName(certManager: CertManagerConfig, tlsCertificat
 
 export interface GetIssuerParams {
   name: string
+  ingressClass: string
   tlsManager: CertManagerConfig
   tlsCertificate: IngressTlsCertificate
 }
@@ -327,7 +330,7 @@ export interface GetIssuerParams {
  * @param {GetIssuerParams} { name, tlsManager, tlsCertificate, serverType }
  * @returns
  */
-export function getClusterIssuerFromTls({ name, tlsManager, tlsCertificate }: GetIssuerParams) {
+export function getClusterIssuerFromTls({ name, ingressClass, tlsManager, tlsCertificate }: GetIssuerParams) {
   let server = "https://acme-staging-v02.api.letsencrypt.org/directory"
   if (tlsManager.acmeServer === "letsencrypt-prod") {
     server = "https://acme-v02.api.letsencrypt.org/directory"
@@ -350,7 +353,7 @@ export function getClusterIssuerFromTls({ name, tlsManager, tlsCertificate }: Ge
           {
             http01: {
               ingress: {
-                class: "nginx",
+                class: ingressClass,
               },
             },
           },

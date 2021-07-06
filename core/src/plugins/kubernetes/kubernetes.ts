@@ -35,7 +35,7 @@ import chalk from "chalk"
 import pluralize from "pluralize"
 import { getSystemMetadataNamespaceName } from "./system"
 import { DOCS_BASE_URL } from "../../constants"
-import { inClusterRegistryHostname } from "./constants"
+import { defaultIngressClass, inClusterRegistryHostname } from "./constants"
 import { pvcModuleDefinition } from "./volumes/persistentvolumeclaim"
 import { getModuleTypeUrl, getProviderUrl } from "../../docs/common"
 import { helm3Spec } from "./helm/helm-cli"
@@ -64,7 +64,7 @@ export async function configureProvider({
     config._systemServices.push("ingress-controller", "default-backend")
 
     if (!config.ingressClass) {
-      config.ingressClass = "nginx"
+      config.ingressClass = defaultIngressClass
     }
   }
 

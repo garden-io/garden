@@ -27,3 +27,5 @@ export const dockerDaemonDeploymentName = "garden-docker-daemon"
 export const k8sUtilImageName = "gardendev/k8s-util:0.4.0"
 export const dockerDaemonContainerName = "docker-daemon"
 export const skopeoDaemonContainerName = "util"
+
+export const defaultIngressClass = "nginx"

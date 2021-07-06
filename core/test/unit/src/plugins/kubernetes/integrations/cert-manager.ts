@@ -18,6 +18,7 @@ import {
 } from "../../../../../../src/plugins/kubernetes/config"
 import { expect } from "chai"
 import { deline } from "../../../../../../src/util/string"
+import { defaultIngressClass } from "../../../../../../src/plugins/kubernetes/constants"
 
 describe("cert-manager setup", () => {
   const namespace = "testing-namespace"
@@ -92,6 +93,7 @@ describe("cert-manager setup", () => {
       const issuerName = "test-cluster-issuer"
       const issuer = getClusterIssuerFromTls({
         name: issuerName,
+        ingressClass: defaultIngressClass,
         tlsManager,
         tlsCertificate: testTlsCertificate,
       })
@@ -110,6 +112,7 @@ describe("cert-manager setup", () => {
         }
         const issuer = getClusterIssuerFromTls({
           name: issuerName,
+          ingressClass: defaultIngressClass,
           tlsManager: tlsManagerProd,
           tlsCertificate: testTlsCertificate,
         })
