@@ -88,14 +88,20 @@ export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
       params.service = getKubernetesService(params.service)
       params.module = params.service.module
 
-      return getKubernetesServiceStatus(params)
+      return getKubernetesServiceStatus({
+        ...params,
+        devMode: false,
+      })
     },
 
     async deployService(params: DeployServiceParams) {
       params.service = getKubernetesService(params.service)
       params.module = params.service.module
 
-      return deployKubernetesService(params)
+      return deployKubernetesService({
+        ...params,
+        devMode: false,
+      })
     },
   },
 })
