@@ -427,6 +427,7 @@ async function runKaniko({
         },
       },
     ],
+    tolerations: [builderToleration],
   }
 
   if (provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname) {
