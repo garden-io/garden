@@ -129,7 +129,7 @@ export const runResultSchema = () =>
 export const artifactsPathSchema = () =>
   joi.string().required().description("A directory path where the handler should write any exported artifacts to.")
 
-export type RunState = "outdated" | "succeeded" | "failed" | "not-implemented"
+export type RunState = "outdated" | "running" | "succeeded" | "failed" | "not-implemented"
 
 export interface RunStatus {
   state: RunState

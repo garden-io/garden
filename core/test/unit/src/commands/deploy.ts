@@ -206,24 +206,246 @@ describe("DeployCommand", () => {
       },
     })
 
+    const graph = await garden.getConfigGraph(garden.log)
+
     const sortedEvents = sortBy(
       getRuntimeStatusEvents(garden.events.eventLog),
       (e) => `${e.name}.${e.payload.taskName || e.payload.serviceName}.${e.payload.status.state}`
     )
 
+    const getDeployUid = (serviceName: string): string => {
+      const event = sortedEvents.find((e) => e.payload.serviceName === serviceName && !!e.payload.actionUid)
+      if (!event) {
+        throw new Error(`No serviceStatus event with an actionUid found for service name ${serviceName}`)
+      }
+      return event.payload.actionUid
+    }
+
+    const getRunTaskUid = (taskName: string) => {
+      const event = sortedEvents.find((e) => e.payload.taskName === taskName && !!e.payload.actionUid)
+      if (!event) {
+        throw new Error(`No taskStatus event with an actionUid found for task name ${taskName}`)
+      }
+      return event.payload.actionUid
+    }
+
+    const getModuleVersion = (moduleName: string) => graph.getModule(moduleName).version.versionString
+    const getServiceVersion = (serviceName: string) => graph.getService(serviceName).version
+    const getTaskVersion = (taskName: string) => graph.getTask(taskName).version
+
+    const deployServiceAUid = getDeployUid("service-a")
+    const deployServiceBUid = getDeployUid("service-b")
+    const deployServiceCUid = getDeployUid("service-c")
+    const deployServiceDUid = getDeployUid("service-d")
+
+    const runTaskAUid = getRunTaskUid("task-a")
+    const runTaskCUid = getRunTaskUid("task-c")
+
+    const moduleVersionA = getModuleVersion("module-a")
+    const moduleVersionB = getModuleVersion("module-b")
+    const moduleVersionC = getModuleVersion("module-c")
+
+    const serviceVersionA = getServiceVersion("service-a")
+    const serviceVersionB = getServiceVersion("service-b")
+    const serviceVersionC = getServiceVersion("service-c")
+    const serviceVersionD = getServiceVersion("service-d") // `service-d` is defined in `module-c`
+
+    const taskVersionA = getTaskVersion("task-a")
+    const taskVersionC = getTaskVersion("task-c")
+
     expect(sortedEvents).to.eql([
-      { name: "serviceStatus", payload: { serviceName: "service-a", status: { state: "ready" } } },
-      { name: "serviceStatus", payload: { serviceName: "service-a", status: { state: "ready" } } },
-      { name: "serviceStatus", payload: { serviceName: "service-b", status: { state: "ready" } } },
-      { name: "serviceStatus", payload: { serviceName: "service-b", status: { state: "unknown" } } },
-      { name: "serviceStatus", payload: { serviceName: "service-c", status: { state: "ready" } } },
-      { name: "serviceStatus", payload: { serviceName: "service-c", status: { state: "ready" } } },
-      { name: "serviceStatus", payload: { serviceName: "service-d", status: { state: "ready" } } },
-      { name: "serviceStatus", payload: { serviceName: "service-d", status: { state: "unknown" } } },
-      { name: "taskStatus", payload: { taskName: "task-a", status: { state: "not-implemented" } } },
-      { name: "taskStatus", payload: { taskName: "task-a", status: { state: "succeeded" } } },
-      { name: "taskStatus", payload: { taskName: "task-c", status: { state: "not-implemented" } } },
-      { name: "taskStatus", payload: { taskName: "task-c", status: { state: "succeeded" } } },
+      {
+        name: "serviceStatus",
+        payload: {
+          serviceName: "service-a",
+          moduleName: "module-a",
+          moduleVersion: moduleVersionA,
+          serviceVersion: serviceVersionA,
+          actionUid: deployServiceAUid,
+          status: { state: "deploying" },
+        },
+      },
+      {
+        name: "serviceStatus",
+        payload: {
+          serviceName: "service-a",
+          moduleName: "module-a",
+          moduleVersion: moduleVersionA,
+          serviceVersion: serviceVersionA,
+          status: { state: "ready" },
+        },
+      },
+      {
+        name: "serviceStatus",
+        payload: {
+          serviceName: "service-a",
+          moduleName: "module-a",
+          moduleVersion: moduleVersionA,
+          serviceVersion: serviceVersionA,
+          actionUid: deployServiceAUid,
+          status: { state: "ready" },
+        },
+      },
+      {
+        name: "serviceStatus",
+        payload: {
+          serviceName: "service-b",
+          moduleName: "module-b",
+          actionUid: deployServiceBUid,
+          moduleVersion: moduleVersionB,
+          serviceVersion: serviceVersionB,
+          status: { state: "deploying" },
+        },
+      },
+      {
+        name: "serviceStatus",
+        payload: {
+          serviceName: "service-b",
+          moduleName: "module-b",
+          actionUid: deployServiceBUid,
+          moduleVersion: moduleVersionB,
+          serviceVersion: serviceVersionB,
+          status: { state: "ready" },
+        },
+      },
+      {
+        name: "serviceStatus",
+        payload: {
+          serviceName: "service-b",
+          moduleName: "module-b",
+          moduleVersion: moduleVersionB,
+          serviceVersion: serviceVersionB,
+          status: { state: "unknown" },
+        },
+      },
+      {
+        name: "serviceStatus",
+        payload: {
+          serviceName: "service-c",
+          moduleName: "module-c",
+          actionUid: deployServiceCUid,
+          moduleVersion: moduleVersionC,
+          serviceVersion: serviceVersionC,
+          status: { state: "deploying" },
+        },
+      },
+      {
+        name: "serviceStatus",
+        payload: {
+          serviceName: "service-c",
+          moduleName: "module-c",
+          moduleVersion: moduleVersionC,
+          serviceVersion: serviceVersionC,
+          status: { state: "ready" },
+        },
+      },
+      {
+        name: "serviceStatus",
+        payload: {
+          serviceName: "service-c",
+          moduleName: "module-c",
+          actionUid: deployServiceCUid,
+          moduleVersion: moduleVersionC,
+          serviceVersion: serviceVersionC,
+          status: { state: "ready" },
+        },
+      },
+      {
+        name: "serviceStatus",
+        payload: {
+          serviceName: "service-d",
+          moduleName: "module-c",
+          actionUid: deployServiceDUid,
+          moduleVersion: moduleVersionC,
+          serviceVersion: serviceVersionD,
+          status: { state: "deploying" },
+        },
+      },
+      {
+        name: "serviceStatus",
+        payload: {
+          serviceName: "service-d",
+          moduleName: "module-c",
+          actionUid: deployServiceDUid,
+          moduleVersion: moduleVersionC,
+          serviceVersion: serviceVersionD,
+          status: { state: "ready" },
+        },
+      },
+      {
+        name: "serviceStatus",
+        payload: {
+          serviceName: "service-d",
+          moduleName: "module-c",
+          moduleVersion: moduleVersionC,
+          serviceVersion: serviceVersionD,
+          status: { state: "unknown" },
+        },
+      },
+      {
+        name: "taskStatus",
+        payload: {
+          taskName: "task-a",
+          moduleName: "module-a",
+          moduleVersion: moduleVersionA,
+          taskVersion: taskVersionA,
+          status: { state: "not-implemented" },
+        },
+      },
+      {
+        name: "taskStatus",
+        payload: {
+          taskName: "task-a",
+          moduleName: "module-a",
+          moduleVersion: moduleVersionA,
+          taskVersion: taskVersionA,
+          actionUid: runTaskAUid,
+          status: { state: "running" },
+        },
+      },
+      {
+        name: "taskStatus",
+        payload: {
+          taskName: "task-a",
+          moduleName: "module-a",
+          moduleVersion: moduleVersionA,
+          taskVersion: taskVersionA,
+          actionUid: runTaskAUid,
+          status: { state: "succeeded" },
+        },
+      },
+      {
+        name: "taskStatus",
+        payload: {
+          taskName: "task-c",
+          moduleName: "module-c",
+          moduleVersion: moduleVersionC,
+          taskVersion: taskVersionC,
+          status: { state: "not-implemented" },
+        },
+      },
+      {
+        name: "taskStatus",
+        payload: {
+          taskName: "task-c",
+          moduleName: "module-c",
+          moduleVersion: moduleVersionC,
+          taskVersion: taskVersionC,
+          actionUid: runTaskCUid,
+          status: { state: "running" },
+        },
+      },
+      {
+        name: "taskStatus",
+        payload: {
+          taskName: "task-c",
+          moduleName: "module-c",
+          moduleVersion: moduleVersionC,
+          taskVersion: taskVersionC,
+          actionUid: runTaskCUid,
+          status: { state: "succeeded" },
+        },
+      },
     ])
   })
 

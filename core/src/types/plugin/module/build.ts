@@ -13,6 +13,14 @@ import { joi } from "../../../config/common"
 
 export interface BuildModuleParams<T extends GardenModule = GardenModule> extends PluginModuleActionParamsBase<T> {}
 
+/**
+ * - `fetched`: The build was fetched from a remote repository instead of building.
+ * - `building`: The module is being built.
+ * - `built`: The module was built.
+ * - `failed`: An error occurred while fetching or building the module.
+ */
+export type BuildState = "fetched" | "building" | "built" | "failed"
+
 export interface BuildResult {
   buildLog?: string
   fetched?: boolean
