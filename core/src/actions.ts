@@ -32,7 +32,7 @@ import {
   RunResult,
   runStatus,
 } from "./types/plugin/base"
-import { BuildModuleParams, BuildResult } from "./types/plugin/module/build"
+import { BuildModuleParams, BuildResult, BuildState } from "./types/plugin/module/build"
 import { BuildStatus, GetBuildStatusParams } from "./types/plugin/module/getBuildStatus"
 import { GetTestResultParams, TestResult } from "./types/plugin/module/getTestResult"
 import { RunModuleParams } from "./types/plugin/module/runModule"
@@ -82,7 +82,7 @@ import { RunServiceParams } from "./types/plugin/service/runService"
 import { GetTaskResultParams } from "./types/plugin/task/getTaskResult"
 import { RunTaskParams, RunTaskResult } from "./types/plugin/task/runTask"
 import { ServiceStatus, ServiceStatusMap, ServiceState, GardenService } from "./types/service"
-import { Omit, getNames } from "./util/util"
+import { Omit, getNames, uuidv4 } from "./util/util"
 import { DebugInfoMap } from "./types/plugin/provider/getDebugInfo"
 import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "./types/plugin/provider/prepareEnvironment"
 import { GetPortForwardParams } from "./types/plugin/service/getPortForward"
@@ -354,19 +354,60 @@ export class ActionRouter implements TypeGuard {
   async getBuildStatus<T extends GardenModule>(
     params: ModuleActionRouterParams<GetBuildStatusParams<T>>
   ): Promise<BuildStatus> {
-    return this.callModuleHandler({
+    const status = await this.callModuleHandler({
       params,
       actionType: "getBuildStatus",
       defaultHandler: async () => ({ ready: false }),
     })
+    if (status.ready) {
+      // Then an actual build won't take place, so we emit a build status event to that effect.
+      this.garden.events.emit("buildStatus", {
+        moduleName: params.module.name,
+        moduleVersion: params.module.version.versionString,
+        status: { state: "fetched" },
+      })
+    }
+    return status
   }
 
   async build<T extends GardenModule>(params: ModuleActionRouterParams<BuildModuleParams<T>>): Promise<BuildResult> {
-    return this.callModuleHandler({
-      params,
-      actionType: "build",
-      defaultHandler: async () => ({}),
+    let result: BuildResult
+    const startedAt = new Date()
+    const moduleName = params.module.name
+    const moduleVersion = params.module.version.versionString
+    const actionUid = uuidv4()
+    this.garden.events.emit("buildStatus", {
+      moduleName,
+      moduleVersion,
+      actionUid,
+      status: { state: "building", startedAt },
     })
+
+    const emitBuildStatusEvent = (state: BuildState) => {
+      this.garden.events.emit("buildStatus", {
+        moduleName,
+        moduleVersion,
+        actionUid,
+        status: {
+          state,
+          startedAt,
+          completedAt: new Date(),
+        },
+      })
+    }
+
+    try {
+      result = await this.callModuleHandler({
+        params,
+        actionType: "build",
+        defaultHandler: async () => ({}),
+      })
+      emitBuildStatusEvent("built")
+    } catch (err) {
+      emitBuildStatusEvent("failed")
+      throw err
+    }
+    return result
   }
 
   async publishModule<T extends GardenModule>(
@@ -386,12 +427,28 @@ export class ActionRouter implements TypeGuard {
   ): Promise<TestResult> {
     const tmpDir = await tmp.dir({ unsafeCleanup: true })
     const artifactsPath = normalizePath(await realpath(tmpDir.path))
+    const actionUid = uuidv4()
+    const testName = params.test.name
+    const testVersion = params.test.version
+    const moduleName = params.module.name
+    const moduleVersion = params.module.version.versionString
+    this.garden.events.emit("testStatus", {
+      testName,
+      moduleName,
+      moduleVersion,
+      testVersion,
+      actionUid,
+      status: { state: "running", startedAt: new Date() },
+    })
 
     try {
       const result = await this.callModuleHandler({ params: { ...params, artifactsPath }, actionType: "testModule" })
       this.garden.events.emit("testStatus", {
-        testName: params.test.name,
-        moduleName: params.module.name,
+        testName,
+        moduleName,
+        moduleVersion,
+        testVersion,
+        actionUid,
         status: runStatus(result),
       })
       this.emitNamespaceEvent(result.namespaceStatus)
@@ -421,6 +478,8 @@ export class ActionRouter implements TypeGuard {
     this.garden.events.emit("testStatus", {
       testName: params.test.name,
       moduleName: params.module.name,
+      moduleVersion: params.module.version.versionString,
+      testVersion: params.test.version,
       status: runStatus(result),
     })
     return result
@@ -436,6 +495,9 @@ export class ActionRouter implements TypeGuard {
     const { result } = await this.callServiceHandler({ params, actionType: "getServiceStatus" })
     this.garden.events.emit("serviceStatus", {
       serviceName: params.service.name,
+      moduleVersion: params.service.module.version.versionString,
+      moduleName: params.service.module.name,
+      serviceVersion: params.service.version,
       status: omit(result, "detail"),
     })
     this.emitNamespaceEvents(result.namespaceStatuses)
@@ -444,9 +506,26 @@ export class ActionRouter implements TypeGuard {
   }
 
   async deployService(params: ServiceActionRouterParams<DeployServiceParams>): Promise<ServiceStatus> {
+    const actionUid = uuidv4()
+    const serviceName = params.service.name
+    const moduleVersion = params.service.module.version.versionString
+    const moduleName = params.service.module.name
+    const serviceVersion = params.service.version
+    this.garden.events.emit("serviceStatus", {
+      serviceName,
+      moduleName,
+      moduleVersion,
+      serviceVersion,
+      actionUid,
+      status: { state: "deploying" },
+    })
     const { result } = await this.callServiceHandler({ params, actionType: "deployService" })
     this.garden.events.emit("serviceStatus", {
-      serviceName: params.service.name,
+      serviceName,
+      moduleName,
+      moduleVersion,
+      serviceVersion,
+      actionUid,
       status: omit(result, "detail"),
     })
     this.emitNamespaceEvents(result.namespaceStatuses)
@@ -550,13 +629,30 @@ export class ActionRouter implements TypeGuard {
   //===========================================================================
 
   async runTask(params: TaskActionRouterParams<Omit<RunTaskParams, "artifactsPath">>): Promise<RunTaskResult> {
+    const actionUid = uuidv4()
     const tmpDir = await tmp.dir({ unsafeCleanup: true })
     const artifactsPath = normalizePath(await realpath(tmpDir.path))
+    const taskName = params.task.name
+    const moduleName = params.task.module.name
+    const taskVersion = params.task.version
+    const moduleVersion = params.task.module.version.versionString
+    this.garden.events.emit("taskStatus", {
+      taskName,
+      moduleName,
+      moduleVersion,
+      taskVersion,
+      actionUid,
+      status: { state: "running", startedAt: new Date() },
+    })
 
     try {
       const { result } = await this.callTaskHandler({ params: { ...params, artifactsPath }, actionType: "runTask" })
       this.garden.events.emit("taskStatus", {
-        taskName: params.task.name,
+        taskName,
+        moduleName,
+        moduleVersion,
+        taskVersion,
+        actionUid,
         status: runStatus(result),
       })
       result && this.validateTaskOutputs(params.task, result)
@@ -584,6 +680,9 @@ export class ActionRouter implements TypeGuard {
     })
     this.garden.events.emit("taskStatus", {
       taskName: params.task.name,
+      moduleName: params.task.module.name,
+      taskVersion: params.task.version,
+      moduleVersion: params.task.module.version.versionString,
       status: runStatus(result),
     })
     result && this.validateTaskOutputs(params.task, result)

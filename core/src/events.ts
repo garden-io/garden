@@ -14,6 +14,7 @@ import { ServiceStatus } from "./types/service"
 import { NamespaceStatus, RunStatus } from "./types/plugin/base"
 import { Omit } from "./util/util"
 import { AuthTokenResponse } from "./enterprise/api"
+import { BuildState } from "./types/plugin/module/build"
 
 export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
 
@@ -147,18 +148,72 @@ export interface Events extends LoggerEvents {
   }
   watchingForChanges: {}
 
-  // Runtime status events
+  // Status events
+
+  /**
+   * In the `buildStatus`, `taskStatus`, `testStatus` and `serviceStatus` events, the optional `actionUid` field
+   * identifies a single build/deploy/run.
+   *
+   * The `build`/`testModule`/`runTask`/`deployService` actions emit two events: One before the plugin handler is
+   * called (a "building"/"running"/"deploying" event), and another one after the handler finishes successfully or
+   * throws an error.
+   *
+   * When logged in, the `actionUid` is used by the Garden Cloud backend to group these two events for each of these
+   * action invocations.
+   *
+   * No `actionUid` is set for the corresponding "get status" actions (e.g. `getBuildStatus` or `getServiceStatus`),
+   * since those actions don't result in a build/deploy/run (so there are no associated logs or timestamps to track).
+   */
+
+  buildStatus: {
+    moduleName: string
+    moduleVersion: string
+    /**
+     * `actionUid` should only be defined if `state = "building" | "built" | "failed"` (and not if `state = "fetched",
+     * since in that case, no build took place and there are no logs/timestamps to view).
+     */
+    actionUid?: string
+    status: {
+      state: BuildState
+      startedAt?: Date
+      completedAt?: Date
+    }
+  }
   taskStatus: {
     taskName: string
+    moduleName: string
+    moduleVersion: string
+    taskVersion: string
+    /**
+     * `actionUid` should only be defined if the task was run , i.e. if `state = "running" | "succeeded" | "failed"`
+     * (and not if `state = "outdated" | "not-implemented, since in that case, no run took place and there are no
+     * logs/timestamps to view).
+     */
+    actionUid?: string
     status: RunStatus
   }
   testStatus: {
     testName: string
     moduleName: string
+    moduleVersion: string
+    testVersion: string
+    /**
+     * `actionUid` should only be defined if the test was run, i.e. if `state = "running" | "succeeded" | "failed"`
+     * (and not if `state = "outdated" | "not-implemented, since in that case, no run took place and there are no
+     * logs/timestamps to view).
+     */
+    actionUid?: string
     status: RunStatus
   }
   serviceStatus: {
     serviceName: string
+    moduleName: string
+    moduleVersion: string
+    serviceVersion: string
+    /**
+     * `actionUid` should only be defined if a deploy took place (i.e. when emitted from the `deployService` action).
+     */
+    actionUid?: string
     status: Omit<ServiceStatus, "detail">
   }
   namespaceStatus: NamespaceStatus
@@ -206,6 +261,7 @@ export const eventNames: EventName[] = [
   "taskGraphProcessing",
   "taskGraphComplete",
   "watchingForChanges",
+  "buildStatus",
   "taskStatus",
   "testStatus",
   "serviceStatus",
