@@ -1903,7 +1903,7 @@ workflowConfigs:
         # trigger this workflow.
         #
         # See the Garden Enterprise documentation on [configuring
-        # workflows](https://enterprise.docs.garden.io/further-reading/workflows) for more details.
+        # workflows](https://enterprise.docs.garden.io/getting-started/workflows) for more details.
         #
         # Supported events:
         #

@@ -323,7 +323,7 @@ export const triggerSchema = () => {
         dedent`
         A list of [GitHub events](https://docs.github.com/en/developers/webhooks-and-events/webhook-events-and-payloads) that should trigger this workflow.
 
-        See the Garden Enterprise documentation on [configuring workflows](https://enterprise.docs.garden.io/further-reading/workflows) for more details.
+        See the Garden Enterprise documentation on [configuring workflows](https://enterprise.docs.garden.io/getting-started/workflows) for more details.
 
         Supported events:
 
