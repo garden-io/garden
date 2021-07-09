@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { resolve, relative } from "path"
+import { resolve, relative, join } from "path"
 import Bluebird from "bluebird"
 import { STATIC_DIR, GARDEN_CLI_ROOT, GARDEN_CORE_ROOT } from "@garden-io/core/build/src/constants"
 import { remove, mkdirp, copy, writeFile } from "fs-extra"
@@ -15,6 +15,8 @@ import { exec, getPackageVersion } from "@garden-io/core/build/src/util/util"
 import { randomString } from "@garden-io/core/build/src/util/string"
 import { pick } from "lodash"
 import minimist from "minimist"
+import { createHash } from "crypto"
+import { createReadStream } from "fs"
 
 require("source-map-support").install()
 
@@ -241,9 +243,38 @@ async function copyStatic(targetName: string) {
   await copy(tmpStaticDir, resolve(targetPath, "static"))
 }
 
-async function tarball(targetName: string, version: string) {
-  console.log(` - ${targetName} -> tar`)
-  await exec("tar", ["-czf", `garden-${version}-${targetName}.tar.gz`, targetName], { cwd: distPath })
+async function tarball(targetName: string, version: string): Promise<void> {
+  const filename = `garden-${version}-${targetName}.tar.gz`
+  console.log(` - ${targetName} -> tar (${filename})`)
+
+  await exec("tar", ["-czf", filename, targetName], { cwd: distPath })
+
+  return new Promise((_resolve, reject) => {
+    const hashFilename = filename + ".sha256"
+    const archivePath = join(distPath, filename)
+    const hashPath = join(distPath, hashFilename)
+
+    // compute the sha256 checksum
+    console.log(` - ${targetName} -> sha256 (${hashFilename})`)
+
+    const response = createReadStream(archivePath)
+    response.on("error", reject)
+
+    const hash = createHash("sha256")
+    hash.setEncoding("hex")
+
+    response.on("end", () => {
+      hash.end()
+      const sha256 = hash.read()
+
+      // tslint:disable-next-line: no-floating-promises
+      writeFile(hashPath, sha256 + "\n")
+        .catch(reject)
+        .then(_resolve)
+    })
+
+    response.pipe(hash)
+  })
 }
 
 buildBinaries(process.argv.slice(2)).catch((err) => {

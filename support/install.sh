@@ -47,18 +47,16 @@ tmp=$(mktemp -d /tmp/garden-install.XXXXXX)
   echo "→ Downloading ${url}..."
   curl -sLO "${url}"
 
-  # TODO: we need to add sha256 files to our releases
-
-  # SHA=$(curl -sL "${url}.sha256")
-  # echo ""
-  # echo "Download complete!, validating checksum..."
-  # checksum=$(openssl dgst -sha256 "${filename}" | awk '{ print $2 }')
-  # if [ "$checksum" != "$SHA" ]; then
-  #   echo "Checksum validation failed." >&2
-  #   exit 1
-  # fi
-  # echo "Checksum valid."
-  # echo ""
+  SHA=$(curl -sL "${url}.sha256")
+  echo ""
+  echo "Download complete!, validating checksum..."
+  checksum=$(openssl dgst -sha256 "${filename}" | awk '{ print $2 }')
+  if [ "$checksum" != "$SHA" ]; then
+    echo "Checksum validation failed." >&2
+    exit 1
+  fi
+  echo "Checksum valid."
+  echo ""
 )
 
 (
