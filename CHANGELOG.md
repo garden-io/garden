@@ -1,4 +1,30 @@
 
+<a name="0.12.24"></a>
+## [0.12.24](https://github.com/garden-io/garden/compare/0.12.23...0.12.24) (2021-07-09)
+
+### Bug Fixes
+
+* malformed helm manifest ([2ad5e33d](https://github.com/garden-io/garden/commit/2ad5e33d))
+* **core:** inconsistency in include/exclude handling for submodules ([9162b5f5](https://github.com/garden-io/garden/commit/9162b5f5))
+* **core:** don't apply dev mode to PVC modules ([a8c70e86](https://github.com/garden-io/garden/commit/a8c70e86))
+* **core:** log outputs from exec service deploy at verbose level ([113f2881](https://github.com/garden-io/garden/commit/113f2881))
+* **k8s:** ingressClass wasn't respected in cert-manager integration ([17e183ab](https://github.com/garden-io/garden/commit/17e183ab))
+* **k8s:** logs command wouldn't get logs from all pods ([a6d22fd5](https://github.com/garden-io/garden/commit/a6d22fd5))
+* **k8s:** error copying artifacts with new version of tar in image ([e0debafd](https://github.com/garden-io/garden/commit/e0debafd))
+* **k8s:** missing stderr in verbose buildkit+kaniko build logs ([2746fcfb](https://github.com/garden-io/garden/commit/2746fcfb))
+* **k8s:** apply toleration to kaniko build pods ([f8e19868](https://github.com/garden-io/garden/commit/f8e19868))
+* **k8s:** omit probes in runner pod spec ([7826be72](https://github.com/garden-io/garden/commit/7826be72))
+
+### Features
+
+* **config:** add support for module-level variables ([0828c5e1](https://github.com/garden-io/garden/commit/0828c5e1))
+* **core:** allow variables in remote sources ([4d65cb2d](https://github.com/garden-io/garden/commit/4d65cb2d))
+* **template:** add yamlEncode and yamlDecode template helpers ([dbaf972f](https://github.com/garden-io/garden/commit/dbaf972f))
+
+### Improvements
+
+* **core:** add get tests command ([d610afdd](https://github.com/garden-io/garden/commit/d610afdd))
+
 <a name="0.12.23"></a>
 ## [0.12.23](https://github.com/garden-io/garden/compare/0.12.22...0.12.23) (2021-06-16)
 
