@@ -63,6 +63,7 @@ export const gardenEnv = {
   GARDEN_LEGACY_BUILD_STAGE: env.get("GARDEN_LEGACY_BUILD_STAGE").required(false).asBool(),
   GARDEN_LOG_LEVEL: env.get("GARDEN_LOG_LEVEL").required(false).asString(),
   GARDEN_LOGGER_TYPE: env.get("GARDEN_LOGGER_TYPE").required(false).asString(),
+  GARDEN_LOGGER_SECTION_WIDTH: env.get("GARDEN_LOGGER_SECTION_WIDTH").required(false).default(25).asIntPositive(),
   GARDEN_GE_SCHEDULED: env.get("GARDEN_GE_SCHEDULED").required(false).asBool(),
   GARDEN_SERVER_PORT: env.get("GARDEN_SERVER_PORT").required(false).asPortNumber(),
   GARDEN_SKIP_TESTS: env.get("GARDEN_SKIP_TESTS").required(false).default("").asString(),

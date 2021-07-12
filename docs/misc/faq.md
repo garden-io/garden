@@ -317,3 +317,7 @@ We have a team of people working on it full-time, and we make it a priority to a
 ### Does Garden work offline?
 
 Garden is not currently designed to work in air-gapped environments This would require a fair amount of workarounds, unfortunately.
+
+### How do I prevent module and service names from being truncated in the log output?
+
+You can use the `GARDEN_LOGGER_SECTION_WIDTH` environment variable to change the default module/service section width.

@@ -19,19 +19,19 @@ import { JsonLogEntry } from "./writers/json-terminal-writer"
 import { highlightYaml, PickFromUnion, safeDumpYaml } from "../util/util"
 import { printEmoji, formatGardenError } from "./util"
 import { LoggerType, Logger } from "./logger"
+import { gardenEnv } from "../constants"
 
 type RenderFn = (entry: LogEntry) => string
 
 /*** STYLE HELPERS ***/
 
-export const MAX_SECTION_WIDTH = 25
 const cliPadEnd = (s: string, width: number): string => {
   const diff = width - stringWidth(s)
   return diff <= 0 ? s : s + repeat(" ", diff)
 }
 
-export function formatSection(section: string, width: number = MAX_SECTION_WIDTH) {
-  const minWidth = Math.min(width, MAX_SECTION_WIDTH)
+export function formatSection(section: string, width: number = gardenEnv.GARDEN_LOGGER_SECTION_WIDTH) {
+  const minWidth = Math.min(width, gardenEnv.GARDEN_LOGGER_SECTION_WIDTH)
   return [section]
     .map((s) => cliTruncate(s, minWidth))
     .map((s) => cliPadEnd(s, minWidth))

@@ -18,7 +18,6 @@ import {
   renderError,
   formatForJson,
   renderSection,
-  MAX_SECTION_WIDTH,
   renderData,
 } from "../../../../src/logger/renderers"
 import { GardenError } from "../../../../src/exceptions"
@@ -28,6 +27,7 @@ import logSymbols = require("log-symbols")
 import stripAnsi = require("strip-ansi")
 import { highlightYaml, safeDumpYaml } from "../../../../src/util/util"
 import { freezeTime } from "../../../helpers"
+import { gardenEnv } from "../../../../src/constants"
 
 const logger: Logger = getLogger()
 
@@ -102,13 +102,13 @@ describe("renderers", () => {
   describe("renderSection", () => {
     it("should render the log entry section", () => {
       const entry = logger.info({ msg: "foo", section: "hello" })
-      const withWhitespace = "hello".padEnd(MAX_SECTION_WIDTH, " ")
+      const withWhitespace = "hello".padEnd(gardenEnv.GARDEN_LOGGER_SECTION_WIDTH, " ")
       const rendered = stripAnsi(renderSection(entry))
       expect(rendered).to.equal(`${withWhitespace} → `)
     })
     it("should not render arrow if message is empty", () => {
       const entry = logger.info({ section: "hello" })
-      const withWhitespace = "hello".padEnd(MAX_SECTION_WIDTH, " ")
+      const withWhitespace = "hello".padEnd(gardenEnv.GARDEN_LOGGER_SECTION_WIDTH, " ")
       const rendered = stripAnsi(renderSection(entry))
       expect(rendered).to.equal(`${withWhitespace}`)
     })
@@ -118,9 +118,18 @@ describe("renderers", () => {
       const rendered = stripAnsi(renderSection(entry))
       expect(rendered).to.equal(`${withWhitespace} → `)
     })
+    it("should read section width from env", () => {
+      const originalSectionWidth = gardenEnv["GARDEN_LOGGER_SECTION_WIDTH"]
+      gardenEnv["GARDEN_LOGGER_SECTION_WIDTH"] = 5
+      const entry = logger.info({ msg: "foo", section: "hello" })
+      const withWhitespace = "hello".padEnd(5, " ")
+      const rendered = stripAnsi(renderSection(entry))
+      expect(rendered).to.equal(`${withWhitespace} → `)
+      gardenEnv["GARDEN_LOGGER_SECTION_WIDTH"] = originalSectionWidth
+    })
     it("should not let custom section width exceed max section width", () => {
       const entry = logger.info({ msg: "foo", section: "hello", maxSectionWidth: 99 })
-      const withWhitespace = "hello".padEnd(MAX_SECTION_WIDTH, " ")
+      const withWhitespace = "hello".padEnd(gardenEnv.GARDEN_LOGGER_SECTION_WIDTH, " ")
       const rendered = stripAnsi(renderSection(entry))
       expect(rendered).to.equal(`${withWhitespace} → `)
     })
