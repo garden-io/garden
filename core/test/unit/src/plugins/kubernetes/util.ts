@@ -16,6 +16,7 @@ import {
   getStaticLabelsFromPod,
   getSelectorString,
   makePodName,
+  matchSelector,
 } from "../../../../../src/plugins/kubernetes/util"
 import { KubernetesServerResource } from "../../../../../src/plugins/kubernetes/types"
 import { V1Pod } from "@kubernetes/client-node"
@@ -332,5 +333,32 @@ describe("makePodName", () => {
     const name = makePodName("test", "some-module-with-a-really-unnecessarily-long-name", "really-long-test-name-too")
     expect(name.length).to.equal(63)
     expect(name.slice(0, -7)).to.equal("test-some-module-with-a-really-unnecessarily-long-name-r")
+  })
+})
+
+describe("matchSelector", () => {
+  it("should return false if selector is empty", () => {
+    const matched = matchSelector({}, { foo: "bar" })
+    expect(matched).to.be.false
+  })
+
+  it("should return false if selector contains key missing from labels", () => {
+    const matched = matchSelector({ foo: "bar" }, { nope: "nyet" })
+    expect(matched).to.be.false
+  })
+
+  it("should return false if selector contains value mismatched with a label", () => {
+    const matched = matchSelector({ foo: "bar" }, { foo: "nyet" })
+    expect(matched).to.be.false
+  })
+
+  it("should return true if selector matches labels exactly", () => {
+    const matched = matchSelector({ foo: "bar" }, { foo: "bar" })
+    expect(matched).to.be.true
+  })
+
+  it("should return true if selector is a subset of labels", () => {
+    const matched = matchSelector({ foo: "bar" }, { foo: "bar", something: "else" })
+    expect(matched).to.be.true
   })
 })
