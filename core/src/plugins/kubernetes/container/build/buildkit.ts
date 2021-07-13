@@ -139,7 +139,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     "--export-cache",
     "type=inline",
     "--import-cache",
-    `type=registry,ref=${deploymentImageName}`,
+    `type=registry,ref=${deploymentImageName}:latest`,
     ...getBuildkitFlags(module),
   ]
 
