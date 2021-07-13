@@ -30,6 +30,7 @@ import { HotReloadableResource } from "./hot-reload/hot-reload"
 import { ProviderMap } from "../../config/provider"
 import { PodRunner } from "./run"
 import { isSubset } from "../../util/is-subset"
+import { checkPodStatus } from "./status/pod"
 
 export const skopeoImage = "gardendev/skopeo:1.41.0-2"
 
@@ -180,20 +181,21 @@ export async function getPods(
     undefined, // fieldSelector
     selectorString // labelSelector
   )
-  return <KubernetesServerResource<V1Pod>[]>res.items
-    .map((pod) => {
-      // inexplicably, the API sometimes returns apiVersion and kind as undefined...
-      pod.apiVersion = "v1"
-      pod.kind = "Pod"
-      return pod
-    })
-    .filter(
-      (pod) =>
-        // Filter out failed and terminating pods
-        !(pod.status && (pod.status.phase === "Failed" || pod.status.phase === "Terminating")) &&
-        // Filter out evicted pods
-        !(pod.status && pod.status.reason && pod.status.reason.includes("Evicted"))
-    )
+
+  return <KubernetesServerResource<V1Pod>[]>res.items.map((pod) => {
+    // inexplicably, the API sometimes returns apiVersion and kind as undefined...
+    pod.apiVersion = "v1"
+    pod.kind = "Pod"
+    return pod
+  })
+}
+
+/**
+ * Retrieve a list of *ready* pods based on the provided label selector.
+ */
+export async function getReadyPods(api: KubeApi, namespace: string, selector: { [key: string]: string }) {
+  const pods = await getPods(api, namespace, selector)
+  return pods.filter((pod) => checkPodStatus(pod) === "ready")
 }
 
 export async function execInWorkload({
@@ -442,7 +444,10 @@ export function convertDeprecatedManifestVersion(manifest: KubernetesWorkload): 
   return manifest
 }
 
-export async function getDeploymentPod({
+/**
+ * Given a deployment name, return a running Pod from it, or throw if none is found.
+ */
+export async function getRunningDeploymentPod({
   api,
   deploymentName,
   namespace,
@@ -453,7 +458,7 @@ export async function getDeploymentPod({
 }) {
   const resource = await api.apps.readNamespacedDeployment(deploymentName, namespace)
   const pods = await getWorkloadPods(api, namespace, resource)
-  const pod = sample(pods)
+  const pod = sample(pods.filter((p) => checkPodStatus(p) === "ready"))
   if (!pod) {
     throw new PluginError(`Could not find a running pod in deployment ${deploymentName}`, {
       deploymentName,

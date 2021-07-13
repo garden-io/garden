@@ -11,7 +11,7 @@ import { ContainerModule, ContainerRegistryConfig } from "../../../container/con
 import { containerHelpers } from "../../../container/helpers"
 import { GetBuildStatusParams, BuildStatus } from "../../../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams, BuildResult } from "../../../../types/plugin/module/build"
-import { getDeploymentPod } from "../../util"
+import { getRunningDeploymentPod } from "../../util"
 import {
   buildSyncVolumeName,
   dockerAuthSecretKey,
@@ -71,7 +71,7 @@ interface SyncToSharedBuildSyncParams extends BuildModuleParams<ContainerModule>
 export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
   const { ctx, module, log, api, namespace, deploymentName, rsyncPort } = params
 
-  const buildSyncPod = await getDeploymentPod({
+  const buildSyncPod = await getRunningDeploymentPod({
     api,
     deploymentName,
     namespace,
@@ -148,7 +148,7 @@ export async function skopeoBuildStatus({
 
   const podCommand = ["sh", "-c", skopeoCommand.join(" ")]
 
-  const pod = await getDeploymentPod({
+  const pod = await getRunningDeploymentPod({
     api,
     deploymentName,
     namespace,
@@ -198,7 +198,7 @@ export async function getUtilDaemonPodRunner({
   ctx: PluginContext
   provider: KubernetesProvider
 }) {
-  const pod = await getDeploymentPod({
+  const pod = await getRunningDeploymentPod({
     api,
     deploymentName: gardenUtilDaemonDeploymentName,
     namespace: systemNamespace,
