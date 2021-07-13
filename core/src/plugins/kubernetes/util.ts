@@ -29,6 +29,7 @@ import { getChartPath, renderHelmTemplateString } from "./helm/common"
 import { HotReloadableResource } from "./hot-reload/hot-reload"
 import { ProviderMap } from "../../config/provider"
 import { PodRunner } from "./run"
+import { isSubset } from "../../util/is-subset"
 
 export const skopeoImage = "gardendev/skopeo:1.41.0-2"
 
@@ -480,6 +481,17 @@ export function getSelectorString(labels: { [key: string]: string }) {
     selectorString += `${label}=${labels[label]},`
   }
   return selectorString.trimEnd().slice(0, -1)
+}
+
+/**
+ * Returns true if the provided matchLabels selector matches the given labels. Use to e.g. match the selector on a
+ * Service with Pod templates from a Deployment.
+ *
+ * @param selector The selector on the Service, or the `matchLabels` part of a Deployment spec selector
+ * @param labels The workload labels to match agains
+ */
+export function matchSelector(selector: { [key: string]: string }, labels: { [key: string]: string }) {
+  return Object.keys(selector).length > 0 && isSubset(labels, selector)
 }
 
 /**

@@ -10,7 +10,7 @@ import { ChildProcess } from "child_process"
 
 import getPort = require("get-port")
 const AsyncLock = require("async-lock")
-import { V1Service } from "@kubernetes/client-node"
+import { V1ContainerPort, V1Deployment, V1PodTemplate, V1Service } from "@kubernetes/client-node"
 
 import { GetPortForwardParams, GetPortForwardResult } from "../../types/plugin/service/getPortForward"
 import { KubernetesProvider, KubernetesPluginContext } from "./config"
@@ -20,7 +20,7 @@ import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
 import { KubernetesResource } from "./types"
 import { ForwardablePort, GardenService } from "../../types/service"
-import { isBuiltIn } from "./util"
+import { isBuiltIn, matchSelector } from "./util"
 import { LogEntry } from "../../logger/log-entry"
 import { RuntimeError } from "../../exceptions"
 import execa = require("execa")
@@ -203,7 +203,7 @@ export async function getPortForwardHandler({
 }
 
 function getTargetResource(service: GardenService, targetName?: string) {
-  return `Service/${targetName || service.name}`
+  return targetName || `Service/${service.name}`
 }
 
 /**
@@ -212,19 +212,59 @@ function getTargetResource(service: GardenService, targetName?: string) {
 export function getForwardablePorts(resources: KubernetesResource[]) {
   const ports: ForwardablePort[] = []
 
-  for (const resource of resources) {
-    if (isBuiltIn(resource) && resource.kind === "Service") {
-      const service = resource as V1Service
+  // Start by getting ports defined by Service resources
+  const services = resources.filter((r) => isBuiltIn(r) && r.kind === "Service") as V1Service[]
 
-      for (const portSpec of service.spec!.ports || []) {
-        ports.push({
-          name: portSpec.name,
-          // TODO: not sure if/how possible but it would be good to deduce the protocol somehow
-          protocol: "TCP",
-          targetName: service.metadata!.name,
-          targetPort: portSpec.port,
-        })
+  for (const service of services) {
+    for (const portSpec of service.spec!.ports || []) {
+      ports.push({
+        name: portSpec.name,
+        // TODO: not sure if/how possible but it would be good to deduce the protocol somehow
+        protocol: "TCP",
+        targetName: "Service/" + service.metadata!.name,
+        targetPort: portSpec.port,
+      })
+    }
+  }
+
+  // Then find ports defined by Deployments and DaemonSets  (omitting ports that Service resources already point to).
+  const workloads = resources.filter(
+    (r) => (isBuiltIn(r) && r.kind === "Deployment") || r.kind === "DaemonSet"
+  ) as V1Deployment[]
+
+  const matchesService = (podTemplate: V1PodTemplate, portSpec: V1ContainerPort) => {
+    for (const service of services) {
+      if (!matchSelector(service.spec?.selector || {}, podTemplate.metadata?.labels || {})) {
+        continue
       }
+
+      for (const servicePort of service.spec?.ports || []) {
+        const serviceTargetPort = (servicePort.targetPort as any) as number
+
+        if (serviceTargetPort && serviceTargetPort === portSpec.containerPort) {
+          return true
+        }
+      }
+    }
+    return false
+  }
+
+  for (const workload of workloads) {
+    const podTemplate = workload.spec!.template
+    const containers = podTemplate.spec?.containers || []
+    const portSpecs = containers.flatMap((c) => c.ports || [])
+
+    for (const portSpec of portSpecs) {
+      if (matchesService(podTemplate, portSpec)) {
+        continue
+      }
+
+      ports.push({
+        name: portSpec.name,
+        protocol: "TCP",
+        targetName: `${workload.kind!}/${workload.metadata!.name}`,
+        targetPort: portSpec.containerPort,
+      })
     }
   }
 
