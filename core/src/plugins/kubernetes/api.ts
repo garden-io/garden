@@ -725,21 +725,6 @@ export class KubeApi {
     }
 
     const execHandler = new Exec(this.config, new WebSocketHandler(this.config))
-    let status: V1Status
-
-    const ws = await execHandler.exec(
-      namespace,
-      podName,
-      containerName,
-      command,
-      _stdout,
-      _stderr,
-      stdin || null,
-      tty,
-      (_status) => {
-        status = _status
-      }
-    )
 
     return new Promise((resolve, reject) => {
       let done = false
@@ -762,14 +747,17 @@ export class KubeApi {
         }, timeoutSec * 1000)
       }
 
-      ws.on("error", (err) => {
-        !done && reject(err)
-        done = true
-      })
-
-      ws.on("close", () => {
-        finish(false, getExecExitCode(status))
-      })
+      execHandler
+        .exec(namespace, podName, containerName, command, _stdout, _stderr, stdin || null, tty, (status) => {
+          finish(false, getExecExitCode(status))
+        })
+        .then((ws) => {
+          ws.on("error", (err) => {
+            !done && reject(err)
+            done = true
+          })
+        })
+        .catch(reject)
     })
   }
 

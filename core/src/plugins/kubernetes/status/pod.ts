@@ -174,6 +174,10 @@ export async function getFormattedPodLogs(api: KubeApi, namespace: string, pods:
 }
 
 export function getExecExitCode(status: V1Status) {
+  if (!status) {
+    return 1
+  }
+
   let exitCode = 0
 
   if (status.status !== "Success") {
