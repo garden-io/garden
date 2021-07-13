@@ -117,7 +117,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
 
   // Prepare the build command (this thing, while an otherwise excellent piece of software, is clearly is not meant for
   // everyday human usage)
-  let outputSpec = `type=image,name=${deploymentImageId},push=true`
+  let outputSpec = `type=image,"name=${deploymentImageId},${deploymentImageName}:latest",push=true`
 
   if (provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname) {
     // The in-cluster registry is not exposed, so we don't configure TLS on it.
