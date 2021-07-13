@@ -11,10 +11,9 @@ import { flatten } from "lodash"
 import { KubeApi } from "../api"
 import { KubernetesServerResource } from "../types"
 import { TimeoutError } from "../../../exceptions"
-import { getPods } from "../util"
+import { getReadyPods } from "../util"
 import { sleep } from "../../../util/util"
 import { LogEntry } from "../../../logger/log-entry"
-import { checkWorkloadPodStatus } from "./pod"
 
 // There's something strange going on if this takes more than 10 seconds to resolve
 const timeout = 10000
@@ -42,10 +41,8 @@ export async function waitForServiceEndpoints(
     const serviceName = service.metadata.name
     const serviceNamespace = service.metadata?.namespace || namespace
 
-    const pods = await getPods(api, serviceNamespace, selector)
-    const readyPodNames = pods
-      .filter((p) => checkWorkloadPodStatus(p, [p]).state === "ready")
-      .map((p) => p.metadata.name)
+    const pods = await getReadyPods(api, serviceNamespace, selector)
+    const readyPodNames = pods.map((p) => p.metadata.name)
 
     while (true) {
       const endpoints = await api.core.readNamespacedEndpoints(serviceName, serviceNamespace)

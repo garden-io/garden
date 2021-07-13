@@ -25,7 +25,7 @@ import { apply } from "../kubectl"
 import { waitForResources } from "../status/status"
 import { dedent, deline } from "../../../util/string"
 import { sharedBuildSyncDeploymentName } from "../container/build/common"
-import { execInWorkload, getDeploymentPod } from "../util"
+import { execInWorkload, getRunningDeploymentPod } from "../util"
 import { getSystemNamespace } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { PodRunner } from "../run"
@@ -433,7 +433,11 @@ async function cleanupBuildSyncVolume({
     status: "active",
   })
 
-  const pod = await getDeploymentPod({ api, deploymentName: sharedBuildSyncDeploymentName, namespace: systemNamespace })
+  const pod = await getRunningDeploymentPod({
+    api,
+    deploymentName: sharedBuildSyncDeploymentName,
+    namespace: systemNamespace,
+  })
 
   const runner = new PodRunner({
     api,

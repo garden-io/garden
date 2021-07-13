@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getDeploymentPod } from "../../util"
+import { getRunningDeploymentPod } from "../../util"
 import { dockerDaemonDeploymentName, dockerDaemonContainerName, rsyncPort } from "../../constants"
 import { KubeApi } from "../../api"
 import { KubernetesProvider, KubernetesPluginContext } from "../../config"
@@ -177,7 +177,11 @@ export async function getDockerDaemonPodRunner({
   ctx: PluginContext
   provider: KubernetesProvider
 }) {
-  const pod = await getDeploymentPod({ api, deploymentName: dockerDaemonDeploymentName, namespace: systemNamespace })
+  const pod = await getRunningDeploymentPod({
+    api,
+    deploymentName: dockerDaemonDeploymentName,
+    namespace: systemNamespace,
+  })
 
   return new PodRunner({
     api,

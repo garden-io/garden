@@ -28,7 +28,6 @@ import {
   ApiextensionsV1beta1Api,
   PolicyV1beta1Api,
   KubernetesObject,
-  V1Status,
   Exec,
   Attach,
   V1Deployment,

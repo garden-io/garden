@@ -34,7 +34,7 @@ import { LogLevel } from "../../../../logger/logger"
 import { renderOutputStream, sleep } from "../../../../util/util"
 import { ContainerModule } from "../../../container/config"
 import { getDockerBuildArgs } from "../../../container/build"
-import { getDeploymentPod, millicpuToString, megabytesToString } from "../../util"
+import { getRunningDeploymentPod, millicpuToString, megabytesToString } from "../../util"
 import { PodRunner } from "../../run"
 
 export const buildkitImageName = "gardendev/buildkit:v0.8.1-4"
@@ -147,7 +147,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
   // Execute the build
   const buildTimeout = module.spec.build.timeout
 
-  const pod = await getDeploymentPod({ api, deploymentName: buildkitDeploymentName, namespace })
+  const pod = await getRunningDeploymentPod({ api, deploymentName: buildkitDeploymentName, namespace })
 
   const runner = new PodRunner({
     api,
