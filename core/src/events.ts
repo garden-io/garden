@@ -14,6 +14,7 @@ import { ServiceStatus } from "./types/service"
 import { NamespaceStatus, RunStatus } from "./types/plugin/base"
 import { Omit } from "./util/util"
 import { AuthTokenResponse } from "./enterprise/api"
+import { CommandInfo } from "./plugin-context"
 
 export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
 
@@ -114,6 +115,9 @@ export interface Events extends LoggerEvents {
   }
   moduleRemoved: {}
 
+  // Command/project metadata events
+  commandInfo: CommandInfo,
+
   // TaskGraph events
   taskPending: {
     addedAt: Date
@@ -198,6 +202,7 @@ export const eventNames: EventName[] = [
   "moduleConfigChanged",
   "moduleSourcesChanged",
   "moduleRemoved",
+  "commandInfo",
   "taskPending",
   "taskProcessing",
   "taskComplete",
