@@ -11,7 +11,7 @@ import { readFileSync } from "fs"
 import linewrap from "linewrap"
 import { resolve } from "path"
 import { projectDocsSchema } from "../config/project"
-import { get, isFunction } from "lodash"
+import { get, isFunction, isString } from "lodash"
 import handlebars = require("handlebars")
 import { joi, JoiDescription } from "../config/common"
 import { STATIC_DIR } from "../constants"
@@ -91,10 +91,18 @@ function makeMarkdownDescription(description: BaseKeyDescription, { showRequired
 
   const table = renderMarkdownTable(tableData)
 
+  let deprecatedDescription = "This field will be removed in a future release."
+
+  if (description.deprecated && isString(description.deprecated)) {
+    deprecatedDescription = description.deprecated + " " + deprecatedDescription
+  }
+
   return {
     ...description,
     breadCrumbs,
     experimentalFeature: description.experimental,
+    deprecated: !!description.deprecated,
+    deprecatedDescription,
     formattedExample,
     title: description.fullKey(),
     table,
@@ -130,9 +138,6 @@ export function renderSchemaDescriptionYaml(
   }: RenderYamlOpts
 ) {
   let prevDesc: BaseKeyDescription
-
-  // Skip all deprecated fields
-  schemaDescriptions = schemaDescriptions.filter((desc) => !desc.deprecated)
 
   // This is a little hacky, but works for our purposes
   const getPresetValue = (desc: BaseKeyDescription) => get(presetValues, desc.fullKey().replace(/\[\]/g, "[0]"))
@@ -340,7 +345,11 @@ export function renderConfigReference(
   })
   const normalizedDescriptions = flattenSchema(desc, normalizeOpts)
 
-  const yaml = renderSchemaDescriptionYaml(normalizedDescriptions, { renderBasicDescription: true, ...yamlOpts })
+  const yaml = renderSchemaDescriptionYaml(
+    // Skip deprecated fields in the YAML description
+    normalizedDescriptions.filter((d) => !d.deprecated),
+    { renderBasicDescription: true, ...yamlOpts }
+  )
   const keys = normalizedDescriptions.map((d) => makeMarkdownDescription(d))
 
   const template = handlebars.compile(readFileSync(partialTemplatePath).toString())

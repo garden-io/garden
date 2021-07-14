@@ -1441,6 +1441,10 @@ services:
 
 [services](#services) > limits
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Specify resource limits for the service.
 
 | Type     | Required |
@@ -1451,6 +1455,10 @@ Specify resource limits for the service.
 
 [services](#services) > [limits](#serviceslimits) > cpu
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)
 
 | Type     | Required |
@@ -1460,6 +1468,10 @@ The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)
 ### `services[].limits.memory`
 
 [services](#services) > [limits](#serviceslimits) > memory
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)
 
@@ -1618,6 +1630,10 @@ services:
 ### `services[].ports[].hostPort`
 
 [services](#services) > [ports](#servicesports) > hostPort
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 | Type     | Required |
 | -------- | -------- |

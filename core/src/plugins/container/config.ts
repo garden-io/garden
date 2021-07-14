@@ -515,7 +515,9 @@ const containerServiceSchema = () =>
         these arguments when the service is deployed with hot reloading enabled.`
       )
       .example(["npm", "run", "dev"]),
-    limits: limitsSchema().description("Specify resource limits for the service.").meta({ deprecated: true }),
+    limits: limitsSchema()
+      .description("Specify resource limits for the service.")
+      .meta({ deprecated: "Please use the `cpu` and `memory` fields instead." }),
     cpu: containerCpuSchema("service").default(defaultContainerResources.cpu),
     memory: containerMemorySchema("service").default(defaultContainerResources.memory),
     ports: joiSparseArray(portSchema()).unique("name").description("List of ports that the service container exposes."),

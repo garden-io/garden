@@ -42,8 +42,10 @@ import { helm3Spec } from "./helm/helm-cli"
 import { sternSpec } from "./logs"
 import { isString } from "lodash"
 import { mutagenCliSpec } from "./mutagen"
+import { Warning } from "../../db/entities/warning"
 
 export async function configureProvider({
+  log,
   namespace,
   projectName,
   projectRoot,
@@ -89,15 +91,19 @@ export async function configureProvider({
     }
 
     if (buildMode === "cluster-docker") {
+      await Warning.emit({
+        key: "cluster-docker-deprecated",
+        log,
+        message:
+          "The cluster-docker build mode has been deprecated. Please see the docs for details: https://docs.garden.io/guides/in-cluster-building",
+      })
+
       config._systemServices.push("build-sync", "util", "docker-daemon")
 
       // Set up an NFS provisioner if the user doesn't explicitly set a storage class for the shared sync volume
       if (!config.storage.sync.storageClass) {
         config._systemServices.push("nfs-provisioner")
       }
-    }
-
-    if (buildMode !== "cluster-buildkit" && !config.storage.sync.storageClass) {
     }
   } else if (config.name !== "local-kubernetes" && !config.deploymentRegistry) {
     throw new ConfigurationError(`kubernetes: must specify deploymentRegistry in config if using local build mode`, {
@@ -186,7 +192,7 @@ const outputsSchema = joi.object().keys({
   "metadata-namespace": joiIdentifier()
     .required()
     .description("The namespace used for Garden metadata (currently always the same as app-namespace).")
-    .meta({ deprecated: true }),
+    .meta({ deprecated: "The metadata namespace is no longer used." }),
 })
 
 const localKubernetesUrl = getProviderUrl("local-kubernetes")

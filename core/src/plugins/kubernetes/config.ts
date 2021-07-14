@@ -196,7 +196,7 @@ export const defaultStorage: KubernetesStorage = {
   },
 }
 
-const resourceSchema = (defaults: KubernetesResourceSpec) =>
+const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =>
   joi
     .object()
     .keys({
@@ -208,15 +208,18 @@ const resourceSchema = (defaults: KubernetesResourceSpec) =>
             .integer()
             .default(defaults.limits.cpu)
             .description("CPU limit in millicpu.")
-            .example(defaults.limits.cpu),
+            .example(defaults.limits.cpu)
+            .meta({ deprecated }),
           memory: joi
             .number()
             .integer()
             .default(defaults.limits.memory)
             .description("Memory limit in megabytes.")
-            .example(defaults.limits.memory),
+            .example(defaults.limits.memory)
+            .meta({ deprecated }),
         })
-        .default(defaults.limits),
+        .default(defaults.limits)
+        .meta({ deprecated }),
       requests: joi
         .object()
         .keys({
@@ -225,28 +228,32 @@ const resourceSchema = (defaults: KubernetesResourceSpec) =>
             .integer()
             .default(defaults.requests.cpu)
             .description("CPU request in millicpu.")
-            .example(defaults.requests.cpu),
+            .example(defaults.requests.cpu)
+            .meta({ deprecated }),
           memory: joi
             .number()
             .integer()
             .default(defaults.requests.memory)
             .description("Memory request in megabytes.")
-            .example(defaults.requests.memory),
+            .example(defaults.requests.memory)
+            .meta({ deprecated }),
         })
-        .default(defaults.requests),
+        .default(defaults.requests)
+        .meta({ deprecated }),
     })
     .default(defaults)
 
-const storageSchema = (defaults: KubernetesStorageSpec) =>
+const storageSchema = (defaults: KubernetesStorageSpec, deprecated: boolean) =>
   joi
     .object()
     .keys({
-      size: joi.number().integer().default(defaults.size).description("Volume size in megabytes."),
+      size: joi.number().integer().default(defaults.size).description("Volume size in megabytes.").meta({ deprecated }),
       storageClass: joi
         .string()
         .allow(null)
         .default(defaults.storageClass)
-        .description("Storage class to use for the volume."),
+        .description("Storage class to use for the volume.")
+        .meta({ deprecated }),
     })
     .default(defaults)
 
@@ -316,9 +323,11 @@ export const kubernetesConfigBase = () =>
       .default("local-docker")
       .description(
         dedent`
-        Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to \`cluster-buildkit\`, \`cluster-docker\` or \`kaniko\` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
+        Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to \`cluster-buildkit\` or \`kaniko\` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
 
         For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/guides/in-cluster-building).
+
+        **Note:** The \`cluster-docker\` mode has been deprecated and will be removed in a future release!
         `
       ),
     clusterBuildkit: joi
@@ -357,10 +366,12 @@ export const kubernetesConfigBase = () =>
             Enable [BuildKit](https://github.com/moby/buildkit) support. This should in most cases work well and be
             more performant, but we're opting to keep it optional until it's enabled by default in Docker.
           `
-          ),
+          )
+          .meta({ deprecated: true }),
       })
       .default(() => {})
-      .description("Configuration options for the `cluster-docker` build mode."),
+      .description("Configuration options for the `cluster-docker` build mode.")
+      .meta({ deprecated: "The cluster-docker build mode has been deprecated." }),
     kaniko: joi
       .object()
       .keys({
@@ -435,27 +446,33 @@ export const kubernetesConfigBase = () =>
     resources: joi
       .object()
       .keys({
-        builder: resourceSchema(defaultResources.builder).description(dedent`
+        builder: resourceSchema(defaultResources.builder, false).description(dedent`
             Resource requests and limits for the in-cluster builder. It's important to consider which build mode you're using when configuring this.
 
             When \`buildMode\` is \`kaniko\`, this refers to _each Kaniko pod_, i.e. each individual build, so you'll want to consider the requirements for your individual image builds, with your most expensive/heavy images in mind.
 
             When \`buildMode\` is \`cluster-buildkit\`, this applies to the BuildKit deployment created in _each project namespace_. So think of this as the resource spec for each individual user or project namespace.
 
-            When \`buildMode\` is \`cluster-docker\`, this applies to the single Docker Daemon that is installed and run cluster-wide. This is shared across all users and builds in the cluster, so it should be resourced accordingly, factoring in how many concurrent builds you expect and how heavy your builds tend to be.
+            When \`buildMode\` is \`cluster-docker\`, this applies to the single Docker Daemon that is installed and run cluster-wide. This is shared across all users and builds in the cluster, so it should be resourced accordingly, factoring in how many concurrent builds you expect and how heavy your builds tend to be. **Note that the cluster-docker build mode has been deprecated!**
           `),
-        registry: resourceSchema(defaultResources.registry).description(dedent`
+        registry: resourceSchema(defaultResources.registry, false).description(dedent`
             Resource requests and limits for the in-cluster image registry. Built images are pushed to this registry,
             so that they are available to all the nodes in your cluster.
 
             This is shared across all users and builds, so it should be resourced accordingly, factoring
             in how many concurrent builds you expect and how large your images tend to be.
           `),
-        sync: resourceSchema(defaultResources.sync).description(dedent`
+        sync: resourceSchema(defaultResources.sync, true)
+          .description(
+            dedent`
             Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster
             ahead of building images. This generally is not resource intensive, but you might want to adjust the
             defaults if you have many concurrent users.
-          `),
+          `
+          )
+          .meta({
+            deprecated: "The sync service is only used for the cluster-docker build mode, which is being deprecated.",
+          }),
       })
       .default(defaultResources).description(deline`
         Resource requests and limits for the in-cluster builder, container registry and code sync service.
@@ -464,11 +481,17 @@ export const kubernetesConfigBase = () =>
     storage: joi
       .object()
       .keys({
-        builder: storageSchema(defaultStorage.builder).description(dedent`
+        builder: storageSchema(defaultStorage.builder, true)
+          .description(
+            dedent`
             Storage parameters for the data volume for the in-cluster Docker Daemon.
 
             Only applies when \`buildMode\` is set to \`cluster-docker\`, ignored otherwise.
-          `),
+          `
+          )
+          .meta({
+            deprecated: "This volume is only used for the `cluster-docker` build mode, which has been deprecated.",
+          }),
         nfs: joi
           .object()
           .keys({
@@ -476,21 +499,31 @@ export const kubernetesConfigBase = () =>
               .string()
               .allow(null)
               .default(null)
-              .description("Storage class to use as backing storage for NFS ."),
+              .description("Storage class to use as backing storage for NFS .")
+              .meta({ deprecated: true }),
           })
-          .default({ storageClass: null }).description(dedent`
+          .default({ storageClass: null })
+          .description(
+            dedent`
             Storage parameters for the NFS provisioner, which we automatically create for the sync volume, _unless_
             you specify a \`storageClass\` for the sync volume. See the below \`sync\` parameter for more.
 
             Only applies when \`buildMode\` is set to \`cluster-docker\` or \`kaniko\`, ignored otherwise.
-          `),
-        registry: storageSchema(defaultStorage.registry).description(dedent`
+          `
+          )
+          .meta({
+            deprecated:
+              "The NFS provisioner is only used for the `cluster-docker` build mode, which has been deprecated.",
+          }),
+        registry: storageSchema(defaultStorage.registry, false).description(dedent`
             Storage parameters for the in-cluster Docker registry volume. Built images are stored here, so that they
             are available to all the nodes in your cluster.
 
             Only applies when \`buildMode\` is set to \`cluster-docker\` or \`kaniko\`, ignored otherwise.
           `),
-        sync: storageSchema(defaultStorage.sync).description(dedent`
+        sync: storageSchema(defaultStorage.sync, true)
+          .description(
+            dedent`
             Storage parameters for the code sync volume, which build contexts are synced to ahead of running
             in-cluster builds.
 
@@ -498,8 +531,12 @@ export const kubernetesConfigBase = () =>
             If you don't specify a storage class, Garden creates an NFS provisioner and provisions an
             NFS volume for the sync data volume.
 
-            Only applies when \`buildMode\` is set to \`cluster-docker\` or \`kaniko\`, ignored otherwise.
-          `),
+            Only applies when \`buildMode\` is set to \`cluster-docker\`, ignored otherwise.
+          `
+          )
+          .meta({
+            deprecated: "The sync volume is only used for the `cluster-docker` build mode, which has been deprecated.",
+          }),
       })
       .default(defaultStorage).description(dedent`
         Storage parameters to set for the in-cluster builder, container registry and code sync persistent volumes

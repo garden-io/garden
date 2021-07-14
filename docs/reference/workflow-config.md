@@ -364,6 +364,10 @@ The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 
 
 ### `limits`
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |

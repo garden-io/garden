@@ -107,10 +107,10 @@ export const environmentSchema = () =>
       `
       )
       .example(true),
-    providers: joiArray(providerConfigBaseSchema()).unique("name").meta({ deprecated: true }).description(deline`
-          DEPRECATED - Please use the top-level \`providers\` field instead, and if needed use the \`environments\` key
-          on the provider configurations to limit them to specific environments.
-        `),
+    providers: joiArray(providerConfigBaseSchema()).unique("name").meta({
+      deprecated:
+        "Please use the top-level `providers` field  instead, and if needed use the `environments` key on the provider configurations to limit them to specific environments.",
+    }),
     varfile: joi
       .posixPath()
       .description(

@@ -69,7 +69,7 @@ Garden supports multiple methods for building images and making them available t
 
 1. [**`kaniko`**](#kaniko) — Individual [Kaniko](https://github.com/GoogleContainerTools/kaniko) pods created for each build.
 2. [**`cluster-buildkit`**](#cluster-buildkit) — A [BuildKit](https://github.com/moby/buildkit) deployment created for each project namespace.
-3. [**`cluster-docker`**](#cluster-docker) — A single Docker daemon installed in the `garden-system` namespace and shared between users/deployments.
+3. [**`cluster-docker`**](#cluster-docker) — (**Deprecated**) A single Docker daemon installed in the `garden-system` namespace and shared between users/deployments. It is **no longer recommended** and we will remove it in future releases.
 4. `local-docker` — Build using the local Docker daemon on the developer/CI machine before pushing to the cluster/registry.
 
 The `local-docker` mode is set by default. You should definitely use that when using _Docker for Desktop_, _Minikube_ and most other local development clusters.
@@ -79,10 +79,9 @@ The other modes—which are why you're reading this guide—all build your image
 The remote building options each have some pros and cons. You'll find more details below but **here are our general recommendations** at the moment:
 
 - [**`kaniko`**](#kaniko) is a solid choice for most cases and is _currently our first recommendation_. It is battle-tested among Garden's most demanding users (including the Garden team itself). It also scales horizontally and elastically, since individual Pods are created for each build. It doesn't require priviliged containers to run and requires no shared cluster-wide services.
-- [**`cluster-buildkit`**](#cluster-buildkit) is a new addition and is meant to replace the `cluster-docker` mode. Unlike the `cluster-docker` mode, which deploys cluster-wide services in the `garden-system` namespace, a [BuildKit](https://github.com/moby/buildkit) Deployment is dynamically created in each project namespace and much like Kaniko requires no other cluster-wide services. This mode also offers a _rootless_ option, which runs without any elevated privileges, in clusters that support it.
-- [**`cluster-docker`**](#cluster-docker) was the first implementation included with Garden. It's pretty quick and efficient for small team setups, but relies on a single Docker daemon for all users of a cluster, and also requires supporting services in `garden-system` and some operations to keep it from filling its data volume. It is **no longer recommended** and we may remove it in future releases.
+- [**`cluster-buildkit`**](#cluster-buildkit) is a new addition and replaces the older `cluster-docker` mode. A [BuildKit](https://github.com/moby/buildkit) Deployment is dynamically created in each project namespace and much like Kaniko requires no other cluster-wide services. This mode also offers a _rootless_ option, which runs without any elevated privileges, in clusters that support it.
 
-Generally we recommend picking either `kaniko` or `cluster-buildkit`, based on your usage patterns and scalability requirements. For ephemeral namespaces, `kaniko` is generally the better option, since the persistent BuildKit deployment won't have a warm cache anyway. For long-lived namespaces, like the ones a developer uses while working, `cluster-buildkit` may be a more performant option.
+We recommend picking a mode based on your usage patterns and scalability requirements. For ephemeral namespaces, `kaniko` is generally the better option, since the persistent BuildKit deployment won't have a warm cache anyway. For long-lived namespaces, like the ones a developer uses while working, `cluster-buildkit` may be a more performant option.
 
 Let's look at how each mode works in more detail, and how you configure them:
 
@@ -174,7 +173,7 @@ This allows you to set corresponding [Taints](https://kubernetes.io/docs/concept
 ### cluster-docker
 
 {% hint style="warning" %}
-The `cluster-docker` build mode may be deprecated and removed in an upcoming release. Please consider `kaniko` or `cluster-buildkit` instead.
+The `cluster-docker` build mode has been **deprecated** and will be removed in an upcoming release. Please use `kaniko` or `cluster-buildkit` instead.
 {% endhint %}
 
 The `cluster-docker` mode installs a standalone Docker daemon into your cluster, that is then used for builds across all users of the clusters, along with a handful of other supporting services.

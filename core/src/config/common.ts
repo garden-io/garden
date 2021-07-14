@@ -42,7 +42,7 @@ export const enumToArray = (Enum) => Object.values(Enum).filter((k) => typeof k 
 // Extend the Joi module with our custom rules
 interface MetadataKeys {
   internal?: boolean
-  deprecated?: boolean
+  deprecated?: boolean | string
   enterprise?: boolean
   extendable?: boolean
   experimental?: boolean
