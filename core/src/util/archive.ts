@@ -20,7 +20,7 @@ import archiver = require("archiver")
  * @returns {Promise}
  */
 export async function zipFolder(src: string, dest: string, log: LogEntry) {
-  return new Promise((resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     const output = createWriteStream(dest)
     const archiveOpts = {
       zlib: {

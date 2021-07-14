@@ -385,7 +385,7 @@ export function deepMap<T extends object, U extends object = T>(
   if (isArray(value)) {
     return value.map((v, k) => <U>deepMap(v, fn, k))
   } else if (isPlainObject(value)) {
-    return <U>mapValues(value, (v, k) => deepMap(v, fn, k))
+    return <U>mapValues(value, (v, k) => deepMap(<T>(<unknown>v), fn, k))
   } else {
     return <U>fn(value, key || 0)
   }

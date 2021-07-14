@@ -23,7 +23,7 @@
     "tslint-no-unused": "^0.2.0-alpha.1",
     "tslint-plugin-prettier": "^2.3.0",
     "tslint-react": "^5.0.0",
-    "typescript": "4.1.5"
+    "typescript": "^4.3.5"
   },
   "dependencies": {
     "@emotion/core": "^10.0.28",
