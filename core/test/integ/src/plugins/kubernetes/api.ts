@@ -199,7 +199,7 @@ describe("KubeApi", () => {
           tty: false,
         })
 
-        await new Promise((resolve, reject) => {
+        await new Promise<void>((resolve, reject) => {
           ws.onerror = ({ error }) => {
             reject(error)
           }

@@ -68,7 +68,7 @@ export abstract class BaseTask {
     this.log = initArgs.log
   }
 
-  abstract async resolveDependencies(): Promise<BaseTask[]>
+  abstract resolveDependencies(): Promise<BaseTask[]>
 
   /**
    * Wrapper around resolveDependencies() that memoizes the results.
@@ -93,7 +93,7 @@ export abstract class BaseTask {
 
   abstract getDescription(): string
 
-  abstract async process(dependencyResults: GraphResults): Promise<any>
+  abstract process(dependencyResults: GraphResults): Promise<any>
 }
 
 export function getServiceStatuses(dependencyResults: GraphResults): { [name: string]: ServiceStatus } {

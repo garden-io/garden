@@ -271,7 +271,7 @@ export class PluginTool extends CliWrapper {
     hash.setEncoding("hex")
     response.pipe(hash)
 
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       response.on("error", (err) => {
         log.setError(`Failed fetching ${this.buildSpec.url}`)
         reject(err)

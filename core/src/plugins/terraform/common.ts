@@ -205,7 +205,7 @@ export async function applyStack(params: TerraformParamsWithVariables) {
     statusLine.setState(chalk.gray("→ " + line.toString()))
   })
 
-  await new Promise((_resolve, reject) => {
+  await new Promise<void>((_resolve, reject) => {
     proc.on("error", reject)
     proc.on("close", (code) => {
       if (code === 0) {
