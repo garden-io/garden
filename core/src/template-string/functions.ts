@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import uuid from "uuid"
+import { v4 as uuidv4 } from "uuid"
 import { TemplateStringError } from "../exceptions"
 import { keyBy, mapValues, escapeRegExp, trim, isEmpty, camelCase, kebabCase, isArrayLike } from "lodash"
 import { joi, JoiDescription } from "../config/common"
@@ -188,7 +188,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
     outputSchema: joi.string(),
     exampleArguments: [[]],
     exampleOutput: "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed",
-    fn: () => uuid.v4(),
+    fn: () => uuidv4(),
   },
   {
     name: "yamlDecode",
@@ -252,7 +252,8 @@ export const helperFunctions = keyBy(
 
     const examples = spec.exampleArguments.map((args) => {
       const argsEncoded = args.map((arg) => JSON.stringify(arg))
-      const result = spec.exampleOutput || JSON.stringify(spec.fn(...args))
+      const exampleValue = JSON.stringify(spec.fn(...args))
+      const result = spec.exampleOutput || exampleValue
       return {
         template: "${" + `${spec.name}(${argsEncoded.join(", ")})}`,
         result,
