@@ -235,7 +235,7 @@ export function formatGardenError(error: GardenError) {
   let out = message || ""
 
   // We recursively filter out internal fields (i.e. having names starting with _).
-  const filteredDetail = deepFilter(detail, (_val, key: string | number) => {
+  const filteredDetail = deepFilter(sanitizeObject(detail), (_val, key: string | number) => {
     if (typeof key === "string") {
       return !key.startsWith("_")
     }
