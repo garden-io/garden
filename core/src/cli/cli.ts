@@ -102,7 +102,7 @@ ${renderCommands(commands)}
     }
     const logConfigs: FileWriterConfig[] = [
       {
-        logFilePath: join(root, ERROR_LOG_FILENAME),
+        logFilePath: join(gardenDirPath, ERROR_LOG_FILENAME),
         truncatePrevious: true,
         level: LogLevel.error,
       },
@@ -472,7 +472,7 @@ ${renderCommands(commands)}
       }
 
       if (logger.getWriters().find((w) => w instanceof FileWriter)) {
-        logger.info(`\nSee ${ERROR_LOG_FILENAME} for detailed error message`)
+        logger.info(`\nSee .garden/${ERROR_LOG_FILENAME} for detailed error message`)
         await waitForOutputFlush()
       }
 
