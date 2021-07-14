@@ -294,7 +294,9 @@ environments:
 
 [environments](#environments) > providers
 
-DEPRECATED - Please use the top-level `providers` field instead, and if needed use the `environments` key on the provider configurations to limit them to specific environments.
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -314,7 +316,8 @@ Example:
 
 ```yaml
 environments:
-        name: "local-kubernetes"
+  - providers:
+      - name: "local-kubernetes"
 ```
 
 ### `environments[].providers[].dependencies[]`
@@ -331,7 +334,8 @@ Example:
 
 ```yaml
 environments:
-        dependencies:
+  - providers:
+      - dependencies:
           - exec
 ```
 
@@ -349,7 +353,8 @@ Example:
 
 ```yaml
 environments:
-        environments:
+  - providers:
+      - environments:
           - dev
           - stage
 ```

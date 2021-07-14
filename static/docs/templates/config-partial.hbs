@@ -6,7 +6,16 @@
 {{{breadCrumbs}}}
 {{/if}}
 {{#if experimentalFeature}}
-> ⚠️ **Experimental**: this is an experimental feature and the API might change in the future.
+
+{% hint style="warning" %}
+**Experimental**: this is an experimental feature and the API might change in the future.
+{% endhint %}
+{{/if}}
+{{#if deprecated}}
+
+{% hint style="warning" %}
+**Deprecated**: {{ deprecatedDescription }}
+{% endhint %}
 {{/if}}
 {{#if description}}
 

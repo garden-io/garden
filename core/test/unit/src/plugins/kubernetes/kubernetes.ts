@@ -72,7 +72,7 @@ describe("kubernetes configureProvider", () => {
   it("should apply a default namespace if none is configured", async () => {
     const result = await configure({
       ...basicConfig,
-      buildMode: "cluster-docker",
+      buildMode: "kaniko",
       namespace: undefined,
     })
 
@@ -84,7 +84,7 @@ describe("kubernetes configureProvider", () => {
   it("should convert the string shorthand for the namespace parameter", async () => {
     const result = await configure({
       ...basicConfig,
-      buildMode: "cluster-docker",
+      buildMode: "kaniko",
       namespace: <any>(<unknown>"foo"),
     })
 
@@ -96,7 +96,7 @@ describe("kubernetes configureProvider", () => {
   it("should pass through a full namespace spec", async () => {
     const result = await configure({
       ...basicConfig,
-      buildMode: "cluster-docker",
+      buildMode: "kaniko",
       namespace: {
         name: "foo",
         annotations: { bla: "ble" },
@@ -114,7 +114,7 @@ describe("kubernetes configureProvider", () => {
   it("should set a default deploymentRegistry with projectName as namespace", async () => {
     const result = await configure({
       ...basicConfig,
-      buildMode: "cluster-docker",
+      buildMode: "kaniko",
     })
 
     expect(result.config.deploymentRegistry).to.eql({
@@ -126,7 +126,7 @@ describe("kubernetes configureProvider", () => {
   it("should allow overriding the deploymentRegistry namespace for the in-cluster registry", async () => {
     const result = await configure({
       ...basicConfig,
-      buildMode: "cluster-docker",
+      buildMode: "kaniko",
       deploymentRegistry: {
         hostname: "127.0.0.1:5000",
         namespace: "my-namespace",

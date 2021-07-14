@@ -143,7 +143,10 @@ export const workflowConfigSchema = () =>
         })
         // .default(() => ({}))
         .meta({ enterprise: true }),
-      limits: workflowResourceLimitsSchema().meta({ enterprise: true, deprecated: true }),
+      limits: workflowResourceLimitsSchema().meta({
+        enterprise: true,
+        deprecated: "Please use the `resources.limits` field instead.",
+      }),
       steps: joiSparseArray(workflowStepSchema()).required().min(1).description(deline`
           The steps the workflow should run. At least one step is required. Steps are run sequentially.
           If a step fails, subsequent steps are skipped.

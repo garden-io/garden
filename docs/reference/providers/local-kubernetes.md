@@ -31,12 +31,14 @@ providers:
     environments:
 
     # Choose the mechanism for building container images before deploying. By default your local Docker daemon is
-    # used, but you can set it to `cluster-buildkit`, `cluster-docker` or `kaniko` to sync files to the cluster, and
-    # build container images there. This removes the need to run Docker locally, and allows you to share layer and
-    # image caches between multiple developers, as well as between your development and CI workflows.
+    # used, but you can set it to `cluster-buildkit` or `kaniko` to sync files to the cluster, and build container
+    # images there. This removes the need to run Docker locally, and allows you to share layer and image caches
+    # between multiple developers, as well as between your development and CI workflows.
     #
     # For more details on all the different options and what makes sense to use for your setup, please check out the
     # [in-cluster building guide](https://docs.garden.io/guides/in-cluster-building).
+    #
+    # **Note:** The `cluster-docker` mode has been deprecated and will be removed in a future release!
     buildMode: local-docker
 
     # Configuration options for the `cluster-buildkit` build mode.
@@ -52,12 +54,6 @@ providers:
       # [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes
       # guide to assigning Pods to nodes.
       nodeSelector: {}
-
-    # Configuration options for the `cluster-docker` build mode.
-    clusterDocker:
-      # Enable [BuildKit](https://github.com/moby/buildkit) support. This should in most cases work well and be more
-      # performant, but we're opting to keep it optional until it's enabled by default in Docker.
-      enableBuildKit: false
 
     # Configuration options for the `kaniko` build mode.
     kaniko:
@@ -118,7 +114,8 @@ providers:
       #
       # When `buildMode` is `cluster-docker`, this applies to the single Docker Daemon that is installed and run
       # cluster-wide. This is shared across all users and builds in the cluster, so it should be resourced
-      # accordingly, factoring in how many concurrent builds you expect and how heavy your builds tend to be.
+      # accordingly, factoring in how many concurrent builds you expect and how heavy your builds tend to be. **Note
+      # that the cluster-docker build mode has been deprecated!**
       builder:
         limits:
           # CPU limit in millicpu.
@@ -154,48 +151,12 @@ providers:
           # Memory request in megabytes.
           memory: 512
 
-      # Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster
-      # ahead of building images. This generally is not resource intensive, but you might want to adjust the
-      # defaults if you have many concurrent users.
-      sync:
-        limits:
-          # CPU limit in millicpu.
-          cpu: 500
-
-          # Memory limit in megabytes.
-          memory: 512
-
-        requests:
-          # CPU request in millicpu.
-          cpu: 100
-
-          # Memory request in megabytes.
-          memory: 90
-
     # Storage parameters to set for the in-cluster builder, container registry and code sync persistent volumes
     # (which are automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
     #
     # These are all shared cluster-wide across all users and builds, so they should be resourced accordingly,
     # factoring in how many concurrent builds you expect and how large your images and build contexts tend to be.
     storage:
-      # Storage parameters for the data volume for the in-cluster Docker Daemon.
-      #
-      # Only applies when `buildMode` is set to `cluster-docker`, ignored otherwise.
-      builder:
-        # Volume size in megabytes.
-        size: 20480
-
-        # Storage class to use for the volume.
-        storageClass: null
-
-      # Storage parameters for the NFS provisioner, which we automatically create for the sync volume, _unless_
-      # you specify a `storageClass` for the sync volume. See the below `sync` parameter for more.
-      #
-      # Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored otherwise.
-      nfs:
-        # Storage class to use as backing storage for NFS .
-        storageClass: null
-
       # Storage parameters for the in-cluster Docker registry volume. Built images are stored here, so that they
       # are available to all the nodes in your cluster.
       #
@@ -203,21 +164,6 @@ providers:
       registry:
         # Volume size in megabytes.
         size: 20480
-
-        # Storage class to use for the volume.
-        storageClass: null
-
-      # Storage parameters for the code sync volume, which build contexts are synced to ahead of running
-      # in-cluster builds.
-      #
-      # Important: The storage class configured here has to support _ReadWriteMany_ access.
-      # If you don't specify a storage class, Garden creates an NFS provisioner and provisions an
-      # NFS volume for the sync data volume.
-      #
-      # Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored otherwise.
-      sync:
-        # Volume size in megabytes.
-        size: 10240
 
         # Storage class to use for the volume.
         storageClass: null
@@ -376,9 +322,11 @@ providers:
 
 [providers](#providers) > buildMode
 
-Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to `cluster-buildkit`, `cluster-docker` or `kaniko` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
+Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to `cluster-buildkit` or `kaniko` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
 
 For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/guides/in-cluster-building).
+
+**Note:** The `cluster-docker` mode has been deprecated and will be removed in a future release!
 
 | Type     | Default          | Required |
 | -------- | ---------------- | -------- |
@@ -431,6 +379,10 @@ providers:
 
 [providers](#providers) > clusterDocker
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Configuration options for the `cluster-docker` build mode.
 
 | Type     | Required |
@@ -440,6 +392,10 @@ Configuration options for the `cluster-docker` build mode.
 ### `providers[].clusterDocker.enableBuildKit`
 
 [providers](#providers) > [clusterDocker](#providersclusterdocker) > enableBuildKit
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 Enable [BuildKit](https://github.com/moby/buildkit) support. This should in most cases work well and be more performant, but we're opting to keep it optional until it's enabled by default in Docker.
 
@@ -521,7 +477,10 @@ providers:
 ### `providers[].deploymentStrategy`
 
 [providers](#providers) > deploymentStrategy
-> ⚠️ **Experimental**: this is an experimental feature and the API might change in the future.
+
+{% hint style="warning" %}
+**Experimental**: this is an experimental feature and the API might change in the future.
+{% endhint %}
 
 Defines the strategy for deploying the project services.
 Default is "rolling update" and there is experimental support for "blue/green" deployment.
@@ -601,7 +560,7 @@ When `buildMode` is `kaniko`, this refers to _each Kaniko pod_, i.e. each indivi
 
 When `buildMode` is `cluster-buildkit`, this applies to the BuildKit deployment created in _each project namespace_. So think of this as the resource spec for each individual user or project namespace.
 
-When `buildMode` is `cluster-docker`, this applies to the single Docker Daemon that is installed and run cluster-wide. This is shared across all users and builds in the cluster, so it should be resourced accordingly, factoring in how many concurrent builds you expect and how heavy your builds tend to be.
+When `buildMode` is `cluster-docker`, this applies to the single Docker Daemon that is installed and run cluster-wide. This is shared across all users and builds in the cluster, so it should be resourced accordingly, factoring in how many concurrent builds you expect and how heavy your builds tend to be. **Note that the cluster-docker build mode has been deprecated!**
 
 | Type     | Default                                                                     | Required |
 | -------- | --------------------------------------------------------------------------- | -------- |
@@ -841,6 +800,10 @@ providers:
 
 [providers](#providers) > [resources](#providersresources) > sync
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster
 ahead of building images. This generally is not resource intensive, but you might want to adjust the
 defaults if you have many concurrent users.
@@ -853,6 +816,10 @@ defaults if you have many concurrent users.
 
 [providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > limits
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 | Type     | Default                    | Required |
 | -------- | -------------------------- | -------- |
 | `object` | `{"cpu":500,"memory":512}` | No       |
@@ -860,6 +827,10 @@ defaults if you have many concurrent users.
 ### `providers[].resources.sync.limits.cpu`
 
 [providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [limits](#providersresourcessynclimits) > cpu
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 CPU limit in millicpu.
 
@@ -884,6 +855,10 @@ providers:
 
 [providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [limits](#providersresourcessynclimits) > memory
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Memory limit in megabytes.
 
 | Type     | Default | Required |
@@ -907,6 +882,10 @@ providers:
 
 [providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > requests
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 | Type     | Default                   | Required |
 | -------- | ------------------------- | -------- |
 | `object` | `{"cpu":100,"memory":90}` | No       |
@@ -914,6 +893,10 @@ providers:
 ### `providers[].resources.sync.requests.cpu`
 
 [providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [requests](#providersresourcessyncrequests) > cpu
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 CPU request in millicpu.
 
@@ -937,6 +920,10 @@ providers:
 ### `providers[].resources.sync.requests.memory`
 
 [providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [requests](#providersresourcessyncrequests) > memory
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 Memory request in megabytes.
 
@@ -975,6 +962,10 @@ factoring in how many concurrent builds you expect and how large your images and
 
 [providers](#providers) > [storage](#providersstorage) > builder
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Storage parameters for the data volume for the in-cluster Docker Daemon.
 
 Only applies when `buildMode` is set to `cluster-docker`, ignored otherwise.
@@ -987,6 +978,10 @@ Only applies when `buildMode` is set to `cluster-docker`, ignored otherwise.
 
 [providers](#providers) > [storage](#providersstorage) > [builder](#providersstoragebuilder) > size
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Volume size in megabytes.
 
 | Type     | Default | Required |
@@ -997,6 +992,10 @@ Volume size in megabytes.
 
 [providers](#providers) > [storage](#providersstorage) > [builder](#providersstoragebuilder) > storageClass
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Storage class to use for the volume.
 
 | Type     | Default | Required |
@@ -1006,6 +1005,10 @@ Storage class to use for the volume.
 ### `providers[].storage.nfs`
 
 [providers](#providers) > [storage](#providersstorage) > nfs
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 Storage parameters for the NFS provisioner, which we automatically create for the sync volume, _unless_
 you specify a `storageClass` for the sync volume. See the below `sync` parameter for more.
@@ -1019,6 +1022,10 @@ Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored ot
 ### `providers[].storage.nfs.storageClass`
 
 [providers](#providers) > [storage](#providersstorage) > [nfs](#providersstoragenfs) > storageClass
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 Storage class to use as backing storage for NFS .
 
@@ -1063,6 +1070,10 @@ Storage class to use for the volume.
 
 [providers](#providers) > [storage](#providersstorage) > sync
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Storage parameters for the code sync volume, which build contexts are synced to ahead of running
 in-cluster builds.
 
@@ -1070,7 +1081,7 @@ Important: The storage class configured here has to support _ReadWriteMany_ acce
 If you don't specify a storage class, Garden creates an NFS provisioner and provisions an
 NFS volume for the sync data volume.
 
-Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored otherwise.
+Only applies when `buildMode` is set to `cluster-docker`, ignored otherwise.
 
 | Type     | Default                              | Required |
 | -------- | ------------------------------------ | -------- |
@@ -1079,6 +1090,10 @@ Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored ot
 ### `providers[].storage.sync.size`
 
 [providers](#providers) > [storage](#providersstorage) > [sync](#providersstoragesync) > size
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 Volume size in megabytes.
 
@@ -1089,6 +1104,10 @@ Volume size in megabytes.
 ### `providers[].storage.sync.storageClass`
 
 [providers](#providers) > [storage](#providersstorage) > [sync](#providersstoragesync) > storageClass
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 Storage class to use for the volume.
 
