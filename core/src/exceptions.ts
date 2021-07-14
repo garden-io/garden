@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { omit } from "lodash"
+import { isString, omit } from "lodash"
 
 export interface GardenError {
   type: string
@@ -25,15 +25,20 @@ export abstract class GardenBaseError extends Error implements GardenError {
   }
 }
 
-export function toGardenError(err: Error | GardenBaseError | string): GardenBaseError {
+export function toGardenError(err: Error | ErrorEvent | GardenBaseError | string): GardenBaseError {
   if (err instanceof GardenBaseError) {
     return err
   } else if (err instanceof Error) {
-    const out = new RuntimeError(err.message, omit(err, ["message"]))
+    const out = new RuntimeError(err.message, err)
     out.stack = err.stack
     return out
-  } else {
+  } else if (err instanceof ErrorEvent) {
+    return new RuntimeError(err.message, err)
+  } else if (isString(err)) {
     return new RuntimeError(err, {})
+  } else {
+    const msg = err["message"]
+    return new RuntimeError(msg, err)
   }
 }
 
