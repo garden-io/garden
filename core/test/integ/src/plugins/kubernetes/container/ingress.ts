@@ -7,7 +7,6 @@
  */
 
 import { expect } from "chai"
-import { resolve, join } from "path"
 import td from "testdouble"
 
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
@@ -18,10 +17,13 @@ import {
   defaultStorage,
 } from "../../../../../../src/plugins/kubernetes/config"
 import { gardenPlugin } from "../../../../../../src/plugins/container/container"
-import { dataDir, makeTestGarden, expectError } from "../../../../../helpers"
+import { expectError } from "../../../../../helpers"
 import { Garden } from "../../../../../../src/garden"
 import { moduleFromConfig } from "../../../../../../src/types/module"
-import { createIngressResources } from "../../../../../../src/plugins/kubernetes/container/ingress"
+import {
+  createIngressResources,
+  supportedIngressApiVersions,
+} from "../../../../../../src/plugins/kubernetes/container/ingress"
 import { defaultContainerResources } from "../../../../../../src/plugins/container/config"
 import {
   ServicePortProtocol,
@@ -34,8 +36,9 @@ import { PluginTools } from "../../../../../../src/types/plugin/tools"
 import { keyBy } from "lodash"
 import { PluginTool } from "../../../../../../src/util/ext-tools"
 import { kubectlSpec } from "../../../../../../src/plugins/kubernetes/kubectl"
+import { getContainerTestGarden } from "./container"
+import { PartialBy } from "../../../../../../src/util/util"
 
-const kubeConfigEnvVar = process.env.KUBECONFIG
 const namespace = "my-namespace"
 const ports = [
   {
@@ -46,10 +49,11 @@ const ports = [
   },
 ]
 
-const basicConfig: KubernetesConfig = {
-  name: "kubernetes",
+type PartialConfig = PartialBy<KubernetesConfig, "context">
+
+const basicConfig: PartialConfig = {
+  name: "local-kubernetes",
   buildMode: "local-docker",
-  context: "my-cluster",
   defaultHostname: "my.domain.com",
   deploymentRegistry: {
     hostname: "foo.garden",
@@ -63,6 +67,7 @@ const basicConfig: KubernetesConfig = {
   ingressHttpPort: 80,
   ingressHttpsPort: 443,
   resources: defaultResources,
+  setupIngressController: null,
   storage: defaultStorage,
   systemNodeSelector: {},
   registryProxyTolerations: [],
@@ -70,7 +75,7 @@ const basicConfig: KubernetesConfig = {
   _systemServices: [],
 }
 
-const singleTlsConfig: KubernetesConfig = {
+const singleTlsConfig: PartialConfig = {
   ...basicConfig,
   forceSsl: true,
   tlsCertificates: [
@@ -84,7 +89,7 @@ const singleTlsConfig: KubernetesConfig = {
   ],
 }
 
-const multiTlsConfig: KubernetesConfig = {
+const multiTlsConfig: PartialConfig = {
   ...basicConfig,
   forceSsl: true,
   tlsCertificates: [
@@ -303,35 +308,32 @@ const wildcardDomainCertSecret = {
 }
 
 describe("createIngressResources", () => {
-  const projectRoot = resolve(dataDir, "test-project-container")
   const plugin = gardenPlugin()
   const configure = plugin.createModuleTypes![0].handlers.configure!
 
   let garden: Garden
+  let context: string
   let tools: PluginTools
   let basicProvider: KubernetesProvider
   let singleTlsProvider: KubernetesProvider
   let multiTlsProvider: KubernetesProvider
 
-  before(() => {
-    process.env.KUBECONFIG = join(projectRoot, "kubeconfig.yml")
-  })
-
-  after(() => {
-    if (kubeConfigEnvVar) {
-      process.env.KUBECONFIG = kubeConfigEnvVar
-    } else {
-      delete process.env.KUBECONFIG
+  after(async () => {
+    if (garden) {
+      await garden.close()
     }
   })
 
   beforeEach(async () => {
-    garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin] })
+    garden = await getContainerTestGarden()
     const k8sPlugin = await garden.getPlugin("kubernetes")
     tools = keyBy(
       (k8sPlugin.tools || []).map((t) => new PluginTool(t)),
       "name"
     )
+
+    const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as KubernetesProvider
+    context = provider.config.context
 
     td.replace(garden.buildStaging, "syncDependencyProducts", () => null)
 
@@ -343,7 +345,7 @@ describe("createIngressResources", () => {
 
     basicProvider = {
       name: "kubernetes",
-      config: basicConfig,
+      config: { ...basicConfig, context },
       dependencies: {},
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
@@ -352,7 +354,7 @@ describe("createIngressResources", () => {
 
     multiTlsProvider = {
       name: "kubernetes",
-      config: multiTlsConfig,
+      config: { ...multiTlsConfig, context },
       dependencies: {},
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
@@ -361,7 +363,7 @@ describe("createIngressResources", () => {
 
     singleTlsProvider = {
       name: "kubernetes",
-      config: singleTlsConfig,
+      config: { ...singleTlsConfig, context },
       dependencies: {},
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
@@ -461,38 +463,59 @@ describe("createIngressResources", () => {
     const api = await getKubeApi(basicProvider)
     const ingresses = await createIngressResources(api, basicProvider, namespace, service, garden.log)
 
-    expect(ingresses).to.eql([
-      {
-        apiVersion: "extensions/v1beta1",
-        kind: "Ingress",
-        metadata: {
-          name: `${service.name}-0`,
-          annotations: {
-            "ingress.kubernetes.io/force-ssl-redirect": "false",
-            "kubernetes.io/ingress.class": "nginx",
-          },
-          namespace,
-        },
-        spec: {
-          rules: [
-            {
-              host: "my.domain.com",
-              http: {
-                paths: [
-                  {
-                    path: "/",
-                    backend: {
-                      serviceName: "my-service",
-                      servicePort: 123,
+    expect(ingresses.length).to.equal(1)
+
+    const ingress = ingresses[0]
+
+    expect(ingress.apiVersion).to.be.oneOf(supportedIngressApiVersions)
+    expect(ingress.kind).to.equal("Ingress")
+    expect(ingress.metadata.name).to.equal(`${service.name}-0`)
+    expect(ingress.metadata.annotations?.["ingress.kubernetes.io/force-ssl-redirect"]).to.equal("false")
+    expect(ingress.metadata.namespace).to.equal(namespace)
+
+    if (ingress.apiVersion === "networking.k8s.io/v1") {
+      expect(ingress.spec.ingressClassName).to.equal("nginx")
+      expect(ingress.metadata.annotations?.["kubernetes.io/ingress.class"]).to.be.empty
+      expect(ingress.spec.rules).to.eql([
+        {
+          host: "my.domain.com",
+          http: {
+            paths: [
+              {
+                path: "/",
+                pathType: "prefix",
+                backend: {
+                  service: {
+                    name: "my-service",
+                    port: {
+                      number: 123,
                     },
                   },
-                ],
+                },
               },
-            },
-          ],
+            ],
+          },
         },
-      },
-    ])
+      ])
+    } else {
+      expect(ingress.metadata.annotations?.["kubernetes.io/ingress.class"]).to.equal("nginx")
+      expect(ingress.spec.rules).to.eql([
+        {
+          host: "my.domain.com",
+          http: {
+            paths: [
+              {
+                path: "/",
+                backend: {
+                  serviceName: "my-service",
+                  servicePort: 123,
+                },
+              },
+            ],
+          },
+        },
+      ])
+    }
   })
 
   it("should add annotations if configured", async () => {
@@ -505,39 +528,8 @@ describe("createIngressResources", () => {
     const api = await getKubeApi(basicProvider)
     const ingresses = await createIngressResources(api, basicProvider, namespace, service, garden.log)
 
-    expect(ingresses).to.eql([
-      {
-        apiVersion: "extensions/v1beta1",
-        kind: "Ingress",
-        metadata: {
-          name: `${service.name}-0`,
-          annotations: {
-            "ingress.kubernetes.io/force-ssl-redirect": "false",
-            "kubernetes.io/ingress.class": "nginx",
-            "foo": "bar",
-          },
-          namespace,
-        },
-        spec: {
-          rules: [
-            {
-              host: "my.domain.com",
-              http: {
-                paths: [
-                  {
-                    path: "/",
-                    backend: {
-                      serviceName: "my-service",
-                      servicePort: 123,
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-        },
-      },
-    ])
+    const ingress = ingresses[0]
+    expect(ingress.metadata.annotations?.foo).to.equal("bar")
   })
 
   it("should create multiple ingresses if specified", async () => {
@@ -558,68 +550,15 @@ describe("createIngressResources", () => {
     const api = await getKubeApi(basicProvider)
     const ingresses = await createIngressResources(api, basicProvider, namespace, service, garden.log)
 
-    expect(ingresses).to.eql([
-      {
-        apiVersion: "extensions/v1beta1",
-        kind: "Ingress",
-        metadata: {
-          name: `${service.name}-0`,
-          annotations: {
-            "ingress.kubernetes.io/force-ssl-redirect": "false",
-            "kubernetes.io/ingress.class": "nginx",
-          },
-          namespace,
-        },
-        spec: {
-          rules: [
-            {
-              host: "my.domain.com",
-              http: {
-                paths: [
-                  {
-                    path: "/",
-                    backend: {
-                      serviceName: "my-service",
-                      servicePort: 123,
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-        },
-      },
-      {
-        apiVersion: "extensions/v1beta1",
-        kind: "Ingress",
-        metadata: {
-          name: `${service.name}-1`,
-          annotations: {
-            "ingress.kubernetes.io/force-ssl-redirect": "false",
-            "kubernetes.io/ingress.class": "nginx",
-          },
-          namespace,
-        },
-        spec: {
-          rules: [
-            {
-              host: "bla",
-              http: {
-                paths: [
-                  {
-                    path: "/foo",
-                    backend: {
-                      serviceName: "my-service",
-                      servicePort: 123,
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-        },
-      },
-    ])
+    expect(ingresses.length).to.equal(2)
+
+    expect(ingresses[0].metadata.name).to.equal(`${service.name}-0`)
+    expect(ingresses[0].spec?.rules?.[0].host).to.equal("my.domain.com")
+    expect(ingresses[0].spec?.rules?.[0].http?.paths[0].path).to.equal("/")
+
+    expect(ingresses[1].metadata.name).to.equal(`${service.name}-1`)
+    expect(ingresses[1].spec?.rules?.[0].host).to.equal("bla")
+    expect(ingresses[1].spec?.rules?.[0].http?.paths[0].path).to.equal("/foo")
   })
 
   it("should map a configured TLS certificate to an ingress", async () => {
@@ -634,43 +573,14 @@ describe("createIngressResources", () => {
 
     td.verify(api.upsert({ kind: "Secret", namespace, obj: myDomainCertSecret, log: garden.log }))
 
-    expect(ingresses).to.eql([
-      {
-        apiVersion: "extensions/v1beta1",
-        kind: "Ingress",
-        metadata: {
-          name: `${service.name}-0`,
-          annotations: {
-            "ingress.kubernetes.io/force-ssl-redirect": "true",
-            "kubernetes.io/ingress.class": "nginx",
-          },
-          namespace,
-        },
-        spec: {
-          tls: [
-            {
-              secretName: "somesecret",
-            },
-          ],
-          rules: [
-            {
-              host: "my.domain.com",
-              http: {
-                paths: [
-                  {
-                    path: "/",
-                    backend: {
-                      serviceName: "my-service",
-                      servicePort: 123,
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-        },
-      },
-    ])
+    const ingress = ingresses[0]
+
+    expect(ingress.spec.tls?.length).to.equal(1)
+    expect(ingress.spec.tls?.[0].secretName).to.equal("somesecret")
+
+    if (ingress.apiVersion === "networking.k8s.io/v1") {
+      expect(ingress.spec.tls?.[0].hosts).to.eql(["my.domain.com"])
+    }
   })
 
   it("should throw if a configured certificate doesn't exist", async () => {
@@ -686,6 +596,7 @@ describe("createIngressResources", () => {
       name: "kubernetes",
       config: {
         ...basicConfig,
+        context,
         tlsCertificates: [
           {
             name: "foo",
@@ -721,6 +632,7 @@ describe("createIngressResources", () => {
       name: "kubernetes",
       config: {
         ...basicConfig,
+        context,
         tlsCertificates: [
           {
             name: "foo",
@@ -758,6 +670,7 @@ describe("createIngressResources", () => {
       name: "kubernetes",
       config: {
         ...basicConfig,
+        context,
         tlsCertificates: [
           {
             name: "foo",
@@ -801,43 +714,9 @@ describe("createIngressResources", () => {
 
     td.verify(api.upsert({ kind: "Secret", namespace, obj: wildcardDomainCertSecret, log: garden.log }))
 
-    expect(ingresses).to.eql([
-      {
-        apiVersion: "extensions/v1beta1",
-        kind: "Ingress",
-        metadata: {
-          name: `${service.name}-0`,
-          annotations: {
-            "ingress.kubernetes.io/force-ssl-redirect": "true",
-            "kubernetes.io/ingress.class": "nginx",
-          },
-          namespace,
-        },
-        spec: {
-          tls: [
-            {
-              secretName: "wildcardsecret",
-            },
-          ],
-          rules: [
-            {
-              host: "something.wildcarddomain.com",
-              http: {
-                paths: [
-                  {
-                    path: "/",
-                    backend: {
-                      serviceName: "my-service",
-                      servicePort: 123,
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-        },
-      },
-    ])
+    const ingress = ingresses[0]
+    expect(ingress.spec.tls?.length).to.equal(1)
+    expect(ingress.spec.tls?.[0].secretName).to.equal("wildcardsecret")
   })
 
   it("should use configured hostnames for a certificate when specified", async () => {
@@ -854,6 +733,7 @@ describe("createIngressResources", () => {
       name: "kubernetes",
       config: {
         ...basicConfig,
+        context,
         tlsCertificates: [
           {
             name: "madeup",
@@ -874,42 +754,9 @@ describe("createIngressResources", () => {
 
     td.verify(api.upsert({ kind: "Secret", namespace, obj: myDomainCertSecret, log: garden.log }))
 
-    expect(ingresses).to.eql([
-      {
-        apiVersion: "extensions/v1beta1",
-        kind: "Ingress",
-        metadata: {
-          name: `${service.name}-0`,
-          annotations: {
-            "ingress.kubernetes.io/force-ssl-redirect": "true",
-            "kubernetes.io/ingress.class": "nginx",
-          },
-          namespace,
-        },
-        spec: {
-          tls: [
-            {
-              secretName: "somesecret",
-            },
-          ],
-          rules: [
-            {
-              host: "madeup.domain.com",
-              http: {
-                paths: [
-                  {
-                    path: "/",
-                    backend: {
-                      serviceName: "my-service",
-                      servicePort: 123,
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-        },
-      },
-    ])
+    const ingress = ingresses[0]
+    expect(ingress.spec.tls?.length).to.equal(1)
+    expect(ingress.spec.tls?.[0].secretName).to.equal("somesecret")
+    expect(ingress.spec.rules?.[0].host).to.equal("madeup.domain.com")
   })
 })
