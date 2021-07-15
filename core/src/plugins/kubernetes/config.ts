@@ -18,7 +18,7 @@ import {
   joiIdentifierDescription,
   joiSparseArray,
 } from "../../config/common"
-import { Provider, providerConfigBaseSchema, GenericProviderConfig } from "../../config/provider"
+import { Provider, providerConfigBaseSchema, BaseProviderConfig } from "../../config/provider"
 import {
   containerRegistryConfigSchema,
   ContainerRegistryConfig,
@@ -104,7 +104,7 @@ export interface NamespaceConfig {
   labels?: StringMap
 }
 
-export interface KubernetesConfig extends GenericProviderConfig {
+export interface KubernetesConfig extends BaseProviderConfig {
   buildMode: ContainerBuildMode
   clusterBuildkit?: {
     rootless?: boolean
@@ -131,6 +131,7 @@ export interface KubernetesConfig extends GenericProviderConfig {
   kubeconfig?: string
   namespace?: NamespaceConfig
   registryProxyTolerations: V1Toleration[]
+  setupIngressController: string | null
   systemNodeSelector: { [key: string]: string }
   resources: KubernetesResources
   storage: KubernetesStorage

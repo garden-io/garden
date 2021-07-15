@@ -47,17 +47,10 @@ export async function getManifests({
         manifest.metadata = {}
       }
 
-      try {
-        const info = await api.getApiResourceInfo(log, manifest.apiVersion, manifest.kind)
+      const info = await api.getApiResourceInfo(log, manifest.apiVersion, manifest.kind)
 
-        if (info.namespaced) {
-          manifest.metadata.namespace = defaultNamespace
-        }
-      } catch (err) {
-        // We can get a 404 if a resource type can't be found, e.g. a missing CRD
-        if (err.statusCode !== 404) {
-          throw err
-        }
+      if (info?.namespaced) {
+        manifest.metadata.namespace = defaultNamespace
       }
     }
 
