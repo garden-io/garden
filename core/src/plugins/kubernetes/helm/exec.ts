@@ -48,7 +48,6 @@ export async function execInHelmService(params: ExecInServiceParams<HelmModule>)
     ctx,
     log,
     module,
-    baseModule,
     manifests,
     resourceSpec: serviceResourceSpec,
   })
