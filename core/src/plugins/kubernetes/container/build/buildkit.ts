@@ -115,9 +115,10 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     statusLine.setState(renderOutputStream(line.toString()))
   })
 
+  const cacheTag = "_buildcache"
   // Prepare the build command (this thing, while an otherwise excellent piece of software, is clearly is not meant for
   // everyday human usage)
-  let outputSpec = `type=image,name=${deploymentImageId},push=true`
+  let outputSpec = `type=image,"name=${deploymentImageId},${deploymentImageName}:${cacheTag}",push=true`
 
   if (provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname) {
     // The in-cluster registry is not exposed, so we don't configure TLS on it.
@@ -139,7 +140,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     "--export-cache",
     "type=inline",
     "--import-cache",
-    `type=registry,ref=${deploymentImageName}`,
+    `type=registry,ref=${deploymentImageName}:${cacheTag}`,
     ...getBuildkitFlags(module),
   ]
 
