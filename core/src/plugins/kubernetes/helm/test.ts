@@ -38,7 +38,7 @@ export async function testHelmModule(params: TestModuleParams<HelmModule>): Prom
   })
   const baseModule = getBaseModule(module)
   const resourceSpec = test.config.spec.resource || getServiceResourceSpec(module, baseModule)
-  const target = await findServiceResource({ ctx: k8sCtx, log, manifests, module, baseModule, resourceSpec })
+  const target = await findServiceResource({ ctx: k8sCtx, log, manifests, module, resourceSpec })
   const container = getResourceContainer(target, resourceSpec.containerName)
   const namespaceStatus = await getModuleNamespaceStatus({
     ctx: k8sCtx,

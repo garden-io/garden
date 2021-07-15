@@ -44,7 +44,6 @@ export async function runKubernetesTask(params: RunTaskParams<KubernetesModule>)
     log,
     manifests,
     module,
-    baseModule: undefined,
     resourceSpec,
   })
   const container = getResourceContainer(target, resourceSpec.containerName)

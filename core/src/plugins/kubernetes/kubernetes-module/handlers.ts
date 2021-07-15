@@ -106,7 +106,6 @@ export async function getKubernetesServiceStatus({
       ctx,
       log,
       module,
-      baseModule: undefined,
       manifests: remoteResources,
       resourceSpec: serviceResourceSpec,
     })
@@ -344,19 +343,19 @@ async function prepareManifestsForSync({
   let target: KubernetesResource<V1Deployment | V1DaemonSet | V1StatefulSet>
 
   try {
+    const resourceSpec = getServiceResourceSpec(module, undefined)
     target = cloneDeep(
       await findServiceResource({
         ctx,
         log,
         module,
-        baseModule: undefined,
         manifests,
-        resourceSpec: service.spec.serviceResource,
+        resourceSpec,
       })
     )
   } catch (err) {
-    // This is only an error if we're actually trying to hot reload.
-    if (devMode || hotReload) {
+    // This is only an error if we're actually trying to hot reload or start dev mode.
+    if ((devMode && service.spec.devMode) || hotReload) {
       throw err
     } else {
       // Nothing to do, so we return the original manifests

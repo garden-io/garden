@@ -125,7 +125,6 @@ describe("configureHotReload", () => {
       module,
       manifests,
       resourceSpec,
-      baseModule: undefined,
     })
     const containerName = getHotReloadContainerName(module)
     configureHotReload({

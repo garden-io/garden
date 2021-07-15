@@ -78,7 +78,6 @@ export async function getServiceStatus({
         ctx,
         log,
         module,
-        baseModule,
         manifests: deployedResources,
         resourceSpec: serviceResourceSpec,
       })
