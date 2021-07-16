@@ -154,8 +154,6 @@ chartPath: .
 # List of names of services that should be deployed before this chart.
 dependencies: []
 
-# **EXPERIMENTAL**
-#
 # Specifies which files or directories to sync to which paths inside the running containers of the service when it's
 # in dev mode, and overrides for the container command and/or arguments.
 #
@@ -806,8 +804,6 @@ List of names of services that should be deployed before this chart.
 | `array[string]` | `[]`    | No       |
 
 ### `devMode`
-
-**EXPERIMENTAL**
 
 Specifies which files or directories to sync to which paths inside the running containers of the service when it's in dev mode, and overrides for the container command and/or arguments.
 

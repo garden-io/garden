@@ -161,8 +161,6 @@ files: []
 # numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
 namespace:
 
-# **EXPERIMENTAL**
-#
 # Specifies which files or directories to sync to which paths inside the running containers of the service when it's
 # in dev mode, and overrides for the container command and/or arguments.
 #
@@ -751,8 +749,6 @@ A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (
 | `string` | No       |
 
 ### `devMode`
-
-**EXPERIMENTAL**
 
 Specifies which files or directories to sync to which paths inside the running containers of the service when it's in dev mode, and overrides for the container command and/or arguments.
 

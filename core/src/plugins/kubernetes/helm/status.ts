@@ -17,7 +17,6 @@ import { getForwardablePorts } from "../port-forward"
 import { KubernetesServerResource } from "../types"
 import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
 import { getServiceResource, getServiceResourceSpec } from "../util"
-import chalk from "chalk"
 import { startDevModeSync } from "../dev-mode"
 import { gardenAnnotationKey } from "../../../util/string"
 
@@ -97,12 +96,13 @@ export async function getServiceStatus({
 
         await startDevModeSync({
           ctx,
-          log: log.info({ section: service.name, symbol: "info", msg: chalk.gray(`Starting sync`) }),
+          log,
           moduleRoot: service.sourceModule.path,
           namespace,
           target,
           spec: service.spec.devMode,
           containerName: service.spec.devMode.containerName,
+          serviceName: service.name,
         })
       } else {
         state = "outdated"
