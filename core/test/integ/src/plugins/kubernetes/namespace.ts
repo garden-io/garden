@@ -55,7 +55,7 @@ describe("ensureNamespace", () => {
       [gardenAnnotationKey("version")]: getPackageVersion(),
       ...namespace.annotations,
     })
-    expect(result?.metadata.labels).to.eql(namespace.labels)
+    expect(result?.metadata.labels?.floo).to.equal("blar")
   })
 
   it("should add configured annotations if any are missing", async () => {
@@ -104,7 +104,8 @@ describe("ensureNamespace", () => {
     const result = await ensureNamespace(api, namespace, log)
 
     expect(result?.metadata.name).to.equal(namespaceName)
-    expect(result?.metadata.labels).to.eql({ foo: "bar", floo: "blar" })
+    expect(result?.metadata.labels?.foo).to.equal("bar")
+    expect(result?.metadata.labels?.floo).to.equal("blar")
   })
 
   it("should do nothing if the namespace has already been configured", async () => {

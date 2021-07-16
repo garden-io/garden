@@ -33,6 +33,7 @@ import {
   V1Deployment,
   V1Service,
   Log,
+  NetworkingV1Api,
 } from "@kubernetes/client-node"
 import AsyncLock = require("async-lock")
 import request = require("request-promise")
@@ -86,12 +87,14 @@ const requestAgent = new Agent({ lookup })
 // NOTE: be warned, the API of the client library is very likely to change
 
 type K8sApi =
+  | ApiextensionsV1beta1Api
+  | AppsV1Api
+  | CoreApi
   | CoreV1Api
   | ExtensionsV1beta1Api
-  | RbacAuthorizationV1Api
-  | AppsV1Api
-  | ApiextensionsV1beta1Api
+  | NetworkingV1Api
   | PolicyV1beta1Api
+  | RbacAuthorizationV1Api
 type K8sApiConstructor<T extends K8sApi> = new (basePath?: string) => T
 
 const apiTypes: { [key: string]: K8sApiConstructor<any> } = {
@@ -101,6 +104,7 @@ const apiTypes: { [key: string]: K8sApiConstructor<any> } = {
   core: CoreV1Api,
   coreApi: CoreApi,
   extensions: ExtensionsV1beta1Api,
+  networking: NetworkingV1Api,
   policy: PolicyV1beta1Api,
   rbac: RbacAuthorizationV1Api,
 }
@@ -177,6 +181,7 @@ export class KubeApi {
   public core: WrappedApi<CoreV1Api>
   public coreApi: WrappedApi<CoreApi>
   public extensions: WrappedApi<ExtensionsV1beta1Api>
+  public networking: WrappedApi<NetworkingV1Api>
   public policy: WrappedApi<PolicyV1beta1Api>
   public rbac: WrappedApi<RbacAuthorizationV1Api>
 
@@ -304,18 +309,7 @@ export class KubeApi {
         }
       }))
 
-    const resource = resourceMap[kind]
-
-    if (!resource) {
-      const err = new KubernetesError(`Unrecognized resource type ${apiVersion}/${kind}`, {
-        apiVersion,
-        kind,
-      })
-      err.statusCode = 404
-      throw err
-    }
-
-    return resource
+    return resourceMap[kind]
   }
 
   async request({
@@ -503,6 +497,16 @@ export class KubeApi {
     namespace: string
   }) {
     const resourceInfo = await this.getApiResourceInfo(log, apiVersion, kind)
+
+    if (!resourceInfo) {
+      const err = new KubernetesError(`Unrecognized resource type ${apiVersion}/${kind}`, {
+        apiVersion,
+        kind,
+      })
+      err.statusCode = 404
+      throw err
+    }
+
     const basePath = getGroupBasePath(apiVersion)
 
     return resourceInfo.namespaced

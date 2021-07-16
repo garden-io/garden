@@ -29,6 +29,7 @@ describe("kubernetes configureProvider", () => {
     ingressHttpsPort: 443,
     resources: defaultResources,
     storage: defaultStorage,
+    setupIngressController: null,
     systemNodeSelector: {},
     registryProxyTolerations: [],
     tlsCertificates: [],

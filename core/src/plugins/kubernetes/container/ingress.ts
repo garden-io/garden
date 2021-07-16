@@ -17,8 +17,14 @@ import { ConfigurationError, PluginError } from "../../../exceptions"
 import { ensureSecret } from "../secrets"
 import { getHostnamesFromPem } from "../../../util/tls"
 import { KubernetesResource } from "../types"
-import { V1Secret } from "@kubernetes/client-node"
+import { ExtensionsV1beta1Ingress, V1Ingress, V1Secret } from "@kubernetes/client-node"
 import { LogEntry } from "../../../logger/log-entry"
+import chalk from "chalk"
+
+// Ingress API versions in descending order of preference
+// NOTE: We currently prefer the v1beta1 API version if available, since users may not have an IngressClass set up
+// correctly
+export const supportedIngressApiVersions = ["networking.k8s.io/v1beta1", "networking.k8s.io/v1", "extensions/v1beta1"]
 
 interface ServiceIngressWithCert extends ServiceIngress {
   spec: ContainerIngressSpec
@@ -38,60 +44,112 @@ export async function createIngressResources(
     return []
   }
 
+  // Detect the supported ingress version for the context
+  let apiVersion: string | undefined = undefined
+
+  for (const version of supportedIngressApiVersions) {
+    const resourceInfo = await api.getApiResourceInfo(log, version, "Ingress")
+    if (resourceInfo) {
+      apiVersion = version
+    }
+  }
+
+  if (!apiVersion) {
+    log.warn(chalk.yellow(`Could not find a supported Ingress API version in the target cluster`))
+    return []
+  }
+
   const allIngresses = await getIngressesWithCert(service, api, provider)
 
   return Bluebird.map(allIngresses, async (ingress, index) => {
-    const rules = [
-      {
-        host: ingress.hostname,
-        http: {
-          paths: [
-            {
-              path: ingress.path,
-              backend: {
-                serviceName: service.name,
-                servicePort: findByName(service.spec.ports, ingress.spec.port)!.servicePort,
-              },
-            },
-          ],
-        },
-      },
-    ]
-
     const cert = ingress.certificate
-
-    const annotations = {
-      "ingress.kubernetes.io/force-ssl-redirect": !!cert + "",
-    }
-
-    if (provider.config.ingressClass) {
-      annotations["kubernetes.io/ingress.class"] = provider.config.ingressClass
-    }
-
-    extend(annotations, ingress.spec.annotations)
-
-    const spec: any = { rules }
 
     if (!!cert) {
       // make sure the TLS secrets exist in this namespace
       await ensureSecret(api, cert.secretRef, namespace, log)
-
-      spec.tls = [
-        {
-          secretName: cert.secretRef.name,
-        },
-      ]
     }
 
-    return {
-      apiVersion: "extensions/v1beta1",
-      kind: "Ingress",
-      metadata: {
-        name: `${service.name}-${index}`,
-        annotations,
-        namespace,
-      },
-      spec,
+    if (apiVersion === "networking.k8s.io/v1") {
+      // The V1 API has a different shape than the beta API
+      // Note: We do not create the IngressClass resource automatically here!
+      const ingressResource: KubernetesResource<V1Ingress> = {
+        apiVersion,
+        kind: "Ingress",
+        metadata: {
+          name: `${service.name}-${index}`,
+          annotations: {
+            "ingress.kubernetes.io/force-ssl-redirect": !!cert + "",
+            ...ingress.spec.annotations,
+          },
+          namespace,
+        },
+        spec: {
+          ingressClassName: provider.config.ingressClass,
+          rules: [
+            {
+              host: ingress.hostname,
+              http: {
+                paths: [
+                  {
+                    path: ingress.path,
+                    pathType: "prefix",
+                    backend: {
+                      service: {
+                        name: service.name,
+                        port: {
+                          number: findByName(service.spec.ports, ingress.spec.port)!.servicePort,
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+          tls: cert ? [{ hosts: [ingress.hostname], secretName: cert.secretRef.name }] : undefined,
+        },
+      }
+      return ingressResource
+    } else {
+      const annotations = {
+        "ingress.kubernetes.io/force-ssl-redirect": !!cert + "",
+      }
+
+      if (provider.config.ingressClass) {
+        annotations["kubernetes.io/ingress.class"] = provider.config.ingressClass
+      }
+
+      extend(annotations, ingress.spec.annotations)
+
+      const ingressResource: KubernetesResource<ExtensionsV1beta1Ingress> = {
+        apiVersion: apiVersion!,
+        kind: "Ingress",
+        metadata: {
+          name: `${service.name}-${index}`,
+          annotations,
+          namespace,
+        },
+        spec: {
+          rules: [
+            {
+              host: ingress.hostname,
+              http: {
+                paths: [
+                  {
+                    path: ingress.path,
+                    backend: {
+                      serviceName: service.name,
+                      servicePort: <any>findByName(service.spec.ports, ingress.spec.port)!.servicePort,
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+          tls: cert ? [{ secretName: cert.secretRef.name }] : undefined,
+        },
+      }
+      return ingressResource
     }
   })
 }
