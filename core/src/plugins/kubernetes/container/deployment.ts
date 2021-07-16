@@ -95,11 +95,12 @@ export async function startContainerDevSync({
 
   await startDevModeSync({
     ctx,
-    log: log.info({ section: service.name, symbol: "info", msg: chalk.gray(`Starting sync`) }),
+    log,
     moduleRoot: service.module.path,
     namespace,
     target,
     spec: service.spec.devMode,
+    serviceName: service.name,
   })
 }
 

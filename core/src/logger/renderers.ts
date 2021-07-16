@@ -101,7 +101,7 @@ export function renderSymbolBasic(entry: LogEntry): string {
   let { symbol, status } = entry.getLatestMessage()
 
   if (symbol === "empty") {
-    return " "
+    return "  "
   }
   if (status === "active" && !symbol) {
     symbol = "info"
@@ -114,7 +114,7 @@ export function renderSymbol(entry: LogEntry): string {
   const { symbol } = entry.getLatestMessage()
 
   if (symbol === "empty") {
-    return " "
+    return "  "
   }
   return symbol ? `${logSymbols[symbol]} ` : ""
 }
