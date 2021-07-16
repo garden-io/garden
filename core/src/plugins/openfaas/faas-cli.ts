@@ -27,6 +27,12 @@ export const faasCliSpec: PluginToolSpec = {
       sha256: "f4c8014d953f42e0c83628c089aff36aaf306f9f1aea62e5f22c84ab4269d1f7",
     },
     {
+      platform: "linux",
+      architecture: "arm64",
+      url: "https://github.com/openfaas/faas-cli/releases/download/0.9.5/faas-cli-arm64",
+      sha256: "bad06382e98d13c5757cc435061a3ca5ffa74e86512e019e2861e7820338a006",
+    },
+    {
       platform: "windows",
       architecture: "amd64",
       url: "https://github.com/openfaas/faas-cli/releases/download/0.9.5/faas-cli.exe",

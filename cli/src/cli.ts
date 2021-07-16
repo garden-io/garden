@@ -13,14 +13,21 @@ import { GardenProcess } from "@garden-io/core/build/src/db/entities/garden-proc
 import { ensureConnected } from "@garden-io/core/build/src/db/connection"
 import { GardenCli, RunOutput } from "@garden-io/core/build/src/cli/cli"
 import { GardenPluginCallback } from "@garden-io/core/build/src/types/plugin/plugin"
+import { arch } from "os"
 
 // These plugins are always registered
-export const getBundledPlugins = (): GardenPluginCallback[] =>
-  [
+export const getBundledPlugins = (): GardenPluginCallback[] => {
+  if (arch() === "arm64") {
+    // conftest has no arm64 installation candidate.
+    // https://github.com/open-policy-agent/conftest/issues/516
+    return []
+  }
+  return [
     require("@garden-io/garden-conftest"),
     require("@garden-io/garden-conftest-container"),
     require("@garden-io/garden-conftest-kubernetes"),
   ].map((m) => () => m.gardenPlugin())
+}
 
 export async function runCli({
   args,
