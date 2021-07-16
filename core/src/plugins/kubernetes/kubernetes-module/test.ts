@@ -39,7 +39,7 @@ export async function testKubernetesModule(params: TestModuleParams<KubernetesMo
   // Get the container spec to use for running
   const manifests = await getManifests({ ctx, api, log, module, defaultNamespace: namespace })
   const resourceSpec = test.config.spec.resource || getServiceResourceSpec(module, undefined)
-  const target = await findServiceResource({ ctx: k8sCtx, log, manifests, module, resourceSpec, baseModule: undefined })
+  const target = await findServiceResource({ ctx: k8sCtx, log, manifests, module, resourceSpec })
   const container = getResourceContainer(target, resourceSpec.containerName)
 
   const testName = test.name

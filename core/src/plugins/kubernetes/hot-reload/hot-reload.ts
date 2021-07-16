@@ -20,9 +20,8 @@ import { HotReloadServiceParams, HotReloadServiceResult } from "../../../types/p
 import { BaseResource, KubernetesResource, KubernetesWorkload } from "../types"
 import { createWorkloadManifest } from "../container/deployment"
 import { KubeApi } from "../api"
-import { GardenModule } from "../../../types/module"
 import { PluginContext } from "../../../plugin-context"
-import { getBaseModule, getChartResources } from "../helm/common"
+import { getChartResources } from "../helm/common"
 import { HelmModule } from "../helm/config"
 import { getManifests } from "../kubernetes-module/common"
 import { KubernetesModule } from "../kubernetes-module/config"
@@ -56,9 +55,8 @@ export async function hotReloadK8s({
   })
 
   let manifests: KubernetesResource<BaseResource>[]
-  let baseModule: GardenModule | undefined = undefined
+
   if (module.type === "helm") {
-    baseModule = getBaseModule(<HelmModule>module)
     manifests = await getChartResources({
       ctx: k8sCtx,
       module: service.module,
@@ -79,7 +77,6 @@ export async function hotReloadK8s({
     ctx,
     log,
     module,
-    baseModule,
     manifests,
     resourceSpec,
   })

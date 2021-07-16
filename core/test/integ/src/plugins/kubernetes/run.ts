@@ -628,7 +628,6 @@ describe("kubernetes Pod runner functions", () => {
         log: helmLog,
         manifests: helmManifests,
         module: helmModule,
-        baseModule: helmBaseModule,
         resourceSpec: helmResourceSpec,
       })
       helmContainer = getResourceContainer(helmTarget, helmResourceSpec.containerName)

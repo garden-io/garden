@@ -66,7 +66,6 @@ export async function runHelmModule({
     log,
     manifests,
     module,
-    baseModule,
     resourceSpec,
   })
   const container = getResourceContainer(target, resourceSpec.containerName)
@@ -139,7 +138,6 @@ export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<Ru
     log,
     manifests,
     module,
-    baseModule,
     resourceSpec,
   })
   const container = getResourceContainer(target, resourceSpec.containerName)
