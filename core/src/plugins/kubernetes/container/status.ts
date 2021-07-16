@@ -103,7 +103,8 @@ export async function waitForContainerService(
   runtimeContext: RuntimeContext,
   service: GardenService,
   devMode: boolean,
-  hotReload: boolean
+  hotReload: boolean,
+  timeout = KUBECTL_DEFAULT_TIMEOUT
 ) {
   const startTime = new Date().getTime()
 
@@ -124,8 +125,8 @@ export async function waitForContainerService(
 
     log.silly(`Waiting for service ${service.name}`)
 
-    if (new Date().getTime() - startTime > KUBECTL_DEFAULT_TIMEOUT * 1000) {
-      throw new DeploymentError(`Timed out waiting for service ${service.name} to deploy`, {
+    if (new Date().getTime() - startTime > timeout * 1000) {
+      throw new DeploymentError(`Timed out waiting for service ${service.name} to deploy after ${timeout} seconds`, {
         serviceName: service.name,
         status,
       })

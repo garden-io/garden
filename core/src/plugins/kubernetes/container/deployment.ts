@@ -14,7 +14,7 @@ import { ContainerModule, ContainerService, ContainerVolumeSpec, ContainerServic
 import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
 import { waitForResources, compareDeployedResources } from "../status/status"
-import { apply, deleteObjectsBySelector } from "../kubectl"
+import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { getAppNamespace, getAppNamespaceStatus } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
@@ -132,6 +132,7 @@ export async function deployContainerServiceRolling(params: DeployServiceParams<
     serviceName: service.name,
     resources: manifests,
     log,
+    timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
   })
 }
 
@@ -174,6 +175,7 @@ export async function deployContainerServiceBlueGreen(params: DeployServiceParam
       serviceName: service.name,
       resources: manifests,
       log,
+      timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
     })
   } else {
     // A k8s service matching the current Garden service exist in the cluster.
@@ -193,6 +195,7 @@ export async function deployContainerServiceBlueGreen(params: DeployServiceParam
       serviceName: `Deploy ${service.name}`,
       resources: filteredManifests,
       log,
+      timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
     })
 
     // Patch for the current service to point to the new Deployment
@@ -232,6 +235,7 @@ export async function deployContainerServiceBlueGreen(params: DeployServiceParam
       serviceName: `Update service`,
       resources: [serviceManifest],
       log,
+      timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
     })
 
     // Clenup unused deployments:
