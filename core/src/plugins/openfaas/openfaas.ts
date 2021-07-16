@@ -50,6 +50,7 @@ import { trim } from "lodash"
 import { getModuleTypeUrl, getGitHubUrl } from "../../docs/common"
 import { PluginContext } from "../../plugin-context"
 import { getK8sProvider } from "../kubernetes/util"
+import { KUBECTL_DEFAULT_TIMEOUT } from "../kubernetes/kubectl"
 
 const systemDir = join(STATIC_DIR, "openfaas", "system")
 const moduleTypeUrl = getModuleTypeUrl("openfaas")
@@ -313,6 +314,7 @@ async function deployService(params: DeployServiceParams<OpenFaasModule>): Promi
     serviceName: service.name,
     log,
     resources,
+    timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
   })
 
   // TODO: avoid duplicate work here

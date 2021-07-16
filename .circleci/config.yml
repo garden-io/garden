@@ -673,7 +673,7 @@ jobs:
       - run:
           name: Integ tests
           # Note: We skip tests that only work for remote environments
-          command: cd core && yarn run integ-local -b
+          command: cd core && yarn run integ-local
       - run:
           name: Plugin tests
           command: yarn run test:plugins
