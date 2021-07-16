@@ -22,7 +22,6 @@ import { getServiceResource, getServiceResourceSpec } from "../util"
 import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
 import { getHotReloadSpec, configureHotReload, getHotReloadContainerName } from "../hot-reload/helpers"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
-import chalk from "chalk"
 
 export async function deployHelmService({
   ctx,
@@ -136,12 +135,13 @@ export async function deployHelmService({
   if (devMode && service.spec.devMode && serviceResource && serviceResourceSpec) {
     await startDevModeSync({
       ctx,
-      log: log.info({ section: service.name, symbol: "info", msg: chalk.gray(`Starting sync`) }),
+      log,
       moduleRoot: service.sourceModule.path,
       namespace: serviceResource.metadata.namespace || namespace,
       target: serviceResource,
       spec: service.spec.devMode,
       containerName: service.spec.devMode.containerName,
+      serviceName: service.name,
     })
   }
 
