@@ -283,6 +283,7 @@ export function commonSyncTests(legacyBuildSync: boolean) {
       const moduleF = await garden.resolveModule("module-f")
       const buildDirD = await buildStaging.buildPath(moduleD)
       const buildDirF = await buildStaging.buildPath(moduleF)
+      const moduleDirF = moduleF.path
 
       // All these destinations should be populated now.
       const buildProductDestinations = [
@@ -291,7 +292,9 @@ export function commonSyncTests(legacyBuildSync: boolean) {
         join(buildDirD, "b", "build_subdir", "b2.txt"),
         join(buildDirF, "d", "build", "d.txt"),
         join(buildDirF, "e", "e1.txt"),
-        join(buildDirF, "e", "build", "e2.txt"),
+
+        // This build dependency uses `copyToSourceDir = true` in its `copy` spec.
+        join(moduleDirF, "e", "build", "e2.txt"),
       ]
 
       for (const p of buildProductDestinations) {
@@ -307,6 +310,10 @@ export function commonSyncTests(legacyBuildSync: boolean) {
       throw e
     }
   })
+
+  // it("should sync dependency products to their specified destinations when using local target", async () => {
+  //   throw new Error("TODO")
+  // })
 
   describe("buildPath", () => {
     it("should ensure the build path and return it", async () => {

@@ -375,6 +375,7 @@ describe("exec plugin", () => {
                 {
                   source: ".",
                   target: ".",
+                  copyToSourceDir: false,
                 },
               ],
             },

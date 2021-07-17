@@ -38,7 +38,7 @@ import { RunModuleParams } from "../types/plugin/module/runModule"
 import { RunResult } from "../types/plugin/base"
 
 const execPathDoc = dedent`
-  By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+  By default, the command is run inside the Garden build directory (under \`.garden/build/<module-name>\`).
   If the top level \`local\` directive is set to \`true\`, the command runs in the module source directory instead.
 `
 
@@ -196,7 +196,7 @@ export const execModuleSpecSchema = () =>
         .description(
           dedent`
           If set to true, Garden will run the build command, services, tests, and tasks in the module source directory,
-          instead of in the Garden build directory (under .garden/build/<module-name>).
+          instead of in the Garden build directory (under \`.garden/build/<module-name>\`).
 
           Garden will therefore not stage the build for local exec modules. This means that include/exclude filters
           and ignore files are not applied to local exec modules.

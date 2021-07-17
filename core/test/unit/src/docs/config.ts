@@ -257,6 +257,7 @@ describe("docs config module", () => {
             copy:
               - source:
                 target: ''
+                copyToSourceDir: false
       `)
     })
 

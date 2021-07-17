@@ -10,10 +10,10 @@ import Bluebird from "bluebird"
 import { isAbsolute, join, resolve, relative, parse, basename } from "path"
 import { emptyDir, ensureDir, remove } from "fs-extra"
 import { ConfigurationError, InternalError } from "../exceptions"
-import { FileCopySpec, GardenModule, getModuleKey } from "../types/module"
+import { GardenModule, getModuleKey } from "../types/module"
 import { normalizeRelativePath, joinWithPosix } from "../util/fs"
 import { LogEntry } from "../logger/log-entry"
-import { ModuleConfig } from "../config/module"
+import { BuildCopySpec, ModuleConfig } from "../config/module"
 import { ConfigGraph } from "../config-graph"
 import { Profile } from "../util/profiling"
 import async from "async"
@@ -83,8 +83,8 @@ export class BuildStaging {
   }
 
   async syncDependencyProducts(module: GardenModule, graph: ConfigGraph, log: LogEntry) {
-    const buildPath = await this.buildPath(module)
     const buildDependencies = module.build.dependencies
+    const buildPath = await this.buildPath(module)
 
     await Bluebird.map(buildDependencies, async (buildDepConfig) => {
       if (!buildDepConfig || !buildDepConfig.copy || buildDepConfig.copy.length === 0) {
@@ -94,7 +94,8 @@ export class BuildStaging {
       const sourceModule = graph.getModule(getModuleKey(buildDepConfig.name, buildDepConfig.plugin), true)
       const sourceBuildPath = await this.buildPath(sourceModule)
 
-      await Bluebird.map(buildDepConfig.copy, (copy: FileCopySpec) => {
+      await Bluebird.map(buildDepConfig.copy, (copy: BuildCopySpec) => {
+        const targetRoot = copy.copyToSourceDir ? module.path : buildPath
         if (isAbsolute(copy.source)) {
           throw new ConfigurationError(`Source path in build dependency copy spec must be a relative path`, {
             copySpec: copy,
@@ -109,7 +110,7 @@ export class BuildStaging {
 
         return this.sync({
           sourceRoot: sourceBuildPath,
-          targetRoot: buildPath,
+          targetRoot,
           sourceRelPath: copy.source,
           targetRelPath: copy.target,
           withDelete: false,
