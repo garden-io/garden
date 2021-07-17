@@ -294,9 +294,6 @@ export async function syncToService({ ctx, service, hotReloadSpec, namespace, wo
         "--compress",
         // Preserve modification times
         "--times",
-        // Preserve owner + group
-        "--owner",
-        "--group",
         // Copy permissions
         "--perms",
         // Set a temp directory outside of the target directory to avoid potential conflicts
