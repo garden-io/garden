@@ -114,7 +114,11 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
     arguments: {
       string: joi.string().required().description("The string to convert."),
       substring: joi.string().required().description("The substring to replace."),
-      replacement: joi.string().required().description("The replacement for each instance found of the `substring`."),
+      replacement: joi
+        .string()
+        .required()
+        .allow("")
+        .description("The replacement for each instance found of the `substring`."),
     },
     outputSchema: joi.string(),
     exampleArguments: [
