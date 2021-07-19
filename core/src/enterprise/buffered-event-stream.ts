@@ -6,10 +6,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+/**
+ * Task log event control flow
+ * 1. plugin handler emits log event on plugin event broker
+ * 2. action listens to log events from plugin event broker,
+ *    augments with more data and passes it along to garden.events
+ * 3. BufferedEventStream sends along to Garden Cloud
+ *
+ * Plugin handler control flow
+ * 1. command.action calls garden.processTasks([task list]), which adds tasks to the task graph and waits
+ * 2. Tasks and their dependencies are added to task graph
+ * 3. Task graph concurrently processes tasks in dependency order
+ * 4. Task calls action via action router
+ * 5. Action router calls plugin handler
+ * 6. Plugin handler does the actual work and returns a result
+ */
+
 import Bluebird from "bluebird"
 import { omit } from "lodash"
 
-import { Events, EventName, EventBus, eventNames } from "../events"
+import { Events, EventName, EventBus, pipedEventNames } from "../events"
 import { LogEntryMetadata, LogEntry, LogEntryMessage } from "../logger/log-entry"
 import { got } from "../util/http"
 
@@ -100,6 +116,7 @@ export class BufferedEventStream {
   protected targets: StreamTarget[]
   protected streamEvents: boolean
   protected streamLogEntries: boolean
+  protected eventNames: EventName[]
 
   protected garden: Garden
   private workflowRunUid: string | undefined
@@ -132,6 +149,7 @@ export class BufferedEventStream {
     this.bufferedEvents = []
     this.bufferedLogEntries = []
     this.targets = []
+    this.eventNames = pipedEventNames
   }
 
   connect({ garden, targets, streamEvents, streamLogEntries }: ConnectBufferedEventStreamParams) {
@@ -162,7 +180,7 @@ export class BufferedEventStream {
   subscribeToGardenEvents(eventBus: EventBus) {
     // We maintain this map to facilitate unsubscribing from events when the Garden instance is closed.
     const gardenEventListeners = {}
-    for (const gardenEventName of eventNames) {
+    for (const gardenEventName of this.eventNames) {
       const listener = (payload: LogEntryEventPayload) => this.streamEvent(gardenEventName, payload)
       gardenEventListeners[gardenEventName] = listener
       eventBus.on(gardenEventName, listener)

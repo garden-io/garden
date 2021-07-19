@@ -127,6 +127,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
 
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
+    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
     statusLine.setState(renderOutputStream(line.toString()))
   })
 

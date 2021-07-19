@@ -67,6 +67,7 @@
     "env-var": "^6.2.0",
     "escape-string-regexp": "^4.0.0",
     "eventemitter2": "^6.4.1",
+    "eventemitter3": "^4.0.7",
     "execa": "^4.0.2",
     "fs-extra": "^9.0.0",
     "get-port": "^5.1.1",

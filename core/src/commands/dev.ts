@@ -22,7 +22,7 @@ import { processModules } from "../process"
 import { GardenModule } from "../types/module"
 import { getTestTasks } from "../tasks/test"
 import { ConfigGraph } from "../config-graph"
-import { getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
+import { emitStackGraphEvent, getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
 import { startServer } from "../server/server"
 import { BuildTask } from "../tasks/build"
 import { DeployTask } from "../tasks/deploy"
@@ -92,6 +92,8 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
   arguments = devArgs
   options = devOpts
 
+  private garden?: Garden
+
   printHeader({ headerLog }) {
     printHeader(headerLog, "Dev", "keyboard")
   }
@@ -109,16 +111,25 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
     return { persistent: true }
   }
 
+  terminate() {
+    this.garden?.events.emit("_exit", {})
+  }
+
   async action({
     garden,
+    isWorkflowStepCommand,
     log,
     footerLog,
     args,
     opts,
   }: CommandParams<DevCommandArgs, DevCommandOpts>): Promise<CommandResult> {
+    this.garden = garden
     this.server?.setGarden(garden)
 
     const graph = await garden.getConfigGraph(log)
+    if (!isWorkflowStepCommand) {
+      emitStackGraphEvent(garden, graph)
+    }
     const modules = graph.getModules()
 
     const skipTests = opts["skip-tests"]

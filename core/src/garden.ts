@@ -46,7 +46,7 @@ import { LocalConfigStore, ConfigStore, GlobalConfigStore, LinkedSource } from "
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { BuildDependencyConfig, ModuleConfig } from "./config/module"
 import { ModuleResolver, moduleResolutionConcurrencyLimit } from "./resolve-module"
-import { createPluginContext, CommandInfo } from "./plugin-context"
+import { createPluginContext, CommandInfo, PluginEventBroker } from "./plugin-context"
 import { ModuleAndRuntimeActionHandlers, RegisterPluginParam } from "./types/plugin/plugin"
 import { SUPPORTED_PLATFORMS, SupportedPlatform, DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "./constants"
 import { LogEntry } from "./logger/log-entry"
@@ -319,12 +319,13 @@ export class Garden {
    * provider template context. Callers should specify the appropriate templating for the handler that will be
    * called with the PluginContext.
    */
-  async getPluginContext(provider: Provider, templateContext?: ConfigContext) {
+  async getPluginContext(provider: Provider, templateContext?: ConfigContext, events?: PluginEventBroker) {
     return createPluginContext(
       this,
       provider,
       this.opts.commandInfo,
-      templateContext || new ProviderConfigContext(this, provider.dependencies, this.variables)
+      templateContext || new ProviderConfigContext(this, provider.dependencies, this.variables),
+      events
     )
   }
 

@@ -23,6 +23,8 @@ import { startServer } from "../server/server"
 import { flatten } from "lodash"
 import { BuildTask } from "../tasks/build"
 import { StringsParameter, BooleanParameter } from "../cli/params"
+import { Garden } from "../garden"
+import { emitStackGraphEvent } from "./helpers"
 
 const buildArgs = {
   modules: new StringsParameter({
@@ -65,12 +67,12 @@ export class BuildCommand extends Command<Args, Opts> {
   arguments = buildArgs
   options = buildOpts
 
+  private garden?: Garden
+
   outputsSchema = () => processCommandResultSchema()
 
-  private isPersistent = (opts) => !!opts.watch
-
   async prepare({ footerLog, opts }: PrepareParams<Args, Opts>) {
-    const persistent = this.isPersistent(opts)
+    const persistent = !!opts.watch
 
     if (persistent) {
       this.server = await startServer({ log: footerLog })
@@ -79,17 +81,24 @@ export class BuildCommand extends Command<Args, Opts> {
     return { persistent }
   }
 
+  terminate() {
+    this.garden?.events.emit("_exit", {})
+  }
+
   printHeader({ headerLog }) {
     printHeader(headerLog, "Build", "hammer")
   }
 
   async action({
     garden,
+    isWorkflowStepCommand,
     log,
     footerLog,
     args,
     opts,
   }: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
+    this.garden = garden
+
     if (this.server) {
       this.server.setGarden(garden)
     }
@@ -97,6 +106,9 @@ export class BuildCommand extends Command<Args, Opts> {
     await garden.clearBuilds()
 
     const graph = await garden.getConfigGraph(log)
+    if (!isWorkflowStepCommand) {
+      emitStackGraphEvent(garden, graph)
+    }
     const modules = graph.getModules({ names: args.modules })
     const moduleNames = modules.map((m) => m.name)
 

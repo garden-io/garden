@@ -52,6 +52,11 @@ export async function streamK8sLogs(params: GetAllLogsParams) {
 
   if (params.follow) {
     const logsFollower = new K8sLogFollower({ ...params, k8sApi: api })
+
+    params.ctx.events.on("abort", () => {
+      logsFollower.close()
+    })
+
     await logsFollower.followLogs({ tail: params.tail, since: params.since })
   } else {
     const pods = await getAllPods(api, params.defaultNamespace, params.resources)

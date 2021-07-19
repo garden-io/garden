@@ -16,30 +16,32 @@ import { getReleaseStatus } from "../../../../../../src/plugins/kubernetes/helm/
 import { getReleaseName } from "../../../../../../src/plugins/kubernetes/helm/common"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { getHelmTestGarden, buildHelmModules } from "./common"
+import { ConfigGraph } from "../../../../../../src/config-graph"
 
 describe("deployHelmService", () => {
   let garden: TestGarden
   let provider: KubernetesProvider
   let ctx: KubernetesPluginContext
+  let graph: ConfigGraph
 
   before(async () => {
     garden = await getHelmTestGarden()
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = <KubernetesPluginContext>await garden.getPluginContext(provider)
-    const graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph(garden.log)
     await buildHelmModules(garden, graph)
   })
 
   after(async () => {
     const actions = await garden.getActionRouter()
-    await actions.deleteServices(garden.log)
+    await actions.deleteServices(graph, garden.log)
     if (garden) {
       await garden.close()
     }
   })
 
   it("should deploy a chart", async () => {
-    const graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph(garden.log)
     const service = graph.getService("api")
 
     const status = await deployHelmService({
@@ -79,7 +81,7 @@ describe("deployHelmService", () => {
   })
 
   it("should deploy a chart with hotReload enabled", async () => {
-    const graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph(garden.log)
     const service = graph.getService("api")
 
     await deployHelmService({
@@ -113,7 +115,7 @@ describe("deployHelmService", () => {
   })
 
   it("should deploy a chart with devMode enabled", async () => {
-    const graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph(garden.log)
     const service = graph.getService("api")
 
     const releaseName = getReleaseName(service.module)
@@ -147,7 +149,7 @@ describe("deployHelmService", () => {
   })
 
   it("should deploy a chart with an alternate namespace set", async () => {
-    const graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph(garden.log)
     const service = graph.getService("chart-with-namespace")
 
     const namespace = service.module.spec.namespace

@@ -14,6 +14,7 @@ import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
 import { joi, joiArray } from "../../config/common"
 import { StringParameter } from "../../cli/params"
 import { testFromModule } from "../../types/test"
+import { emitStackGraphEvent } from "../helpers"
 
 const getTestResultArgs = {
   module: new StringParameter({
@@ -61,11 +62,19 @@ export class GetTestResultCommand extends Command<Args> {
     )
   }
 
-  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<GetTestResultCommandResult>> {
+  async action({
+    garden,
+    isWorkflowStepCommand,
+    log,
+    args,
+  }: CommandParams<Args>): Promise<CommandResult<GetTestResultCommandResult>> {
     const testName = args.name
     const moduleName = args.module
 
     const graph = await garden.getConfigGraph(log)
+    if (!isWorkflowStepCommand) {
+      emitStackGraphEvent(garden, graph)
+    }
     const actions = await garden.getActionRouter()
 
     const module = graph.getModule(moduleName)

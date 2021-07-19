@@ -17,6 +17,7 @@ import { DeleteServiceTask, deletedServiceStatuses } from "../tasks/delete-servi
 import { joi, joiIdentifierMap } from "../config/common"
 import { environmentStatusSchema } from "../config/status"
 import { StringParameter, StringsParameter } from "../cli/params"
+import { emitStackGraphEvent } from "./helpers"
 
 export class DeleteCommand extends CommandGroup {
   name = "delete"
@@ -110,10 +111,14 @@ export class DeleteEnvironmentCommand extends Command {
     printHeader(headerLog, `Deleting environment`, "skull_and_crossbones")
   }
 
-  async action({ garden, log }: CommandParams): Promise<CommandResult<DeleteEnvironmentResult>> {
+  async action({ garden, isWorkflowStepCommand, log }: CommandParams): Promise<CommandResult<DeleteEnvironmentResult>> {
     const actions = await garden.getActionRouter()
 
-    const serviceStatuses = await actions.deleteServices(log)
+    const graph = await garden.getConfigGraph(log)
+    if (!isWorkflowStepCommand) {
+      emitStackGraphEvent(garden, graph)
+    }
+    const serviceStatuses = await actions.deleteServices(graph, log)
 
     log.info("")
 
@@ -158,8 +163,11 @@ export class DeleteServiceCommand extends Command {
     printHeader(headerLog, "Delete service", "skull_and_crossbones")
   }
 
-  async action({ garden, log, args }: CommandParams<DeleteServiceArgs>): Promise<CommandResult> {
+  async action({ garden, isWorkflowStepCommand, log, args }: CommandParams<DeleteServiceArgs>): Promise<CommandResult> {
     const graph = await garden.getConfigGraph(log)
+    if (!isWorkflowStepCommand) {
+      emitStackGraphEvent(garden, graph)
+    }
     const services = graph.getServices({ names: args.services })
 
     if (services.length === 0) {

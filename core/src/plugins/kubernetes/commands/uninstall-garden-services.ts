@@ -36,7 +36,7 @@ export const uninstallGardenServices: PluginCommand = {
 
     // We have to delete all services except nfs-provisioner first to avoid volumes getting stuck
     const serviceNames = services.map((s) => s.name).filter((name) => name !== "nfs-provisioner")
-    const serviceStatuses = await actions.deleteServices(log, serviceNames)
+    const serviceStatuses = await actions.deleteServices(graph, log, serviceNames)
 
     const systemNamespace = await getSystemNamespace(ctx, k8sCtx.provider, log)
     try {

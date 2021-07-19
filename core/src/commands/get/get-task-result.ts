@@ -15,6 +15,7 @@ import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
 import { taskResultSchema } from "../../types/plugin/task/getTaskResult"
 import { joiArray, joi } from "../../config/common"
 import { StringParameter } from "../../cli/params"
+import { emitStackGraphEvent } from "../helpers"
 
 const getTaskResultArgs = {
   name: new StringParameter({
@@ -52,10 +53,18 @@ export class GetTaskResultCommand extends Command<Args> {
     printHeader(headerLog, `Task result for task ${chalk.cyan(taskName)}`, "rocket")
   }
 
-  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<GetTaskResultCommandResult>> {
+  async action({
+    garden,
+    isWorkflowStepCommand,
+    log,
+    args,
+  }: CommandParams<Args>): Promise<CommandResult<GetTaskResultCommandResult>> {
     const taskName = args.name
 
     const graph: ConfigGraph = await garden.getConfigGraph(log)
+    if (!isWorkflowStepCommand) {
+      emitStackGraphEvent(garden, graph)
+    }
     const task = graph.getTask(taskName)
 
     const actions = await garden.getActionRouter()

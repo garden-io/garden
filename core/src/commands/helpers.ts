@@ -12,6 +12,7 @@ import { sortBy } from "lodash"
 
 import { ConfigGraph } from "../config-graph"
 import { GardenModule } from "../types/module"
+import { Garden } from "../garden"
 import { GardenService } from "../types/service"
 import { GardenTask } from "../types/task"
 import { GardenTest } from "../types/test"
@@ -58,6 +59,10 @@ export async function validateHotReloadServiceNames(
   }
 
   return null
+}
+
+export function emitStackGraphEvent(garden: Garden, graph: ConfigGraph) {
+  garden.events.emit("stackGraph", graph.render())
 }
 
 function supportsHotReloading(service: GardenService) {

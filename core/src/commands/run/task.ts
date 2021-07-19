@@ -25,6 +25,7 @@ import { RunTaskResult } from "../../types/plugin/task/runTask"
 import { taskResultSchema } from "../../types/plugin/task/getTaskResult"
 import { joi } from "../../config/common"
 import { StringParameter, BooleanParameter } from "../../cli/params"
+import { emitStackGraphEvent } from "../helpers"
 
 export const runTaskArgs = {
   task: new StringParameter({
@@ -80,8 +81,17 @@ export class RunTaskCommand extends Command<Args, Opts> {
     printHeader(headerLog, msg, "runner")
   }
 
-  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunTaskOutput>> {
+  async action({
+    garden,
+    isWorkflowStepCommand,
+    log,
+    args,
+    opts,
+  }: CommandParams<Args, Opts>): Promise<CommandResult<RunTaskOutput>> {
     const graph = await garden.getConfigGraph(log)
+    if (!isWorkflowStepCommand) {
+      emitStackGraphEvent(garden, graph)
+    }
     const task = graph.getTask(args.task, true)
 
     if (task.disabled && !opts.force) {

@@ -28,6 +28,7 @@ import { ConfigGraph } from "../config-graph"
 import { PublishModuleResult, publishResultSchema } from "../types/plugin/module/publishModule"
 import { joiIdentifierMap } from "../config/common"
 import { StringsParameter, BooleanParameter, StringOption } from "../cli/params"
+import { emitStackGraphEvent } from "./helpers"
 
 export const publishArgs = {
   modules: new StringsParameter({
@@ -103,12 +104,16 @@ export class PublishCommand extends Command<Args, Opts> {
 
   async action({
     garden,
+    isWorkflowStepCommand,
     log,
     footerLog,
     args,
     opts,
   }: CommandParams<Args, Opts>): Promise<CommandResult<PublishCommandResult>> {
     const graph = await garden.getConfigGraph(log)
+    if (!isWorkflowStepCommand) {
+      emitStackGraphEvent(garden, graph)
+    }
     const modules = graph.getModules({ names: args.modules })
 
     const results = await publishModules({
