@@ -25,6 +25,7 @@ import { DeployServiceParams } from "../../../../src/types/plugin/service/deploy
 import { RunTaskParams, RunTaskResult } from "../../../../src/types/plugin/task/runTask"
 import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
 import { sortBy } from "lodash"
+import { getLogger } from "../../../../src/logger/logger"
 
 const placeholderTimestamp = new Date()
 
@@ -623,5 +624,73 @@ describe("DeployCommand", () => {
     }
 
     expect(Object.keys(taskResultOutputs(result!)).includes("deploy.service-b")).to.be.false
+  })
+
+  describe("prepare", () => {
+    it("return persistent=true if --watch is set", async () => {
+      const cmd = new DeployCommand()
+      const log = getLogger().placeholder()
+      const { persistent } = await cmd.prepare({
+        log,
+        headerLog: log,
+        footerLog: log,
+        args: {
+          services: undefined,
+        },
+        opts: withDefaultGlobalOpts({
+          "dev-mode": undefined,
+          "hot-reload": undefined,
+          "watch": true,
+          "force": false,
+          "force-build": true,
+          "skip": ["service-b"],
+        }),
+      })
+      expect(persistent).to.be.true
+    })
+
+    it("return persistent=true if --dev is set", async () => {
+      const cmd = new DeployCommand()
+      const log = getLogger().placeholder()
+      const { persistent } = await cmd.prepare({
+        log,
+        headerLog: log,
+        footerLog: log,
+        args: {
+          services: undefined,
+        },
+        opts: withDefaultGlobalOpts({
+          "dev-mode": ["*"],
+          "hot-reload": undefined,
+          "watch": false,
+          "force": false,
+          "force-build": true,
+          "skip": ["service-b"],
+        }),
+      })
+      expect(persistent).to.be.true
+    })
+
+    it("return persistent=true if --hot-reload is set", async () => {
+      const cmd = new DeployCommand()
+      const log = getLogger().placeholder()
+      const { persistent } = await cmd.prepare({
+        log,
+        headerLog: log,
+        footerLog: log,
+        args: {
+          services: undefined,
+        },
+        opts: withDefaultGlobalOpts({
+          "dev-mode": undefined,
+          "hot-reload": ["*"],
+          "watch": false,
+          "force": false,
+          "force-build": true,
+          "skip": ["service-b"],
+        }),
+      })
+      expect(persistent).to.be.true
+    })
   })
 })
