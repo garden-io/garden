@@ -96,7 +96,7 @@ ${renderCommands(commands)}
     `
   }
 
-  private async initFileWriters(logger: Logger, root: string, gardenDirPath: string) {
+  private async initFileWriters(logger: Logger, gardenDirPath: string) {
     if (this.fileWritersInitialized) {
       return
     }
@@ -292,7 +292,7 @@ ${renderCommands(commands)}
 
         // Register log file writers. We need to do this after the Garden class is initialised because
         // the file writers depend on the project root.
-        await this.initFileWriters(logger, garden.projectRoot, garden.gardenDirPath)
+        await this.initFileWriters(logger, garden.gardenDirPath)
         analytics = await AnalyticsHandler.init(garden, log)
         analytics.trackCommand(command.getFullName())
 

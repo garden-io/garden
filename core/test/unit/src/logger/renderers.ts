@@ -18,7 +18,7 @@ import {
   renderError,
   formatForJson,
   renderSection,
-  MAX_SECTION_WIDTH,
+  SECTION_PADDING,
   renderData,
 } from "../../../../src/logger/renderers"
 import { GardenError } from "../../../../src/exceptions"
@@ -100,29 +100,22 @@ describe("renderers", () => {
     })
   })
   describe("renderSection", () => {
-    it("should render the log entry section", () => {
+    it("should render the log entry section with padding", () => {
       const entry = logger.info({ msg: "foo", section: "hello" })
-      const withWhitespace = "hello".padEnd(MAX_SECTION_WIDTH, " ")
+      const withWhitespace = "hello".padEnd(SECTION_PADDING, " ")
       const rendered = stripAnsi(renderSection(entry))
       expect(rendered).to.equal(`${withWhitespace} → `)
     })
     it("should not render arrow if message is empty", () => {
       const entry = logger.info({ section: "hello" })
-      const withWhitespace = "hello".padEnd(MAX_SECTION_WIDTH, " ")
+      const withWhitespace = "hello".padEnd(SECTION_PADDING, " ")
       const rendered = stripAnsi(renderSection(entry))
       expect(rendered).to.equal(`${withWhitespace}`)
     })
-    it("should optionally set a custom section width", () => {
-      const entry = logger.info({ msg: "foo", section: "hello", maxSectionWidth: 8 })
-      const withWhitespace = "hello".padEnd(8, " ")
+    it("should not not truncate the section", () => {
+      const entry = logger.info({ msg: "foo", section: "very-very-very-very-very-long" })
       const rendered = stripAnsi(renderSection(entry))
-      expect(rendered).to.equal(`${withWhitespace} → `)
-    })
-    it("should not let custom section width exceed max section width", () => {
-      const entry = logger.info({ msg: "foo", section: "hello", maxSectionWidth: 99 })
-      const withWhitespace = "hello".padEnd(MAX_SECTION_WIDTH, " ")
-      const rendered = stripAnsi(renderSection(entry))
-      expect(rendered).to.equal(`${withWhitespace} → `)
+      expect(rendered).to.equal(`very-very-very-very-very-long → `)
     })
   })
   describe("chainMessages", () => {

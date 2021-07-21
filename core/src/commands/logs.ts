@@ -19,7 +19,7 @@ import { printHeader, renderDivider } from "../logger/util"
 import stripAnsi = require("strip-ansi")
 import hasAnsi = require("has-ansi")
 import { dedent } from "../util/string"
-import { formatSection } from "../logger/renderers"
+import { padSection } from "../logger/renderers"
 
 const logsArgs = {
   services: new StringsParameter({
@@ -187,10 +187,10 @@ export class LogsCommand extends Command<Args, Opts> {
 
       let out = ""
       if (!hideService) {
-        out += `${sectionStyle(formatSection(entry.serviceName, maxServiceName))} → `
+        out += `${sectionStyle(padSection(entry.serviceName, maxServiceName))} → `
       }
       if (container) {
-        out += `${sectionStyle(formatSection(container, maxContainerName))} → `
+        out += `${sectionStyle(padSection(container, maxContainerName))} → `
       }
       if (timestamp) {
         out += `${chalk.gray(timestamp)} → `

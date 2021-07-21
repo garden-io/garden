@@ -29,7 +29,6 @@ describe("LogEntry", () => {
     data: undefined,
     dataFormat: undefined,
     append: undefined,
-    maxSectionWidth: undefined,
   }
   it("should create log entries with the appropriate fields set", () => {
     const timestamp = freezeTime()
@@ -43,7 +42,6 @@ describe("LogEntry", () => {
       append: true,
       data: { foo: "bar" },
       dataFormat: "json",
-      maxSectionWidth: 20,
       metadata: {
         workflowStep: {
           index: 2,
@@ -65,7 +63,6 @@ describe("LogEntry", () => {
         append: true,
         data: { foo: "bar" },
         dataFormat: "json",
-        maxSectionWidth: 20,
         timestamp,
       },
     ])
@@ -189,7 +186,6 @@ describe("LogEntry", () => {
         data: { some: "data" },
         dataFormat: "json",
         metadata: { task: taskMetadata },
-        maxSectionWidth: 8,
       })
 
       expect(entry.getMessages()).to.eql([
@@ -203,38 +199,9 @@ describe("LogEntry", () => {
           dataFormat: "json",
           append: undefined,
           timestamp,
-          maxSectionWidth: 8,
         },
       ])
       expect(entry.getMetadata()).to.eql({ task: taskMetadata })
-    })
-    it("should update maxSectionWidth to zero", () => {
-      const timestamp = freezeTime()
-      const entry = logger.placeholder()
-      entry.setState({
-        msg: "hello",
-        emoji: "haircut",
-        section: "caesar",
-        symbol: "info",
-        status: "done",
-        data: { some: "data" },
-        maxSectionWidth: 0,
-      })
-
-      expect(entry.getMessages()).to.eql([
-        {
-          msg: "hello",
-          emoji: "haircut",
-          section: "caesar",
-          symbol: "info",
-          status: "done",
-          data: { some: "data" },
-          dataFormat: undefined,
-          append: undefined,
-          timestamp,
-          maxSectionWidth: 0,
-        },
-      ])
     })
     it("should overwrite previous values", () => {
       const timestamp = freezeTime()
@@ -246,18 +213,13 @@ describe("LogEntry", () => {
         symbol: "info",
         status: "done",
         data: { some: "data" },
-        maxSectionWidth: 8,
       })
       entry.setState({
         msg: "world",
         emoji: "hamburger",
         data: { some: "data_updated" },
-        maxSectionWidth: 10,
       })
 
-      entry.setState({
-        maxSectionWidth: 0,
-      })
       expect(entry.getMessages()).to.eql([
         {
           msg: "hello",
@@ -269,7 +231,6 @@ describe("LogEntry", () => {
           dataFormat: undefined,
           append: undefined,
           timestamp,
-          maxSectionWidth: 8,
         },
         {
           msg: "world",
@@ -281,19 +242,6 @@ describe("LogEntry", () => {
           dataFormat: undefined,
           append: undefined,
           timestamp,
-          maxSectionWidth: 10,
-        },
-        {
-          msg: "world",
-          emoji: "hamburger",
-          section: "caesar",
-          symbol: "info",
-          status: "done",
-          data: { some: "data_updated" },
-          dataFormat: undefined,
-          append: undefined,
-          timestamp,
-          maxSectionWidth: 0,
         },
       ])
     })

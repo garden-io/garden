@@ -49,7 +49,6 @@ interface MessageBase {
   append?: boolean
   data?: any
   dataFormat?: "json" | "yaml"
-  maxSectionWidth?: number
 }
 
 export interface LogEntryMessage extends MessageBase {
@@ -136,7 +135,6 @@ export class LogEntry implements LogNode {
         data: params.data,
         dataFormat: params.dataFormat,
         append: params.append,
-        maxSectionWidth: params.maxSectionWidth,
       })
     } else {
       this.messages = [{ timestamp: new Date() }]
@@ -166,8 +164,6 @@ export class LogEntry implements LogNode {
       // Next message does not inherit the append field
       append: updateParams.append,
       timestamp: new Date(),
-      maxSectionWidth:
-        updateParams.maxSectionWidth !== undefined ? updateParams.maxSectionWidth : latestMessage.maxSectionWidth,
     }
 
     // Hack to preserve section alignment if spinner disappears

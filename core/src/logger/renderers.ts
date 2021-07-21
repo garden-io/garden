@@ -10,7 +10,6 @@ import logSymbols from "log-symbols"
 import chalk from "chalk"
 import stripAnsi from "strip-ansi"
 import { isArray, repeat } from "lodash"
-import cliTruncate = require("cli-truncate")
 import stringWidth = require("string-width")
 import hasAnsi = require("has-ansi")
 
@@ -24,18 +23,11 @@ type RenderFn = (entry: LogEntry) => string
 
 /*** STYLE HELPERS ***/
 
-export const MAX_SECTION_WIDTH = 25
-const cliPadEnd = (s: string, width: number): string => {
-  const diff = width - stringWidth(s)
-  return diff <= 0 ? s : s + repeat(" ", diff)
-}
+export const SECTION_PADDING = 25
 
-export function formatSection(section: string, width: number = MAX_SECTION_WIDTH) {
-  const minWidth = Math.min(width, MAX_SECTION_WIDTH)
-  return [section]
-    .map((s) => cliTruncate(s, minWidth))
-    .map((s) => cliPadEnd(s, minWidth))
-    .pop()
+export function padSection(section: string, width: number = SECTION_PADDING) {
+  const diff = width - stringWidth(section)
+  return diff <= 0 ? section : section + repeat(" ", diff)
 }
 
 export const msgStyle = (s: string) => (hasAnsi(s) ? s : chalk.gray(s))
@@ -166,11 +158,11 @@ export function renderData(entry: LogEntry): string {
 
 export function renderSection(entry: LogEntry): string {
   const style = chalk.cyan.italic
-  const { msg: msg, section, maxSectionWidth } = entry.getLatestMessage()
+  const { msg: msg, section } = entry.getLatestMessage()
   if (section && msg) {
-    return `${style(formatSection(section, maxSectionWidth))} → `
+    return `${style(padSection(section))} → `
   } else if (section) {
-    return style(formatSection(section, maxSectionWidth))
+    return style(padSection(section))
   }
   return ""
 }
