@@ -7,6 +7,7 @@ title: Module Types
 
 * [`exec`](./exec.md)
 * [`container`](./container.md)
+* [`configmap`](./configmap.md)
 * [`conftest`](./conftest.md)
 * [`hadolint`](./hadolint.md)
 * [`helm`](./helm.md)
