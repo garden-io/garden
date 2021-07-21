@@ -27,6 +27,7 @@ import {
 } from "../config"
 import { ContainerModule } from "../../container/config"
 import { kubernetesDevModeSchema, KubernetesDevModeSpec } from "../dev-mode"
+import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 
 // A Kubernetes Module always maps to a single Service
 export type KubernetesModuleSpec = KubernetesServiceSpec
@@ -44,6 +45,7 @@ export interface KubernetesServiceSpec {
   serviceResource?: ServiceResourceSpec
   tasks: KubernetesTaskSpec[]
   tests: KubernetesTestSpec[]
+  timeout?: number
 }
 
 export type KubernetesService = GardenService<KubernetesModule, ContainerModule>
@@ -95,6 +97,10 @@ export const kubernetesModuleSpecSchema = () =>
       }),
     tasks: joiSparseArray(kubernetesTaskSchema()),
     tests: joiSparseArray(kubernetesTestSchema()),
+    timeout: joi
+      .number()
+      .default(KUBECTL_DEFAULT_TIMEOUT)
+      .description("The maximum duration (in seconds) to wait for resources to deploy and become healthy."),
   })
 
 export async function configureKubernetesModule({

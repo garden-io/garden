@@ -41,6 +41,7 @@ import { PluginContext } from "../../plugin-context"
 import { waitForResources, ResourceStatus } from "./status/status"
 import { RuntimeContext } from "../../runtime-context"
 import { getResourceRequirements } from "./container/util"
+import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 
 // Default timeout for individual run/exec operations
 const defaultTimeout = 600
@@ -880,7 +881,7 @@ export class PodRunner extends PodRunnerParams {
    * commands in the same Pod. Note that you *must manually call `stop()`* when you're done. Otherwise the Pod will
    * stay running in the cluster until the process exits.
    */
-  async start({ log, timeoutSec }: StartParams) {
+  async start({ log, timeoutSec = KUBECTL_DEFAULT_TIMEOUT }: StartParams) {
     const { ctx, provider, pod, namespace } = this
 
     await this.createPod({ log, tty: false })

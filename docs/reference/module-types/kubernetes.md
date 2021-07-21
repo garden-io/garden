@@ -401,6 +401,9 @@ tests:
         # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at
         # `.garden/artifacts`.
         target: .
+
+# The maximum duration (in seconds) to wait for resources to deploy and become healthy.
+timeout: 300
 ```
 
 ## Configuration Keys
@@ -1401,6 +1404,14 @@ tests:
   - artifacts:
       - target: "outputs/foo/"
 ```
+
+### `timeout`
+
+The maximum duration (in seconds) to wait for resources to deploy and become healthy.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `300`   | No       |
 
 
 ## Outputs

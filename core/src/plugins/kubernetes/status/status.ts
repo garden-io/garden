@@ -167,7 +167,7 @@ interface WaitParams {
   serviceName?: string
   resources: KubernetesResource[]
   log: LogEntry
-  timeoutSec?: number
+  timeoutSec: number
 }
 
 /**
@@ -185,10 +185,6 @@ export async function waitForResources({
   let loops = 0
   let lastMessage: string | undefined
   const startTime = new Date().getTime()
-
-  if (!timeoutSec) {
-    timeoutSec = KUBECTL_DEFAULT_TIMEOUT
-  }
 
   const statusLine = log.info({
     symbol: "info",
@@ -244,7 +240,10 @@ export async function waitForResources({
     const now = new Date().getTime()
 
     if (now - startTime > timeoutSec * 1000) {
-      throw new DeploymentError(`Timed out waiting for ${serviceName || "resources"} to deploy`, { statuses })
+      throw new DeploymentError(
+        `Timed out waiting for ${serviceName || "resources"} to deploy after ${timeoutSec} seconds`,
+        { statuses }
+      )
     }
   }
 

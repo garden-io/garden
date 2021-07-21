@@ -126,6 +126,7 @@ export async function deployHelmService({
     serviceName: service.name,
     resources: manifests,
     log,
+    timeoutSec: module.spec.timeout,
   })
 
   const forwardablePorts = getForwardablePorts(manifests)
