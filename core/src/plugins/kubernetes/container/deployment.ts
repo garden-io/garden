@@ -702,22 +702,29 @@ export function configureVolumes(
       // Make sure the module is a supported type
       const volumeModule = module.buildDependencies[volume.module]
 
-      if (!volumeModule.compatibleTypes.includes("persistentvolumeclaim")) {
+      if (volumeModule.compatibleTypes.includes("persistentvolumeclaim")) {
+        volumes.push({
+          name: volumeName,
+          persistentVolumeClaim: {
+            claimName: volume.module,
+          },
+        })
+      } else if (volumeModule.compatibleTypes.includes("configmap")) {
+        volumes.push({
+          name: volumeName,
+          configMap: {
+            name: volume.module,
+          },
+        })
+      } else {
         throw new ConfigurationError(
           chalk.red(deline`Container module ${chalk.white(module.name)} specifies a unsupported module
-          ${chalk.white(volumeModule.name)} for volume mount ${chalk.white(volumeName)}. Only persistentvolumeclaim
-          modules are supported at this time.
+          ${chalk.white(volumeModule.name)} for volume mount ${chalk.white(volumeName)}. Only \`persistentvolumeclaim\`
+          and \`configmap\` modules are supported at this time.
           `),
           { volumeSpec: volume }
         )
       }
-
-      volumes.push({
-        name: volumeName,
-        persistentVolumeClaim: {
-          claimName: volume.module,
-        },
-      })
     } else {
       volumes.push({
         name: volumeName,

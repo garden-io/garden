@@ -60,6 +60,7 @@
   * [`openfaas`](./reference/providers/openfaas.md)
   * [`terraform`](./reference/providers/terraform.md)
 * [Module Types](./reference/module-types/README.md)
+  * [`configmap`](./reference/module-types/configmap.md)
   * [`conftest`](./reference/module-types/conftest.md)
   * [`container`](./reference/module-types/container.md)
   * [`exec`](./reference/module-types/exec.md)
