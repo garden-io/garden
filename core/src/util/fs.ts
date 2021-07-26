@@ -11,7 +11,7 @@ import klaw = require("klaw")
 import glob from "glob"
 import tmp from "tmp-promise"
 import _spawn from "cross-spawn"
-import { pathExists, readFile, writeFile, lstat, realpath } from "fs-extra"
+import { pathExists, readFile, writeFile, lstat, realpath, Stats } from "fs-extra"
 import { join, basename, win32, posix } from "path"
 import { platform } from "os"
 
@@ -307,4 +307,29 @@ export async function makeTempDir({ git = false }: { git?: boolean } = {}): Prom
   }
 
   return tmpDir
+}
+
+/**
+ * Returns the type of the given fs.Stats object as a string.
+ *
+ * @param stats an fs.Stats instance
+ */
+export function getStatsType(stats: Stats) {
+  if (stats.isBlockDevice()) {
+    return "block device"
+  } else if (stats.isCharacterDevice()) {
+    return "character device"
+  } else if (stats.isDirectory()) {
+    return "directory"
+  } else if (stats.isFIFO()) {
+    return "named pipe"
+  } else if (stats.isFile()) {
+    return "file"
+  } else if (stats.isSocket()) {
+    return "socket"
+  } else if (stats.isSymbolicLink()) {
+    return "symbolic link"
+  } else {
+    return "unknown"
+  }
 }

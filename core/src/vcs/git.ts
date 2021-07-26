@@ -16,7 +16,7 @@ import split2 = require("split2")
 import { VcsHandler, RemoteSourceParams, VcsFile, GetFilesParams } from "./vcs"
 import { ConfigurationError, RuntimeError } from "../exceptions"
 import Bluebird from "bluebird"
-import { joinWithPosix, matchPath } from "../util/fs"
+import { getStatsType, joinWithPosix, matchPath } from "../util/fs"
 import { deline } from "../util/string"
 import { splitLast, exec } from "../util/util"
 import { LogEntry } from "../logger/log-entry"
@@ -25,6 +25,9 @@ import { Profile } from "../util/profiling"
 import { SortedStreamIntersection } from "../util/streams"
 import execa = require("execa")
 import isGlob = require("is-glob")
+import chalk = require("chalk")
+
+const submoduleErrorSuggestion = `Perhaps you need to run ${chalk.underline(`git submodule update --recursive`)}?`
 
 export function getCommitIdFromRefList(refList: string[]): string {
   try {
@@ -122,6 +125,29 @@ export class GitHandler extends VcsHandler {
     }
 
     log = log.debug(`Scanning ${pathDescription} at ${path}\nIncludes: ${include}\nExcludes:${exclude}`)
+
+    try {
+      const pathStats = await stat(path)
+
+      if (!pathStats.isDirectory()) {
+        log.warn({
+          symbol: "warning",
+          msg: chalk.gray(`Expected directory at ${path}, but found ${getStatsType(pathStats)}.`),
+        })
+        return []
+      }
+    } catch (err) {
+      // 128 = File no longer exists
+      if (err.exitCode === 128 || err.code === "ENOENT") {
+        log.warn({
+          symbol: "warning",
+          msg: chalk.gray(`Attempted to scan directory at ${path}, but it does not exist.`),
+        })
+        return []
+      } else {
+        throw err
+      }
+    }
 
     const git = this.gitCli(log, path)
     const gitRoot = await this.getRepoRoot(log, path)
@@ -305,6 +331,35 @@ export class GitHandler extends VcsHandler {
         if (submodulePath.startsWith(path) && !absExcludes?.includes(submodulePath)) {
           // Note: We apply include/exclude filters after listing files from submodule
           const submoduleRelPath = relative(path, submodulePath)
+
+          // Catch and show helpful message in case the submodule path isn't a valid directory
+          try {
+            const pathStats = await stat(path)
+
+            if (!pathStats.isDirectory()) {
+              const pathType = getStatsType(pathStats)
+              log.warn({
+                symbol: "warning",
+                msg: chalk.gray(
+                  `Expected submodule directory at ${path}, but found ${pathType}. ${submoduleErrorSuggestion}`
+                ),
+              })
+              return
+            }
+          } catch (err) {
+            // 128 = File no longer exists
+            if (err.exitCode === 128 || err.code === "ENOENT") {
+              log.warn({
+                symbol: "warning",
+                msg: chalk.yellow(
+                  `Found reference to submodule at ${submoduleRelPath}, but the path could not be found. ${submoduleErrorSuggestion}`
+                ),
+              })
+              return
+            } else {
+              throw err
+            }
+          }
 
           files.push(
             ...(await this.getFiles({
@@ -518,14 +573,9 @@ export class GitHandler extends VcsHandler {
       return (await git("rev-parse", "--abbrev-ref", "HEAD"))[0]
     } catch (err) {
       if (err.exitCode === 128) {
-        try {
-          // If this doesn't throw, then we're in a repo with no commits, or with a detached HEAD.
-          await git("rev-parse", "--show-toplevel")
-          return undefined
-        } catch (notInRepoError) {
-          // Throw nice error when we detect that we're not in a repo root
-          throw new RuntimeError(notInRepoRootErrorMessage(path), { path })
-        }
+        // If this doesn't throw, then we're in a repo with no commits, or with a detached HEAD.
+        await this.getRepoRoot(log, path)
+        return undefined
       } else {
         throw err
       }

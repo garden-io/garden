@@ -435,6 +435,21 @@ describe("GitHandler", () => {
       expect(files).to.eql([filePath])
     })
 
+    it("gracefully aborts if given path doesn't exist", async () => {
+      const path = resolve(tmpPath, "foo")
+
+      const files = (await handler.getFiles({ path, exclude: [], log })).map((f) => f.path)
+      expect(files).to.eql([])
+    })
+
+    it("gracefully aborts if given path is not a directory", async () => {
+      const path = resolve(tmpPath, "foo")
+      await createFile(path)
+
+      const files = (await handler.getFiles({ path, exclude: [], log })).map((f) => f.path)
+      expect(files).to.eql([])
+    })
+
     context("path contains a submodule", () => {
       let submodule: tmp.DirectoryResult
       let submodulePath: string
@@ -543,6 +558,27 @@ describe("GitHandler", () => {
         const paths = files.map((f) => relative(tmpPath, f.path)).sort()
 
         expect(paths).to.include(join("sub", initFile))
+      })
+
+      it("gracefully skips submodule if its path doesn't exist", async () => {
+        const subPath = join(tmpPath, "sub")
+        await remove(subPath)
+
+        const files = await handler.getFiles({ path: tmpPath, log })
+        const paths = files.map((f) => relative(tmpPath, f.path))
+
+        expect(paths).to.eql([".gitmodules"])
+      })
+
+      it("gracefully skips submodule if its path doesn't point to a directory", async () => {
+        const subPath = join(tmpPath, "sub")
+        await remove(subPath)
+        await createFile(subPath)
+
+        const files = await handler.getFiles({ path: tmpPath, log })
+        const paths = files.map((f) => relative(tmpPath, f.path))
+
+        expect(paths).to.eql([".gitmodules"])
       })
 
       context("submodule contains another submodule", () => {
