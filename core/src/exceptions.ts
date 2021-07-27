@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isString, omit } from "lodash"
+import { isString } from "lodash"
 
 export interface GardenError {
   type: string
