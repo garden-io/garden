@@ -1,0 +1,17 @@
+kind: Module
+description: elixir greeting service
+name: elixir-service
+type: container
+
+services:
+  - name: elixir-service
+    args: [mix, run]
+    devMode:
+      command: 
+        - "iex"
+      args:
+        - "-S"
+        - "mix"
+      sync: 
+        - target: /app
+          source: hello
