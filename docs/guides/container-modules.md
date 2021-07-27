@@ -52,21 +52,40 @@ services:
   ...
 ```
 
+{% hint style="warning" %}
+Note that if there is a _Dockerfile_ in the same directory as the module configuration, and you still don't want to build it, you have to tell Garden not to pick it up by setting `include: []` in your module configuration.
+{% endhint %}
+
 ## Publishing images
 
-When you do have your own Dockerfile to build, and want to publish it, you also need to use the `image` field:
+You can publish images that have been built in your cluster using the `garden publish` command.
+
+Unless you're publishing to your configured deployment registry (when using the `kubernetes` provider), you need to specify the `image` field on the `container` module in question to indicate where the image should be published. For example:
 
 ```yaml
-# garden.yml
 kind: Module
-type: container
-name: my-container
-image: my-org/my-container  # <- your image repo ID
+name: my-module
+image: my-repo/my-image:v1.2.3   # <- if you omit the tag here, the Garden module version will be used by default
+...
 ```
 
-This tells Garden which namespace, and optionally registry hostname (e.g. `gcr.io` or `quay.io`), to publish the image to when you run `garden publish`.
+By default, we use the tag specified in the `container` module `image` field, if any. If none is set there, we default to the Garden module version.
 
-If you specify a tag as well, for example `image: my-org/my-container:v1.2.3`, that tag will also be used when publishing. If you omit it, Garden will automatically set a tag based on the source hash of the module, e.g. `v-0c61a773cb`.
+You can also set the `--tag` option on the `garden publish` command to override the tag used for images. You can both set a specific tag or you can _use template strings for the tag_. For example, you can
+
+- Set a specific tag on all published modules: `garden publish --tag "v1.2.3"`
+- Set a custom prefix on tags but include the Garden version hash: `garden publish --tag 'v0.1-${module.hash}'`
+- Set a custom prefix on tags with the current git branch: `garden publish --tag 'v0.1-${git.branch}'`
+
+{% hint style="warning" %}
+Note that you most likely need to wrap templated tags with single quotes, to prevent your shell from attempting to perform its own substitution.
+{% endhint %}
+
+Generally, you can use any template strings available for module configs for the tags, with the addition of the following:
+
+- `${module.name}` — the name of the module being tagged
+- `${module.version}` — the full Garden version of the module being tagged, e.g. `v-abcdef1234`
+- `${module.hash}` — the Garden version hash of the module being tagged, e.g. `abcdef1234` (i.e. without the `v-` prefix)
 
 ## Deploying services
 

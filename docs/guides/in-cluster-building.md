@@ -345,36 +345,11 @@ providers:
 
 ## Publishing images
 
-You can publish images that have been built in your cluster, using the `garden publish` command.
-
-The only caveat is that you currently need to have Docker running locally, and you need to have authenticated with the target registry. When publishing, we pull the image from the remote registry to the local Docker daemon, and then go on to push it from there. We do this to avoid having to (re-)implement all the various authentication methods (and by extension key management) involved in pushing directly from the cluster, and because it's often not desired to give clusters access to directly push to production registries.
-
-Unless you're publishing to your configured deployment registry, you need to specify the `image` field on the `container` module in question, to indicate where the image should be published. For example:
-
-```yaml
-kind: Module
-name: my-module
-image: my-repo/my-image:v1.2.3   # <- if you omit the tag here, the Garden module version will be used by default
-...
-```
-
-By default we use the tag specified in the `container` module `image` field, if any. If none is set there, we default to the Garden module version.
-
-You can also set the `--tag` option on the `garden publish` command to override the tag used for images. You can both set a specific tag or you can _use template strings for the tag_. For example, you can
-
-- Set a specific tag on all published modules: `garden publish --tag "v1.2.3"`
-- Set a custom prefix on tags but include the Garden version hash: `garden publish --tag 'v0.1-${module.hash}'`
-- Set a custom prefix on tags with the current git branch: `garden publish --tag 'v0.1-${git.branch}'`
+You can publish images that have been built in your cluster, using the `garden publish` command. See the [Publishing images](./container-modules#publishing-images) section in the [Container Modules guide](./container-modules#publishing-images) for details.
 
 {% hint style="warning" %}
-Note that you most likely need to wrap templated tags with single quotes, to avoid your shell attempting to perform its own substitution.
+Note that you currently need to have Docker running locally even when using remote building, and you need to have authenticated with the target registry. When publishing, we pull the image from the remote registry to the local Docker daemon, and then go on to push it from there. We do this to avoid having to (re-)implement all the various authentication methods (and by extension key management) involved in pushing directly from the cluster, and because it's often not desired to give clusters access to directly push to production registries.
 {% endhint %}
-
-Generally, you can use any template strings available for module configs for the tags, with the addition of the following:
-
-- `${module.name}` — the name of module being tagged
-- `${module.version}` — the full Garden version of module being tagged, e.g. `v-abcdef1234`
-- `${module.hash}` — the Garden version hash of module being tagged, e.g. `abcdef1234` (i.e. without the `v-` prefix)
 
 ## Cleaning up cached images
 
