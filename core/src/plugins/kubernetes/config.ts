@@ -68,10 +68,12 @@ interface KubernetesResourceSpec {
   limits: {
     cpu: number
     memory: number
+    ephemeralStorage?: number
   }
   requests: {
     cpu: number
     memory: number
+    ephemeralStorage?: number
   }
 }
 
@@ -217,6 +219,13 @@ const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =
             .description("Memory limit in megabytes.")
             .example(defaults.limits.memory)
             .meta({ deprecated }),
+          ephemeralStorage: joi
+            .number()
+            .integer()
+            .optional()
+            .description("Ephemeral storage limit in megabytes.")
+            .example(8192)
+            .meta({ deprecated }),
         })
         .default(defaults.limits)
         .meta({ deprecated }),
@@ -236,6 +245,13 @@ const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =
             .default(defaults.requests.memory)
             .description("Memory request in megabytes.")
             .example(defaults.requests.memory)
+            .meta({ deprecated }),
+          ephemeralStorage: joi
+            .number()
+            .integer()
+            .optional()
+            .description("Ephemeral storage request in megabytes.")
+            .example(8192)
             .meta({ deprecated }),
         })
         .default(defaults.requests)
