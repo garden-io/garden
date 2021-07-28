@@ -124,12 +124,18 @@ providers:
           # Memory limit in megabytes.
           memory: 8192
 
+          # Ephemeral storage limit in megabytes.
+          ephemeralStorage:
+
         requests:
           # CPU request in millicpu.
           cpu: 100
 
           # Memory request in megabytes.
           memory: 512
+
+          # Ephemeral storage request in megabytes.
+          ephemeralStorage:
 
       # Resource requests and limits for the in-cluster image registry. Built images are pushed to this registry,
       # so that they are available to all the nodes in your cluster.
@@ -144,12 +150,18 @@ providers:
           # Memory limit in megabytes.
           memory: 4096
 
+          # Ephemeral storage limit in megabytes.
+          ephemeralStorage:
+
         requests:
           # CPU request in millicpu.
           cpu: 200
 
           # Memory request in megabytes.
           memory: 512
+
+          # Ephemeral storage request in megabytes.
+          ephemeralStorage:
 
     # Storage parameters to set for the in-cluster builder, container registry and code sync persistent volumes
     # (which are automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
@@ -620,6 +632,29 @@ providers:
           memory: 8192
 ```
 
+### `providers[].resources.builder.limits.ephemeralStorage`
+
+[providers](#providers) > [resources](#providersresources) > [builder](#providersresourcesbuilder) > [limits](#providersresourcesbuilderlimits) > ephemeralStorage
+
+Ephemeral storage limit in megabytes.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      builder:
+        ...
+        limits:
+          ...
+          ephemeralStorage: 8192
+```
+
 ### `providers[].resources.builder.requests`
 
 [providers](#providers) > [resources](#providersresources) > [builder](#providersresourcesbuilder) > requests
@@ -672,6 +707,29 @@ providers:
         requests:
           ...
           memory: 512
+```
+
+### `providers[].resources.builder.requests.ephemeralStorage`
+
+[providers](#providers) > [resources](#providersresources) > [builder](#providersresourcesbuilder) > [requests](#providersresourcesbuilderrequests) > ephemeralStorage
+
+Ephemeral storage request in megabytes.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      builder:
+        ...
+        requests:
+          ...
+          ephemeralStorage: 8192
 ```
 
 ### `providers[].resources.registry`
@@ -742,6 +800,29 @@ providers:
           memory: 4096
 ```
 
+### `providers[].resources.registry.limits.ephemeralStorage`
+
+[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [limits](#providersresourcesregistrylimits) > ephemeralStorage
+
+Ephemeral storage limit in megabytes.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      registry:
+        ...
+        limits:
+          ...
+          ephemeralStorage: 8192
+```
+
 ### `providers[].resources.registry.requests`
 
 [providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > requests
@@ -794,6 +875,29 @@ providers:
         requests:
           ...
           memory: 512
+```
+
+### `providers[].resources.registry.requests.ephemeralStorage`
+
+[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [requests](#providersresourcesregistryrequests) > ephemeralStorage
+
+Ephemeral storage request in megabytes.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      registry:
+        ...
+        requests:
+          ...
+          ephemeralStorage: 8192
 ```
 
 ### `providers[].resources.sync`
@@ -878,6 +982,33 @@ providers:
           memory: 512
 ```
 
+### `providers[].resources.sync.limits.ephemeralStorage`
+
+[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [limits](#providersresourcessynclimits) > ephemeralStorage
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+Ephemeral storage limit in megabytes.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      sync:
+        ...
+        limits:
+          ...
+          ephemeralStorage: 8192
+```
+
 ### `providers[].resources.sync.requests`
 
 [providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > requests
@@ -942,6 +1073,33 @@ providers:
         requests:
           ...
           memory: 90
+```
+
+### `providers[].resources.sync.requests.ephemeralStorage`
+
+[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [requests](#providersresourcessyncrequests) > ephemeralStorage
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+Ephemeral storage request in megabytes.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      sync:
+        ...
+        requests:
+          ...
+          ephemeralStorage: 8192
 ```
 
 ### `providers[].storage`

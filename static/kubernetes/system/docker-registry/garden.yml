@@ -13,9 +13,11 @@ values:
     limits:
       cpu: ${var.registry-limits-cpu}
       memory: ${var.registry-limits-memory}
+      ephemeral-storage: ${var.registry-limits-ephemeralStorage}?
     requests:
       cpu: ${var.registry-requests-cpu}
       memory: ${var.registry-requests-memory}
+      ephemeral-storage: ${var.registry-requests-ephemeralStorage}?
   # Note: this secret doesn't actually matter for security since the registry isn't exposed
   secrets:
     haSharedSecret: "TDVGTm45dVpCMXptOEJGMA=="
