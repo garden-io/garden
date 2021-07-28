@@ -3461,6 +3461,45 @@ Note: You must currently run one dashboard per-environment and namespace.
   | `--port` |  | number | The port number for the Garden dashboard to listen on.
 
 
+### garden self-update
+
+**Update the Garden CLI.**
+
+Updates your Garden CLI in-place.
+
+Defaults to the latest release version, but you can also request a specific release version as an argument.
+
+Examples:
+
+   garden self-update          # update to the latest Garden CLI version
+   garden self-update edge     # switch to the latest edge build (which is created anytime a PR is merged)
+   garden self-update 0.12.24  # switch to the 0.12.24 version of the CLI
+   garden self-update --force  # re-install even if the same version is detected
+   garden self-update --install-dir ~/garden  # install to ~/garden instead of detecting the directory
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
+
+#### Usage
+
+    garden self-update [version] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `version` | No | Specify which version to switch/update to.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--force` |  | boolean | Install the Garden CLI even if the specified or detected latest version is the same as the current version.
+  | `--install-dir` |  | string | Specify an installation directory, instead of using the directory of the Garden CLI being used. Implies --force.
+  | `--platform` |  | `macos` `linux` `windows`  | Override the platform, instead of detecting it automatically.
+
+
 ### garden test
 
 **Test all or specified modules.**

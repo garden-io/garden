@@ -573,8 +573,6 @@ export class GitHandler extends VcsHandler {
       return (await git("rev-parse", "--abbrev-ref", "HEAD"))[0]
     } catch (err) {
       if (err.exitCode === 128) {
-        // If this doesn't throw, then we're in a repo with no commits, or with a detached HEAD.
-        await this.getRepoRoot(log, path)
         return undefined
       } else {
         throw err
