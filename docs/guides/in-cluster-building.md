@@ -345,7 +345,7 @@ providers:
 
 ## Publishing images
 
-You can publish images that have been built in your cluster, using the `garden publish` command. See the [Publishing images](./container-modules#publishing-images) section in the [Container Modules guide](./container-modules#publishing-images) for details.
+You can publish images that have been built in your cluster, using the `garden publish` command. See the [Publishing images](./container-modules.md#publishing-images) section in the [Container Modules guide](./container-modules.md#publishing-images) for details.
 
 {% hint style="warning" %}
 Note that you currently need to have Docker running locally even when using remote building, and you need to have authenticated with the target registry. When publishing, we pull the image from the remote registry to the local Docker daemon, and then go on to push it from there. We do this to avoid having to (re-)implement all the various authentication methods (and by extension key management) involved in pushing directly from the cluster, and because it's often not desired to give clusters access to directly push to production registries.

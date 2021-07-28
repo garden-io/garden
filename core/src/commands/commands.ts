@@ -35,6 +35,7 @@ import { LoginCommand } from "./login"
 import { LogOutCommand } from "./logout"
 import { ToolsCommand } from "./tools"
 import { UtilCommand } from "./util/util"
+import { SelfUpdateCommand } from "./self-update"
 
 export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new BuildCommand(),
@@ -58,6 +59,7 @@ export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new RunCommand(),
   new ScanCommand(),
   new DashboardCommand(),
+  new SelfUpdateCommand(),
   new SetCommand(),
   new TestCommand(),
   new ToolsCommand(),

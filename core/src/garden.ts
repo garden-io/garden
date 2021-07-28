@@ -300,6 +300,10 @@ export class Garden {
     opts: GardenOpts
   ): Promise<InstanceType<T>> {
     const garden = new this(await resolveGardenParams(currentDirectory, opts)) as InstanceType<T>
+
+    // Make sure the project root is in a git repo
+    await garden.getRepoRoot()
+
     return garden
   }
 
@@ -310,6 +314,13 @@ export class Garden {
     this.events.removeAllListeners()
     this.watcher && (await this.watcher.stop())
     await killSyncDaemon()
+  }
+
+  /**
+   * Get the repository root for the project.
+   */
+  async getRepoRoot() {
+    return this.vcs.getRepoRoot(this.log, this.projectRoot)
   }
 
   /**
@@ -1313,7 +1324,12 @@ export class DummyGarden extends Garden {
   async resolveProviders() {
     return {}
   }
+
   async scanAndAddConfigs() {}
+
+  async getRepoRoot() {
+    return ""
+  }
 }
 
 export interface ConfigDump {

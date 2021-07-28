@@ -89,6 +89,7 @@ export class TestGarden extends Garden {
     const garden = new this(
       await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandinfo, ...opts })
     ) as InstanceType<T>
+    await garden.getRepoRoot()
     return garden
   }
 
