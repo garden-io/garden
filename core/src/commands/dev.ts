@@ -98,8 +98,10 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
 
   async prepare({ log, footerLog }: PrepareParams<DevCommandArgs, DevCommandOpts>) {
     // print ANSI banner image
-    const data = await readFile(ansiBannerPath)
-    log.info(data.toString())
+    if (chalk.supportsColor && chalk.supportsColor.level > 2) {
+      const data = await readFile(ansiBannerPath)
+      log.info(data.toString())
+    }
 
     log.info(chalk.gray.italic(`Good ${getGreetingTime()}! Let's get your environment wired up...`))
     log.info("")
