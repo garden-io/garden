@@ -1,17 +1,19 @@
 kind: Module
-description: elixir greeting service
+description: phoenix elixir greeting service
 name: elixir-service
 type: container
+image: docker.io/davebrowning/elixir-phoenix:hello
+repositoryUrl: https://github.com/davidbrowning/hello.git#master
+include: []
 
 services:
   - name: elixir-service
-    args: [mix, run]
+    args: [mix, phx.server]
+    ports:
+      - name: http
+        containerPort: 4000
+        servicePort: 80
+        localPort: 4000
     devMode:
-      command: 
-        - "iex"
-      args:
-        - "-S"
-        - "mix"
       sync: 
         - target: /app
-          source: hello

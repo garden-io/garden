@@ -6,3 +6,5 @@ environments:
 providers:
   - name: local-kubernetes
     environments: [local]
+dotIgnoreFiles:
+  - .gitignore
