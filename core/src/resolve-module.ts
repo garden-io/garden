@@ -33,7 +33,7 @@ import { readFile, mkdirp, writeFile } from "fs-extra"
 import { LogEntry } from "./logger/log-entry"
 import { ModuleConfigContext, ModuleConfigContextParams } from "./config/template-contexts/module"
 import { pathToCacheContext } from "./cache"
-import { loadVarfile } from "./config/project"
+import { loadVarfile } from "./config/base"
 import { merge } from "json-merge-patch"
 import { prepareBuildDependencies } from "./config/base"
 

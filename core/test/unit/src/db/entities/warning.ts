@@ -11,7 +11,7 @@ import { randomString } from "../../../../../src/util/string"
 import { ensureConnected, getConnection } from "../../../../../src/db/connection"
 import { Warning } from "../../../../../src/db/entities/warning"
 import { getLogger } from "../../../../../src/logger/logger"
-import { getLogMessages } from "../../../../helpers"
+import { getLogMessages } from "../../../../../src/util/testing"
 
 describe("Warning", () => {
   const key = randomString(10)

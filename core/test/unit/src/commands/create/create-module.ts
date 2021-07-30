@@ -270,11 +270,6 @@ describe("CreateModuleCommand", () => {
           short: "helm",
           value: { type: "helm", name: "test", chartPath: "." },
         },
-        {
-          name: "terraform (based on found .tf files, suggested by terraform)",
-          short: "terraform",
-          value: { type: "terraform", name: "test", autoApply: false },
-        },
         new inquirer.Separator(),
         ...Object.keys(moduleTypes).map((type) => ({ name: type, value: { kind: "Module", type, name: "test" } })),
       ])

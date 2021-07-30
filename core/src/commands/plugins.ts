@@ -115,7 +115,7 @@ export class PluginsCommand extends Command<Args> {
     log.info("")
 
     try {
-      const { result, errors = [] } = await command.handler({ ctx, log, args: commandArgs, modules })
+      const { result, errors = [] } = await command.handler({ garden, ctx, log, args: commandArgs, modules })
       return { result, errors: errors.map(toGardenError) }
     } catch (err) {
       return { errors: [toGardenError(err)] }

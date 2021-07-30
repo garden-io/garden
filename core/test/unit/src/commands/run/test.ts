@@ -13,7 +13,6 @@ import {
   makeTestGardenA,
   withDefaultGlobalOpts,
   expectError,
-  getLogMessages,
   makeTestGarden,
   projectTestFailsRoot,
 } from "../../../../helpers"
@@ -22,6 +21,7 @@ import { LogLevel } from "../../../../../src/logger/logger"
 import { dedent } from "../../../../../src/util/string"
 import { renderDivider } from "../../../../../src/logger/util"
 import { RegisterPluginParam } from "../../../../../src/types/plugin/plugin"
+import { getLogMessages } from "../../../../../src/util/testing"
 
 const makeTestGardenTasksFails = async (extraPlugins: RegisterPluginParam[] = []) => {
   return makeTestGarden(projectTestFailsRoot, { plugins: extraPlugins })

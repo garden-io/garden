@@ -1,0 +1,29 @@
+kind: Project
+name: terraform-provider
+environments:
+  - name: local
+providers:
+  - name: terraform
+    variables:
+      my-variable: base
+variables:
+  workspace: default
+---
+kind: Module
+type: terraform
+name: tf
+include: ["*"]
+autoApply: true
+root: ./tf
+workspace: ${var.workspace}
+variables:
+  my-variable: foo
+---
+kind: Module
+type: exec
+name: test
+include: ["*"]
+tasks:
+  - name: test-task
+    dependencies: [tf]
+    command: ["echo", "${runtime.services.tf.outputs.my-output}"]

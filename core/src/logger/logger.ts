@@ -87,6 +87,7 @@ export interface LoggerConfigBase {
 
 export interface LoggerConfig extends LoggerConfigBase {
   type: LoggerType
+  storeEntries: boolean
 }
 
 export interface LoggerConstructor extends LoggerConfigBase {
@@ -186,11 +187,8 @@ export class Logger implements LogNode {
     }
 
     const writer = getWriterInstance(config.type, config.level)
-    // This should probably be a property on the writer itself but feels like an unncessary
-    // indirection for now.
-    const storeEntries = writer instanceof FancyTerminalWriter || config.storeEntries || false
 
-    instance = new Logger({ ...config, storeEntries, writers: writer ? [writer] : [] })
+    instance = new Logger({ ...config, storeEntries: config.storeEntries, writers: writer ? [writer] : [] })
 
     if (gardenEnv.GARDEN_LOG_LEVEL) {
       instance.debug(`Setting log level to ${gardenEnv.GARDEN_LOG_LEVEL} (from GARDEN_LOG_LEVEL)`)

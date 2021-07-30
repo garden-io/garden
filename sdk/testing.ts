@@ -10,7 +10,7 @@ import { TestGarden, TestGardenOpts } from "@garden-io/core/build/src/util/testi
 import { uuidv4 } from "@garden-io/core/build/src/util/util"
 import { Logger, LogLevel } from "@garden-io/core/build/src/logger/logger"
 
-export { TestGarden } from "@garden-io/core/build/src/util/testing"
+export { TestGarden, getLogMessages } from "@garden-io/core/build/src/util/testing"
 export { expectError } from "@garden-io/core/build/src/util/testing"
 export { makeTempDir } from "@garden-io/core/build/src/util/fs"
 
@@ -20,6 +20,7 @@ export const makeTestGarden = async (projectRoot: string, opts: TestGardenOpts =
     Logger.initialize({
       level: LogLevel.info,
       type: "quiet",
+      storeEntries: true,
     })
   } catch (_) {}
 

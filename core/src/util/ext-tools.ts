@@ -7,8 +7,9 @@
  */
 
 import { platform } from "os"
+import split2 from "split2"
 import { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } from "fs-extra"
-import { ConfigurationError, ParameterError, GardenBaseError } from "../exceptions"
+import { ConfigurationError, ParameterError, GardenBaseError, RuntimeError } from "../exceptions"
 import { join, dirname, basename, posix } from "path"
 import { hashString, exec, uuidv4, getPlatform, getArchitecture } from "./util"
 import tar from "tar"
@@ -22,6 +23,7 @@ import got from "got/dist/source"
 import { PluginToolSpec, ToolBuildSpec } from "../types/plugin/tools"
 import { parse } from "url"
 import AsyncLock from "async-lock"
+import { PluginContext } from "../plugin-context"
 
 const toolsPath = join(GARDEN_GLOBAL_PATH, "tools")
 
@@ -112,6 +114,67 @@ export class CliWrapper {
 
     log.debug(`Spawning '${path} ${args.join(" ")}' in ${cwd}`)
     return crossSpawn(path, args, { cwd, env, windowsHide: true })
+  }
+
+  /**
+   * Helper for using spawn with live log streaming. Waits for the command to finish before returning.
+   *
+   * If an error occurs and no output has been written to stderr, we use stdout for the error message instead.
+   */
+  async spawnAndStreamLogs({
+    args,
+    cwd,
+    env,
+    log,
+    ctx,
+    errorPrefix,
+  }: SpawnParams & { errorPrefix: string; ctx: PluginContext; statusLine?: LogEntry }) {
+    const proc = await this.spawn({ args, cwd, env, log })
+
+    const logStream = split2()
+
+    let stdout: string = ""
+    let stderr: string = ""
+
+    if (proc.stderr) {
+      proc.stderr.pipe(logStream)
+      proc.stderr.on("data", (data) => {
+        stderr += data
+      })
+    }
+
+    if (proc.stdout) {
+      proc.stdout.pipe(logStream)
+      proc.stdout.on("data", (data) => {
+        stdout += data
+      })
+    }
+
+    logStream.on("data", (line: Buffer) => {
+      ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
+      const lineStr = line.toString()
+      log.verbose(lineStr)
+    })
+
+    await new Promise<void>((resolve, reject) => {
+      proc.on("error", reject)
+      proc.on("close", (code) => {
+        if (code === 0) {
+          resolve()
+        } else {
+          // Some commands (e.g. the pulumi CLI) don't log anything to stderr when an error occurs. To handle that,
+          // we use `stdout` for the error output instead (in case information relevant to the user is included there).
+          const errOutput = stderr.length > 0 ? stderr : stdout
+          reject(
+            new RuntimeError(`${errorPrefix}:\n${errOutput}`, {
+              stdout,
+              stderr,
+              code,
+            })
+          )
+        }
+      })
+    })
   }
 
   async spawnAndWait({ args, cwd, env, log, ignoreError, rawMode, stdout, stderr, timeoutSec, tty }: SpawnParams) {

@@ -139,7 +139,7 @@ generateFiles:
 # A map of variables to use when applying the stack. You can define these here or you can place a
 # `terraform.tfvars` file in the working directory root.
 #
-# If you specified `variables` in the `terraform` provider config, those will be included but the variables
+# If you specified `variables` in the `terraform` provider config, those will be included but the variables
 # specified here take precedence.
 variables:
 
@@ -451,7 +451,7 @@ The desired file contents as a string.
 A map of variables to use when applying the stack. You can define these here or you can place a
 `terraform.tfvars` file in the working directory root.
 
-If you specified `variables` in the `terraform` provider config, those will be included but the variables
+If you specified `variables` in the `terraform` provider config, those will be included but the variables
 specified here take precedence.
 
 | Type     | Required |

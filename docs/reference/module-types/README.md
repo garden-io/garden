@@ -18,3 +18,4 @@ title: Module Types
 * [`persistentvolumeclaim`](./persistentvolumeclaim.md)
 * [`templated`](./templated.md)
 * [`terraform`](./terraform.md)
+* [`pulumi`](./pulumi.md)

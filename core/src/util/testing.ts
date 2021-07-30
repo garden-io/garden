@@ -24,6 +24,7 @@ import { resolve } from "path"
 import { GARDEN_CORE_ROOT } from "../constants"
 import { getLogger } from "../logger/logger"
 import { ConfigGraph } from "../config-graph"
+import stripAnsi from "strip-ansi"
 
 export class TestError extends GardenBaseError {
   type = "_test"
@@ -32,6 +33,17 @@ export class TestError extends GardenBaseError {
 export interface EventLogEntry {
   name: string
   payload: ValueOf<Events>
+}
+
+/**
+ * Retrieves all the child log entries from the given LogEntry and returns a list of all the messages,
+ * stripped of ANSI characters. Useful to check if a particular message was logged.
+ */
+export function getLogMessages(log: LogEntry, filter?: (log: LogEntry) => boolean) {
+  return log
+    .getChildEntries()
+    .filter((entry) => (filter ? filter(entry) : true))
+    .flatMap((entry) => entry.getMessages()?.map((state) => stripAnsi(state.msg || "")) || [])
 }
 
 /**

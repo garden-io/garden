@@ -8,13 +8,14 @@
 
 import { expect } from "chai"
 import td from "testdouble"
-import { getDataDir, cleanupAuthTokens, getLogMessages, makeCommandParams } from "../../../helpers"
+import { getDataDir, cleanupAuthTokens, makeCommandParams } from "../../../helpers"
 import { makeDummyGarden } from "../../../../src/cli/cli"
 import { ClientAuthToken } from "../../../../src/db/entities/client-auth-token"
 import { randomString } from "../../../../src/util/string"
 import { CloudApi } from "../../../../src/cloud/api"
 import { LogLevel } from "../../../../src/logger/logger"
 import { LogOutCommand } from "../../../../src/commands/logout"
+import { getLogMessages } from "../../../../src/util/testing"
 
 describe("LogoutCommand", () => {
   beforeEach(async () => {

@@ -47,6 +47,7 @@
 * [Using Remote Sources](./advanced/using-remote-sources.md)
 * [Minimal RBAC Configuration for Development Clusters](./advanced/rbac-config.md)
 * [Custom Commands](./advanced/custom-commands.md)
+* [Pulumi](./advanced/pulumi.md)
 
 ## ☘️ Reference
 
@@ -63,6 +64,7 @@
   * [`maven-container`](./reference/providers/maven-container.md)
   * [`octant`](./reference/providers/octant.md)
   * [`openfaas`](./reference/providers/openfaas.md)
+  * [`pulumi`](./reference/providers/pulumi.md)
   * [`terraform`](./reference/providers/terraform.md)
 * [Module Types](./reference/module-types/README.md)
   * [`configmap`](./reference/module-types/configmap.md)
@@ -76,6 +78,7 @@
   * [`maven-container`](./reference/module-types/maven-container.md)
   * [`openfaas`](./reference/module-types/openfaas.md)
   * [`persistentvolumeclaim`](./reference/module-types/persistentvolumeclaim.md)
+  * [`pulumi`](./reference/module-types/pulumi.md)
   * [`templated`](./reference/module-types/templated.md)
   * [`terraform`](./reference/module-types/terraform.md)
 * [Template Strings](./reference/template-strings/README.md)
