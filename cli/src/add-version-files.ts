@@ -19,7 +19,7 @@ require("source-map-support").install()
 
 // make sure logger is initialized
 try {
-  Logger.initialize({ level: LogLevel.info, type: "quiet" })
+  Logger.initialize({ level: LogLevel.info, type: "quiet", storeEntries: false })
 } catch (_) {}
 
 /**

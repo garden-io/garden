@@ -7,5 +7,8 @@
  */
 
 // TODO: re-organize (and maybe rename) these upstream
-export { DEFAULT_API_VERSION as defaultApiVersion } from "@garden-io/core/build/src/constants"
+export {
+  DEFAULT_API_VERSION as defaultApiVersion,
+  DOCS_BASE_URL as docsBaseUrl,
+} from "@garden-io/core/build/src/constants"
 export { defaultNamespace } from "@garden-io/core/build/src/config/project"

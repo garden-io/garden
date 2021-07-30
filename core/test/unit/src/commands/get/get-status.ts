@@ -15,11 +15,12 @@ import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
 import { joi } from "../../../../../src/config/common"
 import { ServiceState } from "../../../../../src/types/service"
 import { GetServiceStatusParams } from "../../../../../src/types/plugin/service/getServiceStatus"
-import { TestGarden, getLogMessages } from "../../../../helpers"
+import { TestGarden } from "../../../../helpers"
 import { GetStatusCommand } from "../../../../../src/commands/get/get-status"
 import { withDefaultGlobalOpts } from "../../../../helpers"
 import { expect } from "chai"
 import { LogLevel } from "../../../../../src/logger/logger"
+import { getLogMessages } from "../../../../../src/util/testing"
 
 describe("GetStatusCommand", () => {
   let tmpDir: tmp.DirectoryResult

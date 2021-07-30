@@ -58,6 +58,7 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
     { name: "octant" },
     { name: "openfaas" },
     { name: "terraform" },
+    { name: "pulumi" },
   ]
   const garden = await Garden.factory(__dirname, {
     commandInfo: { name: "generate-docs", args: {}, opts: {} },

@@ -7,6 +7,7 @@
  */
 
 import Joi = require("@hapi/joi")
+import { join } from "path"
 import { BuildModuleParams, BuildResult, build } from "./module/build"
 import { BuildStatus, GetBuildStatusParams, getBuildStatus } from "./module/getBuildStatus"
 import { CleanupEnvironmentParams, CleanupEnvironmentResult, cleanupEnvironment } from "./provider/cleanupEnvironment"
@@ -52,6 +53,7 @@ import {
   dashboardPagesSchema,
 } from "./provider/getDashboardPage"
 import { getModuleOutputs, GetModuleOutputsParams, GetModuleOutputsResult } from "./module/getModuleOutputs"
+import { PluginContext } from "../../plugin-context"
 
 export interface ActionHandlerParamsBase {
   base?: ActionHandler<any, any>
@@ -620,4 +622,12 @@ export function createGardenPlugin(spec: GardenPluginSpec): GardenPlugin {
     handlers: spec.handlers || {},
     dashboardPages: spec.dashboardPages || [],
   }
+}
+
+/**
+ * A directory inside the project-level `.garden` directory where the plugin can write output files. This can be useful
+ * e.g. when the plugin wants to maintain a local cache of some kind.
+ */
+export function getPluginOutputsPath(ctx: PluginContext, pluginName: string): string {
+  return join(ctx.gardenDirPath, `${pluginName}.outputs`)
 }

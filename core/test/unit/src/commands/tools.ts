@@ -7,15 +7,7 @@
  */
 
 import { exec, getPlatform, getArchitecture } from "../../../../src/util/util"
-import {
-  makeTempDir,
-  TempDirectory,
-  TestGarden,
-  withDefaultGlobalOpts,
-  dataDir,
-  getLogMessages,
-  expectError,
-} from "../../../helpers"
+import { makeTempDir, TempDirectory, TestGarden, withDefaultGlobalOpts, dataDir, expectError } from "../../../helpers"
 import { expect } from "chai"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
@@ -26,6 +18,7 @@ import { dedent } from "../../../../src/util/string"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { makeDummyGarden } from "../../../../src/cli/cli"
 import { defaultNamespace } from "../../../../src/config/project"
+import { getLogMessages } from "../../../../src/util/testing"
 
 describe("ToolsCommand", () => {
   let tmpDir: TempDirectory

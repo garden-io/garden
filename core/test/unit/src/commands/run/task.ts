@@ -13,7 +13,6 @@ import { RunTaskCommand } from "../../../../../src/commands/run/task"
 import {
   withDefaultGlobalOpts,
   expectError,
-  getLogMessages,
   projectRootA,
   testPlugin,
   projectTestFailsRoot,
@@ -25,6 +24,7 @@ import { renderDivider } from "../../../../../src/logger/util"
 import { dedent } from "../../../../../src/util/string"
 import { runExecTask } from "../../../../../src/plugins/exec/exec"
 import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
+import { getLogMessages } from "../../../../../src/util/testing"
 
 describe("RunTaskCommand", () => {
   const cmd = new RunTaskCommand()

@@ -89,7 +89,7 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
 
   if (needsInit) {
     // Run cluster-init
-    await clusterInit.handler({ ctx, log: garden.log, args: [], modules: [] })
+    await clusterInit.handler({ garden, ctx, log: garden.log, args: [], modules: [] })
     initializedEnvs.push(environmentName)
   }
 

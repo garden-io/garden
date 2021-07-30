@@ -17,6 +17,8 @@ export const getBundledPlugins = (): GardenPluginReference[] => [
   { name: "conftest-kubernetes", callback: () => require("@garden-io/garden-conftest-kubernetes").gardenPlugin() },
   { name: "jib", callback: () => require("@garden-io/garden-jib").gardenPlugin() },
   { name: "maven-container", callback: () => require("@garden-io/garden-maven-container").gardenPlugin() },
+  { name: "terraform", callback: () => require("@garden-io/garden-terraform").gardenPlugin() },
+  { name: "pulumi", callback: () => require("@garden-io/garden-pulumi").gardenPlugin() },
 ]
 
 export async function runCli({

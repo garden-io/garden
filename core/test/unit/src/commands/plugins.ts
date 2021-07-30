@@ -7,7 +7,7 @@
  */
 
 import { PluginsCommand } from "../../../../src/commands/plugins"
-import { withDefaultGlobalOpts, TestGarden, makeTempDir, TempDirectory, getLogMessages } from "../../../helpers"
+import { withDefaultGlobalOpts, TestGarden, makeTempDir, TempDirectory } from "../../../helpers"
 import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
 import { writeFile } from "fs-extra"
 import { join } from "path"
@@ -15,6 +15,7 @@ import { dedent } from "../../../../src/util/string"
 import { LogLevel } from "../../../../src/logger/logger"
 import { expect } from "chai"
 import chalk from "chalk"
+import { getLogMessages } from "../../../../src/util/testing"
 const _loggerUtil = require("../../../../src/logger/util")
 
 describe("PluginsCommand", () => {
