@@ -6,12 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { withDefaultGlobalOpts, getLogMessages, projectRootA, makeTestGarden } from "../../../../helpers"
+import { withDefaultGlobalOpts, projectRootA, makeTestGarden } from "../../../../helpers"
 import { expect } from "chai"
 import { Warning } from "../../../../../src/db/entities/warning"
 import { getConnection } from "../../../../../src/db/connection"
 import { HideWarningCommand } from "../../../../../src/commands/util/hide-warning"
 import { randomString } from "../../../../../src/util/string"
+import { getLogMessages } from "../../../../../src/util/testing"
 
 describe("HideWarningCommand", () => {
   it("should hide a warning message", async () => {

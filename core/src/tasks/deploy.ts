@@ -139,7 +139,7 @@ export class DeployTask extends BaseTask {
     const serviceStatuses = getServiceStatuses(dependencyResults)
     const taskResults = getRunTaskResults(dependencyResults)
 
-    // TODO: attach runtimeContext to GetServiceTask output
+    // TODO: attach runtimeContext to GetServiceStatusTask output
     const runtimeContext = await prepareRuntimeContext({
       garden: this.garden,
       graph: this.graph,

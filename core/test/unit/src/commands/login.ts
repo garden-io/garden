@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import td from "testdouble"
-import { expectError, getDataDir, cleanupAuthTokens, getLogMessages, makeCommandParams } from "../../../helpers"
+import { expectError, getDataDir, cleanupAuthTokens, makeCommandParams } from "../../../helpers"
 import { AuthRedirectServer } from "../../../../src/cloud/auth"
 
 import { LoginCommand } from "../../../../src/commands/login"
@@ -21,6 +21,7 @@ import { LogLevel } from "../../../../src/logger/logger"
 import { gardenEnv } from "../../../../src/constants"
 import { EnterpriseApiError } from "../../../../src/exceptions"
 import { ensureConnected } from "../../../../src/db/connection"
+import { getLogMessages } from "../../../../src/util/testing"
 
 // In the tests below we stub out the auth redirect server but still emit the
 // token received event.

@@ -20,6 +20,7 @@ try {
   Logger.initialize({
     level: LogLevel.info,
     type: "quiet",
+    storeEntries: false,
     // level: LogLevel.debug,
     // writers: [new BasicTerminalWriter()],
   })

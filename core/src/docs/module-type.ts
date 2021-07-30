@@ -32,6 +32,7 @@ export const moduleTypes = [
   { name: "persistentvolumeclaim", pluginName: "local-kubernetes" },
   { name: "templated" },
   { name: "terraform" },
+  { name: "pulumi" },
 ]
 
 /**

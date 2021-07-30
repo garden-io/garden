@@ -6,13 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import dotenv = require("dotenv")
 import { sep, resolve, relative, basename, dirname, join } from "path"
-import yaml from "js-yaml"
+import { safeLoad, safeLoadAll } from "js-yaml"
 import yamlLint from "yaml-lint"
-import { readFile } from "fs-extra"
+import { pathExists, readFile } from "fs-extra"
 import { omit, isPlainObject, isArray } from "lodash"
 import { ModuleResource, coreModuleSpecSchema, baseModuleSchemaKeys, BuildDependencyConfig } from "./module"
-import { ConfigurationError, FilesystemError } from "../exceptions"
+import { ConfigurationError, FilesystemError, ParameterError } from "../exceptions"
 import { DEFAULT_API_VERSION } from "../constants"
 import { ProjectResource } from "../config/project"
 import { validateWithPath } from "./validation"
@@ -20,6 +21,7 @@ import { listDirectory } from "../util/fs"
 import { isConfigFilename } from "../util/fs"
 import { TemplateKind, templateKind } from "./module-template"
 import { isTruthy } from "../util/util"
+import { PrimitiveMap } from "./common"
 
 export interface GardenResource {
   apiVersion: string
@@ -40,7 +42,7 @@ export type ConfigKind = "Module" | "Workflow" | "Project" | TemplateKind
  */
 export async function loadAndValidateYaml(content: string, path: string): Promise<any[]> {
   try {
-    return yaml.safeLoadAll(content) || []
+    return safeLoadAll(content) || []
   } catch (err) {
     // We try to find the error using a YAML linter
     try {
@@ -236,4 +238,65 @@ export async function findProjectConfig(path: string, allowInvalid = false): Pro
   }
 
   return
+}
+
+export async function loadVarfile({
+  configRoot,
+  path,
+  defaultPath,
+}: {
+  // project root (when resolving project config) or module root (when resolving module config)
+  configRoot: string
+  path: string | undefined
+  defaultPath: string | undefined
+}): Promise<PrimitiveMap> {
+  if (!path && !defaultPath) {
+    throw new ParameterError(`Neither a path nor a defaultPath was provided.`, { configRoot, path, defaultPath })
+  }
+  const resolvedPath = resolve(configRoot, <string>(path || defaultPath))
+  const exists = await pathExists(resolvedPath)
+
+  if (!exists && path && path !== defaultPath) {
+    throw new ConfigurationError(`Could not find varfile at path '${path}'`, {
+      path,
+      resolvedPath,
+    })
+  }
+
+  if (!exists) {
+    return {}
+  }
+
+  try {
+    const data = await readFile(resolvedPath)
+    const relPath = relative(configRoot, resolvedPath)
+    const filename = basename(resolvedPath.toLowerCase())
+
+    if (filename.endsWith(".json")) {
+      const parsed = JSON.parse(data.toString())
+      if (!isPlainObject(parsed)) {
+        throw new ConfigurationError(`Configured variable file ${relPath} must be a valid plain JSON object`, {
+          parsed,
+        })
+      }
+      return parsed
+    } else if (filename.endsWith(".yml") || filename.endsWith(".yaml")) {
+      const parsed = safeLoad(data.toString())
+      if (!isPlainObject(parsed)) {
+        throw new ConfigurationError(`Configured variable file ${relPath} must be a single plain YAML mapping`, {
+          parsed,
+        })
+      }
+      return parsed as PrimitiveMap
+    } else {
+      // Note: For backwards-compatibility we fall back on using .env as a default format, and don't specifically
+      // validate the extension for that.
+      return dotenv.parse(await readFile(resolvedPath))
+    }
+  } catch (error) {
+    throw new ConfigurationError(`Unable to load varfile at '${path}': ${error}`, {
+      error,
+      path,
+    })
+  }
 }

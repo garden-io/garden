@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import dotenv = require("dotenv")
 import { apply, merge } from "json-merge-patch"
 import { deline, dedent } from "../util/string"
 import {
@@ -30,17 +29,15 @@ import { ProjectConfigContext, EnvironmentConfigContext } from "./template-conte
 import { findByName, getNames } from "../util/util"
 import { ConfigurationError, ParameterError, ValidationError } from "../exceptions"
 import { PrimitiveMap } from "./common"
-import { cloneDeep, omit, isPlainObject } from "lodash"
+import { cloneDeep, omit } from "lodash"
 import { providerConfigBaseSchema, GenericProviderConfig } from "./provider"
 import { DOCS_BASE_URL } from "../constants"
 import { defaultDotIgnoreFiles } from "../util/fs"
-import { pathExists, readFile } from "fs-extra"
-import { resolve, basename, relative } from "path"
 import chalk = require("chalk")
-import { safeLoad } from "js-yaml"
 import { CommandInfo } from "../plugin-context"
 import { VcsInfo } from "../vcs/vcs"
 import { profileAsync } from "../util/profiling"
+import { loadVarfile } from "./base"
 
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -660,66 +657,5 @@ export function parseEnvironment(env: string): ParsedEnvironment {
     return { environment: env }
   } else {
     return { environment: split[1], namespace: split[0] }
-  }
-}
-
-export async function loadVarfile({
-  configRoot,
-  path,
-  defaultPath,
-}: {
-  // project root (when resolving project config) or module root (when resolving module config)
-  configRoot: string
-  path: string | undefined
-  defaultPath: string | undefined
-}): Promise<PrimitiveMap> {
-  if (!path && !defaultPath) {
-    throw new ParameterError(`Neither a path nor a defaultPath was provided.`, { configRoot, path, defaultPath })
-  }
-  const resolvedPath = resolve(configRoot, <string>(path || defaultPath))
-  const exists = await pathExists(resolvedPath)
-
-  if (!exists && path && path !== defaultPath) {
-    throw new ConfigurationError(`Could not find varfile at path '${path}'`, {
-      path,
-      resolvedPath,
-    })
-  }
-
-  if (!exists) {
-    return {}
-  }
-
-  try {
-    const data = await readFile(resolvedPath)
-    const relPath = relative(configRoot, resolvedPath)
-    const filename = basename(resolvedPath.toLowerCase())
-
-    if (filename.endsWith(".json")) {
-      const parsed = JSON.parse(data.toString())
-      if (!isPlainObject(parsed)) {
-        throw new ConfigurationError(`Configured variable file ${relPath} must be a valid plain JSON object`, {
-          parsed,
-        })
-      }
-      return parsed
-    } else if (filename.endsWith(".yml") || filename.endsWith(".yaml")) {
-      const parsed = safeLoad(data.toString())
-      if (!isPlainObject(parsed)) {
-        throw new ConfigurationError(`Configured variable file ${relPath} must be a single plain YAML mapping`, {
-          parsed,
-        })
-      }
-      return parsed as PrimitiveMap
-    } else {
-      // Note: For backwards-compatibility we fall back on using .env as a default format, and don't specifically
-      // validate the extension for that.
-      return dotenv.parse(await readFile(resolvedPath))
-    }
-  } catch (error) {
-    throw new ConfigurationError(`Unable to load varfile at '${path}': ${error}`, {
-      error,
-      path,
-    })
   }
 }

@@ -1,0 +1,4 @@
+config:
+  'pulumi-k8s-test:orgName': gordon-garden-bot
+  'pulumi-k8s-test:appName': api-varfile2-override
+  'pulumi-k8s-test:isMinikube': 'true'

@@ -1,0 +1,31 @@
+{
+  "name": "@garden-io/garden-pulumi",
+  "version": "0.12.24",
+  "description": "Pulumi plugin for Garden",
+  "main": "build/index.js",
+  "files": [
+    "build"
+  ],
+  "dependencies": {
+    "@garden-io/core": "*",
+    "@garden-io/sdk": "*",
+    "chalk": "^4.1.0",
+    "execa": "^4.0.3",
+    "fs-extra": "^10.0.0",
+    "slash": "^3.0.0",
+    "which": "^2.0.2"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.2.12",
+    "@types/node": "^14.6.0",
+    "chai": "^4.2.0",
+    "mocha": "^8.1.2",
+    "strip-ansi": "^6.0.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "Garden Technologies, Inc. <info@garden.io>",
+  "license": "MPL-2.0",
+  "homepage": "https://github.com/garden-io/garden"
+}

@@ -26,6 +26,12 @@
     },
     {
       "path": "../plugins/maven-container"
+    },
+    {
+      "path": "../plugins/terraform"
+    },
+    {
+      "path": "../plugins/pulumi"
     }
   ]
 }
