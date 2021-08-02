@@ -14,7 +14,11 @@ import { ConfigGraph } from "../../../../../src/config-graph"
 import { getHelmTestGarden, buildHelmModules } from "./helm/common"
 import { getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
 import { KubernetesProvider, KubernetesPluginContext } from "../../../../../src/plugins/kubernetes/config"
-import { findServiceResource, getServiceResourceSpec } from "../../../../../src/plugins/kubernetes/util"
+import {
+  getServiceResource,
+  getResourcePodSpec,
+  getServiceResourceSpec,
+} from "../../../../../src/plugins/kubernetes/util"
 import {
   getHotReloadSpec,
   getHotReloadContainerName,
@@ -119,9 +123,10 @@ describe("configureHotReload", () => {
     })
     const resourceSpec = getServiceResourceSpec(module, undefined)
     const hotReloadSpec = getHotReloadSpec(service)
-    const hotReloadTarget = await findServiceResource({
+    const hotReloadTarget = await getServiceResource({
       ctx,
       log,
+      provider,
       module,
       manifests,
       resourceSpec,
@@ -132,7 +137,7 @@ describe("configureHotReload", () => {
       hotReloadSpec,
       target: hotReloadTarget,
     })
-    const containers: any[] = hotReloadTarget.spec.template.spec?.containers || []
+    const containers: any[] = getResourcePodSpec(hotReloadTarget)?.containers || []
     // This is a second, non-main/resource container included by the Helm chart, which should not mount the sync volume.
     const secondContainer = containers.find((c) => c.name === "second-container")
 

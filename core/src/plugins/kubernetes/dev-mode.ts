@@ -10,7 +10,7 @@ const AsyncLock = require("async-lock")
 import { containerDevModeSchema, ContainerDevModeSpec } from "../container/config"
 import { dedent, gardenAnnotationKey } from "../../util/string"
 import { fromPairs, set } from "lodash"
-import { getResourceContainer } from "./util"
+import { getResourceContainer, getResourcePodSpec } from "./util"
 import { HotReloadableResource } from "./hot-reload/hot-reload"
 import { LogEntry } from "../../logger/log-entry"
 import { joinWithPosix } from "../../util/fs"
@@ -80,6 +80,12 @@ export function configureDevMode({ target, spec, containerName }: ConfigureDevMo
     return
   }
 
+  const podSpec = getResourcePodSpec(target)
+
+  if (!podSpec) {
+    return
+  }
+
   // Inject mutagen agent on init
   const gardenVolumeName = `garden`
   const gardenVolumeMount = {
@@ -87,11 +93,11 @@ export function configureDevMode({ target, spec, containerName }: ConfigureDevMo
     mountPath: "/.garden",
   }
 
-  if (!target.spec.template.spec!.volumes) {
-    target.spec.template.spec!.volumes = []
+  if (!podSpec.volumes) {
+    podSpec.volumes = []
   }
 
-  target.spec.template.spec!.volumes.push({
+  podSpec.volumes.push({
     name: gardenVolumeName,
     emptyDir: {},
   })
@@ -105,10 +111,10 @@ export function configureDevMode({ target, spec, containerName }: ConfigureDevMo
     volumeMounts: [gardenVolumeMount],
   }
 
-  if (!target.spec.template.spec!.initContainers) {
-    target.spec.template.spec!.initContainers = []
+  if (!podSpec.initContainers) {
+    podSpec.initContainers = []
   }
-  target.spec.template.spec!.initContainers.push(initContainer)
+  podSpec.initContainers.push(initContainer)
 
   if (!mainContainer.volumeMounts) {
     mainContainer.volumeMounts = []
@@ -160,7 +166,7 @@ export async function startDevModeSync({
     }
 
     if (!containerName) {
-      containerName = target.spec.template.spec?.containers[0]?.name
+      containerName = getResourcePodSpec(target)?.containers[0]?.name
     }
 
     if (!containerName) {

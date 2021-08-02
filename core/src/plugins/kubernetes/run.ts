@@ -28,7 +28,7 @@ import { Writable, Readable } from "stream"
 import { uniqByName, sleep } from "../../util/util"
 import { KubeApi } from "./api"
 import { getPodLogs, checkPodStatus } from "./status/pod"
-import { KubernetesResource, KubernetesPod } from "./types"
+import { KubernetesResource, KubernetesPod, KubernetesServerResource } from "./types"
 import { RunModuleParams } from "../../types/plugin/module/runModule"
 import { ContainerEnvVars, ContainerResourcesSpec, ContainerVolumeSpec } from "../container/config"
 import { prepareEnvVars, makePodName } from "./util"
@@ -672,7 +672,7 @@ class PodRunnerParams {
   ctx: PluginContext
   annotations?: { [key: string]: string }
   api: KubeApi
-  pod: KubernetesPod
+  pod: KubernetesPod | KubernetesServerResource<V1Pod>
   namespace: string
   provider: KubernetesProvider
 }

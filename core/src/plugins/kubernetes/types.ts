@@ -30,11 +30,11 @@ export interface BaseResource {
 
 // Because the Kubernetes API library types currently list all keys as optional, we use this type to wrap the
 // library types and make some fields required that are always required in the API.
-export type KubernetesResource<T extends BaseResource | KubernetesObject = BaseResource> =
+export type KubernetesResource<T extends BaseResource | KubernetesObject = BaseResource, K = string> =
   // Make these always required
   {
     apiVersion: string
-    kind: string
+    kind: K
     metadata: Partial<V1ObjectMeta> & {
       name: string
     }
@@ -77,3 +77,7 @@ export type KubernetesStatefulSet = KubernetesResource<V1StatefulSet>
 export type KubernetesPod = KubernetesResource<V1Pod>
 
 export type KubernetesWorkload = KubernetesResource<V1DaemonSet | V1Deployment | V1ReplicaSet | V1StatefulSet>
+
+export function isPodResource(resource: KubernetesWorkload | KubernetesPod): resource is KubernetesPod {
+  return resource.kind === "Pod"
+}

@@ -24,6 +24,7 @@ import {
   namespaceNameSchema,
   containerModuleSchema,
   hotReloadArgsSchema,
+  serviceResourceDescription,
 } from "../config"
 import { ContainerModule } from "../../container/config"
 import { kubernetesDevModeSchema, KubernetesDevModeSpec } from "../dev-mode"
@@ -87,7 +88,10 @@ export const kubernetesModuleSpecSchema = () =>
     serviceResource: serviceResourceSchema()
       .description(
         dedent`
-        The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module (not to be confused with Kubernetes Service resources).
+        The Deployment, DaemonSet or StatefulSet or Pod that Garden should regard as the _Garden service_ in this module (not to be confused with Kubernetes Service resources).
+
+        ${serviceResourceDescription}
+
         Because a \`kubernetes\` module can contain any number of Kubernetes resources, this needs to be specified for certain Garden features and commands to work.
         `
       )

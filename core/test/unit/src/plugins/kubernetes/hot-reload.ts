@@ -148,6 +148,121 @@ describe("configureHotReload", () => {
       },
     })
   })
+
+  it("should correctly augment a Pod resource", async () => {
+    const target = {
+      apiVersion: "v1",
+      kind: "Pod",
+      metadata: {
+        name: "foo",
+      },
+      spec: {
+        containers: [
+          {
+            image: "garden-io/foo",
+          },
+        ],
+      },
+    }
+
+    configureHotReload({
+      target: <HotReloadableResource>target,
+      hotReloadSpec: {
+        sync: [
+          {
+            source: "*",
+            target: "/app",
+          },
+        ],
+      },
+      hotReloadArgs: ["some", "args"],
+    })
+
+    expect(target).to.eql({
+      apiVersion: "v1",
+      kind: "Pod",
+      metadata: {
+        name: "foo",
+        annotations: {
+          "garden.io/hot-reload": "true",
+        },
+      },
+      spec: {
+        containers: [
+          {
+            image: "garden-io/foo",
+            volumeMounts: [
+              {
+                name: "garden-sync",
+                mountPath: "/app",
+                subPath: "root/app/",
+              },
+            ],
+            ports: [],
+            args: ["some", "args"],
+          },
+          {
+            name: "garden-rsync",
+            image: "gardendev/rsync:0.2.0",
+            imagePullPolicy: "IfNotPresent",
+            env: [
+              {
+                name: "ALLOW",
+                value: "0.0.0.0/0",
+              },
+            ],
+            readinessProbe: {
+              initialDelaySeconds: 2,
+              periodSeconds: 1,
+              timeoutSeconds: 3,
+              successThreshold: 1,
+              failureThreshold: 5,
+              tcpSocket: { port: <object>(<unknown>rsyncPortName) },
+            },
+            volumeMounts: [
+              {
+                name: "garden-sync",
+                mountPath: "/data",
+              },
+            ],
+            ports: [
+              {
+                name: "garden-rsync",
+                protocol: "TCP",
+                containerPort: 873,
+              },
+            ],
+          },
+        ],
+        volumes: [
+          {
+            name: "garden-sync",
+            emptyDir: {},
+          },
+        ],
+        initContainers: [
+          {
+            name: "garden-sync-init",
+            image: "garden-io/foo",
+            command: [
+              "/bin/sh",
+              "-c",
+              "mkdir -p /.garden/hot_reload/root && mkdir -p /.garden/hot_reload/tmp/app/ && " +
+                "cp -r /app/ /.garden/hot_reload/root/app/",
+            ],
+            env: [],
+            imagePullPolicy: "IfNotPresent",
+            volumeMounts: [
+              {
+                name: "garden-sync",
+                mountPath: "/.garden/hot_reload",
+              },
+            ],
+          },
+        ],
+      },
+    })
+  })
 })
 
 describe("removeTrailingSlashes", () => {

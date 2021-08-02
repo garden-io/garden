@@ -13,11 +13,10 @@ import { deline, gardenAnnotationKey } from "../../../util/string"
 import { set, flatten } from "lodash"
 import { GardenService } from "../../../types/service"
 import { LogEntry } from "../../../logger/log-entry"
-import { execInWorkload, getResourceContainer, getServiceResourceSpec } from "../util"
+import { execInWorkload, getResourceContainer, getResourcePodSpec, getServiceResourceSpec } from "../util"
 import { getPortForward, killPortForward } from "../port-forward"
 import { rsyncPort, buildSyncVolumeName, rsyncPortName } from "../constants"
 import { KubernetesPluginContext } from "../config"
-import { KubernetesWorkload } from "../types"
 import { normalizeLocalRsyncPath, normalizeRelativePath } from "../../../util/fs"
 import { syncWithOptions } from "../../../util/sync"
 import { GardenModule } from "../../../types/module"
@@ -37,7 +36,7 @@ interface ConfigureHotReloadParams {
 }
 
 /**
- * Configures the specified Deployment, DaemonSet or StatefulSet for hot-reloading.
+ * Configures the specified Deployment, DaemonSet, StatefulSet or Pod for hot-reloading.
  *
  * Adds an rsync sidecar container, an emptyDir volume to mount over module dir in app container,
  * and an initContainer to perform the initial population of the emptyDir volume.
@@ -106,22 +105,30 @@ export function configureHotReload({
     mainContainer.args = hotReloadArgs
   }
 
-  // These any casts are necessary because of flaws in the TS definitions in the client library.
-  if (!target.spec.template.spec!.volumes) {
-    target.spec.template.spec!.volumes = []
+  const podSpec = getResourcePodSpec(target)
+
+  if (!podSpec) {
+    throw new ConfigurationError(
+      `Attempting to configure resource ${target.kind}/${target.metadata.name} for hot reloading but it does not contain a Pod spec.`,
+      { target, hotReloadSpec }
+    )
   }
 
-  target.spec.template.spec!.volumes.push(<any>{
+  if (!podSpec.volumes) {
+    podSpec.volumes = []
+  }
+
+  podSpec.volumes.push({
     name: buildSyncVolumeName,
     emptyDir: {},
   })
 
-  if (!target.spec.template.spec!.initContainers) {
-    target.spec.template.spec!.initContainers = []
+  if (!podSpec.initContainers) {
+    podSpec.initContainers = []
   }
-  target.spec.template.spec!.initContainers.push(<any>initContainer)
+  podSpec.initContainers.push(initContainer)
 
-  target.spec.template.spec!.containers.push({
+  podSpec.containers.push({
     name: "garden-rsync",
     image: "gardendev/rsync:0.2.0",
     imagePullPolicy: "IfNotPresent",
@@ -268,7 +275,7 @@ interface SyncToServiceParams {
   service: GardenService
   hotReloadSpec: ContainerHotReloadSpec
   namespace: string
-  workload: KubernetesWorkload
+  workload: HotReloadableResource
   log: LogEntry
 }
 

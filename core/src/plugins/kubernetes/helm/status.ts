@@ -16,7 +16,7 @@ import { KubernetesPluginContext } from "../config"
 import { getForwardablePorts } from "../port-forward"
 import { KubernetesServerResource } from "../types"
 import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
-import { findServiceResource, getServiceResourceSpec } from "../util"
+import { getServiceResource, getServiceResourceSpec } from "../util"
 import chalk from "chalk"
 import { startDevModeSync } from "../dev-mode"
 import { gardenAnnotationKey } from "../../../util/string"
@@ -74,9 +74,10 @@ export async function getServiceStatus({
       // Need to start the dev-mode sync here, since the deployment handler won't be called.
       const baseModule = getBaseModule(module)
       const serviceResourceSpec = getServiceResourceSpec(module, baseModule)
-      const target = await findServiceResource({
-        ctx,
+      const target = await getServiceResource({
+        ctx: k8sCtx,
         log,
+        provider: k8sCtx.provider,
         module,
         manifests: deployedResources,
         resourceSpec: serviceResourceSpec,

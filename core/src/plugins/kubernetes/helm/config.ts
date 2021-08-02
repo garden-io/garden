@@ -33,6 +33,7 @@ import {
   namespaceNameSchema,
   containerModuleSchema,
   hotReloadArgsSchema,
+  serviceResourceDescription,
 } from "../config"
 import { posix } from "path"
 import { runPodSpecIncludeFields } from "../run"
@@ -104,9 +105,11 @@ const runPodSpecWhitelistDescription = runPodSpecIncludeFields.map((f) => `* \`$
 const helmTaskSchema = () =>
   kubernetesTaskSchema().keys({
     resource: helmServiceResourceSchema().description(
-      dedent`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task.
+      dedent`The Deployment, DaemonSet or StatefulSet or Pod that Garden should use to execute this task.
         If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
         an error will be thrown.
+
+        ${serviceResourceDescription}
 
         The following pod spec fields from the service resource will be used (if present) when executing the task:
         ${runPodSpecWhitelistDescription}`
@@ -116,9 +119,11 @@ const helmTaskSchema = () =>
 const helmTestSchema = () =>
   kubernetesTestSchema().keys({
     resource: helmServiceResourceSchema().description(
-      dedent`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite.
+      dedent`The Deployment, DaemonSet or StatefulSet or Pod that Garden should use to execute this test suite.
         If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
         an error will be thrown.
+
+        ${serviceResourceDescription}
 
         The following pod spec fields from the service resource will be used (if present) when executing the test suite:
         ${runPodSpecWhitelistDescription}`
@@ -170,13 +175,13 @@ export const helmModuleSpecSchema = () =>
     ),
     repo: joi.string().description("The repository URL to fetch the chart from."),
     serviceResource: helmServiceResourceSchema().description(
-      deline`The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module
-      (not to be confused with Kubernetes Service resources).
-      Because a Helm chart can contain any number of Kubernetes resources, this needs to be specified for certain
-      Garden features and commands to work, such as hot-reloading.
+      dedent`
+      The Deployment, DaemonSet or StatefulSet or Pod that Garden should regard as the _Garden service_ in this module (not to be confused with Kubernetes Service resources).
 
-      We currently map a Helm chart to a single Garden service, because all the resources in a Helm chart are
-      deployed at once.`
+      ${serviceResourceDescription}
+
+      Because a Helm chart can contain any number of Kubernetes resources, this needs to be specified for certain Garden features and commands to work, such as hot-reloading.
+      `
     ),
     skipDeploy: joi
       .boolean()
