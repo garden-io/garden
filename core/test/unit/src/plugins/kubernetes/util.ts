@@ -18,7 +18,7 @@ import {
   makePodName,
   matchSelector,
 } from "../../../../../src/plugins/kubernetes/util"
-import { KubernetesServerResource } from "../../../../../src/plugins/kubernetes/types"
+import { KubernetesPod, KubernetesServerResource } from "../../../../../src/plugins/kubernetes/types"
 import { V1Pod } from "@kubernetes/client-node"
 import { sleep } from "../../../../../src/util/util"
 
@@ -288,7 +288,7 @@ describe("getStaticLabelsFromPod", () => {
         },
       },
       spec: {},
-    } as unknown) as KubernetesServerResource<V1Pod>
+    } as unknown) as KubernetesPod
 
     const labels = getStaticLabelsFromPod(pod)
 
@@ -307,7 +307,7 @@ describe("getSelectorString", () => {
     }
     const selectorString = getSelectorString(labels)
 
-    expect(selectorString).to.eql("-lmodule=a,service=a")
+    expect(selectorString).to.eql("module=a,service=a")
   })
 })
 

@@ -200,11 +200,14 @@ releaseName:
 # The repository URL to fetch the chart from.
 repo:
 
-# The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module (not to be
-# confused with Kubernetes Service resources). Because a Helm chart can contain any number of Kubernetes resources,
-# this needs to be specified for certain Garden features and commands to work, such as hot-reloading.
-# We currently map a Helm chart to a single Garden service, because all the resources in a Helm chart are deployed at
-# once.
+# The Deployment, DaemonSet or StatefulSet or Pod that Garden should regard as the _Garden service_ in this module
+# (not to be confused with Kubernetes Service resources).
+#
+# This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name` fields,
+# or a Pod via the `podSelector` field.
+#
+# Because a Helm chart can contain any number of Kubernetes resources, this needs to be specified for certain Garden
+# features and commands to work, such as hot-reloading.
 serviceResource:
   # The type of Kubernetes resource to sync files to.
   kind: Deployment
@@ -212,6 +215,10 @@ serviceResource:
   # The name of a container in the target. Specify this if the target contains more than one container and the main
   # container is not the first container in the spec.
   containerName:
+
+  # A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with
+  # matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+  podSelector:
 
   # The name of the resource to sync to. If the chart contains a single resource of the specified Kind,
   # this can be omitted.
@@ -223,10 +230,12 @@ serviceResource:
   name:
 
   # The Garden module that contains the sources for the container. This needs to be specified under `serviceResource`
-  # in order to enable hot-reloading, but is not necessary for tasks and tests.
+  # in order to enable hot-reloading and dev mode, but is not necessary for tasks and tests.
+  #
   # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the
-  # container module.
-  # Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
+  # container module (not required for dev mode).
+  #
+  # _Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`._
   containerModule:
 
   # If specified, overrides the arguments for the main container when running in hot-reload mode.
@@ -289,9 +298,12 @@ tasks:
         # `.garden/artifacts`.
         target: .
 
-    # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task.
+    # The Deployment, DaemonSet or StatefulSet or Pod that Garden should use to execute this task.
     # If not specified, the `serviceResource` configured on the module will be used. If neither is specified,
     # an error will be thrown.
+    #
+    # This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name`
+    # fields, or a Pod via the `podSelector` field.
     #
     # The following pod spec fields from the service resource will be used (if present) when executing the task:
     # * `affinity`
@@ -330,6 +342,11 @@ tasks:
       # main container is not the first container in the spec.
       containerName:
 
+      # A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod
+      # with matching labels will be picked as a target, so make sure the labels will always match a specific Pod
+      # type.
+      podSelector:
+
       # The name of the resource to sync to. If the chart contains a single resource of the specified Kind,
       # this can be omitted.
       #
@@ -341,10 +358,12 @@ tasks:
       name:
 
       # The Garden module that contains the sources for the container. This needs to be specified under
-      # `serviceResource` in order to enable hot-reloading, but is not necessary for tasks and tests.
+      # `serviceResource` in order to enable hot-reloading and dev mode, but is not necessary for tasks and tests.
+      #
       # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the
-      # container module.
-      # Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
+      # container module (not required for dev mode).
+      #
+      # _Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`._
       containerModule:
 
       # If specified, overrides the arguments for the main container when running in hot-reload mode.
@@ -388,9 +407,12 @@ tests:
         # `.garden/artifacts`.
         target: .
 
-    # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite.
+    # The Deployment, DaemonSet or StatefulSet or Pod that Garden should use to execute this test suite.
     # If not specified, the `serviceResource` configured on the module will be used. If neither is specified,
     # an error will be thrown.
+    #
+    # This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name`
+    # fields, or a Pod via the `podSelector` field.
     #
     # The following pod spec fields from the service resource will be used (if present) when executing the test suite:
     # * `affinity`
@@ -429,6 +451,11 @@ tests:
       # main container is not the first container in the spec.
       containerName:
 
+      # A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod
+      # with matching labels will be picked as a target, so make sure the labels will always match a specific Pod
+      # type.
+      podSelector:
+
       # The name of the resource to sync to. If the chart contains a single resource of the specified Kind,
       # this can be omitted.
       #
@@ -440,10 +467,12 @@ tests:
       name:
 
       # The Garden module that contains the sources for the container. This needs to be specified under
-      # `serviceResource` in order to enable hot-reloading, but is not necessary for tasks and tests.
+      # `serviceResource` in order to enable hot-reloading and dev mode, but is not necessary for tasks and tests.
+      #
       # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the
-      # container module.
-      # Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
+      # container module (not required for dev mode).
+      #
+      # _Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`._
       containerModule:
 
       # If specified, overrides the arguments for the main container when running in hot-reload mode.
@@ -925,8 +954,11 @@ The repository URL to fetch the chart from.
 
 ### `serviceResource`
 
-The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module (not to be confused with Kubernetes Service resources). Because a Helm chart can contain any number of Kubernetes resources, this needs to be specified for certain Garden features and commands to work, such as hot-reloading.
-We currently map a Helm chart to a single Garden service, because all the resources in a Helm chart are deployed at once.
+The Deployment, DaemonSet or StatefulSet or Pod that Garden should regard as the _Garden service_ in this module (not to be confused with Kubernetes Service resources).
+
+This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name` fields, or a Pod via the `podSelector` field.
+
+Because a Helm chart can contain any number of Kubernetes resources, this needs to be specified for certain Garden features and commands to work, such as hot-reloading.
 
 | Type     | Required |
 | -------- | -------- |
@@ -952,6 +984,16 @@ The name of a container in the target. Specify this if the target contains more 
 | -------- | -------- |
 | `string` | No       |
 
+### `serviceResource.podSelector`
+
+[serviceResource](#serviceresource) > podSelector
+
+A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
 ### `serviceResource.name`
 
 [serviceResource](#serviceresource) > name
@@ -972,9 +1014,11 @@ the string for the YAML to be parsed correctly.
 
 [serviceResource](#serviceresource) > containerModule
 
-The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading, but is not necessary for tasks and tests.
-Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module.
-Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
+The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading and dev mode, but is not necessary for tasks and tests.
+
+Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module (not required for dev mode).
+
+_Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`._
 
 | Type     | Required |
 | -------- | -------- |
@@ -1200,9 +1244,11 @@ tasks:
 
 [tasks](#tasks) > resource
 
-The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task.
+The Deployment, DaemonSet or StatefulSet or Pod that Garden should use to execute this task.
 If not specified, the `serviceResource` configured on the module will be used. If neither is specified,
 an error will be thrown.
+
+This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name` fields, or a Pod via the `podSelector` field.
 
 The following pod spec fields from the service resource will be used (if present) when executing the task:
 * `affinity`
@@ -1258,6 +1304,16 @@ The name of a container in the target. Specify this if the target contains more 
 | -------- | -------- |
 | `string` | No       |
 
+### `tasks[].resource.podSelector`
+
+[tasks](#tasks) > [resource](#tasksresource) > podSelector
+
+A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
 ### `tasks[].resource.name`
 
 [tasks](#tasks) > [resource](#tasksresource) > name
@@ -1278,9 +1334,11 @@ the string for the YAML to be parsed correctly.
 
 [tasks](#tasks) > [resource](#tasksresource) > containerModule
 
-The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading, but is not necessary for tasks and tests.
-Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module.
-Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
+The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading and dev mode, but is not necessary for tasks and tests.
+
+Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module (not required for dev mode).
+
+_Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`._
 
 | Type     | Required |
 | -------- | -------- |
@@ -1479,9 +1537,11 @@ tests:
 
 [tests](#tests) > resource
 
-The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite.
+The Deployment, DaemonSet or StatefulSet or Pod that Garden should use to execute this test suite.
 If not specified, the `serviceResource` configured on the module will be used. If neither is specified,
 an error will be thrown.
+
+This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name` fields, or a Pod via the `podSelector` field.
 
 The following pod spec fields from the service resource will be used (if present) when executing the test suite:
 * `affinity`
@@ -1537,6 +1597,16 @@ The name of a container in the target. Specify this if the target contains more 
 | -------- | -------- |
 | `string` | No       |
 
+### `tests[].resource.podSelector`
+
+[tests](#tests) > [resource](#testsresource) > podSelector
+
+A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
 ### `tests[].resource.name`
 
 [tests](#tests) > [resource](#testsresource) > name
@@ -1557,9 +1627,11 @@ the string for the YAML to be parsed correctly.
 
 [tests](#tests) > [resource](#testsresource) > containerModule
 
-The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading, but is not necessary for tasks and tests.
-Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module.
-Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
+The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading and dev mode, but is not necessary for tasks and tests.
+
+Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module (not required for dev mode).
+
+_Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`._
 
 | Type     | Required |
 | -------- | -------- |

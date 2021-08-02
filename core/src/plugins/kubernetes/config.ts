@@ -704,9 +704,10 @@ export const configSchema = () =>
     .unknown(false)
 
 export interface ServiceResourceSpec {
-  kind: HotReloadableKind
+  kind?: HotReloadableKind
   name?: string
   containerName?: string
+  podSelector?: { [key: string]: string }
   containerModule?: string
   hotReloadCommand?: string[]
   hotReloadArgs?: string[]
@@ -729,34 +730,46 @@ export interface KubernetesTestSpec extends BaseTestSpec {
   resource: ServiceResourceSpec
 }
 
+export const serviceResourceDescription = dedent`
+  This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the \`kind\` and \`name\` fields, or a Pod via the \`podSelector\` field.
+`
+
 export const serviceResourceSchema = () =>
-  joi.object().keys({
-    // TODO: consider allowing a `resource` field, that includes the kind and name (e.g. Deployment/my-deployment).
-    kind: joi
-      .string()
-      .valid(...hotReloadableKinds)
-      .default("Deployment")
-      .description("The type of Kubernetes resource to sync files to."),
-    name: joi.string().description(
-      deline`The name of the resource to sync to. If the module contains a single resource of the specified Kind,
+  joi
+    .object()
+    .keys({
+      kind: joi
+        .string()
+        .valid(...hotReloadableKinds)
+        .default("Deployment")
+        .description("The type of Kubernetes resource to sync files to."),
+      name: joi.string().description(
+        deline`The name of the resource to sync to. If the module contains a single resource of the specified Kind,
         this can be omitted.`
-    ),
-    containerName: joi.string().description(
-      deline`The name of a container in the target. Specify this if the target contains more than one container
-        and the main container is not the first container in the spec.`
-    ),
-  })
+      ),
+      containerName: joi
+        .string()
+        .description(
+          `The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.`
+        ),
+      podSelector: joiStringMap(joi.string()).description(
+        dedent`
+          A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+        `
+      ),
+    })
+    .oxor("podSelector", "kind")
+    .oxor("podSelector", "name")
 
 export const containerModuleSchema = () =>
   joiIdentifier()
     .description(
-      deline`The Garden module that contains the sources for the container. This needs to be specified under
-    \`serviceResource\` in order to enable hot-reloading, but is not necessary for tasks and tests.
+      dedent`
+        The Garden module that contains the sources for the container. This needs to be specified under \`serviceResource\` in order to enable hot-reloading and dev mode, but is not necessary for tasks and tests.
 
-    Must be a \`container\` module, and for hot-reloading to work you must specify the \`hotReload\` field
-    on the container module.
+        Must be a \`container\` module, and for hot-reloading to work you must specify the \`hotReload\` field on the container module (not required for dev mode).
 
-    Note: If you specify a module here, you don't need to specify it additionally under \`build.dependencies\``
+        _Note: If you specify a module here, you don't need to specify it additionally under \`build.dependencies\`._`
     )
     .example("my-container-module")
 
@@ -773,9 +786,11 @@ export const kubernetesTaskSchema = () =>
   baseTaskSpecSchema()
     .keys({
       resource: serviceResourceSchema().description(
-        dedent`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task.
+        dedent`The Deployment, DaemonSet, StatefulSet or Pod that Garden should use to execute this task.
         If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
         an error will be thrown.
+
+        ${serviceResourceDescription}
 
         The following pod spec fields from the service resource will be used (if present) when executing the task:
         ${runPodSpecWhitelistDescription}`
@@ -800,9 +815,11 @@ export const kubernetesTestSchema = () =>
   baseTestSpecSchema()
     .keys({
       resource: serviceResourceSchema().description(
-        dedent`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite.
+        dedent`The Deployment, DaemonSet or StatefulSet or Pod that Garden should use to execute this test suite.
         If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
         an error will be thrown.
+
+        ${serviceResourceDescription}
 
         The following pod spec fields from the service resource will be used (if present) when executing the test suite:
         ${runPodSpecWhitelistDescription}`

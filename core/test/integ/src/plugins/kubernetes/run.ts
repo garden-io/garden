@@ -24,7 +24,7 @@ import {
   ServiceResourceSpec,
 } from "../../../../../src/plugins/kubernetes/config"
 import {
-  findServiceResource,
+  getServiceResource,
   getResourceContainer,
   getServiceResourceSpec,
   getResourcePodSpec,
@@ -33,8 +33,8 @@ import {
 import { getContainerTestGarden } from "./container/container"
 import {
   KubernetesPod,
-  KubernetesResource,
   KubernetesServerResource,
+  KubernetesWorkload,
 } from "../../../../../src/plugins/kubernetes/types"
 import { PluginContext } from "../../../../../src/plugin-context"
 import { LogEntry } from "../../../../../src/logger/log-entry"
@@ -43,7 +43,7 @@ import { buildHelmModules, getHelmTestGarden } from "./helm/common"
 import { getBaseModule, getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
 import { getModuleNamespace } from "../../../../../src/plugins/kubernetes/namespace"
 import { GardenModule } from "../../../../../src/types/module"
-import { V1Container, V1DaemonSet, V1Deployment, V1Pod, V1PodSpec, V1StatefulSet } from "@kubernetes/client-node"
+import { V1Container, V1Pod, V1PodSpec } from "@kubernetes/client-node"
 import { getResourceRequirements } from "../../../../../src/plugins/kubernetes/container/util"
 import { ContainerResourcesSpec } from "../../../../../src/plugins/container/config"
 
@@ -314,30 +314,27 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("throws if Pod is invalid", async () => {
-        const pod = {
-          apiVersion: "v1",
-          kind: "Pod",
-          metadata: {
-            name: "!&/$/%#/",
-            namespace,
-          },
-          spec: {
-            containers: [
-              {
-                name: "main",
-                image: "busybox",
-                command: ["sh", "-c", "echo foo"],
-              },
-            ],
-          },
-        }
-
         runner = new PodRunner({
           ctx,
-          pod,
+          pod: {
+            apiVersion: "v1",
+            kind: "Pod",
+            metadata: {
+              name: "!&/$/%#/",
+              namespace,
+            },
+            spec: {
+              containers: [
+                {
+                  name: "main",
+                  image: "busybox",
+                  command: ["sh", "-c", "echo foo"],
+                },
+              ],
+            },
+          },
           namespace,
           api,
-
           provider,
         })
 
@@ -588,7 +585,7 @@ describe("kubernetes Pod runner functions", () => {
     let helmManifests: any[]
     let helmBaseModule: GardenModule | undefined
     let helmResourceSpec: ServiceResourceSpec
-    let helmTarget: KubernetesResource<V1Deployment | V1DaemonSet | V1StatefulSet>
+    let helmTarget: KubernetesWorkload | KubernetesPod
     let helmContainer: V1Container
     let helmNamespace: string
 
@@ -623,20 +620,21 @@ describe("kubernetes Pod runner functions", () => {
       })
       helmBaseModule = getBaseModule(helmModule)
       helmResourceSpec = getServiceResourceSpec(helmModule, helmBaseModule)
-      helmTarget = await findServiceResource({
-        ctx: helmCtx,
-        log: helmLog,
-        manifests: helmManifests,
-        module: helmModule,
-        resourceSpec: helmResourceSpec,
-      })
-      helmContainer = getResourceContainer(helmTarget, helmResourceSpec.containerName)
       helmNamespace = await getModuleNamespace({
         ctx: helmCtx,
         log: helmLog,
         module: helmModule,
         provider: helmCtx.provider,
       })
+      helmTarget = await getServiceResource({
+        ctx: helmCtx,
+        log: helmLog,
+        provider: helmCtx.provider,
+        manifests: helmManifests,
+        module: helmModule,
+        resourceSpec: helmResourceSpec,
+      })
+      helmContainer = getResourceContainer(helmTarget, helmResourceSpec.containerName)
     })
 
     // These test cases should cover the `kubernetes` module type as well, since these helpers operate on manifests
