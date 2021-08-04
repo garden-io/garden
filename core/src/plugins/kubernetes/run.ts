@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { resolve } from "path"
 import tar from "tar"
 import tmp from "tmp-promise"
 import { cloneDeep, omit, pick } from "lodash"
@@ -32,9 +31,8 @@ import { KubernetesResource, KubernetesPod, KubernetesServerResource } from "./t
 import { RunModuleParams } from "../../types/plugin/module/runModule"
 import { ContainerEnvVars, ContainerResourcesSpec, ContainerVolumeSpec } from "../container/config"
 import { prepareEnvVars, makePodName } from "./util"
-import { deline } from "../../util/string"
+import { deline, randomString } from "../../util/string"
 import { ArtifactSpec } from "../../config/validation"
-import cpy from "cpy"
 import { prepareImagePullSecrets } from "./secrets"
 import { configureVolumes } from "./container/deployment"
 import { PluginContext } from "../../plugin-context"
@@ -42,6 +40,7 @@ import { waitForResources, ResourceStatus } from "./status/status"
 import { RuntimeContext } from "../../runtime-context"
 import { getResourceRequirements } from "./container/util"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
+import { copy } from "fs-extra"
 
 // Default timeout for individual run/exec operations
 const defaultTimeout = 600
@@ -576,79 +575,81 @@ async function runWithArtifacts({
       }
     }
 
+    // TODO: only interpret target as directory if it ends with a slash (breaking change, so slated for 0.13)
+    const directoriesToCreate = artifacts.map((a) => a.target).filter((target) => !!target && target !== ".")
+    const tmpPath = "/tmp/.garden-artifacts-" + randomString(8)
+
+    // This script will
+    // 1. Create temp directory in the container
+    // 2. Create directories for each target, as necessary
+    // 3. Recursively (and silently) copy all specified artifact files/directories into the temp directory
+    // 4. Tarball the directory and pipe to stdout
+    // TODO: escape the user paths somehow?
+    const tarScript = `
+rm -rf ${tmpPath} >/dev/null || true
+mkdir -p ${tmpPath}
+cd ${tmpPath}
+touch .garden-placeholder
+${directoriesToCreate.map((target) => `mkdir -p ${target}`).join("\n")}
+${artifacts.map(({ source, target }) => `cp -r ${source} ${target || "."} >/dev/null || true`).join("\n")}
+tar -c -z -f - . | cat
+rm -rf ${tmpPath} >/dev/null || true
+    `
+
     // Copy the artifacts
-    await Promise.all(
-      artifacts.map(async (artifact) => {
-        const tmpDir = await tmp.dir({ unsafeCleanup: true })
-        // Remove leading slash (which is required in the schema)
-        const sourcePath = artifact.source.slice(1)
-        const targetPath = resolve(artifactsPath, artifact.target || ".")
+    const tmpDir = await tmp.dir({ unsafeCleanup: true })
 
-        const tarCmd = [
-          "tar",
-          "-c", // create an archive
-          "-f",
-          "-", // pipe to stdout
-          // Files to match. The .DS_Store file is a trick to avoid errors when no files are matched. The file is
-          // ignored later when copying from the temp directory. See https://github.com/sindresorhus/cpy#ignorejunk
-          `$(ls ${sourcePath} 2>/dev/null) /tmp/.DS_Store`,
-          // Fix issue https://github.com/garden-io/garden/issues/2445
-          "| cat",
-        ]
+    try {
+      await new Promise<void>((_resolve, reject) => {
+        // Create an extractor to receive the tarball we will stream from the container
+        // and extract to the artifacts directory.
+        let done = 0
 
-        try {
-          await new Promise<void>((_resolve, reject) => {
-            // Create an extractor to receive the tarball we will stream from the container
-            // and extract to the artifacts directory.
-            let done = 0
+        const extractor = tar.x({
+          cwd: tmpDir.path,
+          strict: true,
+          onentry: (entry) => log.debug("tar: got entry " + entry.path),
+        })
 
-            const extractor = tar.x({
-              cwd: tmpDir.path,
-              strict: true,
-              onentry: (entry) => log.debug("tar: got file " + entry.path),
-            })
+        extractor.on("end", () => {
+          // Need to make sure both processes are complete before resolving (may happen in either order)
+          done++
+          done === 2 && _resolve()
+        })
+        extractor.on("error", (err) => {
+          reject(err)
+        })
 
-            extractor.on("end", () => {
-              // Need to make sure both processes are complete before resolving (may happen in either order)
-              done++
-              done === 2 && _resolve()
-            })
-            extractor.on("error", (err) => {
-              reject(err)
-            })
-
-            // Tarball the requested files and stream to the above extractor.
-            runner
-              .exec({
-                command: ["sh", "-c", "cd / && touch /tmp/.DS_Store && " + tarCmd.join(" ")],
-                containerName: mainContainerName,
-                log,
-                stdout: extractor,
-                timeoutSec,
-                buffer: false,
-              })
-              .then(() => {
-                // Need to make sure both processes are complete before resolving (may happen in either order)
-                done++
-                done === 2 && _resolve()
-              })
-              .catch(reject)
+        // Tarball the requested files and stream to the above extractor.
+        runner
+          .exec({
+            command: ["sh", "-c", tarScript],
+            containerName: mainContainerName,
+            log,
+            stdout: extractor,
+            timeoutSec,
+            buffer: false,
           })
-
-          // Copy the resulting files to the artifacts directory
-          try {
-            await cpy("**/*", targetPath, { cwd: tmpDir.path, ignoreJunk: true })
-          } catch (err) {
-            // Ignore error thrown when the directory is empty
-            if (err.name !== "CpyError" || !err.message.includes("the file doesn't exist")) {
-              throw err
-            }
-          }
-        } finally {
-          await tmpDir.cleanup()
-        }
+          .then(() => {
+            // Need to make sure both processes are complete before resolving (may happen in either order)
+            done++
+            done === 2 && _resolve()
+          })
+          .catch(reject)
       })
-    )
+
+      // Copy the resulting files to the artifacts directory
+      try {
+        await copy(tmpDir.path, artifactsPath, { filter: (f) => !f.endsWith(".garden-placeholder") })
+      } catch (err) {
+        // Ignore error thrown when the directory is empty
+        if (err.name !== "CpyError" || !err.message.includes("the file doesn't exist")) {
+          throw err
+        }
+      }
+    } finally {
+      await tmpDir.cleanup()
+    }
   } finally {
     await runner.stop()
   }
