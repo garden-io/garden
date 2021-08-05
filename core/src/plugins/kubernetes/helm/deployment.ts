@@ -41,15 +41,13 @@ export async function deployHelmService({
   const provider = k8sCtx.provider
 
   const manifests = await getChartResources({ ctx: k8sCtx, module, devMode, hotReload, log, version: service.version })
-  const baseModule = getBaseModule(module)
 
-  if (devMode || hotReload) {
+  if ((devMode && module.spec.devMode) || hotReload) {
     serviceResourceSpec = getServiceResourceSpec(module, getBaseModule(module))
     serviceResource = await findServiceResource({
       ctx,
       log,
       module,
-      baseModule,
       manifests,
       resourceSpec: serviceResourceSpec,
     })

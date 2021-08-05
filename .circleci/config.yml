@@ -494,7 +494,7 @@ jobs:
       - run:
           name: Install kind
           command: |
-            curl -LO https://github.com/kubernetes-sigs/kind/releases/download/v0.7.0/kind-linux-amd64
+            curl -LO https://github.com/kubernetes-sigs/kind/releases/download/v0.11.1/kind-linux-amd64
             chmod +x kind-linux-amd64
             sudo mv kind-linux-amd64 /usr/local/bin/kind
       - run:
@@ -503,7 +503,7 @@ jobs:
             # Create the kind cluster with a custom config to enable the default ingress controller
             cat \<<EOF | kind create cluster \
                 --image <<parameters.kindNodeImage>> \
-                --wait=120s \
+                --wait=600s \
                 --config=-
 
             kind: Cluster
@@ -539,7 +539,7 @@ jobs:
             # Notes:
             # - We skip tests that only work for remote environments
             # - We currently don't support in-cluster building on kind.
-            yarn integ-kind -b
+            yarn integ-kind
       - run:
           name: Plugin tests
           command: yarn run test:plugins
@@ -604,7 +604,7 @@ jobs:
             # - Need to run with sudo to work with microk8s, because CircleCI doesn't allow us to log out
             #   and back in to add the circleci user to the microk8s group.
             # - We currently don't support in-cluster building on microk8s.
-            GARDEN_SKIP_TESTS="cluster-docker kaniko remote-only" sudo -E npm run integ -b
+            GARDEN_SKIP_TESTS="cluster-docker kaniko remote-only" sudo -E npm run integ
       - run:
           name: Plugin tests
           command: sudo -E npm run test:plugins
@@ -781,6 +781,10 @@ workflows:
     jobs:
       - test-kind:
           kindNodeImage: kindest/node:v1.20.2
+  test-kind-1.21:
+    jobs:
+      - test-kind:
+          kindNodeImage: kindest/node:v1.21.2
   commit:
     jobs:
       ### ALL BRANCHES ###

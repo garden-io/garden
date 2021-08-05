@@ -18,7 +18,7 @@ import {
   joiIdentifierDescription,
   joiSparseArray,
 } from "../../config/common"
-import { Provider, providerConfigBaseSchema, GenericProviderConfig } from "../../config/provider"
+import { Provider, providerConfigBaseSchema, BaseProviderConfig } from "../../config/provider"
 import {
   containerRegistryConfigSchema,
   ContainerRegistryConfig,
@@ -68,10 +68,12 @@ interface KubernetesResourceSpec {
   limits: {
     cpu: number
     memory: number
+    ephemeralStorage?: number
   }
   requests: {
     cpu: number
     memory: number
+    ephemeralStorage?: number
   }
 }
 
@@ -104,7 +106,7 @@ export interface NamespaceConfig {
   labels?: StringMap
 }
 
-export interface KubernetesConfig extends GenericProviderConfig {
+export interface KubernetesConfig extends BaseProviderConfig {
   buildMode: ContainerBuildMode
   clusterBuildkit?: {
     rootless?: boolean
@@ -131,6 +133,7 @@ export interface KubernetesConfig extends GenericProviderConfig {
   kubeconfig?: string
   namespace?: NamespaceConfig
   registryProxyTolerations: V1Toleration[]
+  setupIngressController: string | null
   systemNodeSelector: { [key: string]: string }
   resources: KubernetesResources
   storage: KubernetesStorage
@@ -217,6 +220,13 @@ const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =
             .description("Memory limit in megabytes.")
             .example(defaults.limits.memory)
             .meta({ deprecated }),
+          ephemeralStorage: joi
+            .number()
+            .integer()
+            .optional()
+            .description("Ephemeral storage limit in megabytes.")
+            .example(8192)
+            .meta({ deprecated }),
         })
         .default(defaults.limits)
         .meta({ deprecated }),
@@ -236,6 +246,13 @@ const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =
             .default(defaults.requests.memory)
             .description("Memory request in megabytes.")
             .example(defaults.requests.memory)
+            .meta({ deprecated }),
+          ephemeralStorage: joi
+            .number()
+            .integer()
+            .optional()
+            .description("Ephemeral storage request in megabytes.")
+            .example(8192)
             .meta({ deprecated }),
         })
         .default(defaults.requests)

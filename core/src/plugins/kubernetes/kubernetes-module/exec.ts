@@ -37,7 +37,6 @@ export async function execInKubernetesService(params: ExecInServiceParams<Kubern
     ctx,
     log,
     module,
-    baseModule: undefined,
     manifests: status.detail.remoteResources,
     resourceSpec: serviceResourceSpec,
   })

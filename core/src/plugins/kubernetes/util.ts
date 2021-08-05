@@ -534,8 +534,7 @@ interface GetServiceResourceParams {
   log: LogEntry
   manifests: KubernetesResource[]
   module: HelmModule | KubernetesModule
-  baseModule: HelmModule | undefined
-  resourceSpec?: ServiceResourceSpec
+  resourceSpec: ServiceResourceSpec
 }
 
 /**
@@ -552,15 +551,8 @@ export async function findServiceResource({
   log,
   manifests,
   module,
-  baseModule,
   resourceSpec,
 }: GetServiceResourceParams): Promise<HotReloadableResource> {
-  const resourceMsgName = resourceSpec ? "resource" : "serviceResource"
-
-  if (!resourceSpec) {
-    resourceSpec = getServiceResourceSpec(module, baseModule)
-  }
-
   const targetKind = resourceSpec.kind
   let targetName = resourceSpec.name
 
@@ -599,8 +591,8 @@ export async function findServiceResource({
       throw new ConfigurationError(
         chalk.red(
           deline`${module.type} module ${chalk.white(module.name)} contains multiple ${targetKind}s.
-          You must specify ${chalk.underline(`${resourceMsgName}.name`)} in the module config in order to identify
-          the correct ${targetKind} to use.`
+          You must specify ${chalk.underline("resource.name")} or ${chalk.underline("serviceResource.name")}
+          in the module config in order to identify the correct ${targetKind} to use.`
         ),
         { resourceSpec, chartResourceNames }
       )
