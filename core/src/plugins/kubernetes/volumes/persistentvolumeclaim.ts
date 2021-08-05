@@ -136,6 +136,7 @@ function getKubernetesService(
 
   const config: KubernetesModuleConfig = {
     ...pvcService.module,
+    include: [],
     serviceConfigs: [serviceConfig],
     spec,
     taskConfigs: [],

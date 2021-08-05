@@ -43,7 +43,6 @@ describe("Logger", () => {
           append: true,
           data: { foo: "bar" },
           dataFormat: "json",
-          maxSectionWidth: 20,
           metadata: {
             workflowStep: {
               index: 2,
@@ -67,7 +66,6 @@ describe("Logger", () => {
             append: true,
             dataFormat: "json",
             data: { foo: "bar" },
-            maxSectionWidth: 20,
           },
           metadata: {
             workflowStep: {
@@ -88,7 +86,6 @@ describe("Logger", () => {
           append: undefined,
           dataFormat: undefined,
           data: undefined,
-          maxSectionWidth: undefined,
         }
 
         const [e1, e2] = loggerEvents

@@ -419,10 +419,16 @@ async function runKaniko({
           limits: {
             cpu: millicpuToString(provider.config.resources.builder.limits.cpu),
             memory: megabytesToString(provider.config.resources.builder.limits.memory),
+            ...(provider.config.resources.builder.limits.ephemeralStorage
+              ? { "ephemeral-storage": megabytesToString(provider.config.resources.builder.limits.ephemeralStorage) }
+              : {}),
           },
           requests: {
             cpu: millicpuToString(provider.config.resources.builder.requests.cpu),
             memory: megabytesToString(provider.config.resources.builder.requests.memory),
+            ...(provider.config.resources.builder.requests.ephemeralStorage
+              ? { "ephemeral-storage": megabytesToString(provider.config.resources.builder.requests.ephemeralStorage) }
+              : {}),
           },
         },
       },

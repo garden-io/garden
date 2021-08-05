@@ -12,9 +12,11 @@ values:
     limits:
       cpu: ${var.sync-limits-cpu}
       memory: ${var.sync-limits-memory}
+      ephemeral-storage: ${var.sync-limits-ephemeralStorage}?
     requests:
       cpu: ${var.sync-requests-cpu}
       memory: ${var.sync-requests-memory}
+      ephemeral-storage: ${var.sync-requests-ephemeralStorage}?
   storage:
     request: ${var.sync-storage-size}
     storageClass: ${var.sync-storage-class}
