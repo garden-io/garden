@@ -204,12 +204,14 @@ ${renderCommands(commands)}
     })
     const dashboardEventStream = new DashboardEventStream({ log, sessionId })
 
+    const commandInfo = {
+      name: command.getFullName(),
+      args: parsedArgs,
+      opts: optionsWithAliasValues(command, parsedOpts),
+    }
+
     const contextOpts: GardenOpts = {
-      commandInfo: {
-        name: command.getFullName(),
-        args: parsedArgs,
-        opts: optionsWithAliasValues(command, parsedOpts),
-      },
+      commandInfo,
       disablePortForwards,
       environmentName,
       log,
@@ -288,6 +290,9 @@ ${renderCommands(commands)}
               },
             ],
           })
+          if (streamEvents) {
+            bufferedEventStream.streamEvent("commandInfo", commandInfo)
+          }
         }
 
         // Register log file writers. We need to do this after the Garden class is initialised because
