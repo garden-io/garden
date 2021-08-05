@@ -2,6 +2,11 @@ kind: Module
 name: backend
 description: Backend service container
 type: container
+
+# You can specify variables here at the module level
+variables:
+  ingressPath: /hello-backend
+
 services:
   - name: backend
     ports:
@@ -10,8 +15,9 @@ services:
         # Maps service:80 -> container:8080
         servicePort: 80
     ingresses:
-      - path: /hello-backend
+      - path: ${var.ingressPath}
         port: http
+
 tasks:
   - name: test
     command: ["sh", "-c", "echo task output"]
