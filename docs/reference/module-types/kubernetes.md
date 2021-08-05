@@ -168,6 +168,9 @@ namespace:
 #
 # Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy`
 # command.
+#
+# See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more
+# information.
 devMode:
   # Override the default container arguments when in dev mode.
   args:
@@ -190,6 +193,26 @@ devMode:
 
       # The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `two-way`.
       mode: one-way
+
+      # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user
+      # read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions)
+      # for more information.
+      defaultFileMode:
+
+      # The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700
+      # (user read/write). See the [Mutagen
+      # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+      defaultDirectoryMode:
+
+      # Set the default owner of files and directories at the target. Specify either an integer ID or a string name.
+      # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
+      # more information.
+      defaultOwner:
+
+      # Set the default group on files and directories at the target. Specify either an integer ID or a string name.
+      # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
+      # more information.
+      defaultGroup:
 
   # Optionally specify the name of a specific container to sync to. If not specified, the first container in the
   # workload is used.
@@ -756,6 +779,8 @@ Note that `serviceResource` must also be specified to enable dev mode.
 
 Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy` command.
 
+See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information.
+
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
@@ -858,6 +883,46 @@ The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-r
 | Type     | Default     | Required |
 | -------- | ----------- | -------- |
 | `string` | `"one-way"` | No       |
+
+### `devMode.sync[].defaultFileMode`
+
+[devMode](#devmode) > [sync](#devmodesync) > defaultFileMode
+
+The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `devMode.sync[].defaultDirectoryMode`
+
+[devMode](#devmode) > [sync](#devmodesync) > defaultDirectoryMode
+
+The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `devMode.sync[].defaultOwner`
+
+[devMode](#devmode) > [sync](#devmodesync) > defaultOwner
+
+Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
+
+| Type              | Required |
+| ----------------- | -------- |
+| `number | string` | No       |
+
+### `devMode.sync[].defaultGroup`
+
+[devMode](#devmode) > [sync](#devmodesync) > defaultGroup
+
+Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
+
+| Type              | Required |
+| ----------------- | -------- |
+| `number | string` | No       |
 
 ### `devMode.containerName`
 

@@ -186,7 +186,17 @@ export interface DevModeSyncSpec {
   target: string
   mode: SyncMode
   exclude?: string[]
+  defaultFileMode?: number
+  defaultDirectoryMode?: number
+  defaultOwner?: number | string
+  defaultGroup?: number | string
 }
+
+const permissionsDocs =
+  "See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information."
+
+const ownerDocs =
+  "Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information."
 
 const devModeSyncSchema = () =>
   hotReloadSyncSchema().keys({
@@ -198,10 +208,33 @@ const devModeSyncSchema = () =>
     mode: joi
       .string()
       .allow("one-way", "one-way-replica", "two-way")
+      .only()
       .default("one-way")
       .description(
         "The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `two-way`."
       ),
+    defaultFileMode: joi
+      .number()
+      .min(0)
+      .max(0o777)
+      .description(
+        "The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). " +
+          permissionsDocs
+      ),
+    defaultDirectoryMode: joi
+      .number()
+      .min(0)
+      .max(0o777)
+      .description(
+        "The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). " +
+          permissionsDocs
+      ),
+    defaultOwner: joi
+      .alternatives(joi.number().integer(), joi.string())
+      .description("Set the default owner of files and directories at the target. " + ownerDocs),
+    defaultGroup: joi
+      .alternatives(joi.number().integer(), joi.string())
+      .description("Set the default group on files and directories at the target. " + ownerDocs),
   })
 
 export interface ContainerDevModeSpec {
@@ -222,11 +255,11 @@ export const containerDevModeSchema = () =>
       .items(devModeSyncSchema())
       .description("Specify one or more source files or directories to automatically sync with the running container."),
   }).description(dedent`
-    **EXPERIMENTAL**
-
     Specifies which files or directories to sync to which paths inside the running containers of the service when it's in dev mode, and overrides for the container command and/or arguments.
 
     Dev mode is enabled when running the \`garden dev\` command, and by setting the \`--dev\` flag on the \`garden deploy\` command.
+
+    See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information.
   `)
 
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
