@@ -199,7 +199,9 @@ const devModeSyncSchema = () =>
       .string()
       .allow("one-way", "one-way-replica", "two-way")
       .default("one-way")
-      .description("The sync mode to use for the given paths."),
+      .description(
+        "The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `two-way`."
+      ),
   })
 
 export interface ContainerDevModeSpec {
