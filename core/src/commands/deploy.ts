@@ -27,7 +27,7 @@ import { startServer } from "../server/server"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
 import chalk = require("chalk")
-import { StringsParameter, BooleanParameter } from "../cli/params"
+import { StringsParameter, BooleanParameter, ParameterValues } from "../cli/params"
 
 export const deployArgs = {
   services: new StringsParameter({
@@ -102,7 +102,7 @@ export class DeployCommand extends Command<Args, Opts> {
 
   outputsSchema = () => processCommandResultSchema()
 
-  private isPersistent = (opts) => !!opts.watch || !!opts["hot-reload"]
+  private isPersistent = (opts: ParameterValues<Opts>) => !!opts.watch || !!opts["hot-reload"] || !!opts["dev-mode"]
 
   printHeader({ headerLog }) {
     printHeader(headerLog, "Deploy", "rocket")

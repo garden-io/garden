@@ -183,7 +183,7 @@ devMode:
       # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
       exclude:
 
-      # The sync mode to use for the given paths.
+      # The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `two-way`.
       mode: one-way
 
   # Optionally specify the name of a specific container to sync to. If not specified, the first container in the
@@ -883,7 +883,7 @@ devMode:
 
 [devMode](#devmode) > [sync](#devmodesync) > mode
 
-The sync mode to use for the given paths.
+The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `two-way`.
 
 | Type     | Default     | Required |
 | -------- | ----------- | -------- |

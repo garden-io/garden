@@ -248,7 +248,7 @@ services:
           # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
           exclude:
 
-          # The sync mode to use for the given paths.
+          # The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `two-way`.
           mode: one-way
 
     # List of ingress endpoints that the service exposes.
@@ -1195,7 +1195,7 @@ services:
 
 [services](#services) > [devMode](#servicesdevmode) > [sync](#servicesdevmodesync) > mode
 
-The sync mode to use for the given paths.
+The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `two-way`.
 
 | Type     | Default     | Required |
 | -------- | ----------- | -------- |

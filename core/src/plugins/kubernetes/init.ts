@@ -396,15 +396,27 @@ export function getKubernetesSystemVariables(config: KubernetesConfig) {
 
     "registry-limits-cpu": millicpuToString(config.resources.registry.limits.cpu),
     "registry-limits-memory": megabytesToString(config.resources.registry.limits.memory),
+    ...(config.resources.registry.limits.ephemeralStorage
+      ? { "registry-limits-ephemeralStorage": megabytesToString(config.resources.registry.limits.ephemeralStorage) }
+      : {}),
     "registry-requests-cpu": millicpuToString(config.resources.registry.requests.cpu),
     "registry-requests-memory": megabytesToString(config.resources.registry.requests.memory),
+    ...(config.resources.registry.requests.ephemeralStorage
+      ? { "registry-requests-ephemeralStorage": megabytesToString(config.resources.registry.requests.ephemeralStorage) }
+      : {}),
     "registry-storage-size": megabytesToString(config.storage.registry.size!),
     "registry-storage-class": config.storage.registry.storageClass,
 
     "sync-limits-cpu": millicpuToString(config.resources.sync.limits.cpu),
     "sync-limits-memory": megabytesToString(config.resources.sync.limits.memory),
+    ...(config.resources.sync.limits.ephemeralStorage
+      ? { "sync-limits-ephemeralStorage": megabytesToString(config.resources.sync.limits.ephemeralStorage) }
+      : {}),
     "sync-requests-cpu": millicpuToString(config.resources.sync.requests.cpu),
     "sync-requests-memory": megabytesToString(config.resources.sync.requests.memory),
+    ...(config.resources.sync.requests.ephemeralStorage
+      ? { "sync-requests-ephemeralStorage": megabytesToString(config.resources.sync.requests.ephemeralStorage) }
+      : {}),
     "sync-storage-size": megabytesToString(config.storage.sync.size!),
     "sync-storage-class": syncStorageClass,
     "sync-volume-name": `garden-sync-${syncStorageClass}`,
