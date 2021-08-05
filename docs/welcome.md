@@ -27,5 +27,3 @@ Here's a rundown of the different sections (the section links point to the first
 | **[Misc](./misc/faq.md)** | Find our [FAQ](./misc/faq.md) and [troubleshooting guide](./misc/troubleshooting.md) here, and anything else we couldn't fit into other sections. |
 
 If there's something you can't find in our docs, we happily encourage you to [join our community Slack](https://chat.garden.io) and/or file an issue on [our GitHub repo](https://github.com/garden-io/garden). We're more than happy to help!
-
-![ ](https://ws.zoominfo.com/pixel/60fed74d608b570015affea6)
