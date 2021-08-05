@@ -36,6 +36,10 @@ interface SyncConfig {
   beta: string
   mode: keyof typeof mutagenModeMap
   ignore: string[]
+  defaultOwner?: number | string
+  defaultGroup?: number | string
+  defaultFileMode?: number
+  defaultDirectoryMode?: number
 }
 
 interface ActiveSync {
@@ -47,6 +51,7 @@ interface ActiveSync {
   config: SyncConfig
   lastProblems: string[]
   lastSyncCount: number
+  mutagenParameters: string[]
 }
 
 let activeSyncs: { [key: string]: ActiveSync } = {}
@@ -400,7 +405,27 @@ export async function ensureMutagenSync({
     const existing = active.find((s: any) => s.name === key)
 
     if (!existing) {
-      await execMutagenCommand(log, ["sync", "create", config.alpha, config.beta, "--name", key, "--auto-start=false"])
+      const { alpha, beta, ignore, mode, defaultOwner, defaultGroup, defaultDirectoryMode, defaultFileMode } = config
+
+      const ignoreFlags = ignore.flatMap((i) => ["-i", i])
+      const syncMode = mutagenModeMap[mode]
+      const params = [alpha, beta, "--name", key, "--auto-start=false", "--sync-mode", syncMode, ...ignoreFlags]
+
+      if (defaultOwner) {
+        params.push("--default-owner", defaultOwner.toString())
+      }
+      if (defaultGroup) {
+        params.push("--default-group", defaultGroup.toString())
+      }
+      if (defaultFileMode) {
+        params.push("--default-file-mode", modeToString(defaultFileMode))
+      }
+      if (defaultDirectoryMode) {
+        params.push("--default-directory-mode", modeToString(defaultDirectoryMode))
+      }
+
+      await execMutagenCommand(log, ["sync", "create", ...params])
+
       activeSyncs[key] = {
         sourceDescription,
         targetDescription,
@@ -410,6 +435,7 @@ export async function ensureMutagenSync({
         config,
         lastProblems: [],
         lastSyncCount: 0,
+        mutagenParameters: params,
       }
     }
   })
@@ -480,4 +506,11 @@ const mutagen = new PluginTool(mutagenCliSpec)
  */
 async function isValidLocalPath(syncPoint: string) {
   return pathExists(syncPoint)
+}
+
+/**
+ * Converts an octal permission mask to string.
+ */
+function modeToString(mode: number) {
+  return "0" + mode.toString(8)
 }

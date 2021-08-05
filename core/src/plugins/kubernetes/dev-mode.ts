@@ -45,7 +45,9 @@ export const kubernetesDevModeSchema = () =>
     Note that \`serviceResource\` must also be specified to enable dev mode.
 
     Dev mode is enabled when running the \`garden dev\` command, and by setting the \`--dev\` flag on the \`garden deploy\` command.
-`)
+
+    See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information.
+  `)
 
 /**
  * Configures the specified Deployment, DaemonSet or StatefulSet for dev mode.
