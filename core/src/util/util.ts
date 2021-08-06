@@ -169,7 +169,7 @@ interface ExecOpts extends execa.Options {
  */
 export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
   // Ensure buffer is always set to true so that we can read the error output
-  opts = { ...opts, buffer: true, all: true }
+  opts = { windowsHide: true, ...opts, buffer: true, all: true }
   const proc = execa(cmd, args, omit(opts, ["stdout", "stderr"]))
 
   opts.stdout && proc.stdout && proc.stdout.pipe(opts.stdout)
@@ -242,7 +242,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
   } = opts
 
   const stdio = tty ? "inherit" : "pipe"
-  const proc = _spawn(cmd, args, { cwd, env, stdio })
+  const proc = _spawn(cmd, args, { cwd, env, stdio, windowsHide: true })
 
   const result: SpawnOutput = {
     code: 0,

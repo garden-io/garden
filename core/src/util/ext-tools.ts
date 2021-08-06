@@ -112,7 +112,7 @@ export class CliWrapper {
     }
 
     log.debug(`Spawning '${path} ${args.join(" ")}' in ${cwd}`)
-    return crossSpawn(path, args, { cwd, env })
+    return crossSpawn(path, args, { cwd, env, windowsHide: true })
   }
 
   async spawnAndWait({ args, cwd, env, log, ignoreError, rawMode, stdout, stderr, timeoutSec, tty }: SpawnParams) {
