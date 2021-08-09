@@ -112,7 +112,7 @@ Note the difference in how resources for the builder are allocated between Kanik
 {% hint style="info" %}
 If you're using ECR on AWS, you may need to create a cache repository manually for Kaniko to store caches.
 
-That is, if you have a repository like, `my-org/my-image`, you need to manually create a repository next to it called `my-org/my-image/cache`.
+That is, if you have a repository like, `my-org/my-image`, you need to manually create a repository next to it called `my-org/my-image/cache`. AWS ECR supports immutable image tags, see the [announcement](https://aws.amazon.com/about-aws/whats-new/2019/07/amazon-ecr-now-supports-immutable-image-tags/) and [documentation](https://docs.aws.amazon.com/AmazonECR/latest/userguide/image-tag-mutability.html). Make sure to set the cache repository's image tag mutability setting to `mutable`. By default, Kaniko's TTL on old cache layers is two weeks, and every layer of the image cache must be rebuilt after that if the image tags are `immutable`.
 
 You can also select a different name for the cache repository and pass the path to Kaniko via the `--cache-repo` flag, which you can set on the [`extraFlags`](../reference/providers/kubernetes.md#providerskanikoextraFlags) field. See [this GitHub comment](https://github.com/GoogleContainerTools/kaniko/issues/410#issuecomment-433229841) in the Kaniko repo for more details.
 
