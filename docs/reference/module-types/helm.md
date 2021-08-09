@@ -215,6 +215,25 @@ devMode:
 # numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
 namespace:
 
+# Manually specify port forwards that Garden should set up when deploying in dev or watch mode. If specified, these
+# override the auto-detection of forwardable ports, so you'll need to specify the full list of port forwards to
+# create.
+portForwards:
+  - # An identifier to describe the port forward.
+    name:
+
+    # The full resource kind and name to forward to, e.g. Service/my-service or Deployment/my-deployment. Note that
+    # Garden will not validate this ahead of attempting to start the port forward, so you need to make sure this is
+    # correctly set. The types of resources supported will match that of the `kubectl port-forward` CLI command.
+    resource:
+
+    # The port number on the remote resource to forward to.
+    targetPort:
+
+    # The _preferred_ local port to forward from. If none is set, a random port is chosen. If the specified port is
+    # not available, a warning is shown and a random port chosen instead.
+    localPort:
+
 # Optionally override the release name used when installing (defaults to the module name).
 releaseName:
 
@@ -996,6 +1015,54 @@ A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `portForwards[]`
+
+Manually specify port forwards that Garden should set up when deploying in dev or watch mode. If specified, these override the auto-detection of forwardable ports, so you'll need to specify the full list of port forwards to create.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `portForwards[].name`
+
+[portForwards](#portforwards) > name
+
+An identifier to describe the port forward.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `portForwards[].resource`
+
+[portForwards](#portforwards) > resource
+
+The full resource kind and name to forward to, e.g. Service/my-service or Deployment/my-deployment. Note that Garden will not validate this ahead of attempting to start the port forward, so you need to make sure this is correctly set. The types of resources supported will match that of the `kubectl port-forward` CLI command.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `portForwards[].targetPort`
+
+[portForwards](#portforwards) > targetPort
+
+The port number on the remote resource to forward to.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | Yes      |
+
+### `portForwards[].localPort`
+
+[portForwards](#portforwards) > localPort
+
+The _preferred_ local port to forward from. If none is set, a random port is chosen. If the specified port is not available, a warning is shown and a random port chosen instead.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
 
 ### `releaseName`
 

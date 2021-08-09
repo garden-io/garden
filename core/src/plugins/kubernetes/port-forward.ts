@@ -24,6 +24,8 @@ import { isBuiltIn, matchSelector } from "./util"
 import { LogEntry } from "../../logger/log-entry"
 import { RuntimeError } from "../../exceptions"
 import execa = require("execa")
+import { KubernetesService } from "./kubernetes-module/config"
+import { HelmService } from "./helm/config"
 
 // TODO: implement stopPortForward handler
 
@@ -209,7 +211,20 @@ function getTargetResource(service: GardenService, targetName?: string) {
 /**
  * Returns a list of forwardable ports based on the specified resources.
  */
-export function getForwardablePorts(resources: KubernetesResource[]) {
+export function getForwardablePorts(
+  resources: KubernetesResource[],
+  parentService: KubernetesService | HelmService | undefined
+): ForwardablePort[] {
+  if (parentService?.spec.portForwards) {
+    return parentService?.spec.portForwards.map((p) => ({
+      name: p.name,
+      protocol: "TCP",
+      targetName: p.resource,
+      targetPort: p.targetPort,
+      preferredLocalPort: p.localPort,
+    }))
+  }
+
   const ports: ForwardablePort[] = []
 
   // Start by getting ports defined by Service resources

@@ -127,7 +127,7 @@ export async function deployHelmService({
     timeoutSec: module.spec.timeout,
   })
 
-  const forwardablePorts = getForwardablePorts(manifests)
+  const forwardablePorts = getForwardablePorts(manifests, service)
 
   // Make sure port forwards work after redeployment
   killPortForwards(service, forwardablePorts || [], log)

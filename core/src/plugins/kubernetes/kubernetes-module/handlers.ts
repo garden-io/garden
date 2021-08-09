@@ -93,7 +93,7 @@ export async function getKubernetesServiceStatus({
 
   let { state, remoteResources } = await compareDeployedResources(k8sCtx, api, namespace, prepareResult.manifests, log)
 
-  const forwardablePorts = getForwardablePorts(remoteResources)
+  const forwardablePorts = getForwardablePorts(remoteResources, service)
 
   if (state === "ready" && devMode && service.spec.devMode) {
     // Need to start the dev-mode sync here, since the deployment handler won't be called.
