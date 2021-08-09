@@ -67,7 +67,7 @@ export async function getServiceStatus({
 
   if (state !== "missing") {
     const deployedResources = await getDeployedResources({ ctx: k8sCtx, module, releaseName, log })
-    forwardablePorts = getForwardablePorts(deployedResources)
+    forwardablePorts = getForwardablePorts(deployedResources, service)
 
     if (state === "ready" && devMode && service.spec.devMode) {
       // Need to start the dev-mode sync here, since the deployment handler won't be called.

@@ -780,6 +780,39 @@ export const hotReloadArgsSchema = () =>
     .description("If specified, overrides the arguments for the main container when running in hot-reload mode.")
     .example(["nodemon", "my-server.js"])
 
+export interface PortForwardSpec {
+  name?: string
+  resource: string
+  targetPort: number
+  localPort?: number
+}
+
+const portForwardSpecSchema = () =>
+  joi.object().keys({
+    name: joiIdentifier().description("An identifier to describe the port forward."),
+    resource: joi
+      .string()
+      .required()
+      .description(
+        "The full resource kind and name to forward to, e.g. Service/my-service or Deployment/my-deployment. Note that Garden will not validate this ahead of attempting to start the port forward, so you need to make sure this is correctly set. The types of resources supported will match that of the `kubectl port-forward` CLI command."
+      ),
+    targetPort: joi.number().integer().required().description("The port number on the remote resource to forward to."),
+    localPort: joi
+      .number()
+      .integer()
+      .description(
+        "The _preferred_ local port to forward from. If none is set, a random port is chosen. If the specified port is not available, a warning is shown and a random port chosen instead."
+      ),
+  })
+
+export const portForwardsSchema = () =>
+  joi
+    .array()
+    .items(portForwardSpecSchema())
+    .description(
+      "Manually specify port forwards that Garden should set up when deploying in dev or watch mode. If specified, these override the auto-detection of forwardable ports, so you'll need to specify the full list of port forwards to create."
+    )
+
 const runPodSpecWhitelistDescription = runPodSpecIncludeFields.map((f) => `* \`${f}\``).join("\n")
 
 export const kubernetesTaskSchema = () =>
