@@ -113,7 +113,7 @@ export class BuildCommand extends Command<Args, Opts> {
       watch: opts.watch,
       initialTasks,
       changeHandler: async (newGraph, module) => {
-        const deps = await newGraph.getDependants({ nodeType: "build", name: module.name, recursive: true })
+        const deps = newGraph.getDependants({ nodeType: "build", name: module.name, recursive: true })
         const tasks = [module]
           .concat(deps.build)
           .filter((m) => moduleNames.includes(m.name))
