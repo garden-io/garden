@@ -23,6 +23,7 @@ import { listDirectory } from "../../util/fs"
 import { dedent } from "../../util/string"
 import { getModuleTypeUrl } from "../../docs/common"
 import { Provider, GenericProviderConfig, providerConfigBaseSchema } from "../../config/provider"
+import { isSubdir } from "../../util/util"
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
 export type ContainerProvider = Provider<ContainerProviderConfig>
@@ -77,7 +78,7 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
     // another target. Mounting directories into mounted directories will cause unexpected results
     for (const t of targets) {
       for (const t2 of targets) {
-        if (t2.startsWith(t) && t !== t2) {
+        if (isSubdir(t2, t) && t !== t2) {
           invalidPairDescriptions.push(`${t} is a subdirectory of ${t2}.`)
         }
       }

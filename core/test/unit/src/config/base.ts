@@ -132,6 +132,7 @@ describe("loadConfigResources", () => {
         allowPublish: undefined,
         build: { dependencies: [] },
         path: modulePathA,
+        variables: { msg: "OK" },
 
         spec: {
           build: {
@@ -142,17 +143,17 @@ describe("loadConfigResources", () => {
           tasks: [
             {
               name: "task-a",
-              command: ["echo", "OK"],
+              command: ["echo", "${var.msg}"],
             },
           ],
           tests: [
             {
               name: "unit",
-              command: ["echo", "OK"],
+              command: ["echo", "${var.msg}"],
             },
             {
               name: "integration",
-              command: ["echo", "OK"],
+              command: ["echo", "${var.msg}"],
               dependencies: ["service-a"],
             },
           ],
@@ -274,6 +275,7 @@ describe("loadConfigResources", () => {
         },
         testConfigs: [],
         taskConfigs: [],
+        variables: undefined,
       },
     ])
   })
@@ -312,6 +314,7 @@ describe("loadConfigResources", () => {
         },
         testConfigs: [],
         taskConfigs: [],
+        variables: undefined,
       },
       {
         apiVersion: "garden.io/v0",
@@ -340,6 +343,7 @@ describe("loadConfigResources", () => {
         },
         testConfigs: [],
         taskConfigs: [],
+        variables: undefined,
       },
     ])
   })

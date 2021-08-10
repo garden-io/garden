@@ -27,7 +27,7 @@ import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { HelmService } from "../helm/config"
 import { configureHotReload, getHotReloadContainerName, getHotReloadSpec } from "../hot-reload/helpers"
 import { HotReloadableResource, hotReloadK8s } from "../hot-reload/hot-reload"
-import { apply, deleteObjectsBySelector } from "../kubectl"
+import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { streamK8sLogs } from "../logs"
 import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
 import { getForwardablePorts, getPortForwardHandler, killPortForwards } from "../port-forward"
@@ -167,6 +167,7 @@ export async function deployKubernetesService(
       serviceName: service.name,
       resources: namespaceManifests,
       log,
+      timeoutSec: service.spec.timeout || KUBECTL_DEFAULT_TIMEOUT,
     })
   }
 
@@ -194,6 +195,7 @@ export async function deployKubernetesService(
       serviceName: service.name,
       resources: prepareResult.manifests,
       log,
+      timeoutSec: service.spec.timeout || KUBECTL_DEFAULT_TIMEOUT,
     })
   }
 

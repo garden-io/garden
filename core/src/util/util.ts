@@ -26,6 +26,7 @@ import { Writable, Readable } from "stream"
 import { LogEntry } from "../logger/log-entry"
 import execa = require("execa")
 import { PrimitiveMap } from "../config/common"
+import { isAbsolute, relative } from "path"
 export { v4 as uuidv4 } from "uuid"
 
 export type HookCallback = (callback?: () => void) => void
@@ -615,6 +616,14 @@ export function isPromise(obj: any): obj is Promise<any> {
  */
 export function isTruthy<T>(value: T | undefined | null | false | 0 | ""): value is T {
   return !!value
+}
+
+/**
+ * Returns `true` if `path` is a subdirectory of `ofPath`. Returns `false` otherwise.
+ */
+export function isSubdir(path: string, ofPath: string): boolean {
+  const rel = relative(path, ofPath)
+  return !!(rel && !rel.startsWith("..") && !isAbsolute(rel))
 }
 
 // Used to make the platforms more consistent with other tools

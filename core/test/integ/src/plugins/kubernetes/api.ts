@@ -19,6 +19,7 @@ import { expect } from "chai"
 import { waitForResources } from "../../../../../src/plugins/kubernetes/status/status"
 import { PluginContext } from "../../../../../src/plugin-context"
 import { StringCollector } from "../../../../../src/util/util"
+import { KUBECTL_DEFAULT_TIMEOUT } from "../../../../../src/plugins/kubernetes/kubectl"
 
 describe("KubeApi", () => {
   let garden: Garden
@@ -98,7 +99,15 @@ describe("KubeApi", () => {
       const podName = pod.metadata.name
 
       await api.createPod(namespace, pod)
-      await waitForResources({ namespace, ctx, provider, serviceName: "exec-test", resources: [pod], log: garden.log })
+      await waitForResources({
+        namespace,
+        ctx,
+        provider,
+        serviceName: "exec-test",
+        resources: [pod],
+        log: garden.log,
+        timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
+      })
 
       try {
         const res = await api.execInPod({
@@ -123,7 +132,15 @@ describe("KubeApi", () => {
       const podName = pod.metadata.name
 
       await api.createPod(namespace, pod)
-      await waitForResources({ namespace, ctx, provider, serviceName: "exec-test", resources: [pod], log: garden.log })
+      await waitForResources({
+        namespace,
+        ctx,
+        provider,
+        serviceName: "exec-test",
+        resources: [pod],
+        log: garden.log,
+        timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
+      })
 
       try {
         const res = await api.execInPod({
@@ -148,7 +165,15 @@ describe("KubeApi", () => {
       const podName = pod.metadata.name
 
       await api.createPod(namespace, pod)
-      await waitForResources({ namespace, ctx, provider, serviceName: "exec-test", resources: [pod], log: garden.log })
+      await waitForResources({
+        namespace,
+        ctx,
+        provider,
+        serviceName: "exec-test",
+        resources: [pod],
+        log: garden.log,
+        timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
+      })
 
       try {
         const res = await api.execInPod({
@@ -186,7 +211,15 @@ describe("KubeApi", () => {
       const podName = pod.metadata.name
 
       await api.createPod(namespace, pod)
-      await waitForResources({ namespace, ctx, provider, serviceName: "exec-test", resources: [pod], log: garden.log })
+      await waitForResources({
+        namespace,
+        ctx,
+        provider,
+        serviceName: "exec-test",
+        resources: [pod],
+        log: garden.log,
+        timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
+      })
 
       const stdout = new StringCollector()
 
