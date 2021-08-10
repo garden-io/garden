@@ -16,7 +16,7 @@ import { KubernetesPod, KubernetesDeployment, KubernetesResource } from "../type
 import { flatten, uniq, difference } from "lodash"
 import { V1Container } from "@kubernetes/client-node"
 import { queryRegistry } from "../container/util"
-import { splitFirst, splitLast } from "../../../util/util"
+import { sleep, splitFirst, splitLast } from "../../../util/util"
 import { LogEntry } from "../../../logger/log-entry"
 import Bluebird from "bluebird"
 import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, inClusterRegistryHostname, dockerDaemonContainerName } from "../constants"
@@ -30,6 +30,7 @@ import { getSystemNamespace } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { PodRunner } from "../run"
 import { getDockerDaemonPodRunner } from "../container/build/cluster-docker"
+import pRetry = require("p-retry")
 
 const workspaceSyncDirTtl = 0.5 * 86400 // 2 days
 
@@ -287,22 +288,33 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
     // Restart the registry again as normal
     log.info("Restarting without read-only mode...")
 
-    // -> Re-apply the original deployment
-    registryDeployment = await api.apps.readNamespacedDeployment(CLUSTER_REGISTRY_DEPLOYMENT_NAME, systemNamespace)
-    const writableRegistry = sanitizeResource(registryDeployment)
-    // -> Remove the maintenance flag
-    writableRegistry.spec.template.spec!.containers[0].env =
-      writableRegistry.spec?.template.spec?.containers[0].env?.filter(
-        (e) => e.name !== "REGISTRY_STORAGE_MAINTENANCE"
-      ) || []
+    await pRetry(
+      async () => {
+        // -> Re-apply the original deployment
+        registryDeployment = await api.apps.readNamespacedDeployment(CLUSTER_REGISTRY_DEPLOYMENT_NAME, systemNamespace)
+        const writableRegistry = sanitizeResource(registryDeployment)
+        // -> Remove the maintenance flag
+        writableRegistry.spec.template.spec!.containers[0].env =
+          writableRegistry.spec?.template.spec?.containers[0].env?.filter(
+            (e) => e.name !== "REGISTRY_STORAGE_MAINTENANCE"
+          ) || []
 
-    await apply({
-      ctx,
-      log,
-      provider,
-      manifests: [writableRegistry],
-      namespace: systemNamespace,
-    })
+        await apply({
+          ctx,
+          log,
+          provider,
+          manifests: [writableRegistry],
+          namespace: systemNamespace,
+        })
+      },
+      {
+        retries: 3,
+        onFailedAttempt: async () => {
+          log.warn("Failed to patch deployment, retrying in 5 seconds...")
+          await sleep(5)
+        },
+      }
+    )
 
     // -> Wait for registry to be up again
     await waitForResources({
