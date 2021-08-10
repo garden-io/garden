@@ -206,110 +206,110 @@ describe("plugins.container", () => {
   })
 
   describe("configureContainerModule", () => {
-    it("should validate and parse a container module", async () => {
-      const moduleConfig: ContainerModuleConfig = {
-        allowPublish: false,
+    const containerModuleConfig: ContainerModuleConfig = {
+      allowPublish: false,
+      build: {
+        dependencies: [],
+      },
+      disabled: false,
+      apiVersion: "garden.io/v0",
+      name: "module-a",
+      path: modulePath,
+      type: "container",
+
+      spec: {
         build: {
           dependencies: [],
+          timeout: DEFAULT_BUILD_TIMEOUT,
         },
-        disabled: false,
-        apiVersion: "garden.io/v0",
-        name: "module-a",
-        path: modulePath,
-        type: "container",
-
-        spec: {
-          build: {
+        buildArgs: {},
+        extraFlags: [],
+        services: [
+          {
+            name: "service-a",
+            annotations: {},
+            args: ["echo"],
             dependencies: [],
-            timeout: DEFAULT_BUILD_TIMEOUT,
+            daemon: false,
+            disabled: false,
+            ingresses: [
+              {
+                annotations: {},
+                path: "/",
+                port: "http",
+              },
+            ],
+            env: {
+              SOME_ENV_VAR: "value",
+            },
+            healthCheck: {
+              httpGet: {
+                path: "/health",
+                port: "http",
+              },
+              livenessTimeoutSeconds: 10,
+              readinessTimeoutSeconds: 10,
+            },
+            limits: {
+              cpu: 123,
+              memory: 456,
+            },
+            cpu: defaultCpu,
+            memory: defaultMemory,
+            ports: [
+              {
+                name: "http",
+                protocol: "TCP",
+                containerPort: 8080,
+                servicePort: 8080,
+              },
+            ],
+            replicas: 1,
+            volumes: [],
           },
-          buildArgs: {},
-          extraFlags: [],
-          services: [
-            {
-              name: "service-a",
-              annotations: {},
-              args: ["echo"],
-              dependencies: [],
-              daemon: false,
-              disabled: false,
-              ingresses: [
-                {
-                  annotations: {},
-                  path: "/",
-                  port: "http",
-                },
-              ],
-              env: {
-                SOME_ENV_VAR: "value",
-              },
-              healthCheck: {
-                httpGet: {
-                  path: "/health",
-                  port: "http",
-                },
-                livenessTimeoutSeconds: 10,
-                readinessTimeoutSeconds: 10,
-              },
-              limits: {
-                cpu: 123,
-                memory: 456,
-              },
-              cpu: defaultCpu,
-              memory: defaultMemory,
-              ports: [
-                {
-                  name: "http",
-                  protocol: "TCP",
-                  containerPort: 8080,
-                  servicePort: 8080,
-                },
-              ],
-              replicas: 1,
-              volumes: [],
+        ],
+        tasks: [
+          {
+            name: "task-a",
+            args: ["echo", "OK"],
+            artifacts: [],
+            cacheResult: true,
+            dependencies: [],
+            disabled: false,
+            env: {
+              TASK_ENV_VAR: "value",
             },
-          ],
-          tasks: [
-            {
-              name: "task-a",
-              args: ["echo", "OK"],
-              artifacts: [],
-              cacheResult: true,
-              dependencies: [],
-              disabled: false,
-              env: {
-                TASK_ENV_VAR: "value",
-              },
-              cpu: defaultCpu,
-              memory: defaultMemory,
-              timeout: null,
-              volumes: [],
+            cpu: defaultCpu,
+            memory: defaultMemory,
+            timeout: null,
+            volumes: [],
+          },
+        ],
+        tests: [
+          {
+            name: "unit",
+            args: ["echo", "OK"],
+            artifacts: [],
+            dependencies: [],
+            disabled: false,
+            env: {
+              TEST_ENV_VAR: "value",
             },
-          ],
-          tests: [
-            {
-              name: "unit",
-              args: ["echo", "OK"],
-              artifacts: [],
-              dependencies: [],
-              disabled: false,
-              env: {
-                TEST_ENV_VAR: "value",
-              },
-              cpu: defaultCpu,
-              memory: defaultMemory,
-              timeout: null,
-              volumes: [],
-            },
-          ],
-        },
+            cpu: defaultCpu,
+            memory: defaultMemory,
+            timeout: null,
+            volumes: [],
+          },
+        ],
+      },
 
-        serviceConfigs: [],
-        taskConfigs: [],
-        testConfigs: [],
-      }
+      serviceConfigs: [],
+      taskConfigs: [],
+      testConfigs: [],
+    }
 
-      const result = await configure({ ctx, moduleConfig, log })
+    it("should validate and parse a container module", async () => {
+      const result = await configure({ ctx, moduleConfig: containerModuleConfig, log })
 
       expect(result).to.eql({
         moduleConfig: {
@@ -489,6 +489,40 @@ describe("plugins.container", () => {
             },
           ],
         },
+      })
+    })
+
+    context("hot reloading", () => {
+      it("should pass if no target is a subdirectory of another target", async () => {
+        const moduleConfig: ContainerModuleConfig = {
+          ...containerModuleConfig,
+          spec: {
+            ...containerModuleConfig.spec,
+            hotReload: {
+              sync: [
+                { source: "./foo_bar", target: "/home/somedir/foo_bar" },
+                { source: "./bar", target: "/home/somedir/bar" },
+              ],
+            },
+          },
+        }
+        await configure({ ctx, moduleConfig, log })
+      })
+
+      it("should throw if a target is a subdirectory of another target", async () => {
+        const moduleConfig: ContainerModuleConfig = {
+          ...containerModuleConfig,
+          spec: {
+            ...containerModuleConfig.spec,
+            hotReload: {
+              sync: [
+                { source: "foo", target: "/somedir/" },
+                { source: "bar", target: "/somedir/bar" },
+              ],
+            },
+          },
+        }
+        await expectError(() => configure({ ctx, moduleConfig, log }))
       })
     })
 
