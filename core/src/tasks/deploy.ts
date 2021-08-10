@@ -70,7 +70,7 @@ export class DeployTask extends BaseTask {
   async resolveDependencies() {
     const dg = this.graph
 
-    const skipServiceDeps = [...this.hotReloadServiceNames, ...this.devModeServiceNames]
+    const skipServiceDeps = [...this.hotReloadServiceNames]
 
     // We filter out service dependencies on services configured for hot reloading or dev mode (if any)
     const deps = dg.getDependencies({
@@ -91,7 +91,7 @@ export class DeployTask extends BaseTask {
     })
 
     if (this.fromWatch && includes(skipServiceDeps, this.service.name)) {
-      // Only need to get existing statuses and results when hot-reloading or in dev mode
+      // Only need to get existing statuses and results when hot-reloading
       const dependencyStatusTasks = deps.deploy.map((service) => {
         return new GetServiceStatusTask({
           garden: this.garden,
