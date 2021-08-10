@@ -299,7 +299,7 @@ export class ActionRouter implements TypeGuard {
     const { log, moduleConfig: config } = params
     const moduleType = config.type
 
-    this.garden.log.silly(`Calling 'configure' handler for '${moduleType}'`)
+    this.garden.log.silly(`Calling configure handler for ${moduleType} module '${config.name}'`)
 
     const handler = await this.getModuleActionHandler({
       actionType: "configure",
@@ -326,7 +326,7 @@ export class ActionRouter implements TypeGuard {
     }
     result.moduleConfig.build.dependencies = Object.values(buildDeps)
 
-    this.garden.log.silly(`Called 'configure' handler for '${moduleType}'`)
+    this.garden.log.silly(`Called configure handler for ${moduleType} module '${config.name}'`)
 
     return result
   }
