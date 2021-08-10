@@ -6,15 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
-import { intersection, flatten, uniqBy } from "lodash"
+import { uniqBy } from "lodash"
 import { DeployTask } from "./deploy"
 import { Garden } from "../garden"
 import { GardenModule } from "../types/module"
 import { ConfigGraph } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask } from "./base"
-import { BuildTask } from "./build"
 import { HotReloadTask } from "./hot-reload"
 
 /**
@@ -38,56 +36,7 @@ export async function getModuleWatchTasks({
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
 }): Promise<BaseTask[]> {
-  let buildTasks: BaseTask[] = []
-
   const dependants = graph.getDependantsForModule(module, true)
-
-  const dependantSourceModules = dependants.build.filter((depModule) =>
-    depModule.serviceConfigs.find((s) => s.sourceModuleName === module.name)
-  )
-
-  const dependantSourceModuleServiceNames = flatten(
-    dependantSourceModules.map((depModule) => {
-      return depModule.serviceConfigs.filter((s) => s.sourceModuleName === module.name).map((s) => s.name)
-    })
-  )
-
-  const serviceNamesUsingModule = [...module.serviceNames, ...dependantSourceModuleServiceNames]
-
-  /**
-   * If a service is deployed with hot reloading or has dev mode enabled, we don't rebuild its module
-   * (or its sourceModule, if the service instead uses a sourceModule) when its sources change.
-   *
-   * Therefore, we skip adding a build task for module if one of its services is in
-   * hotReloadServiceNames, or if one of its build dependants' services is in
-   * hotReloadServiceNames and has module as its sourceModule (in which case we
-   * also don't add a build task for the dependant's module below).
-   */
-  if (intersection(serviceNamesUsingModule, [...devModeServiceNames, ...hotReloadServiceNames]).length === 0) {
-    buildTasks = await BuildTask.factory({
-      garden,
-      graph,
-      log,
-      module,
-      force: true,
-    })
-  }
-
-  const dependantSourceModuleNames = dependantSourceModules.map((m) => m.name)
-
-  const dependantBuildTasks = flatten(
-    await Bluebird.map(
-      dependants.build.filter((m) => !m.disabled && !dependantSourceModuleNames.includes(m.name)),
-      (m) =>
-        BuildTask.factory({
-          garden,
-          graph,
-          log,
-          module: m,
-          force: false,
-        })
-    )
-  )
 
   const deployTasks = dependants.deploy
     .filter(
@@ -120,12 +69,14 @@ export async function getModuleWatchTasks({
     )
     .map((service) => new HotReloadTask({ garden, graph, log, service, force: true, hotReloadServiceNames }))
 
-  const outputTasks = [...buildTasks, ...dependantBuildTasks, ...deployTasks, ...hotReloadTasks]
+  const outputTasks = [...deployTasks, ...hotReloadTasks]
 
   log.silly(`getModuleWatchTasks called for module ${module.name}, returning the following tasks:`)
   log.silly(`  ${outputTasks.map((t) => t.getKey()).join(", ")}`)
 
-  return uniqBy(outputTasks, (t) => t.getKey())
+  const deduplicated = uniqBy(outputTasks, (t) => t.getKey())
+
+  return deduplicated
 }
 
 export function makeTestTaskName(moduleName: string, testConfigName: string) {
