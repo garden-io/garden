@@ -63,11 +63,11 @@ describe("pull-image plugin command", () => {
     expect(imageHash.stdout.trim()).to.equal("ok")
   }
 
-  grouped("cluster-docker", "remote-only").context("using an external cluster registry", () => {
+  grouped("kaniko", "remote-only").context("using an external cluster registry with kaniko", () => {
     let module: GardenModule
 
     before(async () => {
-      await init("cluster-docker-remote-registry")
+      await init("kaniko-remote-registry")
 
       module = graph.getModule("remote-registry-test")
 
@@ -88,11 +88,11 @@ describe("pull-image plugin command", () => {
     })
   })
 
-  grouped("cluster-docker").context("using the in cluster registry", () => {
+  grouped("kaniko").context("using the in cluster registry with kaniko", () => {
     let module: GardenModule
 
     before(async () => {
-      await init("cluster-docker")
+      await init("kaniko")
 
       module = graph.getModule("simple-service")
 
@@ -113,7 +113,7 @@ describe("pull-image plugin command", () => {
     })
   })
 
-  grouped("cluster-buildkit", "remote-only").context("using an external cluster registry", () => {
+  grouped("cluster-buildkit", "remote-only").context("using an external cluster registry with buildkit", () => {
     let module: GardenModule
 
     before(async () => {
@@ -138,7 +138,7 @@ describe("pull-image plugin command", () => {
     })
   })
 
-  grouped("cluster-buildkit").context("using the in cluster registry", () => {
+  grouped("cluster-buildkit").context("using the in cluster registry with buildkit", () => {
     let module: GardenModule
 
     before(async () => {

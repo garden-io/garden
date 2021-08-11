@@ -19,6 +19,7 @@ import { registerCleanupFunction, sleep } from "../../util/util"
 import { GardenBaseError } from "../../exceptions"
 import { prepareConnectionOpts } from "./kubectl"
 import { KubernetesPluginContext } from "./config"
+import pRetry from "p-retry"
 
 const maxRestarts = 10
 const monitorDelay = 2000
@@ -427,7 +428,16 @@ export async function ensureMutagenSync({
         params.push("--default-directory-mode", modeToString(defaultDirectoryMode))
       }
 
-      await execMutagenCommand(log, ["sync", "create", ...params])
+      // Might need to retry
+      await pRetry(() => execMutagenCommand(log, ["sync", "create", ...params]), {
+        retries: 5,
+        minTimeout: 1000,
+        onFailedAttempt: (err) => {
+          log.warn(
+            `Failed to start sync from ${sourceDescription} to ${targetDescription}. ${err.retriesLeft} attempts left.`
+          )
+        },
+      })
 
       activeSyncs[key] = {
         sourceDescription,

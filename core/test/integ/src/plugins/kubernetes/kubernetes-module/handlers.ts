@@ -247,7 +247,7 @@ describe("kubernetes-module handlers", () => {
         readFromSrcDir: true,
       })
 
-      // // Deploy without dev mode
+      // Deploy without dev mode
       await deployKubernetesService(deployParams)
       const res1 = await findDeployedResources(manifests, log)
 
@@ -255,7 +255,7 @@ describe("kubernetes-module handlers", () => {
       await deployKubernetesService({ ...deployParams, devMode: true })
       const res2 = await findDeployedResources(manifests, log)
 
-      // // Deploy without hot reload again
+      // Deploy without dev mode again
       await deployKubernetesService(deployParams)
       const res3 = await findDeployedResources(manifests, log)
 
