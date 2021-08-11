@@ -309,9 +309,9 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
       },
       {
         retries: 3,
-        onFailedAttempt: async () => {
-          log.warn("Failed to patch deployment, retrying in 5 seconds...")
-          await sleep(5)
+        minTimeout: 2000,
+        onFailedAttempt: async (err) => {
+          log.warn(`Failed to patch deployment. ${err.retriesLeft} attempts left.`)
         },
       }
     )
