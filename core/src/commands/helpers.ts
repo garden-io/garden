@@ -18,7 +18,7 @@ import { GardenTest } from "../types/test"
 
 export async function getDevModeServiceNames(namesFromOpt: string[] | undefined, configGraph: ConfigGraph) {
   const names = namesFromOpt || []
-  if (names.includes("*")) {
+  if (names.includes("*") || (!!namesFromOpt && namesFromOpt.length === 0)) {
     return configGraph.getServices().map((s) => s.name)
   } else {
     return names

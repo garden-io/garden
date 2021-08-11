@@ -660,7 +660,7 @@ describe("DeployCommand", () => {
           services: undefined,
         },
         opts: withDefaultGlobalOpts({
-          "dev-mode": ["*"],
+          "dev-mode": [],
           "hot-reload": undefined,
           "watch": false,
           "force": false,
