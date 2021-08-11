@@ -91,8 +91,8 @@ export class DeployCommand extends Command<Args, Opts> {
         garden deploy service-a,service-b  # only deploy service-a and service-b
         garden deploy --force              # force re-deploy of modules, even if they're already deployed
         garden deploy --watch              # watch for changes to code
-        garden deploy --hot=my-service     # deploys all services, with hot reloading enabled for my-service
-        garden deploy --hot=*              # deploys all compatible services with hot reloading enabled
+        garden deploy --dev=my-service     # deploys all services, with dev mode enabled for my-service
+        garden deploy --dev                # deploys all compatible services with dev mode enabled
         garden deploy --env stage          # deploy your services to an environment called stage
         garden deploy --skip service-b     # deploy all services except service-b
   `
