@@ -104,6 +104,12 @@ async function buildBinaries(args: string[]) {
       packageJson.dependencies[depName] = "file:" + relPath
     }
 
+    if (version === "edge") {
+      const gitHash = await exec("git", ["rev-parse", "--short", "HEAD"])
+      packageJson.version = packageJson.version + "-edge-" + gitHash.stdout
+      console.log("Set package version to " + packageJson.version)
+    }
+
     await writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2))
 
     console.log(chalk.green(" ✓ " + name))
