@@ -145,7 +145,7 @@ yarn test -- -g "taskGraph"  # run only tests with descriptions matching "taskGr
 Integration tests are run with:
 
 ```sh
-yarn run integ
+yarn integ-local
 ```
 
 End-to-end tests are run with:
