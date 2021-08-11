@@ -1,7 +1,6 @@
 ARG TAG=latest
 FROM gardendev/garden:${TAG}
 
-
 # Build dependencies
 RUN apk add --virtual=build gcc libffi-dev musl-dev openssl-dev make readline linux-pam \
 # Runtime dependency
@@ -20,6 +19,3 @@ RUN wget -O kubelogin-linux-amd64.zip https://github.com/Azure/kubelogin/release
 
 # Required by Azure DevOps to tell the system where node is installed
 LABEL "com.azure.dev.pipelines.agent.handler.node.path"="/usr/local/bin/node"
-
-ENTRYPOINT []
-
