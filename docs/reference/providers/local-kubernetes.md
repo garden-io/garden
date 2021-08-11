@@ -77,6 +77,7 @@ providers:
       # guide to assigning Pods to nodes.
       nodeSelector:
 
+      # Specify tolerations to apply to each Kaniko Pod. Useful to control which nodes in a cluster can run builds.
       tolerations:
         - # "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
           # allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
@@ -498,6 +499,8 @@ Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows 
 ### `providers[].kaniko.tolerations[]`
 
 [providers](#providers) > [kaniko](#providerskaniko) > tolerations
+
+Specify tolerations to apply to each Kaniko Pod. Useful to control which nodes in a cluster can run builds.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |

@@ -421,7 +421,9 @@ export const kubernetesConfigBase = () =>
             [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
           `
         ),
-        tolerations: joiSparseArray(tolerationSchema()),
+        tolerations: joiSparseArray(tolerationSchema()).description(
+          "Specify tolerations to apply to each Kaniko Pod. Useful to control which nodes in a cluster can run builds."
+        ),
       })
       .default(() => {})
       .description("Configuration options for the `kaniko` build mode."),
