@@ -26,5 +26,7 @@ values:
     minReadySeconds: 1
     tolerations: ${var.system-tolerations}
     nodeSelector: ${var.system-node-selector}
+    admissionWebhooks:
+      enabled: false
   defaultBackend:
     enabled: false
