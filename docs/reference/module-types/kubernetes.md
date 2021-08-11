@@ -880,9 +880,9 @@ devMode:
 
 The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `two-way`.
 
-| Type     | Default     | Required |
-| -------- | ----------- | -------- |
-| `string` | `"one-way"` | No       |
+| Type     | Allowed Values                          | Default     | Required |
+| -------- | --------------------------------------- | ----------- | -------- |
+| `string` | "one-way", "one-way-replica", "two-way" | `"one-way"` | Yes      |
 
 ### `devMode.sync[].defaultFileMode`
 

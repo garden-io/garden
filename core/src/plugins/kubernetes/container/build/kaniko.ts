@@ -111,6 +111,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
 
   await syncToBuildSync({
     ...params,
+    ctx: ctx as KubernetesPluginContext,
     api,
     namespace: projectNamespace,
     deploymentName: utilDeploymentName,

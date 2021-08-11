@@ -85,6 +85,7 @@ export const clusterDockerBuild: BuildHandler = async (params) => {
 
   const { contextPath } = await syncToBuildSync({
     ...params,
+    ctx: ctx as KubernetesPluginContext,
     api,
     namespace: systemNamespace,
     deploymentName: sharedBuildSyncDeploymentName,

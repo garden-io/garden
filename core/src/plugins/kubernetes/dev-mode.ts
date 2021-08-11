@@ -16,13 +16,11 @@ import { joinWithPosix } from "../../util/fs"
 import chalk from "chalk"
 import { PluginContext } from "../../plugin-context"
 import { ConfigurationError } from "../../exceptions"
-import { ensureMutagenSync, mutagenConfigLock } from "./mutagen"
+import { ensureMutagenSync, getKubectlExecDestination, mutagenAgentPath, mutagenConfigLock } from "./mutagen"
 import { joiIdentifier } from "../../config/common"
 import { KubernetesPluginContext } from "./config"
-import { prepareConnectionOpts } from "./kubectl"
 
 const syncUtilImageName = "gardendev/k8s-sync:0.1.1"
-const mutagenAgentPath = "/.garden/mutagen-agent"
 
 interface ConfigureDevModeParams {
   target: HotReloadableResource
@@ -153,8 +151,6 @@ export async function startDevModeSync({
       })
     }
 
-    const kubectl = ctx.tools["kubernetes.kubectl"]
-    const kubectlPath = await kubectl.getPath(log)
     const k8sCtx = <KubernetesPluginContext>ctx
 
     let i = 0
@@ -162,22 +158,15 @@ export async function startDevModeSync({
     for (const s of spec.sync) {
       const key = `${keyBase}-${i}`
 
-      const connectionOpts = prepareConnectionOpts({
-        provider: k8sCtx.provider,
+      const alpha = joinWithPosix(moduleRoot, s.source)
+      const beta = await getKubectlExecDestination({
+        ctx: k8sCtx,
+        log,
         namespace,
-      })
-      const command = [
-        kubectlPath,
-        "exec",
-        "-i",
-        ...connectionOpts,
-        "--container",
         containerName,
-        `${target.kind}/${target.metadata.name}`,
-        "--",
-        mutagenAgentPath,
-        "synchronizer",
-      ]
+        resourceName: `${target.kind}/${target.metadata.name}`,
+        targetPath: s.target,
+      })
 
       const sourceDescription = chalk.white(s.source)
       const targetDescription = `${chalk.white(s.target)} in ${chalk.white(resourceName)}`
@@ -193,8 +182,8 @@ export async function startDevModeSync({
         sourceDescription,
         targetDescription,
         config: {
-          alpha: joinWithPosix(moduleRoot, s.source),
-          beta: `exec:'${command.join(" ")}':${s.target}`,
+          alpha,
+          beta,
           mode: s.mode,
           ignore: s.exclude || [],
         },
