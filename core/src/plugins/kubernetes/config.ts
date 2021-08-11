@@ -120,6 +120,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
     extraFlags?: string[]
     namespace?: string | null
     nodeSelector?: StringMap
+    tolerations?: V1Toleration[]
   }
   context: string
   defaultHostname?: string
