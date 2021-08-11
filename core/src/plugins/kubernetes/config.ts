@@ -120,6 +120,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
     extraFlags?: string[]
     namespace?: string | null
     nodeSelector?: StringMap
+    tolerations?: V1Toleration[]
   }
   context: string
   defaultHostname?: string
@@ -420,6 +421,9 @@ export const kubernetesConfigBase = () =>
             [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
           `
         ),
+        tolerations: joiSparseArray(tolerationSchema()).description(
+          "Specify tolerations to apply to each Kaniko Pod. Useful to control which nodes in a cluster can run builds."
+        ),
       })
       .default(() => {})
       .description("Configuration options for the `kaniko` build mode."),
@@ -615,39 +619,40 @@ export const kubernetesConfigBase = () =>
       )
       .example({ disktype: "ssd" })
       .default(() => ({})),
-    registryProxyTolerations: joiSparseArray(
-      joi.object().keys({
-        effect: joi.string().allow("NoSchedule", "PreferNoSchedule", "NoExecute").description(dedent`
-          "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
-          allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
-        `),
-        key: joi.string().description(dedent`
-          "Key" is the taint key that the toleration applies to. Empty means match all taint keys.
-          If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
-        `),
-        operator: joi.string().allow("Exists", "Equal").default("Equal").description(dedent`
-          "Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal". Defaults to
-          "Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
-          particular category.
-        `),
-        tolerationSeconds: joi.string().description(dedent`
-          "TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
-          otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
-          the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
-          by the system.
-        `),
-        value: joi.string().description(dedent`
-          "Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be empty,
-          otherwise just a regular string.
-        `),
-      })
-    ).description(dedent`
+    registryProxyTolerations: joiSparseArray(tolerationSchema()).description(dedent`
         For setting tolerations on the registry-proxy when using in-cluster building.
         The registry-proxy is a DaemonSet that proxies connections to the docker registry service on each node.
 
         Use this only if you're doing in-cluster building and the nodes in your cluster
         have [taints](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/).
       `),
+  })
+
+export const tolerationSchema = () =>
+  joi.object().keys({
+    effect: joi.string().allow("NoSchedule", "PreferNoSchedule", "NoExecute").description(dedent`
+          "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
+          allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
+        `),
+    key: joi.string().description(dedent`
+          "Key" is the taint key that the toleration applies to. Empty means match all taint keys.
+          If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
+        `),
+    operator: joi.string().allow("Exists", "Equal").default("Equal").description(dedent`
+          "Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal". Defaults to
+          "Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
+          particular category.
+        `),
+    tolerationSeconds: joi.string().description(dedent`
+          "TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
+          otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
+          the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
+          by the system.
+        `),
+    value: joi.string().description(dedent`
+          "Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be empty,
+          otherwise just a regular string.
+        `),
   })
 
 export const namespaceSchema = () =>
