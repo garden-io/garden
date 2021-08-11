@@ -21,7 +21,7 @@ import {
   rsyncPortName,
 } from "../../constants"
 import { KubeApi } from "../../api"
-import { KubernetesProvider } from "../../config"
+import { KubernetesPluginContext, KubernetesProvider } from "../../config"
 import { PodRunner } from "../../run"
 import { PluginContext } from "../../../../plugin-context"
 import { resolve } from "path"
@@ -34,10 +34,14 @@ import { getInClusterRegistryHostname } from "../../init"
 import { prepareDockerAuth } from "../../init"
 import chalk from "chalk"
 import { V1Container } from "@kubernetes/client-node"
+import { gardenEnv } from "../../../../constants"
+import { ensureMutagenSync, flushMutagenSync, getKubectlExecDestination, terminateMutagenSync } from "../../mutagen"
+import { randomString } from "../../../../util/string"
 
 const inClusterRegistryPort = 5000
 
 export const sharedBuildSyncDeploymentName = "garden-build-sync"
+export const utilContainerName = "util"
 export const utilRsyncPort = 8730
 
 export const commonSyncArgs = [
@@ -62,6 +66,7 @@ export type BuildStatusHandler = (params: GetBuildStatusParams<ContainerModule>)
 export type BuildHandler = (params: BuildModuleParams<ContainerModule>) => Promise<BuildResult>
 
 interface SyncToSharedBuildSyncParams extends BuildModuleParams<ContainerModule> {
+  ctx: KubernetesPluginContext
   api: KubeApi
   namespace: string
   deploymentName: string
@@ -71,39 +76,98 @@ interface SyncToSharedBuildSyncParams extends BuildModuleParams<ContainerModule>
 export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
   const { ctx, module, log, api, namespace, deploymentName, rsyncPort } = params
 
+  // Because we're syncing to a shared volume, we need to scope by a unique ID
+  const contextPath = `/garden-build/${ctx.workingCopyId}/${module.name}/`
+
   const buildSyncPod = await getRunningDeploymentPod({
     api,
     deploymentName,
     namespace,
   })
-  // Sync the build context to the remote sync service
-  // -> Get a tunnel to the service
-  log.setState("Syncing sources to cluster...")
-  const syncFwd = await getPortForward({
-    ctx,
-    log,
-    namespace,
-    targetResource: `Pod/${buildSyncPod.metadata.name}`,
-    port: rsyncPort,
-  })
 
-  // -> Run rsync
-  const buildRoot = resolve(module.buildPath, "..")
-  // The '/./' trick is used to automatically create the correct target directory with rsync:
-  // https://stackoverflow.com/questions/1636889/rsync-how-can-i-configure-it-to-create-target-directory-on-server
-  let src = normalizeLocalRsyncPath(`${buildRoot}`) + `/./${module.name}/`
-  const destination = `rsync://localhost:${syncFwd.localPort}/volume/${ctx.workingCopyId}/`
-  const syncArgs = [...commonSyncArgs, "--relative", "--delete", "--temp-dir", "/tmp", src, destination]
+  if (gardenEnv.GARDEN_K8S_BUILD_SYNC_MODE === "mutagen") {
+    // Sync using mutagen
+    const key = `build-sync-${module.name}-${randomString(8)}`
+    const targetPath = `/data/${ctx.workingCopyId}/${module.name}`
 
-  log.debug(`Syncing from ${src} to ${destination}`)
-  // We retry a couple of times, because we may get intermittent connection issues or concurrency issues
-  await pRetry(() => exec("rsync", syncArgs), {
-    retries: 3,
-    minTimeout: 500,
-  })
+    // Make sure the target path exists
+    const runner = new PodRunner({
+      ctx,
+      provider: ctx.provider,
+      api,
+      pod: buildSyncPod,
+      namespace,
+    })
 
-  // Because we're syncing to a shared volume, we need to scope by a unique ID
-  const contextPath = `/garden-build/${ctx.workingCopyId}/${module.name}/`
+    await runner.exec({
+      log,
+      command: ["sh", "-c", "mkdir -p " + targetPath],
+      containerName: utilContainerName,
+      buffer: true,
+    })
+
+    try {
+      const resourceName = `Deployment/${deploymentName}`
+
+      log.debug(`Syncing from ${module.buildPath} to ${resourceName}`)
+
+      // -> Create the sync
+      await ensureMutagenSync({
+        log,
+        key,
+        logSection: module.name,
+        sourceDescription: `Module ${module.name} build path`,
+        targetDescription: "Build sync Pod",
+        config: {
+          alpha: module.buildPath,
+          beta: await getKubectlExecDestination({
+            ctx,
+            log,
+            namespace,
+            containerName: utilContainerName,
+            resourceName,
+            targetPath,
+          }),
+          mode: "one-way-replica",
+          ignore: [],
+        },
+      })
+
+      // -> Flush the sync once
+      await flushMutagenSync(log, key)
+      log.debug(`Sync from ${module.buildPath} to ${resourceName} completed`)
+    } finally {
+      // -> Terminate the sync
+      await terminateMutagenSync(log, key)
+      log.debug(`Sync connection terminated`)
+    }
+  } else {
+    // Sync the build context to the remote sync service
+    // -> Get a tunnel to the service
+    log.setState("Syncing sources to cluster...")
+    const syncFwd = await getPortForward({
+      ctx,
+      log,
+      namespace,
+      targetResource: `Pod/${buildSyncPod.metadata.name}`,
+      port: rsyncPort,
+    })
+
+    // -> Run rsync
+    const buildRoot = resolve(module.buildPath, "..")
+    // The '/./' trick is used to automatically create the correct target directory with rsync:
+    // https://stackoverflow.com/questions/1636889/rsync-how-can-i-configure-it-to-create-target-directory-on-server
+    let src = normalizeLocalRsyncPath(`${buildRoot}`) + `/./${module.name}/`
+    const destination = `rsync://localhost:${syncFwd.localPort}/volume/${ctx.workingCopyId}/`
+    const syncArgs = [...commonSyncArgs, "--relative", "--delete", "--temp-dir", "/tmp", src, destination]
+
+    log.debug(`Syncing from ${src} to ${destination}`)
+    // We retry a couple of times, because we may get intermittent connection issues or concurrency issues
+    await pRetry(() => exec("rsync", syncArgs), {
+      retries: 3,
+      minTimeout: 500,
+    })
+  }
 
   return { contextPath }
 }
@@ -288,7 +352,7 @@ function isLocalHostname(hostname: string) {
 
 export function getUtilContainer(authSecretName: string): V1Container {
   return {
-    name: "util",
+    name: utilContainerName,
     image: k8sUtilImageName,
     imagePullPolicy: "IfNotPresent",
     command: ["/rsync-server.sh"],

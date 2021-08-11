@@ -17,10 +17,13 @@ import { PluginTool } from "../../util/ext-tools"
 import { makeTempDir, TempDirectory } from "../../util/fs"
 import { registerCleanupFunction, sleep } from "../../util/util"
 import { GardenBaseError } from "../../exceptions"
+import { prepareConnectionOpts } from "./kubectl"
+import { KubernetesPluginContext } from "./config"
 
 const maxRestarts = 10
 const monitorDelay = 2000
 const mutagenLogSection = "<mutagen>"
+export const mutagenAgentPath = "/.garden/mutagen-agent"
 
 let daemonProc: any
 let mutagenTmp: TempDirectory
@@ -166,7 +169,7 @@ export async function ensureMutagenDaemon(log: LogEntry) {
 
       daemonProc.once("spawn", () => {
         setTimeout(() => {
-          if (daemonProc.status === "running") {
+          if (daemonProc?.status === "running") {
             resolved = true
             resolve(dataDir)
           }
@@ -448,6 +451,7 @@ export async function terminateMutagenSync(log: LogEntry, key: string) {
   return mutagenConfigLock.acquire("configure", async () => {
     try {
       await execMutagenCommand(log, ["sync", "delete", key, "--auto-start=false"])
+      delete activeSyncs[key]
     } catch (err) {
       // Ignore other errors, which should mean the sync wasn't found
       if (err.message.includes("unable to connect to daemon")) {
@@ -455,6 +459,51 @@ export async function terminateMutagenSync(log: LogEntry, key: string) {
       }
     }
   })
+}
+/**
+ * Remove the specified sync (by name) from the sync daemon.
+ */
+export async function flushMutagenSync(log: LogEntry, key: string) {
+  await execMutagenCommand(log, ["sync", "flush", key, "--auto-start=false"])
+}
+
+export async function getKubectlExecDestination({
+  ctx,
+  log,
+  namespace,
+  containerName,
+  resourceName,
+  targetPath,
+}: {
+  ctx: KubernetesPluginContext
+  log: LogEntry
+  namespace: string
+  containerName: string
+  resourceName: string
+  targetPath: string
+}) {
+  const kubectl = ctx.tools["kubernetes.kubectl"]
+  const kubectlPath = await kubectl.getPath(log)
+
+  const connectionOpts = prepareConnectionOpts({
+    provider: ctx.provider,
+    namespace,
+  })
+
+  const command = [
+    kubectlPath,
+    "exec",
+    "-i",
+    ...connectionOpts,
+    "--container",
+    containerName,
+    resourceName,
+    "--",
+    mutagenAgentPath,
+    "synchronizer",
+  ]
+
+  return `exec:'${command.join(" ")}':${targetPath}`
 }
 
 export const mutagenCliSpec: PluginToolSpec = {

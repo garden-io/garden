@@ -96,6 +96,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
 
   const { contextPath } = await syncToBuildSync({
     ...params,
+    ctx: ctx as KubernetesPluginContext,
     api,
     namespace,
     deploymentName: buildkitDeploymentName,
