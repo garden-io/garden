@@ -30,7 +30,7 @@ import { RunServiceParams, runService } from "./service/runService"
 import { RunTaskParams, RunTaskResult, runTask } from "./task/runTask"
 import { SetSecretParams, SetSecretResult, setSecret } from "./provider/setSecret"
 import { TestModuleParams, testModule } from "./module/testModule"
-import { joiArray, joiIdentifier, joi, joiSchema } from "../../config/common"
+import { joiArray, joiIdentifier, joi, joiSchema, CustomObjectSchema } from "../../config/common"
 import { GardenModule } from "../module"
 import { RunResult } from "./base"
 import { ServiceStatus } from "../service"
@@ -111,8 +111,8 @@ export type ModuleActionName = keyof ModuleActionParams
 export interface PluginActionDescription {
   description: string
   // TODO: specify the schemas using primitives and not Joi objects
-  paramsSchema: Joi.ObjectSchema
-  resultSchema: Joi.ObjectSchema
+  paramsSchema: CustomObjectSchema
+  resultSchema: CustomObjectSchema
 }
 
 export interface PluginActionParams {

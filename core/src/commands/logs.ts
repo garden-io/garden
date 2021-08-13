@@ -223,7 +223,7 @@ export class LogsCommand extends Command<Args, Opts> {
     const actions = await garden.getActionRouter()
 
     await Bluebird.map(services, async (service: GardenService<any>) => {
-      await actions.getServiceLogs({ log, service, stream, follow, tail, since })
+      await actions.getServiceLogs({ log, graph, service, stream, follow, tail, since })
     })
 
     const sorted = sortBy(result, "timestamp")

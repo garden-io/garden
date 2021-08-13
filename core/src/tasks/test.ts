@@ -184,6 +184,7 @@ export class TestTask extends BaseTask {
         log,
         interactive: false,
         module: this.test.module,
+        graph: this.graph,
         runtimeContext,
         silent: true,
         test: this.test,
@@ -217,6 +218,7 @@ export class TestTask extends BaseTask {
 
     return actions.getTestResult({
       log: this.log,
+      graph: this.graph,
       module: this.test.module,
       test: this.test,
     })

@@ -114,7 +114,7 @@ export class PublishTask extends BaseTask {
 
     let result: PublishModuleResult
     try {
-      result = await actions.publishModule({ module, log, tag })
+      result = await actions.publishModule({ module, log, graph: this.graph, tag })
     } catch (err) {
       log.setError()
       throw err

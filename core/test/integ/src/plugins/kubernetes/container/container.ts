@@ -232,6 +232,7 @@ describe("kubernetes container module handlers", () => {
       // We also verify that, despite the test failing, its result was still saved.
       const result = await actions.getTestResult({
         log: garden.log,
+        graph,
         module,
         test,
       })

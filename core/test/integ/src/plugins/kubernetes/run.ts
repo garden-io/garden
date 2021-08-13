@@ -1215,6 +1215,7 @@ describe("kubernetes Pod runner functions", () => {
         await actions.build({
           module,
           log: garden.log,
+          graph,
         })
 
         await expectError(
@@ -1256,6 +1257,7 @@ describe("kubernetes Pod runner functions", () => {
         await actions.build({
           module,
           log: garden.log,
+          graph,
         })
 
         await expectError(

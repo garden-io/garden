@@ -63,6 +63,7 @@ export class GetTaskResultCommand extends Command<Args> {
     const taskResult = await actions.getTaskResult({
       log,
       task,
+      graph,
     })
 
     let result: GetTaskResultCommandResult = null

@@ -108,6 +108,7 @@ describe("testHelmModule", () => {
       log: garden.log,
       module,
       test,
+      graph,
     })
 
     expect(result).to.exist

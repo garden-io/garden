@@ -83,6 +83,7 @@ export class ExecCommand extends Command<Args> {
     const actions = await garden.getActionRouter()
     const result = await actions.execInService({
       log,
+      graph,
       service,
       command,
       interactive: opts.interactive,

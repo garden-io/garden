@@ -108,6 +108,7 @@ export class TaskTask extends BaseTask {
     const resultTask = new GetTaskResultTask({
       force: this.force,
       garden: this.garden,
+      graph: this.graph,
       log: this.log,
       task: this.task,
     })
@@ -166,6 +167,7 @@ export class TaskTask extends BaseTask {
     let result: RunTaskResult
     try {
       result = await actions.runTask({
+        graph: this.graph,
         task,
         log,
         runtimeContext,
