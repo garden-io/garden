@@ -79,7 +79,7 @@ export class DeleteServiceTask extends BaseTask {
     let status: ServiceStatus
 
     try {
-      status = await actions.deleteService({ log: this.log, service: this.service })
+      status = await actions.deleteService({ log: this.log, service: this.service, graph: this.graph })
     } catch (err) {
       this.log.setError()
       throw err

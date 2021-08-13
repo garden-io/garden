@@ -62,6 +62,7 @@ describe("runKubernetesTask", () => {
     const storedResult = await actions.getTaskResult({
       log: garden.log,
       task,
+      graph,
     })
 
     expect(storedResult).to.exist
@@ -94,6 +95,7 @@ describe("runKubernetesTask", () => {
     const storedResult = await actions.getTaskResult({
       log: garden.log,
       task,
+      graph,
     })
 
     expect(storedResult).to.not.exist
@@ -149,6 +151,7 @@ describe("runKubernetesTask", () => {
     const result = await actions.getTaskResult({
       log: garden.log,
       task,
+      graph,
     })
 
     expect(result).to.exist

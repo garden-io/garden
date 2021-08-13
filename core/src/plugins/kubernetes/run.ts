@@ -857,7 +857,7 @@ export class PodRunner extends PodRunnerParams {
           })
         }
 
-        await sleep(200)
+        await sleep(800)
       }
 
       // Retrieve logs after run

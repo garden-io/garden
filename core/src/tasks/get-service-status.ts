@@ -73,6 +73,7 @@ export class GetServiceStatusTask extends BaseTask {
     const taskResultTasks = await Bluebird.map(deps.run, async (task) => {
       return new GetTaskResultTask({
         garden: this.garden,
+        graph: this.graph,
         log: this.log,
         task,
         force: false,
@@ -121,6 +122,7 @@ export class GetServiceStatusTask extends BaseTask {
 
     try {
       status = await actions.getServiceStatus({
+        graph: this.graph,
         service: this.service,
         log,
         devMode,

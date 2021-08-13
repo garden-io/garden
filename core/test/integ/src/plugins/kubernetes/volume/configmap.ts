@@ -90,6 +90,7 @@ describe("configmap module", () => {
     const status = await actions.getServiceStatus({
       log: garden.log,
       service,
+      graph,
       devMode: false,
       hotReload: false,
       runtimeContext: emptyRuntimeContext,
@@ -108,6 +109,6 @@ describe("configmap module", () => {
       })
     ).to.be.true
 
-    await actions.deleteService({ log: garden.log, service })
+    await actions.deleteService({ log: garden.log, service, graph })
   })
 })

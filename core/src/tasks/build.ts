@@ -130,7 +130,7 @@ export class BuildTask extends BaseTask {
         status: "active",
       })
 
-      const status = await actions.getBuildStatus({ log: this.log, module })
+      const status = await actions.getBuildStatus({ log: this.log, graph: this.graph, module })
 
       if (status.ready) {
         log.setSuccess({
@@ -148,6 +148,7 @@ export class BuildTask extends BaseTask {
     let result: BuildResult
     try {
       result = await actions.build({
+        graph: this.graph,
         module,
         log,
       })

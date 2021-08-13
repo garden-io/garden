@@ -107,6 +107,7 @@ export class DeployTask extends BaseTask {
       const taskResultTasks = await Bluebird.map(deps.run, async (task) => {
         return new GetTaskResultTask({
           garden: this.garden,
+          graph: this.graph,
           log: this.log,
           task,
           force: false,
@@ -207,6 +208,7 @@ export class DeployTask extends BaseTask {
     } else {
       try {
         status = await actions.deployService({
+          graph: this.graph,
           service: this.service,
           runtimeContext,
           log,
@@ -230,7 +232,13 @@ export class DeployTask extends BaseTask {
     }
 
     if (this.garden.persistent) {
-      const proxies = await startPortProxies(this.garden, log, this.service, status)
+      const proxies = await startPortProxies({
+        garden: this.garden,
+        graph: this.graph,
+        log,
+        service: this.service,
+        status,
+      })
 
       for (const proxy of proxies) {
         const targetHost = proxy.spec.targetName || this.service.name

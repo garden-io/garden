@@ -395,7 +395,7 @@ describe("exec plugin", () => {
 
       await garden.buildStaging.syncFromSrc(module, log)
       const actions = await garden.getActionRouter()
-      await actions.build({ log, module })
+      await actions.build({ log, module, graph })
 
       const versionFileContents = await readModuleVersionFile(versionFilePath)
 
@@ -405,7 +405,7 @@ describe("exec plugin", () => {
     it("should run the build command in the module dir if local true", async () => {
       const module = graph.getModule("module-local")
       const actions = await garden.getActionRouter()
-      const res = await actions.build({ log, module })
+      const res = await actions.build({ log, module, graph })
       expect(res.buildLog).to.eql(join(projectRoot, "module-local"))
     })
 
@@ -414,7 +414,7 @@ describe("exec plugin", () => {
       const actions = await garden.getActionRouter()
 
       module.spec.build.command = ["echo", "$GARDEN_MODULE_VERSION"]
-      const res = await actions.build({ log, module })
+      const res = await actions.build({ log, module, graph })
 
       expect(res.buildLog).to.equal(module.version.versionString)
     })
@@ -428,6 +428,7 @@ describe("exec plugin", () => {
         log,
         module,
         interactive: true,
+        graph,
         runtimeContext: {
           envVars: {},
           dependencies: [],
@@ -457,6 +458,7 @@ describe("exec plugin", () => {
         log,
         module,
         interactive: true,
+        graph,
         runtimeContext: {
           envVars: {},
           dependencies: [],
@@ -488,6 +490,7 @@ describe("exec plugin", () => {
         log,
         task,
         interactive: true,
+        graph,
         runtimeContext: {
           envVars: {},
           dependencies: [],
@@ -507,6 +510,7 @@ describe("exec plugin", () => {
         log,
         task,
         interactive: true,
+        graph,
         runtimeContext: {
           envVars: {},
           dependencies: [],
@@ -527,6 +531,7 @@ describe("exec plugin", () => {
         command: [],
         args: ["echo", "hello", "world"],
         interactive: false,
+        graph,
         runtimeContext: {
           envVars: {},
           dependencies: [],
@@ -553,6 +558,7 @@ describe("exec plugin", () => {
           hotReload: false,
           log,
           service,
+          graph,
           runtimeContext: {
             envVars: {},
             dependencies: [],
@@ -572,6 +578,7 @@ describe("exec plugin", () => {
               hotReload: false,
               log,
               service,
+              graph,
               runtimeContext: {
                 envVars: {},
                 dependencies: [],
@@ -598,6 +605,7 @@ describe("exec plugin", () => {
           hotReload: false,
           log,
           service,
+          graph,
           runtimeContext: {
             envVars: {},
             dependencies: [],
@@ -615,6 +623,7 @@ describe("exec plugin", () => {
           force: false,
           log,
           service,
+          graph,
           runtimeContext: {
             envVars: {},
             dependencies: [],
@@ -625,6 +634,7 @@ describe("exec plugin", () => {
           hotReload: false,
           log,
           service,
+          graph,
           runtimeContext: {
             envVars: {},
             dependencies: [],
@@ -642,6 +652,7 @@ describe("exec plugin", () => {
           hotReload: false,
           log,
           service,
+          graph,
           runtimeContext: {
             envVars: {},
             dependencies: [],
@@ -661,6 +672,7 @@ describe("exec plugin", () => {
           force: false,
           log,
           service,
+          graph,
           runtimeContext: {
             envVars: {},
             dependencies: [],
@@ -669,6 +681,7 @@ describe("exec plugin", () => {
         const res = await actions.deleteService({
           log,
           service,
+          graph,
           runtimeContext: {
             envVars: {},
             dependencies: [],
@@ -684,6 +697,7 @@ describe("exec plugin", () => {
         const res = await actions.deleteService({
           log,
           service,
+          graph,
           runtimeContext: {
             envVars: {},
             dependencies: [],
@@ -700,6 +714,7 @@ describe("exec plugin", () => {
             await actions.deleteService({
               log,
               service,
+              graph,
               runtimeContext: {
                 envVars: {},
                 dependencies: [],

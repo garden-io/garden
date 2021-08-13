@@ -97,6 +97,7 @@ describe("persistentvolumeclaim", () => {
       service,
       devMode: false,
       hotReload: false,
+      graph,
       runtimeContext: emptyRuntimeContext,
     })
 
@@ -113,6 +114,6 @@ describe("persistentvolumeclaim", () => {
       })
     ).to.be.true
 
-    await actions.deleteService({ log: garden.log, service })
+    await actions.deleteService({ log: garden.log, service, graph })
   })
 })

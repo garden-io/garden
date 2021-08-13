@@ -127,6 +127,7 @@ export class RunModuleCommand extends Command<Args, Opts> {
 
     const result = await actions.runModule({
       log,
+      graph,
       module,
       command: opts.command?.split(" "),
       args: args.arguments || [],

@@ -68,9 +68,10 @@ export class GetStatusCommand extends Command {
 
   async action({ garden, log, opts }: CommandParams): Promise<CommandResult<StatusCommandResult>> {
     const actions = await garden.getActionRouter()
+    const graph = await garden.getConfigGraph(log)
 
     const envStatus = await garden.getEnvironmentStatus(log)
-    const serviceStatuses = await actions.getServiceStatuses({ log })
+    const serviceStatuses = await actions.getServiceStatuses({ log, graph })
 
     let result: StatusCommandResult = {
       providers: envStatus,
@@ -80,7 +81,6 @@ export class GetStatusCommand extends Command {
     }
 
     if (opts.output) {
-      const graph = await garden.getConfigGraph(log)
       result = {
         ...result,
         ...(await Bluebird.props({
@@ -125,6 +125,7 @@ async function getTestStatuses(garden: Garden, configGraph: ConfigGraph, log: Lo
           const result = await actions.getTestResult({
             module,
             log,
+            graph: configGraph,
             test: testFromConfig(module, testConfig, configGraph),
           })
           return [`${module.name}.${testConfig.name}`, runStatus(result)]
@@ -140,7 +141,7 @@ async function getTaskStatuses(garden: Garden, configGraph: ConfigGraph, log: Lo
 
   return fromPairs(
     await Bluebird.map(tasks, async (task) => {
-      const result = await actions.getTaskResult({ task, log })
+      const result = await actions.getTaskResult({ task, log, graph: configGraph })
       return [task.name, runStatus(result)]
     })
   )

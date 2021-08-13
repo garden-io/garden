@@ -73,6 +73,7 @@ export class GetTestResultCommand extends Command<Args> {
 
     const testResult = await actions.getTestResult({
       log,
+      graph,
       test,
       module,
     })
