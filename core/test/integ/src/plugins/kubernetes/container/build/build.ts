@@ -152,7 +152,8 @@ describe("kubernetes build flow", () => {
     })
   })
 
-  grouped("cluster-docker").context("cluster-docker mode", () => {
+  // TODO: Reenable these tests e.g. for Minikube?
+  grouped("cluster-docker", "remote-only").context("cluster-docker mode", () => {
     before(async () => {
       await init("cluster-docker")
     })
