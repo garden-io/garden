@@ -1,4 +1,11 @@
 
+<a name="0.12.25-1"></a>
+## [0.12.25-1](https://github.com/garden-io/garden/compare/0.12.25-0...0.12.25-1) (2021-08-23)
+
+### Bug Fixes
+
+* **k8s:** error fetching mutagen CLI on Windows ([2f238dfc](https://github.com/garden-io/garden/commit/2f238dfc))
+
 <a name="0.12.25-0"></a>
 ## [0.12.25-0](https://github.com/garden-io/garden/compare/0.12.24...0.12.25-0) (2021-08-13)
 
