@@ -1,4 +1,59 @@
 
+<a name="0.12.25"></a>
+## [0.12.25](https://github.com/garden-io/garden/compare/0.12.24...0.12.25) (2021-08-23)
+
+### Bug Fixes
+
+* debug tests ([c7404c01](https://github.com/garden-io/garden/commit/c7404c01))
+* **cli:** avoid cmd.exe windows popping up during execution ([ddb5ab93](https://github.com/garden-io/garden/commit/ddb5ab93))
+* **cli:** don't print dev cmd banner when terminal doesn't support it ([3a637250](https://github.com/garden-io/garden/commit/3a637250))
+* **cli:** error at end of process when writing error log ([cb68b2a4](https://github.com/garden-io/garden/commit/cb68b2a4))
+* **config:** module variables weren't propagated right at parse time ([b1c52fab](https://github.com/garden-io/garden/commit/b1c52fab))
+* **container:** fix hot reload target validation ([2d471360](https://github.com/garden-io/garden/commit/2d471360))
+* **core:** deploy command wouldn't start port forwards with dev flag ([08b1e172](https://github.com/garden-io/garden/commit/08b1e172))
+* **core:** don't omit dev mode services from deployment dependencies ([2a5df7cc](https://github.com/garden-io/garden/commit/2a5df7cc))
+* **core:** bump file watcher DEFAULT_BUFFER_INTERVAL to 1250 ([d46e4578](https://github.com/garden-io/garden/commit/d46e4578))
+* **core:** warn instead of error when attempting to scan non-directory ([d668622b](https://github.com/garden-io/garden/commit/d668622b))
+* **core:** bad error messages for certain error types ([8500aec5](https://github.com/garden-io/garden/commit/8500aec5))
+* **core:** performance issue with certain dependency structures ([b72de2e8](https://github.com/garden-io/garden/commit/b72de2e8))
+* **core:** allow empty replacement strings in 'replace' helper function ([3686fb43](https://github.com/garden-io/garden/commit/3686fb43))
+* **k8s:** error fetching mutagen CLI on Windows ([db362d95](https://github.com/garden-io/garden/commit/db362d95))
+* **k8s:** persistentvolumeclaim modules would include unnecessary files ([41116475](https://github.com/garden-io/garden/commit/41116475))
+* **k8s:** error when using dev mode on certain kubernetes modules ([5bfb3d70](https://github.com/garden-io/garden/commit/5bfb3d70))
+* **k8s:** correctly handle Ingress API versions for container modules ([3764dfa7](https://github.com/garden-io/garden/commit/3764dfa7))
+* **k8s:** intermittent errors when building/syncing to cluster ([d2828370](https://github.com/garden-io/garden/commit/d2828370))
+* **k8s:** unexpected error when losing exec WS connection ([9400d630](https://github.com/garden-io/garden/commit/9400d630))
+* **k8s:** error when re-starting registry in cleanup script ([5b8fe40c](https://github.com/garden-io/garden/commit/5b8fe40c))
+* **k8s:** bad handling of directory paths for artifact sources ([92ee09a5](https://github.com/garden-io/garden/commit/92ee09a5))
+* **k8s:** resolve issue with buildkit not caching ([#2480](https://github.com/garden-io/garden/issues/2480)) ([37f1f762](https://github.com/garden-io/garden/commit/37f1f762))
+* **templates:** uuidv4() helper function was broken ([6c14777f](https://github.com/garden-io/garden/commit/6c14777f))
+
+### Code Refactoring
+
+* **k8s:** officially deprecate the cluster-docker build mode ([925b291a](https://github.com/garden-io/garden/commit/925b291a))
+
+### Features
+
+* allow passing additional tolerations to kaniko pods ([#2540](https://github.com/garden-io/garden/issues/2540)) ([3748092c](https://github.com/garden-io/garden/commit/3748092c))
+* add ephemeralStorage limit and request configuration parameters for kubernetes builder, registry and sync ([1a9e2979](https://github.com/garden-io/garden/commit/1a9e2979))
+* **cli:** add self-update command ([6dd23340](https://github.com/garden-io/garden/commit/6dd23340))
+* **cloud:** stream command metadata ([de925e4c](https://github.com/garden-io/garden/commit/de925e4c))
+* **core:** stream build statuses ([4bd1d0f3](https://github.com/garden-io/garden/commit/4bd1d0f3))
+* **k8s:** add experimental mutagen-based build sync mode ([1d3e3072](https://github.com/garden-io/garden/commit/1d3e3072))
+* **k8s:** allow setting podSelector on helm/kubernetes resource refs ([43e7cc82](https://github.com/garden-io/garden/commit/43e7cc82))
+* **k8s:** manual port forward config for helm and kubernetes modules ([9111a480](https://github.com/garden-io/garden/commit/9111a480))
+* **k8s:** add timeout parameter to kubernetes module type ([708f4c39](https://github.com/garden-io/garden/commit/708f4c39))
+* **k8s:** allow owner/perm tweaks on dev mode syncs ([eb4be420](https://github.com/garden-io/garden/commit/eb4be420))
+* **k8s:** port-forward to Deployments and DaemonSets ([8c2b7474](https://github.com/garden-io/garden/commit/8c2b7474))
+* **k8s:** add `configmap` module type, mountable on container modules ([809dcb8c](https://github.com/garden-io/garden/commit/809dcb8c))
+
+### Improvements
+
+* **cli:** move error.log to .garden/error.log ([e13365e2](https://github.com/garden-io/garden/commit/e13365e2))
+* **core:** don't explicitly create build tasks in dev command ([0aa68e20](https://github.com/garden-io/garden/commit/0aa68e20))
+* **core:** do not truncate logger sections ([f462e3ac](https://github.com/garden-io/garden/commit/f462e3ac))
+* **k8s:** better process mgmt and logging for dev mode sync ([7a01e41b](https://github.com/garden-io/garden/commit/7a01e41b))
+
 <a name="0.12.24"></a>
 ## [0.12.24](https://github.com/garden-io/garden/compare/0.12.23...0.12.24) (2021-07-09)
 
