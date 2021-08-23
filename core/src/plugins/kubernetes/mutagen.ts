@@ -551,7 +551,7 @@ export const mutagenCliSpec: PluginToolSpec = {
         "https://github.com/garden-io/mutagen/releases/download/v0.12.0-garden-alpha2/mutagen_windows_amd64_v0.12.0-beta3.zip",
       sha256: "9482646380a443b72aa38b3569c71c73d91ddde7c57a10de3d48b0b727cb8bff",
       extract: {
-        format: "tar",
+        format: "zip",
         targetPath: "mutagen.exe",
       },
     },
