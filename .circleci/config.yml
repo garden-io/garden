@@ -210,11 +210,19 @@ jobs:
       - npm_install
       - *attach-workspace
       - run:
-          name: Make sure generated docs are up-to-date
-          command: yarn run check-docs
-      - run:
           name: lint
           command: yarn run lint
+
+  check-docs:
+    <<: *node-config
+    steps:
+      - checkout
+      - npm_install
+      - *attach-workspace
+      - run:
+          name: Make sure generated docs are up-to-date
+          command: yarn run check-docs
+
   test-framework:
     <<: *node-config
     steps:
@@ -791,6 +799,8 @@ workflows:
       - build-dist:
           requires: [build]
       - lint:
+          requires: [build]
+      - check-docs:
           requires: [build]
       - build-docker-alpine:
           <<: *only-internal-prs
