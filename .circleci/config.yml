@@ -250,6 +250,10 @@ commands:
           key: pkg-v1-{{ checksum ".pkgversion" }}
           paths:
             - tmp/pkg-fetch
+      - run:
+          # No need to store the raw files as artifacts, we just want the archives
+          name: Cleanup
+          command: rm -rf dist/*-amd64
       - store_artifacts:
           path: dist
           destination: dist
