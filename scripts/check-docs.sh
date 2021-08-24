@@ -1,6 +1,10 @@
 #!/bin/bash -e
 # set -v
 
+# Needs to generate clean docs before we can validate they are up to date
+yarn run generate-docs
+git diff --quiet HEAD -- docs/ || (echo 'generated docs are not up-to-date! run \"yarn generate-docs\" and commit the changes\n' && exit 1)
+
 # Use "|| true" so we don't exit on empty
 modified_docs=$(git diff --name-status master docs README.md) || true
 modified_examples=$(git diff --name-status master examples | grep "examples.*\README.md$") || true
@@ -42,7 +46,3 @@ if !([ -z "$modified_docs" ] && [ -z "$modified_examples" ]); then
     exit 1
   fi
 fi
-
-# Needs to generate clean docs before we can validate they are up to date
-yarn run generate-docs
-git diff --quiet HEAD -- docs/ || (echo 'generated docs are not up-to-date! run \"yarn run generate-docs\" and commit the changes\n' && exit 1)
