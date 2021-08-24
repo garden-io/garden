@@ -17,7 +17,7 @@ orbs:
   # Configuration for our node jobs
   node-config: &node-config
     docker:
-      - image: cimg/node:12.22.2
+      - image: gardendev/circleci-runner:12.22.2-0
         environment:
           <<: *shared-env-config
     resource_class: medium
@@ -119,17 +119,6 @@ commands:
             sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/npm" "/usr/local/bin/npm"
             sudo npm install -g yarn
 
-  install_gcloud:
-    description: Install the gcloud SDK
-    steps:
-      - run:
-          name: Install gcloud
-          command: |
-            mkdir $HOME/gcloud
-            curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz | tar xz -C $HOME/gcloud
-            $HOME/gcloud/google-cloud-sdk/install.sh --quiet
-            echo 'export PATH=$HOME/gcloud/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
-
   configure_kubectl_context:
     description: Configure the kubectl context via gcloud so that we can access our remote cluster. Used for e2e testing.
     steps:
@@ -160,7 +149,6 @@ commands:
           docker_layer_caching: true
       - checkout
       - npm_install
-      - run: sudo apt-get update && sudo apt-get -y install rsync
       - *attach-workspace
       - run:
           name: Run dist command with the appropriate argument
@@ -183,7 +171,6 @@ jobs:
     <<: *node-config
     steps:
       - checkout
-      - run: sudo apt-get update && sudo apt-get install rsync
       - npm_install
       - run:
           name: build
@@ -220,7 +207,6 @@ jobs:
     <<: *node-config
     steps:
       - checkout
-      - run: sudo apt-get update && sudo apt-get -y install parallel rsync
       - npm_install
       - *attach-workspace
       - run:
@@ -233,7 +219,6 @@ jobs:
     <<: *node-config
     steps:
       - checkout
-      - run: sudo apt-get update && sudo apt-get install rsync
       - setup_remote_docker
       - npm_install
       - *attach-workspace
@@ -261,10 +246,7 @@ jobs:
         default: testing
     steps:
       - checkout
-      - run: sudo apt-get update && sudo apt-get install rsync
       - npm_install
-      - install_kubectl
-      - install_gcloud
       - configure_kubectl_context
       - docker_login
       - *attach-workspace
@@ -467,11 +449,8 @@ jobs:
     steps:
       # Need to checkout to run example project
       - checkout
-      - install_kubectl
-      - install_gcloud
       - configure_kubectl_context
       - *attach-workspace
-      - run: sudo apt-get update && sudo apt-get -y install rsync
       - run:
           name: Test that the binary works with the fancy logger enabled
           command: dist/linux-amd64/garden options
