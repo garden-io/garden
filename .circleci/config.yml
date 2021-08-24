@@ -69,7 +69,7 @@ commands:
           - yarn-v3-{{ checksum "yarn.lock" }}
           - yarn-v3
 
-      - run: yarn run bootstrap
+      - run: yarn
 
       - save_cache:
           key: yarn-v3-{{ checksum "yarn.lock" }}
@@ -532,7 +532,6 @@ jobs:
       - update_nodejs
       # Note: We can't use npm_install here because the cache conflicts
       - run: yarn
-      - run: yarn bootstrap
       - run: yarn build
       - run:
           name: Integ tests
@@ -596,7 +595,6 @@ jobs:
       - update_nodejs
       # Note: We can't use npm_install here because the cache conflicts
       - run: yarn
-      - run: yarn run bootstrap
       - run: yarn run build
       - run:
           name: Integ tests
@@ -652,7 +650,7 @@ jobs:
       - docker_login
       - update_nodejs
       # Note: We can't use npm_install here because the cache conflicts
-      - run: yarn run bootstrap
+      - run: yarn
       - run: yarn run build
       - run:
           name: Install Minikube Executable
