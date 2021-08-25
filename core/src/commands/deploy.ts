@@ -65,6 +65,10 @@ export const deployOpts = {
   "skip": new StringsParameter({
     help: "The name(s) of services you'd like to skip when deploying.",
   }),
+  "forward": new BooleanParameter({
+    help: deline`Create port forwards and leave process running without watching
+    for changes. Ignored if --watch/-w flag is set or when in dev or hot-reload mode.`,
+  }),
 }
 
 type Args = typeof deployArgs
@@ -105,7 +109,8 @@ export class DeployCommand extends Command<Args, Opts> {
 
   outputsSchema = () => processCommandResultSchema()
 
-  private isPersistent = (opts: ParameterValues<Opts>) => !!opts.watch || !!opts["hot-reload"] || !!opts["dev-mode"]
+  private isPersistent = (opts: ParameterValues<Opts>) =>
+    !!opts.watch || !!opts["hot-reload"] || !!opts["dev-mode"] || !!opts.forward
 
   printHeader({ headerLog }) {
     printHeader(headerLog, "Deploy", "rocket")

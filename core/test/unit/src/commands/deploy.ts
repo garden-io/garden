@@ -123,6 +123,7 @@ describe("DeployCommand", () => {
         "force": false,
         "force-build": true,
         "skip": undefined,
+        "forward": false,
       }),
     })
 
@@ -470,6 +471,7 @@ describe("DeployCommand", () => {
         "force": false,
         "force-build": true,
         "skip": undefined,
+        "forward": false,
       }),
     })
 
@@ -523,6 +525,7 @@ describe("DeployCommand", () => {
         "force": false,
         "force-build": true,
         "skip": undefined,
+        "forward": false,
       }),
     })
 
@@ -573,6 +576,7 @@ describe("DeployCommand", () => {
         "force": false,
         "force-build": true,
         "skip": undefined,
+        "forward": false,
       }),
     })
 
@@ -616,6 +620,7 @@ describe("DeployCommand", () => {
         "force": false,
         "force-build": true,
         "skip": ["service-b"],
+        "forward": false,
       }),
     })
 
@@ -627,7 +632,7 @@ describe("DeployCommand", () => {
   })
 
   describe("prepare", () => {
-    it("return persistent=true if --watch is set", async () => {
+    it("should return persistent=true if --watch is set", async () => {
       const cmd = new DeployCommand()
       const log = getLogger().placeholder()
       const { persistent } = await cmd.prepare({
@@ -644,12 +649,13 @@ describe("DeployCommand", () => {
           "force": false,
           "force-build": true,
           "skip": ["service-b"],
+          "forward": false,
         }),
       })
       expect(persistent).to.be.true
     })
 
-    it("return persistent=true if --dev is set", async () => {
+    it("should return persistent=true if --dev is set", async () => {
       const cmd = new DeployCommand()
       const log = getLogger().placeholder()
       const { persistent } = await cmd.prepare({
@@ -666,12 +672,13 @@ describe("DeployCommand", () => {
           "force": false,
           "force-build": true,
           "skip": ["service-b"],
+          "forward": false,
         }),
       })
       expect(persistent).to.be.true
     })
 
-    it("return persistent=true if --hot-reload is set", async () => {
+    it("should return persistent=true if --hot-reload is set", async () => {
       const cmd = new DeployCommand()
       const log = getLogger().placeholder()
       const { persistent } = await cmd.prepare({
@@ -688,6 +695,29 @@ describe("DeployCommand", () => {
           "force": false,
           "force-build": true,
           "skip": ["service-b"],
+          "forward": false,
+        }),
+      })
+      expect(persistent).to.be.true
+    })
+    it("should return persistent=true if --follow is set", async () => {
+      const cmd = new DeployCommand()
+      const log = getLogger().placeholder()
+      const { persistent } = await cmd.prepare({
+        log,
+        headerLog: log,
+        footerLog: log,
+        args: {
+          services: undefined,
+        },
+        opts: withDefaultGlobalOpts({
+          "dev-mode": undefined,
+          "hot-reload": undefined,
+          "watch": false,
+          "force": false,
+          "force-build": true,
+          "skip": ["service-b"],
+          "forward": true,
         }),
       })
       expect(persistent).to.be.true
