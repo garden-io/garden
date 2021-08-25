@@ -31,7 +31,9 @@ interface ProcessParams {
   footerLog?: LogEntry
   watch: boolean
   initialTasks: BaseTask[]
-  // use this if the behavior should be different on watcher changes than on initial processing
+  /**
+   * Use this if the behavior should be different on watcher changes than on initial processing
+   */
   changeHandler: ProcessHandler
 }
 
@@ -81,7 +83,28 @@ export async function processModules({
 
   const results = await garden.processTasks(initialTasks)
 
-  if (!watch) {
+  if (!watch && !garden.persistent) {
+    return {
+      taskResults: results,
+      restartRequired: false,
+    }
+  }
+
+  if (!watch && garden.persistent) {
+    // Garden process is persistent but not in watch mode. E.g. used to
+    // keep port forwards alive without enabling watch or dev mode.
+    await new Promise((resolve) => {
+      garden.events.on("_restart", () => {
+        log.debug({ symbol: "info", msg: `Manual restart triggered` })
+        resolve({})
+      })
+
+      garden.events.on("_exit", () => {
+        log.debug({ symbol: "info", msg: `Manual exit triggered` })
+        restartRequired = false
+        resolve({})
+      })
+    })
     return {
       taskResults: results,
       restartRequired: false,
