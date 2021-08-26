@@ -18,6 +18,7 @@ import { ContainerHotReloadSpec } from "../../container/config"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 import { getForwardablePorts, killPortForwards } from "../port-forward"
+import { prepareImagePullSecrets } from "../secrets"
 import { getServiceResource, getServiceResourceSpec } from "../util"
 import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
 import { getHotReloadSpec, configureHotReload, getHotReloadContainerName } from "../hot-reload/helpers"
@@ -38,6 +39,7 @@ export async function deployHelmService({
 
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
+  const api = await KubeApi.factory(log, ctx, provider)
 
   const namespaceStatus = await getModuleNamespaceStatus({
     ctx: k8sCtx,
@@ -64,6 +66,8 @@ export async function deployHelmService({
   if (hotReload) {
     hotReloadSpec = getHotReloadSpec(service)
   }
+
+  await prepareImagePullSecrets({ api, provider, namespace, log })
 
   const chartPath = await getChartPath(module)
 
