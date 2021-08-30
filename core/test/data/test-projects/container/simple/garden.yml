@@ -2,6 +2,7 @@ kind: Module
 name: simple
 type: container
 image: busybox:1.31.1
+
 services:
   - name: echo-service
     command: [sh, -c, "echo ok"]
@@ -9,6 +10,7 @@ services:
     command: [sh, -c, "echo $ENV_VAR"]
     env:
       ENV_VAR: foo
+
 tasks:
   - name: echo-task
     command: [sh, -c, "echo ok"]
@@ -30,11 +32,7 @@ tasks:
       - source: /task.*
         target: subdir
       - source: /tasks/*
-  - name: dir-task
-    command: [sh, -c, "mkdir -p /report && touch /report/output.txt && echo ok"]
-    artifacts:
-      - source: /report/*
-        target: my-task-report
+
 tests:
   - name: echo-test
     command: [sh, -c, "echo ok"]

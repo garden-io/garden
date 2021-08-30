@@ -11,7 +11,7 @@ import { DeploymentError } from "../../../exceptions"
 import { KubernetesModule } from "./config"
 import { getAppNamespace } from "../namespace"
 import { KubernetesPluginContext } from "../config"
-import { execInWorkload, findServiceResource, getServiceResourceSpec } from "../util"
+import { execInWorkload, getServiceResource, getServiceResourceSpec } from "../util"
 import { getKubernetesServiceStatus } from "./handlers"
 import { ExecInServiceParams } from "../../../types/plugin/service/execInService"
 
@@ -33,9 +33,10 @@ export async function execInKubernetesService(params: ExecInServiceParams<Kubern
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
   const serviceResourceSpec = getServiceResourceSpec(module, undefined)
-  const serviceResource = await findServiceResource({
+  const serviceResource = await getServiceResource({
     ctx,
     log,
+    provider,
     module,
     manifests: status.detail.remoteResources,
     resourceSpec: serviceResourceSpec,

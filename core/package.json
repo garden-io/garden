@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/core",
-  "version": "0.12.24",
+  "version": "0.12.25",
   "description": "A full-featured development framework for containers and serverless",
   "repository": {
     "type": "git",
@@ -219,6 +219,7 @@
     "@types/wrap-ansi": "^3.0.0",
     "amplitude-js": "^6.2.0",
     "chai": "^4.2.0",
+    "finalhandler": "^1.1.2",
     "gulp": "^4.0.2",
     "gulp-pegjs": "^0.2.0",
     "is-subset": "^0.1.1",
@@ -232,6 +233,7 @@
     "pegjs": "^0.10.0",
     "prettier": "^2.1.1",
     "replace-in-file": "^6.0.0",
+    "serve-static": "^1.14.1",
     "shx": "^0.3.2",
     "testdouble": "^3.15.0",
     "testdouble-chai": "^0.5.0",
@@ -245,6 +247,7 @@
     "typescript": "^4.3.5"
   },
   "scripts": {
+    "_integ": "mocha --opts test/mocha.integ.opts",
     "build": "gulp pegjs",
     "check-package-lock": "git diff-index --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
     "clean": "shx rm -rf build",
@@ -252,10 +255,10 @@
     "fix-format": "prettier --write \"{src,test}/**/*.ts\"",
     "lint": "tslint -p .",
     "migration:generate": "typeorm migration:generate --config ormconfig.js -n",
-    "integ": "mocha --opts test/mocha.integ.opts",
-    "integ-kind": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"cluster-docker cluster-buildkit cluster-buildkit-rootless kaniko remote-only\" mocha --opts test/mocha.integ.opts",
-    "integ-local": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=remote-only mocha --opts test/mocha.integ.opts",
-    "integ-remote": "GARDEN_INTEG_TEST_MODE=remote GARDEN_SKIP_TESTS=local-only mocha --opts test/mocha.integ.opts",
+    "integ-kind": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"cluster-docker cluster-buildkit cluster-buildkit-rootless kaniko remote-only\" yarn run _integ",
+    "integ-local": "GARDEN_LOGGER_TYPE=basic GARDEN_LOG_LEVEL=debug GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"cluster-docker\" yarn run _integ",
+    "integ-minikube": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"cluster-docker kaniko remote-only\" yarn run _integ",
+    "integ-remote": "GARDEN_INTEG_TEST_MODE=remote GARDEN_SKIP_TESTS=local-only yarn run _integ",
     "e2e": "cd test/e2e && ../../../bin/garden test",
     "e2e-project": "node build/test/e2e/e2e-project.js",
     "test": "mocha --opts test/mocha.opts"

@@ -6,13 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { V1DaemonSet, V1Deployment, V1StatefulSet } from "@kubernetes/client-node"
 import Bluebird from "bluebird"
-import chalk from "chalk"
-
 import { cloneDeep, partition, set, uniq } from "lodash"
 import { LogEntry } from "../../../logger/log-entry"
-import { PluginContext } from "../../../plugin-context"
 import { NamespaceStatus } from "../../../types/plugin/base"
 import { ModuleAndRuntimeActionHandlers } from "../../../types/plugin/plugin"
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
@@ -27,7 +23,7 @@ import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { HelmService } from "../helm/config"
 import { configureHotReload, getHotReloadContainerName, getHotReloadSpec } from "../hot-reload/helpers"
 import { HotReloadableResource, hotReloadK8s } from "../hot-reload/hot-reload"
-import { apply, deleteObjectsBySelector } from "../kubectl"
+import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { streamK8sLogs } from "../logs"
 import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
 import { getForwardablePorts, getPortForwardHandler, killPortForwards } from "../port-forward"
@@ -35,7 +31,7 @@ import { compareDeployedResources, waitForResources } from "../status/status"
 import { getTaskResult } from "../task-results"
 import { getTestResult } from "../test-results"
 import { BaseResource, KubernetesResource, KubernetesServerResource } from "../types"
-import { findServiceResource, getServiceResourceSpec } from "../util"
+import { getServiceResource, getServiceResourceSpec } from "../util"
 import { gardenNamespaceAnnotationValue, getManifests } from "./common"
 import { configureKubernetesModule, KubernetesModule, KubernetesService } from "./config"
 import { execInKubernetesService } from "./exec"
@@ -86,7 +82,7 @@ export async function getKubernetesServiceStatus({
   // This means that manifests added via the `build.dependencies[].copy` field will not be included.
   const manifests = await getManifests({ ctx, api, log, module, defaultNamespace: namespace, readFromSrcDir: true })
   const prepareResult = await prepareManifestsForSync({
-    ctx,
+    ctx: k8sCtx,
     log,
     module,
     service,
@@ -97,14 +93,15 @@ export async function getKubernetesServiceStatus({
 
   let { state, remoteResources } = await compareDeployedResources(k8sCtx, api, namespace, prepareResult.manifests, log)
 
-  const forwardablePorts = getForwardablePorts(remoteResources)
+  const forwardablePorts = getForwardablePorts(remoteResources, service)
 
   if (state === "ready" && devMode && service.spec.devMode) {
     // Need to start the dev-mode sync here, since the deployment handler won't be called.
     const serviceResourceSpec = getServiceResourceSpec(module, undefined)
-    const target = await findServiceResource({
-      ctx,
+    const target = await getServiceResource({
+      ctx: k8sCtx,
       log,
+      provider: k8sCtx.provider,
       module,
       manifests: remoteResources,
       resourceSpec: serviceResourceSpec,
@@ -113,12 +110,13 @@ export async function getKubernetesServiceStatus({
     if (target.metadata.annotations?.[gardenAnnotationKey("dev-mode")] === "true") {
       await startDevModeSync({
         ctx,
-        log: log.info({ section: service.name, symbol: "info", msg: chalk.gray(`Starting sync`) }),
+        log,
         moduleRoot: service.sourceModule.path,
         namespace,
         target,
         spec: service.spec.devMode,
         containerName: service.spec.devMode.containerName,
+        serviceName: service.name,
       })
     } else {
       state = "outdated"
@@ -167,6 +165,7 @@ export async function deployKubernetesService(
       serviceName: service.name,
       resources: namespaceManifests,
       log,
+      timeoutSec: service.spec.timeout || KUBECTL_DEFAULT_TIMEOUT,
     })
   }
 
@@ -175,7 +174,7 @@ export async function deployKubernetesService(
   const pruneSelector = getSelector(service)
   if (otherManifests.length > 0) {
     const prepareResult = await prepareManifestsForSync({
-      ctx,
+      ctx: k8sCtx,
       log,
       module,
       service,
@@ -194,6 +193,7 @@ export async function deployKubernetesService(
       serviceName: service.name,
       resources: prepareResult.manifests,
       log,
+      timeoutSec: service.spec.timeout || KUBECTL_DEFAULT_TIMEOUT,
     })
   }
 
@@ -205,12 +205,13 @@ export async function deployKubernetesService(
   if (devMode && service.spec.devMode && target) {
     await startDevModeSync({
       ctx,
-      log: log.info({ section: service.name, symbol: "info", msg: chalk.gray(`Starting sync`) }),
+      log,
       moduleRoot: service.sourceModule.path,
       namespace,
       target,
       spec: service.spec.devMode,
       containerName: service.spec.devMode.containerName,
+      serviceName: service.name,
     })
   }
 
@@ -332,7 +333,7 @@ async function prepareManifestsForSync({
   hotReload,
   manifests,
 }: {
-  ctx: PluginContext
+  ctx: KubernetesPluginContext
   service: KubernetesService | HelmService
   log: LogEntry
   module: KubernetesModule
@@ -340,14 +341,16 @@ async function prepareManifestsForSync({
   hotReload: boolean
   manifests: KubernetesResource<BaseResource>[]
 }) {
-  let target: KubernetesResource<V1Deployment | V1DaemonSet | V1StatefulSet>
+  let target: HotReloadableResource
 
   try {
     const resourceSpec = getServiceResourceSpec(module, undefined)
+
     target = cloneDeep(
-      await findServiceResource({
+      await getServiceResource({
         ctx,
         log,
+        provider: ctx.provider,
         module,
         manifests,
         resourceSpec,

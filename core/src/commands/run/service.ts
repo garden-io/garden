@@ -122,6 +122,7 @@ export class RunServiceCommand extends Command<Args, Opts> {
 
     const result = await actions.runService({
       log,
+      graph,
       service,
       runtimeContext,
       interactive,

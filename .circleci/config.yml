@@ -12,6 +12,7 @@ orbs:
   shared-env-config: &shared-env-config
     GARDEN_DISABLE_VERSION_CHECK: "true"
     GARDEN_DISABLE_ANALYTICS: "true"
+    GARDEN_K8S_BUILD_SYNC_MODE: "mutagen"
 
   # Configuration for our node jobs
   node-config: &node-config
@@ -604,7 +605,7 @@ jobs:
             # - Need to run with sudo to work with microk8s, because CircleCI doesn't allow us to log out
             #   and back in to add the circleci user to the microk8s group.
             # - We currently don't support in-cluster building on microk8s.
-            GARDEN_SKIP_TESTS="cluster-docker kaniko remote-only" sudo -E npm run integ
+            sudo -E GARDEN_SKIP_TESTS="cluster-docker kaniko remote-only" npm run _integ
       - run:
           name: Plugin tests
           command: sudo -E npm run test:plugins
@@ -673,7 +674,7 @@ jobs:
       - run:
           name: Integ tests
           # Note: We skip tests that only work for remote environments
-          command: cd core && yarn run integ-local -b
+          command: cd core && yarn integ-minikube
       - run:
           name: Plugin tests
           command: yarn run test:plugins

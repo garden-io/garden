@@ -120,6 +120,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
     extraFlags?: string[]
     namespace?: string | null
     nodeSelector?: StringMap
+    tolerations?: V1Toleration[]
   }
   context: string
   defaultHostname?: string
@@ -420,6 +421,9 @@ export const kubernetesConfigBase = () =>
             [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
           `
         ),
+        tolerations: joiSparseArray(tolerationSchema()).description(
+          "Specify tolerations to apply to each Kaniko Pod. Useful to control which nodes in a cluster can run builds."
+        ),
       })
       .default(() => {})
       .description("Configuration options for the `kaniko` build mode."),
@@ -615,39 +619,40 @@ export const kubernetesConfigBase = () =>
       )
       .example({ disktype: "ssd" })
       .default(() => ({})),
-    registryProxyTolerations: joiSparseArray(
-      joi.object().keys({
-        effect: joi.string().allow("NoSchedule", "PreferNoSchedule", "NoExecute").description(dedent`
-          "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
-          allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
-        `),
-        key: joi.string().description(dedent`
-          "Key" is the taint key that the toleration applies to. Empty means match all taint keys.
-          If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
-        `),
-        operator: joi.string().allow("Exists", "Equal").default("Equal").description(dedent`
-          "Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal". Defaults to
-          "Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
-          particular category.
-        `),
-        tolerationSeconds: joi.string().description(dedent`
-          "TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
-          otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
-          the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
-          by the system.
-        `),
-        value: joi.string().description(dedent`
-          "Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be empty,
-          otherwise just a regular string.
-        `),
-      })
-    ).description(dedent`
+    registryProxyTolerations: joiSparseArray(tolerationSchema()).description(dedent`
         For setting tolerations on the registry-proxy when using in-cluster building.
         The registry-proxy is a DaemonSet that proxies connections to the docker registry service on each node.
 
         Use this only if you're doing in-cluster building and the nodes in your cluster
         have [taints](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/).
       `),
+  })
+
+export const tolerationSchema = () =>
+  joi.object().keys({
+    effect: joi.string().allow("NoSchedule", "PreferNoSchedule", "NoExecute").description(dedent`
+          "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
+          allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
+        `),
+    key: joi.string().description(dedent`
+          "Key" is the taint key that the toleration applies to. Empty means match all taint keys.
+          If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
+        `),
+    operator: joi.string().allow("Exists", "Equal").default("Equal").description(dedent`
+          "Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal". Defaults to
+          "Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
+          particular category.
+        `),
+    tolerationSeconds: joi.string().description(dedent`
+          "TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
+          otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
+          the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
+          by the system.
+        `),
+    value: joi.string().description(dedent`
+          "Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be empty,
+          otherwise just a regular string.
+        `),
   })
 
 export const namespaceSchema = () =>
@@ -699,9 +704,10 @@ export const configSchema = () =>
     .unknown(false)
 
 export interface ServiceResourceSpec {
-  kind: HotReloadableKind
+  kind?: HotReloadableKind
   name?: string
   containerName?: string
+  podSelector?: { [key: string]: string }
   containerModule?: string
   hotReloadCommand?: string[]
   hotReloadArgs?: string[]
@@ -724,34 +730,46 @@ export interface KubernetesTestSpec extends BaseTestSpec {
   resource: ServiceResourceSpec
 }
 
+export const serviceResourceDescription = dedent`
+  This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the \`kind\` and \`name\` fields, or a Pod via the \`podSelector\` field.
+`
+
 export const serviceResourceSchema = () =>
-  joi.object().keys({
-    // TODO: consider allowing a `resource` field, that includes the kind and name (e.g. Deployment/my-deployment).
-    kind: joi
-      .string()
-      .valid(...hotReloadableKinds)
-      .default("Deployment")
-      .description("The type of Kubernetes resource to sync files to."),
-    name: joi.string().description(
-      deline`The name of the resource to sync to. If the module contains a single resource of the specified Kind,
+  joi
+    .object()
+    .keys({
+      kind: joi
+        .string()
+        .valid(...hotReloadableKinds)
+        .default("Deployment")
+        .description("The type of Kubernetes resource to sync files to."),
+      name: joi.string().description(
+        deline`The name of the resource to sync to. If the module contains a single resource of the specified Kind,
         this can be omitted.`
-    ),
-    containerName: joi.string().description(
-      deline`The name of a container in the target. Specify this if the target contains more than one container
-        and the main container is not the first container in the spec.`
-    ),
-  })
+      ),
+      containerName: joi
+        .string()
+        .description(
+          `The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.`
+        ),
+      podSelector: joiStringMap(joi.string()).description(
+        dedent`
+          A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+        `
+      ),
+    })
+    .oxor("podSelector", "kind")
+    .oxor("podSelector", "name")
 
 export const containerModuleSchema = () =>
   joiIdentifier()
     .description(
-      deline`The Garden module that contains the sources for the container. This needs to be specified under
-    \`serviceResource\` in order to enable hot-reloading, but is not necessary for tasks and tests.
+      dedent`
+        The Garden module that contains the sources for the container. This needs to be specified under \`serviceResource\` in order to enable hot-reloading and dev mode, but is not necessary for tasks and tests.
 
-    Must be a \`container\` module, and for hot-reloading to work you must specify the \`hotReload\` field
-    on the container module.
+        Must be a \`container\` module, and for hot-reloading to work you must specify the \`hotReload\` field on the container module (not required for dev mode).
 
-    Note: If you specify a module here, you don't need to specify it additionally under \`build.dependencies\``
+        _Note: If you specify a module here, you don't need to specify it additionally under \`build.dependencies\`._`
     )
     .example("my-container-module")
 
@@ -762,15 +780,50 @@ export const hotReloadArgsSchema = () =>
     .description("If specified, overrides the arguments for the main container when running in hot-reload mode.")
     .example(["nodemon", "my-server.js"])
 
+export interface PortForwardSpec {
+  name?: string
+  resource: string
+  targetPort: number
+  localPort?: number
+}
+
+const portForwardSpecSchema = () =>
+  joi.object().keys({
+    name: joiIdentifier().description("An identifier to describe the port forward."),
+    resource: joi
+      .string()
+      .required()
+      .description(
+        "The full resource kind and name to forward to, e.g. Service/my-service or Deployment/my-deployment. Note that Garden will not validate this ahead of attempting to start the port forward, so you need to make sure this is correctly set. The types of resources supported will match that of the `kubectl port-forward` CLI command."
+      ),
+    targetPort: joi.number().integer().required().description("The port number on the remote resource to forward to."),
+    localPort: joi
+      .number()
+      .integer()
+      .description(
+        "The _preferred_ local port to forward from. If none is set, a random port is chosen. If the specified port is not available, a warning is shown and a random port chosen instead."
+      ),
+  })
+
+export const portForwardsSchema = () =>
+  joi
+    .array()
+    .items(portForwardSpecSchema())
+    .description(
+      "Manually specify port forwards that Garden should set up when deploying in dev or watch mode. If specified, these override the auto-detection of forwardable ports, so you'll need to specify the full list of port forwards to create."
+    )
+
 const runPodSpecWhitelistDescription = runPodSpecIncludeFields.map((f) => `* \`${f}\``).join("\n")
 
 export const kubernetesTaskSchema = () =>
   baseTaskSpecSchema()
     .keys({
       resource: serviceResourceSchema().description(
-        dedent`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task.
+        dedent`The Deployment, DaemonSet, StatefulSet or Pod that Garden should use to execute this task.
         If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
         an error will be thrown.
+
+        ${serviceResourceDescription}
 
         The following pod spec fields from the service resource will be used (if present) when executing the task:
         ${runPodSpecWhitelistDescription}`
@@ -795,9 +848,11 @@ export const kubernetesTestSchema = () =>
   baseTestSpecSchema()
     .keys({
       resource: serviceResourceSchema().description(
-        dedent`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite.
+        dedent`The Deployment, DaemonSet or StatefulSet or Pod that Garden should use to execute this test suite.
         If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
         an error will be thrown.
+
+        ${serviceResourceDescription}
 
         The following pod spec fields from the service resource will be used (if present) when executing the test suite:
         ${runPodSpecWhitelistDescription}`

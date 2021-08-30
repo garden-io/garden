@@ -20,7 +20,7 @@ import { InternalError } from "./exceptions"
 import { EventEmitter } from "events"
 
 // How long we wait between processing added files and directories
-const DEFAULT_BUFFER_INTERVAL = 400
+const DEFAULT_BUFFER_INTERVAL = 1250
 
 export type ChangeHandler = (module: GardenModule | null, configChanged: boolean) => Promise<void>
 

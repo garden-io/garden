@@ -21,6 +21,7 @@ const populateModuleSchema = (schema: Joi.ObjectSchema) => baseModuleSpecSchema(
 export const moduleTypes = [
   { name: "exec" },
   { name: "container" },
+  { name: "configmap", pluginName: "local-kubernetes" },
   { name: "conftest", pluginName: "conftest" },
   { name: "hadolint" },
   { name: "helm", pluginName: "local-kubernetes" },

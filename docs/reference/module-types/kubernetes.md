@@ -140,29 +140,6 @@ variables:
 # executed before this service is deployed.
 dependencies: []
 
-# List of Kubernetes resource manifests to deploy. Use this instead of the `files` field if you need to resolve
-# template strings in any of the manifests.
-manifests:
-  - # The API version of the resource.
-    apiVersion:
-
-    # The kind of the resource.
-    kind:
-
-    metadata:
-      # The name of the resource.
-      name:
-
-# POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any
-# Garden template strings, which will be resolved before applying the manifests.
-files: []
-
-# A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
-# numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
-namespace:
-
-# **EXPERIMENTAL**
-#
 # Specifies which files or directories to sync to which paths inside the running containers of the service when it's
 # in dev mode, and overrides for the container command and/or arguments.
 #
@@ -170,6 +147,9 @@ namespace:
 #
 # Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy`
 # command.
+#
+# See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more
+# information.
 devMode:
   # Override the default container arguments when in dev mode.
   args:
@@ -193,12 +173,76 @@ devMode:
       # The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `two-way`.
       mode: one-way
 
+      # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user
+      # read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions)
+      # for more information.
+      defaultFileMode:
+
+      # The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700
+      # (user read/write). See the [Mutagen
+      # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+      defaultDirectoryMode:
+
+      # Set the default owner of files and directories at the target. Specify either an integer ID or a string name.
+      # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
+      # more information.
+      defaultOwner:
+
+      # Set the default group on files and directories at the target. Specify either an integer ID or a string name.
+      # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
+      # more information.
+      defaultGroup:
+
   # Optionally specify the name of a specific container to sync to. If not specified, the first container in the
   # workload is used.
   containerName:
 
-# The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module (not to be
-# confused with Kubernetes Service resources).
+# POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any
+# Garden template strings, which will be resolved before applying the manifests.
+files: []
+
+# List of Kubernetes resource manifests to deploy. Use this instead of the `files` field if you need to resolve
+# template strings in any of the manifests.
+manifests:
+  - # The API version of the resource.
+    apiVersion:
+
+    # The kind of the resource.
+    kind:
+
+    metadata:
+      # The name of the resource.
+      name:
+
+# A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
+# numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
+namespace:
+
+# Manually specify port forwards that Garden should set up when deploying in dev or watch mode. If specified, these
+# override the auto-detection of forwardable ports, so you'll need to specify the full list of port forwards to
+# create.
+portForwards:
+  - # An identifier to describe the port forward.
+    name:
+
+    # The full resource kind and name to forward to, e.g. Service/my-service or Deployment/my-deployment. Note that
+    # Garden will not validate this ahead of attempting to start the port forward, so you need to make sure this is
+    # correctly set. The types of resources supported will match that of the `kubectl port-forward` CLI command.
+    resource:
+
+    # The port number on the remote resource to forward to.
+    targetPort:
+
+    # The _preferred_ local port to forward from. If none is set, a random port is chosen. If the specified port is
+    # not available, a warning is shown and a random port chosen instead.
+    localPort:
+
+# The Deployment, DaemonSet or StatefulSet or Pod that Garden should regard as the _Garden service_ in this module
+# (not to be confused with Kubernetes Service resources).
+#
+# This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name` fields,
+# or a Pod via the `podSelector` field.
+#
 # Because a `kubernetes` module can contain any number of Kubernetes resources, this needs to be specified for certain
 # Garden features and commands to work.
 serviceResource:
@@ -213,11 +257,17 @@ serviceResource:
   # container is not the first container in the spec.
   containerName:
 
+  # A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with
+  # matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+  podSelector:
+
   # The Garden module that contains the sources for the container. This needs to be specified under `serviceResource`
-  # in order to enable hot-reloading, but is not necessary for tasks and tests.
+  # in order to enable hot-reloading and dev mode, but is not necessary for tasks and tests.
+  #
   # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the
-  # container module.
-  # Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
+  # container module (not required for dev mode).
+  #
+  # _Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`._
   containerModule:
 
   # If specified, overrides the arguments for the main container when running in hot-reload mode.
@@ -250,9 +300,12 @@ tasks:
     # Maximum duration (in seconds) of the task's execution.
     timeout: null
 
-    # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task.
+    # The Deployment, DaemonSet, StatefulSet or Pod that Garden should use to execute this task.
     # If not specified, the `serviceResource` configured on the module will be used. If neither is specified,
     # an error will be thrown.
+    #
+    # This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name`
+    # fields, or a Pod via the `podSelector` field.
     #
     # The following pod spec fields from the service resource will be used (if present) when executing the task:
     # * `affinity`
@@ -294,6 +347,11 @@ tasks:
       # The name of a container in the target. Specify this if the target contains more than one container and the
       # main container is not the first container in the spec.
       containerName:
+
+      # A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod
+      # with matching labels will be picked as a target, so make sure the labels will always match a specific Pod
+      # type.
+      podSelector:
 
     # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time
     # your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its
@@ -337,9 +395,12 @@ tests:
     # Maximum duration (in seconds) of the test run.
     timeout: null
 
-    # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite.
+    # The Deployment, DaemonSet or StatefulSet or Pod that Garden should use to execute this test suite.
     # If not specified, the `serviceResource` configured on the module will be used. If neither is specified,
     # an error will be thrown.
+    #
+    # This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name`
+    # fields, or a Pod via the `podSelector` field.
     #
     # The following pod spec fields from the service resource will be used (if present) when executing the test suite:
     # * `affinity`
@@ -382,6 +443,11 @@ tests:
       # main container is not the first container in the spec.
       containerName:
 
+      # A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod
+      # with matching labels will be picked as a target, so make sure the labels will always match a specific Pod
+      # type.
+      podSelector:
+
     # The command/entrypoint used to run the test inside the container.
     command:
 
@@ -401,6 +467,9 @@ tests:
         # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at
         # `.garden/artifacts`.
         target: .
+
+# The maximum duration (in seconds) to wait for resources to deploy and become healthy.
+timeout: 300
 ```
 
 ## Configuration Keys
@@ -659,77 +728,15 @@ The names of any services that this service depends on at runtime, and the names
 | --------------- | ------- | -------- |
 | `array[string]` | `[]`    | No       |
 
-### `manifests[]`
-
-List of Kubernetes resource manifests to deploy. Use this instead of the `files` field if you need to resolve template strings in any of the manifests.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[object]` | `[]`    | No       |
-
-### `manifests[].apiVersion`
-
-[manifests](#manifests) > apiVersion
-
-The API version of the resource.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `manifests[].kind`
-
-[manifests](#manifests) > kind
-
-The kind of the resource.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `manifests[].metadata`
-
-[manifests](#manifests) > metadata
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | Yes      |
-
-### `manifests[].metadata.name`
-
-[manifests](#manifests) > [metadata](#manifestsmetadata) > name
-
-The name of the resource.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `files[]`
-
-POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests.
-
-| Type               | Default | Required |
-| ------------------ | ------- | -------- |
-| `array[posixPath]` | `[]`    | No       |
-
-### `namespace`
-
-A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
 ### `devMode`
-
-**EXPERIMENTAL**
 
 Specifies which files or directories to sync to which paths inside the running containers of the service when it's in dev mode, and overrides for the container command and/or arguments.
 
 Note that `serviceResource` must also be specified to enable dev mode.
 
 Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy` command.
+
+See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information.
 
 | Type     | Required |
 | -------- | -------- |
@@ -830,9 +837,49 @@ devMode:
 
 The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `two-way`.
 
-| Type     | Default     | Required |
-| -------- | ----------- | -------- |
-| `string` | `"one-way"` | No       |
+| Type     | Allowed Values                          | Default     | Required |
+| -------- | --------------------------------------- | ----------- | -------- |
+| `string` | "one-way", "one-way-replica", "two-way" | `"one-way"` | Yes      |
+
+### `devMode.sync[].defaultFileMode`
+
+[devMode](#devmode) > [sync](#devmodesync) > defaultFileMode
+
+The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `devMode.sync[].defaultDirectoryMode`
+
+[devMode](#devmode) > [sync](#devmodesync) > defaultDirectoryMode
+
+The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `devMode.sync[].defaultOwner`
+
+[devMode](#devmode) > [sync](#devmodesync) > defaultOwner
+
+Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
+
+| Type              | Required |
+| ----------------- | -------- |
+| `number | string` | No       |
+
+### `devMode.sync[].defaultGroup`
+
+[devMode](#devmode) > [sync](#devmodesync) > defaultGroup
+
+Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
+
+| Type              | Required |
+| ----------------- | -------- |
+| `number | string` | No       |
 
 ### `devMode.containerName`
 
@@ -844,9 +891,122 @@ Optionally specify the name of a specific container to sync to. If not specified
 | -------- | -------- |
 | `string` | No       |
 
+### `files[]`
+
+POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests.
+
+| Type               | Default | Required |
+| ------------------ | ------- | -------- |
+| `array[posixPath]` | `[]`    | No       |
+
+### `manifests[]`
+
+List of Kubernetes resource manifests to deploy. Use this instead of the `files` field if you need to resolve template strings in any of the manifests.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `manifests[].apiVersion`
+
+[manifests](#manifests) > apiVersion
+
+The API version of the resource.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `manifests[].kind`
+
+[manifests](#manifests) > kind
+
+The kind of the resource.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `manifests[].metadata`
+
+[manifests](#manifests) > metadata
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | Yes      |
+
+### `manifests[].metadata.name`
+
+[manifests](#manifests) > [metadata](#manifestsmetadata) > name
+
+The name of the resource.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `namespace`
+
+A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `portForwards[]`
+
+Manually specify port forwards that Garden should set up when deploying in dev or watch mode. If specified, these override the auto-detection of forwardable ports, so you'll need to specify the full list of port forwards to create.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `portForwards[].name`
+
+[portForwards](#portforwards) > name
+
+An identifier to describe the port forward.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `portForwards[].resource`
+
+[portForwards](#portforwards) > resource
+
+The full resource kind and name to forward to, e.g. Service/my-service or Deployment/my-deployment. Note that Garden will not validate this ahead of attempting to start the port forward, so you need to make sure this is correctly set. The types of resources supported will match that of the `kubectl port-forward` CLI command.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `portForwards[].targetPort`
+
+[portForwards](#portforwards) > targetPort
+
+The port number on the remote resource to forward to.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | Yes      |
+
+### `portForwards[].localPort`
+
+[portForwards](#portforwards) > localPort
+
+The _preferred_ local port to forward from. If none is set, a random port is chosen. If the specified port is not available, a warning is shown and a random port chosen instead.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
 ### `serviceResource`
 
-The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module (not to be confused with Kubernetes Service resources).
+The Deployment, DaemonSet or StatefulSet or Pod that Garden should regard as the _Garden service_ in this module (not to be confused with Kubernetes Service resources).
+
+This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name` fields, or a Pod via the `podSelector` field.
+
 Because a `kubernetes` module can contain any number of Kubernetes resources, this needs to be specified for certain Garden features and commands to work.
 
 | Type     | Required |
@@ -883,13 +1043,25 @@ The name of a container in the target. Specify this if the target contains more 
 | -------- | -------- |
 | `string` | No       |
 
+### `serviceResource.podSelector`
+
+[serviceResource](#serviceresource) > podSelector
+
+A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
 ### `serviceResource.containerModule`
 
 [serviceResource](#serviceresource) > containerModule
 
-The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading, but is not necessary for tasks and tests.
-Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module.
-Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
+The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading and dev mode, but is not necessary for tasks and tests.
+
+Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module (not required for dev mode).
+
+_Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`._
 
 | Type     | Required |
 | -------- | -------- |
@@ -987,9 +1159,11 @@ Maximum duration (in seconds) of the task's execution.
 
 [tasks](#tasks) > resource
 
-The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task.
+The Deployment, DaemonSet, StatefulSet or Pod that Garden should use to execute this task.
 If not specified, the `serviceResource` configured on the module will be used. If neither is specified,
 an error will be thrown.
+
+This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name` fields, or a Pod via the `podSelector` field.
 
 The following pod spec fields from the service resource will be used (if present) when executing the task:
 * `affinity`
@@ -1054,6 +1228,16 @@ The name of a container in the target. Specify this if the target contains more 
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `tasks[].resource.podSelector`
+
+[tasks](#tasks) > [resource](#tasksresource) > podSelector
+
+A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
 ### `tasks[].cacheResult`
 
@@ -1226,9 +1410,11 @@ Maximum duration (in seconds) of the test run.
 
 [tests](#tests) > resource
 
-The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite.
+The Deployment, DaemonSet or StatefulSet or Pod that Garden should use to execute this test suite.
 If not specified, the `serviceResource` configured on the module will be used. If neither is specified,
 an error will be thrown.
+
+This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name` fields, or a Pod via the `podSelector` field.
 
 The following pod spec fields from the service resource will be used (if present) when executing the test suite:
 * `affinity`
@@ -1293,6 +1479,16 @@ The name of a container in the target. Specify this if the target contains more 
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `tests[].resource.podSelector`
+
+[tests](#tests) > [resource](#testsresource) > podSelector
+
+A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
 ### `tests[].command[]`
 
@@ -1401,6 +1597,14 @@ tests:
   - artifacts:
       - target: "outputs/foo/"
 ```
+
+### `timeout`
+
+The maximum duration (in seconds) to wait for resources to deploy and become healthy.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `300`   | No       |
 
 
 ## Outputs

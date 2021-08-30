@@ -7,22 +7,26 @@
  */
 
 import { expect } from "chai"
+import { KubernetesService } from "../../../../../src/plugins/kubernetes/kubernetes-module/config"
 import { getForwardablePorts } from "../../../../../src/plugins/kubernetes/port-forward"
 
 describe("getForwardablePorts", () => {
   it("returns all ports for Service resources", () => {
-    const ports = getForwardablePorts([
-      {
-        apiVersion: "v1",
-        kind: "Service",
-        metadata: {
-          name: "foo",
+    const ports = getForwardablePorts(
+      [
+        {
+          apiVersion: "v1",
+          kind: "Service",
+          metadata: {
+            name: "foo",
+          },
+          spec: {
+            ports: [{ port: 12345 }],
+          },
         },
-        spec: {
-          ports: [{ port: 12345 }],
-        },
-      },
-    ])
+      ],
+      undefined
+    )
 
     expect(ports).to.eql([
       {
@@ -34,27 +38,82 @@ describe("getForwardablePorts", () => {
     ])
   })
 
-  it("returns all ports for Deployment resources", () => {
-    const ports = getForwardablePorts([
-      {
-        apiVersion: "apps/v1",
-        kind: "Deployment",
-        metadata: {
-          name: "foo",
+  it("returns explicitly configured port forwards if set", () => {
+    const service: KubernetesService = {
+      name: "foo",
+      config: <any>{}, // Not needed here
+      disabled: false,
+      module: <any>{}, // Not needed here
+      sourceModule: <any>{}, // Not needed here
+      spec: {
+        dependencies: [],
+        files: [],
+        manifests: [],
+        portForwards: [
+          {
+            name: "test",
+            resource: "Service/test",
+            targetPort: 999,
+            localPort: 9999,
+          },
+        ],
+        tasks: [],
+        tests: [],
+      },
+      version: <any>{}, // Not needed here
+    }
+
+    const ports = getForwardablePorts(
+      [
+        {
+          apiVersion: "v1",
+          kind: "Service",
+          metadata: {
+            name: "foo",
+          },
+          spec: {
+            ports: [{ port: 12345 }],
+          },
         },
-        spec: {
-          template: {
-            spec: {
-              containers: [
-                {
-                  ports: [{ containerPort: 12345 }],
-                },
-              ],
+      ],
+      service
+    )
+
+    expect(ports).to.eql([
+      {
+        name: "test",
+        protocol: "TCP",
+        targetName: "Service/test",
+        targetPort: 999,
+        preferredLocalPort: 9999,
+      },
+    ])
+  })
+
+  it("returns all ports for Deployment resources", () => {
+    const ports = getForwardablePorts(
+      [
+        {
+          apiVersion: "apps/v1",
+          kind: "Deployment",
+          metadata: {
+            name: "foo",
+          },
+          spec: {
+            template: {
+              spec: {
+                containers: [
+                  {
+                    ports: [{ containerPort: 12345 }],
+                  },
+                ],
+              },
             },
           },
         },
-      },
-    ])
+      ],
+      undefined
+    )
 
     expect(ports).to.eql([
       {
@@ -67,26 +126,29 @@ describe("getForwardablePorts", () => {
   })
 
   it("returns all ports for DaemonSet resources", () => {
-    const ports = getForwardablePorts([
-      {
-        apiVersion: "apps/v1",
-        kind: "DaemonSet",
-        metadata: {
-          name: "foo",
-        },
-        spec: {
-          template: {
-            spec: {
-              containers: [
-                {
-                  ports: [{ containerPort: 12345 }],
-                },
-              ],
+    const ports = getForwardablePorts(
+      [
+        {
+          apiVersion: "apps/v1",
+          kind: "DaemonSet",
+          metadata: {
+            name: "foo",
+          },
+          spec: {
+            template: {
+              spec: {
+                containers: [
+                  {
+                    ports: [{ containerPort: 12345 }],
+                  },
+                ],
+              },
             },
           },
         },
-      },
-    ])
+      ],
+      undefined
+    )
 
     expect(ports).to.eql([
       {
@@ -99,44 +161,47 @@ describe("getForwardablePorts", () => {
   })
 
   it("omits a Deployment port that is already pointed to by a Service resource", () => {
-    const ports = getForwardablePorts([
-      {
-        apiVersion: "v1",
-        kind: "Service",
-        metadata: {
-          name: "foo",
-        },
-        spec: {
-          selector: {
-            app: "foo",
+    const ports = getForwardablePorts(
+      [
+        {
+          apiVersion: "v1",
+          kind: "Service",
+          metadata: {
+            name: "foo",
           },
-          ports: [{ port: 12345, targetPort: 12346 }],
+          spec: {
+            selector: {
+              app: "foo",
+            },
+            ports: [{ port: 12345, targetPort: 12346 }],
+          },
         },
-      },
-      {
-        apiVersion: "apps/v1",
-        kind: "Deployment",
-        metadata: {
-          name: "foo",
-        },
-        spec: {
-          template: {
-            metadata: {
-              labels: {
-                app: "foo",
+        {
+          apiVersion: "apps/v1",
+          kind: "Deployment",
+          metadata: {
+            name: "foo",
+          },
+          spec: {
+            template: {
+              metadata: {
+                labels: {
+                  app: "foo",
+                },
+              },
+              spec: {
+                containers: [
+                  {
+                    ports: [{ containerPort: 12346 }],
+                  },
+                ],
               },
             },
-            spec: {
-              containers: [
-                {
-                  ports: [{ containerPort: 12346 }],
-                },
-              ],
-            },
           },
         },
-      },
-    ])
+      ],
+      undefined
+    )
 
     expect(ports).to.eql([
       {

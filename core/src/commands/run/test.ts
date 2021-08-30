@@ -166,6 +166,7 @@ export class RunTestCommand extends Command<Args, Opts> {
 
     const result = await actions.testModule({
       log,
+      graph,
       module,
       silent: false,
       interactive,

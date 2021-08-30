@@ -2,10 +2,12 @@ kind: Module
 type: kubernetes
 name: with-source-module
 description: Simple Kubernetes module with minimum config that has a container source module
+
 devMode:
   sync:
-  - source: "*"
-    target: /app
+    - source: "*"
+      target: /app
+
 manifests:
   - apiVersion: apps/v1
     kind: Deployment
@@ -29,11 +31,17 @@ manifests:
               args: [python, app.py]
               ports:
                 - containerPort: 80
+              readinessProbe:
+                httpGet:
+                  path: /api
+                  port: 80
+
 serviceResource:
   kind: Deployment
   name: api-deployment
   containerModule: api-image
   containerName: api
+
 tests:
   - name: with-source-module-test
     command: [sh, -c, "echo ok"]

@@ -16,8 +16,7 @@ import { KubernetesPluginContext } from "../config"
 import { getForwardablePorts } from "../port-forward"
 import { KubernetesServerResource } from "../types"
 import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
-import { findServiceResource, getServiceResourceSpec } from "../util"
-import chalk from "chalk"
+import { getServiceResource, getServiceResourceSpec } from "../util"
 import { startDevModeSync } from "../dev-mode"
 import { gardenAnnotationKey } from "../../../util/string"
 
@@ -68,15 +67,16 @@ export async function getServiceStatus({
 
   if (state !== "missing") {
     const deployedResources = await getDeployedResources({ ctx: k8sCtx, module, releaseName, log })
-    forwardablePorts = getForwardablePorts(deployedResources)
+    forwardablePorts = getForwardablePorts(deployedResources, service)
 
     if (state === "ready" && devMode && service.spec.devMode) {
       // Need to start the dev-mode sync here, since the deployment handler won't be called.
       const baseModule = getBaseModule(module)
       const serviceResourceSpec = getServiceResourceSpec(module, baseModule)
-      const target = await findServiceResource({
-        ctx,
+      const target = await getServiceResource({
+        ctx: k8sCtx,
         log,
+        provider: k8sCtx.provider,
         module,
         manifests: deployedResources,
         resourceSpec: serviceResourceSpec,
@@ -96,12 +96,13 @@ export async function getServiceStatus({
 
         await startDevModeSync({
           ctx,
-          log: log.info({ section: service.name, symbol: "info", msg: chalk.gray(`Starting sync`) }),
+          log,
           moduleRoot: service.sourceModule.path,
           namespace,
           target,
           spec: service.spec.devMode,
           containerName: service.spec.devMode.containerName,
+          serviceName: service.name,
         })
       } else {
         state = "outdated"

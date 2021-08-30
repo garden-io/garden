@@ -292,6 +292,7 @@ export async function buildExecModule({ module, log }: BuildModuleParams<ExecMod
     const result = await exec(command.join(" "), [], {
       cwd: module.buildPath,
       env: getDefaultEnvVars(module),
+      // TODO: remove this in 0.13 and alert users to use e.g. sh -c '<script>' instead.
       shell: true,
     })
 

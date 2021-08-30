@@ -13,7 +13,7 @@ import { apply as jsonMerge } from "json-merge-patch"
 import chalk from "chalk"
 import hasha from "hasha"
 
-import { KubernetesResource, KubernetesWorkload, KubernetesPod, KubernetesServerResource } from "./types"
+import { KubernetesResource, KubernetesWorkload, KubernetesPod, KubernetesServerResource, isPodResource } from "./types"
 import { splitLast, serializeValues, findByName } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
 import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util/string"
@@ -31,6 +31,7 @@ import { ProviderMap } from "../../config/provider"
 import { PodRunner } from "./run"
 import { isSubset } from "../../util/is-subset"
 import { checkPodStatus } from "./status/pod"
+import { getAppNamespace } from "./namespace"
 
 export const skopeoImage = "gardendev/skopeo:1.41.0-2"
 
@@ -57,7 +58,7 @@ export async function getAllPods(
   defaultNamespace: string,
   resources: KubernetesResource[]
 ): Promise<KubernetesPod[]> {
-  const pods: KubernetesServerResource<V1Pod>[] = flatten(
+  const pods: KubernetesPod[] = flatten(
     await Bluebird.map(resources, async (resource) => {
       if (resource.apiVersion === "v1" && resource.kind === "Pod") {
         return [<KubernetesServerResource<V1Pod>>resource]
@@ -71,7 +72,7 @@ export async function getAllPods(
     })
   )
 
-  return <KubernetesServerResource<V1Pod>[]>pods
+  return pods
 }
 
 /**
@@ -119,14 +120,23 @@ export function deduplicatePodsByLabel(pods: KubernetesServerResource<V1Pod>[]) 
  * Retrieve a list of pods based on the resource selector, deduplicated so that only the most recent
  * pod is returned when multiple pods with the same label are found.
  */
-export async function getCurrentWorkloadPods(api: KubeApi, namespace: string, resource: KubernetesWorkload) {
+export async function getCurrentWorkloadPods(
+  api: KubeApi,
+  namespace: string,
+  resource: KubernetesWorkload | KubernetesPod
+) {
   return deduplicatePodsByLabel(await getWorkloadPods(api, namespace, resource))
 }
 
 /**
- * Retrieve a list of pods based on the resource selector.
+ * Retrieve a list of pods based on the given resource/manifest. If passed a Pod manifest, it's read from the
+ * remote namespace and returned directly.
  */
-export async function getWorkloadPods(api: KubeApi, namespace: string, resource: KubernetesWorkload) {
+export async function getWorkloadPods(api: KubeApi, namespace: string, resource: KubernetesWorkload | KubernetesPod) {
+  if (isPodResource(resource)) {
+    return [await api.core.readNamespacedPod(resource.metadata.name, resource.metadata.namespace || namespace)]
+  }
+
   // We don't match on the garden.io/version label because it can fall out of sync during hot reloads
   const selector = omit(getSelectorFromResource(resource), gardenAnnotationKey("version"))
   const pods = await getPods(api, resource.metadata?.namespace || namespace, selector)
@@ -182,12 +192,7 @@ export async function getPods(
     selectorString // labelSelector
   )
 
-  return <KubernetesServerResource<V1Pod>[]>res.items.map((pod) => {
-    // inexplicably, the API sometimes returns apiVersion and kind as undefined...
-    pod.apiVersion = "v1"
-    pod.kind = "Pod"
-    return pod
-  })
+  return <KubernetesServerResource<V1Pod>[]>res.items
 }
 
 /**
@@ -211,7 +216,7 @@ export async function execInWorkload({
   provider: KubernetesProvider
   log: LogEntry
   namespace: string
-  workload: KubernetesWorkload
+  workload: KubernetesWorkload | KubernetesPod
   command: string[]
   interactive: boolean
 }) {
@@ -460,7 +465,7 @@ export async function getRunningDeploymentPod({
   const pods = await getWorkloadPods(api, namespace, resource)
   const pod = sample(pods.filter((p) => checkPodStatus(p) === "ready"))
   if (!pod) {
-    throw new PluginError(`Could not find a running pod in deployment ${deploymentName}`, {
+    throw new PluginError(`Could not find a running Pod in Deployment ${deploymentName}`, {
       deploymentName,
       namespace,
     })
@@ -481,11 +486,9 @@ export function getStaticLabelsFromPod(pod: KubernetesPod): { [key: string]: str
 }
 
 export function getSelectorString(labels: { [key: string]: string }) {
-  let selectorString: string = "-l"
-  for (const label in labels) {
-    selectorString += `${label}=${labels[label]},`
-  }
-  return selectorString.trimEnd().slice(0, -1)
+  return Object.entries(labels)
+    .map(([k, v]) => `${k}=${v}`)
+    .join(",")
 }
 
 /**
@@ -532,6 +535,7 @@ export function getServiceResourceSpec(
 interface GetServiceResourceParams {
   ctx: PluginContext
   log: LogEntry
+  provider: KubernetesProvider
   manifests: KubernetesResource[]
   module: HelmModule | KubernetesModule
   resourceSpec: ServiceResourceSpec
@@ -546,22 +550,44 @@ interface GetServiceResourceParams {
  *
  * Throws an error if no valid resource spec is given, or the resource spec doesn't match any of the given resources.
  */
-export async function findServiceResource({
+export async function getServiceResource({
   ctx,
   log,
+  provider,
   manifests,
   module,
   resourceSpec,
 }: GetServiceResourceParams): Promise<HotReloadableResource> {
-  const targetKind = resourceSpec.kind
+  const resourceMsgName = resourceSpec ? "resource" : "serviceResource"
+
+  if (resourceSpec.podSelector && !isEmpty(resourceSpec.podSelector)) {
+    const api = await KubeApi.factory(log, ctx, provider)
+    const namespace = await getAppNamespace(ctx, log, provider)
+
+    const pods = await getReadyPods(api, namespace, resourceSpec.podSelector)
+    const pod = sample(pods)
+    if (!pod) {
+      const selectorStr = getSelectorString(resourceSpec.podSelector)
+      throw new ConfigurationError(
+        chalk.red(
+          `Could not find any Pod matching provided podSelector (${selectorStr}) for ${resourceMsgName} in ` +
+            `${module.type} module ${chalk.white(module.name)}`
+        ),
+        { resourceSpec }
+      )
+    }
+    return pod
+  }
+
   let targetName = resourceSpec.name
-
-  const chartResourceNames = manifests.map((o) => `${o.kind}/${o.metadata.name}`)
-  const applicableChartResources = manifests.filter((o) => o.kind === targetKind)
-
   let target: HotReloadableResource
 
-  if (targetName) {
+  const targetKind = resourceSpec.kind
+  const chartResourceNames = manifests.map((o) => `${o.kind}/${o.metadata.name}`)
+
+  const applicableChartResources = manifests.filter((o) => o.kind === targetKind)
+
+  if (targetKind && targetName) {
     if (module.type === "helm" && targetName.includes("{{")) {
       // need to resolve the template string
       const chartPath = await getChartPath(<HelmModule>module)
@@ -591,8 +617,8 @@ export async function findServiceResource({
       throw new ConfigurationError(
         chalk.red(
           deline`${module.type} module ${chalk.white(module.name)} contains multiple ${targetKind}s.
-          You must specify ${chalk.underline("resource.name")} or ${chalk.underline("serviceResource.name")}
-          in the module config in order to identify the correct ${targetKind} to use.`
+          You must specify a resource name in the appropriate config in order to identify the correct ${targetKind}
+          to use.`
         ),
         { resourceSpec, chartResourceNames }
       )
@@ -605,7 +631,7 @@ export async function findServiceResource({
 }
 
 /**
- * From the given Deployment, DaemonSet or StatefulSet resource, get either the first container spec,
+ * From the given Deployment, DaemonSet, StatefulSet or Pod resource, get either the first container spec,
  * or if `containerName` is specified, the one matching that name.
  */
 export function getResourceContainer(resource: HotReloadableResource, containerName?: string): V1Container {
@@ -630,8 +656,8 @@ export function getResourceContainer(resource: HotReloadableResource, containerN
   return container
 }
 
-export function getResourcePodSpec(resource: HotReloadableResource): V1PodSpec | undefined {
-  return resource.spec.template.spec
+export function getResourcePodSpec(resource: KubernetesWorkload | KubernetesPod): V1PodSpec | undefined {
+  return isPodResource(resource) ? resource.spec : resource.spec.template?.spec
 }
 
 const maxPodNameLength = 63

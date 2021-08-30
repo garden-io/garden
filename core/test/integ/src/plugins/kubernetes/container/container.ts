@@ -27,7 +27,7 @@ import { clusterInit } from "../../../../../../src/plugins/kubernetes/commands/c
 import { testFromConfig, testFromModule } from "../../../../../../src/types/test"
 
 const root = getDataDir("test-projects", "container")
-const defaultEnvironment = process.env.GARDEN_INTEG_TEST_MODE === "remote" ? "cluster-docker" : "local"
+const defaultEnvironment = process.env.GARDEN_INTEG_TEST_MODE === "remote" ? "kaniko" : "local"
 const initializedEnvs: string[] = []
 let localInstance: Garden
 
@@ -232,6 +232,7 @@ describe("kubernetes container module handlers", () => {
       // We also verify that, despite the test failing, its result was still saved.
       const result = await actions.getTestResult({
         log: garden.log,
+        graph,
         module,
         test,
       })

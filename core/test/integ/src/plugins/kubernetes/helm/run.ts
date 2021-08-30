@@ -63,6 +63,7 @@ describe("runHelmTask", () => {
     const storedResult = await actions.getTaskResult({
       log: garden.log,
       task,
+      graph,
     })
 
     expect(storedResult).to.exist
@@ -95,6 +96,7 @@ describe("runHelmTask", () => {
     const storedResult = await actions.getTaskResult({
       log: garden.log,
       task,
+      graph,
     })
 
     expect(storedResult).to.not.exist
@@ -150,6 +152,7 @@ describe("runHelmTask", () => {
     const result = await actions.getTaskResult({
       log: garden.log,
       task,
+      graph,
     })
 
     expect(result).to.exist

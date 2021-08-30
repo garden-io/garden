@@ -13,10 +13,12 @@ import { Garden } from "../garden"
 import { GardenTask } from "../types/task"
 import { RunTaskResult } from "../types/plugin/task/runTask"
 import { Profile } from "../util/profiling"
+import { ConfigGraph } from "../config-graph"
 
 export interface GetTaskResultTaskParams {
   force: boolean
   garden: Garden
+  graph: ConfigGraph
   log: LogEntry
   task: GardenTask
 }
@@ -26,11 +28,13 @@ export class GetTaskResultTask extends BaseTask {
   type: TaskType = "get-task-result"
   concurrencyLimit = 20
 
+  private graph: ConfigGraph
   private task: GardenTask
 
-  constructor({ force, garden, log, task }: GetTaskResultTaskParams) {
-    super({ garden, log, force, version: task.version })
-    this.task = task
+  constructor(params: GetTaskResultTaskParams) {
+    super({ ...params, version: params.task.version })
+    this.graph = params.graph
+    this.task = params.task
   }
 
   async resolveDependencies() {
@@ -57,6 +61,7 @@ export class GetTaskResultTask extends BaseTask {
     let result: RunTaskResult | null | undefined
     try {
       result = await actions.getTaskResult({
+        graph: this.graph,
         task: this.task,
         log,
       })

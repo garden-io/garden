@@ -97,7 +97,7 @@ describe("TaskHelpers", () => {
         hotReloadServiceNames: [],
       })
 
-      expect(sortedBaseKeys(tasks)).to.eql(["build.module-a", "build.module-b", "deploy.service-b"])
+      expect(sortedBaseKeys(tasks)).to.eql(["deploy.service-b"])
     })
 
     it("should omit tasks for disabled dependant modules", async () => {
@@ -163,7 +163,7 @@ describe("TaskHelpers", () => {
         hotReloadServiceNames: [],
       })
 
-      expect(sortedBaseKeys(tasks)).to.eql(["build.module-a", "deploy.service-a"])
+      expect(sortedBaseKeys(tasks)).to.eql(["deploy.service-a"])
     })
 
     it("should not add a build task for a hot-reload-enabled service's sourceModule", async () => {
@@ -230,9 +230,6 @@ describe("TaskHelpers", () => {
         {
           moduleName: "build-dependency",
           expectedTasks: [
-            "build.build-dependant",
-            "build.build-dependency",
-            "build.good-morning",
             "deploy.build-dependant",
             "deploy.build-dependency",
             "deploy.good-morning",
@@ -243,8 +240,6 @@ describe("TaskHelpers", () => {
         {
           moduleName: "good-morning",
           expectedTasks: [
-            "build.build-dependant",
-            "build.good-morning",
             "deploy.build-dependant",
             "deploy.good-morning",
             "deploy.service-dependant",
@@ -253,15 +248,15 @@ describe("TaskHelpers", () => {
         },
         {
           moduleName: "good-evening",
-          expectedTasks: ["build.good-evening", "deploy.good-evening"],
+          expectedTasks: ["deploy.good-evening"],
         },
         {
           moduleName: "build-dependant",
-          expectedTasks: ["build.build-dependant", "deploy.build-dependant"],
+          expectedTasks: ["deploy.build-dependant"],
         },
         {
           moduleName: "service-dependant",
-          expectedTasks: ["build.service-dependant", "deploy.service-dependant"],
+          expectedTasks: ["deploy.service-dependant"],
         },
       ]
 
@@ -324,7 +319,7 @@ describe("TaskHelpers", () => {
           hotReloadServiceNames: [],
         })
 
-        expect(sortedBaseKeys(tasks)).to.eql(["build.module-a"])
+        expect(sortedBaseKeys(tasks)).to.eql([])
       })
 
       it("should omit deploy tasks for disabled dependant services", async () => {
@@ -390,7 +385,7 @@ describe("TaskHelpers", () => {
           hotReloadServiceNames: [],
         })
 
-        expect(sortedBaseKeys(tasks)).to.eql(["build.module-a", "build.module-b", "deploy.service-a"])
+        expect(sortedBaseKeys(tasks)).to.eql(["deploy.service-a"])
       })
     })
 
@@ -399,9 +394,6 @@ describe("TaskHelpers", () => {
         {
           moduleName: "build-dependency",
           expectedTasks: [
-            "build.build-dependant",
-            "build.build-dependency",
-            "build.good-morning",
             "deploy.build-dependant",
             "deploy.build-dependency",
             "deploy.service-dependant",
@@ -411,7 +403,6 @@ describe("TaskHelpers", () => {
         {
           moduleName: "good-morning",
           expectedTasks: [
-            "build.build-dependant",
             "deploy.build-dependant",
             "deploy.service-dependant",
             "deploy.service-dependant2",
@@ -420,15 +411,15 @@ describe("TaskHelpers", () => {
         },
         {
           moduleName: "good-evening",
-          expectedTasks: ["build.good-evening", "deploy.good-evening"],
+          expectedTasks: ["deploy.good-evening"],
         },
         {
           moduleName: "build-dependant",
-          expectedTasks: ["build.build-dependant", "deploy.build-dependant"],
+          expectedTasks: ["deploy.build-dependant"],
         },
         {
           moduleName: "service-dependant",
-          expectedTasks: ["build.service-dependant", "deploy.service-dependant"],
+          expectedTasks: ["deploy.service-dependant"],
         },
       ]
 
@@ -557,7 +548,7 @@ describe("TaskHelpers", () => {
           hotReloadServiceNames: ["service-a", "service-b"],
         })
 
-        expect(sortedBaseKeys(tasks)).to.eql(["build.module-b", "hot-reload.service-a"])
+        expect(sortedBaseKeys(tasks)).to.eql(["hot-reload.service-a"])
       })
     })
   })

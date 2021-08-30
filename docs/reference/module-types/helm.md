@@ -154,8 +154,6 @@ chartPath: .
 # List of names of services that should be deployed before this chart.
 dependencies: []
 
-# **EXPERIMENTAL**
-#
 # Specifies which files or directories to sync to which paths inside the running containers of the service when it's
 # in dev mode, and overrides for the container command and/or arguments.
 #
@@ -163,6 +161,9 @@ dependencies: []
 #
 # Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy`
 # command.
+#
+# See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more
+# information.
 devMode:
   # Override the default container arguments when in dev mode.
   args:
@@ -186,6 +187,26 @@ devMode:
       # The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `two-way`.
       mode: one-way
 
+      # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user
+      # read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions)
+      # for more information.
+      defaultFileMode:
+
+      # The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700
+      # (user read/write). See the [Mutagen
+      # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+      defaultDirectoryMode:
+
+      # Set the default owner of files and directories at the target. Specify either an integer ID or a string name.
+      # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
+      # more information.
+      defaultOwner:
+
+      # Set the default group on files and directories at the target. Specify either an integer ID or a string name.
+      # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
+      # more information.
+      defaultGroup:
+
   # Optionally specify the name of a specific container to sync to. If not specified, the first container in the
   # workload is used.
   containerName:
@@ -194,17 +215,39 @@ devMode:
 # numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
 namespace:
 
+# Manually specify port forwards that Garden should set up when deploying in dev or watch mode. If specified, these
+# override the auto-detection of forwardable ports, so you'll need to specify the full list of port forwards to
+# create.
+portForwards:
+  - # An identifier to describe the port forward.
+    name:
+
+    # The full resource kind and name to forward to, e.g. Service/my-service or Deployment/my-deployment. Note that
+    # Garden will not validate this ahead of attempting to start the port forward, so you need to make sure this is
+    # correctly set. The types of resources supported will match that of the `kubectl port-forward` CLI command.
+    resource:
+
+    # The port number on the remote resource to forward to.
+    targetPort:
+
+    # The _preferred_ local port to forward from. If none is set, a random port is chosen. If the specified port is
+    # not available, a warning is shown and a random port chosen instead.
+    localPort:
+
 # Optionally override the release name used when installing (defaults to the module name).
 releaseName:
 
 # The repository URL to fetch the chart from.
 repo:
 
-# The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module (not to be
-# confused with Kubernetes Service resources). Because a Helm chart can contain any number of Kubernetes resources,
-# this needs to be specified for certain Garden features and commands to work, such as hot-reloading.
-# We currently map a Helm chart to a single Garden service, because all the resources in a Helm chart are deployed at
-# once.
+# The Deployment, DaemonSet or StatefulSet or Pod that Garden should regard as the _Garden service_ in this module
+# (not to be confused with Kubernetes Service resources).
+#
+# This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name` fields,
+# or a Pod via the `podSelector` field.
+#
+# Because a Helm chart can contain any number of Kubernetes resources, this needs to be specified for certain Garden
+# features and commands to work, such as hot-reloading.
 serviceResource:
   # The type of Kubernetes resource to sync files to.
   kind: Deployment
@@ -212,6 +255,10 @@ serviceResource:
   # The name of a container in the target. Specify this if the target contains more than one container and the main
   # container is not the first container in the spec.
   containerName:
+
+  # A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with
+  # matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+  podSelector:
 
   # The name of the resource to sync to. If the chart contains a single resource of the specified Kind,
   # this can be omitted.
@@ -223,10 +270,12 @@ serviceResource:
   name:
 
   # The Garden module that contains the sources for the container. This needs to be specified under `serviceResource`
-  # in order to enable hot-reloading, but is not necessary for tasks and tests.
+  # in order to enable hot-reloading and dev mode, but is not necessary for tasks and tests.
+  #
   # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the
-  # container module.
-  # Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
+  # container module (not required for dev mode).
+  #
+  # _Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`._
   containerModule:
 
   # If specified, overrides the arguments for the main container when running in hot-reload mode.
@@ -289,9 +338,12 @@ tasks:
         # `.garden/artifacts`.
         target: .
 
-    # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task.
+    # The Deployment, DaemonSet or StatefulSet or Pod that Garden should use to execute this task.
     # If not specified, the `serviceResource` configured on the module will be used. If neither is specified,
     # an error will be thrown.
+    #
+    # This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name`
+    # fields, or a Pod via the `podSelector` field.
     #
     # The following pod spec fields from the service resource will be used (if present) when executing the task:
     # * `affinity`
@@ -330,6 +382,11 @@ tasks:
       # main container is not the first container in the spec.
       containerName:
 
+      # A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod
+      # with matching labels will be picked as a target, so make sure the labels will always match a specific Pod
+      # type.
+      podSelector:
+
       # The name of the resource to sync to. If the chart contains a single resource of the specified Kind,
       # this can be omitted.
       #
@@ -341,10 +398,12 @@ tasks:
       name:
 
       # The Garden module that contains the sources for the container. This needs to be specified under
-      # `serviceResource` in order to enable hot-reloading, but is not necessary for tasks and tests.
+      # `serviceResource` in order to enable hot-reloading and dev mode, but is not necessary for tasks and tests.
+      #
       # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the
-      # container module.
-      # Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
+      # container module (not required for dev mode).
+      #
+      # _Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`._
       containerModule:
 
       # If specified, overrides the arguments for the main container when running in hot-reload mode.
@@ -388,9 +447,12 @@ tests:
         # `.garden/artifacts`.
         target: .
 
-    # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite.
+    # The Deployment, DaemonSet or StatefulSet or Pod that Garden should use to execute this test suite.
     # If not specified, the `serviceResource` configured on the module will be used. If neither is specified,
     # an error will be thrown.
+    #
+    # This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name`
+    # fields, or a Pod via the `podSelector` field.
     #
     # The following pod spec fields from the service resource will be used (if present) when executing the test suite:
     # * `affinity`
@@ -429,6 +491,11 @@ tests:
       # main container is not the first container in the spec.
       containerName:
 
+      # A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod
+      # with matching labels will be picked as a target, so make sure the labels will always match a specific Pod
+      # type.
+      podSelector:
+
       # The name of the resource to sync to. If the chart contains a single resource of the specified Kind,
       # this can be omitted.
       #
@@ -440,10 +507,12 @@ tests:
       name:
 
       # The Garden module that contains the sources for the container. This needs to be specified under
-      # `serviceResource` in order to enable hot-reloading, but is not necessary for tasks and tests.
+      # `serviceResource` in order to enable hot-reloading and dev mode, but is not necessary for tasks and tests.
+      #
       # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the
-      # container module.
-      # Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
+      # container module (not required for dev mode).
+      #
+      # _Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`._
       containerModule:
 
       # If specified, overrides the arguments for the main container when running in hot-reload mode.
@@ -778,13 +847,13 @@ List of names of services that should be deployed before this chart.
 
 ### `devMode`
 
-**EXPERIMENTAL**
-
 Specifies which files or directories to sync to which paths inside the running containers of the service when it's in dev mode, and overrides for the container command and/or arguments.
 
 Note that `serviceResource` must also be specified to enable dev mode.
 
 Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy` command.
+
+See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information.
 
 | Type     | Required |
 | -------- | -------- |
@@ -885,9 +954,49 @@ devMode:
 
 The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `two-way`.
 
-| Type     | Default     | Required |
-| -------- | ----------- | -------- |
-| `string` | `"one-way"` | No       |
+| Type     | Allowed Values                          | Default     | Required |
+| -------- | --------------------------------------- | ----------- | -------- |
+| `string` | "one-way", "one-way-replica", "two-way" | `"one-way"` | Yes      |
+
+### `devMode.sync[].defaultFileMode`
+
+[devMode](#devmode) > [sync](#devmodesync) > defaultFileMode
+
+The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `devMode.sync[].defaultDirectoryMode`
+
+[devMode](#devmode) > [sync](#devmodesync) > defaultDirectoryMode
+
+The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `devMode.sync[].defaultOwner`
+
+[devMode](#devmode) > [sync](#devmodesync) > defaultOwner
+
+Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
+
+| Type              | Required |
+| ----------------- | -------- |
+| `number | string` | No       |
+
+### `devMode.sync[].defaultGroup`
+
+[devMode](#devmode) > [sync](#devmodesync) > defaultGroup
+
+Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
+
+| Type              | Required |
+| ----------------- | -------- |
+| `number | string` | No       |
 
 ### `devMode.containerName`
 
@@ -907,6 +1016,54 @@ A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (
 | -------- | -------- |
 | `string` | No       |
 
+### `portForwards[]`
+
+Manually specify port forwards that Garden should set up when deploying in dev or watch mode. If specified, these override the auto-detection of forwardable ports, so you'll need to specify the full list of port forwards to create.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `portForwards[].name`
+
+[portForwards](#portforwards) > name
+
+An identifier to describe the port forward.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `portForwards[].resource`
+
+[portForwards](#portforwards) > resource
+
+The full resource kind and name to forward to, e.g. Service/my-service or Deployment/my-deployment. Note that Garden will not validate this ahead of attempting to start the port forward, so you need to make sure this is correctly set. The types of resources supported will match that of the `kubectl port-forward` CLI command.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `portForwards[].targetPort`
+
+[portForwards](#portforwards) > targetPort
+
+The port number on the remote resource to forward to.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | Yes      |
+
+### `portForwards[].localPort`
+
+[portForwards](#portforwards) > localPort
+
+The _preferred_ local port to forward from. If none is set, a random port is chosen. If the specified port is not available, a warning is shown and a random port chosen instead.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
 ### `releaseName`
 
 Optionally override the release name used when installing (defaults to the module name).
@@ -925,8 +1082,11 @@ The repository URL to fetch the chart from.
 
 ### `serviceResource`
 
-The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module (not to be confused with Kubernetes Service resources). Because a Helm chart can contain any number of Kubernetes resources, this needs to be specified for certain Garden features and commands to work, such as hot-reloading.
-We currently map a Helm chart to a single Garden service, because all the resources in a Helm chart are deployed at once.
+The Deployment, DaemonSet or StatefulSet or Pod that Garden should regard as the _Garden service_ in this module (not to be confused with Kubernetes Service resources).
+
+This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name` fields, or a Pod via the `podSelector` field.
+
+Because a Helm chart can contain any number of Kubernetes resources, this needs to be specified for certain Garden features and commands to work, such as hot-reloading.
 
 | Type     | Required |
 | -------- | -------- |
@@ -952,6 +1112,16 @@ The name of a container in the target. Specify this if the target contains more 
 | -------- | -------- |
 | `string` | No       |
 
+### `serviceResource.podSelector`
+
+[serviceResource](#serviceresource) > podSelector
+
+A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
 ### `serviceResource.name`
 
 [serviceResource](#serviceresource) > name
@@ -972,9 +1142,11 @@ the string for the YAML to be parsed correctly.
 
 [serviceResource](#serviceresource) > containerModule
 
-The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading, but is not necessary for tasks and tests.
-Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module.
-Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
+The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading and dev mode, but is not necessary for tasks and tests.
+
+Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module (not required for dev mode).
+
+_Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`._
 
 | Type     | Required |
 | -------- | -------- |
@@ -1200,9 +1372,11 @@ tasks:
 
 [tasks](#tasks) > resource
 
-The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task.
+The Deployment, DaemonSet or StatefulSet or Pod that Garden should use to execute this task.
 If not specified, the `serviceResource` configured on the module will be used. If neither is specified,
 an error will be thrown.
+
+This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name` fields, or a Pod via the `podSelector` field.
 
 The following pod spec fields from the service resource will be used (if present) when executing the task:
 * `affinity`
@@ -1258,6 +1432,16 @@ The name of a container in the target. Specify this if the target contains more 
 | -------- | -------- |
 | `string` | No       |
 
+### `tasks[].resource.podSelector`
+
+[tasks](#tasks) > [resource](#tasksresource) > podSelector
+
+A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
 ### `tasks[].resource.name`
 
 [tasks](#tasks) > [resource](#tasksresource) > name
@@ -1278,9 +1462,11 @@ the string for the YAML to be parsed correctly.
 
 [tasks](#tasks) > [resource](#tasksresource) > containerModule
 
-The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading, but is not necessary for tasks and tests.
-Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module.
-Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
+The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading and dev mode, but is not necessary for tasks and tests.
+
+Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module (not required for dev mode).
+
+_Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`._
 
 | Type     | Required |
 | -------- | -------- |
@@ -1479,9 +1665,11 @@ tests:
 
 [tests](#tests) > resource
 
-The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite.
+The Deployment, DaemonSet or StatefulSet or Pod that Garden should use to execute this test suite.
 If not specified, the `serviceResource` configured on the module will be used. If neither is specified,
 an error will be thrown.
+
+This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name` fields, or a Pod via the `podSelector` field.
 
 The following pod spec fields from the service resource will be used (if present) when executing the test suite:
 * `affinity`
@@ -1537,6 +1725,16 @@ The name of a container in the target. Specify this if the target contains more 
 | -------- | -------- |
 | `string` | No       |
 
+### `tests[].resource.podSelector`
+
+[tests](#tests) > [resource](#testsresource) > podSelector
+
+A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
 ### `tests[].resource.name`
 
 [tests](#tests) > [resource](#testsresource) > name
@@ -1557,9 +1755,11 @@ the string for the YAML to be parsed correctly.
 
 [tests](#tests) > [resource](#testsresource) > containerModule
 
-The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading, but is not necessary for tasks and tests.
-Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module.
-Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
+The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading and dev mode, but is not necessary for tasks and tests.
+
+Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module (not required for dev mode).
+
+_Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`._
 
 | Type     | Required |
 | -------- | -------- |

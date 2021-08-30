@@ -52,21 +52,40 @@ services:
   ...
 ```
 
+{% hint style="warning" %}
+Note that if there is a _Dockerfile_ in the same directory as the module configuration, and you still don't want to build it, you have to tell Garden not to pick it up by setting `include: []` in your module configuration.
+{% endhint %}
+
 ## Publishing images
 
-When you do have your own Dockerfile to build, and want to publish it, you also need to use the `image` field:
+You can publish images that have been built in your cluster using the `garden publish` command.
+
+Unless you're publishing to your configured deployment registry (when using the `kubernetes` provider), you need to specify the `image` field on the `container` module in question to indicate where the image should be published. For example:
 
 ```yaml
-# garden.yml
 kind: Module
-type: container
-name: my-container
-image: my-org/my-container  # <- your image repo ID
+name: my-module
+image: my-repo/my-image:v1.2.3   # <- if you omit the tag here, the Garden module version will be used by default
+...
 ```
 
-This tells Garden which namespace, and optionally registry hostname (e.g. `gcr.io` or `quay.io`), to publish the image to when you run `garden publish`.
+By default, we use the tag specified in the `container` module `image` field, if any. If none is set there, we default to the Garden module version.
 
-If you specify a tag as well, for example `image: my-org/my-container:v1.2.3`, that tag will also be used when publishing. If you omit it, Garden will automatically set a tag based on the source hash of the module, e.g. `v-0c61a773cb`.
+You can also set the `--tag` option on the `garden publish` command to override the tag used for images. You can both set a specific tag or you can _use template strings for the tag_. For example, you can
+
+- Set a specific tag on all published modules: `garden publish --tag "v1.2.3"`
+- Set a custom prefix on tags but include the Garden version hash: `garden publish --tag 'v0.1-${module.hash}'`
+- Set a custom prefix on tags with the current git branch: `garden publish --tag 'v0.1-${git.branch}'`
+
+{% hint style="warning" %}
+Note that you most likely need to wrap templated tags with single quotes, to prevent your shell from attempting to perform its own substitution.
+{% endhint %}
+
+Generally, you can use any template strings available for module configs for the tags, with the addition of the following:
+
+- `${module.name}` — the name of the module being tagged
+- `${module.version}` — the full Garden version of the module being tagged, e.g. `v-abcdef1234`
+- `${module.hash}` — the Garden version hash of the module being tagged, e.g. `abcdef1234` (i.e. without the `v-` prefix)
 
 ## Deploying services
 
@@ -74,7 +93,7 @@ If you specify a tag as well, for example `image: my-org/my-container:v1.2.3`, t
 
 In the case of Kubernetes, Garden will take the simplified `container` service specification and convert it to the corresponding Kubernetes manifests, i.e. Deployment, Service and (if applicable) Ingress resources.
 
-Here, for example, is the spec for the `frontend` service in our example [demo project](https://github.com/garden-io/garden/tree/0.12.24/examples/demo-project):
+Here, for example, is the spec for the `frontend` service in our example [demo project](https://github.com/garden-io/garden/tree/0.12.25/examples/demo-project):
 
 ```yaml
 kind: Module
@@ -158,7 +177,7 @@ kubectl --namespace <my-app-namespace> create secret generic --from-literal=some
 
 Where `<my-app-namespace>` is your project namespace (which is either set with `namespace` in your provider config, or defaults to your project name). There are notably other, more secure ways to create secrets via `kubectl`. Please refer to the offical [Kubernetes Secrets docs](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret-using-kubectl-create-secret) for details.
 
-Also check out the [Kubernetes Secrets example project](https://github.com/garden-io/garden/tree/0.12.24/examples/kubernetes-secrets) for a working example.
+Also check out the [Kubernetes Secrets example project](https://github.com/garden-io/garden/tree/0.12.25/examples/kubernetes-secrets) for a working example.
 
 ## Running tests
 
@@ -273,6 +292,39 @@ You can do the same for tests and tasks using the [`tests.volumes`](../reference
 `helm` modules, since they are deployed as standard PersistentVolumeClaim resources.
 
 Take a look at the [`persistentvolumeclaim` module type](../reference/module-types/persistentvolumeclaim.md) and [`container` module](../reference/module-types/container.md#servicesvolumes) docs for more details.
+
+## Mounting Kubernetes ConfigMaps
+
+Very similarly to the above example, you can also mount Kubernetes ConfigMaps on `container` modules using the [`configmap` module type](../reference/module-types/configmap.md), supported by the `kubernetes` provider. Here's a simple example:
+
+Example:
+
+```yaml
+kind: Module
+name: my-configmap
+type: configmap
+data:
+  config.properties: |
+    some: data
+    or: something
+---
+kind: Module
+name: my-module
+type: container
+services:
+  - name: my-service
+    volumes:
+      - name: my-configmap
+        module: my-configmap
+        containerPath: /config
+    ...
+```
+
+This mounts all the keys in the `data` field on the `my-configmap` module under the `/config` directory in the container. In this case, you'll find the file `/config/config.properties` there, with the value above (`some: data ...`) as the file contents.
+
+You can do the same for tests and tasks using the [`tests.volumes`](../reference/module-types/container.md#testsvolumes) and [`tasks.volumes`](../reference/module-types/container.md#tasksvolumes) fields. `configmap` volumes can of course also be referenced in `kubernetes` and `helm` modules, since they are deployed as standard ConfigMap resources.
+
+Take a look at the [`configmap` module type](../reference/module-types/configmap.md) and [`container` module](../reference/module-types/container.md#servicesvolumes) docs for more details.
 
 ### Shared volumes
 

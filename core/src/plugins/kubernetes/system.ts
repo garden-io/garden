@@ -95,9 +95,11 @@ interface GetSystemServicesStatusParams {
 
 export async function getSystemServiceStatus({ sysGarden, log, serviceNames }: GetSystemServicesStatusParams) {
   const actions = await sysGarden.getActionRouter()
+  const graph = await sysGarden.getConfigGraph(log)
 
   const serviceStatuses = await actions.getServiceStatuses({
     log: log.placeholder({ level: LogLevel.verbose, childEntriesInheritLevel: true }),
+    graph,
     serviceNames,
   })
   const state = combineStates(Object.values(serviceStatuses).map((s) => (s && s.state) || "unknown"))

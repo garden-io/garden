@@ -14,6 +14,8 @@ import { joi, joiVariables, joiStringMap, DeepPrimitiveMap } from "./config/comm
 import { PluginTool } from "./util/ext-tools"
 import { ConfigContext, ContextResolveOpts } from "./config/template-contexts/base"
 import { resolveTemplateStrings } from "./template-string/template-string"
+import { LogEntry } from "./logger/log-entry"
+import { logEntrySchema } from "./types/plugin/base"
 
 type WrappedFromGarden = Pick<
   Garden,
@@ -37,6 +39,7 @@ type ResolveTemplateStringsOpts = Omit<ContextResolveOpts, "stack">
 
 export interface PluginContext<C extends GenericProviderConfig = GenericProviderConfig> extends WrappedFromGarden {
   command: CommandInfo
+  log: LogEntry
   projectSources: SourceConfig[]
   provider: Provider<C>
   resolveTemplateStrings: <T>(o: T, opts?: ResolveTemplateStringsOpts) => T
@@ -64,6 +67,7 @@ export const pluginContextSchema = () =>
         The absolute path of the project's Garden dir. This is the directory the contains builds, logs and
         other meta data. A custom path can be set when initialising the Garden class. Defaults to \`.garden\`.
       `),
+      log: logEntrySchema(),
       production: joi
         .boolean()
         .default(false)
@@ -93,6 +97,7 @@ export async function createPluginContext(
     command,
     environmentName: garden.environmentName,
     gardenDirPath: garden.gardenDirPath,
+    log: garden.log,
     projectName: garden.projectName,
     projectRoot: garden.projectRoot,
     projectSources: garden.getProjectSources(),

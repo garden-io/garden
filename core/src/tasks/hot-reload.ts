@@ -28,15 +28,15 @@ export class HotReloadTask extends BaseTask {
   type: TaskType = "hot-reload"
   concurrencyLimit = 10
 
-  // private graph: ConfigGraph
+  private graph: ConfigGraph
   // private hotReloadServiceNames: string[]
   private service: GardenService
 
-  constructor({ garden, log, service, force }: Params) {
-    super({ garden, log, force, version: service.version })
-    // this.graph = graph
+  constructor(params: Params) {
+    super({ ...params, version: params.service.version })
+    this.graph = params.graph
     // this.hotReloadServiceNames = hotReloadServiceNames || []
-    this.service = service
+    this.service = params.service
   }
 
   async resolveDependencies() {
@@ -80,7 +80,7 @@ export class HotReloadTask extends BaseTask {
     const actions = await this.garden.getActionRouter()
 
     try {
-      await actions.hotReloadService({ log, service: this.service })
+      await actions.hotReloadService({ log, graph: this.graph, service: this.service })
     } catch (err) {
       log.setError()
       throw err

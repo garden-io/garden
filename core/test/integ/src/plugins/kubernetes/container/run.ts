@@ -68,6 +68,7 @@ describe("runContainerTask", () => {
     const storedResult = await actions.getTaskResult({
       log: garden.log,
       task,
+      graph,
     })
 
     expect(storedResult).to.exist
@@ -98,6 +99,7 @@ describe("runContainerTask", () => {
     const storedResult = await actions.getTaskResult({
       log: garden.log,
       task,
+      graph,
     })
 
     expect(storedResult).to.not.exist
@@ -131,6 +133,7 @@ describe("runContainerTask", () => {
     const result = await actions.getTaskResult({
       log: garden.log,
       task,
+      graph,
     })
 
     expect(result).to.exist

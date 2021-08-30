@@ -26,7 +26,7 @@ import Stream from "ts-stream"
 import { GardenTask } from "../../../src/types/task"
 import { expect } from "chai"
 import { omit } from "lodash"
-import { joi } from "../../../src/config/common"
+import { CustomObjectSchema, joi } from "../../../src/config/common"
 import { validateSchema } from "../../../src/config/validation"
 import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../src/constants"
@@ -269,7 +269,7 @@ describe("ActionRouter", () => {
 
     describe("getBuildStatus", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.getBuildStatus({ log, module })
+        const result = await actions.getBuildStatus({ log, module, graph })
         expect(result).to.eql({
           ready: true,
         })
@@ -277,7 +277,7 @@ describe("ActionRouter", () => {
 
       it("should emit a buildStatus event", async () => {
         garden.events.eventLog = []
-        await actions.getBuildStatus({ log, module })
+        await actions.getBuildStatus({ log, module, graph })
         const event = garden.events.eventLog[0]
         expect(event).to.exist
         expect(event.name).to.eql("buildStatus")
@@ -290,13 +290,13 @@ describe("ActionRouter", () => {
 
     describe("build", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.build({ log, module })
+        const result = await actions.build({ log, module, graph })
         expect(result).to.eql({})
       })
 
       it("should emit buildStatus events", async () => {
         garden.events.eventLog = []
-        await actions.build({ log, module })
+        await actions.build({ log, module, graph })
         const event1 = garden.events.eventLog[0]
         const event2 = garden.events.eventLog[1]
         const moduleVersion = module.version.versionString
@@ -320,6 +320,7 @@ describe("ActionRouter", () => {
         const result = await actions.hotReloadService({
           log,
           service,
+          graph,
           runtimeContext: {
             envVars: { FOO: "bar" },
             dependencies: [],
@@ -337,6 +338,7 @@ describe("ActionRouter", () => {
           module,
           args: command,
           interactive: true,
+          graph,
           runtimeContext: {
             envVars: { FOO: "bar" },
             dependencies: [],
@@ -371,6 +373,7 @@ describe("ActionRouter", () => {
           log,
           module,
           interactive: true,
+          graph,
           runtimeContext: {
             envVars: { FOO: "bar" },
             dependencies: [],
@@ -410,6 +413,7 @@ describe("ActionRouter", () => {
           log,
           module,
           interactive: true,
+          graph,
           runtimeContext: {
             envVars: { FOO: "bar" },
             dependencies: [],
@@ -466,6 +470,7 @@ describe("ActionRouter", () => {
           log,
           module,
           interactive: true,
+          graph,
           runtimeContext: {
             envVars: { FOO: "bar" },
             dependencies: [],
@@ -500,6 +505,7 @@ describe("ActionRouter", () => {
           log,
           module,
           test,
+          graph,
         })
         expect(result).to.eql({
           moduleName: module.name,
@@ -524,6 +530,7 @@ describe("ActionRouter", () => {
         log,
         module,
         test,
+        graph,
       })
       const event = garden.events.eventLog[0]
       expect(event).to.exist
@@ -543,6 +550,7 @@ describe("ActionRouter", () => {
         const result = await actions.getServiceStatus({
           log,
           service,
+          graph,
           runtimeContext,
           devMode: false,
           hotReload: false,
@@ -552,7 +560,7 @@ describe("ActionRouter", () => {
 
       it("should emit a serviceStatus event", async () => {
         garden.events.eventLog = []
-        await actions.getServiceStatus({ log, service, runtimeContext, devMode: false, hotReload: false })
+        await actions.getServiceStatus({ log, service, graph, runtimeContext, devMode: false, hotReload: false })
         const event = garden.events.eventLog[0]
         expect(event).to.exist
         expect(event.name).to.eql("serviceStatus")
@@ -569,7 +577,7 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.getServiceStatus({ log, service, runtimeContext, devMode: false, hotReload: false }),
+          () => actions.getServiceStatus({ log, service, graph, runtimeContext, devMode: false, hotReload: false }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from service 'service-a': key .foo must be a string"
@@ -583,7 +591,7 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.getServiceStatus({ log, service, runtimeContext, devMode: false, hotReload: false }),
+          () => actions.getServiceStatus({ log, service, graph, runtimeContext, devMode: false, hotReload: false }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from service 'service-a': key .base must be a string"
@@ -597,6 +605,7 @@ describe("ActionRouter", () => {
         const result = await actions.deployService({
           log,
           service,
+          graph,
           runtimeContext,
           force: true,
           devMode: false,
@@ -607,7 +616,15 @@ describe("ActionRouter", () => {
 
       it("should emit serviceStatus events", async () => {
         garden.events.eventLog = []
-        await actions.deployService({ log, service, runtimeContext, force: true, devMode: false, hotReload: false })
+        await actions.deployService({
+          log,
+          service,
+          graph,
+          runtimeContext,
+          force: true,
+          devMode: false,
+          hotReload: false,
+        })
         const moduleVersion = service.module.version.versionString
         const event1 = garden.events.eventLog[0]
         const event2 = garden.events.eventLog[1]
@@ -635,7 +652,16 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.deployService({ log, service, runtimeContext, force: true, devMode: false, hotReload: false }),
+          () =>
+            actions.deployService({
+              log,
+              service,
+              graph,
+              runtimeContext,
+              force: true,
+              devMode: false,
+              hotReload: false,
+            }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from service 'service-a': key .foo must be a string"
@@ -649,7 +675,16 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.deployService({ log, service, runtimeContext, force: true, devMode: false, hotReload: false }),
+          () =>
+            actions.deployService({
+              log,
+              service,
+              graph,
+              runtimeContext,
+              force: true,
+              devMode: false,
+              hotReload: false,
+            }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from service 'service-a': key .base must be a string"
@@ -660,7 +695,7 @@ describe("ActionRouter", () => {
 
     describe("deleteService", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.deleteService({ log, service, runtimeContext })
+        const result = await actions.deleteService({ log, service, graph, runtimeContext })
         expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: {} })
       })
     })
@@ -670,6 +705,7 @@ describe("ActionRouter", () => {
         const result = await actions.execInService({
           log,
           service,
+          graph,
           runtimeContext,
           command: ["foo"],
           interactive: false,
@@ -681,7 +717,15 @@ describe("ActionRouter", () => {
     describe("getServiceLogs", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const stream = new Stream<ServiceLogEntry>()
-        const result = await actions.getServiceLogs({ log, service, runtimeContext, stream, follow: false, tail: -1 })
+        const result = await actions.getServiceLogs({
+          log,
+          service,
+          graph,
+          runtimeContext,
+          stream,
+          follow: false,
+          tail: -1,
+        })
         expect(result).to.eql({})
       })
     })
@@ -692,6 +736,7 @@ describe("ActionRouter", () => {
           log,
           service,
           interactive: true,
+          graph,
           runtimeContext: {
             envVars: { FOO: "bar" },
             dependencies: [],
@@ -735,6 +780,7 @@ describe("ActionRouter", () => {
         const result = await actions.getTaskResult({
           log,
           task,
+          graph,
         })
         expect(result).to.eql(taskResult)
       })
@@ -744,6 +790,7 @@ describe("ActionRouter", () => {
         await actions.getTaskResult({
           log,
           task,
+          graph,
         })
         const event = garden.events.eventLog[0]
         expect(event).to.exist
@@ -762,7 +809,7 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.getTaskResult({ log, task }),
+          () => actions.getTaskResult({ log, task, graph }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from task 'task-a': key .foo must be a string"
@@ -776,7 +823,7 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.getTaskResult({ log, task }),
+          () => actions.getTaskResult({ log, task, graph }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from task 'task-a': key .base must be a string"
@@ -791,6 +838,7 @@ describe("ActionRouter", () => {
           log,
           task,
           interactive: true,
+          graph,
           runtimeContext: {
             envVars: { FOO: "bar" },
             dependencies: [],
@@ -805,6 +853,7 @@ describe("ActionRouter", () => {
           log,
           task,
           interactive: true,
+          graph,
           runtimeContext: {
             envVars: { FOO: "bar" },
             dependencies: [],
@@ -842,6 +891,7 @@ describe("ActionRouter", () => {
               log,
               task,
               interactive: true,
+              graph,
               runtimeContext: {
                 envVars: { FOO: "bar" },
                 dependencies: [],
@@ -865,6 +915,7 @@ describe("ActionRouter", () => {
               log,
               task,
               interactive: true,
+              graph,
               runtimeContext: {
                 envVars: { FOO: "bar" },
                 dependencies: [],
@@ -897,6 +948,7 @@ describe("ActionRouter", () => {
           log,
           task: _task,
           interactive: true,
+          graph,
           runtimeContext: {
             envVars: { FOO: "bar" },
             dependencies: [],
@@ -1587,6 +1639,7 @@ describe("ActionRouter", () => {
         params: {
           module: moduleA,
           log,
+          graph,
         },
         defaultHandler: handler,
       })
@@ -1615,6 +1668,7 @@ describe("ActionRouter", () => {
         params: {
           module: moduleB,
           log,
+          graph,
         },
         defaultHandler: handler,
       })
@@ -1656,6 +1710,7 @@ describe("ActionRouter", () => {
         actionType: "deployService", // Doesn't matter which one it is
         params: {
           service: serviceA,
+          graph,
           runtimeContext,
           log,
           devMode: false,
@@ -1705,6 +1760,7 @@ describe("ActionRouter", () => {
         actionType: "deployService", // Doesn't matter which one it is
         params: {
           service: serviceB,
+          graph,
           runtimeContext: _runtimeContext,
           log,
           devMode: false,
@@ -1757,6 +1813,7 @@ describe("ActionRouter", () => {
         actionType: "deployService", // Doesn't matter which one it is
         params: {
           service: serviceA,
+          graph,
           runtimeContext: _runtimeContext,
           log,
           devMode: false,
@@ -1806,6 +1863,7 @@ describe("ActionRouter", () => {
             actionType: "deployService", // Doesn't matter which one it is
             params: {
               service: serviceA,
+              graph,
               runtimeContext: _runtimeContext,
               log,
               devMode: false,
@@ -1874,6 +1932,7 @@ describe("ActionRouter", () => {
         params: {
           artifactsPath: "/tmp",
           task: taskA,
+          graph,
           runtimeContext,
           log,
           interactive: false,
@@ -1921,6 +1980,7 @@ describe("ActionRouter", () => {
         params: {
           artifactsPath: "/tmp", // Not used in this test
           task: taskA,
+          graph,
           runtimeContext: _runtimeContext,
           log,
           interactive: false,
@@ -1987,6 +2047,7 @@ describe("ActionRouter", () => {
         params: {
           artifactsPath: "/tmp", // Not used in this test
           task: taskA,
+          graph,
           runtimeContext: _runtimeContext,
           log,
           interactive: false,
@@ -2047,6 +2108,7 @@ describe("ActionRouter", () => {
             params: {
               artifactsPath: "/tmp", // Not used in this test
               task: taskA,
+              graph,
               runtimeContext: _runtimeContext,
               log,
               interactive: false,
@@ -2090,12 +2152,12 @@ const testPlugin = createGardenPlugin({
 
   handlers: <PluginActionHandlers>{
     configureProvider: async (params) => {
-      validateSchema(params, pluginActionDescriptions.configureProvider.paramsSchema)
+      validateParams(params, pluginActionDescriptions.configureProvider.paramsSchema)
       return { config: params.config }
     },
 
     getEnvironmentStatus: async (params) => {
-      validateSchema(params, pluginActionDescriptions.getEnvironmentStatus.paramsSchema)
+      validateParams(params, pluginActionDescriptions.getEnvironmentStatus.paramsSchema)
       return {
         ready: false,
         outputs: {},
@@ -2103,7 +2165,7 @@ const testPlugin = createGardenPlugin({
     },
 
     augmentGraph: async (params) => {
-      validateSchema(params, pluginActionDescriptions.augmentGraph.paramsSchema)
+      validateParams(params, pluginActionDescriptions.augmentGraph.paramsSchema)
 
       const moduleName = "added-by-" + params.ctx.provider.name
 
@@ -2127,37 +2189,37 @@ const testPlugin = createGardenPlugin({
     },
 
     getDashboardPage: async (params) => {
-      validateSchema(params, pluginActionDescriptions.getDashboardPage.paramsSchema)
+      validateParams(params, pluginActionDescriptions.getDashboardPage.paramsSchema)
       return { url: "http://" + params.page.name }
     },
 
     getDebugInfo: async (params) => {
-      validateSchema(params, pluginActionDescriptions.getDebugInfo.paramsSchema)
+      validateParams(params, pluginActionDescriptions.getDebugInfo.paramsSchema)
       return { info: {} }
     },
 
     prepareEnvironment: async (params) => {
-      validateSchema(params, pluginActionDescriptions.prepareEnvironment.paramsSchema)
+      validateParams(params, pluginActionDescriptions.prepareEnvironment.paramsSchema)
       return { status: { ready: true, outputs: {} } }
     },
 
     cleanupEnvironment: async (params) => {
-      validateSchema(params, pluginActionDescriptions.cleanupEnvironment.paramsSchema)
+      validateParams(params, pluginActionDescriptions.cleanupEnvironment.paramsSchema)
       return {}
     },
 
     getSecret: async (params) => {
-      validateSchema(params, pluginActionDescriptions.getSecret.paramsSchema)
+      validateParams(params, pluginActionDescriptions.getSecret.paramsSchema)
       return { value: params.key }
     },
 
     setSecret: async (params) => {
-      validateSchema(params, pluginActionDescriptions.setSecret.paramsSchema)
+      validateParams(params, pluginActionDescriptions.setSecret.paramsSchema)
       return {}
     },
 
     deleteSecret: async (params) => {
-      validateSchema(params, pluginActionDescriptions.deleteSecret.paramsSchema)
+      validateParams(params, pluginActionDescriptions.deleteSecret.paramsSchema)
       return { found: true }
     },
   },
@@ -2176,7 +2238,7 @@ const testPlugin = createGardenPlugin({
 
       handlers: <ModuleAndRuntimeActionHandlers>{
         configure: async (params) => {
-          validateSchema(params, moduleActionDescriptions.configure.paramsSchema)
+          validateParams(params, moduleActionDescriptions.configure.paramsSchema)
 
           const serviceConfigs = params.moduleConfig.spec.services.map((spec) => ({
             name: spec.name,
@@ -2211,7 +2273,7 @@ const testPlugin = createGardenPlugin({
         },
 
         getModuleOutputs: async (params) => {
-          validateSchema(params, moduleActionDescriptions.getModuleOutputs.paramsSchema)
+          validateParams(params, moduleActionDescriptions.getModuleOutputs.paramsSchema)
           return { outputs: { foo: "bar" } }
         },
 
@@ -2220,27 +2282,27 @@ const testPlugin = createGardenPlugin({
         },
 
         getBuildStatus: async (params) => {
-          validateSchema(params, moduleActionDescriptions.getBuildStatus.paramsSchema)
+          validateParams(params, moduleActionDescriptions.getBuildStatus.paramsSchema)
           return { ready: true }
         },
 
         build: async (params) => {
-          validateSchema(params, moduleActionDescriptions.build.paramsSchema)
+          validateParams(params, moduleActionDescriptions.build.paramsSchema)
           return {}
         },
 
         publish: async (params) => {
-          validateSchema(params, moduleActionDescriptions.publish.paramsSchema)
+          validateParams(params, moduleActionDescriptions.publish.paramsSchema)
           return { published: true }
         },
 
         hotReloadService: async (params) => {
-          validateSchema(params, moduleActionDescriptions.hotReloadService.paramsSchema)
+          validateParams(params, moduleActionDescriptions.hotReloadService.paramsSchema)
           return {}
         },
 
         runModule: async (params) => {
-          validateSchema(params, moduleActionDescriptions.runModule.paramsSchema)
+          validateParams(params, moduleActionDescriptions.runModule.paramsSchema)
           return {
             moduleName: params.module.name,
             command: params.args,
@@ -2253,7 +2315,7 @@ const testPlugin = createGardenPlugin({
         },
 
         testModule: async (params) => {
-          validateSchema(params, moduleActionDescriptions.testModule.paramsSchema)
+          validateParams(params, moduleActionDescriptions.testModule.paramsSchema)
 
           // Create artifacts, to test artifact copying
           for (const artifact of params.test.config.spec.artifacts || []) {
@@ -2276,7 +2338,7 @@ const testPlugin = createGardenPlugin({
         },
 
         getTestResult: async (params) => {
-          validateSchema(params, moduleActionDescriptions.getTestResult.paramsSchema)
+          validateParams(params, moduleActionDescriptions.getTestResult.paramsSchema)
           return {
             moduleName: params.module.name,
             command: [],
@@ -2293,22 +2355,22 @@ const testPlugin = createGardenPlugin({
         },
 
         getServiceStatus: async (params) => {
-          validateSchema(params, moduleActionDescriptions.getServiceStatus.paramsSchema)
+          validateParams(params, moduleActionDescriptions.getServiceStatus.paramsSchema)
           return { state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } }
         },
 
         deployService: async (params) => {
-          validateSchema(params, moduleActionDescriptions.deployService.paramsSchema)
+          validateParams(params, moduleActionDescriptions.deployService.paramsSchema)
           return { state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } }
         },
 
         deleteService: async (params) => {
-          validateSchema(params, moduleActionDescriptions.deleteService.paramsSchema)
+          validateParams(params, moduleActionDescriptions.deleteService.paramsSchema)
           return { state: "ready", detail: {} }
         },
 
         execInService: async (params) => {
-          validateSchema(params, moduleActionDescriptions.execInService.paramsSchema)
+          validateParams(params, moduleActionDescriptions.execInService.paramsSchema)
           return {
             code: 0,
             output: "bla bla",
@@ -2316,12 +2378,12 @@ const testPlugin = createGardenPlugin({
         },
 
         getServiceLogs: async (params) => {
-          validateSchema(params, moduleActionDescriptions.getServiceLogs.paramsSchema)
+          validateParams(params, moduleActionDescriptions.getServiceLogs.paramsSchema)
           return {}
         },
 
         runService: async (params) => {
-          validateSchema(params, moduleActionDescriptions.runService.paramsSchema)
+          validateParams(params, moduleActionDescriptions.runService.paramsSchema)
           return {
             moduleName: params.module.name,
             command: ["foo"],
@@ -2334,7 +2396,7 @@ const testPlugin = createGardenPlugin({
         },
 
         getPortForward: async (params) => {
-          validateSchema(params, moduleActionDescriptions.getPortForward.paramsSchema)
+          validateParams(params, moduleActionDescriptions.getPortForward.paramsSchema)
           return {
             hostname: "bla",
             port: 123,
@@ -2342,12 +2404,12 @@ const testPlugin = createGardenPlugin({
         },
 
         stopPortForward: async (params) => {
-          validateSchema(params, moduleActionDescriptions.stopPortForward.paramsSchema)
+          validateParams(params, moduleActionDescriptions.stopPortForward.paramsSchema)
           return {}
         },
 
         getTaskResult: async (params) => {
-          validateSchema(params, moduleActionDescriptions.getTaskResult.paramsSchema)
+          validateParams(params, moduleActionDescriptions.getTaskResult.paramsSchema)
           const module = params.task.module
           return {
             moduleName: module.name,
@@ -2363,7 +2425,7 @@ const testPlugin = createGardenPlugin({
         },
 
         runTask: async (params) => {
-          validateSchema(params, moduleActionDescriptions.runTask.paramsSchema)
+          validateParams(params, moduleActionDescriptions.runTask.paramsSchema)
 
           const module = params.task.module
 
@@ -2393,3 +2455,12 @@ const testPluginB = createGardenPlugin({
   ...omit(testPlugin, ["createModuleTypes"]),
   name: "test-plugin-b",
 })
+
+function validateParams(params: any, schema: CustomObjectSchema) {
+  validateSchema(
+    params,
+    schema.keys({
+      graph: joi.object(),
+    })
+  )
+}

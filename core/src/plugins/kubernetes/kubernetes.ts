@@ -43,6 +43,7 @@ import { sternSpec } from "./logs"
 import { isString } from "lodash"
 import { mutagenCliSpec } from "./mutagen"
 import { Warning } from "../../db/entities/warning"
+import { configMapModuleDefinition } from "./volumes/configmap"
 
 export async function configureProvider({
   log,
@@ -254,6 +255,7 @@ export const gardenPlugin = () =>
         handlers: kubernetesHandlers,
       },
       pvcModuleDefinition(),
+      configMapModuleDefinition(),
     ],
     extendModuleTypes: [
       {

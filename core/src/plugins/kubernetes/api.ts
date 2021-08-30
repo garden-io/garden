@@ -633,6 +633,14 @@ export class KubeApi {
                   // return the result body directly if applicable
                   .then((res: any) => {
                     if (isPlainObject(res) && res.hasOwnProperty("body")) {
+                      // inexplicably, this API sometimes returns apiVersion and kind as undefined...
+                      if (name === "listNamespacedPod" && res.body.items) {
+                        res.body.items = res.body.items.map((pod: any) => {
+                          pod.apiVersion = "v1"
+                          pod.kind = "Pod"
+                          return pod
+                        })
+                      }
                       return res["body"]
                     } else {
                       return res

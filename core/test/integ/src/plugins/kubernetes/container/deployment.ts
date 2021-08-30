@@ -418,6 +418,34 @@ describe("kubernetes container deployment handlers", () => {
       expect(resource.spec.template?.spec?.containers[0].volumeMounts).to.eql([{ name: "test", mountPath: "/volume" }])
     })
 
+    it("should correctly mount a referenced ConfigMap module", async () => {
+      const service = graph.getService("configmap-reference")
+      const namespace = provider.config.namespace!.name!
+
+      const resource = await createWorkloadManifest({
+        api,
+        provider,
+        service,
+        runtimeContext: emptyRuntimeContext,
+        namespace,
+        enableDevMode: false,
+        enableHotReload: false,
+        log: garden.log,
+        production: false,
+        blueGreen: false,
+      })
+
+      expect(resource.spec.template?.spec?.volumes).to.eql([
+        {
+          name: "test",
+          configMap: {
+            name: "configmap-module",
+          },
+        },
+      ])
+      expect(resource.spec.template?.spec?.containers[0].volumeMounts).to.eql([{ name: "test", mountPath: "/config" }])
+    })
+
     it("should throw if incompatible module is specified as a volume module", async () => {
       const service = graph.getService("volume-reference")
       const namespace = provider.config.namespace!.name!
@@ -440,7 +468,7 @@ describe("kubernetes container deployment handlers", () => {
           }),
         (err) =>
           expect(stripAnsi(err.message)).to.equal(
-            "Container module volume-reference specifies a unsupported module simple-service for volume mount test. Only persistentvolumeclaim modules are supported at this time."
+            "Container module volume-reference specifies a unsupported module simple-service for volume mount test. Only `persistentvolumeclaim` and `configmap` modules are supported at this time."
           )
       )
     })

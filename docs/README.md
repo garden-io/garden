@@ -30,6 +30,7 @@
 ## 🌿 Guides
 
 * [Cloud Provider Set-up](./guides/cloud-provider-setup.md)
+* [Code Synchronization (Dev Mode)](./guides/code-synchronization-dev-mode.md)
 * [Container Modules](./guides/container-modules.md)
 * [Helm Charts](./guides/using-helm-charts.md)
 * [Hot Reload](./guides/hot-reload.md)
@@ -60,6 +61,7 @@
   * [`openfaas`](./reference/providers/openfaas.md)
   * [`terraform`](./reference/providers/terraform.md)
 * [Module Types](./reference/module-types/README.md)
+  * [`configmap`](./reference/module-types/configmap.md)
   * [`conftest`](./reference/module-types/conftest.md)
   * [`container`](./reference/module-types/container.md)
   * [`exec`](./reference/module-types/exec.md)

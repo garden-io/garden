@@ -299,7 +299,7 @@ export class ActionRouter implements TypeGuard {
     const { log, moduleConfig: config } = params
     const moduleType = config.type
 
-    this.garden.log.silly(`Calling 'configure' handler for '${moduleType}'`)
+    this.garden.log.silly(`Calling configure handler for ${moduleType} module '${config.name}'`)
 
     const handler = await this.getModuleActionHandler({
       actionType: "configure",
@@ -326,7 +326,7 @@ export class ActionRouter implements TypeGuard {
     }
     result.moduleConfig.build.dependencies = Object.values(buildDeps)
 
-    this.garden.log.silly(`Called 'configure' handler for '${moduleType}'`)
+    this.garden.log.silly(`Called configure handler for ${moduleType} module '${config.name}'`)
 
     return result
   }
@@ -717,12 +717,13 @@ export class ActionRouter implements TypeGuard {
 
   async getServiceStatuses({
     log,
+    graph,
     serviceNames,
   }: {
     log: LogEntry
+    graph: ConfigGraph
     serviceNames?: string[]
   }): Promise<ServiceStatusMap> {
-    const graph = await this.garden.getConfigGraph(log)
     const services = graph.getServices({ names: serviceNames })
 
     const tasks = services.map(
@@ -942,7 +943,7 @@ export class ActionRouter implements TypeGuard {
     actionType: T
     defaultHandler?: ModuleActionHandlers[T]
   }): Promise<ModuleActionOutputs[T]> {
-    const { module, pluginName, log } = params
+    const { module, pluginName, log, graph } = params
 
     log.silly(`Getting '${actionType}' handler for module '${module.name}' (type '${module.type}')`)
 
@@ -954,7 +955,6 @@ export class ActionRouter implements TypeGuard {
     })
 
     const providers = await this.garden.resolveProviders(log)
-    const graph = await this.garden.getConfigGraph(log)
     const templateContext = ModuleConfigContext.fromModule({
       garden: this.garden,
       resolvedProviders: providers,
@@ -983,7 +983,7 @@ export class ActionRouter implements TypeGuard {
     actionType: T
     defaultHandler?: ServiceActionHandlers[T]
   }) {
-    let { log, service, runtimeContext } = params
+    let { log, service, runtimeContext, graph } = params
     let module = service.module
 
     log.silly(`Getting ${actionType} handler for service ${service.name}`)
@@ -996,7 +996,6 @@ export class ActionRouter implements TypeGuard {
     })
 
     const providers = await this.garden.resolveProviders(log)
-    const graph = await this.garden.getConfigGraph(log, runtimeContext)
 
     const modules = graph.getModules()
     const templateContext = ModuleConfigContext.fromModule({
@@ -1015,6 +1014,9 @@ export class ActionRouter implements TypeGuard {
 
     if (!runtimeContextIsEmpty && getRuntimeTemplateReferences(module).length > 0) {
       log.silly(`Resolving runtime template strings for service '${service.name}'`)
+
+      // Resolve the graph again (TODO: avoid this somehow!)
+      graph = await this.garden.getConfigGraph(log, runtimeContext)
 
       // Resolve the service again
       service = graph.getService(service.name)
@@ -1049,7 +1051,7 @@ export class ActionRouter implements TypeGuard {
     actionType: T
     defaultHandler?: TaskActionHandlers[T]
   }) {
-    let { task, log } = params
+    let { task, log, graph } = params
     const runtimeContext = params["runtimeContext"] as RuntimeContext | undefined
     let module = task.module
 
@@ -1063,7 +1065,6 @@ export class ActionRouter implements TypeGuard {
     })
 
     const providers = await this.garden.resolveProviders(log)
-    const graph = await this.garden.getConfigGraph(log, runtimeContext)
 
     const modules = graph.getModules()
     const templateContext = ModuleConfigContext.fromModule({
@@ -1082,6 +1083,9 @@ export class ActionRouter implements TypeGuard {
 
     if (!runtimeContextIsEmpty && getRuntimeTemplateReferences(module).length > 0) {
       log.silly(`Resolving runtime template strings for task '${task.name}'`)
+
+      // Resolve the graph again (TODO: avoid this somehow!)
+      graph = await this.garden.getConfigGraph(log, runtimeContext)
 
       // Resolve the task again
       task = graph.getTask(task.name)
@@ -1441,14 +1445,18 @@ type WrappedModuleActionMap = {
 // avoid having to specify common params on each action helper call
 type ActionRouterParams<T extends PluginActionParamsBase> = Omit<T, CommonParams> & { pluginName?: string }
 
-type ModuleActionRouterParams<T extends PluginModuleActionParamsBase> = Omit<T, CommonParams> & { pluginName?: string }
-// additionally make runtimeContext param optional
+type ModuleActionRouterParams<T extends PluginModuleActionParamsBase> = Omit<T, CommonParams> & {
+  graph: ConfigGraph
+  pluginName?: string
+}
 
 type ServiceActionRouterParams<T extends PluginServiceActionParamsBase> = Omit<T, "module" | CommonParams> & {
+  graph: ConfigGraph
   pluginName?: string
 }
 
 type TaskActionRouterParams<T extends PluginTaskActionParamsBase> = Omit<T, "module" | CommonParams> & {
+  graph: ConfigGraph
   pluginName?: string
 }
 

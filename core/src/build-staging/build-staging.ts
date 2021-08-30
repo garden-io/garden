@@ -231,7 +231,7 @@ export class BuildStaging {
 
     let logMsg =
       `Syncing ${files ? files.length + " files " : ""}from ` +
-      `${relative(this.projectRoot, sourceRoot)} to ${relative(this.projectRoot, targetPath)}`
+      `${relative(this.projectRoot, sourceRoot) || "."} to ${relative(this.projectRoot, targetPath)}`
 
     if (withDelete) {
       logMsg += " (and removing any extraneous files)"

@@ -1,17 +1,19 @@
 kind: Module
 name: module-a
 type: test
+variables:
+  msg: OK
 services:
   - name: service-a
 build:
   command: [echo, A]
 tests:
   - name: unit
-    command: [echo, OK]
+    command: [echo, "${var.msg}"]
   - name: integration
-    command: [echo, OK]
-    dependencies: 
+    command: [echo, "${var.msg}"]
+    dependencies:
       - service-a
 tasks:
   - name: task-a
-    command: [echo, OK]
+    command: [echo, "${var.msg}"]

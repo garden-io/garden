@@ -16,7 +16,7 @@ import { TestModuleParams } from "../../../types/plugin/module/testModule"
 import { TestResult } from "../../../types/plugin/module/getTestResult"
 import {
   getServiceResourceSpec,
-  findServiceResource,
+  getServiceResource,
   getResourceContainer,
   makePodName,
   getResourcePodSpec,
@@ -38,7 +38,14 @@ export async function testHelmModule(params: TestModuleParams<HelmModule>): Prom
   })
   const baseModule = getBaseModule(module)
   const resourceSpec = test.config.spec.resource || getServiceResourceSpec(module, baseModule)
-  const target = await findServiceResource({ ctx: k8sCtx, log, manifests, module, resourceSpec })
+  const target = await getServiceResource({
+    ctx: k8sCtx,
+    log,
+    provider: k8sCtx.provider,
+    manifests,
+    module,
+    resourceSpec,
+  })
   const container = getResourceContainer(target, resourceSpec.containerName)
   const namespaceStatus = await getModuleNamespaceStatus({
     ctx: k8sCtx,

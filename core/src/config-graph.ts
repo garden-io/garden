@@ -75,7 +75,7 @@ export type DependencyGraph = { [key: string]: DependencyGraphNode }
  * A graph data structure that facilitates querying (recursive or non-recursive) of the project's dependency and
  * dependant relationships.
  *
- * This should be initialized with fully resolved and validated ModuleConfigs.
+ * This should be initialized with resolved and validated GardenModules.
  */
 export class ConfigGraph {
   private dependencyGraph: DependencyGraph

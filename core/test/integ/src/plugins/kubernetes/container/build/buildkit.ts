@@ -22,7 +22,7 @@ import { buildDockerAuthConfig } from "../../../../../../../src/plugins/kubernet
 import { dockerAuthSecretKey } from "../../../../../../../src/plugins/kubernetes/constants"
 import { grouped } from "../../../../../../helpers"
 
-describe("ensureBuildkit", () => {
+grouped("cluster-buildkit").describe("ensureBuildkit", () => {
   let garden: Garden
   let provider: KubernetesProvider
   let ctx: PluginContext
