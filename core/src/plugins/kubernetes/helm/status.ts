@@ -12,9 +12,11 @@ import { LogEntry } from "../../../logger/log-entry"
 import { helm } from "./helm-cli"
 import { HelmModule } from "./config"
 import { getBaseModule, getReleaseName, loadTemplate } from "./common"
+import { getIngresses } from "./ingress"
 import { KubernetesPluginContext } from "../config"
 import { getForwardablePorts } from "../port-forward"
 import { KubernetesServerResource } from "../types"
+import { ServiceIngress } from "../../../types/service"
 import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
 import { getServiceResource, getServiceResourceSpec } from "../util"
 import { startDevModeSync } from "../dev-mode"
@@ -64,10 +66,13 @@ export async function getServiceStatus({
   }
 
   let forwardablePorts: ForwardablePort[] = []
+  let ingresses: ServiceIngress[] = []
 
   if (state !== "missing") {
     const deployedResources = await getDeployedResources({ ctx: k8sCtx, module, releaseName, log })
+
     forwardablePorts = getForwardablePorts(deployedResources, service)
+    ingresses = getIngresses(deployedResources)
 
     if (state === "ready" && devMode && service.spec.devMode) {
       // Need to start the dev-mode sync here, since the deployment handler won't be called.
@@ -113,6 +118,7 @@ export async function getServiceStatus({
   return {
     forwardablePorts,
     state,
+    ingresses,
     version: state === "ready" ? service.version : undefined,
     detail,
     namespaceStatuses: [namespaceStatus],
