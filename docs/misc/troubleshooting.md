@@ -113,3 +113,13 @@ This is a bug in Docker CE (i.e. Docker for Desktop), version `2.4.x.y`. See thi
 In some container repositories, you may need to create the cache repo manually.
 
 See [this section](https://docs.garden.io/guides/in-cluster-building#kaniko) of our docs and this [GitHub comment](https://github.com/GoogleContainerTools/kaniko/issues/410#issuecomment-433229841) for more details.
+
+### Can't reach my services on existing ingress URLs after re-installing Garden system services.
+
+This can occur if you re-install the Garden Nginx Ingress Controller. For example because you ran `garden plugins kubernetes uninstall-garden-services` and then `garden plugins kubernetes cluster-init `when upgrading the system services.
+
+When the Ingress Controller gets re-installed, it may be assigned a new IP address by your cloud provider, meaning that hostnames pointing to the previous one will no longer work.
+
+To fix this, run kubectl get svc -n garden-system and look for the EXTERNAL-IP of the garden-nginx-nginx-ingress-controller service and update your DNS records with this new value.
+
+
