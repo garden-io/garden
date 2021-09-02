@@ -9,7 +9,7 @@
 import kms from "@google-cloud/kms"
 import { readFile } from "fs-extra"
 
-const projectId = "garden-dev-200012"
+const projectId = "garden-ci"
 const keyRingId = "dev"
 const cryptoKeyId = "dev"
 const locationId = "global"
