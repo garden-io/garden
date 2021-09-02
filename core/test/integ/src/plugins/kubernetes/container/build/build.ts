@@ -341,7 +341,6 @@ describe("kubernetes build flow", () => {
             module,
           }),
         (err) => {
-          console.log(err)
           expect(err.message).to.include("pull access denied")
         }
       )

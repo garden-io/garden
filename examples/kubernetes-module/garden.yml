@@ -9,7 +9,7 @@ providers:
     environments: [local]
   - name: kubernetes
     environments: [testing]
-    context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
+    context: gke_garden-ci_europe-west1-b_core-ci
     buildMode: kaniko
 variables:
   postgres-password: "Y0RGQjBHUmpWZQ=="

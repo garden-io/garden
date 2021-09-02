@@ -9,7 +9,7 @@ providers:
   - name: kubernetes
     environments: [testing]
     # Replace these values as appropriate
-    context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
+    context: gke_garden-ci_europe-west1-b_core-ci
     namespace: templated-k8s-container-testing-${local.username}
     defaultHostname: ${local.username}-templated-k8s-container.dev-1.sys.garden
     buildMode: kaniko

@@ -11,6 +11,6 @@ providers:
   - name: kubernetes
     environments: [remote]
     # Replace these values as appropriate
-    context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
+    context: gke_garden-ci_europe-west1-b_core-ci
     defaultHostname: ${local.username}-disabled-configs.dev-1.sys.garden
     buildMode: kaniko

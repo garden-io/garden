@@ -4,13 +4,26 @@ name: demo-project
 environments:
   - name: local
   - name: remote
+    defaultNamespace: demo-project-${var.userId}
+  - name: testing
+    defaultNamespace: demo-project-testing-${var.userId}
 providers:
   - name: local-kubernetes
     environments: [local]
   - name: kubernetes
     environments: [remote]
     # Replace these values as appropriate
-    context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
-    namespace: demo-project-testing-${local.env.USER || local.username}
-    defaultHostname: ${local.env.USER || local.username}-demo-project.dev-1.sys.garden
+    context: ${var.remoteContext}
+    namespace: ${environment.namespace}
+    defaultHostname: ${var.userId}-demo-project.dev-1.sys.garden
     buildMode: kaniko
+  - name: kubernetes
+    environments: [testing]
+    # Replace these values as appropriate
+    context: ${var.remoteContext}
+    namespace: ${environment.namespace}
+    defaultHostname: ${var.userId}-testing-demo-project.dev-1.sys.garden
+    buildMode: kaniko
+variables:
+  userId: ${local.env.CIRCLE_BUILD_NUM || local.username}
+  remoteContext: gke_garden-ci_europe-west1-b_core-ci

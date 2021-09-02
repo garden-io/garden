@@ -842,7 +842,6 @@ workflows:
           <<: *only-internal-prs
           name: e2e-demo-project
           project: demo-project
-          environment: remote
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
