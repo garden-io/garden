@@ -38,6 +38,7 @@
 * [Local Kubernetes](./guides/local-kubernetes.md)
 * [Remote Kubernetes](./guides/remote-kubernetes.md)
 * [Using Garden in CI](./guides/using-garden-in-ci.md)
+* [Certificates And Garden.md](./guides/certificates-and-garden.md)
 
 ## 🌺 Advanced
 

@@ -38,6 +38,7 @@ import { KubernetesResource } from "./types"
 import { compareDeployedResources } from "./status/status"
 import { PrimitiveMap } from "../../config/common"
 import { mapValues } from "lodash"
+import { Warning } from "../../db/entities/warning"
 
 // Note: We need to increment a version number here if we ever make breaking changes to the NFS provisioner StatefulSet
 const nfsStorageClassVersion = 2
@@ -116,6 +117,13 @@ export async function getEnvironmentStatus({
   const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
 
   if (provider.config.certManager) {
+    await Warning.emit({
+      key: "cert-manager-integration-deprecated",
+      log,
+      message:
+        "The cert-manager integration has been deprecated. Please see the docs if you need to use TLS certificates with Garden: https://docs.garden.io/guides/certificates-and-garden",
+    })
+
     const certManagerStatus = await checkCertManagerStatus({ ctx, provider, log })
 
     // A running cert-manager installation couldn't be found.
