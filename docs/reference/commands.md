@@ -2768,12 +2768,13 @@ to getting logs from the last minute when in `--follow` mode. You can change thi
 
 Examples:
 
-    garden logs                       # interleaves color-coded logs from all services (up to a certain limit)
-    garden logs --since 2d            # interleaves color-coded logs from all services from the last 2 days
-    garden logs --tail 100            # interleaves the last 100 log lines from all services
-    garden logs service-a,service-b   # interleaves color-coded logs for service-a and service-b
-    garden logs --follow              # keeps running and streams all incoming logs to the console
-    garden logs --original-color      # interleaves logs from all services and prints the original output color
+    garden logs                            # interleaves color-coded logs from all services (up to a certain limit)
+    garden logs --since 2d                 # interleaves color-coded logs from all services from the last 2 days
+    garden logs --tail 100                 # interleaves the last 100 log lines from all services
+    garden logs service-a,service-b        # interleaves color-coded logs for service-a and service-b
+    garden logs --follow                   # keeps running and streams all incoming logs to the console
+    garden logs --tag container=service-a  # only shows logs from containers with names matching the pattern
+    garden logs --original-color           # interleaves logs from all services and prints the original output color
 
 | Supported in workflows |   |
 | ---------------------- |---|
@@ -2793,13 +2794,13 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
+  | `--tag` |  | array:tag | Only show log lines that match the given tag, e.g. &#x60;--tag &#x27;container&#x3D;foo&#x27;&#x60;. If you specify multiple filters in a single tag option (e.g. &#x60;--tag &#x27;container&#x3D;foo,someOtherTag&#x3D;bar&#x27;&#x60;), they must all be matched. If you provide multiple &#x60;--tag&#x60; options (e.g. &#x60;--tag &#x27;container&#x3D;api&#x27; --tag &#x27;container&#x3D;frontend&#x27;&#x60;), they will be OR-ed together (i.e. if any of them match, the log line will be included). You can specify glob-style wildcards, e.g. &#x60;--tag &#x27;container&#x3D;prefix-*&#x27;&#x60;.
   | `--follow` | `-f` | boolean | Continuously stream new logs from the service(s).
-  | `--tail` | `-t` | number | Number of lines to show for each service. Defaults to showing all log lines (up to a certain limit). Takes precedence over
-the &#x60;--since&#x60; flag if both are set. Note that we don&#x27;t recommend using a large value here when in follow mode.
+  | `--tail` | `-t` | number | Number of lines to show for each service. Defaults to showing all log lines (up to a certain limit). Takes precedence over the &#x60;--since&#x60; flag if both are set. Note that we don&#x27;t recommend using a large value here when in follow mode.
   | `--show-container` |  | boolean | Show the name of the container with log output. May not apply to all providers
+  | `--show-tags` |  | boolean | Show any tags attached to each log line. May not apply to all providers
   | `--timestamps` |  | boolean | Show timestamps with log output.
-  | `--since` |  | moment | Only show logs newer than a relative duration like 5s, 2m, or 3h. Defaults to &#x60;&quot;1m&quot;&#x60; when &#x60;--follow&#x60; is true
-unless &#x60;--tail&#x60; is set. Note that we don&#x27;t recommend using a large value here when in follow mode.
+  | `--since` |  | moment | Only show logs newer than a relative duration like 5s, 2m, or 3h. Defaults to &#x60;&quot;1m&quot;&#x60; when &#x60;--follow&#x60; is true unless &#x60;--tail&#x60; is set. Note that we don&#x27;t recommend using a large value here when in follow mode.
   | `--original-color` |  | boolean | Show the original color output of the logs instead of color coding them.
   | `--hide-service` |  | boolean | Hide the service name and render the logs directly.
 
