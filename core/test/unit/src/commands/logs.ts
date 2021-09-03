@@ -13,15 +13,16 @@ import { colors, LogsCommand } from "../../../../src/commands/logs"
 import { joi } from "../../../../src/config/common"
 import { ProjectConfig, defaultNamespace } from "../../../../src/config/project"
 import { createGardenPlugin, GardenPlugin } from "../../../../src/types/plugin/plugin"
-import { GetServiceLogsParams } from "../../../../src/types/plugin/service/getServiceLogs"
+import { GetServiceLogsParams, ServiceLogEntry } from "../../../../src/types/plugin/service/getServiceLogs"
 import { TestGarden } from "../../../../src/util/testing"
-import { projectRootA, withDefaultGlobalOpts } from "../../../helpers"
+import { expectError, projectRootA, withDefaultGlobalOpts } from "../../../helpers"
 import execa from "execa"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { formatForTerminal } from "../../../../src/logger/renderers"
 import chalk from "chalk"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { LogLevel } from "../../../../src/logger/logger"
+import { ModuleConfig } from "../../../../src/config/module"
 
 function makeCommandParams({
   garden,
@@ -104,7 +105,7 @@ describe("LogsCommand", () => {
   const color = chalk[colors[0]]
   const defaultGetServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
     void stream.write({
-      containerName: "my-container",
+      tags: { container: "my-container" },
       serviceName: "test-service-a",
       msg: logMsgWithColor,
       timestamp,
@@ -146,7 +147,7 @@ describe("LogsCommand", () => {
       expect(res).to.eql({
         result: [
           {
-            containerName: "my-container",
+            tags: { container: "my-container" },
             serviceName: "test-service-a",
             msg: logMsgWithColor,
             timestamp,
@@ -157,25 +158,25 @@ describe("LogsCommand", () => {
     it("should sort entries by timestamp", async () => {
       const getServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
         void stream.write({
-          containerName: "my-container",
+          tags: { container: "my-container" },
           serviceName: "test-service-a",
           msg: "3",
           timestamp: new Date("2021-05-13T20:03:00.000Z"),
         })
         void stream.write({
-          containerName: "my-container",
+          tags: { container: "my-container" },
           serviceName: "test-service-a",
           msg: "4",
           timestamp: new Date("2021-05-13T20:04:00.000Z"),
         })
         void stream.write({
-          containerName: "my-container",
+          tags: { container: "my-container" },
           serviceName: "test-service-a",
           msg: "2",
           timestamp: new Date("2021-05-13T20:02:00.000Z"),
         })
         void stream.write({
-          containerName: "my-container",
+          tags: { container: "my-container" },
           serviceName: "test-service-a",
           msg: "1",
           timestamp: new Date("2021-05-13T20:01:00.000Z"),
@@ -190,25 +191,25 @@ describe("LogsCommand", () => {
       expect(res).to.eql({
         result: [
           {
-            containerName: "my-container",
+            tags: { container: "my-container" },
             serviceName: "test-service-a",
             msg: "1",
             timestamp: new Date("2021-05-13T20:01:00.000Z"),
           },
           {
-            containerName: "my-container",
+            tags: { container: "my-container" },
             serviceName: "test-service-a",
             msg: "2",
             timestamp: new Date("2021-05-13T20:02:00.000Z"),
           },
           {
-            containerName: "my-container",
+            tags: { container: "my-container" },
             serviceName: "test-service-a",
             msg: "3",
             timestamp: new Date("2021-05-13T20:03:00.000Z"),
           },
           {
-            containerName: "my-container",
+            tags: { container: "my-container" },
             serviceName: "test-service-a",
             timestamp: new Date("2021-05-13T20:04:00.000Z"),
             msg: "4",
@@ -220,14 +221,14 @@ describe("LogsCommand", () => {
       const getServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
         // Empty message and invalid date
         void stream.write({
-          containerName: "my-container",
+          tags: { container: "my-container" },
           serviceName: "test-service-a",
           msg: "",
           timestamp: new Date(""),
         })
         // Empty message and empty date
         void stream.write({
-          containerName: "my-container",
+          tags: { container: "my-container" },
           serviceName: "test-service-a",
           msg: "",
           timestamp: undefined,
@@ -295,33 +296,33 @@ describe("LogsCommand", () => {
         const getServiceLogsHandler = async ({ stream, service }: GetServiceLogsParams) => {
           if (service.name === "a-short") {
             void stream.write({
-              containerName: "short",
+              tags: { container: "short" },
               serviceName: "a-short",
               msg: logMsgWithColor,
               timestamp: new Date("2021-05-13T20:01:00.000Z"), // <--- 1
             })
             void stream.write({
-              containerName: "short",
+              tags: { container: "short" },
               serviceName: "a-short",
               msg: logMsgWithColor,
               timestamp: new Date("2021-05-13T20:03:00.000Z"), // <--- 3
             })
             void stream.write({
-              containerName: "short",
+              tags: { container: "short" },
               serviceName: "a-short",
               msg: logMsgWithColor,
               timestamp: new Date("2021-05-13T20:06:00.000Z"), // <--- 6
             })
           } else if (service.name === "b-not-short") {
             void stream.write({
-              containerName: "not-short",
+              tags: { container: "not-short" },
               serviceName: "b-not-short",
               msg: logMsgWithColor,
               timestamp: new Date("2021-05-13T20:02:00.000Z"), // <--- 2
             })
           } else if (service.name === "c-by-far-the-longest-of-the-bunch") {
             void stream.write({
-              containerName: "by-far-the-longest-of-the-bunch",
+              tags: { container: "by-far-the-longest-of-the-bunch" },
               serviceName: "c-by-far-the-longest-of-the-bunch",
               msg: logMsgWithColor,
               timestamp: new Date("2021-05-13T20:04:00.000Z"), // <--- 4
@@ -329,7 +330,7 @@ describe("LogsCommand", () => {
             })
           } else if (service.name === "d-very-very-long") {
             void stream.write({
-              containerName: "very-very-long",
+              tags: { container: "very-very-long" },
               serviceName: "d-very-very-long",
               msg: logMsgWithColor,
               timestamp: new Date("2021-05-13T20:05:00.000Z"), // <--- 5
@@ -403,14 +404,14 @@ describe("LogsCommand", () => {
       const getServiceLogsHandler = async ({ stream, service }: GetServiceLogsParams) => {
         if (service.name === "test-service-a") {
           void stream.write({
-            containerName: "my-container",
+            tags: { container: "my-container" },
             serviceName: "test-service-a",
             msg: logMsg,
             timestamp: new Date("2021-05-13T20:00:00.000Z"),
           })
         } else {
           void stream.write({
-            containerName: "my-container",
+            tags: { container: "my-container" },
             serviceName: "test-service-b",
             msg: logMsg,
             timestamp: new Date("2021-05-13T20:01:00.000Z"),
@@ -458,6 +459,228 @@ describe("LogsCommand", () => {
 
       // Assert that the service gets the "second" color, even though its the only one we're fetching logs for.
       expect(out[0]).to.eql(`${color2.bold("test-service-b")} → ${color2("Yes, this is log")}`)
+    })
+
+    const moduleConfigsForTags = (): ModuleConfig[] => [
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "test",
+        type: "test",
+        allowPublish: false,
+        disabled: false,
+        build: { dependencies: [] },
+        path: tmpDir.path,
+        serviceConfigs: [
+          {
+            name: "api",
+            dependencies: [],
+            disabled: false,
+            hotReloadable: false,
+            spec: {},
+          },
+          {
+            name: "frontend",
+            dependencies: [],
+            disabled: false,
+            hotReloadable: false,
+            spec: {},
+          },
+        ],
+        taskConfigs: [],
+        testConfigs: [],
+        spec: { bla: "fla" },
+      },
+    ]
+
+    it("should optionally print tags with --show-tags", async () => {
+      const getServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
+        void stream.write({
+          tags: { container: "api" },
+          serviceName: "api",
+          msg: logMsg,
+          timestamp: new Date(),
+        })
+        return {}
+      }
+      const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
+      garden.setModuleConfigs(moduleConfigsForTags())
+
+      const command = new LogsCommand()
+      await command.action(makeCommandParams({ garden, opts: { "show-tags": true } }))
+      const out = getLogOutput(garden, logMsg)
+
+      expect(out[0]).to.eql(`${color.bold("api")} → ${chalk.gray("[container=api] ")}${color("Yes, this is log")}`)
+    })
+
+    // These tests use tags as emitted by `container`/`kubernetes`/`helm` services, which use the `container` tag.
+    const filterByTag = (entries: ServiceLogEntry[], tag: string): ServiceLogEntry[] => {
+      return entries.filter((e: ServiceLogEntry) => e.tags!["container"] === tag)
+    }
+
+    it("should apply a basic --tag filter", async () => {
+      const getServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
+        void stream.write({
+          tags: { container: "api" },
+          serviceName: "api",
+          msg: logMsg,
+          timestamp: new Date(),
+        })
+        void stream.write({
+          tags: { container: "frontend" },
+          serviceName: "frontend",
+          msg: logMsg,
+          timestamp: new Date(),
+        })
+        return {}
+      }
+      const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
+      garden.setModuleConfigs(moduleConfigsForTags())
+
+      const command = new LogsCommand()
+      const res = await command.action(makeCommandParams({ garden, opts: { tag: ["container=api"] } }))
+
+      expect(filterByTag(res.result!, "api").length).to.eql(2)
+      expect(filterByTag(res.result!, "frontend").length).to.eql(0)
+    })
+
+    it("should throw when passed an invalid --tag filter", async () => {
+      const getServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
+        void stream.write({
+          tags: { container: "api-main" },
+          serviceName: "api",
+          msg: logMsg,
+          timestamp: new Date(),
+        })
+        return {}
+      }
+      const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
+      garden.setModuleConfigs(moduleConfigsForTags())
+
+      const command = new LogsCommand()
+      await expectError(
+        () => command.action(makeCommandParams({ garden, opts: { tag: ["*-main"] } })),
+        (err) => expect(err.message).to.eql("Unable to parse the given --tag flags. Format should be key=value.")
+      )
+    })
+
+    it("should AND together tag filters in a given --tag option instance", async () => {
+      const getServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
+        void stream.write({
+          tags: { container: "api", myTag: "1" },
+          serviceName: "api",
+          msg: logMsg,
+          timestamp: new Date(),
+        })
+        void stream.write({
+          tags: { container: "api", myTag: "2" },
+          serviceName: "api",
+          msg: logMsg,
+          timestamp: new Date(),
+        })
+        void stream.write({
+          tags: { container: "frontend", myTag: "1" },
+          serviceName: "frontend",
+          msg: logMsg,
+          timestamp: new Date(),
+        })
+        return {}
+      }
+      const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
+      garden.setModuleConfigs(moduleConfigsForTags())
+
+      const command = new LogsCommand()
+      const res = await command.action(makeCommandParams({ garden, opts: { tag: ["container=api,myTag=1"] } }))
+
+      const matching = filterByTag(res.result!, "api")
+      expect(matching.length).to.eql(2) // The same log line is emitted for each service in this test setup (here: 2)
+      expect(matching[0].tags).to.eql({ container: "api", myTag: "1" })
+      expect(matching[1].tags).to.eql({ container: "api", myTag: "1" })
+    })
+
+    it("should OR together tag filters from all provided --tag option instances", async () => {
+      const getServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
+        void stream.write({
+          tags: { container: "api", myTag: "1" },
+          serviceName: "api",
+          msg: logMsg,
+          timestamp: new Date(),
+        })
+        void stream.write({
+          tags: { container: "api", myTag: "2" },
+          serviceName: "api",
+          msg: logMsg,
+          timestamp: new Date(),
+        })
+        void stream.write({
+          tags: { container: "frontend", myTag: "1" },
+          serviceName: "frontend",
+          msg: logMsg,
+          timestamp: new Date(),
+        })
+        void stream.write({
+          tags: { container: "frontend", myTag: "2" },
+          serviceName: "frontend",
+          msg: logMsg,
+          timestamp: new Date(),
+        })
+        return {}
+      }
+      const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
+      garden.setModuleConfigs(moduleConfigsForTags())
+
+      const command = new LogsCommand()
+      const res = await command.action(
+        makeCommandParams({ garden, opts: { tag: ["container=api,myTag=1", "container=frontend"] } })
+      )
+
+      const apiMatching = filterByTag(res.result!, "api")
+      const frontendMatching = filterByTag(res.result!, "frontend")
+      expect(apiMatching.length).to.eql(2) // The same log line is emitted for each service in this test setup (here: 2)
+      expect(apiMatching[0].tags).to.eql({ container: "api", myTag: "1" })
+      expect(apiMatching[1].tags).to.eql({ container: "api", myTag: "1" })
+      expect(frontendMatching.length).to.eql(4)
+      expect(frontendMatching[0].tags).to.eql({ container: "frontend", myTag: "1" })
+      expect(frontendMatching[1].tags).to.eql({ container: "frontend", myTag: "2" })
+    })
+
+    it("should apply a wildcard --tag filter", async () => {
+      const getServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
+        void stream.write({
+          tags: { container: "api-main" },
+          serviceName: "api",
+          msg: logMsg,
+          timestamp: new Date(),
+        })
+        void stream.write({
+          tags: { container: "api-sidecar" },
+          serviceName: "api",
+          msg: logMsg,
+          timestamp: new Date(),
+        })
+        void stream.write({
+          tags: { container: "frontend-main" },
+          serviceName: "frontend",
+          msg: logMsg,
+          timestamp: new Date(),
+        })
+        void stream.write({
+          tags: { container: "frontend-sidecar" },
+          serviceName: "frontend",
+          msg: logMsg,
+          timestamp: new Date(),
+        })
+        return {}
+      }
+      const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
+      garden.setModuleConfigs(moduleConfigsForTags())
+
+      const command = new LogsCommand()
+      const res = await command.action(makeCommandParams({ garden, opts: { tag: ["container=*-main"] } }))
+
+      expect(filterByTag(res.result!, "api-main").length).to.eql(2)
+      expect(filterByTag(res.result!, "frontend-main").length).to.eql(2)
+      expect(filterByTag(res.result!, "api-sidecar").length).to.eql(0)
+      expect(filterByTag(res.result!, "frontend-sidecar").length).to.eql(0)
     })
   })
 })

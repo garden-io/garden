@@ -115,9 +115,9 @@ async function readLogs({
       try {
         const [timestampStr, msg] = splitFirst(line, " ")
         const timestamp = moment(timestampStr).toDate()
-        return { ...res, timestamp, msg }
+        return makeServiceLogEntry({ ...res, timestamp, msg })
       } catch {
-        return { ...res, msg: line }
+        return makeServiceLogEntry({ ...res, msg: line })
       }
     })
   })
@@ -430,13 +430,39 @@ export class K8sLogFollower {
     level?: LogLevel
     timestamp?: Date
   }) {
-    void this.stream.write({
-      serviceName: this.service.name,
-      timestamp,
-      msg,
-      containerName,
-      level,
-    })
+    void this.stream.write(
+      makeServiceLogEntry({
+        serviceName: this.service.name,
+        timestamp,
+        msg,
+        level,
+        containerName,
+      })
+    )
+  }
+}
+
+function makeServiceLogEntry({
+  serviceName,
+  msg,
+  containerName,
+  level,
+  timestamp,
+}: {
+  serviceName: string
+  msg: string
+  containerName?: string
+  level?: LogLevel
+  timestamp?: Date
+}): ServiceLogEntry {
+  return {
+    serviceName,
+    timestamp,
+    msg,
+    level,
+    tags: {
+      container: containerName || "",
+    },
   }
 }
 
