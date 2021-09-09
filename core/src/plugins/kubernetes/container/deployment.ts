@@ -34,7 +34,7 @@ import { prepareImagePullSecrets } from "../secrets"
 import { configureHotReload } from "../hot-reload/helpers"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { hotReloadableKinds, HotReloadableResource } from "../hot-reload/hot-reload"
-import { getResourceRequirements } from "./util"
+import { getResourceRequirements, getSecurityContext } from "./util"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters
@@ -402,6 +402,7 @@ export async function createWorkloadManifest({
     imagePullPolicy: "IfNotPresent",
     securityContext: {
       allowPrivilegeEscalation: false,
+      ...getSecurityContext(spec.privileged, spec.addCapabilities, spec.dropCapabilities),
     },
   }
 

@@ -38,7 +38,7 @@ import { configureVolumes } from "./container/deployment"
 import { PluginContext } from "../../plugin-context"
 import { waitForResources, ResourceStatus } from "./status/status"
 import { RuntimeContext } from "../../runtime-context"
-import { getResourceRequirements } from "./container/util"
+import { getResourceRequirements, getSecurityContext } from "./container/util"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { copy } from "fs-extra"
 
@@ -114,6 +114,9 @@ export async function runAndCopy({
   namespace,
   version,
   volumes,
+  privileged,
+  addCapabilities,
+  dropCapabilities,
 }: RunModuleParams<GardenModule> & {
   image: string
   container?: V1Container
@@ -127,6 +130,9 @@ export async function runAndCopy({
   namespace: string
   version: string
   volumes?: ContainerVolumeSpec[]
+  privileged?: boolean
+  addCapabilities?: string[]
+  dropCapabilities?: string[]
 }): Promise<RunResult> {
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
@@ -159,6 +165,9 @@ export async function runAndCopy({
     container,
     namespace,
     volumes,
+    privileged,
+    addCapabilities,
+    dropCapabilities,
   })
 
   if (!podName) {
@@ -225,6 +234,9 @@ export async function prepareRunPodSpec({
   container,
   namespace,
   volumes,
+  privileged,
+  addCapabilities,
+  dropCapabilities,
 }: {
   podSpec?: V1PodSpec
   getArtifacts: boolean
@@ -244,6 +256,9 @@ export async function prepareRunPodSpec({
   container?: V1Container
   namespace: string
   volumes?: ContainerVolumeSpec[]
+  privileged?: boolean
+  addCapabilities?: string[]
+  dropCapabilities?: string[]
 }): Promise<V1PodSpec> {
   // Prepare environment variables
   envVars = { ...runtimeContext.envVars, ...envVars }
@@ -254,11 +269,13 @@ export async function prepareRunPodSpec({
   ])
 
   const resourceRequirements = resources ? { resources: getResourceRequirements(resources) } : {}
+  const securityContext = getSecurityContext(privileged, addCapabilities, dropCapabilities)
 
   const containers: V1Container[] = [
     {
       ...omit(container || {}, runContainerExcludeFields),
       ...resourceRequirements,
+      ...(securityContext ? { securityContext } : {}),
       // We always override the following attributes
       name: mainContainerName,
       image,

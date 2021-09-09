@@ -126,6 +126,9 @@ export interface ContainerServiceSpec extends CommonServiceSpec {
   ports: ServicePortSpec[]
   replicas?: number
   volumes: ContainerVolumeSpec[]
+  privileged?: boolean
+  addCapabilities?: string[]
+  dropCapabilities?: string[]
 }
 
 export const commandExample = ["/bin/sh", "-c"]
@@ -504,6 +507,28 @@ export function getContainerVolumesSchema(targetType: string) {
   `)
 }
 
+const containerPrivilegedSchema = (targetType: string) =>
+  joi
+    .boolean()
+    .optional()
+    .description(
+      `If true, run the ${targetType}'s main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.`
+    )
+
+const containerAddCapabilitiesSchema = (targetType: string) =>
+  joi
+    .array()
+    .items(joi.string())
+    .optional()
+    .description(`POSIX capabilities to add to the running ${targetType}'s main container.`)
+
+const containerDropCapabilitiesSchema = (targetType: string) =>
+  joi
+    .array()
+    .items(joi.string())
+    .optional()
+    .description(`POSIX capabilities to remove from the running ${targetType}'s main container.`)
+
 const containerServiceSchema = () =>
   baseServiceSpecSchema().keys({
     annotations: annotationsSchema().description(
@@ -565,6 +590,9 @@ const containerServiceSchema = () =>
       with hot-reloading enabled, or if the provider doesn't support multiple replicas.
     `),
     volumes: getContainerVolumesSchema("service"),
+    privileged: containerPrivilegedSchema("service"),
+    addCapabilities: containerAddCapabilitiesSchema("service"),
+    dropCapabilities: containerDropCapabilitiesSchema("service"),
   })
 
 export interface ContainerRegistryConfig {
@@ -643,6 +671,9 @@ export interface ContainerTestSpec extends BaseTestSpec {
   cpu: ContainerResourcesSpec["cpu"]
   memory: ContainerResourcesSpec["memory"]
   volumes: ContainerVolumeSpec[]
+  privileged?: boolean
+  addCapabilities?: string[]
+  dropCapabilities?: string[]
 }
 
 export const containerTestSchema = () =>
@@ -662,6 +693,9 @@ export const containerTestSchema = () =>
     cpu: containerCpuSchema("test").default(defaultContainerResources.cpu),
     memory: containerMemorySchema("test").default(defaultContainerResources.memory),
     volumes: getContainerVolumesSchema("test"),
+    privileged: containerPrivilegedSchema("test"),
+    addCapabilities: containerAddCapabilitiesSchema("test"),
+    dropCapabilities: containerDropCapabilitiesSchema("test"),
   })
 
 export interface ContainerTaskSpec extends BaseTaskSpec {
@@ -673,6 +707,9 @@ export interface ContainerTaskSpec extends BaseTaskSpec {
   cpu: ContainerResourcesSpec["cpu"]
   memory: ContainerResourcesSpec["memory"]
   volumes: ContainerVolumeSpec[]
+  privileged?: boolean
+  addCapabilities?: string[]
+  dropCapabilities?: string[]
 }
 
 export const containerTaskSchema = () =>
@@ -694,6 +731,9 @@ export const containerTaskSchema = () =>
       cpu: containerCpuSchema("task").default(defaultContainerResources.cpu),
       memory: containerMemorySchema("task").default(defaultContainerResources.memory),
       volumes: getContainerVolumesSchema("task"),
+      privileged: containerPrivilegedSchema("task"),
+      addCapabilities: containerAddCapabilitiesSchema("task"),
+      dropCapabilities: containerDropCapabilitiesSchema("task"),
     })
     .description("A task that can be run in the container.")
 
