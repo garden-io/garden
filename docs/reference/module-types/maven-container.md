@@ -426,6 +426,16 @@ services:
         # services at the same time. Refer to the documentation of the module type in question to learn more.
         module:
 
+    # If true, run the service's main container in privileged mode. Processes in privileged containers are essentially
+    # equivalent to root on the host. Defaults to false.
+    privileged:
+
+    # POSIX capabilities to add to the running service's main container.
+    addCapabilities:
+
+    # POSIX capabilities to remove from the running service's main container.
+    dropCapabilities:
+
 # A list of tests to run in the module.
 tests:
   - # The name of the test.
@@ -512,6 +522,16 @@ tests:
         # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
         # services at the same time. Refer to the documentation of the module type in question to learn more.
         module:
+
+    # If true, run the test's main container in privileged mode. Processes in privileged containers are essentially
+    # equivalent to root on the host. Defaults to false.
+    privileged:
+
+    # POSIX capabilities to add to the running test's main container.
+    addCapabilities:
+
+    # POSIX capabilities to remove from the running test's main container.
+    dropCapabilities:
 
 # A list of tasks that can be run from this container module. These can be used as dependencies for services (executed
 # before the service is deployed) or for other tasks.
@@ -615,6 +635,16 @@ tasks:
         # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
         # services at the same time. Refer to the documentation of the module type in question to learn more.
         module:
+
+    # If true, run the task's main container in privileged mode. Processes in privileged containers are essentially
+    # equivalent to root on the host. Defaults to false.
+    privileged:
+
+    # POSIX capabilities to add to the running task's main container.
+    addCapabilities:
+
+    # POSIX capabilities to remove from the running task's main container.
+    dropCapabilities:
 
 # Set this to override the default OpenJDK container image version. Make sure the image version matches the
 # configured `jdkVersion`. Ignored if you provide your own Dockerfile.
@@ -1802,6 +1832,36 @@ Note: Make sure to pay attention to the supported `accessModes` of the reference
 | -------- | -------- |
 | `string` | No       |
 
+### `services[].privileged`
+
+[services](#services) > privileged
+
+If true, run the service's main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.
+
+| Type      | Required |
+| --------- | -------- |
+| `boolean` | No       |
+
+### `services[].addCapabilities[]`
+
+[services](#services) > addCapabilities
+
+POSIX capabilities to add to the running service's main container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `services[].dropCapabilities[]`
+
+[services](#services) > dropCapabilities
+
+POSIX capabilities to remove from the running service's main container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
 ### `tests[]`
 
 A list of tests to run in the module.
@@ -2095,6 +2155,36 @@ Note: Make sure to pay attention to the supported `accessModes` of the reference
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `tests[].privileged`
+
+[tests](#tests) > privileged
+
+If true, run the test's main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.
+
+| Type      | Required |
+| --------- | -------- |
+| `boolean` | No       |
+
+### `tests[].addCapabilities[]`
+
+[tests](#tests) > addCapabilities
+
+POSIX capabilities to add to the running test's main container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `tests[].dropCapabilities[]`
+
+[tests](#tests) > dropCapabilities
+
+POSIX capabilities to remove from the running test's main container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
 ### `tasks[]`
 
@@ -2410,6 +2500,36 @@ Note: Make sure to pay attention to the supported `accessModes` of the reference
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `tasks[].privileged`
+
+[tasks](#tasks) > privileged
+
+If true, run the task's main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.
+
+| Type      | Required |
+| --------- | -------- |
+| `boolean` | No       |
+
+### `tasks[].addCapabilities[]`
+
+[tasks](#tasks) > addCapabilities
+
+POSIX capabilities to add to the running task's main container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `tasks[].dropCapabilities[]`
+
+[tasks](#tasks) > dropCapabilities
+
+POSIX capabilities to remove from the running task's main container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
 ### `imageVersion`
 

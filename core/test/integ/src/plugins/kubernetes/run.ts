@@ -763,6 +763,63 @@ describe("kubernetes Pod runner functions", () => {
       })
     })
 
+    it("should apply security context fields to the main container when provided", async () => {
+      const generatedPodSpec = await prepareRunPodSpec({
+        podSpec: undefined,
+        getArtifacts: false,
+        api: helmApi,
+        provider: helmProvider,
+        log: helmLog,
+        module: helmModule,
+        args: ["sh", "-c"],
+        command: ["echo", "foo"],
+        runtimeContext: { envVars: {}, dependencies: [] },
+        envVars: {},
+        resources, // <---
+        description: "Helm module",
+        errorMetadata: {},
+        mainContainerName: "main",
+        image: "foo",
+        container: helmContainer,
+        namespace: helmNamespace,
+        volumes: [],
+        privileged: true, // <----
+        addCapabilities: ["SYS_TIME"], // <----
+        dropCapabilities: ["NET_ADMIN"], // <----
+      })
+
+      expect(generatedPodSpec).to.eql({
+        containers: [
+          {
+            name: "main",
+            image: "foo",
+            imagePullPolicy: "IfNotPresent",
+            args: ["sh", "-c"],
+            ports: [
+              {
+                name: "http",
+                containerPort: 80,
+                protocol: "TCP",
+              },
+            ],
+            resources: getResourceRequirements(resources),
+            env: [],
+            volumeMounts: [],
+            command: ["echo", "foo"],
+            securityContext: {
+              privileged: true,
+              capabilities: {
+                add: ["SYS_TIME"],
+                drop: ["NET_ADMIN"],
+              },
+            },
+          },
+        ],
+        imagePullSecrets: [],
+        volumes: [],
+      })
+    })
+
     it("should include only the right pod spec fields in the generated pod spec", async () => {
       const podSpec = getResourcePodSpec(helmTarget)
       expect(podSpec).to.eql({

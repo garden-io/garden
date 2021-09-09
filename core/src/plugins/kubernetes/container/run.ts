@@ -39,7 +39,7 @@ export async function runContainerModule(params: RunModuleParams<ContainerModule
 
 export async function runContainerService(params: RunServiceParams<ContainerModule>): Promise<RunResult> {
   const { module, ctx, log, service, runtimeContext, interactive, timeout } = params
-  const { command, args, env } = service.spec
+  const { command, args, env, privileged, addCapabilities, dropCapabilities } = service.spec
 
   runtimeContext.envVars = { ...runtimeContext.envVars, ...env }
 
@@ -58,6 +58,9 @@ export async function runContainerService(params: RunServiceParams<ContainerModu
     runtimeContext,
     namespace: namespaceStatus.namespaceName,
     version: service.version,
+    privileged,
+    addCapabilities,
+    dropCapabilities,
   })
 
   return {
@@ -68,7 +71,19 @@ export async function runContainerService(params: RunServiceParams<ContainerModu
 
 export async function runContainerTask(params: RunTaskParams<ContainerModule>): Promise<RunTaskResult> {
   const { ctx, log, module, task } = params
-  const { args, command, artifacts, env, cpu, memory, timeout, volumes } = task.spec
+  const {
+    args,
+    command,
+    artifacts,
+    env,
+    cpu,
+    memory,
+    timeout,
+    volumes,
+    privileged,
+    addCapabilities,
+    dropCapabilities,
+  } = task.spec
 
   const image = module.outputs["deployment-image-id"]
   const k8sCtx = ctx as KubernetesPluginContext
@@ -88,6 +103,9 @@ export async function runContainerTask(params: RunTaskParams<ContainerModule>): 
     timeout: timeout || undefined,
     volumes,
     version: task.version,
+    privileged,
+    addCapabilities,
+    dropCapabilities,
   })
 
   const result: RunTaskResult = {

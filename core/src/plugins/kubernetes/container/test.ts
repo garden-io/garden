@@ -18,7 +18,18 @@ import { KubernetesPluginContext } from "../config"
 
 export async function testContainerModule(params: TestModuleParams<ContainerModule>): Promise<TestResult> {
   const { ctx, module, test, log } = params
-  const { command, args, artifacts, env, cpu, memory, volumes } = test.config.spec
+  const {
+    command,
+    args,
+    artifacts,
+    env,
+    cpu,
+    memory,
+    volumes,
+    privileged,
+    addCapabilities,
+    dropCapabilities,
+  } = test.config.spec
   const testName = test.name
   const timeout = test.config.timeout || DEFAULT_TEST_TIMEOUT
   const k8sCtx = ctx as KubernetesPluginContext
@@ -40,6 +51,9 @@ export async function testContainerModule(params: TestModuleParams<ContainerModu
     timeout,
     version: test.version,
     volumes,
+    privileged,
+    addCapabilities,
+    dropCapabilities,
   })
 
   return storeTestResult({
