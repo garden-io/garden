@@ -187,10 +187,12 @@ export class EnterpriseApi {
 
   static async saveAuthToken(log: LogEntry, tokenResponse: AuthTokenResponse) {
     if (!tokenResponse.token) {
-      throw new EnterpriseApiError(
-        `Received a null/empty client auth token while logging in. Please contact your system administrator.`,
-        { tokenResponse }
-      )
+      const errMsg = deline`
+        Received a null/empty client auth token while logging in. This indicates that either your user account hasn't
+        yet been created in Garden Enterprise, or that there's a problem with your account's VCS username / login
+        credentials.
+      `
+      throw new EnterpriseApiError(errMsg, { tokenResponse })
     }
     try {
       const manager = ClientAuthToken.getConnection().manager
