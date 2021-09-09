@@ -171,7 +171,7 @@ triggers:
     # Supported events:
     #
     # `pull-request`, `pull-request-closed`, `pull-request-merged`, `pull-request-opened`, `pull-request-reopened`,
-    # `pull-request-updated`
+    # `pull-request-updated`, `push`
     #
     #
     events:
@@ -575,7 +575,7 @@ See the Garden Cloud documentation on [configuring workflows](https://cloud.docs
 
 Supported events:
 
-`pull-request`, `pull-request-closed`, `pull-request-merged`, `pull-request-opened`, `pull-request-reopened`, `pull-request-updated`
+`pull-request`, `pull-request-closed`, `pull-request-merged`, `pull-request-opened`, `pull-request-reopened`, `pull-request-updated`, `push`
 
 
 
