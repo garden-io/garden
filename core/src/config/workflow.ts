@@ -286,6 +286,7 @@ export const workflowStepSchema = () => {
 export type workflowStepModifier = "onSuccess" | "onError" | "always" | "never"
 
 export const triggerEvents = [
+  "push",
   "pull-request",
   "pull-request-opened",
   "pull-request-reopened",

@@ -1927,7 +1927,7 @@ workflowConfigs:
         # Supported events:
         #
         # `pull-request`, `pull-request-closed`, `pull-request-merged`, `pull-request-opened`,
-        # `pull-request-reopened`, `pull-request-updated`
+        # `pull-request-reopened`, `pull-request-updated`, `push`
         #
         #
         events:
