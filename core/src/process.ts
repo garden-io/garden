@@ -30,6 +30,10 @@ interface ProcessParams {
   log: LogEntry
   footerLog?: LogEntry
   watch: boolean
+  /**
+   * If provided, and if `watch === true`, don't watch files in the module roots of these modules.
+   */
+  skipWatchModules?: GardenModule[]
   initialTasks: BaseTask[]
   /**
    * Use this if the behavior should be different on watcher changes than on initial processing
@@ -53,6 +57,7 @@ export async function processModules({
   footerLog,
   modules,
   initialTasks,
+  skipWatchModules,
   watch,
   changeHandler,
 }: ProcessModulesParams): Promise<ProcessResults> {
@@ -66,7 +71,7 @@ export async function processModules({
 
   if (linkedModulesMsg.length > 0) {
     log.info(renderDivider())
-    log.info(chalk.gray(`Following modules are linked to a local path:\n${linkedModulesMsg.join("\n")}`))
+    log.info(chalk.gray(`The following modules are linked to a local path:\n${linkedModulesMsg.join("\n")}`))
     log.info(renderDivider())
   }
 
@@ -119,7 +124,7 @@ export async function processModules({
   const modulesToWatch = uniqByName(deps.build.concat(modules))
   const modulesByName = keyBy(modulesToWatch, "name")
 
-  await garden.startWatcher(graph)
+  await garden.startWatcher({ graph, skipModules: skipWatchModules })
 
   const waiting = () => {
     if (!!statusLine) {

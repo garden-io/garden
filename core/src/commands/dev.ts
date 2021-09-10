@@ -22,7 +22,7 @@ import { processModules } from "../process"
 import { GardenModule } from "../types/module"
 import { getTestTasks } from "../tasks/test"
 import { ConfigGraph } from "../config-graph"
-import { getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
+import { getDevModeModules, getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
 import { startServer } from "../server/server"
 import { BuildTask } from "../tasks/build"
 import { DeployTask } from "../tasks/deploy"
@@ -140,9 +140,9 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       return {}
     }
 
-    const hotReloadServiceNames = await getHotReloadServiceNames(opts["hot-reload"], graph)
+    const hotReloadServiceNames = getHotReloadServiceNames(opts["hot-reload"], graph)
     if (hotReloadServiceNames.length > 0) {
-      const errMsg = await validateHotReloadServiceNames(hotReloadServiceNames, graph)
+      const errMsg = validateHotReloadServiceNames(hotReloadServiceNames, graph)
       if (errMsg) {
         log.error({ msg: errMsg })
         return { result: {} }
@@ -176,6 +176,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       modules,
       watch: true,
       initialTasks,
+      skipWatchModules: getDevModeModules(devModeServiceNames, graph),
       changeHandler: async (updatedGraph: ConfigGraph, module: GardenModule) => {
         return getDevCommandWatchTasks({
           garden,

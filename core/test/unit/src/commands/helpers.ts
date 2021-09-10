@@ -20,17 +20,17 @@ describe("getDevModeServiceNames", () => {
   })
 
   it("should return all services if --dev-mode=* is set", async () => {
-    const result = await getDevModeServiceNames(["*"], graph)
+    const result = getDevModeServiceNames(["*"], graph)
     expect(result).to.eql(graph.getServices().map((s) => s.name))
   })
 
   it("should return all services if --dev-mode is set with no value", async () => {
-    const result = await getDevModeServiceNames([], graph)
+    const result = getDevModeServiceNames([], graph)
     expect(result).to.eql(graph.getServices().map((s) => s.name))
   })
 
   it("should return specific service if --dev-mode is set with a service name", async () => {
-    const result = await getDevModeServiceNames(["service-a"], graph)
+    const result = getDevModeServiceNames(["service-a"], graph)
     expect(result).to.eql(["service-a"])
   })
 })

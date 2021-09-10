@@ -8,6 +8,7 @@
 
 import deline = require("deline")
 import dedent = require("dedent")
+import chalk = require("chalk")
 
 import {
   Command,
@@ -22,11 +23,15 @@ import { getModuleWatchTasks } from "../tasks/helpers"
 import { processModules } from "../process"
 import { printHeader } from "../logger/util"
 import { BaseTask } from "../tasks/base"
-import { getDevModeServiceNames, getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
+import {
+  getDevModeModules,
+  getDevModeServiceNames,
+  getHotReloadServiceNames,
+  validateHotReloadServiceNames,
+} from "./helpers"
 import { startServer } from "../server/server"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
-import chalk = require("chalk")
 import { StringsParameter, BooleanParameter, ParameterValues } from "../cli/params"
 import { Garden } from "../garden"
 
@@ -165,8 +170,8 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const modules = Array.from(new Set(services.map((s) => s.module)))
-    const devModeServiceNames = await getDevModeServiceNames(opts["dev-mode"], initGraph)
-    const hotReloadServiceNames = await getHotReloadServiceNames(opts["hot-reload"], initGraph)
+    const devModeServiceNames = getDevModeServiceNames(opts["dev-mode"], initGraph)
+    const hotReloadServiceNames = getHotReloadServiceNames(opts["hot-reload"], initGraph)
 
     let watch = opts.watch
 
@@ -176,7 +181,7 @@ export class DeployCommand extends Command<Args, Opts> {
 
     if (hotReloadServiceNames.length > 0) {
       initGraph.getServices({ names: hotReloadServiceNames }) // validate the existence of these services
-      const errMsg = await validateHotReloadServiceNames(hotReloadServiceNames, initGraph)
+      const errMsg = validateHotReloadServiceNames(hotReloadServiceNames, initGraph)
       if (errMsg) {
         log.error({ msg: errMsg })
         return { result: { builds: {}, deployments: {}, tests: {}, graphResults: {} } }
@@ -209,6 +214,7 @@ export class DeployCommand extends Command<Args, Opts> {
       footerLog,
       modules,
       initialTasks,
+      skipWatchModules: getDevModeModules(devModeServiceNames, initGraph),
       watch,
       changeHandler: async (graph, module) => {
         const tasks: BaseTask[] = await getModuleWatchTasks({
