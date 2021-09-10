@@ -43,7 +43,10 @@ describe("Watcher", () => {
     doubleModulePath = resolve(garden.projectRoot, "double-module")
     includeModulePath = resolve(garden.projectRoot, "with-include")
     moduleContext = pathToCacheContext(modulePath)
-    await garden.startWatcher(await garden.getConfigGraph({ log: garden.log, emit: false }), 10)
+    await garden.startWatcher({
+      graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
+      bufferInterval: 10,
+    })
   })
 
   beforeEach(async () => {
@@ -337,7 +340,7 @@ describe("Watcher", () => {
       // This is not an issue in practice because there are specific commands just for linking
       // so the user will always have a new instance of Garden when they run their next command.
       garden = await makeExtModuleSourcesGarden()
-      await garden.startWatcher(await garden.getConfigGraph({ log: garden.log, emit: false }))
+      await garden.startWatcher({ graph: await garden.getConfigGraph({ log: garden.log, emit: false }) })
     })
 
     after(async () => {
@@ -400,7 +403,7 @@ describe("Watcher", () => {
       // This is not an issue in practice because there are specific commands just for linking
       // so the user will always have a new instance of Garden when they run their next command.
       garden = await makeExtProjectSourcesGarden()
-      await garden.startWatcher(await garden.getConfigGraph({ log: garden.log, emit: false }))
+      await garden.startWatcher({ graph: await garden.getConfigGraph({ log: garden.log, emit: false }) })
     })
 
     after(async () => {

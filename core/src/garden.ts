@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import chalk from "chalk"
-import { ensureDir } from "fs-extra"
+import { ensureDir, readdir } from "fs-extra"
 import dedent from "dedent"
 import { platform, arch } from "os"
 import { relative, resolve, join } from "path"
@@ -352,11 +352,37 @@ export class Garden {
    * Enables the file watcher for the project.
    * Make sure to stop it using `.close()` when cleaning up or when watching is no longer needed.
    */
-  async startWatcher(graph: ConfigGraph, bufferInterval?: number) {
+  async startWatcher({
+    graph,
+    skipModules,
+    bufferInterval,
+  }: {
+    graph: ConfigGraph
+    skipModules?: GardenModule[]
+    bufferInterval?: number
+  }) {
     const modules = graph.getModules()
     const linkedPaths = (await getLinkedSources(this)).map((s) => s.path)
     const paths = [this.projectRoot, ...linkedPaths]
-    this.watcher = new Watcher(this, this.log, paths, modules, bufferInterval)
+
+    // For skipped modules (e.g. those with services in dev mode), we skip watching all files and folders in the
+    // module root except for the module's config path. This way, we can still react to changes in the module's
+    // configuration.
+    const skipPaths = flatten(
+      await Bluebird.map(skipModules || [], async (skipped: GardenModule) => {
+        return (await readdir(skipped.path))
+          .map((relPath) => resolve(skipped.path, relPath))
+          .filter((absPath) => absPath !== skipped.configPath)
+      })
+    )
+    this.watcher = new Watcher({
+      garden: this,
+      log: this.log,
+      paths,
+      modules,
+      skipPaths,
+      bufferInterval,
+    })
   }
 
   async getPlugin(pluginName: string): Promise<GardenPlugin> {
