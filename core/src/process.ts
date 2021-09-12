@@ -50,6 +50,8 @@ export interface ProcessResults {
   restartRequired?: boolean
 }
 
+let statusLine: LogEntry
+
 export async function processModules({
   garden,
   graph,
@@ -75,14 +77,13 @@ export async function processModules({
     log.info(renderDivider())
   }
 
-  let statusLine: LogEntry
-
   if (watch && !!footerLog) {
-    statusLine = footerLog.info("").placeholder()
+    if (!statusLine) {
+      statusLine = footerLog.info("").placeholder()
+    }
 
     garden.events.on("taskGraphProcessing", () => {
-      const emoji = printEmoji("hourglass_flowing_sand", statusLine)
-      statusLine.setState(`${emoji} Processing...`)
+      statusLine.setState({ emoji: "hourglass_flowing_sand", msg: "Processing..." })
     })
   }
 
