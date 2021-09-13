@@ -39,6 +39,7 @@ import { DashboardEventStream } from "../server/dashboard-event-stream"
 import { GardenPluginCallback } from "../types/plugin/plugin"
 import { renderError } from "../logger/renderers"
 import { EnterpriseApi } from "../enterprise/api"
+import chalk = require("chalk")
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   const environments = gardenOpts.environmentName
@@ -236,6 +237,10 @@ ${renderCommands(commands)}
 
     contextOpts.persistent = persistent
     const { streamEvents, streamLogEntries } = command
+    // Print header log before we know the namespace to prevent content from
+    // jumping.
+    // TODO: Link to Cloud namespace page here.
+    const nsLog = headerLog.info(chalk.gray(`Running in namespace ...\n`))
 
     do {
       try {
@@ -243,6 +248,7 @@ ${renderCommands(commands)}
           garden = await makeDummyGarden(root, contextOpts)
         } else {
           garden = await Garden.factory(root, contextOpts)
+          nsLog.setState(`${chalk.gray(`Running in namespace ${chalk.white.bold(garden.namespace)}\n`)}`)
 
           if (processRecord) {
             // Update the db record for the process

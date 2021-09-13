@@ -13,14 +13,7 @@ import { readFile } from "fs-extra"
 
 import { printHeader } from "../../../logger/util"
 import { Command, CommandParams, CommandResult } from "../../base"
-import {
-  ApiCommandError,
-  getProject,
-  handleBulkOperationResult,
-  makeSecretFromResponse,
-  noApiMsg,
-  SecretResult,
-} from "../helpers"
+import { ApiCommandError, handleBulkOperationResult, makeSecretFromResponse, noApiMsg, SecretResult } from "../helpers"
 import { dedent, deline } from "../../../util/string"
 import { StringsParameter, PathParameter, IntegerParameter, StringParameter } from "../../../cli/params"
 import { StringMap } from "../../../config/common"
@@ -125,7 +118,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       throw new ConfigurationError(noApiMsg("create", "secrets"), {})
     }
 
-    const project = await getProject(api, api.projectId)
+    const project = await api.getProject()
     let environmentId: number | undefined
 
     if (envName) {

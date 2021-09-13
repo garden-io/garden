@@ -13,7 +13,7 @@ import { ListSecretsResponse } from "@garden-io/platform-api-types"
 import { printHeader } from "../../../logger/util"
 import { dedent, deline, renderTable } from "../../../util/string"
 import { Command, CommandParams, CommandResult } from "../../base"
-import { applyFilter, getProject, makeSecretFromResponse, noApiMsg, SecretResult } from "../helpers"
+import { applyFilter, makeSecretFromResponse, noApiMsg, SecretResult } from "../helpers"
 import chalk from "chalk"
 import { sortBy } from "lodash"
 import { StringsParameter } from "../../../cli/params"
@@ -61,7 +61,7 @@ export class SecretsListCommand extends Command<{}, Opts> {
       throw new ConfigurationError(noApiMsg("list", "secrets"), {})
     }
 
-    const project = await getProject(api, api.projectId)
+    const project = await api.getProject()
 
     const q = stringify({ projectId: project.id })
     const res = await api.get<ListSecretsResponse>(`/secrets?${q}`)
