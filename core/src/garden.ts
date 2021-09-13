@@ -1195,8 +1195,6 @@ export class Garden {
       domain: this.enterpriseDomain,
     }
   }
-
-  //endregion
 }
 
 export async function resolveGardenParams(currentDirectory: string, opts: GardenOpts): Promise<GardenParams> {

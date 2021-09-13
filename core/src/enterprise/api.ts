@@ -19,6 +19,7 @@ import { add, sub, isAfter } from "date-fns"
 import { isObject } from "lodash"
 import { deline } from "../util/string"
 import chalk from "chalk"
+import { GetProjectResponse } from "@garden-io/platform-api-types"
 
 // If a GARDEN_AUTH_TOKEN is present and Garden is NOT running from a workflow runner pod,
 // switch to ci-token authentication method.
@@ -182,6 +183,12 @@ export class EnterpriseApi {
     }
 
     enterpriseLog?.setSuccess({ msg: chalk.green("Done"), append: true })
+    try {
+      const project = await api.getProject()
+      enterpriseLog?.info({ symbol: "info", msg: `Visit project at ${api.domain}/projects/${project.id}` })
+    } catch (err) {
+      log.debug(`Getting project from API failed with error: err.message`)
+    }
     return api
   }
 
@@ -436,6 +443,11 @@ export class EnterpriseApi {
       retryDescription,
       maxRetries,
     })
+  }
+
+  async getProject() {
+    const res = await this.get<GetProjectResponse>(`/projects/uid/${this.projectId}`)
+    return res.data
   }
 
   /**
