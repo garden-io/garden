@@ -29,7 +29,7 @@ import { pathExists, readFile, remove, writeFile } from "fs-extra"
 import { execInWorkload, kilobytesToString, millicpuToString } from "../../../../../../src/plugins/kubernetes/util"
 import { getResourceRequirements } from "../../../../../../src/plugins/kubernetes/container/util"
 
-describe.only("kubernetes container deployment handlers", () => {
+describe("kubernetes container deployment handlers", () => {
   let garden: Garden
   let graph: ConfigGraph
   let ctx: KubernetesPluginContext
