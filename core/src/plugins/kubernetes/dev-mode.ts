@@ -8,7 +8,7 @@
 
 import { containerDevModeSchema, ContainerDevModeSpec } from "../container/config"
 import { dedent, gardenAnnotationKey } from "../../util/string"
-import { set } from "lodash"
+import { flatten, set, uniq } from "lodash"
 import { getResourceContainer, getResourcePodSpec } from "./util"
 import { HotReloadableResource } from "./hot-reload/hot-reload"
 import { LogEntry } from "../../logger/log-entry"
@@ -19,8 +19,14 @@ import { ConfigurationError } from "../../exceptions"
 import { ensureMutagenSync, getKubectlExecDestination, mutagenAgentPath, mutagenConfigLock } from "./mutagen"
 import { joiIdentifier } from "../../config/common"
 import { KubernetesPluginContext } from "./config"
+import { join } from "path"
+import { pathExists, readFile } from "fs-extra"
+import Bluebird from "bluebird"
+import parseGitIgnore from "parse-gitignore"
 
 const syncUtilImageName = "gardendev/k8s-sync:0.1.1"
+
+const defaultDevModeIgnores = [".garden*", "**/.garden*", ".git", "**/*.git"]
 
 interface ConfigureDevModeParams {
   target: HotReloadableResource
@@ -152,6 +158,7 @@ export async function startDevModeSync({
     }
 
     const k8sCtx = <KubernetesPluginContext>ctx
+    const excludesFromDevIgnoreFiles = await readDevIgnores(ctx.projectRoot, moduleRoot)
 
     let i = 0
 
@@ -185,11 +192,34 @@ export async function startDevModeSync({
           alpha,
           beta,
           mode: s.mode,
-          ignore: s.exclude || [],
+          ignore: [...defaultDevModeIgnores, ...excludesFromDevIgnoreFiles, ...(s.exclude || [])],
         },
       })
 
       i++
     }
   })
+}
+
+/**
+ * Reads the Mutagen ignore rules from the project- and module-level .gardenignore-dev files (if any) and returns them
+ * as a deduplicated array.
+ */
+async function readDevIgnores(projectRoot: string, moduleRoot: string): Promise<string[]> {
+  const projectDevIgnorePath = join(projectRoot, ".gardenignore-dev")
+  const moduleDevIgnorePath = join(moduleRoot, ".gardenignore-dev")
+  const rules = uniq(
+    flatten(await Bluebird.map([projectDevIgnorePath, moduleDevIgnorePath], async (path) => readIgnoreFile(path)))
+  )
+  return rules
+}
+
+async function readIgnoreFile(path: string): Promise<string[]> {
+  if (await pathExists(path)) {
+    // We use `parseGitIgnore` to gracefully handle comments and newlines.
+    const rules = parseGitIgnore((await readFile(path)).toString())
+    return rules
+  } else {
+    return []
+  }
 }

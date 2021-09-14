@@ -7,7 +7,6 @@
  */
 
 import { expect } from "chai"
-import { join } from "path"
 import { Garden } from "../../../../../../src/garden"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { emptyRuntimeContext } from "../../../../../../src/runtime-context"
@@ -23,10 +22,7 @@ import { getServiceStatuses } from "../../../../../../src/tasks/base"
 import { expectError, grouped } from "../../../../../helpers"
 import stripAnsi = require("strip-ansi")
 import { gardenAnnotationKey } from "../../../../../../src/util/string"
-import { getContainerServiceStatus } from "../../../../../../src/plugins/kubernetes/container/status"
-import { sleep } from "../../../../../../src/util/util"
-import { pathExists, readFile, remove, writeFile } from "fs-extra"
-import { execInWorkload, kilobytesToString, millicpuToString } from "../../../../../../src/plugins/kubernetes/util"
+import { kilobytesToString, millicpuToString } from "../../../../../../src/plugins/kubernetes/util"
 import { getResourceRequirements } from "../../../../../../src/plugins/kubernetes/container/util"
 
 describe("kubernetes container deployment handlers", () => {
@@ -566,69 +562,6 @@ describe("kubernetes container deployment handlers", () => {
         expect(resources.Deployment.spec.template.spec.containers[0].volumeMounts).to.eql([
           { name: "test", mountPath: "/volume" },
         ])
-      })
-
-      it("should deploy a service in dev mode and successfully set up the sync", async () => {
-        const service = graph.getService("dev-mode")
-        const module = service.module
-        const log = garden.log
-        const deployTask = new DeployTask({
-          garden,
-          graph,
-          log,
-          service,
-          force: true,
-          forceBuild: false,
-          devModeServiceNames: [service.name],
-          hotReloadServiceNames: [],
-        })
-
-        await garden.processTasks([deployTask], { throwOnError: true })
-        const status = await getContainerServiceStatus({
-          ctx,
-          module,
-          service,
-          runtimeContext: emptyRuntimeContext,
-          log,
-          devMode: true,
-          hotReload: false,
-        })
-
-        // First, we create a file locally and verify that it gets synced into the pod
-        await writeFile(join(module.path, "made_locally"), "foo")
-        await sleep(300)
-        const execRes = await execInWorkload({
-          command: ["/bin/sh", "-c", "cat /tmp/made_locally"],
-          ctx,
-          provider,
-          log,
-          namespace: provider.config.namespace!.name!,
-          workload: status.detail.workload!,
-          interactive: false,
-        })
-        expect(execRes.output.trim()).to.eql("foo")
-
-        // Then, we create a file in the pod and verify that it gets synced back
-        await execInWorkload({
-          command: ["/bin/sh", "-c", "echo bar > /tmp/made_in_pod"],
-          ctx,
-          provider,
-          log,
-          namespace: provider.config.namespace!.name!,
-          workload: status.detail.workload!,
-          interactive: false,
-        })
-        await sleep(300)
-        const localPath = join(module.path, "made_in_pod")
-        expect(await pathExists(localPath)).to.eql(true)
-        expect((await readFile(localPath)).toString().trim()).to.eql("bar")
-
-        // Clean up the files we created locally
-        for (const filename of ["made_locally", "made_in_pod"]) {
-          try {
-            await remove(join(module.path, filename))
-          } catch {}
-        }
       })
     })
 

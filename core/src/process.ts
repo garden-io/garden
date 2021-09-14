@@ -20,7 +20,7 @@ import { ConfigGraph } from "./config-graph"
 import { dedent } from "./util/string"
 import { ConfigurationError } from "./exceptions"
 import { uniqByName } from "./util/util"
-import { printEmoji, renderDivider } from "./logger/util"
+import { renderDivider } from "./logger/util"
 
 export type ProcessHandler = (graph: ConfigGraph, module: GardenModule) => Promise<BaseTask[]>
 

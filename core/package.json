@@ -117,6 +117,7 @@
     "p-retry": "^4.2.0",
     "parse-duration": "^1.0.0",
     "parse-git-config": "^3.0.0",
+    "parse-gitignore": "^1.0.1",
     "path-is-inside": "^1.0.2",
     "pluralize": "^8.0.0",
     "proper-url-join": "^2.1.1",
