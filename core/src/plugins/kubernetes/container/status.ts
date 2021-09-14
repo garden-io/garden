@@ -6,13 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginContext } from "../../../plugin-context"
-import { LogEntry } from "../../../logger/log-entry"
-import { GardenService, ServiceStatus, ForwardablePort } from "../../../types/service"
+import { ServiceStatus, ForwardablePort } from "../../../types/service"
 import { createContainerManifests, startContainerDevSync } from "./deployment"
-import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
-import { DeploymentError } from "../../../exceptions"
-import { sleep } from "../../../util/util"
 import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
 import { ContainerModule } from "../../container/config"
 import { KubeApi } from "../api"
@@ -20,7 +15,6 @@ import { compareDeployedResources } from "../status/status"
 import { getIngresses } from "./ingress"
 import { getAppNamespaceStatus } from "../namespace"
 import { KubernetesPluginContext } from "../config"
-import { RuntimeContext } from "../../../runtime-context"
 import { KubernetesServerResource, KubernetesWorkload } from "../types"
 
 interface ContainerStatusDetail {
@@ -36,6 +30,7 @@ export async function getContainerServiceStatus({
   runtimeContext,
   log,
   devMode,
+  devModeExcludes,
   hotReload,
 }: GetServiceStatusParams<ContainerModule>): Promise<ContainerServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -87,51 +82,9 @@ export async function getContainerServiceStatus({
       log,
       status,
       service,
+      devModeExcludes,
     })
   }
 
   return status
-}
-
-/**
- * Resolves to true if the requested service is ready, or becomes ready within a timeout limit.
- * Throws error otherwise.
- */
-export async function waitForContainerService(
-  ctx: PluginContext,
-  log: LogEntry,
-  runtimeContext: RuntimeContext,
-  service: GardenService,
-  devMode: boolean,
-  hotReload: boolean,
-  timeout = KUBECTL_DEFAULT_TIMEOUT
-) {
-  const startTime = new Date().getTime()
-
-  while (true) {
-    const status = await getContainerServiceStatus({
-      ctx,
-      log,
-      service,
-      runtimeContext,
-      module: service.module,
-      devMode,
-      hotReload,
-    })
-
-    if (status.state === "ready" || status.state === "outdated") {
-      return
-    }
-
-    log.silly(`Waiting for service ${service.name}`)
-
-    if (new Date().getTime() - startTime > timeout * 1000) {
-      throw new DeploymentError(`Timed out waiting for service ${service.name} to deploy after ${timeout} seconds`, {
-        serviceName: service.name,
-        status,
-      })
-    }
-
-    await sleep(1000)
-  }
 }

@@ -126,6 +126,7 @@ export class GetServiceStatusTask extends BaseTask {
         service: this.service,
         log,
         devMode,
+        devModeExcludes: this.garden.devModeExcludePatterns,
         hotReload,
         runtimeContext,
       })

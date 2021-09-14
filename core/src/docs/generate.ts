@@ -68,6 +68,7 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
       name: "generate-docs",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       variables: {},
       environments: [
         {

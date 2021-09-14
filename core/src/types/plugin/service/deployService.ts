@@ -16,6 +16,7 @@ import { joi } from "../../../config/common"
 export interface DeployServiceParams<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule>
   extends PluginServiceActionParamsBase<M, S> {
   devMode: boolean
+  devModeExcludes: string[]
   force: boolean
   hotReload: boolean
   runtimeContext: RuntimeContext
@@ -30,6 +31,10 @@ export const deployService = () => ({
   `,
   paramsSchema: serviceActionParamsSchema().keys({
     devMode: joi.boolean().default(false).description("Whether the service should be configured in dev mode."),
+    devModeExcludes: joi
+      .array()
+      .items(joi.string())
+      .description("Project-level sync exclusion rules for applying when configured for dev mode"),
     force: joi.boolean().description("Whether to force a re-deploy, even if the service is already deployed."),
     runtimeContext: runtimeContextSchema(),
     hotReload: joi.boolean().default(false).description("Whether to configure the service for hot-reloading."),

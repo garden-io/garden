@@ -26,6 +26,7 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
       envVars: {},
       dependencies: [],
     },
+    devModeExcludes: [],
     devMode: false,
     hotReload: false,
   })

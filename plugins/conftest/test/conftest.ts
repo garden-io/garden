@@ -29,6 +29,7 @@ describe("conftest provider", () => {
     path: projectRoot,
     defaultEnvironment: "default",
     dotIgnoreFiles: [],
+    devModeExclude: [],
     environments: [{ name: "default", defaultNamespace, variables: {} }],
     providers: [{ name: "conftest", policyPath: "policy.rego" }],
     variables: {},

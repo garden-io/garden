@@ -40,6 +40,7 @@ describe("hadolint provider", () => {
       path: tmpPath,
       defaultEnvironment: "default",
       dotIgnoreFiles: [],
+      devModeExclude: [],
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "hadolint" }],
       variables: {},

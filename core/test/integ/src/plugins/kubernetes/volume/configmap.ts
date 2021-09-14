@@ -32,6 +32,7 @@ describe("configmap module", () => {
       path: tmpDir.path,
       defaultEnvironment: "default",
       dotIgnoreFiles: [],
+      devModeExclude: [],
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "local-kubernetes", namespace: "default" }],
       variables: {},
@@ -92,6 +93,7 @@ describe("configmap module", () => {
       service,
       graph,
       devMode: false,
+      devModeExcludes: [],
       hotReload: false,
       runtimeContext: emptyRuntimeContext,
     })

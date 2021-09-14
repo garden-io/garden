@@ -51,6 +51,7 @@ describe("exec plugin", () => {
         path: garden.projectRoot,
         defaultEnvironment: "default",
         dotIgnoreFiles: [],
+        devModeExclude: [],
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "exec", initScript: "echo hello! > .garden/test.txt" }],
         variables: {},
@@ -74,6 +75,7 @@ describe("exec plugin", () => {
         path: garden.projectRoot,
         defaultEnvironment: "default",
         dotIgnoreFiles: [],
+        devModeExclude: [],
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "exec", initScript: "echo oh no!; exit 1" }],
         variables: {},
@@ -537,6 +539,7 @@ describe("exec plugin", () => {
         const actions = await garden.getActionRouter()
         const res = await actions.deployService({
           devMode: false,
+          devModeExcludes: [],
           force: false,
           hotReload: false,
           log,
@@ -557,6 +560,7 @@ describe("exec plugin", () => {
           async () =>
             await actions.deployService({
               devMode: false,
+              devModeExcludes: [],
               force: false,
               hotReload: false,
               log,
@@ -585,6 +589,7 @@ describe("exec plugin", () => {
         const actions = await garden.getActionRouter()
         const res = await actions.getServiceStatus({
           devMode: false,
+          devModeExcludes: [],
           hotReload: false,
           log,
           service,
@@ -602,6 +607,7 @@ describe("exec plugin", () => {
         const actions = await garden.getActionRouter()
         await actions.deployService({
           devMode: false,
+          devModeExcludes: [],
           hotReload: false,
           force: false,
           log,
@@ -614,6 +620,7 @@ describe("exec plugin", () => {
         })
         const res = await actions.getServiceStatus({
           devMode: false,
+          devModeExcludes: [],
           hotReload: false,
           log,
           service,
@@ -632,6 +639,7 @@ describe("exec plugin", () => {
         const actions = await garden.getActionRouter()
         const res = await actions.getServiceStatus({
           devMode: false,
+          devModeExcludes: [],
           hotReload: false,
           log,
           service,
@@ -651,6 +659,7 @@ describe("exec plugin", () => {
         const actions = await garden.getActionRouter()
         await actions.deployService({
           devMode: false,
+          devModeExcludes: [],
           hotReload: false,
           force: false,
           log,

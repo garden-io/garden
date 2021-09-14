@@ -27,6 +27,7 @@ describe("conftest-container provider", () => {
     path: projectRoot,
     defaultEnvironment: "default",
     dotIgnoreFiles: [],
+    devModeExclude: [],
     environments: [{ name: "default", defaultNamespace, variables: {} }],
     providers: [{ name: "conftest-container", policyPath: "dockerfile.rego" }],
     variables: {},

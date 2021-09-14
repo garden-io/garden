@@ -46,7 +46,7 @@ export const PRODUCTION_MINIMUM_REPLICAS = 3
 export async function deployContainerService(
   params: DeployServiceParams<ContainerModule>
 ): Promise<ContainerServiceStatus> {
-  const { ctx, service, log, devMode } = params
+  const { ctx, service, log, devMode, devModeExcludes } = params
   const { deploymentStrategy } = params.ctx.provider.config
 
   if (deploymentStrategy === "blue-green") {
@@ -66,6 +66,7 @@ export async function deployContainerService(
       log,
       status,
       service,
+      devModeExcludes,
     })
   }
 
@@ -77,11 +78,13 @@ export async function startContainerDevSync({
   log,
   status,
   service,
+  devModeExcludes,
 }: {
   ctx: KubernetesPluginContext
   status: ContainerServiceStatus
   log: LogEntry
   service: ContainerService
+  devModeExcludes: string[]
 }) {
   if (!service.spec.devMode) {
     return
@@ -100,6 +103,7 @@ export async function startContainerDevSync({
     target,
     spec: service.spec.devMode,
     serviceName: service.name,
+    devModeExcludes,
   })
 }
 

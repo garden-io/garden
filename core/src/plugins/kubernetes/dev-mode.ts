@@ -22,6 +22,8 @@ import { KubernetesPluginContext } from "./config"
 
 const syncUtilImageName = "gardendev/k8s-sync:0.1.1"
 
+const builtInExcludes = ["**/*.garden"]
+
 interface ConfigureDevModeParams {
   target: HotReloadableResource
   spec: ContainerDevModeSpec
@@ -114,6 +116,7 @@ interface StartDevModeSyncParams extends ConfigureDevModeParams {
   moduleRoot: string
   namespace: string
   serviceName: string
+  devModeExcludes: string[]
 }
 
 export async function startDevModeSync({
@@ -125,6 +128,7 @@ export async function startDevModeSync({
   spec,
   target,
   serviceName,
+  devModeExcludes,
 }: StartDevModeSyncParams) {
   if (spec.sync.length === 0) {
     return
@@ -132,6 +136,7 @@ export async function startDevModeSync({
   namespace = target.metadata.namespace || namespace
   const resourceName = `${target.kind}/${target.metadata.name}`
   const keyBase = `${target.kind}--${namespace}--${target.metadata.name}`
+  const projectLevelExcludes = devModeExcludes
 
   return mutagenConfigLock.acquire("start-sync", async () => {
     // Validate the target
@@ -185,7 +190,7 @@ export async function startDevModeSync({
           alpha,
           beta,
           mode: s.mode,
-          ignore: s.exclude || [],
+          ignore: [...builtInExcludes, ...projectLevelExcludes, ...(s.exclude || [])],
         },
       })
 

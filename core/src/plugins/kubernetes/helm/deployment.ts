@@ -30,6 +30,7 @@ export async function deployHelmService({
   log,
   force,
   devMode,
+  devModeExcludes,
   hotReload,
 }: DeployServiceParams<HelmModule>): Promise<HelmServiceStatus> {
   let hotReloadSpec: ContainerHotReloadSpec | null = null
@@ -142,6 +143,7 @@ export async function deployHelmService({
       spec: service.spec.devMode,
       containerName: service.spec.devMode.containerName,
       serviceName: service.name,
+      devModeExcludes,
     })
   }
 

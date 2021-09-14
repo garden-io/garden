@@ -59,6 +59,7 @@ describe("ActionRouter", () => {
     path: projectRootA,
     defaultEnvironment: "default",
     dotIgnoreFiles: defaultDotIgnoreFiles,
+    devModeExclude: [],
     environments: [{ name: "default", defaultNamespace, variables: {} }],
     providers: [{ name: "base" }, { name: "test-plugin" }, { name: "test-plugin-b" }],
     variables: {},
@@ -553,6 +554,7 @@ describe("ActionRouter", () => {
           graph,
           runtimeContext,
           devMode: false,
+          devModeExcludes: [],
           hotReload: false,
         })
         expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } })
@@ -560,7 +562,15 @@ describe("ActionRouter", () => {
 
       it("should emit a serviceStatus event", async () => {
         garden.events.eventLog = []
-        await actions.getServiceStatus({ log, service, graph, runtimeContext, devMode: false, hotReload: false })
+        await actions.getServiceStatus({
+          log,
+          service,
+          graph,
+          runtimeContext,
+          devMode: false,
+          devModeExcludes: [],
+          hotReload: false,
+        })
         const event = garden.events.eventLog[0]
         expect(event).to.exist
         expect(event.name).to.eql("serviceStatus")
@@ -577,7 +587,16 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.getServiceStatus({ log, service, graph, runtimeContext, devMode: false, hotReload: false }),
+          () =>
+            actions.getServiceStatus({
+              log,
+              service,
+              graph,
+              runtimeContext,
+              devMode: false,
+              devModeExcludes: [],
+              hotReload: false,
+            }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from service 'service-a': key .foo must be a string"
@@ -591,7 +610,16 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.getServiceStatus({ log, service, graph, runtimeContext, devMode: false, hotReload: false }),
+          () =>
+            actions.getServiceStatus({
+              log,
+              service,
+              graph,
+              runtimeContext,
+              devMode: false,
+              devModeExcludes: [],
+              hotReload: false,
+            }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from service 'service-a': key .base must be a string"
@@ -609,6 +637,7 @@ describe("ActionRouter", () => {
           runtimeContext,
           force: true,
           devMode: false,
+          devModeExcludes: [],
           hotReload: false,
         })
         expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } })
@@ -623,6 +652,7 @@ describe("ActionRouter", () => {
           runtimeContext,
           force: true,
           devMode: false,
+          devModeExcludes: [],
           hotReload: false,
         })
         const moduleVersion = service.module.version.versionString
@@ -660,6 +690,7 @@ describe("ActionRouter", () => {
               runtimeContext,
               force: true,
               devMode: false,
+              devModeExcludes: [],
               hotReload: false,
             }),
           (err) =>
@@ -683,6 +714,7 @@ describe("ActionRouter", () => {
               runtimeContext,
               force: true,
               devMode: false,
+              devModeExcludes: [],
               hotReload: false,
             }),
           (err) =>
@@ -1063,6 +1095,7 @@ describe("ActionRouter", () => {
             path,
             defaultEnvironment: "default",
             dotIgnoreFiles: [],
+            devModeExclude: [],
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "foo" }],
             variables: {},
@@ -1116,6 +1149,7 @@ describe("ActionRouter", () => {
             path,
             defaultEnvironment: "default",
             dotIgnoreFiles: [],
+            devModeExclude: [],
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "base" }, { name: "foo" }],
             variables: {},
@@ -1181,6 +1215,7 @@ describe("ActionRouter", () => {
             path,
             defaultEnvironment: "default",
             dotIgnoreFiles: [],
+            devModeExclude: [],
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [
               { name: "base" },
@@ -1250,6 +1285,7 @@ describe("ActionRouter", () => {
               path,
               defaultEnvironment: "default",
               dotIgnoreFiles: [],
+              devModeExclude: [],
               environments: [{ name: "default", defaultNamespace, variables: {} }],
               providers: [
                 { name: "base" },
@@ -1307,6 +1343,7 @@ describe("ActionRouter", () => {
             path,
             defaultEnvironment: "default",
             dotIgnoreFiles: [],
+            devModeExclude: [],
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "base" }, { name: "foo" }],
             variables: {},
@@ -1331,6 +1368,7 @@ describe("ActionRouter", () => {
         path,
         defaultEnvironment: "default",
         dotIgnoreFiles: [],
+        devModeExclude: [],
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "base" }, { name: "foo" }],
         variables: {},
@@ -1473,6 +1511,7 @@ describe("ActionRouter", () => {
             path,
             defaultEnvironment: "default",
             dotIgnoreFiles: [],
+            devModeExclude: [],
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "base-a" }, { name: "base-b" }, { name: "foo" }],
             variables: {},
@@ -1565,6 +1604,7 @@ describe("ActionRouter", () => {
           path,
           defaultEnvironment: "default",
           dotIgnoreFiles: [],
+          devModeExclude: [],
           environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "foo" }],
           variables: {},
@@ -1714,6 +1754,7 @@ describe("ActionRouter", () => {
           runtimeContext,
           log,
           devMode: false,
+          devModeExcludes: [],
           hotReload: false,
           force: false,
         },
@@ -1764,6 +1805,7 @@ describe("ActionRouter", () => {
           runtimeContext: _runtimeContext,
           log,
           devMode: false,
+          devModeExcludes: [],
           hotReload: false,
           force: false,
         },
@@ -1817,6 +1859,7 @@ describe("ActionRouter", () => {
           runtimeContext: _runtimeContext,
           log,
           devMode: false,
+          devModeExcludes: [],
           hotReload: false,
           force: false,
         },
@@ -1867,6 +1910,7 @@ describe("ActionRouter", () => {
               runtimeContext: _runtimeContext,
               log,
               devMode: false,
+              devModeExcludes: [],
               hotReload: false,
               force: false,
             },

@@ -42,6 +42,7 @@ describe("resolveProjectConfig", () => {
       path: "/tmp/foo",
       defaultEnvironment,
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       outputs: [],
       providers: [{ name: "some-provider", dependencies: [] }],
@@ -83,6 +84,7 @@ describe("resolveProjectConfig", () => {
       path: "/tmp/foo",
       defaultEnvironment,
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [],
       outputs: [],
       providers: [{ name: "some-provider", dependencies: [] }],
@@ -120,6 +122,7 @@ describe("resolveProjectConfig", () => {
       path: "/tmp/foo",
       defaultEnvironment,
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [
         {
           name: "default",
@@ -199,6 +202,7 @@ describe("resolveProjectConfig", () => {
       path: "/tmp/foo",
       defaultEnvironment,
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [
         {
           name: "default",
@@ -279,6 +283,7 @@ describe("resolveProjectConfig", () => {
       path: "/tmp/foo",
       defaultEnvironment,
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [
         {
           name: "default",
@@ -318,6 +323,7 @@ describe("resolveProjectConfig", () => {
       path: "/tmp/foo",
       defaultEnvironment,
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [
         {
           name: "default",
@@ -381,6 +387,7 @@ describe("resolveProjectConfig", () => {
       path: "/tmp/foo",
       defaultEnvironment,
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [],
       outputs: [],
       providers: [{ name: "some-provider", dependencies: [] }],
@@ -417,6 +424,7 @@ describe("resolveProjectConfig", () => {
       path: "/tmp/foo",
       defaultEnvironment,
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [],
       outputs: [],
       providers: [{ name: "some-provider", dependencies: [] }],
@@ -453,6 +461,7 @@ describe("resolveProjectConfig", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [
         {
           name: "default",
@@ -531,6 +540,7 @@ describe("resolveProjectConfig", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [
         {
           name: "default",
@@ -623,6 +633,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [],
       variables: {},
@@ -653,6 +664,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [],
       variables: {},
@@ -687,6 +699,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [
         {
           name: "default",
@@ -739,6 +752,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [
         { name: "container", newKey: "foo" },
@@ -783,6 +797,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [
         {
           name: "default",
@@ -852,6 +867,7 @@ describe("pickEnvironment", () => {
       path: tmpPath,
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [
         {
           name: "default",
@@ -902,6 +918,7 @@ describe("pickEnvironment", () => {
       path: tmpPath,
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [
         {
           name: "default",
@@ -952,6 +969,7 @@ describe("pickEnvironment", () => {
       path: tmpPath,
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [
         {
           name: "default",
@@ -1003,6 +1021,7 @@ describe("pickEnvironment", () => {
       path: tmpPath,
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [
         {
           name: "default",
@@ -1067,6 +1086,7 @@ describe("pickEnvironment", () => {
       path: tmpPath,
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [
         {
           name: "default",
@@ -1130,6 +1150,7 @@ describe("pickEnvironment", () => {
       path: tmpPath,
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [
         {
           name: "default",
@@ -1171,6 +1192,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [
         { name: "default", defaultNamespace, variables: { local: "${local.username}", secret: "${secrets.foo}" } },
       ],
@@ -1204,6 +1226,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [
         { name: "default", defaultNamespace, variables: {} },
         { name: "other", defaultNamespace, variables: { foo: "${var.missing}", secret: "${secrets.missing}" } },
@@ -1233,6 +1256,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [
         {
           name: "default",
@@ -1268,6 +1292,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [{ name: "default", defaultNamespace, variables: { foo: "${var.foo}" } }],
       providers: [],
       variables: { foo: "value" },
@@ -1316,6 +1341,7 @@ describe("pickEnvironment", () => {
       path: tmpPath,
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [
         {
           name: "default",
@@ -1364,6 +1390,7 @@ describe("pickEnvironment", () => {
       path: tmpPath,
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [
         {
           name: "default",
@@ -1405,6 +1432,7 @@ describe("pickEnvironment", () => {
       path: tmpPath,
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [
         {
           name: "default",
@@ -1442,6 +1470,7 @@ describe("pickEnvironment", () => {
       path: tmpPath,
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [
         {
           name: "default",
@@ -1479,6 +1508,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [],
       variables: {},
@@ -1513,6 +1543,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [],
       variables: {},
@@ -1547,6 +1578,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [],
       variables: {},
@@ -1581,6 +1613,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [],
       variables: {},
@@ -1614,6 +1647,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [{ name: "default", defaultNamespace: null, variables: {} }],
       providers: [],
       variables: {},

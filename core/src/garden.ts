@@ -156,6 +156,7 @@ export interface GardenParams {
   log: LogEntry
   moduleIncludePatterns?: string[]
   moduleExcludePatterns?: string[]
+  devModeExcludePatterns: string[]
   opts: GardenOpts
   outputs: OutputSpec[]
   plugins: RegisterPluginParam[]
@@ -218,6 +219,7 @@ export class Garden {
   public readonly dotIgnoreFiles: string[]
   public readonly moduleIncludePatterns?: string[]
   public readonly moduleExcludePatterns: string[]
+  public readonly devModeExcludePatterns: string[]
   public readonly persistent: boolean
   public readonly rawOutputs: OutputSpec[]
   public readonly systemNamespace: string
@@ -253,6 +255,7 @@ export class Garden {
     this.dotIgnoreFiles = params.dotIgnoreFiles
     this.moduleIncludePatterns = params.moduleIncludePatterns
     this.moduleExcludePatterns = params.moduleExcludePatterns || []
+    this.devModeExcludePatterns = params.devModeExcludePatterns
     this.asyncLock = new AsyncLock()
     this.persistent = !!params.opts.persistent
     this.username = params.username
@@ -1320,6 +1323,7 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
     gardenDirExcludePattern,
     ...fixedProjectExcludes,
   ]
+  const devModeExcludePatterns = config.devModeExclude
 
   return {
     artifactsPath,
@@ -1344,6 +1348,7 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
     plugins,
     providerConfigs: providers,
     moduleExcludePatterns,
+    devModeExcludePatterns,
     workingCopyId,
     dotIgnoreFiles: config.dotIgnoreFiles,
     moduleIncludePatterns: (config.modules || {}).include,

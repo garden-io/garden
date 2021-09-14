@@ -41,6 +41,7 @@ export async function getServiceStatus({
   service,
   log,
   devMode,
+  devModeExcludes,
   hotReload,
 }: GetServiceStatusParams<HelmModule>): Promise<HelmServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -103,6 +104,7 @@ export async function getServiceStatus({
           spec: service.spec.devMode,
           containerName: service.spec.devMode.containerName,
           serviceName: service.name,
+          devModeExcludes,
         })
       } else {
         state = "outdated"

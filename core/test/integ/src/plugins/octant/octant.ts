@@ -23,6 +23,7 @@ describe("octant provider", () => {
           path: projectRootA,
           defaultEnvironment: "default",
           dotIgnoreFiles: [],
+          devModeExclude: [],
           environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "local-kubernetes", namespace: "default" }, { name: "octant" }],
           variables: {},

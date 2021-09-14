@@ -65,6 +65,7 @@ export async function getKubernetesServiceStatus({
   log,
   service,
   devMode,
+  devModeExcludes,
   hotReload,
 }: GetServiceStatusParams<KubernetesModule>): Promise<KubernetesServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -117,6 +118,7 @@ export async function getKubernetesServiceStatus({
         spec: service.spec.devMode,
         containerName: service.spec.devMode.containerName,
         serviceName: service.name,
+        devModeExcludes,
       })
     } else {
       state = "outdated"
@@ -135,7 +137,7 @@ export async function getKubernetesServiceStatus({
 export async function deployKubernetesService(
   params: DeployServiceParams<KubernetesModule>
 ): Promise<KubernetesServiceStatus> {
-  const { ctx, module, service, log, hotReload, devMode } = params
+  const { ctx, module, service, log, hotReload, devMode, devModeExcludes } = params
 
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
@@ -212,6 +214,7 @@ export async function deployKubernetesService(
       spec: service.spec.devMode,
       containerName: service.spec.devMode.containerName,
       serviceName: service.name,
+      devModeExcludes,
     })
   }
 

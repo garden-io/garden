@@ -1,5 +1,7 @@
 kind: Project
 name: container
+devModeExclude: 
+  - "**/prefix-*"
 environments:
   - name: local
   - name: local-remote-registry

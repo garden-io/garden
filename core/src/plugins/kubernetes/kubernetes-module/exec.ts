@@ -28,6 +28,7 @@ export async function execInKubernetesService(params: ExecInServiceParams<Kubern
       dependencies: [],
     },
     devMode: false,
+    devModeExcludes: [],
     hotReload: false,
   })
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)

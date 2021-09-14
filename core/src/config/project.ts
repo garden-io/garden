@@ -43,6 +43,8 @@ import { CommandInfo } from "../plugin-context"
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
 
+const defaultDevModeIgnores = ["**/*.git"]
+
 // These plugins are always loaded
 export const defaultNamespace = "default"
 export const fixedPlugins = ["exec", "container", "templated"]
@@ -189,6 +191,7 @@ export interface ProjectConfig {
   defaultEnvironment: string
   dotIgnoreFiles: string[]
   environments: EnvironmentConfig[]
+  devModeExclude: string[]
   modules?: {
     include?: string[]
     exclude?: string[]
@@ -317,27 +320,36 @@ export const projectDocsSchema = () =>
       dotIgnoreFiles: joiSparseArray(joi.posixPath().filenameOnly())
         .default(defaultDotIgnoreFiles)
         .description(
-          deline`
-        Specify a list of filenames that should be used as ".ignore" files across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for modules and module sources (Note: prior to version 0.12.0, \`.gitignore\` files were also used by default).
+          dedent`
+            Specify a list of filenames that should be used as ".ignore" files across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for modules and module sources (Note: prior to version 0.12.0, \`.gitignore\` files were also used by default).
 
-        Note that these take precedence over the project \`module.include\` field, and module \`include\` fields, so any paths matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
+            Note that these take precedence over the project \`module.include\` field, and module \`include\` fields, so any paths matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
 
-        See the [Configuration Files guide](${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
-      `
+            See the [Configuration Files guide](${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+        `
         )
         .example([".gardenignore", ".gitignore"]),
+      devModeExclude: joiSparseArray(joi.string())
+        .default(defaultDevModeIgnores)
+        .description(
+          dedent`
+            Specify a list of paths or globs that should not be synced when services are deployed with dev mode enabled. These are applied for all services and modules.
+
+            Any exclusion patterns defined in individual dev mode sync specs will be applied in addition to these patterns (there is currently no precedence order for dev mode excludes).
+          `
+        )
+        .example([".git", "node_modules", "**/*.log"]),
       modules: projectModulesSchema().description("Control where to scan for modules in the project."),
       outputs: joiSparseArray(projectOutputSchema())
         .unique("name")
         .description(
           dedent`
-        A list of output values that the project should export. These are exported by the \`garden get outputs\` command, as well as when referencing a project as a sub-project within another project.
+            A list of output values that the project should export. These are exported by the \`garden get outputs\` command, as well as when referencing a project as a sub-project within another project.
 
-        You may use any template strings to specify the values, including references to provider outputs, module
-        outputs and runtime outputs. For a full reference, see the [Output configuration context](${DOCS_BASE_URL}/reference/template-strings#output-configuration-context) section in the Template String Reference.
+            You may use any template strings to specify the values, including references to provider outputs, module outputs and runtime outputs. For a full reference, see the [Output configuration context](${DOCS_BASE_URL}/reference/template-strings#output-configuration-context) section in the Template String Reference.
 
-        Note that if any runtime outputs are referenced, the referenced services and tasks will be deployed and run if necessary when resolving the outputs.
-        `
+            Note that if any runtime outputs are referenced, the referenced services and tasks will be deployed and run if necessary when resolving the outputs.
+          `
         ),
       sources: projectSourcesSchema(),
       varfile: joi
@@ -345,17 +357,17 @@ export const projectDocsSchema = () =>
         .default(defaultVarfilePath)
         .description(
           dedent`
-        Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
-        project-wide \`variables\` field.
+            Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
+            project-wide \`variables\` field.
 
-        ${varfileDescription}
+            ${varfileDescription}
 
-        If you don't set the field and the \`garden.env\` file does not exist, we simply ignore it.
-        If you do override the default value and the file doesn't exist, an error will be thrown.
+            If you don't set the field and the \`garden.env\` file does not exist, we simply ignore it.
+            If you do override the default value and the file doesn't exist, an error will be thrown.
 
-        _Note that in many cases it is advisable to only use environment-specific var files, instead of combining
-        multiple ones. See the \`environments[].varfile\` field for this option._
-      `
+            _Note that in many cases it is advisable to only use environment-specific var files, instead of combining
+            multiple ones. See the \`environments[].varfile\` field for this option._
+          `
         )
         .example("custom.env"),
       variables: joiVariables().description(

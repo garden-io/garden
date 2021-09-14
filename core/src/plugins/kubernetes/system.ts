@@ -70,6 +70,7 @@ export async function getSystemGarden(
       name: systemNamespace,
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
+      devModeExclude: [],
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [sysProvider],
       variables,

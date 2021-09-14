@@ -34,6 +34,7 @@ describe("resolveProjectOutputs", () => {
       path: tmpPath,
       defaultEnvironment: "default",
       dotIgnoreFiles: [],
+      devModeExclude: [],
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
       variables: {},

@@ -103,12 +103,21 @@ defaultEnvironment: ''
 # semantics as `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the
 # project, are ignored when scanning for modules and module sources (Note: prior to version 0.12.0, `.gitignore` files
 # were also used by default).
+#
 # Note that these take precedence over the project `module.include` field, and module `include` fields, so any paths
 # matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
+#
 # See the [Configuration Files
 # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
 # details.
 dotIgnoreFiles:
+
+# Specify a list of paths or globs that should not be synced when services are deployed with dev mode enabled. These
+# are applied for all services and modules.
+#
+# Any exclusion patterns defined in individual dev mode sync specs will be applied in addition to these patterns
+# (there is currently no precedence order for dev mode excludes).
+devModeExclude:
 
 # Control where to scan for modules in the project.
 modules:
@@ -147,8 +156,8 @@ modules:
 # A list of output values that the project should export. These are exported by the `garden get outputs` command, as
 # well as when referencing a project as a sub-project within another project.
 #
-# You may use any template strings to specify the values, including references to provider outputs, module
-# outputs and runtime outputs. For a full reference, see the [Output configuration
+# You may use any template strings to specify the values, including references to provider outputs, module outputs and
+# runtime outputs. For a full reference, see the [Output configuration
 # context](https://docs.garden.io/reference/template-strings#output-configuration-context) section in the Template
 # String Reference.
 #
@@ -477,7 +486,9 @@ defaultEnvironment: "dev"
 ### `dotIgnoreFiles[]`
 
 Specify a list of filenames that should be used as ".ignore" files across the project, using the same syntax and semantics as `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the project, are ignored when scanning for modules and module sources (Note: prior to version 0.12.0, `.gitignore` files were also used by default).
+
 Note that these take precedence over the project `module.include` field, and module `include` fields, so any paths matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
+
 See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
 | Type               | Default             | Required |
@@ -490,6 +501,25 @@ Example:
 dotIgnoreFiles:
   - .gardenignore
   - .gitignore
+```
+
+### `devModeExclude[]`
+
+Specify a list of paths or globs that should not be synced when services are deployed with dev mode enabled. These are applied for all services and modules.
+
+Any exclusion patterns defined in individual dev mode sync specs will be applied in addition to these patterns (there is currently no precedence order for dev mode excludes).
+
+| Type            | Default        | Required |
+| --------------- | -------------- | -------- |
+| `array[string]` | `["**/*.git"]` | No       |
+
+Example:
+
+```yaml
+devModeExclude:
+  - .git
+  - node_modules
+  - '**/*.log'
 ```
 
 ### `modules`
@@ -559,8 +589,7 @@ modules:
 
 A list of output values that the project should export. These are exported by the `garden get outputs` command, as well as when referencing a project as a sub-project within another project.
 
-You may use any template strings to specify the values, including references to provider outputs, module
-outputs and runtime outputs. For a full reference, see the [Output configuration context](https://docs.garden.io/reference/template-strings#output-configuration-context) section in the Template String Reference.
+You may use any template strings to specify the values, including references to provider outputs, module outputs and runtime outputs. For a full reference, see the [Output configuration context](https://docs.garden.io/reference/template-strings#output-configuration-context) section in the Template String Reference.
 
 Note that if any runtime outputs are referenced, the referenced services and tasks will be deployed and run if necessary when resolving the outputs.
 

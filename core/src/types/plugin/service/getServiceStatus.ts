@@ -20,6 +20,7 @@ export interface GetServiceStatusParams<M extends GardenModule = GardenModule, S
   devMode: boolean
   hotReload: boolean
   runtimeContext: RuntimeContext
+  devModeExcludes: string[]
 }
 
 export const getServiceStatus = () => ({
@@ -35,6 +36,10 @@ export const getServiceStatus = () => ({
   paramsSchema: serviceActionParamsSchema().keys({
     runtimeContext: runtimeContextSchema(),
     devMode: joi.boolean().default(false).description("Whether the service should be configured in dev mode."),
+    devModeExcludes: joi
+      .array()
+      .items(joi.string())
+      .description("Project-level sync exclusion rules for applying when configured for dev mode"),
     hotReload: joi.boolean().default(false).description("Whether the service should be configured for hot-reloading."),
   }),
   resultSchema: serviceStatusSchema(),

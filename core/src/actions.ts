@@ -616,7 +616,13 @@ export class ActionRouter implements TypeGuard {
     })
 
     const runtimeContext = emptyRuntimeContext
-    const status = await this.getServiceStatus({ ...params, runtimeContext, devMode: false, hotReload: false })
+    const status = await this.getServiceStatus({
+      ...params,
+      runtimeContext,
+      devMode: false,
+      devModeExcludes: [],
+      hotReload: false,
+    })
 
     if (status.state === "missing") {
       log.setSuccess({

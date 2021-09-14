@@ -53,6 +53,7 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
     name: "no-project",
     defaultEnvironment: "",
     dotIgnoreFiles: defaultDotIgnoreFiles,
+    devModeExclude: [],
     environments,
     providers: [],
     variables: {},

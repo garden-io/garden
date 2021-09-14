@@ -54,6 +54,7 @@ async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPlugin) {
     path: tmpDir.path,
     defaultEnvironment: "default",
     dotIgnoreFiles: [],
+    devModeExclude: [],
     environments: [{ name: "default", defaultNamespace, variables: {} }],
     providers: [{ name: "test" }],
     variables: {},

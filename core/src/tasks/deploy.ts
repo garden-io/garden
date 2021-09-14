@@ -214,6 +214,7 @@ export class DeployTask extends BaseTask {
           log,
           force: this.force,
           devMode,
+          devModeExcludes: this.garden.devModeExcludePatterns,
           hotReload,
         })
       } catch (err) {

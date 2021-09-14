@@ -131,6 +131,7 @@ describe("kubernetes-module handlers", () => {
         service,
         force: false,
         devMode: false,
+        devModeExcludes: [],
         hotReload: false,
         runtimeContext: emptyRuntimeContext,
       }
@@ -159,6 +160,7 @@ describe("kubernetes-module handlers", () => {
         service,
         force: false,
         devMode: false,
+        devModeExcludes: [],
         hotReload: false,
         runtimeContext: emptyRuntimeContext,
       }
@@ -189,6 +191,7 @@ describe("kubernetes-module handlers", () => {
         service,
         force: false,
         devMode: false,
+        devModeExcludes: [],
         hotReload: false,
         runtimeContext: emptyRuntimeContext,
       }
@@ -235,6 +238,7 @@ describe("kubernetes-module handlers", () => {
         service,
         force: false,
         devMode: false,
+        devModeExcludes: [],
         hotReload: false,
         runtimeContext: emptyRuntimeContext,
       }

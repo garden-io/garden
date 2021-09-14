@@ -496,6 +496,7 @@ describe("Terraform module type", () => {
       const status = await actions.getServiceStatus({
         service: graph.getService("tf"),
         devMode: false,
+        devModeExcludes: [],
         hotReload: false,
         log: garden.log,
         graph,
@@ -532,6 +533,7 @@ describe("Terraform module type", () => {
       const status = await actions.getServiceStatus({
         service: graph.getService("tf"),
         devMode: false,
+        devModeExcludes: [],
         hotReload: false,
         log: _garden.log,
         graph,
