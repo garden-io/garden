@@ -1,4 +1,26 @@
 
+<a name="0.12.26-0"></a>
+## [0.12.26-0](https://github.com/garden-io/garden/compare/0.12.25...0.12.26-0) (2021-09-14)
+
+### Bug Fixes
+
+* **core:** fix duplicate status line in watch ([868e477f](https://github.com/garden-io/garden/commit/868e477f))
+
+### Features
+
+* add jib provider and jib-container module type ([e453d700](https://github.com/garden-io/garden/commit/e453d700))
+* **cloud:** emit stack graph & task log events ([6382d3dd](https://github.com/garden-io/garden/commit/6382d3dd))
+* **container:** more security options ([c0f14e1b](https://github.com/garden-io/garden/commit/c0f14e1b))
+* **core:** emit live logs from k8s tasks and tests (WIP) ([bfbfb2f1](https://github.com/garden-io/garden/commit/bfbfb2f1))
+* **internal:** support persistent commands in WS API ([3976e9d6](https://github.com/garden-io/garden/commit/3976e9d6))
+* **logs:** allow filtering log lines by tag ([20babc2e](https://github.com/garden-io/garden/commit/20babc2e))
+* **terraform:** add v1.0.5 as a supported version ([740a8eb2](https://github.com/garden-io/garden/commit/740a8eb2))
+
+### Improvements
+
+* **core:** don't watch dev-enabled modules ([b1124723](https://github.com/garden-io/garden/commit/b1124723))
+* **core:** add --forward flag to deploy command ([8f817d5f](https://github.com/garden-io/garden/commit/8f817d5f))
+
 <a name="0.12.25"></a>
 ## [0.12.25](https://github.com/garden-io/garden/compare/0.12.24...0.12.25) (2021-08-23)
 
