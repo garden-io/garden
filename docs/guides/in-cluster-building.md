@@ -311,7 +311,7 @@ gcloud iam roles create gcrAccess \
 # Attach the role to the newly create Google Service Account
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
   --member=serviceAccount:gcr-access@${PROJECT_ID}.iam.gserviceaccount.com \
-  --role==projects/${PROJECT_ID}/roles/gcrAccess
+  --role=projects/${PROJECT_ID}/roles/gcrAccess
 ```
 
 Next create a JSON key file for the GSA:
