@@ -289,9 +289,17 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
     throw new ParameterError(chalk.red.bold(errors.join("\n")), { parsedArgs, processedArgs, processedOpts, errors })
   }
 
+  // To ensure that `command.params` behaves intuitively in template strings, we don't want to add option keys with
+  // null/undefined values.
+  //
+  // For example, we don't want `${command.params contains 'dev-mode'}` to be `true` when running `garden deploy`
+  // unless the `--dev` flag was actually passed (since the user would expect the option value to be an array if
+  // present).
+  const cleanedProcessedOpts = pickBy(processedOpts, (value) => !(value === undefined || value === null))
+
   return {
     args: <DefaultArgs & ParameterValues<A>>processedArgs,
-    opts: <ParameterValues<GlobalOptions> & ParameterValues<O>>processedOpts,
+    opts: <ParameterValues<GlobalOptions> & ParameterValues<O>>cleanedProcessedOpts,
   }
 }
 
@@ -301,7 +309,7 @@ export function optionsWithAliasValues<A extends Parameters, O extends Parameter
 ): DeepPrimitiveMap {
   const withAliases = { ...parsedOpts } // Create a new object instead of mutating.
   for (const [name, spec] of Object.entries(command.options || {})) {
-    if (spec.alias) {
+    if (spec.alias && parsedOpts[name]) {
       withAliases[spec.alias] = parsedOpts[name]
     }
   }
