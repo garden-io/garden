@@ -35,7 +35,7 @@ export const configSchema = () => providerConfigBaseSchema().unknown(false)
 
 const moduleTypeUrl = getModuleTypeUrl("jib-container")
 const containerModuleTypeUrl = getModuleTypeUrl("container")
-const exampleUrl = getGitHubUrl("examples/jib")
+const exampleUrl = getGitHubUrl("examples/jib-container")
 
 const jibModuleSchema = () =>
   containerModuleSpecSchema().keys({
