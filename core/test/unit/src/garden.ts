@@ -34,7 +34,12 @@ import { getModuleCacheContext } from "../../../src/types/module"
 import { createGardenPlugin, PluginDependency } from "../../../src/types/plugin/plugin"
 import { ConfigureProviderParams } from "../../../src/types/plugin/provider/configureProvider"
 import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
-import { ModuleConfig, baseModuleSpecSchema, baseBuildSpecSchema, defaultBuildTimeout } from "../../../src/config/module"
+import {
+  ModuleConfig,
+  baseModuleSpecSchema,
+  baseBuildSpecSchema,
+  defaultBuildTimeout,
+} from "../../../src/config/module"
 import { DEFAULT_API_VERSION } from "../../../src/constants"
 import { providerConfigBaseSchema } from "../../../src/config/provider"
 import { keyBy, set, mapValues } from "lodash"

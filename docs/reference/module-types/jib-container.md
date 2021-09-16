@@ -7,7 +7,7 @@ tocTitle: "`jib-container`"
 
 ## Description
 
-Extends the [container module type](https://docs.garden.io/reference/module-types/container) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.26/examples/jib) to see it in action.
+Extends the [container module type](https://docs.garden.io/reference/module-types/container) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.26/examples/jib-container) to see it in action.
 
 The image is always built locally, directly from the module source directory (see the note on that below), before shipping the container image to the right place. You can set `build.tarOnly: true` to only build the image as a tarball.
 
@@ -444,6 +444,16 @@ services:
         # services at the same time. Refer to the documentation of the module type in question to learn more.
         module:
 
+    # If true, run the service's main container in privileged mode. Processes in privileged containers are essentially
+    # equivalent to root on the host. Defaults to false.
+    privileged:
+
+    # POSIX capabilities to add to the running service's main container.
+    addCapabilities:
+
+    # POSIX capabilities to remove from the running service's main container.
+    dropCapabilities:
+
 # A list of tests to run in the module.
 tests:
   - # The name of the test.
@@ -530,6 +540,16 @@ tests:
         # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
         # services at the same time. Refer to the documentation of the module type in question to learn more.
         module:
+
+    # If true, run the test's main container in privileged mode. Processes in privileged containers are essentially
+    # equivalent to root on the host. Defaults to false.
+    privileged:
+
+    # POSIX capabilities to add to the running test's main container.
+    addCapabilities:
+
+    # POSIX capabilities to remove from the running test's main container.
+    dropCapabilities:
 
 # A list of tasks that can be run from this container module. These can be used as dependencies for services (executed
 # before the service is deployed) or for other tasks.
@@ -633,6 +653,16 @@ tasks:
         # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
         # services at the same time. Refer to the documentation of the module type in question to learn more.
         module:
+
+    # If true, run the task's main container in privileged mode. Processes in privileged containers are essentially
+    # equivalent to root on the host. Defaults to false.
+    privileged:
+
+    # POSIX capabilities to add to the running task's main container.
+    addCapabilities:
+
+    # POSIX capabilities to remove from the running task's main container.
+    dropCapabilities:
 ```
 
 ## Configuration Keys
@@ -1850,6 +1880,36 @@ Note: Make sure to pay attention to the supported `accessModes` of the reference
 | -------- | -------- |
 | `string` | No       |
 
+### `services[].privileged`
+
+[services](#services) > privileged
+
+If true, run the service's main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.
+
+| Type      | Required |
+| --------- | -------- |
+| `boolean` | No       |
+
+### `services[].addCapabilities[]`
+
+[services](#services) > addCapabilities
+
+POSIX capabilities to add to the running service's main container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `services[].dropCapabilities[]`
+
+[services](#services) > dropCapabilities
+
+POSIX capabilities to remove from the running service's main container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
 ### `tests[]`
 
 A list of tests to run in the module.
@@ -2143,6 +2203,36 @@ Note: Make sure to pay attention to the supported `accessModes` of the reference
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `tests[].privileged`
+
+[tests](#tests) > privileged
+
+If true, run the test's main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.
+
+| Type      | Required |
+| --------- | -------- |
+| `boolean` | No       |
+
+### `tests[].addCapabilities[]`
+
+[tests](#tests) > addCapabilities
+
+POSIX capabilities to add to the running test's main container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `tests[].dropCapabilities[]`
+
+[tests](#tests) > dropCapabilities
+
+POSIX capabilities to remove from the running test's main container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
 ### `tasks[]`
 
@@ -2458,6 +2548,36 @@ Note: Make sure to pay attention to the supported `accessModes` of the reference
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `tasks[].privileged`
+
+[tasks](#tasks) > privileged
+
+If true, run the task's main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.
+
+| Type      | Required |
+| --------- | -------- |
+| `boolean` | No       |
+
+### `tasks[].addCapabilities[]`
+
+[tasks](#tasks) > addCapabilities
+
+POSIX capabilities to add to the running task's main container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `tasks[].dropCapabilities[]`
+
+[tasks](#tasks) > dropCapabilities
+
+POSIX capabilities to remove from the running task's main container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
 
 ## Outputs
