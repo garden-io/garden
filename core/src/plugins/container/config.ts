@@ -29,6 +29,7 @@ import { joiStringMap } from "../../config/common"
 import { dedent, deline } from "../../util/string"
 import { getModuleTypeUrl } from "../../docs/common"
 import { ContainerModuleOutputs } from "./container"
+import { devModeGuideLink } from "../kubernetes/dev-mode"
 
 export const defaultContainerLimits: ServiceLimitSpec = {
   cpu: 1000, // = 1000 millicpu = 1 CPU
@@ -202,13 +203,52 @@ const permissionsDocs =
 const ownerDocs =
   "Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information."
 
+export const syncExcludeSchema = () =>
+  joi
+    .array()
+    .items(joi.posixPath().allowGlobs().subPathOnly())
+    .description(
+      dedent`
+        Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
+
+        \`.git\` directories and \`.garden\` directories are always ignored.
+      `
+    )
+    .example(["dist/**/*", "*.log"])
+
+export const syncDefaultFileModeSchema = () =>
+  joi
+    .number()
+    .min(0)
+    .max(0o777)
+    .description(
+      "The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). " +
+        permissionsDocs
+    )
+
+export const syncDefaultDirectoryModeSchema = () =>
+  joi
+    .number()
+    .min(0)
+    .max(0o777)
+    .description(
+      "The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). " +
+        permissionsDocs
+    )
+
+export const syncDefaultOwnerSchema = () =>
+  joi
+    .alternatives(joi.number().integer(), joi.string())
+    .description("Set the default owner of files and directories at the target. " + ownerDocs)
+
+export const syncDefaultGroupSchema = () =>
+  joi
+    .alternatives(joi.number().integer(), joi.string())
+    .description("Set the default group on files and directories at the target. " + ownerDocs)
+
 const devModeSyncSchema = () =>
   hotReloadSyncSchema().keys({
-    exclude: joi
-      .array()
-      .items(joi.posixPath().allowGlobs().subPathOnly())
-      .description(`Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.`)
-      .example(["dist/**/*", "*.log"]),
+    exclude: syncExcludeSchema(),
     mode: joi
       .string()
       .allow("one-way", "one-way-replica", "two-way")
@@ -217,28 +257,10 @@ const devModeSyncSchema = () =>
       .description(
         "The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `two-way`."
       ),
-    defaultFileMode: joi
-      .number()
-      .min(0)
-      .max(0o777)
-      .description(
-        "The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). " +
-          permissionsDocs
-      ),
-    defaultDirectoryMode: joi
-      .number()
-      .min(0)
-      .max(0o777)
-      .description(
-        "The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). " +
-          permissionsDocs
-      ),
-    defaultOwner: joi
-      .alternatives(joi.number().integer(), joi.string())
-      .description("Set the default owner of files and directories at the target. " + ownerDocs),
-    defaultGroup: joi
-      .alternatives(joi.number().integer(), joi.string())
-      .description("Set the default group on files and directories at the target. " + ownerDocs),
+    defaultFileMode: syncDefaultFileModeSchema(),
+    defaultDirectoryMode: syncDefaultDirectoryModeSchema(),
+    defaultOwner: syncDefaultOwnerSchema(),
+    defaultGroup: syncDefaultGroupSchema(),
   })
 
 export interface ContainerDevModeSpec {
@@ -263,7 +285,7 @@ export const containerDevModeSchema = () =>
 
     Dev mode is enabled when running the \`garden dev\` command, and by setting the \`--dev\` flag on the \`garden deploy\` command.
 
-    See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information.
+    See the [Code Synchronization guide](${devModeGuideLink}) for more information.
   `)
 
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>

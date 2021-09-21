@@ -171,6 +171,8 @@ devMode:
       target:
 
       # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
+      #
+      # `.git` directories and `.garden` directories are always ignored.
       exclude:
 
       # The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `two-way`.
@@ -828,6 +830,8 @@ devMode:
 [devMode](#devmode) > [sync](#devmodesync) > exclude
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
+
+`.git` directories and `.garden` directories are always ignored.
 
 | Type               | Required |
 | ------------------ | -------- |
