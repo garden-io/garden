@@ -7,7 +7,7 @@ services:
     command: [sh, -c, "echo Server running... && nc -l -p 8080"]
     devMode:
       sync:
-        - target: /tmp
+        - target: /tmp/
           mode: two-way
     healthCheck:
       command: ["echo", "ok"]

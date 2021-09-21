@@ -37,6 +37,7 @@ import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { ArtifactSpec } from "../../config/validation"
 import { V1Toleration } from "@kubernetes/client-node"
 import { runPodSpecIncludeFields } from "./run"
+import { KubernetesDevModeDefaults, kubernetesDevModeDefaultsSchema } from "./dev-mode"
 
 export const DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:v1.6.0-debug"
 export interface ProviderSecretRef {
@@ -126,6 +127,9 @@ export interface KubernetesConfig extends BaseProviderConfig {
   defaultHostname?: string
   deploymentRegistry?: ContainerRegistryConfig
   deploymentStrategy?: DeploymentStrategy
+  devMode?: {
+    defaults?: KubernetesDevModeDefaults
+  }
   forceSsl: boolean
   imagePullSecrets: ProviderSecretRef[]
   ingressHttpPort: number
@@ -437,14 +441,22 @@ export const kubernetesConfigBase = () =>
       .allow("rolling", "blue-green")
       .description(
         dedent`
-        Defines the strategy for deploying the project services.
-        Default is "rolling update" and there is experimental support for "blue/green" deployment.
-        The feature only supports modules of type \`container\`: other types will just deploy using the default strategy.
-      `
+          Sets the deployment strategy for \`container\` services.
+
+          The default is \`"rolling"\`, which performs rolling updates. There is also experimental support for blue/green deployments (via the \`"blue-green"\` strategy).
+
+          Note that this setting only applies to \`container\` services (and not, for example,  \`kubernetes\` or \`helm\` services).
+        `
       )
       .meta({
         experimental: true,
       }),
+    devMode: joi
+      .object()
+      .keys({
+        defaults: kubernetesDevModeDefaultsSchema(),
+      })
+      .description("Configuration options for dev mode."),
     forceSsl: joi
       .boolean()
       .default(false)

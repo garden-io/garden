@@ -111,10 +111,55 @@ providers:
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
 
-    # Defines the strategy for deploying the project services.
-    # Default is "rolling update" and there is experimental support for "blue/green" deployment.
-    # The feature only supports modules of type `container`: other types will just deploy using the default strategy.
+    # Sets the deployment strategy for `container` services.
+    #
+    # The default is `"rolling"`, which performs rolling updates. There is also experimental support for blue/green
+    # deployments (via the `"blue-green"` strategy).
+    #
+    # Note that this setting only applies to `container` services (and not, for example,  `kubernetes` or `helm`
+    # services).
     deploymentStrategy: rolling
+
+    # Configuration options for dev mode.
+    devMode:
+      # Specifies default settings for dev mode syncs (e.g. for `container`, `kubernetes` and `helm` services).
+      #
+      # These are overridden/extended by the settings of any individual dev mode sync specs for a given module or
+      # service.
+      #
+      # Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden
+      # deploy` command.
+      #
+      # See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more
+      # information.
+      defaults:
+        # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
+        #
+        # Any exclusion patterns defined in individual dev mode sync specs will be applied in addition to these
+        # patterns.
+        #
+        # `.git` directories and `.garden` directories are always ignored.
+        exclude:
+
+        # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600
+        # (user read/write). See the [Mutagen
+        # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+        fileMode:
+
+        # The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to
+        # 0700 (user read/write). See the [Mutagen
+        # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+        directoryMode:
+
+        # Set the default owner of files and directories at the target. Specify either an integer ID or a string name.
+        # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
+        # more information.
+        owner:
+
+        # Set the default group on files and directories at the target. Specify either an integer ID or a string name.
+        # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
+        # more information.
+        group:
 
     # Require SSL on all `container` module services. If set to true, an error is raised when no certificate is
     # available for a configured hostname on a `container` module.
@@ -627,13 +672,108 @@ providers:
 **Experimental**: this is an experimental feature and the API might change in the future.
 {% endhint %}
 
-Defines the strategy for deploying the project services.
-Default is "rolling update" and there is experimental support for "blue/green" deployment.
-The feature only supports modules of type `container`: other types will just deploy using the default strategy.
+Sets the deployment strategy for `container` services.
+
+The default is `"rolling"`, which performs rolling updates. There is also experimental support for blue/green deployments (via the `"blue-green"` strategy).
+
+Note that this setting only applies to `container` services (and not, for example,  `kubernetes` or `helm` services).
 
 | Type     | Default     | Required |
 | -------- | ----------- | -------- |
 | `string` | `"rolling"` | No       |
+
+### `providers[].devMode`
+
+[providers](#providers) > devMode
+
+Configuration options for dev mode.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `providers[].devMode.defaults`
+
+[providers](#providers) > [devMode](#providersdevmode) > defaults
+
+Specifies default settings for dev mode syncs (e.g. for `container`, `kubernetes` and `helm` services).
+
+These are overridden/extended by the settings of any individual dev mode sync specs for a given module or service.
+
+Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy` command.
+
+See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `providers[].devMode.defaults.exclude[]`
+
+[providers](#providers) > [devMode](#providersdevmode) > [defaults](#providersdevmodedefaults) > exclude
+
+Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
+
+Any exclusion patterns defined in individual dev mode sync specs will be applied in addition to these patterns.
+
+`.git` directories and `.garden` directories are always ignored.
+
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | No       |
+
+Example:
+
+```yaml
+providers:
+  - devMode:
+      ...
+      defaults:
+        ...
+        exclude:
+          - dist/**/*
+          - '*.log'
+```
+
+### `providers[].devMode.defaults.fileMode`
+
+[providers](#providers) > [devMode](#providersdevmode) > [defaults](#providersdevmodedefaults) > fileMode
+
+The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `providers[].devMode.defaults.directoryMode`
+
+[providers](#providers) > [devMode](#providersdevmode) > [defaults](#providersdevmodedefaults) > directoryMode
+
+The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `providers[].devMode.defaults.owner`
+
+[providers](#providers) > [devMode](#providersdevmode) > [defaults](#providersdevmodedefaults) > owner
+
+Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
+
+| Type              | Required |
+| ----------------- | -------- |
+| `number | string` | No       |
+
+### `providers[].devMode.defaults.group`
+
+[providers](#providers) > [devMode](#providersdevmode) > [defaults](#providersdevmodedefaults) > group
+
+Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
+
+| Type              | Required |
+| ----------------- | -------- |
+| `number | string` | No       |
 
 ### `providers[].forceSsl`
 

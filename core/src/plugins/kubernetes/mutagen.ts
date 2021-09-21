@@ -35,7 +35,7 @@ export const mutagenModeMap = {
   "two-way": "two-way-safe",
 }
 
-interface SyncConfig {
+export interface SyncConfig {
   alpha: string
   beta: string
   mode: keyof typeof mutagenModeMap
