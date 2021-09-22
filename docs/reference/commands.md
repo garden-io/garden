@@ -1474,6 +1474,11 @@ providers:
             # directories, they will be automatically created if missing.
             targetPath:
 
+            # By default, Garden will attempt to resolve any Garden template strings in source files. Set this to
+            # false to skip resolving template strings. Note that this does not apply when setting the `value` field,
+            # since that's resolved earlier when parsing the configuration.
+            resolveTemplates:
+
             # The desired file contents as a string.
             value:
 
@@ -1747,6 +1752,11 @@ moduleConfigs:
         # Note that any existing file with the same name will be overwritten. If the path contains one or more
         # directories, they will be automatically created if missing.
         targetPath:
+
+        # By default, Garden will attempt to resolve any Garden template strings in source files. Set this to false to
+        # skip resolving template strings. Note that this does not apply when setting the `value` field, since that's
+        # resolved earlier when parsing the configuration.
+        resolveTemplates:
 
         # The desired file contents as a string.
         value:
@@ -2251,6 +2261,11 @@ modules:
         # Note that any existing file with the same name will be overwritten. If the path contains one or more
         # directories, they will be automatically created if missing.
         targetPath:
+
+        # By default, Garden will attempt to resolve any Garden template strings in source files. Set this to false to
+        # skip resolving template strings. Note that this does not apply when setting the `value` field, since that's
+        # resolved earlier when parsing the configuration.
+        resolveTemplates:
 
         # The desired file contents as a string.
         value:
