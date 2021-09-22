@@ -37,7 +37,7 @@ import { KubernetesPluginContext, KubernetesProvider } from "./config"
 
 const syncUtilImageName = "gardendev/k8s-sync:0.1.1"
 
-export const builtInExcludes = ["**/*.git", "**/*.garden"]
+export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
 export const devModeGuideLink = "https://docs.garden.io/guides/code-synchronization-dev-mode"
 
@@ -223,8 +223,18 @@ export async function startDevModeSync({
         targetPath: s.target,
       })
 
-      const sourceDescription = chalk.white(s.source)
-      const targetDescription = `${chalk.white(s.target)} in ${chalk.white(resourceName)}`
+      const localPathDescription = chalk.white(s.source)
+      const remoteDestinationDescription = `${chalk.white(s.target)} in ${chalk.white(resourceName)}`
+      let sourceDescription: string
+      let targetDescription: string
+      if (isReverseMode(s.mode)) {
+        sourceDescription = remoteDestinationDescription
+        targetDescription = localPathDescription
+      } else {
+        sourceDescription = localPathDescription
+        targetDescription = remoteDestinationDescription
+      }
+
       const description = `${sourceDescription} to ${targetDescription}`
 
       ctx.log.info({ symbol: "info", section: serviceName, msg: chalk.gray(`Syncing ${description} (${s.mode})`) })
@@ -257,9 +267,10 @@ export function makeSyncConfig({
 }): SyncConfig {
   const s = spec
   const d = defaults || {}
+  const reverse = isReverseMode(s.mode)
   return {
-    alpha: localPath,
-    beta: remoteDestination,
+    alpha: reverse ? remoteDestination : localPath,
+    beta: reverse ? localPath : remoteDestination,
     mode: s.mode,
     ignore: [...builtInExcludes, ...(d["exclude"] || []), ...(s.exclude || [])],
     defaultOwner: s.defaultOwner === undefined ? d["owner"] : s.defaultOwner,
@@ -268,3 +279,5 @@ export function makeSyncConfig({
     defaultFileMode: s.defaultFileMode === undefined ? d["fileMode"] : s.defaultFileMode,
   }
 }
+
+const isReverseMode = (mode: string) => mode === "one-way-reverse" || mode === "one-way-replica-reverse"

@@ -103,5 +103,29 @@ describe("k8s dev mode helpers", () => {
         defaultDirectoryMode: 777,
       })
     })
+
+    it("should return a remote alpha and a local beta when called with a reverse sync mode", () => {
+      const config = makeSyncConfig({
+        localPath,
+        remoteDestination,
+        defaults: {},
+        spec: {
+          source,
+          target,
+          mode: "one-way-replica-reverse",
+        },
+      })
+
+      expect(config).to.eql({
+        alpha: remoteDestination, // <----
+        beta: localPath, // <----
+        ignore: [...builtInExcludes],
+        mode: "one-way-replica-reverse",
+        defaultOwner: undefined,
+        defaultGroup: undefined,
+        defaultDirectoryMode: undefined,
+        defaultFileMode: undefined,
+      })
+    })
   })
 })
