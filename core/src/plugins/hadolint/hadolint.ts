@@ -70,7 +70,7 @@ const gitHubUrl = getGitHubUrl("examples/hadolint")
 export const gardenPlugin = () =>
   createGardenPlugin({
     name: "hadolint",
-    dependencies: ["container"],
+    dependencies: [{ name: "container" }],
     docs: dedent`
     This provider creates a [\`hadolint\`](${moduleTypeUrl}) module type, and (by default) generates one such module for each \`container\` module that contains a Dockerfile in your project. Each module creates a single test that runs [hadolint](https://github.com/hadolint/hadolint) against the Dockerfile in question, in order to ensure that the Dockerfile is valid and follows best practices.
 

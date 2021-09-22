@@ -6,8 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GetProjectResponse, SecretResponse, UserResponse } from "@garden-io/platform-api-types"
-import { EnterpriseApi } from "../../enterprise/api"
+import { SecretResponse, UserResponse } from "@garden-io/platform-api-types"
 import { dedent } from "../../util/string"
 
 import { LogEntry } from "../../logger/log-entry"
@@ -60,11 +59,6 @@ export interface UserResult {
 export const noApiMsg = (action: string, resource: string) => dedent`
   Unable to ${action} ${resource}. Make sure the project is configured for Garden Enterprise and that you're logged in.
 `
-
-export async function getProject(api: EnterpriseApi, projectUid: string) {
-  const res = await api.get<GetProjectResponse>(`/projects/uid/${projectUid}`)
-  return res.data
-}
 
 export function makeUserFromResponse(user: UserResponse): UserResult {
   return {

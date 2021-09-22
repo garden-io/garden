@@ -26,6 +26,7 @@ import { printHeader } from "../logger/util"
 import { startServer } from "../server/server"
 import { StringsParameter, BooleanParameter } from "../cli/params"
 import { deline } from "../util/string"
+import { Garden } from "../garden"
 
 export const testArgs = {
   modules: new StringsParameter({
@@ -96,14 +97,14 @@ export class TestCommand extends Command<Args, Opts> {
 
   outputsSchema = () => processCommandResultSchema()
 
-  private isPersistent = (opts) => !!opts.watch
+  private garden?: Garden
 
   printHeader({ headerLog }) {
     printHeader(headerLog, `Running tests`, "thermometer")
   }
 
   async prepare({ footerLog, opts }: PrepareParams<Args, Opts>) {
-    const persistent = this.isPersistent(opts)
+    const persistent = !!opts.watch
 
     if (persistent) {
       this.server = await startServer({ log: footerLog })
@@ -112,18 +113,25 @@ export class TestCommand extends Command<Args, Opts> {
     return { persistent }
   }
 
+  terminate() {
+    this.garden?.events.emit("_exit", {})
+  }
+
   async action({
     garden,
+    isWorkflowStepCommand,
     log,
     footerLog,
     args,
     opts,
   }: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
+    this.garden = garden
+
     if (this.server) {
       this.server.setGarden(garden)
     }
 
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: !isWorkflowStepCommand })
     const skipDependants = opts["skip-dependants"]
     let modules: GardenModule[]
 

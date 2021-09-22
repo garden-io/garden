@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { cloneDeep, flatten, last, merge, repeat, size } from "lodash"
-import { printHeader, getTerminalWidth, formatGardenError, renderMessageWithDivider } from "../../logger/util"
+import { printHeader, getTerminalWidth, formatGardenErrorWithDetail, renderMessageWithDivider } from "../../logger/util"
 import { Command, CommandParams, CommandResult } from "../base"
 import { dedent, wordWrap, deline } from "../../util/string"
 import { Garden } from "../../garden"
@@ -88,8 +88,8 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 
     const steps = workflow.steps
     const allStepNames = steps.map((s, i) => getStepName(i, s.name))
-
     const startedAt = new Date().valueOf()
+    await maybeEmitStackGraphEvent(garden, log, workflow)
 
     const result: WorkflowRunOutput = {
       steps: {},
@@ -331,6 +331,7 @@ export async function runStepCommand({
     headerLog,
     args,
     opts: merge(inheritedOpts, opts),
+    isWorkflowStepCommand: true, // <-----
   })
   return result
 }
@@ -434,7 +435,7 @@ export function logErrors(
     } else {
       // Error comes from a command step. We only log the detail here (and only for log.debug or higher), since
       // the task graph's error logging takes care of the rest.
-      const taskDetailErrMsg = formatGardenError(error)
+      const taskDetailErrMsg = formatGardenErrorWithDetail(error)
       log.debug(chalk.red(taskDetailErrMsg))
     }
   }
@@ -451,6 +452,27 @@ async function registerAndSetUid(garden: Garden, log: LogEntry, config: Workflow
       log,
     })
     garden.events.emit("_workflowRunRegistered", { workflowRunUid })
+  }
+}
+
+/**
+ * If one or more steps of the workflow is a command with `streamEvents = true`, we prepare a `ConfigGraph` instance
+ * and stream a stack graph event.
+ *
+ * This is only done once at the beginning of the workflow to avoid streaming the graph for every subcommand having
+ * `streamEvents = true` (since we're also passing `isStepCommand = true` to the step command action in
+ * `runStepCommand`).
+ */
+async function maybeEmitStackGraphEvent(garden: Garden, log: LogEntry, config: WorkflowConfig) {
+  const shouldEmitStackGraphEvent = config.steps.find((s) => {
+    if (!s.command) {
+      return false
+    }
+    const { command } = pickCommand(getAllCommands(), s.command)
+    return command && command.streamEvents
+  })
+  if (shouldEmitStackGraphEvent) {
+    await garden.getConfigGraph({ log, emit: true })
   }
 }
 

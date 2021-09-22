@@ -26,14 +26,14 @@ describe("conftest-kubernetes provider", () => {
       plugins: [gardenPlugin, conftestPlugin],
     })
 
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const helmModule = graph.getModule("helm")
     const module = graph.getModule("conftest-helm")
 
     expect(module.type).to.equal("conftest-helm")
     expect(module.path).to.equal(helmModule.path)
     expect(module.spec).to.eql({
-      build: { dependencies: [] },
+      build: { dependencies: [], timeout: 1200 },
       namespace: "main",
       policyPath: "../custom-policy",
       sourceModule: "helm",
@@ -47,13 +47,13 @@ describe("conftest-kubernetes provider", () => {
       plugins: [gardenPlugin, conftestPlugin],
     })
 
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const kubernetesModule = graph.getModule("kubernetes")
     const module = graph.getModule("conftest-kubernetes")
 
     expect(module.path).to.equal(kubernetesModule.path)
     expect(module.spec).to.eql({
-      build: { dependencies: [] },
+      build: { dependencies: [], timeout: 1200 },
       files: kubernetesModule.spec.files,
       namespace: "main",
       policyPath: "../custom-policy",
@@ -68,7 +68,7 @@ describe("conftest-kubernetes provider", () => {
         plugins: [gardenPlugin, conftestPlugin],
       })
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("conftest-helm")
 
       const testTask = new TestTask({

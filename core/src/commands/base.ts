@@ -59,12 +59,18 @@ export interface PrepareParams<T extends Parameters = {}, U extends Parameters =
 
 export interface CommandParams<T extends Parameters = {}, U extends Parameters = {}> extends PrepareParams<T, U> {
   garden: Garden
+  /**
+   * Only use when running a workflow step command (in which case `true` should be passed).
+   */
+  isWorkflowStepCommand?: boolean
 }
 
 interface PrepareOutput {
   // Commands should set this to true if the command is long-running
   persistent: boolean
 }
+
+type DataCallback = (data: string) => void
 
 export abstract class Command<T extends Parameters = {}, U extends Parameters = {}> {
   abstract name: string
@@ -87,7 +93,13 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   streamLogEntries: boolean = false // Set to true to stream log entries for the command
   server: GardenServer | undefined = undefined
 
+  subscribers: DataCallback[]
+  terminated: boolean
+
   constructor(private parent?: CommandGroup) {
+    this.subscribers = []
+    this.terminated = false
+
     // Make sure arguments and options don't have overlapping key names.
     if (this.arguments && this.options) {
       for (const key of Object.keys(this.options)) {
@@ -166,6 +178,34 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
    */
   async prepare(_: PrepareParams<T, U>): Promise<PrepareOutput> {
     return { persistent: false }
+  }
+
+  /**
+   * Called by e.g. the WebSocket server to terminate persistent commands.
+   */
+  terminate() {
+    this.terminated = true
+  }
+
+  /**
+   * Subscribe to any data emitted by commands via the .emit() method
+   */
+  subscribe(cb: (data: string) => void) {
+    this.subscribers.push(cb)
+  }
+
+  /**
+   * Emit data to all subscribers
+   */
+  emit(log: LogEntry, data: string) {
+    for (const subscriber of this.subscribers) {
+      // Ignore any errors here
+      try {
+        subscriber(data)
+      } catch (err) {
+        log.debug(`Error when calling subscriber on ${this.getFullName()} command: ${err.message}`)
+      }
+    }
   }
 
   abstract printHeader(params: PrintHeaderParams<T, U>): void
@@ -303,7 +343,7 @@ export function printResult({
 
 /**
  * Handles the command result and logging for commands that return a result of type RunResult. E.g.
- * the `run test` and `run service` commands.
+ * the ``run service` command.
  */
 export async function handleRunResult<T extends RunResult>({
   log,
@@ -345,23 +385,25 @@ export async function handleRunResult<T extends RunResult>({
 
 /**
  * Handles the command result and logging for commands the return a result of type TaskResult. E.g.
- * the `run task` command.
+ * the `run task` and `run test` commands.
  */
 export async function handleTaskResult({
   log,
   actionDescription,
   graphResults,
   key,
+  interactive = false,
 }: {
   log: LogEntry
   actionDescription: string
   graphResults: GraphResults
   key: string
+  interactive?: boolean
 }) {
   const result = graphResults[key]!
 
   // If there's an error, the task graph prints it
-  if (!result.error && result.output.log) {
+  if (!interactive && !result.error && result.output.log) {
     printResult({ log, result: result.output.log, success: true, actionDescription })
   }
 

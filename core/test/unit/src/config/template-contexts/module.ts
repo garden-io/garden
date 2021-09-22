@@ -35,7 +35,7 @@ describe("ModuleConfigContext", () => {
   before(async () => {
     garden = await makeTestGardenA()
     garden["secrets"] = { someSecret: "someSecretValue" }
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const modules = graph.getModules()
     module = graph.getModule("module-b")
     currentBranch = garden.vcsBranch
@@ -135,7 +135,7 @@ describe("ModuleConfigContext", () => {
     let serviceA: GardenService
 
     before(async () => {
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const modules = graph.getModules()
       serviceA = graph.getService("service-a")
       const serviceB = graph.getService("service-b")

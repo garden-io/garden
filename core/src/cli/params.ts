@@ -290,6 +290,23 @@ export class BooleanParameter extends Parameter<boolean> {
   }
 }
 
+/**
+ * Similar to `StringsOption`, but doesn't split individual option values on `,`
+ */
+export class TagsOption extends Parameter<string[] | undefined> {
+  type = "array:tag"
+  schema = joi.array().items(joi.string())
+
+  coerce(input?: string | string[]): string[] {
+    if (!input) {
+      return []
+    } else if (!isArray(input)) {
+      input = [input]
+    }
+    return input
+  }
+}
+
 export class EnvironmentOption extends StringParameter {
   type = "string"
   schema = joi.environment()

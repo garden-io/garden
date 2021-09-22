@@ -50,13 +50,13 @@ describe("util", () => {
     log = helmGarden.log
     const provider = await helmGarden.resolveProvider(log, "local-kubernetes")
     ctx = (await helmGarden.getPluginContext(provider)) as KubernetesPluginContext
-    helmGraph = await helmGarden.getConfigGraph(log)
+    helmGraph = await helmGarden.getConfigGraph({ log, emit: false })
     await buildModules()
     api = await KubeApi.factory(helmGarden.log, ctx, ctx.provider)
   })
 
   beforeEach(async () => {
-    helmGraph = await helmGarden.getConfigGraph(log)
+    helmGraph = await helmGarden.getConfigGraph({ log, emit: false })
   })
 
   after(async () => {
@@ -83,7 +83,7 @@ describe("util", () => {
       const garden = await getContainerTestGarden("local")
 
       try {
-        const graph = await garden.getConfigGraph(garden.log)
+        const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
 
         const service = graph.getService("simple-service")
@@ -125,7 +125,7 @@ describe("util", () => {
       const garden = await getContainerTestGarden("local")
 
       try {
-        const graph = await garden.getConfigGraph(garden.log)
+        const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const service = graph.getService("simple-service")
 
         const deployTask = new DeployTask({

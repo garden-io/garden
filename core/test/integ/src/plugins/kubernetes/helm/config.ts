@@ -13,7 +13,7 @@ import { cloneDeep, omit } from "lodash"
 import { TestGarden, expectError } from "../../../../../helpers"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { dedent } from "../../../../../../src/util/string"
-import { ModuleConfig } from "../../../../../../src/config/module"
+import { defaultBuildTimeout, ModuleConfig } from "../../../../../../src/config/module"
 import { apply } from "json-merge-patch"
 import { getHelmTestGarden } from "./common"
 import { defaultHelmTimeout } from "../../../../../../src/plugins/kubernetes/helm/config"
@@ -42,7 +42,7 @@ describe("configureHelmModule", () => {
 
   it("should validate a Helm module", async () => {
     const module = await garden.resolveModule("api")
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const imageModule = graph.getModule("api-image")
 
     const imageVersion = imageModule.version.versionString
@@ -51,6 +51,7 @@ describe("configureHelmModule", () => {
       atomicInstall: true,
       build: {
         dependencies: [],
+        timeout: defaultBuildTimeout,
       },
       chartPath: ".",
       devMode: {
@@ -91,6 +92,7 @@ describe("configureHelmModule", () => {
       allowPublish: true,
       build: {
         dependencies: [],
+        timeout: defaultBuildTimeout,
       },
       configPath: resolve(ctx.projectRoot, "api", "garden.yml"),
       description: "The API backend for the voting UI",

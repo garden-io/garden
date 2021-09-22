@@ -103,12 +103,13 @@ export class PublishCommand extends Command<Args, Opts> {
 
   async action({
     garden,
+    isWorkflowStepCommand,
     log,
     footerLog,
     args,
     opts,
   }: CommandParams<Args, Opts>): Promise<CommandResult<PublishCommandResult>> {
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: !isWorkflowStepCommand })
     const modules = graph.getModules({ names: args.modules })
 
     const results = await publishModules({

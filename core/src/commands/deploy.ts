@@ -8,6 +8,7 @@
 
 import deline = require("deline")
 import dedent = require("dedent")
+import chalk = require("chalk")
 
 import {
   Command,
@@ -22,12 +23,17 @@ import { getModuleWatchTasks } from "../tasks/helpers"
 import { processModules } from "../process"
 import { printHeader } from "../logger/util"
 import { BaseTask } from "../tasks/base"
-import { getDevModeServiceNames, getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
+import {
+  getDevModeModules,
+  getDevModeServiceNames,
+  getHotReloadServiceNames,
+  validateHotReloadServiceNames,
+} from "./helpers"
 import { startServer } from "../server/server"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
-import chalk = require("chalk")
 import { StringsParameter, BooleanParameter, ParameterValues } from "../cli/params"
+import { Garden } from "../garden"
 
 export const deployArgs = {
   services: new StringsParameter({
@@ -63,6 +69,10 @@ export const deployOpts = {
   }),
   "skip": new StringsParameter({
     help: "The name(s) of services you'd like to skip when deploying.",
+  }),
+  "forward": new BooleanParameter({
+    help: deline`Create port forwards and leave process running without watching
+    for changes. Ignored if --watch/-w flag is set or when in dev or hot-reload mode.`,
   }),
 }
 
@@ -100,9 +110,12 @@ export class DeployCommand extends Command<Args, Opts> {
   arguments = deployArgs
   options = deployOpts
 
+  private garden?: Garden
+
   outputsSchema = () => processCommandResultSchema()
 
-  private isPersistent = (opts: ParameterValues<Opts>) => !!opts.watch || !!opts["hot-reload"] || !!opts["dev-mode"]
+  private isPersistent = (opts: ParameterValues<Opts>) =>
+    !!opts.watch || !!opts["hot-reload"] || !!opts["dev-mode"] || !!opts.forward
 
   printHeader({ headerLog }) {
     printHeader(headerLog, "Deploy", "rocket")
@@ -118,18 +131,25 @@ export class DeployCommand extends Command<Args, Opts> {
     return { persistent }
   }
 
+  terminate() {
+    this.garden?.events.emit("_exit", {})
+  }
+
   async action({
     garden,
+    isWorkflowStepCommand,
     log,
     footerLog,
     args,
     opts,
   }: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
+    this.garden = garden
+
     if (this.server) {
       this.server.setGarden(garden)
     }
 
-    const initGraph = await garden.getConfigGraph(log)
+    const initGraph = await garden.getConfigGraph({ log, emit: !isWorkflowStepCommand })
     let services = initGraph.getServices({ names: args.services, includeDisabled: true })
 
     const disabled = services.filter((s) => s.disabled).map((s) => s.name)
@@ -150,8 +170,8 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const modules = Array.from(new Set(services.map((s) => s.module)))
-    const devModeServiceNames = await getDevModeServiceNames(opts["dev-mode"], initGraph)
-    const hotReloadServiceNames = await getHotReloadServiceNames(opts["hot-reload"], initGraph)
+    const devModeServiceNames = getDevModeServiceNames(opts["dev-mode"], initGraph)
+    const hotReloadServiceNames = getHotReloadServiceNames(opts["hot-reload"], initGraph)
 
     let watch = opts.watch
 
@@ -161,7 +181,7 @@ export class DeployCommand extends Command<Args, Opts> {
 
     if (hotReloadServiceNames.length > 0) {
       initGraph.getServices({ names: hotReloadServiceNames }) // validate the existence of these services
-      const errMsg = await validateHotReloadServiceNames(hotReloadServiceNames, initGraph)
+      const errMsg = validateHotReloadServiceNames(hotReloadServiceNames, initGraph)
       if (errMsg) {
         log.error({ msg: errMsg })
         return { result: { builds: {}, deployments: {}, tests: {}, graphResults: {} } }
@@ -194,6 +214,7 @@ export class DeployCommand extends Command<Args, Opts> {
       footerLog,
       modules,
       initialTasks,
+      skipWatchModules: getDevModeModules(devModeServiceNames, initGraph),
       watch,
       changeHandler: async (graph, module) => {
         const tasks: BaseTask[] = await getModuleWatchTasks({

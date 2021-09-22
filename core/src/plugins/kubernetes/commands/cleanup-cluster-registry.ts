@@ -16,16 +16,16 @@ import { KubernetesPod, KubernetesDeployment, KubernetesResource } from "../type
 import { flatten, uniq, difference } from "lodash"
 import { V1Container } from "@kubernetes/client-node"
 import { queryRegistry } from "../container/util"
-import { sleep, splitFirst, splitLast } from "../../../util/util"
+import { splitFirst, splitLast } from "../../../util/util"
 import { LogEntry } from "../../../logger/log-entry"
 import Bluebird from "bluebird"
-import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, inClusterRegistryHostname, dockerDaemonContainerName } from "../constants"
+import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, dockerDaemonContainerName } from "../constants"
 import { PluginError } from "../../../exceptions"
 import { apply } from "../kubectl"
 import { waitForResources } from "../status/status"
 import { dedent, deline } from "../../../util/string"
 import { sharedBuildSyncDeploymentName } from "../container/build/common"
-import { execInWorkload, getRunningDeploymentPod } from "../util"
+import { execInWorkload, getRunningDeploymentPod, usingInClusterRegistry } from "../util"
 import { getSystemNamespace } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { PodRunner } from "../run"
@@ -59,7 +59,7 @@ export const cleanupClusterRegistry: PluginCommand = {
     const imagesInUse = await getImagesInUse(api, provider, log)
 
     // Get images in registry
-    if (provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname) {
+    if (usingInClusterRegistry(provider)) {
       try {
         const images = await getImagesInRegistry(k8sCtx, log)
 

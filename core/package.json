@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/core",
-  "version": "0.12.25",
+  "version": "0.12.26",
   "description": "A full-featured development framework for containers and serverless",
   "repository": {
     "type": "git",
@@ -67,6 +67,7 @@
     "env-var": "^6.2.0",
     "escape-string-regexp": "^4.0.0",
     "eventemitter2": "^6.4.1",
+    "eventemitter3": "^4.0.7",
     "execa": "^4.0.2",
     "fs-extra": "^9.0.0",
     "get-port": "^5.1.1",
@@ -247,7 +248,6 @@
     "typescript": "^4.3.5"
   },
   "scripts": {
-    "_integ": "mocha --opts test/mocha.integ.opts",
     "build": "gulp pegjs",
     "check-package-lock": "git diff-index --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
     "clean": "shx rm -rf build",
@@ -255,10 +255,11 @@
     "fix-format": "prettier --write \"{src,test}/**/*.ts\"",
     "lint": "tslint -p .",
     "migration:generate": "typeorm migration:generate --config ormconfig.js -n",
-    "integ-kind": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"cluster-docker cluster-buildkit cluster-buildkit-rootless kaniko remote-only\" yarn run _integ",
-    "integ-local": "GARDEN_LOGGER_TYPE=basic GARDEN_LOG_LEVEL=debug GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"cluster-docker\" yarn run _integ",
-    "integ-minikube": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"cluster-docker kaniko remote-only\" yarn run _integ",
-    "integ-remote": "GARDEN_INTEG_TEST_MODE=remote GARDEN_SKIP_TESTS=local-only yarn run _integ",
+    "_integ": "mocha --opts test/mocha.integ.opts",
+    "integ-kind": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"cluster-docker cluster-buildkit cluster-buildkit-rootless kaniko remote-only\" yarn _integ",
+    "integ-local": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"cluster-docker remote-only\" yarn _integ",
+    "integ-minikube": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"cluster-docker kaniko remote-only\" yarn _integ",
+    "integ-remote": "GARDEN_INTEG_TEST_MODE=remote GARDEN_SKIP_TESTS=local-only yarn _integ",
     "e2e": "cd test/e2e && ../../../bin/garden test",
     "e2e-project": "node build/test/e2e/e2e-project.js",
     "test": "mocha --opts test/mocha.opts"

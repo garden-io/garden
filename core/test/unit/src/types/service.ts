@@ -51,7 +51,7 @@ describe("serviceFromConfig", () => {
     }
 
     const garden = await makeTestGardenA()
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const module = graph.getModule("module-a")
     const service = await serviceFromConfig(graph, module, config)
 
@@ -68,7 +68,7 @@ describe("serviceFromConfig", () => {
     }
 
     const garden = await makeTestGardenA()
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const module = graph.getModule("module-a")
     module.disabled = true
     const service = await serviceFromConfig(graph, module, config)

@@ -32,13 +32,13 @@ describe("pull-image plugin command", () => {
 
   const init = async (environmentName: string) => {
     garden = await getContainerTestGarden(environmentName)
-    graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = await garden.getPluginContext(provider)
   }
 
   async function removeImage(module: GardenModule) {
-    const imageId = containerHelpers.getLocalImageId(module, module.version)
+    const imageId = module.outputs["local-image-id"]
     try {
       await containerHelpers.dockerCli({
         cwd: "/tmp",
@@ -52,7 +52,7 @@ describe("pull-image plugin command", () => {
   }
 
   async function ensureImagePulled(module: GardenModule) {
-    const imageId = containerHelpers.getLocalImageId(module, module.version)
+    const imageId = module.outputs["local-image-id"]
     const imageHash = await containerHelpers.dockerCli({
       cwd: module.buildPath,
       args: ["run", imageId, "echo", "ok"],

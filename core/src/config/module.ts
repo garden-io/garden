@@ -24,6 +24,8 @@ import { TaskConfig, taskConfigSchema } from "./task"
 import { dedent, stableStringify } from "../util/string"
 import { templateKind } from "./module-template"
 
+export const defaultBuildTimeout = 1200
+
 export interface BuildCopySpec {
   source: string
   target: string
@@ -63,6 +65,7 @@ export const buildDependencySchema = () =>
 
 export interface BaseBuildSpec {
   dependencies: BuildDependencyConfig[]
+  timeout?: number
 }
 
 export interface ModuleFileSpec {
@@ -137,6 +140,11 @@ export const baseBuildSpecSchema = () =>
       dependencies: joiSparseArray(buildDependencySchema())
         .description("A list of modules that must be built before this module is built.")
         .example([{ name: "some-other-module-name" }]),
+      timeout: joi
+        .number()
+        .integer()
+        .default(defaultBuildTimeout)
+        .description("Maximum time in seconds to wait for build to finish."),
     })
     .default(() => ({ dependencies: [] }))
     .description("Specify how to build the module. Note that plugins may define additional keys on this object.")
@@ -223,7 +231,7 @@ export interface ModuleConfig<M extends {} = any, S extends {} = any, T extends 
   path: string
   configPath?: string
   plugin?: string // used to identify modules that are bundled as part of a plugin
-  buildConfig?: object
+  buildConfig?: any
   serviceConfigs: ServiceConfig<S>[]
   testConfigs: TestConfig<T>[]
   taskConfigs: TaskConfig<W>[]

@@ -41,6 +41,8 @@ export interface TestTaskParams {
   forceBuild: boolean
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
+  silent?: boolean
+  interactive?: boolean
 }
 
 @Profile()
@@ -52,6 +54,7 @@ export class TestTask extends BaseTask {
   private forceBuild: boolean
   private devModeServiceNames: string[]
   private hotReloadServiceNames: string[]
+  private silent: boolean
 
   constructor({
     garden,
@@ -62,6 +65,8 @@ export class TestTask extends BaseTask {
     forceBuild,
     devModeServiceNames,
     hotReloadServiceNames,
+    silent = true,
+    interactive = false,
   }: TestTaskParams) {
     super({ garden, log, force, version: test.version })
     this.test = test
@@ -70,6 +75,8 @@ export class TestTask extends BaseTask {
     this.forceBuild = forceBuild
     this.devModeServiceNames = devModeServiceNames
     this.hotReloadServiceNames = hotReloadServiceNames
+    this.silent = silent
+    this.interactive = interactive
   }
 
   async resolveDependencies() {
@@ -182,11 +189,11 @@ export class TestTask extends BaseTask {
     try {
       result = await actions.testModule({
         log,
-        interactive: false,
         module: this.test.module,
         graph: this.graph,
         runtimeContext,
-        silent: true,
+        silent: this.silent,
+        interactive: this.interactive,
         test: this.test,
       })
     } catch (err) {

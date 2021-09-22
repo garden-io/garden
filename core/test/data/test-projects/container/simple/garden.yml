@@ -14,6 +14,8 @@ services:
 tasks:
   - name: echo-task
     command: [sh, -c, "echo ok"]
+  - name: echo-task-with-sleep
+    command: [sh, -c, "echo ok && sleep 3 && echo bear"]
   - name: artifacts-task
     command: [sh, -c, "touch /task.txt && echo ok"]
     artifacts:
@@ -36,6 +38,8 @@ tasks:
 tests:
   - name: echo-test
     command: [sh, -c, "echo ok"]
+  - name: echo-test-with-sleep
+    command: [sh, -c, "echo ok && sleep 3 && echo bear"]
   - name: artifacts-test
     command: [sh, -c, "touch /test.txt && echo ok"]
     artifacts:

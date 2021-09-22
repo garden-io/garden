@@ -60,7 +60,7 @@ export const gardenPlugin = () =>
   createGardenPlugin({
     name: "openfaas",
     configSchema: configSchema(),
-    dependencies: ["kubernetes"],
+    dependencies: [{ name: "kubernetes" }],
     docs: dedent`
     This provider adds support for [OpenFaaS](https://www.openfaas.com/). It adds the [\`openfaas\` module type](${moduleTypeUrl}) and (by default) installs the \`faas-netes\` runtime to the project namespace. Each \`openfaas\` module maps to a single OpenFaaS function.
 
@@ -271,7 +271,7 @@ async function deployService(params: DeployServiceParams<OpenFaasModule>): Promi
 
   // write the stack file again with environment variables
   const envVars = { ...runtimeContext.envVars, ...module.spec.env }
-  await prepare(<OpenFaasProvider>ctx.provider, k8sProvider, module, envVars)
+  await prepare({ ctx, log, provider: <OpenFaasProvider>ctx.provider, k8sProvider, module, envVars })
 
   // use faas-cli to do the deployment
   const start = new Date().getTime()
@@ -343,7 +343,14 @@ async function deleteService(params: DeleteServiceParams<OpenFaasModule>): Promi
     found = !!status.state
 
     const k8sProvider = getK8sProvider(ctx.provider.dependencies)
-    await prepare(<OpenFaasProvider>ctx.provider, k8sProvider, service.module, {})
+    await prepare({
+      ctx,
+      log,
+      provider: <OpenFaasProvider>ctx.provider,
+      k8sProvider,
+      module: service.module,
+      envVars: {},
+    })
 
     const module = service.module
 

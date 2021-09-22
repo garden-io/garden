@@ -20,7 +20,7 @@ import { ConfigGraph } from "./config-graph"
 import { dedent } from "./util/string"
 import { ConfigurationError } from "./exceptions"
 import { uniqByName } from "./util/util"
-import { printEmoji, renderDivider } from "./logger/util"
+import { renderDivider } from "./logger/util"
 
 export type ProcessHandler = (graph: ConfigGraph, module: GardenModule) => Promise<BaseTask[]>
 
@@ -30,8 +30,14 @@ interface ProcessParams {
   log: LogEntry
   footerLog?: LogEntry
   watch: boolean
+  /**
+   * If provided, and if `watch === true`, don't watch files in the module roots of these modules.
+   */
+  skipWatchModules?: GardenModule[]
   initialTasks: BaseTask[]
-  // use this if the behavior should be different on watcher changes than on initial processing
+  /**
+   * Use this if the behavior should be different on watcher changes than on initial processing
+   */
   changeHandler: ProcessHandler
 }
 
@@ -44,6 +50,8 @@ export interface ProcessResults {
   restartRequired?: boolean
 }
 
+let statusLine: LogEntry
+
 export async function processModules({
   garden,
   graph,
@@ -51,6 +59,7 @@ export async function processModules({
   footerLog,
   modules,
   initialTasks,
+  skipWatchModules,
   watch,
   changeHandler,
 }: ProcessModulesParams): Promise<ProcessResults> {
@@ -64,24 +73,44 @@ export async function processModules({
 
   if (linkedModulesMsg.length > 0) {
     log.info(renderDivider())
-    log.info(chalk.gray(`Following modules are linked to a local path:\n${linkedModulesMsg.join("\n")}`))
+    log.info(chalk.gray(`The following modules are linked to a local path:\n${linkedModulesMsg.join("\n")}`))
     log.info(renderDivider())
   }
 
-  let statusLine: LogEntry
-
   if (watch && !!footerLog) {
-    statusLine = footerLog.info("").placeholder()
+    if (!statusLine) {
+      statusLine = footerLog.info("").placeholder()
+    }
 
     garden.events.on("taskGraphProcessing", () => {
-      const emoji = printEmoji("hourglass_flowing_sand", statusLine)
-      statusLine.setState(`${emoji} Processing...`)
+      statusLine.setState({ emoji: "hourglass_flowing_sand", msg: "Processing..." })
     })
   }
 
   const results = await garden.processTasks(initialTasks)
 
-  if (!watch) {
+  if (!watch && !garden.persistent) {
+    return {
+      taskResults: results,
+      restartRequired: false,
+    }
+  }
+
+  if (!watch && garden.persistent) {
+    // Garden process is persistent but not in watch mode. E.g. used to
+    // keep port forwards alive without enabling watch or dev mode.
+    await new Promise((resolve) => {
+      garden.events.on("_restart", () => {
+        log.debug({ symbol: "info", msg: `Manual restart triggered` })
+        resolve({})
+      })
+
+      garden.events.on("_exit", () => {
+        log.debug({ symbol: "info", msg: `Manual exit triggered` })
+        restartRequired = false
+        resolve({})
+      })
+    })
     return {
       taskResults: results,
       restartRequired: false,
@@ -96,7 +125,7 @@ export async function processModules({
   const modulesToWatch = uniqByName(deps.build.concat(modules))
   const modulesByName = keyBy(modulesToWatch, "name")
 
-  await garden.startWatcher(graph)
+  await garden.startWatcher({ graph, skipModules: skipWatchModules })
 
   const waiting = () => {
     if (!!statusLine) {
@@ -168,7 +197,7 @@ export async function processModules({
     })
 
     garden.events.on("moduleSourcesChanged", async (event) => {
-      graph = await garden.getConfigGraph(log)
+      graph = await garden.getConfigGraph({ log, emit: false })
       const changedModuleNames = event.names.filter((moduleName) => !!modulesByName[moduleName])
 
       if (changedModuleNames.length === 0) {
@@ -212,7 +241,7 @@ async function validateConfigChange(
 ): Promise<boolean> {
   try {
     const nextGarden = await Garden.factory(garden.projectRoot, garden.opts)
-    await nextGarden.getConfigGraph(log)
+    await nextGarden.getConfigGraph({ log, emit: false })
     await nextGarden.close()
   } catch (error) {
     if (error instanceof ConfigurationError) {

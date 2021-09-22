@@ -17,7 +17,6 @@ export const getSupportedPlugins = () =>
     require("./hadolint/hadolint"),
     require("./kubernetes/kubernetes"),
     require("./kubernetes/local/local"),
-    require("./maven-container/maven-container"),
     require("./octant/octant"),
     require("./openfaas/openfaas"),
     require("./terraform/terraform"),

@@ -37,7 +37,7 @@ describe("kubernetes container deployment handlers", () => {
   let api: KubeApi
 
   beforeEach(async () => {
-    graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
   after(async () => {
@@ -177,6 +177,36 @@ describe("kubernetes container deployment handlers", () => {
       expect(resource.spec.template?.spec?.containers[0].resources?.limits).to.eql({
         cpu: millicpuToString(limits.cpu),
         memory: kilobytesToString(limits.memory * 1024),
+      })
+    })
+
+    it("should apply security context fields if specified", async () => {
+      const service = graph.getService("simple-service")
+      const namespace = provider.config.namespace!.name!
+      service.spec.privileged = true
+      service.spec.addCapabilities = ["SYS_TIME"]
+      service.spec.dropCapabilities = ["NET_ADMIN"]
+
+      const resource = await createWorkloadManifest({
+        api,
+        provider,
+        service,
+        runtimeContext: emptyRuntimeContext,
+        namespace,
+        enableDevMode: false,
+        enableHotReload: false,
+        log: garden.log,
+        production: false,
+        blueGreen: false,
+      })
+
+      expect(resource.spec.template?.spec?.containers[0].securityContext).to.eql({
+        allowPrivilegeEscalation: false,
+        privileged: true,
+        capabilities: {
+          add: ["SYS_TIME"],
+          drop: ["NET_ADMIN"],
+        },
       })
     })
 

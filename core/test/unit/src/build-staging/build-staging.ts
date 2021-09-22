@@ -263,7 +263,7 @@ export function commonSyncTests(legacyBuildSync: boolean) {
 
   it("should sync dependency products to their specified destinations", async () => {
     try {
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const modules = graph.getModules()
       const tasks = modules.map(
         (module) =>
@@ -310,7 +310,7 @@ export function commonSyncTests(legacyBuildSync: boolean) {
 
   describe("buildPath", () => {
     it("should ensure the build path and return it", async () => {
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const moduleA = graph.getModule("module-a")
       const buildDirA = await buildStaging.buildPath(moduleA)
 
@@ -319,7 +319,7 @@ export function commonSyncTests(legacyBuildSync: boolean) {
     })
 
     it("should return the module path for a local exec modules", async () => {
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const moduleE = graph.getModule("module-e")
       const buildDirE = await buildStaging.buildPath(moduleE)
 
@@ -328,7 +328,7 @@ export function commonSyncTests(legacyBuildSync: boolean) {
   })
 
   it("should sync sources to the build dir", async () => {
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const moduleA = graph.getModule("module-a")
     await buildStaging.syncFromSrc(moduleA, garden.log)
     const buildDirA = await buildStaging.buildPath(moduleA)
@@ -358,7 +358,7 @@ export function commonSyncTests(legacyBuildSync: boolean) {
 
   describe("sync", () => {
     it("should not sync sources for local exec modules", async () => {
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const moduleE = graph.getModule("module-e")
       await buildStaging.syncFromSrc(moduleE, garden.log)
       // This is the dir Garden would have synced the sources into
@@ -368,7 +368,7 @@ export function commonSyncTests(legacyBuildSync: boolean) {
     })
 
     it("should respect the file list in the module's version", async () => {
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const moduleA = graph.getModule("module-a")
 
       moduleA.version.files = [join(moduleA.path, defaultConfigFilename)]
@@ -381,7 +381,7 @@ export function commonSyncTests(legacyBuildSync: boolean) {
     })
 
     it("should delete files that are not being synced from the module source directory", async () => {
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const moduleA = graph.getModule("module-a")
 
       const buildDirA = await buildStaging.buildPath(moduleA)
@@ -397,7 +397,7 @@ export function commonSyncTests(legacyBuildSync: boolean) {
     })
 
     it("should sync hidden files and directories (names starting with .)", async () => {
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("hidden-files")
 
       await buildStaging.syncFromSrc(module, garden.log)
@@ -408,7 +408,7 @@ export function commonSyncTests(legacyBuildSync: boolean) {
     })
 
     it("should sync symlinks that point within the module root", async () => {
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("symlink-within-module")
 
       await buildStaging.syncFromSrc(module, garden.log)
@@ -419,7 +419,7 @@ export function commonSyncTests(legacyBuildSync: boolean) {
     })
 
     it("should not sync absolute symlinks", async () => {
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("symlink-absolute")
 
       await buildStaging.syncFromSrc(module, garden.log)

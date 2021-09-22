@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/cli",
-  "version": "0.12.25",
+  "version": "0.12.26",
   "description": "Cloud native testing platform for testing and developing container applications on Kubernetes",
   "repository": {
     "type": "git",
@@ -26,6 +26,8 @@
     "@garden-io/garden-conftest": "*",
     "@garden-io/garden-conftest-container": "*",
     "@garden-io/garden-conftest-kubernetes": "*",
+    "@garden-io/garden-jib": "*",
+    "@garden-io/garden-maven-container": "*",
     "chalk": "^4.1.0"
   },
   "devDependencies": {

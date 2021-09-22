@@ -9,7 +9,6 @@
 import { exec } from "../../../util/util"
 import { LogEntry } from "../../../logger/log-entry"
 import { safeLoad } from "js-yaml"
-import { BuildResult } from "../../../types/plugin/module/build"
 import { KubernetesConfig, KubernetesProvider } from "../config"
 import { RuntimeError } from "../../../exceptions"
 import { KubeApi } from "../api"
@@ -70,12 +69,7 @@ export async function getKindImageStatus(
   return { ready }
 }
 
-export async function loadImageToKind(
-  buildResult: BuildResult,
-  config: KubernetesConfig,
-  log: LogEntry
-): Promise<void> {
-  const imageId = buildResult.details.identifier
+export async function loadImageToKind(imageId: string, config: KubernetesConfig, log: LogEntry): Promise<void> {
   log.debug(`Loading image ${imageId} into kind cluster`)
 
   try {
@@ -84,10 +78,7 @@ export async function loadImageToKind(
       await exec("kind", ["load", "docker-image", imageId, `--name=${clusterName}`])
     }
   } catch (err) {
-    throw new RuntimeError(
-      `An attempt to load image ${buildResult.details.identifier} into the kind cluster failed: ${err.message}`,
-      { err }
-    )
+    throw new RuntimeError(`An attempt to load image ${imageId} into the kind cluster failed: ${err.message}`, { err })
   }
 }
 

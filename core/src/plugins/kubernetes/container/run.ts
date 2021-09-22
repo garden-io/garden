@@ -8,7 +8,6 @@
 
 import { ContainerModule } from "../../container/config"
 import { runAndCopy } from "../run"
-import { containerHelpers } from "../../container/helpers"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
 import { storeTaskResult } from "../task-results"
 import { RunModuleParams } from "../../../types/plugin/module/runModule"
@@ -22,7 +21,7 @@ export async function runContainerModule(params: RunModuleParams<ContainerModule
   const { module, ctx, log } = params
   const provider = <KubernetesProvider>ctx.provider
 
-  const image = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
+  const image = module.outputs["deployment-image-id"]
   const namespaceStatus = await getAppNamespaceStatus(ctx, log, provider)
 
   const result = await runAndCopy({
@@ -40,13 +39,13 @@ export async function runContainerModule(params: RunModuleParams<ContainerModule
 
 export async function runContainerService(params: RunServiceParams<ContainerModule>): Promise<RunResult> {
   const { module, ctx, log, service, runtimeContext, interactive, timeout } = params
-  const { command, args, env } = service.spec
+  const { command, args, env, privileged, addCapabilities, dropCapabilities } = service.spec
 
   runtimeContext.envVars = { ...runtimeContext.envVars, ...env }
 
   const provider = <KubernetesProvider>ctx.provider
 
-  const image = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
+  const image = module.outputs["deployment-image-id"]
   const namespaceStatus = await getAppNamespaceStatus(ctx, log, provider)
 
   const result = await runAndCopy({
@@ -59,6 +58,9 @@ export async function runContainerService(params: RunServiceParams<ContainerModu
     runtimeContext,
     namespace: namespaceStatus.namespaceName,
     version: service.version,
+    privileged,
+    addCapabilities,
+    dropCapabilities,
   })
 
   return {
@@ -69,9 +71,21 @@ export async function runContainerService(params: RunServiceParams<ContainerModu
 
 export async function runContainerTask(params: RunTaskParams<ContainerModule>): Promise<RunTaskResult> {
   const { ctx, log, module, task } = params
-  const { args, command, artifacts, env, cpu, memory, timeout, volumes } = task.spec
+  const {
+    args,
+    command,
+    artifacts,
+    env,
+    cpu,
+    memory,
+    timeout,
+    volumes,
+    privileged,
+    addCapabilities,
+    dropCapabilities,
+  } = task.spec
 
-  const image = containerHelpers.getDeploymentImageId(module, module.version, ctx.provider.config.deploymentRegistry)
+  const image = module.outputs["deployment-image-id"]
   const k8sCtx = ctx as KubernetesPluginContext
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
 
@@ -89,6 +103,9 @@ export async function runContainerTask(params: RunTaskParams<ContainerModule>): 
     timeout: timeout || undefined,
     volumes,
     version: task.version,
+    privileged,
+    addCapabilities,
+    dropCapabilities,
   })
 
   const result: RunTaskResult = {

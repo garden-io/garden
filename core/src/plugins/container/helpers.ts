@@ -60,16 +60,10 @@ const helpers = {
    * (when we don't need to push to remote registries).
    */
   getLocalImageId(config: ContainerModuleConfig, version: ModuleVersion): string {
-    const hasDockerfile = helpers.hasDockerfile(config, version)
-
-    if (config.spec.image && !hasDockerfile) {
-      return config.spec.image
-    } else {
-      const { versionString } = version
-      const name = helpers.getLocalImageName(config)
-      const parsedImage = helpers.parseImageId(name)
-      return helpers.unparseImageId({ ...parsedImage, tag: versionString })
-    }
+    const { versionString } = version
+    const name = helpers.getLocalImageName(config)
+    const parsedImage = helpers.parseImageId(name)
+    return helpers.unparseImageId({ ...parsedImage, tag: versionString })
   },
 
   /**
@@ -233,7 +227,7 @@ const helpers = {
   },
 
   async imageExistsLocally(module: ContainerModule, log: LogEntry, ctx: PluginContext) {
-    const identifier = helpers.getLocalImageId(module, module.version)
+    const identifier = module.outputs["local-image-id"]
     const result = await helpers.dockerCli({
       cwd: module.path,
       args: ["images", identifier, "-q"],
@@ -293,7 +287,8 @@ const helpers = {
     log,
     ctx,
     ignoreError = false,
-    outputStream,
+    stdout,
+    stderr,
     timeout,
   }: {
     cwd: string
@@ -301,7 +296,8 @@ const helpers = {
     log: LogEntry
     ctx: PluginContext
     ignoreError?: boolean
-    outputStream?: Writable
+    stdout?: Writable
+    stderr?: Writable
     timeout?: number
   }) {
     const docker = ctx.tools["container.docker"]
@@ -313,7 +309,8 @@ const helpers = {
         env: { ...process.env, DOCKER_CLI_EXPERIMENTAL: "enabled" },
         ignoreError,
         log,
-        stdout: outputStream,
+        stdout,
+        stderr,
         timeoutSec: timeout,
       })
       return res

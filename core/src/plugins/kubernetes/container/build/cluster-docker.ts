@@ -27,7 +27,6 @@ import split2 = require("split2")
 import { LogLevel } from "../../../../logger/logger"
 import { renderOutputStream } from "../../../../util/util"
 import { getDockerBuildFlags } from "../../../container/build"
-import { containerHelpers } from "../../../container/helpers"
 
 export const getClusterDockerBuildStatus: BuildStatusHandler = async (params) => {
   const { ctx, module, log } = params
@@ -75,12 +74,8 @@ export const clusterDockerBuild: BuildHandler = async (params) => {
   const systemNamespace = await getSystemNamespace(ctx, provider, log)
   const api = await KubeApi.factory(log, ctx, provider)
 
-  const localId = containerHelpers.getLocalImageId(module, module.version)
-  const deploymentImageId = containerHelpers.getDeploymentImageId(
-    module,
-    module.version,
-    provider.config.deploymentRegistry
-  )
+  const localId = module.outputs["local-image-id"]
+  const deploymentImageId = module.outputs["deployment-image-id"]
   const dockerfile = module.spec.dockerfile || "Dockerfile"
 
   const { contextPath } = await syncToBuildSync({
@@ -96,12 +91,13 @@ export const clusterDockerBuild: BuildHandler = async (params) => {
 
   let buildLog = ""
 
-  // Stream debug log to a status line
+  // Stream verbose logs to a status line
   const stdout = split2()
   const statusLine = log.placeholder({ level: LogLevel.verbose })
 
   stdout.on("error", () => {})
   stdout.on("data", (line: Buffer) => {
+    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
     statusLine.setState(renderOutputStream(line.toString()))
   })
 
@@ -141,7 +137,7 @@ export const clusterDockerBuild: BuildHandler = async (params) => {
   buildLog = buildRes.log
 
   // Push the image to the registry
-  log.setState({ msg: `Pushing image ${localId} to registry...` })
+  log.info({ msg: `→ Pushing image ${localId} to registry...` })
 
   const dockerCmd = ["docker", "push", deploymentImageId]
   const pushArgs = ["/bin/sh", "-c", dockerCmd.join(" ")]

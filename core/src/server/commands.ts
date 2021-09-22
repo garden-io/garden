@@ -12,7 +12,6 @@ import { Command, CommandGroup } from "../commands/base"
 import { joi } from "../config/common"
 import { validateSchema } from "../config/validation"
 import { extend, mapValues, omitBy } from "lodash"
-import { Garden } from "../garden"
 import { LogLevel } from "../logger/logger"
 import { LogEntry } from "../logger/log-entry"
 import { Parameters, ParameterValues, globalOptions } from "../cli/params"
@@ -37,20 +36,14 @@ const baseRequestSchema = () =>
   })
 
 /**
- * Validate and map a request body to a Command, execute its action, and return its result.
+ * Validate and map a request body to a Command
  */
-export async function resolveRequest(
-  ctx: Koa.ParameterizedContext,
-  garden: Garden,
-  log: LogEntry,
-  commands: CommandMap,
-  request: any
-) {
+export function parseRequest(ctx: Koa.ParameterizedContext, log: LogEntry, commands: CommandMap, request: any) {
   // Perform basic validation and find command.
   try {
     request = validateSchema(request, baseRequestSchema(), { context: "API request" })
-  } catch {
-    ctx.throw(400, "Invalid request format")
+  } catch (err) {
+    ctx.throw(400, "Invalid request format: " + err.message)
   }
 
   const commandSpec = commands[request.command]
@@ -76,18 +69,15 @@ export async function resolveRequest(
   const optParams = extend({ ...globalOptions, ...command.options })
   const cmdOpts = mapParams(ctx, request.parameters, optParams)
 
-  // TODO: validate result schema
-  return command.action({
-    garden,
+  return {
+    command,
     log: cmdLog,
-    headerLog: cmdLog,
-    footerLog: cmdLog,
     args: cmdArgs,
     opts: cmdOpts,
-  })
+  }
 }
 
-export async function prepareCommands(): Promise<CommandMap> {
+export function prepareCommands(): CommandMap {
   const commands: CommandMap = {}
 
   function addCommand(command: Command) {

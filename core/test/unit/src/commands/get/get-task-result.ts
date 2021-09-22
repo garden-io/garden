@@ -122,7 +122,7 @@ describe("GetTaskResultCommand", () => {
   it("should include paths to artifacts if artifacts exist", async () => {
     const name = "task-a"
 
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const task = graph.getTask("task-a")
     const artifactKey = getArtifactKey("task", name, task.version)
     const metadataPath = join(garden.artifactsPath, `.metadata.${artifactKey}.json`)

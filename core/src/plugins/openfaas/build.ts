@@ -23,9 +23,9 @@ import { ensureDir, copy } from "fs-extra"
 export const stackFilename = "stack.yml"
 
 export async function getOpenfaasModuleBuildStatus({ ctx, log, module }: GetBuildStatusParams<OpenFaasModule>) {
-  const containerModule = getContainerModule(module)
   const k8sProvider = getK8sProvider(ctx.provider.dependencies)
   const k8sCtx = { ...ctx, provider: k8sProvider }
+  const containerModule = await getContainerModule(k8sCtx, log, module)
 
   // We need to do an OpenFaas build before getting the container build status
   await buildOpenfaasFunction(ctx, <OpenFaasProvider>ctx.provider, k8sProvider, module, log)
@@ -42,8 +42,8 @@ export async function buildOpenfaasModule({ ctx, log, module }: BuildModuleParam
 
   const buildLog = await buildOpenfaasFunction(ctx, <OpenFaasProvider>ctx.provider, k8sProvider, module, log)
 
-  const containerModule = getContainerModule(module)
   const k8sCtx = { ...ctx, provider: k8sProvider }
+  const containerModule = await getContainerModule(k8sCtx, log, module)
   const result = await k8sBuildContainer({
     ctx: k8sCtx,
     log,
@@ -53,13 +53,23 @@ export async function buildOpenfaasModule({ ctx, log, module }: BuildModuleParam
   return { fresh: true, buildLog: buildLog + "\n" + result.buildLog }
 }
 
-export async function prepare(
-  provider: OpenFaasProvider,
-  k8sProvider: KubernetesProvider,
-  module: OpenFaasModule,
+export async function prepare({
+  ctx,
+  log,
+  provider,
+  k8sProvider,
+  module,
+  envVars,
+}: {
+  ctx: PluginContext
+  log: LogEntry
+  provider: OpenFaasProvider
+  k8sProvider: KubernetesProvider
+  module: OpenFaasModule
   envVars: PrimitiveMap
-) {
-  const containerModule = getContainerModule(module)
+}) {
+  const k8sCtx = { ...ctx, provider: k8sProvider }
+  const containerModule = await getContainerModule(k8sCtx, log, module)
   const image = containerHelpers.getDeploymentImageId(
     containerModule,
     module.version,
@@ -103,7 +113,7 @@ async function buildOpenfaasFunction(
   module: OpenFaasModule,
   log: LogEntry
 ) {
-  await prepare(provider, k8sProvider, module, {})
+  await prepare({ ctx, log, provider, k8sProvider, module, envVars: {} })
 
   return await ctx.tools["openfaas.faas-cli"].stdout({
     log,

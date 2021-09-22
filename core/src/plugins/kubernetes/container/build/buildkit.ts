@@ -10,7 +10,7 @@ import AsyncLock from "async-lock"
 import chalk from "chalk"
 import split2 = require("split2")
 import { isEmpty } from "lodash"
-import { buildSyncVolumeName, dockerAuthSecretKey, inClusterRegistryHostname } from "../../constants"
+import { buildSyncVolumeName, dockerAuthSecretKey } from "../../constants"
 import { KubeApi } from "../../api"
 import { KubernetesDeployment } from "../../types"
 import { LogEntry } from "../../../../logger/log-entry"
@@ -29,12 +29,11 @@ import {
   builderToleration,
 } from "./common"
 import { getNamespaceStatus } from "../../namespace"
-import { containerHelpers } from "../../../container/helpers"
 import { LogLevel } from "../../../../logger/logger"
 import { renderOutputStream, sleep } from "../../../../util/util"
 import { ContainerModule } from "../../../container/config"
 import { getDockerBuildArgs } from "../../../container/build"
-import { getRunningDeploymentPod, millicpuToString, megabytesToString } from "../../util"
+import { getRunningDeploymentPod, millicpuToString, megabytesToString, usingInClusterRegistry } from "../../util"
 import { PodRunner } from "../../run"
 
 export const buildkitImageName = "gardendev/buildkit:v0.8.1-4"
@@ -85,13 +84,9 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     namespace,
   })
 
-  const localId = containerHelpers.getLocalImageId(module, module.version)
-  const deploymentImageName = containerHelpers.getDeploymentImageName(module, provider.config.deploymentRegistry)
-  const deploymentImageId = containerHelpers.getDeploymentImageId(
-    module,
-    module.version,
-    provider.config.deploymentRegistry
-  )
+  const localId = module.outputs["local-image-id"]
+  const deploymentImageName = module.outputs["deployment-image-name"]
+  const deploymentImageId = module.outputs["deployment-image-id"]
   const dockerfile = module.spec.dockerfile || "Dockerfile"
 
   const { contextPath } = await syncToBuildSync({
@@ -107,12 +102,13 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
 
   let buildLog = ""
 
-  // Stream debug log to a status line
+  // Stream verbose logs to a status line
   const outputStream = split2()
   const statusLine = log.placeholder({ level: LogLevel.verbose })
 
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
+    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
     statusLine.setState(renderOutputStream(line.toString()))
   })
 
@@ -121,7 +117,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
   // everyday human usage)
   let outputSpec = `type=image,"name=${deploymentImageId},${deploymentImageName}:${cacheTag}",push=true`
 
-  if (provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname) {
+  if (usingInClusterRegistry(provider)) {
     // The in-cluster registry is not exposed, so we don't configure TLS on it.
     outputSpec += ",registry.insecure=true"
   }
@@ -383,7 +379,7 @@ export function getBuildkitDeployment(provider: KubernetesProvider, authSecretNa
     },
   }
 
-  if (provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname) {
+  if (usingInClusterRegistry(provider)) {
     // We need a proxy sidecar to be able to reach the in-cluster registry from the Pod
     deployment.spec!.template.spec!.containers.push(getSocatContainer(provider))
   }
