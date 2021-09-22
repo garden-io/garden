@@ -20,6 +20,10 @@ import { isObject } from "lodash"
 import { deline } from "../util/string"
 import chalk from "chalk"
 import { GetProjectResponse } from "@garden-io/platform-api-types"
+import { getPackageVersion } from "../util/util"
+
+const gardenClientName = "garden-core"
+const gardenClientVersion = getPackageVersion()
 
 // If a GARDEN_AUTH_TOKEN is present and Garden is NOT running from a workflow runner pod,
 // switch to ci-token authentication method.
@@ -345,6 +349,8 @@ export class EnterpriseApi {
     const requestObj = {
       method,
       headers: {
+        "x-garden-client-version": gardenClientVersion,
+        "x-garden-client-name": gardenClientName,
         ...headers,
         ...makeAuthHeader(token || ""),
       },
