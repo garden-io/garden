@@ -184,7 +184,7 @@ const hotReloadConfigSchema = () =>
     with this module as their \`sourceModule\`.
   `)
 
-export type SyncMode = "one-way" | "one-way-replica" | "two-way"
+export type SyncMode = "one-way" | "one-way-replica" | "one-way-reverse" | "one-way-replica-reverse" | "two-way"
 
 export interface DevModeSyncSpec {
   source: string
@@ -251,11 +251,11 @@ const devModeSyncSchema = () =>
     exclude: syncExcludeSchema(),
     mode: joi
       .string()
-      .allow("one-way", "one-way-replica", "two-way")
+      .allow("one-way", "one-way-replica", "one-way-reverse", "one-way-replica-reverse", "two-way")
       .only()
       .default("one-way")
       .description(
-        "The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `two-way`."
+        "The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `one-way-reverse`, `one-way-replica-reverse` and `two-way`."
       ),
     defaultFileMode: syncDefaultFileModeSchema(),
     defaultDirectoryMode: syncDefaultDirectoryModeSchema(),

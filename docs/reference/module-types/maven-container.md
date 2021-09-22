@@ -251,7 +251,8 @@ services:
           # `.git` directories and `.garden` directories are always ignored.
           exclude:
 
-          # The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `two-way`.
+          # The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`,
+          # `one-way-reverse`, `one-way-replica-reverse` and `two-way`.
           mode: one-way
 
           # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600
@@ -1262,11 +1263,11 @@ services:
 
 [services](#services) > [devMode](#servicesdevmode) > [sync](#servicesdevmodesync) > mode
 
-The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `two-way`.
+The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `one-way-reverse`, `one-way-replica-reverse` and `two-way`.
 
-| Type     | Allowed Values                          | Default     | Required |
-| -------- | --------------------------------------- | ----------- | -------- |
-| `string` | "one-way", "one-way-replica", "two-way" | `"one-way"` | Yes      |
+| Type     | Allowed Values                                                                        | Default     | Required |
+| -------- | ------------------------------------------------------------------------------------- | ----------- | -------- |
+| `string` | "one-way", "one-way-replica", "one-way-reverse", "one-way-replica-reverse", "two-way" | `"one-way"` | Yes      |
 
 ### `services[].devMode.sync[].defaultFileMode`
 

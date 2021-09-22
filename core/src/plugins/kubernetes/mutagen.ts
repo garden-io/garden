@@ -31,7 +31,9 @@ let mutagenTmp: TempDirectory
 
 export const mutagenModeMap = {
   "one-way": "one-way-safe",
+  "one-way-reverse": "one-way-safe",
   "one-way-replica": "one-way-replica",
+  "one-way-replica-reverse": "one-way-replica",
   "two-way": "two-way-safe",
 }
 
