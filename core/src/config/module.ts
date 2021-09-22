@@ -71,6 +71,7 @@ export interface BaseBuildSpec {
 export interface ModuleFileSpec {
   sourcePath?: string
   targetPath: string
+  resolveTemplates: boolean
   value?: string
 }
 
@@ -128,6 +129,13 @@ const generatedFileSchema = () =>
 
           Note that any existing file with the same name will be overwritten. If the path contains one or more directories, they will be automatically created if missing.
           `
+        ),
+      resolveTemplates: joi
+        .boolean()
+        // TODO: flip this default in 0.13?
+        .default(true)
+        .description(
+          "By default, Garden will attempt to resolve any Garden template strings in source files. Set this to false to skip resolving template strings. Note that this does not apply when setting the `value` field, since that's resolved earlier when parsing the configuration."
         ),
       value: joi.string().description("The desired file contents as a string."),
     })

@@ -250,7 +250,7 @@ describe("module templates", () => {
             {
               type: "test",
               name: "foo",
-              generateFiles: [{ sourcePath: "foo/bar.txt", targetPath: "foo.txt" }],
+              generateFiles: [{ sourcePath: "foo/bar.txt", targetPath: "foo.txt", resolveTemplates: true }],
             },
           ],
         },

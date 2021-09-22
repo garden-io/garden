@@ -3102,6 +3102,7 @@ describe("Garden", () => {
             {
               value: "Project name: ${project.name}, Escaped string: $${var.foo}",
               targetPath,
+              resolveTemplates: true,
             },
           ],
         },
@@ -3112,6 +3113,88 @@ describe("Garden", () => {
       const contents = await readFile(expectedTargetPath)
 
       expect(contents.toString()).to.equal("Project name: test-project-a, Escaped string: ${var.foo}")
+    })
+
+    it("optionally skips resolving template strings when reading a source file", async () => {
+      const garden = await makeTestGardenA()
+
+      const sourcePath = randomString(8) + ".log"
+      const sourceFullPath = join(pathFoo, sourcePath)
+      const value = "Project name: ${project.name}, Escaped string: $${var.foo}"
+
+      await writeFile(sourceFullPath, value)
+
+      const targetPath = "targetfile.log"
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          name: "module-a",
+          type: "test",
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          include: [],
+          path: pathFoo,
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: {},
+          generateFiles: [
+            {
+              sourcePath,
+              targetPath,
+              resolveTemplates: false,
+            },
+          ],
+        },
+      ])
+
+      const module = await garden.resolveModule("module-a")
+      const expectedTargetPath = join(module.path, targetPath)
+      const contents = await readFile(expectedTargetPath)
+
+      expect(contents.toString()).to.equal(value)
+    })
+
+    it("throws helpful error is sourcePath doesn't contain globs and can't be found", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          name: "module-a",
+          type: "test",
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          include: [],
+          path: pathFoo,
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: {},
+          generateFiles: [
+            {
+              sourcePath: "blorg",
+              targetPath: "targetfile.log",
+              resolveTemplates: false,
+            },
+          ],
+        },
+      ])
+
+      await expectError(
+        () => garden.resolveModule("module-a"),
+        (err) =>
+          expect(stripAnsi(err.message)).to.equal(
+            dedent`
+            Failed resolving one or more modules:
+
+            module-a: Unable to read file at ${pathFoo}/blorg, specified under generateFiles in module module-a: Error: ENOENT: no such file or directory, open '${pathFoo}/blorg'
+            `
+          )
+      )
     })
 
     it("resolves and writes a module file in a remote module", async () => {
@@ -3157,6 +3240,7 @@ describe("Garden", () => {
               {
                 sourcePath,
                 targetPath,
+                resolveTemplates: true,
               },
             ],
           },
@@ -3220,6 +3304,7 @@ describe("Garden", () => {
               {
                 sourcePath,
                 targetPath,
+                resolveTemplates: true,
               },
             ],
           },
