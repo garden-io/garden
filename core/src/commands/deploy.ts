@@ -137,7 +137,6 @@ export class DeployCommand extends Command<Args, Opts> {
 
   async action({
     garden,
-    isWorkflowStepCommand,
     log,
     footerLog,
     args,
@@ -149,7 +148,7 @@ export class DeployCommand extends Command<Args, Opts> {
       this.server.setGarden(garden)
     }
 
-    const initGraph = await garden.getConfigGraph({ log, emit: !isWorkflowStepCommand })
+    const initGraph = await garden.getConfigGraph({ log, emit: true })
     let services = initGraph.getServices({ names: args.services, includeDisabled: true })
 
     const disabled = services.filter((s) => s.disabled).map((s) => s.name)
