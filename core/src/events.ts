@@ -74,7 +74,8 @@ export interface ServiceStatusPayload extends Omit<ServiceStatus, "detail"> {
 export function toGraphResultEventPayload(result: GraphResult): GraphResultEventPayload {
   const payload = omit(result, "dependencyResults")
   if (result.output) {
-    payload.output = omit(result.output, "dependencyResults", "log", "buildLog")
+    // TODO: Use a combined blacklist of fields from all task types instead of hardcoding here.
+    payload.output = omit(result.output, "dependencyResults", "log", "buildLog", "detail")
     if (result.output.version) {
       payload.output.version = result.output.version.versionString || null
     }
