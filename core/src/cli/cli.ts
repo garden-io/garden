@@ -240,7 +240,7 @@ ${renderCommands(commands)}
     // Print header log before we know the namespace to prevent content from
     // jumping.
     // TODO: Link to Cloud namespace page here.
-    const nsLog = headerLog.info(chalk.gray(`Running in namespace ...\n`))
+    const nsLog = headerLog.info("")
 
     do {
       try {

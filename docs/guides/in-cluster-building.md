@@ -119,7 +119,7 @@ You can also select a different name for the cache repository and pass the path 
 This does not appear to be an issue for GCR on GCP. We haven't tested this on other container repositories.
 {% endhint %}
 
-You can provide extra arguments to Kaniko via the [`extraFlags`](../reference/providers/kubernetes.md#providerskanikoextraFlags) field. Users with projects with a large number of files should take a look at the `--snapshoteMode=redo` and `--use-new-run` options as these can provide [significant performance improvements](https://github.com/GoogleContainerTools/kaniko/releases/tag/v1.0.0). Please refer to the [official docs](https://github.com/GoogleContainerTools/kaniko#additional-flags) for the full list of available flags.
+You can provide extra arguments to Kaniko via the [`extraFlags`](../reference/providers/kubernetes.md#providerskanikoextraFlags) field. Users with projects with a large number of files should take a look at the `--snapshotMode=redo` and `--use-new-run` options as these can provide [significant performance improvements](https://github.com/GoogleContainerTools/kaniko/releases/tag/v1.0.0). Please refer to the [official docs](https://github.com/GoogleContainerTools/kaniko#additional-flags) for the full list of available flags.
 
 The Kaniko pods will always have the following toleration set:
 
