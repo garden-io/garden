@@ -93,17 +93,11 @@ export class RunTestCommand extends Command<Args, Opts> {
     printHeader(headerLog, `Running test ${chalk.cyan(args.test)}`, "runner")
   }
 
-  async action({
-    garden,
-    isWorkflowStepCommand,
-    log,
-    args,
-    opts,
-  }: CommandParams<Args, Opts>): Promise<CommandResult<RunTestOutput>> {
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunTestOutput>> {
     const moduleName = args.module
     const testName = args.test
 
-    const graph = await garden.getConfigGraph({ log, emit: !isWorkflowStepCommand })
+    const graph = await garden.getConfigGraph({ log, emit: true })
     const module = graph.getModule(moduleName, true)
 
     const testConfig = findByName(module.testConfigs, testName)
