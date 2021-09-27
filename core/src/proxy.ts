@@ -29,7 +29,7 @@ interface PortProxy {
   spec: ForwardablePort
 }
 
-const defaultLocalIp = "127.0.0.1"
+const defaultLocalAddress = "localhost"
 
 const activeProxies: { [key: string]: PortProxy } = {}
 
@@ -214,7 +214,7 @@ async function createProxy({ garden, graph, log, service, spec }: StartPortProxy
     })
   }
 
-  let localIp = defaultLocalIp
+  let localIp = defaultLocalAddress
   let localPort: number | undefined
   const preferredLocalPort = spec.preferredLocalPort || spec.targetPort
 
@@ -237,7 +237,7 @@ async function createProxy({ garden, graph, log, service, spec }: StartPortProxy
       if (err.errno === "EADDRNOTAVAIL") {
         // If we're not allowed to bind to other 127.x.x.x addresses, we fall back to localhost. This will almost always
         // be the case on Mac, until we come up with something more clever (that doesn't require sudo).
-        localIp = defaultLocalIp
+        localIp = defaultLocalAddress
         localPort = await getPort({ host: localIp, port: preferredLocalPort })
       } else {
         throw err
@@ -268,7 +268,7 @@ async function createProxy({ garden, graph, log, service, spec }: StartPortProxy
     })
 
     if (started) {
-      if (spec.preferredLocalPort && (localIp !== defaultLocalIp || localPort !== spec.preferredLocalPort)) {
+      if (spec.preferredLocalPort && (localIp !== defaultLocalAddress || localPort !== spec.preferredLocalPort)) {
         log.warn(
           chalk.yellow(`→ Unable to bind port forward ${key} to preferred local port ${spec.preferredLocalPort}`)
         )
@@ -277,7 +277,7 @@ async function createProxy({ garden, graph, log, service, spec }: StartPortProxy
       return { key, server, service, spec, localPort, localUrl }
     } else {
       // Need to retry on different port
-      localIp = "127.0.0.1"
+      localIp = defaultLocalAddress
       localPort = undefined
       await sleep(500)
     }
