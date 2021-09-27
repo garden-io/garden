@@ -13,7 +13,7 @@ import { LogLevel } from "./logger"
 import { Logger } from "./logger"
 import { LogEntry, LogEntryParams, EmojiName } from "./log-entry"
 import { deepMap, deepFilter, safeDumpYaml } from "../util/util"
-import { padEnd, isEmpty } from "lodash"
+import { padEnd, isEmpty, isPlainObject } from "lodash"
 import { dedent } from "../util/string"
 import hasAnsi from "has-ansi"
 import { GardenError } from "../exceptions"
@@ -230,9 +230,9 @@ export function renderMessageWithDivider(prefix: string, msg: string, isError: b
   `
 }
 
-export function formatGardenError(error: GardenError) {
-  const { detail, message } = error
-  let out = message || ""
+export function formatGardenErrorWithDetail(error: GardenError) {
+  const { detail, message, stack } = error
+  let out = stack || message || ""
 
   // We recursively filter out internal fields (i.e. having names starting with _).
   const filteredDetail = deepFilter(sanitizeObject(detail), (_val, key: string | number) => {
@@ -260,5 +260,11 @@ export function sanitizeObject(obj: any) {
   obj = deepMap(obj, (value: any) => {
     return Buffer.isBuffer(value) ? "<Buffer>" : value
   })
-  return JSON.parse(CircularJSON.stringify(obj))
+
+  const cleanedJson = isPlainObject(obj)
+    ? CircularJSON.stringify(obj)
+    : // Handle classes, e.g. Error objects
+      CircularJSON.stringify(obj, Object.getOwnPropertyNames(obj))
+
+  return JSON.parse(cleanedJson)
 }

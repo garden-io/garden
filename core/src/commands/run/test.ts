@@ -10,8 +10,6 @@ import chalk from "chalk"
 
 import { CommandError, ParameterError } from "../../exceptions"
 import { printHeader } from "../../logger/util"
-import { prepareRuntimeContext } from "../../runtime-context"
-import { getRunTaskResults, getServiceStatuses } from "../../tasks/base"
 import { TestTask } from "../../tasks/test"
 import { testFromConfig } from "../../types/test"
 import { dedent, deline } from "../../util/string"
@@ -20,12 +18,11 @@ import {
   Command,
   CommandParams,
   CommandResult,
-  handleRunResult,
   resultMetadataKeys,
   graphResultsSchema,
   ProcessResultMetadata,
+  handleTaskResult,
 } from "../base"
-import { printRuntimeContext } from "./run"
 import { joi } from "../../config/common"
 import { testResultSchema, TestResult } from "../../types/plugin/module/getTestResult"
 import { GraphResults } from "../../task-graph"
@@ -100,7 +97,7 @@ export class RunTestCommand extends Command<Args, Opts> {
     const moduleName = args.module
     const testName = args.test
 
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: true })
     const module = graph.getModule(moduleName, true)
 
     const testConfig = findByName(module.testConfigs, testName)
@@ -126,12 +123,13 @@ export class RunTestCommand extends Command<Args, Opts> {
       )
     }
 
-    const actions = await garden.getActionRouter()
     const interactive = opts.interactive
 
     // Make sure all dependencies are ready and collect their outputs for the runtime context
     const testTask = new TestTask({
       force: true,
+      silent: false,
+      interactive,
       forceBuild: opts["force-build"],
       garden,
       graph,
@@ -141,39 +139,14 @@ export class RunTestCommand extends Command<Args, Opts> {
       hotReloadServiceNames: [],
     })
 
-    const dependencyResults = await garden.processTasks(await testTask.resolveDependencies())
+    const graphResults = await garden.processTasks([testTask])
 
-    const dependencies = graph.getDependencies({ nodeType: "test", name: test.name, recursive: false })
-
-    const serviceStatuses = getServiceStatuses(dependencyResults)
-    const taskResults = getRunTaskResults(dependencyResults)
-
-    const runtimeContext = await prepareRuntimeContext({
-      garden,
-      graph,
-      dependencies,
-      version: test.version,
-      moduleVersion: module.version.versionString,
-      serviceStatuses,
-      taskResults,
-    })
-
-    printRuntimeContext(log, runtimeContext)
-
-    if (interactive) {
-      log.root.stop()
-    }
-
-    const result = await actions.testModule({
+    return handleTaskResult({
       log,
-      graph,
-      module,
-      silent: false,
+      actionDescription: "test",
+      graphResults,
+      key: testTask.getKey(),
       interactive,
-      runtimeContext,
-      test,
     })
-
-    return handleRunResult({ log, actionDescription: "test", result, interactive, graphResults: dependencyResults })
   }
 }

@@ -82,8 +82,10 @@ export class DashboardCommand extends Command<Args, Opts> {
     this.server!.setGarden(garden)
 
     // The server doesn't block, so we need to loop indefinitely here.
-    while (true) {
-      await sleep(10000)
+    while (!this.terminated) {
+      await sleep(1000)
     }
+
+    return {}
   }
 }

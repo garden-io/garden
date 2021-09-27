@@ -23,7 +23,7 @@ import {
   OutOfMemoryError,
 } from "../../exceptions"
 import { KubernetesProvider } from "./config"
-import { Writable, Readable } from "stream"
+import { Writable, Readable, PassThrough } from "stream"
 import { uniqByName, sleep } from "../../util/util"
 import { KubeApi } from "./api"
 import { getPodLogs, checkPodStatus } from "./status/pod"
@@ -38,7 +38,7 @@ import { configureVolumes } from "./container/deployment"
 import { PluginContext } from "../../plugin-context"
 import { waitForResources, ResourceStatus } from "./status/status"
 import { RuntimeContext } from "../../runtime-context"
-import { getResourceRequirements } from "./container/util"
+import { getResourceRequirements, getSecurityContext } from "./container/util"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { copy } from "fs-extra"
 
@@ -111,11 +111,12 @@ export async function runAndCopy({
   envVars = {},
   resources,
   description,
-  stdout,
-  stderr,
   namespace,
   version,
   volumes,
+  privileged,
+  addCapabilities,
+  dropCapabilities,
 }: RunModuleParams<GardenModule> & {
   image: string
   container?: V1Container
@@ -126,11 +127,12 @@ export async function runAndCopy({
   envVars?: ContainerEnvVars
   resources?: ContainerResourcesSpec
   description?: string
-  stdout?: Writable
-  stderr?: Writable
   namespace: string
   version: string
   volumes?: ContainerVolumeSpec[]
+  privileged?: boolean
+  addCapabilities?: string[]
+  dropCapabilities?: string[]
 }): Promise<RunResult> {
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
@@ -163,11 +165,21 @@ export async function runAndCopy({
     container,
     namespace,
     volumes,
+    privileged,
+    addCapabilities,
+    dropCapabilities,
   })
 
   if (!podName) {
     podName = makePodName("run", module.name)
   }
+
+  const outputStream = new PassThrough()
+
+  outputStream.on("error", () => {})
+  outputStream.on("data", (data: Buffer) => {
+    ctx.events.emit("log", { timestamp: new Date().getTime(), data })
+  })
 
   const runParams = {
     ctx,
@@ -184,6 +196,8 @@ export async function runAndCopy({
     podName,
     namespace,
     version,
+    stdout: outputStream,
+    stderr: outputStream,
   }
 
   if (getArtifacts) {
@@ -194,8 +208,6 @@ export async function runAndCopy({
       artifactsPath: artifactsPath!,
       description,
       errorMetadata,
-      stdout,
-      stderr,
     })
   } else {
     return runWithoutArtifacts(runParams)
@@ -222,6 +234,9 @@ export async function prepareRunPodSpec({
   container,
   namespace,
   volumes,
+  privileged,
+  addCapabilities,
+  dropCapabilities,
 }: {
   podSpec?: V1PodSpec
   getArtifacts: boolean
@@ -241,6 +256,9 @@ export async function prepareRunPodSpec({
   container?: V1Container
   namespace: string
   volumes?: ContainerVolumeSpec[]
+  privileged?: boolean
+  addCapabilities?: string[]
+  dropCapabilities?: string[]
 }): Promise<V1PodSpec> {
   // Prepare environment variables
   envVars = { ...runtimeContext.envVars, ...envVars }
@@ -251,11 +269,13 @@ export async function prepareRunPodSpec({
   ])
 
   const resourceRequirements = resources ? { resources: getResourceRequirements(resources) } : {}
+  const securityContext = getSecurityContext(privileged, addCapabilities, dropCapabilities)
 
   const containers: V1Container[] = [
     {
       ...omit(container || {}, runContainerExcludeFields),
       ...resourceRequirements,
+      ...(securityContext ? { securityContext } : {}),
       // We always override the following attributes
       name: mainContainerName,
       image,
@@ -316,6 +336,8 @@ async function runWithoutArtifacts({
   timeout,
   podSpec,
   podName,
+  stdout,
+  stderr,
   namespace,
   interactive,
   version,
@@ -324,6 +346,8 @@ async function runWithoutArtifacts({
   provider: KubernetesProvider
   podSpec: V1PodSpec
   podName: string
+  stdout: Writable
+  stderr: Writable
   namespace: string
   version: string
 }): Promise<RunResult> {
@@ -354,6 +378,8 @@ async function runWithoutArtifacts({
       remove: true,
       timeoutSec: timeout || defaultTimeout,
       tty: !!interactive,
+      stdout,
+      stderr,
     })
     result = {
       ...res,
@@ -423,8 +449,8 @@ async function runWithArtifacts({
   artifactsPath: string
   description?: string
   errorMetadata: any
-  stdout?: Writable
-  stderr?: Writable
+  stdout: Writable
+  stderr: Writable
   namespace: string
   version: string
 }): Promise<RunResult> {
@@ -759,12 +785,17 @@ export class PodRunner extends PodRunnerParams {
     const mainContainerName = this.getMainContainerName()
 
     if (tty) {
-      if (stdout || stderr || stdin) {
-        throw new ParameterError(`Cannot set both tty and stdout/stderr/stdin streams`, { params })
+      if (stdout) {
+        stdout.pipe(process.stdout)
+      } else {
+        stdout = process.stdout
+      }
+      if (stderr) {
+        stderr.pipe(process.stderr)
+      } else {
+        stderr = process.stderr
       }
 
-      stdout = process.stdout
-      stderr = process.stderr
       stdin = process.stdin
     }
 
@@ -832,6 +863,15 @@ export class PodRunner extends PodRunnerParams {
         if (!attached && (tty || stdout || stderr)) {
           // Try to attach to Pod to stream logs
           try {
+            /**
+             * TODO: We miss out on any pod log lines that get written before we manage to attach to the pod. Thi
+             *  means that we can't guarantee that we'll pipe logs from the first 1-2 seconds (more, if several retries
+             * of this `while`-loop are needed) of the runner pod's execution to the `stdout`/`stderr` streams
+             * provided to this method.
+             *
+             * If this becomes a problem, we may need to come up with a different approach to ensure we stream those
+             * first few log lines.
+             */
             await this.api.attachToPod({
               namespace,
               podName,

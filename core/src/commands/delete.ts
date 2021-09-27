@@ -113,7 +113,8 @@ export class DeleteEnvironmentCommand extends Command {
   async action({ garden, log }: CommandParams): Promise<CommandResult<DeleteEnvironmentResult>> {
     const actions = await garden.getActionRouter()
 
-    const serviceStatuses = await actions.deleteServices(log)
+    const graph = await garden.getConfigGraph({ log, emit: true })
+    const serviceStatuses = await actions.deleteServices(graph, log)
 
     log.info("")
 
@@ -159,7 +160,7 @@ export class DeleteServiceCommand extends Command {
   }
 
   async action({ garden, log, args }: CommandParams<DeleteServiceArgs>): Promise<CommandResult> {
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: true })
     const services = graph.getServices({ names: args.services })
 
     if (services.length === 0) {

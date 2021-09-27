@@ -560,3 +560,30 @@ export const apiVersionSchema = () =>
     .default(DEFAULT_API_VERSION)
     .valid(DEFAULT_API_VERSION)
     .description("The schema version of this config (currently not used).")
+
+/**
+ * A little hack to allow unknown fields on the schema and recursively on all object schemas nested in it.
+ * Used when e.g. validating against the schema of a module type base (in which case we want to allow added fields
+ * in the inheriting schema).
+ */
+export function allowUnknown<T extends Joi.Schema>(schema: T) {
+  schema = cloneDeep(schema)
+
+  if (schema["type"] === "object") {
+    schema["_flags"].unknown = true
+
+    for (const key of schema["$_terms"].keys || []) {
+      key.schema = allowUnknown(key.schema)
+    }
+  } else if (schema["type"] === "array" || schema["type"] === "sparseArray") {
+    const terms = schema["$_terms"]
+    if (terms.items) {
+      terms.items = terms.items.map((item: Joi.Schema) => allowUnknown(item))
+    }
+    if (terms._inclusions) {
+      terms._inclusions = terms._inclusions.map((item: Joi.Schema) => allowUnknown(item))
+    }
+  }
+
+  return schema
+}

@@ -8,19 +8,18 @@
 
 import { expect } from "chai"
 
-import { expectError } from "../../../../../helpers"
+import { expectError, TestGarden } from "../../../../../helpers"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { TaskTask } from "../../../../../../src/tasks/task"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
 import { getContainerTestGarden } from "./container"
 import { clearTaskResult } from "../../../../../../src/plugins/kubernetes/task-results"
-import { Garden } from "../../../../../../src/garden"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { deline } from "../../../../../../src/util/string"
 
 describe("runContainerTask", () => {
-  let garden: Garden
+  let garden: TestGarden
   let graph: ConfigGraph
   let provider: KubernetesProvider
 
@@ -30,15 +29,15 @@ describe("runContainerTask", () => {
   })
 
   beforeEach(async () => {
-    graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
   after(async () => {
     await garden.close()
   })
 
-  it("should run a basic task", async () => {
-    const task = graph.getTask("echo-task")
+  it("should run a basic task and emit log events", async () => {
+    const task = graph.getTask("echo-task-with-sleep")
 
     const testTask = new TaskTask({
       garden,
@@ -51,17 +50,21 @@ describe("runContainerTask", () => {
       hotReloadServiceNames: [],
     })
 
+    garden.events.eventLog = []
+
     const ctx = await garden.getPluginContext(provider)
     await clearTaskResult({ ctx, log: garden.log, module: task.module, task })
 
     const key = testTask.getKey()
     const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
+    const logEvent = garden.events.eventLog.find((l) => l.name === "log" && l.payload["entity"]["type"] === "task")
 
     expect(result).to.exist
-    expect(result!.output.log.trim()).to.equal("ok")
+    expect(result!.output.log.trim()).to.equal("ok\nbear")
     expect(result!.output).to.have.property("outputs")
-    expect(result!.output.outputs.log.trim()).to.equal("ok")
+    expect(result!.output.outputs.log.trim()).to.equal("ok\nbear")
     expect(result!.output.namespaceStatus).to.exist
+    expect(logEvent).to.exist
 
     // Verify that the result was saved
     const actions = await garden.getActionRouter()

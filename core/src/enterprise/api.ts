@@ -19,6 +19,11 @@ import { add, sub, isAfter } from "date-fns"
 import { isObject } from "lodash"
 import { deline } from "../util/string"
 import chalk from "chalk"
+import { GetProjectResponse } from "@garden-io/platform-api-types"
+import { getPackageVersion } from "../util/util"
+
+const gardenClientName = "garden-core"
+const gardenClientVersion = getPackageVersion()
 
 // If a GARDEN_AUTH_TOKEN is present and Garden is NOT running from a workflow runner pod,
 // switch to ci-token authentication method.
@@ -182,15 +187,23 @@ export class EnterpriseApi {
     }
 
     enterpriseLog?.setSuccess({ msg: chalk.green("Done"), append: true })
+    try {
+      const project = await api.getProject()
+      enterpriseLog?.info({ symbol: "info", msg: `Visit project at ${api.domain}/projects/${project.id}` })
+    } catch (err) {
+      log.debug(`Getting project from API failed with error: err.message`)
+    }
     return api
   }
 
   static async saveAuthToken(log: LogEntry, tokenResponse: AuthTokenResponse) {
     if (!tokenResponse.token) {
-      throw new EnterpriseApiError(
-        `Received a null/empty client auth token while logging in. Please contact your system administrator.`,
-        { tokenResponse }
-      )
+      const errMsg = deline`
+        Received a null/empty client auth token while logging in. This indicates that either your user account hasn't
+        yet been created in Garden Enterprise, or that there's a problem with your account's VCS username / login
+        credentials.
+      `
+      throw new EnterpriseApiError(errMsg, { tokenResponse })
     }
     try {
       const manager = ClientAuthToken.getConnection().manager
@@ -336,6 +349,8 @@ export class EnterpriseApi {
     const requestObj = {
       method,
       headers: {
+        "x-garden-client-version": gardenClientVersion,
+        "x-garden-client-name": gardenClientName,
         ...headers,
         ...makeAuthHeader(token || ""),
       },
@@ -434,6 +449,11 @@ export class EnterpriseApi {
       retryDescription,
       maxRetries,
     })
+  }
+
+  async getProject() {
+    const res = await this.get<GetProjectResponse>(`/projects/uid/${this.projectId}`)
+    return res.data
   }
 
   /**

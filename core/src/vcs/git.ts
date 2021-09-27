@@ -124,7 +124,9 @@ export class GitHandler extends VcsHandler {
       return []
     }
 
-    log = log.debug(`Scanning ${pathDescription} at ${path}\nIncludes: ${include}\nExcludes:${exclude}`)
+    log = log.debug(
+      `Scanning ${pathDescription} at ${path}\n→ Includes: ${include || "(none)"}\n→ Excludes: ${exclude || "(none)"}`
+    )
 
     try {
       const pathStats = await stat(path)

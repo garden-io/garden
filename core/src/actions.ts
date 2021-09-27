@@ -95,7 +95,7 @@ import { getPluginBases, getPluginDependencies, getModuleTypeBases } from "./plu
 import { ConfigureProviderParams, ConfigureProviderResult } from "./types/plugin/provider/configureProvider"
 import { GardenTask } from "./types/task"
 import { ConfigureModuleParams, ConfigureModuleResult } from "./types/plugin/module/configure"
-import { PluginContext } from "./plugin-context"
+import { PluginContext, PluginEventBroker } from "./plugin-context"
 import { DeleteServiceTask, deletedServiceStatuses } from "./tasks/delete-service"
 import { realpath, writeFile } from "fs-extra"
 import { relative, join } from "path"
@@ -294,7 +294,7 @@ export class ActionRouter implements TypeGuard {
   //===========================================================================
 
   async configureModule<T extends GardenModule>(
-    params: Omit<ConfigureModuleParams<T>, "ctx">
+    params: Omit<ConfigureModuleParams<T>, "ctx"> & { events?: PluginEventBroker }
   ): Promise<ConfigureModuleResult> {
     const { log, moduleConfig: config } = params
     const moduleType = config.type
@@ -308,7 +308,7 @@ export class ActionRouter implements TypeGuard {
     })
 
     const handlerParams = {
-      ...(await this.commonParams(handler, log)),
+      ...(await this.commonParams(handler, log, undefined, params.events)),
       ...params,
     }
 
@@ -332,7 +332,7 @@ export class ActionRouter implements TypeGuard {
   }
 
   async getModuleOutputs<T extends GardenModule>(
-    params: Omit<GetModuleOutputsParams<T>, "ctx">
+    params: Omit<GetModuleOutputsParams<T>, "ctx"> & { events?: PluginEventBroker }
   ): Promise<GetModuleOutputsResult> {
     const { log, moduleConfig: config } = params
     const moduleType = config.type
@@ -344,7 +344,7 @@ export class ActionRouter implements TypeGuard {
     })
 
     const handlerParams = {
-      ...(await this.commonParams(handler, log)),
+      ...(await this.commonParams(handler, log, undefined, params.events)),
       ...params,
     }
 
@@ -371,11 +371,24 @@ export class ActionRouter implements TypeGuard {
   }
 
   async build<T extends GardenModule>(params: ModuleActionRouterParams<BuildModuleParams<T>>): Promise<BuildResult> {
+    const actionUid = uuidv4()
+    params.events = params.events || new PluginEventBroker()
     let result: BuildResult
     const startedAt = new Date()
     const moduleName = params.module.name
     const moduleVersion = params.module.version.versionString
-    const actionUid = uuidv4()
+    params.events.on("log", ({ timestamp, data }) => {
+      this.garden.events.emit("log", {
+        timestamp,
+        actionUid,
+        entity: {
+          type: "build",
+          key: `${moduleName}`,
+          moduleName,
+        },
+        data: data.toString(),
+      })
+    })
     this.garden.events.emit("buildStatus", {
       moduleName,
       moduleVersion,
@@ -441,8 +454,26 @@ export class ActionRouter implements TypeGuard {
       status: { state: "running", startedAt: new Date() },
     })
 
+    params.events = params.events || new PluginEventBroker()
+
     try {
+      // Annotate + emit log output
+      params.events.on("log", ({ timestamp, data }) => {
+        this.garden.events.emit("log", {
+          timestamp,
+          actionUid,
+          entity: {
+            type: "test",
+            key: `${moduleName}.${testName}`,
+            moduleName,
+          },
+          data: data.toString(),
+        })
+      })
+
       const result = await this.callModuleHandler({ params: { ...params, artifactsPath }, actionType: "testModule" })
+
+      // Emit status
       this.garden.events.emit("testStatus", {
         testName,
         moduleName,
@@ -452,6 +483,7 @@ export class ActionRouter implements TypeGuard {
         status: runStatus(result),
       })
       this.emitNamespaceEvent(result.namespaceStatus)
+
       return result
     } finally {
       // Copy everything from the temp directory, and then clean it up
@@ -507,17 +539,31 @@ export class ActionRouter implements TypeGuard {
 
   async deployService(params: ServiceActionRouterParams<DeployServiceParams>): Promise<ServiceStatus> {
     const actionUid = uuidv4()
+    params.events = params.events || new PluginEventBroker()
     const serviceName = params.service.name
     const moduleVersion = params.service.module.version.versionString
     const moduleName = params.service.module.name
+    params.events.on("log", ({ timestamp, data }) => {
+      this.garden.events.emit("log", {
+        timestamp,
+        actionUid,
+        entity: {
+          type: "deploy",
+          key: `${serviceName}`,
+          moduleName,
+        },
+        data: data.toString(),
+      })
+    })
     const serviceVersion = params.service.version
+    const deployStartedAt = new Date()
     this.garden.events.emit("serviceStatus", {
       serviceName,
       moduleName,
       moduleVersion,
       serviceVersion,
       actionUid,
-      status: { state: "deploying" },
+      status: { state: "deploying", deployStartedAt },
     })
     const { result } = await this.callServiceHandler({ params, actionType: "deployService" })
     this.garden.events.emit("serviceStatus", {
@@ -526,7 +572,11 @@ export class ActionRouter implements TypeGuard {
       moduleVersion,
       serviceVersion,
       actionUid,
-      status: omit(result, "detail"),
+      status: {
+        ...omit(result, "detail"),
+        deployStartedAt,
+        deployCompletedAt: new Date(),
+      },
     })
     this.emitNamespaceEvents(result.namespaceStatuses)
     this.validateServiceOutputs(params.service, result)
@@ -645,8 +695,26 @@ export class ActionRouter implements TypeGuard {
       status: { state: "running", startedAt: new Date() },
     })
 
+    params.events = params.events || new PluginEventBroker()
+
     try {
+      // Annotate + emit log output
+      params.events.on("log", ({ timestamp, data }) => {
+        this.garden.events.emit("log", {
+          timestamp,
+          actionUid,
+          entity: {
+            type: "task",
+            key: taskName,
+            moduleName,
+          },
+          data: data.toString(),
+        })
+      })
+
       const { result } = await this.callTaskHandler({ params: { ...params, artifactsPath }, actionType: "runTask" })
+
+      // Emit status
       this.garden.events.emit("taskStatus", {
         taskName,
         moduleName,
@@ -657,6 +725,7 @@ export class ActionRouter implements TypeGuard {
       })
       result && this.validateTaskOutputs(params.task, result)
       this.emitNamespaceEvent(result.namespaceStatus)
+
       return result
     } finally {
       // Copy everything from the temp directory, and then clean it up
@@ -767,9 +836,7 @@ export class ActionRouter implements TypeGuard {
   /**
    * Deletes all or specified services in the environment.
    */
-  async deleteServices(log: LogEntry, names?: string[]) {
-    const graph = await this.garden.getConfigGraph(log)
-
+  async deleteServices(graph: ConfigGraph, log: LogEntry, names?: string[]) {
     const servicesLog = log.info({ msg: chalk.white("Deleting services..."), status: "active" })
 
     const services = graph.getServices({ names })
@@ -889,12 +956,13 @@ export class ActionRouter implements TypeGuard {
   private async commonParams(
     handler: WrappedActionHandler<any, any>,
     log: LogEntry,
-    templateContext?: ConfigContext
+    templateContext?: ConfigContext,
+    events?: PluginEventBroker
   ): Promise<PluginActionParamsBase> {
     const provider = await this.garden.resolveProvider(log, handler.pluginName)
 
     return {
-      ctx: await this.garden.getPluginContext(provider, templateContext),
+      ctx: await this.garden.getPluginContext(provider, templateContext, events),
       log,
       base: handler.base,
     }
@@ -921,7 +989,7 @@ export class ActionRouter implements TypeGuard {
     })
 
     const handlerParams: PluginActionParams[T] = {
-      ...(await this.commonParams(handler!, params.log)),
+      ...(await this.commonParams(handler!, params.log, undefined, params.events)),
       ...(<any>params),
     }
 
@@ -963,7 +1031,7 @@ export class ActionRouter implements TypeGuard {
       partialRuntimeResolution: false,
     })
     const handlerParams = {
-      ...(await this.commonParams(handler, (<any>params).log, templateContext)),
+      ...(await this.commonParams(handler, params.log, templateContext, params.events)),
       ...params,
       module: omit(module, ["_config"]),
     }
@@ -1016,7 +1084,7 @@ export class ActionRouter implements TypeGuard {
       log.silly(`Resolving runtime template strings for service '${service.name}'`)
 
       // Resolve the graph again (TODO: avoid this somehow!)
-      graph = await this.garden.getConfigGraph(log, runtimeContext)
+      graph = await this.garden.getConfigGraph({ log, runtimeContext, emit: false })
 
       // Resolve the service again
       service = graph.getService(service.name)
@@ -1027,7 +1095,7 @@ export class ActionRouter implements TypeGuard {
     }
 
     const handlerParams = {
-      ...(await this.commonParams(handler, log, templateContext)),
+      ...(await this.commonParams(handler, log, templateContext, params.events)),
       ...params,
       service,
       module: omit(service.module, ["_config"]),
@@ -1085,7 +1153,7 @@ export class ActionRouter implements TypeGuard {
       log.silly(`Resolving runtime template strings for task '${task.name}'`)
 
       // Resolve the graph again (TODO: avoid this somehow!)
-      graph = await this.garden.getConfigGraph(log, runtimeContext)
+      graph = await this.garden.getConfigGraph({ log, runtimeContext, emit: false })
 
       // Resolve the task again
       task = graph.getTask(task.name)
@@ -1096,7 +1164,7 @@ export class ActionRouter implements TypeGuard {
     }
 
     const handlerParams: any = {
-      ...(await this.commonParams(handler, (<any>params).log, templateContext)),
+      ...(await this.commonParams(handler, (<any>params).log, templateContext, params.events)),
       ...params,
       module: omit(task.module, ["_config"]),
       task,
@@ -1123,7 +1191,7 @@ export class ActionRouter implements TypeGuard {
       async (...args: any[]) => {
         const result = await handler.apply(plugin, args)
         if (result === undefined) {
-          throw new PluginError(`Got empty response from ${actionType} handler on ${pluginName}`, {
+          throw new PluginError(`Got empty response from ${actionType} handler on ${pluginName} provider`, {
             args,
             actionType,
             pluginName,
@@ -1155,11 +1223,14 @@ export class ActionRouter implements TypeGuard {
       <ModuleActionHandlers[T]>(async (...args: any[]) => {
         const result = await handler.apply(plugin, args)
         if (result === undefined) {
-          throw new PluginError(`Got empty response from ${moduleType}.${actionType} handler on ${pluginName}`, {
-            args,
-            actionType,
-            pluginName,
-          })
+          throw new PluginError(
+            `Got empty response from ${moduleType}.${actionType} handler on ${pluginName} provider`,
+            {
+              args,
+              actionType,
+              pluginName,
+            }
+          )
         }
         return validateSchema(result, schema, {
           context: `${actionType} ${moduleType} output from provider ${pluginName}`,

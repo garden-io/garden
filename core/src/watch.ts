@@ -39,19 +39,39 @@ let watcher: FSWatcher | undefined
  * This needs to be enabled by calling the `.start()` method, and stopped with the `.stop()` method.
  */
 export class Watcher extends EventEmitter {
+  private garden: Garden
+  private log: LogEntry
+  private paths: string[]
+  private skipPaths: string[]
+  private modules: GardenModule[]
+  private bufferInterval: number = DEFAULT_BUFFER_INTERVAL
   private watcher?: FSWatcher
   private buffer: { [path: string]: ChangedPath }
   private running: boolean
   public processing: boolean
 
-  constructor(
-    private garden: Garden,
-    private log: LogEntry,
-    private paths: string[],
-    private modules: GardenModule[],
-    private bufferInterval: number = DEFAULT_BUFFER_INTERVAL
-  ) {
+  constructor({
+    garden,
+    log,
+    paths,
+    modules,
+    skipPaths,
+    bufferInterval,
+  }: {
+    garden: Garden
+    log: LogEntry
+    paths: string[]
+    modules: GardenModule[]
+    skipPaths?: string[]
+    bufferInterval?: number
+  }) {
     super()
+    this.garden = garden
+    this.log = log
+    this.paths = paths
+    this.modules = modules
+    this.skipPaths = skipPaths || []
+    this.bufferInterval = bufferInterval || DEFAULT_BUFFER_INTERVAL
     this.buffer = {}
     this.running = false
     this.processing = false
@@ -83,7 +103,7 @@ export class Watcher extends EventEmitter {
       // See https://github.com/garden-io/garden/issues/1269.
       // TODO: see if we can extract paths from dotignore files as well (we'd have to deal with negations etc. somehow).
       const projectExcludes = this.garden.moduleExcludePatterns.map((p) => resolve(this.garden.projectRoot, p))
-      const ignored = [...projectExcludes]
+      const ignored = [...projectExcludes, ...this.skipPaths]
       // TODO: filter paths based on module excludes as well
       //       (requires more complex logic to handle overlapping module sources).
       // const moduleExcludes = flatten(this.modules.map((m) => (m.exclude || []).map((p) => resolve(m.path, p))))
@@ -93,7 +113,7 @@ export class Watcher extends EventEmitter {
         this.log.debug(`Watcher: Using existing FSWatcher`)
         this.watcher = watcher
 
-        this.log.debug(`Watcher: Ignore ${ignored.join(", ")}`)
+        this.log.debug(`Watcher: Ignoring paths ${ignored.join(", ")}`)
         watcher.unwatch(ignored)
 
         this.log.debug(`Watcher: Watch ${this.paths}`)
@@ -283,7 +303,7 @@ export class Watcher extends EventEmitter {
 
   private async updateModules() {
     this.log.silly(`Watcher: Updating list of modules`)
-    const graph = await this.garden.getConfigGraph(this.log)
+    const graph = await this.garden.getConfigGraph({ log: this.log, emit: false })
     this.modules = graph.getModules()
   }
 

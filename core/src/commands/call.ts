@@ -70,7 +70,7 @@ export class CallCommand extends Command<Args> {
     let [serviceName, path] = splitFirst(args.serviceAndPath, "/")
 
     // TODO: better error when service doesn't exist
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: true })
     const service = graph.getService(serviceName)
     // No need for full context, since we're just checking if the service is running.
     const runtimeContext = emptyRuntimeContext

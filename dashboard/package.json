@@ -1,9 +1,10 @@
 {
   "name": "@garden-io/dashboard",
-  "version": "0.12.25",
+  "version": "0.12.26",
   "private": true,
   "devDependencies": {
     "@garden-io/cli": "*",
+    "@testing-library/react": "^12.0.0",
     "@types/d3": "^5.7.2",
     "@types/eslint": "^6",
     "@types/lodash": "^4.14.153",

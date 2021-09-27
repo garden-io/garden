@@ -176,7 +176,7 @@ describe("validate-dependencies", () => {
       it("should return null when no circular config dependencies are present", async () => {
         const nonCircularProjectRoot = join(dataDir, "test-project-b")
         const garden = await makeTestGarden(nonCircularProjectRoot)
-        const configGraph = await garden.getConfigGraph(garden.log)
+        const configGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const validationGraph = DependencyValidationGraph.fromDependencyGraph(configGraph["dependencyGraph"])
         const cycles = validationGraph.detectCircularDependencies()
         expect(cycles).to.be.empty

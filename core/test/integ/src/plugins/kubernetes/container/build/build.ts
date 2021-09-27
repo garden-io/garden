@@ -47,7 +47,7 @@ describe("kubernetes build flow", () => {
     currentEnv = environmentName
     garden = await getContainerTestGarden(environmentName)
     log = garden.log
-    graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = await garden.getPluginContext(provider)
     systemNamespace = await getSystemNamespace(ctx, provider, garden.log)
@@ -92,7 +92,7 @@ describe("kubernetes build flow", () => {
     it("should push to configured deploymentRegistry if specified", async () => {
       const module = await buildImage("remote-registry-test")
 
-      const remoteId = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
+      const remoteId = module.outputs["deployment-image-id"]
       // This throws if the image doesn't exist
       await containerHelpers.dockerCli({
         cwd: module.buildPath,
@@ -105,7 +105,7 @@ describe("kubernetes build flow", () => {
     it("should get the build status from the deploymentRegistry", async () => {
       const module = await buildImage("remote-registry-test")
 
-      const remoteId = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
+      const remoteId = module.outputs["deployment-image-id"]
 
       await containerHelpers.dockerCli({
         cwd: module.buildPath,
@@ -187,7 +187,7 @@ describe("kubernetes build flow", () => {
       const module = await buildImage("remote-registry-test")
 
       // Clear the image tag from the in-cluster builder
-      const remoteId = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
+      const remoteId = module.outputs["deployment-image-id"]
       const api = await KubeApi.factory(garden.log, ctx, provider)
 
       const runner = await getDockerDaemonPodRunner({ api, systemNamespace, ctx, provider })
@@ -239,7 +239,7 @@ describe("kubernetes build flow", () => {
       const module = await buildImage("remote-registry-test")
 
       // Clear the image tag from the in-cluster builder
-      const remoteId = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
+      const remoteId = module.outputs["deployment-image-id"]
       const api = await KubeApi.factory(garden.log, ctx, provider)
 
       const runner = await getDockerDaemonPodRunner({ api, systemNamespace, ctx, provider })
@@ -341,7 +341,6 @@ describe("kubernetes build flow", () => {
             module,
           }),
         (err) => {
-          console.log(err)
           expect(err.message).to.include("pull access denied")
         }
       )
@@ -502,7 +501,8 @@ describe("kubernetes build flow", () => {
     })
   })
 
-  grouped("cluster-buildkit").context("cluster-buildkit mode", () => {
+  // TODO: Reenable these tests e.g. for Minikube?
+  grouped("cluster-buildkit", "remote-only").context("cluster-buildkit mode", () => {
     before(async () => {
       await init("cluster-buildkit")
     })
@@ -560,7 +560,8 @@ describe("kubernetes build flow", () => {
     })
   })
 
-  grouped("cluster-buildkit").context("cluster-buildkit-rootless mode", () => {
+  // TODO: Reenable these tests e.g. for Minikube?
+  grouped("cluster-buildkit", "remote-only").context("cluster-buildkit-rootless mode", () => {
     before(async () => {
       await init("cluster-buildkit-rootless")
     })

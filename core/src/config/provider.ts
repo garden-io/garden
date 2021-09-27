@@ -115,7 +115,7 @@ export function providerFromConfig({
  */
 export async function getAllProviderDependencyNames(plugin: GardenPlugin, config: GenericProviderConfig) {
   return uniq([
-    ...(plugin.dependencies || []),
+    ...(plugin.dependencies || []).map((d) => d.name),
     ...(config.dependencies || []),
     ...(await getProviderTemplateReferences(config)),
   ]).sort()

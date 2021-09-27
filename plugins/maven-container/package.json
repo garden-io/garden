@@ -1,0 +1,29 @@
+{
+  "name": "@garden-io/garden-maven-container",
+  "version": "0.12.26",
+  "description": "maven-container plugin for Garden (DEPRECATED)",
+  "main": "index.js",
+  "dependencies": {
+    "@garden-io/core": "*",
+    "@garden-io/garden-jib": "*",
+    "@garden-io/sdk": "*",
+    "async-lock": "^1.2.4",
+    "fs-extra": "^9.0.1",
+    "xml-js": "^1.6.11"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.2.12",
+    "@types/node": "^14.6.0",
+    "chai": "^4.2.0",
+    "mocha": "^8.1.2",
+    "source-map-support": "^0.5.19",
+    "strip-ansi": "^6.0.0"
+  },
+  "scripts": {
+    "clean": "rm -f *.js *.d.ts *.map tsconfig.buildinfo",
+    "test": "mocha"
+  },
+  "author": "Garden Technologies, Inc. <info@garden.io>",
+  "license": "MPL-2.0",
+  "homepage": "https://github.com/garden-io/garden"
+}

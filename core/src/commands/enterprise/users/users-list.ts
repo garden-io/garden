@@ -12,7 +12,7 @@ import { GetAllUsersResponse } from "@garden-io/platform-api-types"
 import { printHeader } from "../../../logger/util"
 import { dedent, deline, renderTable } from "../../../util/string"
 import { Command, CommandParams, CommandResult } from "../../base"
-import { applyFilter, getProject, makeUserFromResponse, noApiMsg, UserResult } from "../helpers"
+import { applyFilter, makeUserFromResponse, noApiMsg, UserResult } from "../helpers"
 import chalk from "chalk"
 import { sortBy } from "lodash"
 import { StringsParameter } from "../../../cli/params"
@@ -55,7 +55,7 @@ export class UsersListCommand extends Command<{}, Opts> {
       throw new ConfigurationError(noApiMsg("list", "users"), {})
     }
 
-    const project = await getProject(api, api.projectId)
+    const project = await api.getProject()
     // Make a best effort VCS provider guess. We should have an API endpoint for this or return with the response.
     const vcsProviderTitle = project.repositoryUrl.includes("github.com")
       ? "GitHub"

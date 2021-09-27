@@ -698,6 +698,7 @@ Examples:
   | `--dev-mode` | `-dev` | array:string | [EXPERIMENTAL] The name(s) of the service(s) to deploy with dev mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with dev mode enabled. When this option is used, the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
   | `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading). When this option is used, the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
   | `--skip` |  | array:string | The name(s) of services you&#x27;d like to skip when deploying.
+  | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. Ignored if --watch/-w flag is set or when in dev or hot-reload mode.
 
 #### Outputs
 
@@ -1287,6 +1288,9 @@ providers:
                   # Defaults to to same as source path.
                   target:
 
+          # Maximum time in seconds to wait for build to finish.
+          timeout:
+
         # A description of the module.
         description:
 
@@ -1559,6 +1563,9 @@ moduleConfigs:
               # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
               # Defaults to to same as source path.
               target:
+
+      # Maximum time in seconds to wait for build to finish.
+      timeout:
 
     # A description of the module.
     description:
@@ -1920,7 +1927,7 @@ workflowConfigs:
         # Supported events:
         #
         # `pull-request`, `pull-request-closed`, `pull-request-merged`, `pull-request-opened`,
-        # `pull-request-reopened`, `pull-request-updated`
+        # `pull-request-reopened`, `pull-request-updated`, `push`
         #
         #
         events:
@@ -2063,6 +2070,9 @@ modules:
               # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
               # Defaults to to same as source path.
               target:
+
+      # Maximum time in seconds to wait for build to finish.
+      timeout:
 
     # A description of the module.
     description:
@@ -2767,12 +2777,13 @@ to getting logs from the last minute when in `--follow` mode. You can change thi
 
 Examples:
 
-    garden logs                       # interleaves color-coded logs from all services (up to a certain limit)
-    garden logs --since 2d            # interleaves color-coded logs from all services from the last 2 days
-    garden logs --tail 100            # interleaves the last 100 log lines from all services
-    garden logs service-a,service-b   # interleaves color-coded logs for service-a and service-b
-    garden logs --follow              # keeps running and streams all incoming logs to the console
-    garden logs --original-color      # interleaves logs from all services and prints the original output color
+    garden logs                            # interleaves color-coded logs from all services (up to a certain limit)
+    garden logs --since 2d                 # interleaves color-coded logs from all services from the last 2 days
+    garden logs --tail 100                 # interleaves the last 100 log lines from all services
+    garden logs service-a,service-b        # interleaves color-coded logs for service-a and service-b
+    garden logs --follow                   # keeps running and streams all incoming logs to the console
+    garden logs --tag container=service-a  # only shows logs from containers with names matching the pattern
+    garden logs --original-color           # interleaves logs from all services and prints the original output color
 
 | Supported in workflows |   |
 | ---------------------- |---|
@@ -2792,13 +2803,13 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
+  | `--tag` |  | array:tag | Only show log lines that match the given tag, e.g. &#x60;--tag &#x27;container&#x3D;foo&#x27;&#x60;. If you specify multiple filters in a single tag option (e.g. &#x60;--tag &#x27;container&#x3D;foo,someOtherTag&#x3D;bar&#x27;&#x60;), they must all be matched. If you provide multiple &#x60;--tag&#x60; options (e.g. &#x60;--tag &#x27;container&#x3D;api&#x27; --tag &#x27;container&#x3D;frontend&#x27;&#x60;), they will be OR-ed together (i.e. if any of them match, the log line will be included). You can specify glob-style wildcards, e.g. &#x60;--tag &#x27;container&#x3D;prefix-*&#x27;&#x60;.
   | `--follow` | `-f` | boolean | Continuously stream new logs from the service(s).
-  | `--tail` | `-t` | number | Number of lines to show for each service. Defaults to showing all log lines (up to a certain limit). Takes precedence over
-the &#x60;--since&#x60; flag if both are set. Note that we don&#x27;t recommend using a large value here when in follow mode.
+  | `--tail` | `-t` | number | Number of lines to show for each service. Defaults to showing all log lines (up to a certain limit). Takes precedence over the &#x60;--since&#x60; flag if both are set. Note that we don&#x27;t recommend using a large value here when in follow mode.
   | `--show-container` |  | boolean | Show the name of the container with log output. May not apply to all providers
+  | `--show-tags` |  | boolean | Show any tags attached to each log line. May not apply to all providers
   | `--timestamps` |  | boolean | Show timestamps with log output.
-  | `--since` |  | moment | Only show logs newer than a relative duration like 5s, 2m, or 3h. Defaults to &#x60;&quot;1m&quot;&#x60; when &#x60;--follow&#x60; is true
-unless &#x60;--tail&#x60; is set. Note that we don&#x27;t recommend using a large value here when in follow mode.
+  | `--since` |  | moment | Only show logs newer than a relative duration like 5s, 2m, or 3h. Defaults to &#x60;&quot;1m&quot;&#x60; when &#x60;--follow&#x60; is true unless &#x60;--tail&#x60; is set. Note that we don&#x27;t recommend using a large value here when in follow mode.
   | `--original-color` |  | boolean | Show the original color output of the logs instead of color coding them.
   | `--hide-service` |  | boolean | Hide the service name and render the logs directly.
 

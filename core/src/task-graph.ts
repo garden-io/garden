@@ -412,7 +412,9 @@ export class TaskGraph extends EventEmitter2 {
         success = false
         result = { type, description, key, name, error, startedAt, completedAt: new Date(), batchId, version }
         this.garden.events.emit("taskError", toGraphResultEventPayload(result))
-        this.logTaskError(node, error)
+        if (!node.task.interactive) {
+          this.logTaskError(node, error)
+        }
         this.cancelDependants(node)
       } finally {
         this.resultCache.put(key, node.getVersion(), result)

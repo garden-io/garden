@@ -27,7 +27,7 @@ providers:
   - name: octant
 variables:
   userId: ${local.env.CIRCLE_BUILD_NUM || local.username}
-  remoteContext: gke_garden-dev-200012_europe-west1-b_garden-dev-1
+  remoteContext: gke_garden-ci_europe-west1-b_core-ci
   postgres-database: postgres
   # Only use for testing!
   postgres-username: postgres

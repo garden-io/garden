@@ -57,6 +57,7 @@ export abstract class BaseTask {
   uid: string
   force: boolean
   version: string
+  interactive = false
 
   _resolvedDependencies?: BaseTask[]
 

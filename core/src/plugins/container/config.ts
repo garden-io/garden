@@ -28,6 +28,7 @@ import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { joiStringMap } from "../../config/common"
 import { dedent, deline } from "../../util/string"
 import { getModuleTypeUrl } from "../../docs/common"
+import { ContainerModuleOutputs } from "./container"
 
 export const defaultContainerLimits: ServiceLimitSpec = {
   cpu: 1000, // = 1000 millicpu = 1 CPU
@@ -125,6 +126,9 @@ export interface ContainerServiceSpec extends CommonServiceSpec {
   ports: ServicePortSpec[]
   replicas?: number
   volumes: ContainerVolumeSpec[]
+  privileged?: boolean
+  addCapabilities?: string[]
+  dropCapabilities?: string[]
 }
 
 export const commandExample = ["/bin/sh", "-c"]
@@ -503,6 +507,28 @@ export function getContainerVolumesSchema(targetType: string) {
   `)
 }
 
+const containerPrivilegedSchema = (targetType: string) =>
+  joi
+    .boolean()
+    .optional()
+    .description(
+      `If true, run the ${targetType}'s main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.`
+    )
+
+const containerAddCapabilitiesSchema = (targetType: string) =>
+  joi
+    .array()
+    .items(joi.string())
+    .optional()
+    .description(`POSIX capabilities to add to the running ${targetType}'s main container.`)
+
+const containerDropCapabilitiesSchema = (targetType: string) =>
+  joi
+    .array()
+    .items(joi.string())
+    .optional()
+    .description(`POSIX capabilities to remove from the running ${targetType}'s main container.`)
+
 const containerServiceSchema = () =>
   baseServiceSpecSchema().keys({
     annotations: annotationsSchema().description(
@@ -564,6 +590,9 @@ const containerServiceSchema = () =>
       with hot-reloading enabled, or if the provider doesn't support multiple replicas.
     `),
     volumes: getContainerVolumesSchema("service"),
+    privileged: containerPrivilegedSchema("service"),
+    addCapabilities: containerAddCapabilitiesSchema("service"),
+    dropCapabilities: containerDropCapabilitiesSchema("service"),
   })
 
 export interface ContainerRegistryConfig {
@@ -642,6 +671,9 @@ export interface ContainerTestSpec extends BaseTestSpec {
   cpu: ContainerResourcesSpec["cpu"]
   memory: ContainerResourcesSpec["memory"]
   volumes: ContainerVolumeSpec[]
+  privileged?: boolean
+  addCapabilities?: string[]
+  dropCapabilities?: string[]
 }
 
 export const containerTestSchema = () =>
@@ -661,6 +693,9 @@ export const containerTestSchema = () =>
     cpu: containerCpuSchema("test").default(defaultContainerResources.cpu),
     memory: containerMemorySchema("test").default(defaultContainerResources.memory),
     volumes: getContainerVolumesSchema("test"),
+    privileged: containerPrivilegedSchema("test"),
+    addCapabilities: containerAddCapabilitiesSchema("test"),
+    dropCapabilities: containerDropCapabilitiesSchema("test"),
   })
 
 export interface ContainerTaskSpec extends BaseTaskSpec {
@@ -672,6 +707,9 @@ export interface ContainerTaskSpec extends BaseTaskSpec {
   cpu: ContainerResourcesSpec["cpu"]
   memory: ContainerResourcesSpec["memory"]
   volumes: ContainerVolumeSpec[]
+  privileged?: boolean
+  addCapabilities?: string[]
+  dropCapabilities?: string[]
 }
 
 export const containerTaskSchema = () =>
@@ -693,6 +731,9 @@ export const containerTaskSchema = () =>
       cpu: containerCpuSchema("task").default(defaultContainerResources.cpu),
       memory: containerMemorySchema("task").default(defaultContainerResources.memory),
       volumes: getContainerVolumesSchema("task"),
+      privileged: containerPrivilegedSchema("task"),
+      addCapabilities: containerAddCapabilitiesSchema("task"),
+      dropCapabilities: containerDropCapabilitiesSchema("task"),
     })
     .description("A task that can be run in the container.")
 
@@ -718,22 +759,20 @@ export interface ContainerModuleConfig extends ModuleConfig<ContainerModuleSpec>
 export const defaultImageNamespace = "_"
 export const defaultTag = "latest"
 
+export const containerBuildSpecSchema = () =>
+  baseBuildSpecSchema().keys({
+    targetImage: joi.string().description(deline`
+        For multi-stage Dockerfiles, specify which image to build (see
+        https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for
+        details).
+      `),
+  })
+
 export const containerModuleSpecSchema = () =>
   joi
     .object()
     .keys({
-      build: baseBuildSpecSchema().keys({
-        targetImage: joi.string().description(deline`
-            For multi-stage Dockerfiles, specify which image to build (see
-            https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for
-            details).
-          `),
-        timeout: joi
-          .number()
-          .integer()
-          .default(1200)
-          .description("Maximum time in seconds to wait for build to finish."),
-      }),
+      build: containerBuildSpecSchema(),
       buildArgs: joi
         .object()
         .pattern(/.+/, joiPrimitive())
@@ -751,13 +790,13 @@ export const containerModuleSpecSchema = () =>
         the module does not contain a Dockerfile, this image will be used to deploy services for this module.
         If specified and the module does contain a Dockerfile, this identifier is used when pushing the built image.`),
       include: joiModuleIncludeDirective(dedent`
-      If neither \`include\` nor \`exclude\` is set, and the module has a Dockerfile, Garden
-      will parse the Dockerfile and automatically set \`include\` to match the files and
-      folders added to the Docker image (via the \`COPY\` and \`ADD\` directives in the Dockerfile).
+        If neither \`include\` nor \`exclude\` is set, and the module has a Dockerfile, Garden
+        will parse the Dockerfile and automatically set \`include\` to match the files and
+        folders added to the Docker image (via the \`COPY\` and \`ADD\` directives in the Dockerfile).
 
-      If neither \`include\` nor \`exclude\` is set, and the module
-      specifies a remote image, Garden automatically sets \`include\` to \`[]\`.
-    `),
+        If neither \`include\` nor \`exclude\` is set, and the module
+        specifies a remote image, Garden automatically sets \`include\` to \`[]\`.
+      `),
       hotReload: hotReloadConfigSchema(),
       dockerfile: joi.posixPath().subPathOnly().description("POSIX-style name of Dockerfile, relative to module root."),
       services: joiSparseArray(containerServiceSchema())
@@ -776,5 +815,6 @@ export interface ContainerModule<
   M extends ContainerModuleSpec = ContainerModuleSpec,
   S extends ContainerServiceSpec = ContainerServiceSpec,
   T extends ContainerTestSpec = ContainerTestSpec,
-  W extends ContainerTaskSpec = ContainerTaskSpec
-> extends GardenModule<M, S, T, W> {}
+  W extends ContainerTaskSpec = ContainerTaskSpec,
+  O extends ContainerModuleOutputs = ContainerModuleOutputs
+> extends GardenModule<M, S, T, W, O> {}

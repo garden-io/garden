@@ -88,38 +88,14 @@ describe("containerHelpers", () => {
   }
 
   describe("getLocalImageId", () => {
-    it("should return configured image name with local version if module has a Dockerfile", async () => {
+    it("should return configured image name if set, with the module version as the tag", async () => {
       const config = cloneDeep(baseConfig)
       config.spec.image = "some/image:1.1"
-
-      td.replace(helpers, "hasDockerfile", () => true)
-
       expect(helpers.getLocalImageId(config, dummyVersion)).to.equal("some/image:1234")
     })
 
-    it("should return configured image name and tag if module has no Dockerfile and name includes tag", async () => {
-      const config = cloneDeep(baseConfig)
-      config.spec.image = "some/image:1.1"
-
-      td.replace(helpers, "hasDockerfile", () => false)
-
-      expect(helpers.getLocalImageId(config, dummyVersion)).to.equal("some/image:1.1")
-    })
-
-    it("should return module name with local version if there is a Dockerfile and no configured name", async () => {
-      const config = cloneDeep(baseConfig)
-
-      td.replace(helpers, "hasDockerfile", () => true)
-
-      expect(helpers.getLocalImageId(config, dummyVersion)).to.equal("test:1234")
-    })
-
-    it("should return module name with local version if there is no Dockerfile and no configured name", async () => {
-      const config = cloneDeep(baseConfig)
-
-      td.replace(helpers, "hasDockerfile", () => false)
-
-      expect(helpers.getLocalImageId(config, dummyVersion)).to.equal("test:1234")
+    it("should return module name if image is not specified, with the module version as the tag", async () => {
+      expect(helpers.getLocalImageId(baseConfig, dummyVersion)).to.equal("test:1234")
     })
   })
 
@@ -400,7 +376,7 @@ describe("containerHelpers", () => {
     it("should return true if module config explicitly sets a Dockerfile", async () => {
       td.replace(helpers, "hasDockerfile", () => true)
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("module-a")
 
       module.spec.dockerfile = "Dockerfile"

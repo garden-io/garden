@@ -14,6 +14,7 @@ import { ServiceStatus } from "./types/service"
 import { NamespaceStatus, RunStatus } from "./types/plugin/base"
 import { Omit } from "./util/util"
 import { AuthTokenResponse } from "./enterprise/api"
+import { RenderedActionGraph } from "./config-graph"
 import { BuildState } from "./types/plugin/module/build"
 import { CommandInfo } from "./plugin-context"
 
@@ -65,10 +66,16 @@ export type LoggerEventName = keyof LoggerEvents
 
 export type GraphResultEventPayload = Omit<GraphResult, "dependencyResults">
 
+export interface ServiceStatusPayload extends Omit<ServiceStatus, "detail"> {
+  deployStartedAt?: Date
+  deployCompletedAt?: Date
+}
+
 export function toGraphResultEventPayload(result: GraphResult): GraphResultEventPayload {
   const payload = omit(result, "dependencyResults")
   if (result.output) {
-    payload.output = omit(result.output, "dependencyResults", "log", "buildLog")
+    // TODO: Use a combined blacklist of fields from all task types instead of hardcoding here.
+    payload.output = omit(result.output, "dependencyResults", "log", "buildLog", "detail")
     if (result.output.version) {
       payload.output.version = result.output.version.versionString || null
     }
@@ -118,6 +125,8 @@ export interface Events extends LoggerEvents {
 
   // Command/project metadata events
   commandInfo: CommandInfo
+  // Stack Graph events
+  stackGraph: RenderedActionGraph
 
   // TaskGraph events
   taskPending: {
@@ -151,6 +160,16 @@ export interface Events extends LoggerEvents {
     completedAt: Date
   }
   watchingForChanges: {}
+  log: {
+    timestamp: number
+    actionUid: string
+    entity: {
+      moduleName: string
+      type: string
+      key: string
+    }
+    data: string
+  }
 
   // Status events
 
@@ -218,7 +237,7 @@ export interface Events extends LoggerEvents {
      * `actionUid` should only be defined if a deploy took place (i.e. when emitted from the `deployService` action).
      */
     actionUid?: string
-    status: Omit<ServiceStatus, "detail">
+    status: ServiceStatusPayload
   }
   namespaceStatus: NamespaceStatus
 
@@ -245,7 +264,7 @@ export interface Events extends LoggerEvents {
 export type EventName = keyof Events
 
 // Note: Does not include logger events.
-export const eventNames: EventName[] = [
+export const pipedEventNames: EventName[] = [
   "_exit",
   "_restart",
   "_test",
@@ -253,29 +272,31 @@ export const eventNames: EventName[] = [
   "configAdded",
   "configRemoved",
   "internalError",
-  "projectConfigChanged",
+  "log",
   "moduleConfigChanged",
-  "moduleSourcesChanged",
   "moduleRemoved",
   "commandInfo",
-  "taskPending",
-  "taskProcessing",
+  "moduleSourcesChanged",
+  "namespaceStatus",
+  "projectConfigChanged",
+  "serviceStatus",
+  "stackGraph",
+  "taskCancelled",
   "taskComplete",
   "taskError",
-  "taskCancelled",
-  "taskGraphProcessing",
   "taskGraphComplete",
-  "watchingForChanges",
+  "taskGraphProcessing",
+  "taskPending",
+  "taskProcessing",
   "buildStatus",
   "taskStatus",
   "testStatus",
-  "serviceStatus",
-  "namespaceStatus",
-  "workflowRunning",
+  "watchingForChanges",
   "workflowComplete",
   "workflowError",
-  "workflowStepProcessing",
-  "workflowStepSkipped",
+  "workflowRunning",
   "workflowStepComplete",
   "workflowStepError",
+  "workflowStepProcessing",
+  "workflowStepSkipped",
 ]

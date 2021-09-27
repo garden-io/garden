@@ -6,20 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult, CommandParams } from "./base"
+import dotenv = require("dotenv")
+import { Command, CommandResult, CommandParams, PrepareParams } from "./base"
 import chalk from "chalk"
-import { sortBy } from "lodash"
+import { every, some, sortBy } from "lodash"
 import { ServiceLogEntry } from "../types/plugin/service/getServiceLogs"
 import Bluebird = require("bluebird")
 import { GardenService } from "../types/service"
 import Stream from "ts-stream"
 import { LoggerType, logLevelMap, LogLevel, parseLogLevel } from "../logger/logger"
-import { StringsParameter, BooleanParameter, IntegerParameter, DurationParameter } from "../cli/params"
+import { StringsParameter, BooleanParameter, IntegerParameter, DurationParameter, TagsOption } from "../cli/params"
 import { printHeader, renderDivider } from "../logger/util"
 import stripAnsi = require("strip-ansi")
 import hasAnsi = require("has-ansi")
-import { dedent } from "../util/string"
+import { dedent, deline } from "../util/string"
 import { padSection } from "../logger/renderers"
+import { PluginEventBroker } from "../plugin-context"
+import { ParameterError } from "../exceptions"
+import { isMatch } from "micromatch"
 
 const logsArgs = {
   services: new StringsParameter({
@@ -30,27 +34,40 @@ const logsArgs = {
 }
 
 const logsOpts = {
+  "tag": new TagsOption({
+    help: deline`
+      Only show log lines that match the given tag, e.g. \`--tag 'container=foo'\`. If you specify multiple filters
+      in a single tag option (e.g. \`--tag 'container=foo,someOtherTag=bar'\`), they must all be matched. If you
+      provide multiple \`--tag\` options (e.g. \`--tag 'container=api' --tag 'container=frontend'\`), they will be OR-ed
+      together (i.e. if any of them match, the log line will be included). You can specify glob-style wildcards, e.g.
+      \`--tag 'container=prefix-*'\`.
+    `,
+  }),
   "follow": new BooleanParameter({
     help: "Continuously stream new logs from the service(s).",
     alias: "f",
-    cliOnly: true,
   }),
   "tail": new IntegerParameter({
-    help: dedent`
+    help: deline`
       Number of lines to show for each service. Defaults to showing all log lines (up to a certain limit). Takes precedence over
       the \`--since\` flag if both are set. Note that we don't recommend using a large value here when in follow mode.
     `,
     alias: "t",
   }),
+  // DEPRECATED, remove in 0.13 in favor of --show-tags
   "show-container": new BooleanParameter({
     help: "Show the name of the container with log output. May not apply to all providers",
+    defaultValue: false,
+  }),
+  "show-tags": new BooleanParameter({
+    help: "Show any tags attached to each log line. May not apply to all providers",
     defaultValue: false,
   }),
   "timestamps": new BooleanParameter({
     help: "Show timestamps with log output.",
   }),
   "since": new DurationParameter({
-    help: dedent`
+    help: deline`
       Only show logs newer than a relative duration like 5s, 2m, or 3h. Defaults to \`"1m"\` when \`--follow\` is true
       unless \`--tail\` is set. Note that we don't recommend using a large value here when in follow mode.
     `,
@@ -70,6 +87,10 @@ type Opts = typeof logsOpts
 
 export const colors = ["green", "cyan", "magenta", "yellow", "blueBright", "red"]
 
+type LogsTagFilter = [string, string]
+type LogsTagAndFilter = LogsTagFilter[]
+type LogsTagOrFilter = LogsTagAndFilter[]
+
 /**
  * Skip empty entries.
  */
@@ -88,16 +109,19 @@ export class LogsCommand extends Command<Args, Opts> {
 
     Examples:
 
-        garden logs                       # interleaves color-coded logs from all services (up to a certain limit)
-        garden logs --since 2d            # interleaves color-coded logs from all services from the last 2 days
-        garden logs --tail 100            # interleaves the last 100 log lines from all services
-        garden logs service-a,service-b   # interleaves color-coded logs for service-a and service-b
-        garden logs --follow              # keeps running and streams all incoming logs to the console
-        garden logs --original-color      # interleaves logs from all services and prints the original output color
+        garden logs                            # interleaves color-coded logs from all services (up to a certain limit)
+        garden logs --since 2d                 # interleaves color-coded logs from all services from the last 2 days
+        garden logs --tail 100                 # interleaves the last 100 log lines from all services
+        garden logs service-a,service-b        # interleaves color-coded logs for service-a and service-b
+        garden logs --follow                   # keeps running and streams all incoming logs to the console
+        garden logs --tag container=service-a  # only shows logs from containers with names matching the pattern
+        garden logs --original-color           # interleaves logs from all services and prints the original output color
   `
 
   arguments = logsArgs
   options = logsOpts
+
+  private events?: PluginEventBroker
 
   getLoggerType(): LoggerType {
     return "basic"
@@ -107,14 +131,25 @@ export class LogsCommand extends Command<Args, Opts> {
     printHeader(headerLog, "Logs", "scroll")
   }
 
+  async prepare({ opts }: PrepareParams<Args, Opts>) {
+    return { persistent: !!opts.follow }
+  }
+
+  terminate() {
+    this.events?.emit("abort", {})
+  }
+
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ServiceLogEntry[]>> {
-    const { follow, timestamps } = opts
+    const { follow, timestamps, tag } = opts
     let tail = opts.tail as number | undefined
     let since = opts.since as string | undefined
     const originalColor = opts["original-color"]
     const showContainer = opts["show-container"]
+    const showTags = opts["show-tags"]
     const hideService = opts["hide-service"]
     const logLevel = parseLogLevel(opts["log-level"])
+
+    let tagFilters: LogsTagOrFilter | undefined = undefined
 
     if (tail) {
       // Tail takes precedence over since...
@@ -124,7 +159,24 @@ export class LogsCommand extends Command<Args, Opts> {
       since = "1m"
     }
 
-    const graph = await garden.getConfigGraph(log)
+    if (tag && tag.length > 0) {
+      const parameterErrorMsg = `Unable to parse the given --tag flags. Format should be key=value.`
+      try {
+        tagFilters = tag.map((tagGroup: string) => {
+          return tagGroup.split(",").map((t: string) => {
+            const parsed = Object.entries(dotenv.parse(t))[0]
+            if (!parsed) {
+              throw new ParameterError(parameterErrorMsg, { tags: tag })
+            }
+            return parsed
+          })
+        })
+      } catch {
+        throw new ParameterError(parameterErrorMsg, { tags: tag })
+      }
+    }
+
+    const graph = await garden.getConfigGraph({ log, emit: false })
     const allServices = graph.getServices()
     const services = args.services ? allServices.filter((s) => args.services?.includes(s.name)) : allServices
 
@@ -160,6 +212,19 @@ export class LogsCommand extends Command<Args, Opts> {
       return acc
     }, {})
 
+    const matchTagFilters = (entry: ServiceLogEntry): boolean => {
+      if (!tagFilters) {
+        return true
+      }
+      // We OR together the filter results of each tag option instance.
+      return some(tagFilters, (andFilter: LogsTagAndFilter) => {
+        // We AND together the filter results within a given tag option instance.
+        return every(andFilter, ([key, value]: LogsTagFilter) => {
+          return isMatch(entry.tags?.[key] || "", value)
+        })
+      })
+    }
+
     const formatEntry = (entry: ServiceLogEntry) => {
       const style = chalk[colorMap[entry.serviceName]]
       const sectionStyle = style.bold
@@ -168,6 +233,7 @@ export class LogsCommand extends Command<Args, Opts> {
 
       let timestamp: string | undefined
       let container: string | undefined
+      let tags: string | undefined
 
       if (timestamps && entry.timestamp) {
         timestamp = "                        "
@@ -176,8 +242,15 @@ export class LogsCommand extends Command<Args, Opts> {
         } catch {}
       }
 
-      if (showContainer && entry.containerName) {
-        container = entry.containerName
+      // DEPRECATED, remove in 0.13 in favor of --show-tags
+      if (showContainer && entry.tags?.container) {
+        container = entry.tags.container
+      }
+
+      if (showTags && entry.tags) {
+        tags = Object.entries(entry.tags)
+          .map(([k, v]) => `${k}=${v}`)
+          .join(" ")
       }
 
       if (entryLevel <= logLevel) {
@@ -195,6 +268,9 @@ export class LogsCommand extends Command<Args, Opts> {
       if (timestamp) {
         out += `${chalk.gray(timestamp)} → `
       }
+      if (tags) {
+        out += chalk.gray("[" + tags + "] ")
+      }
       if (originalColor) {
         // If the line doesn't have ansi encoding, we color it white to prevent logger from applying styles.
         out += hasAnsi(serviceLog) ? serviceLog : chalk.white(serviceLog)
@@ -206,14 +282,20 @@ export class LogsCommand extends Command<Args, Opts> {
     }
 
     void stream.forEach((entry) => {
-      // Skip emtpy entries
+      // Skip empty entries
       if (skipEntry(entry)) {
+        return
+      }
+
+      // Match against all of the specified filters, if any
+      if (!matchTagFilters(entry)) {
         return
       }
 
       if (follow) {
         const levelStr = logLevelMap[entry.level || LogLevel.info] || "info"
         const msg = formatEntry(entry)
+        this.emit(log, JSON.stringify({ msg, timestamp: entry.timestamp?.getTime(), level: levelStr }))
         log[levelStr]({ msg })
       } else {
         result.push(entry)
@@ -221,9 +303,10 @@ export class LogsCommand extends Command<Args, Opts> {
     })
 
     const actions = await garden.getActionRouter()
+    this.events = new PluginEventBroker()
 
     await Bluebird.map(services, async (service: GardenService<any>) => {
-      await actions.getServiceLogs({ log, graph, service, stream, follow, tail, since })
+      await actions.getServiceLogs({ log, graph, service, stream, follow, tail, since, events: this.events })
     })
 
     const sorted = sortBy(result, "timestamp")

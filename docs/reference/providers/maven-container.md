@@ -7,6 +7,8 @@ tocTitle: "`maven-container`"
 
 ## Description
 
+**DEPRECATED**. Please use the [jib provider](https://docs.garden.io/reference/providers/jib) instead.
+
 Adds the [maven-container module type](https://docs.garden.io/reference/module-types/maven-container), which is a specialized version of the `container` module type that has special semantics for building JAR files using Maven.
 
 To use it, simply add the provider to your provider configuration, and refer to the [maven-container module docs](https://docs.garden.io/reference/module-types/maven-container) for details on how to configure the modules.

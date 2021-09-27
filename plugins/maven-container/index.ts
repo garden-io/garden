@@ -8,37 +8,41 @@
 
 import { omit, get } from "lodash"
 import { copy, pathExists, readFile } from "fs-extra"
-import { createGardenPlugin } from "../../types/plugin/plugin"
+import { resolve } from "path"
+import { xml2json } from "xml-js"
+
+import { createGardenPlugin } from "@garden-io/sdk"
+import { dedent } from "@garden-io/sdk/util/string"
+import { LogEntry, GardenModule, ModuleConfig } from "@garden-io/sdk/types"
+import { openJdkSpecs } from "@garden-io/garden-jib/openjdk"
+import { mavenSpec, mvn } from "@garden-io/garden-jib/maven"
+
 import {
   ContainerModuleSpec,
   ContainerServiceSpec,
   ContainerTestSpec,
   ContainerModuleConfig,
   ContainerTaskSpec,
-} from "../container/config"
-import { joiProviderName, joi, joiModuleIncludeDirective, joiSparseArray } from "../../config/common"
-import { GardenModule } from "../../types/module"
-import { resolve } from "path"
-import { RuntimeError, ConfigurationError } from "../../exceptions"
-import { containerHelpers } from "../container/helpers"
-import { STATIC_DIR } from "../../constants"
-import { xml2json } from "xml-js"
-import { containerModuleSpecSchema } from "../container/config"
-import { providerConfigBaseSchema } from "../../config/provider"
-import { LogEntry } from "../../logger/log-entry"
-import { dedent } from "../../util/string"
-import { ModuleConfig } from "../../config/module"
-import AsyncLock = require("async-lock")
-import { ConfigureModuleParams } from "../../types/plugin/module/configure"
-import { GetBuildStatusParams } from "../../types/plugin/module/getBuildStatus"
-import { BuildModuleParams } from "../../types/plugin/module/build"
-import { getModuleTypeUrl } from "../../docs/common"
-import { containerModuleOutputsSchema } from "../container/container"
+} from "@garden-io/core/build/src/plugins/container/config"
+import {
+  joiProviderName,
+  joi,
+  joiModuleIncludeDirective,
+  joiSparseArray,
+} from "@garden-io/core/build/src/config/common"
+import { RuntimeError, ConfigurationError } from "@garden-io/core/build/src/exceptions"
+import { containerHelpers } from "@garden-io/core/build/src/plugins/container/helpers"
+import { STATIC_DIR } from "@garden-io/core/build/src/constants"
+import { containerModuleSpecSchema } from "@garden-io/core/build/src/plugins/container/config"
+import { providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
+import { ConfigureModuleParams } from "@garden-io/core/build/src/types/plugin/module/configure"
+import { GetBuildStatusParams } from "@garden-io/core/build/src/types/plugin/module/getBuildStatus"
+import { BuildModuleParams } from "@garden-io/core/build/src/types/plugin/module/build"
+import { getModuleTypeUrl, getProviderUrl } from "@garden-io/core/build/src/docs/common"
+import { containerModuleOutputsSchema } from "@garden-io/core/build/src/plugins/container/container"
 
 const defaultDockerfileName = "maven-container.Dockerfile"
 const defaultDockerfilePath = resolve(STATIC_DIR, "maven-container", defaultDockerfileName)
-
-const buildLock = new AsyncLock()
 
 export interface MavenContainerModuleSpec extends ContainerModuleSpec {
   imageVersion?: string
@@ -97,9 +101,11 @@ const moduleTypeUrl = getModuleTypeUrl("maven-container")
 export const gardenPlugin = () =>
   createGardenPlugin({
     name: "maven-container",
-    dependencies: ["container"],
+    dependencies: [{ name: "container" }],
 
     docs: dedent`
+    **DEPRECATED**. Please use the [jib provider](${getProviderUrl("jib")}) instead.
+
     Adds the [maven-container module type](${moduleTypeUrl}), which is a specialized version of the \`container\` module type that has special semantics for building JAR files using Maven.
 
     To use it, simply add the provider to your provider configuration, and refer to the [maven-container module docs](${moduleTypeUrl}) for details on how to configure the modules.
@@ -110,6 +116,8 @@ export const gardenPlugin = () =>
         name: "maven-container",
         base: "container",
         docs: dedent`
+      **DEPRECATED**. Please use the [jib-container module type](${getModuleTypeUrl("jib-container")}) instead.
+
       A specialized version of the [container](https://docs.garden.io/reference/module-types/container) module type
       that has special semantics for JAR files built with Maven.
 
@@ -132,6 +140,8 @@ export const gardenPlugin = () =>
         },
       },
     ],
+
+    tools: [mavenSpec, ...openJdkSpecs],
   })
 
 export async function configureMavenContainerModule(params: ConfigureModuleParams<MavenContainerModule>) {
@@ -151,6 +161,7 @@ export async function configureMavenContainerModule(params: ConfigureModuleParam
     ? moduleConfig.spec.dockerfile || defaultDockerfileName
     : moduleConfig.spec.dockerfile
 
+  configured.moduleConfig.spec.dockerfile = dockerfile
   configured.moduleConfig.buildConfig.dockerfile = dockerfile
 
   return {
@@ -210,17 +221,12 @@ async function build(params: BuildModuleParams<MavenContainerModule>) {
   const mvnArgs = ["package", "--batch-mode", "--projects", ":" + artifactId, "--also-make", ...mvnOpts]
   const mvnCmdStr = "mvn " + mvnArgs.join(" ")
 
-  // Maven has issues when running concurrent processes, so we're working around that with a lock.
-  // TODO: http://takari.io/book/30-team-maven.html would be a more robust solution.
-  await buildLock.acquire("mvn", async () => {
-    await ctx.tools["maven-container.maven"].exec({
-      args: mvnArgs,
-      cwd: module.path,
-      log,
-      env: {
-        JAVA_HOME: openJdkPath,
-      },
-    })
+  await mvn({
+    ctx,
+    log,
+    args: mvnArgs,
+    openJdkPath,
+    cwd: module.path,
   })
 
   // Copy the artifact to the module build directory

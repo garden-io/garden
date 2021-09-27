@@ -16,6 +16,7 @@ import {
   joiRepositoryUrl,
   joiPrimitive,
   joiSparseArray,
+  allowUnknown,
 } from "../../../../src/config/common"
 import { validateSchema } from "../../../../src/config/validation"
 import { expectError } from "../../../helpers"
@@ -513,5 +514,41 @@ describe("validateSchema", () => {
       () => validateSchema(value, schema),
       (err) => expect(stripAnsi(err.message)).to.equal("Validation error: key .foo[bar] must be a string")
     )
+  })
+})
+
+describe("allowUnknown", () => {
+  it("allows unknown fields on an object schema", () => {
+    const schema = joi.object().keys({ key: joi.number() }).unknown(false)
+    const result = allowUnknown(schema).validate({ foo: 123 })
+    expect(result.error).to.be.undefined
+  })
+
+  it("works with empty objects schemas", () => {
+    const schema = joi.object().unknown(false)
+    const result = allowUnknown(schema).validate({ foo: 123 })
+    expect(result.error).to.be.undefined
+  })
+
+  it("works with empty array schemas", () => {
+    const schema = joi.array()
+    const result = allowUnknown(schema).validate([{ foo: 123 }])
+    expect(result.error).to.be.undefined
+  })
+
+  it("allows unknown fields on nested object schemas on an object schema", () => {
+    const schema = joi
+      .object()
+      .keys({ nested: joi.object().keys({ key: joi.number() }).unknown(false) })
+      .unknown(false)
+    const result = allowUnknown(schema).validate({ nested: { foo: 123 } })
+    expect(result.error).to.be.undefined
+  })
+
+  it("allows unknown fields on object schemas in an array schema", () => {
+    const schema = joi.array().items(joi.object().keys({ key: joi.number() }).unknown(false))
+    const loose = allowUnknown(schema)
+    const result = loose.validate([{ foo: 123 }])
+    expect(result.error).to.be.undefined
   })
 })

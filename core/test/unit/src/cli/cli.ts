@@ -691,15 +691,11 @@ describe("cli", () => {
         opts: {
           "root": process.cwd(),
           "silent": false,
-          "env": undefined,
-          "logger-type": undefined,
           "log-level": "info",
-          "output": undefined,
           "emoji": envSupportsEmoji(),
           "show-timestamps": false,
           "yes": false,
           "force-refresh": false,
-          "var": undefined,
           "version": false,
           "help": false,
           "floop": "floop-opt",
@@ -762,15 +758,11 @@ describe("cli", () => {
         opts: {
           "root": process.cwd(),
           "silent": false,
-          "env": undefined,
-          "logger-type": undefined,
           "log-level": "info",
-          "output": undefined,
           "emoji": envSupportsEmoji(),
           "show-timestamps": false,
           "yes": false,
           "force-refresh": false,
-          "var": undefined,
           "version": false,
           "help": false,
           "floop": "floop-opt",
@@ -1037,7 +1029,7 @@ describe("cli", () => {
       const garden = await makeDummyGarden(join(GARDEN_CORE_ROOT, "tmp", "foobarbas"), {
         commandInfo: { name: "foo", args: {}, opts: {} },
       })
-      const dg = await garden.getConfigGraph(garden.log)
+      const dg = await garden.getConfigGraph({ log: garden.log, emit: false })
       expect(garden).to.be.ok
       expect(dg.getModules()).to.not.throw
     })
@@ -1054,7 +1046,7 @@ describe("cli", () => {
     it("should initialise and resolve config graph in a project with invalid config", async () => {
       const root = getDataDir("test-project-invalid-config")
       const garden = await makeDummyGarden(root, { commandInfo: { name: "foo", args: {}, opts: {} } })
-      const dg = await garden.getConfigGraph(garden.log)
+      const dg = await garden.getConfigGraph({ log: garden.log, emit: false })
       expect(garden).to.be.ok
       expect(dg.getModules()).to.not.throw
     })
@@ -1062,7 +1054,7 @@ describe("cli", () => {
     it("should initialise and resolve config graph in a project with template strings", async () => {
       const root = getDataDir("test-project-templated")
       const garden = await makeDummyGarden(root, { commandInfo: { name: "foo", args: {}, opts: {} } })
-      const dg = await garden.getConfigGraph(garden.log)
+      const dg = await garden.getConfigGraph({ log: garden.log, emit: false })
       expect(garden).to.be.ok
       expect(dg.getModules()).to.not.throw
     })

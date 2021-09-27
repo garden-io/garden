@@ -18,8 +18,8 @@ import {
 } from "./types/plugin/plugin"
 import { GenericProviderConfig } from "./config/provider"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
-import { uniq, mapValues, fromPairs, flatten, keyBy, some, isString, isFunction } from "lodash"
-import { findByName, pushToKey, getNames } from "./util/util"
+import { uniq, mapValues, fromPairs, flatten, keyBy, some, isString, isFunction, sortBy } from "lodash"
+import { findByName, pushToKey, getNames, isNotNull } from "./util/util"
 import { deline } from "./util/string"
 import { validateSchema } from "./config/validation"
 import { LogEntry } from "./logger/log-entry"
@@ -78,9 +78,9 @@ export async function loadPlugins(
     }
 
     for (const dep of plugin.dependencies || []) {
-      const depPlugin = validatePlugin(dep)
+      const depPlugin = validatePlugin(dep.name)
 
-      if (!depPlugin) {
+      if (!depPlugin && !dep.optional) {
         throw new PluginError(
           `Plugin '${plugin.name}' lists plugin '${dep}' as a dependency, but that plugin has not been registered.`,
           { loadedPlugins: Object.keys(loadedPlugins), dependency: dep }
@@ -177,9 +177,9 @@ export function getDependencyOrder(loadedPlugins: PluginMap): string[] {
       graph.addDependency(plugin.name, plugin.base)
     }
 
-    for (const dependency of plugin.dependencies || []) {
-      graph.addNode(dependency)
-      graph.addDependency(plugin.name, dependency)
+    for (const dep of plugin.dependencies || []) {
+      graph.addNode(dep.name)
+      graph.addDependency(plugin.name, dep.name)
     }
   }
 
@@ -211,8 +211,21 @@ function resolvePlugin(plugin: GardenPlugin, loadedPlugins: PluginMap, configs: 
     ...plugin,
   }
 
-  // Merge dependencies with base
-  resolved.dependencies = uniq([...(plugin.dependencies || []), ...(base.dependencies || [])]).sort()
+  // Merge dependencies with base and sort
+  resolved.dependencies = []
+
+  for (const dep of [...(plugin.dependencies || []), ...(base.dependencies || [])]) {
+    const duplicate = resolved.dependencies.find((d) => d.name === dep.name)
+    if (duplicate) {
+      if (!dep.optional) {
+        duplicate.optional = false
+      }
+    } else {
+      resolved.dependencies.push(dep)
+    }
+  }
+
+  resolved.dependencies = sortBy(resolved.dependencies, "name")
 
   // Merge plugin handlers
   resolved.handlers = { ...(plugin.handlers || {}) }
@@ -342,12 +355,15 @@ export function getModuleTypeBases(
 export function getPluginDependencies(plugin: GardenPlugin, loadedPlugins: PluginMap): GardenPlugin[] {
   return uniq(
     flatten(
-      (plugin.dependencies || []).map((depName) => {
-        const depPlugin = loadedPlugins[depName]
-        if (!depPlugin) {
-          throw new RuntimeError(`Unable to find dependency '${depName} for plugin '${plugin.name}'`, { plugin })
+      (plugin.dependencies || []).map((dep) => {
+        const depPlugin = loadedPlugins[dep.name]
+        if (depPlugin) {
+          return [depPlugin, ...getPluginDependencies(depPlugin, loadedPlugins)]
+        } else if (dep.optional) {
+          return []
+        } else {
+          throw new RuntimeError(`Unable to find dependency '${dep.name} for plugin '${plugin.name}'`, { plugin })
         }
-        return [depPlugin, ...getPluginDependencies(depPlugin, loadedPlugins)]
       })
     )
   )
@@ -448,16 +464,9 @@ function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: GenericPr
       const moduleType = spec.name
       const definition = moduleDefinitions[moduleType]
 
-      // Make sure plugins that extend module types correctly declare their dependencies
       if (!definition) {
-        throw new PluginError(
-          deline`
-          Plugin '${plugin.name}' extends module type '${moduleType}' but the module type has not been declared.
-          The '${plugin.name}' plugin is likely missing a dependency declaration.
-          Please report an issue with the author.
-          `,
-          { moduleType, pluginName: plugin.name }
-        )
+        // Ignore if the module type to extend cannot be found.
+        return null
       }
 
       // Attach base handlers (which are the corresponding declaration handlers, if any)
@@ -490,7 +499,7 @@ function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: GenericPr
     return {
       ...plugin,
       createModuleTypes: plugin.createModuleTypes.map((spec) => resolvedDefinitions[spec.name].spec),
-      extendModuleTypes,
+      extendModuleTypes: extendModuleTypes.filter(isNotNull),
     }
   })
 }
@@ -535,7 +544,7 @@ function resolveModuleDefinition(
   if (
     declaredBy !== plugin.name &&
     !pluginBases.includes(declaredBy) &&
-    !(plugin.dependencies && plugin.dependencies.includes(declaredBy))
+    !(plugin.dependencies && plugin.dependencies.find((d) => d.name === declaredBy))
   ) {
     throw new PluginError(
       deline`

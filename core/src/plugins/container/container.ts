@@ -24,9 +24,17 @@ import { dedent } from "../../util/string"
 import { getModuleTypeUrl } from "../../docs/common"
 import { Provider, GenericProviderConfig, providerConfigBaseSchema } from "../../config/provider"
 import { isSubdir } from "../../util/util"
+import { GetModuleOutputsParams } from "../../types/plugin/module/getModuleOutputs"
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
 export type ContainerProvider = Provider<ContainerProviderConfig>
+
+export interface ContainerModuleOutputs {
+  "local-image-name": string
+  "local-image-id": string
+  "deployment-image-name": string
+  "deployment-image-id": string
+}
 
 export const containerModuleOutputsSchema = () =>
   joi.object().keys({
@@ -225,6 +233,28 @@ async function suggestModules({ name, path }: SuggestModulesParams): Promise<Sug
   }
 }
 
+export async function getContainerModuleOutputs({ moduleConfig, version }: GetModuleOutputsParams) {
+  const deploymentImageName = containerHelpers.getDeploymentImageName(moduleConfig, undefined)
+  const deploymentImageId = containerHelpers.getDeploymentImageId(moduleConfig, version, undefined)
+
+  // If there is no Dockerfile (i.e. we don't need to build anything) we use the image field directly.
+  // Otherwise we set the tag to the module version.
+  const hasDockerfile = containerHelpers.hasDockerfile(moduleConfig, version)
+  const localImageId =
+    moduleConfig.spec.image && !hasDockerfile
+      ? moduleConfig.spec.image
+      : containerHelpers.getLocalImageId(moduleConfig, version)
+
+  return {
+    outputs: {
+      "local-image-name": containerHelpers.getLocalImageName(moduleConfig),
+      "local-image-id": localImageId,
+      "deployment-image-name": deploymentImageName,
+      "deployment-image-id": deploymentImageId,
+    },
+  }
+}
+
 export const gardenPlugin = () =>
   createGardenPlugin({
     name: "container",
@@ -253,20 +283,7 @@ export const gardenPlugin = () =>
           getBuildStatus: getContainerBuildStatus,
           build: buildContainerModule,
           publish: publishContainerModule,
-
-          async getModuleOutputs({ moduleConfig, version }) {
-            const deploymentImageName = containerHelpers.getDeploymentImageName(moduleConfig, undefined)
-            const deploymentImageId = containerHelpers.getDeploymentImageId(moduleConfig, version, undefined)
-
-            return {
-              outputs: {
-                "local-image-name": containerHelpers.getLocalImageName(moduleConfig),
-                "local-image-id": containerHelpers.getLocalImageId(moduleConfig, version),
-                "deployment-image-name": deploymentImageName,
-                "deployment-image-id": deploymentImageId,
-              },
-            }
-          },
+          getModuleOutputs: getContainerModuleOutputs,
 
           async hotReloadService(_: HotReloadServiceParams) {
             return {}

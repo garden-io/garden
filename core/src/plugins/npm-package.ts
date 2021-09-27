@@ -8,10 +8,11 @@
 
 import { createGardenPlugin } from "../types/plugin/plugin"
 
+// TODO: remove in 0.13
 export const gardenPlugin = () =>
   createGardenPlugin({
     name: "npm-package",
-    dependencies: ["exec"],
+    dependencies: [{ name: "exec" }],
     createModuleTypes: [
       {
         name: "npm-package",

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getDataDir, makeTestGarden, expectError } from "../../../../../helpers"
+import { getDataDir, makeTestGarden, expectError, TestGarden } from "../../../../../helpers"
 import { TestTask } from "../../../../../../src/tasks/test"
 import { emptyDir, pathExists } from "fs-extra"
 import { expect } from "chai"
@@ -97,7 +97,7 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
 }
 
 describe("kubernetes container module handlers", () => {
-  let garden: Garden
+  let garden: TestGarden
   let graph: ConfigGraph
   let provider: KubernetesProvider
 
@@ -107,7 +107,7 @@ describe("kubernetes container module handlers", () => {
   })
 
   beforeEach(async () => {
-    graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
   after(async () => {
@@ -179,13 +179,14 @@ describe("kubernetes container module handlers", () => {
   })
 
   describe("testContainerModule", () => {
-    it("should run a basic test", async () => {
+    it("should run a basic test and emit log events", async () => {
       const module = graph.getModule("simple")
 
       const testTask = new TestTask({
         garden,
         graph,
-        test: testFromModule(module, "echo-test", graph),
+        silent: false,
+        test: testFromModule(module, "echo-test-with-sleep", graph),
         log: garden.log,
         force: true,
         forceBuild: false,
@@ -193,12 +194,16 @@ describe("kubernetes container module handlers", () => {
         hotReloadServiceNames: [],
       })
 
-      const result = await garden.processTasks([testTask], { throwOnError: true })
+      garden.events.eventLog = []
 
-      const key = "test.simple.echo-test"
+      const result = await garden.processTasks([testTask], { throwOnError: true })
+      const logEvent = garden.events.eventLog.find((l) => l.name === "log" && l.payload["entity"]["type"] === "test")
+
+      const key = "test.simple.echo-test-with-sleep"
       expect(result).to.have.property(key)
-      expect(result[key]!.output.log.trim()).to.equal("ok")
+      expect(result[key]!.output.log.trim()).to.equal("ok\nbear")
       expect(result[key]!.output.namespaceStatus).to.exist
+      expect(logEvent).to.exist
     })
 
     it("should fail if an error occurs, but store the result", async () => {

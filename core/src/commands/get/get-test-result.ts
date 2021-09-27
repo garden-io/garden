@@ -65,7 +65,7 @@ export class GetTestResultCommand extends Command<Args> {
     const testName = args.name
     const moduleName = args.module
 
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: true })
     const actions = await garden.getActionRouter()
 
     const module = graph.getModule(moduleName)

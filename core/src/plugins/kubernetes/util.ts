@@ -17,7 +17,7 @@ import { KubernetesResource, KubernetesWorkload, KubernetesPod, KubernetesServer
 import { splitLast, serializeValues, findByName } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
 import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util/string"
-import { MAX_CONFIGMAP_DATA_SIZE, systemDockerAuthSecretName } from "./constants"
+import { inClusterRegistryHostname, MAX_CONFIGMAP_DATA_SIZE, systemDockerAuthSecretName } from "./constants"
 import { ContainerEnvVars } from "../container/config"
 import { ConfigurationError, DeploymentError, PluginError } from "../../exceptions"
 import { ServiceResourceSpec, KubernetesProvider } from "./config"
@@ -717,4 +717,11 @@ export function getK8sProvider(providers: ProviderMap): KubernetesProvider {
   }
 
   return provider as KubernetesProvider
+}
+
+/**
+ * Returns true if the in-cluster registry is being used by the given `kubernetes` provider.
+ */
+export function usingInClusterRegistry(provider: KubernetesProvider) {
+  return provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname
 }

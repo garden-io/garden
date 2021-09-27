@@ -38,13 +38,13 @@ describe("conftest-container provider", () => {
       config: projectConfig,
     })
 
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const containerModule = graph.getModule("container")
     const module = graph.getModule("conftest-container")
 
     expect(module.path).to.equal(containerModule.path)
     expect(module.spec).to.eql({
-      build: { dependencies: [] },
+      build: { dependencies: [], timeout: 1200 },
       files: ["Dockerfile"],
       namespace: "main",
       combine: false,
@@ -55,7 +55,7 @@ describe("conftest-container provider", () => {
   it("should add a conftest module for module types inheriting from container", async () => {
     const foo = createGardenPlugin({
       name: "foo",
-      dependencies: ["container"],
+      dependencies: [{ name: "container" }],
       createModuleTypes: [
         {
           name: "foo",
@@ -74,7 +74,7 @@ describe("conftest-container provider", () => {
       },
     })
 
-    let graph = await garden.getConfigGraph(garden.log)
+    let graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const containerModule = graph.getModule("container")
 
     garden["moduleConfigs"] = {
@@ -85,7 +85,7 @@ describe("conftest-container provider", () => {
         allowPublish: false,
         build: { dependencies: [] },
         disabled: false,
-                path: containerModule.path,
+        path: containerModule.path,
         serviceConfigs: [],
         taskConfigs: [],
         testConfigs: [],
@@ -93,12 +93,12 @@ describe("conftest-container provider", () => {
       },
     }
 
-    graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const module = graph.getModule("conftest-foo")
 
     expect(module.path).to.equal(projectRoot)
     expect(module.spec).to.eql({
-      build: { dependencies: [] },
+      build: { dependencies: [], timeout: 1200 },
       files: ["Dockerfile"],
       namespace: "main",
       combine: false,

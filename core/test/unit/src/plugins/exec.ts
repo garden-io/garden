@@ -36,7 +36,7 @@ describe("exec plugin", () => {
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin] })
-    graph = await garden.getConfigGraph(garden.log)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     log = garden.log
     await garden.clearBuilds()
   })
@@ -87,13 +87,8 @@ describe("exec plugin", () => {
     const modules = keyBy(graph.getModules(), "name")
     const { "module-a": moduleA, "module-b": moduleB, "module-c": moduleC, "module-local": moduleLocal } = modules
 
-    expect(moduleA.build).to.eql({
-      dependencies: [],
-    })
-    expect(moduleA.spec.build).to.eql({
-      command: ["echo", "A"],
-      dependencies: [],
-    })
+    expect(moduleA.build.dependencies).to.eql([])
+    expect(moduleA.spec.build.command).to.eql(["echo", "A"])
     expect(moduleA.serviceConfigs).to.eql([
       {
         dependencies: [],
@@ -165,13 +160,9 @@ describe("exec plugin", () => {
       },
     ])
 
-    expect(moduleB.build).to.eql({
-      dependencies: [{ name: "module-a", copy: [] }],
-    })
-    expect(moduleB.spec.build).to.eql({
-      command: ["echo", "B"],
-      dependencies: [{ name: "module-a", copy: [] }],
-    })
+    expect(moduleB.build.dependencies).to.eql([{ name: "module-a", copy: [] }])
+    expect(moduleB.spec.build.command).to.eql(["echo", "B"])
+
     expect(moduleB.serviceConfigs).to.eql([])
     expect(moduleB.taskConfigs).to.eql([])
     expect(moduleB.testConfigs).to.eql([
@@ -192,13 +183,9 @@ describe("exec plugin", () => {
       },
     ])
 
-    expect(moduleC.build).to.eql({
-      dependencies: [{ name: "module-b", copy: [] }],
-    })
-    expect(moduleC.spec.build).to.eql({
-      command: [],
-      dependencies: [{ name: "module-b", copy: [] }],
-    })
+    expect(moduleC.build.dependencies).to.eql([{ name: "module-b", copy: [] }])
+    expect(moduleC.spec.build.command).to.eql([])
+
     expect(moduleC.serviceConfigs).to.eql([])
     expect(moduleC.taskConfigs).to.eql([])
     expect(moduleC.testConfigs).to.eql([
@@ -220,13 +207,9 @@ describe("exec plugin", () => {
     ])
 
     expect(moduleLocal.spec.local).to.eql(true)
-    expect(moduleLocal.build).to.eql({
-      dependencies: [],
-    })
-    expect(moduleLocal.spec.build).to.eql({
-      command: ["pwd"],
-      dependencies: [],
-    })
+    expect(moduleLocal.build.dependencies).to.eql([])
+    expect(moduleLocal.spec.build.command).to.eql(["pwd"])
+
     expect(moduleLocal.serviceConfigs).to.eql([
       {
         dependencies: [],
@@ -294,7 +277,7 @@ describe("exec plugin", () => {
 
   it("should propagate task logs to runtime outputs", async () => {
     const _garden = await makeTestGarden(getDataDir("test-projects", "exec-task-outputs"))
-    const _graph = await _garden.getConfigGraph(_garden.log)
+    const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
     const taskB = _graph.getTask("task-b")
 
     const taskTask = new TaskTask({
@@ -319,7 +302,7 @@ describe("exec plugin", () => {
 
   it("should copy artifacts after task runs", async () => {
     const _garden = await makeTestGarden(getDataDir("test-projects", "exec-artifacts"))
-    const _graph = await _garden.getConfigGraph(_garden.log)
+    const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
     const task = _graph.getTask("task-a")
 
     const taskTask = new TaskTask({
@@ -342,7 +325,7 @@ describe("exec plugin", () => {
 
   it("should copy artifacts after test runs", async () => {
     const _garden = await makeTestGarden(getDataDir("test-projects", "exec-artifacts"))
-    const _graph = await _garden.getConfigGraph(_garden.log)
+    const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
     const test = _graph.getTest("module-a", "test-a")
 
     const testTask = new TestTask({

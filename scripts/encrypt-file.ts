@@ -11,7 +11,7 @@ import kms from "@google-cloud/kms"
 import { writeFile } from "fs-extra"
 import { resolve } from "path"
 
-const projectId = "garden-dev-200012"
+const projectId = "garden-ci"
 const keyRingId = "dev"
 const cryptoKeyId = "dev"
 const locationId = "global"

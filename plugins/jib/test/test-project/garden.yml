@@ -1,0 +1,10 @@
+kind: Project
+name: jib
+environments:
+  - name: local
+providers:
+  - name: jib
+---
+kind: Module
+type: jib-container
+name: module

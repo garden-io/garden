@@ -9,6 +9,10 @@ variables:
 
 services:
   - name: backend
+    healthCheck:
+      httpGet:
+        path: /hello-backend
+        port: http
     ports:
       - name: http
         containerPort: 8080

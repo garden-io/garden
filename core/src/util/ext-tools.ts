@@ -22,7 +22,7 @@ import { Writable } from "stream"
 import got from "got/dist/source"
 import { PluginToolSpec, ToolBuildSpec } from "../types/plugin/tools"
 import { parse } from "url"
-const AsyncLock = require("async-lock")
+import AsyncLock from "async-lock"
 
 const toolsPath = join(GARDEN_GLOBAL_PATH, "tools")
 

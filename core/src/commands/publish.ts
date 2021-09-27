@@ -108,7 +108,7 @@ export class PublishCommand extends Command<Args, Opts> {
     args,
     opts,
   }: CommandParams<Args, Opts>): Promise<CommandResult<PublishCommandResult>> {
-    const graph = await garden.getConfigGraph(log)
+    const graph = await garden.getConfigGraph({ log, emit: true })
     const modules = graph.getModules({ names: args.modules })
 
     const results = await publishModules({

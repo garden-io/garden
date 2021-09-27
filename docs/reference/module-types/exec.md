@@ -57,6 +57,9 @@ build:
           # Defaults to to same as source path.
           target: ''
 
+  # Maximum time in seconds to wait for build to finish.
+  timeout: 1200
+
   # The command to run to perform the build.
   #
   # By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
@@ -395,6 +398,16 @@ Defaults to to same as source path.
 | Type        | Default | Required |
 | ----------- | ------- | -------- |
 | `posixPath` | `""`    | No       |
+
+### `build.timeout`
+
+[build](#build) > timeout
+
+Maximum time in seconds to wait for build to finish.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `1200`  | No       |
 
 ### `build.command[]`
 

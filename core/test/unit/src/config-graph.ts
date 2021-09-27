@@ -23,7 +23,7 @@ describe("ConfigGraph", () => {
 
   before(async () => {
     gardenA = await makeTestGardenA()
-    graphA = await gardenA.getConfigGraph(gardenA.log)
+    graphA = await gardenA.getConfigGraph({ log: gardenA.log, emit: false })
     tmpPath = join(GARDEN_CORE_ROOT, "tmp")
     await ensureDir(tmpPath)
   })
@@ -32,7 +32,7 @@ describe("ConfigGraph", () => {
     const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-service"))
 
     await expectError(
-      () => garden.getConfigGraph(garden.log),
+      () => garden.getConfigGraph({ log: garden.log, emit: false }),
       (err) =>
         expect(err.message).to.equal(
           "Service names must be unique - the service name 'dupe' is declared multiple times " +
@@ -45,7 +45,7 @@ describe("ConfigGraph", () => {
     const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-task"))
 
     await expectError(
-      () => garden.getConfigGraph(garden.log),
+      () => garden.getConfigGraph({ log: garden.log, emit: false }),
       (err) =>
         expect(err.message).to.equal(
           "Task names must be unique - the task name 'dupe' is declared multiple times " +
@@ -58,7 +58,7 @@ describe("ConfigGraph", () => {
     const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-service-and-task"))
 
     await expectError(
-      () => garden.getConfigGraph(garden.log),
+      () => garden.getConfigGraph({ log: garden.log, emit: false }),
       (err) =>
         expect(err.message).to.equal(
           "Service and task names must be mutually unique - the name 'dupe' is used for a task " +
@@ -69,7 +69,7 @@ describe("ConfigGraph", () => {
 
   it("should automatically add service source modules as module build dependencies", async () => {
     const garden = await makeTestGarden(resolve(dataDir, "test-projects", "source-module"))
-    const graph = await garden.getConfigGraph(garden.log)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const module = graph.getModule("module-b")
     expect(module.build.dependencies).to.eql([{ name: "module-a", copy: [] }])
   })
@@ -91,7 +91,7 @@ describe("ConfigGraph", () => {
       await garden.scanAndAddConfigs()
       garden["moduleConfigs"]["module-c"].disabled = true
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const modules = graph.getModules()
 
       expect(modules.map((m) => m.name).sort()).to.eql(["module-a", "module-b"])
@@ -103,7 +103,7 @@ describe("ConfigGraph", () => {
       await garden.scanAndAddConfigs()
       garden["moduleConfigs"]["module-c"].disabled = true
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const modules = graph.getModules({ includeDisabled: true })
 
       expect(modules.map((m) => m.name).sort()).to.eql(["module-a", "module-b", "module-c"])
@@ -115,7 +115,7 @@ describe("ConfigGraph", () => {
       await garden.scanAndAddConfigs()
       garden["moduleConfigs"]["module-c"].disabled = true
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       await expectError(
         () => graph.getModules({ names: ["module-c"] }),
@@ -148,7 +148,7 @@ describe("ConfigGraph", () => {
       ])
 
       await expectError(
-        () => garden.getConfigGraph(garden.log),
+        () => garden.getConfigGraph({ log: garden.log, emit: false }),
         (err) =>
           expect(stripAnsi(err.message)).to.match(
             /Could not find build dependency missing-build-dep, configured in module test/
@@ -178,7 +178,7 @@ describe("ConfigGraph", () => {
       ])
 
       await expectError(
-        () => garden.getConfigGraph(garden.log),
+        () => garden.getConfigGraph({ log: garden.log, emit: false }),
         (err) =>
           expect(stripAnsi(err.message)).to.match(
             /Unknown service or task 'missing-runtime-dep' referenced in dependencies/
@@ -229,7 +229,7 @@ describe("ConfigGraph", () => {
         },
       ])
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const deps = graph.getServices()
 
       expect(deps).to.eql([])
@@ -264,7 +264,7 @@ describe("ConfigGraph", () => {
         },
       ])
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const deps = graph.getServices({ includeDisabled: true })
 
       expect(deps.map((s) => s.name)).to.eql(["disabled-service"])
@@ -299,7 +299,7 @@ describe("ConfigGraph", () => {
         },
       ])
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       await expectError(
         () => graph.getServices({ names: ["service-a"] }),
@@ -376,7 +376,7 @@ describe("ConfigGraph", () => {
         },
       ])
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const deps = graph.getTasks()
 
       expect(deps).to.eql([])
@@ -409,7 +409,7 @@ describe("ConfigGraph", () => {
         },
       ])
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const deps = graph.getTasks({ includeDisabled: true })
 
       expect(deps.map((t) => t.name)).to.eql(["disabled-task"])
@@ -442,7 +442,7 @@ describe("ConfigGraph", () => {
         },
       ])
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       await expectError(
         () => graph.getTasks({ names: ["disabled-task"] }),
@@ -516,7 +516,7 @@ describe("ConfigGraph", () => {
         },
       ])
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       const deps = graph.getDependencies({
         nodeType: "build",
@@ -559,7 +559,7 @@ describe("ConfigGraph", () => {
         },
       ])
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       const deps = graph.getDependencies({
         nodeType: "deploy",
@@ -604,7 +604,7 @@ describe("ConfigGraph", () => {
         },
       ])
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       const deps = graph.getDependencies({
         nodeType: "deploy",
@@ -665,7 +665,7 @@ describe("ConfigGraph", () => {
         },
       ])
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       const deps = graph.getDependencies({
         nodeType: "deploy",
@@ -710,7 +710,7 @@ describe("ConfigGraph", () => {
         },
       ])
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       const deps = graph.getDependencies({
         nodeType: "deploy",
@@ -755,7 +755,7 @@ describe("ConfigGraph", () => {
         },
       ])
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       const deps = graph.getDependencies({
         nodeType: "deploy",
@@ -802,7 +802,7 @@ describe("ConfigGraph", () => {
         },
       ])
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const deps = graph.resolveDependencyModules([{ name: "module-a", copy: [] }], [])
 
       expect(deps.map((m) => m.name)).to.eql(["module-a"])
@@ -860,7 +860,7 @@ describe("ConfigGraph", () => {
         },
       ])
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const deps = graph.getDependants({ nodeType: "build", name: "module-a", recursive: true })
 
       expect(deps.deploy.map((m) => m.name)).to.eql([])
@@ -917,7 +917,7 @@ describe("ConfigGraph", () => {
         },
       ])
 
-      const graph = await garden.getConfigGraph(garden.log)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const moduleA = graph.getModule("module-a")
       const deps = graph.getDependantsForModule(moduleA, true)
 

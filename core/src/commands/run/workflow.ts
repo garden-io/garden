@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { cloneDeep, flatten, last, merge, repeat, size } from "lodash"
-import { printHeader, getTerminalWidth, formatGardenError, renderMessageWithDivider } from "../../logger/util"
+import { printHeader, getTerminalWidth, formatGardenErrorWithDetail, renderMessageWithDivider } from "../../logger/util"
 import { Command, CommandParams, CommandResult } from "../base"
 import { dedent, wordWrap, deline } from "../../util/string"
 import { Garden } from "../../garden"
@@ -88,7 +88,6 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 
     const steps = workflow.steps
     const allStepNames = steps.map((s, i) => getStepName(i, s.name))
-
     const startedAt = new Date().valueOf()
 
     const result: WorkflowRunOutput = {
@@ -434,7 +433,7 @@ export function logErrors(
     } else {
       // Error comes from a command step. We only log the detail here (and only for log.debug or higher), since
       // the task graph's error logging takes care of the rest.
-      const taskDetailErrMsg = formatGardenError(error)
+      const taskDetailErrMsg = formatGardenErrorWithDetail(error)
       log.debug(chalk.red(taskDetailErrMsg))
     }
   }

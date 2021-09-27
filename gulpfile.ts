@@ -10,18 +10,20 @@ const gulp = require("gulp")
 const checkLicense = require("gulp-license-check")
 
 const sources = [
-  "dashboard/src/**/*.ts*",
-  "dashboard/src/**/*.scss",
   "core/src/**/*.ts",
   "core/test/**/*.ts",
   "core/src/**/*.pegjs",
+  "dashboard/src/**/*.ts*",
+  "dashboard/src/**/*.scss",
+  "plugins/**/*.ts",
+  "sdk/**/*.ts",
 ]
 const licenseHeaderPath = "support/license-header-js.txt"
 
 process.env.FORCE_COLOR = "true"
 
 gulp.task("check-licenses", () =>
-  gulp.src(sources)
+  gulp.src(sources, { ignore: ["**/*.d.ts", "**/node_modules/**/*"] })
     .pipe(checkLicense({
       path: licenseHeaderPath,
       blocking: true,
