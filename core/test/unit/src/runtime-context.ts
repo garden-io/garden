@@ -11,7 +11,6 @@ import { makeTestGardenA } from "../../helpers"
 import { ConfigGraph } from "../../../src/config-graph"
 import { prepareRuntimeContext } from "../../../src/runtime-context"
 import { expect } from "chai"
-import { omit } from "lodash"
 
 describe("prepareRuntimeContext", () => {
   let garden: Garden
@@ -42,29 +41,6 @@ describe("prepareRuntimeContext", () => {
 
     expect(runtimeContext.envVars.GARDEN_VERSION).to.equal(module.version.versionString)
     expect(runtimeContext.envVars.GARDEN_MODULE_VERSION).to.equal(module.version.versionString)
-  })
-
-  it("should add project variables to the output envVars", async () => {
-    const module = graph.getModule("module-a")
-
-    garden["variables"]["my-var"] = "foo"
-
-    const runtimeContext = await prepareRuntimeContext({
-      garden,
-      graph,
-      version: module.version.versionString,
-      moduleVersion: module.version.versionString,
-      dependencies: {
-        build: [],
-        deploy: [],
-        run: [],
-        test: [],
-      },
-      serviceStatuses: {},
-      taskResults: {},
-    })
-
-    expect(runtimeContext.envVars.GARDEN_VARIABLES_MY_VAR).to.equal("foo")
   })
 
   it("should add outputs for every build dependency output", async () => {
@@ -183,29 +159,5 @@ describe("prepareRuntimeContext", () => {
         version: taskB.version,
       },
     ])
-  })
-
-  it("should output the list of dependencies as an env variable", async () => {
-    const module = graph.getModule("module-a")
-    const serviceB = graph.getService("service-b")
-    const taskB = graph.getTask("task-c")
-
-    const runtimeContext = await prepareRuntimeContext({
-      garden,
-      graph,
-      version: module.version.versionString,
-      moduleVersion: module.version.versionString,
-      dependencies: {
-        build: [],
-        deploy: [serviceB],
-        run: [taskB],
-        test: [],
-      },
-      serviceStatuses: {},
-      taskResults: {},
-    })
-
-    const parsed = JSON.parse(runtimeContext.envVars.GARDEN_DEPENDENCIES as string)
-    expect(parsed).to.eql(runtimeContext.dependencies.map((d) => omit(d, "outputs")))
   })
 })
