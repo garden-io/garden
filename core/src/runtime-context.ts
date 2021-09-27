@@ -6,14 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getEnvVarName } from "./util/util"
 import { PrimitiveMap, joiEnvVars, joiPrimitive, joi, joiIdentifier, moduleVersionSchema } from "./config/common"
 import { Garden } from "./garden"
 import { ConfigGraph, DependencyRelations } from "./config-graph"
 import { ServiceStatus } from "./types/service"
 import { RunTaskResult } from "./types/plugin/task/runTask"
 import { joiArray } from "./config/common"
-import { isPrimitive } from "util"
 
 interface RuntimeDependency {
   moduleName: string
@@ -79,7 +77,6 @@ interface PrepareRuntimeContextParams {
  * This should be called just ahead of calling relevant service, task and test action handlers.
  */
 export async function prepareRuntimeContext({
-  garden,
   dependencies,
   serviceStatuses,
   taskResults,
@@ -89,15 +86,6 @@ export async function prepareRuntimeContext({
   const envVars = {
     GARDEN_VERSION: version,
     GARDEN_MODULE_VERSION: moduleVersion,
-  }
-
-  // DEPRECATED: Remove in v0.13
-  for (const [key, value] of Object.entries(garden.variables)) {
-    // Only store primitive values, objects and arrays cause issues further down.
-    if (isPrimitive(value)) {
-      const envVarName = `GARDEN_VARIABLES_${getEnvVarName(key)}`
-      envVars[envVarName] = value
-    }
   }
 
   const result: RuntimeContext = {
@@ -147,7 +135,5 @@ export async function prepareRuntimeContext({
     })
   }
 
-  // Make the full list of dependencies without outputs available as JSON as well
-  result.envVars.GARDEN_DEPENDENCIES = JSON.stringify(result.dependencies.map((d) => ({ ...d, outputs: undefined })))
   return result
 }
