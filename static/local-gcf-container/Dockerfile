@@ -1,4 +1,4 @@
-FROM node:6
+FROM node:12.22.6-alpine
 
 RUN npm install -g @google-cloud/functions-emulator@1.0.0-beta.4
 RUN mkdir /app
