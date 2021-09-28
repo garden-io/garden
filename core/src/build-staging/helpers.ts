@@ -61,7 +61,7 @@ export function cloneFile({ from, to, allowDelete, statsHelper }: CloneFileParam
           sourceStats = sourceStats.target
         } else {
           // Symlink couldn't be resolved, so we ignore it
-          done(null, { skipped: true })
+          return done(null, { skipped: true })
         }
       }
 
