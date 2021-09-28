@@ -40,7 +40,7 @@ const toolBuildSchema = () =>
       .string()
       .required()
       .example("a81b23abe67e70f8395ff7a3659bea6610fba98cda1126ef19e0a995f0075d54")
-      .description("The SHA256 sum the target URL should have."),
+      .description("The SHA256 sum the target file should have."),
     extract: joi
       .object()
       .keys({
