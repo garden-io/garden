@@ -734,6 +734,14 @@ workflows:
   # variant and k8s version would be quite expensive, so we try and make sure each of the latest 6-7 k8s versions is
   # tested, and that the most recent versions are broadly tested. The kind tests are the cheapest to run so we use many
   # of those, but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
+  test-minikube-1.22:
+    jobs:
+      - test-minikube:
+          kubernetesVersion: "1.22.2"
+          minikubeVersion: "v1.23.2"
+          # OpenFaaS project fails without ingress, which doesn't work in CircleCI on minikube v1.12+, which is necessary
+          # for most recent k8s versions.
+          testOpenfaas: false
   test-minikube-1.20:
     jobs:
       - test-minikube:
@@ -746,12 +754,6 @@ workflows:
     jobs:
       - test-minikube:
           kubernetesVersion: "1.19.7"
-          minikubeVersion: "v1.16.0"
-          testOpenfaas: false
-  test-minikube-1.18:
-    jobs:
-      - test-minikube:
-          kubernetesVersion: "1.18.15"
           minikubeVersion: "v1.16.0"
           testOpenfaas: false
   test-minikube-1.14:
