@@ -92,7 +92,7 @@ export async function createIngressResources(
                 paths: [
                   {
                     path: ingress.path,
-                    pathType: "prefix",
+                    pathType: "Prefix",
                     backend: {
                       service: {
                         name: service.name,
