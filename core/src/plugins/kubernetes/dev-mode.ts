@@ -237,11 +237,11 @@ export async function startDevModeSync({
 
       const description = `${sourceDescription} to ${targetDescription}`
 
-      ctx.log.info({ symbol: "info", section: serviceName, msg: chalk.gray(`Syncing ${description} (${s.mode})`) })
+      log.info({ symbol: "info", section: serviceName, msg: chalk.gray(`Syncing ${description} (${s.mode})`) })
 
       await ensureMutagenSync({
         // Prefer to log to the main view instead of the handler log context
-        log: ctx.log,
+        log,
         key,
         logSection: serviceName,
         sourceDescription,
