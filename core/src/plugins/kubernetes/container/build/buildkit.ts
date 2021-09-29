@@ -39,6 +39,7 @@ import { PodRunner } from "../../run"
 export const buildkitImageName = "gardendev/buildkit:v0.8.1-4"
 export const buildkitDeploymentName = "garden-buildkit"
 const buildkitContainerName = "buildkitd"
+const insecureRegistryClause = ",registry.insecure=true"
 
 const deployLock = new AsyncLock()
 
@@ -115,11 +116,13 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
   const cacheTag = "_buildcache"
   // Prepare the build command (this thing, while an otherwise excellent piece of software, is clearly is not meant for
   // everyday human usage)
-  let outputSpec = `type=image,"name=${deploymentImageId},${deploymentImageName}:${cacheTag}",push=true`
+  let outputSpec = `type=image,"name=${deploymentImageId}",push=true`
+  let cacheSpec = `type=registry,ref=${deploymentImageName}:${cacheTag},mode=max`
 
   if (usingInClusterRegistry(provider)) {
     // The in-cluster registry is not exposed, so we don't configure TLS on it.
-    outputSpec += ",registry.insecure=true"
+    outputSpec += insecureRegistryClause
+    cacheSpec += insecureRegistryClause
   }
 
   const command = [
@@ -135,9 +138,9 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     "--output",
     outputSpec,
     "--export-cache",
-    "type=inline",
+    cacheSpec,
     "--import-cache",
-    `type=registry,ref=${deploymentImageName}:${cacheTag}`,
+    cacheSpec,
     ...getBuildkitFlags(module),
   ]
 

@@ -16,7 +16,7 @@ providers:
     context: ${var.remoteContext}
     namespace: ${environment.namespace}
     defaultHostname: ${var.userId}-demo-project.dev-1.sys.garden
-    buildMode: kaniko
+    buildMode: cluster-buildkit
   - name: kubernetes
     environments: [testing]
     # Replace these values as appropriate
