@@ -251,7 +251,7 @@ describe("kubernetes Pod runner functions", () => {
           provider,
         })
 
-        const res = await runner.runAndWait({ log, remove: true, tty: false })
+        const res = await runner.runAndWait({ log, remove: true, tty: false, events: ctx.events })
 
         expect(res.log.trim()).to.equal("foo")
         expect(res.success).to.be.true
@@ -268,7 +268,7 @@ describe("kubernetes Pod runner functions", () => {
           provider,
         })
 
-        const res = await runner.runAndWait({ log, remove: true, tty: false })
+        const res = await runner.runAndWait({ log, remove: true, tty: false, events: ctx.events })
 
         expect(res.log.trim()).to.equal("foo")
         expect(res.success).to.be.false
@@ -297,7 +297,7 @@ describe("kubernetes Pod runner functions", () => {
 
         const stdout = new StringCollector()
 
-        const res = await runner.runAndWait({ log, remove: true, stdout, tty: false })
+        const res = await runner.runAndWait({ log, remove: true, tty: false, events: ctx.events })
 
         const output = stdout.getString()
 
@@ -338,7 +338,7 @@ describe("kubernetes Pod runner functions", () => {
         })
 
         await expectError(
-          () => runner.runAndWait({ log, remove: true, tty: false }),
+          () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
           (err) => expect(err.message).to.include("Failed to create Pod")
         )
       })
@@ -356,7 +356,7 @@ describe("kubernetes Pod runner functions", () => {
         })
 
         await expectError(
-          () => runner.runAndWait({ log, remove: true, tty: false }),
+          () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
           (err) => expect(err.message).to.include("Failed to start Pod")
         )
       })
@@ -432,7 +432,7 @@ describe("kubernetes Pod runner functions", () => {
         td.when(core.readNamespacedPodStatus(runner.podName, namespace)).thenResolve(readNamespacedPodStatusRes)
 
         await expectError(
-          () => runner.runAndWait({ log, remove: true, tty: false }),
+          () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
           (err) => {
             expect(err.type).to.eql("out-of-memory")
             expect(err.message).to.include("OOMKilled")
@@ -511,7 +511,7 @@ describe("kubernetes Pod runner functions", () => {
         td.when(core.readNamespacedPodStatus(runner.podName, namespace)).thenResolve(readNamespacedPodStatusRes)
 
         await expectError(
-          () => runner.runAndWait({ log, remove: true, tty: false }),
+          () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
           (err) => {
             expect(err.type).to.eql("out-of-memory")
             expect(err.message).to.include("OOMKilled")
@@ -541,7 +541,7 @@ describe("kubernetes Pod runner functions", () => {
             provider,
           })
 
-          const res = await runner.runAndWait({ log, remove: true, tty: true })
+          const res = await runner.runAndWait({ log, remove: true, tty: true, events: ctx.events })
 
           expect(res.log.trim().replace(/\r\n/g, "\n")).to.equal(dedent`
             Log line 1

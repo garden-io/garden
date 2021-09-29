@@ -107,6 +107,7 @@ export async function runHelmModule({
     log,
     remove: true,
     timeoutSec: timeout,
+    events: ctx.events,
     tty: !!interactive,
   })
 
