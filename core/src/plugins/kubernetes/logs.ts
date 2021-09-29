@@ -49,9 +49,10 @@ interface GetAllLogsParams {
  */
 export async function streamK8sLogs(params: GetAllLogsParams) {
   const api = await KubeApi.factory(params.log, params.ctx, params.provider)
+  const entryConverter = makeServiceLogEntry(params.service.name)
 
   if (params.follow) {
-    const logsFollower = new K8sLogFollower({ ...params, k8sApi: api })
+    const logsFollower = new K8sLogFollower({ ...params, entryConverter, k8sApi: api, log: params.ctx.log })
 
     params.ctx.events.on("abort", () => {
       logsFollower.close()
@@ -69,17 +70,17 @@ export async function streamK8sLogs(params: GetAllLogsParams) {
 
       params.log.debug(`Tail parameter not set explicitly. Setting to ${tail} to prevent log overflow.`)
     }
-    await Bluebird.map(pods, (pod) => readLogs({ ...omit(params, "pods"), pod, tail }))
+    await Bluebird.map(pods, (pod) => readLogs({ ...omit(params, "pods"), entryConverter, pod, tail }))
   }
   return {}
 }
 
-async function readLogs({
+async function readLogs<T>({
   log,
   ctx,
   provider,
-  service,
   stream,
+  entryConverter,
   tail,
   pod,
   defaultNamespace,
@@ -88,8 +89,8 @@ async function readLogs({
   log: LogEntry
   ctx: PluginContext
   provider: KubernetesProvider
-  service: GardenService
-  stream: Stream<ServiceLogEntry>
+  stream: Stream<T>
+  entryConverter: PodLogEntryConverter<T>
   tail?: number
   pod: KubernetesPod
   defaultNamespace: string
@@ -106,18 +107,16 @@ async function readLogs({
     sinceSeconds: since ? parseDuration(since, "s") || undefined : undefined,
   })
 
-  const serviceName = service.name
-
   const allLines = logs.flatMap(({ containerName, log: _log }) => {
     return _log.split("\n").map((line) => {
       line = line.trimEnd()
-      const res = { serviceName, containerName }
+      const res = { containerName }
       try {
         const [timestampStr, msg] = splitFirst(line, " ")
         const timestamp = moment(timestampStr).toDate()
-        return makeServiceLogEntry({ ...res, timestamp, msg })
+        return entryConverter({ ...res, timestamp, msg })
       } catch {
-        return makeServiceLogEntry({ ...res, msg: line })
+        return entryConverter({ ...res, msg: line })
       }
     })
   })
@@ -145,16 +144,36 @@ interface LogOpts {
 const defaultRetryIntervalMs = 10000
 
 /**
+ * The maximum number of streamed entries to keep around to compare incoming entries against for deduplication
+ * purposes.
+ *
+ * One such buffer is maintained for each container for each resource the `K8sLogFollower` instance
+ * is following (and deduplication is performed separately for each followed container).
+ *
+ * Deduplication is needed e.g. when the connection with a container is lost and reestablished, and recent logs are
+ * re-fetched. Some of those log entries may have the same timestamp and message as recently streamed entries,
+ * and not re-streaming them if they match an entry in the deduplication buffer is usually the desired behavior
+ * (since it prevents duplicate log lines).
+ *
+ * The deduplication buffer size should be kept relatively small, since a large buffer adds a slight delay before
+ * entries are streamed.
+ */
+const defaultDeduplicationBufferSize = 500
+
+/**
  * A helper class for following logs and managing the logs connections.
  *
  * The class operates kind of like a control loop, fetching the state of all pods for a given service at
  * an interval, comparing the result against current active connections and attempting re-connects as needed.
  */
-export class K8sLogFollower {
+export class K8sLogFollower<T> {
   private connections: { [key: string]: LogConnection }
-  private stream: Stream<ServiceLogEntry>
-  private service: GardenService
+  private stream: Stream<T>
+  private entryConverter: PodLogEntryConverter<T>
   private k8sApi: KubeApi
+  private log: LogEntry
+  private deduplicationBufferSize: number
+  private deduplicationBuffers: { [key: string]: { msg: string; time: number }[] }
   private defaultNamespace: string
   private resources: KubernetesResource<BaseResource>[]
   private intervalId: NodeJS.Timer | null
@@ -162,29 +181,36 @@ export class K8sLogFollower {
   private retryIntervalMs: number
 
   constructor({
-    service,
     stream,
+    entryConverter,
     defaultNamespace,
     k8sApi,
+    log,
+    deduplicationBufferSize = defaultDeduplicationBufferSize,
     resources,
     retryIntervalMs = defaultRetryIntervalMs,
   }: {
-    service: GardenService
-    stream: Stream<ServiceLogEntry>
+    stream: Stream<T>
+    entryConverter: PodLogEntryConverter<T>
     k8sApi: KubeApi
+    log: LogEntry
+    deduplicationBufferSize?: number
     defaultNamespace: string
     resources: KubernetesResource<BaseResource>[]
     retryIntervalMs?: number
   }) {
     this.stream = stream
+    this.entryConverter = entryConverter
     this.connections = {}
     this.k8sApi = k8sApi
-    this.service = service
+    this.log = log
+    this.deduplicationBufferSize = deduplicationBufferSize
     this.defaultNamespace = defaultNamespace
     this.resources = resources
     this.intervalId = null
     this.resolve = null
     this.retryIntervalMs = retryIntervalMs
+    this.deduplicationBuffers = {}
   }
 
   /**
@@ -230,11 +256,9 @@ export class K8sLogFollower {
 
     // There's no need to log the closed event that happens after an error event
     if (!(prevStatus === "error" && status === "closed")) {
-      this.write({
-        msg: `<Lost connection to container '${conn.containerName}' in Pod '${conn.pod.metadata.name}'. Reason: ${reason}. Will retry in background...>`,
-        containerName: conn.containerName,
-        level: LogLevel.debug,
-      })
+      this.log.debug(
+        `<Lost connection to container '${conn.containerName}' in Pod '${conn.pod.metadata.name}'. Reason: ${reason}. Will retry in background...>`
+      )
     }
   }
 
@@ -245,10 +269,7 @@ export class K8sLogFollower {
       pods = await getAllPods(this.k8sApi, this.defaultNamespace, this.resources)
     } catch (err) {
       // Log the error and keep trying.
-      this.write({
-        msg: `<Getting pods failed with error: ${err?.message}>`,
-        level: LogLevel.debug,
-      })
+      this.log.debug(`<Getting pods failed with error: ${err?.message}>`)
       return
     }
     const containers = pods.flatMap((pod) => {
@@ -260,26 +281,23 @@ export class K8sLogFollower {
     })
 
     if (containers.length === 0) {
-      this.write({
-        msg: `<No running containers found for service. Will retry in ${this.retryIntervalMs / 1000}s...>`,
-        level: LogLevel.debug,
-      })
+      this.log.debug(`<No running containers found for service. Will retry in ${this.retryIntervalMs / 1000}s...>`)
     }
 
     await Bluebird.map(containers, async ({ pod, containerName }) => {
       const connectionId = this.getConnectionId(pod, containerName)
       // Cast type to make it explicit that it can be undefined
       const conn = this.connections[connectionId] as LogConnection | undefined
+      const podName = pod.metadata.name
 
       if (conn && conn.status === "connected") {
         // Nothing to do
         return
       } else if (conn) {
         // The connection has been registered but is not active
-        this.write({
-          msg: `<Not connected to container ${conn.containerName} in Pod ${conn.pod.metadata.name}. Connection has status ${conn?.status}>`,
-          level: LogLevel.silly,
-        })
+        this.log.debug(
+          `<Not connected to container ${conn.containerName} in Pod ${conn.pod.metadata.name}. Connection has status ${conn?.status}>`
+        )
       }
 
       const isRetry = !!conn?.status
@@ -304,11 +322,13 @@ export class K8sLogFollower {
             timestamp = new Date(parts[0])
             msg = parts[1]
           } catch {}
-          _self.write({
-            msg,
-            containerName,
-            timestamp,
-          })
+          if (_self.deduplicate({ msg, podName, containerName, timestamp })) {
+            _self.write({
+              msg,
+              containerName,
+              timestamp,
+            })
+          }
           next()
         },
       })
@@ -335,11 +355,9 @@ export class K8sLogFollower {
         })
       } catch (err) {
         // Log the error and keep trying.
-        this.write({
-          msg: `<Getting logs for container '${containerName}' in Pod '${pod.metadata.name}' failed with error: ${err?.message}>`,
-          level: LogLevel.debug,
-          containerName,
-        })
+        this.log.debug(
+          `<Getting logs for container '${containerName}' in Pod '${pod.metadata.name}' failed with error: ${err?.message}>`
+        )
         return
       }
       this.connections[connectionId] = {
@@ -351,11 +369,7 @@ export class K8sLogFollower {
       }
 
       req.on("response", async () => {
-        this.write({
-          msg: `<Connected to container '${containerName}' in Pod '${pod.metadata.name}'>`,
-          containerName,
-          level: LogLevel.debug,
-        })
+        this.log.debug(`<Connected to container '${containerName}' in Pod '${pod.metadata.name}'>`)
       })
       req.on("error", (error) => this.handleConnectionClose(connectionId, "error", error.message))
       req.on("close", () => this.handleConnectionClose(connectionId, "closed", "Request closed"))
@@ -368,11 +382,7 @@ export class K8sLogFollower {
           this.handleConnectionClose(connectionId, "error", `Socket error: ${err.message}`)
         })
         socket.on("timeout", () => {
-          this.write({
-            msg: `<Socket has been idle for ${socketTimeoutMs / 1000}s, will restart connection>`,
-            containerName,
-            level: LogLevel.debug,
-          })
+          this.log.debug(`<Socket has been idle for ${socketTimeoutMs / 1000}s, will restart connection>`)
           // This will trigger a "close" event which we handle separately
           socket.destroy()
         })
@@ -419,6 +429,36 @@ export class K8sLogFollower {
     return `${pod.metadata.name}-${containerName}`
   }
 
+  /**
+   * Returns `false` if an entry with the same message and timestamp has already been buffered for the given `podName`
+   * and `containerNamee`. Returns `true` otherwise.
+   */
+  private deduplicate({
+    msg,
+    podName,
+    containerName,
+    timestamp = new Date(),
+  }: {
+    msg: string
+    podName: string
+    containerName?: string
+    timestamp?: Date
+  }): boolean {
+    const key = `${podName}.${containerName}`
+    const buffer = this.deduplicationBuffers[key] || []
+    const time = timestamp ? timestamp.getTime() : 0
+    const duplicate = !!buffer.find((e) => e.msg === msg && e.time === time)
+    if (duplicate) {
+      return false
+    }
+    buffer.push({ msg, time })
+    if (buffer.length > this.deduplicationBufferSize) {
+      buffer.shift()
+    }
+    this.deduplicationBuffers[key] = buffer
+    return true
+  }
+
   private write({
     msg,
     containerName,
@@ -431,8 +471,7 @@ export class K8sLogFollower {
     timestamp?: Date
   }) {
     void this.stream.write(
-      makeServiceLogEntry({
-        serviceName: this.service.name,
+      this.entryConverter({
         timestamp,
         msg,
         level,
@@ -442,20 +481,17 @@ export class K8sLogFollower {
   }
 }
 
-function makeServiceLogEntry({
-  serviceName,
-  msg,
-  containerName,
-  level,
-  timestamp,
-}: {
-  serviceName: string
+export interface PodLogEntryConverterParams {
   msg: string
   containerName?: string
   level?: LogLevel
   timestamp?: Date
-}): ServiceLogEntry {
-  return {
+}
+
+export type PodLogEntryConverter<T> = (p: PodLogEntryConverterParams) => T
+
+export const makeServiceLogEntry: (serviceName: string) => PodLogEntryConverter<ServiceLogEntry> = (serviceName) => {
+  return ({ timestamp, msg, level, containerName }: PodLogEntryConverterParams) => ({
     serviceName,
     timestamp,
     msg,
@@ -463,7 +499,7 @@ function makeServiceLogEntry({
     tags: {
       container: containerName || "",
     },
-  }
+  })
 }
 
 // DEPRECATED: Remove stern in v0.13
