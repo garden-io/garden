@@ -1,4 +1,31 @@
 
+<a name="0.12.27"></a>
+## [0.12.27](https://github.com/garden-io/garden/compare/0.12.26...0.12.27) (2021-09-29)
+
+### Bug Fixes
+
+* fix namespace log line ([a4fa3626](https://github.com/garden-io/garden/commit/a4fa3626))
+* **cli:** get rid of occasional EPIPE error printed after process exit ([571561cb](https://github.com/garden-io/garden/commit/571561cb))
+* **core:** don't add mutating env vars to runtime context ([18c0f1d3](https://github.com/garden-io/garden/commit/18c0f1d3))
+* **core:** ensure we return all callbacks when cloning files ([ecc43b94](https://github.com/garden-io/garden/commit/ecc43b94))
+* **core:** omit `output.detail` from graph events ([e81a4976](https://github.com/garden-io/garden/commit/e81a4976))
+* **core:** fix handling of empty option values ([ed8cee76](https://github.com/garden-io/garden/commit/ed8cee76))
+* **dev-mode:** reuse sync log line ([80448980](https://github.com/garden-io/garden/commit/80448980))
+* **workflows:** defer provider resolution ([039cca45](https://github.com/garden-io/garden/commit/039cca45))
+
+### Features
+
+* **cloud:** add trigger support for push events ([0db506d2](https://github.com/garden-io/garden/commit/0db506d2))
+* **config:** allow skipping source template rendering in generateFiles ([e8406690](https://github.com/garden-io/garden/commit/e8406690))
+* **k8s:** reverse sync modes ([3fece6ff](https://github.com/garden-io/garden/commit/3fece6ff))
+* **k8s:** provider-level defaults for dev mode ([d6c62286](https://github.com/garden-io/garden/commit/d6c62286))
+
+### Improvements
+
+* **cloud:** more robust log streaming ([67f94bfe](https://github.com/garden-io/garden/commit/67f94bfe))
+* **dev-mode:** log sync conflicts ([7467496e](https://github.com/garden-io/garden/commit/7467496e))
+* **port-forward:** also bind to ::1 address by default ([0bd44ef4](https://github.com/garden-io/garden/commit/0bd44ef4))
+
 <a name="0.12.26"></a>
 ## [0.12.26](https://github.com/garden-io/garden/compare/0.12.25...0.12.26) (2021-09-13)
 
