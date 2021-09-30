@@ -10,7 +10,7 @@ import dotenv = require("dotenv")
 import { intersection, sortBy } from "lodash"
 import { resolve, join } from "path"
 import { getAllCommands } from "../commands/commands"
-import { shutdown, sleep, getPackageVersion, uuidv4 } from "../util/util"
+import { shutdown, sleep, getPackageVersion, uuidv4, registerCleanupFunction } from "../util/util"
 import { Command, CommandResult, CommandGroup } from "../commands/base"
 import { GardenError, PluginError, toGardenError, GardenBaseError } from "../exceptions"
 import { Garden, GardenOpts, DummyGarden } from "../garden"
@@ -75,6 +75,8 @@ export class GardenCli {
   private commands: { [key: string]: Command } = {}
   private fileWritersInitialized: boolean = false
   private plugins: GardenPluginCallback[]
+  private bufferedEventStream: BufferedEventStream | undefined
+  private sessionFinished = false
 
   constructor({ plugins }: { plugins?: GardenPluginCallback[] } = {}) {
     this.plugins = plugins || []
@@ -198,11 +200,19 @@ ${renderCommands(commands)}
 
     // Init event & log streaming.
     const sessionId = uuidv4()
-    const bufferedEventStream = new BufferedEventStream({
+    this.bufferedEventStream = new BufferedEventStream({
       log,
       enterpriseApi: enterpriseApi || undefined,
       sessionId,
     })
+
+    registerCleanupFunction("stream-session-cancelled-event", () => {
+      if (!this.sessionFinished) {
+        this.bufferedEventStream?.streamEvent("sessionCancelled", {})
+        this.bufferedEventStream?.flushAll()
+      }
+    })
+
     const dashboardEventStream = new DashboardEventStream({ log, sessionId })
 
     const commandInfo = {
@@ -286,7 +296,7 @@ ${renderCommands(commands)}
 
         if (enterpriseApi) {
           log.silly(`Connecting Garden instance to GE BufferedEventStream`)
-          bufferedEventStream.connect({
+          this.bufferedEventStream.connect({
             garden,
             streamEvents,
             streamLogEntries,
@@ -297,7 +307,7 @@ ${renderCommands(commands)}
             ],
           })
           if (streamEvents) {
-            bufferedEventStream.streamEvent("commandInfo", commandInfo)
+            this.bufferedEventStream.streamEvent("commandInfo", commandInfo)
           }
         }
 
@@ -340,7 +350,6 @@ ${renderCommands(commands)}
         throw err
       } finally {
         if (!result.restartRequired) {
-          await bufferedEventStream.close()
           await dashboardEventStream.close()
           await command.server?.close()
           enterpriseApi?.close()
@@ -492,6 +501,16 @@ ${renderCommands(commands)}
     if (exitOnError) {
       logger.stop()
       logger.cleanup()
+    }
+
+    if (this.bufferedEventStream) {
+      if (code === 0) {
+        this.bufferedEventStream.streamEvent("sessionCompleted", {})
+      } else {
+        this.bufferedEventStream.streamEvent("sessionFailed", {})
+      }
+      await this.bufferedEventStream.close()
+      this.sessionFinished = true
     }
 
     return { argv, code, errors, result: commandResult?.result }
