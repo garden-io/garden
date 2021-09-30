@@ -101,6 +101,11 @@ export interface Events extends LoggerEvents {
   }
   receivedToken: AuthTokenResponse
 
+  // Session events - one of these is emitted when the command process ends
+  sessionCompleted: {} // Command exited with a 0 status
+  sessionFailed: {} // Command exited with a nonzero status
+  sessionCancelled: {} // Command exited because of an interrupt signal (e.g. CTRL-C)
+
   // Watcher events
   configAdded: {
     path: string
@@ -125,6 +130,7 @@ export interface Events extends LoggerEvents {
 
   // Command/project metadata events
   commandInfo: CommandInfo
+
   // Stack Graph events
   stackGraph: RenderedActionGraph
 
@@ -269,6 +275,9 @@ export const pipedEventNames: EventName[] = [
   "_restart",
   "_test",
   "_workflowRunRegistered",
+  "sessionCompleted",
+  "sessionFailed",
+  "sessionCancelled",
   "configAdded",
   "configRemoved",
   "internalError",
