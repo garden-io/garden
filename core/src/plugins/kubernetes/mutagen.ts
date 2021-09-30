@@ -291,11 +291,14 @@ interface SyncListEntry {
 
 let monitorInterval: NodeJS.Timeout
 
+const syncStatusLines: { [sessionName: string]: LogEntry } = {}
+
 function checkMutagen(log: LogEntry) {
   getActiveMutagenSyncs(log)
     .then((syncs) => {
       for (const sync of syncs) {
-        const activeSync = activeSyncs[sync.session.name]
+        const sessionName = sync.session.name
+        const activeSync = activeSyncs[sessionName]
         if (!activeSync) {
           continue
         }
@@ -345,7 +348,15 @@ function checkMutagen(log: LogEntry) {
               msg: chalk.gray(`Completed initial sync ${description}`),
             })
           } else {
-            log.info({ symbol: "info", section, msg: chalk.gray(`Synchronized ${description}`) })
+            if (!syncStatusLines[sessionName]) {
+              syncStatusLines[sessionName] = log.info("").placeholder()
+            }
+            const time = new Date().toLocaleTimeString()
+            syncStatusLines[sessionName].setState({
+              symbol: "info",
+              section,
+              msg: chalk.gray(`Synchronized ${description} at ${time}`),
+            })
           }
         }
 
