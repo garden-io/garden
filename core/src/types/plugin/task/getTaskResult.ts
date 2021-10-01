@@ -26,7 +26,7 @@ export const taskResultSchema = () =>
       moduleName: joi.string().description("The name of the module that the task belongs to."),
       taskName: joi.string().description("The name of the task that was run."),
       command: joi
-        .array()
+        .sparseArray()
         .items(joi.string().allow(""))
         .required()
         .description("The command that the task ran in the module."),

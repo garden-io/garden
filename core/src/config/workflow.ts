@@ -225,7 +225,7 @@ export const workflowStepSchema = () => {
         fields.
       `),
       command: joi
-        .array()
+        .sparseArray()
         .items(joi.string())
         .description(
           dedent`

@@ -151,7 +151,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 
       try {
         if (step.command) {
-          step.command = resolveTemplateStrings(step.command, stepTemplateContext)
+          step.command = resolveTemplateStrings(step.command, stepTemplateContext).filter((arg) => !!arg)
           stepResult = await runStepCommand(stepParams)
         } else if (step.script) {
           step.script = resolveTemplateString(step.script, stepTemplateContext)

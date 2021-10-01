@@ -62,7 +62,7 @@ const jibModuleSchema = () =>
         .default("docker")
         .description("Specify the image format in the resulting tar file. Only used if `tarOnly: true`."),
       extraFlags: joi
-        .array()
+        .sparseArray()
         .items(joi.string())
         .description(`Specify extra flags to pass to maven/gradle when building the container image.`),
     }),

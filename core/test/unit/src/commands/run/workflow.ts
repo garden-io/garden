@@ -54,6 +54,7 @@ describe("RunWorkflowCommand", () => {
           { command: ["deploy"], description: "deploy services" },
           { command: ["get", "outputs"] },
           { command: ["test"] },
+          { command: ["deploy", "${var.foo}"] }, // <-- the second (null) element should get filtered out
           { command: ["run", "test", "module-a", "unit"] },
           { command: ["run", "task", "task-a"] },
           { command: ["delete", "service", "service-a"] },
@@ -63,7 +64,11 @@ describe("RunWorkflowCommand", () => {
       },
     ])
 
-    await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+    garden.variables = { foo: null }
+
+    const result = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    expect(result.errors || []).to.eql([])
   })
 
   it("should add workflowStep metadata to log entries provided to steps", async () => {

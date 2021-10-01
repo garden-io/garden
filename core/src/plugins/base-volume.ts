@@ -20,7 +20,7 @@ export interface BaseVolumeSpec extends ModuleSpec {
 export const baseVolumeSpecSchema = () =>
   baseModuleSpecSchema().keys({
     accessModes: joi
-      .array()
+      .sparseArray()
       .items(joi.string().allow("ReadOnlyMany", "ReadWriteOnce", "ReadWriteMany"))
       .required()
       .unique()

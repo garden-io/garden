@@ -95,9 +95,9 @@ async function runModule(params: RunModuleParams): Promise<RunResult> {
 export const projectRootA = getDataDir("test-project-a")
 export const projectTestFailsRoot = getDataDir("test-project-fails")
 
-const testModuleTestSchema = () => containerTestSchema().keys({ command: joi.array().items(joi.string()) })
+const testModuleTestSchema = () => containerTestSchema().keys({ command: joi.sparseArray().items(joi.string()) })
 
-const testModuleTaskSchema = () => containerTaskSchema().keys({ command: joi.array().items(joi.string()) })
+const testModuleTaskSchema = () => containerTaskSchema().keys({ command: joi.sparseArray().items(joi.string()) })
 
 export const testModuleSpecSchema = () =>
   containerModuleSpecSchema().keys({
