@@ -59,10 +59,6 @@ export interface PrepareParams<T extends Parameters = {}, U extends Parameters =
 
 export interface CommandParams<T extends Parameters = {}, U extends Parameters = {}> extends PrepareParams<T, U> {
   garden: Garden
-  /**
-   * Only use when running a workflow step command (in which case `true` should be passed).
-   */
-  isWorkflowStepCommand?: boolean
 }
 
 interface PrepareOutput {

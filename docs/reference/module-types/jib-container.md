@@ -7,7 +7,7 @@ tocTitle: "`jib-container`"
 
 ## Description
 
-Extends the [container module type](https://docs.garden.io/reference/module-types/container) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.26/examples/jib-container) to see it in action.
+Extends the [container module type](https://docs.garden.io/reference/module-types/container) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.27/examples/jib-container) to see it in action.
 
 The image is always built locally, directly from the module source directory (see the note on that below), before shipping the container image to the right place. You can set `build.tarOnly: true` to only build the image as a tarball.
 
@@ -155,6 +155,11 @@ generateFiles:
     # directories, they will be automatically created if missing.
     targetPath:
 
+    # By default, Garden will attempt to resolve any Garden template strings in source files. Set this to false to
+    # skip resolving template strings. Note that this does not apply when setting the `value` field, since that's
+    # resolved earlier when parsing the configuration.
+    resolveTemplates: true
+
     # The desired file contents as a string.
     value:
 
@@ -265,9 +270,12 @@ services:
           target:
 
           # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
+          #
+          # `.git` directories and `.garden` directories are always ignored.
           exclude:
 
-          # The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `two-way`.
+          # The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`,
+          # `one-way-reverse`, `one-way-replica-reverse` and `two-way`.
           mode: one-way
 
           # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600
@@ -959,6 +967,16 @@ Note that any existing file with the same name will be overwritten. If the path 
 | ----------- | -------- |
 | `posixPath` | Yes      |
 
+### `generateFiles[].resolveTemplates`
+
+[generateFiles](#generatefiles) > resolveTemplates
+
+By default, Garden will attempt to resolve any Garden template strings in source files. Set this to false to skip resolving template strings. Note that this does not apply when setting the `value` field, since that's resolved earlier when parsing the configuration.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
+
 ### `generateFiles[].value`
 
 [generateFiles](#generatefiles) > value
@@ -1286,6 +1304,8 @@ services:
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
 
+`.git` directories and `.garden` directories are always ignored.
+
 | Type               | Required |
 | ------------------ | -------- |
 | `array[posixPath]` | No       |
@@ -1306,11 +1326,11 @@ services:
 
 [services](#services) > [devMode](#servicesdevmode) > [sync](#servicesdevmodesync) > mode
 
-The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `two-way`.
+The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `one-way-reverse`, `one-way-replica-reverse` and `two-way`.
 
-| Type     | Allowed Values                          | Default     | Required |
-| -------- | --------------------------------------- | ----------- | -------- |
-| `string` | "one-way", "one-way-replica", "two-way" | `"one-way"` | Yes      |
+| Type     | Allowed Values                                                                        | Default     | Required |
+| -------- | ------------------------------------------------------------------------------------- | ----------- | -------- |
+| `string` | "one-way", "one-way-replica", "one-way-reverse", "one-way-replica-reverse", "two-way" | `"one-way"` | Yes      |
 
 ### `services[].devMode.sync[].defaultFileMode`
 

@@ -15,7 +15,6 @@ import { LogEntry } from "../../../../logger/log-entry"
 import { KubernetesProvider, KubernetesPluginContext, DEFAULT_KANIKO_IMAGE } from "../../config"
 import { BuildError, ConfigurationError } from "../../../../exceptions"
 import { PodRunner } from "../../run"
-import { Writable } from "stream"
 import { ensureNamespace, getNamespaceStatus, getSystemNamespace } from "../../namespace"
 import { dedent } from "../../../../util/string"
 import { RunResult } from "../../../../types/plugin/base"
@@ -113,7 +112,6 @@ export const kanikoBuild: BuildHandler = async (params) => {
 
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
     statusLine.setState(renderOutputStream(line.toString()))
   })
 
@@ -167,7 +165,6 @@ export const kanikoBuild: BuildHandler = async (params) => {
     authSecretName: authSecret.metadata.name,
     module,
     args,
-    outputStream,
   })
 
   buildLog = buildRes.log
@@ -221,7 +218,6 @@ interface RunKanikoParams {
   log: LogEntry
   module: ContainerModule
   args: string[]
-  outputStream: Writable
 }
 
 async function runKaniko({
@@ -233,7 +229,6 @@ async function runKaniko({
   log,
   module,
   args,
-  outputStream,
 }: RunKanikoParams): Promise<RunResult> {
   const api = await KubeApi.factory(log, ctx, provider)
 
@@ -421,9 +416,8 @@ async function runKaniko({
   const result = await runner.runAndWait({
     log,
     remove: true,
+    events: ctx.events,
     timeoutSec: module.spec.build.timeout,
-    stdout: outputStream,
-    stderr: outputStream,
     tty: false,
   })
 

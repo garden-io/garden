@@ -110,10 +110,10 @@ export class DeleteEnvironmentCommand extends Command {
     printHeader(headerLog, `Deleting environment`, "skull_and_crossbones")
   }
 
-  async action({ garden, isWorkflowStepCommand, log }: CommandParams): Promise<CommandResult<DeleteEnvironmentResult>> {
+  async action({ garden, log }: CommandParams): Promise<CommandResult<DeleteEnvironmentResult>> {
     const actions = await garden.getActionRouter()
 
-    const graph = await garden.getConfigGraph({ log, emit: !isWorkflowStepCommand })
+    const graph = await garden.getConfigGraph({ log, emit: true })
     const serviceStatuses = await actions.deleteServices(graph, log)
 
     log.info("")
@@ -159,8 +159,8 @@ export class DeleteServiceCommand extends Command {
     printHeader(headerLog, "Delete service", "skull_and_crossbones")
   }
 
-  async action({ garden, isWorkflowStepCommand, log, args }: CommandParams<DeleteServiceArgs>): Promise<CommandResult> {
-    const graph = await garden.getConfigGraph({ log, emit: !isWorkflowStepCommand })
+  async action({ garden, log, args }: CommandParams<DeleteServiceArgs>): Promise<CommandResult> {
+    const graph = await garden.getConfigGraph({ log, emit: true })
     const services = graph.getServices({ names: args.services })
 
     if (services.length === 0) {

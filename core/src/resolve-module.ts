@@ -429,10 +429,23 @@ export class ModuleResolver {
       if (fileSpec.sourcePath) {
         const configDir = resolvedConfig.configPath ? dirname(resolvedConfig.configPath) : resolvedConfig.path
         const sourcePath = resolve(configDir, fileSpec.sourcePath)
-        contents = (await readFile(sourcePath)).toString()
+
+        try {
+          contents = (await readFile(sourcePath)).toString()
+        } catch (err) {
+          throw new ConfigurationError(
+            `Unable to read file at ${sourcePath}, specified under generateFiles in module ${resolvedConfig.name}: ${err}`,
+            {
+              sourcePath,
+            }
+          )
+        }
       }
 
-      const resolvedContents = resolveTemplateString(contents, configContext, { unescape: true })
+      const resolvedContents = fileSpec.resolveTemplates
+        ? resolveTemplateString(contents, configContext, { unescape: true })
+        : contents
+
       const targetDir = resolve(resolvedConfig.path, ...posix.dirname(fileSpec.targetPath).split(posix.sep))
       const targetPath = resolve(resolvedConfig.path, ...fileSpec.targetPath.split(posix.sep))
 

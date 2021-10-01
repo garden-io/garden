@@ -17,6 +17,10 @@ environments:
 providers:
   - name: local-kubernetes
     environments: [local]
+    devMode:
+      defaults:
+        exclude:
+          - "**/prefix-*"
   - name: local-kubernetes
     deploymentRegistry: &deploymentRegistry
       hostname: index.docker.io

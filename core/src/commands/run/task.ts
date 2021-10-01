@@ -80,14 +80,8 @@ export class RunTaskCommand extends Command<Args, Opts> {
     printHeader(headerLog, msg, "runner")
   }
 
-  async action({
-    garden,
-    isWorkflowStepCommand,
-    log,
-    args,
-    opts,
-  }: CommandParams<Args, Opts>): Promise<CommandResult<RunTaskOutput>> {
-    const graph = await garden.getConfigGraph({ log, emit: !isWorkflowStepCommand })
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunTaskOutput>> {
+    const graph = await garden.getConfigGraph({ log, emit: true })
     const task = graph.getTask(args.task, true)
 
     if (task.disabled && !opts.force) {

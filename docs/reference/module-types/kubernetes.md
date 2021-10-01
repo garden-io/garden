@@ -131,6 +131,11 @@ generateFiles:
     # directories, they will be automatically created if missing.
     targetPath:
 
+    # By default, Garden will attempt to resolve any Garden template strings in source files. Set this to false to
+    # skip resolving template strings. Note that this does not apply when setting the `value` field, since that's
+    # resolved earlier when parsing the configuration.
+    resolveTemplates: true
+
     # The desired file contents as a string.
     value:
 
@@ -171,9 +176,12 @@ devMode:
       target:
 
       # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
+      #
+      # `.git` directories and `.garden` directories are always ignored.
       exclude:
 
-      # The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `two-way`.
+      # The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `one-way-reverse`,
+      # `one-way-replica-reverse` and `two-way`.
       mode: one-way
 
       # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user
@@ -715,6 +723,16 @@ Note that any existing file with the same name will be overwritten. If the path 
 | ----------- | -------- |
 | `posixPath` | Yes      |
 
+### `generateFiles[].resolveTemplates`
+
+[generateFiles](#generatefiles) > resolveTemplates
+
+By default, Garden will attempt to resolve any Garden template strings in source files. Set this to false to skip resolving template strings. Note that this does not apply when setting the `value` field, since that's resolved earlier when parsing the configuration.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
+
 ### `generateFiles[].value`
 
 [generateFiles](#generatefiles) > value
@@ -829,6 +847,8 @@ devMode:
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
 
+`.git` directories and `.garden` directories are always ignored.
+
 | Type               | Required |
 | ------------------ | -------- |
 | `array[posixPath]` | No       |
@@ -848,11 +868,11 @@ devMode:
 
 [devMode](#devmode) > [sync](#devmodesync) > mode
 
-The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `two-way`.
+The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `one-way-reverse`, `one-way-replica-reverse` and `two-way`.
 
-| Type     | Allowed Values                          | Default     | Required |
-| -------- | --------------------------------------- | ----------- | -------- |
-| `string` | "one-way", "one-way-replica", "two-way" | `"one-way"` | Yes      |
+| Type     | Allowed Values                                                                        | Default     | Required |
+| -------- | ------------------------------------------------------------------------------------- | ----------- | -------- |
+| `string` | "one-way", "one-way-replica", "one-way-reverse", "one-way-replica-reverse", "two-way" | `"one-way"` | Yes      |
 
 ### `devMode.sync[].defaultFileMode`
 

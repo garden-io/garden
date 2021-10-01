@@ -19,7 +19,6 @@ import {
   TimeoutError,
   RuntimeError,
   ConfigurationError,
-  ParameterError,
   OutOfMemoryError,
 } from "../../exceptions"
 import { KubernetesProvider } from "./config"
@@ -35,12 +34,14 @@ import { deline, randomString } from "../../util/string"
 import { ArtifactSpec } from "../../config/validation"
 import { prepareImagePullSecrets } from "./secrets"
 import { configureVolumes } from "./container/deployment"
-import { PluginContext } from "../../plugin-context"
+import { PluginContext, PluginEventBroker } from "../../plugin-context"
 import { waitForResources, ResourceStatus } from "./status/status"
 import { RuntimeContext } from "../../runtime-context"
 import { getResourceRequirements, getSecurityContext } from "./container/util"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { copy } from "fs-extra"
+import { K8sLogFollower, PodLogEntryConverter, PodLogEntryConverterParams } from "./logs"
+import { Stream } from "ts-stream"
 
 // Default timeout for individual run/exec operations
 const defaultTimeout = 600
@@ -90,6 +91,15 @@ export const runPodSpecIncludeFields: (keyof V1PodSpec)[] = [
   "topologySpreadConstraints",
   "volumes",
 ]
+
+export interface RunLogEntry {
+  timestamp?: Date
+  msg: string
+}
+
+export const makeRunLogEntry: PodLogEntryConverter<RunLogEntry> = ({ timestamp, msg }: PodLogEntryConverterParams) => {
+  return { timestamp, msg }
+}
 
 export const runContainerExcludeFields: (keyof V1Container)[] = ["readinessProbe", "livenessProbe"]
 
@@ -174,13 +184,6 @@ export async function runAndCopy({
     podName = makePodName("run", module.name)
   }
 
-  const outputStream = new PassThrough()
-
-  outputStream.on("error", () => {})
-  outputStream.on("data", (data: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().getTime(), data })
-  })
-
   const runParams = {
     ctx,
     api,
@@ -196,11 +199,16 @@ export async function runAndCopy({
     podName,
     namespace,
     version,
-    stdout: outputStream,
-    stderr: outputStream,
   }
 
   if (getArtifacts) {
+    const outputStream = new PassThrough()
+
+    outputStream.on("error", () => {})
+    outputStream.on("data", (data: Buffer) => {
+      ctx.events.emit("log", { timestamp: new Date().getTime(), data })
+    })
+
     return runWithArtifacts({
       ...runParams,
       mainContainerName,
@@ -208,6 +216,8 @@ export async function runAndCopy({
       artifactsPath: artifactsPath!,
       description,
       errorMetadata,
+      stdout: outputStream,
+      stderr: outputStream,
     })
   } else {
     return runWithoutArtifacts(runParams)
@@ -336,8 +346,6 @@ async function runWithoutArtifacts({
   timeout,
   podSpec,
   podName,
-  stdout,
-  stderr,
   namespace,
   interactive,
   version,
@@ -346,8 +354,6 @@ async function runWithoutArtifacts({
   provider: KubernetesProvider
   podSpec: V1PodSpec
   podName: string
-  stdout: Writable
-  stderr: Writable
   namespace: string
   version: string
 }): Promise<RunResult> {
@@ -376,10 +382,9 @@ async function runWithoutArtifacts({
     const res = await runner.runAndWait({
       log,
       remove: true,
+      events: ctx.events,
       timeoutSec: timeout || defaultTimeout,
       tty: !!interactive,
-      stdout,
-      stderr,
     })
     result = {
       ...res,
@@ -720,11 +725,9 @@ type ExecParams = StartParams & {
 }
 
 type RunParams = StartParams & {
-  stdout?: Writable
-  stderr?: Writable
-  stdin?: Readable
   remove: boolean
   tty: boolean
+  events: PluginEventBroker
 }
 
 class PodRunnerError extends GardenBaseError {
@@ -774,30 +777,13 @@ export class PodRunner extends PodRunnerParams {
    * If tty=true, we attach to the process stdio during execution.
    */
   async runAndWait(params: RunParams): Promise<RunAndWaitResult> {
-    const { log, remove, timeoutSec, tty } = params
-    let { stdout, stderr, stdin } = params
+    const { log, remove, timeoutSec, tty, events } = params
     const { namespace, podName } = this
 
     const startedAt = new Date()
     let success = true
-    let attached = false
     let mainContainerLogs = ""
     const mainContainerName = this.getMainContainerName()
-
-    if (tty) {
-      if (stdout) {
-        stdout.pipe(process.stdout)
-      } else {
-        stdout = process.stdout
-      }
-      if (stderr) {
-        stderr.pipe(process.stderr)
-      } else {
-        stderr = process.stderr
-      }
-
-      stdin = process.stdin
-    }
 
     const getDebugLogs = async () => {
       try {
@@ -807,6 +793,27 @@ export class PodRunner extends PodRunnerParams {
       }
     }
 
+    const stream = new Stream<RunLogEntry>()
+    void stream.forEach((entry) => {
+      const { msg, timestamp } = entry
+      events.emit("log", { timestamp, data: Buffer.from(msg) })
+      if (tty) {
+        process.stdout.write(`${entry.msg}\n`)
+      }
+    })
+    const logsFollower = new K8sLogFollower({
+      defaultNamespace: this.namespace,
+      retryIntervalMs: 10,
+      stream,
+      log,
+      entryConverter: makeRunLogEntry,
+      resources: [this.pod],
+      k8sApi: this.api,
+    })
+    logsFollower.followLogs().catch((_err) => {
+      // Errors in `followLogs` are logged there, so all we need to do here is to ensure that the follower is closed.
+      logsFollower.close()
+    })
     try {
       await this.createPod({ log, tty })
 
@@ -860,33 +867,6 @@ export class PodRunner extends PodRunnerParams {
           break
         }
 
-        if (!attached && (tty || stdout || stderr)) {
-          // Try to attach to Pod to stream logs
-          try {
-            /**
-             * TODO: We miss out on any pod log lines that get written before we manage to attach to the pod. Thi
-             *  means that we can't guarantee that we'll pipe logs from the first 1-2 seconds (more, if several retries
-             * of this `while`-loop are needed) of the runner pod's execution to the `stdout`/`stderr` streams
-             * provided to this method.
-             *
-             * If this becomes a problem, we may need to come up with a different approach to ensure we stream those
-             * first few log lines.
-             */
-            await this.api.attachToPod({
-              namespace,
-              podName,
-              containerName: mainContainerName,
-              stdout,
-              stderr,
-              stdin,
-              tty,
-            })
-            attached = true
-          } catch (err) {
-            // Ignore errors when attaching, we'll just keep trying
-          }
-        }
-
         const elapsed = (new Date().getTime() - startedAt.getTime()) / 1000
 
         if (timeoutSec && elapsed > timeoutSec) {
@@ -903,6 +883,7 @@ export class PodRunner extends PodRunnerParams {
       // Retrieve logs after run
       mainContainerLogs = await this.getMainContainerLogs()
     } finally {
+      logsFollower.close()
       if (remove) {
         await this.stop()
       }
@@ -941,12 +922,17 @@ export class PodRunner extends PodRunnerParams {
     let { stdout, stderr, stdin } = params
 
     if (tty) {
-      if (stdout || stderr || stdin) {
-        throw new ParameterError(`Cannot set both tty and stdout/stderr/stdin streams`, { params })
+      if (stdout) {
+        stdout.pipe(process.stdout)
+      } else {
+        stdout = process.stdout
+      }
+      if (stderr) {
+        stderr.pipe(process.stderr)
+      } else {
+        stderr = process.stderr
       }
 
-      stdout = process.stdout
-      stderr = process.stderr
       stdin = process.stdin
     }
 

@@ -20,6 +20,8 @@ import { GardenBaseError } from "../../exceptions"
 import { prepareConnectionOpts } from "./kubectl"
 import { KubernetesPluginContext } from "./config"
 import pRetry from "p-retry"
+import { devModeGuideLink } from "./dev-mode"
+import dedent from "dedent"
 
 const maxRestarts = 10
 const monitorDelay = 2000
@@ -31,11 +33,13 @@ let mutagenTmp: TempDirectory
 
 export const mutagenModeMap = {
   "one-way": "one-way-safe",
+  "one-way-reverse": "one-way-safe",
   "one-way-replica": "one-way-replica",
+  "one-way-replica-reverse": "one-way-replica",
   "two-way": "two-way-safe",
 }
 
-interface SyncConfig {
+export interface SyncConfig {
   alpha: string
   beta: string
   mode: keyof typeof mutagenModeMap
@@ -250,6 +254,12 @@ interface SyncConflict {
   betaChanges?: ConflictChange[]
 }
 
+interface SyncEndpoint {
+  path: string
+  protocol?: number // Only used for remote endpoints
+  host?: string // Only used for remote endpoints
+}
+
 interface SyncListEntry {
   session: {
     identifier: string
@@ -259,12 +269,8 @@ interface SyncListEntry {
       nanos: number
     }
     creatingVersionMinor: number
-    alpha: {
-      path: string
-    }
-    beta: {
-      path: string
-    }
+    alpha: SyncEndpoint
+    beta: SyncEndpoint
     configuration: {
       synchronizationMode: number
     }
@@ -285,19 +291,25 @@ interface SyncListEntry {
 
 let monitorInterval: NodeJS.Timeout
 
+const syncStatusLines: { [sessionName: string]: LogEntry } = {}
+
 function checkMutagen(log: LogEntry) {
   getActiveMutagenSyncs(log)
     .then((syncs) => {
       for (const sync of syncs) {
-        const problems: string[] = [
-          ...(sync.alphaScanProblems || []).map((p) => `Error scanning sync source, path ${p.path}: ${p.error}`),
-          ...(sync.betaScanProblems || []).map((p) => `Error scanning sync target, path ${p.path}: ${p.error}`),
-        ]
-
-        const activeSync = activeSyncs[sync.session.name]
+        const sessionName = sync.session.name
+        const activeSync = activeSyncs[sessionName]
         if (!activeSync) {
           continue
         }
+
+        const { sourceDescription, targetDescription } = activeSync
+
+        const problems: string[] = [
+          ...(sync.alphaScanProblems || []).map((p) => `Error scanning sync source, path ${p.path}: ${p.error}`),
+          ...(sync.betaScanProblems || []).map((p) => `Error scanning sync target, path ${p.path}: ${p.error}`),
+          ...(sync.conflicts || []).map((c) => formatSyncConflict(sourceDescription, targetDescription, c)),
+        ]
 
         const { logSection: section } = activeSync
 
@@ -311,7 +323,7 @@ function checkMutagen(log: LogEntry) {
           log.info({
             symbol: "info",
             section,
-            msg: chalk.gray(`Connected to sync source ${activeSync.sourceDescription}`),
+            msg: chalk.gray(`Connected to sync source ${sourceDescription}`),
           })
           activeSync.sourceConnected = true
         }
@@ -320,13 +332,13 @@ function checkMutagen(log: LogEntry) {
           log.info({
             symbol: "success",
             section,
-            msg: chalk.gray(`Connected to sync target ${activeSync.targetDescription}`),
+            msg: chalk.gray(`Connected to sync target ${targetDescription}`),
           })
           activeSync.targetConnected = true
         }
 
         const syncCount = sync.successfulSynchronizationCycles || 0
-        const description = `from ${activeSync.sourceDescription} to ${activeSync.targetDescription}`
+        const description = `from ${sourceDescription} to ${targetDescription}`
 
         if (syncCount > activeSync.lastSyncCount) {
           if (activeSync.lastSyncCount === 0) {
@@ -336,7 +348,15 @@ function checkMutagen(log: LogEntry) {
               msg: chalk.gray(`Completed initial sync ${description}`),
             })
           } else {
-            log.info({ symbol: "info", section, msg: chalk.gray(`Synchronized ${description}`) })
+            if (!syncStatusLines[sessionName]) {
+              syncStatusLines[sessionName] = log.info("").placeholder()
+            }
+            const time = new Date().toLocaleTimeString()
+            syncStatusLines[sessionName].setState({
+              symbol: "info",
+              section,
+              msg: chalk.gray(`Synchronized ${description} at ${time}`),
+            })
           }
         }
 
@@ -565,6 +585,21 @@ const mutagen = new PluginTool(mutagenCliSpec)
  */
 async function isValidLocalPath(syncPoint: string) {
   return pathExists(syncPoint)
+}
+
+function formatSyncConflict(sourceDescription: string, targetDescription: string, conflict: SyncConflict): string {
+  return dedent`
+    Sync conflict detected at path ${chalk.white(
+      conflict.root
+    )} in sync from ${sourceDescription} to ${targetDescription}.
+
+    Until the conflict is resolved, the conflicting paths will not be synced.
+
+    If conflicts come up regularly at this destination, you may want to use either the ${chalk.white(
+      "one-way-replica"
+    )} or ${chalk.white("one-way-replica-reverse")} sync modes instead.
+
+    See the code synchronization guide for more details: ${chalk.white(devModeGuideLink + "#sync-modes")}`
 }
 
 /**

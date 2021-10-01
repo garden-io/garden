@@ -147,6 +147,11 @@ modules:
         # directories, they will be automatically created if missing.
         targetPath:
 
+        # By default, Garden will attempt to resolve any Garden template strings in source files. Set this to false to
+        # skip resolving template strings. Note that this does not apply when setting the `value` field, since that's
+        # resolved earlier when parsing the configuration.
+        resolveTemplates: true
+
         # The desired file contents as a string.
         value:
 
@@ -469,6 +474,16 @@ Note that any existing file with the same name will be overwritten. If the path 
 | Type        | Required |
 | ----------- | -------- |
 | `posixPath` | Yes      |
+
+### `modules[].generateFiles[].resolveTemplates`
+
+[modules](#modules) > [generateFiles](#modulesgeneratefiles) > resolveTemplates
+
+By default, Garden will attempt to resolve any Garden template strings in source files. Set this to false to skip resolving template strings. Note that this does not apply when setting the `value` field, since that's resolved earlier when parsing the configuration.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
 
 ### `modules[].generateFiles[].value`
 

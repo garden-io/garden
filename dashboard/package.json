@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/dashboard",
-  "version": "0.12.26",
+  "version": "0.12.27",
   "private": true,
   "devDependencies": {
     "@garden-io/cli": "*",

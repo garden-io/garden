@@ -37,7 +37,7 @@ import {
 } from "../../../../../src/plugins/kubernetes/types"
 import { PluginContext } from "../../../../../src/plugin-context"
 import { LogEntry } from "../../../../../src/logger/log-entry"
-import { sleep, StringCollector } from "../../../../../src/util/util"
+import { sleep } from "../../../../../src/util/util"
 import { buildHelmModules, getHelmTestGarden } from "./helm/common"
 import { getBaseModule, getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
 import { getModuleNamespace } from "../../../../../src/plugins/kubernetes/namespace"
@@ -251,7 +251,7 @@ describe("kubernetes Pod runner functions", () => {
           provider,
         })
 
-        const res = await runner.runAndWait({ log, remove: true, tty: false })
+        const res = await runner.runAndWait({ log, remove: true, tty: false, events: ctx.events })
 
         expect(res.log.trim()).to.equal("foo")
         expect(res.success).to.be.true
@@ -268,48 +268,10 @@ describe("kubernetes Pod runner functions", () => {
           provider,
         })
 
-        const res = await runner.runAndWait({ log, remove: true, tty: false })
+        const res = await runner.runAndWait({ log, remove: true, tty: false, events: ctx.events })
 
         expect(res.log.trim()).to.equal("foo")
         expect(res.success).to.be.false
-      })
-
-      it("can attach to the Pod and stream outputs", async () => {
-        const pod = makePod([
-          "/bin/sh",
-          "-c",
-          dedent`
-            for i in 1 2 3 4 5
-            do
-              echo "Log line $i"
-              sleep 1
-            done
-          `,
-        ])
-
-        runner = new PodRunner({
-          ctx,
-          pod,
-          namespace,
-          api,
-          provider,
-        })
-
-        const stdout = new StringCollector()
-
-        const res = await runner.runAndWait({ log, remove: true, stdout, tty: false })
-
-        const output = stdout.getString()
-
-        expect(output).to.include("Log line")
-        expect(res.log.trim()).to.equal(dedent`
-          Log line 1
-          Log line 2
-          Log line 3
-          Log line 4
-          Log line 5
-        `)
-        expect(res.success).to.be.true
       })
 
       it("throws if Pod is invalid", async () => {
@@ -338,7 +300,7 @@ describe("kubernetes Pod runner functions", () => {
         })
 
         await expectError(
-          () => runner.runAndWait({ log, remove: true, tty: false }),
+          () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
           (err) => expect(err.message).to.include("Failed to create Pod")
         )
       })
@@ -356,7 +318,7 @@ describe("kubernetes Pod runner functions", () => {
         })
 
         await expectError(
-          () => runner.runAndWait({ log, remove: true, tty: false }),
+          () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
           (err) => expect(err.message).to.include("Failed to start Pod")
         )
       })
@@ -432,7 +394,7 @@ describe("kubernetes Pod runner functions", () => {
         td.when(core.readNamespacedPodStatus(runner.podName, namespace)).thenResolve(readNamespacedPodStatusRes)
 
         await expectError(
-          () => runner.runAndWait({ log, remove: true, tty: false }),
+          () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
           (err) => {
             expect(err.type).to.eql("out-of-memory")
             expect(err.message).to.include("OOMKilled")
@@ -511,7 +473,7 @@ describe("kubernetes Pod runner functions", () => {
         td.when(core.readNamespacedPodStatus(runner.podName, namespace)).thenResolve(readNamespacedPodStatusRes)
 
         await expectError(
-          () => runner.runAndWait({ log, remove: true, tty: false }),
+          () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
           (err) => {
             expect(err.type).to.eql("out-of-memory")
             expect(err.message).to.include("OOMKilled")
@@ -541,7 +503,7 @@ describe("kubernetes Pod runner functions", () => {
             provider,
           })
 
-          const res = await runner.runAndWait({ log, remove: true, tty: true })
+          const res = await runner.runAndWait({ log, remove: true, tty: true, events: ctx.events })
 
           expect(res.log.trim().replace(/\r\n/g, "\n")).to.equal(dedent`
             Log line 1
