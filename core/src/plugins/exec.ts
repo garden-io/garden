@@ -67,7 +67,7 @@ export const execServiceSchema = () =>
   baseServiceSpecSchema()
     .keys({
       deployCommand: joi
-        .array()
+        .sparseArray()
         .items(joi.string().allow(""))
         .description(
           dedent`
@@ -78,7 +78,7 @@ export const execServiceSchema = () =>
         )
         .required(),
       statusCommand: joi
-        .array()
+        .sparseArray()
         .items(joi.string().allow(""))
         .description(
           dedent`
@@ -93,7 +93,7 @@ export const execServiceSchema = () =>
           `
         ),
       cleanupCommand: joi
-        .array()
+        .sparseArray()
         .items(joi.string().allow(""))
         .description(
           dedent`
@@ -116,7 +116,7 @@ export const execTestSchema = () =>
   baseTestSpecSchema()
     .keys({
       command: joi
-        .array()
+        .sparseArray()
         .items(joi.string().allow(""))
         .description(
           dedent`
@@ -142,7 +142,7 @@ export const execTaskSpecSchema = () =>
     .keys({
       artifacts: artifactsSchema().description("A list of artifacts to copy after the task run."),
       command: joi
-        .array()
+        .sparseArray()
         .items(joi.string().allow(""))
         .description(
           dedent`

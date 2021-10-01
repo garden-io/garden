@@ -398,7 +398,7 @@ export const kubernetesConfigBase = () =>
       .object()
       .keys({
         extraFlags: joi
-          .array()
+          .sparseArray()
           .items(joi.string())
           .description(
             `Specify extra flags to use when building the container image with kaniko. Flags set on \`container\` modules take precedence over these.`
@@ -787,7 +787,7 @@ export const containerModuleSchema = () =>
 
 export const hotReloadArgsSchema = () =>
   joi
-    .array()
+    .sparseArray()
     .items(joi.string())
     .description("If specified, overrides the arguments for the main container when running in hot-reload mode.")
     .example(["nodemon", "my-server.js"])
@@ -842,12 +842,12 @@ export const kubernetesTaskSchema = () =>
       ),
       cacheResult: cacheResultSchema(),
       command: joi
-        .array()
+        .sparseArray()
         .items(joi.string().allow(""))
         .description("The command/entrypoint used to run the task inside the container.")
         .example(commandExample),
       args: joi
-        .array()
+        .sparseArray()
         .items(joi.string().allow(""))
         .description("The arguments to pass to the container used for execution.")
         .example(["rake", "db:migrate"]),
@@ -870,12 +870,12 @@ export const kubernetesTestSchema = () =>
         ${runPodSpecWhitelistDescription}`
       ),
       command: joi
-        .array()
+        .sparseArray()
         .items(joi.string().allow(""))
         .description("The command/entrypoint used to run the test inside the container.")
         .example(commandExample),
       args: joi
-        .array()
+        .sparseArray()
         .items(joi.string().allow(""))
         .description("The arguments to pass to the container used for testing.")
         .example(["npm", "test"]),

@@ -39,7 +39,7 @@ export interface OpenFaasModuleSpec extends ExecModuleSpecBase {
 const openfaasTestSchema = () =>
   baseTestSpecSchema().keys({
     command: joi
-      .array()
+      .sparseArray()
       .items(joi.string())
       .description("The command to run in the module build context in order to test it.")
       .required(),

@@ -121,7 +121,7 @@ export const runResultSchema = () =>
     .keys({
       moduleName: joi.string().description("The name of the module that was run."),
       command: joi
-        .array()
+        .sparseArray()
         .items(joi.string().allow(""))
         .required()
         .description("The command that was run in the module."),

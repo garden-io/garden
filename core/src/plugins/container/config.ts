@@ -168,12 +168,12 @@ export interface ContainerHotReloadSpec {
 const hotReloadConfigSchema = () =>
   joi.object().keys({
     sync: joi
-      .array()
+      .sparseArray()
       .items(hotReloadSyncSchema())
       .required()
       .description("Specify one or more source files or directories to automatically sync into the running container."),
     postSyncCommand: joi
-      .array()
+      .sparseArray()
       .items(joi.string())
       .optional()
       .description(`An optional command to run inside the container after syncing.`)
@@ -271,9 +271,12 @@ export interface ContainerDevModeSpec {
 
 export const containerDevModeSchema = () =>
   joi.object().keys({
-    args: joi.array().items(joi.string()).description("Override the default container arguments when in dev mode."),
+    args: joi
+      .sparseArray()
+      .items(joi.string())
+      .description("Override the default container arguments when in dev mode."),
     command: joi
-      .array()
+      .sparseArray()
       .items(joi.string())
       .description("Override the default container command (i.e. entrypoint) when in dev mode."),
     sync: joi
@@ -374,7 +377,7 @@ const healthCheckSchema = () =>
         })
         .description("Set this to check the service's health by making an HTTP request."),
       command: joi
-        .array()
+        .sparseArray()
         .items(joi.string())
         .description("Set this to check the service's health by running a command in its container."),
       tcpPort: joi
@@ -539,14 +542,14 @@ const containerPrivilegedSchema = (targetType: string) =>
 
 const containerAddCapabilitiesSchema = (targetType: string) =>
   joi
-    .array()
+    .sparseArray()
     .items(joi.string())
     .optional()
     .description(`POSIX capabilities to add to the running ${targetType}'s main container.`)
 
 const containerDropCapabilitiesSchema = (targetType: string) =>
   joi
-    .array()
+    .sparseArray()
     .items(joi.string())
     .optional()
     .description(`POSIX capabilities to remove from the running ${targetType}'s main container.`)
@@ -561,12 +564,12 @@ const containerServiceSchema = () =>
       `
     ),
     command: joi
-      .array()
+      .sparseArray()
       .items(joi.string().allow(""))
       .description("The command/entrypoint to run the container with when starting the service.")
       .example(commandExample),
     args: joi
-      .array()
+      .sparseArray()
       .items(joi.string().allow(""))
       .description("The arguments to run the container with when starting the service.")
       .example(["npm", "start"]),
@@ -581,7 +584,7 @@ const containerServiceSchema = () =>
     env: containerEnvVarsSchema(),
     healthCheck: healthCheckSchema().description("Specify how the service's health should be checked after deploying."),
     hotReloadCommand: joi
-      .array()
+      .sparseArray()
       .items(joi.string())
       .description(
         deline`
@@ -590,7 +593,7 @@ const containerServiceSchema = () =>
       )
       .example(commandExample),
     hotReloadArgs: joi
-      .array()
+      .sparseArray()
       .items(joi.string())
       .description(
         deline`
@@ -701,13 +704,13 @@ export interface ContainerTestSpec extends BaseTestSpec {
 export const containerTestSchema = () =>
   baseTestSpecSchema().keys({
     args: joi
-      .array()
+      .sparseArray()
       .items(joi.string().allow(""))
       .description("The arguments used to run the test inside the container.")
       .example(["npm", "test"]),
     artifacts: artifactsSchema(),
     command: joi
-      .array()
+      .sparseArray()
       .items(joi.string().allow(""))
       .description("The command/entrypoint used to run the test inside the container.")
       .example(commandExample),
@@ -738,14 +741,14 @@ export const containerTaskSchema = () =>
   baseTaskSpecSchema()
     .keys({
       args: joi
-        .array()
+        .sparseArray()
         .items(joi.string().allow(""))
         .description("The arguments used to run the task inside the container.")
         .example(["rake", "db:migrate"]),
       artifacts: artifactsSchema(),
       cacheResult: cacheResultSchema(),
       command: joi
-        .array()
+        .sparseArray()
         .items(joi.string().allow(""))
         .description("The command/entrypoint used to run the task inside the container.")
         .example(commandExample),
@@ -803,7 +806,7 @@ export const containerModuleSpecSchema = () =>
 
           Note: Garden will always set a \`GARDEN_MODULE_VERSION\` argument with the module version at build time.
         `),
-      extraFlags: joi.array().items(joi.string()).description(deline`
+      extraFlags: joi.sparseArray().items(joi.string()).description(deline`
         Specify extra flags to use when building the container image.
         Note that arguments may not be portable across implementations.`),
       // TODO: validate the image name format
