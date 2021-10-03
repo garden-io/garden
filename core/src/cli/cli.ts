@@ -399,7 +399,7 @@ ${renderCommands(commands)}
     const { command } = pickCommand(Object.values(this.commands), argv._)
 
     if (!command) {
-      const exitCode = argv.h || argv.help ? 0 : 1
+      const exitCode = argv.h || argv.help || argv._[0] === "help" ? 0 : 1
       return done(exitCode, this.renderHelp())
     }
 
