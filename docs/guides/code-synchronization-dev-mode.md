@@ -85,16 +85,16 @@ Once you quit/terminate the Garden command, all syncs established by the command
 
 Garden's dev mode supports several sync modes, each of which maps onto a Mutagen sync mode.
 
-In brief: It's generally easiest to get started with the `one-way` or `two-way` sync modes, and then graduate to a more fine-grained setup based on `one-way-replicated` and/or `one-way-replicated-reverse` once you're ready to specify exactly which paths to sync and which files/directories to ignore from the sync.
+In brief: It's generally easiest to get started with the `one-way` or `two-way` sync modes, and then graduate to a more fine-grained setup based on `one-way-replica` and/or `one-way-replica-reverse` once you're ready to specify exactly which paths to sync and which files/directories to ignore from the sync.
 
 ### `one-way` (shorthand for `one-way-safe`)
 * Syncs a local `source` path to a remote `target` path.
 * When there are conflicts, does not replace/delete files in the remote `target` path.
 * Simple to use, especially when there are files/directories inside the remote `target` that you don't want to override with the contents of the local `source`.
-* On the other hand, if your setup / usage pattern is such that conflicts do sometimes arise for the `source`/`target` pair in question, you may want to use `one-way-replicated` instead.
+* On the other hand, if your setup / usage pattern is such that conflicts do sometimes arise for the `source`/`target` pair in question, you may want to use `one-way-replica` instead.
 
 
-### `one-way-replicated`
+### `one-way-replica`
   * Syncs a local `source` path to a remote `target` path, such that `target` is always an exact mirror of `source` (with the exception of excluded paths).
   * When using this mode, there can be no conflicts—the contents of `source` always override the contents of `target`.
   * Since conflicts are impossible here, this mode tends to be a better / more reliable choice long-term than `one-way`/`one-way-safe`. However, you may need to configure more fine-grained/specific `source`/`target` pairs and their excludes such that you don't have problems with paths in the remote `target` being overwritten/deleted when they change in the local `source`.
@@ -104,8 +104,8 @@ In brief: It's generally easiest to get started with the `one-way` or `two-way` 
   * Syncs a remote `target` path to a local `source` path.
   * Has the same benefits and drawbacks as `one-way`: Simple to configure, but conflicts are possible.
 
-### `one-way-replicated-reverse`
-  * Same as `one-way-replicated`, except the direction of the sync is reversed.
+### `one-way-replica-reverse`
+  * Same as `one-way-replica`, except the direction of the sync is reversed.
   * Syncs a remote `target` path to a local `source` path, such that `source` is always an exact mirror of `target` (with the exception of excluded paths).
   * When using this mode, there can be no conflicts—the contents of `target` always override the contents of `source`.
 
@@ -115,15 +115,15 @@ In brief: It's generally easiest to get started with the `one-way` or `two-way` 
   * Changes made in the remote `target` will be synced to the local `source`.
   * When there are conflicts on either side, does not replace/delete the corresponding conflicting paths on the other side.
   * Similarly to `one-way`, this mode is simple to configure when there are files in either `source` or `target` that you don't want overriden on the other side when files change or are added/deleted.
-  * Setting up several `one-way-replicated` and `one-way-replicated-reverse` syncs instead of `one-way` and `two-way` is generally the best approach long-term, but may require more fine-grained configuration (more sync specs for specific subpaths and more specific exclusion rules, to make sure things don't get overwritten/deleted in unwanted ways).
+  * Setting up several `one-way-replica` and `one-way-replica-reverse` syncs instead of `one-way` and `two-way` is generally the best approach long-term, but may require more fine-grained configuration (more sync specs for specific subpaths and more specific exclusion rules, to make sure things don't get overwritten/deleted in unwanted ways).
 
 In addition to the above, please check out the [Mutagen docs on synchronization](https://mutagen.io/documentation/synchronization) for more info.
 
 ### Notes on Mutagen terminology
 
-Mutagen uses the terminology "alpha" and "beta" for the sync endpoints. In Garden's `one-way`, `one-way-replicated` and `two-way` sync modes, alpha is `source` and beta is `target`.
+Mutagen uses the terminology "alpha" and "beta" for the sync endpoints. In Garden's `one-way`, `one-way-replica` and `two-way` sync modes, alpha is `source` and beta is `target`.
 
-For the reverse sync modes (`one-way-reverse` and `one-way-replicated-reverse`), alpha is `target` and beta is `source`.
+For the reverse sync modes (`one-way-reverse` and `one-way-replica-reverse`), alpha is `target` and beta is `source`.
 
 ## Excluding files and directories from syncs
 
