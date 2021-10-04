@@ -36,6 +36,8 @@ const activeProxies: { [key: string]: PortProxy } = {}
 registerCleanupFunction("kill-service-port-proxies", () => {
   for (const proxy of Object.values(activeProxies)) {
     try {
+      // Avoid EPIPE errors
+      proxy.server.on("error", () => {})
       stopPortProxy(proxy)
     } catch {}
   }
@@ -290,9 +292,6 @@ function stopPortProxy(proxy: PortProxy, log?: LogEntry) {
   delete activeProxies[proxy.key]
 
   try {
-    // Avoid EPIPE errors
-    proxy.server.on("error", () => {})
-
     proxy.server.close()
   } catch {}
 }
