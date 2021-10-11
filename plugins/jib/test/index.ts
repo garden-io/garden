@@ -7,14 +7,12 @@
  */
 
 import { join } from "path"
-import td from "testdouble"
 
 import { ConfigGraph, GardenModule, ProjectConfig } from "@garden-io/sdk/types"
 import { expect } from "chai"
 import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
 import { defaultApiVersion, defaultNamespace } from "@garden-io/sdk/constants"
 import { gardenPlugin } from ".."
-import { containerHelpers } from "@garden-io/core/build/src/plugins/container/helpers"
 
 describe("jib-container", () => {
   const projectRoot = join(__dirname, "test-project")
@@ -61,11 +59,13 @@ describe("jib-container", () => {
 
   describe("getModuleOutputs", () => {
     it("correctly sets the module outputs", async () => {
+      const image = "eu.gcr.io/garden-ci/jib-test-project"
+
       expect(module.outputs).to.eql({
-        "deployment-image-id": "module:" + module.version.versionString,
-        "deployment-image-name": "module",
-        "local-image-id": "module:" + module.version.versionString,
-        "local-image-name": "module",
+        "deployment-image-id": image + ":" + module.version.versionString,
+        "deployment-image-name": image,
+        "local-image-id": image + ":" + module.version.versionString,
+        "local-image-name": image,
       })
     })
   })
@@ -103,53 +103,55 @@ describe("jib-container", () => {
       })
     })
 
+    // NOTE: We can't currently run these tests as part of CI because they require push access to a registry
+    // This however is covered by the jib-container e2e test project
     context("tarOnly=false", () => {
-      it("builds a maven project", async () => {
+      it.skip("builds a maven project and pushed to a registry", async () => {
         module.spec.build.projectType = "maven"
         module.spec.build.tarOnly = false
 
-        const dockerCli = td.replace(containerHelpers, "dockerCli")
-
-        const res = await actions.build({
+        await actions.build({
           module,
           log: garden.log,
           graph,
         })
-
-        const { tarPath } = res.details
-
-        td.verify(
-          dockerCli({
-            cwd: module.path,
-            args: ["load", "--input", tarPath],
-            log: td.matchers.anything(),
-            ctx: td.matchers.anything(),
-          })
-        )
       })
 
-      it("builds a gradle project and pushes to the local docker daemon", async () => {
+      it.skip("builds a gradle project and pushes to a registry", async () => {
         module.spec.build.projectType = "gradle"
         module.spec.build.tarOnly = false
 
-        const dockerCli = td.replace(containerHelpers, "dockerCli")
-
-        const res = await actions.build({
+        await actions.build({
           module,
           log: garden.log,
           graph,
         })
+      })
+    })
 
-        const { tarPath } = res.details
+    context("dockerBuild=true", () => {
+      it("builds a maven project", async () => {
+        module.spec.build.projectType = "maven"
+        module.spec.build.tarOnly = false
+        module.spec.build.dockerBuild = true
 
-        td.verify(
-          dockerCli({
-            cwd: module.path,
-            args: ["load", "--input", tarPath],
-            log: td.matchers.anything(),
-            ctx: td.matchers.anything(),
-          })
-        )
+        await actions.build({
+          module,
+          log: garden.log,
+          graph,
+        })
+      })
+
+      it("builds a gradle project", async () => {
+        module.spec.build.projectType = "gradle"
+        module.spec.build.tarOnly = false
+        module.spec.build.dockerBuild = true
+
+        await actions.build({
+          module,
+          log: garden.log,
+          graph,
+        })
       })
     })
   })

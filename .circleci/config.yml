@@ -88,6 +88,18 @@ commands:
             chmod +x kubectl
             echo 'export PATH=$HOME/bin:$PATH' >> $BASH_ENV
 
+  docker_login:
+    description: Login to Docker Hub
+    steps:
+      - run:
+          name: docker login
+          command: |
+            if [ -n "$DOCKER_PASS" ]; then
+              echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+            else
+              echo "Skipping, no login available"
+            fi
+
   update_nodejs:
     description: Update Node.js
     steps:
@@ -162,6 +174,7 @@ commands:
       - store_artifacts:
           path: dist
           destination: dist
+
 #
 # Jobs section
 #
@@ -253,6 +266,7 @@ jobs:
       - install_kubectl
       - install_gcloud
       - configure_kubectl_context
+      - docker_login
       - *attach-workspace
       - run:
           name: Set environment
@@ -274,10 +288,10 @@ jobs:
           docker_layer_caching: true
       - checkout
       - *attach-workspace
+      - docker_login
       - run:
           name: Build image and push to registry
           command: |
-            docker login -u $DOCKER_USER -p $DOCKER_PASS
             TAG=gardendev/garden:${CIRCLE_SHA1}
             docker build -t ${TAG} -f support/alpine.Dockerfile dist/alpine-amd64
             docker push ${TAG}
@@ -288,10 +302,10 @@ jobs:
           docker_layer_caching: true
       - checkout
       - *attach-workspace
+      - docker_login
       - run:
           name: Build image and push to registry
           command: |
-            docker login -u $DOCKER_USER -p $DOCKER_PASS
             TAG=gardendev/garden-aws:${CIRCLE_SHA1}
             docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/aws.Dockerfile dist/alpine-amd64
             docker push ${TAG}
@@ -302,10 +316,10 @@ jobs:
           docker_layer_caching: true
       - checkout
       - *attach-workspace
+      - docker_login
       - run:
           name: Build image and push to registry
           command: |
-            docker login -u $DOCKER_USER -p $DOCKER_PASS
             TAG=gardendev/garden-azure:${CIRCLE_SHA1}
             docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/azure.Dockerfile dist/alpine-amd64
             docker push ${TAG}
@@ -316,10 +330,10 @@ jobs:
           docker_layer_caching: true
       - checkout
       - *attach-workspace
+      - docker_login
       - run:
           name: Build image and push to registry
           command: |
-            docker login -u $DOCKER_USER -p $DOCKER_PASS
             TAG=gardendev/garden-gcloud:${CIRCLE_SHA1}
             docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/gcloud.Dockerfile dist/alpine-amd64
             docker push ${TAG}
@@ -330,10 +344,10 @@ jobs:
           docker_layer_caching: true
       - checkout
       - *attach-workspace
+      - docker_login
       - run:
           name: Build image and push to registry
           command: |
-            docker login -u $DOCKER_USER -p $DOCKER_PASS
             TAG=gardendev/garden-aws-gcloud:${CIRCLE_SHA1}
             docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/aws-gcloud.Dockerfile dist/alpine-amd64
             docker push ${TAG}
@@ -344,10 +358,10 @@ jobs:
           docker_layer_caching: true
       - checkout
       - *attach-workspace
+      - docker_login
       - run:
           name: Build image and push to registry
           command: |
-            docker login -u $DOCKER_USER -p $DOCKER_PASS
             TAG=gardendev/garden-aws-gcloud-azure:${CIRCLE_SHA1}
             docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/aws-gcloud-azure.Dockerfile dist/alpine-amd64
             docker push ${TAG}
@@ -358,10 +372,10 @@ jobs:
           docker_layer_caching: true
       - checkout
       - *attach-workspace
+      - docker_login
       - run:
           name: Build image and push to registry
           command: |
-            docker login -u $DOCKER_USER -p $DOCKER_PASS
             TAG=gardendev/garden:${CIRCLE_SHA1}-buster
             docker build -t ${TAG} -f support/buster.Dockerfile dist/linux-amd64
             docker push ${TAG}
@@ -398,8 +412,6 @@ jobs:
       - deploy:
           name: Release docker images
           command: |
-            # These values are inject from context docker
-            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
             # Switches between git tag and master for releases
             TAG=${CIRCLE_TAG:-master}
             # Push the container
@@ -492,6 +504,7 @@ jobs:
     steps:
       - checkout
       - install_kubectl
+      - docker_login
       - run:
           name: Install kind
           command: |
@@ -571,6 +584,7 @@ jobs:
           command: |
             sudo apt update
             sudo apt install snapd nfs-common
+      - docker_login
       - run:
           name: Install and start microk8s
           command: |
@@ -647,6 +661,7 @@ jobs:
           command: |
             sudo apt-get update
             sudo apt install nfs-common conntrack
+      - docker_login
       - update_nodejs
       # Note: We can't use npm_install here because the cache conflicts
       - run: yarn run bootstrap

@@ -46,10 +46,16 @@ const jibModuleSchema = () =>
         .default("auto")
         .description(
           dedent`
-          The type of project to build. Defaults to auto-detect between gradle and maven (based on which files/directories are found in the module root), but in some cases you may need to specify it.
-          `
+            The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the module root), but in some cases you may need to specify it.
+            `
         ),
       jdkVersion: joi.number().integer().allow(8, 11).default(11).description("The JDK version to use."),
+      dockerBuild: joi
+        .boolean()
+        .default(false)
+        .description(
+          "Build the image and push to a local Docker daemon (i.e. use the `jib:dockerBuild` / `jibDockerBuild` target)."
+        ),
       tarOnly: joi
         .boolean()
         .default(false)
@@ -106,7 +112,7 @@ export const gardenPlugin = () =>
 
             // The base handler will either auto-detect or set include if there's no Dockerfile, so we need to
             // override that behavior.
-            const include = moduleConfig.include
+            const include = moduleConfig.include || []
             moduleConfig.include = []
 
             const configured = await base!({ ...params, moduleConfig: cloneDeep(moduleConfig) })
@@ -123,14 +129,27 @@ export const gardenPlugin = () =>
             return { moduleConfig }
           },
 
+          // Need to override this handler because the base handler checks if there is a Dockerfile,
+          // which doesn't apply here
           async getModuleOutputs({ moduleConfig, version }) {
             const deploymentImageName = containerHelpers.getDeploymentImageName(moduleConfig, undefined)
 
             const localImageId = containerHelpers.getLocalImageId(moduleConfig, version)
 
+            let repository = deploymentImageName
+            let tag = version.versionString
+
+            if (moduleConfig.spec.image) {
+              repository = moduleConfig.spec.image
+              const imageSpecTag = containerHelpers.parseImageId(moduleConfig.spec.image, "").tag
+              if (imageSpecTag) {
+                tag = imageSpecTag
+              }
+            }
+
             const deploymentImageId = containerHelpers.unparseImageId({
-              repository: moduleConfig.spec.image || deploymentImageName,
-              tag: version.versionString,
+              repository,
+              tag,
             })
 
             return {
@@ -145,7 +164,7 @@ export const gardenPlugin = () =>
 
           async build(params: BuildModuleParams<JibContainerModule>) {
             const { ctx, log, module } = params
-            const { tarOnly, jdkVersion } = module.spec.build
+            const { jdkVersion } = module.spec.build
 
             const openJdk = ctx.tools["jib.openjdk-" + jdkVersion]
             const openJdkPath = await openJdk.getPath(log)
@@ -171,14 +190,14 @@ export const gardenPlugin = () =>
 
             statusLine.setState({ section: module.name, msg: `Using JAVA_HOME=${openJdkPath}` })
 
-            const { flags, tarPath } = getBuildFlags(module, projectType)
+            const { args, tarPath } = getBuildFlags(module, projectType)
 
             if (projectType === "maven") {
               await mvn({
                 ctx,
                 log,
                 cwd: module.path,
-                args: ["compile", "jib:buildTar", ...flags],
+                args: ["compile", ...args],
                 openJdkPath,
                 outputStream,
               })
@@ -187,19 +206,9 @@ export const gardenPlugin = () =>
                 ctx,
                 log,
                 cwd: module.path,
-                args: ["jibBuildTar", ...flags],
+                args,
                 openJdkPath,
                 outputStream,
-              })
-            }
-
-            if (!tarOnly) {
-              statusLine.setState({ section: module.name, msg: "Loading image to Docker daemon" })
-              await containerHelpers.dockerCli({
-                ctx,
-                cwd: module.path,
-                args: ["load", "--input", tarPath],
-                log,
               })
             }
 

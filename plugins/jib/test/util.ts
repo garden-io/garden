@@ -57,7 +57,7 @@ describe("util", () => {
         path: "/foo",
         build: {},
         outputs: {
-          "local-image-id": imageId,
+          "deployment-image-id": imageId,
         },
         version: {
           versionString,
@@ -67,22 +67,40 @@ describe("util", () => {
           buildArgs: {},
         },
       }
-      const { flags } = getBuildFlags(module, "gradle")
+      const { args } = getBuildFlags(module, "gradle")
 
-      const targetDir = "build"
-      const basenameSuffix = "-foo-" + module.version.versionString
-
-      expect(flags).to.eql([
+      expect(args).to.eql([
+        "jib",
         "-Djib.to.image=" + imageId,
-        `-Djib.outputPaths.tar=${targetDir}/jib-image${basenameSuffix}.tar`,
-        `-Djib.outputPaths.digest=${targetDir}/jib-image${basenameSuffix}.digest`,
-        `-Djib.outputPaths.imageId=${targetDir}/jib-image${basenameSuffix}.id`,
-        `-Djib.outputPaths.imageJson=${targetDir}/jib-image${basenameSuffix}.json`,
         "-Djib.container.args=GARDEN_MODULE_VERSION=" + versionString,
         "-Dstyle.color=always",
         "-Djansi.passthrough=true",
         "-Djib.console=plain",
       ])
+    })
+
+    it("correctly sets the target for maven", () => {
+      const imageId = "foo:abcdef"
+      const versionString = "abcdef"
+
+      const module: any = {
+        name: "foo",
+        path: "/foo",
+        build: {},
+        outputs: {
+          "deployment-image-id": imageId,
+        },
+        version: {
+          versionString,
+        },
+        spec: {
+          build: {},
+          buildArgs: {},
+        },
+      }
+      const { args } = getBuildFlags(module, "maven")
+
+      expect(args[0]).to.equal("jib:build")
     })
 
     it("sets target dir to target/ for maven projects", () => {
@@ -94,19 +112,21 @@ describe("util", () => {
         path: "/foo",
         build: {},
         outputs: {
-          "local-image-id": imageId,
+          "deployment-image-id": imageId,
         },
         version: {
           versionString,
         },
         spec: {
-          build: {},
+          build: {
+            tarOnly: true,
+          },
           buildArgs: {},
         },
       }
-      const { flags, tarPath } = getBuildFlags(module, "maven")
+      const { args, tarPath } = getBuildFlags(module, "maven")
 
-      expect(flags).to.include(`-Djib.outputPaths.tar=target/jib-image-foo-${module.version.versionString}.tar`)
+      expect(args).to.include(`-Djib.outputPaths.tar=target/jib-image-foo-${module.version.versionString}.tar`)
       expect(tarPath).to.equal(`/foo/target/jib-image-foo-${module.version.versionString}.tar`)
     })
 
@@ -128,8 +148,8 @@ describe("util", () => {
         },
       }
 
-      const { flags } = getBuildFlags(module, "maven")
-      expect(flags).to.include("bloop")
+      const { args } = getBuildFlags(module, "maven")
+      expect(args).to.include("bloop")
     })
 
     it("adds docker build args if set in module spec", () => {
@@ -151,9 +171,9 @@ describe("util", () => {
         },
       }
 
-      const { flags } = getBuildFlags(module, "maven")
+      const { args } = getBuildFlags(module, "maven")
 
-      expect(flags).to.include("-Djib.container.args=GARDEN_MODULE_VERSION=" + versionString + ",foo=bar")
+      expect(args).to.include("-Djib.container.args=GARDEN_MODULE_VERSION=" + versionString + ",foo=bar")
     })
 
     it("sets OCI tar format if tarOnly and tarFormat=oci are set", () => {
@@ -178,9 +198,131 @@ describe("util", () => {
         },
       }
 
-      const { flags } = getBuildFlags(module, "maven")
+      const { args } = getBuildFlags(module, "maven")
 
-      expect(flags).to.include("-Djib.container.format=OCI")
+      expect(args).to.include("-Djib.container.format=OCI")
+    })
+
+    context("tarOnly=true", () => {
+      it("sets correct target and output paths", () => {
+        const imageId = "foo:abcdef"
+        const versionString = "abcdef"
+
+        const module: any = {
+          name: "foo",
+          path: "/foo",
+          build: {},
+          outputs: {
+            "deployment-image-id": imageId,
+          },
+          version: {
+            versionString,
+          },
+          spec: {
+            build: {
+              tarOnly: true,
+            },
+            buildArgs: {},
+          },
+        }
+        const { args } = getBuildFlags(module, "gradle")
+
+        const targetDir = "build"
+        const basenameSuffix = "-foo-" + module.version.versionString
+
+        expect(args).to.eql([
+          "jibBuildTar",
+          "-Djib.to.image=" + imageId,
+          "-Djib.container.args=GARDEN_MODULE_VERSION=" + versionString,
+          "-Dstyle.color=always",
+          "-Djansi.passthrough=true",
+          "-Djib.console=plain",
+          `-Djib.outputPaths.tar=${targetDir}/jib-image${basenameSuffix}.tar`,
+          `-Djib.outputPaths.digest=${targetDir}/jib-image${basenameSuffix}.digest`,
+          `-Djib.outputPaths.imageId=${targetDir}/jib-image${basenameSuffix}.id`,
+          `-Djib.outputPaths.imageJson=${targetDir}/jib-image${basenameSuffix}.json`,
+        ])
+      })
+
+      it("correctly sets the target for maven", () => {
+        const imageId = "foo:abcdef"
+        const versionString = "abcdef"
+
+        const module: any = {
+          name: "foo",
+          path: "/foo",
+          build: {},
+          outputs: {
+            "deployment-image-id": imageId,
+          },
+          version: {
+            versionString,
+          },
+          spec: {
+            build: {
+              tarOnly: true,
+            },
+            buildArgs: {},
+          },
+        }
+        const { args } = getBuildFlags(module, "maven")
+
+        expect(args[0]).to.equal("jib:buildTar")
+      })
+    })
+
+    context("dockerBuild=true", () => {
+      it("correctly sets the target for gradel", () => {
+        const imageId = "foo:abcdef"
+        const versionString = "abcdef"
+
+        const module: any = {
+          name: "foo",
+          path: "/foo",
+          build: {},
+          outputs: {
+            "deployment-image-id": imageId,
+          },
+          version: {
+            versionString,
+          },
+          spec: {
+            build: {
+              dockerBuild: true,
+            },
+            buildArgs: {},
+          },
+        }
+        const { args } = getBuildFlags(module, "gradle")
+
+        expect(args[0]).to.equal("jibDockerBuild")
+      })
+
+      it("correctly sets the target for maven", () => {
+        const imageId = "foo:abcdef"
+        const versionString = "abcdef"
+
+        const module: any = {
+          name: "foo",
+          path: "/foo",
+          build: {},
+          outputs: {
+            "deployment-image-id": imageId,
+          },
+          version: {
+            versionString,
+          },
+          spec: {
+            build: {
+              dockerBuild: true,
+            },
+            buildArgs: {},
+          },
+        }
+        const { args } = getBuildFlags(module, "maven")
+
+        expect(args[0]).to.equal("jib:dockerBuild")
+      })
     })
   })
 })

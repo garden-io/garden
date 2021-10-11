@@ -17,7 +17,7 @@ import { ModuleConfig } from "../../config/module"
 import {
   ContainerModule,
   ContainerRegistryConfig,
-  defaultTag,
+  defaultTag as _defaultTag,
   defaultImageNamespace,
   ContainerModuleConfig,
 } from "./config"
@@ -163,11 +163,11 @@ const helpers = {
     }
   },
 
-  parseImageId(imageId: string): ParsedImageId {
+  parseImageId(imageId: string, defaultTag = _defaultTag): ParsedImageId {
     let [name, tag] = splitLast(imageId, ":")
 
     if (name === "") {
-      name = tag
+      name = tag || ""
       tag = defaultTag
     }
 
