@@ -1,5 +1,10 @@
 kind: Module
 type: jib-container
 name: helloworld
+build:
+  # Push to local docker daemon when running a local cluster
+  # Note: You could also specify a deploymentRegistry or set the `image` field if you prefer to push to a registry,
+  #       but that'll obviously be much slower.
+  dockerBuild: ${environment.name == "local"}
 services:
   - name: helloworld

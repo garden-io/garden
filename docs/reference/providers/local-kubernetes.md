@@ -55,6 +55,14 @@ providers:
       # guide to assigning Pods to nodes.
       nodeSelector: {}
 
+    # Setting related to Jib image builds.
+    jib:
+      # In some cases you may need to push images built with Jib to the remote registry via Kubernetes cluster, e.g.
+      # if you don't have connectivity or access from where Garden is being run. In that case, set this flag to true,
+      # but do note that the build will take considerably take longer to complete! Only applies when using in-cluster
+      # building.
+      pushViaCluster: false
+
     # Configuration options for the `kaniko` build mode.
     kaniko:
       # Specify extra flags to use when building the container image with kaniko. Flags set on `container` modules
@@ -482,6 +490,26 @@ Configuration options for the `cluster-docker` build mode.
 {% endhint %}
 
 Enable [BuildKit](https://github.com/moby/buildkit) support. This should in most cases work well and be more performant, but we're opting to keep it optional until it's enabled by default in Docker.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
+
+### `providers[].jib`
+
+[providers](#providers) > jib
+
+Setting related to Jib image builds.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `providers[].jib.pushViaCluster`
+
+[providers](#providers) > [jib](#providersjib) > pushViaCluster
+
+In some cases you may need to push images built with Jib to the remote registry via Kubernetes cluster, e.g. if you don't have connectivity or access from where Garden is being run. In that case, set this flag to true, but do note that the build will take considerably take longer to complete! Only applies when using in-cluster building.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |

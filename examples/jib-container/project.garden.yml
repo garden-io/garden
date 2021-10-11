@@ -14,10 +14,10 @@ providers:
     namespace: ${project.name}-testing-${local.username}
     defaultHostname: ${local.username}-${project.name}.dev-1.sys.garden
     buildMode: kaniko
-    # deploymentRegistry:
-    #   hostname: eu.gcr.io
-    #   namespace: garden-dev-200012
-    # imagePullSecrets:
-    #   # These should have push permissions to the deploymentRegistry above
-    #   - name: gcr-config
-    #     namespace: default
+    deploymentRegistry:
+      hostname: eu.gcr.io
+      namespace: garden-ci
+    imagePullSecrets:
+      # These should have push permissions to the deploymentRegistry above
+      - name: gcr-config
+        namespace: default

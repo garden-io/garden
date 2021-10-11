@@ -116,6 +116,9 @@ export interface KubernetesConfig extends BaseProviderConfig {
   clusterDocker?: {
     enableBuildKit?: boolean
   }
+  jib?: {
+    pushViaCluster?: boolean
+  }
   kaniko?: {
     image?: string
     extraFlags?: string[]
@@ -394,6 +397,17 @@ export const kubernetesConfigBase = () =>
       .default(() => {})
       .description("Configuration options for the `cluster-docker` build mode.")
       .meta({ deprecated: "The cluster-docker build mode has been deprecated." }),
+    jib: joi
+      .object()
+      .keys({
+        pushViaCluster: joi
+          .boolean()
+          .default(false)
+          .description(
+            "In some cases you may need to push images built with Jib to the remote registry via Kubernetes cluster, e.g. if you don't have connectivity or access from where Garden is being run. In that case, set this flag to true, but do note that the build will take considerably take longer to complete! Only applies when using in-cluster building."
+          ),
+      })
+      .description("Setting related to Jib image builds."),
     kaniko: joi
       .object()
       .keys({

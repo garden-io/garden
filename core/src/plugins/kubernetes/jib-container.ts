@@ -16,7 +16,6 @@ import { GardenModule } from "../../types/module"
 import { BuildModuleParams } from "../../types/plugin/module/build"
 import { ModuleActionHandlers } from "../../types/plugin/plugin"
 import { makeTempDir } from "../../util/fs"
-import { containerHelpers } from "../container/helpers"
 import { KubeApi } from "./api"
 import { KubernetesPluginContext, KubernetesProvider } from "./config"
 import { buildkitDeploymentName, ensureBuildkit } from "./container/build/buildkit"
@@ -39,129 +38,146 @@ export const jibContainerHandlers: Partial<ModuleActionHandlers> = {
   // Note: Can't import the JibContainerModule type until we move the kubernetes plugin out of the core package
   async build(params: BuildModuleParams<GardenModule>) {
     const { ctx, log, module, base } = params
-
-    // Build the tarball with the base handler
-    module.spec.build.tarOnly = true
-    module.spec.build.tarFormat = "oci"
-
-    const baseResult = await base!(params)
-    const { tarPath } = baseResult.details
-
-    if (!tarPath) {
-      throw new PluginError(`Expected details.tarPath from the jib-container build handler.`, { baseResult })
-    }
+    const k8sCtx = ctx as KubernetesPluginContext
 
     const provider = <KubernetesProvider>ctx.provider
-    const buildMode = provider.config.buildMode
+    let buildMode = provider.config.buildMode
 
-    if (buildMode === "local-docker" || buildMode === "cluster-docker") {
-      if (buildMode === "cluster-docker") {
-        log.warn(
-          chalk.yellow(
-            `The jib-container module type doesn't support the cluster-docker build mode, which has been deprecated. Falling back to local-docker.`
-          )
+    if (buildMode === "cluster-docker") {
+      log.warn(
+        chalk.yellow(
+          `The jib-container module type doesn't support the cluster-docker build mode, which has been deprecated. Falling back to local-docker.`
         )
-      }
-      // Load the built tarball into the local docker daemon, and the local Kubernetes cluster (if needed)
-      await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["load", "--input", tarPath], log, ctx })
-      await loadToLocalK8s(params)
-      return baseResult
+      )
+      buildMode = "local-docker"
     }
 
-    // Push to util or buildkit deployment on remote, and push to registry from there to make sure auth/access is
-    // consistent with normal image pushes.
-    const api = await KubeApi.factory(log, ctx, provider)
-    const namespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
+    if (provider.name === "local-kubernetes") {
+      const result = await base!(params)
 
-    const tempDir = await makeTempDir()
-
-    try {
-      // Extract the tarball
-      const extractPath = resolve(tempDir.path, module.name)
-      await mkdirp(extractPath)
-      log.debug(`Extracting built image tarball from ${tarPath} to ${extractPath}`)
-
-      await tar.x({
-        cwd: extractPath,
-        file: tarPath,
-      })
-
-      let deploymentName: string
-
-      // Make sure the sync target is up
-      if (buildMode === "kaniko") {
-        // Make sure the garden-util deployment is up
-        await ensureUtilDeployment({
-          ctx,
-          provider,
-          log,
-          api,
-          namespace,
-        })
-        deploymentName = utilDeploymentName
-      } else if (buildMode === "cluster-buildkit") {
-        // Make sure the buildkit deployment is up
-        await ensureBuildkit({
-          ctx,
-          provider,
-          log,
-          api,
-          namespace,
-        })
-        deploymentName = buildkitDeploymentName
-      } else {
-        throw new ConfigurationError(`Unexpected buildMode ${buildMode}`, { buildMode })
+      if (module.spec.build.dockerBuild) {
+        // We may need to explicitly load the image into the cluster if it's built in the docker daemon directly
+        await loadToLocalK8s(params)
       }
-
-      // Sync the archive to the remote
-      const { dataPath } = await syncToBuildSync({
-        ...params,
-        ctx: ctx as KubernetesPluginContext,
-        api,
-        namespace,
-        deploymentName,
-        rsyncPort: utilRsyncPort,
-        sourcePath: extractPath,
-      })
-
-      const pushTimeout = module.build.timeout || defaultBuildTimeout
-
-      const syncCommand = ["skopeo", `--command-timeout=${pushTimeout}s`, "copy", "--authfile", "/.docker/config.json"]
-
-      if (usingInClusterRegistry(provider)) {
-        syncCommand.push("--dest-tls-verify=false")
-      }
-
-      syncCommand.push("oci:" + dataPath, "docker://" + module.outputs["deployment-image-id"])
-
-      log.setState(`Pushing image ${module.outputs["deployment-image-id"]} to registry`)
-
-      const runner = new PodRunner({
-        api,
-        ctx,
-        provider,
-        namespace,
-        pod: await getRunningDeploymentPod({
-          api,
-          deploymentName,
-          namespace,
-        }),
-      })
-
-      const { log: skopeoLog } = await runner.exec({
-        log,
-        command: ["sh", "-c", syncCommand.join(" ")],
-        timeoutSec: pushTimeout + 5,
-        containerName: utilContainerName,
-        buffer: true,
-      })
-
-      log.debug(skopeoLog)
-      log.setState(`Image ${module.outputs["deployment-image-id"]} built and pushed to registry`)
-
-      return baseResult
-    } finally {
-      await tempDir.cleanup()
+      return result
+    } else if (k8sCtx.provider.config.jib?.pushViaCluster) {
+      return buildAndPushViaRemote(params)
+    } else {
+      return base!(params)
     }
   },
+}
+
+async function buildAndPushViaRemote(params: BuildModuleParams<GardenModule>) {
+  const { ctx, log, module, base } = params
+
+  const provider = <KubernetesProvider>ctx.provider
+  let buildMode = provider.config.buildMode
+
+  // Build the tarball with the base handler
+  module.spec.build.tarOnly = true
+  module.spec.build.tarFormat = "oci"
+
+  const baseResult = await base!(params)
+  const { tarPath } = baseResult.details
+
+  if (!tarPath) {
+    throw new PluginError(`Expected details.tarPath from the jib-container build handler.`, { baseResult })
+  }
+
+  // Push to util or buildkit deployment on remote, and push to registry from there to make sure auth/access is
+  // consistent with normal image pushes.
+  const api = await KubeApi.factory(log, ctx, provider)
+  const namespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
+
+  const tempDir = await makeTempDir()
+
+  try {
+    // Extract the tarball
+    const extractPath = resolve(tempDir.path, module.name)
+    await mkdirp(extractPath)
+    log.debug(`Extracting built image tarball from ${tarPath} to ${extractPath}`)
+
+    await tar.x({
+      cwd: extractPath,
+      file: tarPath,
+    })
+
+    let deploymentName: string
+
+    // Make sure the sync target is up
+    if (buildMode === "kaniko") {
+      // Make sure the garden-util deployment is up
+      await ensureUtilDeployment({
+        ctx,
+        provider,
+        log,
+        api,
+        namespace,
+      })
+      deploymentName = utilDeploymentName
+    } else if (buildMode === "cluster-buildkit") {
+      // Make sure the buildkit deployment is up
+      await ensureBuildkit({
+        ctx,
+        provider,
+        log,
+        api,
+        namespace,
+      })
+      deploymentName = buildkitDeploymentName
+    } else {
+      throw new ConfigurationError(`Unexpected buildMode ${buildMode}`, { buildMode })
+    }
+
+    // Sync the archive to the remote
+    const { dataPath } = await syncToBuildSync({
+      ...params,
+      ctx: ctx as KubernetesPluginContext,
+      api,
+      namespace,
+      deploymentName,
+      rsyncPort: utilRsyncPort,
+      sourcePath: extractPath,
+    })
+
+    const pushTimeout = module.build.timeout || defaultBuildTimeout
+
+    const syncCommand = ["skopeo", `--command-timeout=${pushTimeout}s`, "copy", "--authfile", "/.docker/config.json"]
+
+    if (usingInClusterRegistry(provider)) {
+      syncCommand.push("--dest-tls-verify=false")
+    }
+
+    syncCommand.push("oci:" + dataPath, "docker://" + module.outputs["deployment-image-id"])
+
+    log.setState(`Pushing image ${module.outputs["deployment-image-id"]} to registry`)
+
+    const runner = new PodRunner({
+      api,
+      ctx,
+      provider,
+      namespace,
+      pod: await getRunningDeploymentPod({
+        api,
+        deploymentName,
+        namespace,
+      }),
+    })
+
+    const { log: skopeoLog } = await runner.exec({
+      log,
+      command: ["sh", "-c", syncCommand.join(" ")],
+      timeoutSec: pushTimeout + 5,
+      containerName: utilContainerName,
+      buffer: true,
+    })
+
+    log.debug(skopeoLog)
+    log.setState(`Image ${module.outputs["deployment-image-id"]} built and pushed to registry`)
+
+    return baseResult
+  } finally {
+    await tempDir.cleanup()
+  }
 }

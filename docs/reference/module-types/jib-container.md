@@ -63,12 +63,15 @@ build:
   # Maximum time in seconds to wait for build to finish.
   timeout: 1200
 
-  # The type of project to build. Defaults to auto-detect between gradle and maven (based on which files/directories
-  # are found in the module root), but in some cases you may need to specify it.
+  # The type of project to build. Defaults to auto-detecting between gradle and maven (based on which
+  # files/directories are found in the module root), but in some cases you may need to specify it.
   projectType: auto
 
   # The JDK version to use.
   jdkVersion: 11
+
+  # Build the image and push to a local Docker daemon (i.e. use the `jib:dockerBuild` / `jibDockerBuild` target).
+  dockerBuild: false
 
   # Don't load or push the resulting image to a Docker daemon or registry, only build it as a tar file.
   tarOnly: false
@@ -799,7 +802,7 @@ Maximum time in seconds to wait for build to finish.
 
 [build](#build) > projectType
 
-The type of project to build. Defaults to auto-detect between gradle and maven (based on which files/directories are found in the module root), but in some cases you may need to specify it.
+The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the module root), but in some cases you may need to specify it.
 
 | Type     | Default  | Required |
 | -------- | -------- | -------- |
@@ -814,6 +817,16 @@ The JDK version to use.
 | Type     | Default | Required |
 | -------- | ------- | -------- |
 | `number` | `11`    | No       |
+
+### `build.dockerBuild`
+
+[build](#build) > dockerBuild
+
+Build the image and push to a local Docker daemon (i.e. use the `jib:dockerBuild` / `jibDockerBuild` target).
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 ### `build.tarOnly`
 
