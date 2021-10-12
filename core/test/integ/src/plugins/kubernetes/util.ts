@@ -31,7 +31,7 @@ import { emptyRuntimeContext } from "../../../../../src/runtime-context"
 import { getHelmTestGarden } from "./helm/common"
 import { deline } from "../../../../../src/util/string"
 import { getBaseModule, getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
-import { buildHelmModule } from "../../../../../src/plugins/kubernetes/helm/build"
+import { prepareHelmModule } from "../../../../../src/plugins/kubernetes/helm/deployment"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { BuildTask } from "../../../../../src/tasks/build"
 import { getContainerTestGarden } from "./container/container"
@@ -358,7 +358,7 @@ describe("util", () => {
 
     it("should resolve template string for resource name", async () => {
       const module = helmGraph.getModule("postgres")
-      await buildHelmModule({ ctx, module, log })
+      await prepareHelmModule({ ctx, module, log })
       const manifests = await getChartResources({
         ctx,
         module,

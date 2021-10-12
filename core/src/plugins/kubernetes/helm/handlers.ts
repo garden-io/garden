@@ -8,7 +8,6 @@
 
 import { ModuleAndRuntimeActionHandlers } from "../../../types/plugin/plugin"
 import { HelmModule, configureHelmModule } from "./config"
-import { buildHelmModule } from "./build"
 import { getServiceStatus } from "./status"
 import { deployHelmService, deleteService } from "./deployment"
 import { getTestResult } from "../test-results"
@@ -29,7 +28,6 @@ import { hotReloadK8s } from "../hot-reload/hot-reload"
 import { execInHelmService } from "./exec"
 
 export const helmHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModule>> = {
-  build: buildHelmModule,
   configure: configureHelmModule,
   getModuleOutputs: async ({ moduleConfig }) => {
     return {
