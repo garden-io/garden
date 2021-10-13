@@ -29,7 +29,7 @@ import {
 } from "../../../../../../src/plugins/kubernetes/kubernetes-module/handlers"
 import { emptyRuntimeContext } from "../../../../../../src/runtime-context"
 import Bluebird from "bluebird"
-import { buildHelmModules } from "../helm/common"
+import { prepareHelmModules } from "../helm/common"
 import { gardenAnnotationKey } from "../../../../../../src/util/string"
 import { getServiceStatuses } from "../../../../../../src/tasks/base"
 
@@ -109,7 +109,7 @@ describe("kubernetes-module handlers", () => {
     }
 
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    await buildHelmModules(garden, graph)
+    await prepareHelmModules(garden, ctx, graph)
   })
 
   after(async () => {

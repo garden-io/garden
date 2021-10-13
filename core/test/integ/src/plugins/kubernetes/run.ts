@@ -38,7 +38,7 @@ import {
 import { PluginContext } from "../../../../../src/plugin-context"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { sleep } from "../../../../../src/util/util"
-import { buildHelmModules, getHelmTestGarden } from "./helm/common"
+import { prepareHelmModules, getHelmTestGarden } from "./helm/common"
 import { getBaseModule, getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
 import { getModuleNamespace } from "../../../../../src/plugins/kubernetes/namespace"
 import { GardenModule } from "../../../../../src/types/module"
@@ -551,7 +551,7 @@ describe("kubernetes Pod runner functions", () => {
       helmApi = await KubeApi.factory(helmGarden.log, helmCtx, helmProvider)
       helmLog = helmGarden.log
       helmGraph = await helmGarden.getConfigGraph({ log: helmLog, emit: false })
-      await buildHelmModules(helmGarden, helmGraph)
+      await prepareHelmModules(garden, helmCtx, helmGraph)
       helmModule = helmGraph.getModule("artifacts")
 
       helmManifests = await getChartResources({

@@ -28,6 +28,7 @@ import { KubeApi } from "../api"
 import { getModuleNamespaceStatus } from "../namespace"
 import { DEFAULT_TASK_TIMEOUT } from "../../../constants"
 import { KubernetesPod } from "../types"
+import { prepareHelmModule } from "./deployment"
 
 export async function runHelmModule({
   ctx,
@@ -39,6 +40,7 @@ export async function runHelmModule({
   timeout,
   log,
 }: RunModuleParams<HelmModule>): Promise<RunResult> {
+  await prepareHelmModule({ ctx, module, log })
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const namespaceStatus = await getModuleNamespaceStatus({
@@ -121,6 +123,7 @@ export async function runHelmModule({
 
 export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<RunTaskResult> {
   const { ctx, log, module, task } = params
+  await prepareHelmModule({ ctx, log, module })
   // TODO: deduplicate this from testHelmModule
   const k8sCtx = <KubernetesPluginContext>ctx
 

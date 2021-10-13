@@ -11,7 +11,7 @@ import { expect } from "chai"
 import { TestGarden, expectError } from "../../../../helpers"
 import { deline } from "../../../../../src/util/string"
 import { ConfigGraph } from "../../../../../src/config-graph"
-import { getHelmTestGarden, buildHelmModules } from "./helm/common"
+import { getHelmTestGarden, prepareHelmModules } from "./helm/common"
 import { getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
 import { KubernetesProvider, KubernetesPluginContext } from "../../../../../src/plugins/kubernetes/config"
 import {
@@ -31,8 +31,10 @@ describe("getHotReloadSpec", () => {
 
   before(async () => {
     garden = await getHelmTestGarden()
+    const provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
+    const ctx = <KubernetesPluginContext>await garden.getPluginContext(provider)
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    await buildHelmModules(garden, graph)
+    await prepareHelmModules(garden, ctx, graph)
   })
 
   beforeEach(async () => {

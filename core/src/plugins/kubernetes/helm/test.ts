@@ -22,9 +22,11 @@ import {
   getResourcePodSpec,
 } from "../util"
 import { getModuleNamespaceStatus } from "../namespace"
+import { prepareHelmModule } from "./deployment"
 
 export async function testHelmModule(params: TestModuleParams<HelmModule>): Promise<TestResult> {
   const { ctx, log, module, test } = params
+  await prepareHelmModule({ ctx, log, module })
   const k8sCtx = <KubernetesPluginContext>ctx
 
   // Get the container spec to use for running

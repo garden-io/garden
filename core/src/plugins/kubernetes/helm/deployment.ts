@@ -15,6 +15,7 @@ import {
   gardenCloudAECPauseAnnotation,
 } from "./status"
 import tmp from "tmp-promise"
+import AsyncLock from "async-lock"
 import { waitForResources } from "../status/status"
 import { helm } from "./helm-cli"
 import { HelmModule } from "./config"
@@ -38,10 +39,10 @@ import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
 import { getHotReloadSpec, configureHotReload, getHotReloadContainerName } from "../hot-reload/helpers"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { KubeApi } from "../api"
-import { move } from "fs-extra"
+import { move, pathExists, readFile, writeFile } from "fs-extra"
 import { basename, join } from "path"
 import { ConfigurationError } from "../../../exceptions"
-import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
+import { BuildModuleParams } from "../../../types/plugin/module/build"
 import { deline } from "../../../util/string"
 import { LogEntry } from "../../../logger/log-entry"
 
@@ -227,43 +228,51 @@ export async function deleteService(params: DeleteServiceParams): Promise<HelmSe
   return { state: "missing", detail: { remoteResources: [] } }
 }
 
+const prepareLock = new AsyncLock()
+
 /**
  * Fetches the module's Helm chart and updates local Helm repos if necessary.
+ *
+ * Uses an async lock (with the module name as the key).
  */
-export async function prepareHelmModule({ ctx, module, log }: BuildModuleParams<HelmModule>): Promise<BuildResult> {
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const baseModule = getBaseModule(module)
+export async function prepareHelmModule({ ctx, module, log }: BuildModuleParams<HelmModule>) {
+  await prepareLock.acquire(module.name, async () => {
+    const k8sCtx = <KubernetesPluginContext>ctx
+    const baseModule = getBaseModule(module)
 
-  if (!baseModule && !(await containsBuildSource(module))) {
-    if (!module.spec.chart) {
-      throw new ConfigurationError(
-        deline`Module '${module.name}' neither specifies a chart name, base module,
-        nor contains chart sources at \`chartPath\`.`,
-        { module }
-      )
+    if (!baseModule && !(await containsBuildSource(module))) {
+      if (!module.spec.chart) {
+        throw new ConfigurationError(
+          deline`Module '${module.name}' neither specifies a chart name, base module,
+          nor contains chart sources at \`chartPath\`.`,
+          { module }
+        )
+      }
+      log.debug("Fetching chart...")
+      try {
+        await pullChart(k8sCtx, log, module)
+      } catch {
+        // Update the local helm repos and retry
+        log.debug("Updating Helm repos...")
+        // The stable repo is no longer added by default
+        await helm({
+          ctx: k8sCtx,
+          log,
+          args: ["repo", "add", "stable", "https://charts.helm.sh/stable", "--force-update"],
+        })
+        await helm({ ctx: k8sCtx, log, args: ["repo", "update"] })
+        log.debug("Fetching chart (after updating)...")
+        await pullChart(k8sCtx, log, module)
+      }
     }
-    log.debug("Fetching chart...")
-    try {
-      await pullChart(k8sCtx, log, module)
-    } catch {
-      // Update the local helm repos and retry
-      log.debug("Updating Helm repos...")
-      // The stable repo is no longer added by default
-      await helm({
-        ctx: k8sCtx,
-        log,
-        args: ["repo", "add", "stable", "https://charts.helm.sh/stable", "--force-update"],
-      })
-      await helm({ ctx: k8sCtx, log, args: ["repo", "update"] })
-      log.debug("Fetching chart (after updating)...")
-      await pullChart(k8sCtx, log, module)
-    }
-  }
-
-  return { fresh: true }
+  })
 }
 
 async function pullChart(ctx: KubernetesPluginContext, log: LogEntry, module: HelmModule) {
+  if (await chartsFetched(log, module)) {
+    log.debug(`Charts already fetched for module ${module.name}`)
+    return
+  }
   const chartPath = await getChartPath(module)
   const chartDir = basename(chartPath)
 
@@ -282,7 +291,44 @@ async function pullChart(ctx: KubernetesPluginContext, log: LogEntry, module: He
     await helm({ ctx, log, args: [...args], cwd: tmpDir.path })
 
     await move(join(tmpDir.path, chartDir), chartPath, { overwrite: true })
+    await setChartsFetched(module)
   } finally {
     await tmpDir.cleanup()
   }
+}
+
+interface ChartFetchedSpec {
+  chart: string
+  version?: string
+  repo?: string
+}
+
+async function chartsFetched(log: LogEntry, module: HelmModule): Promise<boolean> {
+  if (!(await pathExists(fetchIndicatorFilePath(module)))) {
+    return false
+  }
+  const newSpec = makeChartFetchedSpec(module)
+  try {
+    const fileContent = (await readFile(fetchIndicatorFilePath(module))).toString()
+    return JSON.stringify(newSpec) === fileContent
+  } catch (err) {
+    log.debug(`Failed parsing fetch indicator file for Helm module ${module.name}`)
+    return false
+  }
+}
+
+async function setChartsFetched(module: HelmModule) {
+  const { chart, version, repo } = module.spec
+  const spec: ChartFetchedSpec = { chart: chart!, version, repo }
+  await writeFile(fetchIndicatorFilePath(module), JSON.stringify(spec))
+}
+
+function makeChartFetchedSpec(module: HelmModule): ChartFetchedSpec {
+  const { chart, version, repo } = module.spec
+  const spec: ChartFetchedSpec = { chart: chart!, version, repo }
+  return spec
+}
+
+function fetchIndicatorFilePath(module: HelmModule): string {
+  return join(module.buildPath, ".garden-charts-fetched")
 }
