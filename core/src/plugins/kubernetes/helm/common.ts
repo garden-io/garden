@@ -10,7 +10,7 @@ import { isPlainObject, flatten } from "lodash"
 import { join, resolve } from "path"
 import { pathExists, writeFile, remove, readFile } from "fs-extra"
 import cryptoRandomString = require("crypto-random-string")
-import { apply as jsonMerge } from "json-merge-patch"
+import { merge as jsonMerge } from "json-merge-patch"
 
 import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
@@ -107,8 +107,12 @@ export async function renderTemplates({ ctx, module, devMode, hotReload, log, ve
 
   // create the values.yml file (merge the configured parameters into the default values)
   // Merge with the base module's values, if applicable
+  let specValues = module.spec.values || {}
+
   const baseModule = getBaseModule(module)
-  const specValues = baseModule ? jsonMerge(baseModule.spec.values, module.spec.values) : module.spec.values
+  if (baseModule) {
+    specValues = jsonMerge(baseModule.spec.values, specValues)
+  }
 
   // Add Garden metadata
   specValues[".garden"] = {
