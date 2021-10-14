@@ -256,9 +256,9 @@ services:
           # `.git` directories and `.garden` directories are always ignored.
           exclude:
 
-          # The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`,
-          # `one-way-reverse`, `one-way-replica-reverse` and `two-way`.
-          mode: one-way
+          # The sync mode to use for the given paths. See the [Dev Mode
+          # guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
+          mode: one-way-safe
 
           # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600
           # (user read/write). See the [Mutagen
@@ -1278,11 +1278,11 @@ services:
 
 [services](#services) > [devMode](#servicesdevmode) > [sync](#servicesdevmodesync) > mode
 
-The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `one-way-reverse`, `one-way-replica-reverse` and `two-way`.
+The sync mode to use for the given paths. See the [Dev Mode guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
 
-| Type     | Allowed Values                                                                        | Default     | Required |
-| -------- | ------------------------------------------------------------------------------------- | ----------- | -------- |
-| `string` | "one-way", "one-way-replica", "one-way-reverse", "one-way-replica-reverse", "two-way" | `"one-way"` | Yes      |
+| Type     | Allowed Values                                                                                                                            | Default          | Required |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | -------- |
+| `string` | "one-way", "one-way-safe", "one-way-replica", "one-way-reverse", "one-way-replica-reverse", "two-way", "two-way-safe", "two-way-resolved" | `"one-way-safe"` | Yes      |
 
 ### `services[].devMode.sync[].defaultFileMode`
 
