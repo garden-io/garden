@@ -268,7 +268,7 @@ export async function skopeoBuildStatus({
   }
 }
 
-export function skopeoManifestUnknown(errMsg: string | null | undefined) : boolean {
+export function skopeoManifestUnknown(errMsg: string | null | undefined): boolean {
   if (!errMsg) {
     return false
   }
