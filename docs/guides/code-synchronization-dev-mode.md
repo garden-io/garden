@@ -87,7 +87,8 @@ Garden's dev mode supports several sync modes, each of which maps onto a Mutagen
 
 In brief: It's generally easiest to get started with the `one-way` or `two-way` sync modes, and then graduate to a more fine-grained setup based on `one-way-replica` and/or `one-way-replica-reverse` once you're ready to specify exactly which paths to sync and which files/directories to ignore from the sync.
 
-### `one-way` (shorthand for `one-way-safe`)
+### `one-way-safe` (or alias `one-way`)
+
 * Syncs a local `source` path to a remote `target` path.
 * When there are conflicts, does not replace/delete files in the remote `target` path.
 * Simple to use, especially when there are files/directories inside the remote `target` that you don't want to override with the contents of the local `source`.
@@ -109,13 +110,20 @@ In brief: It's generally easiest to get started with the `one-way` or `two-way` 
   * Syncs a remote `target` path to a local `source` path, such that `source` is always an exact mirror of `target` (with the exception of excluded paths).
   * When using this mode, there can be no conflicts—the contents of `target` always override the contents of `source`.
 
-### `two-way` (maps to Mutagen's `two-way-safe`)
+### `two-way-safe` (or alias `two-way`)
   * Bidirectionally syncs a local `source` to a remote `target` path.
   * Changes made in the local `source` will be synced to the remote `target`.
   * Changes made in the remote `target` will be synced to the local `source`.
   * When there are conflicts on either side, does not replace/delete the corresponding conflicting paths on the other side.
   * Similarly to `one-way`, this mode is simple to configure when there are files in either `source` or `target` that you don't want overriden on the other side when files change or are added/deleted.
   * Setting up several `one-way-replica` and `one-way-replica-reverse` syncs instead of `one-way` and `two-way` is generally the best approach long-term, but may require more fine-grained configuration (more sync specs for specific subpaths and more specific exclusion rules, to make sure things don't get overwritten/deleted in unwanted ways).
+
+### `two-way-resolved`
+
+Same as `two-way-safe` except:
+
+  * Changes made in the local `source` will always win any conflict. This includes cases where alpha’s deletions would overwrite beta’s modifications or creations
+  * No conflicts can occur in this synchronization mode.
 
 In addition to the above, please check out the [Mutagen docs on synchronization](https://mutagen.io/documentation/synchronization) for more info.
 

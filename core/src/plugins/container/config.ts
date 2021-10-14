@@ -251,11 +251,20 @@ const devModeSyncSchema = () =>
     exclude: syncExcludeSchema(),
     mode: joi
       .string()
-      .allow("one-way", "one-way-replica", "one-way-reverse", "one-way-replica-reverse", "two-way")
+      .allow(
+        "one-way",
+        "one-way-safe",
+        "one-way-replica",
+        "one-way-reverse",
+        "one-way-replica-reverse",
+        "two-way",
+        "two-way-safe",
+        "two-way-resolved"
+      )
       .only()
-      .default("one-way")
+      .default("one-way-safe")
       .description(
-        "The sync mode to use for the given paths. Allowed options: `one-way`, `one-way-replica`, `one-way-reverse`, `one-way-replica-reverse` and `two-way`."
+        "The sync mode to use for the given paths. See the [Dev Mode guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details."
       ),
     defaultFileMode: syncDefaultFileModeSchema(),
     defaultDirectoryMode: syncDefaultDirectoryModeSchema(),
