@@ -49,13 +49,18 @@ describe("ensureNamespace", () => {
 
     const result = await ensureNamespace(api, namespace, log)
 
-    expect(result?.metadata.name).to.equal(namespaceName)
-    expect(result?.metadata.annotations).to.eql({
+    const ns = result.remoteResource
+
+    expect(ns?.metadata.name).to.equal(namespaceName)
+    expect(ns?.metadata.annotations).to.eql({
       [gardenAnnotationKey("generated")]: "true",
       [gardenAnnotationKey("version")]: getPackageVersion(),
       ...namespace.annotations,
     })
-    expect(result?.metadata.labels?.floo).to.equal("blar")
+    expect(ns?.metadata.labels?.floo).to.equal("blar")
+
+    expect(result.created).to.be.true
+    expect(result.patched).to.be.false
   })
 
   it("should add configured annotations if any are missing", async () => {
@@ -78,12 +83,17 @@ describe("ensureNamespace", () => {
 
     const result = await ensureNamespace(api, namespace, log)
 
-    expect(result?.metadata.name).to.equal(namespaceName)
-    expect(result?.metadata.annotations).to.eql({
+    const ns = result.remoteResource
+
+    expect(ns?.metadata.name).to.equal(namespaceName)
+    expect(ns?.metadata.annotations).to.eql({
       [gardenAnnotationKey("generated")]: "true",
       [gardenAnnotationKey("version")]: getPackageVersion(),
       foo: "bar",
     })
+
+    expect(result.created).to.be.false
+    expect(result.patched).to.be.true
   })
 
   it("should add configured labels if any are missing", async () => {
@@ -103,9 +113,14 @@ describe("ensureNamespace", () => {
 
     const result = await ensureNamespace(api, namespace, log)
 
-    expect(result?.metadata.name).to.equal(namespaceName)
-    expect(result?.metadata.labels?.foo).to.equal("bar")
-    expect(result?.metadata.labels?.floo).to.equal("blar")
+    const ns = result.remoteResource
+
+    expect(ns?.metadata.name).to.equal(namespaceName)
+    expect(ns?.metadata.labels?.foo).to.equal("bar")
+    expect(ns?.metadata.labels?.floo).to.equal("blar")
+
+    expect(result.created).to.be.false
+    expect(result.patched).to.be.true
   })
 
   it("should do nothing if the namespace has already been configured", async () => {
@@ -131,6 +146,7 @@ describe("ensureNamespace", () => {
 
     const result = await ensureNamespace(api, namespace, log)
 
-    expect(result).to.be.null
+    expect(result.created).to.be.false
+    expect(result.patched).to.be.false
   })
 })

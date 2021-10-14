@@ -24,35 +24,54 @@ import { V1Namespace } from "@kubernetes/client-node"
 import { isSubset } from "../../util/is-subset"
 import chalk from "chalk"
 import { NamespaceStatus } from "../../types/plugin/base"
+import { KubernetesServerResource } from "./types"
 
 const GARDEN_VERSION = getPackageVersion()
-type CreateNamespaceStatus = "pending" | "created"
-const created: { [name: string]: CreateNamespaceStatus } = {}
+
+const cache: {
+  [name: string]: {
+    status: "pending" | "created"
+    resource?: KubernetesServerResource<V1Namespace>
+  }
+} = {}
+
+interface EnsureNamespaceResult {
+  remoteResource?: KubernetesServerResource<V1Namespace>
+  patched: boolean
+  created: boolean
+}
 
 /**
  * Makes sure the given namespace exists and has the configured annotations and labels.
  *
  * Returns the namespace resource if it was created or updated, or null if nothing was done.
  */
-export async function ensureNamespace(api: KubeApi, namespace: NamespaceConfig, log: LogEntry) {
-  if (!created[namespace.name]) {
-    created[namespace.name] = "pending"
+export async function ensureNamespace(
+  api: KubeApi,
+  namespace: NamespaceConfig,
+  log: LogEntry
+): Promise<EnsureNamespaceResult> {
+  const result: EnsureNamespaceResult = { patched: false, created: false }
+
+  if (!cache[namespace.name] || namespaceNeedsUpdate(cache[namespace.name].resource!, namespace)) {
+    cache[namespace.name] = { status: "pending" }
+
+    // Get the latest remote namespace list
     const namespacesStatus = await api.core.listNamespace()
-    let remoteNamespace: V1Namespace | undefined = undefined
 
     for (const n of namespacesStatus.items) {
       if (n.status.phase === "Active") {
-        created[n.metadata.name] = "created"
+        cache[n.metadata.name] = { status: "created", resource: n }
       }
       if (n.metadata.name === namespace.name) {
-        remoteNamespace = n
+        result.remoteResource = n
       }
     }
 
-    if (created[namespace.name] !== "created") {
+    if (cache[namespace.name].status !== "created") {
       log.verbose("Creating namespace " + namespace.name)
       try {
-        return api.core.createNamespace({
+        result.remoteResource = await api.core.createNamespace({
           apiVersion: "v1",
           kind: "Namespace",
           metadata: {
@@ -65,42 +84,48 @@ export async function ensureNamespace(api: KubeApi, namespace: NamespaceConfig, 
             labels: namespace.labels,
           },
         })
+        result.created = true
       } catch (error) {
         throw new KubernetesError(
           `Namespace ${namespace.name} doesn't exist and Garden was unable to create it. You may need to create it manually or ask an administrator to do so.`,
           { error }
         )
       }
-    } else if (
-      remoteNamespace &&
-      (!isSubset(remoteNamespace.metadata?.annotations, namespace.annotations) ||
-        !isSubset(remoteNamespace.metadata?.labels, namespace.labels))
-    ) {
+    } else if (namespaceNeedsUpdate(result.remoteResource, namespace)) {
       // Make sure annotations and labels are set correctly if the namespace already exists
       log.verbose("Updating annotations and labels on namespace " + namespace.name)
       try {
-        return api.core.patchNamespace(namespace.name, {
+        result.remoteResource = await api.core.patchNamespace(namespace.name, {
           metadata: {
             annotations: namespace.annotations,
             labels: namespace.labels,
           },
         })
+        result.patched = true
       } catch {
         log.warn(chalk.yellow(`Unable to apply the configured annotations and labels on namespace ${namespace.name}`))
       }
     }
 
-    created[namespace.name] = "created"
+    cache[namespace.name] = { status: "created", resource: result.remoteResource }
   }
 
-  return null
+  return result
+}
+
+function namespaceNeedsUpdate(resource: KubernetesServerResource<V1Namespace> | undefined, config: NamespaceConfig) {
+  return (
+    resource &&
+    (!isSubset(resource.metadata?.annotations, config.annotations) ||
+      !isSubset(resource.metadata?.labels, config.labels))
+  )
 }
 
 /**
  * Returns `true` if the namespace exists, `false` otherwise.
  */
 export async function namespaceExists(api: KubeApi, name: string): Promise<boolean> {
-  if (created[name]) {
+  if (cache[name]) {
     return true
   }
 
