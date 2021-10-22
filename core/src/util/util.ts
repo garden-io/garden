@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { trimEnd, omit, groupBy } from "lodash"
+import { isArray, isPlainObject, extend, mapValues, pickBy, range, trimEnd, omit, groupBy, some } from "lodash"
 import split2 = require("split2")
 import Bluebird = require("bluebird")
 import { ResolvableProps } from "bluebird"
@@ -16,7 +16,6 @@ import _spawn from "cross-spawn"
 import { readFile, writeFile } from "fs-extra"
 import { find, pick, difference, fromPairs, uniqBy } from "lodash"
 import { TimeoutError, ParameterError, RuntimeError, GardenError } from "../exceptions"
-import { isArray, isPlainObject, extend, mapValues, pickBy, range, some } from "lodash"
 import highlight from "cli-highlight"
 import chalk from "chalk"
 import { safeDump, safeLoad, DumpOptions } from "js-yaml"
@@ -522,6 +521,10 @@ export function uniqByName<T extends ObjectWithName>(array: T[]): T[] {
   return uniqBy(array, (item) => item.name)
 }
 
+export function isDisjoint<T>(set1: Set<T>, set2: Set<T>): boolean {
+  return !some([...set1], (element) => set2.has(element))
+}
+
 /**
  * Returns an array of arrays, where the elements of a given array are the elements of items for which
  * isRelated returns true for one or more elements of its class.
@@ -529,21 +532,36 @@ export function uniqByName<T extends ObjectWithName>(array: T[]): T[] {
  * I.e. an element is related to at least one element of its class, transitively.
  */
 export function relationshipClasses<I>(items: I[], isRelated: (item1: I, item2: I) => boolean): I[][] {
-  const classes: I[][] = []
-  for (const item of items) {
-    let found = false
-    for (const classIndex of range(0, classes.length)) {
-      const cls = classes[classIndex]
-      if (cls && cls.length && some(cls, (classItem) => isRelated(classItem, item))) {
-        found = true
-        cls.push(item)
+  // We start with each item in its own class.
+  //
+  // We then keep looking for relationships/connections between classes and merging them when one is found,
+  // until no two classes have elements that are related to each other.
+  const classes: I[][] = items.map((i) => [i])
+
+  let didMerge = false
+  do {
+    didMerge = false
+    for (const classIndex1 of range(0, classes.length)) {
+      for (const classIndex2 of range(0, classes.length)) {
+        if (classIndex1 === classIndex2) {
+          continue
+        }
+        const c1 = classes[classIndex1]
+        const c2 = classes[classIndex2]
+        if (some(c1, (i1) => some(c2, (i2) => isRelated(i1, i2)))) {
+          // Then we merge c1 and c2.
+          didMerge = true
+          classes.splice(classIndex2, 1)
+          classes[classIndex1] = [...c1, ...c2]
+          break
+        }
+      }
+      if (didMerge) {
+        break
       }
     }
-
-    if (!found) {
-      classes.push([item])
-    }
-  }
+  } while (didMerge)
+  // Once this point is reached, no two classes are related to each other, so we can return them.
 
   return classes
 }

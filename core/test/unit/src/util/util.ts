@@ -332,11 +332,12 @@ describe("util", () => {
 
   describe("relationshipClasses", () => {
     it("should correctly partition related items", () => {
-      const items = ["ab", "b", "c", "a", "cd"]
+      const items = ["a", "b", "c", "d", "e", "f", "g", "ab", "bc", "cd", "de", "fg"]
       const isRelated = (s1: string, s2: string) => includes(s1, s2) || includes(s2, s1)
+      // There's no "ef" element, so ["f", "fg", "g"] should be disjoint from the rest.
       expect(relationshipClasses(items, isRelated)).to.eql([
-        ["ab", "b", "a"],
-        ["c", "cd"],
+        ["a", "ab", "b", "bc", "c", "cd", "d", "de", "e"],
+        ["f", "fg", "g"],
       ])
     })
 
