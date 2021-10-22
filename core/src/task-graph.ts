@@ -15,7 +15,7 @@ import { LogEntry, LogEntryMetadata, TaskLogStatus } from "./logger/log-entry"
 import { toGardenError, GardenBaseError } from "./exceptions"
 import { Garden } from "./garden"
 import { dedent } from "./util/string"
-import { defer, relationshipClasses, uuidv4, safeDumpYaml } from "./util/util"
+import { defer, relationshipClasses, uuidv4, safeDumpYaml, isDisjoint } from "./util/util"
 import { renderError } from "./logger/renderers"
 import { cyclesToString } from "./util/validate-dependencies"
 import { Profile } from "./util/profiling"
@@ -184,16 +184,16 @@ export class TaskGraph extends EventEmitter2 {
     })
 
     const nodesWithKeys = deduplicatedNodes.map((node) => {
-      return { node, resultKeys: this.keysWithDependencies(node) }
+      return { node, resultKeys: new Set(this.keysWithDependencies(node)) }
     })
 
     const sharesDeps = (node1withKeys, node2withKeys) => {
-      return intersection(node1withKeys.resultKeys, node2withKeys.resultKeys).length > 0
+      return !isDisjoint(node1withKeys.resultKeys, node2withKeys.resultKeys)
     }
 
     return relationshipClasses(nodesWithKeys, sharesDeps).map((cls) => {
       const nodesForBatch = cls.map((n) => n.node)
-      const resultKeys: string[] = union(...cls.map((ts) => ts.resultKeys))
+      const resultKeys: string[] = union(...cls.map((ts) => [...ts.resultKeys]))
       return new TaskNodeBatch(nodesForBatch, resultKeys)
     })
   }
