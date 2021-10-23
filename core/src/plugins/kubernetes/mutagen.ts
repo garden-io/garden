@@ -40,6 +40,7 @@ export const mutagenModeMap = {
   "two-way": "two-way-safe",
   "two-way-safe": "two-way-safe",
   "two-way-resolved": "two-way-resolved",
+  "two-way-resolved-reverse": "two-way-resolved",
 }
 
 export interface SyncConfig {

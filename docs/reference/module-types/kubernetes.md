@@ -870,9 +870,9 @@ devMode:
 
 The sync mode to use for the given paths. See the [Dev Mode guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
 
-| Type     | Allowed Values                                                                                                                            | Default          | Required |
-| -------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | -------- |
-| `string` | "one-way", "one-way-safe", "one-way-replica", "one-way-reverse", "one-way-replica-reverse", "two-way", "two-way-safe", "two-way-resolved" | `"one-way-safe"` | Yes      |
+| Type     | Allowed Values                                                                                                                                                        | Default          | Required |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | -------- |
+| `string` | "one-way", "one-way-safe", "one-way-replica", "one-way-reverse", "one-way-replica-reverse", "two-way", "two-way-safe", "two-way-resolved", "two-way-resolved-reverse" | `"one-way-safe"` | Yes      |
 
 ### `devMode.sync[].defaultFileMode`
 

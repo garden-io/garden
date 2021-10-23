@@ -105,7 +105,7 @@ describe("k8s dev mode helpers", () => {
     })
 
     it("should return a remote alpha and a local beta when called with a reverse sync mode", () => {
-      const config = makeSyncConfig({
+      const oneWayConfig = makeSyncConfig({
         localPath,
         remoteDestination,
         defaults: {},
@@ -116,11 +116,33 @@ describe("k8s dev mode helpers", () => {
         },
       })
 
-      expect(config).to.eql({
+      expect(oneWayConfig).to.eql({
         alpha: remoteDestination, // <----
         beta: localPath, // <----
         ignore: [...builtInExcludes],
         mode: "one-way-replica-reverse",
+        defaultOwner: undefined,
+        defaultGroup: undefined,
+        defaultDirectoryMode: undefined,
+        defaultFileMode: undefined,
+      })
+
+      const twoWayConfig = makeSyncConfig({
+        localPath,
+        remoteDestination,
+        defaults: {},
+        spec: {
+          source,
+          target,
+          mode: "two-way-resolved-reverse",
+        },
+      })
+
+      expect(twoWayConfig).to.eql({
+        alpha: remoteDestination, // <----
+        beta: localPath, // <----
+        ignore: [...builtInExcludes],
+        mode: "two-way-resolved-reverse",
         defaultOwner: undefined,
         defaultGroup: undefined,
         defaultDirectoryMode: undefined,

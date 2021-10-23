@@ -184,7 +184,14 @@ const hotReloadConfigSchema = () =>
     with this module as their \`sourceModule\`.
   `)
 
-export type SyncMode = "one-way" | "one-way-replica" | "one-way-reverse" | "one-way-replica-reverse" | "two-way"
+export type SyncMode =
+  | "one-way"
+  | "one-way-replica"
+  | "one-way-reverse"
+  | "one-way-replica-reverse"
+  | "two-way"
+  | "two-way-resolved"
+  | "two-way-resolved-reverse"
 
 export interface DevModeSyncSpec {
   source: string
@@ -259,7 +266,8 @@ const devModeSyncSchema = () =>
         "one-way-replica-reverse",
         "two-way",
         "two-way-safe",
-        "two-way-resolved"
+        "two-way-resolved",
+        "two-way-resolved-reverse"
       )
       .only()
       .default("one-way-safe")

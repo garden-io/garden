@@ -122,7 +122,13 @@ In brief: It's generally easiest to get started with the `one-way` or `two-way` 
 
 Same as `two-way-safe` except:
 
-  * Changes made in the local `source` will always win any conflict. This includes cases where alpha’s deletions would overwrite beta’s modifications or creations
+  * Changes made in the local `source` will always win any conflict. This includes cases where deletions at the local `source` would overwrite modifications or creations at the remote `target`.
+  * No conflicts can occur in this synchronization mode.
+
+### `two-way-resolved-reverse`
+Same as `two-way-resolved`, except the direction of the sync is reversed:
+
+  * Changes made in the remote `target` will always win any conflict. This includes cases where deletions at the remote `target` would overwrite modifications or creations at the local `source`.
   * No conflicts can occur in this synchronization mode.
 
 In addition to the above, please check out the [Mutagen docs on synchronization](https://mutagen.io/documentation/synchronization) for more info.

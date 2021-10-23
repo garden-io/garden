@@ -280,4 +280,6 @@ export function makeSyncConfig({
   }
 }
 
-const isReverseMode = (mode: string) => mode === "one-way-reverse" || mode === "one-way-replica-reverse"
+const reverseModeNames = ["one-way-reverse", "one-way-replica-reverse", "two-way-resolved-reverse"]
+
+const isReverseMode = (mode: string) => reverseModeNames.includes(mode)
