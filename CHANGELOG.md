@@ -1,4 +1,20 @@
 
+<a name="0.12.28-0"></a>
+## [0.12.28-0](https://github.com/garden-io/garden/compare/0.12.27...0.12.28-0) (2021-10-14)
+
+### Bug Fixes
+
+* **cli:** ensure help exits with code 0 ([9fb6a6ef](https://github.com/garden-io/garden/commit/9fb6a6ef))
+* **core:** fix task batch partitioning algorithm ([5625e79d](https://github.com/garden-io/garden/commit/5625e79d))
+* **k8s:** uncaught error when trying to patch namespace resource ([2ba8f6dd](https://github.com/garden-io/garden/commit/2ba8f6dd))
+* **k8s:** fix port-forward error handling ([0c859255](https://github.com/garden-io/garden/commit/0c859255))
+
+### Features
+
+* **cloud:** emit session events on exit ([04f58d54](https://github.com/garden-io/garden/commit/04f58d54))
+* **core:** allow sparse arrays for more fields ([b286373c](https://github.com/garden-io/garden/commit/b286373c))
+* **k8s:** add two-way-resolved option for dev mode syncs ([6371af0d](https://github.com/garden-io/garden/commit/6371af0d))
+
 <a name="0.12.27"></a>
 ## [0.12.27](https://github.com/garden-io/garden/compare/0.12.26...0.12.27) (2021-09-29)
 
