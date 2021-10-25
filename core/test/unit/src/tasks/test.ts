@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import { resolve } from "path"
-import { TestTask, getTestTasks } from "../../../../src/tasks/test"
+import { TestTask } from "../../../../src/tasks/test"
 import { dataDir, makeTestGarden, TestGarden } from "../../../helpers"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../src/config-graph"
