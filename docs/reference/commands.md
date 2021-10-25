@@ -897,6 +897,7 @@ Examples:
     garden dev --hot=foo-service,bar-service  # enable hot reloading for foo-service and bar-service
     garden dev --hot=*                        # enable hot reloading for all compatible services
     garden dev --skip-tests=                  # skip running any tests
+    garden dev --force                        # force redeploy of services when the command starts
     garden dev --name integ                   # run all tests with the name 'integ' in the project
     garden test --name integ*                 # run all tests with the name starting with 'integ' in the project
 
@@ -918,6 +919,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
+  | `--force` |  | boolean | Force redeploy of service(s).
   | `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading).
   | `--skip-tests` |  | boolean | Disable running the tests.
   | `--test-names` | `-tn` | array:string | Filter the tests to run by test name across all modules (leave unset to run all tests). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).

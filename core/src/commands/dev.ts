@@ -41,6 +41,7 @@ const devArgs = {
 }
 
 const devOpts = {
+  "force": new BooleanParameter({ help: "Force redeploy of service(s)." }),
   "hot-reload": new StringsParameter({
     help: deline`The name(s) of the service(s) to deploy with hot reloading enabled.
       Use comma as a separator to specify multiple services. Use * to deploy all
@@ -85,6 +86,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
         garden dev --hot=foo-service,bar-service  # enable hot reloading for foo-service and bar-service
         garden dev --hot=*                        # enable hot reloading for all compatible services
         garden dev --skip-tests=                  # skip running any tests
+        garden dev --force                        # force redeploy of services when the command starts
         garden dev --name integ                   # run all tests with the name 'integ' in the project
         garden test --name integ*                 # run all tests with the name starting with 'integ' in the project
   `
@@ -165,6 +167,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       devModeServiceNames,
       hotReloadServiceNames,
       skipTests,
+      forceDeploy: opts.force,
     })
 
     const results = await processModules({
@@ -204,6 +207,7 @@ export async function getDevCommandInitialTasks({
   devModeServiceNames,
   hotReloadServiceNames,
   skipTests,
+  forceDeploy,
 }: {
   garden: Garden
   log: LogEntry
@@ -213,6 +217,7 @@ export async function getDevCommandInitialTasks({
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
   skipTests: boolean
+  forceDeploy: boolean
 }) {
   const moduleTasks = flatten(
     await Bluebird.map(modules, async (module) => {
@@ -235,7 +240,7 @@ export async function getDevCommandInitialTasks({
             module,
             devModeServiceNames,
             hotReloadServiceNames,
-            force: false,
+            force: forceDeploy,
             forceBuild: false,
           })
 
