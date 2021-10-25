@@ -27,7 +27,7 @@ import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kube
 import { streamK8sLogs } from "../logs"
 import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
 import { getForwardablePorts, getPortForwardHandler, killPortForwards } from "../port-forward"
-import { compareDeployedResources, waitForResources } from "../status/status"
+import { compareDeployedResources, isConfiguredForDevMode, waitForResources } from "../status/status"
 import { getTaskResult } from "../task-results"
 import { getTestResult } from "../test-results"
 import { BaseResource, KubernetesResource, KubernetesServerResource } from "../types"
@@ -91,7 +91,13 @@ export async function getKubernetesServiceStatus({
     manifests,
   })
 
-  let { state, remoteResources } = await compareDeployedResources(k8sCtx, api, namespace, prepareResult.manifests, log)
+  let { state, remoteResources, deployedWithDevMode, deployedWithHotReloading } = await compareDeployedResources(
+    k8sCtx,
+    api,
+    namespace,
+    prepareResult.manifests,
+    log
+  )
 
   const forwardablePorts = getForwardablePorts(remoteResources, service)
 
@@ -107,7 +113,7 @@ export async function getKubernetesServiceStatus({
       resourceSpec: serviceResourceSpec,
     })
 
-    if (target.metadata.annotations?.[gardenAnnotationKey("dev-mode")] === "true") {
+    if (isConfiguredForDevMode(target)) {
       await startDevModeSync({
         ctx,
         log,
@@ -128,6 +134,7 @@ export async function getKubernetesServiceStatus({
     state,
     version: state === "ready" ? service.version : undefined,
     detail: { remoteResources },
+    devMode: deployedWithDevMode || deployedWithHotReloading,
     namespaceStatuses: [namespaceStatus],
   }
 }

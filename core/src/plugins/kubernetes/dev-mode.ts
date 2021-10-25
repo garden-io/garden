@@ -34,6 +34,7 @@ import {
 } from "./mutagen"
 import { joi, joiIdentifier } from "../../config/common"
 import { KubernetesPluginContext, KubernetesProvider } from "./config"
+import { isConfiguredForDevMode } from "./status/status"
 
 const syncUtilImageName = "gardendev/k8s-sync:0.1.1"
 
@@ -188,7 +189,7 @@ export async function startDevModeSync({
 
   return mutagenConfigLock.acquire("start-sync", async () => {
     // Validate the target
-    if (target.metadata.annotations?.[gardenAnnotationKey("dev-mode")] !== "true") {
+    if (!isConfiguredForDevMode(target)) {
       throw new ConfigurationError(`Resource ${resourceName} is not deployed in dev mode`, {
         target,
       })

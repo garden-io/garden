@@ -25,6 +25,7 @@ import { getManifests } from "../kubernetes-module/common"
 import { KubernetesModule, KubernetesService } from "../kubernetes-module/config"
 import { getHotReloadSpec, syncToService } from "./helpers"
 import { GardenModule } from "../../../types/module"
+import { isConfiguredForHotReloading } from "../status/status"
 
 export type HotReloadableResource = KubernetesWorkload | KubernetesPod
 export type HotReloadableKind = "Deployment" | "DaemonSet" | "StatefulSet"
@@ -142,7 +143,7 @@ export async function hotReloadContainer({
     },
   })
 
-  const list = res.items.filter((r) => r.metadata.annotations![gardenAnnotationKey("hot-reload")] === "true")
+  const list = res.items.filter((r) => isConfiguredForHotReloading(r))
 
   if (list.length === 0) {
     throw new RuntimeError(`Unable to find deployed instance of service ${service.name} with hot-reloading enabled`, {

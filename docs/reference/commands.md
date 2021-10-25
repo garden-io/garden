@@ -112,6 +112,9 @@ deployments:
     # Additional detail, specific to the provider.
     detail:
 
+    # Whether the service was deployed with dev mode enabled.
+    devMode:
+
     namespaceStatuses:
       - pluginName:
 
@@ -468,6 +471,9 @@ serviceStatuses:
     # Additional detail, specific to the provider.
     detail:
 
+    # Whether the service was deployed with dev mode enabled.
+    devMode:
+
     namespaceStatuses:
       - pluginName:
 
@@ -578,6 +584,9 @@ Examples:
 
   # Additional detail, specific to the provider.
   detail:
+
+  # Whether the service was deployed with dev mode enabled.
+  devMode:
 
   namespaceStatuses:
     - pluginName:
@@ -741,6 +750,9 @@ deployments:
 
     # Additional detail, specific to the provider.
     detail:
+
+    # Whether the service was deployed with dev mode enabled.
+    devMode:
 
     namespaceStatuses:
       - pluginName:
@@ -2388,6 +2400,9 @@ services:
     # Additional detail, specific to the provider.
     detail:
 
+    # Whether the service was deployed with dev mode enabled.
+    devMode:
+
     namespaceStatuses:
       - pluginName:
 
@@ -3007,6 +3022,9 @@ deployments:
     # Additional detail, specific to the provider.
     detail:
 
+    # Whether the service was deployed with dev mode enabled.
+    devMode:
+
     namespaceStatuses:
       - pluginName:
 
@@ -3613,6 +3631,9 @@ deployments:
 
     # Additional detail, specific to the provider.
     detail:
+
+    # Whether the service was deployed with dev mode enabled.
+    devMode:
 
     namespaceStatuses:
       - pluginName:

@@ -182,6 +182,7 @@ const forwardablePortSchema = () => joi.object().keys(forwardablePortKeys())
 export interface ServiceStatus<T = any> {
   createdAt?: string
   detail: T
+  devMode?: boolean
   namespaceStatuses?: NamespaceStatus[]
   externalId?: string
   externalVersion?: string
@@ -204,6 +205,7 @@ export const serviceStatusSchema = () =>
   joi.object().keys({
     createdAt: joi.string().description("When the service was first deployed by the provider."),
     detail: joi.object().meta({ extendable: true }).description("Additional detail, specific to the provider."),
+    devMode: joi.boolean().description("Whether the service was deployed with dev mode enabled."),
     namespaceStatuses: namespaceStatusesSchema().optional(),
     externalId: joi
       .string()

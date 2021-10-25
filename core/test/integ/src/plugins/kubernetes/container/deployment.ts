@@ -21,9 +21,9 @@ import { DeployTask } from "../../../../../../src/tasks/deploy"
 import { getServiceStatuses } from "../../../../../../src/tasks/base"
 import { expectError, grouped } from "../../../../../helpers"
 import stripAnsi = require("strip-ansi")
-import { gardenAnnotationKey } from "../../../../../../src/util/string"
 import { kilobytesToString, millicpuToString } from "../../../../../../src/plugins/kubernetes/util"
 import { getResourceRequirements } from "../../../../../../src/plugins/kubernetes/container/util"
+import { isConfiguredForDevMode } from "../../../../../../src/plugins/kubernetes/status/status"
 
 describe("kubernetes container deployment handlers", () => {
   let garden: Garden
@@ -255,7 +255,7 @@ describe("kubernetes container deployment handlers", () => {
         blueGreen: false,
       })
 
-      expect(resource.metadata.annotations![gardenAnnotationKey("dev-mode")]).to.eq("true")
+      expect(isConfiguredForDevMode(resource)).to.eq(true)
 
       const initContainer = resource.spec.template?.spec?.initContainers![0]
       expect(initContainer).to.exist
