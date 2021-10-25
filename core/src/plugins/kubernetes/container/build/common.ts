@@ -256,7 +256,7 @@ export async function skopeoBuildStatus({
     const res = err.detail?.result || {}
 
     // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
-    if (res.exitCode !== 0 && !res.stderr?.includes("manifest unknown")) {
+    if (res.exitCode !== 0 && !skopeoManifestUnknown(res.stderr)) {
       const output = res.allLogs || err.message
 
       throw new RuntimeError(`Unable to query registry for image status: ${output}`, {
@@ -266,6 +266,13 @@ export async function skopeoBuildStatus({
     }
     return { ready: false }
   }
+}
+
+export function skopeoManifestUnknown(errMsg: string | null | undefined): boolean {
+  if (!errMsg) {
+    return false
+  }
+  return errMsg.includes("manifest unknown") || /artifact [^ ]+ not found/.test(errMsg)
 }
 
 /**
