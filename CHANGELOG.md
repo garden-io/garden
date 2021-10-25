@@ -1,4 +1,16 @@
 
+<a name="0.12.28-1"></a>
+## [0.12.28-1](https://github.com/garden-io/garden/compare/0.12.28-0...0.12.28-1) (2021-10-24)
+
+### Bug Fixes
+
+* **core:** fix test dependencies for dev command ([b70b993a](https://github.com/garden-io/garden/commit/b70b993a))
+* **k8s:** harbor registry support ([#2619](https://github.com/garden-io/garden/issues/2619)) ([b8e78d82](https://github.com/garden-io/garden/commit/b8e78d82))
+
+### Features
+
+* **core:** add --force flag to dev command ([3934f6b8](https://github.com/garden-io/garden/commit/3934f6b8))
+
 <a name="0.12.28-0"></a>
 ## [0.12.28-0](https://github.com/garden-io/garden/compare/0.12.27...0.12.28-0) (2021-10-14)
 
