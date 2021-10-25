@@ -192,6 +192,7 @@ export class DeployTask extends BaseTask {
     const actions = await this.garden.getActionRouter()
 
     let status = serviceStatuses[this.service.name]
+    const devModeSkipRedeploy = status.devMode && (devMode || hotReload)
 
     const log = this.log.info({
       status: "active",
@@ -199,7 +200,7 @@ export class DeployTask extends BaseTask {
       msg: `Deploying version ${version}...`,
     })
 
-    if (!this.force && version === status.version && status.state === "ready") {
+    if (!this.force && status.state === "ready" && (version === status.version || devModeSkipRedeploy)) {
       // already deployed and ready
       log.setSuccess({
         msg: chalk.green("Already deployed"),

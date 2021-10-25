@@ -39,6 +39,7 @@ export interface TestTaskParams {
   test: GardenTest
   force: boolean
   forceBuild: boolean
+  fromWatch?: boolean
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
   silent?: boolean
@@ -52,6 +53,7 @@ export class TestTask extends BaseTask {
   private test: GardenTest
   private graph: ConfigGraph
   private forceBuild: boolean
+  private fromWatch: boolean
   private devModeServiceNames: string[]
   private hotReloadServiceNames: string[]
   private silent: boolean
@@ -63,6 +65,7 @@ export class TestTask extends BaseTask {
     test,
     force,
     forceBuild,
+    fromWatch = false,
     devModeServiceNames,
     hotReloadServiceNames,
     silent = true,
@@ -73,6 +76,7 @@ export class TestTask extends BaseTask {
     this.graph = graph
     this.force = force
     this.forceBuild = forceBuild
+    this.fromWatch = fromWatch
     this.devModeServiceNames = devModeServiceNames
     this.hotReloadServiceNames = hotReloadServiceNames
     this.silent = silent
@@ -92,6 +96,7 @@ export class TestTask extends BaseTask {
       recursive: false,
       filter: (depNode) =>
         !(
+          this.fromWatch &&
           depNode.type === "deploy" &&
           includes([...this.devModeServiceNames, ...this.hotReloadServiceNames], depNode.name)
         ),
@@ -242,6 +247,7 @@ export async function getTestTasks({
   hotReloadServiceNames,
   force = false,
   forceBuild = false,
+  fromWatch = false,
 }: {
   garden: Garden
   log: LogEntry
@@ -252,6 +258,7 @@ export async function getTestTasks({
   hotReloadServiceNames: string[]
   force?: boolean
   forceBuild?: boolean
+  fromWatch?: boolean
 }) {
   // If there are no filters we return the test otherwise
   // we check if the test name matches against the filterNames array
@@ -270,6 +277,7 @@ export async function getTestTasks({
         log,
         force,
         forceBuild,
+        fromWatch,
         test: testFromConfig(module, testConfig, graph),
         devModeServiceNames,
         hotReloadServiceNames,

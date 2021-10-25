@@ -171,7 +171,7 @@ export class TestCommand extends Command<Args, Opts> {
       initialTasks,
       watch: opts.watch,
       changeHandler: async (updatedGraph, module) => {
-        const modulesToProcess = await updatedGraph.withDependantModules([module])
+        const modulesToProcess = updatedGraph.withDependantModules([module])
         return flatten(
           await Bluebird.map(modulesToProcess, (m) =>
             getTestTasks({
@@ -182,6 +182,7 @@ export class TestCommand extends Command<Args, Opts> {
               filterNames,
               force,
               forceBuild,
+              fromWatch: true,
               devModeServiceNames: [],
               hotReloadServiceNames: [],
             })

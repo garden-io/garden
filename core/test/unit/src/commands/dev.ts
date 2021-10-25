@@ -79,6 +79,7 @@ describe("DevCommand", () => {
     const args = { services: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
+      "force": false,
       "hot-reload": undefined,
       "skip-tests": false,
       "test-names": undefined,
@@ -134,6 +135,7 @@ describe("DevCommand", () => {
       // hot reloading don't request non-hot-reload-enabled deploys for those same services.
       hotReloadServiceNames: ["service-a"],
       skipTests: false,
+      forceDeploy: false,
     })
 
     const withDeps = async (task: BaseTask) => {
@@ -159,6 +161,7 @@ describe("DevCommand", () => {
     const args = { services: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
+      "force": false,
       "hot-reload": undefined,
       "skip-tests": false,
       "test-names": undefined,
@@ -180,6 +183,7 @@ describe("DevCommand", () => {
     const args = { services: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
+      "force": false,
       "hot-reload": undefined,
       "skip-tests": false,
       "test-names": undefined,
@@ -201,6 +205,7 @@ describe("DevCommand", () => {
     const args = { services: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
+      "force": false,
       "hot-reload": undefined,
       "skip-tests": false,
       "test-names": undefined,
@@ -222,6 +227,7 @@ describe("DevCommand", () => {
     const args = { services: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
+      "force": false,
       "hot-reload": undefined,
       "skip-tests": false,
       "test-names": undefined,
@@ -243,6 +249,7 @@ describe("DevCommand", () => {
     const args = { services: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
+      "force": false,
       "hot-reload": undefined,
       "skip-tests": false,
       "test-names": undefined,
@@ -264,6 +271,7 @@ describe("DevCommand", () => {
     const args = { services: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
+      "force": false,
       "hot-reload": undefined,
       "skip-tests": false,
       "test-names": undefined,
