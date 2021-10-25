@@ -300,7 +300,7 @@ export async function getDevCommandWatchTasks({
   })
 
   if (!skipTests) {
-    const testModules: GardenModule[] = await updatedGraph.withDependantModules([module])
+    const testModules: GardenModule[] = updatedGraph.withDependantModules([module])
     tasks.push(
       ...flatten(
         await Bluebird.map(testModules, (m) =>
@@ -310,6 +310,7 @@ export async function getDevCommandWatchTasks({
             module: m,
             graph: updatedGraph,
             filterNames: testNames,
+            fromWatch: true,
             devModeServiceNames,
             hotReloadServiceNames,
           })

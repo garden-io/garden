@@ -18,7 +18,7 @@ import { KubernetesServerResource } from "../types"
 import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
 import { getServiceResource, getServiceResourceSpec } from "../util"
 import { startDevModeSync } from "../dev-mode"
-import { gardenAnnotationKey } from "../../../util/string"
+import { isConfiguredForDevMode } from "../status/status"
 
 const helmStatusMap: { [status: string]: ServiceState } = {
   unknown: "unknown",
@@ -48,6 +48,7 @@ export async function getServiceStatus({
 
   const detail: HelmStatusDetail = {}
   let state: ServiceState
+  let helmStatus: ServiceStatus
 
   const namespaceStatus = await getModuleNamespaceStatus({
     ctx: k8sCtx,
@@ -56,9 +57,12 @@ export async function getServiceStatus({
     provider: k8sCtx.provider,
   })
 
+  let deployedWithDevModeOrHotReloading: boolean | undefined
+
   try {
-    const helmStatus = await getReleaseStatus({ ctx: k8sCtx, service, releaseName, log, devMode, hotReload })
+    helmStatus = await getReleaseStatus({ ctx: k8sCtx, service, releaseName, log, devMode, hotReload })
     state = helmStatus.state
+    deployedWithDevModeOrHotReloading = helmStatus.devMode
   } catch (err) {
     state = "missing"
   }
@@ -84,7 +88,7 @@ export async function getServiceStatus({
 
       // Make sure we don't fail if the service isn't actually properly configured (we don't want to throw in the
       // status handler, generally)
-      if (target.metadata.annotations?.[gardenAnnotationKey("dev-mode")] === "true") {
+      if (isConfiguredForDevMode(target)) {
         const namespace =
           target.metadata.namespace ||
           (await getModuleNamespace({
@@ -115,6 +119,7 @@ export async function getServiceStatus({
     state,
     version: state === "ready" ? service.version : undefined,
     detail,
+    devMode: deployedWithDevModeOrHotReloading,
     namespaceStatuses: [namespaceStatus],
   }
 }
@@ -176,6 +181,9 @@ export async function getReleaseStatus({
     let state = helmStatusMap[res.info.status] || "unknown"
     let values = {}
 
+    let devModeEnabled = false
+    let hotReloadEnabled = false
+
     if (state === "ready") {
       // Make sure the right version is deployed
       values = JSON.parse(
@@ -187,8 +195,8 @@ export async function getReleaseStatus({
         })
       )
       const deployedVersion = values[".garden"] && values[".garden"].version
-      const devModeEnabled = values[".garden"] && values[".garden"].devMode === true
-      const hotReloadEnabled = values[".garden"] && values[".garden"].hotReload === true
+      devModeEnabled = values[".garden"] && values[".garden"].devMode === true
+      hotReloadEnabled = values[".garden"] && values[".garden"].hotReload === true
 
       if (
         (devMode && !devModeEnabled) ||
@@ -203,6 +211,7 @@ export async function getReleaseStatus({
     return {
       state,
       detail: { ...res, values },
+      devMode: devModeEnabled || hotReloadEnabled,
     }
   } catch (err) {
     if (err.message.includes("release: not found")) {

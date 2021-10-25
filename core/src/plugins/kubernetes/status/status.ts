@@ -31,6 +31,7 @@ import { getPods, hashManifest } from "../util"
 import { checkWorkloadStatus } from "./workload"
 import { checkWorkloadPodStatus } from "./pod"
 import { deline, gardenAnnotationKey, stableStringify } from "../../../util/string"
+import { HotReloadableResource } from "../hot-reload/hot-reload"
 
 export interface ResourceStatus<T = BaseResource> {
   state: ServiceState
@@ -266,6 +267,8 @@ export async function waitForResources({
 interface ComparisonResult {
   state: ServiceState
   remoteResources: KubernetesResource[]
+  deployedWithDevMode: boolean
+  deployedWithHotReloading: boolean
 }
 
 /**
@@ -290,6 +293,8 @@ export async function compareDeployedResources(
   const result: ComparisonResult = {
     state: "unknown",
     remoteResources: <KubernetesResource[]>deployedResources.filter((o) => o !== null),
+    deployedWithDevMode: false,
+    deployedWithHotReloading: false,
   }
 
   const logDescription = (resource: KubernetesResource) => `${resource.kind}/${resource.metadata.name}`
@@ -349,6 +354,15 @@ export async function compareDeployedResources(
       delete manifest.metadata.annotations[gardenAnnotationKey("manifest-hash")]
     }
 
+    if (manifest.kind === "DaemonSet" || manifest.kind === "Deployment" || manifest.kind === "StatefulSet") {
+      if (isConfiguredForDevMode(<HotReloadableResource>manifest)) {
+        result.deployedWithDevMode = true
+      }
+      if (isConfiguredForHotReloading(<HotReloadableResource>manifest)) {
+        result.deployedWithHotReloading = true
+      }
+    }
+
     // Start by checking for "last applied configuration" annotations and comparing against those.
     // This can be more accurate than comparing against resolved resources.
     if (deployedResource.metadata && deployedResource.metadata.annotations) {
@@ -390,6 +404,9 @@ export async function compareDeployedResources(
     // NOTE: this approach won't fly in the long run, but hopefully we can climb out of this mess when
     //       `kubectl diff` is ready, or server-side apply/diff is ready
     if (manifest.kind === "DaemonSet" || manifest.kind === "Deployment" || manifest.kind === "StatefulSet") {
+      // NOTE: this approach won't fly in the long run, but hopefully we can climb out of this mess when
+      //       `kubectl diff` is ready, or server-side apply/diff is ready
+
       // handle properties that are omitted in the response because they have the default value
       // (another design issue in the K8s API)
       if (manifest.spec.minReadySeconds === 0) {
@@ -421,6 +438,14 @@ export async function compareDeployedResources(
 
   result.state = "ready"
   return result
+}
+
+export function isConfiguredForDevMode(resource: HotReloadableResource): boolean {
+  return resource.metadata.annotations?.[gardenAnnotationKey("dev-mode")] === "true"
+}
+
+export function isConfiguredForHotReloading(resource: HotReloadableResource): boolean {
+  return resource.metadata.annotations?.[gardenAnnotationKey("hot-reload")] === "true"
 }
 
 export async function getDeployedResource(

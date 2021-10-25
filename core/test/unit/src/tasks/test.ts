@@ -46,25 +46,4 @@ describe("TestTask", () => {
       expect(deps.map((d) => d.getKey())).to.eql(["build.module-a", "deploy.service-b", "task.task-a"])
     })
   })
-
-  describe("getTestTasks", () => {
-    it("should not return test tasks with deploy dependencies on services deployed with hot reloading", async () => {
-      const moduleA = graph.getModule("module-a")
-
-      const tasks = await getTestTasks({
-        garden,
-        log,
-        graph,
-        module: moduleA,
-        devModeServiceNames: [],
-        hotReloadServiceNames: ["service-b"],
-      })
-
-      const testTask = tasks[0]
-      const deps = await testTask.resolveDependencies()
-
-      expect(tasks.length).to.eql(1)
-      expect(deps.map((d) => d.getKey())).to.eql(["build.module-a", "task.task-a"])
-    })
-  })
 })

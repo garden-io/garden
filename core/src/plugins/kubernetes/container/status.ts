@@ -55,7 +55,13 @@ export async function getContainerServiceStatus({
     enableHotReload: hotReload,
     blueGreen: provider.config.deploymentStrategy === "blue-green",
   })
-  const { state, remoteResources } = await compareDeployedResources(k8sCtx, api, namespace, manifests, log)
+  const { state, remoteResources, deployedWithDevMode, deployedWithHotReloading } = await compareDeployedResources(
+    k8sCtx,
+    api,
+    namespace,
+    manifests,
+    log
+  )
   const ingresses = await getIngresses(service, api, provider)
 
   const forwardablePorts: ForwardablePort[] = service.spec.ports
@@ -78,6 +84,7 @@ export async function getContainerServiceStatus({
     namespaceStatuses: [namespaceStatus],
     version: state === "ready" ? service.version : undefined,
     detail: { remoteResources, workload },
+    devMode: deployedWithDevMode || deployedWithHotReloading,
   }
 
   if (state === "ready" && devMode) {
