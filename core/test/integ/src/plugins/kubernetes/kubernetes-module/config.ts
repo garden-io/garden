@@ -99,6 +99,11 @@ describe("configureKubernetesModule", () => {
                         name: "busybox",
                         image: "busybox:1.31.1",
                         args: ["sleep", "100"],
+                        env: [
+                          { name: "FOO", value: "banana" },
+                          { name: "BAR", value: "" },
+                          { name: "BAZ", value: null },
+                        ],
                         ports: [
                           {
                             containerPort: 80,

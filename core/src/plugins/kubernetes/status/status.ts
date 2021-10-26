@@ -15,7 +15,7 @@ import { KubeApi } from "../api"
 import { getAppNamespace } from "../namespace"
 import Bluebird from "bluebird"
 import { KubernetesResource, KubernetesServerResource, BaseResource } from "../types"
-import { zip, isArray, isPlainObject, pickBy, mapValues, flatten, cloneDeep } from "lodash"
+import { zip, isArray, isPlainObject, pickBy, mapValues, flatten, cloneDeep, omit } from "lodash"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
 import { isSubset } from "../../../util/is-subset"
 import { LogEntry } from "../../../logger/log-entry"
@@ -25,6 +25,7 @@ import {
   V1Pod,
   V1PersistentVolumeClaim,
   V1Service,
+  V1Container,
 } from "@kubernetes/client-node"
 import dedent = require("dedent")
 import { getPods, hashManifest } from "../util"
@@ -419,6 +420,11 @@ export async function compareDeployedResources(
 
     // clean null values
     manifest = <KubernetesResource>removeNull(manifest)
+    // The Kubernetes API currently strips out environment variables values so we remove them
+    // from the manifests as well
+    manifest = removeEmptyEnvValues(manifest)
+    // ...and from the deployedResource for good measure, in case the K8s API changes.
+    deployedResource = removeEmptyEnvValues(deployedResource)
 
     if (!isSubset(deployedResource, manifest)) {
       if (manifest) {
@@ -483,4 +489,29 @@ function removeNull<T>(value: T | Iterable<T>): T | Iterable<T> | { [K in keyof 
   } else {
     return value
   }
+}
+
+/**
+ * Normalize Kubernetes container specs by removing empty environment variable values. We need
+ * this because the Kubernetes API strips out these empty values.
+ *
+ * That is, something like { "name": FOO, "value": "" } becomes { "name": FOO } when
+ * we read the deployed resource from the K8s API.
+ *
+ * Calling this function ensures a given manifest will look the same as actual deployed resource.
+ */
+function removeEmptyEnvValues(resource: KubernetesResource): KubernetesResource {
+  if (resource.spec?.template?.spec?.containers && resource.spec.template.spec.containers.length > 0) {
+    const containerSpecs = resource.spec.template.spec.containers.map((container: V1Container) => {
+      const env = container.env?.map((envKvPair) => {
+        return envKvPair.value === "" ? omit(envKvPair, "value") : envKvPair
+      })
+      if (env) {
+        container["env"] = env
+      }
+      return container
+    })
+    resource.spec.template.spec["containers"] = containerSpecs
+  }
+  return resource
 }

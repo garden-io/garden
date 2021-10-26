@@ -163,6 +163,7 @@ describe("kubernetes-module handlers", () => {
         runtimeContext: emptyRuntimeContext,
       }
       const status = await deployKubernetesService(deployParams)
+      expect(status.state).to.eql("ready")
       expect(status.namespaceStatuses).to.eql([
         {
           pluginName: "local-kubernetes",

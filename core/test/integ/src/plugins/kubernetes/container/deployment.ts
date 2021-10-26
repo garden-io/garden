@@ -24,6 +24,7 @@ import stripAnsi = require("strip-ansi")
 import { kilobytesToString, millicpuToString } from "../../../../../../src/plugins/kubernetes/util"
 import { getResourceRequirements } from "../../../../../../src/plugins/kubernetes/container/util"
 import { isConfiguredForDevMode } from "../../../../../../src/plugins/kubernetes/status/status"
+import { ContainerService } from "../../../../../../src/plugins/container/config"
 
 describe("kubernetes container deployment handlers", () => {
   let garden: Garden
@@ -534,6 +535,31 @@ describe("kubernetes container deployment handlers", () => {
             state: "ready",
           },
         ])
+      })
+
+      it("should ignore empty env vars in status check comparison", async () => {
+        const service: ContainerService = graph.getService("simple-service")
+        service.spec.env = {
+          FOO: "banana",
+          BAR: "",
+          BAZ: null,
+        }
+
+        const deployTask = new DeployTask({
+          garden,
+          graph,
+          log: garden.log,
+          service,
+          force: true,
+          forceBuild: false,
+          devModeServiceNames: [],
+          hotReloadServiceNames: [],
+        })
+
+        const results = await garden.processTasks([deployTask], { throwOnError: true })
+        const statuses = getServiceStatuses(results)
+        const status = statuses[service.name]
+        expect(status.state).to.eql("ready")
       })
 
       it("should deploy a service referencing a volume module", async () => {
