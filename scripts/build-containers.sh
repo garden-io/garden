@@ -12,6 +12,7 @@ aws_tag=gardendev/garden-aws:${version}
 azure_tag=gardendev/garden-azure:${version}
 gcloud_tag=gardendev/garden-gcloud:${version}
 aws_gcloud_tag=gardendev/garden-aws-gcloud:${version}
+aws_gcloud_azure_tag=gardendev/garden-aws-gcloud-azure:${version}
 buster_tag=gardendev/garden:${version}-buster
 
 echo "Building version ${version}"
@@ -41,6 +42,11 @@ echo "-> Build ${aws_gcloud_tag}"
 docker build -t ${aws_gcloud_tag} --build-arg TAG=${version} -f support/aws-gcloud.Dockerfile dist/alpine-amd64
 echo "-> Check ${aws_gcloud_tag}"
 docker run --rm -it ${aws_gcloud_tag} version
+
+echo "-> Build ${aws_gcloud_azure_tag}"
+docker build -t ${aws_gcloud_azure_tag} --build-arg TAG=${version} -f support/aws-gcloud-azure.Dockerfile dist/alpine-amd64
+echo "-> Check ${aws_gcloud_azure_tag}"
+docker run --rm -it ${aws_gcloud_azure_tag} version
 
 echo "-> Build ${buster_tag}"
 docker build -t ${buster_tag} -f support/buster.Dockerfile dist/linux-amd64
