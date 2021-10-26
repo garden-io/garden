@@ -1,4 +1,11 @@
 
+<a name="0.12.29"></a>
+## [0.12.29](https://github.com/garden-io/garden/compare/0.12.28...0.12.29) (2021-10-25)
+
+### Bug Fixes
+
+* **k8s:** fix status comparison when K8s specs have empty env values ([fefaf5d0](https://github.com/garden-io/garden/commit/fefaf5d0))
+
 <a name="0.12.28"></a>
 ## [0.12.28](https://github.com/garden-io/garden/compare/0.12.27...0.12.28) (2021-10-24)
 
