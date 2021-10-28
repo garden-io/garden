@@ -562,7 +562,7 @@ export async function getServiceResource({
 
   if (resourceSpec.podSelector && !isEmpty(resourceSpec.podSelector)) {
     const api = await KubeApi.factory(log, ctx, provider)
-    const namespace = await getAppNamespace(ctx, log, provider)
+    const namespace = module.spec.namespace || (await getAppNamespace(ctx, log, provider))
 
     const pods = await getReadyPods(api, namespace, resourceSpec.podSelector)
     const pod = sample(pods)

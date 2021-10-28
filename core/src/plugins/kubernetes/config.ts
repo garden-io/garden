@@ -753,7 +753,6 @@ export const serviceResourceSchema = () =>
       kind: joi
         .string()
         .valid(...hotReloadableKinds)
-        .default("Deployment")
         .description("The type of Kubernetes resource to sync files to."),
       name: joi.string().description(
         deline`The name of the resource to sync to. If the module contains a single resource of the specified Kind,
