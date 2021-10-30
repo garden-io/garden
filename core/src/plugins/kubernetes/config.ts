@@ -770,7 +770,6 @@ export const serviceResourceSchema = () =>
         `
       ),
     })
-    .oxor("podSelector", "kind")
     .oxor("podSelector", "name")
 
 export const containerModuleSchema = () =>
