@@ -255,6 +255,7 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
   try {
     await apply({
       ctx,
+      api,
       log,
       provider,
       manifests: [modifiedDeployment],
@@ -301,6 +302,7 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
 
         await apply({
           ctx,
+          api,
           log,
           provider,
           manifests: [writableRegistry],

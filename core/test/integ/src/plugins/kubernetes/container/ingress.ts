@@ -475,7 +475,7 @@ describe("createIngressResources", () => {
 
     if (ingress.apiVersion === "networking.k8s.io/v1") {
       expect(ingress.spec.ingressClassName).to.equal("nginx")
-      expect(ingress.metadata.annotations?.["kubernetes.io/ingress.class"]).to.be.empty
+      expect(ingress.metadata.annotations?.["kubernetes.io/ingress.class"]).to.be.undefined
       expect(ingress.spec.rules).to.eql([
         {
           host: "my.domain.com",
@@ -483,7 +483,7 @@ describe("createIngressResources", () => {
             paths: [
               {
                 path: "/",
-                pathType: "prefix",
+                pathType: "Prefix",
                 backend: {
                   service: {
                     name: "my-service",

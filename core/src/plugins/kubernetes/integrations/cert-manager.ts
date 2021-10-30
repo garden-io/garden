@@ -229,7 +229,7 @@ export async function setupCertManager({ ctx, provider, log, status }: SetupCert
       const customResourcesPath = join(STATIC_DIR, "kubernetes", "system", "cert-manager", "cert-manager-crd.yaml")
       const crd = yaml.safeLoadAll((await readFile(customResourcesPath)).toString()).filter((x) => x)
       entry.setState("Installing Custom Resources...")
-      await apply({ log, ctx, provider, manifests: crd, validate: false })
+      await apply({ log, ctx, api, provider, manifests: crd, validate: false })
 
       const waitForCertManagerPods: WaitForResourcesParams = {
         ctx,
@@ -250,6 +250,7 @@ export async function setupCertManager({ ctx, provider, log, status }: SetupCert
         msg: `Processing certificates...`,
         status: "active",
       })
+      const api = await KubeApi.factory(log, ctx, provider)
       const issuers: any[] = []
       const certificates: any[] = []
       const secretNames: string[] = []
@@ -279,10 +280,10 @@ export async function setupCertManager({ ctx, provider, log, status }: SetupCert
 
       if (issuers.length > 0) {
         certsLog.setState("Creating Issuers...")
-        await apply({ log, ctx, provider, manifests: issuers })
+        await apply({ log, ctx, api, provider, manifests: issuers })
         certsLog.setState("Issuers created.")
 
-        await apply({ log, ctx, provider, manifests: certificates, namespace })
+        await apply({ log, ctx, api, provider, manifests: certificates, namespace })
         certsLog.setState("Creating Certificates...")
 
         const certificateNames = certificates.map((cert) => cert.metadata.name)

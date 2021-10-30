@@ -11,6 +11,7 @@
 import { IncomingMessage } from "http"
 import { Agent } from "https"
 import { ReadStream } from "tty"
+import Bluebird from "bluebird"
 import chalk from "chalk"
 import httpStatusCodes from "http-status-codes"
 import {
@@ -43,7 +44,7 @@ import { readFile } from "fs-extra"
 import { lookup } from "dns-lookup-cache"
 
 import { Omit, safeDumpYaml, StringCollector, sleep } from "../../util/util"
-import { omitBy, isObject, isPlainObject, keyBy } from "lodash"
+import { omitBy, isObject, isPlainObject, keyBy, flatten } from "lodash"
 import { GardenBaseError, RuntimeError, ConfigurationError } from "../../exceptions"
 import {
   KubernetesResource,
@@ -433,6 +434,44 @@ export class KubeApi {
     }))
 
     return list
+  }
+
+  /**
+   * Fetches all resources in the namespace matching the provided API version + kind pairs, optionally filtered by
+   * `labelSelector`.
+   *
+   * Useful when resources of several kinds need to be fetched at once.
+   */
+  async listResourcesForKinds({
+    log,
+    namespace,
+    versionedKinds,
+    labelSelector,
+  }: {
+    log: LogEntry
+    namespace: string
+    versionedKinds: { apiVersion: string; kind: string }[]
+    labelSelector?: { [label: string]: string }
+  }): Promise<KubernetesResource[]> {
+    const resources = await Bluebird.map(versionedKinds, async ({ apiVersion, kind }) => {
+      try {
+        const resourceListForKind = await this.listResources({
+          log,
+          apiVersion,
+          kind,
+          namespace,
+          labelSelector,
+        })
+        return resourceListForKind.items
+      } catch (err) {
+        if (err.statusCode === 404) {
+          // Then this resource version + kind is not available in the cluster.
+          return []
+        }
+        throw err
+      }
+    })
+    return flatten(resources)
   }
 
   async replace({

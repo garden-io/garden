@@ -48,6 +48,7 @@ export async function getContainerServiceStatus({
   // FIXME: [objects, matched] and ingresses can be run in parallel
   const { workload, manifests } = await createContainerManifests({
     ctx: k8sCtx,
+    api,
     log,
     service,
     runtimeContext,

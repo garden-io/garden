@@ -48,11 +48,13 @@ export async function deployContainerService(
 ): Promise<ContainerServiceStatus> {
   const { ctx, service, log, devMode } = params
   const { deploymentStrategy } = params.ctx.provider.config
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const api = await KubeApi.factory(log, k8sCtx, k8sCtx.provider)
 
   if (deploymentStrategy === "blue-green") {
-    await deployContainerServiceBlueGreen(params)
+    await deployContainerServiceBlueGreen({ ...params, api })
   } else {
-    await deployContainerServiceRolling(params)
+    await deployContainerServiceRolling({ ...params, api })
   }
 
   const status = await getContainerServiceStatus(params)
@@ -103,8 +105,8 @@ export async function startContainerDevSync({
   })
 }
 
-export async function deployContainerServiceRolling(params: DeployServiceParams<ContainerModule>) {
-  const { ctx, service, runtimeContext, log, devMode, hotReload } = params
+export async function deployContainerServiceRolling(params: DeployServiceParams<ContainerModule> & { api: KubeApi }) {
+  const { ctx, api, service, runtimeContext, log, devMode, hotReload } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
@@ -112,6 +114,7 @@ export async function deployContainerServiceRolling(params: DeployServiceParams<
 
   const { manifests } = await createContainerManifests({
     ctx: k8sCtx,
+    api,
     log,
     service,
     runtimeContext,
@@ -121,9 +124,9 @@ export async function deployContainerServiceRolling(params: DeployServiceParams<
   })
 
   const provider = k8sCtx.provider
-  const pruneSelector = gardenAnnotationKey("service") + "=" + service.name
+  const pruneLabels = { [gardenAnnotationKey("service")]: service.name }
 
-  await apply({ log, ctx, provider, manifests, namespace, pruneSelector })
+  await apply({ log, ctx, api, provider, manifests, namespace, pruneLabels })
 
   await waitForResources({
     namespace,
@@ -136,8 +139,8 @@ export async function deployContainerServiceRolling(params: DeployServiceParams<
   })
 }
 
-export async function deployContainerServiceBlueGreen(params: DeployServiceParams<ContainerModule>) {
-  const { ctx, service, runtimeContext, log, devMode, hotReload } = params
+export async function deployContainerServiceBlueGreen(params: DeployServiceParams<ContainerModule> & { api: KubeApi }) {
+  const { ctx, api, service, runtimeContext, log, devMode, hotReload } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
   const namespace = namespaceStatus.namespaceName
@@ -145,6 +148,7 @@ export async function deployContainerServiceBlueGreen(params: DeployServiceParam
   // Create all the resource manifests for the Garden service which will be deployed
   const { manifests } = await createContainerManifests({
     ctx: k8sCtx,
+    api,
     log,
     service,
     runtimeContext,
@@ -154,7 +158,6 @@ export async function deployContainerServiceBlueGreen(params: DeployServiceParam
   })
 
   const provider = k8sCtx.provider
-  const api = await KubeApi.factory(log, ctx, provider)
 
   // Retrieve the k8s service referring to the Garden service which is already deployed
   const currentService = (await api.core.listNamespacedService(namespace)).items.filter(
@@ -167,7 +170,7 @@ export async function deployContainerServiceBlueGreen(params: DeployServiceParam
   if (!isServiceAlreadyDeployed) {
     // No service found, no need to execute a blue-green deployment
     // Just apply all the resources for the Garden service
-    await apply({ log, ctx, provider, manifests, namespace })
+    await apply({ log, ctx, api, provider, manifests, namespace })
     await waitForResources({
       namespace,
       ctx,
@@ -187,7 +190,7 @@ export async function deployContainerServiceBlueGreen(params: DeployServiceParam
     const filteredManifests = manifests.filter((manifest) => manifest.kind !== "Service")
 
     // Apply new Deployment manifest (deploy the Green version)
-    await apply({ log, ctx, provider, manifests: filteredManifests, namespace })
+    await apply({ log, ctx, api, provider, manifests: filteredManifests, namespace })
     await waitForResources({
       namespace,
       ctx,
@@ -223,7 +226,7 @@ export async function deployContainerServiceBlueGreen(params: DeployServiceParam
     // If the result is outdated it means something in the Service definition itself changed
     // and we need to apply the whole Service manifest. Otherwise we just patch it.
     if (result.state === "outdated") {
-      await apply({ log, ctx, provider, manifests: [patchedServiceManifest], namespace })
+      await apply({ log, ctx, api, provider, manifests: [patchedServiceManifest], namespace })
     } else {
       await api.core.patchNamespacedService(service.name, namespace, servicePatchBody)
     }
@@ -255,6 +258,7 @@ export async function deployContainerServiceBlueGreen(params: DeployServiceParam
 
 export async function createContainerManifests({
   ctx,
+  api,
   log,
   service,
   runtimeContext,
@@ -263,6 +267,7 @@ export async function createContainerManifests({
   blueGreen,
 }: {
   ctx: PluginContext
+  api: KubeApi
   log: LogEntry
   service: ContainerService
   runtimeContext: RuntimeContext
@@ -274,7 +279,6 @@ export async function createContainerManifests({
   const provider = k8sCtx.provider
   const { production } = ctx
   const namespace = await getAppNamespace(k8sCtx, log, provider)
-  const api = await KubeApi.factory(log, ctx, provider)
   const ingresses = await createIngressResources(api, provider, namespace, service, log)
   const workload = await createWorkloadManifest({
     api,
