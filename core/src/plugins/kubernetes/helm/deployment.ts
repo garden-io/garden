@@ -22,6 +22,7 @@ import { getServiceResource, getServiceResourceSpec } from "../util"
 import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
 import { getHotReloadSpec, configureHotReload, getHotReloadContainerName } from "../hot-reload/helpers"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
+import { KubeApi } from "../api"
 
 export async function deployHelmService({
   ctx,
@@ -38,6 +39,7 @@ export async function deployHelmService({
 
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
+  const api = await KubeApi.factory(log, ctx, provider)
 
   const namespaceStatus = await getModuleNamespaceStatus({
     ctx: k8sCtx,
@@ -104,7 +106,7 @@ export async function deployHelmService({
       spec: service.spec.devMode,
       containerName: service.spec.devMode?.containerName,
     })
-    await apply({ log, ctx, provider, manifests: [serviceResource], namespace })
+    await apply({ log, ctx, api, provider, manifests: [serviceResource], namespace })
   } else if (hotReload && hotReloadSpec && serviceResourceSpec && serviceResource) {
     configureHotReload({
       target: serviceResource,
@@ -112,7 +114,7 @@ export async function deployHelmService({
       hotReloadArgs: serviceResourceSpec.hotReloadArgs,
       containerName: getHotReloadContainerName(module),
     })
-    await apply({ log, ctx, provider, manifests: [serviceResource], namespace })
+    await apply({ log, ctx, api, provider, manifests: [serviceResource], namespace })
   }
 
   // FIXME: we should get these objects from the cluster, and not from the local `helm template` command, because

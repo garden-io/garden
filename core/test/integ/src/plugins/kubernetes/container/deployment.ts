@@ -13,7 +13,7 @@ import { emptyRuntimeContext } from "../../../../../../src/runtime-context"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { createWorkloadManifest } from "../../../../../../src/plugins/kubernetes/container/deployment"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
-import { V1Secret } from "@kubernetes/client-node"
+import { V1ConfigMap, V1Secret } from "@kubernetes/client-node"
 import { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
 import { cloneDeep, keyBy } from "lodash"
 import { getContainerTestGarden } from "./container"
@@ -25,6 +25,9 @@ import { kilobytesToString, millicpuToString } from "../../../../../../src/plugi
 import { getResourceRequirements } from "../../../../../../src/plugins/kubernetes/container/util"
 import { isConfiguredForDevMode } from "../../../../../../src/plugins/kubernetes/status/status"
 import { ContainerService } from "../../../../../../src/plugins/container/config"
+import { apply } from "../../../../../../src/plugins/kubernetes/kubectl"
+import { getAppNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
+import { gardenAnnotationKey } from "../../../../../../src/util/string"
 
 describe("kubernetes container deployment handlers", () => {
   let garden: Garden
@@ -535,6 +538,75 @@ describe("kubernetes container deployment handlers", () => {
             state: "ready",
           },
         ])
+      })
+
+      it("should prune previously applied resources when deploying", async () => {
+        const log = garden.log
+        const service = graph.getService("simple-service")
+        const namespace = await getAppNamespace(ctx, log, provider)
+
+        const mapToNotPruneKey = "should-not-be-pruned"
+        const mapToPruneKey = "should-be-pruned"
+
+        const labels = { [gardenAnnotationKey("service")]: service.name }
+
+        // This `ConfigMap` is created through `kubectl apply` below, which will add the
+        // "kubectl.kubernetes.io/last-applied-configuration" annotation. We don't prune resources that lack this
+        // annotation.
+        const configMapToPrune: KubernetesResource<V1ConfigMap> = {
+          apiVersion: "v1",
+          kind: "ConfigMap",
+          metadata: {
+            name: mapToPruneKey,
+            annotations: { ...labels },
+            labels: { ...labels },
+          },
+          data: {},
+        }
+
+        await apply({ log, ctx, api, provider, manifests: [configMapToPrune], namespace })
+
+        // Here, we create via the k8s API (not `kubetl apply`), so that unlike `configMapToPrune`, it won't acquire
+        // the "last applied" annotation. This means that it should *not* be pruned when we deploy the service, even
+        // though it has the service's label.
+        await api.core.createNamespacedConfigMap(namespace, {
+          apiVersion: "v1",
+          kind: "ConfigMap",
+          metadata: {
+            name: mapToNotPruneKey,
+            annotations: { ...labels },
+            labels: { ...labels },
+          },
+          data: {},
+        })
+
+        const deployTask = new DeployTask({
+          garden,
+          graph,
+          log,
+          service,
+          force: true,
+          forceBuild: false,
+          devModeServiceNames: [],
+          hotReloadServiceNames: [],
+        })
+
+        await garden.processTasks([deployTask], { throwOnError: true })
+
+        // We expect this `ConfigMap` to still exist.
+        await api.core.readNamespacedConfigMap(mapToNotPruneKey, namespace)
+
+        // ...and we expect this `ConfigMap` to have been deleted.
+        await expectError(
+          () => api.core.readNamespacedConfigMap(mapToPruneKey, namespace),
+          (err) => {
+            expect(stripAnsi(err.message)).to.match(
+              /Got error from Kubernetes API - configmaps "should-be-pruned" not found/
+            )
+          }
+        )
+
+        await api.core.deleteNamespacedConfigMap(mapToNotPruneKey, namespace)
       })
 
       it("should ignore empty env vars in status check comparison", async () => {
