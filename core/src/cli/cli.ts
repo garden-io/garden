@@ -258,7 +258,8 @@ ${renderCommands(commands)}
           garden = await makeDummyGarden(root, contextOpts)
         } else {
           garden = await Garden.factory(root, contextOpts)
-          nsLog.setState(`${chalk.gray(`Running in namespace ${chalk.white.bold(garden.namespace)}\n`)}`)
+          const envDescription = `${garden.namespace}.${garden.environmentName}`
+          nsLog.setState(`${chalk.gray(`Using environment ${chalk.white.bold(envDescription)}\n`)}`)
 
           if (processRecord) {
             // Update the db record for the process
