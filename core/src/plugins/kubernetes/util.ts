@@ -20,7 +20,7 @@ import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util
 import { inClusterRegistryHostname, MAX_CONFIGMAP_DATA_SIZE, systemDockerAuthSecretName } from "./constants"
 import { ContainerEnvVars } from "../container/config"
 import { ConfigurationError, DeploymentError, PluginError } from "../../exceptions"
-import { ServiceResourceSpec, KubernetesProvider } from "./config"
+import { ServiceResourceSpec, KubernetesProvider, KubernetesPluginContext } from "./config"
 import { LogEntry } from "../../logger/log-entry"
 import { PluginContext } from "../../plugin-context"
 import { HelmModule } from "./helm/config"
@@ -31,7 +31,7 @@ import { ProviderMap } from "../../config/provider"
 import { PodRunner } from "./run"
 import { isSubset } from "../../util/is-subset"
 import { checkPodStatus } from "./status/pod"
-import { getAppNamespace } from "./namespace"
+import { getModuleNamespace } from "./namespace"
 
 export const skopeoImage = "gardendev/skopeo:1.41.0-2"
 
@@ -562,7 +562,13 @@ export async function getServiceResource({
 
   if (resourceSpec.podSelector && !isEmpty(resourceSpec.podSelector)) {
     const api = await KubeApi.factory(log, ctx, provider)
-    const namespace = await getAppNamespace(ctx, log, provider)
+    const k8sCtx = ctx as KubernetesPluginContext
+    const namespace = await getModuleNamespace({
+      ctx: k8sCtx,
+      log,
+      module,
+      provider: k8sCtx.provider,
+    })
 
     const pods = await getReadyPods(api, namespace, resourceSpec.podSelector)
     const pod = sample(pods)
