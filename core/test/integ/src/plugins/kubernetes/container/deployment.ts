@@ -198,7 +198,7 @@ describe("kubernetes container deployment handlers", () => {
       })
 
       expect(resource.spec.template?.spec?.containers[0].securityContext).to.eql({
-        allowPrivilegeEscalation: false,
+        allowPrivilegeEscalation: true,
         privileged: true,
         capabilities: {
           add: ["SYS_TIME"],

@@ -401,7 +401,7 @@ export async function createWorkloadManifest({
     resources: getResourceRequirements({ cpu, memory }, limits),
     imagePullPolicy: "IfNotPresent",
     securityContext: {
-      allowPrivilegeEscalation: false,
+      allowPrivilegeEscalation: spec.privileged || false,
       ...getSecurityContext(spec.privileged, spec.addCapabilities, spec.dropCapabilities),
     },
   }
