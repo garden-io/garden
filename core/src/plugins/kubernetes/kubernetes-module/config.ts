@@ -27,10 +27,10 @@ import {
   serviceResourceDescription,
   portForwardsSchema,
   PortForwardSpec,
+  k8sDeploymentTimeoutSchema,
 } from "../config"
 import { ContainerModule } from "../../container/config"
 import { kubernetesDevModeSchema, KubernetesDevModeSpec } from "../dev-mode"
-import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 
 // A Kubernetes Module always maps to a single Service
 export type KubernetesModuleSpec = KubernetesServiceSpec
@@ -105,10 +105,7 @@ export const kubernetesModuleSpecSchema = () =>
       }),
     tasks: joiSparseArray(kubernetesTaskSchema()),
     tests: joiSparseArray(kubernetesTestSchema()),
-    timeout: joi
-      .number()
-      .default(KUBECTL_DEFAULT_TIMEOUT)
-      .description("The maximum duration (in seconds) to wait for resources to deploy and become healthy."),
+    timeout: k8sDeploymentTimeoutSchema(),
   })
 
 export async function configureKubernetesModule({

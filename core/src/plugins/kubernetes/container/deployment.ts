@@ -132,7 +132,7 @@ export async function deployContainerServiceRolling(params: DeployServiceParams<
     serviceName: service.name,
     resources: manifests,
     log,
-    timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
+    timeoutSec: service.spec.timeout || KUBECTL_DEFAULT_TIMEOUT,
   })
 }
 

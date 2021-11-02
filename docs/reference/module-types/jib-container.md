@@ -365,6 +365,9 @@ services:
     # deployed with hot reloading enabled.
     hotReloadArgs:
 
+    # The maximum duration (in seconds) to wait for resources to deploy and become healthy.
+    timeout: 300
+
     cpu:
       # The minimum amount of CPU the service needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1
       # CPU)
@@ -1620,6 +1623,16 @@ services:
       - run
       - dev
 ```
+
+### `services[].timeout`
+
+[services](#services) > timeout
+
+The maximum duration (in seconds) to wait for resources to deploy and become healthy.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `300`   | No       |
 
 ### `services[].limits`
 
