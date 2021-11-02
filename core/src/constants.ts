@@ -50,7 +50,7 @@ export const VERSION_CHECK_URL = "https://get.garden.io/version"
  * We set this up as a map to facilitate overriding values in tests.
  */
 export const gardenEnv = {
-  ANALYTICS_DEV: env.get("ANALYTICS_DEV").required(false).asString(),
+  ANALYTICS_DEV: env.get("ANALYTICS_DEV").required(false).asBool(),
   GARDEN_AUTH_TOKEN: env.get("GARDEN_AUTH_TOKEN").required(false).asString(),
   GARDEN_CACHE_TTL: env.get("GARDEN_CACHE_TTL").required(false).asInt(),
   GARDEN_DB_DIR: env.get("GARDEN_DB_DIR").required(false).default(GARDEN_GLOBAL_PATH).asString(),
