@@ -38,6 +38,7 @@ import { ArtifactSpec } from "../../config/validation"
 import { V1Toleration } from "@kubernetes/client-node"
 import { runPodSpecIncludeFields } from "./run"
 import { KubernetesDevModeDefaults, kubernetesDevModeDefaultsSchema } from "./dev-mode"
+import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 
 export const DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:v1.6.0-debug"
 export interface ProviderSecretRef {
@@ -281,6 +282,12 @@ const storageSchema = (defaults: KubernetesStorageSpec, deprecated: boolean) =>
         .meta({ deprecated }),
     })
     .default(defaults)
+
+export const k8sDeploymentTimeoutSchema = () =>
+  joi
+    .number()
+    .default(KUBECTL_DEFAULT_TIMEOUT)
+    .description("The maximum duration (in seconds) to wait for resources to deploy and become healthy.")
 
 export const k8sContextSchema = () =>
   joi
@@ -838,7 +845,7 @@ export const portForwardsSchema = () =>
       "Manually specify port forwards that Garden should set up when deploying in dev or watch mode. If specified, these override the auto-detection of forwardable ports, so you'll need to specify the full list of port forwards to create."
     )
 
-const runPodSpecWhitelistDescription = runPodSpecIncludeFields.map((f) => `* \`${f}\``).join("\n")
+const runPodSpecWhitelistDescription = () => runPodSpecIncludeFields.map((f) => `* \`${f}\``).join("\n")
 
 export const kubernetesTaskSchema = () =>
   baseTaskSpecSchema()
@@ -851,7 +858,7 @@ export const kubernetesTaskSchema = () =>
         ${serviceResourceDescription}
 
         The following pod spec fields from the service resource will be used (if present) when executing the task:
-        ${runPodSpecWhitelistDescription}`
+        ${runPodSpecWhitelistDescription()}`
       ),
       cacheResult: cacheResultSchema(),
       command: joi
@@ -880,7 +887,7 @@ export const kubernetesTestSchema = () =>
         ${serviceResourceDescription}
 
         The following pod spec fields from the service resource will be used (if present) when executing the test suite:
-        ${runPodSpecWhitelistDescription}`
+        ${runPodSpecWhitelistDescription()}`
       ),
       command: joi
         .sparseArray()

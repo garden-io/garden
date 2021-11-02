@@ -30,6 +30,7 @@ import { dedent, deline } from "../../util/string"
 import { getModuleTypeUrl } from "../../docs/common"
 import { ContainerModuleOutputs } from "./container"
 import { devModeGuideLink } from "../kubernetes/dev-mode"
+import { k8sDeploymentTimeoutSchema } from "../kubernetes/config"
 
 export const defaultContainerLimits: ServiceLimitSpec = {
   cpu: 1000, // = 1000 millicpu = 1 CPU
@@ -121,6 +122,7 @@ export interface ContainerServiceSpec extends CommonServiceSpec {
   healthCheck?: ServiceHealthCheckSpec
   hotReloadCommand?: string[]
   hotReloadArgs?: string[]
+  timeout?: number
   limits?: ServiceLimitSpec
   cpu: ContainerResourcesSpec["cpu"]
   memory: ContainerResourcesSpec["memory"]
@@ -610,6 +612,7 @@ const containerServiceSchema = () =>
         these arguments when the service is deployed with hot reloading enabled.`
       )
       .example(["npm", "run", "dev"]),
+    timeout: k8sDeploymentTimeoutSchema(),
     limits: limitsSchema()
       .description("Specify resource limits for the service.")
       .meta({ deprecated: "Please use the `cpu` and `memory` fields instead." }),
