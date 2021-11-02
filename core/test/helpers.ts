@@ -554,7 +554,7 @@ export async function enableAnalytics(garden: TestGarden) {
   await garden.globalConfigStore.set(["analytics", "optedIn"], true)
   gardenEnv.GARDEN_DISABLE_ANALYTICS = false
   // Set the analytics mode to dev for good measure
-  gardenEnv.ANALYTICS_DEV = "1"
+  gardenEnv.ANALYTICS_DEV = true
 
   const resetConfig = async () => {
     if (originalAnalyticsConfig) {
