@@ -28,6 +28,8 @@ import { ConfigGraph } from "../../../../../../src/config-graph"
 import { KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config"
 import { safeLoadAll } from "js-yaml"
 import { Garden } from "../../../../../../src"
+import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
+import { getIngressApiVersion } from "../../../../../../src/plugins/kubernetes/container/ingress"
 
 let helmTestGarden: TestGarden
 
@@ -65,6 +67,8 @@ export async function buildHelmModules(garden: Garden | TestGarden, graph: Confi
     throw err
   }
 }
+
+const ingressApiPreferenceOrder = ["networking.k8s.io/v1", "extensions/v1beta1", "networking.k8s.io/v1beta1"]
 
 describe("Helm common functions", () => {
   let garden: TestGarden
@@ -110,83 +114,119 @@ describe("Helm common functions", () => {
         version: module.version.versionString,
       })
 
-      expect(templates).to.eql(dedent`
-      ---
-      # Source: api/templates/service.yaml
-      apiVersion: v1
-      kind: Service
-      metadata:
-        name: api-release
-        labels:
-          app.kubernetes.io/name: api
-          helm.sh/chart: api-0.1.0
-          app.kubernetes.io/instance: api-release
-          app.kubernetes.io/managed-by: Helm
-      spec:
-        type: ClusterIP
-        ports:
-          - port: 80
-            targetPort: http
-            protocol: TCP
-            name: http
-        selector:
-          app.kubernetes.io/name: api
-          app.kubernetes.io/instance: api-release
-      ---
-      # Source: api/templates/deployment.yaml
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: api-release
-        labels:
-          app.kubernetes.io/name: api
-          helm.sh/chart: api-0.1.0
-          app.kubernetes.io/instance: api-release
-          app.kubernetes.io/managed-by: Helm
-      spec:
-        replicas: 1
-        selector:
-          matchLabels:
-            app.kubernetes.io/name: api
-            app.kubernetes.io/instance: api-release
-        template:
+      const api = await KubeApi.factory(log, ctx, ctx.provider)
+      const ingressApiVersion = await getIngressApiVersion(log, api, ingressApiPreferenceOrder)
+      let expectedIngressOutput: string
+      if (ingressApiVersion === "networking.k8s.io/v1") {
+        expectedIngressOutput = dedent`
+          # Source: api/templates/ingress.yaml
+          # Use the new Ingress manifest structure
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
           metadata:
+            name: api-release
             labels:
               app.kubernetes.io/name: api
+              helm.sh/chart: api-0.1.0
               app.kubernetes.io/instance: api-release
+              app.kubernetes.io/managed-by: Helm
           spec:
-            containers:
-              - name: api
-                image: "api-image:${imageModule.version.versionString}"
-                imagePullPolicy: IfNotPresent
-                args: [python, app.py]
-                ports:
-                  - name: http
-                    containerPort: 80
-                    protocol: TCP
-                resources:
-                  {}
-      ---
-      # Source: api/templates/ingress.yaml
-      apiVersion: extensions/v1beta1
-      kind: Ingress
-      metadata:
-        name: api-release
-        labels:
-          app.kubernetes.io/name: api
-          helm.sh/chart: api-0.1.0
-          app.kubernetes.io/instance: api-release
-          app.kubernetes.io/managed-by: Helm
-      spec:
-        rules:
-          - host: "api.local.app.garden"
-            http:
-              paths:
-                - path: /
-                  backend:
-                    serviceName: api-release
-                    servicePort: http\n
-      `)
+            rules:
+              - host: "api.local.app.garden"
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: api-release
+                          port:
+                            number: 80`
+      } else {
+        expectedIngressOutput = dedent`
+          # Source: api/templates/ingress.yaml
+          # Use the old Ingress manifest structure
+          apiVersion: extensions/v1beta1
+          kind: Ingress
+          metadata:
+            name: api-release
+            labels:
+              app.kubernetes.io/name: api
+              helm.sh/chart: api-0.1.0
+              app.kubernetes.io/instance: api-release
+              app.kubernetes.io/managed-by: Helm
+          spec:
+            rules:
+              - host: "api.local.app.garden"
+                http:
+                  paths:
+                    - path: /
+                      backend:
+                        serviceName: api-release
+                        servicePort: http `
+      }
+
+      const expected = `
+---
+# Source: api/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-release
+  labels:
+    app.kubernetes.io/name: api
+    helm.sh/chart: api-0.1.0
+    app.kubernetes.io/instance: api-release
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: api
+    app.kubernetes.io/instance: api-release
+---
+# Source: api/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-release
+  labels:
+    app.kubernetes.io/name: api
+    helm.sh/chart: api-0.1.0
+    app.kubernetes.io/instance: api-release
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api
+      app.kubernetes.io/instance: api-release
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: api
+        app.kubernetes.io/instance: api-release
+    spec:
+      containers:
+        - name: api
+          image: "api-image:${imageModule.version.versionString}"
+          imagePullPolicy: IfNotPresent
+          args: [python, app.py]
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          resources:
+            {}
+---
+${expectedIngressOutput}
+      `
+
+      expect(templates.trim()).to.eql(expected.trim())
     })
 
     it("should render and return the manifests for a remote template", async () => {
@@ -222,6 +262,81 @@ describe("Helm common functions", () => {
         version: module.version.versionString,
       })
 
+      const api = await KubeApi.factory(log, ctx, ctx.provider)
+      const ingressApiVersion = await getIngressApiVersion(log, api, ingressApiPreferenceOrder)
+      let ingressResource: any
+      if (ingressApiVersion === "networking.k8s.io/v1") {
+        ingressResource = {
+          apiVersion: "networking.k8s.io/v1",
+          kind: "Ingress",
+          metadata: {
+            name: `api-release`,
+            labels: {
+              "app.kubernetes.io/name": "api",
+              "helm.sh/chart": `api-0.1.0`,
+              "app.kubernetes.io/instance": "api-release",
+              "app.kubernetes.io/managed-by": "Helm",
+            },
+            annotations: {},
+          },
+          spec: {
+            rules: [
+              {
+                host: "api.local.app.garden",
+                http: {
+                  paths: [
+                    {
+                      path: "/",
+                      pathType: "Prefix",
+                      backend: {
+                        service: {
+                          name: `api-release`,
+                          port: {
+                            number: 80,
+                          },
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        }
+      } else {
+        ingressResource = {
+          apiVersion: "extensions/v1beta1",
+          kind: "Ingress",
+          metadata: {
+            name: `api-release`,
+            labels: {
+              "app.kubernetes.io/name": "api",
+              "helm.sh/chart": `api-0.1.0`,
+              "app.kubernetes.io/instance": "api-release",
+              "app.kubernetes.io/managed-by": "Helm",
+            },
+            annotations: {},
+          },
+          spec: {
+            rules: [
+              {
+                host: "api.local.app.garden",
+                http: {
+                  paths: [
+                    {
+                      path: "/",
+                      backend: {
+                        serviceName: `api-release`,
+                        servicePort: "http",
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        }
+      }
       expect(resources).to.eql([
         {
           apiVersion: "v1",
@@ -301,38 +416,7 @@ describe("Helm common functions", () => {
             },
           },
         },
-        {
-          apiVersion: "extensions/v1beta1",
-          kind: "Ingress",
-          metadata: {
-            name: "api-release",
-            labels: {
-              "app.kubernetes.io/name": "api",
-              "helm.sh/chart": "api-0.1.0",
-              "app.kubernetes.io/instance": "api-release",
-              "app.kubernetes.io/managed-by": "Helm",
-            },
-            annotations: {},
-          },
-          spec: {
-            rules: [
-              {
-                host: "api.local.app.garden",
-                http: {
-                  paths: [
-                    {
-                      path: "/",
-                      backend: {
-                        serviceName: "api-release",
-                        servicePort: "http",
-                      },
-                    },
-                  ],
-                },
-              },
-            ],
-          },
-        },
+        ingressResource,
       ])
     })
 
