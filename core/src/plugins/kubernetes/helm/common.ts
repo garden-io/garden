@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isPlainObject, flatten } from "lodash"
+import { isPlainObject, flatten, cloneDeep } from "lodash"
 import { join, resolve } from "path"
 import { pathExists, writeFile, remove, readFile } from "fs-extra"
 import cryptoRandomString = require("crypto-random-string")
-import { merge as jsonMerge } from "json-merge-patch"
+import { apply as jsonMerge } from "json-merge-patch"
 
 import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
@@ -111,7 +111,7 @@ export async function renderTemplates({ ctx, module, devMode, hotReload, log, ve
 
   const baseModule = getBaseModule(module)
   if (baseModule) {
-    specValues = jsonMerge(baseModule.spec.values, specValues)
+    specValues = jsonMerge(cloneDeep(baseModule.spec.values), specValues)
   }
 
   // Add Garden metadata
