@@ -7,9 +7,9 @@
  */
 
 import Bluebird from "bluebird"
-import { get, flatten, sortBy, omit, chain, sample, isEmpty, find } from "lodash"
+import { get, flatten, sortBy, omit, chain, sample, isEmpty, find, cloneDeep } from "lodash"
 import { V1Pod, V1EnvVar, V1Container, V1PodSpec } from "@kubernetes/client-node"
-import { merge as jsonMerge } from "json-merge-patch"
+import { apply as jsonMerge } from "json-merge-patch"
 import chalk from "chalk"
 import hasha from "hasha"
 
@@ -515,7 +515,7 @@ export function getServiceResourceSpec(
   let resourceSpec = module.spec.serviceResource || {}
 
   if (baseModule) {
-    resourceSpec = jsonMerge(baseModule.spec.serviceResource || {}, resourceSpec)
+    resourceSpec = jsonMerge(cloneDeep(baseModule.spec.serviceResource || {}), resourceSpec)
   }
 
   if (isEmpty(resourceSpec)) {
