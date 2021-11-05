@@ -1,4 +1,19 @@
 
+<a name="0.12.30"></a>
+## [0.12.30](https://github.com/garden-io/garden/compare/0.12.29...0.12.30) (2021-11-05)
+
+### Bug Fixes
+
+* **container:** propagate privileged flag ([58cb5715](https://github.com/garden-io/garden/commit/58cb5715))
+* **k8s:** backwards-compatible deployment logic ([b960b9c6](https://github.com/garden-io/garden/commit/b960b9c6))
+* **k8s:** fix casing in ingress spec ([827ba407](https://github.com/garden-io/garden/commit/827ba407))
+* **k8s:** use module ns in getServiceResource ([62dadfcc](https://github.com/garden-io/garden/commit/62dadfcc))
+* **k8s:** validation fix in serviceResource schema ([f070729a](https://github.com/garden-io/garden/commit/f070729a))
+
+### Features
+
+* **k8s:** add timeout to container services ([2927fa5b](https://github.com/garden-io/garden/commit/2927fa5b))
+
 <a name="0.12.28"></a>
 ## [0.12.28](https://github.com/garden-io/garden/compare/0.12.27...0.12.28) (2021-10-24)
 
