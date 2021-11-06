@@ -98,6 +98,8 @@ async function createProxy({ garden, graph, log, service, spec }: StartPortProxy
   const key = getPortKey(service, spec)
   let fwd: GetPortForwardResult | null = null
 
+  let lastPrintedError = ""
+
   const getPortForward = async () => {
     if (fwd) {
       return fwd
@@ -112,7 +114,14 @@ async function createProxy({ garden, graph, log, service, spec }: StartPortProxy
       try {
         fwd = await actions.getPortForward({ service, log, graph, ...spec })
       } catch (err) {
-        log.warn(chalk.gray(`→ Could not start port forward to ${key} (will retry): ${err.message.trim()}`))
+        const msg = err.message.trim()
+
+        if (msg !== lastPrintedError) {
+          log.warn(chalk.gray(`→ Could not start port forward to ${key} (will retry): ${msg}`))
+          lastPrintedError = msg
+        } else {
+          log.silly(chalk.gray(`→ Could not start port forward to ${key} (will retry): ${msg}`))
+        }
       }
 
       log.debug(`Successfully started port forward to ${key}`)
