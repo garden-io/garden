@@ -30,6 +30,7 @@ export const mutagenAgentPath = "/.garden/mutagen-agent"
 
 let daemonProc: any
 let mutagenTmp: TempDirectory
+let lastDaemonError = ""
 
 export const mutagenModeMap = {
   "one-way": "one-way-safe",
@@ -54,6 +55,7 @@ export interface SyncConfig {
 }
 
 interface ActiveSync {
+  created: Date
   sourceDescription: string
   targetDescription: string
   logSection: string
@@ -152,8 +154,10 @@ export async function ensureMutagenDaemon(log: LogEntry) {
       // This is a little dumb, to detect if the log line starts with a timestamp, but ya know...
       // it'll basically work for the next 979 years :P.
       const msg = chalk.gray(str.startsWith("2") ? str.split(" ").slice(3).join(" ") : str)
-      if (msg.includes("Unable")) {
+      if (msg.includes("Unable") && lastDaemonError !== msg) {
         log.warn({ symbol: "warning", section: mutagenLogSection, msg })
+        // Make sure we don't spam with repeated messages
+        lastDaemonError = msg
       } else {
         log.silly({ symbol: "empty", section: mutagenLogSection, msg })
       }
@@ -361,10 +365,10 @@ function checkMutagen(log: LogEntry) {
               msg: chalk.gray(`Synchronized ${description} at ${time}`),
             })
           }
+          activeSync.lastSyncCount = syncCount
         }
 
         activeSync.lastProblems = problems
-        activeSync.lastSyncCount = syncCount
       }
     })
     .catch((err) => {
@@ -463,6 +467,7 @@ export async function ensureMutagenSync({
       })
 
       activeSyncs[key] = {
+        created: new Date(),
         sourceDescription,
         targetDescription,
         logSection,
@@ -481,6 +486,8 @@ export async function ensureMutagenSync({
  * Remove the specified sync (by name) from the sync daemon.
  */
 export async function terminateMutagenSync(log: LogEntry, key: string) {
+  log.debug(`Terminating mutagen sync ${key}`)
+
   return mutagenConfigLock.acquire("configure", async () => {
     try {
       await execMutagenCommand(log, ["sync", "delete", key, "--auto-start=false"])
@@ -494,7 +501,7 @@ export async function terminateMutagenSync(log: LogEntry, key: string) {
   })
 }
 /**
- * Remove the specified sync (by name) from the sync daemon.
+ * Ensure a sync is completed.
  */
 export async function flushMutagenSync(log: LogEntry, key: string) {
   await execMutagenCommand(log, ["sync", "flush", key, "--auto-start=false"])
