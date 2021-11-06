@@ -25,7 +25,7 @@ describe("GetModulesCommand", () => {
       headerLog: log,
       footerLog: log,
       args: { modules: undefined },
-      opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
+      opts: withDefaultGlobalOpts({ "exclude-disabled": false, "full": false }),
     })
 
     expect(command.outputsSchema().validate(res.result).error).to.be.undefined
@@ -48,7 +48,7 @@ describe("GetModulesCommand", () => {
       headerLog: log,
       footerLog: log,
       args: { modules: undefined },
-      opts: withDefaultGlobalOpts({ "exclude-disabled": true }),
+      opts: withDefaultGlobalOpts({ "exclude-disabled": true, "full": false }),
     })
 
     expect(command.outputsSchema().validate(res.result).error).to.be.undefined
@@ -67,7 +67,7 @@ describe("GetModulesCommand", () => {
       headerLog: log,
       footerLog: log,
       args: { modules: ["module-a"] },
-      opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
+      opts: withDefaultGlobalOpts({ "exclude-disabled": false, "full": false }),
     })
 
     expect(command.outputsSchema().validate(res.result).error).to.be.undefined

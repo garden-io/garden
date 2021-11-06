@@ -1972,6 +1972,7 @@ Examples:
 
     garden get modules                                                # list all modules in the project
     garden get modules --exclude-disabled=true                        # skip disabled modules
+    garden get modules --full                                         # show resolved config for each module
     garden get modules -o=json | jq '.modules["my-module"].version'   # get version of my-module
 
 #### Usage
@@ -1988,6 +1989,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
+  | `--full` |  | boolean | Show the full config for each module, with template strings resolved. Has no effect when the --output option is used.
   | `--exclude-disabled` |  | boolean | Exclude disabled modules from output.
 
 #### Outputs
