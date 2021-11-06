@@ -386,6 +386,31 @@ Examples:
   | `--type` |  | string | The module type to create. Required if --interactive&#x3D;false.
 
 
+### garden dashboard
+
+**Starts the Garden dashboard for the current project and environment.**
+
+Starts the Garden dashboard for the current project, and your selected environment+namespace. The dashboard can be used to monitor your Garden project, look at logs, provider-specific dashboard pages and more.
+
+The dashboard will receive and display updates from other Garden processes that you run with the same Garden project, environment and namespace.
+
+Note: You must currently run one dashboard per-environment and namespace.
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
+
+#### Usage
+
+    garden dashboard [options]
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--port` |  | number | The port number for the Garden dashboard to listen on.
+
+
 ### garden delete secret
 
 **Delete a secret from the environment.**
@@ -937,56 +962,6 @@ Examples:
   | `--test-names` | `-tn` | array:string | Filter the tests to run by test name across all modules (leave unset to run all tests). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
 
 
-### garden exec
-
-**Executes a command (such as an interactive shell) in a running service.**
-
-Finds an active container for a deployed service and executes the given command within the container.
-Supports interactive shells.
-
-_NOTE: This command may not be supported for all module types._
-
-Examples:
-
-     garden exec my-service /bin/sh   # runs a shell in the my-service container
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| Yes |                                                  |
-
-#### Usage
-
-    garden exec <service> <command> [options]
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `service` | Yes | The service to exec the command in.
-  | `command` | Yes | The command to run.
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--interactive` |  | boolean | Set to false to skip interactive mode and just output the command result
-
-#### Outputs
-
-```yaml
-# The exit code of the command executed in the service container.
-code:
-
-# The output of the executed command.
-output:
-
-# The stdout output of the executed command (if available).
-stdout:
-
-# The stderr output of the executed command (if available).
-stderr:
-```
-
 ### garden enterprise secrets list
 
 **[EXPERIMENTAL] List secrets.**
@@ -1203,6 +1178,56 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--filter-names` |  | array:string | Filter on group name. Use comma as a separator to filter on multiple names. Accepts glob patterns.
 
+
+### garden exec
+
+**Executes a command (such as an interactive shell) in a running service.**
+
+Finds an active container for a deployed service and executes the given command within the container.
+Supports interactive shells.
+
+_NOTE: This command may not be supported for all module types._
+
+Examples:
+
+     garden exec my-service /bin/sh   # runs a shell in the my-service container
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| Yes |                                                  |
+
+#### Usage
+
+    garden exec <service> <command> [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `service` | Yes | The service to exec the command in.
+  | `command` | Yes | The command to run.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--interactive` |  | boolean | Set to false to skip interactive mode and just output the command result
+
+#### Outputs
+
+```yaml
+# The exit code of the command executed in the service container.
+code:
+
+# The output of the executed command.
+output:
+
+# The stdout output of the executed command (if available).
+stdout:
+
+# The stderr output of the executed command (if available).
+stderr:
+```
 
 ### garden get graph
 
@@ -3193,6 +3218,33 @@ published:
     version:
 ```
 
+### garden render module
+
+**Outputs a fully resolved configuration for the requested module.**
+
+Outputs the fully resolved module configuration. Resolves all template strings and includes the module's current
+version. This is useful for debugging template strings.
+
+Examples:
+  garden render module my-module          # Renders my-module as YAML
+  garden render module my-module -o json  # Renders my-module as JSON
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
+
+#### Usage
+
+    garden render module <module> 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `module` | Yes | The name of the module to render.
+
+
+
 ### garden run module
 
 **Run an ad-hoc instance of a module.**
@@ -3480,31 +3532,6 @@ Examples:
 
     garden scan 
 
-
-
-### garden dashboard
-
-**Starts the Garden dashboard for the current project and environment.**
-
-Starts the Garden dashboard for the current project, and your selected environment+namespace. The dashboard can be used to monitor your Garden project, look at logs, provider-specific dashboard pages and more.
-
-The dashboard will receive and display updates from other Garden processes that you run with the same Garden project, environment and namespace.
-
-Note: You must currently run one dashboard per-environment and namespace.
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
-#### Usage
-
-    garden dashboard [options]
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--port` |  | number | The port number for the Garden dashboard to listen on.
 
 
 ### garden self-update
