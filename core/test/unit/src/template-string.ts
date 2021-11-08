@@ -1202,6 +1202,50 @@ describe("resolveTemplateStrings", () => {
       c: "c",
     })
   })
+
+  context("$concat", () => {
+    it("handles array concetenation", () => {
+      const obj = {
+        foo: ["a", { $concat: ["b", "c"] }, "d"],
+      }
+      const res = resolveTemplateStrings(obj, new TestContext({}))
+      expect(res).to.eql({
+        foo: ["a", "b", "c", "d"],
+      })
+    })
+
+    it("resolves $concat value before spreading", () => {
+      const obj = {
+        foo: ["a", { $concat: "${foo}" }, "d"],
+      }
+      const res = resolveTemplateStrings(obj, new TestContext({ foo: ["b", "c"] }))
+      expect(res).to.eql({
+        foo: ["a", "b", "c", "d"],
+      })
+    })
+
+    it("throws if $concat value is not an array and allowPartial=false", () => {
+      const obj = {
+        foo: ["a", { $concat: "b" }, "d"],
+      }
+
+      expectError(
+        () => resolveTemplateStrings(obj, new TestContext({})),
+        (err) =>
+          expect(stripAnsi(err.message)).to.equal("Value of $concat key must be (or resolve to) an array (got string)")
+      )
+    })
+
+    it("ignores if $concat value is not an array and allowPartial=true", () => {
+      const obj = {
+        foo: ["a", { $concat: "${foo}" }, "d"],
+      }
+      const res = resolveTemplateStrings(obj, new TestContext({}), { allowPartial: true })
+      expect(res).to.eql({
+        foo: ["a", { $concat: "${foo}" }, "d"],
+      })
+    })
+  })
 })
 
 describe("collectTemplateReferences", () => {
