@@ -52,12 +52,6 @@ export async function runCli({
     code = 1
   } finally {
     await processRecord.remove()
-
-    if (gardenEnv.GARDEN_ENABLE_PROFILING) {
-      // tslint:disable-next-line: no-console
-      console.log(getDefaultProfiler().report())
-    }
-
     await shutdown(code)
   }
 

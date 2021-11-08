@@ -24,8 +24,6 @@ export class UpdateRemoteAllCommand extends Command {
   name = "all"
   help = "Update all remote sources and modules."
 
-  workflows = true
-
   outputsSchema = () =>
     joi.object().keys({
       projectSources: joiArray(projectSourceSchema()).description("A list of all configured external project sources."),

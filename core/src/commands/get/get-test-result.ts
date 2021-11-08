@@ -38,7 +38,6 @@ export class GetTestResultCommand extends Command<Args> {
   name = "test-result"
   help = "Outputs the latest execution result of a provided test."
 
-  workflows = true
   streamEvents = true
 
   arguments = getTestResultArgs

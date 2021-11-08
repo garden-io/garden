@@ -52,6 +52,7 @@ export interface ParameterConstructor<T> {
   cliDefault?: T
   cliOnly?: boolean
   hidden?: boolean
+  spread?: boolean
 }
 
 export abstract class Parameter<T> {
@@ -68,6 +69,7 @@ export abstract class Parameter<T> {
   valueName: string
   overrides: string[]
   hidden: boolean
+  spread: boolean
 
   readonly cliDefault: T | undefined // Optionally specify a separate default for CLI invocation
   readonly cliOnly: boolean // If true, only expose in the CLI, and not in the HTTP/WS server.
@@ -83,6 +85,7 @@ export abstract class Parameter<T> {
     cliDefault,
     cliOnly,
     hidden,
+    spread,
   }: ParameterConstructor<T>) {
     this.help = help
     this.required = required || false
@@ -94,6 +97,7 @@ export abstract class Parameter<T> {
     this.cliDefault = cliDefault
     this.cliOnly = cliOnly || false
     this.hidden = hidden || false
+    this.spread = spread || false
   }
 
   // TODO: merge this and the parseString method?
@@ -355,7 +359,6 @@ export const globalOptions = {
     alias: "r",
     help:
       "Override project root directory (defaults to working directory). Can be absolute or relative to current directory.",
-    defaultValue: process.cwd(),
   }),
   "silent": new BooleanParameter({
     alias: "s",

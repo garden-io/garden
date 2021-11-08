@@ -313,6 +313,15 @@ export class Logger implements LogNode {
   }
 }
 
+/**
+ * Dummy Logger instance, just swallows log entries and prints nothing.
+ */
+export class VoidLogger extends Logger {
+  constructor() {
+    super({ writers: [], level: LogLevel.error, storeEntries: false })
+  }
+}
+
 export function getLogger() {
   return Logger.getInstance()
 }

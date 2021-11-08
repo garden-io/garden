@@ -79,7 +79,6 @@ export class TestCommand extends Command<Args, Opts> {
   help = "Test all or specified modules."
 
   protected = true
-  workflows = true
   streamEvents = true
 
   description = dedent`
@@ -111,14 +110,14 @@ export class TestCommand extends Command<Args, Opts> {
     printHeader(headerLog, `Running tests`, "thermometer")
   }
 
-  async prepare({ footerLog, opts }: PrepareParams<Args, Opts>) {
-    const persistent = !!opts.watch
+  isPersistent({ opts }: PrepareParams<Args, Opts>) {
+    return !!opts.watch
+  }
 
-    if (persistent) {
-      this.server = await startServer({ log: footerLog })
+  async prepare(params: PrepareParams<Args, Opts>) {
+    if (this.isPersistent(params)) {
+      this.server = await startServer({ log: params.footerLog })
     }
-
-    return { persistent }
   }
 
   terminate() {

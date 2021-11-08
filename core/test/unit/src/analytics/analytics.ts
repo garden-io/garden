@@ -81,7 +81,7 @@ describe("AnalyticsHandler", () => {
           projectMetadata: {
             modulesCount: 3,
             moduleTypes: ["test"],
-            tasksCount: 3,
+            tasksCount: 4,
             servicesCount: 3,
             testsCount: 5,
           },
@@ -356,7 +356,7 @@ describe("AnalyticsHandler", () => {
             projectMetadata: {
               modulesCount: 3,
               moduleTypes: ["test"],
-              tasksCount: 3,
+              tasksCount: 4,
               servicesCount: 3,
               testsCount: 5,
             },

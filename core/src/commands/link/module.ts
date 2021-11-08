@@ -41,8 +41,6 @@ export class LinkModuleCommand extends Command<Args> {
   help = "Link a module to a local directory."
   arguments = linkModuleArguments
 
-  workflows = true
-
   outputsSchema = () =>
     joi.object().keys({
       sources: joiArray(linkedModuleSchema()).description("A list of all locally linked external modules."),

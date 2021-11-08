@@ -9,7 +9,7 @@
 import execa from "execa"
 import tmp from "tmp-promise"
 import { expect } from "chai"
-import { TestGarden, makeTestGardenA, withDefaultGlobalOpts, expectError } from "../../../../helpers"
+import { TestGarden, makeTestGardenA, withDefaultGlobalOpts, expectError, TestGardenCli } from "../../../../helpers"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { RunWorkflowCommand, shouldBeDropped } from "../../../../../src/commands/run/workflow"
 import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
@@ -33,6 +33,7 @@ describe("RunWorkflowCommand", () => {
     garden = await makeTestGardenA()
     const log = garden.log
     defaultParams = {
+      cli: new TestGardenCli(),
       garden,
       log,
       headerLog: log,
@@ -475,13 +476,62 @@ describe("RunWorkflowCommand", () => {
       },
     ])
 
-    await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
-
     const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
 
     expect(result).to.exist
     expect(errors).to.not.exist
     expect(result?.steps["step-1"].log).to.equal(garden.projectRoot)
+  })
+
+  it("should run a custom command in a command step", async () => {
+    garden.setWorkflowConfigs([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "workflow-a",
+        kind: "Workflow",
+        path: garden.projectRoot,
+        envVars: {},
+        resources: defaultWorkflowResources,
+        files: [],
+        steps: [{ command: ["echo", "foo"] }],
+      },
+    ])
+
+    const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    expect(result).to.exist
+    expect(errors).to.eql([])
+    expect(result?.steps["step-1"].outputs.exec?.["command"]).to.eql(["sh", "-c", "echo foo"])
+  })
+
+  it("should support global parameters for custom commands", async () => {
+    garden.setWorkflowConfigs([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "workflow-a",
+        kind: "Workflow",
+        path: garden.projectRoot,
+        envVars: {},
+        resources: defaultWorkflowResources,
+        files: [],
+        steps: [{ command: ["run-task", "task-a2", "--env", "other", "--var", "msg=YEP"] }],
+      },
+    ])
+
+    const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    expect(result).to.exist
+    expect(errors).to.eql([])
+    expect(result?.steps["step-1"].outputs.gardenCommand?.["result"].result.log).to.equal("echo other-YEP")
+    expect(result?.steps["step-1"].outputs.gardenCommand?.["command"]).to.eql([
+      "run",
+      "task",
+      "task-a2",
+      "--env",
+      "other",
+      "--var",
+      "msg=YEP",
+    ])
   })
 
   it("should include env vars from the workflow config, if provided", async () => {

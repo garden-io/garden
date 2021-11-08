@@ -24,6 +24,7 @@ import { uuidv4, exec } from "./util"
 import micromatch from "micromatch"
 
 export const defaultConfigFilename = "garden.yml"
+export const configFilenamePattern = "*garden.y*ml"
 const metadataFilename = "metadata.json"
 export const defaultDotIgnoreFiles = [".gardenignore"]
 export const fixedProjectExcludes = [".git", ".gitmodules", ".garden/**/*", "debug-info*/**"]
@@ -159,13 +160,13 @@ export async function findConfigPathsInPath({
       if (last === "**" || last === "*") {
         // Swap out a general wildcard on the last path segment with one that will specifically match Garden configs,
         // to optimize the scan.
-        return split.slice(0, -1).concat(["*garden.y*ml"]).join(posix.sep)
+        return split.slice(0, -1).concat([configFilenamePattern]).join(posix.sep)
       } else {
         return path
       }
     })
   } else {
-    include = ["**/*garden.y*ml"]
+    include = ["**/" + configFilenamePattern]
   }
 
   const paths = await vcs.getFiles({

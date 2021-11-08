@@ -35,8 +35,6 @@ export class GetConfigCommand extends Command<{}, Opts> {
   name = "config"
   help = "Outputs the full configuration for this project and environment."
 
-  workflows = true
-
   outputsSchema = () =>
     joi.object().keys({
       allEnvironmentNames: joiArray(environmentNameSchema()).required(),

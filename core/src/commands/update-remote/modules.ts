@@ -38,8 +38,6 @@ export class UpdateRemoteModulesCommand extends Command<Args> {
   help = "Update remote modules."
   arguments = updateRemoteModulesArguments
 
-  workflows = true
-
   outputsSchema = () =>
     joi.object().keys({
       sources: joiArray(moduleSourceSchema()).description("A list of all external module sources in the project."),

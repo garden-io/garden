@@ -99,6 +99,11 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
     printHeader(headerLog, "Create new module", "pencil2")
   }
 
+  // Defining it like this because it'll stall on waiting for user input.
+  isPersistent() {
+    return true
+  }
+
   async action({
     opts,
     log,

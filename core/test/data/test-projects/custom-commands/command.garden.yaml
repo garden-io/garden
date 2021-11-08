@@ -1,0 +1,9 @@
+kind: Command
+name: run-task
+description:
+  short: Run the specified task
+  long: An entirely unnecessary alias for garden run task
+gardenCommand:
+  - run
+  - task
+  - $concat: ${args.$all}

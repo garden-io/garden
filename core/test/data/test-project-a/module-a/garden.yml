@@ -17,3 +17,5 @@ tests:
 tasks:
   - name: task-a
     command: [echo, "${var.msg}"]
+  - name: task-a2
+    command: [echo, "${environment.name}-${var.msg}"]

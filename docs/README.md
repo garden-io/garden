@@ -45,6 +45,7 @@
 * [Terraform](./advanced/terraform.md)
 * [Using Remote Sources](./advanced/using-remote-sources.md)
 * [Minimal RBAC Configuration for Development Clusters](./advanced/rbac-config.md)
+* [Custom Commands](./advanced/custom-commands.md)
 
 ## ☘️ Reference
 

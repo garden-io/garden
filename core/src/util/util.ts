@@ -26,6 +26,8 @@ import { LogEntry } from "../logger/log-entry"
 import execa = require("execa")
 import { PrimitiveMap } from "../config/common"
 import { isAbsolute, relative } from "path"
+import { getDefaultProfiler } from "./profiling"
+import { gardenEnv } from "../constants"
 export { v4 as uuidv4 } from "uuid"
 
 export type HookCallback = (callback?: () => void) => void
@@ -67,6 +69,10 @@ export const testFlags = {
 export async function shutdown(code?: number) {
   // This is a good place to log exitHookNames if needed.
   if (!testFlags.disableShutdown) {
+    if (gardenEnv.GARDEN_ENABLE_PROFILING) {
+      // tslint:disable-next-line: no-console
+      console.log(getDefaultProfiler().report())
+    }
     process.exit(code)
   }
 }
@@ -799,4 +805,42 @@ export function duplicatesByKey(items: any[], key: string) {
 
 export function isNotNull<T>(v: T | null): v is T {
   return v !== null
+}
+
+/**
+ * Find and return the index of the given `slice` within `array`. Returns -1 if the slice is not found.
+ *
+ * Adapted from https://stackoverflow.com/posts/29426078/revisions
+ *
+ * @param array
+ * @param slice
+ */
+export function findSlice(array: any[], slice: any[], fromIndex = 0) {
+  let i = fromIndex
+  const sliceLength = slice.length
+  const l = array.length + 1 - sliceLength
+
+  loop: for (; i < l; i++) {
+    for (let j = 0; j < sliceLength; j++) {
+      if (array[i + j] !== slice[j]) {
+        continue loop
+      }
+    }
+    return i
+  }
+  return -1
+}
+
+/**
+ * Returns a copy of the given array, with the first instance (if any) of the given slice removed.
+ */
+export function removeSlice(array: any[], slice: any[]) {
+  const out = [...array]
+  const index = findSlice(array, slice)
+
+  if (index > -1) {
+    out.splice(index, slice.length)
+  }
+
+  return out
 }

@@ -126,11 +126,11 @@ export function Profile(profiler?: Profiler) {
       }
 
       const descriptor = Object.getOwnPropertyDescriptor(target.prototype, propertyName)!
-      const originalMethod = descriptor.value
+      const originalMethod = descriptor.get || descriptor.value
 
       const timingKey = `${target.name}#${propertyName}`
 
-      descriptor.value = function (...args: any[]) {
+      const wrapped = function (this: any, ...args: any[]) {
         const start = performance.now()
         // tslint:disable-next-line: no-invalid-this
         const result = originalMethod.apply(this, args)
@@ -151,6 +151,12 @@ export function Profile(profiler?: Profiler) {
           profiler!.log(timingKey, start)
           return result
         }
+      }
+
+      if (descriptor.get) {
+        descriptor.get = wrapped
+      } else {
+        descriptor.value = wrapped
       }
 
       Object.defineProperty(target.prototype, propertyName, descriptor)

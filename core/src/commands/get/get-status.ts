@@ -49,7 +49,6 @@ export class GetStatusCommand extends Command {
   name = "status"
   help = "Outputs the full status of your environment."
 
-  workflows = true
   streamEvents = true
 
   outputsSchema = () =>

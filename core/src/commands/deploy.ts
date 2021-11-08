@@ -32,7 +32,7 @@ import {
 import { startServer } from "../server/server"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
-import { StringsParameter, BooleanParameter, ParameterValues } from "../cli/params"
+import { StringsParameter, BooleanParameter } from "../cli/params"
 import { Garden } from "../garden"
 
 export const deployArgs = {
@@ -92,7 +92,6 @@ export class DeployCommand extends Command<Args, Opts> {
   help = "Deploy service(s) to your environment."
 
   protected = true
-  workflows = true
   streamEvents = true
 
   description = dedent`
@@ -122,21 +121,18 @@ export class DeployCommand extends Command<Args, Opts> {
 
   outputsSchema = () => processCommandResultSchema()
 
-  private isPersistent = (opts: ParameterValues<Opts>) =>
-    !!opts.watch || !!opts["hot-reload"] || !!opts["dev-mode"] || !!opts.forward
+  isPersistent({ opts }: PrepareParams<Args, Opts>) {
+    return !!opts.watch || !!opts["hot-reload"] || !!opts["dev-mode"] || !!opts.forward
+  }
 
   printHeader({ headerLog }) {
     printHeader(headerLog, "Deploy", "rocket")
   }
 
-  async prepare({ footerLog, opts }: PrepareParams<Args, Opts>) {
-    const persistent = this.isPersistent(opts)
-
-    if (persistent) {
-      this.server = await startServer({ log: footerLog })
+  async prepare(params: PrepareParams<Args, Opts>) {
+    if (this.isPersistent(params)) {
+      this.server = await startServer({ log: params.footerLog })
     }
-
-    return { persistent }
   }
 
   terminate() {

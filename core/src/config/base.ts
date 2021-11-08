@@ -16,10 +16,9 @@ import { ConfigurationError, FilesystemError } from "../exceptions"
 import { DEFAULT_API_VERSION } from "../constants"
 import { ProjectResource } from "../config/project"
 import { validateWithPath } from "./validation"
-import { WorkflowResource } from "./workflow"
 import { listDirectory } from "../util/fs"
 import { isConfigFilename } from "../util/fs"
-import { TemplateKind, templateKind, ModuleTemplateResource } from "./module-template"
+import { TemplateKind, templateKind } from "./module-template"
 import { isTruthy } from "../util/util"
 
 export interface GardenResource {
@@ -106,14 +105,17 @@ function prepareResource({
   const kind = spec.kind
   const relPath = relative(projectRoot, configPath)
 
-  if (kind === "Project") {
-    return prepareProjectConfig(spec, configPath)
+  if (!spec.apiVersion) {
+    spec.apiVersion = DEFAULT_API_VERSION
+  }
+
+  spec.path = dirname(configPath)
+  spec.configPath = configPath
+
+  if (kind === "Project" || kind === "Command" || kind === "Workflow" || kind === templateKind) {
+    return spec
   } else if (kind === "Module") {
     return prepareModuleResource(spec, configPath, projectRoot)
-  } else if (kind === "Workflow") {
-    return prepareWorkflowResource(spec, configPath)
-  } else if (kind === templateKind) {
-    return prepareTemplateResource(spec, configPath)
   } else if (allowInvalid) {
     return spec
   } else if (!kind) {
@@ -127,18 +129,6 @@ function prepareResource({
       path: relPath,
     })
   }
-}
-
-function prepareProjectConfig(spec: any, configPath: string): ProjectResource {
-  if (!spec.apiVersion) {
-    spec.apiVersion = DEFAULT_API_VERSION
-  }
-
-  spec.kind = "Project"
-  spec.path = dirname(configPath)
-  spec.configPath = configPath
-
-  return spec
 }
 
 export function prepareModuleResource(spec: any, configPath: string, projectRoot: string): ModuleResource {
@@ -220,30 +210,6 @@ export function prepareBuildDependencies(buildDependencies: any[]): BuildDepende
       }
     })
     .filter(isTruthy)
-}
-
-export function prepareWorkflowResource(spec: any, configPath: string): WorkflowResource {
-  if (!spec.apiVersion) {
-    spec.apiVersion = DEFAULT_API_VERSION
-  }
-
-  spec.kind = "Workflow"
-  spec.path = dirname(configPath)
-  spec.configPath = configPath
-
-  return spec
-}
-
-export function prepareTemplateResource(spec: any, configPath: string): ModuleTemplateResource {
-  if (!spec.apiVersion) {
-    spec.apiVersion = DEFAULT_API_VERSION
-  }
-
-  spec.kind = templateKind
-  spec.path = dirname(configPath)
-  spec.configPath = configPath
-
-  return spec
 }
 
 export async function findProjectConfig(path: string, allowInvalid = false): Promise<ProjectResource | undefined> {

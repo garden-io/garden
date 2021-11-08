@@ -90,7 +90,7 @@ export class PluginsCommand extends Command<Args> {
       }
     }
 
-    const commandArgs = args._ || []
+    const commandArgs = args["--"] || []
 
     if (command.title) {
       const environmentName = garden.environmentName

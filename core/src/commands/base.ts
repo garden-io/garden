@@ -30,6 +30,7 @@ import { TestResult, testResultSchema } from "../types/plugin/module/getTestResu
 import { cliStyles, renderOptions, renderCommands, renderArguments } from "../cli/helpers"
 import { GlobalOptions, ParameterValues, Parameters } from "../cli/params"
 import { GardenServer } from "../server/server"
+import { GardenCli } from "../cli/cli"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -39,10 +40,18 @@ export interface CommandResult<T = any> {
   result?: T
   restartRequired?: boolean
   errors?: GardenBaseError[]
+  exitCode?: number
+}
+
+export interface BuiltinArgs {
+  // The raw unprocessed arguments
+  "$all"?: string[]
+  // Everything following -- on the command line
+  "--"?: string[]
 }
 
 export interface CommandParamsBase<T extends Parameters = {}, U extends Parameters = {}> {
-  args: ParameterValues<T> & { _?: string[] }
+  args: ParameterValues<T> & BuiltinArgs
   opts: ParameterValues<GlobalOptions & U>
 }
 
@@ -58,12 +67,8 @@ export interface PrepareParams<T extends Parameters = {}, U extends Parameters =
 }
 
 export interface CommandParams<T extends Parameters = {}, U extends Parameters = {}> extends PrepareParams<T, U> {
+  cli?: GardenCli
   garden: Garden
-}
-
-interface PrepareOutput {
-  // Commands should set this to true if the command is long-running
-  persistent: boolean
 }
 
 type DataCallback = (data: string) => void
@@ -75,6 +80,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   description?: string
   alias?: string
 
+  allowUndefinedArguments: boolean = false
   arguments?: T
   options?: U
 
@@ -84,7 +90,6 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   hidden: boolean = false
   noProject: boolean = false
   protected: boolean = false
-  workflows: boolean = false // Set to true to allow the command in workflow steps
   streamEvents: boolean = false // Set to true to stream events for the command
   streamLogEntries: boolean = false // Set to true to stream log entries for the command
   server: GardenServer | undefined = undefined
@@ -96,12 +101,12 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
     this.subscribers = []
     this.terminated = false
 
+    const commandName = this.getFullName()
+
     // Make sure arguments and options don't have overlapping key names.
     if (this.arguments && this.options) {
       for (const key of Object.keys(this.options)) {
         if (key in this.arguments) {
-          const commandName = this.getFullName()
-
           throw new InternalError(`Key ${key} is defined in both options and arguments for command ${commandName}`, {
             commandName,
             key,
@@ -110,8 +115,40 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
       }
     }
 
-    // TODO: make sure required arguments don't follow optional ones
-    // TODO: make sure arguments don't have default values
+    const args = Object.values(this.arguments || [])
+    let foundOptional = false
+
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i]
+
+      // Make sure arguments don't have default values
+      if (arg.defaultValue) {
+        throw new InternalError(`A positional argument cannot have a default value`, {
+          commandName,
+          arg,
+        })
+      }
+
+      if (arg.required) {
+        // Make sure required arguments don't follow optional ones
+        if (foundOptional) {
+          throw new InternalError(`A required argument cannot follow an optional one`, {
+            commandName,
+            arg,
+          })
+        }
+      } else {
+        foundOptional = true
+      }
+
+      // Make sure only last argument is spread
+      if (arg.spread && i < args.length - 1) {
+        throw new InternalError(`Only the last command argument can set spread to true`, {
+          commandName,
+          arg,
+        })
+      }
+    }
   }
 
   getKey() {
@@ -164,17 +201,21 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
       arguments: describeParameters(this.arguments),
       options: describeParameters(this.options),
       outputsSchema: this.outputsSchema,
-      workflows: this.workflows,
     }
+  }
+
+  /**
+   * Called to check if the command would run persistently, with the given args/opts
+   */
+  isPersistent(_: PrepareParams<T, U>) {
+    return false
   }
 
   /**
    * Called by the CLI before the command's action is run, but is not called again
    * if the command restarts. Useful for commands in watch mode.
    */
-  async prepare(_: PrepareParams<T, U>): Promise<PrepareOutput> {
-    return { persistent: false }
-  }
+  async prepare(_: PrepareParams<T, U>): Promise<void> {}
 
   /**
    * Called by e.g. the WebSocket server to terminate persistent commands.

@@ -28,9 +28,9 @@ import stripAnsi from "strip-ansi"
 import { Command } from "../../../../src/commands/base"
 import { dedent } from "../../../../src/util/string"
 import { LogsCommand } from "../../../../src/commands/logs"
-import { getAllCommands } from "../../../../src/commands/commands"
+import { getBuiltinCommands } from "../../../../src/commands/commands"
 import { DeepPrimitiveMap } from "../../../../src/config/common"
-import { getLogLevelChoices, parseLogLevel } from "../../../../src/logger/logger"
+import { getLogLevelChoices, LogLevel, parseLogLevel } from "../../../../src/logger/logger"
 
 const validLogLevels = ["error", "warn", "info", "verbose", "debug", "silly", "0", "1", "2", "3", "4", "5"]
 
@@ -66,7 +66,7 @@ describe("parseLogLevel", () => {
 })
 
 describe("pickCommand", () => {
-  const commands = getAllCommands()
+  const commands = getBuiltinCommands()
 
   it("picks a command and returns the rest of arguments", () => {
     const { command, rest } = pickCommand(commands, ["build", "foo", "--force"])
@@ -141,7 +141,7 @@ describe("parseCliArgs", () => {
     const argv = parseCliArgs({ stringArgs: [], command: cmd, cli: true })
 
     expect(argv.silent).to.be.false
-    expect(argv.root).to.equal(process.cwd())
+    expect(argv["log-level"]).to.equal(LogLevel[LogLevel.info])
   })
 
   it("sets default command option values", () => {
@@ -172,7 +172,8 @@ function parseAndProcess<A extends Parameters, O extends Parameters>(
   command: Command<A, O>,
   cli = true
 ) {
-  return processCliArgs({ parsedArgs: parseCliArgs({ stringArgs: args, command, cli }), command, cli })
+  const rawArgs = [...command.getPath(), ...args]
+  return processCliArgs({ rawArgs, parsedArgs: parseCliArgs({ stringArgs: args, command, cli }), command, cli })
 }
 
 describe("processCliArgs", () => {
@@ -194,8 +195,22 @@ describe("processCliArgs", () => {
   it("correctly handles blank arguments", () => {
     const cmd = new BuildCommand()
     const { args } = parseAndProcess([], cmd)
-    expect(args._).to.eql([])
+    expect(args.$all).to.eql([])
+    expect(args["--"]).to.eql([])
     expect(args.modules).to.be.undefined
+  })
+
+  it("populates the $all argument, omitting the command name", () => {
+    const cmd = new BuildCommand()
+    // Note: The command name is implicitly added in this helper
+    const { args } = parseAndProcess(["module-name", "--watch"], cmd)
+    expect(args.$all).to.eql(["module-name", "--watch"])
+  })
+
+  it("populates the -- argument", () => {
+    const cmd = new BuildCommand()
+    const { args } = parseAndProcess(["module-name", "--", "foo", "bla"], cmd)
+    expect(args["--"]).to.eql(["foo", "bla"])
   })
 
   it("correctly handles command option flags", () => {
@@ -338,7 +353,7 @@ describe("processCliArgs", () => {
     const cmd = new BuildCommand()
     const { opts } = parseAndProcess([], cmd)
     expect(opts.silent).to.be.false
-    expect(opts.root).to.equal(process.cwd())
+    expect(opts["log-level"]).to.equal(LogLevel[LogLevel.info])
   })
 
   it("prefers defaultValue value over cliDefault when cli=false", () => {

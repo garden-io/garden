@@ -178,7 +178,11 @@ MemberExpression
 
 CallExpression
   = callee:Identifier __ args:Arguments {
-      return callHelperFunction({ functionName: callee, args, text: text(), allowPartial: options.allowPartial })
+      // Workaround for parser issue (calling text() before referencing other values)
+      const functionName = callee
+      const _args = args
+
+      return callHelperFunction({ functionName, args: _args, text: text(), allowPartial: options.allowPartial })
     }
 
 Arguments

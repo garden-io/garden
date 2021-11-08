@@ -176,7 +176,7 @@ describe("ToolsCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { tool: "tool", _: ["0"] },
+      args: { "tool": "tool", "--": ["0"] },
       opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
     })
 
@@ -193,7 +193,7 @@ describe("ToolsCommand", () => {
           log,
           headerLog: log,
           footerLog: log,
-          args: { tool: "51616ok3xnnz....361.2362&123", _: ["0"] },
+          args: { "tool": "51616ok3xnnz....361.2362&123", "--": ["0"] },
           opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
         }),
       (err) =>
@@ -211,7 +211,7 @@ describe("ToolsCommand", () => {
           log,
           headerLog: log,
           footerLog: log,
-          args: { tool: "bla.tool", _: ["0"] },
+          args: { "tool": "bla.tool", "--": ["0"] },
           opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
         }),
       (err) => expect(err.message).to.equal("Could not find plugin bla.")
@@ -226,7 +226,7 @@ describe("ToolsCommand", () => {
           log,
           headerLog: log,
           footerLog: log,
-          args: { tool: "bla", _: ["0"] },
+          args: { "tool": "bla", "--": ["0"] },
           opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
         }),
       (err) => expect(err.message).to.equal("Could not find tool bla.")
@@ -245,7 +245,7 @@ describe("ToolsCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { tool: "tool", _: ["0"] },
+      args: { "tool": "tool", "--": ["0"] },
       opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
     })
 
@@ -260,7 +260,7 @@ describe("ToolsCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { tool: "test-b.tool", _: ["0"] },
+      args: { "tool": "test-b.tool", "--": ["0"] },
       opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
     })
 
@@ -307,7 +307,7 @@ describe("ToolsCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { tool: "tool", _: ["1"] },
+      args: { "tool": "tool", "--": ["1"] },
       opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
     })
 

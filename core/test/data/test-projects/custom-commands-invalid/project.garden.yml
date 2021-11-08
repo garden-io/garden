@@ -1,0 +1,20 @@
+kind: Project
+name: custom-commands-invalid
+providers:
+  - name: exec
+
+---
+kind: Command
+name: invalid
+floo: blorg
+
+---
+kind: Command
+name: echo
+description:
+  short: Just echo a string
+exec:
+  command:
+    - sh
+    - -c
+    - echo ${join(args.$all, ' ')}

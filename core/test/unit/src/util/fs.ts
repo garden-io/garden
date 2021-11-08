@@ -305,6 +305,7 @@ describe("findConfigPathsInPath", () => {
       log: garden.log,
     })
     expect(files).to.eql([
+      join(garden.projectRoot, "commands.garden.yml"),
       join(garden.projectRoot, "garden.yml"),
       join(garden.projectRoot, "module-a", "garden.yml"),
       join(garden.projectRoot, "module-b", "garden.yml"),
@@ -349,6 +350,7 @@ describe("findConfigPathsInPath", () => {
       exclude,
     })
     expect(files).to.eql([
+      join(garden.projectRoot, "commands.garden.yml"),
       join(garden.projectRoot, "garden.yml"),
       join(garden.projectRoot, "module-b", "garden.yml"),
       join(garden.projectRoot, "module-c", "garden.yml"),

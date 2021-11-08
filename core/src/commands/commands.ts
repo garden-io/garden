@@ -69,6 +69,6 @@ export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new ValidateCommand(),
 ]
 
-export function getAllCommands() {
+export function getBuiltinCommands() {
   return getCoreCommands().flatMap((cmd) => (cmd instanceof CommandGroup ? [cmd, ...cmd.getSubCommands()] : [cmd]))
 }
