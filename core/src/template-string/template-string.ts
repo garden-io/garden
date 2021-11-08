@@ -15,7 +15,7 @@ import {
   ContextKeySegment,
 } from "../config/template-contexts/base"
 import { difference, uniq, isPlainObject, isNumber } from "lodash"
-import { Primitive, StringMap, isPrimitive, objectSpreadKey } from "../config/common"
+import { Primitive, StringMap, isPrimitive, objectSpreadKey, arrayConcatKey } from "../config/common"
 import { profile } from "../util/profiling"
 import { dedent, deline, truncate } from "../util/string"
 import { ObjectWithName } from "../util/util"
@@ -203,7 +203,32 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
   if (typeof value === "string") {
     return <T>resolveTemplateString(value, context, opts)
   } else if (Array.isArray(value)) {
-    return <T>(<unknown>value.map((v) => resolveTemplateStrings(v, context, opts)))
+    const output: unknown[] = []
+
+    for (const v of value) {
+      if (isPlainObject(v) && v.hasOwnProperty(arrayConcatKey)) {
+        // Handle array concatenation via $concat
+        const resolved = resolveTemplateStrings(v.$concat, context, opts)
+
+        if (Array.isArray(resolved)) {
+          output.push(...resolved)
+        } else if (opts.allowPartial) {
+          output.push({ $concat: resolved })
+        } else {
+          throw new ConfigurationError(
+            `Value of ${arrayConcatKey} key must be (or resolve to) an array (got ${typeof resolved})`,
+            {
+              value,
+              resolved,
+            }
+          )
+        }
+      } else {
+        output.push(resolveTemplateStrings(v, context, opts))
+      }
+    }
+
+    return <T>(<unknown>output)
   } else if (isPlainObject(value)) {
     // Resolve $merge keys, depth-first, leaves-first
     let output = {}

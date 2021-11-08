@@ -203,6 +203,33 @@ When the nested expression is a simple key lookup like above, you can also just 
 
 You can even use one variable to index another variable, e.g. `${var.a[var.b]}`.
 
+### Concatenating lists
+
+Any list/array value supports a special kind of value, which is an object with a single `$concat` key. This allows you to easily concatenate multiple arrays.
+
+Here's an example where we concatenate the same templated value into two arrays of test arguments:
+
+```yaml
+kind: Module
+...
+variables:
+  commonArgs:
+    - yarn
+    - test
+    - -g
+tests:
+  - name: test-a
+    # resolves to [yarn, test, -g, suite-a]
+    args:
+      - $concat: ${var.commonArgs}
+      - suite-a
+  - name: test-b
+    # resolves to [yarn, test, -g, suite-b]
+    args:
+      - $concat: ${var.commonArgs}
+      - suite-b
+```
+
 ### Merging maps
 
 Any object or mapping field supports a special `$merge` key, which allows you to merge two objects together. This can be used to avoid repeating a set of commonly repeated values.

@@ -15,6 +15,7 @@ import { joiPathPlaceholder } from "./validation"
 import { DEFAULT_API_VERSION } from "../constants"
 
 export const objectSpreadKey = "$merge"
+export const arrayConcatKey = "$concat"
 
 const ajv = new Ajv({ allErrors: true, useDefaults: true })
 
