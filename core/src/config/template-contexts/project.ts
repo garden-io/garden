@@ -221,7 +221,7 @@ class CommandContext extends ConfigContext {
   }
 }
 
-interface DefaultEnvironmentContextParams {
+export interface DefaultEnvironmentContextParams {
   projectName: string
   projectRoot: string
   artifactsPath: string

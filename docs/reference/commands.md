@@ -49,10 +49,6 @@ Examples:
     garden build --force    # force rebuild of modules
     garden build --watch    # watch for changes to code
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| Yes |                                                  |
-
 #### Usage
 
     garden build [modules] [options]
@@ -271,10 +267,6 @@ Examples:
 
 Note: Currently only supports simple GET requests for HTTP/HTTPS ingresses.
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden call <serviceAndPath> 
@@ -305,10 +297,6 @@ Examples:
     garden config analytics-enabled true   # enable analytics
     garden config analytics-enabled false  # disable analytics
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden config analytics-enabled [enable] 
@@ -335,10 +323,6 @@ Examples:
     garden create project --dir some-dir      # create a Garden project config in the ./some-dir directory
     garden create project --name my-project   # set the project name to my-project
     garden create project --interactive=false # don't prompt for user inputs when creating the config
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
 
 #### Usage
 
@@ -368,10 +352,6 @@ Examples:
     garden create module --name my-module     # set the module name to my-module
     garden create module --interactive=false  # don't prompt for user inputs when creating the module
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden create module [options]
@@ -398,10 +378,6 @@ Examples:
     garden delete secret kubernetes somekey
     garden del secret local-kubernetes some-other-key
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden delete secret <provider> <key> 
@@ -424,10 +400,6 @@ and reset it. When you then run `garden deploy`, the environment will be reconfi
 
 This can be useful if you find the environment to be in an inconsistent state, or need/want to free up
 resources.
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| Yes |                                                  |
 
 #### Usage
 
@@ -561,10 +533,6 @@ Examples:
     garden delete service my-service # deletes my-service
     garden delete service            # deletes all deployed services in the project
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| Yes |                                                  |
-
 #### Usage
 
     garden delete service [services] 
@@ -683,10 +651,6 @@ Examples:
     garden deploy --dev                # deploys all compatible services with dev mode enabled
     garden deploy --env stage          # deploy your services to an environment called stage
     garden deploy --skip service-b     # deploy all services except service-b
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| Yes |                                                  |
 
 #### Usage
 
@@ -915,10 +879,6 @@ Examples:
     garden dev --name integ                   # run all tests with the name 'integ' in the project
     garden test --name integ*                 # run all tests with the name starting with 'integ' in the project
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden dev [services] [options]
@@ -951,10 +911,6 @@ _NOTE: This command may not be supported for all module types._
 Examples:
 
      garden exec my-service /bin/sh   # runs a shell in the my-service container
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| Yes |                                                  |
 
 #### Usage
 
@@ -1000,10 +956,6 @@ Examples:
     garden cloud secrets list --filter-envs dev                        # list all secrets from the dev environment
     garden cloud secrets list --filter-envs dev --filter-names *_DB_*  # list all secrets from the dev environment that have '_DB_' in their name.
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden cloud secrets list [options]
@@ -1035,10 +987,6 @@ Examples:
     garden cloud secrets create ACCESS_KEY=my-key --scope-to-env ci --scope-to-user 9  # create a secret and scope it to the ci environment and user with ID 9
     garden cloud secrets create --from-file /path/to/secrets.txt  # create secrets from the key value pairs in the secrets.txt file
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden cloud secrets create [secrets] [options]
@@ -1068,10 +1016,6 @@ which you which you can get from the `garden cloud secrets list` command.
 Examples:
     garden cloud secrets delete 1,2,3   # delete secrets with IDs 1,2, and 3.
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden cloud secrets delete [ids] 
@@ -1094,10 +1038,6 @@ Examples:
     garden cloud users list                            # list all users
     garden cloud users list --filter-names Gordon*     # list all the Gordons in Garden Cloud. Useful if you have a lot of Gordons.
     garden cloud users list --filter-groups devs-*     # list all users in groups that with names that start with 'dev-'
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
 
 #### Usage
 
@@ -1132,10 +1072,6 @@ Examples:
     garden cloud users create fatema_m="Fatema M" --add-to-groups 1,2  # create a user and add two groups with IDs 1,2
     garden cloud users create --from-file /path/to/users.txt           # create users from the key value pairs in the users.txt file
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden cloud users create [users] [options]
@@ -1164,10 +1100,6 @@ which you which you can get from the `garden cloud users list` command.
 Examples:
     garden cloud users delete 1,2,3   # delete users with IDs 1,2, and 3.
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden cloud users delete [ids] 
@@ -1191,10 +1123,6 @@ Examples:
     garden cloud groups list                       # list all groups
     garden cloud groups list --filter-names dev-*  # list all groups that start with 'dev-'
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden cloud groups list [options]
@@ -1211,10 +1139,6 @@ Examples:
 **Outputs the dependency relationships specified in this project's garden.yml files.**
 
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden get graph 
@@ -1225,10 +1149,6 @@ Examples:
 
 **Outputs the full configuration for this project and environment.**
 
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| Yes |                                                  |
 
 #### Usage
 
@@ -1903,32 +1823,12 @@ workflowConfigs:
         name:
 
         # A Garden command this step should run, followed by any required or optional arguments and flags.
-        # Arguments and options for the commands may be templated, including references to previous steps, but for now
-        # the commands themselves (as listed below) must be hard-coded.
         #
-        # Supported commands:
+        # Note that commands that are _persistent_—e.g. the dev command, commands with a watch flag set, the logs
+        # command with following enabled etc.—are not supported. In general, workflow steps should run to completion.
         #
-        # `[build]`
-        # `[delete, environment]`
-        # `[delete, service]`
-        # `[deploy]`
-        # `[exec]`
-        # `[get, config]`
-        # `[get, outputs]`
-        # `[get, status]`
-        # `[get, task-result]`
-        # `[get, test-result]`
-        # `[link, module]`
-        # `[link, source]`
-        # `[publish]`
-        # `[run, task]`
-        # `[run, test]`
-        # `[test]`
-        # `[update-remote, all]`
-        # `[update-remote, modules]`
-        # `[update-remote, sources]`
-        #
-        #
+        # Global options like --env, --log-level etc. are currently not supported for built-in commands, since they
+        # are handled before the individual steps are run.
         command:
 
         # A description of the workflow step.
@@ -2030,10 +1930,6 @@ domain:
 **Outputs a list of all linked remote sources and modules for this project.**
 
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden get linked-repos 
@@ -2052,10 +1948,6 @@ Examples:
     garden get outputs                 # resolve and print the outputs from the project
     garden get outputs --env=prod      # resolve and print the outputs from the project for the prod environment
     garden get outputs --output=json   # resolve and return the project outputs in JSON format
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| Yes |                                                  |
 
 #### Usage
 
@@ -2079,10 +1971,6 @@ Examples:
     garden get modules                                                # list all modules in the project
     garden get modules --exclude-disabled=true                        # skip disabled modules
     garden get modules -o=json | jq '.modules["my-module"].version'   # get version of my-module
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
 
 #### Usage
 
@@ -2410,10 +2298,6 @@ modules:
 **Outputs the full status of your environment.**
 
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| Yes |                                                  |
-
 #### Usage
 
     garden get status 
@@ -2560,10 +2444,6 @@ tests:
 **Lists the tasks defined in your project's modules.**
 
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden get tasks [tasks] 
@@ -2581,10 +2461,6 @@ tests:
 **Lists the tests defined in your project's modules.**
 
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden get tests [tests] 
@@ -2601,10 +2477,6 @@ tests:
 
 **Outputs the latest execution result of a provided task.**
 
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| Yes |                                                  |
 
 #### Usage
 
@@ -2666,10 +2538,6 @@ artifacts:
 
 **Outputs the latest execution result of a provided test.**
 
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| Yes |                                                  |
 
 #### Usage
 
@@ -2742,10 +2610,6 @@ garden get debug-info                    # create a zip file at the root of the 
 garden get debug-info --format yaml      # output provider info as YAML files (default is JSON)
 garden get debug-info --include-project  # include provider info for the project namespace (disabled by default)
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden get debug-info [options]
@@ -2767,10 +2631,6 @@ Check for openings at Berlin's vaccination centers at a 2
 second interval. If it finds one, you'll receive a notification
 with links to book an appointment.
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden get vaccine 
@@ -2788,10 +2648,6 @@ level `garden.yml` config.
 Examples:
 
     garden link source my-source path/to/my-source # links my-source to its local version at the given path
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| Yes |                                                  |
 
 #### Usage
 
@@ -2828,10 +2684,6 @@ i.e. modules that specifiy a `repositoryUrl` in their `garden.yml` config file.
 Examples:
 
     garden link module my-module path/to/my-module # links my-module to its local version at the given path
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| Yes |                                                  |
 
 #### Usage
 
@@ -2873,10 +2725,6 @@ Examples:
     garden logs --follow                   # keeps running and streams all incoming logs to the console
     garden logs --tag container=service-a  # only shows logs from containers with names matching the pattern
     garden logs --original-color           # interleaves logs from all services and prints the original output color
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
 
 #### Usage
 
@@ -2920,10 +2768,6 @@ Examples:
     garden migrate --write      # scans all garden.yml files and overwrites them with the updated versions.
     garden migrate ./garden.yml # scans the provided garden.yml file and prints the updated version.
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden migrate [configPaths] [options]
@@ -2946,10 +2790,6 @@ Examples:
 **Print global options.**
 
 Prints all global options (options that can be applied to any command).
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
 
 #### Usage
 
@@ -2975,10 +2815,6 @@ Examples:
 
     # List all the commands from the `kubernetes` plugin.
     garden plugins kubernetes
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
 
 #### Usage
 
@@ -3014,10 +2850,6 @@ Examples:
 
     # Publish my-container with a tag of v1.2-<hash> (e.g. v1.2-abcdef123)
     garden publish my-container --tag "v1.2-${module.hash}"
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| Yes |                                                  |
 
 #### Usage
 
@@ -3262,10 +3094,6 @@ Examples:
     garden run module my-container /bin/sh                           # run an interactive shell in a new my-container container
     garden run module my-container --interactive=false /some/script  # execute a script in my-container and return the output
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden run module <module> [arguments] [options]
@@ -3296,10 +3124,6 @@ Examples:
 
     garden run service my-service   # run an ad-hoc instance of a my-service and attach to it
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden run service <service> [options]
@@ -3327,10 +3151,6 @@ This is useful for re-running tasks ad-hoc, for example after writing/modifying 
 Examples:
 
     garden run task my-db-migration   # run my-migration
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| Yes |                                                  |
 
 #### Usage
 
@@ -3415,10 +3235,6 @@ Examples:
 
     garden run test my-module integ                      # run the test named 'integ' in my-module
     garden run test my-module integ --interactive=false  # do not attach to the test run, just output results when completed
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| Yes |                                                  |
 
 #### Usage
 
@@ -3508,10 +3324,6 @@ Examples:
 
     garden run workflow my-workflow    # run my-workflow
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden run workflow <workflow> 
@@ -3529,10 +3341,6 @@ Examples:
 **Scans your project and outputs an overview of all modules.**
 
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden scan 
@@ -3548,10 +3356,6 @@ Starts the Garden dashboard for the current project, and your selected environme
 The dashboard will receive and display updates from other Garden processes that you run with the same Garden project, environment and namespace.
 
 Note: You must currently run one dashboard per-environment and namespace.
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
 
 #### Usage
 
@@ -3579,10 +3383,6 @@ Examples:
    garden self-update 0.12.24  # switch to the 0.12.24 version of the CLI
    garden self-update --force  # re-install even if the same version is detected
    garden self-update --install-dir ~/garden  # install to ~/garden instead of detecting the directory
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
 
 #### Usage
 
@@ -3622,10 +3422,6 @@ Examples:
     garden test -n unit -n lint   # run all tests called either 'unit' or 'lint' in the project
     garden test --force           # force tests to be re-run, even if they've already run successfully
     garden test --watch           # watch for changes to code
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| Yes |                                                  |
 
 #### Usage
 
@@ -3860,10 +3656,6 @@ Examples:
     # List all available tools.
     garden tools
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden tools [tool] [options]
@@ -3892,10 +3684,6 @@ Examples:
 
     garden unlink source my-source  # unlinks my-source
     garden unlink source --all      # unlinks all sources
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
 
 #### Usage
 
@@ -3926,10 +3714,6 @@ Examples:
     garden unlink module my-module  # unlinks my-module
     garden unlink module --all      # unlink all modules
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden unlink module [modules] [options]
@@ -3957,10 +3741,6 @@ Examples:
 
     garden update-remote sources            # update all remote sources
     garden update-remote sources my-source  # update remote source my-source
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| Yes |                                                  |
 
 #### Usage
 
@@ -3998,10 +3778,6 @@ Examples:
     garden update-remote modules            # update all remote modules in the project
     garden update-remote modules my-module  # update remote module my-module
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| Yes |                                                  |
-
 #### Usage
 
     garden update-remote modules [modules] 
@@ -4033,10 +3809,6 @@ sources:
 Examples:
 
     garden update-remote all # update all remote sources and modules in the project
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| Yes |                                                  |
 
 #### Usage
 
@@ -4078,10 +3850,6 @@ Examples:
     garden util fetch-tools        # fetch for just the current project/env
     garden util fetch-tools --all  # fetch for all registered providers
 
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
 #### Usage
 
     garden util fetch-tools [options]
@@ -4098,10 +3866,6 @@ Examples:
 **Hide a specific warning message.**
 
 Hides the specified warning message. The command and key is generally provided along with displayed warning messages.
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
 
 #### Usage
 
@@ -4120,10 +3884,6 @@ Hides the specified warning message. The command and key is generally provided a
 **Check your garden configuration for errors.**
 
 Throws an error and exits with code 1 if something's not right in your garden.yml files.
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
 
 #### Usage
 

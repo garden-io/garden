@@ -131,8 +131,8 @@ export class LogsCommand extends Command<Args, Opts> {
     printHeader(headerLog, "Logs", "scroll")
   }
 
-  async prepare({ opts }: PrepareParams<Args, Opts>) {
-    return { persistent: !!opts.follow }
+  isPersistent({ opts }: PrepareParams<Args, Opts>) {
+    return !!opts.follow
   }
 
   terminate() {

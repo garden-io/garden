@@ -51,6 +51,10 @@ export class DashboardCommand extends Command<Args, Opts> {
     printHeader(headerLog, "Dashboard", "bar_chart")
   }
 
+  isPersistent() {
+    return true
+  }
+
   async prepare({ log, footerLog, opts }: PrepareParams<Args, Opts>) {
     this.server = await startServer({ log: footerLog, port: opts.port })
 
@@ -68,8 +72,6 @@ export class DashboardCommand extends Command<Args, Opts> {
       }
       process.exit(1)
     })
-
-    return { persistent: true }
   }
 
   async action({ garden, log }: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {

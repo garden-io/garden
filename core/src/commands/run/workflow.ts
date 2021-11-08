@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { cloneDeep, flatten, last, merge, repeat, size } from "lodash"
+import { cloneDeep, flatten, last, repeat, size } from "lodash"
 import { printHeader, getTerminalWidth, formatGardenErrorWithDetail, renderMessageWithDivider } from "../../logger/util"
 import { Command, CommandParams, CommandResult } from "../base"
 import { dedent, wordWrap, deline } from "../../util/string"
@@ -31,8 +31,10 @@ import { ExecaError } from "execa"
 import { LogLevel } from "../../logger/logger"
 import { registerWorkflowRun } from "../../cloud/workflow-lifecycle"
 import { parseCliArgs, pickCommand, processCliArgs } from "../../cli/helpers"
-import { StringParameter } from "../../cli/params"
-import { getAllCommands } from "../commands"
+import { globalOptions, StringParameter } from "../../cli/params"
+import { getBuiltinCommands } from "../commands"
+import { getCustomCommands } from "../custom"
+import { GardenCli } from "../../cli/cli"
 
 const runWorkflowArgs = {
   workflow: new StringParameter({
@@ -68,7 +70,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
     printHeader(headerLog, `Running workflow ${chalk.white(args.workflow)}`, "runner")
   }
 
-  async action({ garden, log, args, opts }: CommandParams<Args, {}>): Promise<CommandResult<WorkflowRunOutput>> {
+  async action({ cli, garden, log, args, opts }: CommandParams<Args, {}>): Promise<CommandResult<WorkflowRunOutput>> {
     const outerLog = log.placeholder()
     // Prepare any configured files before continuing
     const workflow = await garden.getWorkflowConfig(args.workflow)
@@ -126,6 +128,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 
       const inheritedOpts = cloneDeep(opts)
       const stepParams: RunStepParams = {
+        cli,
         garden,
         step,
         stepIndex: index,
@@ -205,6 +208,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 }
 
 export interface RunStepParams {
+  cli?: GardenCli
   garden: Garden
   outerLog: LogEntry
   headerLog: LogEntry
@@ -298,6 +302,7 @@ function printResult({
 }
 
 export async function runStepCommand({
+  cli,
   garden,
   bodyLog,
   footerLog,
@@ -305,33 +310,76 @@ export async function runStepCommand({
   inheritedOpts,
   step,
 }: RunStepCommandParams): Promise<CommandResult<any>> {
-  const { command, rest } = pickCommand(getAllCommands(), step.command!)
+  let rawArgs = step.command!
+
+  const builtinCommands = getBuiltinCommands()
+  let { command, rest, matchedPath } = pickCommand(builtinCommands, step.command!)
+
+  let args: CommandParams["args"] = {}
+  let opts = inheritedOpts
+
+  if (command) {
+    // Built-in command found
+    const parsedArgs = parseCliArgs({ stringArgs: rest, command, cli: false })
+    const processedArgs = processCliArgs({ rawArgs, parsedArgs, command, matchedPath, cli: false })
+    args = processedArgs.args
+    opts = { ...inheritedOpts, ...processedArgs.opts }
+
+    const usedGlobalOptions = Object.entries(parsedArgs)
+      .filter(([name, value]) => globalOptions[name] && !!value)
+      .map(([name, _]) => `--${name}`)
+
+    if (usedGlobalOptions.length > 0) {
+      bodyLog.warn({
+        symbol: "warning",
+        msg: chalk.yellow(`Step command includes global options that will be ignored: ${usedGlobalOptions.join(", ")}`),
+      })
+    }
+  } else {
+    // Check for custom command
+    const customCommands = await getCustomCommands(builtinCommands, garden.projectRoot)
+    const picked = pickCommand(customCommands, step.command!)
+    command = picked.command
+    rest = picked.rest
+    matchedPath = picked.matchedPath
+
+    const parsedArgs = parseCliArgs({ stringArgs: rest, command, cli: false })
+
+    if (command) {
+      const processedArgs = processCliArgs({ rawArgs, parsedArgs, command, matchedPath, cli: false })
+      args = processedArgs.args
+      opts = processedArgs.opts
+    }
+  }
 
   if (!command) {
-    throw new ConfigurationError(`Could not find Garden command '${step.command!}`, {
+    throw new ConfigurationError(`Could not find Garden command '${step.command!.join(" ")}`, {
       step,
     })
   }
 
-  if (!command?.workflows) {
-    throw new ConfigurationError(`Command '${command?.getFullName()}' is currently not supported in workflows`, {
-      step,
-      command: command?.getFullName(),
-    })
-  }
-
-  const parsedArgs = parseCliArgs({ stringArgs: rest, command, cli: false })
-  const { args, opts } = processCliArgs({ parsedArgs, command, cli: false })
-
-  const result = await command.action({
+  const params = {
+    cli,
     garden,
     footerLog,
     log: bodyLog,
     headerLog,
     args,
-    opts: merge(inheritedOpts, opts),
-  })
-  return result
+    opts,
+  }
+
+  const persistent = command.isPersistent(params)
+
+  if (persistent) {
+    throw new ConfigurationError(
+      `Workflow steps cannot run Garden commands that are persistent (e.g. the dev command, commands with watch flags set etc.)`,
+      {
+        step,
+      }
+    )
+  }
+
+  return await command.action(params)
 }
 
 export async function runStepScript({ garden, bodyLog, step }: RunStepParams): Promise<CommandResult<any>> {

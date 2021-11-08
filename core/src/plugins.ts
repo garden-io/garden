@@ -27,7 +27,7 @@ import { DependencyValidationGraph } from "./util/validate-dependencies"
 import { parse, resolve } from "path"
 import Bluebird from "bluebird"
 
-export async function loadPlugins(
+export async function loadAndResolvePlugins(
   log: LogEntry,
   projectRoot: string,
   registeredPlugins: RegisterPluginParam[],
@@ -115,7 +115,7 @@ export async function loadPlugins(
   return Object.values(resolveModuleDefinitions(resolvedPlugins, configs))
 }
 
-async function loadPlugin(log: LogEntry, projectRoot: string, nameOrPlugin: RegisterPluginParam) {
+export async function loadPlugin(log: LogEntry, projectRoot: string, nameOrPlugin: RegisterPluginParam) {
   let plugin: GardenPlugin
 
   if (isString(nameOrPlugin)) {

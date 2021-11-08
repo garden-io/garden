@@ -42,8 +42,6 @@ export class LinkSourceCommand extends Command<Args> {
   help = "Link a remote source to a local directory."
   arguments = linkSourceArguments
 
-  workflows = true
-
   outputsSchema = () =>
     joi.object().keys({
       sources: joiArray(linkedSourceSchema()).description("A list of all locally linked external sources."),

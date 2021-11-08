@@ -1,0 +1,5 @@
+# This shouldn't get picked up
+kind: Command
+name: script
+exec:
+  command: [echo, oops!]

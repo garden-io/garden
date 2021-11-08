@@ -688,11 +688,11 @@ describe("DeployCommand", () => {
     expect(Object.keys(taskResultOutputs(result!)).includes("deploy.service-b")).to.be.false
   })
 
-  describe("prepare", () => {
+  describe("isPersistent", () => {
     it("should return persistent=true if --watch is set", async () => {
       const cmd = new DeployCommand()
       const log = getLogger().placeholder()
-      const { persistent } = await cmd.prepare({
+      const persistent = cmd.isPersistent({
         log,
         headerLog: log,
         footerLog: log,
@@ -716,7 +716,7 @@ describe("DeployCommand", () => {
     it("should return persistent=true if --dev is set", async () => {
       const cmd = new DeployCommand()
       const log = getLogger().placeholder()
-      const { persistent } = await cmd.prepare({
+      const persistent = cmd.isPersistent({
         log,
         headerLog: log,
         footerLog: log,
@@ -740,7 +740,7 @@ describe("DeployCommand", () => {
     it("should return persistent=true if --hot-reload is set", async () => {
       const cmd = new DeployCommand()
       const log = getLogger().placeholder()
-      const { persistent } = await cmd.prepare({
+      const persistent = cmd.isPersistent({
         log,
         headerLog: log,
         footerLog: log,
@@ -763,7 +763,7 @@ describe("DeployCommand", () => {
     it("should return persistent=true if --follow is set", async () => {
       const cmd = new DeployCommand()
       const log = getLogger().placeholder()
-      const { persistent } = await cmd.prepare({
+      const persistent = cmd.isPersistent({
         log,
         headerLog: log,
         footerLog: log,

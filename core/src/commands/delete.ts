@@ -85,7 +85,6 @@ export class DeleteEnvironmentCommand extends Command {
   help = "Deletes a running environment."
 
   protected = true
-  workflows = true
   streamEvents = true
 
   description = dedent`

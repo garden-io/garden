@@ -22,6 +22,7 @@ import { WorkflowStepConfigContext } from "../config/template-contexts/workflow"
 import { getHelperFunctions } from "../template-string/functions"
 import { isEqual, sortBy } from "lodash"
 import { InternalError } from "../exceptions"
+import { CustomCommandContext } from "../config/template-contexts/custom-command"
 
 export function writeTemplateStringReferenceDocs(docsRoot: string) {
   const referenceDir = resolve(docsRoot, "reference")
@@ -53,6 +54,10 @@ export function writeTemplateStringReferenceDocs(docsRoot: string) {
 
   const workflowContext = renderTemplateStringReference({
     schema: WorkflowStepConfigContext.getSchema().required(),
+  })
+
+  const customCommandContext = renderTemplateStringReference({
+    schema: CustomCommandContext.getSchema().required(),
   })
 
   const templatePath = resolve(TEMPLATES_DIR, "template-strings.hbs")
@@ -95,6 +100,7 @@ export function writeTemplateStringReferenceDocs(docsRoot: string) {
     moduleContext,
     outputContext,
     workflowContext,
+    customCommandContext,
   })
 
   writeFileSync(outputPath, markdown)

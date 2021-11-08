@@ -1,0 +1,50 @@
+kind: Project
+name: custom-commands
+providers:
+  - name: exec
+variables:
+  project-level: a
+  command-level: overridden
+
+---
+
+kind: Module
+type: exec
+name: tasks
+tasks:
+  - name: test
+    command:
+      - echo test
+  - name: fail
+    command:
+      - sh
+      - -c
+      - echo "FAIL"; exit 1
+
+---
+kind: Command
+name: combo
+description:
+  short: A complete example using most available features
+  long: |
+    Ok, settle down. Let's really dig into this thing now.
+    So what this command will do is yeah ok you get the point...
+variables:
+  command-level: b
+args:
+  - name: task-name
+    description: The name of the task to run
+    required: true
+opts:
+  - name: foo
+    description: Some meaningless number?
+    type: integer
+exec:
+  command:
+    - sh
+    - -c
+    - echo Project=${project.name} task=${args.task-name} foo=${opts.foo || 123} command-var=${var.command-level}
+gardenCommand:
+  - run
+  - task
+  - ${args.task-name}

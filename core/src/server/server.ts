@@ -181,17 +181,21 @@ export class GardenServer {
 
       const { command, log, args, opts } = parseRequest(ctx, this.debugLog, commands, ctx.request.body)
 
-      const { persistent } = await command.prepare({
+      const prepareParams = {
         log,
         headerLog: log,
         footerLog: log,
         args,
         opts,
-      })
+      }
+
+      const persistent = command.isPersistent(prepareParams)
 
       if (persistent) {
         ctx.throw(400, "Attempted to run persistent command (e.g. a watch/follow command). Aborting.")
       }
+
+      await command.prepare(prepareParams)
 
       const result = await command.action({
         garden: this.garden,
@@ -399,17 +403,19 @@ export class GardenServer {
               omit(request, ["id", "type"])
             )
 
-            command
-              .prepare({
-                log,
-                headerLog: log,
-                footerLog: log,
-                args,
-                opts,
-              })
-              .then((prepareResult) => {
-                const { persistent } = prepareResult
+            const prepareParams = {
+              log,
+              headerLog: log,
+              footerLog: log,
+              args,
+              opts,
+            }
 
+            const persistent = command.isPersistent(prepareParams)
+
+            command
+              .prepare(prepareParams)
+              .then(() => {
                 if (persistent) {
                   send("commandStart", {
                     requestId,

@@ -89,32 +89,12 @@ steps:
     name:
 
     # A Garden command this step should run, followed by any required or optional arguments and flags.
-    # Arguments and options for the commands may be templated, including references to previous steps, but for now
-    # the commands themselves (as listed below) must be hard-coded.
     #
-    # Supported commands:
+    # Note that commands that are _persistent_—e.g. the dev command, commands with a watch flag set, the logs command
+    # with following enabled etc.—are not supported. In general, workflow steps should run to completion.
     #
-    # `[build]`
-    # `[delete, environment]`
-    # `[delete, service]`
-    # `[deploy]`
-    # `[exec]`
-    # `[get, config]`
-    # `[get, outputs]`
-    # `[get, status]`
-    # `[get, task-result]`
-    # `[get, test-result]`
-    # `[link, module]`
-    # `[link, source]`
-    # `[publish]`
-    # `[run, task]`
-    # `[run, test]`
-    # `[test]`
-    # `[update-remote, all]`
-    # `[update-remote, modules]`
-    # `[update-remote, sources]`
-    #
-    #
+    # Global options like --env, --log-level etc. are currently not supported for built-in commands, since they are
+    # handled before the individual steps are run.
     command:
 
     # A description of the workflow step.
@@ -420,32 +400,10 @@ fields.
 [steps](#steps) > command
 
 A Garden command this step should run, followed by any required or optional arguments and flags.
-Arguments and options for the commands may be templated, including references to previous steps, but for now
-the commands themselves (as listed below) must be hard-coded.
 
-Supported commands:
+Note that commands that are _persistent_—e.g. the dev command, commands with a watch flag set, the logs command with following enabled etc.—are not supported. In general, workflow steps should run to completion.
 
-`[build]`
-`[delete, environment]`
-`[delete, service]`
-`[deploy]`
-`[exec]`
-`[get, config]`
-`[get, outputs]`
-`[get, status]`
-`[get, task-result]`
-`[get, test-result]`
-`[link, module]`
-`[link, source]`
-`[publish]`
-`[run, task]`
-`[run, test]`
-`[test]`
-`[update-remote, all]`
-`[update-remote, modules]`
-`[update-remote, sources]`
-
-
+Global options like --env, --log-level etc. are currently not supported for built-in commands, since they are handled before the individual steps are run.
 
 | Type            | Required |
 | --------------- | -------- |

@@ -18,8 +18,6 @@ export class GetOutputsCommand extends Command {
   name = "outputs"
   help = "Resolves and returns the outputs of the project."
 
-  workflows = true
-
   description = dedent`
     Resolves and returns the outputs of the project. If necessary, this may involve deploying services and/or running
     tasks referenced by the outputs in the project configuration.

@@ -341,7 +341,7 @@ describe("ConfigGraph", () => {
   describe("getTasks", () => {
     it("should scan for modules and return all registered tasks in the context", async () => {
       const tasks = graphA.getTasks()
-      expect(getNames(tasks).sort()).to.eql(["task-a", "task-b", "task-c"])
+      expect(getNames(tasks).sort()).to.eql(["task-a", "task-a2", "task-b", "task-c"])
     })
 
     it("should optionally return specified tasks in the context", async () => {
@@ -946,7 +946,7 @@ describe("ConfigGraph", () => {
   describe("render", () => {
     it("should render config graph nodes with test names", () => {
       const rendered = graphA.render()
-      expect(rendered.nodes).to.have.deep.members([
+      expect(rendered.nodes).to.include.deep.members([
         {
           type: "build",
           name: "module-a",

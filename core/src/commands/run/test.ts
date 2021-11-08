@@ -68,7 +68,6 @@ export class RunTestCommand extends Command<Args, Opts> {
   name = "test"
   help = "Run the specified module test."
 
-  workflows = true
   streamEvents = true
 
   description = dedent`

@@ -37,8 +37,6 @@ export class UpdateRemoteSourcesCommand extends Command<Args> {
   help = "Update remote sources."
   arguments = updateRemoteSourcesArguments
 
-  workflows = true
-
   outputsSchema = () =>
     joi.object().keys({
       sources: joiArray(projectSourceSchema()).description("A list of all configured external project sources."),

@@ -35,7 +35,6 @@ export class GetTaskResultCommand extends Command<Args> {
   name = "task-result"
   help = "Outputs the latest execution result of a provided task."
 
-  workflows = true
   streamEvents = true
 
   arguments = getTaskResultArgs

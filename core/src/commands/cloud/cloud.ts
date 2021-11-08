@@ -16,8 +16,7 @@ export class CloudCommand extends CommandGroup {
   name = "cloud"
   alias = "enterprise"
   help = dedent`
-    [EXPERIMENTAL] Manage Garden Cloud resources such as users, groups and secrets.
-    Requires Garden Cloud 1.14.0 or higher.
+    Manage Garden Cloud/Enterprise resources such as users, groups and secrets.
   `
 
   subCommands = [SecretsCommand, UsersCommand, GroupsCommand]

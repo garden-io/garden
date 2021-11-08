@@ -95,6 +95,11 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     printHeader(headerLog, "Create new project", "pencil2")
   }
 
+  // Defining it like this because it'll stall on waiting for user input.
+  isPersistent() {
+    return true
+  }
+
   async action({
     opts,
     log,

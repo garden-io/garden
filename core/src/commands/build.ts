@@ -58,7 +58,6 @@ export class BuildCommand extends Command<Args, Opts> {
   help = "Build your modules."
 
   protected = true
-  workflows = true
   streamEvents = true
 
   description = dedent`
@@ -80,14 +79,14 @@ export class BuildCommand extends Command<Args, Opts> {
 
   outputsSchema = () => processCommandResultSchema()
 
-  async prepare({ footerLog, opts }: PrepareParams<Args, Opts>) {
-    const persistent = !!opts.watch
+  isPersistent({ opts }: PrepareParams<Args, Opts>) {
+    return !!opts.watch
+  }
 
-    if (persistent) {
-      this.server = await startServer({ log: footerLog })
+  async prepare(params: PrepareParams<Args, Opts>) {
+    if (this.isPersistent(params)) {
+      this.server = await startServer({ log: params.footerLog })
     }
-
-    return { persistent }
   }
 
   terminate() {

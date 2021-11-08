@@ -1,0 +1,21 @@
+kind: Command
+name: echo
+description:
+  short: Just echo a string
+exec:
+  command:
+    - sh
+    - -c
+    - echo ${join(args.$rest, ' ')}
+
+---
+
+kind: Command
+name: script
+description:
+  short: Run a shell statement
+exec:
+  command:
+    - sh
+    - -c
+    - ${join(args.$rest, ' ')}

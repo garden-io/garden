@@ -83,7 +83,6 @@ export class ToolsCommand extends Command<Args, Opts> {
     if (basicWriter) {
       basicWriter.output = process.stderr
     }
-    return { persistent: false }
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args>) {
@@ -166,12 +165,12 @@ export class ToolsCommand extends Command<Args, Opts> {
     // We're running a binary
     if (opts.output) {
       // We collect the output and return
-      const result = await exec(path, args._ || [], { reject: false })
+      const result = await exec(path, args["--"] || [], { reject: false })
       return { result: { tools, path, stdout: result.stdout, stderr: result.stderr, exitCode: result.exitCode } }
     } else {
       // We attach stdout and stderr directly, and exit with the same code as we get from the command
       log.stop()
-      const result = await exec(path, args._ || [], { reject: false, stdio: "inherit" })
+      const result = await exec(path, args["--"] || [], { reject: false, stdio: "inherit" })
       await shutdown(result.exitCode)
       // Note: We never reach this line, just putting it here for the type-checker
       return { result: { tools, path, stdout: "", stderr: "", exitCode: result.exitCode } }

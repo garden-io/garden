@@ -64,7 +64,6 @@ export class PublishCommand extends Command<Args, Opts> {
   name = "publish"
   help = "Build and publish module(s) (e.g. container images) to a remote registry."
 
-  workflows = true
   streamEvents = true
 
   description = dedent`

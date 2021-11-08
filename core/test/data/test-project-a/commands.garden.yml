@@ -1,0 +1,20 @@
+kind: Command
+name: echo
+description:
+  short: Just echo a string
+exec:
+  command:
+    - sh
+    - -c
+    - echo ${join(args.$rest, ' ')}
+
+---
+
+kind: Command
+name: run-task
+description:
+  short: Run the given task
+gardenCommand:
+  - run
+  - task
+  - $concat: ${args.$rest}

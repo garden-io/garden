@@ -97,10 +97,7 @@ describe("loadConfigResources", () => {
             name: "other",
           },
         ],
-        providers: [
-          { name: "test-plugin", environments: ["local"] },
-          { name: "test-plugin-b", environments: ["local"] },
-        ],
+        providers: [{ name: "test-plugin" }, { name: "test-plugin-b", environments: ["local"] }],
         outputs: [
           {
             name: "taskName",
@@ -145,6 +142,10 @@ describe("loadConfigResources", () => {
             {
               name: "task-a",
               command: ["echo", "${var.msg}"],
+            },
+            {
+              name: "task-a2",
+              command: ["echo", "${environment.name}-${var.msg}"],
             },
           ],
           tests: [

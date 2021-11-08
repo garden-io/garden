@@ -18,7 +18,7 @@ import { maxBy, zip } from "lodash"
 
 import { ParameterValues, Parameter, Parameters } from "./params"
 import { InternalError, ParameterError } from "../exceptions"
-import { getPackageVersion } from "../util/util"
+import { getPackageVersion, removeSlice } from "../util/util"
 import { LogEntry } from "../logger/log-entry"
 import { STATIC_DIR, VERSION_CHECK_URL, gardenEnv } from "../constants"
 import { printWarningMessage } from "../logger/util"
@@ -28,7 +28,7 @@ import { getUserId } from "../analytics/analytics"
 import minimist = require("minimist")
 import { renderTable, tablePresets, naturalList } from "../util/string"
 import { globalOptions, GlobalOptions } from "./params"
-import { Command, CommandGroup } from "../commands/base"
+import { BuiltinArgs, Command, CommandGroup } from "../commands/base"
 import { DeepPrimitiveMap } from "../config/common"
 
 export const cliStyles = {
@@ -98,9 +98,12 @@ export async function checkForUpdates(config: GlobalConfigStore, logger: LogEntr
 
 export function pickCommand(commands: (Command | CommandGroup)[], args: string[]) {
   // Sorting by reverse path length to make sure we pick the most specific command
+  let matchedPath: string[] | undefined = undefined
+
   const command = sortBy(commands, (cmd) => -cmd.getPath().length).find((c) => {
     for (const path of c.getPaths()) {
       if (isEqual(path, args.slice(0, path.length))) {
+        matchedPath = path
         return true
       }
     }
@@ -108,42 +111,31 @@ export function pickCommand(commands: (Command | CommandGroup)[], args: string[]
   })
 
   const rest = command ? args.slice(command.getPath().length) : args
-  return { command, rest }
+  return { command, rest, matchedPath }
 }
 
 export type ParamSpec = {
   [key: string]: Parameter<string | string[] | number | boolean | undefined>
 }
 
-/**
- * Parses the given CLI arguments using minimist. The result should be fed to `processCliArgs()`
- *
- * @param stringArgs  Raw string arguments
- * @param command     The Command that the arguments are for, if any
- * @param cli         If true, prefer `param.cliDefault` to `param.defaultValue`
- * @param skipDefault Defaults to `false`. If `true`, don't populate default values.
- */
-export function parseCliArgs({
-  stringArgs,
-  command,
+export function prepareMinimistOpts({
+  options,
   cli,
   skipDefault = false,
 }: {
-  stringArgs: string[]
-  command?: Command
+  options: { [key: string]: Parameter<any> }
   cli: boolean
   skipDefault?: boolean
 }) {
   // Tell minimist which flags are to be treated explicitly as booleans and strings
-  const allOptions = { ...globalOptions, ...(command?.options || {}) }
-  const booleanKeys = Object.keys(pickBy(allOptions, (spec) => spec.type === "boolean"))
-  const stringKeys = Object.keys(pickBy(allOptions, (spec) => spec.type !== "boolean" && spec.type !== "number"))
+  const booleanKeys = Object.keys(pickBy(options, (spec) => spec.type === "boolean"))
+  const stringKeys = Object.keys(pickBy(options, (spec) => spec.type !== "boolean" && spec.type !== "number"))
 
   // Specify option flag aliases
   const aliases = {}
   const defaultValues = {}
 
-  for (const [name, spec] of Object.entries(allOptions)) {
+  for (const [name, spec] of Object.entries(options)) {
     if (!skipDefault) {
       defaultValues[name] = spec.getDefaultValue(cli)
     }
@@ -156,18 +148,34 @@ export function parseCliArgs({
     }
   }
 
-  return minimist(stringArgs, {
-    "--": true,
-    "boolean": booleanKeys,
-    "string": stringKeys,
-    "alias": aliases,
-    "default": defaultValues,
-  })
+  return {
+    boolean: booleanKeys,
+    string: stringKeys,
+    alias: aliases,
+    default: defaultValues,
+  }
 }
 
-interface DefaultArgs {
-  // Contains anything after -- on the command line
-  _: string[]
+/**
+ * Parses the given CLI arguments using minimist. The result should be fed to `processCliArgs()`
+ *
+ * @param stringArgs  Raw string arguments
+ * @param command     The Command that the arguments are for, if any
+ * @param cli         If true, prefer `param.cliDefault` to `param.defaultValue`
+ * @param skipDefault Defaults to `false`. If `true`, don't populate default values.
+ */
+export function parseCliArgs(params: { stringArgs: string[]; command?: Command; cli: boolean; skipDefault?: boolean }) {
+  const opts = prepareMinimistOpts({
+    options: { ...globalOptions, ...(params.command?.options || {}) },
+    ...params,
+  })
+
+  const { stringArgs } = params
+
+  return minimist(stringArgs, {
+    ...opts,
+    "--": true,
+  })
 }
 
 /**
@@ -179,17 +187,25 @@ interface DefaultArgs {
  * @param cli         Set to false if `cliOnly` options should be ignored
  */
 export function processCliArgs<A extends Parameters, O extends Parameters>({
+  rawArgs,
   parsedArgs,
   command,
+  matchedPath,
   cli,
 }: {
+  rawArgs: string[]
   parsedArgs: minimist.ParsedArgs
   command: Command<A, O>
+  matchedPath?: string[]
   cli: boolean
 }) {
+  const parsed = parseCliArgs({ stringArgs: rawArgs, cli, skipDefault: true })
+  const commandName = matchedPath || command.getPath()
+  const all = removeSlice(rawArgs, commandName)
+
   const argSpec = command.arguments || <A>{}
   const argKeys = Object.keys(argSpec)
-  const processedArgs = { _: parsedArgs["--"] || [] }
+  const processedArgs = { "$all": all, "--": parsed["--"] || [] }
 
   const errors: string[] = []
 
@@ -216,6 +232,10 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
     const spec = argSpec[argKey]
 
     if (!spec) {
+      if (command.allowUndefinedArguments) {
+        continue
+      }
+
       const expected = argKeys.length > 0 ? "only " + naturalList(argKeys.map((key) => chalk.white.bold(key))) : "none"
       throw new ParameterError(`Unexpected positional argument "${argVal}" (expected ${expected})`, {
         expectedKeys: argKeys,
@@ -256,8 +276,12 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
     const flagStr = chalk.white.bold(key.length === 1 ? "-" + key : "--" + key)
 
     if (!spec) {
-      errors.push(`Unrecognized option flag ${flagStr}`)
-      continue
+      if (command.allowUndefinedArguments && value !== undefined) {
+        processedOpts[key] = value
+      } else {
+        errors.push(`Unrecognized option flag ${flagStr}`)
+        continue
+      }
     }
 
     if (!optSpec[key]) {
@@ -298,7 +322,7 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
   const cleanedProcessedOpts = pickBy(processedOpts, (value) => !(value === undefined || value === null))
 
   return {
-    args: <DefaultArgs & ParameterValues<A>>processedArgs,
+    args: <BuiltinArgs & ParameterValues<A>>processedArgs,
     opts: <ParameterValues<GlobalOptions> & ParameterValues<O>>cleanedProcessedOpts,
   }
 }

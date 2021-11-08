@@ -9,10 +9,10 @@
 import dotenv = require("dotenv")
 import { intersection, sortBy } from "lodash"
 import { resolve, join } from "path"
-import { getAllCommands } from "../commands/commands"
+import { getBuiltinCommands } from "../commands/commands"
 import { shutdown, sleep, getPackageVersion, uuidv4, registerCleanupFunction } from "../util/util"
-import { Command, CommandResult, CommandGroup } from "../commands/base"
-import { GardenError, PluginError, toGardenError, GardenBaseError } from "../exceptions"
+import { Command, CommandResult, CommandGroup, BuiltinArgs } from "../commands/base"
+import { PluginError, toGardenError, GardenBaseError } from "../exceptions"
 import { Garden, GardenOpts, DummyGarden } from "../garden"
 import { getLogger, Logger, LoggerType, LogLevel, parseLogLevel } from "../logger/logger"
 import { FileWriter, FileWriterConfig } from "../logger/writers/file-writer"
@@ -28,18 +28,29 @@ import {
   optionsWithAliasValues,
 } from "./helpers"
 import { Parameters, globalOptions, OUTPUT_RENDERERS, GlobalOptions, ParameterValues } from "./params"
-import { defaultEnvironments, ProjectConfig, defaultNamespace, parseEnvironment } from "../config/project"
+import {
+  defaultEnvironments,
+  ProjectConfig,
+  defaultNamespace,
+  parseEnvironment,
+  ProjectResource,
+} from "../config/project"
 import { ERROR_LOG_FILENAME, DEFAULT_API_VERSION, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME } from "../constants"
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
-import { defaultDotIgnoreFiles } from "../util/fs"
 import { BufferedEventStream, ConnectBufferedEventStreamParams } from "../cloud/buffered-event-stream"
+import { defaultDotIgnoreFiles } from "../util/fs"
 import { GardenProcess } from "../db/entities/garden-process"
 import { DashboardEventStream } from "../server/dashboard-event-stream"
 import { GardenPluginCallback } from "../types/plugin/plugin"
 import { renderError } from "../logger/renderers"
 import { CloudApi } from "../cloud/api"
-import chalk = require("chalk")
+import chalk from "chalk"
+import { findProjectConfig } from "../config/base"
+import { pMemoizeDecorator } from "../lib/p-memoize"
+import { getCustomCommands } from "../commands/custom"
+import { pathExists } from "fs-extra"
+import { Profile } from "../util/profiling"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   const environments = gardenOpts.environmentName
@@ -65,12 +76,13 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
 export interface RunOutput {
   argv: any
   code: number
-  errors: (GardenError | Error)[]
+  errors: (GardenBaseError | Error)[]
   result: any
   // Mainly used for testing
   consoleOutput?: string
 }
 
+@Profile()
 export class GardenCli {
   private commands: { [key: string]: Command } = {}
   private fileWritersInitialized: boolean = false
@@ -81,22 +93,30 @@ export class GardenCli {
   constructor({ plugins }: { plugins?: GardenPluginCallback[] } = {}) {
     this.plugins = plugins || []
 
-    const commands = sortBy(getAllCommands(), (c) => c.name)
+    const commands = sortBy(getBuiltinCommands(), (c) => c.name)
     commands.forEach((command) => this.addCommand(command))
   }
 
-  renderHelp() {
+  async renderHelp(workingDir: string) {
     const commands = Object.values(this.commands)
       .sort()
       .filter((cmd) => cmd.getPath().length === 1)
 
-    return `
+    let msg = `
 ${cliStyles.heading("USAGE")}
   garden ${cliStyles.commandPlaceholder()} ${cliStyles.optionsPlaceholder()}
 
 ${cliStyles.heading("COMMANDS")}
 ${renderCommands(commands)}
     `
+
+    const customCommands = await this.getCustomCommands(workingDir)
+
+    if (customCommands.length > 0) {
+      msg += `\n${cliStyles.heading("CUSTOM COMMANDS")}\n${renderCommands(customCommands)}`
+    }
+
+    return msg
   }
 
   private async initFileWriters(logger: Logger, gardenDirPath: string) {
@@ -145,18 +165,23 @@ ${renderCommands(commands)}
     }
   }
 
+  async getGarden(workingDir: string, opts: GardenOpts) {
+    return Garden.factory(workingDir, opts)
+  }
+
   async runCommand<A extends Parameters, O extends Parameters>({
     command,
     parsedArgs,
     parsedOpts,
     processRecord,
+    workingDir,
   }: {
     command: Command<A, O>
-    parsedArgs: ParameterValues<A>
+    parsedArgs: BuiltinArgs & ParameterValues<A>
     parsedOpts: ParameterValues<GlobalOptions & O>
     processRecord?: GardenProcess
+    workingDir: string
   }) {
-    const root = resolve(process.cwd(), parsedOpts.root)
     const {
       "logger-type": loggerTypeOpt,
       "log-level": logLevel,
@@ -195,7 +220,7 @@ ${renderCommands(commands)}
     // Init enterprise API
     let cloudApi: CloudApi | null = null
     if (!command.noProject) {
-      cloudApi = await CloudApi.factory({ log, currentDirectory: root })
+      cloudApi = await CloudApi.factory({ log, currentDirectory: workingDir })
     }
 
     // Init event & log streaming.
@@ -237,13 +262,17 @@ ${renderCommands(commands)}
     let result: CommandResult<any> = {}
     let analytics: AnalyticsHandler
 
-    const { persistent } = await command.prepare({
+    const prepareParams = {
       log,
       headerLog,
       footerLog,
       args: parsedArgs,
       opts: parsedOpts,
-    })
+    }
+
+    const persistent = command.isPersistent(prepareParams)
+
+    await command.prepare(prepareParams)
 
     contextOpts.persistent = persistent
     const { streamEvents, streamLogEntries } = command
@@ -255,9 +284,10 @@ ${renderCommands(commands)}
     do {
       try {
         if (command.noProject) {
-          garden = await makeDummyGarden(root, contextOpts)
+          garden = await makeDummyGarden(workingDir, contextOpts)
         } else {
-          garden = await Garden.factory(root, contextOpts)
+          garden = await this.getGarden(workingDir, contextOpts)
+
           const envDescription = `${garden.namespace}.${garden.environmentName}`
           nsLog.setState(`${chalk.gray(`Using environment ${chalk.white.bold(envDescription)}\n`)}`)
 
@@ -343,6 +373,7 @@ ${renderCommands(commands)}
 
           result = await command.action({
             garden,
+            cli: this,
             log,
             footerLog,
             headerLog,
@@ -360,7 +391,12 @@ ${renderCommands(commands)}
         // Other exceptions are handled within the implementation of "get debug-info".
         if (command.name === "debug-info") {
           // Use default Garden dir name as fallback since Garden class hasn't been initialised
-          await generateBasicDebugInfoReport(root, join(root, DEFAULT_GARDEN_DIR_NAME), log, parsedOpts.format)
+          await generateBasicDebugInfoReport(
+            workingDir,
+            join(workingDir, DEFAULT_GARDEN_DIR_NAME),
+            log,
+            parsedOpts.format
+          )
         }
         throw err
       } finally {
@@ -379,10 +415,12 @@ ${renderCommands(commands)}
     args,
     exitOnError,
     processRecord,
+    cwd,
   }: {
     args: string[]
     exitOnError: boolean
     processRecord?: GardenProcess
+    cwd?: string
   }): Promise<RunOutput> {
     let argv = parseCliArgs({ stringArgs: args, cli: true })
 
@@ -411,11 +449,32 @@ ${renderCommands(commands)}
       return done(0, getPackageVersion())
     }
 
-    const { command } = pickCommand(Object.values(this.commands), argv._)
+    const workingDir = resolve(cwd || process.cwd(), argv.root || "")
+
+    if (!(await pathExists(workingDir))) {
+      return done(1, chalk.red(`Could not find specified root path (${argv.root})`))
+    }
+
+    let projectConfig: ProjectResource | undefined
+
+    // First look for native Garden commands
+    let { command, matchedPath } = pickCommand(Object.values(this.commands), argv._)
+
+    // Load custom commands from current project (if applicable) and see if any match the arguments
+    if (!command) {
+      projectConfig = await this.getProjectConfig(workingDir)
+
+      if (projectConfig) {
+        const customCommands = await this.getCustomCommands(workingDir)
+        const picked = pickCommand(customCommands, argv._)
+        command = picked.command
+        matchedPath = picked.matchedPath
+      }
+    }
 
     if (!command) {
       const exitCode = argv.h || argv.help || argv._[0] === "help" ? 0 : 1
-      return done(exitCode, this.renderHelp())
+      return done(exitCode, await this.renderHelp(workingDir))
     }
 
     if (command instanceof CommandGroup) {
@@ -436,15 +495,15 @@ ${renderCommands(commands)}
         return done(0, command.renderHelp())
       } else {
         // Show general help text
-        return done(0, this.renderHelp())
+        return done(0, await this.renderHelp(workingDir))
       }
     }
 
-    let parsedArgs: ParameterValues<any>
+    let parsedArgs: BuiltinArgs & ParameterValues<any>
     let parsedOpts: ParameterValues<any>
 
     try {
-      const parseResults = processCliArgs({ parsedArgs: argv, command, cli: true })
+      const parseResults = processCliArgs({ rawArgs: args, parsedArgs: argv, command, matchedPath, cli: true })
       parsedArgs = parseResults.args
       parsedOpts = parseResults.opts
     } catch (err) {
@@ -456,7 +515,7 @@ ${renderCommands(commands)}
     let analytics: AnalyticsHandler | undefined = undefined
 
     try {
-      const runResults = await this.runCommand({ command, parsedArgs, parsedOpts, processRecord })
+      const runResults = await this.runCommand({ command, parsedArgs, parsedOpts, processRecord, workingDir })
       commandResult = runResults.result
       analytics = runResults.analytics
     } catch (err) {
@@ -476,8 +535,12 @@ ${renderCommands(commands)}
     if (argv.output) {
       const renderer = OUTPUT_RENDERERS[argv.output]!
 
-      if (gardenErrors.length > 0) {
-        return done(1, renderer({ success: false, errors: gardenErrors }), commandResult?.result)
+      if (gardenErrors.length > 0 || (commandResult.exitCode && commandResult.exitCode !== 0)) {
+        return done(
+          commandResult.exitCode || 1,
+          renderer({ success: false, errors: gardenErrors }),
+          commandResult?.result
+        )
       } else {
         return done(0, renderer({ success: true, ...commandResult }), commandResult?.result)
       }
@@ -511,7 +574,7 @@ ${renderCommands(commands)}
         await waitForOutputFlush()
       }
 
-      code = 1
+      code = commandResult.exitCode || 1
     }
     if (exitOnError) {
       logger.stop()
@@ -529,5 +592,22 @@ ${renderCommands(commands)}
     }
 
     return { argv, code, errors, result: commandResult?.result }
+  }
+
+  @pMemoizeDecorator()
+  private async getProjectConfig(workingDir: string): Promise<ProjectResource | undefined> {
+    return findProjectConfig(workingDir)
+  }
+
+  @pMemoizeDecorator()
+  private async getCustomCommands(workingDir: string): Promise<Command[]> {
+    const projectConfig = await this.getProjectConfig(workingDir)
+    const projectRoot = projectConfig?.path
+
+    if (!projectRoot) {
+      return []
+    }
+
+    return await getCustomCommands(Object.values(this.commands), projectRoot)
   }
 }

@@ -117,7 +117,6 @@ describe("Garden", () => {
         config: {
           name: "test-plugin",
           dependencies: [],
-          environments: ["local"],
           path: projectRoot,
         },
         dependencies: {},
@@ -1442,7 +1441,6 @@ describe("Garden", () => {
         config: {
           name: "test-plugin",
           dependencies: [],
-          environments: ["local"],
           path: projectRoot,
         },
         dependencies: [],
@@ -2229,6 +2227,7 @@ describe("Garden", () => {
       const garden = await makeTestGardenA()
       const files = await garden.scanForConfigs(garden.projectRoot)
       expect(files).to.eql([
+        join(garden.projectRoot, "commands.garden.yml"),
         join(garden.projectRoot, "garden.yml"),
         join(garden.projectRoot, "module-a", "garden.yml"),
         join(garden.projectRoot, "module-b", "garden.yml"),
@@ -2248,6 +2247,7 @@ describe("Garden", () => {
       set(garden, "moduleExcludePatterns", ["module-a/**/*"])
       const files = await garden.scanForConfigs(garden.projectRoot)
       expect(files).to.eql([
+        join(garden.projectRoot, "commands.garden.yml"),
         join(garden.projectRoot, "garden.yml"),
         join(garden.projectRoot, "module-b", "garden.yml"),
         join(garden.projectRoot, "module-c", "garden.yml"),

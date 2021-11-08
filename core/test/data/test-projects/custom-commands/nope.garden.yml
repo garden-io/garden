@@ -1,0 +1,10 @@
+# These should be ignored because they conflict with built-in commands
+kind: Command
+name: plugins
+exec:
+  command: [echo, oops!]
+---
+kind: Command
+name: plugin
+exec:
+  command: [echo, oops!]

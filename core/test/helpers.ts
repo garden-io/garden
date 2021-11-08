@@ -22,7 +22,7 @@ import {
   RegisterPluginParam,
   ModuleAndRuntimeActionHandlers,
 } from "../src/types/plugin/plugin"
-import { Garden } from "../src/garden"
+import { Garden, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { mapValues, fromPairs } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
@@ -46,6 +46,7 @@ import { TestGarden, EventLogEntry, TestGardenOpts } from "../src/util/testing"
 import { Logger, LogLevel } from "../src/logger/logger"
 import { ExecInServiceParams, ExecInServiceResult } from "../src/types/plugin/service/execInService"
 import { ClientAuthToken } from "../src/db/entities/client-auth-token"
+import { GardenCli } from "../src/cli/cli"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError } from "../src/util/testing"
@@ -324,6 +325,12 @@ export const defaultModuleConfig: ModuleConfig = {
   ],
   testConfigs: [],
   taskConfigs: [],
+}
+
+export class TestGardenCli extends GardenCli {
+  async getGarden(workingDir: string, opts: GardenOpts) {
+    return makeTestGarden(workingDir, opts)
+  }
 }
 
 export const makeTestModule = (params: Partial<ModuleConfig> = {}) => {

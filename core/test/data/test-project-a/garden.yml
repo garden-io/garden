@@ -5,7 +5,6 @@ environments:
   - name: other
 providers:
   - name: test-plugin
-    environments: [local]
   - name: test-plugin-b
     environments: [local]
 variables:

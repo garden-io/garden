@@ -121,7 +121,7 @@ describe("PluginsCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { plugin: "test-plugin-a", command: "command-a", _: ["foo"] },
+      args: { "plugin": "test-plugin-a", "command": "command-a", "--": ["foo"] },
       opts: withDefaultGlobalOpts({}),
     })
 

@@ -55,7 +55,6 @@ export class RunTaskCommand extends Command<Args, Opts> {
   alias = "t"
   help = "Run a task (in the context of its parent module)."
 
-  workflows = true
   streamEvents = true
 
   description = dedent`

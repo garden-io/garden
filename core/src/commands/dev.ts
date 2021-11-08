@@ -100,6 +100,10 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
     printHeader(headerLog, "Dev", "keyboard")
   }
 
+  isPersistent() {
+    return true
+  }
+
   async prepare({ headerLog, footerLog }: PrepareParams<DevCommandArgs, DevCommandOpts>) {
     // print ANSI banner image
     if (chalk.supportsColor && chalk.supportsColor.level > 2) {
@@ -111,8 +115,6 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
     headerLog.info("")
 
     this.server = await startServer({ log: footerLog })
-
-    return { persistent: true }
   }
 
   terminate() {

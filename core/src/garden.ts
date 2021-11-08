@@ -79,7 +79,7 @@ import {
 import { ResolveProviderTask } from "./tasks/resolve-provider"
 import { ActionRouter } from "./actions"
 import { RuntimeContext } from "./runtime-context"
-import { loadPlugins, getDependencyOrder, getModuleTypes } from "./plugins"
+import { loadAndResolvePlugins, getDependencyOrder, getModuleTypes, loadPlugin } from "./plugins"
 import { deline, naturalList } from "./util/string"
 import { ensureConnected } from "./db/connection"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
@@ -399,6 +399,10 @@ export class Garden {
     })
   }
 
+  async getRegisteredPlugins(): Promise<GardenPlugin[]> {
+    return Bluebird.map(this.registeredPlugins, (p) => loadPlugin(this.log, this.projectRoot, p))
+  }
+
   async getPlugin(pluginName: string): Promise<GardenPlugin> {
     const plugins = await this.getAllPlugins()
     const plugin = findByName(plugins, pluginName)
@@ -437,7 +441,7 @@ export class Garden {
       this.log.silly(`Loading plugins`)
       const rawConfigs = this.getRawProviderConfigs()
 
-      this.loadedPlugins = await loadPlugins(this.log, this.projectRoot, this.registeredPlugins, rawConfigs)
+      this.loadedPlugins = await loadAndResolvePlugins(this.log, this.projectRoot, this.registeredPlugins, rawConfigs)
 
       this.log.silly(`Loaded plugins: ${rawConfigs.map((c) => c.name).join(", ")}`)
     })
