@@ -230,6 +230,107 @@ tests:
       - suite-b
 ```
 
+### For loops
+
+You can map through a list of values by using the special `$forEach/$return` object.
+
+You specify an object with two keys, `$forEach: <some list or object>` and `$return: <any value>`. You can also optionally add a `$filter: <expression>` key, which if evaluates to `false` for a particular value, it will be omitted.
+
+Template strings in the `$return` and `$filter` fields are resolved with the same template context as what's available when resolving the for-loop, in addition to `${item.value}` which resolves to the list item being processed, and `${item.key}`.
+
+You can loop over lists as well as mapping objects. When looping over lists, `${item.key}` resolves to the index number (starting with 0) of the item in the list. When looping over mapping objects, `${item.key}` is simply the key name of the key value pair.
+
+Here's an example where we kebab-case a list of string values:
+
+```yaml
+kind: Module
+...
+variables:
+  values:
+    - some_name
+    - AnotherName
+    - __YET_ANOTHER_NAME__
+tasks:
+  - name: my-task
+    # resolves to [some-name, another-name, yet-another-name]
+    args:
+      $forEach: ${var.values}
+      $return: ${kebabCase(item.value)}
+```
+
+Here's another example, where we create an object for each value in a list and skip certain values:
+
+```yaml
+kind: Module
+...
+variables:
+  ports:
+    - 80
+    - 8000
+    - 8100
+    - 8200
+services:
+  - name: my-service
+    ports:
+      # loop through the ports list declared above
+      $forEach: ${var.ports}
+      # only use values higher than 1000
+      $filter: ${item.value > 1000}
+      # for each port number, create an object with a name and a port key
+      $return:
+        name: port-${item.key}  # item.key is the array index, starting with 0
+        containerPort: ${item.value}
+```
+
+And here we loop over a mapping object instead of a list:
+
+```yaml
+kind: Module
+...
+variables:
+  ports:
+    http: 8000
+    admin: 8100
+    debug: 8200
+services:
+  - name: my-service
+    ports:
+      # loop through the ports map declared above
+      $forEach: ${var.ports}
+      # for each port number, create an object with a name and a port key
+      $return:
+        name: ${item.key}
+        containerPort: ${item.value}
+```
+
+And lastly, here we have an arbitrary object for each value instead of a simple numeric value:
+
+```yaml
+kind: Module
+...
+variables:
+  ports:
+    http:
+      container: 8000
+      service: 80
+    admin:
+      container: 8100
+    debug:
+      container: 8200
+services:
+  - name: my-service
+    ports:
+      # loop through the ports map declared above
+      $forEach: ${var.ports}
+      # for each port number, create an object with a name and a port key
+      $return:
+        name: ${item.key}
+        # see how we can reference nested keys on item.value
+        containerPort: ${item.value.container}
+        # resolve to the service key if it's set, otherwise the container key
+        servicePort: ${item.value.service || item.value.container}
+```
+
 ### Merging maps
 
 Any object or mapping field supports a special `$merge` key, which allows you to merge two objects together. This can be used to avoid repeating a set of commonly repeated values.
