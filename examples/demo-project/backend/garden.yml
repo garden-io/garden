@@ -6,9 +6,6 @@ type: container
 # You can specify variables here at the module level
 variables:
   ingressPath: /hello-backend
-  commandPrefix:
-    - sh
-    - -c
 
 services:
   - name: backend
@@ -27,6 +24,4 @@ services:
 
 tasks:
   - name: test
-    command:
-      - $concat: ${var.commandPrefix}
-      - "echo task output"
+    command: ["sh", "-c", "echo task output"]

@@ -16,6 +16,9 @@ import { DEFAULT_API_VERSION } from "../constants"
 
 export const objectSpreadKey = "$merge"
 export const arrayConcatKey = "$concat"
+export const arrayForEachKey = "$forEach"
+export const arrayForEachReturnKey = "$return"
+export const arrayForEachFilterKey = "$filter"
 
 const ajv = new Ajv({ allErrors: true, useDefaults: true })
 
@@ -315,9 +318,14 @@ joi = joi.extend({
   //   return { value }
   // },
   args(schema: any, keys: any) {
-    // Always allow the $merge key, which we resolve and collapse in resolveTemplateStrings()
+    // Always allow the special $merge, $forEach etc. keys, which we resolve and collapse in resolveTemplateStrings()
+    // Note: we allow both the expected schema and strings, since they may be templates resolving to the expected type.
     return schema.keys({
       [objectSpreadKey]: joi.alternatives(joi.object(), joi.string()),
+      [arrayConcatKey]: joi.alternatives(joi.array(), joi.string()),
+      [arrayForEachKey]: joi.alternatives(joi.array(), joi.string()),
+      [arrayForEachFilterKey]: joi.any(),
+      [arrayForEachReturnKey]: joi.any(),
       ...(keys || {}),
     })
   },

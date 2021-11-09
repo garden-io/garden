@@ -13,11 +13,21 @@ import {
   ScanContext,
   ContextResolveOutput,
   ContextKeySegment,
+  GenericContext,
 } from "../config/template-contexts/base"
-import { difference, uniq, isPlainObject, isNumber } from "lodash"
-import { Primitive, StringMap, isPrimitive, objectSpreadKey, arrayConcatKey } from "../config/common"
+import { difference, uniq, isPlainObject, isNumber, cloneDeep } from "lodash"
+import {
+  Primitive,
+  StringMap,
+  isPrimitive,
+  objectSpreadKey,
+  arrayConcatKey,
+  arrayForEachKey,
+  arrayForEachReturnKey,
+  arrayForEachFilterKey,
+} from "../config/common"
 import { profile } from "../util/profiling"
-import { dedent, deline, truncate } from "../util/string"
+import { dedent, deline, naturalList, truncate } from "../util/string"
 import { ObjectWithName } from "../util/util"
 import { LogEntry } from "../logger/log-entry"
 import { ModuleConfigContext } from "../config/template-contexts/module"
@@ -206,9 +216,23 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
     const output: unknown[] = []
 
     for (const v of value) {
-      if (isPlainObject(v) && v.hasOwnProperty(arrayConcatKey)) {
+      if (isPlainObject(v) && v[arrayConcatKey] !== undefined) {
+        if (Object.keys(v).length > 1) {
+          const extraKeys = naturalList(
+            Object.keys(v)
+              .filter((k) => k !== arrayConcatKey)
+              .map((k) => JSON.stringify(k))
+          )
+          throw new ConfigurationError(
+            `A list item with a ${arrayConcatKey} key cannot have any other keys (found ${extraKeys})`,
+            {
+              value: v,
+            }
+          )
+        }
+
         // Handle array concatenation via $concat
-        const resolved = resolveTemplateStrings(v.$concat, context, opts)
+        const resolved = resolveTemplateStrings(v[arrayConcatKey], context, opts)
 
         if (Array.isArray(resolved)) {
           output.push(...resolved)
@@ -230,36 +254,123 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
 
     return <T>(<unknown>output)
   } else if (isPlainObject(value)) {
-    // Resolve $merge keys, depth-first, leaves-first
-    let output = {}
+    if (value[arrayForEachKey] !== undefined) {
+      // Handle $forEach loop
+      return handleForEachObject(value, context, opts)
+    } else {
+      // Resolve $merge keys, depth-first, leaves-first
+      let output = {}
 
-    for (const [k, v] of Object.entries(value)) {
-      const resolved = resolveTemplateStrings(v, context, opts)
+      for (const [k, v] of Object.entries(value)) {
+        const resolved = resolveTemplateStrings(v, context, opts)
 
-      if (k === objectSpreadKey) {
-        if (isPlainObject(resolved)) {
-          output = { ...output, ...resolved }
-        } else if (opts.allowPartial) {
-          output[k] = resolved
+        if (k === objectSpreadKey) {
+          if (isPlainObject(resolved)) {
+            output = { ...output, ...resolved }
+          } else if (opts.allowPartial) {
+            output[k] = resolved
+          } else {
+            throw new ConfigurationError(
+              `Value of ${objectSpreadKey} key must be (or resolve to) a mapping object (got ${typeof resolved})`,
+              {
+                value,
+                resolved,
+              }
+            )
+          }
         } else {
-          throw new ConfigurationError(
-            `Value of ${objectSpreadKey} key must be (or resolve to) a mapping object (got ${typeof resolved})`,
-            {
-              value,
-              resolved,
-            }
-          )
+          output[k] = resolved
         }
-      } else {
-        output[k] = resolved
       }
-    }
 
-    return <T>output
+      return <T>output
+    }
   } else {
     return <T>value
   }
 })
+
+const expectedKeys = [arrayForEachKey, arrayForEachReturnKey, arrayForEachFilterKey]
+
+function handleForEachObject(value: any, context: ConfigContext, opts: ContextResolveOpts) {
+  // Validate input object
+  if (value[arrayForEachReturnKey] === undefined) {
+    throw new ConfigurationError(`Missing ${arrayForEachReturnKey} field next to ${arrayForEachKey} field.`, {
+      value,
+    })
+  }
+
+  const unexpectedKeys = Object.keys(value).filter((k) => !expectedKeys.includes(k))
+
+  if (unexpectedKeys.length > 0) {
+    const extraKeys = naturalList(unexpectedKeys.map((k) => JSON.stringify(k)))
+
+    throw new ConfigurationError(`Found one or more unexpected keys on $forEach object: ${extraKeys}`, {
+      value,
+      expectedKeys,
+      unexpectedKeys,
+    })
+  }
+
+  // Try resolving the value of the $forEach key
+  let resolvedInput = resolveTemplateStrings(value[arrayForEachKey], context, opts)
+  const isObject = isPlainObject(resolvedInput)
+
+  if (!Array.isArray(resolvedInput) && !isObject) {
+    if (opts.allowPartial) {
+      return value
+    } else {
+      throw new ConfigurationError(
+        `Value of ${arrayForEachKey} key must be (or resolve to) an array or mapping object (got ${typeof resolvedInput})`,
+        {
+          value,
+          resolved: resolvedInput,
+        }
+      )
+    }
+  }
+
+  const filterExpression = value[arrayForEachFilterKey]
+
+  // TODO: maybe there's a more efficient way to do the cloning/extending?
+  const loopContext = cloneDeep(context)
+
+  const output: unknown[] = []
+
+  for (const i of Object.keys(resolvedInput)) {
+    const itemValue = resolvedInput[i]
+
+    loopContext["item"] = new GenericContext({ key: i, value: itemValue })
+
+    // Have to override the cache in the parent context here
+    // TODO: make this a little less hacky :P
+    delete loopContext["_resolvedValues"]["item.key"]
+    delete loopContext["_resolvedValues"]["item.value"]
+
+    // Check $filter clause output, if applicable
+    if (filterExpression !== undefined) {
+      const filterResult = resolveTemplateStrings(value[arrayForEachFilterKey], loopContext, opts)
+
+      if (filterResult === false) {
+        continue
+      } else if (filterResult !== true) {
+        throw new ConfigurationError(
+          `${arrayForEachFilterKey} clause in ${arrayForEachKey} loop must resolve to a boolean value (got ${typeof resolvedInput})`,
+          {
+            itemValue,
+            filterExpression,
+            filterResult,
+          }
+        )
+      }
+    }
+
+    output.push(resolveTemplateStrings(value[arrayForEachReturnKey], loopContext, opts))
+  }
+
+  // Need to resolve once more to handle e.g. $concat expressions
+  return resolveTemplateStrings(output, context, opts)
+}
 
 /**
  * Scans for all template strings in the given object and lists the referenced keys.
