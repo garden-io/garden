@@ -33,6 +33,24 @@ interface ServiceIngressWithCert extends ServiceIngress {
 
 const certificateHostnames: { [name: string]: string[] } = {}
 
+/**
+ * Detects and returns the supported ingress version for the context (checking for api versions in the provided
+ * preference order).
+ */
+export async function getIngressApiVersion(
+  log: LogEntry,
+  api: KubeApi,
+  preferenceOrder: string[]
+): Promise<string | undefined> {
+  for (const version of preferenceOrder) {
+    const resourceInfo = await api.getApiResourceInfo(log, version, "Ingress")
+    if (resourceInfo) {
+      return version
+    }
+  }
+  return undefined
+}
+
 export async function createIngressResources(
   api: KubeApi,
   provider: KubernetesProvider,
@@ -45,14 +63,7 @@ export async function createIngressResources(
   }
 
   // Detect the supported ingress version for the context
-  let apiVersion: string | undefined = undefined
-
-  for (const version of supportedIngressApiVersions) {
-    const resourceInfo = await api.getApiResourceInfo(log, version, "Ingress")
-    if (resourceInfo) {
-      apiVersion = version
-    }
-  }
+  const apiVersion = await getIngressApiVersion(log, api, supportedIngressApiVersions)
 
   if (!apiVersion) {
     log.warn(chalk.yellow(`Could not find a supported Ingress API version in the target cluster`))
@@ -92,7 +103,7 @@ export async function createIngressResources(
                 paths: [
                   {
                     path: ingress.path,
-                    pathType: "prefix",
+                    pathType: "Prefix",
                     backend: {
                       service: {
                         name: service.name,

@@ -164,7 +164,7 @@ export async function deployKubernetesService(
 
   if (namespaceManifests.length > 0) {
     // Don't prune namespaces
-    await apply({ log, ctx, provider, manifests: namespaceManifests })
+    await apply({ log, ctx, api, provider, manifests: namespaceManifests })
     await waitForResources({
       namespace,
       ctx,
@@ -178,7 +178,7 @@ export async function deployKubernetesService(
 
   let target: HotReloadableResource | undefined
 
-  const pruneSelector = getSelector(service)
+  const pruneLabels = { [gardenAnnotationKey("service")]: service.name }
   if (otherManifests.length > 0) {
     const prepareResult = await prepareManifestsForSync({
       ctx: k8sCtx,
@@ -192,7 +192,7 @@ export async function deployKubernetesService(
 
     target = prepareResult.target
 
-    await apply({ log, ctx, provider: k8sCtx.provider, manifests: prepareResult.manifests, pruneSelector })
+    await apply({ log, ctx, api, provider: k8sCtx.provider, manifests: prepareResult.manifests, pruneLabels })
     await waitForResources({
       namespace,
       ctx,
@@ -317,10 +317,6 @@ async function getServiceLogs(params: GetServiceLogsParams<KubernetesModule>) {
   const manifests = await getManifests({ ctx, api, log, module, defaultNamespace: namespace })
 
   return streamK8sLogs({ ...params, provider, defaultNamespace: namespace, resources: manifests })
-}
-
-function getSelector(service: KubernetesService) {
-  return `${gardenAnnotationKey("service")}=${service.name}`
 }
 
 /**
