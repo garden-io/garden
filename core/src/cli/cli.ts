@@ -40,6 +40,7 @@ import { GardenPluginCallback } from "../types/plugin/plugin"
 import { renderError } from "../logger/renderers"
 import { EnterpriseApi } from "../enterprise/api"
 import chalk = require("chalk")
+import { registerSession } from "../enterprise/session-lifecycle"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   const environments = gardenOpts.environmentName
@@ -282,6 +283,20 @@ ${renderCommands(commands)}
           const runningServers = await dashboardEventStream.updateTargets()
 
           if (persistent && command.server) {
+            if (enterpriseApi) {
+              // TODO: provide the environment & namespace IDs returned by this helper to `this.bufferedEventStream`,
+              // and include them in all log/event batches once the API is ready for / expects that.
+              await registerSession({
+                log,
+                enterpriseApi,
+                sessionId,
+                commandInfo,
+                localServerPort: command.server.port,
+                projectId: enterpriseApi.projectId,
+                environment: garden.environmentName,
+                namespace: garden.namespace,
+              })
+            }
             // If there is an explicit `garden dashboard` process running for the current project+env, and a server
             // is started in this Command, we show the URL to the external dashboard. Otherwise the built-in one.
             const dashboardProcess = GardenProcess.getDashboardProcess(runningServers, {
