@@ -218,6 +218,14 @@ describe("Garden", () => {
       await expectError(async () => TestGarden.factory(projectRootA, { environmentName: "garden-bla" }), "parameter")
     })
 
+    it("should throw if project.environments is not an array", async () => {
+      const projectRoot = join(dataDir, "test-project-malformed-environments")
+      await expectError(
+        async () => TestGarden.factory(projectRoot),
+        (err) => expect(err.message).to.match(/Error validating environments: value must be an array/)
+      )
+    })
+
     it("should set .garden as the default cache dir", async () => {
       const projectRoot = join(dataDir, "test-project-empty")
       const garden = await TestGarden.factory(projectRoot, { plugins: [testPlugin] })

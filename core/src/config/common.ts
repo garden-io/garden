@@ -10,7 +10,7 @@ import Joi from "@hapi/joi"
 import Ajv from "ajv"
 import { splitLast } from "../util/util"
 import { deline, dedent } from "../util/string"
-import { cloneDeep } from "lodash"
+import { cloneDeep, isArray } from "lodash"
 import { joiPathPlaceholder } from "./validation"
 import { DEFAULT_API_VERSION } from "../constants"
 
@@ -415,7 +415,7 @@ joi = joi.extend({
   type: "sparseArray",
   coerce: {
     method(value) {
-      return { value: value && value.filter((v: any) => v !== undefined && v !== null) }
+      return { value: isArray(value) && value.filter((v: any) => v !== undefined && v !== null) }
     },
   },
 })
