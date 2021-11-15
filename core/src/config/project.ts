@@ -133,13 +133,7 @@ export const environmentSchema = () =>
   })
 
 export const environmentsSchema = () =>
-  joi
-    .alternatives(
-      joiSparseArray(environmentSchema()).unique("name"),
-      // Allow a string as a shorthand for { name: foo }
-      joiSparseArray(joiUserIdentifier())
-    )
-    .description("A list of environments to configure for the project.")
+  joiSparseArray(environmentSchema()).unique("name").description("A list of environments to configure for the project.")
 
 export interface SourceConfig {
   name: string
