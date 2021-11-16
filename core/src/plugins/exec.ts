@@ -280,6 +280,8 @@ function getDefaultEnvVars(module: ExecModule) {
   return {
     ...process.env,
     GARDEN_MODULE_VERSION: module.version.versionString,
+    // Workaround for https://github.com/vercel/pkg/issues/897
+    PKG_EXECPATH: "",
     ...mapValues(module.spec.env, (v) => v.toString()),
   }
 }
