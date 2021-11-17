@@ -878,7 +878,7 @@ export class ActionRouter implements TypeGuard {
     const providers = await this.garden.resolveProviders(log)
     await Bluebird.each(Object.values(providers), async (provider) => {
       await this.cleanupEnvironment({ pluginName: provider.name, log: envLog })
-      environmentStatuses[provider.name] = await this.getEnvironmentStatus({ pluginName: provider.name, log: envLog })
+      environmentStatuses[provider.name] = { ready: false, outputs: {} }
     })
 
     envLog.setSuccess()
