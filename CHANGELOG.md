@@ -1,4 +1,24 @@
 
+<a name="0.12.31-0"></a>
+## [0.12.31-0](https://github.com/garden-io/garden/compare/0.12.30...0.12.31-0) (2021-11-25)
+
+### Bug Fixes
+
+* do not modify baseModule.spec.serviceResource and baseModule.spec.values by the values from the dependent modules ([70c49b1a](https://github.com/garden-io/garden/commit/70c49b1a))
+* **core:** ensure we print dev command banner at top ([d31792ef](https://github.com/garden-io/garden/commit/d31792ef))
+* **core:** improve project config validation ([c08747ea](https://github.com/garden-io/garden/commit/c08747ea))
+* **exec:** statusCommand output not being respected ([8a5bcaee](https://github.com/garden-io/garden/commit/8a5bcaee))
+* **exec:** error when calling garden CLI within exec module tasks ([3fdcffbb](https://github.com/garden-io/garden/commit/3fdcffbb))
+* **k8s:** delete env command would recreate namespace after delete ([b705c6f7](https://github.com/garden-io/garden/commit/b705c6f7))
+* **template:** ignore errors in skipped ternary clause ([8b2eca53](https://github.com/garden-io/garden/commit/8b2eca53))
+
+### Features
+
+* **cli:** allow overriding default local address for port proxies ([21120c52](https://github.com/garden-io/garden/commit/21120c52))
+* **cloud:** register session with API ([946b056a](https://github.com/garden-io/garden/commit/946b056a))
+* **config:** support for-loops for lists ([e6a21527](https://github.com/garden-io/garden/commit/e6a21527))
+* **config:** support list concatenation via $concat keys ([dc869466](https://github.com/garden-io/garden/commit/dc869466))
+
 <a name="0.12.30"></a>
 ## [0.12.30](https://github.com/garden-io/garden/compare/0.12.29...0.12.30) (2021-11-05)
 
