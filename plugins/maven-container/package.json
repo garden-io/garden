@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/garden-maven-container",
-  "version": "0.12.30",
+  "version": "0.12.31",
   "description": "maven-container plugin for Garden (DEPRECATED)",
   "main": "index.js",
   "dependencies": {
