@@ -462,9 +462,13 @@ export const getExecServiceStatus: ServiceActionHandlers["getServiceStatus"] = a
       opts: { reject: false },
     })
 
-    return { state: result.exitCode === 0 ? "ready" : "outdated", detail: { statusCommandOutput: result.all } }
+    return {
+      state: result.exitCode === 0 ? "ready" : "outdated",
+      version: service.version,
+      detail: { statusCommandOutput: result.all },
+    }
   } else {
-    return { state: "unknown", detail: {} }
+    return { state: "unknown", version: service.version, detail: {} }
   }
 }
 
