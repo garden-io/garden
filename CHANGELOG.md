@@ -1,4 +1,11 @@
 
+<a name="0.12.31-2"></a>
+## [0.12.31-2](https://github.com/garden-io/garden/compare/0.12.31-1...0.12.31-2) (2021-10-12)
+
+### Bug Fixes
+
+* **helm:** more robust log streaming ([49f49c59](https://github.com/garden-io/garden/commit/49f49c59))
+
 <a name="0.12.31-1"></a>
 ## [0.12.31-1](https://github.com/garden-io/garden/compare/0.12.31-0...0.12.31-1) (2021-11-06)
 
