@@ -10,7 +10,7 @@ import Bluebird from "bluebird"
 import { mapValues, omit } from "lodash"
 import { join } from "path"
 import cpy = require("cpy")
-import { joiArray, joiEnvVars, joi, joiSparseArray } from "../config/common"
+import { joiArray, joiEnvVars, joi, joiSparseArray, PrimitiveMap } from "../config/common"
 import { validateWithPath, ArtifactSpec } from "../config/validation"
 import { createGardenPlugin, ServiceActionHandlers } from "../types/plugin/plugin"
 import { GardenModule, getModuleKey } from "../types/module"
@@ -26,7 +26,7 @@ import { BuildModuleParams, BuildResult } from "../types/plugin/module/build"
 import { TestModuleParams } from "../types/plugin/module/testModule"
 import { TestResult } from "../types/plugin/module/getTestResult"
 import { RunTaskParams, RunTaskResult } from "../types/plugin/task/runTask"
-import { exec, runScript } from "../util/util"
+import { createOutputStream, exec, ExecOpts, runScript } from "../util/util"
 import { ConfigurationError, RuntimeError } from "../exceptions"
 import { LogEntry } from "../logger/log-entry"
 import { providerConfigBaseSchema } from "../config/provider"
@@ -36,6 +36,7 @@ import chalk = require("chalk")
 import { renderMessageWithDivider } from "../logger/util"
 import { RunModuleParams } from "../types/plugin/module/runModule"
 import { RunResult } from "../types/plugin/base"
+import { LogLevel } from "../logger/logger"
 
 const execPathDoc = dedent`
   By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
@@ -286,24 +287,48 @@ function getDefaultEnvVars(module: ExecModule) {
   }
 }
 
+async function run({
+  command,
+  module,
+  log,
+  env,
+  opts = {},
+}: {
+  command: string[]
+  module: ExecModule
+  log: LogEntry
+  env?: PrimitiveMap
+  opts?: ExecOpts
+}) {
+  const stdout = createOutputStream(log.placeholder({ level: LogLevel.verbose }))
+
+  return exec(command.join(" "), [], {
+    cwd: module.buildPath,
+    env: {
+      ...getDefaultEnvVars(module),
+      ...(env ? mapValues(env, (v) => v + "") : {}),
+    },
+    // TODO: remove this in 0.13 and alert users to use e.g. sh -c '<script>' instead.
+    shell: true,
+    stdout,
+    stderr: stdout,
+    ...opts,
+  })
+}
+
 export async function buildExecModule({ module, log }: BuildModuleParams<ExecModule>): Promise<BuildResult> {
   const output: BuildResult = {}
   const { command } = module.spec.build
 
   if (command.length) {
-    const result = await exec(command.join(" "), [], {
-      cwd: module.buildPath,
-      env: getDefaultEnvVars(module),
-      // TODO: remove this in 0.13 and alert users to use e.g. sh -c '<script>' instead.
-      shell: true,
-    })
+    const result = await run({ command, module, log })
 
     output.fresh = true
     output.buildLog = result.stdout + result.stderr
   }
 
   if (output.buildLog) {
-    const prefix = `Finished building module ${chalk.white(module.name)}. Here is the output:`
+    const prefix = `Finished building module ${chalk.white(module.name)}. Here is the full output:`
     log.verbose(renderMessageWithDivider(prefix, output.buildLog, false, chalk.gray))
   }
   // keep track of which version has been built
@@ -322,21 +347,13 @@ export async function testExecModule({
   const startedAt = new Date()
   const { command } = test.config.spec
 
-  const result = await exec(command.join(" "), [], {
-    cwd: module.buildPath,
-    env: {
-      ...getDefaultEnvVars(module),
-      ...mapValues(test.config.spec.env, (v) => v + ""),
-    },
-    reject: false,
-    shell: true,
-  })
+  const result = await run({ command, module, log, env: test.config.spec.env, opts: { reject: false } })
 
   await copyArtifacts(log, test.config.spec.artifacts, module.buildPath, artifactsPath)
 
   const outputLog = (result.stdout + result.stderr).trim()
   if (outputLog) {
-    const prefix = `Finished running test ${chalk.white(test.name)}. Here is the output:`
+    const prefix = `Finished running test ${chalk.white(test.name)}. Here is the full output:`
     log.verbose(renderMessageWithDivider(prefix, outputLog, false, chalk.gray))
   }
 
@@ -363,16 +380,7 @@ export async function runExecTask(params: RunTaskParams<ExecModule>): Promise<Ru
   let success = true
 
   if (command && command.length) {
-    const commandResult = await exec(command.join(" "), [], {
-      cwd: module.buildPath,
-      env: {
-        ...getDefaultEnvVars(module),
-        ...mapValues(task.spec.env, (v) => v.toString()),
-      },
-      // We handle the error at the command level
-      reject: false,
-      shell: true,
-    })
+    const commandResult = await run({ command, module, log, env: task.spec.env, opts: { reject: false } })
 
     completedAt = new Date()
     outputLog = (commandResult.stdout + commandResult.stderr).trim()
@@ -383,7 +391,7 @@ export async function runExecTask(params: RunTaskParams<ExecModule>): Promise<Ru
   }
 
   if (outputLog) {
-    const prefix = `Finished running task ${chalk.white(task.name)}. Here is the output:`
+    const prefix = `Finished running task ${chalk.white(task.name)}. Here is the full output:`
     log.verbose(renderMessageWithDivider(prefix, outputLog, false, chalk.gray))
   }
 
@@ -405,7 +413,7 @@ export async function runExecTask(params: RunTaskParams<ExecModule>): Promise<Ru
 }
 
 export async function runExecModule(params: RunModuleParams<ExecModule>): Promise<RunResult> {
-  const { module, args, interactive } = params
+  const { module, args, interactive, log } = params
   const startedAt = new Date()
 
   let completedAt: Date
@@ -413,15 +421,12 @@ export async function runExecModule(params: RunModuleParams<ExecModule>): Promis
   let success = true
 
   if (args && args.length) {
-    const commandResult = await exec(args.join(" "), [], {
-      cwd: module.buildPath,
-      env: {
-        ...getDefaultEnvVars(module),
-        ...mapValues(module.spec.env, (v) => v.toString()),
-      },
-      stdio: interactive ? "inherit" : undefined,
-      reject: false,
-      shell: true,
+    const commandResult = await run({
+      command: args,
+      module,
+      log,
+      env: module.spec.env,
+      opts: { reject: false, stdio: interactive ? "inherit" : undefined },
     })
 
     completedAt = new Date()
@@ -446,17 +451,15 @@ export async function runExecModule(params: RunModuleParams<ExecModule>): Promis
 }
 
 export const getExecServiceStatus: ServiceActionHandlers["getServiceStatus"] = async (params) => {
-  const { module, service } = params
+  const { module, service, log } = params
 
   if (service.spec.statusCommand) {
-    const result = await exec(service.spec.statusCommand.join(" "), [], {
-      cwd: module.buildPath,
-      env: {
-        ...getDefaultEnvVars(module),
-        ...mapValues(service.spec.env, (v) => v + ""),
-      },
-      reject: false,
-      shell: true,
+    const result = await run({
+      command: service.spec.statusCommand,
+      module,
+      log,
+      env: service.spec.env,
+      opts: { reject: false },
     })
 
     return { state: result.exitCode === 0 ? "ready" : "outdated", detail: { statusCommandOutput: result.all } }
@@ -468,14 +471,12 @@ export const getExecServiceStatus: ServiceActionHandlers["getServiceStatus"] = a
 export const deployExecService: ServiceActionHandlers["deployService"] = async (params) => {
   const { module, service, log } = params
 
-  const result = await exec(service.spec.deployCommand.join(" "), [], {
-    cwd: module.buildPath,
-    env: {
-      ...getDefaultEnvVars(module),
-      ...mapValues(service.spec.env, (v) => v + ""),
-    },
-    reject: true,
-    shell: true,
+  const result = await run({
+    command: service.spec.deployCommand,
+    module,
+    log,
+    env: service.spec.env,
+    opts: { reject: true },
   })
 
   const outputLog = (result.stdout + result.stderr).trim()
@@ -491,14 +492,12 @@ export const deleteExecService: ServiceActionHandlers["deleteService"] = async (
   const { module, service, log } = params
 
   if (service.spec.cleanupCommand) {
-    const result = await exec(service.spec.cleanupCommand.join(" "), [], {
-      cwd: module.buildPath,
-      env: {
-        ...getDefaultEnvVars(module),
-        ...mapValues(service.spec.env, (v) => v + ""),
-      },
-      reject: true,
-      shell: true,
+    const result = await run({
+      command: service.spec.cleanupCommand,
+      module,
+      log,
+      env: service.spec.env,
+      opts: { reject: true },
     })
 
     return { state: "missing", detail: { cleanupCommandOutput: result.all } }

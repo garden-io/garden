@@ -140,6 +140,15 @@ describe("util", () => {
       expect(entry.getLatestMessage().msg).to.equal(renderOutputStream("hello"))
     })
 
+    it("should buffer outputs when piping to stream", async () => {
+      const logger = getLogger()
+      const entry = logger.placeholder()
+
+      const res = await exec("echo", ["hello"], { stdout: createOutputStream(entry) })
+
+      expect(res.stdout).to.equal("hello")
+    })
+
     it("should throw a standardised error message on error", async () => {
       try {
         // Using "sh -c" to get consistent output between operating systems
