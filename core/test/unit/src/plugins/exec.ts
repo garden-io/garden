@@ -624,6 +624,7 @@ describe("exec plugin", () => {
           },
         })
         expect(res.state).to.equal("ready")
+        expect(res.version).to.equal(service.version)
         expect(res.detail.statusCommandOutput).to.equal("already deployed")
       })
 
@@ -642,6 +643,7 @@ describe("exec plugin", () => {
           },
         })
         expect(res.state).to.equal("outdated")
+        expect(res.version).to.equal(service.version)
       })
     })
 
