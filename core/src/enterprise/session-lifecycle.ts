@@ -65,7 +65,9 @@ export async function registerSession({
       `
       log.error(errMsg)
     } else {
-      log.error(`An error occurred while registering the session: ${err.message}`)
+      // TODO: Reintroduce error-level warning when we're checking if the Cloud/Enterprise version is compatible with
+      // the Core version.
+      log.verbose(`An error occurred while registering the session: ${err.message}`)
     }
     // We don't want the command to fail when an error occurs during session registration.
     return null
