@@ -344,13 +344,6 @@ ConditionalExpression
       if (test && test._error) {
         return test
       }
-      if (consequent && consequent._error) {
-        return consequent
-      }
-      if (alternate && alternate._error) {
-        return alternate
-      }
-
       return getValue(test) ? consequent : alternate
     }
   / LogicalORExpression

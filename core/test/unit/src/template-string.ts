@@ -629,6 +629,11 @@ describe("resolveTemplateString", async () => {
     expect(res).to.equal(true)
   })
 
+  it("should ignore errors in a value not returned by a ternary", async () => {
+    const res = resolveTemplateString("${var.foo ? replace(var.foo, ' ', ',') : null}", new TestContext({ var: {} }))
+    expect(res).to.equal(null)
+  })
+
   it("should handle a ternary expression with an object as a test", async () => {
     const res = resolveTemplateString("${a ? a.value : b}", new TestContext({ a: { value: true }, b: false }))
     expect(res).to.equal(true)
