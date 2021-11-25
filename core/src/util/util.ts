@@ -155,7 +155,7 @@ export function makeErrorMsg({
   return msg
 }
 
-interface ExecOpts extends execa.Options {
+export interface ExecOpts extends execa.Options {
   stdout?: Writable
   stderr?: Writable
 }
