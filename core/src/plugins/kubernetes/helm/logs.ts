@@ -10,28 +10,44 @@ import { GetServiceLogsParams } from "../../../types/plugin/service/getServiceLo
 import { streamK8sLogs } from "../logs"
 import { HelmModule } from "./config"
 import { KubernetesPluginContext } from "../config"
-import { getChartResources } from "./common"
+import { getReleaseName } from "./common"
 import { getModuleNamespace } from "../namespace"
+import { getDeployedResources } from "./status"
+import { sleep } from "../../../util/util"
 
 export async function getServiceLogs(params: GetServiceLogsParams<HelmModule>) {
   const { ctx, module, log, service } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
+  const releaseName = getReleaseName(module)
   const namespace = await getModuleNamespace({
     ctx: k8sCtx,
     log,
-    module,
-    provider: k8sCtx.provider,
+    module: service.module,
+    provider,
   })
 
-  const resources = await getChartResources({
-    ctx: k8sCtx,
-    module,
-    devMode: false,
-    hotReload: false,
-    log,
-    version: service.version,
-  })
-
-  return streamK8sLogs({ ...params, provider, defaultNamespace: namespace, resources })
+  let resources: any[]
+  if (params.follow) {
+    // Then we wait indefinitely for the resources for this service to come up before passing them to
+    // `streamK8sLogs` below. This will end in one of two ways:
+    // 1. The resources are eventually found and passed to `streamK8sLogs`, which then takes care of streaming
+    //    and retrying e.g. if the resources are deleted while logs are being streamed.
+    // 2. The resources aren't found (e.g. because they were never deployed during the execution of a `garden logs`
+    //    command which called `getServiceLogs` for this Helm service), and control flow here is simply
+    //    terminated when the command exits.
+    while (true) {
+      try {
+        resources = await getDeployedResources({ ctx: k8sCtx, module, releaseName, log })
+        break
+      } catch (err) {
+        log.debug(`Failed getting deployed resources. Retrying...`)
+        log.silly(err.message)
+      }
+      await sleep(2000)
+    }
+  } else {
+    resources = await getDeployedResources({ ctx: k8sCtx, module, releaseName, log })
+  }
+  return streamK8sLogs({ ...params, provider, defaultNamespace: namespace, resources: resources! })
 }

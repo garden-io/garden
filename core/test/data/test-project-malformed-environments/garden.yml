@@ -1,0 +1,6 @@
+kind: Project
+name: test-project-malformed-environments
+environments:
+  name: local # This should result in an exception, because `environments` is a map instead of a array.
+providers:
+  - name: test-plugin

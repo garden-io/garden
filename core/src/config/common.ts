@@ -10,11 +10,15 @@ import Joi from "@hapi/joi"
 import Ajv from "ajv"
 import { splitLast } from "../util/util"
 import { deline, dedent } from "../util/string"
-import { cloneDeep } from "lodash"
+import { cloneDeep, isArray } from "lodash"
 import { joiPathPlaceholder } from "./validation"
 import { DEFAULT_API_VERSION } from "../constants"
 
 export const objectSpreadKey = "$merge"
+export const arrayConcatKey = "$concat"
+export const arrayForEachKey = "$forEach"
+export const arrayForEachReturnKey = "$return"
+export const arrayForEachFilterKey = "$filter"
 
 const ajv = new Ajv({ allErrors: true, useDefaults: true })
 
@@ -314,9 +318,14 @@ joi = joi.extend({
   //   return { value }
   // },
   args(schema: any, keys: any) {
-    // Always allow the $merge key, which we resolve and collapse in resolveTemplateStrings()
+    // Always allow the special $merge, $forEach etc. keys, which we resolve and collapse in resolveTemplateStrings()
+    // Note: we allow both the expected schema and strings, since they may be templates resolving to the expected type.
     return schema.keys({
       [objectSpreadKey]: joi.alternatives(joi.object(), joi.string()),
+      [arrayConcatKey]: joi.alternatives(joi.array(), joi.string()),
+      [arrayForEachKey]: joi.alternatives(joi.array(), joi.string()),
+      [arrayForEachFilterKey]: joi.any(),
+      [arrayForEachReturnKey]: joi.any(),
       ...(keys || {}),
     })
   },
@@ -415,7 +424,7 @@ joi = joi.extend({
   type: "sparseArray",
   coerce: {
     method(value) {
-      return { value: value && value.filter((v: any) => v !== undefined && v !== null) }
+      return { value: isArray(value) && value.filter((v: any) => v !== undefined && v !== null) }
     },
   },
 })

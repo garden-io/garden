@@ -40,7 +40,7 @@ import { TaskGraph, GraphResults, ProcessTasksOpts } from "./task-graph"
 import { getLogger } from "./logger/logger"
 import { PluginActionHandlers, GardenPlugin } from "./types/plugin/plugin"
 import { loadConfigResources, findProjectConfig, prepareModuleResource, GardenResource } from "./config/base"
-import { DeepPrimitiveMap, StringMap, PrimitiveMap } from "./config/common"
+import { DeepPrimitiveMap, StringMap, PrimitiveMap, joiSparseArray, joi } from "./config/common"
 import { BaseTask } from "./tasks/base"
 import { LocalConfigStore, ConfigStore, GlobalConfigStore, LinkedSource } from "./config-store"
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
@@ -99,7 +99,7 @@ import { ProviderConfigContext } from "./config/template-contexts/provider"
 import { getSecrets } from "./enterprise/get-secrets"
 import { killSyncDaemon } from "./plugins/kubernetes/mutagen"
 import { ConfigContext } from "./config/template-contexts/base"
-import { validateSchema } from "./config/validation"
+import { validateSchema, validateWithPath } from "./config/validation"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -1231,6 +1231,17 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
   // Note: another VcsHandler is created later, this one is temporary
   const gitHandler = new GitHandler(projectRoot, gardenDirPath, [], treeCache)
   const vcsBranch = (await gitHandler.getBranchName(log, projectRoot)) || ""
+
+  // Since we iterate/traverse them before fully validating them (which we do after resolving template strings), we
+  // validdate that `config.environments` and `config.providers` are both arrays.
+  // This prevents cryptic type errors when the user mistakely writes down e.g. a map instead of an array.
+  validateWithPath({
+    config: config.environments,
+    schema: joiSparseArray(joi.object()),
+    configType: "environments",
+    path: config.path,
+    projectRoot: config.path,
+  })
 
   const defaultEnvironmentName = resolveTemplateString(
     config.defaultEnvironment,

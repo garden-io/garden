@@ -15,7 +15,7 @@ You also need make sure your DNS and routing are configured to point the domains
 cert-manager is currently under development. Currently we only support cert-manager v0.11.0, which requires Kubernetes v1.11 or higher.
 
 If you set `certManager.install: false` garden will expect to find a `cert-manager` installation in the `cert-manager` namespace.
-If you already have installed `cert-manager` please verify it's running by checking the status of the main pods as suggested in the [documentation](https://docs.cert-manager.io/en/latest/getting-started/install/kubernetes.html#verifying-the-installation).
+If you already have installed `cert-manager` please verify it's running by checking the status of the main pods as suggested in the [documentation](https://cert-manager.io/docs/installation/verify/)
 
 The integration currently only supports Let's Encrypt and HTTP-01 challenges. We also only support cert-manager ClusterIssuers and not namespace Issuers.
 
@@ -97,7 +97,7 @@ The above configuration will trigger the following workflow:
 
 All the steps above will happen at system startup/init. All your services will be built/tested/deployed after all the secrets have been populated.
 
-For advanced configuration, please take a look at the official [cert-manager documentation](https://docs.cert-manager.io/en/latest/tasks/index.html).
+For advanced configuration, please take a look at the official [cert-manager documentation](https://cert-manager.io/docs/usage/).
 
 ## Troubleshooting
 
@@ -119,7 +119,7 @@ and you can describe the failing Certificate with:
 $: kubectl describe Certificate certificate-name -n your-namespace
 ```
 
-Please find more info in the ["Issuing an ACME certificate using HTTP validation"](https://docs.cert-manager.io/en/release-0.11/tutorials/acme/http-validation.html#issuing-an-acme-certificate-using-http-validation) guide in the official cert-manager documentation.
+Please find more info in the ["Issuing an ACME certificate using HTTP validation"](https://cert-manager.io/docs/tutorials/acme/http-validation/#issuing-an-acme-certificate-using-http-validation) guide in the official cert-manager documentation.
 
 ---
 If have any issue, find a bug, or something is not clear from the documentation, please don't hesitate opening a new [GitHub issue](https://github.com/garden-io/garden/issues/new?template=BUG_REPORT.md) or ask us questions in our [Slack channel](https://chat.garden.io/).

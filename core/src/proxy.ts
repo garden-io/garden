@@ -19,6 +19,7 @@ import { LogEntry } from "./logger/log-entry"
 import { GetPortForwardResult } from "./types/plugin/service/getPortForward"
 import { LocalAddress } from "./db/entities/local-address"
 import { ConfigGraph } from "./config-graph"
+import { gardenEnv } from "./constants"
 
 interface PortProxy {
   key: string
@@ -98,6 +99,8 @@ async function createProxy({ garden, graph, log, service, spec }: StartPortProxy
   const key = getPortKey(service, spec)
   let fwd: GetPortForwardResult | null = null
 
+  let lastPrintedError = ""
+
   const getPortForward = async () => {
     if (fwd) {
       return fwd
@@ -112,7 +115,14 @@ async function createProxy({ garden, graph, log, service, spec }: StartPortProxy
       try {
         fwd = await actions.getPortForward({ service, log, graph, ...spec })
       } catch (err) {
-        log.warn(chalk.gray(`→ Could not start port forward to ${key} (will retry): ${err.message.trim()}`))
+        const msg = err.message.trim()
+
+        if (msg !== lastPrintedError) {
+          log.warn(chalk.gray(`→ Could not start port forward to ${key} (will retry): ${msg}`))
+          lastPrintedError = msg
+        } else {
+          log.silly(chalk.gray(`→ Could not start port forward to ${key} (will retry): ${msg}`))
+        }
       }
 
       log.debug(`Successfully started port forward to ${key}`)
@@ -220,7 +230,10 @@ async function createProxy({ garden, graph, log, service, spec }: StartPortProxy
   let localPort: number | undefined
   const preferredLocalPort = spec.preferredLocalPort || spec.targetPort
 
-  if (!spec.preferredLocalPort) {
+  if (gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS) {
+    localIp = gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS
+  } else if (!spec.preferredLocalPort) {
+    // TODO: drop this in 0.13, it causes more issues than it solves
     // Only try a non-default IP if a preferred port isn't set
     const preferredLocalAddress = await LocalAddress.resolve({
       projectName: garden.projectName,

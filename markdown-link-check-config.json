@@ -1,5 +1,6 @@
 {
   "retryOn429":true,
+  "timeout": "30s",
   "ignorePatterns": [
     {
       "pattern": "local.app.garden",
