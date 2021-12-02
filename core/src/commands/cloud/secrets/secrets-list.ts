@@ -20,7 +20,7 @@ import { StringsParameter } from "../../../cli/params"
 
 const pageLimit = 100
 
-export const secretsListOpts = {
+const secretsListOpts = {
   "filter-envs": new StringsParameter({
     help: deline`Filter on environment. Use comma as a separator to filter on multiple environments.
     Accepts glob patterns."`,
@@ -39,7 +39,7 @@ export class SecretsListCommand extends Command<{}, Opts> {
   name = "list"
   help = "List secrets."
   description = dedent`
-    List all secrets from Garden Cloud. Optionally filter on environment, user IDs, or secret names.
+    List all secrets from Garden Cloud for the given project. Optionally filter on environment, user IDs, or secret names.
 
     Examples:
         garden cloud secrets list                                          # list all secrets

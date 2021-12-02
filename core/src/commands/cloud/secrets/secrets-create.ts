@@ -8,15 +8,40 @@
 
 import { CommandError, ConfigurationError, EnterpriseApiError } from "../../../exceptions"
 import { CreateSecretResponse } from "@garden-io/platform-api-types"
-import { readFile } from "fs-extra"
+import dotenv = require("dotenv")
+import { readFile, readJson } from "fs-extra"
 
 import { printHeader } from "../../../logger/util"
 import { Command, CommandParams, CommandResult } from "../../base"
 import { ApiCommandError, handleBulkOperationResult, makeSecretFromResponse, noApiMsg, SecretResult } from "../helpers"
 import { dedent, deline } from "../../../util/string"
-import { IntegerParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params"
-import { StringMap } from "../../../config/common"
-import dotenv = require("dotenv")
+import { StringsParameter, PathParameter, IntegerParameter, StringParameter } from "../../../cli/params"
+import { joi, StringMap } from "../../../config/common"
+import { extname } from "path"
+
+interface JsonSecret {
+  name: string
+  value: string
+}
+
+interface JsonSecretResult {
+  success: boolean
+  result: JsonSecret[]
+}
+
+const jsonSecretSchema = joi.array().items(
+  joi.object().keys({
+    name: joi.string(),
+    value: joi.string(),
+  })
+)
+
+const jsonSecretResultSchema = joi
+  .object()
+  .keys({
+    result: jsonSecretSchema,
+  })
+  .unknown()
 
 export const secretsCreateArgs = {
   secrets: new StringsParameter({
@@ -37,8 +62,25 @@ export const secretsCreateOpts = {
     `,
   }),
   "from-file": new PathParameter({
-    help: deline`Read the secrets from the file at the given path. The file should have standard "dotenv"
-    format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).`,
+    help: deline`Read the secrets from the file at the given path. The file should either be a JSON file
+    with the ".json" extension or a standard env file.
+
+    JSON files should have the following format:
+
+    [
+      {
+        name: "SECRET_A",
+        value: "VALUE_A"
+      },
+      {
+        name: "SECRET_B",
+        value: "VALUE_B",
+      }
+    ]
+
+    Env files should have the "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+
+    Files that don't have a ".json" extension will be treated as env files by default.`,
   }),
 }
 
@@ -90,13 +132,37 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     }
 
     if (fromFile) {
-      try {
-        secrets = dotenv.parse(await readFile(fromFile))
-      } catch (err) {
-        throw new CommandError(`Unable to read secrets from file at path ${fromFile}: ${err.message}`, {
-          args,
-          opts,
-        })
+      const isJson = extname(fromFile) === ".json"
+      if (isJson) {
+        try {
+          const raw = await readJson(fromFile)
+          const result = jsonSecretResultSchema.validate(raw)
+          if (result.error) {
+            throw new CommandError(`Invalid JSON secrets file at path ${fromFile}: ${result.error.message}`, {
+              args,
+              opts,
+            })
+          }
+          const jsonSecrets = result.value as JsonSecretResult
+          secrets = jsonSecrets.result.reduce((memo, val) => {
+            memo[val.name] = val.value
+            return memo
+          }, {})
+        } catch (err) {
+          throw new CommandError(`Unable to read secrets from file at path ${fromFile}: ${err.message}`, {
+            args,
+            opts,
+          })
+        }
+      } else {
+        try {
+          secrets = dotenv.parse(await readFile(fromFile))
+        } catch (err) {
+          throw new CommandError(`Unable to read secrets from file at path ${fromFile}: ${err.message}`, {
+            args,
+            opts,
+          })
+        }
       }
     } else if (args.secrets) {
       secrets = args.secrets.reduce((acc, keyValPair) => {

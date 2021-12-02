@@ -982,7 +982,7 @@ stderr:
 
 **List secrets.**
 
-List all secrets from Garden Cloud. Optionally filter on environment, user IDs, or secret names.
+List all secrets from Garden Cloud for the given project. Optionally filter on environment, user IDs, or secret names.
 
 Examples:
     garden cloud secrets list                                          # list all secrets
@@ -1059,6 +1059,36 @@ Examples:
 | -------- | -------- | ----------- |
   | `ids` | No | The IDs of the secrets to delete.
 
+
+
+### garden cloud secrets show
+
+**[EXPERIMENTAL] Show secrets.**
+
+Show all secrets from Garden Cloud for the given project, environment and user triplet.
+
+Note that secrets can be scoped to a project, scoped to a project and an environment, or
+scoped to a project, an environment, and a user. Garden resolves secrets in that precedence
+order and it's not possible to view secrets out of that scope. You cannot e.g. view secrets
+from another user unless you assume their role.
+
+Examples:
+    garden cloud secrets show                                          # show all secrets
+    garden cloud secrets show --filter-names DB_*                      # show all secrets that start with DB_
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
+
+#### Usage
+
+    garden cloud secrets show [options]
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--filter-names` |  | array:string | Filter on secret name. Use comma as a separator to filter on multiple secret names. Accepts glob patterns.
 
 
 ### garden cloud users list

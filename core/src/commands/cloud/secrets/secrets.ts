@@ -10,10 +10,11 @@ import { CommandGroup } from "../../base"
 import { SecretsCreateCommand } from "./secrets-create"
 import { SecretsDeleteCommand } from "./secrets-delete"
 import { SecretsListCommand } from "./secrets-list"
+import { SecretsShowCommand } from "./secrets-show"
 
 export class SecretsCommand extends CommandGroup {
   name = "secrets"
   help = "List, create, and delete secrets."
 
-  subCommands = [SecretsListCommand, SecretsCreateCommand, SecretsDeleteCommand]
+  subCommands = [SecretsListCommand, SecretsCreateCommand, SecretsDeleteCommand, SecretsShowCommand]
 }
