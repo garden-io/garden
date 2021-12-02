@@ -79,9 +79,6 @@ export class RunWorkflowCommand extends Command<Args, {}> {
     }
 
     await registerAndSetUid(garden, log, workflow)
-    // This is to ensure that a stack graph event always gets emitted when a workflow is run, regardless of whether
-    // or not it has command steps that also emit it.
-    await garden.getConfigGraph({ log, emit: true })
     garden.events.emit("workflowRunning", {})
     const templateContext = new WorkflowConfigContext(garden, garden.variables)
     const files = resolveTemplateStrings(workflow.files || [], templateContext)
