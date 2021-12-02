@@ -49,19 +49,19 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
   name = "create"
   help = "[EXPERIMENTAL] Create secrets"
   description = dedent`
-    Create secrets in Garden Enterprise. You can create project wide secrets or optionally scope
+    Create secrets in Garden Cloud. You can create project wide secrets or optionally scope
     them to an environment, or an environment and a user.
 
     To scope secrets to a user, you will need the user's ID which you can get from the
-    \`garden enterprise users list\` command.
+    \`garden cloud users list\` command.
 
     You can optionally read the secrets from a file.
 
     Examples:
-        garden enterprise secrets create DB_PASSWORD=my-pwd,ACCESS_KEY=my-key   # create two secrets
-        garden enterprise secrets create ACCESS_KEY=my-key --scope-to-env ci    # create a secret and scope it to the ci environment
-        garden enterprise secrets create ACCESS_KEY=my-key --scope-to-env ci --scope-to-user 9  # create a secret and scope it to the ci environment and user with ID 9
-        garden enterprise secrets create --from-file /path/to/secrets.txt  # create secrets from the key value pairs in the secrets.txt file
+        garden cloud secrets create DB_PASSWORD=my-pwd,ACCESS_KEY=my-key   # create two secrets
+        garden cloud secrets create ACCESS_KEY=my-key --scope-to-env ci    # create a secret and scope it to the ci environment
+        garden cloud secrets create ACCESS_KEY=my-key --scope-to-env ci --scope-to-user 9  # create a secret and scope it to the ci environment and user with ID 9
+        garden cloud secrets create --from-file /path/to/secrets.txt  # create secrets from the key value pairs in the secrets.txt file
   `
 
   arguments = secretsCreateArgs

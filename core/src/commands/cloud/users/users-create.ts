@@ -49,11 +49,11 @@ export class UsersCreateCommand extends Command<Args, Opts> {
   name = "create"
   help = "[EXPERIMENTAL] Create users"
   description = dedent`
-    Create users in Garden Enterprise and optionally add the users to specific groups.
-    You can get the group IDs from the \`garden enterprise users list\` command.
+    Create users in Garden Cloud and optionally add the users to specific groups.
+    You can get the group IDs from the \`garden cloud users list\` command.
 
     To create a user, you'll need their GitHub or GitLab username, depending on which one is your VCS provider, and the name
-    they should have in Garden Enterprise. Note that it **must** the their GitHub/GitLab username, not their email, as people
+    they should have in Garden Cloud. Note that it **must** the their GitHub/GitLab username, not their email, as people
     can have several emails tied to their GitHub/GitLab accounts.
 
     You can optionally read the users from a file. The file must have the format vcs-username="Actual Username". For example:
@@ -62,9 +62,9 @@ export class UsersCreateCommand extends Command<Args, Opts> {
     gordon99="Gordon G"
 
     Examples:
-        garden enterprise users create fatema_m="Fatema M",gordon99="Gordon G"      # create two users
-        garden enterprise users create fatema_m="Fatema M" --add-to-groups 1,2  # create a user and add two groups with IDs 1,2
-        garden enterprise users create --from-file /path/to/users.txt           # create users from the key value pairs in the users.txt file
+        garden cloud users create fatema_m="Fatema M",gordon99="Gordon G"      # create two users
+        garden cloud users create fatema_m="Fatema M" --add-to-groups 1,2  # create a user and add two groups with IDs 1,2
+        garden cloud users create --from-file /path/to/users.txt           # create users from the key value pairs in the users.txt file
   `
 
   arguments = secretsCreateArgs

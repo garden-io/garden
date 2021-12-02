@@ -11,6 +11,7 @@ import { StringMap } from "../config/common"
 import { EnterpriseApi, isGotError } from "./api"
 import { BaseResponse } from "@garden-io/platform-api-types"
 import { deline } from "../util/string"
+import { getCloudDistributionName } from "../util/util"
 
 export interface GetSecretsParams {
   log: LogEntry
@@ -20,6 +21,7 @@ export interface GetSecretsParams {
 
 export async function getSecrets({ log, environmentName, enterpriseApi }: GetSecretsParams): Promise<StringMap> {
   let secrets: StringMap = {}
+  const distroName = getCloudDistributionName(enterpriseApi.domain)
 
   try {
     const res = await enterpriseApi.get<BaseResponse>(
@@ -28,11 +30,11 @@ export async function getSecrets({ log, environmentName, enterpriseApi }: GetSec
     secrets = res.data
   } catch (err) {
     if (isGotError(err, 404)) {
-      log.debug("No secrets were received from Garden Enterprise.")
+      log.debug(`No secrets were received from ${distroName}.`)
       log.debug("")
       log.debug(deline`
-        Either the environment ${environmentName} does not exist in Garden Enterprise, or no project
-        with the id in your project configuration exists in Garden Enterprise.
+        Either the environment ${environmentName} does not exist in ${distroName}, or no project
+        with the id in your project configuration exists in ${distroName}.
       `)
       log.debug("")
       log.debug(deline`

@@ -20,7 +20,7 @@ import { isObject } from "lodash"
 import { deline } from "../util/string"
 import chalk from "chalk"
 import { GetProjectResponse } from "@garden-io/platform-api-types"
-import { getPackageVersion } from "../util/util"
+import { getCloudDistributionName, getPackageVersion } from "../util/util"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
@@ -119,7 +119,7 @@ export class EnterpriseApi {
   /**
    * Initialize the Enterprise API.
    *
-   * Returns null if the project is not configured for Garden Enterprise or if the user is not logged in.
+   * Returns null if the project is not configured for Garden Cloud or if the user is not logged in.
    * Throws if the user is logged in but the token is invalid and can't be refreshed.
    *
    * Optionally skip logging during initialization. Useful for noProject commands that need to use the class
@@ -134,11 +134,11 @@ export class EnterpriseApi {
     currentDirectory: string
     skipLogging?: boolean
   }) {
-    log.debug("Initializing enterprise API client.")
+    log.debug("Initializing Garden Cloud API client.")
 
     const config = await getEnterpriseConfig(currentDirectory)
     if (!config) {
-      log.debug("Enterprise domain and/or project ID missing. Aborting.")
+      log.debug("Cloud/Enterprise domain and/or project ID missing. Aborting.")
       return null
     }
 
@@ -151,15 +151,18 @@ export class EnterpriseApi {
     const api = new EnterpriseApi(log, config.domain, config.projectId)
     const tokenIsValid = await api.checkClientAuthToken()
 
-    const enterpriseLog = skipLogging
-      ? null
-      : log.info({ section: "garden-enterprise", msg: "Authorizing...", status: "active" })
+    const distroName = getCloudDistributionName(config.domain)
+    const section = distroName === "Garden Enterprise" ? "garden-enterprise" : "garden-cloud"
+
+    const enterpriseLog = skipLogging ? null : log.info({ section, msg: "Authorizing...", status: "active" })
 
     if (gardenEnv.GARDEN_AUTH_TOKEN) {
       // Throw if using an invalid "CI" access token
       if (!tokenIsValid) {
         throw new EnterpriseApiError(
-          "The provided access token is expired or has been revoked, please create a new one from the Garden Enterprise UI.",
+          deline`
+            The provided access token is expired or has been revoked, please create a new
+            one from the ${distroName} UI.`,
           {}
         )
       }
@@ -174,7 +177,7 @@ export class EnterpriseApi {
           enterpriseLog?.setError({ msg: `Invalid session`, append: true })
           enterpriseLog?.warn(deline`
           Your session is invalid and could not be refreshed. If you were previously logged
-          in to another instance of Garden Enterprise, please log out first and then
+          in to another instance of ${distroName}, please log out first and then
           log back in again.
         `)
           throw err
@@ -200,7 +203,7 @@ export class EnterpriseApi {
     if (!tokenResponse.token) {
       const errMsg = deline`
         Received a null/empty client auth token while logging in. This indicates that either your user account hasn't
-        yet been created in Garden Enterprise, or that there's a problem with your account's VCS username / login
+        yet been created in Garden Cloud, or that there's a problem with your account's VCS username / login
         credentials.
       `
       throw new EnterpriseApiError(errMsg, { tokenResponse })
@@ -335,7 +338,9 @@ export class EnterpriseApi {
       this.log.debug({ msg: `Failed to refresh the token.` })
       const detail = is401Error(err) ? { statusCode: err.response.statusCode } : {}
       throw new EnterpriseApiError(
-        `An error occurred while verifying client auth token with Garden Enterprise: ${err.message}`,
+        `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
+          err.message
+        }`,
         detail
       )
     }
@@ -343,7 +348,7 @@ export class EnterpriseApi {
 
   private async apiFetch<T>(path: string, params: ApiFetchParams): Promise<ApiFetchResponse<T>> {
     const { method, headers, retry, retryDescription } = params
-    this.log.silly({ msg: `Calling enterprise API with ${method} ${path}` })
+    this.log.silly({ msg: `Calling Cloud API with ${method} ${path}` })
     const token = await EnterpriseApi.getAuthToken(this.log)
     // TODO add more logging details
     const requestObj = {
@@ -462,18 +467,22 @@ export class EnterpriseApi {
   async checkClientAuthToken(): Promise<boolean> {
     let valid = false
     try {
-      this.log.debug(`Checking client auth token with Garden Enterprise: ${this.domain}/token/verify`)
+      this.log.debug(
+        `Checking client auth token with ${getCloudDistributionName(this.domain)}: ${this.domain}/token/verify`
+      )
       await this.get("token/verify")
       valid = true
     } catch (err) {
       if (!is401Error(err)) {
         throw new EnterpriseApiError(
-          `An error occurred while verifying client auth token with Garden Enterprise: ${err.message}`,
+          `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
+            err.message
+          }`,
           {}
         )
       }
     }
-    this.log.debug(`Checked client auth token with Garden Enterprise - valid: ${valid}`)
+    this.log.debug(`Checked client auth token with ${getCloudDistributionName(this.domain)} - valid: ${valid}`)
     return valid
   }
 }

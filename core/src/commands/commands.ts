@@ -14,7 +14,7 @@ import { DeleteCommand } from "./delete"
 import { DeployCommand } from "./deploy"
 import { DevCommand } from "./dev"
 import { GetCommand } from "./get/get"
-import { EnterpriseCommand } from "./enterprise/enterprise"
+import { CloudCommand } from "./cloud/cloud"
 import { LinkCommand } from "./link/link"
 import { LogsCommand } from "./logs"
 import { MigrateCommand } from "./migrate"
@@ -46,7 +46,7 @@ export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new DeployCommand(),
   new DevCommand(),
   new ExecCommand(),
-  new EnterpriseCommand(),
+  new CloudCommand(),
   new GetCommand(),
   new LinkCommand(),
   new LoginCommand(),

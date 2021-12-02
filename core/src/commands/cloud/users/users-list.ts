@@ -32,12 +32,12 @@ export class UsersListCommand extends Command<{}, Opts> {
   name = "list"
   help = "[EXPERIMENTAL] List users."
   description = dedent`
-    List all users from Garden Enterprise. Optionally filter on group names or user names.
+    List all users from Garden Cloud. Optionally filter on group names or user names.
 
     Examples:
-        garden enterprise users list                            # list all users
-        garden enterprise users list --filter-names Gordon*     # list all the Gordons in Garden Enterprise. Useful if you have a lot of Gordons.
-        garden enterprise users list --filter-groups devs-*     # list all users in groups that with names that start with 'dev-'
+        garden cloud users list                            # list all users
+        garden cloud users list --filter-names Gordon*     # list all the Gordons in Garden Cloud. Useful if you have a lot of Gordons.
+        garden cloud users list --filter-groups devs-*     # list all users in groups that with names that start with 'dev-'
   `
 
   options = usersListOpts

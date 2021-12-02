@@ -155,7 +155,7 @@ export const workflowConfigSchema = () =>
         .array()
         .items(triggerSchema())
         .description(
-          `A list of triggers that determine when the workflow should be run, and which environment should be used (Garden Enterprise only).`
+          `A list of triggers that determine when the workflow should be run, and which environment should be used (Garden Cloud only).`
         )
         .meta({ enterprise: true }),
     })
@@ -187,7 +187,7 @@ export const workflowFileSchema = () =>
         .example(".auth/kubeconfig.yaml"),
       data: joi.string().description("The file data as a string."),
       secretName: joiVariableName()
-        .description("The name of a Garden secret to copy the file data from (Garden Enterprise only).")
+        .description("The name of a Garden secret to copy the file data from (Garden Cloud only).")
         .meta({ enterprise: true }),
     })
     .xor("data", "secretName")

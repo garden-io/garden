@@ -278,7 +278,7 @@ export const projectDocsSchema = () =>
       configPath: joi.string().meta({ internal: true }).description("The path to the project config file."),
       name: projectNameSchema(),
       // TODO: Refer to enterprise documentation for more details.
-      id: joi.string().meta({ internal: true }).description("The project's ID in Garden Enterprise."),
+      id: joi.string().meta({ internal: true }).description("The project's ID in Garden Cloud."),
       // TODO: Refer to enterprise documentation for more details.
       domain: joi
         .string()

@@ -25,7 +25,7 @@ describe("LogoutCommand", () => {
     await cleanupAuthTokens()
   })
 
-  it("should logout from Garden Enterprise", async () => {
+  it("should logout from Garden Cloud", async () => {
     const postfix = randomString()
     const testToken = {
       token: `dummy-token-${postfix}`,
@@ -56,7 +56,7 @@ describe("LogoutCommand", () => {
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
-    expect(logOutput).to.include("Succesfully logged out from Garden Enterprise.")
+    expect(logOutput).to.include("Succesfully logged out from Garden Cloud.")
   })
 
   it("should be a no-op if the user is already logged out", async () => {
@@ -69,7 +69,7 @@ describe("LogoutCommand", () => {
     await command.action(makeCommandParams({ garden, args: {}, opts: {} }))
 
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
-    expect(logOutput).to.include("You're already logged out from Garden Enterprise.")
+    expect(logOutput).to.include("You're already logged out from Garden Cloud.")
   })
 
   it("should remove token even if Enterprise API can't be initialised", async () => {
@@ -104,7 +104,7 @@ describe("LogoutCommand", () => {
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
-    expect(logOutput).to.include("Succesfully logged out from Garden Enterprise.")
+    expect(logOutput).to.include("Succesfully logged out from Garden Cloud.")
   })
 
   it("should remove token even if API calls fail", async () => {
@@ -139,6 +139,6 @@ describe("LogoutCommand", () => {
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
-    expect(logOutput).to.include("Succesfully logged out from Garden Enterprise.")
+    expect(logOutput).to.include("Succesfully logged out from Garden Cloud.")
   })
 })

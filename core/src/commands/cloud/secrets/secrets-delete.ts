@@ -14,58 +14,58 @@ import { dedent, deline } from "../../../util/string"
 import { Command, CommandParams, CommandResult } from "../../base"
 import { ApiCommandError, confirmDelete, DeleteResult, handleBulkOperationResult, noApiMsg } from "../helpers"
 
-export const usersDeleteArgs = {
+export const secretsDeleteArgs = {
   ids: new StringsParameter({
-    help: deline`The IDs of the users to delete.`,
+    help: deline`The IDs of the secrets to delete.`,
   }),
 }
 
-type Args = typeof usersDeleteArgs
+type Args = typeof secretsDeleteArgs
 
-export class UsersDeleteCommand extends Command<Args> {
+export class SecretsDeleteCommand extends Command<Args> {
   name = "delete"
-  help = "[EXPERIMENTAL] Delete users."
+  help = "[EXPERIMENTAL] Delete secrets."
   description = dedent`
-    Delete users in Garden Enterprise. You will nee the IDs of the users you want to delete,
-    which you which you can get from the \`garden enterprise users list\` command.
+    Delete secrets in Garden Cloud. You will nee the IDs of the secrets you want to delete,
+    which you which you can get from the \`garden cloud secrets list\` command.
 
     Examples:
-        garden enterprise users delete 1,2,3   # delete users with IDs 1,2, and 3.
+        garden cloud secrets delete 1,2,3   # delete secrets with IDs 1,2, and 3.
   `
 
-  arguments = usersDeleteArgs
+  arguments = secretsDeleteArgs
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Delete users", "lock")
+    printHeader(headerLog, "Delete secrets", "lock")
   }
 
   async action({ garden, args, log, opts }: CommandParams<Args>): Promise<CommandResult<DeleteResult[]>> {
-    const usersToDelete = (args.ids || []).map((id) => parseInt(id, 10))
-    if (usersToDelete.length === 0) {
-      throw new CommandError(`No user IDs provided.`, {
+    const secretsToDelete = (args.ids || []).map((id) => parseInt(id, 10))
+    if (secretsToDelete.length === 0) {
+      throw new CommandError(`No secret IDs provided.`, {
         args,
       })
     }
 
-    if (!opts.yes && !(await confirmDelete("user", usersToDelete.length))) {
+    if (!opts.yes && !(await confirmDelete("secret", secretsToDelete.length))) {
       return {}
     }
 
     const api = garden.enterpriseApi
     if (!api) {
-      throw new ConfigurationError(noApiMsg("delete", "user"), {})
+      throw new ConfigurationError(noApiMsg("delete", "secrets"), {})
     }
 
-    const cmdLog = log.info({ status: "active", section: "users-command", msg: "Deleting users..." })
+    const cmdLog = log.info({ status: "active", section: "secrets-command", msg: "Deleting secrets..." })
 
     let count = 1
     const errors: ApiCommandError[] = []
     const results: DeleteResult[] = []
-    for (const id of usersToDelete) {
-      cmdLog.setState({ msg: `Deleting users... → ${count}/${usersToDelete.length}` })
+    for (const id of secretsToDelete) {
+      cmdLog.setState({ msg: `Deleting secrets... → ${count}/${secretsToDelete.length}` })
       count++
       try {
-        const res = await api.delete<BaseResponse>(`/users/${id}`)
+        const res = await api.delete<BaseResponse>(`/secrets/${id}`)
         results.push({ id, status: res.status })
       } catch (err) {
         errors.push({
@@ -80,7 +80,7 @@ export class UsersDeleteCommand extends Command<Args> {
       cmdLog,
       errors,
       action: "delete",
-      resource: "user",
+      resource: "secret",
       results,
     })
   }

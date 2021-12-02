@@ -30,7 +30,16 @@ import {
   getDefaultEnvironmentName,
   projectSourcesSchema,
 } from "./config/project"
-import { findByName, pickKeys, getPackageVersion, getNames, findByNames, duplicatesByKey, uuidv4 } from "./util/util"
+import {
+  findByName,
+  pickKeys,
+  getPackageVersion,
+  getNames,
+  findByNames,
+  duplicatesByKey,
+  uuidv4,
+  getCloudDistributionName,
+} from "./util/util"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { VcsHandler, ModuleVersion } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
@@ -1267,8 +1276,11 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
 
   let secrets: StringMap = {}
   const enterpriseApi = opts.enterpriseApi || null
+  const enterpriseDomain = enterpriseApi?.domain
   if (!opts.noEnterprise && enterpriseApi) {
-    const enterpriseLog = log.info({ section: "garden-enterprise", msg: "Initializing...", status: "active" })
+    const distroName = getCloudDistributionName(enterpriseDomain || "")
+    const section = distroName === "Garden Enterprise" ? "garden-enterprise" : "garden-cloud"
+    const enterpriseLog = log.info({ section, msg: "Initializing...", status: "active" })
 
     try {
       secrets = await getSecrets({ log: enterpriseLog, environmentName, enterpriseApi })
@@ -1281,7 +1293,6 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
   }
 
   const loggedIn = !!enterpriseApi
-  const enterpriseDomain = enterpriseApi?.domain
 
   config = resolveProjectConfig({
     defaultEnvironment: defaultEnvironmentName,

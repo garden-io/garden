@@ -232,7 +232,7 @@ export class GardenServer {
      * Events endpoint, for ingesting events from other Garden processes, and piping to any open websocket connections.
      * Requires a valid auth token header, matching `this.authKey`.
      *
-     * The API matches that of the Garden Enterprise /events endpoint.
+     * The API matches that of the Garden Cloud /events endpoint.
      */
     http.post("/events", async (ctx) => {
       const authHeader = ctx.header[authTokenHeader]

@@ -37,12 +37,12 @@ export class SecretsListCommand extends Command<{}, Opts> {
   name = "list"
   help = "[EXPERIMENTAL] List secrets."
   description = dedent`
-    List all secrets from Garden Enterprise. Optionally filter on environment, user IDs, or secret names.
+    List all secrets from Garden Cloud. Optionally filter on environment, user IDs, or secret names.
 
     Examples:
-        garden enterprise secrets list                                          # list all secrets
-        garden enterprise secrets list --filter-envs dev                        # list all secrets from the dev environment
-        garden enterprise secrets list --filter-envs dev --filter-names *_DB_*  # list all secrets from the dev environment that have '_DB_' in their name.
+        garden cloud secrets list                                          # list all secrets
+        garden cloud secrets list --filter-envs dev                        # list all secrets from the dev environment
+        garden cloud secrets list --filter-envs dev --filter-names *_DB_*  # list all secrets from the dev environment that have '_DB_' in their name.
   `
 
   options = secretsListOpts
