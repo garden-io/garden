@@ -86,7 +86,7 @@ describe("LoginCommand", () => {
 
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
-    expect(logOutput).to.include("You're already logged in to Garden Enteprise.")
+    expect(logOutput).to.include("You're already logged in to Garden Enterprise.")
   })
 
   it("should log in if the project config uses secrets in project variables", async () => {
@@ -120,8 +120,7 @@ describe("LoginCommand", () => {
     const command = new LoginCommand()
     await expectError(
       () => command.action(makeCommandParams({ garden, args: {}, opts: {} })),
-      (err) =>
-        expect(stripAnsi(err.message)).to.match(/Project config is missing an enterprise domain and\/or a project ID./)
+      (err) => expect(stripAnsi(err.message)).to.match(/Project config is missing a cloud domain and\/or a project ID./)
     )
   })
 
@@ -190,7 +189,7 @@ describe("LoginCommand", () => {
 
     expect(logOutput).to.include(dedent`
       Looks like your session token is invalid. If you were previously logged into a different instance
-      of Garden Cloud, log out first before logging in.
+      of Garden Enterprise, log out first before logging in.
     `)
   })
 
@@ -213,7 +212,7 @@ describe("LoginCommand", () => {
 
       const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
-      expect(logOutput).to.include("You're already logged in to Garden Enteprise.")
+      expect(logOutput).to.include("You're already logged in to Garden Enterprise.")
     })
 
     it("should throw if the user has an invalid auth token in the environment", async () => {
@@ -229,7 +228,7 @@ describe("LoginCommand", () => {
         () => command.action(makeCommandParams({ garden, args: {}, opts: {} })),
         (err) =>
           expect(stripAnsi(err.message)).to.match(
-            /The provided access token is expired or has been revoked, please create a new one from the Garden Cloud UI./
+            /The provided access token is expired or has been revoked, please create a new one from the Garden Enterprise UI./
           )
       )
     })

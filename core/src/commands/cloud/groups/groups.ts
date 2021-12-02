@@ -87,6 +87,8 @@ export class GroupsListCommand extends Command<{}, Opts> {
       return { result: [] }
     }
 
+    log.debug(`Found ${filtered.length} groups that match filters`)
+
     const heading = ["Name", "ID", "Default Admin Group"].map((s) => chalk.bold(s))
     const rows: string[][] = filtered.map((g) => {
       return [chalk.cyan.bold(g.name), String(g.id), String(g.defaultAdminGroup)]
