@@ -62,7 +62,7 @@ export class LoginCommand extends Command {
 
     const config = await getEnterpriseConfig(currentDirectory)
     if (!config) {
-      throw new ConfigurationError(`Project config is missing an enterprise domain and/or a project ID.`, {})
+      throw new ConfigurationError(`Project config is missing a cloud domain and/or a project ID.`, {})
     }
 
     log.info({ msg: `Logging in to ${config.domain}...` })

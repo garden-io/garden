@@ -18,6 +18,8 @@ import chalk from "chalk"
 import { sortBy } from "lodash"
 import { StringsParameter } from "../../../cli/params"
 
+const pageLimit = 100
+
 export const secretsListOpts = {
   "filter-envs": new StringsParameter({
     help: deline`Filter on environment. Use comma as a separator to filter on multiple environments.
@@ -63,9 +65,20 @@ export class SecretsListCommand extends Command<{}, Opts> {
 
     const project = await api.getProject()
 
-    const q = stringify({ projectId: project.id })
-    const res = await api.get<ListSecretsResponse>(`/secrets?${q}`)
-    const secrets = res.data.map((secret) => makeSecretFromResponse(secret))
+    let page = 0
+    let secrets: SecretResult[] = []
+    let hasMore = true
+    while (hasMore) {
+      log.debug(`Fetching page ${page}`)
+      const q = stringify({ projectId: project.id, offset: page * pageLimit, limit: pageLimit })
+      const res = await api.get<ListSecretsResponse>(`/secrets?${q}`)
+      if (res.data.length === 0) {
+        hasMore = false
+      } else {
+        secrets.push(...res.data.map((secret) => makeSecretFromResponse(secret)))
+        page++
+      }
+    }
 
     log.info("")
 
@@ -83,6 +96,8 @@ export class SecretsListCommand extends Command<{}, Opts> {
       log.info("No secrets found in project that match filters.")
       return { result: [] }
     }
+
+    log.debug(`Found ${filtered.length} secrets that match filters`)
 
     const heading = ["Name", "ID", "Environment", "User", "Created At"].map((s) => chalk.bold(s))
     const rows: string[][] = filtered.map((s) => {

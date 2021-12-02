@@ -67,11 +67,12 @@ export class UsersListCommand extends Command<{}, Opts> {
     let users: UserResult[] = []
     let hasMore = true
     while (hasMore) {
+      log.debug(`Fetching page ${page}`)
       const res = await api.get<GetAllUsersResponse>(`/users?page=${page}`)
-      users.push(...res.data.map((user) => makeUserFromResponse(user)))
       if (res.data.length === 0) {
         hasMore = false
       } else {
+        users.push(...res.data.map((user) => makeUserFromResponse(user)))
         page++
       }
     }
@@ -96,6 +97,8 @@ export class UsersListCommand extends Command<{}, Opts> {
       log.info("No users found in project that match filters.")
       return { result: [] }
     }
+
+    log.debug(`Found ${filtered.length} users that match filters`)
 
     const heading = ["Name", "ID", `${vcsProviderTitle} Username`, "Groups", "Created At"].map((s) => chalk.bold(s))
     const rows: string[][] = filtered.map((u) => {
