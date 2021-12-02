@@ -9,7 +9,7 @@
 import { expect } from "chai"
 
 import { getLogger, Logger, LogLevel } from "../../../../src/logger/logger"
-import { LogEntryEventPayload } from "../../../../src/enterprise/buffered-event-stream"
+import { LogEntryEventPayload } from "../../../../src/cloud/buffered-event-stream"
 import { freezeTime } from "../../../helpers"
 
 const logger: Logger = getLogger()

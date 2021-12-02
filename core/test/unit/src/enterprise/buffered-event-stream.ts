@@ -7,11 +7,7 @@
  */
 
 import { expect } from "chai"
-import {
-  StreamEvent,
-  LogEntryEventPayload,
-  BufferedEventStream,
-} from "../../../../src/enterprise/buffered-event-stream"
+import { StreamEvent, LogEntryEventPayload, BufferedEventStream } from "../../../../src/cloud/buffered-event-stream"
 import { getLogger } from "../../../../src/logger/logger"
 import { Garden } from "../../../../src/garden"
 import { makeTestGardenA } from "../../../helpers"

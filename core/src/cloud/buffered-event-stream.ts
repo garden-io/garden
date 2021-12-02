@@ -15,7 +15,7 @@ import { got } from "../util/http"
 
 import { LogLevel } from "../logger/logger"
 import { Garden } from "../garden"
-import { EnterpriseApi, makeAuthHeader } from "./api"
+import { CloudApi, makeAuthHeader } from "./api"
 
 export type StreamEvent = {
   name: EventName
@@ -94,7 +94,7 @@ export const controlEventNames: Set<EventName> = new Set(["_workflowRunRegistere
  */
 export class BufferedEventStream {
   protected log: LogEntry
-  protected enterpriseApi?: EnterpriseApi
+  protected cloudApi?: CloudApi
   public sessionId: string
 
   protected targets: StreamTarget[]
@@ -123,10 +123,10 @@ export class BufferedEventStream {
    */
   private maxBatchBytes = 600 * 1024 // 600 kilobytes
 
-  constructor({ log, enterpriseApi, sessionId }: { log: LogEntry; enterpriseApi?: EnterpriseApi; sessionId: string }) {
+  constructor({ log, cloudApi, sessionId }: { log: LogEntry; cloudApi?: CloudApi; sessionId: string }) {
     this.sessionId = sessionId
     this.log = log
-    this.enterpriseApi = enterpriseApi
+    this.cloudApi = cloudApi
     this.log.root.events.onAny((_name: string, payload: LogEntryEventPayload) => {
       this.streamLogEntry(payload)
     })
@@ -263,10 +263,10 @@ export class BufferedEventStream {
 
     try {
       await Bluebird.map(this.targets, (target) => {
-        if (target.enterprise && this.enterpriseApi?.domain) {
+        if (target.enterprise && this.cloudApi?.domain) {
           // Need to cast so the compiler doesn't complain that the two returns from the map
           // aren't equivalent. Shouldn't matter in this case since we're not collecting the return value.
-          return this.enterpriseApi.post<any>(path, {
+          return this.cloudApi.post<any>(path, {
             body: data,
             retry: true,
             retryDescription: `Flushing ${description}`,

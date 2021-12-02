@@ -33,14 +33,14 @@ import { ERROR_LOG_FILENAME, DEFAULT_API_VERSION, DEFAULT_GARDEN_DIR_NAME, LOGS_
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { defaultDotIgnoreFiles } from "../util/fs"
-import { BufferedEventStream } from "../enterprise/buffered-event-stream"
+import { BufferedEventStream } from "../cloud/buffered-event-stream"
 import { GardenProcess } from "../db/entities/garden-process"
 import { DashboardEventStream } from "../server/dashboard-event-stream"
 import { GardenPluginCallback } from "../types/plugin/plugin"
 import { renderError } from "../logger/renderers"
-import { EnterpriseApi } from "../enterprise/api"
+import { CloudApi } from "../cloud/api"
 import chalk = require("chalk")
-import { registerSession } from "../enterprise/session-lifecycle"
+import { registerSession } from "../cloud/session-lifecycle"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   const environments = gardenOpts.environmentName
@@ -194,16 +194,16 @@ ${renderCommands(commands)}
     command.printHeader({ headerLog, args: parsedArgs, opts: parsedOpts })
 
     // Init enterprise API
-    let enterpriseApi: EnterpriseApi | null = null
+    let cloudApi: CloudApi | null = null
     if (!command.noProject) {
-      enterpriseApi = await EnterpriseApi.factory({ log, currentDirectory: root })
+      cloudApi = await CloudApi.factory({ log, currentDirectory: root })
     }
 
     // Init event & log streaming.
     const sessionId = uuidv4()
     this.bufferedEventStream = new BufferedEventStream({
       log,
-      enterpriseApi: enterpriseApi || undefined,
+      cloudApi: cloudApi || undefined,
       sessionId,
     })
 
@@ -231,7 +231,7 @@ ${renderCommands(commands)}
       forceRefresh,
       variables: parsedCliVars,
       plugins: this.plugins,
-      enterpriseApi: enterpriseApi || undefined,
+      cloudApi: cloudApi || undefined,
     }
 
     let garden: Garden
@@ -283,16 +283,16 @@ ${renderCommands(commands)}
           const runningServers = await dashboardEventStream.updateTargets()
 
           if (persistent && command.server) {
-            if (enterpriseApi) {
+            if (cloudApi) {
               // TODO: provide the environment & namespace IDs returned by this helper to `this.bufferedEventStream`,
               // and include them in all log/event batches once the API is ready for / expects that.
               await registerSession({
                 log,
-                enterpriseApi,
+                cloudApi,
                 sessionId,
                 commandInfo,
                 localServerPort: command.server.port,
-                projectId: enterpriseApi.projectId,
+                projectId: cloudApi.projectId,
                 environment: garden.environmentName,
                 namespace: garden.namespace,
               })
@@ -310,7 +310,7 @@ ${renderCommands(commands)}
           }
         }
 
-        if (enterpriseApi) {
+        if (cloudApi) {
           log.silly(`Connecting Garden instance to GE BufferedEventStream`)
           this.bufferedEventStream.connect({
             garden,
@@ -368,7 +368,7 @@ ${renderCommands(commands)}
         if (!result.restartRequired) {
           await dashboardEventStream.close()
           await command.server?.close()
-          enterpriseApi?.close()
+          cloudApi?.close()
         }
       }
     } while (result.restartRequired)

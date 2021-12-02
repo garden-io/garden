@@ -9,14 +9,14 @@
 import { expect } from "chai"
 import td from "testdouble"
 import { expectError, getDataDir, cleanupAuthTokens, getLogMessages, makeCommandParams } from "../../../helpers"
-import { AuthRedirectServer } from "../../../../src/enterprise/auth"
+import { AuthRedirectServer } from "../../../../src/cloud/auth"
 
 import { LoginCommand } from "../../../../src/commands/login"
 import stripAnsi from "strip-ansi"
 import { makeDummyGarden } from "../../../../src/cli/cli"
 import { ClientAuthToken } from "../../../../src/db/entities/client-auth-token"
 import { dedent, randomString } from "../../../../src/util/string"
-import { EnterpriseApi } from "../../../../src/enterprise/api"
+import { CloudApi } from "../../../../src/cloud/api"
 import { LogLevel } from "../../../../src/logger/logger"
 import { gardenEnv } from "../../../../src/constants"
 import { EnterpriseApiError } from "../../../../src/exceptions"
@@ -73,9 +73,9 @@ describe("LoginCommand", () => {
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
 
-    await EnterpriseApi.saveAuthToken(garden.log, testToken)
-    td.replace(EnterpriseApi.prototype, "checkClientAuthToken", async () => true)
-    td.replace(EnterpriseApi.prototype, "startInterval", async () => {})
+    await CloudApi.saveAuthToken(garden.log, testToken)
+    td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
+    td.replace(CloudApi.prototype, "startInterval", async () => {})
 
     await command.action(makeCommandParams({ garden, args: {}, opts: {} }))
 
@@ -139,9 +139,9 @@ describe("LoginCommand", () => {
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
 
-    await EnterpriseApi.saveAuthToken(garden.log, testToken)
-    td.replace(EnterpriseApi.prototype, "checkClientAuthToken", async () => false)
-    td.replace(EnterpriseApi.prototype, "refreshToken", async () => {
+    await CloudApi.saveAuthToken(garden.log, testToken)
+    td.replace(CloudApi.prototype, "checkClientAuthToken", async () => false)
+    td.replace(CloudApi.prototype, "refreshToken", async () => {
       throw new Error("bummer")
     })
 
@@ -170,9 +170,9 @@ describe("LoginCommand", () => {
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
 
-    await EnterpriseApi.saveAuthToken(garden.log, testToken)
-    td.replace(EnterpriseApi.prototype, "checkClientAuthToken", async () => false)
-    td.replace(EnterpriseApi.prototype, "refreshToken", async () => {
+    await CloudApi.saveAuthToken(garden.log, testToken)
+    td.replace(CloudApi.prototype, "checkClientAuthToken", async () => false)
+    td.replace(CloudApi.prototype, "refreshToken", async () => {
       throw new EnterpriseApiError("bummer", { statusCode: 401 })
     })
 
@@ -207,7 +207,7 @@ describe("LoginCommand", () => {
         commandInfo: { name: "foo", args: {}, opts: {} },
       })
 
-      td.replace(EnterpriseApi.prototype, "checkClientAuthToken", async () => true)
+      td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
 
       await command.action(makeCommandParams({ garden, args: {}, opts: {} }))
 
@@ -223,7 +223,7 @@ describe("LoginCommand", () => {
         commandInfo: { name: "foo", args: {}, opts: {} },
       })
 
-      td.replace(EnterpriseApi.prototype, "checkClientAuthToken", async () => false)
+      td.replace(CloudApi.prototype, "checkClientAuthToken", async () => false)
 
       await expectError(
         () => command.action(makeCommandParams({ garden, args: {}, opts: {} })),

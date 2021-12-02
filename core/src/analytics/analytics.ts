@@ -152,7 +152,7 @@ export class AnalyticsHandler {
     this.log = log
     this.garden = garden
     this.sessionId = garden.sessionId
-    this.isLoggedIn = !!garden.enterpriseApi
+    this.isLoggedIn = !!garden.cloudApi
     this.globalConfigStore = new GlobalConfigStore()
     // Events that are queued or flushed but the network response hasn't returned
     this.pendingEvents = new Map()

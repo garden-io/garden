@@ -50,7 +50,7 @@ export class UsersListCommand extends Command<{}, Opts> {
     const nameFilter = opts["filter-names"] || []
     const groupFilter = opts["filter-groups"] || []
 
-    const api = garden.enterpriseApi
+    const api = garden.cloudApi
     if (!api) {
       throw new ConfigurationError(noApiMsg("list", "users"), {})
     }

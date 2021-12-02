@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BufferedEventStream, ConnectBufferedEventStreamParams } from "../enterprise/buffered-event-stream"
+import { BufferedEventStream, ConnectBufferedEventStreamParams } from "../cloud/buffered-event-stream"
 import { GardenProcess } from "../db/entities/garden-process"
 import { Profile } from "../util/profiling"
 import { isEqual } from "lodash"

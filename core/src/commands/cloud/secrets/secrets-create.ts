@@ -113,7 +113,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       )
     }
 
-    const api = garden.enterpriseApi
+    const api = garden.cloudApi
     if (!api) {
       throw new ConfigurationError(noApiMsg("create", "secrets"), {})
     }

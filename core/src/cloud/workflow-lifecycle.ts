@@ -34,7 +34,7 @@ export async function registerWorkflowRun({
   log,
 }: RegisterWorkflowRunParams): Promise<string> {
   log.debug(`Registering workflow run for ${workflowConfig.name}...`)
-  const { enterpriseApi, projectId } = garden
+  const { cloudApi, projectId } = garden
   const workflowRunConfig = makeRunConfig(workflowConfig, environment, namespace)
   const requestData = {
     projectUid: projectId,
@@ -43,11 +43,11 @@ export async function registerWorkflowRun({
   if (gardenEnv.GARDEN_GE_SCHEDULED) {
     requestData["workflowRunUid"] = gardenEnv.GARDEN_WORKFLOW_RUN_UID
   }
-  if (enterpriseApi) {
+  if (cloudApi) {
     // TODO: Use API types package here.
     let res: ApiFetchResponse<RegisterWorkflowRunResponse>
     try {
-      res = await enterpriseApi.post("workflow-runs", {
+      res = await cloudApi.post("workflow-runs", {
         body: requestData,
         retry: true,
         retryDescription: "Registering workflow run",

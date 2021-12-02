@@ -29,7 +29,7 @@ import { getDurationMsec, toEnvVars } from "../../util/util"
 import { runScript } from "../../util/util"
 import { ExecaError } from "execa"
 import { LogLevel } from "../../logger/logger"
-import { registerWorkflowRun } from "../../enterprise/workflow-lifecycle"
+import { registerWorkflowRun } from "../../cloud/workflow-lifecycle"
 import { parseCliArgs, pickCommand, processCliArgs } from "../../cli/helpers"
 import { StringParameter } from "../../cli/params"
 import { getAllCommands } from "../commands"
@@ -440,8 +440,8 @@ export function logErrors(
 }
 
 async function registerAndSetUid(garden: Garden, log: LogEntry, config: WorkflowConfig) {
-  const { enterpriseApi } = garden
-  if (enterpriseApi) {
+  const { cloudApi } = garden
+  if (cloudApi) {
     const workflowRunUid = await registerWorkflowRun({
       garden,
       workflowConfig: config,

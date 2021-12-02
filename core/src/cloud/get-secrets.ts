@@ -8,7 +8,7 @@
 
 import { LogEntry } from "../logger/log-entry"
 import { StringMap } from "../config/common"
-import { EnterpriseApi, isGotError } from "./api"
+import { CloudApi, isGotError } from "./api"
 import { BaseResponse } from "@garden-io/platform-api-types"
 import { deline } from "../util/string"
 import { getCloudDistributionName } from "../util/util"
@@ -16,17 +16,15 @@ import { getCloudDistributionName } from "../util/util"
 export interface GetSecretsParams {
   log: LogEntry
   environmentName: string
-  enterpriseApi: EnterpriseApi
+  cloudApi: CloudApi
 }
 
-export async function getSecrets({ log, environmentName, enterpriseApi }: GetSecretsParams): Promise<StringMap> {
+export async function getSecrets({ log, environmentName, cloudApi }: GetSecretsParams): Promise<StringMap> {
   let secrets: StringMap = {}
-  const distroName = getCloudDistributionName(enterpriseApi.domain)
+  const distroName = getCloudDistributionName(cloudApi.domain)
 
   try {
-    const res = await enterpriseApi.get<BaseResponse>(
-      `/secrets/projectUid/${enterpriseApi.projectId}/env/${environmentName}`
-    )
+    const res = await cloudApi.get<BaseResponse>(`/secrets/projectUid/${cloudApi.projectId}/env/${environmentName}`)
     secrets = res.data
   } catch (err) {
     if (isGotError(err, 404)) {
@@ -38,7 +36,7 @@ export async function getSecrets({ log, environmentName, enterpriseApi }: GetSec
       `)
       log.debug("")
       log.debug(deline`
-        Please visit ${enterpriseApi.domain} to review the environments and projects currently
+        Please visit ${cloudApi.domain} to review the environments and projects currently
         in the system.
       `)
     } else {

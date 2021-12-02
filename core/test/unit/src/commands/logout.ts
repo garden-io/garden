@@ -12,7 +12,7 @@ import { getDataDir, cleanupAuthTokens, getLogMessages, makeCommandParams } from
 import { makeDummyGarden } from "../../../../src/cli/cli"
 import { ClientAuthToken } from "../../../../src/db/entities/client-auth-token"
 import { randomString } from "../../../../src/util/string"
-import { EnterpriseApi } from "../../../../src/enterprise/api"
+import { CloudApi } from "../../../../src/cloud/api"
 import { LogLevel } from "../../../../src/logger/logger"
 import { LogOutCommand } from "../../../../src/commands/logout"
 
@@ -39,10 +39,10 @@ describe("LogoutCommand", () => {
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
 
-    await EnterpriseApi.saveAuthToken(garden.log, testToken)
-    td.replace(EnterpriseApi.prototype, "checkClientAuthToken", async () => true)
-    td.replace(EnterpriseApi.prototype, "startInterval", async () => {})
-    td.replace(EnterpriseApi.prototype, "post", async () => {})
+    await CloudApi.saveAuthToken(garden.log, testToken)
+    td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
+    td.replace(CloudApi.prototype, "startInterval", async () => {})
+    td.replace(CloudApi.prototype, "post", async () => {})
 
     // Double check token actually exists
     const savedToken = await ClientAuthToken.findOne()
@@ -86,9 +86,9 @@ describe("LogoutCommand", () => {
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
 
-    await EnterpriseApi.saveAuthToken(garden.log, testToken)
+    await CloudApi.saveAuthToken(garden.log, testToken)
     // Throw when initializing Enterprise API
-    td.replace(EnterpriseApi.prototype, "factory", async () => {
+    td.replace(CloudApi.prototype, "factory", async () => {
       throw new Error("Not tonight")
     })
 
@@ -121,9 +121,9 @@ describe("LogoutCommand", () => {
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
 
-    await EnterpriseApi.saveAuthToken(garden.log, testToken)
+    await CloudApi.saveAuthToken(garden.log, testToken)
     // Throw when using Enterprise API to call call logout endpoint
-    td.replace(EnterpriseApi.prototype, "post", async () => {
+    td.replace(CloudApi.prototype, "post", async () => {
       throw new Error("Not tonight")
     })
 
