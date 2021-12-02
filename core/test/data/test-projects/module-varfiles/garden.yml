@@ -1,0 +1,20 @@
+kind: Project
+name: module-varfiles
+varfile: garden.project.env
+environments:
+  - name: default
+providers:
+  - name: test-plugin
+
+---
+
+kind: Module
+name: module-a
+type: test
+varfile: "garden.module-a.${environment.name}.env"
+variables:
+  b: from-module-vars
+  c: from-module-vars # should be overridden by module-level varfile
+  d: from-module-vars # should be overridden by var passed as a CLI option
+build:
+  command: [echo, A]

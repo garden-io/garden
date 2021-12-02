@@ -23,6 +23,7 @@ import { TestConfig, testConfigSchema } from "./test"
 import { TaskConfig, taskConfigSchema } from "./task"
 import { dedent, stableStringify } from "../util/string"
 import { templateKind } from "./module-template"
+import { varfileDescription } from "./project"
 
 export const defaultBuildTimeout = 1200
 
@@ -91,6 +92,7 @@ interface ModuleSpecCommon {
   repositoryUrl?: string
   type: string
   variables?: DeepPrimitiveMap
+  varfile?: string
 }
 
 export interface AddModuleSpec extends ModuleSpecCommon {
@@ -230,6 +232,21 @@ export const baseModuleSpecKeys = () => ({
   variables: joiVariables().default(() => undefined).description(dedent`
     A map of variables scoped to this particular module. These are resolved before any other parts of the module configuration and take precedence over project-scoped variables. They may reference project-scoped variables, and generally use any template strings normally allowed when resolving modules.
   `),
+  varfile: joi
+    .posixPath()
+    .description(
+      dedent`
+      Specify a path (relative to the module root) to a file containing variables, that we apply on top of the
+      module-level \`variables\` field.
+
+      ${varfileDescription}
+
+      To use different module-level varfiles in different environments, you can template in the environment name
+      to the varfile name, e.g. \`varfile: "my-module.\$\{environment.name\}.env\` (this assumes that the corresponding
+      varfiles exist).
+    `
+    )
+    .example("my-module.env"),
 })
 
 export const baseModuleSpecSchema = () => coreModuleSpecSchema().keys(baseModuleSpecKeys())

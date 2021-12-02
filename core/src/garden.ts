@@ -174,6 +174,7 @@ export interface GardenParams {
   projectSources?: SourceConfig[]
   providerConfigs: GenericProviderConfig[]
   variables: DeepPrimitiveMap
+  cliVariables: DeepPrimitiveMap
   secrets: StringMap
   sessionId: string
   username: string | undefined
@@ -215,6 +216,9 @@ export class Garden {
   public readonly environmentConfigs: EnvironmentConfig[]
   public readonly namespace: string
   public readonly variables: DeepPrimitiveMap
+  // Any variables passed via the `--var` CLI option (maintained here so that they can be used during module resolution
+  // to override module variables and module varfiles).
+  public readonly cliVariables: DeepPrimitiveMap
   public readonly secrets: StringMap
   private readonly projectSources: SourceConfig[]
   public readonly buildStaging: BuildStaging
@@ -257,6 +261,7 @@ export class Garden {
     this.projectSources = params.projectSources || []
     this.providerConfigs = params.providerConfigs
     this.variables = params.variables
+    this.cliVariables = params.cliVariables
     this.secrets = params.secrets
     this.workingCopyId = params.workingCopyId
     this.dotIgnoreFiles = params.dotIgnoreFiles
@@ -1321,7 +1326,8 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
   })
 
   // Allow overriding variables
-  variables = { ...variables, ...(opts.variables || {}) }
+  const cliVariables = opts.variables || {}
+  variables = { ...variables, ...cliVariables }
 
   // Use the legacy build sync mode if
   // A) GARDEN_LEGACY_BUILD_STAGE=true is set or
@@ -1356,6 +1362,7 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
     environmentConfigs: config.environments,
     namespace,
     variables,
+    cliVariables,
     secrets,
     projectSources,
     buildStaging: buildDir,

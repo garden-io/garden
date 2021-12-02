@@ -12,7 +12,7 @@ A special module type, for rendering [module templates](../../using-garden/modul
 Specify the name of a ModuleTemplate with the `template` field, and provide any expected inputs using the `inputs` field. The generated modules becomes sub-modules of this module.
 
 Note that the following common Module configuration fields are disallowed for this module type:
-`build`, `description`, `include`, `exclude`, `repositoryUrl`, `allowPublish`, `generateFiles` and `variables`
+`build`, `description`, `include`, `exclude`, `repositoryUrl`, `allowPublish`, `generateFiles`, `variables` and `varfile`
 
 Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-overview.md).
@@ -137,6 +137,24 @@ generateFiles:
 # configuration and take precedence over project-scoped variables. They may reference project-scoped variables, and
 # generally use any template strings normally allowed when resolving modules.
 variables:
+
+# Specify a path (relative to the module root) to a file containing variables, that we apply on top of the
+# module-level `variables` field.
+#
+# The format of the files is determined by the configured file's extension:
+#
+# * `.env` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+# * `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may
+# contain any value type.
+# * `.json` - JSON. Must contain a single JSON _object_ (not an array).
+#
+# _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested
+# objects and arrays._
+#
+# To use different module-level varfiles in different environments, you can template in the environment name
+# to the varfile name, e.g. `varfile: "my-module.\$\{environment.name\}.env` (this assumes that the corresponding
+# varfiles exist).
+varfile:
 
 # The ModuleTemplate to use to generate the sub-modules of this module.
 template:
@@ -415,6 +433,33 @@ A map of variables scoped to this particular module. These are resolved before a
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
+
+### `varfile`
+
+Specify a path (relative to the module root) to a file containing variables, that we apply on top of the
+module-level `variables` field.
+
+The format of the files is determined by the configured file's extension:
+
+* `.env` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+* `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may contain any value type.
+* `.json` - JSON. Must contain a single JSON _object_ (not an array).
+
+_NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays._
+
+To use different module-level varfiles in different environments, you can template in the environment name
+to the varfile name, e.g. `varfile: "my-module.\$\{environment.name\}.env` (this assumes that the corresponding
+varfiles exist).
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
+
+Example:
+
+```yaml
+varfile: "my-module.env"
+```
 
 ### `template`
 

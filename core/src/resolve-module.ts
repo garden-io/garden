@@ -23,7 +23,7 @@ import { getModuleTypeBases } from "./plugins"
 import { ModuleConfig, moduleConfigSchema } from "./config/module"
 import { Profile } from "./util/profiling"
 import { getLinkedSources } from "./util/ext-source-util"
-import { allowUnknown } from "./config/common"
+import { allowUnknown, DeepPrimitiveMap } from "./config/common"
 import { ProviderMap } from "./config/provider"
 import { RuntimeContext } from "./runtime-context"
 import chalk from "chalk"
@@ -33,6 +33,8 @@ import { readFile, mkdirp, writeFile } from "fs-extra"
 import { LogEntry } from "./logger/log-entry"
 import { ModuleConfigContext, ModuleConfigContextParams } from "./config/template-contexts/module"
 import { pathToCacheContext } from "./cache"
+import { loadVarfile } from "./config/project"
+import { merge } from "json-merge-patch"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 40
@@ -279,13 +281,8 @@ export class ModuleResolver {
       config.inputs = inputs
     }
 
-    // Resolve the variables field before resolving everything else
-    const rawVariables = config.variables
-    const resolvedVariables = resolveTemplateStrings(
-      cloneDeep(rawVariables || {}),
-      new ModuleConfigContext(templateContextParams),
-      { allowPartial: false }
-    )
+    // Resolve the variables field before resolving everything else (overriding with module varfiles if present)
+    const resolvedModuleVariables = await this.resolveVariables(config, templateContextParams)
 
     // Now resolve just references to inputs on the config
     config = resolveTemplateStrings(cloneDeep(config), new GenericContext({ inputs }), {
@@ -296,14 +293,14 @@ export class ModuleResolver {
     const configContext = new ModuleConfigContext({
       ...templateContextParams,
       moduleConfig: config,
-      variables: { ...garden.variables, ...resolvedVariables },
+      variables: { ...garden.variables, ...resolvedModuleVariables },
     })
 
     config = resolveTemplateStrings({ ...config, inputs: {}, variables: {} }, configContext, {
       allowPartial: false,
     })
 
-    config.variables = rawVariables ? resolvedVariables : undefined
+    config.variables = resolvedModuleVariables
     config.inputs = inputs
 
     const moduleTypeDefinitions = await garden.getModuleTypes()
@@ -509,8 +506,34 @@ export class ModuleResolver {
         })
       }
     }
-
     return module
+  }
+
+  /**
+   * Resolves module variables with the following precedence order:
+   *
+   *   garden.cliVariables > module varfile > config.variables
+   */
+  private async resolveVariables(
+    config: ModuleConfig,
+    templateContextParams: ModuleConfigContextParams
+  ): Promise<DeepPrimitiveMap> {
+    const moduleConfigContext = new ModuleConfigContext(templateContextParams)
+    const resolveOpts = { allowPartial: false }
+    let varfileVars: DeepPrimitiveMap = {}
+    if (config.varfile) {
+      const varfilePath = resolveTemplateString(config.varfile, moduleConfigContext, resolveOpts)
+      varfileVars = await loadVarfile({
+        configRoot: config.path,
+        path: varfilePath,
+        defaultPath: undefined,
+      })
+    }
+
+    const rawVariables = config.variables
+    const moduleVariables = resolveTemplateStrings(cloneDeep(rawVariables || {}), moduleConfigContext, resolveOpts)
+    const mergedVariables: DeepPrimitiveMap = <any>merge(moduleVariables, merge(varfileVars, this.garden.cliVariables))
+    return mergedVariables
   }
 }
 

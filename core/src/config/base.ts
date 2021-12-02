@@ -187,6 +187,7 @@ export function prepareModuleResource(spec: any, configPath: string, projectRoot
     type: spec.type,
     taskConfigs: [],
     variables: spec.variables,
+    varfile: spec.varfile,
   }
 
   validateWithPath({
