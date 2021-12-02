@@ -1,4 +1,11 @@
 
+<a name="0.12.32"></a>
+## [0.12.32](https://github.com/garden-io/garden/compare/0.12.31...0.12.32) (2021-12-02)
+
+### Bug Fixes
+
+* **workflows:** fix provider resolution issue ([d1a7b49d](https://github.com/garden-io/garden/commit/d1a7b49d))
+
 <a name="0.12.31"></a>
 ## [0.12.31](https://github.com/garden-io/garden/compare/0.12.30...0.12.31) (2021-10-12)
 
