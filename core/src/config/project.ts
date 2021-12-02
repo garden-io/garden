@@ -63,7 +63,7 @@ export interface EnvironmentConfig {
   production?: boolean
 }
 
-const varfileDescription = `
+export const varfileDescription = `
 The format of the files is determined by the configured file's extension:
 
 * \`.env\` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
@@ -492,7 +492,11 @@ export function resolveProjectConfig({
  * For project variables, we apply the variables specified to the selected environment on the global variables
  * specified on the top-level `variables` key using a JSON Merge Patch (https://tools.ietf.org/html/rfc7396).
  * We also attempt to load the configured varfiles, and include those in the merge. The precedence order is as follows:
+ *
  *   environment.varfile > environment.variables > project.varfile > project.variables
+ *
+ * Variables passed through the `--var` CLI option have the highest precedence, and are merged in later in the flow
+ * (see `resolveGardenParams`).
  *
  * For provider configuration, we filter down to the providers that are enabled for all environments (no `environments`
  * key specified) and those that explicitly list the specified environments. Then we merge any provider configs with
@@ -543,7 +547,11 @@ export async function pickEnvironment({
     })
   }
 
-  const projectVarfileVars = await loadVarfile(projectConfig.path, projectConfig.varfile, defaultVarfilePath)
+  const projectVarfileVars = await loadVarfile({
+    configRoot: projectConfig.path,
+    path: projectConfig.varfile,
+    defaultPath: defaultVarfilePath,
+  })
   const projectVariables: DeepPrimitiveMap = <any>merge(projectConfig.variables, projectVarfileVars)
 
   const envProviders = environmentConfig.providers || []
@@ -593,11 +601,11 @@ export async function pickEnvironment({
     }
   }
 
-  const envVarfileVars = await loadVarfile(
-    projectConfig.path,
-    environmentConfig.varfile,
-    defaultEnvVarfilePath(environment)
-  )
+  const envVarfileVars = await loadVarfile({
+    configRoot: projectConfig.path,
+    path: environmentConfig.varfile,
+    defaultPath: defaultEnvVarfilePath(environment),
+  })
 
   const variables: DeepPrimitiveMap = <any>merge(projectVariables, merge(environmentConfig.variables, envVarfileVars))
 
@@ -653,8 +661,20 @@ export function parseEnvironment(env: string): ParsedEnvironment {
   }
 }
 
-async function loadVarfile(projectRoot: string, path: string | undefined, defaultPath: string): Promise<PrimitiveMap> {
-  const resolvedPath = resolve(projectRoot, path || defaultPath)
+export async function loadVarfile({
+  configRoot,
+  path,
+  defaultPath,
+}: {
+  // project root (when resolving project config) or module root (when resolving module config)
+  configRoot: string
+  path: string | undefined
+  defaultPath: string | undefined
+}): Promise<PrimitiveMap> {
+  if (!path && !defaultPath) {
+    throw new ParameterError(`Neither a path nor a defaultPath was provided.`, { configRoot, path, defaultPath })
+  }
+  const resolvedPath = resolve(configRoot, <string>(path || defaultPath))
   const exists = await pathExists(resolvedPath)
 
   if (!exists && path && path !== defaultPath) {
@@ -670,7 +690,7 @@ async function loadVarfile(projectRoot: string, path: string | undefined, defaul
 
   try {
     const data = await readFile(resolvedPath)
-    const relPath = relative(projectRoot, resolvedPath)
+    const relPath = relative(configRoot, resolvedPath)
     const filename = basename(resolvedPath.toLowerCase())
 
     if (filename.endsWith(".json")) {

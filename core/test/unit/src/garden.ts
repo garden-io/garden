@@ -271,6 +271,22 @@ describe("Garden", () => {
       })
     })
 
+    it("should respect the module variables < module varfile < CLI var precedence order", async () => {
+      const projectRoot = join(dataDir, "test-projects", "module-varfiles")
+
+      const garden = await makeTestGarden(projectRoot)
+      // In the normal flow, `garden.cliVariables` is populated with variables passed via the `--var` CLI option.
+      garden.cliVariables["d"] = "from-cli-var"
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const module = graph.getModule("module-a")
+      expect({ ...garden.variables, ...module.variables }).to.eql({
+        a: "from-project-varfile",
+        b: "from-module-vars",
+        c: "from-module-varfile",
+        d: "from-cli-var",
+      })
+    })
+
     it("should throw if project root is not in a git repo root", async () => {
       const dir = await tmp.dir({ unsafeCleanup: true })
 
@@ -4462,9 +4478,9 @@ describe("Garden", () => {
     })
 
     context("test against fixed version hashes", async () => {
-      const moduleAVersionString = "v-f6743d2423"
-      const moduleBVersionString = "v-97a77e8414"
-      const moduleCVersionString = "v-afb847fa9a"
+      const moduleAVersionString = "v-3b072717eb"
+      const moduleBVersionString = "v-b9e3153900"
+      const moduleCVersionString = "v-371a6bbdec"
 
       it("should return the same module versions between runtimes", async () => {
         const projectRoot = getDataDir("test-projects", "fixed-version-hashes-1")

@@ -446,82 +446,6 @@ services:
     env: ${var.envVars}            # <- resolves to the whole envVars object
 ```
 
-### Variable files (varfiles)
-
-You can also provide variables using "variable files" or _varfiles_. These work mostly like "dotenv" files or envfiles. However, they don't implicitly affect the environment of the Garden process and the configured services, but rather are added on top of the `variables` you define in your project configuration.
-
-This can be very useful when you need to provide secrets and other contextual values to your stack. You could add your varfiles to your `.gitignore` file to keep them out of your repository, or use e.g. [git-crypt](https://github.com/AGWA/git-crypt), [BlackBox](https://github.com/StackExchange/blackbox) or [git-secret](https://git-secret.io/) to securely store the files in your Git repo.
-
-By default, Garden will look for a `garden.env` file in your project root for project-wide variables, and a `garden.<env-name>.env` file for environment-specific variables. You can override the filename for each as well.
-
-The format of the files is determined by the configured file extension:
-
-* `.env` - Standard "dotenv" format, as supported by [dotenv](https://github.com/motdotla/dotenv#rules).
-* `.yaml`/`.yml` - YAML. Must be a single document in the file, and must be a key/value map (but keys may contain any value types).
-* `.json` - JSON. Must contain a single JSON _object_ (not an array).
-
-{% hint style="info" %}
-The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays.
-
-In the meantime, to use YAML or JSON files, you must explicitly set the varfile name(s) in your project configuration, via the [`varfile`](../reference/project-config.md#varfile) and/or [`environments[].varfile`](../reference/project-config.md#environmentsvarfile)) fields.
-{% endhint %}
-
-You can also set variables on the command line, with `--var` flags. Note that while this is handy for ad-hoc invocations, we don't generally recommend relying on this for normal operations, since you lose a bit of visibility within your configuration. But here's one practical example:
-
-```sh
-# Override two specific variables value and run a task
-garden run task my-task --var my-task-arg=foo,some-numeric-var=123
-```
-
-Multiple variables are separated with a comma, and each part is parsed using [dotenv](https://github.com/motdotla/dotenv#rules) syntax.
-
-The order of precedence across the varfiles and project config fields is as follows (from highest to lowest):
-
-1. Individual variables set with `--var` flags.
-2. The environment-specific varfile (defaults to `garden.<env-name>.env`).
-3. The environment-specific variables set in `environment[].variables`.
-4. Configured project-wide varfile (defaults to `garden.env`).
-5. The project-wide `variables` field.
-
-{% hint style="warning" %}
-Note that [Module variables](#module-variables) always take precedence over any of the above, in the context of the module being resolved.
-{% endhint %}
-
-When you specify variables in multiple places, we merge the different objects and files using a [JSON Merge Patch](https://tools.ietf.org/html/rfc7396).
-
-Here's an example, where we have some project variables defined in our project config, and environment-specific values—including secret data—in varfiles:
-
-```yaml
-# garden.yml
-kind: Project
-...
-variables:
-  LOG_LEVEL: debug
-environments:
-  - name: local
-    ...
-  - name: remote
-    ...
-```
-
-```plain
-# garden.remote.env
-log-level=info
-database-password=fuin23liu54at90hiongl3g
-```
-
-```yaml
-# my-service/garden.yml
-kind: Module
-...
-services:
-  - name: my-service
-    ...
-    env:
-      LOG_LEVEL: ${var.log-level}
-      DATABASE_PASSWORD: ${var.database-password}
-```
-
 ## Module variables
 
 Each Garden module can specify its own set of variables that can be re-used within the module, and referenced by other dependant modules via template strings.
@@ -563,6 +487,124 @@ Also notice the generally handy use-case of re-using a common value (in this cas
 ### Referencing module variables
 
 On top of that, you can reference the resolved module variables in other modules. With the above example, another module might for example reference `${modules.my-service.var.hostname}`. For larger projects this can be much cleaner than, say, hoisting a lot of variables up to the project level.
+
+### Variable files (varfiles)
+
+You can also provide variables using "variable files" or _varfiles_. These work mostly like "dotenv" files or envfiles. However, they don't implicitly affect the environment of the Garden process and the configured services, but rather are added on top of the `variables` you define in your project configuration (or module variables defined in the `variables` of your individual module configurations).
+
+This can be very useful when you need to provide secrets and other contextual values to your stack. You could add your varfiles to your `.gitignore` file to keep them out of your repository, or use e.g. [git-crypt](https://github.com/AGWA/git-crypt), [BlackBox](https://github.com/StackExchange/blackbox) or [git-secret](https://git-secret.io/) to securely store the files in your Git repo.
+
+By default, Garden will look for a `garden.env` file in your project root for project-wide variables, and a `garden.<env-name>.env` file for environment-specific variables. You can override the filename for each as well.
+
+To use a module-level varfile, simply configure the `module.varfile` field to be the relative path (from module root) to the varfile you want to use for that module. For example:
+```yaml
+# my-service/garden.yml
+kind: Module
+name: my-service
+# Here, we use per-environment module varfiles as an optional override for variables (these have a higher precedence
+# than those in the `variables` field below).
+#
+# If no varfile exists, no error is thrown (we simply don't override any variables).
+varfile: my-service.${environment.name}.yaml
+variables:
+  # This overrides the project-level hostname variable
+  hostname: my-service.${var.hostname}
+  # You can specify maps or lists as variables
+  envVars:
+    LOG_LEVEL: debug
+    DATABASE_PASSWORD: ${var.database-password}
+services:
+  - name: my-service
+    ...
+    ingresses:
+      - path: /
+        port: http
+        # This resolves to the hostname variable set above, not the project-level hostname variable
+        hostname: ${var.hostname}
+    # Referencing the above envVar module variable
+    env: ${var.envVars}
+tests:
+  - name: my-test
+    ...
+    # Re-using the envVar module variable
+    env: ${var.envVars}
+```
+Module varfiles must be located inside the module root directory. That is, they must be in the same directory as the module configuration, or in a subdirectory of that directory.
+
+Note that variables defined in module varfiles override variables defined in project-level variables and varfiles (see the section on variable precedence order below).
+
+The format of the files is determined by the configured file extension:
+
+* `.env` - Standard "dotenv" format, as supported by [dotenv](https://github.com/motdotla/dotenv#rules).
+* `.yaml`/`.yml` - YAML. Must be a single document in the file, and must be a key/value map (but keys may contain any value types).
+* `.json` - JSON. Must contain a single JSON _object_ (not an array).
+
+{% hint style="info" %}
+The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays.
+
+In the meantime, to use YAML or JSON files, you must explicitly set the varfile name(s) in your project configuration, via the [`varfile`](../reference/project-config.md#varfile) and/or [`environments[].varfile`](../reference/project-config.md#environmentsvarfile)) fields.
+{% endhint %}
+
+You can also set variables on the command line, with `--var` flags. Note that while this is handy for ad-hoc invocations, we don't generally recommend relying on this for normal operations, since you lose a bit of visibility within your configuration. But here's one practical example:
+
+```sh
+# Override two specific variables value and run a task
+garden run task my-task --var my-task-arg=foo,some-numeric-var=123
+```
+
+Multiple variables are separated with a comma, and each part is parsed using [dotenv](https://github.com/motdotla/dotenv#rules) syntax.
+
+
+## Variable precedence order
+
+The order of precedence is as follows (from highest to lowest):
+
+1. Individual variables set with `--var` CLI flags.
+2. The module-level varfile (if configured).
+3. Module variables set in `module.variables`.
+4. The environment-specific varfile (defaults to `garden.<env-name>.env`).
+5. The environment-specific variables set in `environment[].variables`.
+6. Configured project-wide varfile (defaults to `garden.env`).
+7. The project-wide `variables` field.
+
+{% hint style="warning" %}
+Note that [Module variables](#module-variables) always take precedence over any of the above, in the context of the module being resolved.
+{% endhint %}
+
+When you specify variables in multiple places, we merge the different objects and files using a [JSON Merge Patch](https://tools.ietf.org/html/rfc7396).
+
+Here's an example, where we have some project variables defined in our project config, and environment-specific values—including secret data—in varfiles:
+
+```yaml
+# garden.yml
+kind: Project
+...
+variables:
+  LOG_LEVEL: debug
+environments:
+  - name: local
+    ...
+  - name: remote
+    ...
+```
+
+```plain
+# garden.remote.env
+log-level=info
+database-password=fuin23liu54at90hiongl3g
+```
+
+```yaml
+# my-service/garden.yml
+kind: Module
+...
+services:
+  - name: my-service
+    ...
+    env:
+      LOG_LEVEL: ${var.log-level}
+      DATABASE_PASSWORD: ${var.database-password}
+```
 
 ## Provider outputs
 

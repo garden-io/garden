@@ -133,6 +133,7 @@ describe("loadConfigResources", () => {
         build: { dependencies: [] },
         path: modulePathA,
         variables: { msg: "OK" },
+        varfile: undefined,
 
         spec: {
           build: {
@@ -276,6 +277,7 @@ describe("loadConfigResources", () => {
         testConfigs: [],
         taskConfigs: [],
         variables: undefined,
+        varfile: undefined,
       },
     ])
   })
@@ -315,6 +317,7 @@ describe("loadConfigResources", () => {
         testConfigs: [],
         taskConfigs: [],
         variables: undefined,
+        varfile: undefined,
       },
       {
         apiVersion: "garden.io/v0",
@@ -344,6 +347,7 @@ describe("loadConfigResources", () => {
         testConfigs: [],
         taskConfigs: [],
         variables: undefined,
+        varfile: undefined,
       },
     ])
   })
