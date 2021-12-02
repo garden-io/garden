@@ -235,7 +235,7 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
 
     if (!this._loggedIn) {
       return dedent`
-        You are not logged in to Garden Enterprise, but one or more secrets are referenced in template strings in your Garden configuration files.
+        You are not logged in to Garden Cloud, but one or more secrets are referenced in template strings in your Garden configuration files.
 
         Please log in via the ${chalk.green("garden login")} command to use Garden with secrets.
       `
@@ -248,11 +248,11 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
         ? ` To create secrets, please visit ${this._enterpriseDomain} and navigate to the secrets section for this project.`
         : ""
       return deline`
-        Looks like no secrets have been created for this project and/or environment in Garden Enterprise.${suffix}
+        Looks like no secrets have been created for this project and/or environment in Garden Cloud.${suffix}
       `
     } else {
       return deline`
-        Please make sure that all required secrets for this project exist in Garden Enterprise, and are accessible in this
+        Please make sure that all required secrets for this project exist in Garden Cloud, and are accessible in this
         environment.
       `
     }

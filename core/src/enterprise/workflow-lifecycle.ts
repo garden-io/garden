@@ -56,7 +56,7 @@ export async function registerWorkflowRun({
       if (isGotError(err, 422)) {
         const errMsg = deline`
           Workflow run registration failed due to mismatch between CLI and API versions. Please make sure your Garden
-          CLI version is compatible with your version of Garden Enterprise. See error.log for details
+          CLI version is compatible with your version of Garden Cloud. See error.log for details
           on the failed registration request payload.
         `
         throw new EnterpriseApiError(errMsg, {

@@ -61,7 +61,7 @@ export async function registerSession({
     if (isGotError(err, 422)) {
       const errMsg = deline`
         Session registration failed due to mismatch between CLI and API versions. Please make sure your Garden CLI
-        version is compatible with your version of Garden Enterprise.
+        version is compatible with your version of Garden Cloud.
       `
       log.error(errMsg)
     } else {

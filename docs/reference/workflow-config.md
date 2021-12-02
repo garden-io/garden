@@ -50,7 +50,7 @@ files:
     # The file data as a string.
     data:
 
-    # The name of a Garden secret to copy the file data from (Garden Enterprise only).
+    # The name of a Garden secret to copy the file data from (Garden Cloud only).
     secretName:
 
 # The number of hours to keep the workflow pod running after completion.
@@ -153,7 +153,7 @@ steps:
     when: onSuccess
 
 # A list of triggers that determine when the workflow should be run, and which environment should be used (Garden
-# Enterprise only).
+# Cloud only).
 triggers:
   - # The environment name (from your project configuration) to use for the workflow when matched by this trigger.
     environment:
@@ -286,7 +286,7 @@ The file data as a string.
 
 [files](#files) > secretName
 
-The name of a Garden secret to copy the file data from (Garden Enterprise only).
+The name of a Garden secret to copy the file data from (Garden Cloud only).
 
 | Type     | Required |
 | -------- | -------- |
@@ -539,7 +539,7 @@ and examples.
 
 ### `triggers[]`
 
-A list of triggers that determine when the workflow should be run, and which environment should be used (Garden Enterprise only).
+A list of triggers that determine when the workflow should be run, and which environment should be used (Garden Cloud only).
 
 | Type            | Required |
 | --------------- | -------- |

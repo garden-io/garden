@@ -57,7 +57,7 @@ export interface UserResult {
 }
 
 export const noApiMsg = (action: string, resource: string) => dedent`
-  Unable to ${action} ${resource}. Make sure the project is configured for Garden Enterprise and that you're logged in.
+  Unable to ${action} ${resource}. Make sure the project is configured for Garden Cloud and that you're logged in.
 `
 
 export function makeUserFromResponse(user: UserResponse): UserResult {
@@ -95,7 +95,7 @@ export function makeSecretFromResponse(res: SecretResponse): SecretResult {
 }
 
 /**
- * Helper function for consistenly logging outputs for enterprise bulk operation commands.
+ * Helper function for consistenly logging outputs for Garden Cloud bulk operation commands.
  *
  * Throws if any errors exist after logging the relavant output.
  */

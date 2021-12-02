@@ -81,6 +81,19 @@ export function getPackageVersion(): string {
   return version
 }
 
+/**
+ * Returns "Garden Cloud" if domain matches https://<some-subdomain>.app.garden,
+ * otherwise "Garden Enterprise".
+ *
+ * TODO: Return the distribution type from the API and store on the CloudApi class.
+ */
+export function getCloudDistributionName(domain: string) {
+  if (!domain.match(/^https:\/\/.+\.app\.garden$/i)) {
+    return "Garden Enterprise"
+  }
+  return "Garden Cloud"
+}
+
 export async function sleep(msec: number) {
   return new Promise((resolve) => setTimeout(resolve, msec))
 }

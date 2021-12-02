@@ -987,16 +987,16 @@ stdout:
 stderr:
 ```
 
-### garden enterprise secrets list
+### garden cloud secrets list
 
 **[EXPERIMENTAL] List secrets.**
 
-List all secrets from Garden Enterprise. Optionally filter on environment, user IDs, or secret names.
+List all secrets from Garden Cloud. Optionally filter on environment, user IDs, or secret names.
 
 Examples:
-    garden enterprise secrets list                                          # list all secrets
-    garden enterprise secrets list --filter-envs dev                        # list all secrets from the dev environment
-    garden enterprise secrets list --filter-envs dev --filter-names *_DB_*  # list all secrets from the dev environment that have '_DB_' in their name.
+    garden cloud secrets list                                          # list all secrets
+    garden cloud secrets list --filter-envs dev                        # list all secrets from the dev environment
+    garden cloud secrets list --filter-envs dev --filter-names *_DB_*  # list all secrets from the dev environment that have '_DB_' in their name.
 
 | Supported in workflows |   |
 | ---------------------- |---|
@@ -1004,7 +1004,7 @@ Examples:
 
 #### Usage
 
-    garden enterprise secrets list [options]
+    garden cloud secrets list [options]
 
 #### Options
 
@@ -1015,23 +1015,23 @@ Examples:
   | `--filter-names` |  | array:string | Filter on secret name. Use comma as a separator to filter on multiple secret names. Accepts glob patterns.
 
 
-### garden enterprise secrets create
+### garden cloud secrets create
 
 **[EXPERIMENTAL] Create secrets**
 
-Create secrets in Garden Enterprise. You can create project wide secrets or optionally scope
+Create secrets in Garden Cloud. You can create project wide secrets or optionally scope
 them to an environment, or an environment and a user.
 
 To scope secrets to a user, you will need the user's ID which you can get from the
-`garden enterprise users list` command.
+`garden cloud users list` command.
 
 You can optionally read the secrets from a file.
 
 Examples:
-    garden enterprise secrets create DB_PASSWORD=my-pwd,ACCESS_KEY=my-key   # create two secrets
-    garden enterprise secrets create ACCESS_KEY=my-key --scope-to-env ci    # create a secret and scope it to the ci environment
-    garden enterprise secrets create ACCESS_KEY=my-key --scope-to-env ci --scope-to-user 9  # create a secret and scope it to the ci environment and user with ID 9
-    garden enterprise secrets create --from-file /path/to/secrets.txt  # create secrets from the key value pairs in the secrets.txt file
+    garden cloud secrets create DB_PASSWORD=my-pwd,ACCESS_KEY=my-key   # create two secrets
+    garden cloud secrets create ACCESS_KEY=my-key --scope-to-env ci    # create a secret and scope it to the ci environment
+    garden cloud secrets create ACCESS_KEY=my-key --scope-to-env ci --scope-to-user 9  # create a secret and scope it to the ci environment and user with ID 9
+    garden cloud secrets create --from-file /path/to/secrets.txt  # create secrets from the key value pairs in the secrets.txt file
 
 | Supported in workflows |   |
 | ---------------------- |---|
@@ -1039,7 +1039,7 @@ Examples:
 
 #### Usage
 
-    garden enterprise secrets create [secrets] [options]
+    garden cloud secrets create [secrets] [options]
 
 #### Arguments
 
@@ -1056,15 +1056,15 @@ Examples:
   | `--from-file` |  | path | Read the secrets from the file at the given path. The file should have standard &quot;dotenv&quot; format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
 
 
-### garden enterprise secrets delete
+### garden cloud secrets delete
 
 **[EXPERIMENTAL] Delete secrets.**
 
-Delete secrets in Garden Enterprise. You will nee the IDs of the secrets you want to delete,
-which you which you can get from the `garden enterprise secrets list` command.
+Delete secrets in Garden Cloud. You will nee the IDs of the secrets you want to delete,
+which you which you can get from the `garden cloud secrets list` command.
 
 Examples:
-    garden enterprise secrets delete 1,2,3   # delete secrets with IDs 1,2, and 3.
+    garden cloud secrets delete 1,2,3   # delete secrets with IDs 1,2, and 3.
 
 | Supported in workflows |   |
 | ---------------------- |---|
@@ -1072,7 +1072,7 @@ Examples:
 
 #### Usage
 
-    garden enterprise secrets delete [ids] 
+    garden cloud secrets delete [ids] 
 
 #### Arguments
 
@@ -1082,16 +1082,16 @@ Examples:
 
 
 
-### garden enterprise users list
+### garden cloud users list
 
 **[EXPERIMENTAL] List users.**
 
-List all users from Garden Enterprise. Optionally filter on group names or user names.
+List all users from Garden Cloud. Optionally filter on group names or user names.
 
 Examples:
-    garden enterprise users list                            # list all users
-    garden enterprise users list --filter-names Gordon*     # list all the Gordons in Garden Enterprise. Useful if you have a lot of Gordons.
-    garden enterprise users list --filter-groups devs-*     # list all users in groups that with names that start with 'dev-'
+    garden cloud users list                            # list all users
+    garden cloud users list --filter-names Gordon*     # list all the Gordons in Garden Cloud. Useful if you have a lot of Gordons.
+    garden cloud users list --filter-groups devs-*     # list all users in groups that with names that start with 'dev-'
 
 | Supported in workflows |   |
 | ---------------------- |---|
@@ -1099,7 +1099,7 @@ Examples:
 
 #### Usage
 
-    garden enterprise users list [options]
+    garden cloud users list [options]
 
 #### Options
 
@@ -1109,15 +1109,15 @@ Examples:
   | `--filter-groups` |  | array:string | Filter on the groups the user belongs to. Use comma as a separator to filter on multiple groups. Accepts glob patterns.
 
 
-### garden enterprise users create
+### garden cloud users create
 
 **[EXPERIMENTAL] Create users**
 
-Create users in Garden Enterprise and optionally add the users to specific groups.
-You can get the group IDs from the `garden enterprise users list` command.
+Create users in Garden Cloud and optionally add the users to specific groups.
+You can get the group IDs from the `garden cloud users list` command.
 
 To create a user, you'll need their GitHub or GitLab username, depending on which one is your VCS provider, and the name
-they should have in Garden Enterprise. Note that it **must** the their GitHub/GitLab username, not their email, as people
+they should have in Garden Cloud. Note that it **must** the their GitHub/GitLab username, not their email, as people
 can have several emails tied to their GitHub/GitLab accounts.
 
 You can optionally read the users from a file. The file must have the format vcs-username="Actual Username". For example:
@@ -1126,9 +1126,9 @@ fatema_m="Fatema M"
 gordon99="Gordon G"
 
 Examples:
-    garden enterprise users create fatema_m="Fatema M",gordon99="Gordon G"      # create two users
-    garden enterprise users create fatema_m="Fatema M" --add-to-groups 1,2  # create a user and add two groups with IDs 1,2
-    garden enterprise users create --from-file /path/to/users.txt           # create users from the key value pairs in the users.txt file
+    garden cloud users create fatema_m="Fatema M",gordon99="Gordon G"      # create two users
+    garden cloud users create fatema_m="Fatema M" --add-to-groups 1,2  # create a user and add two groups with IDs 1,2
+    garden cloud users create --from-file /path/to/users.txt           # create users from the key value pairs in the users.txt file
 
 | Supported in workflows |   |
 | ---------------------- |---|
@@ -1136,7 +1136,7 @@ Examples:
 
 #### Usage
 
-    garden enterprise users create [users] [options]
+    garden cloud users create [users] [options]
 
 #### Arguments
 
@@ -1152,15 +1152,15 @@ Examples:
   | `--from-file` |  | path | Read the users from the file at the given path. The file should have standard &quot;dotenv&quot; format (as defined by [dotenv](https://github.com/motdotla/dotenv#rules)) where the VCS username is the key and the name is the value.
 
 
-### garden enterprise users delete
+### garden cloud users delete
 
 **[EXPERIMENTAL] Delete users.**
 
-Delete users in Garden Enterprise. You will nee the IDs of the users you want to delete,
-which you which you can get from the `garden enterprise users list` command.
+Delete users in Garden Cloud. You will nee the IDs of the users you want to delete,
+which you which you can get from the `garden cloud users list` command.
 
 Examples:
-    garden enterprise users delete 1,2,3   # delete users with IDs 1,2, and 3.
+    garden cloud users delete 1,2,3   # delete users with IDs 1,2, and 3.
 
 | Supported in workflows |   |
 | ---------------------- |---|
@@ -1168,7 +1168,7 @@ Examples:
 
 #### Usage
 
-    garden enterprise users delete [ids] 
+    garden cloud users delete [ids] 
 
 #### Arguments
 
@@ -1178,16 +1178,16 @@ Examples:
 
 
 
-### garden enterprise groups list
+### garden cloud groups list
 
 **[EXPERIMENTAL] List groups.**
 
-List all groups from Garden Enterprise. This is useful for getting the group IDs when creating
-users via the `garden enterprise users create` coomand.
+List all groups from Garden Cloud. This is useful for getting the group IDs when creating
+users via the `garden cloud users create` coomand.
 
 Examples:
-    garden enterprise groups list                       # list all groups
-    garden enterprise groups list --filter-names dev-*  # list all groups that start with 'dev-'
+    garden cloud groups list                       # list all groups
+    garden cloud groups list --filter-names dev-*  # list all groups that start with 'dev-'
 
 | Supported in workflows |   |
 | ---------------------- |---|
@@ -1195,7 +1195,7 @@ Examples:
 
 #### Usage
 
-    garden enterprise groups list [options]
+    garden cloud groups list [options]
 
 #### Options
 
@@ -1825,7 +1825,7 @@ workflowConfigs:
         # The file data as a string.
         data:
 
-        # The name of a Garden secret to copy the file data from (Garden Enterprise only).
+        # The name of a Garden secret to copy the file data from (Garden Cloud only).
         secretName:
 
     # The number of hours to keep the workflow pod running after completion.
@@ -1932,7 +1932,7 @@ workflowConfigs:
         when:
 
     # A list of triggers that determine when the workflow should be run, and which environment should be used (Garden
-    # Enterprise only).
+    # Cloud only).
     triggers:
       - # The environment name (from your project configuration) to use for the workflow when matched by this trigger.
         environment:
@@ -1979,10 +1979,10 @@ projectName:
 # The local path to the project root.
 projectRoot:
 
-# The project ID (Garden Enterprise only).
+# The project ID (Garden Cloud only).
 projectId:
 
-# The Garden Enterprise domain (Garden Enterprise only).
+# The Garden Cloud domain (Garden Cloud only).
 domain:
 ```
 

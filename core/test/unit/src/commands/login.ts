@@ -190,7 +190,7 @@ describe("LoginCommand", () => {
 
     expect(logOutput).to.include(dedent`
       Looks like your session token is invalid. If you were previously logged into a different instance
-      of Garden Enterprise, log out first before logging in.
+      of Garden Cloud, log out first before logging in.
     `)
   })
 
@@ -229,7 +229,7 @@ describe("LoginCommand", () => {
         () => command.action(makeCommandParams({ garden, args: {}, opts: {} })),
         (err) =>
           expect(stripAnsi(err.message)).to.match(
-            /The provided access token is expired or has been revoked, please create a new one from the Garden Enterprise UI./
+            /The provided access token is expired or has been revoked, please create a new one from the Garden Cloud UI./
           )
       )
     })

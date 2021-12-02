@@ -12,11 +12,12 @@ import { GroupsCommand } from "./groups/groups"
 import { SecretsCommand } from "./secrets/secrets"
 import { UsersCommand } from "./users/users"
 
-export class EnterpriseCommand extends CommandGroup {
-  name = "enterprise"
+export class CloudCommand extends CommandGroup {
+  name = "cloud"
+  alias = "enterprise"
   help = dedent`
-    [EXPERIMENTAL] Manage Garden Enterprise resources such as users, groups and secrets.
-    Requires Garden Enterprise 1.14.0 or higher.
+    [EXPERIMENTAL] Manage Garden Cloud resources such as users, groups and secrets.
+    Requires Garden Cloud 1.14.0 or higher.
   `
 
   subCommands = [SecretsCommand, UsersCommand, GroupsCommand]

@@ -84,7 +84,7 @@ export interface ApiLogBatch extends ApiBatchBase {
 export const controlEventNames: Set<EventName> = new Set(["_workflowRunRegistered"])
 
 /**
- * Buffers events and log entries and periodically POSTs them to Garden Enterprise or another Garden service.
+ * Buffers events and log entries and periodically POSTs them to Garden Cloud or another Garden service.
  *
  * Subscribes to logger events once, in the constructor.
  *

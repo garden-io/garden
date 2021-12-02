@@ -43,12 +43,12 @@ export class GroupsListCommand extends Command<{}, Opts> {
   name = "list"
   help = "[EXPERIMENTAL] List groups."
   description = dedent`
-    List all groups from Garden Enterprise. This is useful for getting the group IDs when creating
-    users via the \`garden enterprise users create\` coomand.
+    List all groups from Garden Cloud. This is useful for getting the group IDs when creating
+    users via the \`garden cloud users create\` coomand.
 
     Examples:
-        garden enterprise groups list                       # list all groups
-        garden enterprise groups list --filter-names dev-*  # list all groups that start with 'dev-'
+        garden cloud groups list                       # list all groups
+        garden cloud groups list --filter-names dev-*  # list all groups that start with 'dev-'
   `
 
   options = groupsListOpts

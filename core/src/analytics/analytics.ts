@@ -221,7 +221,7 @@ export class AnalyticsHandler {
     this.projectId = this.hash(projectId)
     this.projectIdV2 = this.hashV2(projectId)
 
-    // The enterprise project ID is the UID for this project in Garden Enterprise that the user puts
+    // The enterprise project ID is the UID for this project in Garden Cloud that the user puts
     // in the project level Garden configuration. Not to be confused with the anonymized project ID we generate from
     // the project name for the purpose of analytics.
     const enterpriseProjectId = this.garden.projectId
