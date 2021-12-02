@@ -9,10 +9,10 @@
 import { LogEntry } from "../logger/log-entry"
 import { CommandInfo } from "../plugin-context"
 import { deline } from "../util/string"
-import { EnterpriseApi, isGotError } from "./api"
+import { CloudApi, isGotError } from "./api"
 
 export interface RegisterSessionParams {
-  enterpriseApi: EnterpriseApi
+  cloudApi: CloudApi
   sessionId: string
   commandInfo: CommandInfo
   localServerPort?: number
@@ -33,7 +33,7 @@ export interface RegisterSessionResponse {
  * UI communicate with the locally running Core process.
  */
 export async function registerSession({
-  enterpriseApi,
+  cloudApi,
   sessionId,
   commandInfo,
   localServerPort,
@@ -51,7 +51,7 @@ export async function registerSession({
       environment,
       namespace,
     }
-    const res: RegisterSessionResponse = await enterpriseApi.post("sessions", {
+    const res: RegisterSessionResponse = await cloudApi.post("sessions", {
       body,
       retry: true,
       retryDescription: "Registering session",

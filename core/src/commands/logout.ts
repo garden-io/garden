@@ -8,7 +8,7 @@
 
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
-import { EnterpriseApi } from "../enterprise/api"
+import { CloudApi } from "../cloud/api"
 import { ClientAuthToken } from "../db/entities/client-auth-token"
 import { dedent } from "../util/string"
 import { getCloudDistributionName } from "../util/util"
@@ -39,18 +39,18 @@ export class LogOutCommand extends Command {
     try {
       // The Enterprise API is missing from the Garden class for commands with noProject
       // so we initialize it here.
-      const enterpriseApi = await EnterpriseApi.factory({
+      const cloudApi = await CloudApi.factory({
         log,
         currentDirectory: garden.projectRoot,
         skipLogging: true,
       })
 
-      if (!enterpriseApi) {
+      if (!cloudApi) {
         return {}
       }
 
-      await enterpriseApi.post("token/logout", { headers: { Cookie: `rt=${token?.refreshToken}` } })
-      enterpriseApi.close()
+      await cloudApi.post("token/logout", { headers: { Cookie: `rt=${token?.refreshToken}` } })
+      cloudApi.close()
     } catch (err) {
       const msg = dedent`
       The following issue occurred while logging out from ${distroName} (your session will be cleared regardless): ${err.message}\n
@@ -61,7 +61,7 @@ export class LogOutCommand extends Command {
       })
     } finally {
       log.info({ msg: `Succesfully logged out from ${distroName}.` })
-      await EnterpriseApi.clearAuthToken(log)
+      await CloudApi.clearAuthToken(log)
     }
     return {}
   }

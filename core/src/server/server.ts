@@ -29,8 +29,8 @@ import { uuidv4, ValueOf } from "../util/util"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { joi } from "../config/common"
 import { randomString } from "../util/string"
-import { authTokenHeader } from "../enterprise/api"
-import { ApiEventBatch } from "../enterprise/buffered-event-stream"
+import { authTokenHeader } from "../cloud/api"
+import { ApiEventBatch } from "../cloud/buffered-event-stream"
 import { LogLevel } from "../logger/logger"
 
 // Note: This is different from the `garden dashboard` default port.

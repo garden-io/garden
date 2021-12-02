@@ -9,10 +9,10 @@
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
 import dedent = require("dedent")
-import { AuthTokenResponse, EnterpriseApi, getEnterpriseConfig } from "../enterprise/api"
+import { AuthTokenResponse, CloudApi, getEnterpriseConfig } from "../cloud/api"
 import { LogEntry } from "../logger/log-entry"
 import { ConfigurationError, InternalError } from "../exceptions"
-import { AuthRedirectServer } from "../enterprise/auth"
+import { AuthRedirectServer } from "../cloud/auth"
 import { EventBus } from "../events"
 import { getCloudDistributionName } from "../util/util"
 
@@ -42,7 +42,7 @@ export class LoginCommand extends Command {
     // The Enterprise API is missing from the Garden class for commands with noProject
     // so we initialize it here.
     try {
-      const enterpriseApi = await EnterpriseApi.factory({ log, currentDirectory, skipLogging: true })
+      const enterpriseApi = await CloudApi.factory({ log, currentDirectory, skipLogging: true })
       if (enterpriseApi) {
         log.info({ msg: `You're already logged in to ${distroName}.` })
         enterpriseApi.close()
@@ -67,7 +67,7 @@ export class LoginCommand extends Command {
 
     log.info({ msg: `Logging in to ${config.domain}...` })
     const tokenResponse = await login(log, config.domain, garden.events)
-    await EnterpriseApi.saveAuthToken(log, tokenResponse)
+    await CloudApi.saveAuthToken(log, tokenResponse)
     log.info({ msg: `Successfully logged in to ${distroName}.` })
     return {}
   }

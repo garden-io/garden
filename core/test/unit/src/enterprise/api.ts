@@ -11,7 +11,7 @@ import { expect } from "chai"
 import { ClientAuthToken } from "../../../../src/db/entities/client-auth-token"
 import { getLogger } from "../../../../src/logger/logger"
 import { gardenEnv } from "../../../../src/constants"
-import { EnterpriseApi } from "../../../../src/enterprise/api"
+import { CloudApi } from "../../../../src/cloud/api"
 import { add } from "date-fns"
 import { uuidv4 } from "../../../../src/util/util"
 import { cleanupAuthTokens } from "../../../helpers"
@@ -33,7 +33,7 @@ describe("EnterpriseApi", () => {
         refreshToken: uuidv4(),
         tokenValidity: 9999,
       }
-      await EnterpriseApi.saveAuthToken(log, testAuthToken)
+      await CloudApi.saveAuthToken(log, testAuthToken)
       const savedToken = await ClientAuthToken.findOne()
       expect(savedToken).to.exist
       expect(savedToken!.token).to.eql(testAuthToken.token)
@@ -60,7 +60,7 @@ describe("EnterpriseApi", () => {
         ],
         async (token) => {
           try {
-            await EnterpriseApi.saveAuthToken(log, token)
+            await CloudApi.saveAuthToken(log, token)
           } catch (err) {}
         }
       )
@@ -73,7 +73,7 @@ describe("EnterpriseApi", () => {
     beforeEach(cleanupAuthTokens)
 
     it("should return null when no auth token is present", async () => {
-      const savedToken = await EnterpriseApi.getAuthToken(log)
+      const savedToken = await CloudApi.getAuthToken(log)
       expect(savedToken).to.be.undefined
     })
 
@@ -83,8 +83,8 @@ describe("EnterpriseApi", () => {
         refreshToken: uuidv4(),
         tokenValidity: 9999,
       }
-      await EnterpriseApi.saveAuthToken(log, testToken)
-      const savedToken = await EnterpriseApi.getAuthToken(log)
+      await CloudApi.saveAuthToken(log, testToken)
+      const savedToken = await CloudApi.getAuthToken(log)
       expect(savedToken).to.eql(testToken.token)
     })
 
@@ -93,7 +93,7 @@ describe("EnterpriseApi", () => {
       const testToken = "token-from-env"
       gardenEnv.GARDEN_AUTH_TOKEN = testToken
       try {
-        const savedToken = await EnterpriseApi.getAuthToken(log)
+        const savedToken = await CloudApi.getAuthToken(log)
         expect(savedToken).to.eql(testToken)
       } finally {
         gardenEnv.GARDEN_AUTH_TOKEN = tokenBackup
@@ -123,7 +123,7 @@ describe("EnterpriseApi", () => {
           await ClientAuthToken.createQueryBuilder().insert().values(token).execute()
         }
       )
-      await EnterpriseApi.getAuthToken(log)
+      await CloudApi.getAuthToken(log)
       const count = await ClientAuthToken.count()
       expect(count).to.eql(1)
     })
@@ -138,14 +138,14 @@ describe("EnterpriseApi", () => {
         refreshToken: uuidv4(),
         tokenValidity: 9999,
       }
-      await EnterpriseApi.saveAuthToken(log, testToken)
-      await EnterpriseApi.clearAuthToken(log)
+      await CloudApi.saveAuthToken(log, testToken)
+      await CloudApi.clearAuthToken(log)
       const count = await ClientAuthToken.count()
       expect(count).to.eql(0)
     })
 
     it("should not throw an exception if no auth token exists", async () => {
-      await EnterpriseApi.clearAuthToken(log)
+      await CloudApi.clearAuthToken(log)
     })
   })
 })

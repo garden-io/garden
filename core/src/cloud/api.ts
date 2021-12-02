@@ -102,7 +102,7 @@ export async function getEnterpriseConfig(currentDirectory: string) {
  * Can only be initialized if the user is actually logged in. Includes a handful of static helper methods
  * for cases where the user is not logged in (e.g. the login method itself).
  */
-export class EnterpriseApi {
+export class CloudApi {
   private intervalId: NodeJS.Timer | null
   private log: LogEntry
   private intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
@@ -142,13 +142,13 @@ export class EnterpriseApi {
       return null
     }
 
-    const token = await EnterpriseApi.getClientAuthTokenFromDb(log)
+    const token = await CloudApi.getClientAuthTokenFromDb(log)
     if (!token && !gardenEnv.GARDEN_AUTH_TOKEN) {
       log.debug("User is not logged in. Aborting.")
       return null
     }
 
-    const api = new EnterpriseApi(log, config.domain, config.projectId)
+    const api = new CloudApi(log, config.domain, config.projectId)
     const tokenIsValid = await api.checkClientAuthToken()
 
     const distroName = getCloudDistributionName(config.domain)
@@ -272,7 +272,7 @@ export class EnterpriseApi {
       log.silly("Read client auth token from env")
       return tokenFromEnv
     }
-    return (await EnterpriseApi.getClientAuthTokenFromDb(log))?.token
+    return (await CloudApi.getClientAuthTokenFromDb(log))?.token
   }
 
   /**
@@ -333,7 +333,7 @@ export class EnterpriseApi {
         refreshToken: rt.value || "",
         tokenValidity: res.data.jwtValidity,
       }
-      await EnterpriseApi.saveAuthToken(this.log, tokenObj)
+      await CloudApi.saveAuthToken(this.log, tokenObj)
     } catch (err) {
       this.log.debug({ msg: `Failed to refresh the token.` })
       const detail = is401Error(err) ? { statusCode: err.response.statusCode } : {}
@@ -349,7 +349,7 @@ export class EnterpriseApi {
   private async apiFetch<T>(path: string, params: ApiFetchParams): Promise<ApiFetchResponse<T>> {
     const { method, headers, retry, retryDescription } = params
     this.log.silly({ msg: `Calling Cloud API with ${method} ${path}` })
-    const token = await EnterpriseApi.getAuthToken(this.log)
+    const token = await CloudApi.getAuthToken(this.log)
     // TODO add more logging details
     const requestObj = {
       method,

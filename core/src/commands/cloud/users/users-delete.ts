@@ -51,7 +51,7 @@ export class UsersDeleteCommand extends Command<Args> {
       return {}
     }
 
-    const api = garden.enterpriseApi
+    const api = garden.cloudApi
     if (!api) {
       throw new ConfigurationError(noApiMsg("delete", "user"), {})
     }
