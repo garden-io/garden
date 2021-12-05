@@ -1,3 +1,8 @@
+---
+order: 3
+title: Using Remote Sources
+---
+
 # Remote Sources
 
 You can import **two** types of remote repositories with Garden:

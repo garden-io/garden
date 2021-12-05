@@ -1,3 +1,8 @@
+---
+order: 2
+title: Terraform
+---
+
 # Terraform
 
 Garden includes a Terraform provider that you can use to automatically validate and provision infrastructure as part of your project. This guide walks through how to configure and use the provider.
