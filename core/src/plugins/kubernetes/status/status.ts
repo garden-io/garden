@@ -197,6 +197,13 @@ export async function waitForResources({
   })
   emitLog(waitingMsg)
 
+  if (resources.length === 0) {
+    const readyMsg = `No resources to wait`
+    emitLog(readyMsg)
+    statusLine.setState({ symbol: "info", section: serviceName, msg: readyMsg })
+    return []
+  }
+
   const api = await KubeApi.factory(log, ctx, provider)
   let statuses: ResourceStatus[]
 
