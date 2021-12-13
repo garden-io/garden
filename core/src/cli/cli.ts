@@ -33,14 +33,13 @@ import { ERROR_LOG_FILENAME, DEFAULT_API_VERSION, DEFAULT_GARDEN_DIR_NAME, LOGS_
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { defaultDotIgnoreFiles } from "../util/fs"
-import { BufferedEventStream } from "../cloud/buffered-event-stream"
+import { BufferedEventStream, ConnectBufferedEventStreamParams } from "../cloud/buffered-event-stream"
 import { GardenProcess } from "../db/entities/garden-process"
 import { DashboardEventStream } from "../server/dashboard-event-stream"
 import { GardenPluginCallback } from "../types/plugin/plugin"
 import { renderError } from "../logger/renderers"
 import { CloudApi } from "../cloud/api"
 import chalk = require("chalk")
-import { registerSession } from "../cloud/session-lifecycle"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   const environments = gardenOpts.environmentName
@@ -282,21 +281,20 @@ ${renderCommands(commands)}
           dashboardEventStream.connect({ garden, ignoreHost: commandServerUrl, streamEvents, streamLogEntries })
           const runningServers = await dashboardEventStream.updateTargets()
 
+          if (cloudApi && !cloudApi.sessionRegistered && command.streamEvents) {
+            // Note: If a config change during a watch-mode command's execution results in the resolved environment
+            // and/or namespace name changing, we don't change the session ID, environment ID or namespace ID used when
+            // streaming events.
+            await cloudApi.registerSession({
+              sessionId,
+              commandInfo,
+              localServerPort: command.server?.port,
+              environment: garden.environmentName,
+              namespace: garden.namespace,
+            })
+          }
+
           if (persistent && command.server) {
-            if (cloudApi) {
-              // TODO: provide the environment & namespace IDs returned by this helper to `this.bufferedEventStream`,
-              // and include them in all log/event batches once the API is ready for / expects that.
-              await registerSession({
-                log,
-                cloudApi,
-                sessionId,
-                commandInfo,
-                localServerPort: command.server.port,
-                projectId: cloudApi.projectId,
-                environment: garden.environmentName,
-                namespace: garden.namespace,
-              })
-            }
             // If there is an explicit `garden dashboard` process running for the current project+env, and a server
             // is started in this Command, we show the URL to the external dashboard. Otherwise the built-in one.
             const dashboardProcess = GardenProcess.getDashboardProcess(runningServers, {
@@ -312,7 +310,7 @@ ${renderCommands(commands)}
 
         if (cloudApi) {
           log.silly(`Connecting Garden instance to GE BufferedEventStream`)
-          this.bufferedEventStream.connect({
+          const connectParams: ConnectBufferedEventStreamParams = {
             garden,
             streamEvents,
             streamLogEntries,
@@ -321,7 +319,8 @@ ${renderCommands(commands)}
                 enterprise: true,
               },
             ],
-          })
+          }
+          this.bufferedEventStream.connect(connectParams)
           if (streamEvents) {
             this.bufferedEventStream.streamEvent("commandInfo", commandInfo)
           }

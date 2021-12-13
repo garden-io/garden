@@ -62,6 +62,8 @@ export interface ConnectBufferedEventStreamParams {
   targets?: StreamTarget[]
   streamEvents: boolean
   streamLogEntries: boolean
+  namespaceId?: number
+  environmentId?: number
   garden: Garden
 }
 
@@ -73,6 +75,10 @@ interface ApiBatchBase {
 
 export interface ApiEventBatch extends ApiBatchBase {
   events: StreamEvent[]
+  environmentId?: number
+  namespaceId?: number
+  // TODO: Remove the `environment` and `namespace` params once we no longer need to support Cloud/Enterprise
+  // versions that expect them.
   environment: string
   namespace: string
 }
@@ -234,6 +240,8 @@ export class BufferedEventStream {
       workflowRunUid: this.workflowRunUid,
       sessionId: this.sessionId,
       projectUid: this.garden.projectId || undefined,
+      environmentId: this.cloudApi?.environmentId,
+      namespaceId: this.cloudApi?.namespaceId,
       environment: this.garden.environmentName,
       namespace: this.garden.namespace,
     }
