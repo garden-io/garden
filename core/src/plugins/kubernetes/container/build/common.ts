@@ -126,6 +126,7 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
 
       // -> Create the sync
       await ensureMutagenSync({
+        ctx,
         log,
         key,
         logSection: module.name,
@@ -147,11 +148,11 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
       })
 
       // -> Flush the sync once
-      await flushMutagenSync(log, key)
+      await flushMutagenSync(ctx, log, key)
       log.debug(`Sync from ${sourcePath} to ${resourceName} completed`)
     } finally {
       // -> Terminate the sync
-      await terminateMutagenSync(log, key)
+      await terminateMutagenSync(ctx, log, key)
       log.debug(`Sync connection terminated`)
     }
   } else {
