@@ -1,0 +1,16 @@
+kind: Project
+name: remote-local-hybrid
+environments:
+  - name: dev
+    defaultNamespace: remote-local-hybrid-${var.userId}
+providers:
+  - name: kubernetes
+    environments: [dev]
+    # Replace these values as appropriate
+    context: ${var.remoteContext}
+    namespace: ${environment.namespace}
+    defaultHostname: ${var.userId}-remote-local-hybrid.dev-1.sys.garden
+    buildMode: kaniko
+variables:
+  userId: ${local.env.CIRCLE_BUILD_NUM || local.username}
+  remoteContext: gke_garden-ci_europe-west1-b_core-ci
