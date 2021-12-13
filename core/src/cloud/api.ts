@@ -21,6 +21,7 @@ import { deline } from "../util/string"
 import chalk from "chalk"
 import { GetProjectResponse } from "@garden-io/platform-api-types"
 import { getCloudDistributionName, getPackageVersion } from "../util/util"
+import { CommandInfo } from "../plugin-context"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
@@ -75,6 +76,12 @@ export type ApiFetchResponse<T> = T & {
   headers: IncomingHttpHeaders
 }
 
+// TODO: Read this from the `api-types` package once the session registration logic has been released in Cloud.
+export interface RegisterSessionResponse {
+  environmentId: number
+  namespaceId: number
+}
+
 /**
  * A helper function that finds a project without resolving template strings and returns the enterprise
  * config. Needed since the EnterpriseApi is generally used before initializing the Garden class.
@@ -109,6 +116,11 @@ export class CloudApi {
   private apiPrefix = "api"
   public domain: string
   public projectId: string
+
+  // Set when/if the Core session is registered with Cloud
+  public environmentId?: number
+  public namespaceId?: number
+  public sessionRegistered = false
 
   constructor(log: LogEntry, enterpriseDomain: string, projectId: string) {
     this.log = log
@@ -454,6 +466,54 @@ export class CloudApi {
       retryDescription,
       maxRetries,
     })
+  }
+
+  async registerSession({
+    sessionId,
+    commandInfo,
+    localServerPort,
+    environment,
+    namespace,
+  }: {
+    sessionId: string
+    commandInfo: CommandInfo
+    localServerPort?: number
+    environment: string
+    namespace: string
+  }): Promise<void> {
+    try {
+      const body = {
+        sessionId,
+        commandInfo,
+        localServerPort,
+        projectUid: this.projectId,
+        environment,
+        namespace,
+      }
+      this.log.debug("Registering session with Garden Cloud.")
+      const res: RegisterSessionResponse = await this.post("sessions", {
+        body,
+        retry: true,
+        retryDescription: "Registering session",
+      })
+      this.environmentId = res.environmentId
+      this.namespaceId = res.namespaceId
+      this.log.debug("Successfully registered session with Garden Cloud.")
+    } catch (err) {
+      // We don't want the command to fail when an error occurs during session registration.
+      if (isGotError(err, 422)) {
+        const errMsg = deline`
+          Session registration skipped due to mismatch between CLI and API versions. Please make sure your Garden CLI
+          version is compatible with your version of Garden Cloud.
+        `
+        this.log.debug(errMsg)
+      } else {
+        // TODO: Reintroduce error-level warning when we're checking if the Cloud/Enterprise version is compatible with
+        // the Core version.
+        this.log.verbose(`An error occurred while registering the session: ${err.message}`)
+      }
+    }
+    this.sessionRegistered = true
   }
 
   async getProject() {
