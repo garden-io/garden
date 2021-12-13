@@ -241,6 +241,7 @@ export async function startDevModeSync({
       log.info({ symbol: "info", section: serviceName, msg: chalk.gray(`Syncing ${description} (${s.mode})`) })
 
       await ensureMutagenSync({
+        ctx,
         // Prefer to log to the main view instead of the handler log context
         log,
         key,

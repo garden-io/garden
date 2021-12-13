@@ -142,6 +142,7 @@ This is done to grant you more control over precisely which files and directorie
 For example, you might want to ignore `dist` or `build` directories (not version control them, not include them in builds or module versions), but still be able to sync them from your local machine to the running container (or from the running container to your local machine). This is easy to achieve with dev mode.
 
 Exclusion rules can be specified on individual sync configs:
+
 ```yaml
 kind: Module
 name: node-service
@@ -158,7 +159,9 @@ services:
           mode: two-way
   ...
 ```
+
 Project-wide exclusion rules can be set on the `local-kubernetes` and `kubernetes` providers:
+
 ```yaml
 kind: Project
 ...
@@ -172,6 +175,7 @@ providers:
         exclude:
           - "/**/node_modules" # <--- with this, we don't have to specify `node_modules` on individual sync specs
 ```
+
 This is great to reduce repetition in your excludes.
 
 See the reference documentation for the [`kubernetes` provider](../reference/providers/kubernetes.md#providersdevmode)) for a full list of provider-level options for dev mode when using the `kubernetes` provider. The same dev-mode options are also available when using `local-kubernetes`.
@@ -207,6 +211,7 @@ These options are passed directly to Mutagen. For more information, please see t
 ### An advanced example
 
 This example demonstrates several of the more advanced options that dev mode offers. For more details on the options available, see the sections above.
+
 ```yaml
 kind: Project
 ...
@@ -254,4 +259,16 @@ services:
           # description of each available sync mode.
           mode: one-way-replica-reverse
   ...
+```
+
+## Troubleshooting
+
+Every so often something comes up in the underlying Mutagen synchronization process, which may not be visible in the Garden CLI logs. To figure out what the issue may be (say, ahead of reporting a GitHub issue for Garden), it's useful to be able to use the `mutagen` CLI directly.
+
+Because Garden creates a temporary data directory for Mutagen for every Garden CLI instance, you can't use the `mutagen` CLI without additional context. However, to make this easier, a symlink to the temporary directory is automatically created under `<project root>/.garden/mutagen/<random ID>`, as well as a `mutagen.sh` helper script within that directory that sets the appropriate context and links to the automatically installed Mutagen CLI.
+
+To, for example, get the current list of active syncs in an active Garden process, you could run the following from the project root directory:
+
+```sh
+.garden/mutagen/<session ID>/mutagen.sh sync list
 ```

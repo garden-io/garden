@@ -9,7 +9,7 @@
 const AsyncLock = require("async-lock")
 import chalk from "chalk"
 import { join } from "path"
-import { mkdirp, pathExists, remove, removeSync } from "fs-extra"
+import { chmod, ensureSymlink, mkdirp, pathExists, remove, removeSync, writeFile } from "fs-extra"
 import respawn from "respawn"
 import { LogEntry } from "../../logger/log-entry"
 import { PluginToolSpec } from "../../types/plugin/tools"
@@ -22,6 +22,7 @@ import { KubernetesPluginContext } from "./config"
 import pRetry from "p-retry"
 import { devModeGuideLink } from "./dev-mode"
 import dedent from "dedent"
+import { PluginContext } from "../../plugin-context"
 
 const maxRestarts = 10
 const monitorDelay = 2000
@@ -31,6 +32,7 @@ export const mutagenAgentPath = "/.garden/mutagen-agent"
 let daemonProc: any
 let mutagenTmp: TempDirectory
 let lastDaemonError = ""
+let mutagenTmpSymlinkPath: string
 
 export const mutagenModeMap = {
   "one-way": "one-way-safe",
@@ -84,10 +86,11 @@ export async function killSyncDaemon(clearTmpDir = true) {
   stopDaemonProc()
   if (mutagenTmp) {
     await remove(join(mutagenTmp.path, "mutagen.yml.lock"))
-  }
 
-  if (clearTmpDir) {
-    mutagenTmp && (await remove(mutagenTmp.path))
+    if (clearTmpDir) {
+      await remove(mutagenTmp.path)
+      mutagenTmpSymlinkPath && (await remove(mutagenTmpSymlinkPath))
+    }
   }
 
   activeSyncs = {}
@@ -100,7 +103,7 @@ function stopDaemonProc() {
   } catch {}
 }
 
-export async function ensureMutagenDaemon(log: LogEntry) {
+export async function ensureMutagenDaemon(ctx: PluginContext, log: LogEntry) {
   return mutagenConfigLock.acquire("start-daemon", async () => {
     if (!mutagenTmp) {
       mutagenTmp = await makeTempDir()
@@ -108,6 +111,7 @@ export async function ensureMutagenDaemon(log: LogEntry) {
 
     const dataDir = mutagenTmp.path
 
+    // Return if already running
     if (daemonProc && daemonProc.status === "running") {
       return dataDir
     }
@@ -115,6 +119,23 @@ export async function ensureMutagenDaemon(log: LogEntry) {
     const mutagenPath = await mutagen.getPath(log)
 
     await mkdirp(dataDir)
+
+    // For convenience while troubleshooting, place a symlink to the temp directory under .garden/mutagen
+    mutagenTmpSymlinkPath = join(ctx.gardenDirPath, "mutagen", ctx.sessionId)
+    await ensureSymlink(dataDir, mutagenTmpSymlinkPath, "dir")
+
+    // Also, write a quick script to the data directory to make it easier to work with
+    const scriptPath = join(dataDir, "mutagen.sh")
+    await writeFile(
+      scriptPath,
+      dedent`
+        #!/bin/sh
+        export MUTAGEN_DATA_DIRECTORY='${dataDir}'
+        export MUTAGEN_LOG_LEVEL=debug
+        ${mutagenPath} "$@"
+      `
+    )
+    await chmod(scriptPath, 0o755)
 
     daemonProc = respawn([mutagenPath, "daemon", "run"], {
       cwd: dataDir,
@@ -199,8 +220,8 @@ export async function ensureMutagenDaemon(log: LogEntry) {
   })
 }
 
-export async function execMutagenCommand(log: LogEntry, args: string[]) {
-  let dataDir = await ensureMutagenDaemon(log)
+export async function execMutagenCommand(ctx: PluginContext, log: LogEntry, args: string[]) {
+  let dataDir = await ensureMutagenDaemon(ctx, log)
 
   let loops = 0
   const maxRetries = 10
@@ -216,7 +237,7 @@ export async function execMutagenCommand(log: LogEntry, args: string[]) {
           MUTAGEN_DATA_DIRECTORY: dataDir,
         },
       })
-      startMutagenMonitor(log)
+      startMutagenMonitor(ctx, log)
       return res
     } catch (err) {
       const unableToConnect = err.message.match(/unable to connect to daemon/)
@@ -232,7 +253,7 @@ export async function execMutagenCommand(log: LogEntry, args: string[]) {
         }
         await killSyncDaemon(false)
         await sleep(2000 + loops * 500)
-        dataDir = await ensureMutagenDaemon(log)
+        dataDir = await ensureMutagenDaemon(ctx, log)
       } else {
         throw err
       }
@@ -300,8 +321,8 @@ let monitorInterval: NodeJS.Timeout
 
 const syncStatusLines: { [sessionName: string]: LogEntry } = {}
 
-function checkMutagen(log: LogEntry) {
-  getActiveMutagenSyncs(log)
+function checkMutagen(ctx: PluginContext, log: LogEntry) {
+  getActiveMutagenSyncs(ctx, log)
     .then((syncs) => {
       for (const sync of syncs) {
         const sessionName = sync.session.name
@@ -380,17 +401,17 @@ function checkMutagen(log: LogEntry) {
     })
 }
 
-export function startMutagenMonitor(log: LogEntry) {
+export function startMutagenMonitor(ctx: PluginContext, log: LogEntry) {
   if (!monitorInterval) {
-    monitorInterval = setInterval(() => checkMutagen(log), monitorDelay)
+    monitorInterval = setInterval(() => checkMutagen(ctx, log), monitorDelay)
   }
 }
 
 /**
  * List the currently active syncs in the mutagen daemon.
  */
-export async function getActiveMutagenSyncs(log: LogEntry): Promise<SyncListEntry[]> {
-  const res = await execMutagenCommand(log, ["sync", "list", "--output=json", "--auto-start=false"])
+export async function getActiveMutagenSyncs(ctx: PluginContext, log: LogEntry): Promise<SyncListEntry[]> {
+  const res = await execMutagenCommand(ctx, log, ["sync", "list", "--output=json", "--auto-start=false"])
 
   // TODO: validate further
   let parsed: any = {}
@@ -413,6 +434,7 @@ export async function getActiveMutagenSyncs(log: LogEntry): Promise<SyncListEntr
  * (When configuration changes, the whole daemon is reset).
  */
 export async function ensureMutagenSync({
+  ctx,
   log,
   logSection,
   key,
@@ -420,6 +442,7 @@ export async function ensureMutagenSync({
   targetDescription,
   config,
 }: {
+  ctx: PluginContext
   log: LogEntry
   logSection: string
   key: string
@@ -432,7 +455,7 @@ export async function ensureMutagenSync({
   }
 
   return mutagenConfigLock.acquire("configure", async () => {
-    const active = await getActiveMutagenSyncs(log)
+    const active = await getActiveMutagenSyncs(ctx, log)
     const existing = active.find((s: any) => s.name === key)
 
     if (!existing) {
@@ -456,7 +479,7 @@ export async function ensureMutagenSync({
       }
 
       // Might need to retry
-      await pRetry(() => execMutagenCommand(log, ["sync", "create", ...params]), {
+      await pRetry(() => execMutagenCommand(ctx, log, ["sync", "create", ...params]), {
         retries: 5,
         minTimeout: 1000,
         onFailedAttempt: (err) => {
@@ -485,12 +508,12 @@ export async function ensureMutagenSync({
 /**
  * Remove the specified sync (by name) from the sync daemon.
  */
-export async function terminateMutagenSync(log: LogEntry, key: string) {
+export async function terminateMutagenSync(ctx: PluginContext, log: LogEntry, key: string) {
   log.debug(`Terminating mutagen sync ${key}`)
 
   return mutagenConfigLock.acquire("configure", async () => {
     try {
-      await execMutagenCommand(log, ["sync", "delete", key, "--auto-start=false"])
+      await execMutagenCommand(ctx, log, ["sync", "delete", key, "--auto-start=false"])
       delete activeSyncs[key]
     } catch (err) {
       // Ignore other errors, which should mean the sync wasn't found
@@ -503,8 +526,8 @@ export async function terminateMutagenSync(log: LogEntry, key: string) {
 /**
  * Ensure a sync is completed.
  */
-export async function flushMutagenSync(log: LogEntry, key: string) {
-  await execMutagenCommand(log, ["sync", "flush", key, "--auto-start=false"])
+export async function flushMutagenSync(ctx: PluginContext, log: LogEntry, key: string) {
+  await execMutagenCommand(ctx, log, ["sync", "flush", key, "--auto-start=false"])
 }
 
 export async function getKubectlExecDestination({
