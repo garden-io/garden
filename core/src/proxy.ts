@@ -305,7 +305,7 @@ function stopPortProxy(proxy: PortProxy, log?: LogEntry) {
   delete activeProxies[proxy.key]
 
   try {
-    proxy.server.close()
+    proxy.server.close(() => {})
   } catch {}
 }
 
