@@ -1,0 +1,46 @@
+kind: Module
+name: frontend
+description: Frontend service container
+type: container
+include: ["."]
+variables:
+  env:
+    PORT: 8080
+    IS_LOCAL: false
+services:
+  - name: frontend
+    ports:
+      - name: http
+        containerPort: 8080
+    healthCheck:
+      httpGet:
+        path: /hello-frontend
+        port: http
+    ingresses:
+      - path: /hello-frontend
+        port: http
+      - path: /call-backend
+        port: http
+    env:
+      $merge: ${modules.frontend.var.env}
+    dependencies:
+      - backend
+tests:
+  - name: unit
+    args: [npm, test]
+  - name: integ
+    args: [npm, run, integ]
+    dependencies:
+      - frontend
+
+---
+
+kind: Module
+name: frontend-local
+description: An exec module for running the frontend locally
+type: exec
+local: true
+include: []
+env:
+  $merge: ${modules.frontend.var.env}
+  IS_LOCAL: true
