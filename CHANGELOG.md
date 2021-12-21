@@ -1,4 +1,20 @@
 
+<a name="0.12.33-0"></a>
+## [0.12.33-0](https://github.com/garden-io/garden/compare/0.12.32...0.12.33-0) (2021-12-13)
+
+### Bug Fixes
+
+* **cloud:** add env and ns IDs to event payloads ([9a2f41c5](https://github.com/garden-io/garden/commit/9a2f41c5))
+* **k8s:** remove startupProbes from task and test pods ([e616cae3](https://github.com/garden-io/garden/commit/e616cae3))
+
+### Features
+
+* **core:** module varfiles ([d63e1751](https://github.com/garden-io/garden/commit/d63e1751))
+
+### Improvements
+
+* **cloud:** add pagination to secrets list command ([72937979](https://github.com/garden-io/garden/commit/72937979))
+
 <a name="0.12.32"></a>
 ## [0.12.32](https://github.com/garden-io/garden/compare/0.12.31...0.12.32) (2021-12-02)
 
