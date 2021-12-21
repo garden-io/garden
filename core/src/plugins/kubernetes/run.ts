@@ -101,7 +101,7 @@ export const makeRunLogEntry: PodLogEntryConverter<RunLogEntry> = ({ timestamp, 
   return { timestamp, msg }
 }
 
-export const runContainerExcludeFields: (keyof V1Container)[] = ["readinessProbe", "livenessProbe"]
+export const runContainerExcludeFields: (keyof V1Container)[] = ["readinessProbe", "livenessProbe", "startupProbe"]
 
 export async function runAndCopy({
   ctx,
