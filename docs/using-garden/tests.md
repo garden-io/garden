@@ -142,6 +142,10 @@ kubectl delete -n garden-system--metadata $(kubectl get configmap -n garden-syst
 The `exec` module type runs tests locally in your shell. By default, the `exec` module type executes tests in the Garden build directory (under `.garden/build/<module-name>`). By setting `local: true`, the tests are executed in the module
 source directory instead.
 
+### Kubernetes and Helm Modules
+
+Because a Kubernetes or Helm module can contain any number of Kubernetes resources, a `serviceResource` needs to be specified to determine the pod spec for the test pod. You can see the whole pod spec used in the reference docs for [kubernetes](https://docs.garden.io/reference/module-types/kubernetes#tests-.resource) and [helm modules](https://docs.garden.io/reference/module-types/helm#tests-.resource). Please note that the `startupProbe`, `livenessProbe` and `readinessProbe` are stripped from your pod spec. Health checks for your application might fail when the container is used for testing because the main process usually running in that container is replaced by the test command.
+
 ## Next Steps
 
 In the [next section](./tasks.md), we'll see how Garden can execute tasks for your. For example populating a database after it has been deployed.
