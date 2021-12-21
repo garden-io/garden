@@ -167,6 +167,10 @@ kubectl delete -n <project-name>--metadata $(kubectl get configmap -n <project-n
 The `exec` module type runs tasks locally in your shell. By default, the `exec` module type executes tasks in the Garden build directory (under `.garden/build/<module-name>`). By setting `local: true`, the tasks are executed in the module
 source directory instead.
 
+### Kubernetes and Helm Modules
+
+Because a Kubernetes or Helm module can contain any number of Kubernetes resources, a `serviceResource` needs to be specified to determine the pod spec for the task pod. You can see the whole pod spec used in the reference docs for [kubernetes](https://docs.garden.io/reference/module-types/kubernetes#tasks-.resource) and [helm modules](https://docs.garden.io/reference/module-types/helm#tasks-.resource). Please note that the `startupProbe`, `livenessProbe` and `readinessProbe` are stripped from your pod spec. Health checks for your application might fail when the container is used for testing because the main process usually running in that container is replaced by the task command.
+
 ## Further Reading
 
 For full task configuration by module type, please take a look at our [reference docs](../reference/module-types/README.md).
