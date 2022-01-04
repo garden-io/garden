@@ -30,7 +30,7 @@ import { gardenAnnotationKey, deline } from "../../../util/string"
 import { RuntimeContext } from "../../../runtime-context"
 import { resolve } from "path"
 import { killPortForwards } from "../port-forward"
-import { prepareImagePullSecrets } from "../secrets"
+import { prepareSecrets } from "../secrets"
 import { configureHotReload } from "../hot-reload/helpers"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { hotReloadableKinds, HotReloadableResource } from "../hot-reload/hot-reload"
@@ -472,9 +472,11 @@ export async function createWorkloadManifest({
   }
 
   if (provider.config.imagePullSecrets.length > 0) {
-    // add any configured imagePullSecrets
-    workload.spec.template.spec!.imagePullSecrets = await prepareImagePullSecrets({ api, provider, namespace, log })
+    // add any configured imagePullSecrets.
+    const imagePullSecrets = await prepareSecrets({ api, namespace, secrets: provider.config.imagePullSecrets, log })
+    workload.spec.template.spec!.imagePullSecrets = imagePullSecrets
   }
+  await prepareSecrets({ api, namespace, secrets: provider.config.copySecrets, log })
 
   // this is important for status checks to work correctly, because how K8s normalizes resources
   if (!container.ports!.length) {

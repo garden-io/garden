@@ -136,6 +136,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
   }
   forceSsl: boolean
   imagePullSecrets: ProviderSecretRef[]
+  copySecrets: ProviderSecretRef[]
   ingressHttpPort: number
   ingressHttpsPort: number
   ingressClass?: string
@@ -314,6 +315,12 @@ const imagePullSecretsSchema = () =>
     References to \`docker-registry\` secrets to use for authenticating with remote registries when pulling
     images. This is necessary if you reference private images in your module configuration, and is required
     when configuring a remote Kubernetes environment with buildMode=local.
+  `)
+
+const copySecretsSchema = () =>
+  joiSparseArray(secretRef).description(dedent`
+    References to secrets you need to have copied into all namespaces deployed to. These secrets will be
+    ensured to exist in the namespace before deploying any service.
   `)
 
 const tlsCertificateSchema = () =>
@@ -496,6 +503,7 @@ export const kubernetesConfigBase = () =>
       )
       .meta({ internal: true }),
     imagePullSecrets: imagePullSecretsSchema(),
+    copySecrets: copySecretsSchema(),
     // TODO: invert the resources and storage config schemas
     resources: joi
       .object()

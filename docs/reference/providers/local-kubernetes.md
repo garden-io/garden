@@ -180,6 +180,16 @@ providers:
         # namespace before use.
         namespace: default
 
+    # References to secrets you need to have copied into all namespaces deployed to. These secrets will be
+    # ensured to exist in the namespace before deploying any service.
+    copySecrets:
+      - # The name of the Kubernetes secret.
+        name:
+
+        # The namespace where the secret is stored. If necessary, the secret may be copied to the appropriate
+        # namespace before use.
+        namespace: default
+
     # Resource requests and limits for the in-cluster builder, container registry and code sync service. (which are
     # automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
     resources:
@@ -808,6 +818,45 @@ providers:
 ### `providers[].imagePullSecrets[].namespace`
 
 [providers](#providers) > [imagePullSecrets](#providersimagepullsecrets) > namespace
+
+The namespace where the secret is stored. If necessary, the secret may be copied to the appropriate namespace before use.
+
+| Type     | Default     | Required |
+| -------- | ----------- | -------- |
+| `string` | `"default"` | No       |
+
+### `providers[].copySecrets[]`
+
+[providers](#providers) > copySecrets
+
+References to secrets you need to have copied into all namespaces deployed to. These secrets will be
+ensured to exist in the namespace before deploying any service.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `providers[].copySecrets[].name`
+
+[providers](#providers) > [copySecrets](#providerscopysecrets) > name
+
+The name of the Kubernetes secret.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+Example:
+
+```yaml
+providers:
+  - copySecrets:
+      - name: "my-secret"
+```
+
+### `providers[].copySecrets[].namespace`
+
+[providers](#providers) > [copySecrets](#providerscopysecrets) > namespace
 
 The namespace where the secret is stored. If necessary, the secret may be copied to the appropriate namespace before use.
 

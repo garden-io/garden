@@ -51,6 +51,12 @@ const basicConfig: KubernetesConfig = {
       namespace: "default",
     },
   ],
+  copySecrets: [
+    {
+      name: "test-shared-secret",
+      namespace: "default",
+    },
+  ],
   ingressClass: "nginx",
   ingressHttpPort: 80,
   ingressHttpsPort: 443,
