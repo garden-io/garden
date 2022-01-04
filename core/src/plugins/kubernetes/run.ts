@@ -32,7 +32,7 @@ import { ContainerEnvVars, ContainerResourcesSpec, ContainerVolumeSpec } from ".
 import { prepareEnvVars, makePodName } from "./util"
 import { deline, randomString } from "../../util/string"
 import { ArtifactSpec } from "../../config/validation"
-import { prepareImagePullSecrets } from "./secrets"
+import { prepareSecrets } from "./secrets"
 import { configureVolumes } from "./container/deployment"
 import { PluginContext, PluginEventBroker } from "../../plugin-context"
 import { waitForResources, ResourceStatus } from "./status/status"
@@ -295,7 +295,8 @@ export async function prepareRunPodSpec({
     },
   ]
 
-  const imagePullSecrets = await prepareImagePullSecrets({ api, provider, namespace, log })
+  const imagePullSecrets = await prepareSecrets({ api, namespace, secrets: provider.config.imagePullSecrets, log })
+  await prepareSecrets({ api, namespace, secrets: provider.config.copySecrets, log })
 
   const preparedPodSpec = {
     ...pick(podSpec || {}, runPodSpecIncludeFields),

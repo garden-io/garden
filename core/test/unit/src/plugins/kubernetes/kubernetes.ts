@@ -24,6 +24,7 @@ describe("kubernetes configureProvider", () => {
     forceSsl: false,
     gardenSystemNamespace: defaultSystemNamespace,
     imagePullSecrets: [],
+    copySecrets: [],
     ingressClass: "nginx",
     ingressHttpPort: 80,
     ingressHttpsPort: 443,
