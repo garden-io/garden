@@ -35,6 +35,7 @@ import { ModuleConfigContext, ModuleConfigContextParams } from "./config/templat
 import { pathToCacheContext } from "./cache"
 import { loadVarfile } from "./config/project"
 import { merge } from "json-merge-patch"
+import { prepareBuildDependencies } from "./config/base"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 40
@@ -318,6 +319,22 @@ export class ModuleResolver {
       )
     }
 
+    // We allow specifying modules by name only as a shorthand:
+    //
+    // dependencies:
+    //   - foo-module
+    //   - name: foo-module // same as the above
+    //
+    // Empty strings and nulls are omitted from the array.
+    if (config.build && config.build.dependencies) {
+      config.build.dependencies = prepareBuildDependencies(config.build.dependencies).filter((dep) => dep.name)
+    }
+
+    // We need to refilter the build dependencies on the spec in case one or more dependency names resolved to null.
+    if (config.spec.build && config.spec.build.dependencies) {
+      config.spec.build.dependencies = prepareBuildDependencies(config.spec.build.dependencies)
+    }
+
     // Validate the module-type specific spec
     if (description.schema) {
       config.spec = validateWithPath({
@@ -328,19 +345,6 @@ export class ModuleResolver {
         path: config.path,
         projectRoot: garden.projectRoot,
       })
-    }
-
-    /*
-      We allow specifying modules by name only as a shorthand:
-
-      dependencies:
-        - foo-module
-        - name: foo-module // same as the above
-    */
-    if (config.build && config.build.dependencies) {
-      config.build.dependencies = config.build.dependencies.map((dep) =>
-        typeof dep === "string" ? { name: dep, copy: [] } : dep
-      )
     }
 
     // Validate the base config schema

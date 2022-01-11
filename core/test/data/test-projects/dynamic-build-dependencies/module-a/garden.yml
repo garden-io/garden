@@ -1,0 +1,7 @@
+kind: Module
+name: module-a
+type: test
+build:
+  dependencies:
+    - "${var.missing ? 'module-b' : null}"
+    - module-c

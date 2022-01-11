@@ -20,6 +20,7 @@ import { WorkflowResource } from "./workflow"
 import { listDirectory } from "../util/fs"
 import { isConfigFilename } from "../util/fs"
 import { TemplateKind, templateKind, ModuleTemplateResource } from "./module-template"
+import { isTruthy } from "../util/util"
 
 export interface GardenResource {
   apiVersion: string
@@ -141,16 +142,17 @@ function prepareProjectConfig(spec: any, configPath: string): ProjectResource {
 }
 
 export function prepareModuleResource(spec: any, configPath: string, projectRoot: string): ModuleResource {
-  /**
-   * We allow specifying modules by name only as a shorthand:
-   *   dependencies:
-   *   - foo-module
-   *   - name: foo-module // same as the above
-   */
+  // We allow specifying modules by name only as a shorthand:
+  //   dependencies:
+  //   - foo-module
+  //   - name: foo-module // same as the above
+  // Empty strings and nulls are omitted from the array.
   let dependencies: BuildDependencyConfig[] = spec.build?.dependencies || []
 
   if (spec.build && spec.build.dependencies && isArray(spec.build.dependencies)) {
-    dependencies = spec.build.dependencies.map((dep: any) => (typeof dep === "string" ? { name: dep, copy: [] } : dep))
+    // We call `prepareBuildDependencies` on `spec.build.dependencies` again in `resolveModuleConfig` to ensure that
+    // any dependency configs whose module names resolved to null get filtered out.
+    dependencies = prepareBuildDependencies(spec.build.dependencies)
   }
 
   const cleanedSpec = {
@@ -200,6 +202,24 @@ export function prepareModuleResource(spec: any, configPath: string, projectRoot
   })
 
   return config
+}
+
+/**
+ * Normalizes build dependencies such that the string / module name shorthand is converted into the map form,
+ * and removes any null entries (or entries with null names, which can appear after template resolution).
+ */
+export function prepareBuildDependencies(buildDependencies: any[]): BuildDependencyConfig[] {
+  return buildDependencies
+    .map((dep) => {
+      if (!dep || (dep && dep.name === null)) {
+        return null
+      }
+      return {
+        name: dep.name ? dep.name : dep,
+        copy: dep.copy ? dep.copy : [],
+      }
+    })
+    .filter(isTruthy)
 }
 
 export function prepareWorkflowResource(spec: any, configPath: string): WorkflowResource {

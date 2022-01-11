@@ -1,0 +1,8 @@
+kind: Project
+name: dynamic-build-dependencies
+environments:
+  - name: local
+providers:
+  - name: test-plugin
+variables:
+  banana: "exists"
