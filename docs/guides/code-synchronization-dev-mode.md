@@ -265,10 +265,10 @@ services:
 
 Every so often something comes up in the underlying Mutagen synchronization process, which may not be visible in the Garden CLI logs. To figure out what the issue may be (say, ahead of reporting a GitHub issue for Garden), it's useful to be able to use the `mutagen` CLI directly.
 
-Because Garden creates a temporary data directory for Mutagen for every Garden CLI instance, you can't use the `mutagen` CLI without additional context. However, to make this easier, a symlink to the temporary directory is automatically created under `<project root>/.garden/mutagen/<random ID>`, as well as a `mutagen.sh` helper script within that directory that sets the appropriate context and links to the automatically installed Mutagen CLI.
+Because Garden creates a temporary data directory for Mutagen for every Garden CLI instance, you can't use the `mutagen` CLI without additional context. However, to make this easier, a symlink to the temporary directory is automatically created under `<project root>/.garden/mutagen/<random ID>`, as well as a `mutagen.sh` helper script within that directory that sets the appropriate context and links to the automatically installed Mutagen CLI. We also create a `<project root>/.garden/mutagen/latest` symlink for convenience.
 
 To, for example, get the current list of active syncs in an active Garden process, you could run the following from the project root directory:
 
 ```sh
-.garden/mutagen/<session ID>/mutagen.sh sync list
+.garden/mutagen/latest/mutagen.sh sync list
 ```

@@ -27,6 +27,8 @@ import { PluginContext } from "../../plugin-context"
 const maxRestarts = 10
 const monitorDelay = 2000
 const mutagenLogSection = "<mutagen>"
+const crashMessage = `Synchronization daemon has crashed ${maxRestarts} times. Aborting.`
+
 export const mutagenAgentPath = "/.garden/mutagen-agent"
 
 let daemonProc: any
@@ -79,7 +81,12 @@ export const mutagenConfigLock = new AsyncLock()
 
 registerCleanupFunction("kill-sync-daaemon", () => {
   stopDaemonProc()
-  mutagenTmp && removeSync(mutagenTmp.path)
+  try {
+    mutagenTmp && removeSync(mutagenTmp.path)
+  } catch {}
+  try {
+    mutagenTmpSymlinkPath && removeSync(mutagenTmpSymlinkPath)
+  } catch {}
 })
 
 export async function killSyncDaemon(clearTmpDir = true) {
@@ -122,20 +129,29 @@ export async function ensureMutagenDaemon(ctx: PluginContext, log: LogEntry) {
 
     // For convenience while troubleshooting, place a symlink to the temp directory under .garden/mutagen
     mutagenTmpSymlinkPath = join(ctx.gardenDirPath, "mutagen", ctx.sessionId)
-    await ensureSymlink(dataDir, mutagenTmpSymlinkPath, "dir")
+    const latestSymlinkPath = join(ctx.gardenDirPath, "mutagen", "latest")
 
-    // Also, write a quick script to the data directory to make it easier to work with
-    const scriptPath = join(dataDir, "mutagen.sh")
-    await writeFile(
-      scriptPath,
-      dedent`
-        #!/bin/sh
-        export MUTAGEN_DATA_DIRECTORY='${dataDir}'
-        export MUTAGEN_LOG_LEVEL=debug
-        ${mutagenPath} "$@"
-      `
-    )
-    await chmod(scriptPath, 0o755)
+    try {
+      await ensureSymlink(dataDir, mutagenTmpSymlinkPath, "dir")
+
+      // Also, write a quick script to the data directory to make it easier to work with
+      const scriptPath = join(dataDir, "mutagen.sh")
+      await writeFile(
+        scriptPath,
+        dedent`
+          #!/bin/sh
+          export MUTAGEN_DATA_DIRECTORY='${dataDir}'
+          export MUTAGEN_LOG_LEVEL=debug
+          ${mutagenPath} "$@"
+        `
+      )
+      await chmod(scriptPath, 0o755)
+
+      // Always keep a "latest" link for convenience
+      await ensureSymlink(dataDir, latestSymlinkPath)
+    } catch (err) {
+      log.debug({ symbol: "warning", msg: `Unable to symlink mutagen data directory: ${err}` })
+    }
 
     daemonProc = respawn([mutagenPath, "daemon", "run"], {
       cwd: dataDir,
@@ -150,8 +166,6 @@ export async function ensureMutagenDaemon(ctx: PluginContext, log: LogEntry) {
       stdio: "pipe",
       fork: false,
     })
-
-    const crashMessage = `Synchronization daemon has crashed ${maxRestarts} times. Aborting.`
 
     daemonProc.on("crash", () => {
       log.warn(chalk.yellow(crashMessage))
