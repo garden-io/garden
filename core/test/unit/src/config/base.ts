@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { loadConfigResources, findProjectConfig } from "../../../../src/config/base"
+import { loadConfigResources, findProjectConfig, prepareModuleResource } from "../../../../src/config/base"
 import { resolve, join } from "path"
 import { dataDir, expectError, getDataDir } from "../../../helpers"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
@@ -392,6 +392,19 @@ describe("loadConfigResources", () => {
         path,
         configPath,
       },
+    ])
+  })
+})
+
+describe("prepareModuleResource", () => {
+  it("should normalize build dependencies", async () => {
+    const moduleConfigPath = resolve(modulePathA, "garden.yml")
+    const parsed: any = (await loadConfigResources(projectPathA, moduleConfigPath))[0]
+    parsed.build!.dependencies = [{ name: "apple" }, "banana", null]
+    const prepared = prepareModuleResource(parsed, moduleConfigPath, projectPathA)
+    expect(prepared.build!.dependencies).to.eql([
+      { name: "apple", copy: [] },
+      { name: "banana", copy: [] },
     ])
   })
 })

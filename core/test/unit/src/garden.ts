@@ -2546,6 +2546,16 @@ describe("Garden", () => {
       expect(module.allowPublish).to.equal(false)
     })
 
+    it("should filter out null build dependencies after resolving template strings", async () => {
+      const projectRoot = getDataDir("test-projects", "dynamic-build-dependencies")
+      const garden = await makeTestGarden(projectRoot)
+
+      const module = await garden.resolveModule("module-a")
+      const moduleCDep = { name: "module-c", copy: [] }
+      expect(module.build.dependencies).to.eql([moduleCDep])
+      expect(module.spec.build.dependencies).to.eql([moduleCDep])
+    })
+
     it("should correctly resolve template strings referencing nested variables", async () => {
       const test = createGardenPlugin({
         name: "test",
