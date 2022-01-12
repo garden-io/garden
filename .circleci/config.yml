@@ -408,6 +408,7 @@ jobs:
       - checkout
       # This is to copy the pre-built code from a previous step
       - *attach-workspace
+      - docker_login
       # TODO: use garden publish here
       - deploy:
           name: Release docker images
