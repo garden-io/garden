@@ -90,6 +90,41 @@ class ProjectContext extends ConfigContext {
   }
 }
 
+class DatetimeContext extends ConfigContext {
+  @schema(
+    joi
+      .string()
+      .description("The current UTC date and time, at time of template resolution, in ISO-8601 format.")
+      .example("2011-10-05T14:48:00.000Z")
+  )
+  public now: string
+
+  @schema(
+    joi
+      .string()
+      .description("The current UTC date, at time of template resolution, in ISO-8601 format.")
+      .example("2011-10-05")
+  )
+  public today: string
+
+  @schema(
+    joi
+      .string()
+      .description("The current UTC Unix timestamp (in seconds), at time of template resolution.")
+      .example(1642005235)
+  )
+  public timestamp: number
+
+  constructor(root: ConfigContext) {
+    super(root)
+    const now = new Date()
+
+    this.now = now.toISOString()
+    this.today = this.now.slice(0, 10)
+    this.timestamp = Math.round(now.getTime() / 1000)
+  }
+}
+
 class VcsContext extends ConfigContext {
   @schema(
     joi
@@ -209,6 +244,9 @@ export class DefaultEnvironmentContext extends ConfigContext {
   @schema(CommandContext.getSchema().description("Information about the currently running command and its arguments."))
   public command: CommandContext
 
+  @schema(DatetimeContext.getSchema().description("Information about the date/time at template resolution time."))
+  public datetime: DatetimeContext
+
   @schema(ProjectContext.getSchema().description("Information about the Garden project."))
   public project: ProjectContext
 
@@ -225,6 +263,7 @@ export class DefaultEnvironmentContext extends ConfigContext {
   }: DefaultEnvironmentContextParams) {
     super()
     this.local = new LocalContext(this, artifactsPath, projectRoot, username)
+    this.datetime = new DatetimeContext(this)
     this.git = new VcsContext(this, vcsInfo)
     this.project = new ProjectContext(this, projectName)
     this.command = new CommandContext(this, commandInfo)

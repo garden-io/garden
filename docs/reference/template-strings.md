@@ -313,6 +313,56 @@ Option values can be referenced by the option's default name (e.g. `dev-mode`) o
 | ----- |
 | `any` |
 
+### `${datetime.*}`
+
+Information about the date/time at template resolution time.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${datetime.now}`
+
+The current UTC date and time, at time of template resolution, in ISO-8601 format.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${datetime.now}
+```
+
+### `${datetime.today}`
+
+The current UTC date, at time of template resolution, in ISO-8601 format.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${datetime.today}
+```
+
+### `${datetime.timestamp}`
+
+The current UTC Unix timestamp (in seconds), at time of template resolution.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${datetime.timestamp}
+```
+
 ### `${project.*}`
 
 Information about the Garden project.
@@ -545,6 +595,56 @@ Option values can be referenced by the option's default name (e.g. `dev-mode`) o
 | Type  |
 | ----- |
 | `any` |
+
+### `${datetime.*}`
+
+Information about the date/time at template resolution time.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${datetime.now}`
+
+The current UTC date and time, at time of template resolution, in ISO-8601 format.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${datetime.now}
+```
+
+### `${datetime.today}`
+
+The current UTC date, at time of template resolution, in ISO-8601 format.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${datetime.today}
+```
+
+### `${datetime.timestamp}`
+
+The current UTC Unix timestamp (in seconds), at time of template resolution.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${datetime.timestamp}
+```
 
 ### `${project.*}`
 
@@ -859,6 +959,56 @@ Option values can be referenced by the option's default name (e.g. `dev-mode`) o
 | ----- |
 | `any` |
 
+### `${datetime.*}`
+
+Information about the date/time at template resolution time.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${datetime.now}`
+
+The current UTC date and time, at time of template resolution, in ISO-8601 format.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${datetime.now}
+```
+
+### `${datetime.today}`
+
+The current UTC date, at time of template resolution, in ISO-8601 format.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${datetime.today}
+```
+
+### `${datetime.timestamp}`
+
+The current UTC Unix timestamp (in seconds), at time of template resolution.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${datetime.timestamp}
+```
+
 ### `${project.*}`
 
 Information about the Garden project.
@@ -1123,6 +1273,56 @@ Option values can be referenced by the option's default name (e.g. `dev-mode`) o
 | Type  |
 | ----- |
 | `any` |
+
+### `${datetime.*}`
+
+Information about the date/time at template resolution time.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${datetime.now}`
+
+The current UTC date and time, at time of template resolution, in ISO-8601 format.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${datetime.now}
+```
+
+### `${datetime.today}`
+
+The current UTC date, at time of template resolution, in ISO-8601 format.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${datetime.today}
+```
+
+### `${datetime.timestamp}`
+
+The current UTC Unix timestamp (in seconds), at time of template resolution.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${datetime.timestamp}
+```
 
 ### `${project.*}`
 
@@ -1481,6 +1681,56 @@ Option values can be referenced by the option's default name (e.g. `dev-mode`) o
 | Type  |
 | ----- |
 | `any` |
+
+### `${datetime.*}`
+
+Information about the date/time at template resolution time.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${datetime.now}`
+
+The current UTC date and time, at time of template resolution, in ISO-8601 format.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${datetime.now}
+```
+
+### `${datetime.today}`
+
+The current UTC date, at time of template resolution, in ISO-8601 format.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${datetime.today}
+```
+
+### `${datetime.timestamp}`
+
+The current UTC Unix timestamp (in seconds), at time of template resolution.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${datetime.timestamp}
+```
 
 ### `${project.*}`
 
@@ -2102,6 +2352,56 @@ Option values can be referenced by the option's default name (e.g. `dev-mode`) o
 | ----- |
 | `any` |
 
+### `${datetime.*}`
+
+Information about the date/time at template resolution time.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${datetime.now}`
+
+The current UTC date and time, at time of template resolution, in ISO-8601 format.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${datetime.now}
+```
+
+### `${datetime.today}`
+
+The current UTC date, at time of template resolution, in ISO-8601 format.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${datetime.today}
+```
+
+### `${datetime.timestamp}`
+
+The current UTC Unix timestamp (in seconds), at time of template resolution.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${datetime.timestamp}
+```
+
 ### `${project.*}`
 
 Information about the Garden project.
@@ -2628,6 +2928,56 @@ Option values can be referenced by the option's default name (e.g. `dev-mode`) o
 | Type  |
 | ----- |
 | `any` |
+
+### `${datetime.*}`
+
+Information about the date/time at template resolution time.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${datetime.now}`
+
+The current UTC date and time, at time of template resolution, in ISO-8601 format.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${datetime.now}
+```
+
+### `${datetime.today}`
+
+The current UTC date, at time of template resolution, in ISO-8601 format.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${datetime.today}
+```
+
+### `${datetime.timestamp}`
+
+The current UTC Unix timestamp (in seconds), at time of template resolution.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${datetime.timestamp}
+```
 
 ### `${project.*}`
 
