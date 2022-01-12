@@ -12,10 +12,15 @@ import { gardenEnv } from "../constants"
 
 let connection: Connection
 
+const connectionName = "default"
 const databasePath = join(gardenEnv.GARDEN_DB_DIR, "db")
 
 // Note: This function needs to be synchronous to work with the typeorm Active Record pattern (see ./base-entity.ts)
 export function getConnection(): Connection {
+  if (!connection && getConnectionManager().has(connectionName)) {
+    connection = getConnectionManager().get(connectionName)
+  }
+
   if (!connection) {
     const { LocalAddress } = require("./entities/local-address")
     const { ClientAuthToken } = require("./entities/client-auth-token")
@@ -26,6 +31,7 @@ export function getConnection(): Connection {
 
     // Prepare the connection (the ormconfig.json in the static dir is only used for the typeorm CLI during dev)
     const options: ConnectionOptions = {
+      name: connectionName,
       type: "better-sqlite3",
       database: databasePath,
       // IMPORTANT: All entities and migrations need to be manually referenced here because of how we
