@@ -39,6 +39,7 @@ import { resolve, basename, relative } from "path"
 import chalk = require("chalk")
 import { safeLoad } from "js-yaml"
 import { CommandInfo } from "../plugin-context"
+import { VcsInfo } from "../vcs/vcs"
 
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -395,7 +396,7 @@ export function resolveProjectConfig({
   defaultEnvironment,
   config,
   artifactsPath,
-  branch,
+  vcsInfo,
   username,
   loggedIn,
   enterpriseDomain,
@@ -405,7 +406,7 @@ export function resolveProjectConfig({
   defaultEnvironment: string
   config: ProjectConfig
   artifactsPath: string
-  branch: string
+  vcsInfo: VcsInfo
   username: string
   loggedIn: boolean
   enterpriseDomain: string | undefined
@@ -427,7 +428,7 @@ export function resolveProjectConfig({
       projectName: name,
       projectRoot: config.path,
       artifactsPath,
-      branch,
+      vcsInfo,
       username,
       loggedIn,
       enterpriseDomain,
@@ -515,7 +516,7 @@ export async function pickEnvironment({
   projectConfig,
   envString,
   artifactsPath,
-  branch,
+  vcsInfo,
   username,
   loggedIn,
   enterpriseDomain,
@@ -525,7 +526,7 @@ export async function pickEnvironment({
   projectConfig: ProjectConfig
   envString: string
   artifactsPath: string
-  branch: string
+  vcsInfo: VcsInfo
   username: string
   loggedIn: boolean
   enterpriseDomain: string | undefined
@@ -563,7 +564,7 @@ export async function pickEnvironment({
       projectName,
       projectRoot,
       artifactsPath,
-      branch,
+      vcsInfo,
       username,
       variables: projectVariables,
       loggedIn,

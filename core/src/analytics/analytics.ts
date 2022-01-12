@@ -211,7 +211,7 @@ export class AnalyticsHandler {
       ...globalConf.analytics,
     }
 
-    const originName = await this.garden.vcs.getOriginName(this.log)
+    const originName = this.garden.vcsInfo.originUrl
 
     const projectName = this.garden.projectName
     this.projectName = this.hash(projectName)

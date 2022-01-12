@@ -56,6 +56,12 @@ interface NamedTreeVersion extends TreeVersion {
   name: string
 }
 
+export interface VcsInfo {
+  branch: string
+  commitHash: string
+  originUrl: string
+}
+
 export interface GetFilesParams {
   log: LogEntry
   path: string
@@ -90,8 +96,7 @@ export abstract class VcsHandler {
   abstract getFiles(params: GetFilesParams): Promise<VcsFile[]>
   abstract ensureRemoteSource(params: RemoteSourceParams): Promise<string>
   abstract updateRemoteSource(params: RemoteSourceParams): Promise<void>
-  abstract getOriginName(log: LogEntry): Promise<string | undefined>
-  abstract getBranchName(log: LogEntry, path: string): Promise<string | undefined>
+  abstract getPathInfo(log: LogEntry, path: string): Promise<VcsInfo>
 
   async getTreeVersion(
     log: LogEntry,

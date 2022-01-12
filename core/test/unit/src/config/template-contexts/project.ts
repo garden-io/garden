@@ -9,15 +9,52 @@
 import { expect } from "chai"
 import stripAnsi = require("strip-ansi")
 import { ConfigContext } from "../../../../../src/config/template-contexts/base"
-import { ProjectConfigContext } from "../../../../../src/config/template-contexts/project"
+import { DefaultEnvironmentContext, ProjectConfigContext } from "../../../../../src/config/template-contexts/project"
 import { resolveTemplateString } from "../../../../../src/template-string/template-string"
 import { deline } from "../../../../../src/util/string"
+import { makeTestGardenA, TestGarden } from "../../../../helpers"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
 interface TestValues {
   [key: string]: TestValue
 }
+
+const vcsInfo = {
+  branch: "main",
+  commitHash: "abcdefgh",
+  originUrl: "https://example.com/foo",
+}
+
+describe("DefaultEnvironmentContext", () => {
+  let garden: TestGarden
+  let c: DefaultEnvironmentContext
+
+  before(async () => {
+    garden = await makeTestGardenA()
+    garden["secrets"] = { someSecret: "someSecretValue" }
+    c = new DefaultEnvironmentContext(garden)
+  })
+
+  it("should resolve the current git branch", () => {
+    expect(c.resolve({ key: ["git", "branch"], nodePath: [], opts: {} })).to.eql({
+      resolved: garden.vcsInfo.branch,
+    })
+  })
+
+  it("should resolve the current git commit hash", () => {
+    expect(c.resolve({ key: ["git", "commitHash"], nodePath: [], opts: {} })).to.eql({
+      resolved: garden.vcsInfo.commitHash,
+    })
+  })
+
+  it("should resolve the current git origin URL", () => {
+    expect(c.resolve({ key: ["git", "originUrl"], nodePath: [], opts: {} })).to.eql({
+      resolved: garden.vcsInfo.originUrl,
+    })
+  })
+
+})
 
 describe("ProjectConfigContext", () => {
   const enterpriseDomain = "https://garden.mydomain.com"
@@ -28,7 +65,7 @@ describe("ProjectConfigContext", () => {
       projectName: "some-project",
       projectRoot: "/tmp",
       artifactsPath: "/tmp",
-      branch: "main",
+      vcsInfo,
       username: "some-user",
       loggedIn: true,
       enterpriseDomain,
@@ -46,7 +83,7 @@ describe("ProjectConfigContext", () => {
       projectName: "some-project",
       projectRoot: "/tmp",
       artifactsPath: "/tmp",
-      branch: "main",
+      vcsInfo,
       username: "some-user",
       loggedIn: true,
       enterpriseDomain,
@@ -63,7 +100,7 @@ describe("ProjectConfigContext", () => {
       projectName: "some-project",
       projectRoot: "/tmp",
       artifactsPath: "/tmp",
-      branch: "main",
+      vcsInfo,
       username: "some-user",
       loggedIn: true,
       enterpriseDomain,
@@ -81,7 +118,7 @@ describe("ProjectConfigContext", () => {
         projectName: "some-project",
         projectRoot: "/tmp",
         artifactsPath: "/tmp",
-        branch: "main",
+        vcsInfo,
         username: "some-user",
         loggedIn: false, // <-----
         enterpriseDomain,
@@ -100,7 +137,7 @@ describe("ProjectConfigContext", () => {
           projectName: "some-project",
           projectRoot: "/tmp",
           artifactsPath: "/tmp",
-          branch: "main",
+          vcsInfo,
           username: "some-user",
           loggedIn: true,
           enterpriseDomain,
@@ -122,7 +159,7 @@ describe("ProjectConfigContext", () => {
           projectName: "some-project",
           projectRoot: "/tmp",
           artifactsPath: "/tmp",
-          branch: "main",
+          vcsInfo,
           username: "some-user",
           loggedIn: true,
           enterpriseDomain,
@@ -146,7 +183,7 @@ describe("ProjectConfigContext", () => {
       projectName: "some-project",
       projectRoot: "/tmp",
       artifactsPath: "/tmp",
-      branch: "main",
+      vcsInfo,
       username: "some-user",
       loggedIn: true,
       enterpriseDomain,
@@ -167,7 +204,7 @@ describe("ProjectConfigContext", () => {
       projectName: "some-project",
       projectRoot: "/tmp",
       artifactsPath: "/tmp",
-      branch: "main",
+      vcsInfo,
       username: "some-user",
       loggedIn: true,
       enterpriseDomain,
@@ -184,7 +221,7 @@ describe("ProjectConfigContext", () => {
       projectName: "some-project",
       projectRoot: "/tmp",
       artifactsPath: "/tmp",
-      branch: "main",
+      vcsInfo,
       username: "SomeUser",
       loggedIn: true,
       enterpriseDomain,
@@ -204,7 +241,7 @@ describe("ProjectConfigContext", () => {
       projectName: "some-project",
       projectRoot: "/tmp",
       artifactsPath: "/tmp",
-      branch: "main",
+      vcsInfo,
       username: "SomeUser",
       loggedIn: true,
       enterpriseDomain,
@@ -221,7 +258,7 @@ describe("ProjectConfigContext", () => {
       projectName: "some-project",
       projectRoot: "/tmp",
       artifactsPath: "/tmp",
-      branch: "main",
+      vcsInfo,
       username: "SomeUser",
       loggedIn: true,
       enterpriseDomain,
@@ -241,7 +278,7 @@ describe("ProjectConfigContext", () => {
       projectName: "some-project",
       projectRoot: "/tmp",
       artifactsPath: "/tmp",
-      branch: "main",
+      vcsInfo,
       username: "SomeUser",
       loggedIn: true,
       enterpriseDomain,
