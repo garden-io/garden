@@ -12,7 +12,7 @@ import { ConfigContext } from "../../../../../src/config/template-contexts/base"
 import { DefaultEnvironmentContext, ProjectConfigContext } from "../../../../../src/config/template-contexts/project"
 import { resolveTemplateString } from "../../../../../src/template-string/template-string"
 import { deline } from "../../../../../src/util/string"
-import { makeTestGardenA, TestGarden } from "../../../../helpers"
+import { freezeTime, makeTestGardenA, TestGarden } from "../../../../helpers"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
@@ -29,10 +29,15 @@ const vcsInfo = {
 describe("DefaultEnvironmentContext", () => {
   let garden: TestGarden
   let c: DefaultEnvironmentContext
+  let now: Date
 
   before(async () => {
     garden = await makeTestGardenA()
     garden["secrets"] = { someSecret: "someSecretValue" }
+  })
+
+  beforeEach(() => {
+    now = freezeTime()
     c = new DefaultEnvironmentContext(garden)
   })
 
@@ -54,6 +59,23 @@ describe("DefaultEnvironmentContext", () => {
     })
   })
 
+  it("should resolve datetime.now to ISO datetime string", () => {
+    expect(c.resolve({ key: ["datetime", "now"], nodePath: [], opts: {} })).to.eql({
+      resolved: now.toISOString(),
+    })
+  })
+
+  it("should resolve datetime.today to ISO datetime string", () => {
+    expect(c.resolve({ key: ["datetime", "today"], nodePath: [], opts: {} })).to.eql({
+      resolved: now.toISOString().slice(0, 10),
+    })
+  })
+
+  it("should resolve datetime.timestamp to Unix timestamp in seconds", () => {
+    expect(c.resolve({ key: ["datetime", "timestamp"], nodePath: [], opts: {} })).to.eql({
+      resolved: Math.round(now.getTime() / 1000),
+    })
+  })
 })
 
 describe("ProjectConfigContext", () => {
