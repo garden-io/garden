@@ -41,7 +41,7 @@ import {
   getCloudDistributionName,
 } from "./util/util"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
-import { VcsHandler, ModuleVersion } from "./vcs/vcs"
+import { VcsHandler, ModuleVersion, VcsInfo } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
 import { BuildStaging } from "./build-staging/build-staging"
 import { ConfigGraph } from "./config-graph"
@@ -151,7 +151,7 @@ export interface GardenOpts {
 
 export interface GardenParams {
   artifactsPath: string
-  vcsBranch: string
+  vcsInfo: VcsInfo
   buildStaging: BuildStaging
   projectId?: string
   enterpriseDomain?: string
@@ -224,7 +224,7 @@ export class Garden {
   public readonly buildStaging: BuildStaging
   public readonly gardenDirPath: string
   public readonly artifactsPath: string
-  public readonly vcsBranch: string
+  public readonly vcsInfo: VcsInfo
   public readonly opts: GardenOpts
   private readonly providerConfigs: GenericProviderConfig[]
   public readonly workingCopyId: string
@@ -252,7 +252,7 @@ export class Garden {
     this.gardenDirPath = params.gardenDirPath
     this.log = params.log
     this.artifactsPath = params.artifactsPath
-    this.vcsBranch = params.vcsBranch
+    this.vcsInfo = params.vcsInfo
     this.opts = params.opts
     this.rawOutputs = params.outputs
     this.production = params.production
@@ -1244,7 +1244,7 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
 
   // Note: another VcsHandler is created later, this one is temporary
   const gitHandler = new GitHandler(projectRoot, gardenDirPath, [], treeCache)
-  const vcsBranch = (await gitHandler.getBranchName(log, projectRoot)) || ""
+  const vcsInfo = await gitHandler.getPathInfo(log, projectRoot)
 
   // Since we iterate/traverse them before fully validating them (which we do after resolving template strings), we
   // validdate that `config.environments` and `config.providers` are both arrays.
@@ -1263,7 +1263,7 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
       projectName,
       projectRoot,
       artifactsPath,
-      branch: vcsBranch,
+      vcsInfo,
       username: _username,
       commandInfo,
     })
@@ -1303,7 +1303,7 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
     defaultEnvironment: defaultEnvironmentName,
     config,
     artifactsPath,
-    branch: vcsBranch,
+    vcsInfo,
     username: _username,
     loggedIn,
     enterpriseDomain: cloudDomain,
@@ -1317,7 +1317,7 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
     projectConfig: config,
     envString: environmentStr,
     artifactsPath,
-    branch: vcsBranch,
+    vcsInfo,
     username: _username,
     loggedIn,
     enterpriseDomain: cloudDomain,
@@ -1351,7 +1351,7 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
 
   return {
     artifactsPath,
-    vcsBranch,
+    vcsInfo,
     sessionId,
     disablePortForwards,
     projectId: config.id,

@@ -337,7 +337,7 @@ my-variable: ${project.name}
 
 ### `${git.*}`
 
-Information about the current state of the project's local git repository.
+Information about the current state of the project's Git repository.
 
 | Type     |
 | -------- |
@@ -351,9 +351,7 @@ The current Git branch, if available. Resolves to an empty string if HEAD is in 
 When using remote sources, the branch used is that of the project/top-level repository (the one that contains
 the project configuration).
 
-The branch is computed at the start of the Garden command's execution, and is not updated if the current
-branch changes during the command's execution (which could happen, for example, when using watch-mode
-commands).
+The branch is resolved at the start of the Garden command's execution, and is not updated if the current branch changes during the command's execution (which could happen, for example, when using watch-mode commands).
 
 | Type     |
 | -------- |
@@ -363,6 +361,40 @@ Example:
 
 ```yaml
 my-variable: ${git.branch}
+```
+
+### `${git.commitHash}`
+
+The current Git commit hash, if available. Resolves to an empty string if the repository has no commits.
+
+When using remote sources, the hash used is that of the project/top-level repository (the one that contains the project configuration).
+
+The hash is resolved at the start of the Garden command's execution, and is not updated if the current commit changes during the command's execution (which could happen, for example, when using watch-mode commands).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.commitHash}
+```
+
+### `${git.originUrl}`
+
+The remote origin URL of the project Git repository.
+
+When using remote sources, the URL is that of the project/top-level repository (the one that contains the project configuration).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.originUrl}
 ```
 
 ### `${secrets.<secret-name>}`
@@ -538,7 +570,7 @@ my-variable: ${project.name}
 
 ### `${git.*}`
 
-Information about the current state of the project's local git repository.
+Information about the current state of the project's Git repository.
 
 | Type     |
 | -------- |
@@ -552,9 +584,7 @@ The current Git branch, if available. Resolves to an empty string if HEAD is in 
 When using remote sources, the branch used is that of the project/top-level repository (the one that contains
 the project configuration).
 
-The branch is computed at the start of the Garden command's execution, and is not updated if the current
-branch changes during the command's execution (which could happen, for example, when using watch-mode
-commands).
+The branch is resolved at the start of the Garden command's execution, and is not updated if the current branch changes during the command's execution (which could happen, for example, when using watch-mode commands).
 
 | Type     |
 | -------- |
@@ -564,6 +594,40 @@ Example:
 
 ```yaml
 my-variable: ${git.branch}
+```
+
+### `${git.commitHash}`
+
+The current Git commit hash, if available. Resolves to an empty string if the repository has no commits.
+
+When using remote sources, the hash used is that of the project/top-level repository (the one that contains the project configuration).
+
+The hash is resolved at the start of the Garden command's execution, and is not updated if the current commit changes during the command's execution (which could happen, for example, when using watch-mode commands).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.commitHash}
+```
+
+### `${git.originUrl}`
+
+The remote origin URL of the project Git repository.
+
+When using remote sources, the URL is that of the project/top-level repository (the one that contains the project configuration).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.originUrl}
 ```
 
 ### `${secrets.<secret-name>}`
@@ -819,7 +883,7 @@ my-variable: ${project.name}
 
 ### `${git.*}`
 
-Information about the current state of the project's local git repository.
+Information about the current state of the project's Git repository.
 
 | Type     |
 | -------- |
@@ -833,9 +897,7 @@ The current Git branch, if available. Resolves to an empty string if HEAD is in 
 When using remote sources, the branch used is that of the project/top-level repository (the one that contains
 the project configuration).
 
-The branch is computed at the start of the Garden command's execution, and is not updated if the current
-branch changes during the command's execution (which could happen, for example, when using watch-mode
-commands).
+The branch is resolved at the start of the Garden command's execution, and is not updated if the current branch changes during the command's execution (which could happen, for example, when using watch-mode commands).
 
 | Type     |
 | -------- |
@@ -845,6 +907,40 @@ Example:
 
 ```yaml
 my-variable: ${git.branch}
+```
+
+### `${git.commitHash}`
+
+The current Git commit hash, if available. Resolves to an empty string if the repository has no commits.
+
+When using remote sources, the hash used is that of the project/top-level repository (the one that contains the project configuration).
+
+The hash is resolved at the start of the Garden command's execution, and is not updated if the current commit changes during the command's execution (which could happen, for example, when using watch-mode commands).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.commitHash}
+```
+
+### `${git.originUrl}`
+
+The remote origin URL of the project Git repository.
+
+When using remote sources, the URL is that of the project/top-level repository (the one that contains the project configuration).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.originUrl}
 ```
 
 ### `${secrets.<secret-name>}`
@@ -1052,7 +1148,7 @@ my-variable: ${project.name}
 
 ### `${git.*}`
 
-Information about the current state of the project's local git repository.
+Information about the current state of the project's Git repository.
 
 | Type     |
 | -------- |
@@ -1066,9 +1162,7 @@ The current Git branch, if available. Resolves to an empty string if HEAD is in 
 When using remote sources, the branch used is that of the project/top-level repository (the one that contains
 the project configuration).
 
-The branch is computed at the start of the Garden command's execution, and is not updated if the current
-branch changes during the command's execution (which could happen, for example, when using watch-mode
-commands).
+The branch is resolved at the start of the Garden command's execution, and is not updated if the current branch changes during the command's execution (which could happen, for example, when using watch-mode commands).
 
 | Type     |
 | -------- |
@@ -1078,6 +1172,40 @@ Example:
 
 ```yaml
 my-variable: ${git.branch}
+```
+
+### `${git.commitHash}`
+
+The current Git commit hash, if available. Resolves to an empty string if the repository has no commits.
+
+When using remote sources, the hash used is that of the project/top-level repository (the one that contains the project configuration).
+
+The hash is resolved at the start of the Garden command's execution, and is not updated if the current commit changes during the command's execution (which could happen, for example, when using watch-mode commands).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.commitHash}
+```
+
+### `${git.originUrl}`
+
+The remote origin URL of the project Git repository.
+
+When using remote sources, the URL is that of the project/top-level repository (the one that contains the project configuration).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.originUrl}
 ```
 
 ### `${secrets.<secret-name>}`
@@ -1378,7 +1506,7 @@ my-variable: ${project.name}
 
 ### `${git.*}`
 
-Information about the current state of the project's local git repository.
+Information about the current state of the project's Git repository.
 
 | Type     |
 | -------- |
@@ -1392,9 +1520,7 @@ The current Git branch, if available. Resolves to an empty string if HEAD is in 
 When using remote sources, the branch used is that of the project/top-level repository (the one that contains
 the project configuration).
 
-The branch is computed at the start of the Garden command's execution, and is not updated if the current
-branch changes during the command's execution (which could happen, for example, when using watch-mode
-commands).
+The branch is resolved at the start of the Garden command's execution, and is not updated if the current branch changes during the command's execution (which could happen, for example, when using watch-mode commands).
 
 | Type     |
 | -------- |
@@ -1404,6 +1530,40 @@ Example:
 
 ```yaml
 my-variable: ${git.branch}
+```
+
+### `${git.commitHash}`
+
+The current Git commit hash, if available. Resolves to an empty string if the repository has no commits.
+
+When using remote sources, the hash used is that of the project/top-level repository (the one that contains the project configuration).
+
+The hash is resolved at the start of the Garden command's execution, and is not updated if the current commit changes during the command's execution (which could happen, for example, when using watch-mode commands).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.commitHash}
+```
+
+### `${git.originUrl}`
+
+The remote origin URL of the project Git repository.
+
+When using remote sources, the URL is that of the project/top-level repository (the one that contains the project configuration).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.originUrl}
 ```
 
 ### `${secrets.<secret-name>}`
@@ -1966,7 +2126,7 @@ my-variable: ${project.name}
 
 ### `${git.*}`
 
-Information about the current state of the project's local git repository.
+Information about the current state of the project's Git repository.
 
 | Type     |
 | -------- |
@@ -1980,9 +2140,7 @@ The current Git branch, if available. Resolves to an empty string if HEAD is in 
 When using remote sources, the branch used is that of the project/top-level repository (the one that contains
 the project configuration).
 
-The branch is computed at the start of the Garden command's execution, and is not updated if the current
-branch changes during the command's execution (which could happen, for example, when using watch-mode
-commands).
+The branch is resolved at the start of the Garden command's execution, and is not updated if the current branch changes during the command's execution (which could happen, for example, when using watch-mode commands).
 
 | Type     |
 | -------- |
@@ -1992,6 +2150,40 @@ Example:
 
 ```yaml
 my-variable: ${git.branch}
+```
+
+### `${git.commitHash}`
+
+The current Git commit hash, if available. Resolves to an empty string if the repository has no commits.
+
+When using remote sources, the hash used is that of the project/top-level repository (the one that contains the project configuration).
+
+The hash is resolved at the start of the Garden command's execution, and is not updated if the current commit changes during the command's execution (which could happen, for example, when using watch-mode commands).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.commitHash}
+```
+
+### `${git.originUrl}`
+
+The remote origin URL of the project Git repository.
+
+When using remote sources, the URL is that of the project/top-level repository (the one that contains the project configuration).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.originUrl}
 ```
 
 ### `${secrets.<secret-name>}`
@@ -2461,7 +2653,7 @@ my-variable: ${project.name}
 
 ### `${git.*}`
 
-Information about the current state of the project's local git repository.
+Information about the current state of the project's Git repository.
 
 | Type     |
 | -------- |
@@ -2475,9 +2667,7 @@ The current Git branch, if available. Resolves to an empty string if HEAD is in 
 When using remote sources, the branch used is that of the project/top-level repository (the one that contains
 the project configuration).
 
-The branch is computed at the start of the Garden command's execution, and is not updated if the current
-branch changes during the command's execution (which could happen, for example, when using watch-mode
-commands).
+The branch is resolved at the start of the Garden command's execution, and is not updated if the current branch changes during the command's execution (which could happen, for example, when using watch-mode commands).
 
 | Type     |
 | -------- |
@@ -2487,6 +2677,40 @@ Example:
 
 ```yaml
 my-variable: ${git.branch}
+```
+
+### `${git.commitHash}`
+
+The current Git commit hash, if available. Resolves to an empty string if the repository has no commits.
+
+When using remote sources, the hash used is that of the project/top-level repository (the one that contains the project configuration).
+
+The hash is resolved at the start of the Garden command's execution, and is not updated if the current commit changes during the command's execution (which could happen, for example, when using watch-mode commands).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.commitHash}
+```
+
+### `${git.originUrl}`
+
+The remote origin URL of the project Git repository.
+
+When using remote sources, the URL is that of the project/top-level repository (the one that contains the project configuration).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.originUrl}
 ```
 
 ### `${secrets.<secret-name>}`

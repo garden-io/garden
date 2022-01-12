@@ -18,8 +18,6 @@ interface TestValues {
   [key: string]: TestValue
 }
 
-let currentBranch: string
-
 describe("WorkflowConfigContext", () => {
   let garden: TestGarden
   let c: WorkflowConfigContext
@@ -27,7 +25,6 @@ describe("WorkflowConfigContext", () => {
   before(async () => {
     garden = await makeTestGardenA()
     garden["secrets"] = { someSecret: "someSecretValue" }
-    currentBranch = garden.vcsBranch
     c = new WorkflowConfigContext(garden, garden.variables)
   })
 
@@ -42,12 +39,6 @@ describe("WorkflowConfigContext", () => {
   it("should resolve the local platform", async () => {
     expect(c.resolve({ key: ["local", "platform"], nodePath: [], opts: {} })).to.eql({
       resolved: process.platform,
-    })
-  })
-
-  it("should resolve the current git branch", () => {
-    expect(c.resolve({ key: ["git", "branch"], nodePath: [], opts: {} })).to.eql({
-      resolved: currentBranch,
     })
   })
 

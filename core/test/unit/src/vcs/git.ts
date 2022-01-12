@@ -98,20 +98,27 @@ describe("GitHandler", () => {
     })
   })
 
-  describe("getBranchName", () => {
-    it("should return undefined with no commits in repo", async () => {
+  describe("getPathInfo", () => {
+    it("should return empty strings with no commits in repo", async () => {
       const path = tmpPath
-      expect(await handler.getBranchName(log, path)).to.equal(undefined)
+      const { branch, commitHash } = await handler.getPathInfo(log, path)
+      expect(branch).to.equal("")
+      expect(commitHash).to.equal("")
     })
 
     it("should return the current branch name when there are commits in the repo", async () => {
       const path = tmpPath
       await commit("init", tmpPath)
-      expect(await handler.getBranchName(log, path)).to.equal("master")
+      const { branch } = await handler.getPathInfo(log, path)
+      expect(branch).to.equal("master")
     })
 
-    it("should return undefined when given a path outside of a repo", async () => {
-      expect(await handler.getBranchName(log, "/tmp")).to.equal(undefined)
+    it("should return empty strings when given a path outside of a repo", async () => {
+      const path = tmpPath
+      const { branch, commitHash, originUrl } = await handler.getPathInfo(log, path)
+      expect(branch).to.equal("")
+      expect(commitHash).to.equal("")
+      expect(originUrl).to.equal("")
     })
   })
 

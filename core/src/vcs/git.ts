@@ -13,7 +13,7 @@ import { ensureDir, pathExists, createReadStream, Stats, realpath, readlink, lst
 import { PassThrough, Transform } from "stream"
 import hasha from "hasha"
 import split2 = require("split2")
-import { VcsHandler, RemoteSourceParams, VcsFile, GetFilesParams } from "./vcs"
+import { VcsHandler, RemoteSourceParams, VcsFile, GetFilesParams, VcsInfo } from "./vcs"
 import { ConfigurationError, RuntimeError } from "../exceptions"
 import Bluebird from "bluebird"
 import { getStatsType, joinWithPosix, matchPath } from "../util/fs"
@@ -558,28 +558,32 @@ export class GitHandler extends VcsHandler {
     return submodules
   }
 
-  async getOriginName(log: LogEntry) {
-    const cwd = process.cwd()
-    const git = this.gitCli(log, cwd)
-    try {
-      return (await git("config", "--get", "remote.origin.url"))[0]
-    } catch (error) {
-      log.silly(`Trying to retrieve "git remote origin.url" but encountered an error: ${error}`)
-    }
-    return undefined
-  }
-
-  async getBranchName(log: LogEntry, path: string): Promise<string | undefined> {
+  async getPathInfo(log: LogEntry, path: string): Promise<VcsInfo> {
     const git = this.gitCli(log, path)
+
+    const output: VcsInfo = {
+      branch: "",
+      commitHash: "",
+      originUrl: "",
+    }
+
     try {
-      return (await git("rev-parse", "--abbrev-ref", "HEAD"))[0]
+      output.branch = (await git("rev-parse", "--abbrev-ref", "HEAD"))[0]
+      output.commitHash = (await git("rev-parse", "HEAD"))[0]
     } catch (err) {
-      if (err.exitCode === 128) {
-        return undefined
-      } else {
+      if (err.exitCode !== 128) {
         throw err
       }
     }
+
+    try {
+      output.originUrl = (await git("config", "--get", "remote.origin.url"))[0]
+    } catch (err) {
+      // Just ignore if not available
+      log.silly(`Tried to retrieve git remote.origin.url but encountered an error: ${err}`)
+    }
+
+    return output
   }
 }
 

@@ -25,8 +25,6 @@ interface TestValues {
   [key: string]: TestValue
 }
 
-let currentBranch: string
-
 describe("ModuleConfigContext", () => {
   let garden: TestGarden
   let c: ModuleConfigContext
@@ -38,7 +36,6 @@ describe("ModuleConfigContext", () => {
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const modules = graph.getModules()
     module = graph.getModule("module-b")
-    currentBranch = garden.vcsBranch
 
     c = new ModuleConfigContext({
       garden,
@@ -73,7 +70,7 @@ describe("ModuleConfigContext", () => {
 
   it("should resolve the current git branch", () => {
     expect(c.resolve({ key: ["git", "branch"], nodePath: [], opts: {} })).to.eql({
-      resolved: currentBranch,
+      resolved: garden.vcsInfo.branch,
     })
   })
 
@@ -240,7 +237,7 @@ describe("WorkflowConfigContext", () => {
 
   it("should resolve the current git branch", () => {
     expect(c.resolve({ key: ["git", "branch"], nodePath: [], opts: {} })).to.eql({
-      resolved: currentBranch,
+      resolved: garden.vcsInfo.branch,
     })
   })
 

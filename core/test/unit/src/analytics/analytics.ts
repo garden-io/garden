@@ -34,7 +34,9 @@ describe("AnalyticsHandler", () => {
     // In CI we can make assumptions about the origin URL, otherwise not.
     // We're hard coding it like this so that we can validate that we're actually
     // hashing it properly.
-    remoteOriginUrl = isCI ? "git@github.com:garden-io/garden.git" : (await garden.vcs.getOriginName(garden.log))!
+    remoteOriginUrl = isCI
+      ? "git@github.com:garden-io/garden.git"
+      : (await garden.vcs.getPathInfo(garden.log, garden.projectRoot))!.originUrl
   })
 
   beforeEach(async () => {

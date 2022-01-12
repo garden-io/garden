@@ -51,12 +51,12 @@ class TestVcsHandler extends VcsHandler {
     return []
   }
 
-  async getOriginName() {
-    return undefined
-  }
-
-  async getBranchName() {
-    return "main"
+  async getPathInfo() {
+    return {
+      branch: "main",
+      commitHash: "acbdefg",
+      originUrl: "git@github.com:garden-io/foo.git",
+    }
   }
 
   async getTreeVersion(log: LogEntry, projectName: string, moduleConfig: ModuleConfig) {
