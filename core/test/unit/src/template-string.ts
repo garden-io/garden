@@ -1041,6 +1041,11 @@ describe("resolveTemplateString", async () => {
       expect(res).to.equal("Zm9v")
     })
 
+    it("resolves a template string in a helper argument", () => {
+      const res = resolveTemplateString("${base64Encode('${a}')}", new TestContext({ a: "foo" }))
+      expect(res).to.equal("Zm9v")
+    })
+
     it("resolves a helper function with multiple arguments", () => {
       const res = resolveTemplateString("${split('a,b,c', ',')}", new TestContext({}))
       expect(res).to.eql(["a", "b", "c"])
