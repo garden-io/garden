@@ -724,9 +724,7 @@ export const configSchema = () =>
         .number()
         .default(443)
         .description("The external HTTPS port of the cluster's ingress controller."),
-      kubeconfig: joi
-        .posixPath()
-        .description("Path to kubeconfig file to use instead of the system default. Must be a POSIX-style path."),
+      kubeconfig: joi.string().description("Path to kubeconfig file to use instead of the system default."),
       namespace: namespaceSchema(),
       setupIngressController: joi
         .string()

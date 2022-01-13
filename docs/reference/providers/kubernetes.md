@@ -377,7 +377,7 @@ providers:
     # The external HTTPS port of the cluster's ingress controller.
     ingressHttpsPort: 443
 
-    # Path to kubeconfig file to use instead of the system default. Must be a POSIX-style path.
+    # Path to kubeconfig file to use instead of the system default.
     kubeconfig:
 
     # Specify which namespace to deploy services to, and optionally annotations/labels to apply to the namespace.
@@ -2012,11 +2012,11 @@ The external HTTPS port of the cluster's ingress controller.
 
 [providers](#providers) > kubeconfig
 
-Path to kubeconfig file to use instead of the system default. Must be a POSIX-style path.
+Path to kubeconfig file to use instead of the system default.
 
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `providers[].namespace`
 
