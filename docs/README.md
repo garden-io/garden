@@ -41,9 +41,10 @@
 
 ## 🌺 Advanced
 
-* [Remote Sources](./advanced/using-remote-sources.md)
-* [Terraform](./advanced/terraform.md)
 * [cert-manager Integration](./advanced/cert-manager-integration.md)
+* [Terraform](./advanced/terraform.md)
+* [Using Remote Sources](./advanced/using-remote-sources.md)
+* [Minimal RBAC Configuration for Development Clusters](./advanced/rbac-config.md)
 
 ## ☘️ Reference
 
