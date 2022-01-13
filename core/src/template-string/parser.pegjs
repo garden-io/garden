@@ -187,7 +187,7 @@ Arguments
     }
 
 ArgumentList
-  = head:Expression tail:(__ "," __ Expression)* {
+  = head:PrimaryExpression tail:(__ "," __ PrimaryExpression)* {
       return buildList(head, tail, 3);
     }
 
