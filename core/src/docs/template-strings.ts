@@ -19,8 +19,9 @@ import {
 import { ProviderConfigContext } from "../config/template-contexts/provider"
 import { ModuleConfigContext, OutputConfigContext } from "../config/template-contexts/module"
 import { WorkflowStepConfigContext } from "../config/template-contexts/workflow"
-import { helperFunctions } from "../template-string/functions"
-import { sortBy } from "lodash"
+import { getHelperFunctions } from "../template-string/functions"
+import { isEqual, sortBy } from "lodash"
+import { InternalError } from "../exceptions"
 
 export function writeTemplateStringReferenceDocs(docsRoot: string) {
   const referenceDir = resolve(docsRoot, "reference")
@@ -56,8 +57,37 @@ export function writeTemplateStringReferenceDocs(docsRoot: string) {
 
   const templatePath = resolve(TEMPLATES_DIR, "template-strings.hbs")
   const template = handlebars.compile(readFileSync(templatePath).toString())
+
+  // Prepare example values
+  const helperFunctions = sortBy(
+    Object.values(getHelperFunctions()).map((spec) => {
+      const examples = spec.exampleArguments.map((example) => {
+        const argsEncoded = example.input.map((arg) => JSON.stringify(arg))
+        const computedOutput = spec.fn(...example.input)
+        const renderedResult = JSON.stringify(example.output || computedOutput)
+
+        // This implicitly tests the helpers at documentation render time
+        if (!example.skipTest && !isEqual(computedOutput, example.output)) {
+          const renderedComputed = JSON.stringify(computedOutput)
+          throw new InternalError(
+            `Test failed for ${spec.name} helper. Expected input args ${example.input} to resolve to ${renderedResult}, got ${renderedComputed}`,
+            { spec }
+          )
+        }
+
+        return {
+          template: "${" + `${spec.name}(${argsEncoded.join(", ")})}`,
+          result: renderedResult,
+        }
+      })
+
+      return { ...spec, examples }
+    }),
+    "name"
+  )
+
   const markdown = template({
-    helperFunctions: sortBy(Object.values(helperFunctions), "name"),
+    helperFunctions,
     projectContext,
     remoteSourceContext,
     environmentContext,

@@ -14,14 +14,20 @@ import Joi from "@hapi/joi"
 import { validateSchema } from "../config/validation"
 import { safeLoad, safeLoadAll } from "js-yaml"
 import { safeDumpYaml } from "../util/util"
+import indentString from "indent-string"
+
+interface ExampleArgument {
+  input: any[]
+  output: any // Used to validate expected output
+  skipTest?: boolean
+}
 
 interface TemplateHelperFunction {
   name: string
   description: string
   arguments: { [name: string]: Joi.Schema }
   outputSchema: Joi.Schema
-  exampleArguments: any[][]
-  exampleOutput?: any
+  exampleArguments: ExampleArgument[]
   fn: Function
 }
 
@@ -33,7 +39,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       string: joi.string().required().description("The base64-encoded string to decode."),
     },
     outputSchema: joi.string(),
-    exampleArguments: [["bXkgdmFsdWU="]],
+    exampleArguments: [{ input: ["bXkgdmFsdWU="], output: "my value" }],
     fn: (str: string) => Buffer.from(str, "base64").toString(),
   },
   {
@@ -43,7 +49,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       string: joi.string().required().description("The string to encode."),
     },
     outputSchema: joi.string(),
-    exampleArguments: [["my value"]],
+    exampleArguments: [{ input: ["my value"], output: "bXkgdmFsdWU=" }],
     fn: (str: string) => Buffer.from(str).toString("base64"),
   },
   {
@@ -54,8 +60,26 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       string: joi.string().required().description("The string to convert."),
     },
     outputSchema: joi.string(),
-    exampleArguments: [["Foo Bar"], ["--foo-bar--"], ["__FOO_BAR__"]],
+    exampleArguments: [
+      { input: ["Foo Bar"], output: "fooBar" },
+      { input: ["--foo-bar--"], output: "fooBar" },
+      { input: ["__FOO_BAR__"], output: "fooBar" },
+    ],
     fn: (str: string) => camelCase(str),
+  },
+  {
+    name: "indent",
+    description: "Indents each line in the given string with the specified number of spaces.",
+    arguments: {
+      string: joi.string().required().description("The string to indent."),
+      spaces: joi.number().required().integer().description("How many spaces to add on each line."),
+    },
+    outputSchema: joi.string(),
+    exampleArguments: [
+      { input: ["some: multiline\nyaml: document", 2], output: "  some: multiline\n  yaml: document" },
+      { input: ["My\nblock\nof\ntext", 4], output: "    My\n    block\n    of\n    text" },
+    ],
+    fn: (str: string, spaces: number) => indentString(str, spaces),
   },
   {
     name: "isEmpty",
@@ -64,7 +88,15 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       value: joi.alternatives(joi.object(), joi.array(), joi.string()).allow(null).description("The value to check."),
     },
     outputSchema: joi.boolean(),
-    exampleArguments: [[{}], [{ not: "empty" }], [[]], [[1, 2, 3]], [""], ["not empty"], [null]],
+    exampleArguments: [
+      { input: [{}], output: true },
+      { input: [{ not: "empty" }], output: false },
+      { input: [[]], output: true },
+      { input: [[1, 2, 3]], output: false },
+      { input: [""], output: true },
+      { input: ["not empty"], output: false },
+      { input: [null], output: true },
+    ],
     fn: (value: any) => value === undefined || isEmpty(value),
   },
   {
@@ -74,7 +106,11 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       string: joi.string().required().description("The JSON-encoded string to decode."),
     },
     outputSchema: joi.any(),
-    exampleArguments: [['{"foo": "bar"}'], ['"JSON encoded string"'], ['["my", "json", "array"]']],
+    exampleArguments: [
+      { input: ['{"foo": "bar"}'], output: { foo: "bar" } },
+      { input: ['"JSON encoded string"'], output: "JSON encoded string" },
+      { input: ['["my", "json", "array"]'], output: ["my", "json", "array"] },
+    ],
     fn: (str: string) => JSON.parse(str),
   },
   {
@@ -84,7 +120,10 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       value: joi.any().required().description("The value to encode as JSON."),
     },
     outputSchema: joi.string(),
-    exampleArguments: [[["some", "array"]], [{ some: "object" }]],
+    exampleArguments: [
+      { input: [["some", "array"]], output: '["some","array"]' },
+      { input: [{ some: "object" }], output: '{"some":"object"}' },
+    ],
     fn: (value: any) => JSON.stringify(value),
   },
   {
@@ -95,7 +134,11 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       string: joi.string().required().description("The string to convert."),
     },
     outputSchema: joi.string(),
-    exampleArguments: [["Foo Bar"], ["fooBar"], ["__FOO_BAR__"]],
+    exampleArguments: [
+      { input: ["Foo Bar"], output: "foo-bar" },
+      { input: ["fooBar"], output: "foo-bar" },
+      { input: ["__FOO_BAR__"], output: "foo-bar" },
+    ],
     fn: (str: string) => kebabCase(str),
   },
   {
@@ -105,7 +148,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       string: joi.string().required().description("The string to convert."),
     },
     outputSchema: joi.string(),
-    exampleArguments: [["Some String"]],
+    exampleArguments: [{ input: ["Some String"], output: "some string" }],
     fn: (str: string) => str.toLowerCase(),
   },
   {
@@ -122,8 +165,8 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
     },
     outputSchema: joi.string(),
     exampleArguments: [
-      ["string_with_underscores", "_", "-"],
-      ["remove.these.dots", ".", ""],
+      { input: ["string_with_underscores", "_", "-"], output: "string-with-underscores" },
+      { input: ["remove.these.dots", ".", ""], output: "removethesedots" },
     ],
     fn: (str: string, substring: string, replacement: string) =>
       str.replace(new RegExp(escapeRegExp(substring), "g"), replacement),
@@ -143,8 +186,8 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
     },
     outputSchema: joi.alternatives(joi.string(), joi.array()),
     exampleArguments: [
-      ["ThisIsALongStringThatINeedAPartOf", 11, -7],
-      [".foo", 1],
+      { input: ["ThisIsALongStringThatINeedAPartOf", 11, -7], output: "StringThatINeed" },
+      { input: [".foo", 1], output: "foo" },
     ],
     fn: (stringOrArray: string | any[], start: number, end?: number) => stringOrArray.slice(start, end),
   },
@@ -157,8 +200,8 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
     },
     outputSchema: joi.array().items(joi.string()),
     exampleArguments: [
-      ["a,b,c", ","],
-      ["1:2:3:4", ":"],
+      { input: ["a,b,c", ","], output: ["a", "b", "c"] },
+      { input: ["1:2:3:4", ":"], output: ["1", "2", "3", "4"] },
     ],
     fn: (str: string, separator: string) => str.split(separator),
   },
@@ -172,7 +215,9 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
         .description("The characters to strip off the string (defaults to any whitespace characters)."),
     },
     outputSchema: joi.string(),
-    exampleArguments: [["   some string with surrounding whitespace "]],
+    exampleArguments: [
+      { input: ["   some string with surrounding whitespace "], output: "some string with surrounding whitespace" },
+    ],
     fn: (str: string, characters?: string) => trim(str, characters),
   },
   {
@@ -182,7 +227,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       string: joi.string().required().description("The string to convert."),
     },
     outputSchema: joi.string(),
-    exampleArguments: [["Some String"]],
+    exampleArguments: [{ input: ["Some String"], output: "SOME STRING" }],
     fn: (str: string) => str.toUpperCase(),
   },
   {
@@ -190,8 +235,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
     description: "Generates a random v4 UUID.",
     arguments: {},
     outputSchema: joi.string(),
-    exampleArguments: [[]],
-    exampleOutput: "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed",
+    exampleArguments: [{ input: [], output: "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed", skipTest: true }],
     fn: () => uuidv4(),
   },
   {
@@ -203,7 +247,16 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       multiDocument: joi.boolean().description("Set to true if you'd like to parse a multi-document YAML string."),
     },
     outputSchema: joi.any(),
-    exampleArguments: [["a: 1\nb: 2\n"], ["a: 1\nb: 2\n---\na: 3\nb: 4\n", true]],
+    exampleArguments: [
+      { input: ["a: 1\nb: 2\n"], output: { a: 1, b: 2 } },
+      {
+        input: ["a: 1\nb: 2\n---\na: 3\nb: 4\n", true],
+        output: [
+          { a: 1, b: 2 },
+          { a: 3, b: 4 },
+        ],
+      },
+    ],
     fn: (str: string, multi?: boolean) => (multi ? safeLoadAll(str) : safeLoad(str)),
   },
   {
@@ -215,14 +268,17 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
     },
     outputSchema: joi.string(),
     exampleArguments: [
-      [{ my: "simple document" }],
-      [
-        [
-          { a: 1, b: 2 },
-          { a: 3, b: 4 },
+      { input: [{ my: "simple document" }], output: "my: simple document\n" },
+      {
+        input: [
+          [
+            { a: 1, b: 2 },
+            { a: 3, b: 4 },
+          ],
+          true,
         ],
-        true,
-      ],
+        output: "---a: 1\nb: 2\n---a: 3\nb: 4\n",
+      },
     ],
     fn: (value: any, multiDocument?: boolean) => {
       if (multiDocument) {
@@ -243,38 +299,49 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
   },
 ]
 
-export const helperFunctions = keyBy(
-  helperFunctionSpecs.map((spec) => {
-    const argumentDescriptions = mapValues(spec.arguments, (s) => s.describe() as JoiDescription)
-    const usageArgs = Object.entries(argumentDescriptions).map(([name, desc]) => {
-      if (desc.flags?.presence === "required") {
-        return name
-      } else {
-        return `[${name}]`
-      }
-    })
+interface ResolvedHelperFunction extends TemplateHelperFunction {
+  argumentDescriptions: {
+    [name: string]: JoiDescription
+  }
+  usage: string
+}
 
-    const examples = spec.exampleArguments.map((args) => {
-      const argsEncoded = args.map((arg) => JSON.stringify(arg))
-      const exampleValue = JSON.stringify(spec.fn(...args))
-      const result = spec.exampleOutput || exampleValue
+interface HelperFunctions {
+  [name: string]: ResolvedHelperFunction
+}
+
+let _helperFunctions: HelperFunctions
+
+export function getHelperFunctions(): HelperFunctions {
+  if (_helperFunctions) {
+    return _helperFunctions
+  }
+
+  _helperFunctions = keyBy(
+    helperFunctionSpecs.map((spec) => {
+      const argumentDescriptions = mapValues(spec.arguments, (s) => s.describe() as JoiDescription)
+      const usageArgs = Object.entries(argumentDescriptions).map(([name, desc]) => {
+        if (desc.flags?.presence === "required") {
+          return name
+        } else {
+          return `[${name}]`
+        }
+      })
+
       return {
-        template: "${" + `${spec.name}(${argsEncoded.join(", ")})}`,
-        result,
+        ...spec,
+        argumentDescriptions,
+        usage: `${spec.name}(${usageArgs.join(", ")})`,
       }
-    })
+    }),
+    "name"
+  )
 
-    return {
-      ...spec,
-      argumentDescriptions,
-      usage: `${spec.name}(${usageArgs.join(", ")})`,
-      examples,
-    }
-  }),
-  "name"
-)
+  return _helperFunctions
+}
 
 export function callHelperFunction(functionName: string, args: any[], text: string) {
+  const helperFunctions = getHelperFunctions()
   const spec = helperFunctions[functionName]
 
   if (!spec) {
