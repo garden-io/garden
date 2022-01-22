@@ -6,7 +6,7 @@ Dev mode works similarly to the older [hot reloading functionality](./hot-reload
 
 This new sync mode uses [Mutagen](https://mutagen.io/) under the hood. Garden automatically takes care of fetching Mutagen, so you don't need to install any dependencies yourself to make use of dev mode.
 
-Dev mode sync is not affected by the usual includes/excludes (e.g. rules defind in `.gardenignore` files), which makes it more flexible than hot reloading.
+Dev mode sync is not affected by the usual includes/excludes (e.g. rules defined in `.gardenignore` files), which makes it more flexible than hot reloading.
 
 Instead, exclusion rules for dev mode are configured explicitly on the provider level and for each individual sync you configure—more on that below.
 
@@ -115,7 +115,7 @@ In brief: It's generally easiest to get started with the `one-way` or `two-way` 
   * Changes made in the local `source` will be synced to the remote `target`.
   * Changes made in the remote `target` will be synced to the local `source`.
   * When there are conflicts on either side, does not replace/delete the corresponding conflicting paths on the other side.
-  * Similarly to `one-way`, this mode is simple to configure when there are files in either `source` or `target` that you don't want overriden on the other side when files change or are added/deleted.
+  * Similarly to `one-way`, this mode is simple to configure when there are files in either `source` or `target` that you don't want overridden on the other side when files change or are added/deleted.
   * Setting up several `one-way-replica` and `one-way-replica-reverse` syncs instead of `one-way` and `two-way` is generally the best approach long-term, but may require more fine-grained configuration (more sync specs for specific subpaths and more specific exclusion rules, to make sure things don't get overwritten/deleted in unwanted ways).
 
 ### `two-way-resolved`
