@@ -49,7 +49,7 @@ Each version also factors in the versions of every dependency (both build and ru
 
 The _precise_ semantics that go into a Garden version vary a bit by the module type and the specific entity involved, but generally it works as follows:
 
-1. A _module_ has a version that captures everything involved in a build, including hashes of source files any any specifics involved in building the image/artifact/etc, as well as the versions of any build dependencies. The _module version_ is sometimes referred to as the _build version_ of the module.
+1. A _module_ has a version that captures everything involved in a build, including hashes of source files and any specifics involved in building the image/artifact/etc, as well as the versions of any build dependencies. The _module version_ is sometimes referred to as the _build version_ of the module.
 2. A _service_ has a version that factors in the _module version_ of the module that defines it, as well as any specific configuration needed to deploy the service. This might for example include environment variables, hostnames etc. that wouldn't impact how the underlying code is _built_, but it does change how the service is deployed.
 3. _Tests_ and _tasks_ have a version that factors in the _module version_ of the module that defines it, as well as any specific configuration needed to run the task or test.
 
