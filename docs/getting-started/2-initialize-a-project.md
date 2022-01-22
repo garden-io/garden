@@ -48,7 +48,7 @@ cd ..
 
 This is now enough configuration to build the project. Before we can deploy, we need to configure `services` in each module configuration, as well as set up a local cluster or connect to a remote cluster.
 
-Starting with the former, go ahead and open the newly created `backend/garden.yml` file. You'll find a number of commented-out fields, which reveal all the options available for the `container` module type. One of the is the `services` field. Just to keep things simple for now, go ahead and replace that block (or append to the file) the following:
+Starting with the former, go ahead and open the newly created `backend/garden.yml` file. You'll find a number of commented-out fields, which reveal all the options available for the `container` module type. One of them is the `services` field. Just to keep things simple for now, go ahead and replace that block (or append to the file) the following:
 
 ```yaml
 services:
