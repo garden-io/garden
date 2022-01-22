@@ -78,7 +78,7 @@ The other modes—which are why you're reading this guide—all build your image
 
 The remote building options each have some pros and cons. You'll find more details below but **here are our general recommendations** at the moment:
 
-- [**`kaniko`**](#kaniko) is a solid choice for most cases and is _currently our first recommendation_. It is battle-tested among Garden's most demanding users (including the Garden team itself). It also scales horizontally and elastically, since individual Pods are created for each build. It doesn't require priviliged containers to run and requires no shared cluster-wide services.
+- [**`kaniko`**](#kaniko) is a solid choice for most cases and is _currently our first recommendation_. It is battle-tested among Garden's most demanding users (including the Garden team itself). It also scales horizontally and elastically, since individual Pods are created for each build. It doesn't require privileged containers to run and requires no shared cluster-wide services.
 - [**`cluster-buildkit`**](#cluster-buildkit) is a new addition and replaces the older `cluster-docker` mode. A [BuildKit](https://github.com/moby/buildkit) Deployment is dynamically created in each project namespace and much like Kaniko requires no other cluster-wide services. This mode also offers a _rootless_ option, which runs without any elevated privileges, in clusters that support it.
 
 We recommend picking a mode based on your usage patterns and scalability requirements. For ephemeral namespaces, `kaniko` is generally the better option, since the persistent BuildKit deployment won't have a warm cache anyway. For long-lived namespaces, like the ones a developer uses while working, `cluster-buildkit` may be a more performant option.
@@ -241,7 +241,7 @@ Now say, if you specify `hostname: my-registry.com` and `namespace: my-project-i
 
 For this to work, you in most cases also need to provide the authentication necessary for both the cluster to read the image and for the builder to push to the registry. We use the same format and mechanisms as Kubernetes _imagePullSecrets_ for this. See [this guide](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/) for how to create the secret, **but keep in mind that for this context, the authentication provided must have write privileges to the configured registry and namespace.**
 
-See below for specific instruction for working with ECR.
+See below for specific instructions for working with ECR.
 
 {% hint style="warning" %}
 Note: If you're using the [`kaniko`](#kaniko) or [`cluster-docker`](#cluster-docker) build mode, you need to re-run `garden plugins kubernetes cluster-init` any time you add or modify imagePullSecrets, for them to work.
@@ -360,7 +360,7 @@ First, create a Google Service Account:
 gcloud iam service-accounts create gar-access --project ${PROJECT_ID}
 ```
 
-The service account needs write access to the Google Artifacts Registry. You can either grant it write access to all repositories with an IAM policy, or you can grant repository-specific permissions to selected repositories. We recommend the latter, as it follows the pattern of granting the least-privileged access needed.
+The service account needs write access to the Google Artifacts Registry. You can either grant write access to all repositories with an IAM policy, or you can grant repository-specific permissions to selected repositories. We recommend the latter, as it follows the pattern of granting the least-privileged access needed.
 
 To grant access to all Google Artifact Registries, run:
 
