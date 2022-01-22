@@ -31,7 +31,7 @@ kind: Module
 type: container
 name: my-container
 build:
-  depdendencies: [base-image]
+  dependencies: [base-image]
 buildArgs:
   baseImageVersion: ${modules.base-image.version}
 ```
@@ -165,7 +165,7 @@ services:
 ...
 ```
 
-This will pull the `some-key-in-secret` key from the `my-secret` Secret resource in the application namespace, and make available as an environment variable.
+This will pull the `some-key-in-secret` key from the `my-secret` Secret resource in the application namespace, and make it available as an environment variable.
 
 _Note that you must create the Secret manually for the Pod to be able to reference it._
 
@@ -175,7 +175,7 @@ For Kubernetes, this is commonly done using `kubectl`. For example, to create a 
 kubectl --namespace <my-app-namespace> create secret generic --from-literal=some-key-in-secret=foo
 ```
 
-Where `<my-app-namespace>` is your project namespace (which is either set with `namespace` in your provider config, or defaults to your project name). There are notably other, more secure ways to create secrets via `kubectl`. Please refer to the offical [Kubernetes Secrets docs](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret-using-kubectl-create-secret) for details.
+Where `<my-app-namespace>` is your project namespace (which is either set with `namespace` in your provider config, or defaults to your project name). There are notably other, more secure ways to create secrets via `kubectl`. Please refer to the official [Kubernetes Secrets docs](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret-using-kubectl-create-secret) for details.
 
 Also check out the [Kubernetes Secrets example project](https://github.com/garden-io/garden/tree/0.12.33/examples/kubernetes-secrets) for a working example.
 
