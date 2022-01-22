@@ -4,7 +4,7 @@
 We've now deprecated the older "hot reload" mechanism and replaced it with the new _dev mode_. See the [Code Synchronization guide](./code-synchronization-dev-mode.md) for details.
 {% endhint %}
 
-When the `local-kubernetes` or `kubernetes` provider is used, `container` modules can be configured to hot-reload their running services when the module's sources change (i.e. without redeploying). In essence, hot-reloading copies syncs files into the appropriate running containers (local or remote) when code is changed by the user, and optionally runs a post-sync command inside the container.
+When the `local-kubernetes` or `kubernetes` provider is used, `container` modules can be configured to hot-reload their running services when the module's sources change (i.e. without redeploying). In essence, hot-reloading syncs files into the appropriate running containers (local or remote) when code is changed by the user, and optionally runs a post-sync command inside the container.
 
 For example, services that can be run with a file system watcher that automatically updates the running application process when sources change (e.g. nodemon, Django, Ruby on Rails, and many other web app frameworks) are a natural fit for this feature.
 
