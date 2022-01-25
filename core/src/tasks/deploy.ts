@@ -6,22 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import chalk from "chalk"
 import { includes } from "lodash"
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults } from "./base"
 import { GardenService, ServiceStatus, getLinkUrl } from "../types/service"
 import { Garden } from "../garden"
-import { TaskTask } from "./task"
 import { BuildTask } from "./build"
 import { ConfigGraph } from "../config-graph"
 import { startPortProxies } from "../proxy"
 import { GraphResults } from "../task-graph"
 import { prepareRuntimeContext } from "../runtime-context"
 import { GetServiceStatusTask } from "./get-service-status"
-import { GetTaskResultTask } from "./get-task-result"
 import { Profile } from "../util/profiling"
+import { getServiceStatusDeps, getTaskResultDeps, getDeployDeps, getTaskDeps } from "./helpers"
 
 export interface DeployTaskParams {
   garden: Garden
@@ -31,6 +29,7 @@ export interface DeployTaskParams {
   forceBuild: boolean
   fromWatch?: boolean
   log: LogEntry
+  skipRuntimeDependencies?: boolean
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
 }
@@ -39,13 +38,13 @@ export interface DeployTaskParams {
 export class DeployTask extends BaseTask {
   type: TaskType = "deploy"
   concurrencyLimit = 10
-
-  private graph: ConfigGraph
-  private service: GardenService
-  private forceBuild: boolean
-  private fromWatch: boolean
-  private devModeServiceNames: string[]
-  private hotReloadServiceNames: string[]
+  graph: ConfigGraph
+  service: GardenService
+  forceBuild: boolean
+  fromWatch: boolean
+  skipRuntimeDependencies: boolean
+  devModeServiceNames: string[]
+  hotReloadServiceNames: string[]
 
   constructor({
     garden,
@@ -55,6 +54,7 @@ export class DeployTask extends BaseTask {
     force,
     forceBuild,
     fromWatch = false,
+    skipRuntimeDependencies = false,
     devModeServiceNames,
     hotReloadServiceNames,
   }: DeployTaskParams) {
@@ -63,6 +63,7 @@ export class DeployTask extends BaseTask {
     this.service = service
     this.forceBuild = forceBuild
     this.fromWatch = fromWatch
+    this.skipRuntimeDependencies = skipRuntimeDependencies
     this.devModeServiceNames = devModeServiceNames
     this.hotReloadServiceNames = hotReloadServiceNames
   }
@@ -70,14 +71,14 @@ export class DeployTask extends BaseTask {
   async resolveDependencies() {
     const dg = this.graph
 
-    const skipServiceDeps = [...this.hotReloadServiceNames]
+    const skippedServiceDepNames = [...this.hotReloadServiceNames]
 
-    // We filter out service dependencies on services configured for hot reloading or dev mode (if any)
+    // We filter out service dependencies on services configured for hot reloading (if any)
     const deps = dg.getDependencies({
       nodeType: "deploy",
       name: this.getName(),
       recursive: false,
-      filter: (depNode) => !(depNode.type === "deploy" && includes(skipServiceDeps, depNode.name)),
+      filter: (depNode) => !(depNode.type === "deploy" && includes(skippedServiceDepNames, depNode.name)),
     })
 
     const statusTask = new GetServiceStatusTask({
@@ -90,69 +91,29 @@ export class DeployTask extends BaseTask {
       hotReloadServiceNames: this.hotReloadServiceNames,
     })
 
-    if (this.fromWatch && includes(skipServiceDeps, this.service.name)) {
-      // Only need to get existing statuses and results when hot-reloading
-      const dependencyStatusTasks = deps.deploy.map((service) => {
-        return new GetServiceStatusTask({
-          garden: this.garden,
-          graph: this.graph,
-          log: this.log,
-          service,
-          force: false,
-          devModeServiceNames: this.devModeServiceNames,
-          hotReloadServiceNames: this.hotReloadServiceNames,
-        })
-      })
-
-      const taskResultTasks = await Bluebird.map(deps.run, async (task) => {
-        return new GetTaskResultTask({
-          garden: this.garden,
-          graph: this.graph,
-          log: this.log,
-          task,
-          force: false,
-        })
-      })
-
-      return [statusTask, ...dependencyStatusTasks, ...taskResultTasks]
+    if (this.fromWatch && includes(skippedServiceDepNames, this.service.name)) {
+      // Only need to get existing statuses and results when using hot-reloading
+      return [statusTask, ...getServiceStatusDeps(this, deps), ...getTaskResultDeps(this, deps)]
     } else {
-      const deployTasks = deps.deploy.map((service) => {
-        return new DeployTask({
-          garden: this.garden,
-          graph: this.graph,
-          log: this.log,
-          service,
-          force: false,
-          forceBuild: this.forceBuild,
-          fromWatch: this.fromWatch,
-          devModeServiceNames: this.devModeServiceNames,
-          hotReloadServiceNames: this.hotReloadServiceNames,
-        })
-      })
-
-      const taskTasks = await Bluebird.map(deps.run, (task) => {
-        return new TaskTask({
-          task,
-          garden: this.garden,
-          log: this.log,
-          graph: this.graph,
-          force: false,
-          forceBuild: this.forceBuild,
-          devModeServiceNames: this.devModeServiceNames,
-          hotReloadServiceNames: this.hotReloadServiceNames,
-        })
-      })
-
-      const buildTasks = await BuildTask.factory({
-        garden: this.garden,
-        graph: this.graph,
-        log: this.log,
-        module: this.service.module,
-        force: this.forceBuild,
-      })
-
-      return [statusTask, ...deployTasks, ...taskTasks, ...buildTasks]
+      const buildTasks = await this.getBuildTasks()
+      if (this.skipRuntimeDependencies) {
+        // Then we don't deploy any service dependencies or run any task dependencies, but only get existing
+        // statuses and results.
+        return [statusTask, ...buildTasks, ...getServiceStatusDeps(this, deps), ...getTaskResultDeps(this, deps)]
+      } else {
+        return [statusTask, ...buildTasks, ...getDeployDeps(this, deps, false), ...getTaskDeps(this, deps, false)]
+      }
     }
+  }
+
+  private async getBuildTasks(): Promise<BaseTask[]> {
+    return BuildTask.factory({
+      garden: this.garden,
+      graph: this.graph,
+      log: this.log,
+      module: this.service.module,
+      force: this.forceBuild,
+    })
   }
 
   getName() {

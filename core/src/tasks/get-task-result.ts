@@ -27,9 +27,8 @@ export interface GetTaskResultTaskParams {
 export class GetTaskResultTask extends BaseTask {
   type: TaskType = "get-task-result"
   concurrencyLimit = 20
-
-  private graph: ConfigGraph
-  private task: GardenTask
+  graph: ConfigGraph
+  task: GardenTask
 
   constructor(params: GetTaskResultTaskParams) {
     super({ ...params, version: params.task.version })

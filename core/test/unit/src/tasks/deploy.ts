@@ -103,11 +103,20 @@ describe("DeployTask", () => {
         serviceConfigs: [
           {
             name: "test-service",
-            dependencies: ["test-task"],
+            dependencies: ["dep-service", "test-task"],
             disabled: false,
             hotReloadable: false,
             spec: {
               log: "${runtime.tasks.test-task.outputs.log}",
+            },
+          },
+          {
+            name: "dep-service",
+            dependencies: [],
+            disabled: false,
+            hotReloadable: false,
+            spec: {
+              log: "apples and pears",
             },
           },
         ],
@@ -180,6 +189,28 @@ describe("DeployTask", () => {
       })
 
       expect((await deployTaskFromWatch.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
+    })
+
+    context("when skipRuntimeDependencies = true", () => {
+      it("doesn't return deploy or task dependencies", async () => {
+        const testService = graph.getService("test-service")
+
+        const deployTask = new DeployTask({
+          garden,
+          graph,
+          service: testService,
+          force: true,
+          forceBuild: false,
+          fromWatch: false,
+          log: garden.log,
+          skipRuntimeDependencies: true, // <-----
+          devModeServiceNames: [],
+          hotReloadServiceNames: [],
+        })
+
+        const deps = await deployTask.resolveDependencies()
+        expect(deps.find((dep) => dep.type === "deploy" || dep.type === "task")).to.be.undefined
+      })
     })
   })
 

@@ -25,10 +25,9 @@ export interface DeleteServiceTaskParams {
 export class DeleteServiceTask extends BaseTask {
   type: TaskType = "delete-service"
   concurrencyLimit = 10
-
-  private graph: ConfigGraph
-  private service: GardenService
-  private includeDependants: boolean
+  graph: ConfigGraph
+  service: GardenService
+  includeDependants: boolean
 
   constructor({ garden, graph, log, service, includeDependants = false }: DeleteServiceTaskParams) {
     super({ garden, log, force: false, version: service.version })

@@ -2551,7 +2551,7 @@ describe("Garden", () => {
       const garden = await makeTestGarden(projectRoot)
 
       const module = await garden.resolveModule("module-a")
-      const moduleCDep = { name: "module-c", copy: [] }
+      const moduleCDep = { name: "module-c", copy: [] }
       expect(module.build.dependencies).to.eql([moduleCDep])
       expect(module.spec.build.dependencies).to.eql([moduleCDep])
     })

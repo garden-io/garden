@@ -45,5 +45,27 @@ describe("TestTask", () => {
 
       expect(deps.map((d) => d.getKey())).to.eql(["build.module-a", "deploy.service-b", "task.task-a"])
     })
+
+    context("when skipRuntimeDependencies = true", () => {
+      it("doesn't return deploy or task dependencies", async () => {
+        const moduleA = graph.getModule("module-a")
+        const testConfig = moduleA.testConfigs[0]
+
+        const task = new TestTask({
+          garden,
+          log,
+          graph,
+          test: testFromConfig(moduleA, testConfig, graph),
+          force: true,
+          forceBuild: false,
+          skipRuntimeDependencies: true, // <-----
+          devModeServiceNames: [],
+          hotReloadServiceNames: [],
+        })
+
+        const deps = await task.resolveDependencies()
+        expect(deps.find((dep) => dep.type === "deploy" || dep.type === "task")).to.be.undefined
+      })
+    })
   })
 })

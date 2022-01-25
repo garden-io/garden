@@ -31,9 +31,9 @@ export class StageBuildTask extends BaseTask {
   type: TaskType = "stage-build"
   concurrencyLimit = 10
 
-  private graph: ConfigGraph
-  private module: GardenModule
-  private extraDependencies: BaseTask[]
+  graph: ConfigGraph
+  module: GardenModule
+  extraDependencies: BaseTask[]
 
   constructor({ garden, graph, log, module, force, dependencies }: StageBuildTaskParams) {
     super({ garden, log, force, version: module.version.versionString })

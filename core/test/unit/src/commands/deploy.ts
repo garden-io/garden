@@ -99,6 +99,7 @@ const testProvider = () => {
 describe("DeployCommand", () => {
   const plugins = [testProvider()]
   const projectRootB = join(dataDir, "test-project-b")
+  const projectRootA = join(dataDir, "test-project-a")
 
   // TODO: Verify that services don't get redeployed when same version is already deployed.
   // TODO: Test with --watch flag
@@ -123,6 +124,7 @@ describe("DeployCommand", () => {
         "force": false,
         "force-build": true,
         "skip": undefined,
+        "skip-dependencies": false,
         "forward": false,
       }),
     })
@@ -471,6 +473,7 @@ describe("DeployCommand", () => {
         "force": false,
         "force-build": true,
         "skip": undefined,
+        "skip-dependencies": false,
         "forward": false,
       }),
     })
@@ -495,6 +498,57 @@ describe("DeployCommand", () => {
       "task.task-a",
       "task.task-c",
     ])
+  })
+
+  context("when --skip-dependencies is passed", () => {
+    it("should not process runtime dependencies for the requested services", async () => {
+      const garden = await makeTestGarden(projectRootA, { plugins })
+      const log = garden.log
+      const command = new DeployCommand()
+
+      const { result, errors } = await command.action({
+        garden,
+        log,
+        headerLog: log,
+        footerLog: log,
+        args: {
+          services: ["service-b", "service-c"],
+        },
+        opts: withDefaultGlobalOpts({
+          "dev-mode": undefined,
+          "hot-reload": undefined,
+          "watch": false,
+          "force": false,
+          "force-build": true,
+          "skip": undefined,
+          "skip-dependencies": true, // <-----
+          "forward": false,
+        }),
+      })
+
+      if (errors) {
+        throw errors[0]
+      }
+
+      expect(Object.keys(taskResultOutputs(result!)).sort()).to.eql([
+        "build.module-a",
+        "build.module-b",
+        "build.module-c",
+        // service-b has a dependency on service-a, it should be skipped here
+        // "deploy.service-a",
+        "deploy.service-b",
+        "deploy.service-c",
+        "get-service-status.service-a",
+        "get-service-status.service-b",
+        "get-service-status.service-c",
+        "get-task-result.task-c",
+        "stage-build.module-a",
+        "stage-build.module-b",
+        "stage-build.module-c",
+        // service-c has a dependency on task-c, it should be skipped here
+        // "task.task-c",
+      ])
+    })
   })
 
   it("should be protected", async () => {
@@ -525,6 +579,7 @@ describe("DeployCommand", () => {
         "force": false,
         "force-build": true,
         "skip": undefined,
+        "skip-dependencies": false,
         "forward": false,
       }),
     })
@@ -576,6 +631,7 @@ describe("DeployCommand", () => {
         "force": false,
         "force-build": true,
         "skip": undefined,
+        "skip-dependencies": false,
         "forward": false,
       }),
     })
@@ -620,6 +676,7 @@ describe("DeployCommand", () => {
         "force": false,
         "force-build": true,
         "skip": ["service-b"],
+        "skip-dependencies": false,
         "forward": false,
       }),
     })
@@ -649,6 +706,7 @@ describe("DeployCommand", () => {
           "force": false,
           "force-build": true,
           "skip": ["service-b"],
+          "skip-dependencies": false,
           "forward": false,
         }),
       })
@@ -672,6 +730,7 @@ describe("DeployCommand", () => {
           "force": false,
           "force-build": true,
           "skip": ["service-b"],
+          "skip-dependencies": false,
           "forward": false,
         }),
       })
@@ -695,6 +754,7 @@ describe("DeployCommand", () => {
           "force": false,
           "force-build": true,
           "skip": ["service-b"],
+          "skip-dependencies": false,
           "forward": false,
         }),
       })
@@ -717,6 +777,7 @@ describe("DeployCommand", () => {
           "force": false,
           "force-build": true,
           "skip": ["service-b"],
+          "skip-dependencies": false,
           "forward": true,
         }),
       })

@@ -55,6 +55,14 @@ export const testOpts = {
     alias: "w",
     cliOnly: true,
   }),
+  "skip-dependencies": new BooleanParameter({
+    help: deline`Don't deploy any services or run any tasks that the requested tests depend on.
+    This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime
+    dependencies without redeploying any service dependencies that may have changed since you last deployed.
+    Warning: Take great care when using this option in CI, since Garden won't ensure that the runtime dependencies of
+    your test suites are up to date when this option is used.`,
+    alias: "no-deps",
+  }),
   "skip-dependants": new BooleanParameter({
     help: deline`
       When using the modules argument, only run tests for those modules (and skip tests in other modules with
@@ -145,6 +153,7 @@ export class TestCommand extends Command<Args, Opts> {
     const filterNames = opts.name || []
     const force = opts.force
     const forceBuild = opts["force-build"]
+    const skipRuntimeDependencies = opts["skip-dependencies"]
 
     const initialTasks = flatten(
       await Bluebird.map(modules, (module) =>
@@ -158,6 +167,7 @@ export class TestCommand extends Command<Args, Opts> {
           forceBuild,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          skipRuntimeDependencies,
         })
       )
     )

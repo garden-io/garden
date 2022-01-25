@@ -34,10 +34,10 @@ export class PublishTask extends BaseTask {
   type: TaskType = "publish"
   concurrencyLimit = 5
 
-  private graph: ConfigGraph
-  private module: GardenModule
-  private forceBuild: boolean
-  private tagTemplate?: string
+  graph: ConfigGraph
+  module: GardenModule
+  forceBuild: boolean
+  tagTemplate?: string
 
   constructor({ garden, graph, log, module, forceBuild, tagTemplate }: PublishTaskParams) {
     super({ garden, log, version: module.version.versionString })

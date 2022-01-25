@@ -12,16 +12,14 @@ import { find, includes } from "lodash"
 import minimatch = require("minimatch")
 
 import { GardenModule } from "../types/module"
-import { DeployTask } from "./deploy"
 import { TestResult } from "../types/plugin/module/getTestResult"
 import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults } from "../tasks/base"
 import { prepareRuntimeContext } from "../runtime-context"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { ConfigGraph } from "../config-graph"
-import { makeTestTaskName } from "./helpers"
+import { getDeployDeps, getServiceStatusDeps, getTaskDeps, getTaskResultDeps, makeTestTaskName } from "./helpers"
 import { BuildTask } from "./build"
-import { TaskTask } from "./task"
 import { GraphResults } from "../task-graph"
 import { Profile } from "../util/profiling"
 import { GardenTest, testFromConfig } from "../types/test"
@@ -40,6 +38,7 @@ export interface TestTaskParams {
   force: boolean
   forceBuild: boolean
   fromWatch?: boolean
+  skipRuntimeDependencies?: boolean
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
   silent?: boolean
@@ -49,14 +48,14 @@ export interface TestTaskParams {
 @Profile()
 export class TestTask extends BaseTask {
   type: TaskType = "test"
-
-  private test: GardenTest
-  private graph: ConfigGraph
-  private forceBuild: boolean
-  private fromWatch: boolean
-  private devModeServiceNames: string[]
-  private hotReloadServiceNames: string[]
-  private silent: boolean
+  test: GardenTest
+  graph: ConfigGraph
+  forceBuild: boolean
+  fromWatch: boolean
+  skipRuntimeDependencies: boolean
+  devModeServiceNames: string[]
+  hotReloadServiceNames: string[]
+  silent: boolean
 
   constructor({
     garden,
@@ -66,6 +65,7 @@ export class TestTask extends BaseTask {
     force,
     forceBuild,
     fromWatch = false,
+    skipRuntimeDependencies = false,
     devModeServiceNames,
     hotReloadServiceNames,
     silent = true,
@@ -77,6 +77,7 @@ export class TestTask extends BaseTask {
     this.force = force
     this.forceBuild = forceBuild
     this.fromWatch = fromWatch
+    this.skipRuntimeDependencies = skipRuntimeDependencies
     this.devModeServiceNames = devModeServiceNames
     this.hotReloadServiceNames = hotReloadServiceNames
     this.silent = silent
@@ -110,34 +111,11 @@ export class TestTask extends BaseTask {
       force: this.forceBuild,
     })
 
-    const taskTasks = await Bluebird.map(deps.run, (task) => {
-      return new TaskTask({
-        task,
-        garden: this.garden,
-        log: this.log,
-        graph: this.graph,
-        force: this.force,
-        forceBuild: this.forceBuild,
-        devModeServiceNames: this.devModeServiceNames,
-        hotReloadServiceNames: this.hotReloadServiceNames,
-      })
-    })
-
-    const deployTasks = deps.deploy.map(
-      (service) =>
-        new DeployTask({
-          garden: this.garden,
-          graph: this.graph,
-          log: this.log,
-          service,
-          force: false,
-          forceBuild: this.forceBuild,
-          devModeServiceNames: this.devModeServiceNames,
-          hotReloadServiceNames: this.hotReloadServiceNames,
-        })
-    )
-
-    return [...buildTasks, ...deployTasks, ...taskTasks]
+    if (this.skipRuntimeDependencies) {
+      return [...buildTasks, ...getServiceStatusDeps(this, deps), ...getTaskResultDeps(this, deps)]
+    } else {
+      return [...buildTasks, ...getDeployDeps(this, deps, false), ...getTaskDeps(this, deps, this.force)]
+    }
   }
 
   getName() {
@@ -248,6 +226,7 @@ export async function getTestTasks({
   force = false,
   forceBuild = false,
   fromWatch = false,
+  skipRuntimeDependencies = false,
 }: {
   garden: Garden
   log: LogEntry
@@ -259,6 +238,7 @@ export async function getTestTasks({
   force?: boolean
   forceBuild?: boolean
   fromWatch?: boolean
+  skipRuntimeDependencies?: boolean
 }) {
   // If there are no filters we return the test otherwise
   // we check if the test name matches against the filterNames array
@@ -281,6 +261,7 @@ export async function getTestTasks({
         test: testFromConfig(module, testConfig, graph),
         devModeServiceNames,
         hotReloadServiceNames,
+        skipRuntimeDependencies,
       })
   )
 }
