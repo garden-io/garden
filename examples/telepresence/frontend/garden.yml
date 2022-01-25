@@ -1,0 +1,58 @@
+kind: Module
+name: frontend
+description: Frontend service container
+type: container
+include: [.]
+
+variables:
+  port: 8080
+  port-name: http
+
+buildArgs:
+  PORT: ${var.port}
+
+services:
+  - name: frontend
+    ports:
+      - name: ${var.port-name}
+        containerPort: ${var.port}
+          # healthCheck:
+          #   httpGet:
+          #     path: /hello-frontend
+          #     port: ${var.port-name}
+    ingresses:
+      - path: /hello-frontend
+        port: ${var.port-name}
+      - path: /call-backend
+        port: ${var.port-name}
+    dependencies:
+      - backend
+    env:
+      PORT: ${var.port}
+
+tests:
+  - name: unit
+    args: [npm, test]
+  - name: integ
+    args: [npm, run, integ]
+    dependencies:
+      - frontend
+
+---
+
+kind: Module
+name: local-scripts
+description: An exec module holds a handful of utiltiy scripts that should run locally.
+type: exec
+local: true
+include: []
+
+variables:
+  # TODO: Not sure if this an assumption we can generally make.
+  telepresence-intercept-name: frontend-${environment.namespace}
+
+tasks:
+  - name: telepresence-start
+    command: ["./scripts/telepresence-start.sh ${environment.namespace} ${modules.frontend.var.port} ${modules.frontend.var.port-name} ./tmp/.env"]
+  - name: telepresence-stop
+    command: ["telepresence", "leave", "${var.telepresence-intercept-name}"]

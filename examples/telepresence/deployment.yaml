@@ -1,0 +1,226 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "7"
+    garden.io/configured.replicas: "1"
+    garden.io/generated: "true"
+    garden.io/manifest-hash: 4e1a1d35957111a60f70557e453f0b286ede92748bae4d51bd77687948dcd6f0
+    garden.io/version: v-d72296953d
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{"garden.io/configured.replicas":"1","garden.io/generated":"true","garden.io/manifest-hash":"4e1a1d35957111a60f70557e453f0b286ede92748bae4d51bd77687948dcd6f0","garden.io/version":"v-d72296953d"},"labels":{"module":"frontend","service":"frontend"},"name":"frontend","namespace":"telepresence-eysi"},"spec":{"replicas":1,"revisionHistoryLimit":3,"selector":{"matchLabels":{"service":"frontend"}},"strategy":{"rollingUpdate":{"maxSurge":1,"maxUnavailable":1},"type":"RollingUpdate"},"template":{"metadata":{"annotations":{"garden.io/generated":"true","garden.io/manifest-hash":"af8f6840d37fe37a2c2ee36a7d19a0db1f300ad2b285f94656903205b909e0fb","garden.io/version":"v-d72296953d"},"labels":{"module":"frontend","service":"frontend"}},"spec":{"containers":[{"env":[{"name":"GARDEN_VERSION","value":"v-d72296953d"},{"name":"GARDEN_MODULE_VERSION","value":"v-c2c73c589a"},{"name":"PORT","value":"8080"},{"name":"POD_HOST_IP","valueFrom":{"fieldRef":{"fieldPath":"status.hostIP"}}},{"name":"POD_IP","valueFrom":{"fieldRef":{"fieldPath":"status.podIP"}}},{"name":"POD_NAME","valueFrom":{"fieldRef":{"fieldPath":"metadata.name"}}},{"name":"POD_NAMESPACE","valueFrom":{"fieldRef":{"fieldPath":"metadata.namespace"}}},{"name":"POD_NODE_NAME","valueFrom":{"fieldRef":{"fieldPath":"spec.nodeName"}}},{"name":"POD_SERVICE_ACCOUNT","valueFrom":{"fieldRef":{"fieldPath":"spec.serviceAccountName"}}},{"name":"POD_UID","valueFrom":{"fieldRef":{"fieldPath":"metadata.uid"}}}],"image":"127.0.0.1:5000/telepresence/frontend:v-c2c73c589a","imagePullPolicy":"IfNotPresent","name":"frontend","ports":[{"containerPort":8080,"name":"http","protocol":"TCP"}],"resources":{"limits":{"cpu":"1","memory":"1Gi"},"requests":{"cpu":"10m","memory":"90Mi"}},"securityContext":{"allowPrivilegeEscalation":false}}],"dnsPolicy":"ClusterFirst","restartPolicy":"Always","terminationGracePeriodSeconds":5}}}}
+    telepresence.getambassador.io/actions: '{"version":"2.4.10","ReferencedService":"frontend","referenced_service_port":"8080","referenced_service_port_name":"http","hide_container_port":{"container_name":"frontend","port_name":"http","hidden_name":"tm-http"},"add_traffic_agent":{"container_port_name":"http","container_port_proto":"TCP","app_port":8080,"image_name":"docker.io/datawire/tel2:2.4.10"}}'
+  creationTimestamp: "2022-01-25T15:09:45Z"
+  generation: 7
+  labels:
+    module: frontend
+    service: frontend
+  name: frontend
+  namespace: telepresence-eysi
+  resourceVersion: "87547316"
+  uid: 5a583609-3931-4971-83c3-76501845f93f
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      service: frontend
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        garden.io/generated: "true"
+        garden.io/manifest-hash: af8f6840d37fe37a2c2ee36a7d19a0db1f300ad2b285f94656903205b909e0fb
+        garden.io/version: v-d72296953d
+      creationTimestamp: null
+      labels:
+        module: frontend
+        service: frontend
+    spec:
+      containers:
+      - env:
+        - name: GARDEN_VERSION
+          value: v-d72296953d
+        - name: GARDEN_MODULE_VERSION
+          value: v-c2c73c589a
+        - name: PORT
+          value: "8080"
+        - name: POD_HOST_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.hostIP
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: POD_NODE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+        - name: POD_SERVICE_ACCOUNT
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.serviceAccountName
+        - name: POD_UID
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.uid
+        image: 127.0.0.1:5000/telepresence/frontend:v-c2c73c589a
+        imagePullPolicy: IfNotPresent
+        name: frontend
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        resources:
+          limits:
+            cpu: "1"
+            memory: 1Gi
+          requests:
+            cpu: 10m
+            memory: 90Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      - args:
+        - agent
+        env:
+        - name: GARDEN_VERSION
+          value: v-cd0f813cbc
+        - name: GARDEN_MODULE_VERSION
+          value: v-7f724baca7
+        - name: PORT
+          value: "8080"
+        - name: POD_HOST_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.hostIP
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: POD_NODE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+        - name: POD_SERVICE_ACCOUNT
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.serviceAccountName
+        - name: POD_UID
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.uid
+        - name: TELEPRESENCE_CONTAINER
+          value: frontend
+        - name: _TEL_AGENT_LOG_LEVEL
+          value: info
+        - name: _TEL_AGENT_NAME
+          value: frontend
+        - name: _TEL_AGENT_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: _TEL_AGENT_POD_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: _TEL_AGENT_APP_PORT
+          value: "8080"
+        - name: _TEL_AGENT_PORT
+          value: "9900"
+        - name: _TEL_AGENT_MANAGER_HOST
+          value: traffic-manager.ambassador
+        image: docker.io/datawire/tel2:2.4.10
+        imagePullPolicy: IfNotPresent
+        name: traffic-agent
+        ports:
+        - containerPort: 9900
+          name: http
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - /bin/stat
+            - /tmp/agent/ready
+          failureThreshold: 3
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /tel_pod_info
+          name: traffic-annotations
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 5
+      volumes:
+      - downwardAPI:
+          defaultMode: 420
+          items:
+          - fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.annotations
+            path: annotations
+        name: traffic-annotations
+status:
+  availableReplicas: 1
+  conditions:
+  - lastTransitionTime: "2022-01-25T15:09:45Z"
+    lastUpdateTime: "2022-01-25T15:09:45Z"
+    message: Deployment has minimum availability.
+    reason: MinimumReplicasAvailable
+    status: "True"
+    type: Available
+  - lastTransitionTime: "2022-01-25T15:09:45Z"
+    lastUpdateTime: "2022-01-25T17:38:10Z"
+    message: ReplicaSet "frontend-6f6c64c8ff" has successfully progressed.
+    reason: NewReplicaSetAvailable
+    status: "True"
+    type: Progressing
+  observedGeneration: 7
+  readyReplicas: 1
+  replicas: 1
+  updatedReplicas: 1
