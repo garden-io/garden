@@ -28,9 +28,9 @@ export class HotReloadTask extends BaseTask {
   type: TaskType = "hot-reload"
   concurrencyLimit = 10
 
-  private graph: ConfigGraph
-  // private hotReloadServiceNames: string[]
-  private service: GardenService
+  graph: ConfigGraph
+  // hotReloadServiceNames: string[]
+  service: GardenService
 
   constructor(params: Params) {
     super({ ...params, version: params.service.version })

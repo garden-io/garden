@@ -10,10 +10,14 @@ import { uniqBy } from "lodash"
 import { DeployTask } from "./deploy"
 import { Garden } from "../garden"
 import { GardenModule } from "../types/module"
-import { ConfigGraph } from "../config-graph"
+import { ConfigGraph, DependencyRelations } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask } from "./base"
 import { HotReloadTask } from "./hot-reload"
+import { TestTask } from "./test"
+import { TaskTask } from "./task"
+import { GetServiceStatusTask } from "./get-service-status"
+import { GetTaskResultTask } from "./get-task-result"
 
 /**
  * Helper used by the `garden dev` and `garden deploy --watch` commands, to get all the tasks that should be
@@ -77,6 +81,66 @@ export async function getModuleWatchTasks({
   const deduplicated = uniqBy(outputTasks, (t) => t.getKey())
 
   return deduplicated
+}
+
+type RuntimeTask = DeployTask | TestTask
+
+export function getServiceStatusDeps(task: RuntimeTask, deps: DependencyRelations): GetServiceStatusTask[] {
+  return deps.deploy.map((service) => {
+    return new GetServiceStatusTask({
+      garden: task.garden,
+      graph: task.graph,
+      log: task.log,
+      service,
+      force: false,
+      devModeServiceNames: task.devModeServiceNames,
+      hotReloadServiceNames: task.hotReloadServiceNames,
+    })
+  })
+}
+
+export function getTaskResultDeps(task: RuntimeTask, deps: DependencyRelations): GetTaskResultTask[] {
+  return deps.run.map((dep) => {
+    return new GetTaskResultTask({
+      garden: task.garden,
+      graph: task.graph,
+      log: task.log,
+      task: dep,
+      force: false,
+    })
+  })
+}
+
+export function getTaskDeps(task: RuntimeTask, deps: DependencyRelations, force: boolean): TaskTask[] {
+  return deps.run.map((dep) => {
+    return new TaskTask({
+      task: dep,
+      garden: task.garden,
+      log: task.log,
+      graph: task.graph,
+      force,
+      forceBuild: task.forceBuild,
+      devModeServiceNames: task.devModeServiceNames,
+      hotReloadServiceNames: task.hotReloadServiceNames,
+    })
+  })
+}
+
+export function getDeployDeps(task: RuntimeTask, deps: DependencyRelations, force: boolean): DeployTask[] {
+  return deps.deploy.map(
+    (service) =>
+      new DeployTask({
+        garden: task.garden,
+        graph: task.graph,
+        log: task.log,
+        service,
+        force,
+        forceBuild: task.forceBuild,
+        skipRuntimeDependencies: task.skipRuntimeDependencies,
+        devModeServiceNames: task.devModeServiceNames,
+        hotReloadServiceNames: task.hotReloadServiceNames,
+      })
+  )
 }
 
 export function makeTestTaskName(moduleName: string, testConfigName: string) {

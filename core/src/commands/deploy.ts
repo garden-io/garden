@@ -70,6 +70,14 @@ export const deployOpts = {
   "skip": new StringsParameter({
     help: "The name(s) of services you'd like to skip when deploying.",
   }),
+  "skip-dependencies": new BooleanParameter({
+    help: deline`Deploy the specified services, but don't deploy any additional services that they depend on or run
+    any tasks that they depend on. This option can only be used when a list of service names is passed as CLI arguments.
+    This can be useful e.g. when your stack has already been deployed, and you want to deploy a subset of services in
+    dev mode without redeploying any service dependencies that may have changed since you last deployed.
+    `,
+    alias: "no-deps",
+  }),
   "forward": new BooleanParameter({
     help: deline`Create port forwards and leave process running without watching
     for changes. Ignored if --watch/-w flag is set or when in dev or hot-reload mode.`,
@@ -168,6 +176,16 @@ export class DeployCommand extends Command<Args, Opts> {
       return { result: { builds: {}, deployments: {}, tests: {}, graphResults: {} } }
     }
 
+    const skipRuntimeDependencies = opts["skip-dependencies"]
+    if (skipRuntimeDependencies && (!args.services || args.services.length === 0)) {
+      const errMsg = deline`
+        No service names were provided as CLI arguments, but the --skip-dependencies option was used. Please provide a
+        list of service names when using the --skip-dependencies option.
+      `
+      log.error({ msg: errMsg })
+      return { result: { builds: {}, deployments: {}, tests: {}, graphResults: {} } }
+    }
+
     const modules = Array.from(new Set(services.map((s) => s.module)))
     const devModeServiceNames = getDevModeServiceNames(opts["dev-mode"], initGraph)
     const hotReloadServiceNames = getHotReloadServiceNames(opts["hot-reload"], initGraph)
@@ -201,6 +219,7 @@ export class DeployCommand extends Command<Args, Opts> {
           force,
           forceBuild,
           fromWatch: false,
+          skipRuntimeDependencies,
           devModeServiceNames,
           hotReloadServiceNames,
         })

@@ -33,11 +33,10 @@ export interface GetServiceStatusTaskParams {
 export class GetServiceStatusTask extends BaseTask {
   type: TaskType = "get-service-status"
   concurrencyLimit = 20
-
-  private graph: ConfigGraph
-  private service: GardenService
-  private devModeServiceNames: string[]
-  private hotReloadServiceNames: string[]
+  graph: ConfigGraph
+  service: GardenService
+  devModeServiceNames: string[]
+  hotReloadServiceNames: string[]
 
   constructor({
     garden,

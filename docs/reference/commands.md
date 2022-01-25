@@ -707,6 +707,7 @@ Examples:
   | `--dev-mode` | `-dev` | array:string | [EXPERIMENTAL] The name(s) of the service(s) to deploy with dev mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with dev mode enabled. When this option is used, the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
   | `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading). When this option is used, the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
   | `--skip` |  | array:string | The name(s) of services you&#x27;d like to skip when deploying.
+  | `--skip-dependencies` | `-no-deps` | boolean | Deploy the specified services, but don&#x27;t deploy any additional services that they depend on or run any tasks that they depend on. This option can only be used when a list of service names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to deploy a subset of services in dev mode without redeploying any service dependencies that may have changed since you last deployed.
   | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. Ignored if --watch/-w flag is set or when in dev or hot-reload mode.
 
 #### Outputs
@@ -3643,6 +3644,7 @@ Examples:
   | `--force` | `-f` | boolean | Force re-test of module(s).
   | `--force-build` |  | boolean | Force rebuild of module(s).
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-test.
+  | `--skip-dependencies` | `-no-deps` | boolean | Don&#x27;t deploy any services or run any tasks that the requested tests depend on. This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime dependencies without redeploying any service dependencies that may have changed since you last deployed. Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of your test suites are up to date when this option is used.
   | `--skip-dependants` |  | boolean | When using the modules argument, only run tests for those modules (and skip tests in other modules with dependencies on those modules).
 
 #### Outputs

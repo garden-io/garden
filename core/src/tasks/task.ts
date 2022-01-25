@@ -42,12 +42,11 @@ class RunTaskError extends Error {
 export class TaskTask extends BaseTask {
   // ... to be renamed soon.
   type: TaskType = "task"
-
-  private graph: ConfigGraph
-  private task: GardenTask
-  private forceBuild: boolean
-  private devModeServiceNames: string[]
-  private hotReloadServiceNames: string[]
+  graph: ConfigGraph
+  task: GardenTask
+  forceBuild: boolean
+  devModeServiceNames: string[]
+  hotReloadServiceNames: string[]
 
   constructor({
     garden,

@@ -30,9 +30,8 @@ export interface BuildTaskParams {
 export class BuildTask extends BaseTask {
   type: TaskType = "build"
   concurrencyLimit = 5
-
-  private graph: ConfigGraph
-  private module: GardenModule
+  graph: ConfigGraph
+  module: GardenModule
 
   constructor({ garden, graph, log, module, force }: BuildTaskParams & { _guard: true }) {
     // Note: The _guard attribute is to prevent accidentally bypassing the factory method

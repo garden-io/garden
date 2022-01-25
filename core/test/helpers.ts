@@ -579,6 +579,24 @@ export function getRuntimeStatusEvents(eventLog: EventLogEntry[]) {
     })
 }
 
+export function makeModuleConfig(path: string, from: Partial<ModuleConfig>): ModuleConfig {
+  return {
+    apiVersion: DEFAULT_API_VERSION,
+    allowPublish: false,
+    build: { dependencies: [] },
+    disabled: false,
+    include: [],
+    name: "test",
+    path,
+    serviceConfigs: [],
+    taskConfigs: [],
+    spec: {},
+    testConfigs: [],
+    type: "test",
+    ...from,
+  }
+}
+
 /**
  * Initialise test logger.
  *
