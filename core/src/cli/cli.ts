@@ -9,6 +9,8 @@
 import dotenv = require("dotenv")
 import { intersection, sortBy } from "lodash"
 import { resolve, join } from "path"
+import chalk from "chalk"
+import { pathExists } from "fs-extra"
 import { getBuiltinCommands } from "../commands/commands"
 import { shutdown, sleep, getPackageVersion, uuidv4, registerCleanupFunction } from "../util/util"
 import { Command, CommandResult, CommandGroup, BuiltinArgs } from "../commands/base"
@@ -45,12 +47,13 @@ import { DashboardEventStream } from "../server/dashboard-event-stream"
 import { GardenPluginReference } from "../types/plugin/plugin"
 import { renderError } from "../logger/renderers"
 import { CloudApi } from "../cloud/api"
-import chalk from "chalk"
 import { findProjectConfig } from "../config/base"
 import { pMemoizeDecorator } from "../lib/p-memoize"
 import { getCustomCommands } from "../commands/custom"
-import { pathExists } from "fs-extra"
 import { Profile } from "../util/profiling"
+import { prepareDebugLogfiles } from "./debug-logs"
+import { LogEntry } from "../logger/log-entry"
+import { JsonFileWriter } from "../logger/writers/json-file-writer"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   const environments = gardenOpts.environmentName
@@ -122,11 +125,37 @@ ${renderCommands(commands)}
     return msg
   }
 
-  private async initFileWriters(logger: Logger, gardenDirPath: string) {
+  private async initFileWriters({
+    logger,
+    log,
+    gardenDirPath,
+    commandFullName,
+  }: {
+    logger: Logger
+    log: LogEntry
+    gardenDirPath: string
+    commandFullName: string
+  }) {
     if (this.fileWritersInitialized) {
       return
     }
+    const { debugLogfileName, jsonLogfileName } = await prepareDebugLogfiles(
+      log,
+      join(gardenDirPath, LOGS_DIR_NAME),
+      commandFullName
+    )
     const logConfigs: FileWriterConfig[] = [
+      {
+        logFilePath: join(gardenDirPath, LOGS_DIR_NAME, debugLogfileName),
+        truncatePrevious: true,
+        level: LogLevel.debug,
+      },
+      {
+        logFilePath: join(gardenDirPath, LOGS_DIR_NAME, jsonLogfileName),
+        truncatePrevious: true,
+        level: LogLevel.silly,
+        json: true,
+      },
       {
         logFilePath: join(gardenDirPath, ERROR_LOG_FILENAME),
         truncatePrevious: true,
@@ -142,7 +171,7 @@ ${renderCommands(commands)}
       },
     ]
     for (const config of logConfigs) {
-      logger.addWriter(await FileWriter.factory(config))
+      logger.addWriter(await (config.json ? JsonFileWriter : FileWriter).factory(config))
     }
     this.fileWritersInitialized = true
   }
@@ -365,7 +394,12 @@ ${renderCommands(commands)}
 
         // Register log file writers. We need to do this after the Garden class is initialised because
         // the file writers depend on the project root.
-        await this.initFileWriters(logger, garden.gardenDirPath)
+        await this.initFileWriters({
+          logger,
+          log,
+          gardenDirPath: garden.gardenDirPath,
+          commandFullName: command.getFullName(),
+        })
         analytics = await AnalyticsHandler.init(garden, log)
         analytics.trackCommand(command.getFullName())
 

@@ -219,7 +219,8 @@ export function formatForJson(entry: LogEntry): JsonLogEntry {
   const msg = entry.getLatestMessage()
   const metadata = entry.getMetadata()
   const messages = chainMessages(entry.getMessages() || [])
-  return {
+  const errorDetail = entry.errorData && entry ? formatGardenErrorWithDetail(entry.errorData) : undefined
+  const jsonLogEntry: JsonLogEntry = {
     msg: cleanForJSON(messages),
     data: msg.data,
     metadata,
@@ -228,4 +229,8 @@ export function formatForJson(entry: LogEntry): JsonLogEntry {
     level: entry.getStringLevel(),
     allSections: getAllSections(entry, msg).map(cleanForJSON),
   }
+  if (errorDetail) {
+    jsonLogEntry.errorDetail = errorDetail
+  }
+  return jsonLogEntry
 }
