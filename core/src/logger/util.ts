@@ -245,17 +245,22 @@ export function renderMessageWithDivider(prefix: string, msg: string, isError: b
   `
 }
 
-export function formatGardenErrorWithDetail(error: GardenError) {
-  const { detail, message, stack } = error
-  let out = stack || message || ""
-
-  // We recursively filter out internal fields (i.e. having names starting with _).
-  const filteredDetail = deepFilter(sanitizeObject(detail), (_val, key: string | number) => {
+// Recursively filters out internal fields (i.e. having names starting with `_`).
+export function withoutInternalFields(object: any): any {
+  return deepFilter(sanitizeObject(object), (_val, key: string | number) => {
     if (typeof key === "string") {
       return !key.startsWith("_")
     }
     return true
   })
+}
+
+export function formatGardenErrorWithDetail(error: GardenError) {
+  const { detail, message, stack } = error
+  let out = stack || message || ""
+
+  // We recursively filter out internal fields (i.e. having names starting with _).
+  const filteredDetail = withoutInternalFields(detail)
 
   if (!isEmpty(filteredDetail)) {
     try {

@@ -15,6 +15,7 @@ export interface JsonLogEntry {
   msg: string
   timestamp: string
   data?: any
+  errorDetail?: string
   section?: string
   metadata?: LogEntryMetadata
   level: string
