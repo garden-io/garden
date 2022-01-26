@@ -77,12 +77,16 @@ export async function processModules({
     log.info(renderDivider())
   }
 
+  // true if one or more tasks failed when the task graph last finished processing all its nodes.
+  let taskErrorDuringLastProcess = false
+
   if (watch && !!footerLog) {
     if (!statusLine) {
       statusLine = footerLog.info("").placeholder()
     }
 
     garden.events.on("taskGraphProcessing", () => {
+      taskErrorDuringLastProcess = false
       statusLine.setState({ emoji: "hourglass_flowing_sand", msg: "Processing..." })
     })
   }
@@ -127,6 +131,15 @@ export async function processModules({
 
   await garden.startWatcher({ graph, skipModules: skipWatchModules })
 
+  const taskError = () => {
+    if (!!statusLine) {
+      statusLine.setState({
+        emoji: "heavy_exclamation_mark",
+        msg: chalk.red("One or more tasks failed, see the log output above for details."),
+      })
+    }
+  }
+
   const waiting = () => {
     if (!!statusLine) {
       statusLine.setState({ emoji: "clock2", msg: chalk.gray("Waiting for code changes...") })
@@ -138,8 +151,15 @@ export async function processModules({
   let restartRequired = true
 
   await new Promise((resolve) => {
+    garden.events.on("taskError", () => {
+      taskErrorDuringLastProcess = true
+      taskError()
+    })
+
     garden.events.on("taskGraphComplete", () => {
-      waiting()
+      if (!taskErrorDuringLastProcess) {
+        waiting()
+      }
     })
 
     garden.events.on("_restart", () => {
