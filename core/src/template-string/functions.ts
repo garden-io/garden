@@ -9,7 +9,7 @@
 import { v4 as uuidv4 } from "uuid"
 import { TemplateStringError } from "../exceptions"
 import { keyBy, mapValues, escapeRegExp, trim, isEmpty, camelCase, kebabCase, isArrayLike } from "lodash"
-import { joi, JoiDescription } from "../config/common"
+import { joi, JoiDescription, joiPrimitive, Primitive } from "../config/common"
 import Joi from "@hapi/joi"
 import { validateSchema } from "../config/validation"
 import { safeLoad, safeLoadAll } from "js-yaml"
@@ -98,6 +98,21 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       { input: [null], output: true },
     ],
     fn: (value: any) => value === undefined || isEmpty(value),
+  },
+  {
+    name: "join",
+    description:
+      "Takes an array of strings (or other primitives) and concatenates them into a string, with the given separator",
+    arguments: {
+      input: joi.array().items(joiPrimitive()).required().description("The array to concatenate."),
+      separator: joi.string().required().description("The string to place between each item in the array."),
+    },
+    outputSchema: joi.string(),
+    exampleArguments: [
+      { input: [["some", "list", "of", "strings"], " "], output: "some list of strings" },
+      { input: [["some", "list", "of", "strings"], "."], output: "some.list.of.strings" },
+    ],
+    fn: (input: Primitive[], separator: string) => input.join(separator),
   },
   {
     name: "jsonDecode",
