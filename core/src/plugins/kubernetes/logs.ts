@@ -58,7 +58,7 @@ export async function streamK8sLogs(params: GetAllLogsParams) {
       logsFollower.close()
     })
 
-    await logsFollower.followLogs({ tail: params.tail, since: params.since })
+    await logsFollower.followLogs({ tail: params.tail, since: params.since, limitBytes: null })
   } else {
     const pods = await getAllPods(api, params.defaultNamespace, params.resources)
     let tail = params.tail
@@ -139,6 +139,16 @@ interface LogConnection {
 interface LogOpts {
   tail?: number
   since?: string
+  /**
+   * If set to null, does not limit the number of bytes. This parameter is made mandatory, so that the usage site
+   * makes a deliberate and informed choice about it.
+   *
+   * From the k8s javascript client library docs:
+   *
+   * "If set, the number of bytes to read from the server before terminating the log output. This may not display a
+   * complete final line of logging, and may return slightly more or slightly less than the specified limit.""
+   */
+  limitBytes: number | null
 }
 
 const defaultRetryIntervalMs = 10000
@@ -217,7 +227,7 @@ export class K8sLogFollower<T> {
    * Start following logs. This function doesn't return and simply keeps running
    * until outside code calls the close method.
    */
-  public async followLogs(opts: LogOpts = {}) {
+  public async followLogs(opts: LogOpts) {
     await this.createConnections(opts)
 
     this.intervalId = setInterval(async () => {
@@ -262,7 +272,7 @@ export class K8sLogFollower<T> {
     }
   }
 
-  private async createConnections({ tail, since }: LogOpts) {
+  private async createConnections({ tail, since, limitBytes }: LogOpts) {
     let pods: KubernetesPod[]
 
     try {
@@ -347,6 +357,7 @@ export class K8sLogFollower<T> {
           podName: pod.metadata.name,
           doneCallback,
           stream: writableStream,
+          limitBytes,
           tail,
           timestamps: true,
           // If we're retrying, presunmably because the connection was cut, we only want the latest logs.
@@ -396,6 +407,7 @@ export class K8sLogFollower<T> {
     containerName,
     doneCallback,
     stream,
+    limitBytes,
     tail,
     since,
     timestamps,
@@ -404,6 +416,7 @@ export class K8sLogFollower<T> {
     podName: string
     containerName: string
     stream: Writable
+    limitBytes: null | number
     tail?: number
     timestamps?: boolean
     since?: string
@@ -414,12 +427,15 @@ export class K8sLogFollower<T> {
 
     const opts = {
       follow: true,
-      limitBytes: 5000,
       pretty: false,
       previous: false,
       sinceSeconds,
       tailLines: tail,
       timestamps,
+    }
+
+    if (limitBytes) {
+      opts["limitBytes"] = limitBytes
     }
 
     return logger.log(namespace, podName, containerName, stream, doneCallback, opts)

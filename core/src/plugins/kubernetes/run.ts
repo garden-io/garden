@@ -810,7 +810,8 @@ export class PodRunner extends PodRunnerParams {
       resources: [this.pod],
       k8sApi: this.api,
     })
-    logsFollower.followLogs().catch((_err) => {
+    const limitBytes = 1000 * 1024 // 1MB
+    logsFollower.followLogs({ limitBytes }).catch((_err) => {
       // Errors in `followLogs` are logged there, so all we need to do here is to ensure that the follower is closed.
       logsFollower.close()
     })

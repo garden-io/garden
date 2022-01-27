@@ -135,7 +135,7 @@ describe("kubernetes", () => {
         setTimeout(() => {
           logsFollower.close()
         }, 2500)
-        await logsFollower.followLogs()
+        await logsFollower.followLogs({ limitBytes: null })
 
         expect(ctx.log.toString()).to.match(/Connected to container 'simple-service'/)
 
@@ -210,7 +210,7 @@ describe("kubernetes", () => {
         // Start following logs even when no services is deployed
         // (we don't wait for the Promise since it won't resolve unless we close the connection)
         // tslint:disable-next-line: no-floating-promises
-        logsFollower.followLogs()
+        logsFollower.followLogs({ limitBytes: null })
         await sleep(1500)
 
         // Deploy the service
