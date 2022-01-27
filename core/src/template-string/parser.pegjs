@@ -178,7 +178,7 @@ MemberExpression
 
 CallExpression
   = callee:Identifier __ args:Arguments {
-      return callHelperFunction(callee, args)
+      return callHelperFunction({ functionName: callee, args, text: text(), allowPartial: options.allowPartial })
     }
 
 Arguments
