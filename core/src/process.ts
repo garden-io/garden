@@ -135,7 +135,7 @@ export async function processModules({
     if (!!statusLine) {
       statusLine.setState({
         emoji: "heavy_exclamation_mark",
-        msg: chalk.red("One or more tasks failed, see the log output above for details."),
+        msg: chalk.red("One or more actions failed, see the log output above for details."),
       })
     }
   }
