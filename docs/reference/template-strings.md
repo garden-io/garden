@@ -70,6 +70,17 @@ Examples:
 * `${isEmpty("not empty")}` -> `false`
 * `${isEmpty(null)}` -> `true`
 
+### join
+
+Takes an array of strings (or other primitives) and concatenates them into a string, with the given separator
+
+Usage: `join(input, separator)`
+
+Examples:
+
+* `${join(["some","list","of","strings"], " ")}` -> `"some list of strings"`
+* `${join(["some","list","of","strings"], ".")}` -> `"some.list.of.strings"`
+
 ### jsonDecode
 
 Decodes the given JSON-encoded string.
