@@ -355,7 +355,17 @@ export function getHelperFunctions(): HelperFunctions {
   return _helperFunctions
 }
 
-export function callHelperFunction(functionName: string, args: any[], text: string) {
+export function callHelperFunction({
+  functionName,
+  args,
+  text,
+  allowPartial,
+}: {
+  functionName: string
+  args: any[]
+  text: string
+  allowPartial: boolean
+}) {
   const helperFunctions = getHelperFunctions()
   const spec = helperFunctions[functionName]
 
@@ -405,7 +415,11 @@ export function callHelperFunction(functionName: string, args: any[], text: stri
         ErrorClass: TemplateStringError,
       })
     } catch (_error) {
-      return { _error }
+      if (allowPartial) {
+        return { resolved: text }
+      } else {
+        return { _error }
+      }
     }
 
     i++
