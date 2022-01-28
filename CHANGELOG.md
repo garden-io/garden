@@ -1,4 +1,38 @@
 
+<a name="0.12.34"></a>
+## [0.12.34](https://github.com/garden-io/garden/compare/0.12.33...0.12.34) (2022-01-04)
+
+### Bug Fixes
+
+* **cli:** get rid of EPIPE error and OOM check ([f950755b](https://github.com/garden-io/garden/commit/f950755b))
+* **core:** properly handle sparse build deps ([2fb8a119](https://github.com/garden-io/garden/commit/2fb8a119))
+* **docs:** fix a typo in the how garden works doc ([fdc2e0d4](https://github.com/garden-io/garden/commit/fdc2e0d4))
+* **docs:** fix a typo in the using-garden-in-ci doc ([4ec4280b](https://github.com/garden-io/garden/commit/4ec4280b))
+* **docs:** fix typos in the in-cluster building doc ([1fe693a9](https://github.com/garden-io/garden/commit/1fe693a9))
+* **docs:** fix a typo in the hot-reload doc ([d27b3672](https://github.com/garden-io/garden/commit/d27b3672))
+* **docs:** fix typos in the dontainer modules doc ([fdd68352](https://github.com/garden-io/garden/commit/fdd68352))
+* **docs:** fix typos in the code sync dev doc ([b110866c](https://github.com/garden-io/garden/commit/b110866c))
+* **docs:** fix a typo in the project init doc ([7b60d45e](https://github.com/garden-io/garden/commit/7b60d45e))
+* **docs:** fix a typo in the stack-graph.md doc ([474301d9](https://github.com/garden-io/garden/commit/474301d9))
+* **docs:** fix a typo in welcome.md docs ([ad1af886](https://github.com/garden-io/garden/commit/ad1af886))
+* **k8s:** better handling for long log lines ([cc0ad52a](https://github.com/garden-io/garden/commit/cc0ad52a))
+* **k8s:** fix rollout status check for Recreate ([bcd2df2d](https://github.com/garden-io/garden/commit/bcd2df2d))
+* **k8s:** fix issues with mutagen symlink directory ([7c57b69c](https://github.com/garden-io/garden/commit/7c57b69c))
+* **k8s:** allow any style of path for kubeconfig field ([6e6d4c45](https://github.com/garden-io/garden/commit/6e6d4c45))
+* **template:** template string in helper arguments weren't resolved ([0157fe0d](https://github.com/garden-io/garden/commit/0157fe0d))
+
+### Features
+
+* **config:** add ${datetime.*} template context ([78cd007f](https://github.com/garden-io/garden/commit/78cd007f))
+* **config:** add ${git.commitHash} and ${git.originUrl} template fields ([246b9f67](https://github.com/garden-io/garden/commit/246b9f67))
+* **core:** add --skip-dependencies CLI option ([94ab87f2](https://github.com/garden-io/garden/commit/94ab87f2))
+* **k8s:** arbitrary shared secrets ([11d43b8c](https://github.com/garden-io/garden/commit/11d43b8c))
+* **template:** add indent helper function ([c90ec372](https://github.com/garden-io/garden/commit/c90ec372))
+
+### Improvements
+
+* **core:** show error in watch footer ([01fb0ddf](https://github.com/garden-io/garden/commit/01fb0ddf))
+
 <a name="0.12.33"></a>
 ## [0.12.33](https://github.com/garden-io/garden/compare/0.12.32...0.12.33) (2021-12-13)
 
