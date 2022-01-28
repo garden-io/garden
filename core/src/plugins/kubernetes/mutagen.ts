@@ -249,6 +249,7 @@ export async function execMutagenCommand(ctx: PluginContext, log: LogEntry, args
         log,
         env: {
           MUTAGEN_DATA_DIRECTORY: dataDir,
+          MUTAGEN_DISABLE_AUTOSTART: "1",
         },
       })
       startMutagenMonitor(ctx, log)
@@ -425,7 +426,7 @@ export function startMutagenMonitor(ctx: PluginContext, log: LogEntry) {
  * List the currently active syncs in the mutagen daemon.
  */
 export async function getActiveMutagenSyncs(ctx: PluginContext, log: LogEntry): Promise<SyncListEntry[]> {
-  const res = await execMutagenCommand(ctx, log, ["sync", "list", "--output=json", "--auto-start=false"])
+  const res = await execMutagenCommand(ctx, log, ["sync", "list", "--output=json"])
 
   // TODO: validate further
   let parsed: any = {}
@@ -477,7 +478,7 @@ export async function ensureMutagenSync({
 
       const ignoreFlags = ignore.flatMap((i) => ["-i", i])
       const syncMode = mutagenModeMap[mode]
-      const params = [alpha, beta, "--name", key, "--auto-start=false", "--sync-mode", syncMode, ...ignoreFlags]
+      const params = [alpha, beta, "--name", key, "--sync-mode", syncMode, ...ignoreFlags]
 
       if (defaultOwner) {
         params.push("--default-owner", defaultOwner.toString())
@@ -527,7 +528,7 @@ export async function terminateMutagenSync(ctx: PluginContext, log: LogEntry, ke
 
   return mutagenConfigLock.acquire("configure", async () => {
     try {
-      await execMutagenCommand(ctx, log, ["sync", "delete", key, "--auto-start=false"])
+      await execMutagenCommand(ctx, log, ["sync", "delete", key])
       delete activeSyncs[key]
     } catch (err) {
       // Ignore other errors, which should mean the sync wasn't found
@@ -541,7 +542,7 @@ export async function terminateMutagenSync(ctx: PluginContext, log: LogEntry, ke
  * Ensure a sync is completed.
  */
 export async function flushMutagenSync(ctx: PluginContext, log: LogEntry, key: string) {
-  await execMutagenCommand(ctx, log, ["sync", "flush", key, "--auto-start=false"])
+  await execMutagenCommand(ctx, log, ["sync", "flush", key])
 }
 
 export async function getKubectlExecDestination({
