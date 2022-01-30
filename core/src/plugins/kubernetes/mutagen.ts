@@ -594,8 +594,8 @@ export const mutagenCliSpec: PluginToolSpec = {
       platform: "darwin",
       architecture: "amd64",
       url:
-        "https://github.com/garden-io/mutagen/releases/download/v0.12.0-garden-alpha2/mutagen_darwin_amd64_v0.12.0-beta3.tar.gz",
-      sha256: "e31cebb5c4cbd1a1320e56b111416389e9eed911233b40c93801547c1eec0563",
+        "https://github.com/garden-io/mutagen/releases/download/v0.13.0-garden-1/mutagen_darwin_amd64_v0.13.0.tar.gz",
+      sha256: "ef0642bfcd787ab20d30ab218f9f1cd92e51f035ab9fbaa38132bb0726abea74",
       extract: {
         format: "tar",
         targetPath: "mutagen",
@@ -604,9 +604,8 @@ export const mutagenCliSpec: PluginToolSpec = {
     {
       platform: "linux",
       architecture: "amd64",
-      url:
-        "https://github.com/garden-io/mutagen/releases/download/v0.12.0-garden-alpha2/mutagen_linux_amd64_v0.12.0-beta3.tar.gz",
-      sha256: "09a0dbccbbd784324707ba12002a6bc90395f0cd73daab83d6cda7432b4973f3",
+      url: "https://github.com/garden-io/mutagen/releases/download/v0.13.0-garden-1/mutagen_linux_amd64_v0.13.0.tar.gz",
+      sha256: "733d92d8d8eeab82ac4755df34c4a359eec3b600861b075b130bd8f954908640",
       extract: {
         format: "tar",
         targetPath: "mutagen",
@@ -615,9 +614,8 @@ export const mutagenCliSpec: PluginToolSpec = {
     {
       platform: "windows",
       architecture: "amd64",
-      url:
-        "https://github.com/garden-io/mutagen/releases/download/v0.12.0-garden-alpha2/mutagen_windows_amd64_v0.12.0-beta3.zip",
-      sha256: "9482646380a443b72aa38b3569c71c73d91ddde7c57a10de3d48b0b727cb8bff",
+      url: "https://github.com/garden-io/mutagen/releases/download/v0.13.0-garden-1/mutagen_windows_amd64_v0.13.0.zip",
+      sha256: "50235fb453d55e9c07a4f287c3afe7562b91786a288ef836bd58905f48d7be31",
       extract: {
         format: "zip",
         targetPath: "mutagen.exe",
