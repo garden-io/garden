@@ -528,7 +528,7 @@ export async function terminateMutagenSync(ctx: PluginContext, log: LogEntry, ke
 
   return mutagenConfigLock.acquire("configure", async () => {
     try {
-      await execMutagenCommand(ctx, log, ["sync", "delete", key])
+      await execMutagenCommand(ctx, log, ["sync", "terminate", key])
       delete activeSyncs[key]
     } catch (err) {
       // Ignore other errors, which should mean the sync wasn't found
