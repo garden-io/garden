@@ -55,6 +55,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 
   streamEvents = true
   streamLogEntries = true
+  skipCliErrorSummary = true
 
   description = dedent`
     Runs the commands and/or scripts defined in the workflow's steps, in sequence.
@@ -167,8 +168,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
         garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
         stepErrors[index] = [err]
         printStepDuration({ ...stepParams, success: false })
-        printResult({ startedAt, log: outerLog, workflow, success: false })
-        logErrors(outerLog, [err], index, steps.length, step.description)
+        logErrors(stepBodyLog, [err], index, steps.length, step.description)
         // There may be succeeding steps with `when: onError` or `when: always`, so we continue.
         continue
       }
@@ -463,11 +463,7 @@ export function logErrors(
   stepDescription?: string
 ) {
   const description = formattedStepDescription(stepIndex, stepCount, stepDescription)
-  const errMsg = dedent`
-    An error occurred while running step ${chalk.white(description)}.
-
-    See the log output below for additional details.\n
-  `
+  const errMsg = `An error occurred while running step ${chalk.white(description)}.\n`
   log.error(chalk.red(errMsg))
   log.debug("")
   for (const error of errors) {
@@ -479,10 +475,12 @@ export function logErrors(
       )
       log.error(scriptErrMsg)
     } else {
-      // Error comes from a command step. We only log the detail here (and only for log.debug or higher), since
-      // the task graph's error logging takes care of the rest.
-      const taskDetailErrMsg = formatGardenErrorWithDetail(error)
-      log.debug(chalk.red(taskDetailErrMsg))
+      // Error comes from a command step.
+      if (error.detail) {
+        const taskDetailErrMsg = formatGardenErrorWithDetail(error)
+        log.debug(chalk.red(taskDetailErrMsg))
+      }
+      log.error(chalk.red(error.message + "\n"))
     }
   }
 }

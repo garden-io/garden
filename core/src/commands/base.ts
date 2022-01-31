@@ -89,6 +89,9 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   hidden: boolean = false
   noProject: boolean = false
   protected: boolean = false
+  // Set to true to disable post-execution logging of command errors by the CLI class (e.g. to avoid duplicate logging
+  // when the command does its own error logging/formatting in its action method).
+  skipCliErrorSummary: boolean = false
   streamEvents: boolean = false // Set to true to stream events for the command
   streamLogEntries: boolean = false // Set to true to stream log entries for the command
   server: GardenServer | undefined = undefined
