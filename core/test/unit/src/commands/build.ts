@@ -8,9 +8,10 @@
 
 import { BuildCommand } from "../../../../src/commands/build"
 import { expect } from "chai"
-import { makeTestGardenA, withDefaultGlobalOpts } from "../../../helpers"
+import { makeModuleConfig, makeTestGardenA, withDefaultGlobalOpts } from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
 import { keyBy } from "lodash"
+import { ModuleConfig } from "../../../../src/config/module"
 
 describe("BuildCommand", () => {
   it("should build all modules in a project and output the results", async () => {
@@ -25,7 +26,7 @@ describe("BuildCommand", () => {
       headerLog: log,
       footerLog,
       args: { modules: undefined },
-      opts: withDefaultGlobalOpts({ watch: false, force: true }),
+      opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
     })
 
     expect(command.outputsSchema().validate(result).error).to.be.undefined
@@ -90,7 +91,7 @@ describe("BuildCommand", () => {
       headerLog: log,
       footerLog,
       args: { modules: ["module-b"] },
-      opts: withDefaultGlobalOpts({ watch: false, force: true }),
+      opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
     })
 
     expect(taskResultOutputs(result!)).to.eql({
@@ -121,7 +122,7 @@ describe("BuildCommand", () => {
       headerLog: log,
       footerLog,
       args: { modules: undefined },
-      opts: withDefaultGlobalOpts({ watch: false, force: true }),
+      opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
     })
 
     expect(taskResultOutputs(result!)).to.eql({
@@ -148,7 +149,7 @@ describe("BuildCommand", () => {
       headerLog: log,
       footerLog,
       args: { modules: undefined },
-      opts: withDefaultGlobalOpts({ watch: false, force: true }),
+      opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
     })
 
     expect(taskResultOutputs(result!)).to.eql({
@@ -158,6 +159,78 @@ describe("BuildCommand", () => {
       "stage-build.module-a": {},
       "stage-build.module-b": {},
       "stage-build.module-c": {},
+    })
+  })
+
+  it("should build dependant modules when using the --with-dependants flag", async () => {
+    const garden = await makeTestGardenA()
+    const log = garden.log
+    const footerLog = garden.log
+    const command = new BuildCommand()
+
+    const moduleConfigs: ModuleConfig[] = [
+      makeModuleConfig(garden.projectRoot, {
+        name: "module-a",
+        include: [],
+        spec: {
+          services: [{ name: "service-a" }],
+          tests: [],
+          tasks: [],
+          build: { command: ["echo", "A"], dependencies: ["module-b", "module-c"] },
+        },
+      }),
+      makeModuleConfig(garden.projectRoot, {
+        name: "module-b",
+        include: [],
+        spec: {
+          services: [{ name: "service-b" }],
+          tests: [],
+          tasks: [],
+          build: { command: ["echo", "B"], dependencies: ["module-c"] },
+        },
+      }),
+      makeModuleConfig(garden.projectRoot, {
+        name: "module-c",
+        include: [],
+        spec: {
+          services: [{ name: "service-c" }],
+          tests: [],
+          tasks: [],
+          build: { command: ["echo", "C"], dependencies: ["module-d"] },
+        },
+      }),
+      makeModuleConfig(garden.projectRoot, {
+        name: "module-d",
+        include: [],
+        spec: {
+          services: [{ name: "service-d" }],
+          tests: [],
+          tasks: [],
+          build: { command: ["echo", "D"], dependencies: [] },
+        },
+      }),
+    ]
+
+    garden.setModuleConfigs(moduleConfigs)
+
+    const { result } = await command.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog,
+      args: { modules: undefined },
+      opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": true }), // <---
+    })
+
+    expect(taskResultOutputs(result!)).to.eql({
+      "build.module-a": { fresh: true, buildLog: "A" },
+      "build.module-b": { fresh: true, buildLog: "B" },
+      "build.module-c": { fresh: true, buildLog: "C" },
+      "build.module-d": { fresh: true, buildLog: "D" },
+      "stage-build.module-a": {},
+      "stage-build.module-b": {},
+      "stage-build.module-c": {},
+      "stage-build.module-d": {},
     })
   })
 })

@@ -24,6 +24,9 @@ import { flatten } from "lodash"
 import { BuildTask } from "../tasks/build"
 import { StringsParameter, BooleanParameter } from "../cli/params"
 import { Garden } from "../garden"
+import { GardenModule } from "../types/module"
+import { uniqByName } from "../util/util"
+import { deline } from "../util/string"
 
 const buildArgs = {
   modules: new StringsParameter({
@@ -32,11 +35,18 @@ const buildArgs = {
 }
 
 const buildOpts = {
-  force: new BooleanParameter({ help: "Force rebuild of module(s).", alias: "f" }),
-  watch: new BooleanParameter({
+  "force": new BooleanParameter({ help: "Force rebuild of module(s).", alias: "f" }),
+  "watch": new BooleanParameter({
     help: "Watch for changes in module(s) and auto-build.",
     alias: "w",
     cliOnly: true,
+  }),
+  "with-dependants": new BooleanParameter({
+    help: deline`
+      Also rebuild modules that have build dependencies on one of the modules specified as CLI arguments (recursively).
+      Note: This option has no effect unless a list of module names is specified as CLI arguments (since then, every
+      module in the project will be rebuilt).
+  `,
   }),
 }
 
@@ -104,7 +114,14 @@ export class BuildCommand extends Command<Args, Opts> {
     await garden.clearBuilds()
 
     const graph = await garden.getConfigGraph({ log, emit: true })
-    const modules = graph.getModules({ names: args.modules })
+    let modules: GardenModule[] = graph.getModules({ names: args.modules })
+    if (opts["with-dependants"]) {
+      // Then we include build dependants (recursively) in the list of modules to build.
+      modules = uniqByName([
+        ...modules,
+        ...flatten(modules.map((m) => graph.getDependants({ nodeType: "build", name: m.name, recursive: true }).build)),
+      ])
+    }
     const moduleNames = modules.map((m) => m.name)
 
     const initialTasks = flatten(

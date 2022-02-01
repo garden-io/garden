@@ -330,6 +330,25 @@ export const makeTestModule = (params: Partial<ModuleConfig> = {}) => {
   return { ...defaultModuleConfig, ...params }
 }
 
+// Similar to `makeTestModule`, but uses a more minimal default config.
+export function makeModuleConfig(path: string, from: Partial<ModuleConfig>): ModuleConfig {
+  return {
+    apiVersion: DEFAULT_API_VERSION,
+    allowPublish: false,
+    build: { dependencies: [] },
+    disabled: false,
+    include: [],
+    name: "test",
+    path,
+    serviceConfigs: [],
+    taskConfigs: [],
+    spec: {},
+    testConfigs: [],
+    type: "test",
+    ...from,
+  }
+}
+
 export const testPlugins = () => [testPlugin(), testPluginB(), testPluginC()]
 
 export const makeTestGarden = async (projectRoot: string, opts: TestGardenOpts = {}): Promise<TestGarden> => {
@@ -577,24 +596,6 @@ export function getRuntimeStatusEvents(eventLog: EventLogEntry[]) {
       cloned.payload.status = pick(cloned.payload.status, ["state"])
       return cloned
     })
-}
-
-export function makeModuleConfig(path: string, from: Partial<ModuleConfig>): ModuleConfig {
-  return {
-    apiVersion: DEFAULT_API_VERSION,
-    allowPublish: false,
-    build: { dependencies: [] },
-    disabled: false,
-    include: [],
-    name: "test",
-    path,
-    serviceConfigs: [],
-    taskConfigs: [],
-    spec: {},
-    testConfigs: [],
-    type: "test",
-    ...from,
-  }
 }
 
 /**

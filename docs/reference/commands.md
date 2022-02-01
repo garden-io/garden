@@ -69,6 +69,7 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--force` | `-f` | boolean | Force rebuild of module(s).
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-build.
+  | `--with-dependants` |  | boolean | Also rebuild modules that have build dependencies on one of the modules specified as CLI arguments (recursively). Note: This option has no effect unless a list of module names is specified as CLI arguments (since then, every module in the project will be rebuilt).
 
 #### Outputs
 
