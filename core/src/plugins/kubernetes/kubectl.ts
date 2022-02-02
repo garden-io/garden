@@ -279,20 +279,20 @@ export const kubectlSpec: PluginToolSpec = {
     {
       platform: "darwin",
       architecture: "amd64",
-      url: "https://storage.googleapis.com/kubernetes-release/release/v1.22.3/bin/darwin/amd64/kubectl",
-      sha256: "beea08a2a166a002603e2aa015223b5ba558d6e3f6a81098e3cc5d7d2b7a64d9",
+      url: "https://storage.googleapis.com/kubernetes-release/release/v1.23.3/bin/darwin/amd64/kubectl",
+      sha256: "ecc91cd2f92184630912f9dcd8c47443b50ebfa4b1da431fb28fa7b462dd70ab",
     },
     {
       platform: "linux",
       architecture: "amd64",
-      url: "https://storage.googleapis.com/kubernetes-release/release/v1.22.3/bin/linux/amd64/kubectl",
-      sha256: "0751808ca8d7daba56bf76b08848ef5df6b887e9d7e8a9030dd3711080e37b54",
+      url: "https://storage.googleapis.com/kubernetes-release/release/v1.23.3/bin/linux/amd64/kubectl",
+      sha256: "d7da739e4977657a3b3c84962df49493e36b09cc66381a5e36029206dd1e01d0",
     },
     {
       platform: "windows",
       architecture: "amd64",
-      url: "https://storage.googleapis.com/kubernetes-release/release/v1.22.3/bin/windows/amd64/kubectl.exe",
-      sha256: "c1c148569b1aa500fc46151756c497d7fbbff0789f316d7be444ace1dc793593",
+      url: "https://storage.googleapis.com/kubernetes-release/release/v1.23.3/bin/windows/amd64/kubectl.exe",
+      sha256: "5cd17bfb33c73f1c9ae757e97bf12e686ff3a7707faed6fdc7de2c538429debd",
     },
   ],
 }
