@@ -1,5 +1,5 @@
 variable "my-variable" {
-  type = "string"
+  type = string
 }
 
 resource "local_file" "test-file" {
