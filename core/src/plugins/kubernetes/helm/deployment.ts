@@ -6,11 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import Bluebird from "bluebird"
 import { waitForResources } from "../status/status"
 import { helm } from "./helm-cli"
 import { HelmModule } from "./config"
 import { getChartPath, getReleaseName, getChartResources, getValueArgs, getBaseModule } from "./common"
-import { getReleaseStatus, HelmServiceStatus, getDeployedResources } from "./status"
+import {
+  getReleaseStatus,
+  HelmServiceStatus,
+  getRenderedResources,
+  getPausedResources,
+  gardenCloudAECPauseAnnotation,
+} from "./status"
 import { HotReloadableResource } from "../hot-reload/hot-reload"
 import { apply, deleteResources } from "../kubectl"
 import { KubernetesPluginContext, ServiceResourceSpec } from "../config"
@@ -70,7 +77,7 @@ export async function deployHelmService({
   const chartPath = await getChartPath(module)
 
   const releaseName = getReleaseName(module)
-  const releaseStatus = await getReleaseStatus({ ctx: k8sCtx, service, releaseName, log, devMode, hotReload })
+  const releaseStatus = await getReleaseStatus({ ctx: k8sCtx, module, service, releaseName, log, devMode, hotReload })
 
   const commonArgs = [
     "--namespace",
@@ -96,6 +103,29 @@ export async function deployHelmService({
     log.silly(`Upgrading Helm release ${releaseName}`)
     const upgradeArgs = ["upgrade", releaseName, chartPath, "--install", ...commonArgs]
     await helm({ ctx: k8sCtx, namespace, log, args: [...upgradeArgs] })
+
+    // If ctx.cloudApi is defined, the user is logged in and they might be trying to deploy to an environment
+    // that could have been paused by by Garden Cloud's AEC functionality. We therefore make sure to clean up any
+    // dangling annotations created by Garden Cloud.
+    if (ctx.cloudApi) {
+      try {
+        const pausedResources = await getPausedResources({ ctx: k8sCtx, module, namespace, releaseName, log })
+        await Bluebird.all(
+          pausedResources.map((resource) => {
+            const { annotations } = resource.metadata
+            if (annotations) {
+              delete annotations[gardenCloudAECPauseAnnotation]
+              return api.annotateResource({ log, resource, annotations })
+            }
+            return
+          })
+        )
+      } catch (error) {
+        const errorMsg = `Failed to remove Garden Cloud AEC annotations for service: ${service.name}.`
+        log.warn(errorMsg)
+        log.debug(error)
+      }
+    }
   }
 
   // Because we need to modify the Deployment, and because there is currently no reliable way to do that before
@@ -170,7 +200,7 @@ export async function deleteService(params: DeleteServiceParams): Promise<HelmSe
     provider: k8sCtx.provider,
   })
 
-  const resources = await getDeployedResources({ ctx: k8sCtx, module, releaseName, log })
+  const resources = await getRenderedResources({ ctx: k8sCtx, module, releaseName, log })
 
   await helm({ ctx: k8sCtx, log, namespace, args: ["uninstall", releaseName] })
 

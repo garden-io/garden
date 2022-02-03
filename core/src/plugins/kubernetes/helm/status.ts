@@ -16,9 +16,13 @@ import { KubernetesPluginContext } from "../config"
 import { getForwardablePorts } from "../port-forward"
 import { KubernetesServerResource } from "../types"
 import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
-import { getServiceResource, getServiceResourceSpec } from "../util"
+import { getServiceResource, getServiceResourceSpec, isWorkload } from "../util"
 import { startDevModeSync } from "../dev-mode"
 import { isConfiguredForDevMode } from "../status/status"
+import { KubeApi } from "../api"
+import Bluebird from "bluebird"
+
+export const gardenCloudAECPauseAnnotation = "garden.io/aec-status"
 
 const helmStatusMap: { [status: string]: ServiceState } = {
   unknown: "unknown",
@@ -60,7 +64,7 @@ export async function getServiceStatus({
   let deployedWithDevModeOrHotReloading: boolean | undefined
 
   try {
-    helmStatus = await getReleaseStatus({ ctx: k8sCtx, service, releaseName, log, devMode, hotReload })
+    helmStatus = await getReleaseStatus({ ctx: k8sCtx, module, service, releaseName, log, devMode, hotReload })
     state = helmStatus.state
     deployedWithDevModeOrHotReloading = helmStatus.devMode
   } catch (err) {
@@ -70,7 +74,7 @@ export async function getServiceStatus({
   let forwardablePorts: ForwardablePort[] = []
 
   if (state !== "missing") {
-    const deployedResources = await getDeployedResources({ ctx: k8sCtx, module, releaseName, log })
+    const deployedResources = await getRenderedResources({ ctx: k8sCtx, module, releaseName, log })
     forwardablePorts = getForwardablePorts(deployedResources, service)
 
     if (state === "ready" && devMode && service.spec.devMode) {
@@ -124,7 +128,7 @@ export async function getServiceStatus({
   }
 }
 
-export async function getDeployedResources({
+export async function getRenderedResources({
   ctx,
   releaseName,
   log,
@@ -154,6 +158,7 @@ export async function getDeployedResources({
 
 export async function getReleaseStatus({
   ctx,
+  module,
   service,
   releaseName,
   log,
@@ -161,6 +166,7 @@ export async function getReleaseStatus({
   hotReload,
 }: {
   ctx: KubernetesPluginContext
+  module: HelmModule
   service: GardenService
   releaseName: string
   log: LogEntry
@@ -194,6 +200,7 @@ export async function getReleaseStatus({
           args: ["get", "values", releaseName, "--output", "json"],
         })
       )
+
       const deployedVersion = values[".garden"] && values[".garden"].version
       devModeEnabled = values[".garden"] && values[".garden"].devMode === true
       hotReloadEnabled = values[".garden"] && values[".garden"].hotReload === true
@@ -204,6 +211,13 @@ export async function getReleaseStatus({
         !deployedVersion ||
         deployedVersion !== service.version
       ) {
+        state = "outdated"
+      }
+
+      // If ctx.cloudApi is defined, the user is logged in and they might be trying to deploy to an environment
+      // that could have been paused by Garden Cloud's AEC functionality. We therefore make sure to check for
+      // the annotations Garden Cloud adds to Helm Deployments and StatefulSets when pausing an environment.
+      if (ctx.cloudApi && (await isPaused({ ctx, namespace, module, releaseName, log }))) {
         state = "outdated"
       }
     }
@@ -220,4 +234,49 @@ export async function getReleaseStatus({
       throw err
     }
   }
+}
+
+/**
+ *  Returns Helm workload resources that have been marked as "paused" by Garden Cloud's AEC functionality
+ */
+export async function getPausedResources({
+  ctx,
+  module,
+  namespace,
+  releaseName,
+  log,
+}: {
+  ctx: KubernetesPluginContext
+  namespace: string
+  module: HelmModule
+  releaseName: string
+  log: LogEntry
+}) {
+  const api = await KubeApi.factory(log, ctx, ctx.provider)
+  const renderedResources = await getRenderedResources({ ctx, module, releaseName, log })
+  const workloads = renderedResources.filter(isWorkload)
+  const deployedResources = await Bluebird.all(
+    workloads.map((workload) => api.readBySpec({ log, namespace, manifest: workload }))
+  )
+
+  const pausedWorkloads = deployedResources.filter((resource) => {
+    return resource?.metadata?.annotations?.[gardenCloudAECPauseAnnotation] === "paused"
+  })
+  return pausedWorkloads
+}
+
+async function isPaused({
+  ctx,
+  module,
+  namespace,
+  releaseName,
+  log,
+}: {
+  ctx: KubernetesPluginContext
+  namespace: string
+  module: HelmModule
+  releaseName: string
+  log: LogEntry
+}) {
+  return (await getPausedResources({ ctx, module, namespace, releaseName, log })).length > 0
 }

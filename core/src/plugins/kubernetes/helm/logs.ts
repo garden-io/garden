@@ -12,7 +12,7 @@ import { HelmModule } from "./config"
 import { KubernetesPluginContext } from "../config"
 import { getReleaseName } from "./common"
 import { getModuleNamespace } from "../namespace"
-import { getDeployedResources } from "./status"
+import { getRenderedResources } from "./status"
 import { sleep } from "../../../util/util"
 
 export async function getServiceLogs(params: GetServiceLogsParams<HelmModule>) {
@@ -38,7 +38,7 @@ export async function getServiceLogs(params: GetServiceLogsParams<HelmModule>) {
     //    terminated when the command exits.
     while (true) {
       try {
-        resources = await getDeployedResources({ ctx: k8sCtx, module, releaseName, log })
+        resources = await getRenderedResources({ ctx: k8sCtx, module, releaseName, log })
         break
       } catch (err) {
         log.debug(`Failed getting deployed resources. Retrying...`)
@@ -47,7 +47,7 @@ export async function getServiceLogs(params: GetServiceLogsParams<HelmModule>) {
       await sleep(2000)
     }
   } else {
-    resources = await getDeployedResources({ ctx: k8sCtx, module, releaseName, log })
+    resources = await getRenderedResources({ ctx: k8sCtx, module, releaseName, log })
   }
   return streamK8sLogs({ ...params, provider, defaultNamespace: namespace, resources: resources! })
 }
