@@ -14,7 +14,7 @@ import { V1ContainerPort, V1Deployment, V1PodTemplate, V1Service } from "@kubern
 
 import { GetPortForwardParams, GetPortForwardResult } from "../../types/plugin/service/getPortForward"
 import { KubernetesProvider, KubernetesPluginContext } from "./config"
-import { getAppNamespace } from "./namespace"
+import { getAppNamespace, getModuleNamespace } from "./namespace"
 import { registerCleanupFunction, sleep } from "../../util/util"
 import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
@@ -190,8 +190,19 @@ export async function getPortForwardHandler({
   targetName,
   targetPort,
 }: GetPortForwardParams & { namespace?: string }): Promise<GetPortForwardResult> {
+  const k8sCtx = ctx as KubernetesPluginContext
+  const provider = ctx.provider as KubernetesProvider
   if (!namespace) {
-    const provider = ctx.provider as KubernetesProvider
+    namespace = await getModuleNamespace({
+      ctx: k8sCtx,
+      log,
+      module: service.module,
+      provider,
+      skipCreate: true,
+    })
+  }
+
+  if (!namespace) {
     namespace = await getAppNamespace(ctx, log, provider)
   }
   const targetResource = getTargetResource(service, targetName)
