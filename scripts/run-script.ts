@@ -66,7 +66,7 @@ async function runInPackages(args: string[]) {
   )
 
   // Make sure subprocesses inherit color support level
-  process.env.FORCE_COLOR = chalk.supportsColor.level?.toString() || "0"
+  process.env.FORCE_COLOR = chalk.supportsColor.toString() || "0"
 
   const maxNameLength = max(packageList.map((p) => p.shortName.length)) as number
   let lastPackage: string = ""
