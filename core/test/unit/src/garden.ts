@@ -298,7 +298,10 @@ describe("Garden", () => {
           name: foo
         `
         )
-        await expectError(async () => TestGarden.factory(tmpPath, {}), "runtime")
+        await expectError(
+          async () => Garden.factory(tmpPath, { commandInfo: { name: "test", args: {}, opts: {} } }),
+          "runtime"
+        )
       } finally {
         await dir.cleanup()
       }
@@ -3070,6 +3073,7 @@ describe("Garden", () => {
       await remove(filePath)
 
       const garden = await makeTestGarden(projectRoot)
+      garden["cacheKey"] = "" // Disable caching
       await garden.resolveModules({ log: garden.log })
 
       const fileContents = await readFile(filePath)
@@ -3084,6 +3088,7 @@ describe("Garden", () => {
       await remove(filePath)
 
       const garden = await makeTestGarden(projectRoot)
+      garden["cacheKey"] = "" // Disable caching
       await garden.resolveModules({ log: garden.log })
 
       const fileContents = await readFile(filePath)

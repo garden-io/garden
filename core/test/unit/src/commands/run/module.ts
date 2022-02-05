@@ -7,22 +7,22 @@
  */
 
 import { expect } from "chai"
-import td from "testdouble"
-
 import { RunModuleCommand } from "../../../../../src/commands/run/module"
-import { Garden } from "../../../../../src/garden"
-import { makeTestGardenA, testModuleVersion, testNow, withDefaultGlobalOpts } from "../../../../helpers"
+import { makeTestGardenA, TestGarden, testNow, withDefaultGlobalOpts } from "../../../../helpers"
 import { omit } from "lodash"
+import { LogEntry } from "../../../../../src/logger/log-entry"
+import { ConfigGraph } from "../../../../../src/config-graph"
 
 describe("RunModuleCommand", () => {
   // TODO: test optional flags
-  let garden
-  let log
+  let garden: TestGarden
+  let graph: ConfigGraph
+  let log: LogEntry
 
   beforeEach(async () => {
-    td.replace(Garden.prototype, "resolveModuleVersion", async () => testModuleVersion)
     garden = await makeTestGardenA()
     log = garden.log
+    graph = await garden.getConfigGraph({ log, emit: false })
   })
 
   it("should run a module without an arguments param", async () => {
@@ -46,7 +46,7 @@ describe("RunModuleCommand", () => {
       command: [],
       completedAt: testNow,
       log: "",
-      version: testModuleVersion.versionString,
+      version: graph.getModule("module-a").version.versionString,
       startedAt: testNow,
       success: true,
     }
@@ -77,7 +77,7 @@ describe("RunModuleCommand", () => {
       command: ["my", "command"],
       completedAt: testNow,
       log: "my command",
-      version: testModuleVersion.versionString,
+      version: graph.getModule("module-a").version.versionString,
       startedAt: testNow,
       success: true,
     }
@@ -108,7 +108,7 @@ describe("RunModuleCommand", () => {
       command: ["/bin/sh", "-c", "my", "command"],
       completedAt: testNow,
       log: "/bin/sh -c my command",
-      version: testModuleVersion.versionString,
+      version: graph.getModule("module-a").version.versionString,
       startedAt: testNow,
       success: true,
     }

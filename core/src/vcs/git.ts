@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { performance } from "perf_hooks"
 import FilterStream from "streamfilter"
 import { join, resolve, relative, isAbsolute, posix } from "path"
 import { flatten, isString } from "lodash"
 import { ensureDir, pathExists, createReadStream, Stats, realpath, readlink, lstat, stat } from "fs-extra"
-import { PassThrough, Transform } from "stream"
-import hasha from "hasha"
+import { Transform } from "stream"
 import split2 = require("split2")
 import { VcsHandler, RemoteSourceParams, VcsFile, GetFilesParams, VcsInfo } from "./vcs"
 import { ConfigurationError, RuntimeError } from "../exceptions"
@@ -21,13 +21,18 @@ import { deline } from "../util/string"
 import { splitLast, exec } from "../util/util"
 import { LogEntry } from "../logger/log-entry"
 import parseGitConfig from "parse-git-config"
-import { Profile } from "../util/profiling"
+import { getDefaultProfiler, Profile, Profiler } from "../util/profiling"
 import { SortedStreamIntersection } from "../util/streams"
 import execa = require("execa")
 import isGlob = require("is-glob")
 import chalk = require("chalk")
+import { mapLimit } from "async"
+import { PassThrough } from "stream"
+import hasha = require("hasha")
+import { TreeCache } from "../cache"
 
 const submoduleErrorSuggestion = `Perhaps you need to run ${chalk.underline(`git submodule update --recursive`)}?`
+const hashConcurrencyLimit = 50
 
 export function getCommitIdFromRefList(refList: string[]): string {
   try {
@@ -60,11 +65,22 @@ interface Submodule {
   url: string
 }
 
+interface FileEntry {
+  path: string
+  hash: string
+}
+
 // TODO Consider moving git commands to separate (and testable) functions
 @Profile()
 export class GitHandler extends VcsHandler {
   name = "git"
   repoRoots = new Map()
+  profiler: Profiler
+
+  constructor(...args: [string, string, string[], TreeCache]) {
+    super(...args)
+    this.profiler = getDefaultProfiler()
+  }
 
   gitCli(log: LogEntry, cwd: string): GitCli {
     return async (...args: (string | undefined)[]) => {
@@ -377,66 +393,78 @@ export class GitHandler extends VcsHandler {
     }
 
     // Make sure we have a fresh hash for each file
-    const result = await Bluebird.map(files, async (f) => {
-      const resolvedPath = resolve(path, f.path)
-      let output = { path: resolvedPath, hash: f.hash || "" }
-      let stats: Stats
+    const _this = this
 
-      try {
-        stats = await lstat(resolvedPath)
-      } catch (err) {
-        // 128 = File no longer exists
-        if (err.exitCode === 128 || err.code === "ENOENT") {
-          // If the file is gone, we filter it out below
-          return { path: resolvedPath, hash: "" }
-        } else {
-          throw err
-        }
-      }
-
-      // We need to special-case handling of symlinks. We disallow any "unsafe" symlinks, i.e. any ones that may
-      // link outside of `gitRoot`.
-      if (stats.isSymbolicLink()) {
-        const target = await readlink(resolvedPath)
-
-        // Make sure symlink is relative and points within `path`
-        if (isAbsolute(target)) {
-          log.verbose(`Ignoring symlink with absolute target at ${resolvedPath}`)
-          output.hash = ""
-          return output
-        } else if (target.startsWith("..")) {
-          let realTarget: string
-
-          try {
-            realTarget = await realpath(resolvedPath)
-          } catch (err) {
-            if (err.code === "ENOENT") {
-              // Link can't be resolved, so we ignore it
-              return { path: resolvedPath, hash: "" }
-            } else {
-              throw err
-            }
-          }
-
-          const relPath = relative(path, realTarget)
-
-          if (relPath.startsWith("..")) {
-            log.verbose(`Ignoring symlink pointing outside of ${pathDescription} at ${resolvedPath}`)
-            output.hash = ""
-            return output
-          }
-        }
-      }
-
-      if (output.hash === "" || modified.has(resolvedPath)) {
+    function ensureHash(entry: FileEntry, stats: Stats, cb: (err: Error | null, entry?: FileEntry) => void) {
+      if (entry.hash === "" || modified.has(entry.path)) {
+        // console.log("hash", entry.path, modified.has(entry.path), entry)
         // Don't attempt to hash directories. Directories will by extension be filtered out of the list.
         if (!stats.isDirectory()) {
-          output.hash = (await this.hashObject(stats, resolvedPath)) || ""
+          return _this.hashObject(stats, entry.path, (err, hash) => {
+            if (err) {
+              return cb(err)
+            }
+            entry.hash = hash || ""
+            cb(null, entry)
+          })
         }
       }
 
-      return output
-    }).filter((f) => f.hash !== "")
+      cb(null, entry)
+    }
+
+    const result = (
+      await mapLimit<VcsFile, FileEntry>(files, hashConcurrencyLimit, (f, cb) => {
+        const resolvedPath = resolve(path, f.path)
+        const output = { path: resolvedPath, hash: f.hash || "" }
+
+        lstat(resolvedPath, (err, stats) => {
+          if (err) {
+            if (err.code === "ENOENT") {
+              return cb(null, { path: resolvedPath, hash: "" })
+            }
+            return cb(err)
+          }
+
+          // We need to special-case handling of symlinks. We disallow any "unsafe" symlinks, i.e. any ones that may
+          // link outside of `gitRoot`.
+          if (stats.isSymbolicLink()) {
+            readlink(resolvedPath, (readlinkErr, target) => {
+              if (readlinkErr) {
+                return cb(readlinkErr)
+              }
+
+              // Make sure symlink is relative and points within `path`
+              if (isAbsolute(target)) {
+                log.verbose(`Ignoring symlink with absolute target at ${resolvedPath}`)
+                return cb(null, { path: resolvedPath, hash: "" })
+              } else if (target.startsWith("..")) {
+                realpath(resolvedPath, (realpathErr, realTarget) => {
+                  if (realpathErr) {
+                    if (realpathErr.code === "ENOENT") {
+                      return cb(null, { path: resolvedPath, hash: "" })
+                    }
+                    return cb(err)
+                  }
+
+                  const relPath = relative(path, realTarget)
+
+                  if (relPath.startsWith("..")) {
+                    log.verbose(`Ignoring symlink pointing outside of ${pathDescription} at ${resolvedPath}`)
+                    return cb(null, { path: resolvedPath, hash: "" })
+                  }
+                  ensureHash(output, stats, cb)
+                })
+              } else {
+                ensureHash(output, stats, cb)
+              }
+            })
+          } else {
+            ensureHash(output, stats, cb)
+          }
+        })
+      })
+    ).filter((f) => f.hash !== "")
 
     log.debug(`Found ${result.length} files in ${pathDescription} ${path}`)
 
@@ -523,21 +551,45 @@ export class GitHandler extends VcsHandler {
    * We deviate from git's behavior when dealing with symlinks, by hashing the target of the symlink and not the
    * symlink itself. If the symlink cannot be read, we hash the link contents like git normally does.
    */
-  async hashObject(stats: Stats, path: string) {
-    const stream = new PassThrough()
-    const output = hasha.fromStream(stream, { algorithm: "sha1" })
-    stream.push(`blob ${stats.size}\0`)
+  hashObject(stats: Stats, path: string, cb: (err: Error | null, hash: string) => void) {
+    const start = performance.now()
+    const hash = hasha.stream({ algorithm: "sha1" })
 
     if (stats.isSymbolicLink()) {
       // For symlinks, we follow git's behavior, which is to hash the link itself (i.e. the path it contains) as
       // opposed to the file/directory that it points to.
-      stream.push(await readlink(path))
-      stream.end()
+      readlink(path, (err, linkPath) => {
+        if (err) {
+          // Ignore errors here, just output empty h°ash
+          this.profiler.log("GitHandler#hashObject", start)
+          return cb(null, "")
+        }
+        hash.update(`blob ${stats.size}\0${linkPath}`)
+        hash.end()
+        const output = hash.read()
+        this.profiler.log("GitHandler#hashObject", start)
+        cb(null, output)
+      })
     } else {
+      const stream = new PassThrough()
+      stream.push(`blob ${stats.size}\0`)
+
+      stream
+        .on("error", () => {
+          // Ignore file read error
+          this.profiler.log("GitHandler#hashObject", start)
+          cb(null, "")
+        })
+        .pipe(hash)
+        .on("error", cb)
+        .on("finish", () => {
+          const output = hash.read()
+          this.profiler.log("GitHandler#hashObject", start)
+          cb(null, output)
+        })
+
       createReadStream(path).pipe(stream)
     }
-
-    return output
   }
 
   private async getSubmodules(gitRoot: string) {

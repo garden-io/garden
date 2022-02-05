@@ -83,7 +83,7 @@ import { loadAndResolvePlugins, getDependencyOrder, getModuleTypes, loadPlugin }
 import { deline, naturalList } from "./util/string"
 import { ensureConnected } from "./db/connection"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
-import { Profile } from "./util/profiling"
+import { Profile, profileAsync } from "./util/profiling"
 import username from "username"
 import {
   throwOnMissingSecretKeys,
@@ -151,7 +151,6 @@ export interface GardenOpts {
 export interface GardenParams {
   artifactsPath: string
   vcsInfo: VcsInfo
-  buildStaging: BuildStaging
   projectId?: string
   enterpriseDomain?: string
   cache: TreeCache
@@ -177,7 +176,6 @@ export interface GardenParams {
   secrets: StringMap
   sessionId: string
   username: string | undefined
-  vcs: VcsHandler
   workingCopyId: string
   forceRefresh?: boolean
   cloudApi?: CloudApi | null
@@ -241,7 +239,6 @@ export class Garden {
   public readonly commandInfo: CommandInfo
 
   constructor(params: GardenParams) {
-    this.buildStaging = params.buildStaging
     this.projectId = params.projectId
     this.enterpriseDomain = params.enterpriseDomain
     this.sessionId = params.sessionId
@@ -266,14 +263,26 @@ export class Garden {
     this.dotIgnoreFiles = params.dotIgnoreFiles
     this.moduleIncludePatterns = params.moduleIncludePatterns
     this.moduleExcludePatterns = params.moduleExcludePatterns || []
-    this.asyncLock = new AsyncLock()
     this.persistent = !!params.opts.persistent
     this.username = params.username
-    this.vcs = params.vcs
     this.forceRefresh = !!params.forceRefresh
     this.cloudApi = params.cloudApi || null
     this.commandInfo = params.opts.commandInfo
     this.cache = params.cache
+
+    this.asyncLock = new AsyncLock()
+    this.vcs = new GitHandler(params.projectRoot, params.gardenDirPath, params.dotIgnoreFiles, params.cache)
+
+    // Use the legacy build sync mode if
+    // A) GARDEN_LEGACY_BUILD_STAGE=true is set or
+    // B) if running Windows and GARDEN_EXPERIMENTAL_BUILD_STAGE != true (until #2299 is properly fixed)
+    const legacyBuildSync =
+      params.opts.legacyBuildSync === undefined
+        ? gardenEnv.GARDEN_LEGACY_BUILD_STAGE || (platform() === "win32" && !gardenEnv.GARDEN_EXPERIMENTAL_BUILD_STAGE)
+        : params.opts.legacyBuildSync
+
+    const buildDirCls = legacyBuildSync ? BuildDirRsync : BuildStaging
+    this.buildStaging = new buildDirCls(params.projectRoot, params.gardenDirPath)
 
     // make sure we're on a supported platform
     const currentPlatform = platform()
@@ -1213,7 +1222,10 @@ export class Garden {
   }
 }
 
-export async function resolveGardenParams(currentDirectory: string, opts: GardenOpts): Promise<GardenParams> {
+export const resolveGardenParams = profileAsync(async function _resolveGardenParams(
+  currentDirectory: string,
+  opts: GardenOpts
+): Promise<GardenParams> {
   let { environmentName: environmentStr, config, gardenDirPath, plugins = [], disablePortForwards } = opts
 
   if (!config) {
@@ -1313,8 +1325,6 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
     commandInfo,
   })
 
-  const vcs = new GitHandler(projectRoot, gardenDirPath, config.dotIgnoreFiles, treeCache)
-
   let { namespace, providers, variables, production } = await pickEnvironment({
     projectConfig: config,
     envString: environmentStr,
@@ -1331,16 +1341,6 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
   const cliVariables = opts.variables || {}
   variables = { ...variables, ...cliVariables }
 
-  // Use the legacy build sync mode if
-  // A) GARDEN_LEGACY_BUILD_STAGE=true is set or
-  // B) if running Windows and GARDEN_EXPERIMENTAL_BUILD_STAGE != true (until #2299 is properly fixed)
-  const legacyBuildSync =
-    opts.legacyBuildSync === undefined
-      ? gardenEnv.GARDEN_LEGACY_BUILD_STAGE || (platform() === "win32" && !gardenEnv.GARDEN_EXPERIMENTAL_BUILD_STAGE)
-      : opts.legacyBuildSync
-
-  const buildDirCls = legacyBuildSync ? BuildDirRsync : BuildStaging
-  const buildDir = await buildDirCls.factory(projectRoot, gardenDirPath)
   const workingCopyId = await getWorkingCopyId(gardenDirPath)
 
   // We always exclude the garden dir
@@ -1367,7 +1367,6 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
     cliVariables,
     secrets,
     projectSources,
-    buildStaging: buildDir,
     production,
     gardenDirPath,
     opts,
@@ -1380,12 +1379,11 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
     moduleIncludePatterns: (config.modules || {}).include,
     log,
     username: _username,
-    vcs,
     forceRefresh: opts.forceRefresh,
     cloudApi,
     cache: treeCache,
   }
-}
+})
 
 /**
  * Dummy Garden class that doesn't scan for modules nor resolves providers.
