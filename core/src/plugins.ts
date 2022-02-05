@@ -15,10 +15,11 @@ import {
   ModuleTypeMap,
   RegisterPluginParam,
   pluginModuleSchema,
+  GardenPluginReference,
 } from "./types/plugin/plugin"
 import { GenericProviderConfig } from "./config/provider"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
-import { uniq, mapValues, fromPairs, flatten, keyBy, some, isString, isFunction, sortBy } from "lodash"
+import { uniq, mapValues, fromPairs, flatten, keyBy, some, isString, sortBy } from "lodash"
 import { findByName, pushToKey, getNames, isNotNull } from "./util/util"
 import { deline } from "./util/string"
 import { validateSchema } from "./config/validation"
@@ -152,10 +153,10 @@ export async function loadPlugin(log: LogEntry, projectRoot: string, nameOrPlugi
     }
 
     plugin = pluginModule.gardenPlugin
-  } else if (isFunction(nameOrPlugin)) {
-    plugin = nameOrPlugin()
+  } else if (nameOrPlugin["callback"]) {
+    plugin = (<GardenPluginReference>nameOrPlugin).callback()
   } else {
-    plugin = nameOrPlugin
+    plugin = <GardenPlugin>nameOrPlugin
   }
 
   log.silly(`Loaded plugin ${plugin.name}`)

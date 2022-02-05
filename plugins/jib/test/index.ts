@@ -36,7 +36,7 @@ describe("jib-container", () => {
 
   before(async () => {
     garden = await makeTestGarden(projectRoot, {
-      plugins: [gardenPlugin],
+      plugins: [gardenPlugin()],
       config: projectConfig,
     })
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })

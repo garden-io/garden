@@ -11,7 +11,6 @@ import Bluebird = require("bluebird")
 import chalk from "chalk"
 import { fromPairs, mapValues, omit, pickBy, keyBy, uniqBy } from "lodash"
 import tmp from "tmp-promise"
-import cpy from "cpy"
 import normalizePath = require("normalize-path")
 
 import { PublishModuleParams, PublishModuleResult } from "./types/plugin/module/publishModule"
@@ -901,6 +900,9 @@ export class ActionRouter implements TypeGuard {
    */
   private async copyArtifacts(log: LogEntry, artifactsPath: string, key: string) {
     let files: string[] = []
+
+    // Note: lazy-loading for startup performance
+    const cpy = require("cpy")
 
     try {
       files = await cpy("**/*", this.garden.artifactsPath, { cwd: artifactsPath, parents: true })

@@ -9,7 +9,6 @@
 import Joi = require("@hapi/joi")
 import chalk from "chalk"
 import dedent = require("dedent")
-import inquirer = require("inquirer")
 import stripAnsi from "strip-ansi"
 import { fromPairs, pickBy, size } from "lodash"
 
@@ -23,11 +22,11 @@ import { ProcessResults } from "../process"
 import { GraphResults, GraphResult } from "../task-graph"
 import { RunResult } from "../types/plugin/base"
 import { capitalize } from "lodash"
-import { getDurationMsec, splitFirst } from "../util/util"
+import { getDurationMsec, splitFirst, userPrompt } from "../util/util"
 import { buildResultSchema, BuildResult } from "../types/plugin/module/build"
 import { ServiceStatus, serviceStatusSchema } from "../types/service"
 import { TestResult, testResultSchema } from "../types/plugin/module/getTestResult"
-import { cliStyles, renderOptions, renderCommands, renderArguments } from "../cli/helpers"
+import { renderOptions, renderCommands, renderArguments, getCliStyles } from "../cli/helpers"
 import { GlobalOptions, ParameterValues, Parameters } from "../cli/params"
 import { GardenServer } from "../server/server"
 import { GardenCli } from "../cli/cli"
@@ -274,7 +273,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
           Are you sure you want to continue? (run the command with the "--yes" flag to skip this check).
 
       `)
-      const answer: any = await inquirer.prompt({
+      const answer: any = userPrompt({
         name: "continue",
         message: defaultMessage,
         type: "confirm",
@@ -290,6 +289,8 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   }
 
   renderHelp() {
+    const cliStyles = getCliStyles()
+
     let out = this.description ? `${cliStyles.heading("DESCRIPTION")}\n\n${chalk.dim(this.description.trim())}\n\n` : ""
 
     out += `${cliStyles.heading("USAGE")}\n  garden ${this.getFullName()} `
@@ -348,6 +349,7 @@ export abstract class CommandGroup extends Command {
   }
 
   renderHelp() {
+    const cliStyles = getCliStyles()
     const commands = this.subCommands.map((c) => new c(this))
 
     return `

@@ -228,7 +228,7 @@ describe("CreateModuleCommand", () => {
   })
 
   describe("getModuleTypeSuggestions", () => {
-    const moduleTypes = getModuleTypes(getSupportedPlugins().map((f) => f()))
+    const moduleTypes = getModuleTypes(getSupportedPlugins().map((f) => f.callback()))
 
     it("should return a list of all supported module types", async () => {
       const result = await getModuleTypeSuggestions(garden.log, moduleTypes, tmp.path, "test")

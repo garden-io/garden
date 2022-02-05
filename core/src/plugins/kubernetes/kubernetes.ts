@@ -42,9 +42,9 @@ import { helm3Spec } from "./helm/helm-cli"
 import { sternSpec } from "./logs"
 import { isString } from "lodash"
 import { mutagenCliSpec } from "./mutagen"
-import { Warning } from "../../db/entities/warning"
 import { configMapModuleDefinition } from "./volumes/configmap"
 import { jibContainerHandlers } from "./jib-container"
+import { emitWarning } from "../../warnings"
 
 export async function configureProvider({
   log,
@@ -93,7 +93,7 @@ export async function configureProvider({
     }
 
     if (buildMode === "cluster-docker") {
-      await Warning.emit({
+      await emitWarning({
         key: "cluster-docker-deprecated",
         log,
         message:

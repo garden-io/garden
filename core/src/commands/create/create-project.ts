@@ -9,7 +9,6 @@
 import chalk from "chalk"
 import dedent from "dedent"
 import { pathExists, writeFile, copyFile } from "fs-extra"
-import inquirer from "inquirer"
 import { Command, CommandResult, CommandParams } from "../base"
 import { printHeader } from "../../logger/util"
 import { isDirectory } from "../../util/fs"
@@ -21,6 +20,7 @@ import { addConfig } from "./helpers"
 import { wordWrap } from "../../util/string"
 import { LoggerType } from "../../logger/logger"
 import { PathParameter, StringParameter, BooleanParameter, StringOption } from "../../cli/params"
+import { userPrompt } from "../../util/util"
 
 const ignorefileName = ".gardenignore"
 const defaultIgnorefile = dedent`
@@ -126,7 +126,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     if (opts.interactive && !opts.name) {
       log.root.stop()
 
-      const answer = await inquirer.prompt({
+      const answer = await userPrompt({
         name: "name",
         message: "Project name:",
         type: "input",

@@ -844,3 +844,19 @@ export function removeSlice(array: any[], slice: any[]) {
 
   return out
 }
+
+/**
+ * Prompt the user for input, using inquirer.
+ *
+ * Note: Wrapping inquirer here and requiring inline because it is surprisingly slow to import on load.
+ */
+export function userPrompt(params: {
+  name: string
+  message: string
+  type: "confirm" | "list" | "input"
+  default?: any
+  choices?: string[]
+  pageSize?: number
+}) {
+  return require("inquirer").prompt(params)
+}

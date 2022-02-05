@@ -20,7 +20,7 @@
     "strip-ansi": "^6.0.0"
   },
   "scripts": {
-    "clean": "rm -f *.js *.d.ts *.map tsconfig.buildinfo",
+    "clean": "rm -f *.js *.d.ts *.map tsconfig.buildinfo tsconfig.tsbuildinfo",
     "test": "mocha"
   },
   "author": "Garden Technologies, Inc. <info@garden.io>",
