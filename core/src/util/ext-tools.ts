@@ -14,7 +14,6 @@ import { hashString, exec, uuidv4, getPlatform, getArchitecture } from "./util"
 import tar from "tar"
 import { GARDEN_GLOBAL_PATH } from "../constants"
 import { LogEntry } from "../logger/log-entry"
-import { Extract } from "unzipper"
 import { createHash } from "crypto"
 import crossSpawn from "cross-spawn"
 import { spawn } from "./util"
@@ -312,6 +311,8 @@ export class PluginTool extends CliWrapper {
           })
           extractor.on("end", () => resolve())
         } else if (format === "zip") {
+          // Note: lazy-loading for startup performance
+          const { Extract } = require("unzipper")
           extractor = Extract({ path: tmpPath })
           extractor.on("close", () => resolve())
         } else {

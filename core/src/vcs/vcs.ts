@@ -20,7 +20,6 @@ import { ExternalSourceType, getRemoteSourcesDirname, getRemoteSourceRelPath } f
 import { ModuleConfig, serializeConfig } from "../config/module"
 import { LogEntry } from "../logger/log-entry"
 import { treeVersionSchema, moduleVersionSchema } from "../config/common"
-import { Warning } from "../db/entities/warning"
 import { dedent } from "../util/string"
 import { fixedProjectExcludes } from "../util/fs"
 import { TreeCache } from "../cache"
@@ -29,6 +28,7 @@ import { ServiceConfig } from "../config/service"
 import { TaskConfig } from "../config/task"
 import { TestConfig } from "../config/test"
 import { GardenModule } from "../types/module"
+import { emitWarning } from "../warnings"
 
 const AsyncLock = require("async-lock")
 const scanLock = new AsyncLock()
@@ -138,7 +138,7 @@ export abstract class VcsHandler {
         })
 
         if (files.length > fileCountWarningThreshold) {
-          await Warning.emit({
+          await emitWarning({
             key: `${projectName}-filecount-${moduleConfig.name}`,
             log,
             message: dedent`

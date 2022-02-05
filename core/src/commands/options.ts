@@ -7,7 +7,7 @@
  */
 
 import { Command, CommandParams, CommandResult } from "./base"
-import { renderOptions, cliStyles } from "../cli/helpers"
+import { renderOptions, getCliStyles } from "../cli/helpers"
 import { globalOptions } from "../cli/params"
 
 export class OptionsCommand extends Command {
@@ -20,6 +20,8 @@ export class OptionsCommand extends Command {
   printHeader() {}
 
   async action({ log }: CommandParams): Promise<CommandResult> {
+    const cliStyles = getCliStyles()
+
     log.info("")
     log.info(cliStyles.heading("GLOBAL OPTIONS"))
     log.info(renderOptions(globalOptions))

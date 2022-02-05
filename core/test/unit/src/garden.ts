@@ -227,14 +227,14 @@ describe("Garden", () => {
 
     it("should set .garden as the default cache dir", async () => {
       const projectRoot = join(dataDir, "test-project-empty")
-      const garden = await TestGarden.factory(projectRoot, { plugins: [testPlugin] })
+      const garden = await TestGarden.factory(projectRoot, { plugins: [testPlugin()] })
       expect(garden.gardenDirPath).to.eql(join(projectRoot, ".garden"))
     })
 
     it("should optionally set a custom cache dir relative to project root", async () => {
       const projectRoot = join(dataDir, "test-project-empty")
       const garden = await TestGarden.factory(projectRoot, {
-        plugins: [testPlugin],
+        plugins: [testPlugin()],
         gardenDirPath: "my/cache/dir",
       })
       expect(garden.gardenDirPath).to.eql(join(projectRoot, "my/cache/dir"))
@@ -244,7 +244,7 @@ describe("Garden", () => {
       const projectRoot = join(dataDir, "test-project-empty")
       const gardenDirPath = join(dataDir, "test-garden-dir")
       const garden = await TestGarden.factory(projectRoot, {
-        plugins: [testPlugin],
+        plugins: [testPlugin()],
         gardenDirPath,
       })
       expect(garden.gardenDirPath).to.eql(gardenDirPath)
@@ -306,7 +306,7 @@ describe("Garden", () => {
 
     it("should set the namespace attribute, if specified", async () => {
       const projectRoot = join(dataDir, "test-project-empty")
-      const garden = await TestGarden.factory(projectRoot, { plugins: [testPlugin], environmentName: "foo.local" })
+      const garden = await TestGarden.factory(projectRoot, { plugins: [testPlugin()], environmentName: "foo.local" })
       expect(garden.environmentName).to.equal("local")
       expect(garden.namespace).to.equal("foo")
     })

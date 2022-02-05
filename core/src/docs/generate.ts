@@ -19,11 +19,11 @@ import { writeFileSync, readFile, writeFile } from "fs-extra"
 import { renderModuleTypeReference, moduleTypes } from "./module-type"
 import { renderProviderReference } from "./provider"
 import { defaultNamespace } from "../config/project"
-import { GardenPlugin, GardenPluginCallback } from "../types/plugin/plugin"
+import { GardenPlugin, GardenPluginReference } from "../types/plugin/plugin"
 import { workflowConfigSchema } from "../config/workflow"
 import { moduleTemplateSchema } from "../config/module-template"
 
-export async function generateDocs(targetDir: string, plugins: GardenPluginCallback[]) {
+export async function generateDocs(targetDir: string, plugins: GardenPluginReference[]) {
   // tslint:disable: no-console
   const docsRoot = resolve(process.cwd(), targetDir)
 
@@ -32,7 +32,7 @@ export async function generateDocs(targetDir: string, plugins: GardenPluginCallb
   console.log("Updating config references...")
   await writeConfigReferenceDocs(
     docsRoot,
-    plugins.map((p) => p())
+    plugins.map((p) => p.callback())
   )
   console.log("Updating template string reference...")
   writeTemplateStringReferenceDocs(docsRoot)

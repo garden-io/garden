@@ -13,15 +13,14 @@ import { CommandError, InternalError, ParameterError } from "../exceptions"
 import { BasicTerminalWriter } from "./writers/basic-terminal-writer"
 import { FancyTerminalWriter } from "./writers/fancy-terminal-writer"
 import { JsonTerminalWriter } from "./writers/json-terminal-writer"
-import { FullscreenTerminalWriter } from "./writers/fullscreen-terminal-writer"
 import { EventBus } from "../events"
 import { formatLogEntryForEventStream } from "../cloud/buffered-event-stream"
 import { gardenEnv } from "../constants"
 import { getEnumKeys } from "../util/util"
 import { range } from "lodash"
 
-export type LoggerType = "quiet" | "basic" | "fancy" | "fullscreen" | "json"
-export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "basic", "fancy", "fullscreen", "json"])
+export type LoggerType = "quiet" | "basic" | "fancy" | "json"
+export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "basic", "fancy", "json"])
 
 export enum LogLevel {
   error = 0,
@@ -72,8 +71,6 @@ export function getWriterInstance(loggerType: LoggerType, level: LogLevel) {
       return new BasicTerminalWriter(level)
     case "fancy":
       return new FancyTerminalWriter(level)
-    case "fullscreen":
-      return new FullscreenTerminalWriter(level)
     case "json":
       return new JsonTerminalWriter(level)
     case "quiet":

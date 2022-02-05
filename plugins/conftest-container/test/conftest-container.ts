@@ -34,7 +34,7 @@ describe("conftest-container provider", () => {
 
   it("should add a conftest module for each container module with a Dockerfile", async () => {
     const garden = await makeTestGarden(projectRoot, {
-      plugins: [gardenPlugin, conftestPlugin],
+      plugins: [gardenPlugin(), conftestPlugin()],
       config: projectConfig,
     })
 
@@ -67,7 +67,7 @@ describe("conftest-container provider", () => {
     })
 
     const garden = await makeTestGarden(projectRoot, {
-      plugins: [gardenPlugin, conftestPlugin, foo],
+      plugins: [gardenPlugin(), conftestPlugin(), foo],
       config: {
         ...projectConfig,
         providers: [...projectConfig.providers, { name: "foo" }],

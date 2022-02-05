@@ -8,7 +8,6 @@
 
 import { LogEntry } from "../logger/log-entry"
 import { createWriteStream } from "fs"
-import archiver = require("archiver")
 
 /**
  * Zip a folder putting its content at the root of the archive
@@ -27,6 +26,9 @@ export async function zipFolder(src: string, dest: string, log: LogEntry) {
         level: 9,
       },
     }
+
+    // Note: lazy-loading for startup performance
+    const archiver = require("archiver")
     const archive = archiver("zip", archiveOpts)
 
     output.on("close", () => {

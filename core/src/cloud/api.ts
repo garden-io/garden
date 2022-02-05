@@ -13,9 +13,8 @@ import { findProjectConfig } from "../config/base"
 import { CommandError, EnterpriseApiError } from "../exceptions"
 import { LogEntry } from "../logger/log-entry"
 import { gardenEnv } from "../constants"
-import { ClientAuthToken } from "../db/entities/client-auth-token"
+import type { ClientAuthToken as ClientAuthTokenType } from "../db/entities/client-auth-token"
 import { Cookie } from "tough-cookie"
-import { add, sub, isAfter } from "date-fns"
 import { isObject } from "lodash"
 import { deline } from "../util/string"
 import chalk from "chalk"
@@ -221,6 +220,10 @@ export class CloudApi {
       throw new EnterpriseApiError(errMsg, { tokenResponse })
     }
     try {
+      // Note: lazy-loading for startup performance
+      const { ClientAuthToken } = require("../db/entities/client-auth-token")
+      const { add } = require("date-fns")
+
       const manager = ClientAuthToken.getConnection().manager
       await manager.transaction(async (transactionalEntityManager) => {
         await transactionalEntityManager.clear(ClientAuthToken)
@@ -249,6 +252,8 @@ export class CloudApi {
    * token and deletes all others.
    */
   static async getClientAuthTokenFromDb(log: LogEntry) {
+    // Note: lazy-loading for startup performance
+    const { ClientAuthToken } = require("../db/entities/client-auth-token")
     const [tokens, tokenCount] = await ClientAuthToken.findAndCount()
 
     const token = tokens[0] ? tokens[0] : undefined
@@ -291,6 +296,9 @@ export class CloudApi {
    * If a persisted client auth token exists, deletes it.
    */
   static async clearAuthToken(log: LogEntry) {
+    // Note: lazy-loading for startup performance
+    const { ClientAuthToken } = require("../db/entities/client-auth-token")
+
     await ClientAuthToken.getConnection().createQueryBuilder().delete().from(ClientAuthToken).execute()
     log.debug("Cleared persisted auth token (if any)")
   }
@@ -313,6 +321,9 @@ export class CloudApi {
   }
 
   private async refreshTokenIfExpired() {
+    // Note: lazy-loading for startup performance
+    const { ClientAuthToken } = require("../db/entities/client-auth-token")
+
     const token = await ClientAuthToken.findOne()
 
     if (!token || gardenEnv.GARDEN_AUTH_TOKEN) {
@@ -320,12 +331,15 @@ export class CloudApi {
       return
     }
 
+    // Note: lazy-loading for startup performance
+    const { sub, isAfter } = require("date-fns")
+
     if (isAfter(new Date(), sub(token.validity, { seconds: refreshThreshold }))) {
       await this.refreshToken(token)
     }
   }
 
-  private async refreshToken(token: ClientAuthToken) {
+  private async refreshToken(token: ClientAuthTokenType) {
     try {
       let res: any
       res = await this.get<any>("token/refresh", { headers: { Cookie: `rt=${token?.refreshToken}` } })

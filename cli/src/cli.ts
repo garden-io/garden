@@ -7,22 +7,17 @@
  */
 
 import { shutdown } from "@garden-io/core/build/src/util/util"
-import { gardenEnv } from "@garden-io/core/build/src/constants"
-import { getDefaultProfiler } from "@garden-io/core/build/src/util/profiling"
-import { GardenProcess } from "@garden-io/core/build/src/db/entities/garden-process"
-import { ensureConnected } from "@garden-io/core/build/src/db/connection"
 import { GardenCli, RunOutput } from "@garden-io/core/build/src/cli/cli"
-import { GardenPluginCallback } from "@garden-io/core/build/src/types/plugin/plugin"
+import { GardenPluginReference } from "@garden-io/core/build/src/types/plugin/plugin"
 
 // These plugins are always registered
-export const getBundledPlugins = (): GardenPluginCallback[] =>
-  [
-    require("@garden-io/garden-conftest"),
-    require("@garden-io/garden-conftest-container"),
-    require("@garden-io/garden-conftest-kubernetes"),
-    require("@garden-io/garden-jib"),
-    require("@garden-io/garden-maven-container"),
-  ].map((m) => () => m.gardenPlugin())
+export const getBundledPlugins = (): GardenPluginReference[] => [
+  { name: "conftest", callback: () => require("@garden-io/garden-conftest").gardenPlugin() },
+  { name: "conftest-container", callback: () => require("@garden-io/garden-conftest-container").gardenPlugin() },
+  { name: "conftest-kubernetes", callback: () => require("@garden-io/garden-conftest-kubernetes").gardenPlugin() },
+  { name: "jib", callback: () => require("@garden-io/garden-jib").gardenPlugin() },
+  { name: "maven-container", callback: () => require("@garden-io/garden-maven-container").gardenPlugin() },
+]
 
 export async function runCli({
   args,
@@ -36,22 +31,19 @@ export async function runCli({
     args = process.argv.slice(2)
   }
 
-  await ensureConnected()
-  const processRecord = await GardenProcess.register(args)
-
   try {
     if (!cli) {
       cli = new GardenCli({ plugins: getBundledPlugins() })
     }
     // Note: We slice off the binary/script name from argv.
-    result = await cli.run({ args, exitOnError, processRecord })
+    result = await cli.run({ args, exitOnError })
     code = result.code
   } catch (err) {
     // tslint:disable-next-line: no-console
     console.log(err.message)
     code = 1
   } finally {
-    await processRecord.remove()
+    await cli?.processRecord?.remove()
     await shutdown(code)
   }
 

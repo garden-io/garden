@@ -106,7 +106,6 @@ import { DefaultEnvironmentContext, RemoteSourceConfigContext } from "./config/t
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { ProviderConfigContext } from "./config/template-contexts/provider"
 import { getSecrets } from "./cloud/get-secrets"
-import { killSyncDaemon } from "./plugins/kubernetes/mutagen"
 import { ConfigContext } from "./config/template-contexts/base"
 import { validateSchema, validateWithPath } from "./config/validation"
 
@@ -327,7 +326,6 @@ export class Garden {
   async close() {
     this.events.removeAllListeners()
     this.watcher && (await this.watcher.stop())
-    await killSyncDaemon()
   }
 
   /**

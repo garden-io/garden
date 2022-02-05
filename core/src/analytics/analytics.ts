@@ -7,7 +7,6 @@
  */
 
 import codenamize = require("@codenamize/codenamize")
-import segmentClient = require("analytics-node")
 import { platform, release } from "os"
 import ci = require("ci-info")
 import { uniq } from "lodash"
@@ -148,6 +147,7 @@ export class AnalyticsHandler {
   private projectMetadata: ProjectMetadata
 
   private constructor(garden: Garden, log: LogEntry) {
+    const segmentClient = require("analytics-node")
     this.segment = new segmentClient(API_KEY, { flushAt: 20, flushInterval: 300 })
     this.log = log
     this.garden = garden

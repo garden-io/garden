@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { resolve, join } from "path"
+import { join } from "path"
 import { cloneDeep } from "lodash"
 import td from "testdouble"
 import tmp from "tmp-promise"
@@ -16,12 +16,7 @@ import { pathExists, realpath } from "fs-extra"
 import { dedent } from "@garden-io/sdk/util/string"
 import { makeTestGarden, expectError } from "@garden-io/sdk/testing"
 import { LogEntry, ModuleConfig, GardenModule } from "@garden-io/sdk/types"
-import {
-  gardenPlugin as mavenPlugin,
-  MavenContainerModuleSpec,
-  MavenContainerModuleConfig,
-  prepareBuild,
-} from ".."
+import { gardenPlugin as mavenPlugin, MavenContainerModuleSpec, MavenContainerModuleConfig, prepareBuild } from ".."
 
 import { Garden } from "@garden-io/core/build/src/garden"
 import { gardenPlugin as containerPlugin } from "@garden-io/core/build/src/plugins/container/container"
@@ -89,7 +84,7 @@ describe("maven-container", () => {
   let log: LogEntry
 
   beforeEach(async () => {
-    garden = await makeTestGarden(projectRoot, { plugins: [mavenPlugin] })
+    garden = await makeTestGarden(projectRoot, { plugins: [mavenPlugin()] })
     log = garden.log
     const provider = await garden.resolveProvider(garden.log, "maven-container")
     ctx = await garden.getPluginContext(provider)

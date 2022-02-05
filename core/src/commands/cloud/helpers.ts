@@ -14,9 +14,9 @@ import { capitalize } from "lodash"
 import minimatch from "minimatch"
 import pluralize from "pluralize"
 import chalk from "chalk"
-import inquirer from "inquirer"
 import { CommandError } from "../../exceptions"
 import { CommandResult } from "../base"
+import { userPrompt } from "../../util/util"
 
 export interface DeleteResult {
   id: number
@@ -177,7 +177,7 @@ export async function confirmDelete(resource: string, count: number) {
     Are you sure you want to continue? (run the command with the "--yes" flag to skip this check).
   `)
 
-  const answer: any = await inquirer.prompt({
+  const answer: any = await userPrompt({
     name: "continue",
     message: msg,
     type: "confirm",

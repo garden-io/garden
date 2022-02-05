@@ -132,7 +132,7 @@ describe("prepareDockerAuth", () => {
   }
 
   beforeEach(async () => {
-    garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin] })
+    garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
     ctx = await garden.getPluginContext(basicProvider)
     ctx.tools["kubernetes.kubectl"] = new PluginTool(kubectlSpec)
     api = await KubeApi.factory(garden.log, ctx, basicProvider)

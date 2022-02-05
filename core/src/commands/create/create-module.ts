@@ -9,7 +9,6 @@
 import chalk from "chalk"
 import dedent from "dedent"
 import { pathExists } from "fs-extra"
-import inquirer from "inquirer"
 import { Command, CommandResult, CommandParams } from "../base"
 import { printHeader } from "../../logger/util"
 import { isDirectory, defaultConfigFilename } from "../../util/fs"
@@ -32,6 +31,7 @@ import { ModuleTypeMap } from "../../types/plugin/plugin"
 import { LogEntry } from "../../logger/log-entry"
 import { getProviderUrl, getModuleTypeUrl } from "../../docs/common"
 import { PathParameter, StringParameter, BooleanParameter, StringOption } from "../../cli/params"
+import { userPrompt } from "../../util/util"
 
 const createModuleArgs = {}
 const createModuleOpts = {
@@ -124,7 +124,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
       type,
     }
 
-    const allModuleTypes = getModuleTypes(getSupportedPlugins().map((p) => p()))
+    const allModuleTypes = getModuleTypes(getSupportedPlugins().map((p) => p.callback()))
 
     if (opts.interactive && (!opts.name || !opts.type)) {
       log.root.stop()
@@ -132,7 +132,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
       if (!opts.type) {
         const choices = await getModuleTypeSuggestions(log, allModuleTypes, configDir, name)
 
-        const answer = await inquirer.prompt({
+        const answer = await userPrompt({
           name: "suggestion",
           message: "Select a module type:",
           type: "list",
@@ -144,7 +144,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
       }
 
       if (!opts.name) {
-        const answer = await inquirer.prompt({
+        const answer = await userPrompt({
           name: "name",
           message: "Set the module name:",
           type: "input",
@@ -297,10 +297,13 @@ export async function getModuleTypeSuggestions(
     })
   )
 
-  let choices: inquirer.ChoiceCollection = Object.keys(moduleTypes).map((moduleType) => ({
+  let choices = Object.keys(moduleTypes).map((moduleType) => ({
     name: moduleType,
     value: { kind: "Module", type: moduleType, name: defaultName },
   }))
+
+  // Note: requiring inquirer inline because it's slow to import
+  const inquirer = require("inquirer")
 
   if (allSuggestions.length > 0) {
     return [

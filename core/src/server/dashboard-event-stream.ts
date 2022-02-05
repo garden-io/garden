@@ -7,7 +7,6 @@
  */
 
 import { BufferedEventStream, ConnectBufferedEventStreamParams } from "../cloud/buffered-event-stream"
-import { GardenProcess } from "../db/entities/garden-process"
 import { Profile } from "../util/profiling"
 import { isEqual } from "lodash"
 
@@ -35,6 +34,9 @@ export class DashboardEventStream extends BufferedEventStream {
     if (!this.garden) {
       return []
     }
+
+    // Note: lazy-loading for performance
+    const { GardenProcess } = await import("../db/entities/garden-process")
 
     const running = await GardenProcess.getActiveProcesses()
     const servers = running.filter(

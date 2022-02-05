@@ -7,7 +7,7 @@
  */
 
 import { join } from "path"
-import { Connection, getConnectionManager, ConnectionOptions } from "typeorm-with-better-sqlite3"
+import type { Connection, ConnectionOptions } from "typeorm-with-better-sqlite3"
 import { gardenEnv } from "../constants"
 
 let connection: Connection
@@ -17,6 +17,9 @@ const databasePath = join(gardenEnv.GARDEN_DB_DIR, "db")
 
 // Note: This function needs to be synchronous to work with the typeorm Active Record pattern (see ./base-entity.ts)
 export function getConnection(): Connection {
+  // Note: lazy-loading for startup performance
+  const { getConnectionManager } = require("typeorm-with-better-sqlite3")
+
   if (!connection && getConnectionManager().has(connectionName)) {
     connection = getConnectionManager().get(connectionName)
   }

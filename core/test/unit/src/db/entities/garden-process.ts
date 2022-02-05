@@ -91,7 +91,7 @@ describe("GardenProcess", () => {
 
       const running = await GardenProcess.getActiveProcesses()
 
-      expect(running.length).lte(2)
+      expect(running.length).lte(3)
       expect(find(running, (p) => p._id === a._id)).to.exist
       expect(find(running, (p) => p._id === b._id)).to.not.exist
       expect(find(running, (p) => p._id === c._id)).to.not.exist

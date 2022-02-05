@@ -9,7 +9,6 @@
 import Bluebird from "bluebird"
 import { mapValues, omit } from "lodash"
 import { join } from "path"
-import cpy = require("cpy")
 import { joiArray, joiEnvVars, joi, joiSparseArray, PrimitiveMap } from "../config/common"
 import { validateWithPath, ArtifactSpec } from "../config/validation"
 import { createGardenPlugin, ServiceActionHandlers } from "../types/plugin/plugin"
@@ -611,6 +610,9 @@ async function copyArtifacts(
 ) {
   return Bluebird.map(artifacts || [], async (spec) => {
     log.verbose(`→ Copying artifacts ${spec.source}`)
+
+    // Note: lazy-loading for startup performance
+    const cpy = require("cpy")
 
     await cpy(spec.source, join(artifactsPath, spec.target || "."), { cwd: from })
   })

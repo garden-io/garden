@@ -17,7 +17,6 @@ import { Garden } from "./garden"
 import { registerCleanupFunction, sleep } from "./util/util"
 import { LogEntry } from "./logger/log-entry"
 import { GetPortForwardResult } from "./types/plugin/service/getPortForward"
-import { LocalAddress } from "./db/entities/local-address"
 import { ConfigGraph } from "./config-graph"
 import { gardenEnv } from "./constants"
 
@@ -235,6 +234,8 @@ async function createProxy({ garden, graph, log, service, spec }: StartPortProxy
   } else if (!spec.preferredLocalPort) {
     // TODO: drop this in 0.13, it causes more issues than it solves
     // Only try a non-default IP if a preferred port isn't set
+    // Note: lazy-loading for startup performance
+    const { LocalAddress } = require("./db/entities/local-address")
     const preferredLocalAddress = await LocalAddress.resolve({
       projectName: garden.projectName,
       moduleName: service.module.name,

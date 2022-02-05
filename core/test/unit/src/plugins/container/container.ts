@@ -74,7 +74,7 @@ describe("plugins.container", () => {
   let containerProvider: ContainerProvider
 
   beforeEach(async () => {
-    garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin] })
+    garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
     log = garden.log
     containerProvider = await garden.resolveProvider(garden.log, "container")
     ctx = await garden.getPluginContext(containerProvider)

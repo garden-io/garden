@@ -31,13 +31,23 @@ import { globalOptions, GlobalOptions } from "./params"
 import { BuiltinArgs, Command, CommandGroup } from "../commands/base"
 import { DeepPrimitiveMap } from "../config/common"
 
-export const cliStyles = {
-  heading: (str: string) => chalk.white.bold(str),
-  commandPlaceholder: () => chalk.blueBright("<command>"),
-  optionsPlaceholder: () => chalk.yellowBright("[options]"),
-  hints: (str: string) => chalk.gray(str),
-  usagePositional: (key: string, required: boolean) => chalk.cyan(required ? `<${key}>` : `[${key}]`),
-  usageOption: (str: string) => chalk.cyan(`<${str}>`),
+let _cliStyles: any
+
+export function getCliStyles() {
+  if (_cliStyles) {
+    return _cliStyles
+  }
+
+  _cliStyles = {
+    heading: (str: string) => chalk.white.bold(str),
+    commandPlaceholder: () => chalk.blueBright("<command>"),
+    optionsPlaceholder: () => chalk.yellowBright("[options]"),
+    hints: (str: string) => chalk.gray(str),
+    usagePositional: (key: string, required: boolean) => chalk.cyan(required ? `<${key}>` : `[${key}]`),
+    usageOption: (str: string) => chalk.cyan(`<${str}>`),
+  }
+
+  return _cliStyles
 }
 
 /**
@@ -361,6 +371,7 @@ export function renderCommands(commands: Command[]) {
 
 export function renderArguments(params: Parameters) {
   return renderParameters(params, (name, param) => {
+    const cliStyles = getCliStyles()
     return " " + cliStyles.usagePositional(name, param.required)
   })
 }
