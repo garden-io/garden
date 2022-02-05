@@ -102,6 +102,10 @@ ${table}
   }
 
   log(key: string, start: number) {
+    if (!this.enabled) {
+      return
+    }
+
     const duration = performance.now() - start
     if (this.data[key]) {
       this.data[key].push(duration)

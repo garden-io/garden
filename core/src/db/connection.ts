@@ -9,6 +9,7 @@
 import { join } from "path"
 import type { Connection, ConnectionOptions } from "typeorm-with-better-sqlite3"
 import { gardenEnv } from "../constants"
+import { profileAsync } from "../util/profiling"
 
 let connection: Connection
 
@@ -50,9 +51,9 @@ export function getConnection(): Connection {
   return connection
 }
 
-export async function ensureConnected() {
+export const ensureConnected = profileAsync(async function _ensureConnected() {
   const _connection = getConnection()
   if (!_connection.isConnected) {
     await _connection.connect()
   }
-}
+})

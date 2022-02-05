@@ -371,6 +371,7 @@ describe("getModuleVersionString", () => {
 
   it("should return a different version for a module when a variable used by it changes", async () => {
     const templateGarden = await makeTestGarden(getDataDir("test-project-variable-versioning"))
+    templateGarden["cacheKey"] = "" // Disable caching of the config graph
     const before = await templateGarden.resolveModule("module-a")
 
     templateGarden.variables["echo-string"] = "something-else"
@@ -384,6 +385,7 @@ describe("getModuleVersionString", () => {
 
   it("should return the same version for a module when a variable not used by it changes", async () => {
     const templateGarden = await makeTestGarden(getDataDir("test-project-variable-versioning"))
+    templateGarden["cacheKey"] = "" // Disable caching of the config graph
     const before = await templateGarden.resolveModule("module-a")
 
     templateGarden.variables["bla"] = "ble"
@@ -420,7 +422,7 @@ describe("getModuleVersionString", () => {
     // fixed-version-hashes-1 expects this var to be set
     process.env.MODULE_A_TEST_ENV_VAR = "foo"
 
-    const garden = await makeTestGarden(projectRoot)
+    const garden = await makeTestGarden(projectRoot, { noCache: true })
     const module = await garden.resolveModule("module-a")
 
     const fixedVersionString = "v-3b072717eb"

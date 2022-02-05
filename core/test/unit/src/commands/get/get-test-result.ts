@@ -12,11 +12,11 @@ import {
   configureTestModule,
   makeTestGardenA,
   cleanProject,
+  TestGarden,
 } from "../../../../helpers"
 import { GetTestResultCommand } from "../../../../../src/commands/get/get-test-result"
 import { expect } from "chai"
 import { GetTestResultParams } from "../../../../../src/types/plugin/module/getTestResult"
-import { Garden } from "../../../../../src/garden"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
 import { joi } from "../../../../../src/config/common"
@@ -59,13 +59,13 @@ const testPlugin = createGardenPlugin({
 })
 
 describe("GetTestResultCommand", () => {
-  let garden: Garden
+  let garden: TestGarden
   let log: LogEntry
   const command = new GetTestResultCommand()
   const moduleName = "module-a"
 
   beforeEach(async () => {
-    garden = await makeTestGardenA([testPlugin])
+    garden = await makeTestGardenA([testPlugin], { noCache: true })
     log = garden.log
   })
 
@@ -123,7 +123,7 @@ describe("GetTestResultCommand", () => {
   it("should include paths to artifacts if artifacts exist", async () => {
     const name = "unit"
 
-    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false, noCache: true })
     const test = graph.getTest("module-a", "unit")
     const artifactKey = getArtifactKey("test", name, test.version)
     const metadataPath = join(garden.artifactsPath, `.metadata.${artifactKey}.json`)

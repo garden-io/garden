@@ -18,6 +18,7 @@ import { resolveTemplateString } from "../../../../../src/template-string/templa
 import { ModuleConfigContext } from "../../../../../src/config/template-contexts/module"
 import { WorkflowConfigContext, WorkflowStepConfigContext } from "../../../../../src/config/template-contexts/workflow"
 import { GardenModule } from "../../../../../src/types/module"
+import { ConfigGraph } from "../../../../../src/config-graph"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
@@ -27,13 +28,14 @@ interface TestValues {
 
 describe("ModuleConfigContext", () => {
   let garden: TestGarden
+  let graph: ConfigGraph
   let c: ModuleConfigContext
   let module: GardenModule
 
   before(async () => {
     garden = await makeTestGardenA()
     garden["secrets"] = { someSecret: "someSecretValue" }
-    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const modules = graph.getModules()
     module = graph.getModule("module-b")
 
@@ -80,8 +82,7 @@ describe("ModuleConfigContext", () => {
   })
 
   it("should should resolve the version of a module", async () => {
-    const config = await garden.resolveModule("module-a")
-    const { versionString } = await garden.resolveModuleVersion(config, [])
+    const { versionString } = graph.getModule("module-a").version
     expect(c.resolve({ key: ["modules", "module-a", "version"], nodePath: [], opts: {} })).to.eql({
       resolved: versionString,
     })
@@ -132,7 +133,6 @@ describe("ModuleConfigContext", () => {
     let serviceA: GardenService
 
     before(async () => {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const modules = graph.getModules()
       serviceA = graph.getService("service-a")
       const serviceB = graph.getService("service-b")

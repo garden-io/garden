@@ -20,7 +20,6 @@ import { GetTaskResultCommand } from "../../../../../src/commands/get/get-task-r
 import { expect } from "chai"
 import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
 import { LogEntry } from "../../../../../src/logger/log-entry"
-import { Garden } from "../../../../../src/garden"
 import { GetTaskResultParams } from "../../../../../src/types/plugin/task/getTaskResult"
 import { getArtifactKey } from "../../../../../src/util/artifacts"
 import { writeFile } from "fs-extra"
@@ -60,13 +59,13 @@ const testPlugin = createGardenPlugin({
 })
 
 describe("GetTaskResultCommand", () => {
-  let garden: Garden
+  let garden: TestGarden
   let log: LogEntry
   const projectRootB = join(dataDir, "test-project-b")
   const command = new GetTaskResultCommand()
 
   beforeEach(async () => {
-    garden = await TestGarden.factory(projectRootB, { plugins: [testPlugin] })
+    garden = await TestGarden.factory(projectRootB, { plugins: [testPlugin], noCache: true })
     log = garden.log
   })
 

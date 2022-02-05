@@ -40,6 +40,7 @@ import chalk = require("chalk")
 import { safeLoad } from "js-yaml"
 import { CommandInfo } from "../plugin-context"
 import { VcsInfo } from "../vcs/vcs"
+import { profileAsync } from "../util/profiling"
 
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -512,7 +513,7 @@ export function resolveProjectConfig({
  * @param config a resolved project config (as returned by `resolveProjectConfig()`)
  * @param envString the name of the environment to use
  */
-export async function pickEnvironment({
+export const pickEnvironment = profileAsync(async function _pickEnvironment({
   projectConfig,
   envString,
   artifactsPath,
@@ -617,7 +618,7 @@ export async function pickEnvironment({
     providers: Object.values(mergedProviders),
     variables,
   }
-}
+})
 
 /**
  * Validates that the value passed for `namespace` conforms with the namespacing setting in `environmentConfig`,

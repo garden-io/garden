@@ -49,16 +49,12 @@ export interface SyncParams {
  */
 @Profile()
 export class BuildStaging {
-  constructor(protected projectRoot: string, public buildDirPath: string, public buildMetadataDirPath: string) {}
+  public buildDirPath: string
+  public buildMetadataDirPath: string
 
-  static async factory(projectRoot: string, gardenDirPath: string) {
-    // Make sure build directories exist
-    const buildDirPath = join(gardenDirPath, "build")
-    const buildMetadataDirPath = join(gardenDirPath, "build-metadata")
-    await ensureDir(buildDirPath)
-    await ensureDir(buildMetadataDirPath)
-
-    return new BuildStaging(projectRoot, buildDirPath, buildMetadataDirPath)
+  constructor(protected projectRoot: string, gardenDirPath: string) {
+    this.buildDirPath = join(gardenDirPath, "build")
+    this.buildMetadataDirPath = join(gardenDirPath, "build-metadata")
   }
 
   async syncFromSrc(module: GardenModule, log: LogEntry) {
@@ -132,6 +128,7 @@ export class BuildStaging {
     // This returns the same result for modules and module configs
     const moduleKey = getModuleKey(moduleOrConfig.name, moduleOrConfig.plugin)
 
+    await ensureDir(this.buildDirPath)
     const path = resolve(this.buildDirPath, moduleKey)
     await ensureDir(path)
 
@@ -143,6 +140,7 @@ export class BuildStaging {
    * version for exec modules.
    */
   async buildMetadataPath(moduleName: string): Promise<string> {
+    await ensureDir(this.buildMetadataDirPath)
     const path = resolve(this.buildMetadataDirPath, moduleName)
     await ensureDir(path)
     return path

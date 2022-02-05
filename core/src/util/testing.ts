@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { keyBy, isEqual } from "lodash"
+import { keyBy, isEqual, cloneDeep } from "lodash"
 import { Garden, GardenOpts, resolveGardenParams } from "../garden"
 import { StringMap, DeepPrimitiveMap } from "../config/common"
 import { GardenParams } from "../garden"
@@ -15,10 +15,15 @@ import { WorkflowConfig } from "../config/workflow"
 import { LogEntry } from "../logger/log-entry"
 import { RuntimeContext } from "../runtime-context"
 import { GardenModule } from "../types/module"
-import { findByName, getNames, ValueOf, isPromise } from "./util"
+import { findByName, getNames, ValueOf, isPromise, serializeObject, hashString, uuidv4 } from "./util"
 import { GardenBaseError, GardenError } from "../exceptions"
 import { EventBus, Events } from "../events"
 import { dedent } from "./string"
+import pathIsInside from "path-is-inside"
+import { resolve } from "path"
+import { GARDEN_CORE_ROOT } from "../constants"
+import { getLogger } from "../logger/logger"
+import { ConfigGraph } from "../config-graph"
 
 export class TestError extends GardenBaseError {
   type = "_test"
@@ -68,13 +73,19 @@ export class TestEventBus extends EventBus {
 }
 
 const defaultCommandinfo = { name: "test", args: {}, opts: {} }
+const repoRoot = resolve(GARDEN_CORE_ROOT, "..")
 
-export type TestGardenOpts = Partial<GardenOpts>
+const paramCache: { [key: string]: GardenParams } = {}
+const configGraphCache: { [key: string]: ConfigGraph } = {}
+
+export type TestGardenOpts = Partial<GardenOpts> & { noCache?: boolean }
 
 export class TestGarden extends Garden {
   events: TestEventBus
   public secrets: StringMap // Not readonly, to allow setting secrets in tests
   public variables: DeepPrimitiveMap // Not readonly, to allow setting variables in tests
+  private repoRoot: string
+  public cacheKey: string
 
   constructor(params: GardenParams) {
     super(params)
@@ -86,11 +97,77 @@ export class TestGarden extends Garden {
     currentDirectory: string,
     opts?: TestGardenOpts
   ): Promise<InstanceType<T>> {
-    const garden = new this(
-      await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandinfo, ...opts })
-    ) as InstanceType<T>
-    await garden.getRepoRoot()
+    // Cache the resolved params to save a bunch of time during tests
+    const cacheKey = opts?.noCache
+      ? undefined
+      : hashString(serializeObject([currentDirectory, { ...opts, log: undefined }]))
+
+    let params: GardenParams
+
+    if (cacheKey && paramCache[cacheKey]) {
+      params = cloneDeep(paramCache[cacheKey])
+      // Need to do these separately to avoid issues around cloning
+      params.log = opts?.log || getLogger().placeholder()
+      params.plugins = opts?.plugins || []
+    } else {
+      params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandinfo, ...opts })
+      if (cacheKey) {
+        paramCache[cacheKey] = cloneDeep({ ...params, log: <any>{}, plugins: [] })
+      }
+    }
+
+    params.sessionId = uuidv4()
+
+    const garden = new this(params) as InstanceType<T>
+
+    if (pathIsInside(currentDirectory, repoRoot)) {
+      garden["repoRoot"] = repoRoot
+    }
+
+    garden["cacheKey"] = cacheKey
+
     return garden
+  }
+
+  /**
+   * Override to cache the config graph.
+   */
+  async getConfigGraph(params: { log: LogEntry; runtimeContext?: RuntimeContext; emit: boolean; noCache?: boolean }) {
+    // We don't try to cache if a runtime context is given (TODO: might revisit that)
+    let cacheKey: string | undefined = undefined
+
+    if (this.cacheKey && !params.noCache) {
+      const moduleConfigHash = hashString(serializeObject(await this.getRawModuleConfigs()))
+      const runtimeContextHash = hashString(serializeObject(params.runtimeContext || {}))
+      cacheKey = [this.cacheKey, moduleConfigHash, runtimeContextHash].join("-")
+    }
+
+    if (cacheKey) {
+      const cached = configGraphCache[cacheKey]
+      if (cached) {
+        // Clone the cached graph and return
+        const clone = new ConfigGraph([], {})
+        for (const key of Object.getOwnPropertyNames(cached)) {
+          clone[key] = cloneDeep(cached[key])
+        }
+        return clone
+      }
+    }
+
+    const graph = await super.getConfigGraph(params)
+
+    if (cacheKey) {
+      configGraphCache[cacheKey] = graph
+    }
+    return graph
+  }
+
+  // Overriding to save time in tests
+  async getRepoRoot() {
+    if (this.repoRoot) {
+      return this.repoRoot
+    }
+    return await super.getRepoRoot()
   }
 
   setModuleConfigs(moduleConfigs: ModuleConfig[]) {

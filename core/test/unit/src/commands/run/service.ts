@@ -7,24 +7,24 @@
  */
 
 import { RunServiceCommand } from "../../../../../src/commands/run/service"
-import { makeTestGardenA, testModuleVersion, testNow, withDefaultGlobalOpts, expectError } from "../../../../helpers"
+import { makeTestGardenA, testNow, withDefaultGlobalOpts, expectError, TestGarden } from "../../../../helpers"
 import { expect } from "chai"
-import { Garden } from "../../../../../src/garden"
-import td from "testdouble"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import stripAnsi from "strip-ansi"
 import { omit } from "lodash"
+import { ConfigGraph } from "../../../../../src/config-graph"
 
 describe("RunServiceCommand", () => {
   // TODO: test optional flags
-  let garden: Garden
+  let garden: TestGarden
+  let graph: ConfigGraph
   let log: LogEntry
   const cmd = new RunServiceCommand()
 
   beforeEach(async () => {
-    td.replace(Garden.prototype, "resolveModuleVersion", async () => testModuleVersion)
     garden = await makeTestGardenA()
     log = garden.log
+    graph = await garden.getConfigGraph({ log, emit: false })
   })
 
   it("should run a service", async () => {
@@ -43,7 +43,7 @@ describe("RunServiceCommand", () => {
       command: ["service-a"],
       completedAt: testNow,
       log: "service-a",
-      version: testModuleVersion.versionString,
+      version: graph.getModule("module-a").version.versionString,
       startedAt: testNow,
       success: true,
     }
