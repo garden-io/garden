@@ -27,7 +27,6 @@ import { ModuleConfig } from "../src/config/module"
 import { mapValues, fromPairs } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
 import { GARDEN_CORE_ROOT, LOCAL_CONFIG_FILENAME, DEFAULT_API_VERSION, gardenEnv } from "../src/constants"
-import { uuidv4 } from "../src/util/util"
 import { LogEntry } from "../src/logger/log-entry"
 import timekeeper = require("timekeeper")
 import { ParameterValues, globalOptions, GlobalOptions, Parameters } from "../src/cli/params"
@@ -47,6 +46,7 @@ import { Logger, LogLevel } from "../src/logger/logger"
 import { ExecInServiceParams, ExecInServiceResult } from "../src/types/plugin/service/execInService"
 import { ClientAuthToken } from "../src/db/entities/client-auth-token"
 import { GardenCli } from "../src/cli/cli"
+import { profileAsync } from "../src/util/profiling"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError } from "../src/util/testing"
@@ -358,15 +358,20 @@ export function makeModuleConfig(path: string, from: Partial<ModuleConfig>): Mod
 
 export const testPlugins = () => [testPlugin(), testPluginB(), testPluginC()]
 
-export const makeTestGarden = async (projectRoot: string, opts: TestGardenOpts = {}): Promise<TestGarden> => {
-  opts = { sessionId: uuidv4(), ...opts }
+export const makeTestGarden = profileAsync(async function _makeTestGarden(
+  projectRoot: string,
+  opts: TestGardenOpts = {}
+): Promise<TestGarden> {
   const plugins = [...testPlugins(), ...(opts.plugins || [])]
   return TestGarden.factory(projectRoot, { ...opts, plugins })
-}
+})
 
-export const makeTestGardenA = async (extraPlugins: RegisterPluginParam[] = []) => {
-  return makeTestGarden(projectRootA, { plugins: extraPlugins, forceRefresh: true })
-}
+export const makeTestGardenA = profileAsync(async function _makeTestGardenA(
+  extraPlugins: RegisterPluginParam[] = [],
+  opts?: TestGardenOpts
+) {
+  return makeTestGarden(projectRootA, { plugins: extraPlugins, forceRefresh: true, ...opts })
+})
 
 export const makeTestGardenTasksFails = async (extraPlugins: RegisterPluginParam[] = []) => {
   return makeTestGarden(projectTestFailsRoot, { plugins: extraPlugins })

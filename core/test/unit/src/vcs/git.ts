@@ -73,6 +73,10 @@ describe("GitHandler", () => {
     await tmpDir.cleanup()
   })
 
+  async function getGitHash(path: string) {
+    return (await git("hash-object", path))[0]
+  }
+
   describe("getRepoRoot", () => {
     it("should return the repo root if it is the same as the given path", async () => {
       const path = tmpPath
@@ -135,7 +139,7 @@ describe("GitHandler", () => {
       await git("add", ".")
       await git("commit", "-m", "foo")
 
-      const hash = "6e1ab2d7d26c1c66f27fea8c136e13c914e3f137"
+      const hash = await getGitHash(path)
 
       expect(await handler.getFiles({ path: tmpPath, log })).to.eql([{ path, hash }])
     })
@@ -148,7 +152,8 @@ describe("GitHandler", () => {
       await git("commit", "-m", "foo")
 
       await writeFile(path, "my change")
-      const hash = "6e1ab2d7d26c1c66f27fea8c136e13c914e3f137"
+
+      const hash = await getGitHash(path)
 
       expect(await handler.getFiles({ path: tmpPath, log })).to.eql([{ path, hash }])
     })
@@ -180,44 +185,49 @@ describe("GitHandler", () => {
 
         it("should return untracked files as absolute paths with hash", async () => {
           const dirPath = pathFn(tmpPath)
-          await createFile(join(dirPath, "foo.txt"))
-          const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+          const path = join(dirPath, "foo.txt")
+          await createFile(path)
 
-          expect(await handler.getFiles({ path: dirPath, log })).to.eql([{ path: resolve(dirPath, "foo.txt"), hash }])
+          const hash = await getGitHash(path)
+
+          expect(await handler.getFiles({ path: dirPath, log })).to.eql([{ path, hash }])
         })
       })
     }
 
     it("should return untracked files in untracked directory", async () => {
       const dirPath = join(tmpPath, "dir")
+      const path = join(dirPath, "file.txt")
       await mkdir(dirPath)
-      await createFile(join(dirPath, "file.txt"))
-      const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      await createFile(path)
 
-      expect(await handler.getFiles({ path: dirPath, log })).to.eql([{ path: resolve(dirPath, "file.txt"), hash }])
+      const hash = await getGitHash(path)
+
+      expect(await handler.getFiles({ path: dirPath, log })).to.eql([{ path, hash }])
     })
 
     it("should work with tracked files with spaces in the name", async () => {
-      const filePath = join(tmpPath, "my file.txt")
-      await createFile(filePath)
-      await git("add", filePath)
+      const path = join(tmpPath, "my file.txt")
+      await createFile(path)
+      await git("add", path)
       await git("commit", "-m", "foo")
-      const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
 
-      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([{ path: resolve(tmpPath, "my file.txt"), hash }])
+      const hash = await getGitHash(path)
+
+      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([{ path, hash }])
     })
 
     it("should work with tracked+modified files with spaces in the name", async () => {
-      const filePath = join(tmpPath, "my file.txt")
-      await createFile(filePath)
-      await git("add", filePath)
+      const path = join(tmpPath, "my file.txt")
+      await createFile(path)
+      await git("add", path)
       await git("commit", "-m", "foo")
 
-      await writeFile(filePath, "fooooo")
+      await writeFile(path, "fooooo")
 
-      const hash = "099673697c6cbf5c1a96c445ef3eab123740c778"
+      const hash = await getGitHash(path)
 
-      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([{ path: resolve(tmpPath, "my file.txt"), hash }])
+      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([{ path, hash }])
     })
 
     it("should gracefully skip files that are deleted after having been committed", async () => {
@@ -232,11 +242,12 @@ describe("GitHandler", () => {
     })
 
     it("should work with untracked files with spaces in the name", async () => {
-      const filePath = join(tmpPath, "my file.txt")
-      await createFile(filePath)
-      const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      const path = join(tmpPath, "my file.txt")
+      await createFile(path)
 
-      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([{ path: resolve(tmpPath, "my file.txt"), hash }])
+      const hash = await getGitHash(path)
+
+      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([{ path, hash }])
     })
 
     it("should return nothing if include: []", async () => {
@@ -255,8 +266,8 @@ describe("GitHandler", () => {
 
     it("should include files that match the include filter, if specified", async () => {
       const path = resolve(tmpPath, "foo.txt")
-      const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
       await createFile(path)
+      const hash = await getGitHash(path)
 
       expect(await handler.getFiles({ path: tmpPath, include: ["foo.*"], exclude: [], log })).to.eql([{ path, hash }])
     })
@@ -266,8 +277,8 @@ describe("GitHandler", () => {
       const subdir = resolve(tmpPath, subdirName)
       await mkdir(subdir)
       const path = resolve(tmpPath, subdirName, "foo.txt")
-      const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
       await createFile(path)
+      const hash = await getGitHash(path)
 
       expect(await handler.getFiles({ path: tmpPath, include: [subdirName], exclude: [], log })).to.eql([
         { path, hash },
@@ -276,8 +287,8 @@ describe("GitHandler", () => {
 
     it("should include hidden files that match the include filter, if specified", async () => {
       const path = resolve(tmpPath, ".foo")
-      const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
       await createFile(path)
+      const hash = await getGitHash(path)
 
       expect(await handler.getFiles({ path: tmpPath, include: ["*"], exclude: [], log })).to.eql([{ path, hash }])
     })
@@ -348,7 +359,7 @@ describe("GitHandler", () => {
       await git("add", ".")
       await git("commit", "-m", "foo")
 
-      const hash = "6e1ab2d7d26c1c66f27fea8c136e13c914e3f137"
+      const hash = await getGitHash(path)
 
       const _handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [], garden.cache)
 
@@ -637,9 +648,18 @@ describe("GitHandler", () => {
       await writeFile(path, "iogjeiojgeowigjewoijoeiw")
       const stats = await lstat(path)
 
-      const expected = (await git("hash-object", path))[0]
+      const expected = await getGitHash(path)
 
-      expect(await handler.hashObject(stats, path)).to.equal(expected)
+      return new Promise((_resolve, reject) => {
+        handler.hashObject(stats, path, (err, hash) => {
+          if (err) {
+            reject(err)
+          } else {
+            expect(hash).to.equal(expected)
+            _resolve()
+          }
+        })
+      })
     })
 
     it("should return the same result as `git ls-files` for a file", async () => {
@@ -652,7 +672,16 @@ describe("GitHandler", () => {
       const files = (await git("ls-files", "-s", path))[0]
       const expected = files.split(" ")[1]
 
-      expect(await handler.hashObject(stats, path)).to.equal(expected)
+      return new Promise((_resolve, reject) => {
+        handler.hashObject(stats, path, (err, hash) => {
+          if (err) {
+            reject(err)
+          } else {
+            expect(hash).to.equal(expected)
+            _resolve()
+          }
+        })
+      })
     })
 
     it("should return the same result as `git ls-files` for a symlink", async () => {
@@ -669,7 +698,16 @@ describe("GitHandler", () => {
       const files = (await git("ls-files", "-s", symlinkPath))[0]
       const expected = files.split(" ")[1]
 
-      expect(await handler.hashObject(stats, symlinkPath)).to.equal(expected)
+      return new Promise((_resolve, reject) => {
+        handler.hashObject(stats, symlinkPath, (err, hash) => {
+          if (err) {
+            reject(err)
+          } else {
+            expect(hash).to.equal(expected)
+            _resolve()
+          }
+        })
+      })
     })
   })
 

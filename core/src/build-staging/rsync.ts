@@ -7,7 +7,7 @@
  */
 
 import semver from "semver"
-import { join, relative, parse } from "path"
+import { relative, parse } from "path"
 import { ensureDir } from "fs-extra"
 import { RuntimeError } from "../exceptions"
 import { normalizeLocalRsyncPath, joinWithPosix } from "../util/fs"
@@ -67,13 +67,7 @@ export class BuildDirRsync extends BuildStaging {
       )
     }
 
-    // Make sure build directories exist
-    const buildDirPath = join(gardenDirPath, "build")
-    const buildMetadataDirPath = join(gardenDirPath, "build-metadata")
-    await ensureDir(buildDirPath)
-    await ensureDir(buildMetadataDirPath)
-
-    return new BuildDirRsync(projectRoot, buildDirPath, buildMetadataDirPath)
+    return new BuildDirRsync(projectRoot, gardenDirPath)
   }
 
   /**
