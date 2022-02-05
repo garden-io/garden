@@ -37,7 +37,7 @@ describe("conftest provider", () => {
   describe("testModule", () => {
     it("should format warnings and errors nicely", async () => {
       const garden = await makeTestGarden(projectRoot, {
-        plugins: [gardenPlugin],
+        plugins: [gardenPlugin()],
         config: projectConfig,
       })
 
@@ -70,7 +70,7 @@ describe("conftest provider", () => {
 
     it("should set success=false with a linting warning if testFailureThreshold=warn", async () => {
       const garden = await makeTestGarden(projectRoot, {
-        plugins: [gardenPlugin],
+        plugins: [gardenPlugin()],
         config: {
           ...projectConfig,
           providers: [{ name: "conftest", policyPath: "policy.rego", testFailureThreshold: "warn" }],
@@ -100,7 +100,7 @@ describe("conftest provider", () => {
 
     it("should set success=true with a linting warning if testFailureThreshold=error", async () => {
       const garden = await makeTestGarden(projectRoot, {
-        plugins: [gardenPlugin],
+        plugins: [gardenPlugin()],
         config: projectConfig,
       })
 
@@ -127,7 +127,7 @@ describe("conftest provider", () => {
 
     it("should set success=true with warnings and errors if testFailureThreshold=none", async () => {
       const garden = await makeTestGarden(projectRoot, {
-        plugins: [gardenPlugin],
+        plugins: [gardenPlugin()],
         config: {
           ...projectConfig,
           providers: [{ name: "conftest", policyPath: "policy.rego", testFailureThreshold: "none" }],

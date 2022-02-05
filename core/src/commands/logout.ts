@@ -9,7 +9,6 @@
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
 import { CloudApi } from "../cloud/api"
-import { ClientAuthToken } from "../db/entities/client-auth-token"
 import { dedent } from "../util/string"
 import { getCloudDistributionName } from "../util/util"
 
@@ -28,6 +27,9 @@ export class LogOutCommand extends Command {
   }
 
   async action({ garden, log }: CommandParams): Promise<CommandResult> {
+    // Note: lazy-loading for startup performance
+    const { ClientAuthToken } = require("../db/entities/client-auth-token")
+
     const token = await ClientAuthToken.findOne()
     const distroName = getCloudDistributionName(garden.enterpriseDomain || "")
 

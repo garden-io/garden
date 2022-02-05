@@ -19,7 +19,6 @@ import { RuntimeError } from "../exceptions"
 import { makeTempDir } from "../util/fs"
 import { createReadStream, createWriteStream } from "fs"
 import { copy, mkdirp, move, readdir, remove } from "fs-extra"
-import { Extract } from "unzipper"
 
 const selfUpdateArgs = {
   version: new StringParameter({
@@ -253,6 +252,9 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       log.info(chalk.white(`Extracting to installation directory ${chalk.cyan(installationDirectory)}...`))
 
       if (extension === "zip") {
+        // Note: lazy-loading for startup performance
+        const { Extract } = require("unzipper")
+
         await new Promise((_resolve, reject) => {
           const extractor = Extract({ path: tempDir.path })
 

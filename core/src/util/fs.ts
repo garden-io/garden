@@ -21,7 +21,7 @@ import { LogEntry } from "../logger/log-entry"
 import { ModuleConfig } from "../config/module"
 import pathIsInside from "path-is-inside"
 import { uuidv4, exec } from "./util"
-import micromatch from "micromatch"
+import type Micromatch from "micromatch"
 
 export const defaultConfigFilename = "garden.yml"
 export const configFilenamePattern = "*garden.y*ml"
@@ -231,11 +231,21 @@ export async function listDirectory(path: string, { recursive = true } = {}): Pr
   })
 }
 
+let _micromatch: typeof Micromatch
+
+function micromatch() {
+  if (!_micromatch) {
+    // Note: lazy-loading for startup performance
+    _micromatch = require("micromatch").match
+  }
+  return _micromatch
+}
+
 /**
  * Given a list of `paths`, return a list of paths that match any of the given `patterns`
  */
 export function matchGlobs(paths: string[], patterns: string[]): string[] {
-  return micromatch(paths, patterns, { dot: true })
+  return micromatch()(paths, patterns, { dot: true })
 }
 
 /**

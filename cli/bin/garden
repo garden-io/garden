@@ -1,5 +1,39 @@
 #!/usr/bin/env node
 
+if (process.env.GARDEN_ENABLE_PROFILING === "1" || process.env.GARDEN_ENABLE_PROFILING === "true") {
+  // Patch require to profile module loading
+  const Mod = require("module")
+  const { performance } = require("perf_hooks")
+  const { basename } = require("path")
+  const { getDefaultProfiler } = require("@garden-io/core/build/src/util/profiling")
+
+  const req = Mod.prototype.require
+  const profiler = getDefaultProfiler()
+  const prefix = "require:"
+
+  Mod.prototype.require = function () {
+    const start = performance.now()
+
+    // tslint:disable-next-line: no-invalid-this
+    const mod = req.apply(this, arguments)
+    profiler.log("require", start) // Aggregate of all requires
+
+    let moduleName = arguments[0]
+
+    if (moduleName.startsWith("/")) {
+      // Absolute path
+      const split = moduleName.split("/")
+      profiler.log(prefix + split[split.length - 1], start)
+    } else {
+      profiler.log(prefix + moduleName, start)
+      // tslint:disable-next-line: no-invalid-this
+      profiler.log(prefix + basename(this.filename) + ":" + moduleName, start)
+    }
+
+    return mod
+  }
+}
+
 require("source-map-support").install()
 const cli = require("../build/src/cli")
 

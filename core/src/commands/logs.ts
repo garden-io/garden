@@ -23,7 +23,6 @@ import { dedent, deline } from "../util/string"
 import { padSection } from "../logger/renderers"
 import { PluginEventBroker } from "../plugin-context"
 import { ParameterError } from "../exceptions"
-import { isMatch } from "micromatch"
 
 const logsArgs = {
   services: new StringsParameter({
@@ -211,6 +210,9 @@ export class LogsCommand extends Command<Args, Opts> {
       acc[serviceName] = color
       return acc
     }, {})
+
+    // Note: lazy-loading for startup performance
+    const { isMatch } = require("micromatch")
 
     const matchTagFilters = (entry: ServiceLogEntry): boolean => {
       if (!tagFilters) {

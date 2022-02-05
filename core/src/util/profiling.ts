@@ -13,7 +13,7 @@ import { renderTable, tablePresets } from "./string"
 import chalk from "chalk"
 import { isPromise } from "./util"
 
-const maxReportRows = 30
+const maxReportRows = 60
 
 // Just storing the invocation duration for now
 type Invocation = number
@@ -58,18 +58,27 @@ export class Profiler {
 
     const keys = Object.keys(this.data)
 
-    const heading = ["Function/method", "# Invocations", "Total time", "Avg. time"].map((h) => chalk.white.underline(h))
+    const heading = ["Function/method", "# Invocations", "Total ms", "Avg. ms", "First ms"].map((h) =>
+      chalk.white.underline(h)
+    )
     const tableData = sortBy(
       keys.map((key) => {
         const invocations = this.data[key].length
         const total = sum(this.data[key])
         const average = total / invocations
-        return [formatKey(key), invocations, total, average]
+        const first = this.data[key][0]
+        return [formatKey(key), invocations, total, average, first]
       }),
       // Sort by total duration
       (row) => -row[2]
     )
-      .map((row) => [row[0], row[1], formatDuration(<number>row[2]), formatDuration(<number>row[3])])
+      .map((row) => [
+        row[0],
+        row[1],
+        formatDuration(<number>row[2]),
+        formatDuration(<number>row[3]),
+        formatDuration(<number>row[4]),
+      ])
       .slice(0, maxReportRows)
 
     const totalRows = keys.length

@@ -6,41 +6,27 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { InternalError } from "../exceptions"
-import { GardenPluginCallback } from "../types/plugin/plugin"
-
 // These plugins are always registered and the providers documented
-export const getSupportedPlugins = () =>
-  [
-    require("./container/container"),
-    require("./exec"),
-    require("./hadolint/hadolint"),
-    require("./kubernetes/kubernetes"),
-    require("./kubernetes/local/local"),
-    require("./octant/octant"),
-    require("./openfaas/openfaas"),
-    require("./terraform/terraform"),
-  ].map(resolvePluginFromModule)
+export const getSupportedPlugins = () => [
+  { name: "container", callback: () => require("./container/container").gardenPlugin() },
+  { name: "exec", callback: () => require("./exec").gardenPlugin() },
+  { name: "hadolint", callback: () => require("./hadolint/hadolint").gardenPlugin() },
+  { name: "kubernetes", callback: () => require("./kubernetes/kubernetes").gardenPlugin() },
+  { name: "local-kubernetes", callback: () => require("./kubernetes/local/local").gardenPlugin() },
+  { name: "octant", callback: () => require("./octant/octant").gardenPlugin() },
+  { name: "openfaas", callback: () => require("./openfaas/openfaas").gardenPlugin() },
+  { name: "terraform", callback: () => require("./terraform/terraform").gardenPlugin() },
+]
 
 // These plugins are always registered
 export const getBuiltinPlugins = () =>
-  getSupportedPlugins().concat(
-    [
-      require("./google/google-app-engine"),
-      require("./google/google-cloud-functions"),
-      require("./local/local-google-cloud-functions"),
-      require("./npm-package"),
-      require("./templated"),
-    ].map(resolvePluginFromModule)
-  )
-
-function resolvePluginFromModule(module: NodeModule): GardenPluginCallback {
-  const filename = module.filename
-  const gardenPlugin = module["gardenPlugin"]
-
-  if (!gardenPlugin) {
-    throw new InternalError(`Module ${filename} does not define a gardenPlugin`, { filename })
-  }
-
-  return gardenPlugin
-}
+  getSupportedPlugins().concat([
+    { name: "google-app-engine", callback: () => require("./google/google-app-engine").gardenPlugin() },
+    { name: "google-cloud-functions", callback: () => require("./google/google-cloud-functions").gardenPlugin() },
+    {
+      name: "local-google-cloud-functions",
+      callback: () => require("./local/local-google-cloud-functions").gardenPlugin(),
+    },
+    { name: "npm-package", callback: () => require("./npm-package").gardenPlugin() },
+    { name: "templated", callback: () => require("./templated").gardenPlugin() },
+  ])

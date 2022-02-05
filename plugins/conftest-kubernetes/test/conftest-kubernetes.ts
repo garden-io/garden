@@ -23,7 +23,7 @@ describe("conftest-kubernetes provider", () => {
 
   it("should add a conftest module for each helm module, and add runtime dependencies as necessary", async () => {
     const garden = await makeTestGarden(projectRoot, {
-      plugins: [gardenPlugin, conftestPlugin],
+      plugins: [gardenPlugin(), conftestPlugin()],
     })
 
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
@@ -44,7 +44,7 @@ describe("conftest-kubernetes provider", () => {
 
   it("should add a conftest module for each kubernetes module", async () => {
     const garden = await makeTestGarden(projectRoot, {
-      plugins: [gardenPlugin, conftestPlugin],
+      plugins: [gardenPlugin(), conftestPlugin()],
     })
 
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
@@ -65,7 +65,7 @@ describe("conftest-kubernetes provider", () => {
   describe("conftest-helm module", () => {
     it("should be able to test files in a remote Helm chart", async () => {
       const garden = await makeTestGarden(projectRoot, {
-        plugins: [gardenPlugin, conftestPlugin],
+        plugins: [gardenPlugin(), conftestPlugin()],
       })
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })

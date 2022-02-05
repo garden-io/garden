@@ -322,7 +322,7 @@ describe("processCliArgs", () => {
       () => parseAndProcess(["--logger-type=foo"], cmd),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(
-          'Invalid value for option --logger-type: "foo" is not a valid argument (should be any of "quiet", "basic", "fancy", "fullscreen", "json")'
+          'Invalid value for option --logger-type: "foo" is not a valid argument (should be any of "quiet", "basic", "fancy", "json")'
         )
     )
   })

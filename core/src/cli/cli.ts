@@ -18,7 +18,6 @@ import { getLogger, Logger, LoggerType, LogLevel, parseLogLevel } from "../logge
 import { FileWriter, FileWriterConfig } from "../logger/writers/file-writer"
 
 import {
-  cliStyles,
   checkForUpdates,
   checkForStaticDir,
   renderCommands,
@@ -26,6 +25,7 @@ import {
   pickCommand,
   parseCliArgs,
   optionsWithAliasValues,
+  getCliStyles,
 } from "./helpers"
 import { Parameters, globalOptions, OUTPUT_RENDERERS, GlobalOptions, ParameterValues } from "./params"
 import {
@@ -40,9 +40,9 @@ import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { BufferedEventStream, ConnectBufferedEventStreamParams } from "../cloud/buffered-event-stream"
 import { defaultDotIgnoreFiles } from "../util/fs"
-import { GardenProcess } from "../db/entities/garden-process"
+import type { GardenProcess } from "../db/entities/garden-process"
 import { DashboardEventStream } from "../server/dashboard-event-stream"
-import { GardenPluginCallback } from "../types/plugin/plugin"
+import { GardenPluginReference } from "../types/plugin/plugin"
 import { renderError } from "../logger/renderers"
 import { CloudApi } from "../cloud/api"
 import chalk from "chalk"
@@ -86,11 +86,12 @@ export interface RunOutput {
 export class GardenCli {
   private commands: { [key: string]: Command } = {}
   private fileWritersInitialized: boolean = false
-  private plugins: GardenPluginCallback[]
+  private plugins: GardenPluginReference[]
   private bufferedEventStream: BufferedEventStream | undefined
   private sessionFinished = false
+  public processRecord: GardenProcess
 
-  constructor({ plugins }: { plugins?: GardenPluginCallback[] } = {}) {
+  constructor({ plugins }: { plugins?: GardenPluginReference[] } = {}) {
     this.plugins = plugins || []
 
     const commands = sortBy(getBuiltinCommands(), (c) => c.name)
@@ -98,6 +99,8 @@ export class GardenCli {
   }
 
   async renderHelp(workingDir: string) {
+    const cliStyles = getCliStyles()
+
     const commands = Object.values(this.commands)
       .sort()
       .filter((cmd) => cmd.getPath().length === 1)
@@ -327,7 +330,11 @@ ${renderCommands(commands)}
           if (persistent && command.server) {
             // If there is an explicit `garden dashboard` process running for the current project+env, and a server
             // is started in this Command, we show the URL to the external dashboard. Otherwise the built-in one.
-            const dashboardProcess = GardenProcess.getDashboardProcess(runningServers, {
+
+            // Note: Lazy-loading for startup performance
+            const { GardenProcess: GP } = require("../db/entities/garden-process")
+
+            const dashboardProcess = GP.getDashboardProcess(runningServers, {
               projectRoot: garden.projectRoot,
               projectName: garden.projectName,
               environmentName: garden.environmentName,
@@ -513,6 +520,20 @@ ${renderCommands(commands)}
 
     let commandResult: CommandResult<any> | undefined = undefined
     let analytics: AnalyticsHandler | undefined = undefined
+
+    if (!processRecord) {
+      processRecord = this.processRecord
+    }
+
+    if (!processRecord) {
+      // Note: Lazy-loading for startup performance
+      const { ensureConnected } = require("../db/connection")
+      await ensureConnected()
+      const { GardenProcess: GP } = require("../db/entities/garden-process")
+      processRecord = await GP.register(args)
+    }
+
+    this.processRecord = processRecord!
 
     try {
       const runResults = await this.runCommand({ command, parsedArgs, parsedOpts, processRecord, workingDir })
