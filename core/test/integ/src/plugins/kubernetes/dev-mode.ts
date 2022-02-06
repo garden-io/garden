@@ -15,6 +15,7 @@ import { LogEntry } from "../../../../../src/logger/log-entry"
 import { ContainerService } from "../../../../../src/plugins/container/config"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
 import { getContainerServiceStatus } from "../../../../../src/plugins/kubernetes/container/status"
+import { flushAllMutagenSyncs } from "../../../../../src/plugins/kubernetes/mutagen"
 import { KubernetesWorkload } from "../../../../../src/plugins/kubernetes/types"
 import { execInWorkload } from "../../../../../src/plugins/kubernetes/util"
 import { emptyRuntimeContext } from "../../../../../src/runtime-context"
@@ -58,6 +59,7 @@ describe("dev mode deployments and sync behavior", () => {
 
   const init = async (environmentName: string) => {
     garden = await getContainerTestGarden(environmentName)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = <KubernetesPluginContext>await garden.getPluginContext(provider)
   }
@@ -165,7 +167,9 @@ describe("dev mode deployments and sync behavior", () => {
     await writeFile(join(module.path, "prefix-a", "file"), "foo")
     await mkdirp(join(module.path, "nested", "prefix-b"))
     await writeFile(join(module.path, "nested", "prefix-b", "file"), "foo")
-    await sleep(500)
+
+    await flushAllMutagenSyncs(ctx, log)
+
     const ignoreExecRes = await execInPod(["/bin/sh", "-c", "ls -a /tmp /tmp/nested"], log, workload)
     // Clean up the files we created locally
     for (const filename of ["made_locally", "somedir", "prefix-a", "nested"]) {

@@ -8,9 +8,9 @@
 
 import td from "testdouble"
 import Bluebird = require("bluebird")
-import { resolve, join } from "path"
+import { resolve, join, relative } from "path"
 import { extend, intersection, pick } from "lodash"
-import { remove, readdirSync, existsSync, copy, mkdirp, pathExists, truncate } from "fs-extra"
+import { remove, readdirSync, existsSync, copy, mkdirp, pathExists, truncate, ensureDir } from "fs-extra"
 import execa = require("execa")
 
 import { containerModuleSpecSchema, containerTestSchema, containerTaskSchema } from "../src/plugins/container/config"
@@ -47,6 +47,9 @@ import { ExecInServiceParams, ExecInServiceResult } from "../src/types/plugin/se
 import { ClientAuthToken } from "../src/db/entities/client-auth-token"
 import { GardenCli } from "../src/cli/cli"
 import { profileAsync } from "../src/util/profiling"
+import { makeTempDir } from "../src/util/fs"
+import { DirectoryResult } from "tmp-promise"
+import { ConfigurationError } from "../src/exceptions"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError } from "../src/util/testing"
@@ -358,12 +361,42 @@ export function makeModuleConfig(path: string, from: Partial<ModuleConfig>): Mod
 
 export const testPlugins = () => [testPlugin(), testPluginB(), testPluginC()]
 
+export const testProjectTempDirs: { [root: string]: DirectoryResult } = {}
+
 export const makeTestGarden = profileAsync(async function _makeTestGarden(
   projectRoot: string,
-  opts: TestGardenOpts = {}
+  opts: TestGardenOpts & { noTempDir?: boolean } = {}
 ): Promise<TestGarden> {
+  let targetRoot = projectRoot
+
+  if (!opts.noTempDir) {
+    if (!testProjectTempDirs[projectRoot]) {
+      // Clone the project root to a temp directory
+      testProjectTempDirs[projectRoot] = await makeTempDir({ git: true })
+      targetRoot = join(testProjectTempDirs[projectRoot].path, "project")
+      await ensureDir(targetRoot)
+
+      await copy(projectRoot, targetRoot, {
+        // Don't copy the .garden directory if it exists
+        filter: (src: string) => {
+          const relSrc = relative(projectRoot, src)
+          return relSrc !== ".garden"
+        },
+      })
+
+      if (opts.config?.path) {
+        opts.config.path = targetRoot
+      }
+      if (opts.config?.configPath) {
+        throw new ConfigurationError(`Please don't set the configPath here :) Messes with the temp dir business.`, {})
+      }
+    }
+    targetRoot = join(testProjectTempDirs[projectRoot].path, "project")
+  }
+
   const plugins = [...testPlugins(), ...(opts.plugins || [])]
-  return TestGarden.factory(projectRoot, { ...opts, plugins })
+
+  return TestGarden.factory(targetRoot, { ...opts, plugins })
 })
 
 export const makeTestGardenA = profileAsync(async function _makeTestGardenA(
@@ -372,10 +405,6 @@ export const makeTestGardenA = profileAsync(async function _makeTestGardenA(
 ) {
   return makeTestGarden(projectRootA, { plugins: extraPlugins, forceRefresh: true, ...opts })
 })
-
-export const makeTestGardenTasksFails = async (extraPlugins: RegisterPluginParam[] = []) => {
-  return makeTestGarden(projectTestFailsRoot, { plugins: extraPlugins })
-}
 
 export async function stubAction<T extends keyof PluginActionHandlers>(
   garden: Garden,
@@ -485,13 +514,13 @@ async function prepareRemoteGarden({
   type: ExternalSourceType
 }) {
   const garden = await makeTestGarden(projectRoot)
-  const sourcesPath = join(projectRoot, ".garden", "sources", type)
+  const sourcesPath = join(garden.projectRoot, ".garden", "sources", type)
 
   await mkdirp(sourcesPath)
   // Copy the sources to the `.garden/sources` dir and git init them
   await Bluebird.map(sourceNames, async (name) => {
     const remoteSourceRelPath = getRemoteSourceRelPath({ name, url: testGitUrl, sourceType: type })
-    const targetPath = join(projectRoot, ".garden", remoteSourceRelPath)
+    const targetPath = join(garden.projectRoot, ".garden", remoteSourceRelPath)
     await copy(join(extSourcesRoot, name), targetPath)
     await execa("git", ["init"], { cwd: targetPath })
   })

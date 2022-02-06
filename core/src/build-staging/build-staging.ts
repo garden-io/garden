@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import { isAbsolute, join, resolve, relative, parse, basename } from "path"
-import { emptyDir, ensureDir, remove } from "fs-extra"
+import { emptyDir, ensureDir, pathExists, remove } from "fs-extra"
 import { ConfigurationError, InternalError } from "../exceptions"
 import { FileCopySpec, GardenModule, getModuleKey } from "../types/module"
 import { normalizeRelativePath, joinWithPosix } from "../util/fs"
@@ -116,7 +116,9 @@ export class BuildStaging {
   }
 
   async clear() {
-    await emptyDir(this.buildDirPath)
+    if (await pathExists(this.buildDirPath)) {
+      await emptyDir(this.buildDirPath)
+    }
   }
 
   async buildPath(moduleOrConfig: GardenModule | ModuleConfig): Promise<string> {

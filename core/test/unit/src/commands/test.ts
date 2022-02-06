@@ -38,8 +38,10 @@ describe("TestCommand", () => {
 
     expect(command.outputsSchema().validate(result).error).to.be.undefined
 
+    const outputs = taskResultOutputs(result!)
+
     expect(
-      isSubset(taskResultOutputs(result!), {
+      isSubset(outputs, {
         "build.module-a": {
           fresh: true,
           buildLog: "A",
@@ -61,7 +63,8 @@ describe("TestCommand", () => {
           success: true,
           log: "OK",
         },
-      })
+      }),
+      `Got: ${JSON.stringify(outputs)}`
     ).to.be.true
 
     const { tests } = result!

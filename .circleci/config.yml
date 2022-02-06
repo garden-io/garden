@@ -76,6 +76,16 @@ commands:
           paths:
             - ~/.cache/yarn
 
+  configure_git:
+    description: Configure git (needed for some tests)
+    steps:
+      - run:
+          name: Configure git
+          command: |
+            git config --global user.name "Garden CI"
+            git config --global user.email "admin@garden.io"
+
+
   install_kubectl:
     description: Install kubectl
     steps:
@@ -230,11 +240,7 @@ jobs:
       - setup_remote_docker
       - npm_install
       - *attach-workspace
-      - run:
-          name: Configure git (needed for some tests)
-          command: |
-            git config --global user.name "Garden CI"
-            git config --global user.email "admin@garden.io"
+      - configure_git
       - run:
           name: Unit test framework components
           command: |
@@ -530,6 +536,7 @@ jobs:
 
             kubectl config set-context kind-kind
       - update_nodejs
+      - configure_git
       # Note: We can't use npm_install here because the cache conflicts
       - run: yarn
       - run: yarn build
@@ -593,6 +600,7 @@ jobs:
             echo 'export PATH=/snap/bin:$PATH' >> $BASH_ENV
             echo "********* env prepped! *********"
       - update_nodejs
+      - configure_git
       # Note: We can't use npm_install here because the cache conflicts
       - run: yarn
       - run: yarn run build
@@ -649,6 +657,7 @@ jobs:
             sudo apt install nfs-common conntrack
       - docker_login
       - update_nodejs
+      - configure_git
       # Note: We can't use npm_install here because the cache conflicts
       - run: yarn
       - run: yarn run build
@@ -757,10 +766,6 @@ workflows:
           kubernetesVersion: "1.19.7"
           minikubeVersion: "v1.16.0"
           testOpenfaas: false
-  test-minikube-1.14:
-    jobs:
-      - test-minikube:
-          kubernetesVersion: "1.14.9"
   test-microk8s-1.19:
     jobs:
       - test-microk8s:

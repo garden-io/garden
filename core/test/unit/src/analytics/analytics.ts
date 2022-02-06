@@ -13,9 +13,9 @@ import { isEqual } from "lodash"
 import { makeTestGardenA, TestGarden, enableAnalytics, getDataDir, makeTestGarden } from "../../../helpers"
 import { AnalyticsHandler } from "../../../../src/analytics/analytics"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
-import { isCI } from "ci-info"
 
 describe("AnalyticsHandler", () => {
+  const remoteOriginUrl = "git@github.com:garden-io/garden.git"
   const host = "https://api.segment.io"
   const scope = nock(host)
   // The sha512 hash of "test-project-a"
@@ -23,24 +23,14 @@ describe("AnalyticsHandler", () => {
     "95048f63dc14db38ed4138ffb6ff89992abdc19b8c899099c52a94f8fcc0390eec6480385cfa5014f84c0a14d4984825ce3bf25db1386d2b5382b936899df675"
   // The codenamize version + the sha512 hash of "test-project-a"
   const projectNameV2 = "discreet-sudden-struggle_95048f63dc14db38ed4138ffb6ff8999"
-  let remoteOriginUrl: string
   let analytics: AnalyticsHandler
   let garden: TestGarden
   let resetAnalyticsConfig: Function
 
-  before(async () => {
-    garden = await makeTestGardenA()
-    resetAnalyticsConfig = await enableAnalytics(garden)
-    // In CI we can make assumptions about the origin URL, otherwise not.
-    // We're hard coding it like this so that we can validate that we're actually
-    // hashing it properly.
-    remoteOriginUrl = isCI
-      ? "git@github.com:garden-io/garden.git"
-      : (await garden.vcs.getPathInfo(garden.log, garden.projectRoot))!.originUrl
-  })
-
   beforeEach(async () => {
     garden = await makeTestGardenA()
+    garden.vcsInfo.originUrl = remoteOriginUrl
+    resetAnalyticsConfig = await enableAnalytics(garden)
   })
 
   afterEach(async () => {
@@ -142,6 +132,7 @@ describe("AnalyticsHandler", () => {
 
       const root = getDataDir("test-projects", "login", "has-domain-and-id")
       garden = await makeTestGarden(root)
+      garden.vcsInfo.originUrl = remoteOriginUrl
 
       analytics = await AnalyticsHandler.init(garden, garden.log)
 

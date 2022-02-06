@@ -18,14 +18,7 @@ import {
   getModuleTreeCacheKey,
   hashModuleVersion,
 } from "../../../../src/vcs/vcs"
-import {
-  projectRootA,
-  makeTestGardenA,
-  makeTestGarden,
-  getDataDir,
-  TestGarden,
-  defaultModuleConfig,
-} from "../../../helpers"
+import { makeTestGardenA, makeTestGarden, getDataDir, TestGarden, defaultModuleConfig } from "../../../helpers"
 import { expect } from "chai"
 import { cloneDeep } from "lodash"
 import { ModuleConfig } from "../../../../src/config/module"
@@ -88,7 +81,12 @@ describe("VcsHandler", () => {
 
   beforeEach(async () => {
     gardenA = await makeTestGardenA()
-    handlerA = new TestVcsHandler(projectRootA, join(projectRootA, ".garden"), defaultDotIgnoreFiles, gardenA.cache)
+    handlerA = new TestVcsHandler(
+      gardenA.projectRoot,
+      join(gardenA.projectRoot, ".garden"),
+      defaultDotIgnoreFiles,
+      gardenA.cache
+    )
   })
 
   describe("getTreeVersion", () => {

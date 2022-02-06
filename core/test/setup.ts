@@ -12,27 +12,33 @@ import { getDefaultProfiler } from "../src/util/profiling"
 import { gardenEnv } from "../src/constants"
 import { testFlags } from "../src/util/util"
 import { ensureConnected } from "../src/db/connection"
-import { initTestLogger } from "./helpers"
+import { initTestLogger, testProjectTempDirs } from "./helpers"
+import Bluebird from "bluebird"
 
+require("source-map-support").install()
 initTestLogger()
 
 // Global hooks
-before(async () => {
-  getDefaultProfiler().setEnabled(true)
-  gardenEnv.GARDEN_DISABLE_ANALYTICS = true
-  testFlags.disableShutdown = true
+exports.mochaHooks = {
+  async before() {
+    getDefaultProfiler().setEnabled(true)
+    gardenEnv.GARDEN_DISABLE_ANALYTICS = true
+    testFlags.disableShutdown = true
 
-  // Ensure we're connected to the sqlite db
-  await ensureConnected()
-})
+    // Ensure we're connected to the sqlite db
+    await ensureConnected()
+  },
 
-after(() => {
-  // tslint:disable-next-line: no-console
-  console.log(getDefaultProfiler().report())
-})
+  async after() {
+    // tslint:disable-next-line: no-console
+    console.log(getDefaultProfiler().report())
+    await Bluebird.map(Object.values(testProjectTempDirs), (d) => d.cleanup())
+  },
 
-beforeEach(() => {})
-afterEach(() => {
-  td.reset()
-  timekeeper.reset()
-})
+  beforeEach() {},
+
+  afterEach() {
+    td.reset()
+    timekeeper.reset()
+  },
+}

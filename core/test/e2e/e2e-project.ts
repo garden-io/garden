@@ -60,7 +60,7 @@ async function run() {
 
   console.log("Running tests...")
 
-  const mochaOpts = ["--opts", "test/mocha.e2e.opts"]
+  const mochaOpts = ["--config", ".mocharc.e2e.yml"]
 
   for (const opt of ["binPath", "project", "env", "showlog"]) {
     if (parsedArgs[opt]) {
