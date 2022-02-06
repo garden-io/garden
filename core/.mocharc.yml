@@ -1,0 +1,12 @@
+require: build/test/setup.js
+watch-files:
+  - build/**/*
+ignore:
+  - build/test/e2e/**/*
+  - build/test/integ/**/*
+  - test/,src/,.garden
+reporter: spec
+timeout: 30000
+exit: true
+spec:
+  - build/test/unit/**/*.js

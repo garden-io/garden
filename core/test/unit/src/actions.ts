@@ -17,7 +17,7 @@ import {
 } from "../../../src/types/plugin/plugin"
 import { GardenService, ServiceState } from "../../../src/types/service"
 import { RuntimeContext, prepareRuntimeContext } from "../../../src/runtime-context"
-import { expectError, makeTestGardenA, stubModuleAction, projectRootA, TestGarden } from "../../helpers"
+import { expectError, makeTestGardenA, stubModuleAction, projectRootA, TestGarden, makeTestGarden } from "../../helpers"
 import { ActionRouter } from "../../../src/actions"
 import { LogEntry } from "../../../src/logger/log-entry"
 import { GardenModule } from "../../../src/types/module"
@@ -65,10 +65,11 @@ describe("ActionRouter", () => {
   }
 
   before(async () => {
-    garden = await TestGarden.factory(projectRootA, {
+    garden = await makeTestGarden(projectRootA, {
       plugins: [basePlugin, testPlugin, testPluginB],
       config: projectConfig,
     })
+    projectConfig.path = garden.projectRoot
     log = garden.log
     actions = await garden.getActionRouter()
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
@@ -1011,7 +1012,7 @@ describe("ActionRouter", () => {
   })
 
   describe("getModuleActionHandler", () => {
-    const path = process.cwd()
+    const path = projectRootA
 
     it("should return default handler, if specified and no handler is available", async () => {
       const gardenA = await makeTestGardenA()
@@ -1054,7 +1055,7 @@ describe("ActionRouter", () => {
           ],
         })
 
-        const _garden = await TestGarden.factory(path, {
+        const _garden = await makeTestGarden(path, {
           plugins: [foo],
           config: {
             apiVersion: DEFAULT_API_VERSION,
@@ -1107,7 +1108,7 @@ describe("ActionRouter", () => {
           ],
         })
 
-        const _garden = await TestGarden.factory(path, {
+        const _garden = await makeTestGarden(path, {
           plugins: [base, foo],
           config: {
             apiVersion: DEFAULT_API_VERSION,
@@ -1172,7 +1173,7 @@ describe("ActionRouter", () => {
           ],
         })
 
-        const _garden = await TestGarden.factory(path, {
+        const _garden = await makeTestGarden(path, {
           plugins: [base, too, foo],
           config: {
             apiVersion: DEFAULT_API_VERSION,
@@ -1241,7 +1242,7 @@ describe("ActionRouter", () => {
             ],
           })
 
-          const _garden = await TestGarden.factory(path, {
+          const _garden = await makeTestGarden(path, {
             plugins: [base, too, foo],
             config: {
               apiVersion: DEFAULT_API_VERSION,
@@ -1298,7 +1299,7 @@ describe("ActionRouter", () => {
           ],
         })
 
-        const _garden = await TestGarden.factory(path, {
+        const _garden = await makeTestGarden(path, {
           plugins: [base, foo],
           config: {
             apiVersion: DEFAULT_API_VERSION,
@@ -1366,7 +1367,7 @@ describe("ActionRouter", () => {
           ],
         })
 
-        const _garden = await TestGarden.factory(path, {
+        const _garden = await makeTestGarden(path, {
           plugins: [base, foo],
           config: projectConfigWithBase,
         })
@@ -1408,7 +1409,7 @@ describe("ActionRouter", () => {
           ],
         })
 
-        const _garden = await TestGarden.factory(path, {
+        const _garden = await makeTestGarden(path, {
           plugins: [base, foo],
           config: projectConfigWithBase,
         })
@@ -1464,7 +1465,7 @@ describe("ActionRouter", () => {
           ],
         })
 
-        const _garden = await TestGarden.factory(path, {
+        const _garden = await makeTestGarden(path, {
           plugins: [baseA, baseB, foo],
           config: {
             apiVersion: DEFAULT_API_VERSION,
@@ -1554,9 +1555,9 @@ describe("ActionRouter", () => {
         },
       })
 
-      const path = process.cwd()
+      const path = projectRootA
 
-      const _garden = await TestGarden.factory(path, {
+      const _garden = await makeTestGarden(path, {
         plugins: [baseA, baseB, foo],
         config: {
           apiVersion: DEFAULT_API_VERSION,
@@ -2177,7 +2178,7 @@ const testPlugin = createGardenPlugin({
             kind: "Module",
             name: moduleName,
             type: "test",
-            path: projectRootA,
+            path: params.ctx.projectRoot,
             services: [
               {
                 name: moduleName,

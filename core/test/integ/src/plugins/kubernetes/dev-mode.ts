@@ -10,21 +10,22 @@ import { expect } from "chai"
 import { mkdirp, pathExists, readFile, remove, writeFile } from "fs-extra"
 import { join } from "path"
 import { ConfigGraph } from "../../../../../src/config-graph"
-import { Garden } from "../../../../../src/garden"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { ContainerService } from "../../../../../src/plugins/container/config"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
 import { getContainerServiceStatus } from "../../../../../src/plugins/kubernetes/container/status"
+import { flushAllMutagenSyncs, killSyncDaemon } from "../../../../../src/plugins/kubernetes/mutagen"
 import { KubernetesWorkload } from "../../../../../src/plugins/kubernetes/types"
 import { execInWorkload } from "../../../../../src/plugins/kubernetes/util"
 import { emptyRuntimeContext } from "../../../../../src/runtime-context"
 import { DeployTask } from "../../../../../src/tasks/deploy"
 import { dedent } from "../../../../../src/util/string"
 import { sleep } from "../../../../../src/util/util"
+import { TestGarden } from "../../../../helpers"
 import { getContainerTestGarden } from "./container/container"
 
 describe("dev mode deployments and sync behavior", () => {
-  let garden: Garden
+  let garden: TestGarden
   let graph: ConfigGraph
   let ctx: KubernetesPluginContext
   let provider: KubernetesProvider
@@ -53,11 +54,13 @@ describe("dev mode deployments and sync behavior", () => {
   afterEach(async () => {
     if (garden) {
       await garden.close()
+      await killSyncDaemon(true)
     }
   })
 
   const init = async (environmentName: string) => {
     garden = await getContainerTestGarden(environmentName)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false, noCache: true })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = <KubernetesPluginContext>await garden.getPluginContext(provider)
   }
@@ -165,7 +168,10 @@ describe("dev mode deployments and sync behavior", () => {
     await writeFile(join(module.path, "prefix-a", "file"), "foo")
     await mkdirp(join(module.path, "nested", "prefix-b"))
     await writeFile(join(module.path, "nested", "prefix-b", "file"), "foo")
-    await sleep(500)
+
+    await sleep(1000)
+    await flushAllMutagenSyncs(ctx, log)
+
     const ignoreExecRes = await execInPod(["/bin/sh", "-c", "ls -a /tmp /tmp/nested"], log, workload)
     // Clean up the files we created locally
     for (const filename of ["made_locally", "somedir", "prefix-a", "nested"]) {

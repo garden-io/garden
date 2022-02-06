@@ -15,7 +15,7 @@ import { ProjectConfig, defaultNamespace } from "../../../../src/config/project"
 import { createGardenPlugin, GardenPlugin } from "../../../../src/types/plugin/plugin"
 import { GetServiceLogsParams, ServiceLogEntry } from "../../../../src/types/plugin/service/getServiceLogs"
 import { TestGarden } from "../../../../src/util/testing"
-import { expectError, projectRootA, withDefaultGlobalOpts } from "../../../helpers"
+import { expectError, withDefaultGlobalOpts } from "../../../helpers"
 import execa from "execa"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { formatForTerminal } from "../../../../src/logger/renderers"
@@ -59,7 +59,7 @@ async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPlugin) {
     variables: {},
   }
 
-  const garden = await TestGarden.factory(projectRootA, { config, plugins: [plugin] })
+  const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [plugin] })
   garden.setModuleConfigs([
     {
       apiVersion: DEFAULT_API_VERSION,

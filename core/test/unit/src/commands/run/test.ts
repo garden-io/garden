@@ -11,15 +11,21 @@ import { expect } from "chai"
 import { omit } from "lodash"
 import {
   makeTestGardenA,
-  makeTestGardenTasksFails,
   withDefaultGlobalOpts,
   expectError,
   getLogMessages,
+  makeTestGarden,
+  projectTestFailsRoot,
 } from "../../../../helpers"
 import { RunTestCommand } from "../../../../../src/commands/run/test"
 import { LogLevel } from "../../../../../src/logger/logger"
 import { dedent } from "../../../../../src/util/string"
 import { renderDivider } from "../../../../../src/logger/util"
+import { RegisterPluginParam } from "../../../../../src/types/plugin/plugin"
+
+const makeTestGardenTasksFails = async (extraPlugins: RegisterPluginParam[] = []) => {
+  return makeTestGarden(projectTestFailsRoot, { plugins: extraPlugins })
+}
 
 describe("RunTestCommand", () => {
   const cmd = new RunTestCommand()
@@ -34,7 +40,7 @@ describe("RunTestCommand", () => {
       headerLog: log,
       footerLog: log,
       args: { test: "unit", module: "module-a" },
-      opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": false }),
+      opts: withDefaultGlobalOpts({ "force": true, "force-build": false, "interactive": false }),
     })
 
     expect(cmd.outputsSchema().validate(result).error).to.be.undefined
