@@ -48,6 +48,7 @@ export class Watcher extends EventEmitter {
   private watcher?: FSWatcher
   private buffer: { [path: string]: ChangedPath }
   private running: boolean
+  public ready: boolean
   public processing: boolean
 
   constructor({
@@ -74,6 +75,7 @@ export class Watcher extends EventEmitter {
     this.bufferInterval = bufferInterval || DEFAULT_BUFFER_INTERVAL
     this.buffer = {}
     this.running = false
+    this.ready = false
     this.processing = false
     this.start()
   }
@@ -118,6 +120,13 @@ export class Watcher extends EventEmitter {
 
         this.log.debug(`Watcher: Watch ${this.paths}`)
         watcher.add(this.paths)
+
+        this.ready = true
+
+        // Emit after the call returns
+        setTimeout(() => {
+          watcher!.emit("ready")
+        }, 100)
       } else {
         // Make sure that fsevents works when we're on macOS. This has come up before without us noticing, which has
         // a dramatic performance impact, so it's best if we simply throw here so that our tests catch such issues.
@@ -157,6 +166,7 @@ export class Watcher extends EventEmitter {
         .on("unlinkDir", this.makeDirRemovedHandler())
         .on("ready", () => {
           this.emit("ready")
+          this.ready = true
         })
         .on("error", (err) => {
           this.emit("error", err)

@@ -25,20 +25,22 @@ import { cloneDeep } from "lodash"
 describe("module templates", () => {
   let garden: TestGarden
 
-  const projectRoot = getDataDir("test-projects", "module-templates")
-
   before(async () => {
-    garden = await makeTestGarden(projectRoot)
+    garden = await makeTestGarden(getDataDir("test-projects", "module-templates"))
   })
 
   describe("resolveModuleTemplate", () => {
-    const defaults = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "ModuleTemplate",
-      name: "test",
-      path: projectRoot,
-      configPath: resolve(projectRoot, "templates.garden.yml"),
-    }
+    let defaults: any
+
+    before(() => {
+      defaults = {
+        apiVersion: DEFAULT_API_VERSION,
+        kind: "ModuleTemplate",
+        name: "test",
+        path: garden.projectRoot,
+        configPath: resolve(garden.projectRoot, "templates.garden.yml"),
+      }
+    })
 
     it("resolves template strings for fields other than modules and files", async () => {
       const config: ModuleTemplateResource = {
@@ -128,40 +130,44 @@ describe("module templates", () => {
   })
 
   describe("resolveTemplatedModule", () => {
-    const template: ModuleTemplateConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "ModuleTemplate",
-      name: "test",
-      path: projectRoot,
-      configPath: resolve(projectRoot, "modules.garden.yml"),
-      inputsSchema: joi.object().keys({
-        foo: joi.string(),
-      }),
-      modules: [],
-    }
+    let template: ModuleTemplateConfig
+    let defaults: TemplatedModuleConfig
 
-    const templates = {
-      test: template,
-    }
+    const templates: { [name: string]: ModuleTemplateConfig } = {}
 
-    const defaults: TemplatedModuleConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Module",
-      name: "test",
-      type: "templated",
-      path: projectRoot,
-      configPath: resolve(projectRoot, "modules.garden.yml"),
-      spec: {
-        template: "test",
-      },
-      allowPublish: false,
-      build: { dependencies: [] },
-      disabled: false,
-      modules: [],
-      serviceConfigs: [],
-      taskConfigs: [],
-      testConfigs: [],
-    }
+    before(() => {
+      template = {
+        apiVersion: DEFAULT_API_VERSION,
+        kind: "ModuleTemplate",
+        name: "test",
+        path: garden.projectRoot,
+        configPath: resolve(garden.projectRoot, "modules.garden.yml"),
+        inputsSchema: joi.object().keys({
+          foo: joi.string(),
+        }),
+        modules: [],
+      }
+      templates.test = template
+
+      defaults = {
+        apiVersion: DEFAULT_API_VERSION,
+        kind: "Module",
+        name: "test",
+        type: "templated",
+        path: garden.projectRoot,
+        configPath: resolve(garden.projectRoot, "modules.garden.yml"),
+        spec: {
+          template: "test",
+        },
+        allowPublish: false,
+        build: { dependencies: [] },
+        disabled: false,
+        modules: [],
+        serviceConfigs: [],
+        taskConfigs: [],
+        testConfigs: [],
+      }
+    })
 
     it("resolves template strings on the templated module config", async () => {
       const config: TemplatedModuleConfig = {
@@ -272,7 +278,7 @@ describe("module templates", () => {
     })
 
     it("creates the module path directory, if necessary", async () => {
-      const absPath = resolve(projectRoot, ".garden", "foo")
+      const absPath = resolve(garden.projectRoot, ".garden", "foo")
       await remove(absPath)
 
       const _templates = {

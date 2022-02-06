@@ -8,14 +8,14 @@
 
 import { defaultNamespace } from "../../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
-import { projectRootA, TestGarden } from "../../../../helpers"
+import { makeTestGarden, projectRootA } from "../../../../helpers"
 import { expect } from "chai"
 import { got } from "../../../../../src/util/http"
 
 describe("octant provider", () => {
   describe("getDashboardPage", () => {
     it("should start an octant process and return a URL to it", async () => {
-      const garden = await TestGarden.factory(projectRootA, {
+      const garden = await makeTestGarden(projectRootA, {
         config: {
           apiVersion: DEFAULT_API_VERSION,
           kind: "Project",

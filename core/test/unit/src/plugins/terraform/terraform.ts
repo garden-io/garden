@@ -25,21 +25,21 @@ import { getWorkspaces, setWorkspace } from "../../../../../src/plugins/terrafor
 
 describe("Terraform provider", () => {
   const testRoot = getDataDir("test-projects", "terraform-provider")
-  const tfRoot = join(testRoot, "tf")
-  const stateDirPath = join(tfRoot, "terraform.tfstate")
-  const stateDirPathWithWorkspaces = join(tfRoot, "terraform.tfstate.d")
-  const testFilePath = join(tfRoot, "test.log")
 
   let garden: Garden
+  let tfRoot: string
+  let stateDirPath: string
+  let stateDirPathWithWorkspaces: string
+  let testFilePath: string
 
   async function reset() {
-    if (await pathExists(testFilePath)) {
+    if (tfRoot && (await pathExists(testFilePath))) {
       await remove(testFilePath)
     }
-    if (await pathExists(stateDirPath)) {
+    if (stateDirPath && (await pathExists(stateDirPath))) {
       await remove(stateDirPath)
     }
-    if (await pathExists(stateDirPathWithWorkspaces)) {
+    if (stateDirPathWithWorkspaces && (await pathExists(stateDirPathWithWorkspaces))) {
       await remove(stateDirPathWithWorkspaces)
     }
   }
@@ -48,6 +48,10 @@ describe("Terraform provider", () => {
     beforeEach(async () => {
       await reset()
       garden = await makeTestGarden(testRoot, { environmentName: "prod", forceRefresh: true })
+      tfRoot = join(garden.projectRoot, "tf")
+      stateDirPath = join(tfRoot, "terraform.tfstate")
+      stateDirPathWithWorkspaces = join(tfRoot, "terraform.tfstate.d")
+      testFilePath = join(tfRoot, "test.log")
     })
 
     after(async () => {
@@ -261,18 +265,19 @@ describe("Terraform provider", () => {
 
 describe("Terraform module type", () => {
   const testRoot = getDataDir("test-projects", "terraform-module")
-  const tfRoot = join(testRoot, "tf")
-  const stateDirPath = join(tfRoot, "terraform.tfstate")
-  const testFilePath = join(tfRoot, "test.log")
 
   let garden: Garden
   let graph: ConfigGraph
 
+  let tfRoot: string
+  let stateDirPath: string
+  let testFilePath: string
+
   async function reset() {
-    if (await pathExists(testFilePath)) {
+    if (testFilePath && (await pathExists(testFilePath))) {
       await remove(testFilePath)
     }
-    if (await pathExists(stateDirPath)) {
+    if (stateDirPath && (await pathExists(stateDirPath))) {
       await remove(stateDirPath)
     }
   }
@@ -280,6 +285,9 @@ describe("Terraform module type", () => {
   beforeEach(async () => {
     await reset()
     garden = await makeTestGarden(testRoot)
+    tfRoot = join(garden.projectRoot, "tf")
+    stateDirPath = join(tfRoot, "terraform.tfstate")
+    testFilePath = join(tfRoot, "test.log")
   })
 
   after(async () => {

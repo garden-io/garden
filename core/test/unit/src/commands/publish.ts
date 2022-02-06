@@ -17,7 +17,7 @@ import {
   withDefaultGlobalOpts,
   dataDir,
   testModuleSpecSchema,
-  TestGarden,
+  makeTestGarden,
 } from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
 import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
@@ -56,7 +56,7 @@ const testProvider = createGardenPlugin({
 })
 
 async function getTestGarden() {
-  const garden = await TestGarden.factory(projectRootB, { plugins: [testProvider] })
+  const garden = await makeTestGarden(projectRootB, { plugins: [testProvider] })
   await garden.clearBuilds()
   return garden
 }
@@ -275,7 +275,6 @@ describe("PublishCommand", () => {
   it("should fail gracefully if module does not have a provider for publish", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
-    await garden.clearBuilds()
 
     const { result } = await command.action({
       garden,

@@ -23,6 +23,7 @@ import pRetry from "p-retry"
 import { devModeGuideLink } from "./dev-mode"
 import dedent from "dedent"
 import { PluginContext } from "../../plugin-context"
+import Bluebird from "bluebird"
 
 const maxRestarts = 10
 const monitorDelay = 2000
@@ -128,8 +129,10 @@ export async function ensureMutagenDaemon(ctx: PluginContext, log: LogEntry) {
     await mkdirp(dataDir)
 
     // For convenience while troubleshooting, place a symlink to the temp directory under .garden/mutagen
-    mutagenTmpSymlinkPath = join(ctx.gardenDirPath, "mutagen", ctx.sessionId)
-    const latestSymlinkPath = join(ctx.gardenDirPath, "mutagen", "latest")
+    const mutagenDir = join(ctx.gardenDirPath, "mutagen")
+    await mkdirp(mutagenDir)
+    mutagenTmpSymlinkPath = join(mutagenDir, ctx.sessionId)
+    const latestSymlinkPath = join(mutagenDir, "latest")
 
     try {
       await ensureSymlink(dataDir, mutagenTmpSymlinkPath, "dir")
@@ -471,7 +474,7 @@ export async function ensureMutagenSync({
 
   return mutagenConfigLock.acquire("configure", async () => {
     const active = await getActiveMutagenSyncs(ctx, log)
-    const existing = active.find((s: any) => s.name === key)
+    const existing = active.find((s) => s.session.name === key)
 
     if (!existing) {
       const { alpha, beta, ignore, mode, defaultOwner, defaultGroup, defaultDirectoryMode, defaultFileMode } = config
@@ -543,6 +546,20 @@ export async function terminateMutagenSync(ctx: PluginContext, log: LogEntry, ke
  */
 export async function flushMutagenSync(ctx: PluginContext, log: LogEntry, key: string) {
   await execMutagenCommand(ctx, log, ["sync", "flush", key])
+}
+
+/**
+ * Ensure all active syncs are completed.
+ */
+export async function flushAllMutagenSyncs(ctx: PluginContext, log: LogEntry) {
+  const active = await getActiveMutagenSyncs(ctx, log)
+  await Bluebird.map(active, async (sync) => {
+    try {
+      await flushMutagenSync(ctx, log, sync.session.name)
+    } catch (err) {
+      log.warn(chalk.yellow(`Failed to flush sync '${sync.session.name}: ${err.message}`))
+    }
+  })
 }
 
 export async function getKubectlExecDestination({

@@ -439,7 +439,7 @@ describe("cli", () => {
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
-      const args = ["test-command", "--root", projectRootA]
+      const args = ["test-command", "--root", serverGarden.projectRoot]
 
       try {
         await cli.run({ args, exitOnError: false })
@@ -551,7 +551,7 @@ describe("cli", () => {
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
-      const args = ["test-command", "--root", projectRootA]
+      const args = ["test-command", "--root", serverGarden.projectRoot]
 
       try {
         await cli.run({ args, exitOnError: false })

@@ -9,7 +9,14 @@
 import execa from "execa"
 import tmp from "tmp-promise"
 import { expect } from "chai"
-import { TestGarden, makeTestGardenA, withDefaultGlobalOpts, expectError, TestGardenCli } from "../../../../helpers"
+import {
+  TestGarden,
+  makeTestGardenA,
+  withDefaultGlobalOpts,
+  expectError,
+  TestGardenCli,
+  makeTestGarden,
+} from "../../../../helpers"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { RunWorkflowCommand, shouldBeDropped } from "../../../../../src/commands/run/workflow"
 import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
@@ -354,7 +361,7 @@ describe("RunWorkflowCommand", () => {
       variables: {},
     }
 
-    const _garden = await TestGarden.factory(garden.projectRoot, { config: projectConfig, plugins: [test] })
+    const _garden = await makeTestGarden(garden.projectRoot, { config: projectConfig, plugins: [test] })
 
     _garden.setWorkflowConfigs([
       {

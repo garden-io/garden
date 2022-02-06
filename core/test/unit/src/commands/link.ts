@@ -21,6 +21,7 @@ import {
 import { LinkSourceCommand } from "../../../../src/commands/link/source"
 import { Garden } from "../../../../src/garden"
 import { LogEntry } from "../../../../src/logger/log-entry"
+import { copy } from "fs-extra"
 
 describe("LinkCommand", () => {
   let garden: Garden
@@ -28,7 +29,6 @@ describe("LinkCommand", () => {
 
   describe("LinkModuleCommand", () => {
     const cmd = new LinkModuleCommand()
-    const localModulePath = join(getDataDir("test-project-local-module-sources"), "module-a")
 
     beforeEach(async () => {
       garden = await makeExtModuleSourcesGarden()
@@ -40,6 +40,8 @@ describe("LinkCommand", () => {
     })
 
     it("should link external modules", async () => {
+      const localModulePath = join(getDataDir("test-project-local-module-sources"), "module-a")
+
       await cmd.action({
         garden,
         log,
@@ -58,6 +60,8 @@ describe("LinkCommand", () => {
     })
 
     it("should handle relative paths", async () => {
+      const localModulePath = resolve(garden.projectRoot, "..", "test-project-local-module-sources", "module-a")
+
       await cmd.action({
         garden,
         log,
@@ -123,10 +127,12 @@ describe("LinkCommand", () => {
 
   describe("LinkSourceCommand", () => {
     const cmd = new LinkSourceCommand()
-    const localSourcePath = join(getDataDir("test-project-local-project-sources"), "source-a")
+    let localSourcePath: string
 
-    beforeEach(async () => {
+    before(async () => {
       garden = await makeExtProjectSourcesGarden()
+      localSourcePath = resolve(garden.projectRoot, "..", "test-project-local-project-sources")
+      await copy(getDataDir("test-project-local-project-sources"), localSourcePath)
       log = garden.log
     })
 

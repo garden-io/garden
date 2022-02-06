@@ -14,11 +14,11 @@ import {
   withDefaultGlobalOpts,
   expectError,
   getLogMessages,
-  TestGarden,
   projectRootA,
   testPlugin,
   projectTestFailsRoot,
   testPluginB,
+  makeTestGarden,
 } from "../../../../helpers"
 import { LogLevel } from "../../../../../src/logger/logger"
 import { renderDivider } from "../../../../../src/logger/util"
@@ -56,7 +56,7 @@ describe("RunTaskCommand", () => {
   })
 
   async function makeExecTestGarden(projectRoot: string = projectRootA) {
-    return TestGarden.factory(projectRoot, {
+    return makeTestGarden(projectRoot, {
       plugins: [testExecPlugin, testExecPluginB],
     })
   }
@@ -71,7 +71,7 @@ describe("RunTaskCommand", () => {
       headerLog: log,
       footerLog: log,
       args: { task: "task-a" },
-      opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
+      opts: withDefaultGlobalOpts({ "force": true, "force-build": false }),
     })
 
     expect(cmd.outputsSchema().validate(result).error).to.be.undefined
