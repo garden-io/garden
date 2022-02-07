@@ -41,7 +41,8 @@ export class AuthRedirectServer {
     }
 
     await this.createApp()
-    await open(`${this.enterpriseDomain}/clilogin/${this.port}`)
+    const url = new URL(`/clilogin/${this.port}`, this.enterpriseDomain)
+    await open(url.href)
   }
 
   async close() {
@@ -63,6 +64,8 @@ export class AuthRedirectServer {
       this.log.debug("Received client auth token")
       this.events.emit("receivedToken", tokenResponse)
       ctx.redirect(`${this.enterpriseDomain}/clilogin/success`)
+      const url = new URL("/clilogin/success", this.enterpriseDomain)
+      ctx.redirect(url.href)
     })
 
     app.use(bodyParser())
