@@ -93,12 +93,12 @@ export async function getEnterpriseConfig(currentDirectory: string) {
     })
   }
 
-  const domain = projectConfig.domain
   const projectId = projectConfig.id
-  if (!domain || !projectId) {
+  if (!projectId || !projectConfig.domain) {
     return
   }
 
+  const domain = new URL(projectConfig.domain).origin
   return { domain, projectId }
 }
 
@@ -203,7 +203,8 @@ export class CloudApi {
     enterpriseLog?.setSuccess({ msg: chalk.green("Done"), append: true })
     try {
       const project = await api.getProject()
-      enterpriseLog?.info({ symbol: "info", msg: `Visit project at ${api.domain}/projects/${project.id}` })
+      const url = new URL(`/projects/${project.id}`, api.domain)
+      enterpriseLog?.info({ symbol: "info", msg: `Visit project at ${url.href}` })
     } catch (err) {
       log.debug(`Getting project from API failed with error: err.message`)
     }
@@ -433,7 +434,8 @@ export class CloudApi {
       requestOptions.retry = 0 // Disables retry
     }
 
-    const res = await got<T>(`${this.domain}/${this.apiPrefix}/${path}`, requestOptions)
+    const url = new URL(`/${this.apiPrefix}/${path}`, this.domain)
+    const res = await got<T>(url.href, requestOptions)
 
     if (!isObject(res.body)) {
       throw new EnterpriseApiError(`Unexpected API response`, {
@@ -541,9 +543,8 @@ export class CloudApi {
   async checkClientAuthToken(): Promise<boolean> {
     let valid = false
     try {
-      this.log.debug(
-        `Checking client auth token with ${getCloudDistributionName(this.domain)}: ${this.domain}/token/verify`
-      )
+      const url = new URL("/token/verify", this.domain)
+      this.log.debug(`Checking client auth token with ${getCloudDistributionName(this.domain)}: ${url.href}`)
       await this.get("token/verify")
       valid = true
     } catch (err) {
