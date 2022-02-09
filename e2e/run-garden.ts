@@ -8,20 +8,18 @@
 
 import { ChildProcess, spawn } from "child_process"
 import execa from "execa"
-import mlog from "mocha-logger"
 import { resolve } from "path"
-import { sleep } from "../src/util/util"
-import { parseLogEntries, searchLog, findTasks, touchFile, parsedArgs, stringifyLogEntries } from "./e2e-helpers"
-import { JsonLogEntry } from "../src/logger/writers/json-terminal-writer"
-import { ParameterError, TimeoutError } from "../src/exceptions"
-import { dedent, deline } from "../src/util/string"
-import { GARDEN_CLI_ROOT } from "../src/constants"
-import { UpdateLogEntryParams } from "../src/logger/log-entry"
+import { sleep } from "@garden-io/core/build/src/util/util"
+import { searchLog, findTasks, touchFile, parsedArgs, parseLogEntry, stringifyJsonLog } from "./helpers"
+import { JsonLogEntry } from "@garden-io/core/build/src/logger/writers/json-terminal-writer"
+import { ParameterError, TimeoutError } from "@garden-io/core/build/src/exceptions"
+import { dedent, deline } from "@garden-io/core/build/src/util/string"
+import { GARDEN_CLI_ROOT } from "@garden-io/core/build/src/constants"
 import chalk from "chalk"
 import split2 = require("split2")
 
 export const DEFAULT_CHECK_INTERVAL_MS = 500
-export const DEFAULT_RUN_TIMEOUT_SECS = 240
+export const DEFAULT_RUN_TIMEOUT_SECS = 360
 
 export const gardenBinPath = parsedArgs.binPath || resolve(GARDEN_CLI_ROOT, "bin", "garden")
 export const showLog = !!parsedArgs.showlog
@@ -29,11 +27,6 @@ export const showLog = !!parsedArgs.showlog
 const DEFAULT_ARGS = ["--logger-type", "json", "--log-level", "silly"]
 
 // tslint:disable: no-console
-
-function execGarden(command: string[], cwd: string, opts: execa.Options = {}) {
-  showLog && console.log(`Running 'garden ${command.join(" ")}' in ${cwd}`)
-  return execa(gardenBinPath, [...command, ...DEFAULT_ARGS], { cwd, ...opts })
-}
 
 export function dashboardUpStep(): WatchTestStep {
   return {
@@ -59,7 +52,7 @@ export function taskCompletedStep(key: string, completedCount: number, descripti
     condition: async (logEntries: JsonLogEntry[]) => {
       const tasks = findTasks(logEntries, key)
 
-      if (tasks.filter((t) => t.completedIndex).length === completedCount) {
+      if (tasks.filter((t) => t.completedIndex).length >= completedCount) {
         return "passed"
       }
       if (tasks.filter((t) => t.errorIndex).length > 0) {
@@ -109,34 +102,46 @@ export function commandReloadedStep(): WatchTestStep {
   }
 }
 
-function stringifyJsonLog(entries: UpdateLogEntryParams[], opts = { error: false }) {
-  return entries
-    .map((l) => {
-      const msg = (opts.error ? chalk.red : chalk.white)(<string>l.msg || "")
-      return l.section ? `${chalk.cyanBright(l.section)}${chalk.gray(":")} ${msg}` : msg
-    })
-    .join("\n")
-}
-
 /**
  * This helper is for testing a non-watch-mode commands. It returns a parsed representation of its log output,
  * which can then e.g. be queried for matching log entries.
  *
  * The GardenWatch class below, on the other hand, is for running/testing watch-mode commands.
  */
-export async function runGarden(dir: string, command: string[]): Promise<JsonLogEntry[]> {
+export async function runGarden(cwd: string, command: string[]): Promise<JsonLogEntry[]> {
+  const parsedLog: JsonLogEntry[] = []
+
   try {
-    const { stdout } = await execGarden(command, dir)
-    const parsedLog = parseLogEntries(stdout.split("\n").filter(Boolean))
+    showLog && console.log(`Running 'garden ${command.join(" ")}' in ${cwd}`)
+    const proc = execa(gardenBinPath, [...command, ...DEFAULT_ARGS], {
+      cwd,
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env, GARDEN_LOGGER_TYPE: "" },
+    })
+
+    const stdoutStream = split2()
+
+    stdoutStream.on("data", (line) => {
+      const parsed = parseLogEntry(line)
+      parsedLog.push(parsed)
+      if (showLog) {
+        console.log(stringifyJsonLog(parsed))
+      }
+    })
+
+    proc.stdout?.pipe(stdoutStream)
+
     if (showLog) {
-      console.log(stringifyJsonLog(parsedLog))
+      proc.stderr?.pipe(process.stderr)
     }
+
+    await proc
     return parsedLog
   } catch (err) {
     let msg = err.message.split("\n")[0]
-    if (err.stdout) {
-      const parsedLog = parseLogEntries(err.stdout.split("\n").filter(Boolean))
-      msg += "\n" + stringifyJsonLog(parsedLog, { error: true })
+    if (parsedLog.length > 0) {
+      msg += "\n" + parsedLog.map((l) => stringifyJsonLog(l, { error: true })).join("\n")
     }
     throw new Error(`Failed running command '${command.join(" ")}': ${msg}`)
   }
@@ -191,7 +196,7 @@ export type WatchTestAction = (logEntries: JsonLogEntry[]) => Promise<void>
  * next step. An "error" results in an exception being thrown, and the GardenWatch killing its child process and
  * returning control (and thus not going through any further test steps).
  *
- * If a contdition step returns "waiting", the condition step is run again after this.checkIntervalMs have elapsed.
+ * If a condition step returns "waiting", the condition step is run again after this.checkIntervalMs have elapsed.
  *
  * The pre-relase tests contain some good examples to illustrate this flow.
  */
@@ -218,15 +223,15 @@ export class GardenWatch {
 
     this.proc = spawn(gardenBinPath, this.command.concat(DEFAULT_ARGS), {
       cwd: this.dir,
+      env: { ...process.env, GARDEN_LOGGER_TYPE: "" },
     })
     this.running = true
 
-    stream.on("data", (data: Buffer) => {
-      const lines = data.toString().trim().split("\n")
-      const entries = parseLogEntries(lines)
-      this.logEntries.push(...entries)
+    stream.on("data", (line: Buffer) => {
+      const parsed = parseLogEntry(line.toString())
+      this.logEntries.push(parsed)
       if (showLog) {
-        console.log(stringifyLogEntries(entries))
+        console.log(stringifyJsonLog(parsed))
       }
     })
 
@@ -242,7 +247,7 @@ export class GardenWatch {
       if (this.running && code !== 0) {
         error = new Error(`Process exited with code ${code}`)
       } else if (showLog) {
-        console.log(`Process exited with code ${code}`)
+        console.log(chalk.greenBright(`Process exited with code ${code}`))
       }
       this.running = false
     }
@@ -262,7 +267,9 @@ export class GardenWatch {
 
     while (this.running) {
       try {
-        if (!!this.testSteps[this.currentTestStepIdx].condition) {
+        const step = this.testSteps[this.currentTestStepIdx]
+
+        if (!!step.condition) {
           const done = await this.checkCondition()
           if (done) {
             break
@@ -277,7 +284,7 @@ export class GardenWatch {
 
       const now = new Date().getTime()
       if (now - startTime > timeout * 1000) {
-        const log = stringifyLogEntries(this.logEntries)
+        const log = this.renderLog()
         error = new TimeoutError(`Timed out waiting for test steps. Logs:\n${log}`, {
           logEntries: this.logEntries,
           log,
@@ -295,6 +302,13 @@ export class GardenWatch {
     }
   }
 
+  private renderLog() {
+    return this.logEntries
+      .filter((l) => l.timestamp) // Invalid lines don't have a timestamp
+      .map((l) => stringifyJsonLog(l))
+      .join("\n")
+  }
+
   /**
    * Returns true if the final test step has passed, false otherwise.
    */
@@ -303,24 +317,26 @@ export class GardenWatch {
     const conditionStatus = await condition!(this.logEntries)
 
     if (conditionStatus === "waiting") {
+      console.log(chalk.yellow.bold(`Waiting for step: ${chalk.white.bold(description)}`))
       return false
     }
 
     if (conditionStatus === "passed") {
       this.currentTestStepIdx++
-      mlog.success(`${description}`)
+      console.log(chalk.green.bold(`Completed step: ${chalk.white.bold(description)}`))
       if (this.currentTestStepIdx === this.testSteps.length) {
         return true
       }
       return false
     }
 
-    mlog.error(`${description}`)
+    console.error(chalk.red.bold(description))
 
     console.error(dedent`
       Watch test failed. Here is the log for the command run:
 
-      ${stringifyLogEntries(this.logEntries)}`)
+      ${this.renderLog()}
+      `)
 
     throw new Error(`Test step ${description} failed.`)
   }
@@ -328,7 +344,7 @@ export class GardenWatch {
   private async performAction() {
     const { action, description } = this.testSteps[this.currentTestStepIdx]
     await action!(this.logEntries)
-    mlog.log(`${description}`)
+    console.log(chalk.magenta.bold(`Performing action: ${chalk.white.bold(description)}`))
     this.currentTestStepIdx++
   }
 
@@ -348,7 +364,7 @@ export class GardenWatch {
       }
       const now = new Date().getTime()
       if (now - startTime > 10 * DEFAULT_CHECK_INTERVAL_MS) {
-        const log = stringifyLogEntries(this.logEntries)
+        const log = this.renderLog()
         throw new TimeoutError(`Timed out waiting for garden command to terminate. Log:\n${log}`, {
           logEntries: this.logEntries,
           log,

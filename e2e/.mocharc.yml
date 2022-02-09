@@ -1,0 +1,8 @@
+require: ts-node/register
+ignore:
+  - .garden
+reporter: spec
+timeout: 0
+exit: true
+spec:
+  - test/**/*.ts

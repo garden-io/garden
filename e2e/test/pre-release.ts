@@ -6,12 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import execa = require("execa")
+import execa from "execa"
+import chalk from "chalk"
 import { expect } from "chai"
 import { resolve } from "path"
-import mlog from "mocha-logger"
 import { replaceInFile } from "replace-in-file"
-import { examplesDir } from "../../helpers"
 import {
   changeFileStep,
   commandReloadedStep,
@@ -20,9 +19,20 @@ import {
   taskCompletedStep,
   waitingForChangesStep,
   sleepStep,
-} from "../../run-garden"
-import { deleteExampleNamespaces, parsedArgs, searchLog, removeExampleDotGardenDir } from "../../e2e-helpers"
+} from "../run-garden"
+import {
+  examplesDir,
+  deleteExampleNamespaces,
+  parsedArgs,
+  searchLog,
+  removeExampleDotGardenDir,
+  stringifyJsonLog,
+} from "../helpers"
 import username from "username"
+
+function log(msg: string) {
+  console.log(chalk.magentaBright(msg))
+}
 
 // TODO: Add test for verifying that CLI returns with an error when called with an unknown command
 describe("PreReleaseTests", () => {
@@ -59,20 +69,16 @@ describe("PreReleaseTests", () => {
   const projectPath = resolve(examplesDir, project)
 
   before(async () => {
-    mlog.log("deleting .garden folder")
+    log("deleting .garden folder")
     await removeExampleDotGardenDir(projectPath)
   })
 
   after(async () => {
-    mlog.log("deleting example namespaces")
-    // FIXME: This should just be a fire and forget without waiting for the function to return.
-    // However, it actually does wait until every namespace is deleted before returning.
-    // This adds a lot of time to the test run.
-    // tslint:disable-next-line: no-floating-promises
-    deleteExampleNamespaces(namespaces)
+    log("deleting example namespaces")
+    await deleteExampleNamespaces(namespaces)
     // Checkout changes to example dir when running locally
     if (!env) {
-      mlog.log("Checking out example project directories to HEAD")
+      log("Checking out example project directories to HEAD")
       await execa("git", ["checkout", examplesDir])
     }
   })
@@ -178,6 +184,7 @@ describe("PreReleaseTests", () => {
             description: "node-service returns the updated response text",
             condition: async () => {
               const callLogEntries = await runWithEnv(["call", "node-service"])
+              console.log(callLogEntries.map((l) => stringifyJsonLog(l)).join("\n"))
               return searchLog(callLogEntries, /Hello from foo/)
             },
           },
@@ -233,6 +240,12 @@ describe("PreReleaseTests", () => {
             description: "node-service returns the updated response text",
             condition: async () => {
               const callLogEntries = await runWithEnv(["call", "node-service"])
+              console.log(
+                callLogEntries
+                  .filter((l) => l.level !== "silly")
+                  .map((l) => stringifyJsonLog(l))
+                  .join("\n")
+              )
               return searchLog(callLogEntries, /Hello from foo/)
             },
           },
