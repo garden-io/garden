@@ -563,18 +563,38 @@ function buildLogicalExpression(head: any, tail: any) {
     const leftRes = result
     const rightRes = element[3]
 
-    // We need to manually handle and propagate errors because the parser doesn't support promises
-    if (leftRes && leftRes._error) {
-      return leftRes
-    }
-
-    const left = getValue(leftRes)
-
     switch (operator) {
       case "&&":
-        return !left ? leftRes : rightRes
+        if (leftRes && leftRes._error) {
+          if (leftRes._error.type === missingKeyExceptionType) {
+            return false
+          }
+          return leftRes
+        }
+        const leftValue = getValue(leftRes)
+        if (leftValue === undefined) {
+          return { resolved: false }
+        } else if (!leftValue) {
+          return { resolved: leftValue }
+        } else {
+          if (rightRes && rightRes._error) {
+            if (rightRes._error.type === missingKeyExceptionType) {
+              return false
+            }
+            return rightRes
+          }
+          const rightValue = getValue(rightRes)
+          if (rightValue === undefined) {
+            return { resolved: false }
+          } else {
+            return rightRes
+          }
+        }
       case "||":
-        return left ? leftRes : rightRes
+        if (leftRes && leftRes._error) {
+          return leftRes
+        }
+        return getValue(leftRes) ? leftRes : rightRes
       default:
         const err = new TemplateStringError("Unrecognized operator: " + operator, { operator })
         return { _error: err }
