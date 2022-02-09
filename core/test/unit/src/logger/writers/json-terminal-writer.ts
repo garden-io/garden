@@ -26,7 +26,9 @@ describe("JsonTerminalWriter", () => {
       const writer = new JsonTerminalWriter()
       const entry = logger.info("hello logger")
       const out = writer.render(entry, logger)
-      expect(out).to.eql(`{"msg":"hello logger","section":"","timestamp":"${now.toISOString()}"}`)
+      expect(out).to.eql(
+        `{"msg":"hello logger","section":"","timestamp":"${now.toISOString()}","level":"info","allSections":[]}`
+      )
     })
     it("should chain messages with 'append' set to true", () => {
       const now = freezeTime()
@@ -34,7 +36,9 @@ describe("JsonTerminalWriter", () => {
       const entry = logger.info("hello logger")
       entry.setState({ msg: "hello again", append: true })
       const out = writer.render(entry, logger)
-      expect(out).to.eql(`{"msg":"hello logger - hello again","section":"","timestamp":"${now.toISOString()}"}`)
+      expect(out).to.eql(
+        `{"msg":"hello logger - hello again","section":"","timestamp":"${now.toISOString()}","level":"info","allSections":[]}`
+      )
     })
     it("should return null if message is an empty string", () => {
       const writer = new JsonTerminalWriter()

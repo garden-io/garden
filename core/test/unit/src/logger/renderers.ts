@@ -253,8 +253,10 @@ describe("renderers", () => {
       })
       expect(formatForJson(entry)).to.eql({
         msg: "hello",
+        level: "info",
         timestamp: now.toISOString(),
         section: "c",
+        allSections: ["c"],
         data: { foo: "bar" },
         metadata: { task: taskMetadata },
       })
@@ -267,8 +269,10 @@ describe("renderers", () => {
       entry.setState({ msg: "world", append: true })
       expect(formatForJson(entry)).to.eql({
         msg: "hello - world",
+        level: "info",
         timestamp: now.toISOString(),
         section: "",
+        allSections: [],
         data: undefined,
         metadata: undefined,
       })
@@ -278,7 +282,9 @@ describe("renderers", () => {
       const entry = logger.placeholder()
       expect(formatForJson(entry)).to.eql({
         msg: "",
+        level: "info",
         section: "",
+        allSections: [],
         data: undefined,
         metadata: undefined,
         timestamp: now.toISOString(),
