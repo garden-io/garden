@@ -10,9 +10,9 @@ import logSymbols from "log-symbols"
 import nodeEmoji from "node-emoji"
 import { cloneDeep, merge, round } from "lodash"
 
-import { LogLevel, LogNode } from "./logger"
+import { LogLevel, logLevelMap, LogNode } from "./logger"
 import { Omit } from "../util/util"
-import { getChildEntries, findParentEntry } from "./util"
+import { getChildEntries, findParentEntry, getAllSections } from "./util"
 import { GardenError } from "../exceptions"
 import { CreateNodeParams, Logger, PlaceholderOpts } from "./logger"
 import uniqid from "uniqid"
@@ -357,6 +357,21 @@ export class LogEntry implements LogNode {
 
   getChildEntries() {
     return getChildEntries(this)
+  }
+
+  /**
+   * Get the log level of the entry as a string.
+   */
+  getStringLevel(): string {
+    return logLevelMap[this.level]
+  }
+
+  /**
+   * Get the full list of sections including all parent entries.
+   */
+  getAllSections(): string[] {
+    const msg = this.getLatestMessage()
+    return msg ? getAllSections(this, msg) : []
   }
 
   /**

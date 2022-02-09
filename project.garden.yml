@@ -1,0 +1,24 @@
+kind: Project
+name: garden-core
+defaultEnvironment: testing
+modules:
+  include:
+    - "*.garden.yml"
+environments:
+  - name: testing
+  - name: local
+    variables:
+      show-log: true
+providers:
+  - name: kubernetes
+    environments: [testing]
+    context: gke_garden-ci_europe-west1-b_core-ci
+    namespace: e2e-tests
+    defaultHostname: dev-1.sys.garden
+    buildMode: cluster-buildkit
+    setupIngressController: nginx
+  - name: local-kubernetes
+    environments: [local]
+variables:
+  timeout: 360
+  show-log: false

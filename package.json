@@ -69,6 +69,8 @@
     "clean-node-modules": "find . -name \"node_modules\" -type d -prune -exec rm -rf '{}' '+'",
     "dev": "./scripts/run-script.ts dev --parallel",
     "dist": "node cli/build/src/build-pkg.js",
+    "e2e": "./bin/garden test e2e-tests",
+    "e2e-project": "cd e2e; yarn e2e-project",
     "fix-format": "./scripts/run-script.ts fix-format --no-bail --parallel",
     "generate-docs": "./scripts/run-script.ts generate-docs",
     "integ": "./scripts/run-script.ts integ",
@@ -87,6 +89,7 @@
     "cli",
     "core",
     "dashboard",
+    "e2e",
     "plugins/*",
     "sdk"
   ]

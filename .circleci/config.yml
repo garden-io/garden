@@ -270,8 +270,7 @@ jobs:
       - run:
           name: Run e2e test
           command: |
-            cd core
-            yarn run e2e-project --project=<<parameters.project>> --showlog=true --env=<<parameters.environment>>
+            yarn e2e-project --project=<<parameters.project>> --showlog=true --env=<<parameters.environment>>
       - run:
           name: Cleanup
           command: kubectl delete --wait=false $(kubectl get ns -o name | grep $CIRCLE_BUILD_NUM) || true

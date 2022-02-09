@@ -39,7 +39,6 @@
     "lodash": "^4.17.20",
     "minimist": "^1.2.5",
     "mocha": "^8.1.1",
-    "mocha-logger": "^1.0.6",
     "patch-package": "^6.4.7",
     "pkg": "4.5.1",
     "postinstall-postinstall": "^2.1.0",

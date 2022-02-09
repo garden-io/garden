@@ -17,6 +17,8 @@ export interface JsonLogEntry {
   data?: any
   section?: string
   metadata?: LogEntryMetadata
+  level: string
+  allSections?: string[]
 }
 
 export class JsonTerminalWriter extends Writer {

@@ -11,7 +11,7 @@ import chalk, { Chalk } from "chalk"
 import CircularJSON from "circular-json"
 import { LogLevel } from "./logger"
 import { Logger } from "./logger"
-import { LogEntry, LogEntryParams, EmojiName } from "./log-entry"
+import { LogEntry, LogEntryParams, EmojiName, LogEntryMessage } from "./log-entry"
 import { deepMap, deepFilter, safeDumpYaml } from "../util/util"
 import { padEnd, isEmpty, isPlainObject } from "lodash"
 import { dedent } from "../util/string"
@@ -61,6 +61,21 @@ export function getChildEntries(node: Logger | LogEntry): LogEntry[] {
 
 export function findParentEntry(entry: LogEntry, predicate: ProcessNode<LogEntry>): LogEntry | null {
   return predicate(entry) ? entry : entry.parent ? findParentEntry(entry.parent, predicate) : null
+}
+
+export function getAllSections(entry: LogEntry, msg: LogEntryMessage) {
+  const sections: string[] = []
+  let parent = entry.parent
+
+  while (parent) {
+    const s = parent.getLatestMessage().section
+    s && sections.push(s)
+    parent = parent.parent
+  }
+
+  msg.section && sections.push(msg.section)
+
+  return sections
 }
 
 export function findLogEntry(node: Logger | LogEntry, predicate: ProcessNode<LogEntry>): LogEntry | void {

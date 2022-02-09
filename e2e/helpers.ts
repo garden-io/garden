@@ -9,16 +9,16 @@
 import chalk from "chalk"
 import execa from "execa"
 import { remove } from "fs-extra"
-import { get, intersection, padEnd } from "lodash"
-import parseArgs = require("minimist")
+import { get, intersection } from "lodash"
+import parseArgs from "minimist"
 import { resolve } from "path"
-import { DEFAULT_GARDEN_DIR_NAME } from "../src/constants"
-import { TaskLogStatus } from "../src/logger/log-entry"
-import { JsonLogEntry } from "../src/logger/writers/json-terminal-writer"
-import { getExampleProjects } from "./helpers"
+import { DEFAULT_GARDEN_DIR_NAME, GARDEN_CORE_ROOT } from "@garden-io/core/build/src/constants"
+import { TaskLogStatus } from "@garden-io/core/build/src/logger/log-entry"
+import { JsonLogEntry } from "@garden-io/core/build/src/logger/writers/json-terminal-writer"
 import { WatchTestConditionState } from "./run-garden"
 
 export const parsedArgs = parseArgs(process.argv.slice(2))
+export const examplesDir = resolve(GARDEN_CORE_ROOT, "..", "examples")
 
 export async function removeExampleDotGardenDir(projectRoot: string) {
   try {
@@ -28,19 +28,22 @@ export async function removeExampleDotGardenDir(projectRoot: string) {
   }
 }
 
-export async function deleteExampleNamespaces(projectNames?: string[]) {
+export async function deleteExampleNamespaces(namespaces: string[]) {
   // TODO: Accept context parameter in e2e script.
   const existingNamespaces = await getAllNamespacesKubectl()
   let namespacesToDelete: string[] = []
-  let exampleProjectNames = projectNames || Object.keys(getExampleProjects())
 
-  for (const exampleProjectName of exampleProjectNames) {
+  for (const exampleProjectName of namespaces) {
     namespacesToDelete.push(exampleProjectName)
     namespacesToDelete.push(...existingNamespaces.filter((n) => n.startsWith(`${exampleProjectName}--`)))
   }
   namespacesToDelete = intersection(namespacesToDelete, existingNamespaces)
 
-  await deleteNamespacesKubectl(namespacesToDelete)
+  // Note: we don't wait for the kubectl command to return, since that's basically a fire-and-forget and would cost
+  // a lot of time to wait for.
+  deleteNamespacesKubectl(namespacesToDelete).catch((err) => {
+    console.error(chalk.red.bold(`Error when cleaning namespaces: ${err.message}`))
+  })
 }
 
 /*
@@ -72,20 +75,17 @@ export async function touchFile(path: string): Promise<void> {
   await execa("touch", [path])
 }
 
-export function parseLogEntries(entries: string[]): JsonLogEntry[] {
-  return entries.filter(Boolean).map((line) => {
-    // Lines are not always JSON parseable
-    try {
-      return JSON.parse(line)
-    } catch (error) {
-      // Unable to parse line, so we assume it's a line from an error message.
-      return { msg: chalk.red(line) }
-    }
-  })
-}
-
-export function stringifyLogEntries(entries: JsonLogEntry[]) {
-  return entries.map((e) => `${e.section ? padEnd(e.section, 16) + " -> " : ""}${e.msg}`).join("\n")
+export function parseLogEntry(line: string): JsonLogEntry {
+  if (!line) {
+    return { msg: "", timestamp: "", level: "info" }
+  }
+  // Lines are not always JSON parseable
+  try {
+    return JSON.parse(line)
+  } catch (error) {
+    // Unable to parse line, so we assume it's a line from an error message.
+    return { msg: chalk.red(line), timestamp: "", level: "info" }
+  }
 }
 
 /**

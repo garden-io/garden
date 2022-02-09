@@ -10,7 +10,7 @@ import td from "testdouble"
 import Bluebird = require("bluebird")
 import { resolve, join, relative } from "path"
 import { extend, intersection, pick } from "lodash"
-import { remove, readdirSync, existsSync, copy, mkdirp, pathExists, truncate, ensureDir } from "fs-extra"
+import { remove, copy, mkdirp, pathExists, truncate, ensureDir } from "fs-extra"
 import execa = require("execa")
 
 import { containerModuleSpecSchema, containerTestSchema, containerTaskSchema } from "../src/plugins/container/config"
@@ -24,7 +24,7 @@ import {
 } from "../src/types/plugin/plugin"
 import { Garden, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
-import { mapValues, fromPairs } from "lodash"
+import { mapValues } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
 import { GARDEN_CORE_ROOT, LOCAL_CONFIG_FILENAME, DEFAULT_API_VERSION, gardenEnv } from "../src/constants"
 import { LogEntry } from "../src/logger/log-entry"
@@ -55,7 +55,6 @@ export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError } from "../src/util/testing"
 
 export const dataDir = resolve(GARDEN_CORE_ROOT, "test", "data")
-export const examplesDir = resolve(GARDEN_CORE_ROOT, "..", "examples")
 export const testNow = new Date()
 export const testModuleVersionString = "v-1234512345"
 export const testModuleVersion: ModuleVersion = {
@@ -438,14 +437,6 @@ export function taskResultOutputs(results: ProcessCommandResult) {
 
 export const cleanProject = async (gardenDirPath: string) => {
   return remove(gardenDirPath)
-}
-
-export function getExampleProjects() {
-  const names = readdirSync(examplesDir).filter((n) => {
-    const basePath = join(examplesDir, n)
-    return existsSync(join(basePath, "garden.yml")) || existsSync(join(basePath, "garden.yaml"))
-  })
-  return fromPairs(names.map((n) => [n, join(examplesDir, n)]))
 }
 
 export function withDefaultGlobalOpts<T extends object>(opts: T) {

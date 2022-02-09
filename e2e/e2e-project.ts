@@ -7,15 +7,14 @@
  */
 
 import execa from "execa"
-import parseArgs = require("minimist")
+import minimist from "minimist"
 import { resolve } from "path"
-import { examplesDir } from "../helpers"
-import { dedent } from "../../src/util/string"
+import { examplesDir } from "./helpers"
+import dedent from "dedent"
 import chalk from "chalk"
-import { InternalError } from "../../src/exceptions"
-import { GARDEN_CORE_ROOT } from "../../src/constants"
+import { join } from "path"
 
-export const parsedArgs = parseArgs(process.argv.slice(2))
+export const parsedArgs = minimist(process.argv.slice(2))
 
 const usageStr = dedent`
 Runs the e2e tests. The following options are supported:
@@ -31,7 +30,7 @@ E.g. ${chalk.blue("local")} or ${chalk.blue("testing")}.
 ${chalk.green("--project")}: Specify the project to run (required). \
 E.g. ${chalk.blue("demo-project")} or ${chalk.blue("vote-helm")}.
 
-Example: ./core/bin/e2e-project.ts --binPath=/path/to/garden --project=demo-project
+Example: ./core/bin/e2e-project.ts --binPath=/path/to/garden --project=demo-project --showlog=true
 `
 
 async function run() {
@@ -47,7 +46,7 @@ async function run() {
   try {
     await execa("git", ["diff-index", "--quiet", "HEAD", projectDir])
   } catch (_error) {
-    throw new InternalError(`${project} example directory is dirty. Aborting.`, {})
+    throw new Error(`${project} example directory is dirty. Aborting.`)
   }
 
   if (parsedArgs["h"]) {
@@ -55,35 +54,34 @@ async function run() {
     return
   }
 
-  console.log(chalk.grey("Call this script with -h for usage information."))
-  console.log("Starting e2e tests.")
+  console.log(chalk.grey("Call this script with -h for usage information.\n"))
 
-  console.log("Running tests...")
+  console.log(
+    chalk.cyan.bold("*** Starting e2e tests for project ") + chalk.white.bold(project) + chalk.cyan.bold(" ***")
+  )
 
-  const mochaOpts = ["--config", ".mocharc.e2e.yml"]
+  const mochaOpts = ["--config", join(__dirname, ".mocharc.yml")]
 
-  for (const opt of ["binPath", "project", "env", "showlog"]) {
-    if (parsedArgs[opt]) {
-      mochaOpts.push(`--${opt}`, parsedArgs[opt])
+  for (const [key, value] of Object.entries(parsedArgs)) {
+    if (key !== "_" && key !== "--") {
+      mochaOpts.push("--" + key, value)
     }
   }
 
-  const mochaBinPath = resolve(GARDEN_CORE_ROOT, "node_modules/.bin/mocha")
+  const mochaBinPath = resolve(__dirname, "node_modules/.bin/mocha")
   await execa(mochaBinPath, mochaOpts, {
-    cwd: GARDEN_CORE_ROOT,
+    cwd: __dirname,
     stdio: "inherit",
   })
-  console.log("Done.")
+
+  console.log(chalk.green.bold("\nDone!"))
 }
 
-const start = async () => {
-  try {
-    await run()
+run()
+  .then(() => {
     process.exit(0)
-  } catch (err) {
+  })
+  .catch((err) => {
     console.log(err)
     process.exit(1)
-  }
-}
-
-start().catch(() => {})
+  })
