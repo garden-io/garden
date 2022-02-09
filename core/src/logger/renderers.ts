@@ -16,7 +16,7 @@ import hasAnsi = require("has-ansi")
 import { LogEntry, LogEntryMessage } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
 import { highlightYaml, PickFromUnion, safeDumpYaml } from "../util/util"
-import { printEmoji, formatGardenErrorWithDetail } from "./util"
+import { printEmoji, formatGardenErrorWithDetail, getAllSections } from "./util"
 import { LoggerType, Logger } from "./logger"
 
 type RenderFn = (entry: LogEntry) => string
@@ -216,14 +216,16 @@ export function basicRender(entry: LogEntry, logger: Logger): string | null {
 
 // TODO: Include individual message states with timestamp
 export function formatForJson(entry: LogEntry): JsonLogEntry {
-  const { section, data } = entry.getLatestMessage()
+  const msg = entry.getLatestMessage()
   const metadata = entry.getMetadata()
-  const msg = chainMessages(entry.getMessages() || [])
+  const messages = chainMessages(entry.getMessages() || [])
   return {
-    msg: cleanForJSON(msg),
-    data,
+    msg: cleanForJSON(messages),
+    data: msg.data,
     metadata,
-    section: cleanForJSON(section),
+    section: cleanForJSON(msg.section),
     timestamp: getTimestamp(entry),
+    level: entry.getStringLevel(),
+    allSections: getAllSections(entry, msg).map(cleanForJSON),
   }
 }

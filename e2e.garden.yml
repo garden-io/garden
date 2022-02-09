@@ -1,0 +1,32 @@
+kind: Module
+name: e2e-tests
+type: exec
+tests:
+  - name: demo-project
+    command: [yarn, e2e-project, --, --project=demo-project, "--showlog=${var.show-log}", "--env=remote"]
+    timeout: ${var.timeout}
+  - name: kaniko
+    command: [yarn, e2e-project, --, --project=kaniko, "--showlog=${var.show-log}", "--env=remote"]
+    timeout: ${var.timeout}
+  - name: tasks # Tests for tasks are currently being skipped
+    command: [yarn, e2e-project, --, --project=tasks, "--showlog=${var.show-log}", "--env=${environment.name}"]
+    timeout: ${var.timeout}
+  - name: hot-reload
+    command: [yarn, e2e-project, --, --project=hot-reload, "--showlog=${var.show-log}", "--env=${environment.name}"]
+    timeout: ${var.timeout}
+  # - name: openfaas
+  #   command: [yarn, e2e-project, --, --project=openfaas, "--showlog=${var.show-log}", "--env=${environment.name}"]
+  - name: project-variables
+    command: [yarn, e2e-project, --, --project=project-variables, "--showlog=${var.show-log}", "--env=${environment.name}"]
+    timeout: ${var.timeout}
+  - name: vote-helm
+    command: [yarn, e2e-project, --, --project=vote-helm, "--showlog=${var.show-log}", "--env=${environment.name}"]
+    timeout: ${var.timeout}
+  - name: vote
+    command: [yarn, e2e-project, --, --project=vote, "--showlog=${var.show-log}", "--env=${environment.name}"]
+    timeout: ${var.timeout}
+  - name: remote-sources
+    command: [yarn, e2e-project, --, --project=remote-sources, "--showlog=${var.show-log}", "--env=${environment.name}"]
+    timeout: ${var.timeout}
+  - name: deployment-strategies
+    command: [yarn, e2e-project, --, --project=deployment-strategies, --showlog=true, --env=testing]
