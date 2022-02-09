@@ -361,6 +361,16 @@ describe("resolveTemplateString", async () => {
     expect(res).to.equal("")
   })
 
+  it("should handle a logical AND with a missing reference as the first clause", async () => {
+    const res = resolveTemplateString("${var.foo && 'a'}", new TestContext({ var: {} }))
+    expect(res).to.equal(false)
+  })
+
+  it("should handle a logical AND with a missing reference as the second clause", async () => {
+    const res = resolveTemplateString("${'a' && var.foo}", new TestContext({ var: {} }))
+    expect(res).to.equal(false)
+  })
+
   it("should handle a positive equality comparison between equal resolved values", async () => {
     const res = resolveTemplateString("${a == b}", new TestContext({ a: "a", b: "a" }))
     expect(res).to.equal(true)
