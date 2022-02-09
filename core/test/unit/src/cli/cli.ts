@@ -208,13 +208,17 @@ describe("cli", () => {
     })
 
     context("test logger initialization", () => {
+      const envLoggerType = process.env.GARDEN_LOGGER_TYPE
+
       // Logger is a singleton and we need to reset it between these tests as we're testing
       // that it's initialised correctly in this block.
       beforeEach(() => {
+        delete process.env.GARDEN_LOGGER_TYPE
         Logger.clearInstance()
       })
       // Re-initialise the test logger
       after(() => {
+        process.env.GARDEN_LOGGER_TYPE = envLoggerType
         Logger.clearInstance()
         initTestLogger()
       })
