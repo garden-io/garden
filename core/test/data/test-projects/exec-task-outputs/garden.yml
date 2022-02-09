@@ -1,2 +1,6 @@
 kind: Project
 name: exec-task-outputs
+environments:
+  - name: local
+providers:
+  - name: exec

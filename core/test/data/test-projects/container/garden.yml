@@ -17,6 +17,8 @@ environments:
 providers:
   - name: local-kubernetes
     environments: [local]
+    # Allow parallel tests in integ tests
+    namespace: '${(local.env.INTEG == "1" && local.env.MOCHA_WORKER_ID) ? "container-${local.env.MOCHA_WORKER_ID}" : project.name}'
     devMode:
       defaults:
         exclude:

@@ -1,4 +1,4 @@
-require: build/test/setup.js
+require: build/test/integ/setup.js
 watch-files:
   - build/**/*
 ignore:
