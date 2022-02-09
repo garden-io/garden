@@ -13,6 +13,7 @@ orbs:
     GARDEN_DISABLE_VERSION_CHECK: "true"
     GARDEN_DISABLE_ANALYTICS: "true"
     GARDEN_K8S_BUILD_SYNC_MODE: "mutagen"
+    GARDEN_LOGGER_TYPE: basic
 
   # Configuration for our node jobs
   node-config: &node-config
@@ -31,7 +32,7 @@ orbs:
   # Attaches the current saved workspace
   attach-workspace: &attach-workspace
     attach_workspace:
-          at: ./
+      at: ./
 
   # Only run jobs on master
   only-master: &only-master
@@ -63,16 +64,21 @@ commands:
   npm_install:
     description: |
       Installs npm packages for root, core, and dashboard and loads and saves the caches as appropriate
+    parameters:
+      context:
+        description: Set this to vm if installing in a VM, to avoid conflicting caches with the docker runs
+        type: string
+        default: docker
     steps:
       - restore_cache:
           keys:
-          - yarn-v3-{{ checksum "yarn.lock" }}
-          - yarn-v3
+          - yarn-v4-<<parameters.context>>-{{ checksum "yarn.lock" }}
+          - yarn-v4-<<parameters.context>>
 
       - run: yarn
 
       - save_cache:
-          key: yarn-v3-{{ checksum "yarn.lock" }}
+          key: yarn-v4-<<parameters.context>>-{{ checksum "yarn.lock" }}
           paths:
             - ~/.cache/yarn
 
@@ -109,6 +115,50 @@ commands:
             else
               echo "Skipping, no login available"
             fi
+
+  install_kind:
+    description: Install Kind
+    parameters:
+      kindNodeImage:
+        description: The kind node image to use
+        type: string
+    steps:
+      - run:
+          name: Install kind
+          command: |
+            curl -LO https://github.com/kubernetes-sigs/kind/releases/download/v0.11.1/kind-linux-amd64
+            chmod +x kind-linux-amd64
+            sudo mv kind-linux-amd64 /usr/local/bin/kind
+      - run:
+          name: Start kind cluster
+          command: |
+            # Create the kind cluster with a custom config to enable the default ingress controller
+            cat \<<EOF | kind create cluster \
+                --image <<parameters.kindNodeImage>> \
+                --wait=600s \
+                --config=-
+
+            kind: Cluster
+            apiVersion: kind.x-k8s.io/v1alpha4
+            nodes:
+            - role: control-plane
+              kubeadmConfigPatches:
+              - |
+                kind: InitConfiguration
+                nodeRegistration:
+                  kubeletExtraArgs:
+                    node-labels: "ingress-ready=true"
+                    authorization-mode: "AlwaysAllow"
+              extraPortMappings:
+              - containerPort: 80
+                hostPort: 80
+                protocol: TCP
+              - containerPort: 443
+                hostPort: 443
+                protocol: TCP
+            EOF
+
+            kubectl config set-context kind-kind
 
   update_nodejs:
     description: Update Node.js
@@ -201,6 +251,7 @@ jobs:
             # TODO: see if we can make this somewhat more specific
             - sdk/
             - plugins/
+            - e2e/
   build-dist:
     <<: *node-config
     resource_class: large
@@ -254,7 +305,7 @@ jobs:
       - run:
           name: Unit test framework components
           command: |
-            yarn run test:framework:unit
+            GARDEN_LOGGER_TYPE="" yarn run test:framework:unit
           environment:
             CHOKIDAR_USEPOLLING: "1"
 
@@ -482,8 +533,8 @@ jobs:
           command: |
             mkdir -p /tmp/create-test
             cd /tmp/create-test
-            dist/linux-amd64/garden create project --name test-project
-            dist/linux-amd64/garden create module --name test-module --type exec
+            ~/project/dist/linux-amd64/garden create project --name test-project
+            ~/project/dist/linux-amd64/garden create module --name test-module --type exec
       - run:
           name: Deploy demo-project with binary
           # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
@@ -492,6 +543,42 @@ jobs:
           name: Cleanup
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
           when: always
+
+  test-plugins:
+    machine:
+      image: 'ubuntu-1604:201903-01'
+      docker_layer_caching: true
+    parameters:
+      kindNodeImage:
+        description: The kind node image to use
+        type: string
+    environment:
+      <<: *shared-env-config
+      GARDEN_LOG_LEVEL: debug
+    steps:
+      - checkout
+      - docker_login
+      - install_kubectl
+      - install_kind:
+          kindNodeImage: <<parameters.kindNodeImage>>
+      - update_nodejs
+      - configure_git
+      - npm_install:
+          context: vm
+      - *attach-workspace
+      # Restore Maven cache
+      - restore_cache:
+          keys:
+          - m2-v1
+      # Run tests
+      - run:
+          name: Plugin tests
+          command: yarn run test:plugins
+      # Persist Maven cache
+      - save_cache:
+          key: m2-v1
+          paths:
+            - ~/.m2
 
   test-kind:
     machine:
@@ -504,52 +591,17 @@ jobs:
     environment:
       <<: *shared-env-config
       GARDEN_LOG_LEVEL: debug
-      GARDEN_LOGGER_TYPE: basic
     steps:
       - checkout
       - install_kubectl
       - docker_login
-      - run:
-          name: Install kind
-          command: |
-            curl -LO https://github.com/kubernetes-sigs/kind/releases/download/v0.11.1/kind-linux-amd64
-            chmod +x kind-linux-amd64
-            sudo mv kind-linux-amd64 /usr/local/bin/kind
-      - run:
-          name: Start kind cluster
-          command: |
-            # Create the kind cluster with a custom config to enable the default ingress controller
-            cat \<<EOF | kind create cluster \
-                --image <<parameters.kindNodeImage>> \
-                --wait=600s \
-                --config=-
-
-            kind: Cluster
-            apiVersion: kind.x-k8s.io/v1alpha4
-            nodes:
-            - role: control-plane
-              kubeadmConfigPatches:
-              - |
-                kind: InitConfiguration
-                nodeRegistration:
-                  kubeletExtraArgs:
-                    node-labels: "ingress-ready=true"
-                    authorization-mode: "AlwaysAllow"
-              extraPortMappings:
-              - containerPort: 80
-                hostPort: 80
-                protocol: TCP
-              - containerPort: 443
-                hostPort: 443
-                protocol: TCP
-            EOF
-
-            kubectl config set-context kind-kind
+      - install_kind:
+          kindNodeImage: <<parameters.kindNodeImage>>
       - update_nodejs
       - configure_git
-      # Note: We can't use npm_install here because the cache conflicts
-      - run: yarn
-      - run: yarn build
+      - npm_install:
+          context: vm
+      - *attach-workspace
       - run:
           name: Integ tests
           command: |
@@ -558,9 +610,6 @@ jobs:
             # - We skip tests that only work for remote environments
             # - We currently don't support in-cluster building on kind.
             yarn integ-kind
-      - run:
-          name: Plugin tests
-          command: yarn run test:plugins
       - run:
           name: Deploy demo-project
           command: ./bin/garden deploy --root examples/demo-project --logger-type basic
@@ -580,7 +629,6 @@ jobs:
       <<: *shared-env-config
       K8S_VERSION: <<parameters.kubernetesVersion>>
       GARDEN_LOG_LEVEL: debug
-      GARDEN_LOGGER_TYPE: basic
     steps:
       - checkout
       - run:
@@ -611,9 +659,9 @@ jobs:
             echo "********* env prepped! *********"
       - update_nodejs
       - configure_git
-      # Note: We can't use npm_install here because the cache conflicts
-      - run: yarn
-      - run: yarn run build
+      - npm_install:
+          context: vm
+      - *attach-workspace
       - run:
           name: Integ tests
           command: |
@@ -624,9 +672,6 @@ jobs:
             #   and back in to add the circleci user to the microk8s group.
             # - We currently don't support in-cluster building on microk8s.
             sudo -E GARDEN_SKIP_TESTS="cluster-docker kaniko remote-only" npm run _integ
-      - run:
-          name: Plugin tests
-          command: sudo -E npm run test:plugins
       - run:
           name: Deploy demo-project
           command: sudo -E ./bin/garden deploy --root examples/demo-project --logger-type basic
@@ -656,7 +701,6 @@ jobs:
       K8S_VERSION: <<parameters.kubernetesVersion>>
       MINIKUBE_VERSION: <<parameters.minikubeVersion>>
       GARDEN_LOG_LEVEL: debug
-      GARDEN_LOGGER_TYPE: basic
     steps:
       - checkout
       - install_kubectl
@@ -668,9 +712,9 @@ jobs:
       - docker_login
       - update_nodejs
       - configure_git
-      # Note: We can't use npm_install here because the cache conflicts
-      - run: yarn
-      - run: yarn run build
+      - npm_install:
+          context: vm
+      - *attach-workspace
       - run:
           name: Install Minikube Executable
           command: |
@@ -695,9 +739,6 @@ jobs:
           name: Integ tests
           # Note: We skip tests that only work for remote environments
           command: cd core && yarn integ-minikube
-      - run:
-          name: Plugin tests
-          command: yarn run test:plugins
       - run:
           name: Deploy demo-project
           command: sudo -E ./bin/garden deploy --root examples/demo-project
@@ -750,60 +791,6 @@ jobs:
 
 workflows:
   version: 2
-  # Note: The below is a not-quite-random mix of local k8s variants and k8s versions. Doing a full matrix of every
-  # variant and k8s version would be quite expensive, so we try and make sure each of the latest 6-7 k8s versions is
-  # tested, and that the most recent versions are broadly tested. The kind tests are the cheapest to run so we use many
-  # of those, but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
-  test-minikube-1.22:
-    jobs:
-      - test-minikube:
-          kubernetesVersion: "1.22.2"
-          minikubeVersion: "v1.23.2"
-          # OpenFaaS project fails without ingress, which doesn't work in CircleCI on minikube v1.12+, which is necessary
-          # for most recent k8s versions.
-          testOpenfaas: false
-  test-minikube-1.20:
-    jobs:
-      - test-minikube:
-          kubernetesVersion: "1.20.2"
-          minikubeVersion: "v1.16.0"
-          # OpenFaaS project fails without ingress, which doesn't work in CircleCI on minikube v1.12+, which is necessary
-          # for most recent k8s versions.
-          testOpenfaas: false
-  test-minikube-1.19:
-    jobs:
-      - test-minikube:
-          kubernetesVersion: "1.19.7"
-          minikubeVersion: "v1.16.0"
-          testOpenfaas: false
-  test-microk8s-1.19:
-    jobs:
-      - test-microk8s:
-          kubernetesVersion: "1.19"
-  test-kind-1.15:
-    jobs:
-      - test-kind:
-          kindNodeImage: kindest/node:v1.15.12
-  test-kind-1.16:
-    jobs:
-      - test-kind:
-          kindNodeImage: kindest/node:v1.16.15
-  test-kind-1.17:
-    jobs:
-      - test-kind:
-          kindNodeImage: kindest/node:v1.17.11
-  test-kind-1.19:
-    jobs:
-      - test-kind:
-          kindNodeImage: kindest/node:v1.19.4
-  test-kind-1.20:
-    jobs:
-      - test-kind:
-          kindNodeImage: kindest/node:v1.20.2
-  test-kind-1.21:
-    jobs:
-      - test-kind:
-          kindNodeImage: kindest/node:v1.21.2
   commit:
     jobs:
       ### ALL BRANCHES ###
@@ -928,6 +915,66 @@ workflows:
           name: e2e-vote-helm
           project: vote-helm
           requires: [build]
+
+      ### VM TESTS ###
+
+      # Note: The below is a not-quite-random mix of local k8s variants and k8s versions. Doing a full matrix of every
+      # variant and k8s version would be quite expensive, so we try and make sure each of the latest 6-7 k8s versions is
+      # tested, and that the most recent versions are broadly tested. The kind tests are the cheapest to run so we use many
+      # of those, but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
+      - test-minikube:
+          name: minikube-1.22
+          requires: [build]
+          kubernetesVersion: "1.22.2"
+          minikubeVersion: "v1.23.2"
+          # OpenFaaS project fails without ingress, which doesn't work in CircleCI on minikube v1.12+, which is necessary
+          # for most recent k8s versions.
+          testOpenfaas: false
+      - test-minikube:
+          name: minikube-1.20
+          requires: [build]
+          kubernetesVersion: "1.20.2"
+          minikubeVersion: "v1.16.0"
+          # OpenFaaS project fails without ingress, which doesn't work in CircleCI on minikube v1.12+, which is necessary
+          # for most recent k8s versions.
+          testOpenfaas: false
+      - test-minikube:
+          name: minikube-1.19
+          requires: [build]
+          kubernetesVersion: "1.19.7"
+          minikubeVersion: "v1.16.0"
+          testOpenfaas: false
+      - test-microk8s:
+          requires: [build]
+          kubernetesVersion: "1.19"
+      - test-kind:
+          name: kind-1.15
+          requires: [build]
+          kindNodeImage: kindest/node:v1.15.12
+      - test-kind:
+          name: kind-1.16
+          requires: [build]
+          kindNodeImage: kindest/node:v1.16.15
+      - test-kind:
+          name: kind-1.17
+          requires: [build]
+          kindNodeImage: kindest/node:v1.17.11
+      - test-kind:
+          name: kind-1.19
+          requires: [build]
+          kindNodeImage: kindest/node:v1.19.4
+      - test-kind:
+          name: kind-1.20
+          requires: [build]
+          kindNodeImage: kindest/node:v1.20.2
+      - test-kind:
+          name: kind-1.21
+          requires: [build]
+          kindNodeImage: kindest/node:v1.21.2
+
+      - test-plugins:
+          requires: [build]
+          kindNodeImage: kindest/node:v1.21.2
 
       ### MASTER ONLY ###
 
