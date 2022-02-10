@@ -24,7 +24,7 @@ Featuring:
 | [Garden Website](https://garden.io/?utm_source=github) | The official Garden website|
 | [Garden Documentation / Getting Started](https://docs.garden.io/?utm_source=github) | Documentation for all editions of Garden, and the best place to get started |
 | [Blog](https://garden.io/blog?utm_source=github) | The Garden blog, where we share product updates, how-to guides, and other resources |
-| [Community Slack](https://chat.garden.io) | The best place to ask questions as a user of Garden |
+| The `#garden` channel in the [Kubernetes Slack](https://kubernetes.slack.com) | The best place to ask questions as a user of Garden. Get an invite at [slack.k8s.io](https://slack.k8s.io) |
 | [Garden Enterprise](https://garden.io/product?utm_source=github#enterprise) | Garden Enterprise is built on top of the open source product and includes centralized environment management, secrets and user management, direct integration with VCS, and more. |
 
 > _If you’re using Garden or if you like the project, please ★ star this repository to show your support 💖_
