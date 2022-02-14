@@ -9,8 +9,6 @@
 
 import { dumpLicenses } from "npm-license-crawler"
 import { join, resolve } from "path"
-import stripAnsi from "strip-ansi"
-import chalk from "chalk"
 import { promisify } from "bluebird"
 import { asTree } from "treeify"
 import { stringify } from "csv-stringify/sync"
@@ -43,8 +41,7 @@ async function checkPackageLicenses(root: string) {
 
   const disallowedPackages: LicenseDump = {}
 
-  for (const [ansiName, entry] of Object.entries(res)) {
-    const name = stripAnsi(ansiName)
+  for (const [name, entry] of Object.entries(res)) {
     const licenses = entry.licenses.trimEnd().split(" OR ")
 
     if (licenses[0].startsWith("(")) {
@@ -71,21 +68,21 @@ async function checkPackageLicenses(root: string) {
     }
 
     if (!anyAllowed) {
-      disallowedPackages[chalk.red.bold(name)] = { ...entry, licenses: chalk.red.bold(entry.licenses) }
+      disallowedPackages[name] = { ...entry, licenses: entry.licenses }
     }
   }
 
   // Dump to CSV
   const csvPath = join(gardenRoot, "tmp", "package-licenses.csv")
   console.log("Dumping CSV to " + csvPath)
-  const rows = Object.entries(res).map(([name, entry]) => ({ name: stripAnsi(name), ...entry }))
+  const rows = Object.entries(res).map(([name, entry]) => ({ name: name, ...entry }))
   await writeFile(csvPath, stringify(rows, { header: true }))
 
   // Throw on disallowed licenses
   const disallowedCount = Object.keys(disallowedPackages).length
 
   if (disallowedCount > 0) {
-    let msg = chalk.red.bold(`\nFound ${disallowedCount} packages with disallowed licenses:\n`)
+    let msg = `\nFound ${disallowedCount} packages with disallowed licenses:\n`
     msg += asTree(disallowedPackages, true, true)
     throw new Error(msg)
   }
