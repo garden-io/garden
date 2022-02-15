@@ -44,6 +44,7 @@ import { mutagenCliSpec } from "./mutagen"
 import { configMapModuleDefinition } from "./volumes/configmap"
 import { jibContainerHandlers } from "./jib-container"
 import { emitWarning } from "../../warnings"
+import { kustomizeSpec } from "./kubernetes-module/kustomize"
 
 export async function configureProvider({
   log,
@@ -267,5 +268,5 @@ export const gardenPlugin = () =>
       },
     ],
     // DEPRECATED: Remove stern in v0.13
-    tools: [kubectlSpec, helm3Spec, mutagenCliSpec, sternSpec],
+    tools: [kubectlSpec, kustomizeSpec, helm3Spec, mutagenCliSpec, sternSpec],
   })

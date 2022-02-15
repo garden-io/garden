@@ -31,6 +31,7 @@ import {
 } from "../config"
 import { ContainerModule } from "../../container/config"
 import { kubernetesDevModeSchema, KubernetesDevModeSpec } from "../dev-mode"
+import { KubernetesKustomizeSpec, kustomizeSpecSchema } from "./kustomize"
 
 // A Kubernetes Module always maps to a single Service
 export type KubernetesModuleSpec = KubernetesServiceSpec
@@ -43,6 +44,7 @@ export interface KubernetesServiceSpec {
   dependencies: string[]
   devMode?: KubernetesDevModeSpec
   files: string[]
+  kustomize?: KubernetesKustomizeSpec
   manifests: KubernetesResource[]
   namespace?: string
   portForwards?: PortForwardSpec[]
@@ -82,6 +84,7 @@ export const kubernetesModuleSpecSchema = () =>
       If neither \`include\` nor \`exclude\` is set, Garden automatically sets \`include\` to equal the
       \`files\` directive so that only the Kubernetes manifests get included.
     `),
+    kustomize: kustomizeSpecSchema(),
     manifests: joiSparseArray(kubernetesResourceSchema()).description(
       deline`
           List of Kubernetes resource manifests to deploy. Use this instead of the \`files\` field if you need to
@@ -111,7 +114,7 @@ export const kubernetesModuleSpecSchema = () =>
 export async function configureKubernetesModule({
   moduleConfig,
 }: ConfigureModuleParams<KubernetesModule>): Promise<ConfigureModuleResult<KubernetesModule>> {
-  const { serviceResource } = moduleConfig.spec
+  const { serviceResource, kustomize } = moduleConfig.spec
   const sourceModuleName = serviceResource ? serviceResource.containerModule : undefined
 
   moduleConfig.serviceConfigs = [
@@ -126,9 +129,11 @@ export async function configureKubernetesModule({
       spec: moduleConfig.spec,
     },
   ]
-  // Unless include is explicitly specified, we should just have it equal the `files` field
-  if (!(moduleConfig.include || moduleConfig.exclude)) {
-    moduleConfig.include = moduleConfig.spec.files
+
+  // Unless include is explicitly specified and we're not using kustomize, we just have it equal the `files` field.
+  // If we are using kustomize, it's not really feasible to extract an include list, so we need the user to do it.
+  if (!(moduleConfig.include || moduleConfig.exclude) && !kustomize) {
+    moduleConfig.include = [...(moduleConfig.spec.files || [])]
   }
 
   moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => ({

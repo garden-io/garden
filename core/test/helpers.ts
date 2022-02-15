@@ -71,6 +71,10 @@ export function getDataDir(...names: string[]) {
   return resolve(dataDir, ...names)
 }
 
+export function getExampleDir(name: string) {
+  return resolve(GARDEN_CORE_ROOT, "..", "examples", name)
+}
+
 export async function profileBlock(description: string, block: () => Promise<any>) {
   // tslint:disable: no-console
   const startTime = new Date().getTime()
@@ -335,7 +339,7 @@ export class TestGardenCli extends GardenCli {
   }
 }
 
-export const makeTestModule = (params: Partial<ModuleConfig> = {}) => {
+export const makeTestModule = (params: Partial<ModuleConfig> = {}): ModuleConfig => {
   return { ...defaultModuleConfig, ...params }
 }
 

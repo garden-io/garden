@@ -230,6 +230,18 @@ devMode:
 # Garden template strings, which will be resolved before applying the manifests.
 files: []
 
+# Resolve the specified kustomization and include the resulting resources. Note that if you specify `files` or
+# `manifests` as well, these are also included.
+kustomize:
+  # The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an
+  # overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the module
+  # root. Defaults to the module root. If you set this to null, kustomize will not be run.
+  path: .
+
+  # A list of additional arguments to pass to the `kustomize build` command. Note that specifying '-o' or '--output'
+  # is not allowed.
+  extraArgs: []
+
 # List of Kubernetes resource manifests to deploy. Use this instead of the `files` field if you need to resolve
 # template strings in any of the manifests.
 manifests:
@@ -976,6 +988,34 @@ POSIX-style paths to YAML files to load manifests from. Each can contain multipl
 | Type               | Default | Required |
 | ------------------ | ------- | -------- |
 | `array[posixPath]` | `[]`    | No       |
+
+### `kustomize`
+
+Resolve the specified kustomization and include the resulting resources. Note that if you specify `files` or `manifests` as well, these are also included.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `kustomize.path`
+
+[kustomize](#kustomize) > path
+
+The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the module root. Defaults to the module root. If you set this to null, kustomize will not be run.
+
+| Type                 | Default | Required |
+| -------------------- | ------- | -------- |
+| `posixPath | string` | `"."`   | No       |
+
+### `kustomize.extraArgs[]`
+
+[kustomize](#kustomize) > extraArgs
+
+A list of additional arguments to pass to the `kustomize build` command. Note that specifying '-o' or '--output' is not allowed.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
 
 ### `manifests[]`
 
