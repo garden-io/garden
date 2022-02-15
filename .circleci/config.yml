@@ -223,6 +223,16 @@ jobs:
           name: Make sure generated docs are up-to-date
           command: yarn run check-docs
 
+  check-package-licenses:
+    <<: *node-config
+    steps:
+      - checkout
+      - npm_install
+      - *attach-workspace
+      - run:
+          name: Make sure dependency licenses are okay
+          command: yarn run check-package-licenses
+
   test-framework:
     <<: *node-config
     steps:
@@ -799,6 +809,8 @@ workflows:
       - lint:
           requires: [build]
       - check-docs:
+          requires: [build]
+      - check-package-licenses:
           requires: [build]
       - build-docker-alpine:
           <<: *only-internal-prs

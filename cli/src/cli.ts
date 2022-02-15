@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,8 +7,6 @@
  */
 
 import { shutdown } from "@garden-io/core/build/src/util/util"
-import { gardenEnv } from "@garden-io/core/build/src/constants"
-import { getDefaultProfiler } from "@garden-io/core/build/src/util/profiling"
 import { GardenProcess } from "@garden-io/core/build/src/db/entities/garden-process"
 import { ensureConnected } from "@garden-io/core/build/src/db/connection"
 import { GardenCli, RunOutput } from "@garden-io/core/build/src/cli/cli"
