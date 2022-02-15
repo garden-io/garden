@@ -908,6 +908,11 @@ workflows:
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
+          name: e2e-kustomize
+          project: kustomize
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
           name: e2e-openfaas
           project: openfaas
           requires: [build]

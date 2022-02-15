@@ -18,6 +18,7 @@ import { KubeApi } from "../api"
 import { gardenAnnotationKey } from "../../../util/string"
 import { LogEntry } from "../../../logger/log-entry"
 import { PluginContext } from "../../../plugin-context"
+import { ConfigurationError, PluginError } from "../../../exceptions"
 
 /**
  * Reads the manifests and makes sure each has a namespace set (when applicable) and adds annotations.
@@ -73,6 +74,8 @@ export async function getManifests({
   })
 }
 
+const disallowedKustomizeArgs = ["-o", "--output", "-h", "--help"]
+
 /**
  * Read the manifests from the module config, as well as any referenced files in the config.
  *
@@ -90,9 +93,10 @@ export async function readManifests(
   log: LogEntry,
   readFromSrcDir = false
 ) {
+  const manifestPath = readFromSrcDir ? module.path : module.buildPath
+
   const fileManifests = flatten(
     await Bluebird.map(module.spec.files, async (path) => {
-      const manifestPath = readFromSrcDir ? module.path : module.buildPath
       const absPath = resolve(manifestPath, path)
       log.debug(`Reading manifest for module ${module.name} from path ${absPath}`)
       const str = (await readFile(absPath)).toString()
@@ -101,7 +105,41 @@ export async function readManifests(
     })
   )
 
-  return [...module.spec.manifests, ...fileManifests]
+  let kustomizeManifests: any[] = []
+
+  if (module.spec.kustomize?.path) {
+    const kustomize = ctx.tools["kubernetes.kustomize"]
+
+    const extraArgs = module.spec.kustomize.extraArgs || []
+
+    for (const arg of disallowedKustomizeArgs) {
+      if (extraArgs.includes(arg)) {
+        throw new ConfigurationError(
+          `kustomize.extraArgs must not include any of ${disallowedKustomizeArgs.join(", ")}`,
+          {
+            moduleSpec: module.spec,
+            extraArgs,
+          }
+        )
+      }
+    }
+
+    try {
+      const kustomizeOutput = await kustomize.stdout({
+        cwd: manifestPath,
+        log,
+        args: ["build", module.spec.kustomize.path, ...extraArgs],
+      })
+      kustomizeManifests = safeLoadAll(kustomizeOutput)
+    } catch (error) {
+      throw new PluginError(`Failed resolving kustomize manifests: ${error.message}`, {
+        error,
+        moduleSpec: module.spec,
+      })
+    }
+  }
+
+  return [...module.spec.manifests, ...fileManifests, ...kustomizeManifests]
 }
 
 /**

@@ -1,5 +1,5 @@
 kind: Project
-name: kubernetes-module
+name: kustomize
 environments:
   - name: local
   - name: testing
@@ -11,6 +11,3 @@ providers:
     environments: [testing]
     context: gke_garden-ci_europe-west1-b_core-ci
     buildMode: kaniko
-variables:
-  postgres-password: "Y0RGQjBHUmpWZQ=="
-  redis-password: "OHlWVEVYeVdrMg=="
