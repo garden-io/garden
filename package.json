@@ -68,7 +68,7 @@
     "check-all": "yarn run check-package-lock && yarn run check-licenses && yarn run lint && yarn run check-docs",
     "check-docs": "./scripts/check-docs.sh",
     "check-licenses": "gulp check-licenses",
-    "check-package-licenses": "./scripts/check-package-licenses.sh",
+    "check-package-licenses": "./scripts/check-package-licenses.ts",
     "check-package-lock": "git diff --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
     "check-pre-push": "yarn run check-package-lock && yarn run check-licenses && yarn run lint",
     "clean": "./scripts/run-script.ts clean && find . -name \".garden\" -type d -prune -exec rm -rf '{}' '+'",

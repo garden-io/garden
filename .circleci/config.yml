@@ -292,7 +292,9 @@ jobs:
       - *attach-workspace
       - run:
           name: Make sure dependency licenses are okay
-          command: yarn run check-package-licenses
+          command: |
+            mkdir tmp
+            yarn check-package-licenses
 
   test-framework:
     <<: *node-config
