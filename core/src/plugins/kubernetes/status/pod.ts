@@ -119,22 +119,28 @@ export async function getPodLogs({
     } catch (err) {
       if (err.statusCode === 404) {
         // Couldn't find pod/container, try requesting a previously terminated one
-        log = await api.core.readNamespacedPodLog(
-          pod.metadata!.name!,
-          namespace,
-          containerName,
-          follow,
-          insecureSkipTLSVerify,
-          byteLimit,
-          pretty,
-          true, // previous
-          sinceSeconds,
-          lineLimit,
-          timestamps
-        )
+        try {
+          log = await api.core.readNamespacedPodLog(
+            pod.metadata!.name!,
+            namespace,
+            containerName,
+            follow,
+            insecureSkipTLSVerify,
+            byteLimit,
+            pretty,
+            true, // previous
+            sinceSeconds,
+            lineLimit,
+            timestamps
+          )
+        } catch (err) {
+          log = ""
+        }
       } else if (err instanceof KubernetesError && err.message.includes("waiting to start")) {
         log = ""
       } else {
+        console.log(typeof err)
+        console.log({ ...err })
         throw err
       }
     }

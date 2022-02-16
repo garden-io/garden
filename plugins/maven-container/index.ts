@@ -38,7 +38,6 @@ import { providerConfigBaseSchema } from "@garden-io/core/build/src/config/provi
 import { ConfigureModuleParams } from "@garden-io/core/build/src/types/plugin/module/configure"
 import { GetBuildStatusParams } from "@garden-io/core/build/src/types/plugin/module/getBuildStatus"
 import { BuildModuleParams } from "@garden-io/core/build/src/types/plugin/module/build"
-import { getModuleTypeUrl, getProviderUrl } from "@garden-io/core/build/src/docs/common"
 import { containerModuleOutputsSchema } from "@garden-io/core/build/src/plugins/container/container"
 
 const defaultDockerfileName = "maven-container.Dockerfile"
@@ -96,7 +95,7 @@ export const mavenContainerConfigSchema = () =>
     name: joiProviderName("maven-container"),
   })
 
-const moduleTypeUrl = getModuleTypeUrl("maven-container")
+const moduleTypeUrl = "../module-types/maven-container.md"
 
 export const gardenPlugin = () =>
   createGardenPlugin({
@@ -104,7 +103,7 @@ export const gardenPlugin = () =>
     dependencies: [{ name: "container" }],
 
     docs: dedent`
-    **DEPRECATED**. Please use the [jib provider](${getProviderUrl("jib")}) instead.
+    **DEPRECATED**. Please use the [jib provider](./jib.md) instead.
 
     Adds the [maven-container module type](${moduleTypeUrl}), which is a specialized version of the \`container\` module type that has special semantics for building JAR files using Maven.
 
@@ -116,9 +115,9 @@ export const gardenPlugin = () =>
         name: "maven-container",
         base: "container",
         docs: dedent`
-      **DEPRECATED**. Please use the [jib-container module type](${getModuleTypeUrl("jib-container")}) instead.
+      **DEPRECATED**. Please use the [jib-container module type](./jib-container.md) instead.
 
-      A specialized version of the [container](https://docs.garden.io/reference/module-types/container) module type
+      A specialized version of the [container](./container.md) module type
       that has special semantics for JAR files built with Maven.
 
       Rather than build the JAR inside the container (or in a multi-stage build) this plugin runs \`mvn package\`

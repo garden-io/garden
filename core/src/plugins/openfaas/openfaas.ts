@@ -47,13 +47,13 @@ import { LogEntry } from "../../logger/log-entry"
 import { ProviderMap } from "../../config/provider"
 import { parse } from "url"
 import { trim } from "lodash"
-import { getModuleTypeUrl, getGitHubUrl } from "../../docs/common"
+import { getGitHubUrl } from "../../docs/common"
 import { PluginContext } from "../../plugin-context"
 import { getK8sProvider } from "../kubernetes/util"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../kubernetes/kubectl"
 
 const systemDir = join(STATIC_DIR, "openfaas", "system")
-const moduleTypeUrl = getModuleTypeUrl("openfaas")
+const moduleTypeUrl = "../module-types/openfaas.md"
 const gitHubUrl = getGitHubUrl("examples/openfaas")
 
 export const gardenPlugin = () =>

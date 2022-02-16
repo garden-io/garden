@@ -21,7 +21,6 @@ import { publishContainerModule } from "./publish"
 import { SuggestModulesParams, SuggestModulesResult } from "../../types/plugin/module/suggestModules"
 import { listDirectory } from "../../util/fs"
 import { dedent } from "../../util/string"
-import { getModuleTypeUrl } from "../../docs/common"
 import { Provider, GenericProviderConfig, providerConfigBaseSchema } from "../../config/provider"
 import { isSubdir } from "../../util/util"
 import { GetModuleOutputsParams } from "../../types/plugin/module/getModuleOutputs"
@@ -259,7 +258,7 @@ export const gardenPlugin = () =>
   createGardenPlugin({
     name: "container",
     docs: dedent`
-    Provides the [container](${getModuleTypeUrl("container")}) module type.
+    Provides the [container](../module-types/container.md) module type.
     _Note that this provider is currently automatically included, and you do not need to configure it in your project configuration._
   `,
     createModuleTypes: [
@@ -271,8 +270,8 @@ export const gardenPlugin = () =>
 
         Note that the runtime services have somewhat limited features in this module type. For example, you cannot
         specify replicas for redundancy, and various platform-specific options are not included. For those, look at
-        other module types like [helm](${getModuleTypeUrl("helm")}) or
-        [kubernetes](${getModuleTypeUrl("kubernetes")}).
+        other module types like [helm](./helm.md) or
+        [kubernetes](./kubernetes.md).
       `,
         moduleOutputsSchema: containerModuleOutputsSchema(),
         schema: containerModuleSpecSchema(),

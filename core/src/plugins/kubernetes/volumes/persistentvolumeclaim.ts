@@ -13,7 +13,7 @@ import { V1PersistentVolumeClaimSpec, V1PersistentVolumeClaim } from "@kubernete
 import { readFileSync } from "fs-extra"
 import { join } from "path"
 import { ModuleTypeDefinition } from "../../../types/plugin/plugin"
-import { DOCS_BASE_URL, STATIC_DIR } from "../../../constants"
+import { STATIC_DIR } from "../../../constants"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { ConfigureModuleParams } from "../../../types/plugin/module/configure"
 import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
@@ -22,7 +22,6 @@ import { KubernetesModule, KubernetesModuleConfig } from "../kubernetes-module/c
 import { KubernetesResource } from "../types"
 import { getKubernetesServiceStatus, deployKubernetesService } from "../kubernetes-module/handlers"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
-import { getModuleTypeUrl } from "../../../docs/common"
 import { GardenService } from "../../../types/service"
 
 export interface PersistentVolumeClaimSpec extends BaseVolumeSpec {
@@ -38,14 +37,13 @@ type PersistentVolumeClaimService = GardenService<PersistentVolumeClaimModule>
 // The `persistentvolumeclaim.json` file is copied from the handy
 // kubernetes-json-schema repo (https://github.com/instrumenta/kubernetes-json-schema/tree/master/v1.17.0-standalone).
 const jsonSchema = JSON.parse(readFileSync(join(STATIC_DIR, "kubernetes", "persistentvolumeclaim.json")).toString())
-const containerTypeUrl = getModuleTypeUrl("container")
 
 export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
   name: "persistentvolumeclaim",
   docs: dedent`
-    Creates a [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) in your namespace, that can be referenced and mounted by other resources and [container modules](${containerTypeUrl}).
+    Creates a [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
 
-    See the [Mounting volumes](${DOCS_BASE_URL}/guides/container-modules#mounting-volumes) guide for more info and usage examples.
+    See the [Mounting volumes](../../guides/container-modules.md#mounting-volumes) guide for more info and usage examples.
     `,
   schema: joi.object().keys({
     build: baseBuildSpecSchema(),

@@ -7,7 +7,7 @@ tocTitle: "`conftest-kubernetes`"
 
 ## Description
 
-This provider automatically generates [conftest modules](https://docs.garden.io/reference/module-types/conftest) for `kubernetes` and
+This provider automatically generates [conftest modules](../module-types/conftest.md) for `kubernetes` and
 `helm` modules in your project. A `conftest` module is created for each of those module types.
 
 Simply add this provider to your project configuration, and configure your policies. Check out the below

@@ -7,7 +7,7 @@ tocTitle: "`configmap`"
 
 ## Description
 
-Creates a [ConfigMap](https://kubernetes.io/docs/concepts/configuration/configmap/) in your namespace, that can be referenced and mounted by other resources and [container modules](https://docs.garden.io/reference/module-types/container).
+Creates a [ConfigMap](https://kubernetes.io/docs/concepts/configuration/configmap/) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
 
 See the [Mounting Kubernetes ConfigMaps](https://docs.garden.io/guides/container-modules#mounting-kubernetes-configmaps) guide for more info and usage examples.
 

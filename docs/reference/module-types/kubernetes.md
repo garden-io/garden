@@ -13,9 +13,9 @@ You can either (or both) specify the manifests as part of the `garden.yml` confi
 one or more files with existing manifests.
 
 Note that if you include the manifests in the `garden.yml` file, you can use
-[template strings](https://docs.garden.io/using-garden/variables-and-templating) to interpolate values into the manifests.
+[template strings](../../using-garden/variables-and-templating.md) to interpolate values into the manifests.
 
-If you need more advanced templating features you can use the [helm](https://docs.garden.io/reference/module-types/helm) module type.
+If you need more advanced templating features you can use the [helm](./helm.md) module type.
 
 Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-overview.md).

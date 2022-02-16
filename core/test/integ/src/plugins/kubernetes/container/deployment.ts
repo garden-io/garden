@@ -601,7 +601,7 @@ describe("kubernetes container deployment handlers", () => {
           () => api.core.readNamespacedConfigMap(mapToPruneKey, namespace),
           (err) => {
             expect(stripAnsi(err.message)).to.match(
-              /Got error from Kubernetes API - configmaps "should-be-pruned" not found/
+              /Got error from Kubernetes API \(readNamespacedConfigMap\) - configmaps "should-be-pruned" not found/
             )
           }
         )

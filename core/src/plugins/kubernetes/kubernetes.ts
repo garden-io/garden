@@ -37,7 +37,6 @@ import { getSystemMetadataNamespaceName } from "./system"
 import { DOCS_BASE_URL } from "../../constants"
 import { defaultIngressClass, inClusterRegistryHostname } from "./constants"
 import { pvcModuleDefinition } from "./volumes/persistentvolumeclaim"
-import { getModuleTypeUrl, getProviderUrl } from "../../docs/common"
 import { helm3Spec } from "./helm/helm-cli"
 import { sternSpec } from "./logs"
 import { isString } from "lodash"
@@ -197,22 +196,20 @@ const outputsSchema = joi.object().keys({
     .meta({ deprecated: "The metadata namespace is no longer used." }),
 })
 
-const localKubernetesUrl = getProviderUrl("local-kubernetes")
-
 export const gardenPlugin = () =>
   createGardenPlugin({
     name: "kubernetes",
     dependencies: [{ name: "container" }, { name: "jib", optional: true }],
     docs: dedent`
-    The \`kubernetes\` provider allows you to deploy [\`container\` modules](${getModuleTypeUrl("container")}) to
-    Kubernetes clusters, and adds the [\`helm\`](${getModuleTypeUrl("helm")}) and
-    [\`kubernetes\`](${getModuleTypeUrl("kubernetes")}) module types.
+    The \`kubernetes\` provider allows you to deploy [\`container\` modules](../module-types/container.md) to
+    Kubernetes clusters, and adds the [\`helm\`](../module-types/helm.md) and
+    [\`kubernetes\`](../module-types/kubernetes.md) module types.
 
     For usage information, please refer to the [guides section](${DOCS_BASE_URL}/guides). A good place to start is
-    the [Remote Kubernetes guide](${DOCS_BASE_URL}/guides/remote-kubernetes) guide if you're connecting to remote clusters.
-    The [Getting Started](${DOCS_BASE_URL}/getting-started/0-introduction) guide is also helpful as an introduction.
+    the [Remote Kubernetes guide](../../guides/remote-kubernetes.md) guide if you're connecting to remote clusters.
+    The [Getting Started](../../getting-started/0-introduction.md) guide is also helpful as an introduction.
 
-    Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](${localKubernetesUrl}) simplifies (and automates) the configuration and setup quite a bit.
+    Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](./local-kubernetes.md) simplifies (and automates) the configuration and setup quite a bit.
   `,
     configSchema: configSchema(),
     outputsSchema,
@@ -247,9 +244,9 @@ export const gardenPlugin = () =>
         one or more files with existing manifests.
 
         Note that if you include the manifests in the \`garden.yml\` file, you can use
-        [template strings](${DOCS_BASE_URL}/using-garden/variables-and-templating) to interpolate values into the manifests.
+        [template strings](../../using-garden/variables-and-templating.md) to interpolate values into the manifests.
 
-        If you need more advanced templating features you can use the [helm](${getModuleTypeUrl("helm")}) module type.
+        If you need more advanced templating features you can use the [helm](./helm.md) module type.
       `,
         moduleOutputsSchema: joi.object().keys({}),
         schema: kubernetesModuleSpecSchema(),

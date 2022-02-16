@@ -12,8 +12,8 @@ You may also optionally specify services to deploy, tasks or tests to run inside
 
 Note that the runtime services have somewhat limited features in this module type. For example, you cannot
 specify replicas for redundancy, and various platform-specific options are not included. For those, look at
-other module types like [helm](https://docs.garden.io/reference/module-types/helm) or
-[kubernetes](https://docs.garden.io/reference/module-types/kubernetes).
+other module types like [helm](./helm.md) or
+[kubernetes](./kubernetes.md).
 
 Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-overview.md).
@@ -445,7 +445,7 @@ services:
 
         # The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will
         # depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim
-        # module](https://docs.garden.io/reference/module-types/persistentvolumeclaim), for example.
+        # module](./persistentvolumeclaim.md), for example.
         #
         # When a `module` is specified, the referenced module/volume will be automatically configured as a runtime
         # dependency of this service, as well as a build dependency of this module.
@@ -542,7 +542,7 @@ tests:
 
         # The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will
         # depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim
-        # module](https://docs.garden.io/reference/module-types/persistentvolumeclaim), for example.
+        # module](./persistentvolumeclaim.md), for example.
         #
         # When a `module` is specified, the referenced module/volume will be automatically configured as a runtime
         # dependency of this service, as well as a build dependency of this module.
@@ -655,7 +655,7 @@ tasks:
 
         # The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will
         # depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim
-        # module](https://docs.garden.io/reference/module-types/persistentvolumeclaim), for example.
+        # module](./persistentvolumeclaim.md), for example.
         #
         # When a `module` is specified, the referenced module/volume will be automatically configured as a runtime
         # dependency of this service, as well as a build dependency of this module.
@@ -1890,7 +1890,7 @@ services:
 
 [services](#services) > [volumes](#servicesvolumes) > module
 
-The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](https://docs.garden.io/reference/module-types/persistentvolumeclaim), for example.
+The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
 
 When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
 
@@ -2214,7 +2214,7 @@ tests:
 
 [tests](#tests) > [volumes](#testsvolumes) > module
 
-The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](https://docs.garden.io/reference/module-types/persistentvolumeclaim), for example.
+The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
 
 When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
 
@@ -2559,7 +2559,7 @@ tasks:
 
 [tasks](#tasks) > [volumes](#tasksvolumes) > module
 
-The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](https://docs.garden.io/reference/module-types/persistentvolumeclaim), for example.
+The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
 
 When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
 

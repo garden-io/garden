@@ -38,7 +38,7 @@
     "handlebars": "^4.7.6",
     "husky": "^4.2.5",
     "lodash": "^4.17.15",
-    "markdown-link-check": "^3.8.3",
+    "markdown-link-check": "^3.9.3",
     "minimatch": "^3.0.4",
     "minimist": "^1.2.5",
     "npm-license-crawler": "^0.2.1",

@@ -7,9 +7,9 @@ tocTitle: "`openfaas`"
 
 ## Description
 
-This provider adds support for [OpenFaaS](https://www.openfaas.com/). It adds the [`openfaas` module type](https://docs.garden.io/reference/module-types/openfaas) and (by default) installs the `faas-netes` runtime to the project namespace. Each `openfaas` module maps to a single OpenFaaS function.
+This provider adds support for [OpenFaaS](https://www.openfaas.com/). It adds the [`openfaas` module type](../module-types/openfaas.md) and (by default) installs the `faas-netes` runtime to the project namespace. Each `openfaas` module maps to a single OpenFaaS function.
 
-See the reference below for configuration options for `faas-netes`, and the [module type docs](https://docs.garden.io/reference/module-types/openfaas) for how to configure the individual functions.
+See the reference below for configuration options for `faas-netes`, and the [module type docs](../module-types/openfaas.md) for how to configure the individual functions.
 
 Also see the [openfaas example project](https://github.com/garden-io/garden/tree/0.12.34/examples/openfaas) for a simple usage example.
 
