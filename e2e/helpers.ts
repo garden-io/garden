@@ -103,6 +103,10 @@ const sectionDivider = chalk.gray(" → ")
  * Renders the given JSON log entry as a string line.
  */
 export function stringifyJsonLog(entry: JsonLogEntry, opts = { error: false }) {
+  if (!entry.level) {
+    return `${linePrefix}[INVALID] ${JSON.stringify(entry)}`
+  }
+
   const sections = entry.allSections || (entry.section ? [entry.section] : [])
   const sectionStr = sections.map((s) => chalk.cyanBright(s)).join(sectionDivider)
 

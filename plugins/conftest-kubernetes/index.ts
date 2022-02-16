@@ -15,10 +15,9 @@ import { ConftestProvider } from "@garden-io/garden-conftest"
 
 // TODO: remove direct references to @garden-io/core
 import { dedent } from "@garden-io/core/build/src/util/string"
-import { getModuleTypeUrl, getGitHubUrl } from "@garden-io/core/build/src/docs/common"
+import { getGitHubUrl } from "@garden-io/core/build/src/docs/common"
 import { collectTemplateReferences } from "@garden-io/core/build/src/template-string/template-string"
 
-const moduleTypeUrl = getModuleTypeUrl("conftest")
 const gitHubUrl = getGitHubUrl("examples/conftest")
 
 /**
@@ -30,7 +29,7 @@ export const gardenPlugin = () =>
     base: "conftest",
     dependencies: [{ name: "kubernetes" }],
     docs: dedent`
-    This provider automatically generates [conftest modules](${moduleTypeUrl}) for \`kubernetes\` and
+    This provider automatically generates [conftest modules](../module-types/conftest.md) for \`kubernetes\` and
     \`helm\` modules in your project. A \`conftest\` module is created for each of those module types.
 
     Simply add this provider to your project configuration, and configure your policies. Check out the below

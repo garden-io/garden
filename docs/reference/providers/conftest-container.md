@@ -7,7 +7,7 @@ tocTitle: "`conftest-container`"
 
 ## Description
 
-This provider automatically generates [conftest modules](https://docs.garden.io/reference/module-types/conftest) for `container` modules in your project. A `conftest` module is created for each `container` module that includes a Dockerfile that can be validated.
+This provider automatically generates [conftest modules](../module-types/conftest.md) for `container` modules in your project. A `conftest` module is created for each `container` module that includes a Dockerfile that can be validated.
 
 Simply add this provider to your project configuration, and configure your policies. Check out the below reference for how to configure default policies, default namespaces, and test failure thresholds for the generated modules.
 

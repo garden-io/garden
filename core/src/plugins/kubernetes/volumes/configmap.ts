@@ -20,7 +20,6 @@ import { KubernetesModule, KubernetesModuleConfig } from "../kubernetes-module/c
 import { KubernetesResource } from "../types"
 import { getKubernetesServiceStatus, deployKubernetesService } from "../kubernetes-module/handlers"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
-import { getModuleTypeUrl } from "../../../docs/common"
 import { GardenService } from "../../../types/service"
 
 // TODO: If we make a third one in addition to this and `persistentvolumeclaim`, we should dedupe some code.
@@ -34,12 +33,10 @@ export interface ConfigMapSpec extends BaseVolumeSpec {
 type ConfigMapModule = GardenModule<ConfigMapSpec, ConfigMapSpec>
 type ConfigMapService = GardenService<ConfigMapModule>
 
-const containerTypeUrl = getModuleTypeUrl("container")
-
 export const configMapModuleDefinition = (): ModuleTypeDefinition => ({
   name: "configmap",
   docs: dedent`
-    Creates a [ConfigMap](https://kubernetes.io/docs/concepts/configuration/configmap/) in your namespace, that can be referenced and mounted by other resources and [container modules](${containerTypeUrl}).
+    Creates a [ConfigMap](https://kubernetes.io/docs/concepts/configuration/configmap/) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
 
     See the [Mounting Kubernetes ConfigMaps](${DOCS_BASE_URL}/guides/container-modules#mounting-kubernetes-configmaps) guide for more info and usage examples.
     `,

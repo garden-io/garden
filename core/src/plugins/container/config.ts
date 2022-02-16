@@ -27,7 +27,6 @@ import { baseTaskSpecSchema, BaseTaskSpec, cacheResultSchema } from "../../confi
 import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { joiStringMap } from "../../config/common"
 import { dedent, deline } from "../../util/string"
-import { getModuleTypeUrl } from "../../docs/common"
 import { ContainerModuleOutputs } from "./container"
 import { devModeGuideLink } from "../kubernetes/dev-mode"
 import { k8sDeploymentTimeoutSchema } from "../kubernetes/config"
@@ -500,8 +499,6 @@ export const portSchema = () =>
       `),
   })
 
-const moduleTypeUrl = getModuleTypeUrl("persistentvolumeclaim")
-
 const volumeSchema = () =>
   joi
     .object()
@@ -525,7 +522,7 @@ const volumeSchema = () =>
         .example("/some/dir"),
       module: joiIdentifier().description(
         dedent`
-      The name of a _volume module_ that should be mounted at \`containerPath\`. The supported module types will depend on which provider you are using. The \`kubernetes\` provider supports the [persistentvolumeclaim module](${moduleTypeUrl}), for example.
+      The name of a _volume module_ that should be mounted at \`containerPath\`. The supported module types will depend on which provider you are using. The \`kubernetes\` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
 
       When a \`module\` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
 

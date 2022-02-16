@@ -10,9 +10,8 @@ import { configureProvider, configSchema } from "./config"
 import { createGardenPlugin } from "../../../types/plugin/plugin"
 import { dedent } from "../../../util/string"
 import { DOCS_BASE_URL } from "../../../constants"
-import { getProviderUrl } from "../../../docs/common"
 
-const providerUrl = getProviderUrl("kubernetes")
+const providerUrl = "./kubernetes.md"
 
 export const gardenPlugin = () =>
   createGardenPlugin({

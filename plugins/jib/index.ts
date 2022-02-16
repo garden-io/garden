@@ -16,7 +16,7 @@ import { gradle, gradleSpec } from "./gradle"
 
 // TODO: gradually get rid of these core dependencies, move some to SDK etc.
 import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider"
-import { getModuleTypeUrl, getGitHubUrl } from "@garden-io/core/build/src/docs/common"
+import { getGitHubUrl } from "@garden-io/core/build/src/docs/common"
 import { containerModuleSpecSchema } from "@garden-io/core/build/src/plugins/container/config"
 import { joi } from "@garden-io/core/build/src/config/common"
 import { BuildModuleParams } from "@garden-io/core/build/src/types/plugin/module/build"
@@ -33,8 +33,6 @@ export interface JibProvider extends Provider<JibProviderConfig> {}
 
 export const configSchema = () => providerConfigBaseSchema().unknown(false)
 
-const moduleTypeUrl = getModuleTypeUrl("jib-container")
-const containerModuleTypeUrl = getModuleTypeUrl("container")
 const exampleUrl = getGitHubUrl("examples/jib-container")
 
 const jibModuleSchema = () =>
@@ -80,7 +78,7 @@ export const gardenPlugin = () =>
     docs: dedent`
       **EXPERIMENTAL**: Please provide feedback via GitHub issues or our community forum!
 
-      Provides support for [Jib](https://github.com/GoogleContainerTools/jib) via the [jib module type](${moduleTypeUrl}).
+      Provides support for [Jib](https://github.com/GoogleContainerTools/jib) via the [jib module type](../module-types/jib-container.md).
 
       Use this to efficiently build container images for Java services. Check out the [jib example](${exampleUrl}) to see it in action.
     `,
@@ -91,7 +89,7 @@ export const gardenPlugin = () =>
         name: "jib-container",
         base: "container",
         docs: dedent`
-        Extends the [container module type](${containerModuleTypeUrl}) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](${exampleUrl}) to see it in action.
+        Extends the [container module type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](${exampleUrl}) to see it in action.
 
         The image is always built locally, directly from the module source directory (see the note on that below), before shipping the container image to the right place. You can set \`build.tarOnly: true\` to only build the image as a tarball.
 

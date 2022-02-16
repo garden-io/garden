@@ -14,9 +14,6 @@ import { dedent } from "@garden-io/sdk/util/string"
 
 // TODO: remove direct references to @garden-io/core
 import { containerHelpers } from "@garden-io/core/build/src/plugins/container/helpers"
-import { getModuleTypeUrl } from "@garden-io/core/build/src/docs/common"
-
-const moduleTypeUrl = getModuleTypeUrl("conftest")
 
 /**
  * Auto-generates a conftest module for each container module in your project
@@ -27,7 +24,7 @@ export const gardenPlugin = () =>
     base: "conftest",
     dependencies: [{ name: "container" }],
     docs: dedent`
-    This provider automatically generates [conftest modules](${moduleTypeUrl}) for \`container\` modules in your project. A \`conftest\` module is created for each \`container\` module that includes a Dockerfile that can be validated.
+    This provider automatically generates [conftest modules](../module-types/conftest.md) for \`container\` modules in your project. A \`conftest\` module is created for each \`container\` module that includes a Dockerfile that can be validated.
 
     Simply add this provider to your project configuration, and configure your policies. Check out the below reference for how to configure default policies, default namespaces, and test failure thresholds for the generated modules.
   `,

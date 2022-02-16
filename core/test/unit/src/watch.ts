@@ -364,7 +364,10 @@ describe("Watcher", () => {
       const watcher = garden["watcher"]["watcher"]
       const shouldWatch = [garden.projectRoot, localModulePathA, localModulePathB]
       const watched = Object.keys(watcher!.getWatched())
-      expect(shouldWatch.every((path) => watched.includes(path))).to.be.true
+      expect(
+        shouldWatch.every((path) => watched.includes(path)),
+        "Watched: " + watched.join(", ")
+      ).to.be.true
     })
 
     it("should emit a moduleSourcesChanged event when a linked module source is changed", async () => {
@@ -382,14 +385,18 @@ describe("Watcher", () => {
   })
 
   context("linked project sources", () => {
-    const localProjectSourceDir = resolve(dataDir, "test-project-local-project-sources")
-    const localSourcePathA = join(localProjectSourceDir, "source-a")
-    const localSourcePathB = join(localProjectSourceDir, "source-b")
+    let localProjectSourceDir: string
+    let localSourcePathA: string
+    let localSourcePathB: string
 
     before(async () => {
       await garden.close()
 
       garden = await makeExtProjectSourcesGarden({ noCache: true })
+
+      localProjectSourceDir = resolve(dataDir, "test-project-local-project-sources")
+      localSourcePathA = join(localProjectSourceDir, "source-a")
+      localSourcePathB = join(localProjectSourceDir, "source-b")
 
       // Link some projects
       const linkCmd = new LinkSourceCommand()
@@ -420,7 +427,10 @@ describe("Watcher", () => {
       // This is not an issue in practice because there are specific commands just for linking
       // so the user will always have a new instance of Garden when they run their next command.
       garden = await makeExtProjectSourcesGarden({ noCache: true })
-      await garden.startWatcher({ graph: await garden.getConfigGraph({ log: garden.log, emit: false }) })
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false, noCache: true })
+
+      await garden.startWatcher({ graph })
+      await waitUntilReady(garden)
     })
 
     after(async () => {
@@ -431,7 +441,10 @@ describe("Watcher", () => {
       const watcher = garden["watcher"]["watcher"]
       const shouldWatch = [garden.projectRoot, localSourcePathA, localSourcePathB]
       const watched = Object.keys(watcher!.getWatched())
-      expect(shouldWatch.every((path) => watched.includes(path))).to.be.true
+      expect(
+        shouldWatch.every((path) => watched.includes(path)),
+        "Watched: " + watched.join(", ")
+      ).to.be.true
     })
 
     it("should emit a moduleSourcesChanged event when a linked project source is changed", async () => {

@@ -9,7 +9,7 @@ tocTitle: "`jib`"
 
 **EXPERIMENTAL**: Please provide feedback via GitHub issues or our community forum!
 
-Provides support for [Jib](https://github.com/GoogleContainerTools/jib) via the [jib module type](https://docs.garden.io/reference/module-types/jib-container).
+Provides support for [Jib](https://github.com/GoogleContainerTools/jib) via the [jib module type](../module-types/jib-container.md).
 
 Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.34/examples/jib-container) to see it in action.
 

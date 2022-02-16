@@ -343,7 +343,7 @@ export class KubeApi {
         log.silly(`${requestOpts.method.toUpperCase()} ${url}`)
         return await request(requestOpts)
       } catch (err) {
-        throw handleRequestPromiseError(err)
+        throw handleRequestPromiseError(path, err)
       }
     })
   }
@@ -687,7 +687,7 @@ export class KubeApi {
                   })
                   // the API errors are not properly formed Error objects
                   .catch((err: Error) => {
-                    throw wrapError(err)
+                    throw wrapError(name, err)
                   })
               )
             }
@@ -903,11 +903,11 @@ async function getContextConfig(log: LogEntry, ctx: PluginContext, provider: Kub
   return kc
 }
 
-function wrapError(err: any) {
+function wrapError(name: string, err: any) {
   if (!err.message || err.name === "HttpError") {
     const response = err.response || {}
     const body = response.body || err.body
-    const wrapped = new KubernetesError(`Got error from Kubernetes API - ${body.message}`, {
+    const wrapped = new KubernetesError(`Got error from Kubernetes API (${name}) - ${body.message}`, {
       body,
       request: omitBy(response.request, (v, k) => isObject(v) || k[0] === "_"),
     })
@@ -918,16 +918,16 @@ function wrapError(err: any) {
   }
 }
 
-function handleRequestPromiseError(err: Error) {
+function handleRequestPromiseError(name: string, err: Error) {
   if (err instanceof requestErrors.StatusCodeError) {
-    const wrapped = new KubernetesError(`StatusCodeError from Kubernetes API - ${err.message}`, {
+    const wrapped = new KubernetesError(`StatusCodeError from Kubernetes API (${name}) - ${err.message}`, {
       body: err.error,
     })
     wrapped.statusCode = err.statusCode
 
     return wrapped
   } else {
-    return wrapError(err)
+    return wrapError(name, err)
   }
 }
 

@@ -7,15 +7,15 @@ tocTitle: "`kubernetes`"
 
 ## Description
 
-The `kubernetes` provider allows you to deploy [`container` modules](https://docs.garden.io/reference/module-types/container) to
-Kubernetes clusters, and adds the [`helm`](https://docs.garden.io/reference/module-types/helm) and
-[`kubernetes`](https://docs.garden.io/reference/module-types/kubernetes) module types.
+The `kubernetes` provider allows you to deploy [`container` modules](../module-types/container.md) to
+Kubernetes clusters, and adds the [`helm`](../module-types/helm.md) and
+[`kubernetes`](../module-types/kubernetes.md) module types.
 
 For usage information, please refer to the [guides section](https://docs.garden.io/guides). A good place to start is
-the [Remote Kubernetes guide](https://docs.garden.io/guides/remote-kubernetes) guide if you're connecting to remote clusters.
-The [Getting Started](https://docs.garden.io/getting-started/0-introduction) guide is also helpful as an introduction.
+the [Remote Kubernetes guide](../../guides/remote-kubernetes.md) guide if you're connecting to remote clusters.
+The [Getting Started](../../getting-started/0-introduction.md) guide is also helpful as an introduction.
 
-Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](https://docs.garden.io/reference/providers/local-kubernetes) simplifies (and automates) the configuration and setup quite a bit.
+Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](./local-kubernetes.md) simplifies (and automates) the configuration and setup quite a bit.
 
 Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
 
