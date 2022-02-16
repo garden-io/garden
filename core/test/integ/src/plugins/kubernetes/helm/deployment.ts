@@ -8,15 +8,24 @@
 
 import { expect } from "chai"
 
-import { TestGarden } from "../../../../../helpers"
+import { dataDir, makeTestGarden, TestGarden } from "../../../../../helpers"
 import { deployHelmService } from "../../../../../../src/plugins/kubernetes/helm/deployment"
 import { emptyRuntimeContext } from "../../../../../../src/runtime-context"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
-import { getReleaseStatus } from "../../../../../../src/plugins/kubernetes/helm/status"
+import {
+  gardenCloudAECPauseAnnotation,
+  getReleaseStatus,
+  getRenderedResources,
+} from "../../../../../../src/plugins/kubernetes/helm/status"
 import { getReleaseName } from "../../../../../../src/plugins/kubernetes/helm/common"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { getHelmTestGarden, buildHelmModules } from "./common"
 import { ConfigGraph } from "../../../../../../src/config-graph"
+import { isWorkload } from "../../../../../../src/plugins/kubernetes/util"
+import Bluebird from "bluebird"
+import { CloudApi } from "../../../../../../src/cloud/api"
+import { resolve } from "path"
+import { getLogger } from "../../../../../../src/logger/logger"
 
 describe("deployHelmService", () => {
   let garden: TestGarden
@@ -58,6 +67,7 @@ describe("deployHelmService", () => {
     const releaseName = getReleaseName(service.module)
     const releaseStatus = await getReleaseStatus({
       ctx,
+      module: service.module,
       service,
       releaseName,
       log: garden.log,
@@ -98,6 +108,7 @@ describe("deployHelmService", () => {
     const releaseName = getReleaseName(service.module)
     const status = await getReleaseStatus({
       ctx,
+      module: service.module,
       service,
       releaseName,
       log: garden.log,
@@ -132,6 +143,7 @@ describe("deployHelmService", () => {
 
     const status = await getReleaseStatus({
       ctx,
+      module: service.module,
       service,
       releaseName,
       log: garden.log,
@@ -169,6 +181,7 @@ describe("deployHelmService", () => {
     const releaseName = getReleaseName(service.module)
     const status = await getReleaseStatus({
       ctx,
+      module: service.module,
       service,
       releaseName,
       log: garden.log,
@@ -185,5 +198,89 @@ describe("deployHelmService", () => {
 
     // Deployment should exist
     await api.apps.readNamespacedDeployment("chart-with-namespace", namespace)
+  })
+
+  it("should mark a chart that has been paused by Garden Cloud AEC as outdated", async () => {
+    const fakeCloudApi = new CloudApi(getLogger().placeholder(), "https://test.cloud.garden.io", "project-id")
+    const projectRoot = resolve(dataDir, "test-projects", "helm")
+    const gardenWithCloudApi = await makeTestGarden(projectRoot, { cloudApi: fakeCloudApi })
+
+    graph = await gardenWithCloudApi.getConfigGraph({ log: gardenWithCloudApi.log, emit: false })
+    const providerWithApi = <KubernetesProvider>await garden.resolveProvider(gardenWithCloudApi.log, "local-kubernetes")
+    const ctxWithCloudApi = <KubernetesPluginContext>await gardenWithCloudApi.getPluginContext(providerWithApi)
+
+    const service = graph.getService("api")
+
+    const status = await deployHelmService({
+      ctx: ctxWithCloudApi,
+      log: gardenWithCloudApi.log,
+      module: service.module,
+      service,
+      force: false,
+      devMode: false,
+      hotReload: false,
+      runtimeContext: emptyRuntimeContext,
+    })
+
+    const releaseName = getReleaseName(service.module)
+    const releaseStatus = await getReleaseStatus({
+      ctx: ctxWithCloudApi,
+      module: service.module,
+      service,
+      releaseName,
+      log: gardenWithCloudApi.log,
+      devMode: false,
+      hotReload: false,
+    })
+
+    expect(releaseStatus.state).to.equal("ready")
+    expect(releaseStatus.detail["values"][".garden"]).to.eql({
+      moduleName: "api",
+      projectName: gardenWithCloudApi.projectName,
+      version: service.version,
+    })
+    expect(status.namespaceStatuses).to.eql([
+      {
+        pluginName: "local-kubernetes",
+        namespaceName: "helm-test-default",
+        state: "ready",
+      },
+    ])
+
+    const api = await KubeApi.factory(gardenWithCloudApi.log, ctxWithCloudApi, ctxWithCloudApi.provider)
+    const renderedResources = await getRenderedResources({
+      ctx: ctxWithCloudApi,
+      module: service.module,
+      releaseName,
+      log: gardenWithCloudApi.log,
+    })
+    const workloads = renderedResources.filter(
+      (resource) => isWorkload(resource) && resource.metadata.name === "api-release"
+    )
+    const apiDeployment = (
+      await Bluebird.all(
+        workloads.map((workload) =>
+          api.readBySpec({ log: gardenWithCloudApi.log, namespace: "helm-test-default", manifest: workload })
+        )
+      )
+    )[0]
+    const existingAnnotations = apiDeployment.metadata.annotations
+    apiDeployment.metadata.annotations = {
+      ...existingAnnotations,
+      [gardenCloudAECPauseAnnotation]: "paused",
+    }
+
+    await api.apps.patchNamespacedDeployment(apiDeployment.metadata?.name, "helm-test-default", apiDeployment)
+
+    const releaseStatusAfterScaleDown = await getReleaseStatus({
+      ctx: ctxWithCloudApi,
+      module: service.module,
+      service,
+      releaseName,
+      log: gardenWithCloudApi.log,
+      devMode: false,
+      hotReload: false,
+    })
+    expect(releaseStatusAfterScaleDown.state).to.equal("outdated")
   })
 })
