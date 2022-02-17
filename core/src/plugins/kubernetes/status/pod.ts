@@ -117,7 +117,9 @@ export async function getPodLogs({
         timestamps
       )
     } catch (err) {
-      if (err.statusCode === 404) {
+      const terminated = err.statusCode === 400 && err.detail?.body?.message?.endsWith("is terminated")
+
+      if (terminated || err.statusCode === 404) {
         // Couldn't find pod/container, try requesting a previously terminated one
         try {
           log = await api.core.readNamespacedPodLog(
@@ -139,8 +141,6 @@ export async function getPodLogs({
       } else if (err instanceof KubernetesError && err.message.includes("waiting to start")) {
         log = ""
       } else {
-        console.log(typeof err)
-        console.log({ ...err })
         throw err
       }
     }
