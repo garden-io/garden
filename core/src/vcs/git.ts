@@ -397,7 +397,6 @@ export class GitHandler extends VcsHandler {
 
     function ensureHash(entry: FileEntry, stats: Stats, cb: (err: Error | null, entry?: FileEntry) => void) {
       if (entry.hash === "" || modified.has(entry.path)) {
-        // console.log("hash", entry.path, modified.has(entry.path), entry)
         // Don't attempt to hash directories. Directories will by extension be filtered out of the list.
         if (!stats.isDirectory()) {
           return _this.hashObject(stats, entry.path, (err, hash) => {

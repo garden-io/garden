@@ -305,7 +305,7 @@ export class K8sLogFollower<T> {
         return
       } else if (conn) {
         // The connection has been registered but is not active
-        this.log.debug(
+        this.log.silly(
           `<Not connected to container ${conn.containerName} in Pod ${conn.pod.metadata.name}. Connection has status ${conn?.status}>`
         )
       }
@@ -380,7 +380,7 @@ export class K8sLogFollower<T> {
       }
 
       req.on("response", async () => {
-        this.log.debug(`<Connected to container '${containerName}' in Pod '${pod.metadata.name}'>`)
+        this.log.silly(`<Connected to container '${containerName}' in Pod '${pod.metadata.name}'>`)
       })
       req.on("error", (error) => this.handleConnectionClose(connectionId, "error", error.message))
       req.on("close", () => this.handleConnectionClose(connectionId, "closed", "Request closed"))
