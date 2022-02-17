@@ -73,7 +73,7 @@ manifests:
         protocol: TCP
         targetPort: 8080
       type: ClusterIP
-  - apiVersion: extensions/v1beta1
+  - apiVersion: networking.k8s.io/v1
     kind: Ingress
     metadata:
       labels:
@@ -84,7 +84,10 @@ manifests:
       - host: ${var.default-hostname}
         http:
           paths:
-          - backend:
-              serviceName: node-service
-              servicePort: 8080
-            path: /hello
+          - path: /hello
+            pathType: Prefix
+            backend:
+              service:
+                name: node-service
+                port:
+                  number: 8080
