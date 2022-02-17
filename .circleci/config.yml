@@ -708,6 +708,10 @@ jobs:
       kubernetesVersion:
         description: The Kubernetes version to run
         type: string
+      skipTests:
+        description: Integ test groups to skip
+        type: string
+        default: "cluster-docker kaniko remote-only"
       testOpenfaas:
         description: Whether to test the openfaas project
         type: boolean
@@ -754,7 +758,9 @@ jobs:
       - run:
           name: Integ tests
           # Note: We skip tests that only work for remote environments
-          command: cd core && yarn integ-minikube
+          command: |
+            cd core
+            GARDEN_SKIP_TESTS="<<parameters.skipTests>>" yarn _integ
       - run:
           name: Deploy demo-project
           command: sudo -E ./bin/garden deploy --root examples/demo-project
@@ -947,6 +953,10 @@ workflows:
           requires: [build]
           kubernetesVersion: "1.22.2"
           minikubeVersion: "v1.23.2"
+          # cluster-buildkit works on other minikube versions, but the in-cluster registry has issues on the latest version
+          # This is sort of fine, since we don't _really_ support in-cluster building on minikube, just been using it for
+          # integration tests.
+          skipTests: cluster-docker cluster-buildkit kaniko remote-only
           # OpenFaaS project fails without ingress, which doesn't work in CircleCI on minikube v1.12+, which is necessary
           # for most recent k8s versions.
           testOpenfaas: false

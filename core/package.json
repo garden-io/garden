@@ -257,7 +257,7 @@
     "_integ": "mocha --config .mocharc.integ.yml",
     "integ-kind": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"cluster-docker cluster-buildkit cluster-buildkit-rootless kaniko remote-only\" yarn _integ",
     "integ-local": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"cluster-docker remote-only\" yarn _integ",
-    "integ-minikube": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"cluster-docker kaniko remote-only\" yarn _integ",
+    "integ-minikube": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"cluster-docker in-cluster-registry remote-only\" yarn _integ",
     "integ-remote": "GARDEN_INTEG_TEST_MODE=remote GARDEN_SKIP_TESTS=local-only yarn _integ",
     "test": "mocha"
   },
