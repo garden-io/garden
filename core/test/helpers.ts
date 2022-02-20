@@ -14,7 +14,7 @@ import { remove, copy, mkdirp, pathExists, truncate, ensureDir } from "fs-extra"
 import execa = require("execa")
 
 import { containerModuleSpecSchema, containerTestSchema, containerTaskSchema } from "../src/plugins/container/config"
-import { testExecModule, buildExecModule, execBuildSpecSchema } from "../src/plugins/exec"
+import { testExecModule, buildExecModule, execBuildSpecSchema } from "../src/plugins/exec/exec"
 import { joiArray, joi } from "../src/config/common"
 import {
   PluginActionHandlers,

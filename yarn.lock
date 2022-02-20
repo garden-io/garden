@@ -17820,6 +17820,13 @@ terminal-link@^2.1.1:
     ansi-escapes "^4.2.1"
     supports-hyperlinks "^2.0.0"
 
+terminate@^2.5.0:
+  version "2.5.0"
+  resolved "https://registry.yarnpkg.com/terminate/-/terminate-2.5.0.tgz#c10f324ec1072f16fc6d028dd26ce7fe8f10bd26"
+  integrity sha512-WnhIjfoTiIvmrfey4GSkqJevEHbIFnSdKeutHwA+cm81/1+GlAHLw1pBKxsKqkrqMaQKK65V6WrvUa851phbgA==
+  dependencies:
+    ps-tree "^1.2.0"
+
 terser-webpack-plugin@2.3.5:
   version "2.3.5"
   resolved "https://registry.yarnpkg.com/terser-webpack-plugin/-/terser-webpack-plugin-2.3.5.tgz#5ad971acce5c517440ba873ea4f09687de2f4a81"

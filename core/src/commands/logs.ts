@@ -142,6 +142,7 @@ export class LogsCommand extends Command<Args, Opts> {
     const { follow, timestamps, tag } = opts
     let tail = opts.tail as number | undefined
     let since = opts.since as string | undefined
+    // TODO: Remove in v0.13 because we now always apply the original style to logs.
     const originalColor = opts["original-color"]
     const showContainer = opts["show-container"]
     const showTags = opts["show-tags"]
@@ -150,7 +151,7 @@ export class LogsCommand extends Command<Args, Opts> {
 
     let tagFilters: LogsTagOrFilter | undefined = undefined
 
-    if (tail) {
+    if (tail !== undefined) {
       // Tail takes precedence over since...
       since = undefined
     } else if (follow && !since) {
@@ -273,12 +274,8 @@ export class LogsCommand extends Command<Args, Opts> {
       if (tags) {
         out += chalk.gray("[" + tags + "] ")
       }
-      if (originalColor) {
-        // If the line doesn't have ansi encoding, we color it white to prevent logger from applying styles.
-        out += hasAnsi(serviceLog) ? serviceLog : chalk.white(serviceLog)
-      } else {
-        out += style(serviceLog)
-      }
+      // If the line doesn't have ansi encoding, we color it white to prevent logger from applying styles.
+      out += hasAnsi(serviceLog) ? serviceLog : chalk.white(serviceLog)
 
       return out
     }

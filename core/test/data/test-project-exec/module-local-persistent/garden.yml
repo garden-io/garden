@@ -1,0 +1,17 @@
+kind: Module
+name: module-local-persistent
+type: exec
+local: true
+services:
+  - name: persistent
+    persistent: true
+    deployCommand: [/bin/sh -c "while true; do sleep 10000; done"]
+  - name: persistent-with-logs
+    persistent: true
+    deployCommand: [/bin/sh -c 'for((i=1;i<=5;i+=1)); do echo "Hello $i"; done']
+    timeout: 1
+  - name: persistent-timeout
+    persistent: true
+    deployCommand: [/bin/sh -c "while true; do sleep 10000; done"]
+    statusCommand: [/bin/sh -c "exit 1"]
+    timeout: 1
