@@ -860,3 +860,11 @@ export function userPrompt(params: {
 }) {
   return require("inquirer").prompt(params)
 }
+
+export function getGitHubIssueLink(title: string, type: "bug" | "feature-request") {
+  if (type === "feature-request") {
+    return `https://github.com/garden-io/garden/issues/new?assignees=&labels=feature+request&template=FEATURE_REQUEST.md&title=%5BFEATURE%5D%3A+${title}`
+  } else {
+    return `https://github.com/garden-io/garden/issues/new?assignees=&labels=&template=BUG_REPORT.md&title=${title}`
+  }
+}

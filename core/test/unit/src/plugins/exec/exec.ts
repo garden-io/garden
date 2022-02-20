@@ -8,23 +8,26 @@
 
 import { expect } from "chai"
 import { join, resolve } from "path"
-import { Garden } from "../../../../src/garden"
-import { gardenPlugin, configureExecModule } from "../../../../src/plugins/exec"
-import { GARDEN_BUILD_VERSION_FILENAME, DEFAULT_API_VERSION } from "../../../../src/constants"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import terminate from "terminate/promise"
+
+import { Garden } from "../../../../../src/garden"
+import { gardenPlugin, configureExecModule, getLogFilePath } from "../../../../../src/plugins/exec/exec"
+import { GARDEN_BUILD_VERSION_FILENAME, DEFAULT_API_VERSION } from "../../../../../src/constants"
+import { LogEntry } from "../../../../../src/logger/log-entry"
 import { keyBy } from "lodash"
-import { getDataDir, makeTestModule, expectError } from "../../../helpers"
-import { TaskTask } from "../../../../src/tasks/task"
-import { readModuleVersionFile } from "../../../../src/vcs/vcs"
-import { dataDir, makeTestGarden } from "../../../helpers"
-import { ModuleConfig } from "../../../../src/config/module"
-import { ConfigGraph } from "../../../../src/config-graph"
+import { getDataDir, makeTestModule, expectError } from "../../../../helpers"
+import { TaskTask } from "../../../../../src/tasks/task"
+import { readModuleVersionFile } from "../../../../../src/vcs/vcs"
+import { dataDir, makeTestGarden } from "../../../../helpers"
+import { ModuleConfig } from "../../../../../src/config/module"
+import { ConfigGraph } from "../../../../../src/config-graph"
 import { pathExists, emptyDir } from "fs-extra"
-import { TestTask } from "../../../../src/tasks/test"
-import { defaultNamespace } from "../../../../src/config/project"
+import { TestTask } from "../../../../../src/tasks/test"
+import { defaultNamespace } from "../../../../../src/config/project"
 import { readFile, remove } from "fs-extra"
-import { testFromConfig } from "../../../../src/types/test"
-import { dedent } from "../../../../src/util/string"
+import { testFromConfig } from "../../../../../src/types/test"
+import { dedent } from "../../../../../src/util/string"
+import { sleep } from "../../../../../src/util/util"
 
 describe("exec plugin", () => {
   const moduleName = "module-a"
@@ -579,6 +582,136 @@ describe("exec plugin", () => {
             fail!
             `)
         )
+      })
+      context("persistent", () => {
+        // We set the pid in the "it" statements.
+        let pid = -1
+
+        afterEach(async () => {
+          if (pid > 1) {
+            try {
+              // This ensures the actual child process gets killed.
+              // See: https://github.com/sindresorhus/execa/issues/96#issuecomment-776280798
+              await terminate(pid)
+            } catch (_err) {}
+          }
+        })
+
+        it("should run a persistent local service", async () => {
+          const service = graph.getService("persistent")
+          const actions = await garden.getActionRouter()
+          const res = await actions.deployService({
+            devMode: true,
+            force: false,
+            hotReload: false,
+            log,
+            service,
+            graph,
+            runtimeContext: {
+              envVars: {},
+              dependencies: [],
+            },
+          })
+
+          pid = res.detail.pid
+          expect(pid).to.be.a("number")
+          expect(pid).to.be.greaterThan(0)
+        })
+        it("should write logs to a local file with the proper format", async () => {
+          // This services just echos a string N times before exiting.
+          const service = graph.getService("persistent-with-logs")
+          const actions = await garden.getActionRouter()
+          const res = await actions.deployService({
+            devMode: true,
+            force: false,
+            hotReload: false,
+            log,
+            service,
+            graph,
+            runtimeContext: {
+              envVars: {},
+              dependencies: [],
+            },
+          })
+
+          // Wait for entries to be written since we otherwise don't wait on persistent commands (unless a status command is set).
+          await sleep(1500)
+
+          pid = res.detail.pid
+          expect(pid).to.be.a("number")
+          expect(pid).to.be.greaterThan(0)
+
+          const logFilePath = getLogFilePath({ projectRoot: garden.projectRoot, serviceName: service.name })
+          const logFileContents = (await readFile(logFilePath)).toString()
+          const logEntriesWithoutTimestamps = logFileContents
+            .split("\n")
+            .filter((line) => !!line)
+            .map((line) => JSON.parse(line))
+            .map((parsed) => {
+              return {
+                serviceName: parsed.serviceName,
+                msg: parsed.msg,
+                level: parsed.level,
+              }
+            })
+
+          expect(logEntriesWithoutTimestamps).to.eql([
+            {
+              serviceName: "persistent-with-logs",
+              msg: "Hello 1",
+              level: "info",
+            },
+            {
+              serviceName: "persistent-with-logs",
+              msg: "Hello 2",
+              level: "info",
+            },
+            {
+              serviceName: "persistent-with-logs",
+              msg: "Hello 3",
+              level: "info",
+            },
+            {
+              serviceName: "persistent-with-logs",
+              msg: "Hello 4",
+              level: "info",
+            },
+            {
+              serviceName: "persistent-with-logs",
+              msg: "Hello 5",
+              level: "info",
+            },
+          ])
+        })
+        it("should eventually timeout if status command is set and it returns a non-zero exit code ", async () => {
+          const service = graph.getService("persistent-timeout")
+          const actions = await garden.getActionRouter()
+          let error: any
+          try {
+            await actions.deployService({
+              devMode: true,
+              force: false,
+              hotReload: false,
+              log,
+              service,
+              graph,
+              runtimeContext: {
+                envVars: {},
+                dependencies: [],
+              },
+            })
+          } catch (err) {
+            error = err
+          }
+
+          pid = error.detail.pid
+          expect(pid).to.be.a("number")
+          expect(pid).to.be.greaterThan(0)
+          expect(error.detail.serviceName).to.eql("persistent-timeout")
+          expect(error.detail.statusCommand).to.eql([`/bin/sh -c "exit 1"`])
+          expect(error.detail.timeout).to.eql(1)
+          expect(error.message).to.eql(`Timed out waiting for local service persistent-timeout to be ready`)
+        })
       })
     })
 

@@ -1,0 +1,47 @@
+kind: Module
+name: frontend
+description: Frontend service container
+type: container
+include: ["."]
+variables:
+  env:
+    PORT: 8080
+services:
+  - name: frontend
+    ports:
+      - name: http
+        containerPort: 8080
+    healthCheck:
+      httpGet:
+        path: /hello-frontend
+        port: http
+    ingresses:
+      - path: /hello-frontend
+        port: http
+      - path: /call-backend
+        port: http
+    dependencies:
+      - backend
+    env: ${var.env}
+tests:
+  - name: unit
+    args: [npm, test]
+  - name: integ
+    args: [npm, run, integ]
+    dependencies:
+      - frontend
+    env: ${var.env}
+
+---
+
+kind: Module
+name: frontend-local
+type: exec
+local: true
+include: []
+services:
+  - name: frontend-local
+    deployCommand: ["yarn", "run", "dev"]
+    persistent: true
+    statusCommand: [./check-local-status.sh]
+    env: ${modules.frontend.var.env}

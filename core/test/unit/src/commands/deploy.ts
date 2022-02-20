@@ -9,7 +9,7 @@
 import { join } from "path"
 import { DeployCommand } from "../../../../src/commands/deploy"
 import { expect } from "chai"
-import { buildExecModule } from "../../../../src/plugins/exec"
+import { buildExecModule } from "../../../../src/plugins/exec/exec"
 import { ServiceState, ServiceStatus } from "../../../../src/types/service"
 import {
   taskResultOutputs,

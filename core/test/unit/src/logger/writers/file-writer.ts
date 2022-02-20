@@ -18,7 +18,7 @@ const logger: Logger = getLogger()
 
 beforeEach(() => {
   // tslint:disable-next-line: prettier
-  (logger["children"] as any) = []
+  ;(logger["children"] as any) = []
 })
 
 describe("FileWriter", () => {

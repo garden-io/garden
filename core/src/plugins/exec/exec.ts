@@ -9,38 +9,60 @@
 import Bluebird from "bluebird"
 import { mapValues, omit } from "lodash"
 import { join } from "path"
-import { joiArray, joiEnvVars, joi, joiSparseArray, PrimitiveMap } from "../config/common"
-import { validateWithPath, ArtifactSpec } from "../config/validation"
-import { createGardenPlugin, ServiceActionHandlers } from "../types/plugin/plugin"
-import { GardenModule, getModuleKey } from "../types/module"
-import { baseServiceSpecSchema, CommonServiceSpec } from "../config/service"
-import { BaseTestSpec, baseTestSpecSchema } from "../config/test"
-import { writeModuleVersionFile } from "../vcs/vcs"
-import { GARDEN_BUILD_VERSION_FILENAME } from "../constants"
-import { ModuleSpec, BaseBuildSpec, baseBuildSpecSchema, ModuleConfig } from "../config/module"
-import { BaseTaskSpec, baseTaskSpecSchema } from "../config/task"
-import { dedent } from "../util/string"
-import { ConfigureModuleParams, ConfigureModuleResult } from "../types/plugin/module/configure"
-import { BuildModuleParams, BuildResult } from "../types/plugin/module/build"
-import { TestModuleParams } from "../types/plugin/module/testModule"
-import { TestResult } from "../types/plugin/module/getTestResult"
-import { RunTaskParams, RunTaskResult } from "../types/plugin/task/runTask"
-import { createOutputStream, exec, ExecOpts, runScript } from "../util/util"
-import { ConfigurationError, RuntimeError } from "../exceptions"
-import { LogEntry } from "../logger/log-entry"
-import { providerConfigBaseSchema } from "../config/provider"
-import { ExecaError } from "execa"
-import { artifactsTargetDescription } from "./container/config"
+import split2 = require("split2")
+import { joiArray, joiEnvVars, joi, joiSparseArray, PrimitiveMap } from "../../config/common"
+import { validateWithPath, ArtifactSpec } from "../../config/validation"
+import { createGardenPlugin, ServiceActionHandlers } from "../../types/plugin/plugin"
+import { GardenModule, getModuleKey } from "../../types/module"
+import { baseServiceSpecSchema, CommonServiceSpec } from "../../config/service"
+import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
+import { writeModuleVersionFile } from "../../vcs/vcs"
+import { GARDEN_BUILD_VERSION_FILENAME, LOGS_DIR } from "../../constants"
+import { ModuleSpec, BaseBuildSpec, baseBuildSpecSchema, ModuleConfig } from "../../config/module"
+import { BaseTaskSpec, baseTaskSpecSchema } from "../../config/task"
+import { dedent } from "../../util/string"
+import { ConfigureModuleParams, ConfigureModuleResult } from "../../types/plugin/module/configure"
+import { BuildModuleParams, BuildResult } from "../../types/plugin/module/build"
+import { TestModuleParams } from "../../types/plugin/module/testModule"
+import { TestResult } from "../../types/plugin/module/getTestResult"
+import { RunTaskParams, RunTaskResult } from "../../types/plugin/task/runTask"
+import { createOutputStream, exec, ExecOpts, runScript, sleep } from "../../util/util"
+import { ConfigurationError, RuntimeError, TimeoutError } from "../../exceptions"
+import { LogEntry } from "../../logger/log-entry"
+import { providerConfigBaseSchema } from "../../config/provider"
+import execa, { ExecaError, ExecaChildProcess } from "execa"
+import { artifactsTargetDescription } from "../container/config"
 import chalk = require("chalk")
-import { renderMessageWithDivider } from "../logger/util"
-import { RunModuleParams } from "../types/plugin/module/runModule"
-import { RunResult } from "../types/plugin/base"
-import { LogLevel } from "../logger/logger"
+import { renderMessageWithDivider } from "../../logger/util"
+import { RunModuleParams } from "../../types/plugin/module/runModule"
+import { RunResult } from "../../types/plugin/base"
+import { LogLevel } from "../../logger/logger"
+import { GardenService } from "../../types/service"
+import { createWriteStream } from "fs"
+import { ensureFile, remove } from "fs-extra"
+import { Transform } from "stream"
+import { ExecLogsFollower } from "./logs"
 
 const execPathDoc = dedent`
   By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
   If the top level \`local\` directive is set to \`true\`, the command runs in the module source directory instead.
 `
+const persistentLocalProcDefaultTimeoutSec = 10
+const persistentLocalProcRetryIntervalMs = 2500
+
+interface ExecProc {
+  key: string
+  proc: ExecaChildProcess
+  service: GardenService
+}
+
+const localProcs: { [key: string]: ExecProc } = {}
+
+const localLogsDir = join(LOGS_DIR, "local-services")
+
+export function getLogFilePath({ projectRoot, serviceName }: { projectRoot: string; serviceName: string }) {
+  return join(projectRoot, localLogsDir, `${serviceName}.jsonl`)
+}
 
 const artifactSchema = () =>
   joi.object().keys({
@@ -60,6 +82,8 @@ export interface ExecServiceSpec extends CommonServiceSpec {
   cleanupCommand?: string[]
   deployCommand: string[]
   statusCommand?: string[]
+  persistent: boolean
+  timeout?: number
   env: { [key: string]: string }
 }
 
@@ -102,6 +126,19 @@ export const execServiceSchema = () =>
           ${execPathDoc}
           `
         ),
+      persistent: joi.boolean().description(dedent`
+        If set to true, Garden will not wait for the command to exit. Useful for long running local processes
+        such as local dev servers.
+
+        If a \`statusCommand\` is specified, Garden will wait until until it returns a 0 exit code before
+        considering the service ready.
+      `),
+      // TODO: Set a default in v0.13.
+      timeout: joi.number().description(dedent`
+        The maximum duration (in seconds) to wait for a local script to exit. In the case of a persistent
+        local process, this is the maximum duration to wait for the \`statusCommand\` to return a 0
+        exit code, if it's set.
+      `),
       env: joiEnvVars().description("Environment variables to set when running the deploy and status commands."),
     })
     .description("A service to deploy using shell commands.")
@@ -284,6 +321,61 @@ function getDefaultEnvVars(module: ExecModule) {
     PKG_EXECPATH: "",
     ...mapValues(module.spec.env, (v) => v.toString()),
   }
+}
+
+async function rotateLogFile(logFilePath: string) {
+  await remove(logFilePath)
+  await ensureFile(logFilePath)
+}
+
+function runPersistent({
+  command,
+  module,
+  env,
+  service,
+  logFilePath,
+  opts = {},
+}: {
+  command: string[]
+  module: ExecModule
+  log: LogEntry
+  service: GardenService
+  logFilePath: string
+  env?: PrimitiveMap
+  opts?: ExecOpts
+}) {
+  const toLogEntry = (level: string) =>
+    new Transform({
+      transform(chunk, _encoding, cb) {
+        const line = chunk.toString().trim()
+        if (!line) {
+          return
+        }
+        const entry = {
+          timestamp: new Date(),
+          serviceName: service.name,
+          msg: line,
+          level,
+        }
+        const entryStr = JSON.stringify(entry) + "\n"
+        cb(null, entryStr)
+      },
+    })
+
+  const proc = execa(command.join(" "), [], {
+    cwd: module.buildPath,
+    env: {
+      ...getDefaultEnvVars(module),
+      ...(env ? mapValues(env, (v) => v + "") : {}),
+    },
+    // TODO: remove this in 0.13 and alert users to use e.g. sh -c '<script>' instead.
+    shell: true,
+    ...opts,
+  })
+  proc.stdout?.pipe(split2()).pipe(toLogEntry("info")).pipe(createWriteStream(logFilePath))
+  proc.stderr?.pipe(split2()).pipe(toLogEntry("error")).pipe(createWriteStream(logFilePath))
+
+  return proc
 }
 
 async function run({
@@ -471,24 +563,111 @@ export const getExecServiceStatus: ServiceActionHandlers["getServiceStatus"] = a
   }
 }
 
-export const deployExecService: ServiceActionHandlers["deployService"] = async (params) => {
-  const { module, service, log } = params
+export const getExecServiceLogs: ServiceActionHandlers["getServiceLogs"] = async (params) => {
+  const { service, stream, follow, ctx, log } = params
 
-  const result = await run({
-    command: service.spec.deployCommand,
-    module,
-    log,
-    env: service.spec.env,
-    opts: { reject: true },
-  })
+  const logFilePath = getLogFilePath({ projectRoot: ctx.projectRoot, serviceName: service.name })
+  const logsFollower = new ExecLogsFollower({ stream, log, logFilePath, serviceName: service.name })
 
-  const outputLog = (result.stdout + result.stderr).trim()
-  if (outputLog) {
-    const prefix = `Finished deploying service ${chalk.white(service.name)}. Here is the output:`
-    log.verbose(renderMessageWithDivider(prefix, outputLog, false, chalk.gray))
+  if (follow) {
+    ctx.events.on("abort", () => {
+      logsFollower.stop()
+    })
+
+    await logsFollower.streamLogs({ since: params.since, tail: params.tail, follow: true })
+  } else {
+    await logsFollower.streamLogs({ since: params.since, tail: params.tail, follow: false })
   }
 
-  return { state: "ready", detail: { deployCommandOutput: result.all } }
+  return {}
+}
+
+export const deployExecService: ServiceActionHandlers["deployService"] = async (params) => {
+  const { module, service, log, ctx } = params
+
+  // TODO: Check if it's in watch mode in general
+  const watchMode = params.devMode || params.hotReload || params.ctx.command.opts["watch"]
+  if (watchMode && service.spec.persistent) {
+    // FIXME: Not sure if this emitted anywhere.
+    ctx.events.on("abort", () => {
+      const localProc = localProcs[service.name]
+      if (localProc) {
+        localProc.proc.cancel()
+      }
+    })
+
+    const logFilePath = getLogFilePath({ projectRoot: ctx.projectRoot, serviceName: service.name })
+    try {
+      await rotateLogFile(logFilePath)
+    } catch (err) {
+      log.debug(`Failed rotating log file for service ${service.name} at path ${logFilePath}: ${err.message}`)
+    }
+
+    const key = service.name
+    const proc = runPersistent({
+      command: service.spec.deployCommand,
+      module,
+      log,
+      service,
+      logFilePath,
+      env: service.spec.env,
+      opts: { reject: true },
+    })
+    localProcs[key] = {
+      proc,
+      key,
+      service,
+    }
+
+    let ready = service.spec.statusCommand ? false : true
+    const startedAt = new Date()
+
+    while (!ready) {
+      const now = new Date()
+      const timeElapsedSec = (now.getTime() - startedAt.getTime()) / 1000
+      // TODO: Remove once we set a default value that the timeout spec in v0.13.
+      const timeout = service.spec.timeout || persistentLocalProcDefaultTimeoutSec
+
+      if (timeElapsedSec > timeout) {
+        throw new TimeoutError(`Timed out waiting for local service ${service.name} to be ready`, {
+          serviceName: service.name,
+          statusCommand: service.spec.statusCommand,
+          pid: proc.pid,
+          timeout,
+        })
+      }
+
+      const result = await run({
+        command: service.spec.statusCommand,
+        module,
+        log,
+        env: service.spec.env,
+        opts: { reject: false },
+      })
+
+      ready = result.exitCode === 0
+
+      await sleep(persistentLocalProcRetryIntervalMs)
+    }
+
+    return { state: "ready", detail: { persistent: true, pid: proc.pid } }
+  } else {
+    const result = await run({
+      command: service.spec.deployCommand,
+      module,
+      log,
+      env: service.spec.env,
+      opts: { reject: true },
+    })
+
+    const outputLog = (result.stdout + result.stderr).trim()
+    if (outputLog) {
+      const prefix = `Finished deploying service ${chalk.white(service.name)}. Here is the output:`
+      log.verbose(renderMessageWithDivider(prefix, outputLog, false, chalk.gray))
+    }
+
+    return { state: "ready", detail: { deployCommandOutput: result.all } }
+  }
 }
 
 export const deleteExecService: ServiceActionHandlers["deleteService"] = async (params) => {
@@ -563,6 +742,7 @@ export const execPlugin = () =>
           build: buildExecModule,
           deployService: deployExecService,
           deleteService: deleteExecService,
+          getServiceLogs: getExecServiceLogs,
           getServiceStatus: getExecServiceStatus,
           runTask: runExecTask,
           runModule: runExecModule,

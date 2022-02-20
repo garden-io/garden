@@ -224,6 +224,18 @@ services:
     # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
     cleanupCommand:
 
+    # If set to true, Garden will not wait for the command to exit. Useful for long running local processes
+    # such as local dev servers.
+    #
+    # If a `statusCommand` is specified, Garden will wait until until it returns a 0 exit code before
+    # considering the service ready.
+    persistent:
+
+    # The maximum duration (in seconds) to wait for a local script to exit. In the case of a persistent
+    # local process, this is the maximum duration to wait for the `statusCommand` to return a 0
+    # exit code, if it's set.
+    timeout:
+
     # Environment variables to set when running the deploy and status commands.
     env: {}
 
@@ -731,6 +743,32 @@ If the top level `local` directive is set to `true`, the command runs in the mod
 | Type            | Required |
 | --------------- | -------- |
 | `array[string]` | No       |
+
+### `services[].persistent`
+
+[services](#services) > persistent
+
+If set to true, Garden will not wait for the command to exit. Useful for long running local processes
+such as local dev servers.
+
+If a `statusCommand` is specified, Garden will wait until until it returns a 0 exit code before
+considering the service ready.
+
+| Type      | Required |
+| --------- | -------- |
+| `boolean` | No       |
+
+### `services[].timeout`
+
+[services](#services) > timeout
+
+The maximum duration (in seconds) to wait for a local script to exit. In the case of a persistent
+local process, this is the maximum duration to wait for the `statusCommand` to return a 0
+exit code, if it's set.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
 
 ### `services[].env`
 
