@@ -9,7 +9,7 @@ brew install ${BREW_DEPS}
 brew upgrade ${BREW_DEPS}
 
 # install and set up Google Cloud SDK
-brew cask install google-cloud-sdk
+brew install --cask google-cloud-sdk
 
 gcloud components update
 gcloud components install beta
