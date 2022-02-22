@@ -43,7 +43,7 @@ And it's used like this:
 
 ```yaml
 kind: Module
-type:
+type: templated
 template: k8s-container
 name: my-service
 inputs:
