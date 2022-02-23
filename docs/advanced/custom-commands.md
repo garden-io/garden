@@ -4,7 +4,7 @@
 This is currently considered experimental. Please try it out and post feedback via GitHub issues or in our community!
 {% endhint %}
 
-As part of a Garden project, you can define _custom commands_. You can think of these like Makefile targets, npm package scripts etc., except you have the full power of Garden's templating syntax to work with, and can easily declare the exact arguments and options the command accepts. The custom commands come up when you run `garden help`, which helps make your project easier to use and more self-documenting. You can also
+As part of a Garden project, you can define _custom commands_. You can think of these like Makefile targets, npm package scripts etc., except you have the full power of Garden's templating syntax to work with, and can easily declare the exact arguments and options the command accepts. The custom commands come up when you run `garden help`, which helps make your project easier to use and more self-documenting.
 
 You'll find more examples and details below, but here's a simple example to illustrate the idea:
 
