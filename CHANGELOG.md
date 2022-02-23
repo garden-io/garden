@@ -1,4 +1,41 @@
 
+<a name="0.12.35-0"></a>
+## [0.12.35-0](https://github.com/garden-io/garden/compare/0.12.34...0.12.35-0) (2022-01-26)
+
+### Bug Fixes
+
+* updated brew command in dependency install script ([5847f09b](https://github.com/garden-io/garden/commit/5847f09b))
+* **cli:** potential OOM error for large projects ([0ecd7410](https://github.com/garden-io/garden/commit/0ecd7410))
+* **core:** ignore trailing slashes in project config domains ([7cfa4fb0](https://github.com/garden-io/garden/commit/7cfa4fb0))
+* **k8s:** handle specific error case in log streaming ([5dd1c34e](https://github.com/garden-io/garden/commit/5dd1c34e))
+* **k8s:** use namespace from module when port forwarding ([c99f8e92](https://github.com/garden-io/garden/commit/c99f8e92))
+* **k8s:** use correct Mutagen termination command ([c644ef49](https://github.com/garden-io/garden/commit/c644ef49))
+* **template:** allow missing keys in AND (&&) conditionals ([7bf19540](https://github.com/garden-io/garden/commit/7bf19540))
+* **template:** don't fail validation on partially resolved helper calls ([f03579e7](https://github.com/garden-io/garden/commit/f03579e7))
+
+### Code Refactoring
+
+* **k8s:** use environment variable to prevent Mutagen autostart ([1efcf3bb](https://github.com/garden-io/garden/commit/1efcf3bb))
+
+### Features
+
+* **cli:** custom commands ([4e7c741a](https://github.com/garden-io/garden/commit/4e7c741a))
+* **core:** debug logfiles ([ebff37a7](https://github.com/garden-io/garden/commit/ebff37a7))
+* **core:** --with-dependants option for build cmd ([c3fbbbe6](https://github.com/garden-io/garden/commit/c3fbbbe6))
+* **k8s:** support kustomize on kubernetes modules ([e954f72c](https://github.com/garden-io/garden/commit/e954f72c))
+* **template:** add join helper function, to convert an array to string ([3c02abb6](https://github.com/garden-io/garden/commit/3c02abb6))
+
+### Improvements
+
+* **cloud:** handle AEC for Helm services ([3326c3c5](https://github.com/garden-io/garden/commit/3326c3c5))
+* **core:** evaluate null|false as undefined for dockerfile field ([4f43eb6b](https://github.com/garden-io/garden/commit/4f43eb6b))
+* **core:** better workflow error logging ([0415fb7b](https://github.com/garden-io/garden/commit/0415fb7b))
+* **examples:** update ingress specs in example garden projects ([423da252](https://github.com/garden-io/garden/commit/423da252))
+
+### Performance Improvements
+
+* **core:** faster hashing and test speed improvements ([7f6a7600](https://github.com/garden-io/garden/commit/7f6a7600))
+
 <a name="0.12.34"></a>
 ## [0.12.34](https://github.com/garden-io/garden/compare/0.12.33...0.12.34) (2022-01-04)
 
