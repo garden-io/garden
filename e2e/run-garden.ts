@@ -115,7 +115,7 @@ export async function runGarden(cwd: string, command: string[]): Promise<JsonLog
   try {
     const start = new Date().getTime()
 
-    showLog && console.log(`Running 'garden ${command.join(" ")}' in ${cwd}`)
+    console.log(chalk.magentaBright(`Running 'garden ${command.join(" ")}' in ${cwd}`))
     const proc = execa(gardenBinPath, [...command, ...DEFAULT_ARGS], {
       cwd,
       stdout: "pipe",

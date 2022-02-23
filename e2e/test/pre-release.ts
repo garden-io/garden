@@ -46,7 +46,7 @@ describe("PreReleaseTests", () => {
 
   function getProjectNamespaces() {
     const ns = `${project}-testing-${process.env.CIRCLE_BUILD_NUM || username.sync()}`
-    return [ns, ns + "--metadata"]
+    return [ns]
   }
 
   async function runWithEnv(command: string[]) {
@@ -71,6 +71,7 @@ describe("PreReleaseTests", () => {
   before(async () => {
     log("deleting .garden folder")
     await removeExampleDotGardenDir(projectPath)
+    log("ready")
   })
 
   after(async () => {
