@@ -1,1 +1,5 @@
-../cli/bin/garden
+#!/bin/bash -e
+
+repo_root=$(cd `dirname $0` && cd .. && pwd)
+
+node --max-old-space-size=4096 ${repo_root}/cli/bin/garden "$@"

@@ -40,7 +40,7 @@
     "minimist": "^1.2.5",
     "mocha": "^8.1.1",
     "patch-package": "^6.4.7",
-    "pkg": "4.5.1",
+    "pkg": "5.5.2",
     "postinstall-postinstall": "^2.1.0",
     "prettier": "^2.1.0",
     "split2": "^3.2.2",
