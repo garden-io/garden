@@ -25,6 +25,7 @@ export const gardenBinPath = parsedArgs.binPath || resolve(GARDEN_CLI_ROOT, "bin
 export const showLog = !!parsedArgs.showlog
 
 const DEFAULT_ARGS = ["--logger-type", "json", "--log-level", "silly"]
+const logActivityIntervalMsec = 60 * 1000 // How frequently to log a message while waiting for proc to finish
 
 // tslint:disable: no-console
 
@@ -112,6 +113,8 @@ export async function runGarden(cwd: string, command: string[]): Promise<JsonLog
   const parsedLog: JsonLogEntry[] = []
 
   try {
+    const start = new Date().getTime()
+
     showLog && console.log(`Running 'garden ${command.join(" ")}' in ${cwd}`)
     const proc = execa(gardenBinPath, [...command, ...DEFAULT_ARGS], {
       cwd,
@@ -121,13 +124,19 @@ export async function runGarden(cwd: string, command: string[]): Promise<JsonLog
     })
 
     const stdoutStream = split2()
+    let lastLog = new Date().getTime()
 
     stdoutStream.on("data", (line) => {
+      const now = new Date().getTime()
       const parsed = parseLogEntry(line)
       parsedLog.push(parsed)
       if (showLog) {
         console.log(stringifyJsonLog(parsed))
+      } else if (now - lastLog > logActivityIntervalMsec) {
+        // Make sure something is logged during execution to avoid CI timing out
+        console.log(`Still running (${Math.round((now - start) / 1000)} msec)`)
       }
+      lastLog = now
     })
 
     proc.stdout?.pipe(stdoutStream)
