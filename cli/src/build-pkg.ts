@@ -28,6 +28,9 @@ const pkgFetchPath = resolve(repoRoot, "node_modules", ".bin", "pkg-fetch")
 const distPath = resolve(repoRoot, "dist")
 const sqliteBinFilename = "better_sqlite3.node"
 
+// Allow larger heap size than default
+const nodeOptions = ["max-old-space-size=4096"]
+
 // tslint:disable: no-console
 
 interface TargetHandlerParams {
@@ -232,7 +235,15 @@ async function pkgCommon({
   await mkdirp(targetPath)
 
   console.log(` - ${targetName} -> pkg`)
-  await exec(pkgPath, ["--target", pkgType, sourcePath, "--output", resolve(targetPath, binFilename)])
+  await exec(pkgPath, [
+    "--target",
+    pkgType,
+    sourcePath,
+    "--options",
+    nodeOptions.join(","),
+    "--output",
+    resolve(targetPath, binFilename),
+  ])
 
   console.log(` - ${targetName} -> ${sqliteBinFilename}`)
   await copy(
