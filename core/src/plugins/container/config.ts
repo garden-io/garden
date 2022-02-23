@@ -832,7 +832,12 @@ export const containerModuleSpecSchema = () =>
         specifies a remote image, Garden automatically sets \`include\` to \`[]\`.
       `),
       hotReload: hotReloadConfigSchema(),
-      dockerfile: joi.posixPath().subPathOnly().description("POSIX-style name of Dockerfile, relative to module root."),
+      dockerfile: joi
+        .posixPath()
+        .subPathOnly()
+        .allow(false, null)
+        .empty([false, null])
+        .description("POSIX-style name of Dockerfile, relative to module root."),
       services: joiSparseArray(containerServiceSchema())
         .unique("name")
         .description("A list of services to deploy from this container module."),
