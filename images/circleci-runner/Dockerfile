@@ -1,11 +1,30 @@
 #### gcloud base image ####
 FROM google/cloud-sdk:277.0.0 as gcloud
 
+#### ldid utility ####
+FROM cimg/node:12.22.10 as ldid
+
+RUN sudo apt-get update && sudo apt-get install -qq -y --no-install-recommends \
+  git \
+  perl \
+  curl \
+  build-essential
+
+RUN cd /tmp && \
+  git clone https://github.com/xerub/ldid.git && \
+  cd ldid && \
+  git submodule update --init && \
+  ./make.sh && \
+  sudo cp -f ./ldid /usr/local/bin/ldid
+
 #### main ####
-FROM cimg/node:12.22.2
+FROM cimg/node:12.22.10
 
 # install system deps
 RUN sudo apt-get update && sudo apt-get -y install rsync parallel python3
+
+# install ldid
+COPY --from=ldid /usr/local/bin/ldid /usr/local/bin
 
 # install gcloud
 ENV CLOUDSDK_PYTHON=python3

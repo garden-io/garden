@@ -470,7 +470,7 @@ describe("GitHandler", () => {
         submodulePath = await realpath(submodule.path)
         initFile = await commit("init", submodulePath)
 
-        await execa("git", ["submodule", "add", submodulePath, "sub", "--force"], { cwd: tmpPath })
+        await execa("git", ["submodule", "add", "--force", "--", submodulePath, "sub"], { cwd: tmpPath })
         await execa("git", ["commit", "-m", "add submodule"], { cwd: tmpPath })
       })
 

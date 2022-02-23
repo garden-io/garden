@@ -14,7 +14,7 @@ RUN apk add --no-cache \
 WORKDIR /tmp/pkg
 
 # Pre-fetch the node12 binary for pkg
-RUN yarn add pkg@4.5.1 && \
+RUN yarn add pkg@5.5.2 && \
   node_modules/.bin/pkg-fetch node12 alpine x64
 
 # Add all the packages

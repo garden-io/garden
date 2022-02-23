@@ -1,4 +1,4 @@
-#!/usr/bin/env node --max-old-space-size=4096
+#!/usr/bin/env node
 
 if (process.env.GARDEN_ENABLE_PROFILING === "1" || process.env.GARDEN_ENABLE_PROFILING === "true") {
   // Patch require to profile module loading

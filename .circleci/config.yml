@@ -18,7 +18,7 @@ orbs:
   # Configuration for our node jobs
   node-config: &node-config
     docker:
-      - image: gardendev/circleci-runner:12.22.2-0
+      - image: gardendev/circleci-runner:12.22.10-0
         environment:
           <<: *shared-env-config
     resource_class: medium
@@ -775,6 +775,35 @@ jobs:
           command: |
             sudo -E ./bin/garden plugins local-kubernetes cleanup-cluster-registry --root core/test/data/test-projects/container --env cluster-docker
 
+  test-macos:
+    macos:
+      xcode: "12.5.1"
+    steps:
+      - checkout
+      - *attach-workspace
+      # - run:
+      #     name: Configure Node.js
+      #     command: nvm install 12 && nvm alias default 12
+      - run:
+          name: brew install
+          command: brew install docker kubectl
+      - run:
+          name: Install gcloud SDK
+          command: |
+            cd $HOME
+            curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-373.0.0-darwin-x86_64.tar.gz
+            tar xzf google-cloud-sdk-373.0.0-darwin-x86_64.tar.gz
+            echo 'export PATH=$HOME/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
+      - docker_login
+      - configure_kubectl_context
+      - run:
+          name: Deploy demo-project
+          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-macos dist/macos-amd64/garden deploy --root examples/demo-project --logger-type basic --env remote
+      - run:
+          name: Cleanup
+          command: kubectl delete --wait=false $(kubectl get ns -o name | grep $CIRCLE_BUILD_NUM-macos) || true
+          when: always
+
   test-windows:
     executor: win/vs2019
     steps:
@@ -867,6 +896,9 @@ workflows:
           requires: [build]
       - test-dist:
           # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
+          <<: *only-internal-prs
+          requires: [build-dist]
+      - test-macos:
           <<: *only-internal-prs
           requires: [build-dist]
       - test-windows:
