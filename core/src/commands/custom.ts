@@ -134,7 +134,12 @@ export class CustomCommandWrapper extends Command {
       const res = await execa(command[0], command.slice(1), {
         stdio: "inherit",
         buffer: true,
-        env: exec.env,
+        env: {
+          ...process.env,
+          // Workaround for https://github.com/vercel/pkg/issues/897
+          PKG_EXECPATH: "",
+          ...(exec.env || {}),
+        },
         reject: false,
       })
       const completedAt = new Date()
