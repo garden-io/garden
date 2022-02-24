@@ -98,9 +98,9 @@ function getLogOutput(garden: TestGarden, msg: string, extraFilter: (e: LogEntry
 describe("LogsCommand", () => {
   let tmpDir: tmp.DirectoryResult
   const timestamp = new Date()
-  const originalColor = chalk.bgRedBright
+  const msgColor = chalk.bgRedBright
   const logMsg = "Yes, this is log"
-  const logMsgWithColor = originalColor(logMsg)
+  const logMsgWithColor = msgColor(logMsg)
 
   const color = chalk[colors[0]]
   const defaultGetServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
@@ -249,7 +249,7 @@ describe("LogsCommand", () => {
 
       const out = getLogOutput(garden, logMsg)
 
-      expect(out[0]).to.eql(`${color.bold("test-service-a")} → ${color("Yes, this is log")}`)
+      expect(out[0]).to.eql(`${color.bold("test-service-a")} → ${msgColor("Yes, this is log")}`)
     })
     it("should optionally skip rendering the service name", async () => {
       const garden = await makeGarden(tmpDir, makeTestPlugin())
@@ -258,7 +258,7 @@ describe("LogsCommand", () => {
 
       const out = getLogOutput(garden, logMsg)
 
-      expect(out[0]).to.eql(color("Yes, this is log"))
+      expect(out[0]).to.eql(msgColor("Yes, this is log"))
     })
     it("should optionally show the container name", async () => {
       const garden = await makeGarden(tmpDir, makeTestPlugin())
@@ -268,7 +268,7 @@ describe("LogsCommand", () => {
       const out = getLogOutput(garden, logMsg)
 
       expect(out[0]).to.eql(
-        `${color.bold("test-service-a")} → ${color.bold("my-container")} → ${color("Yes, this is log")}`
+        `${color.bold("test-service-a")} → ${color.bold("my-container")} → ${msgColor("Yes, this is log")}`
       )
     })
     it("should optionally show timestamps", async () => {
@@ -279,17 +279,26 @@ describe("LogsCommand", () => {
       const out = getLogOutput(garden, logMsg)
 
       expect(out[0]).to.eql(
-        `${color.bold("test-service-a")} → ${chalk.gray(timestamp.toISOString())} → ${color("Yes, this is log")}`
+        `${color.bold("test-service-a")} → ${chalk.gray(timestamp.toISOString())} → ${msgColor("Yes, this is log")}`
       )
     })
-    it("should optionally show the original log color", async () => {
-      const garden = await makeGarden(tmpDir, makeTestPlugin())
+    it("should render entries with no ansi color white", async () => {
+      const getServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
+        void stream.write({
+          tags: { container: "my-container" },
+          serviceName: "test-service-a",
+          msg: logMsg, // No color
+          timestamp: undefined,
+        })
+        return {}
+      }
+      const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
       const command = new LogsCommand()
-      await command.action(makeCommandParams({ garden, opts: { "original-color": true } }))
+      await command.action(makeCommandParams({ garden }))
 
       const out = getLogOutput(garden, logMsg)
 
-      expect(out[0]).to.eql(`${color.bold("test-service-a")} → ${originalColor("Yes, this is log")}`)
+      expect(out[0]).to.eql(`${color.bold("test-service-a")} → ${chalk.white("Yes, this is log")}`)
     })
     context("mutliple services", () => {
       it("should align content for visible entries", async () => {
@@ -388,16 +397,17 @@ describe("LogsCommand", () => {
         const colA = chalk[colors[0]]
         const colB = chalk[colors[1]]
         const colD = chalk[colors[3]]
+        const dc = msgColor
         const command = new LogsCommand()
         await command.action(makeCommandParams({ garden, opts: { "show-container": true } }))
 
         const out = getLogOutput(garden, logMsg, (entry) => entry.level === LogLevel.info)
 
-        expect(out[0]).to.eql(`${colA.bold("a-short")} → ${colA.bold("short")} → ${colA(logMsg)}`)
-        expect(out[1]).to.eql(`${colB.bold("b-not-short")} → ${colB.bold("not-short")} → ${colB(logMsg)}`)
-        expect(out[2]).to.eql(`${colA.bold("a-short    ")} → ${colA.bold("short    ")} → ${colA(logMsg)}`)
-        expect(out[3]).to.eql(`${colD.bold("d-very-very-long")} → ${colD.bold("very-very-long")} → ${colD(logMsg)}`)
-        expect(out[4]).to.eql(`${colA.bold("a-short         ")} → ${colA.bold("short         ")} → ${colA(logMsg)}`)
+        expect(out[0]).to.eql(`${colA.bold("a-short")} → ${colA.bold("short")} → ${dc(logMsg)}`)
+        expect(out[1]).to.eql(`${colB.bold("b-not-short")} → ${colB.bold("not-short")} → ${dc(logMsg)}`)
+        expect(out[2]).to.eql(`${colA.bold("a-short    ")} → ${colA.bold("short    ")} → ${dc(logMsg)}`)
+        expect(out[3]).to.eql(`${colD.bold("d-very-very-long")} → ${colD.bold("very-very-long")} → ${dc(logMsg)}`)
+        expect(out[4]).to.eql(`${colA.bold("a-short         ")} → ${colA.bold("short         ")} → ${dc(logMsg)}`)
       })
     })
     it("should assign the same color to each service, regardless of which service logs are streamed", async () => {
@@ -406,14 +416,14 @@ describe("LogsCommand", () => {
           void stream.write({
             tags: { container: "my-container" },
             serviceName: "test-service-a",
-            msg: logMsg,
+            msg: logMsgWithColor,
             timestamp: new Date("2021-05-13T20:00:00.000Z"),
           })
         } else {
           void stream.write({
             tags: { container: "my-container" },
             serviceName: "test-service-b",
-            msg: logMsg,
+            msg: logMsgWithColor,
             timestamp: new Date("2021-05-13T20:01:00.000Z"),
           })
         }
@@ -458,7 +468,7 @@ describe("LogsCommand", () => {
       const color2 = chalk[colors[1]]
 
       // Assert that the service gets the "second" color, even though its the only one we're fetching logs for.
-      expect(out[0]).to.eql(`${color2.bold("test-service-b")} → ${color2("Yes, this is log")}`)
+      expect(out[0]).to.eql(`${color2.bold("test-service-b")} → ${msgColor("Yes, this is log")}`)
     })
 
     const moduleConfigsForTags = (): ModuleConfig[] => [
@@ -497,7 +507,7 @@ describe("LogsCommand", () => {
         void stream.write({
           tags: { container: "api" },
           serviceName: "api",
-          msg: logMsg,
+          msg: logMsgWithColor,
           timestamp: new Date(),
         })
         return {}
@@ -509,7 +519,7 @@ describe("LogsCommand", () => {
       await command.action(makeCommandParams({ garden, opts: { "show-tags": true } }))
       const out = getLogOutput(garden, logMsg)
 
-      expect(out[0]).to.eql(`${color.bold("api")} → ${chalk.gray("[container=api] ")}${color("Yes, this is log")}`)
+      expect(out[0]).to.eql(`${color.bold("api")} → ${chalk.gray("[container=api] ")}${msgColor("Yes, this is log")}`)
     })
 
     // These tests use tags as emitted by `container`/`kubernetes`/`helm` services, which use the `container` tag.

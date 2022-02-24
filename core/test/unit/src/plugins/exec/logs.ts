@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,17 +16,16 @@ import { LogEntry } from "../../../../../src/logger/log-entry"
 import { dataDir, makeTestGarden } from "../../../../helpers"
 import { appendFile, ensureFile, remove, writeFile } from "fs-extra"
 import { randomString } from "../../../../../src/util/string"
-import { ExecLogsFollower } from "../../../../../src/plugins/exec/logs"
+import { ExecLogsFollower, LocalServiceLogEntry } from "../../../../../src/plugins/exec/logs"
 import Stream from "ts-stream"
-import { ServiceLogEntry } from "../../../../../src/types/plugin/service/getServiceLogs"
 import { sleep } from "../../../../../src/util/util"
 
 const range = (length: number) => [...Array(length).keys()]
 const defaultSleep = 1000
 
-function getStream(): [Stream<ServiceLogEntry>, any[]] {
+function getStream(): [Stream<LocalServiceLogEntry>, any[]] {
   const logBuffer: any[] = []
-  const stream = new Stream<ServiceLogEntry>()
+  const stream = new Stream<LocalServiceLogEntry>()
 
   void stream.forEach((entry) => {
     logBuffer.push(entry)
@@ -35,7 +34,7 @@ function getStream(): [Stream<ServiceLogEntry>, any[]] {
   return [stream, logBuffer]
 }
 
-async function writeLogFile(path: string, entries: ServiceLogEntry[], append: boolean = false) {
+async function writeLogFile(path: string, entries: LocalServiceLogEntry[], append: boolean = false) {
   const data = entries.map((e) => JSON.stringify(e)).join("\n") + "\n" // File ends on a new line
   if (append) {
     return appendFile(path, data)
@@ -73,10 +72,11 @@ describe("ExecLogsFollower", () => {
         logFilePath,
       })
 
-      const entries: ServiceLogEntry[] = range(100).map((el) => ({
+      const entries = range(100).map((el) => ({
         msg: String(el),
         timestamp: new Date(),
         serviceName: "foo",
+        level: 2,
       }))
 
       await writeLogFile(logFilePath, entries)
@@ -97,10 +97,11 @@ describe("ExecLogsFollower", () => {
         logFilePath,
       })
 
-      const entries: ServiceLogEntry[] = range(100).map((el) => ({
+      const entries = range(100).map((el) => ({
         msg: String(el),
         timestamp: new Date(),
         serviceName: "foo",
+        level: 2,
       }))
 
       await writeLogFile(logFilePath, entries)
@@ -120,26 +121,30 @@ describe("ExecLogsFollower", () => {
         logFilePath,
       })
 
-      const entries: ServiceLogEntry[] = [
+      const entries = [
         {
           msg: "Hello 1",
           timestamp: moment().subtract(2, "h").toDate(),
           serviceName: "foo",
+          level: 2,
         },
         {
           msg: "Hello 2",
           timestamp: moment().subtract(2, "h").toDate(),
           serviceName: "foo",
+          level: 2,
         },
         {
           msg: "Hello 3",
           timestamp: moment().subtract(1, "h").toDate(),
           serviceName: "foo",
+          level: 2,
         },
         {
           msg: "Hello 4",
           timestamp: moment().subtract(1, "h").toDate(),
           serviceName: "foo",
+          level: 2,
         },
       ]
 
@@ -166,20 +171,24 @@ describe("ExecLogsFollower", () => {
         {
           msg: "Invalid - Missing service name",
           timestamp: moment().subtract(2, "h").toDate(),
+          level: 2,
         },
         {
-          msg: "Invalid - missing timestamp",
+          msg: "Invalid - Missing timestamp",
           serviceName: "foo",
+          level: 2,
         },
         {
           msg: "Valid 1",
           timestamp: moment().subtract(1, "h").toDate(),
           serviceName: "foo",
+          level: 2,
         },
         {
           msg: "Valid 2",
           timestamp: moment().subtract(1, "h").toDate(),
           serviceName: "foo",
+          level: 2,
         },
       ]
 
@@ -227,10 +236,11 @@ describe("ExecLogsFollower", () => {
         })
         execLogsFollower.streamLogs({ follow: true }).catch((_err) => {})
 
-        const entries: ServiceLogEntry[] = range(100).map((el) => ({
+        const entries = range(100).map((el) => ({
           msg: String(el),
           timestamp: new Date(),
           serviceName: "foo",
+          level: 2,
         }))
 
         await writeLogFile(logFilePath, entries)
@@ -253,10 +263,11 @@ describe("ExecLogsFollower", () => {
 
         execLogsFollower.streamLogs({ follow: true }).catch((_err) => {})
 
-        const firstBatch: ServiceLogEntry[] = range(100).map((el) => ({
+        const firstBatch = range(100).map((el) => ({
           msg: `first-batch-${String(el)}`,
           timestamp: new Date(),
           serviceName: "foo",
+          level: 2,
         }))
 
         await writeLogFile(logFilePath, firstBatch)
@@ -265,10 +276,11 @@ describe("ExecLogsFollower", () => {
 
         expect(logs).to.eql(firstBatch)
 
-        const secondBatch: ServiceLogEntry[] = range(100).map((el) => ({
+        const secondBatch = range(100).map((el) => ({
           msg: `second-batch-${String(el)}`,
           timestamp: new Date(),
           serviceName: "foo",
+          level: 2,
         }))
 
         await writeLogFile(logFilePath, secondBatch, true)
@@ -291,10 +303,11 @@ describe("ExecLogsFollower", () => {
 
         execLogsFollower.streamLogs({ follow: true }).catch((_err) => {})
 
-        const firstBatch: ServiceLogEntry[] = range(100).map((el) => ({
+        const firstBatch = range(100).map((el) => ({
           msg: `first-batch-${String(el)}`,
           timestamp: new Date(),
           serviceName: "foo",
+          level: 2,
         }))
 
         await writeLogFile(logFilePath, firstBatch)
@@ -308,10 +321,11 @@ describe("ExecLogsFollower", () => {
         await remove(logFilePath)
         await ensureFile(logFilePath)
 
-        const secondBatch: ServiceLogEntry[] = range(100).map((el) => ({
+        const secondBatch = range(100).map((el) => ({
           msg: `second-batch-${String(el)}`,
           timestamp: new Date(),
           serviceName: "foo",
+          level: 2,
         }))
 
         await writeLogFile(logFilePath, secondBatch)

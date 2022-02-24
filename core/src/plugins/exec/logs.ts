@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,7 +18,7 @@ import { createReadStream, FSWatcher, ReadStream } from "fs"
 import { EventEmitter2 } from "eventemitter2"
 import { getGitHubIssueLink, sleep } from "../../util/util"
 import { dedent } from "../../util/string"
-import { LogLevel, parseLogLevel } from "../../logger/logger"
+import { LogLevel } from "../../logger/logger"
 
 const defaultRetryIntervalMs = 5000
 const watcherShelfLifeSec = 15
@@ -33,7 +33,7 @@ interface LogOpts {
 }
 
 // We enforce timestamp and level on local service log entries.
-type LocalServiceLogEntry = ServiceLogEntry & {
+export type LocalServiceLogEntry = ServiceLogEntry & {
   timestamp: Date
   level: LogLevel
 }
@@ -83,7 +83,6 @@ class StreamEventBus extends EventEmitter2 {
   on<T extends StreamEventName>(name: T, listener: (payload: StreamEvents[T]) => void) {
     return super.on(name, listener)
   }
-
 }
 
 export class ExecLogsFollower {
@@ -253,10 +252,8 @@ export class ExecLogsFollower {
   }
 
   private handleError(message: string) {
-      this.log.debug(
-        `<Streaming log from local process for service ${this.serviceName} failed with error: ${message}>`
-      )
-      this.unwatch()
+    this.log.debug(`<Streaming log from local process for service ${this.serviceName} failed with error: ${message}>`)
+    this.unwatch()
   }
 
   private async startWatch(opts: LogOpts) {
@@ -315,14 +312,9 @@ export class ExecLogsFollower {
       // No-op, since we validate the shape below
     }
 
-    // A little hack since Joi validates the level as a string but Typescript treats it as a enum.
-    const level = entry.level
-
     if (!isValidServiceLogEntry(entry)) {
       return null
     }
-
-    entry["level"] = parseLogLevel(level)
 
     return entry
   }
@@ -353,7 +345,7 @@ export class ExecLogsFollower {
     }
 
     let readStream: ReadStream
-    let bytesRead = 0
+    let bytesRead = cursorStartPos
     let lastStreamedEntry: LocalServiceLogEntry | undefined
     try {
       readStream = createReadStream(this.logFilePath, { start: cursorStartPos })
@@ -401,13 +393,21 @@ export class ExecLogsFollower {
           res({})
         })
         splitStream.on("error", (err) => {
-          this.events.emit("fileReadError", { bytesRead, lastStreamedEntry, message: `Reading stream failed with error: ${err.message}` })
+          this.events.emit("fileReadError", {
+            bytesRead,
+            lastStreamedEntry,
+            message: `Reading stream failed with error: ${err.message}`,
+          })
           rej({})
           return
         })
       })
     } catch (err) {
-      this.events.emit("fileReadError", { bytesRead, lastStreamedEntry, message: `Tailing file failed with error: ${err.message} }` })
+      this.events.emit("fileReadError", {
+        bytesRead,
+        lastStreamedEntry,
+        message: `Tailing file failed with error: ${err.message} }`,
+      })
       return
     }
   }

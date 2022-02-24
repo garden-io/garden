@@ -42,6 +42,10 @@ import { createWriteStream } from "fs"
 import { ensureFile, remove } from "fs-extra"
 import { Transform } from "stream"
 import { ExecLogsFollower } from "./logs"
+import { DeployServiceParams } from "../../types/plugin/service/deployService"
+import { GetServiceLogsParams } from "../../types/plugin/service/getServiceLogs"
+import { GetServiceStatusParams } from "../../types/plugin/service/getServiceStatus"
+import { DeleteServiceParams } from "../../types/plugin/service/deleteService"
 
 const execPathDoc = dedent`
   By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
@@ -82,7 +86,9 @@ export interface ExecServiceSpec extends CommonServiceSpec {
   cleanupCommand?: string[]
   deployCommand: string[]
   statusCommand?: string[]
-  persistent: boolean
+  devMode?: {
+    command: string[]
+  }
   timeout?: number
   env: { [key: string]: string }
 }
@@ -126,20 +132,27 @@ export const execServiceSchema = () =>
           ${execPathDoc}
           `
         ),
-      persistent: joi.boolean().description(dedent`
-        If set to true, Garden will not wait for the command to exit. Useful for long running local processes
-        such as local dev servers.
-
-        If a \`statusCommand\` is specified, Garden will wait until until it returns a 0 exit code before
-        considering the service ready.
-      `),
       // TODO: Set a default in v0.13.
       timeout: joi.number().description(dedent`
-        The maximum duration (in seconds) to wait for a local script to exit. In the case of a persistent
-        local process, this is the maximum duration to wait for the \`statusCommand\` to return a 0
+        The maximum duration (in seconds) to wait for a local script to exit. For persistent dev mode commands,
+        this is the maximum duration to wait for the \`statusCommand\` to return a 0
         exit code, if it's set.
       `),
       env: joiEnvVars().description("Environment variables to set when running the deploy and status commands."),
+      devMode: joi.object().keys({
+        command: joi
+          .sparseArray()
+          .items(joi.string().allow(""))
+          .description(
+            dedent`
+              The commmand to run to deploy the service in dev mode. When in dev mode, Garden assumes that
+              the command starts a persistent process and does not wait for it return. The logs from the process
+              can be retrieved via the \`garden logs\` command as usual.
+
+              ${execPathDoc}
+            `
+          ),
+      }),
     })
     .description("A service to deploy using shell commands.")
 
@@ -344,7 +357,7 @@ function runPersistent({
   env?: PrimitiveMap
   opts?: ExecOpts
 }) {
-  const toLogEntry = (level: string) =>
+  const toLogEntry = (level: LogLevel) =>
     new Transform({
       transform(chunk, _encoding, cb) {
         const line = chunk.toString().trim()
@@ -370,10 +383,11 @@ function runPersistent({
     },
     // TODO: remove this in 0.13 and alert users to use e.g. sh -c '<script>' instead.
     shell: true,
+    cleanup: true,
     ...opts,
   })
-  proc.stdout?.pipe(split2()).pipe(toLogEntry("info")).pipe(createWriteStream(logFilePath))
-  proc.stderr?.pipe(split2()).pipe(toLogEntry("error")).pipe(createWriteStream(logFilePath))
+  proc.stdout?.pipe(split2()).pipe(toLogEntry(LogLevel.info)).pipe(createWriteStream(logFilePath))
+  proc.stderr?.pipe(split2()).pipe(toLogEntry(LogLevel.error)).pipe(createWriteStream(logFilePath))
 
   return proc
 }
@@ -541,7 +555,9 @@ export async function runExecModule(params: RunModuleParams<ExecModule>): Promis
   }
 }
 
-export const getExecServiceStatus: ServiceActionHandlers["getServiceStatus"] = async (params) => {
+export const getExecServiceStatus: ServiceActionHandlers["getServiceStatus"] = async (
+  params: GetServiceStatusParams<ExecModule>
+) => {
   const { module, service, log } = params
 
   if (service.spec.statusCommand) {
@@ -563,7 +579,9 @@ export const getExecServiceStatus: ServiceActionHandlers["getServiceStatus"] = a
   }
 }
 
-export const getExecServiceLogs: ServiceActionHandlers["getServiceLogs"] = async (params) => {
+export const getExecServiceLogs: ServiceActionHandlers["getServiceLogs"] = async (
+  params: GetServiceLogsParams<ExecModule>
+) => {
   const { service, stream, follow, ctx, log } = params
 
   const logFilePath = getLogFilePath({ projectRoot: ctx.projectRoot, serviceName: service.name })
@@ -582,13 +600,14 @@ export const getExecServiceLogs: ServiceActionHandlers["getServiceLogs"] = async
   return {}
 }
 
-export const deployExecService: ServiceActionHandlers["deployService"] = async (params) => {
+export const deployExecService: ServiceActionHandlers["deployService"] = async (
+  params: DeployServiceParams<ExecModule>
+) => {
   const { module, service, log, ctx } = params
 
-  // TODO: Check if it's in watch mode in general
-  const watchMode = params.devMode || params.hotReload || params.ctx.command.opts["watch"]
-  if (watchMode && service.spec.persistent) {
-    // FIXME: Not sure if this emitted anywhere.
+  const devMode = params.devMode || params.hotReload
+  const devModeCommand = service.spec.devMode?.command
+  if (devMode && devModeCommand && devModeCommand.length > 0) {
     ctx.events.on("abort", () => {
       const localProc = localProcs[service.name]
       if (localProc) {
@@ -605,7 +624,7 @@ export const deployExecService: ServiceActionHandlers["deployService"] = async (
 
     const key = service.name
     const proc = runPersistent({
-      command: service.spec.deployCommand,
+      command: devModeCommand,
       module,
       log,
       service,
@@ -619,35 +638,38 @@ export const deployExecService: ServiceActionHandlers["deployService"] = async (
       service,
     }
 
-    let ready = service.spec.statusCommand ? false : true
     const startedAt = new Date()
 
-    while (!ready) {
-      const now = new Date()
-      const timeElapsedSec = (now.getTime() - startedAt.getTime()) / 1000
-      // TODO: Remove once we set a default value that the timeout spec in v0.13.
-      const timeout = service.spec.timeout || persistentLocalProcDefaultTimeoutSec
+    if (service.spec.statusCommand) {
+      let ready = false
 
-      if (timeElapsedSec > timeout) {
-        throw new TimeoutError(`Timed out waiting for local service ${service.name} to be ready`, {
-          serviceName: service.name,
-          statusCommand: service.spec.statusCommand,
-          pid: proc.pid,
-          timeout,
+      while (!ready) {
+        const now = new Date()
+        const timeElapsedSec = (now.getTime() - startedAt.getTime()) / 1000
+        // TODO: Remove once we set a default value that the timeout spec in v0.13.
+        const timeout = service.spec.timeout || persistentLocalProcDefaultTimeoutSec
+
+        if (timeElapsedSec > timeout) {
+          throw new TimeoutError(`Timed out waiting for local service ${service.name} to be ready`, {
+            serviceName: service.name,
+            statusCommand: service.spec.statusCommand,
+            pid: proc.pid,
+            timeout,
+          })
+        }
+
+        const result = await run({
+          command: service.spec.statusCommand,
+          module,
+          log,
+          env: service.spec.env,
+          opts: { reject: false },
         })
+
+        ready = result.exitCode === 0
+
+        await sleep(persistentLocalProcRetryIntervalMs)
       }
-
-      const result = await run({
-        command: service.spec.statusCommand,
-        module,
-        log,
-        env: service.spec.env,
-        opts: { reject: false },
-      })
-
-      ready = result.exitCode === 0
-
-      await sleep(persistentLocalProcRetryIntervalMs)
     }
 
     return { state: "ready", detail: { persistent: true, pid: proc.pid } }
@@ -670,7 +692,9 @@ export const deployExecService: ServiceActionHandlers["deployService"] = async (
   }
 }
 
-export const deleteExecService: ServiceActionHandlers["deleteService"] = async (params) => {
+export const deleteExecService: ServiceActionHandlers["deleteService"] = async (
+  params: DeleteServiceParams<ExecModule>
+) => {
   const { module, service, log } = params
 
   if (service.spec.cleanupCommand) {
