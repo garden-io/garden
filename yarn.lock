@@ -2836,6 +2836,11 @@
   resolved "https://registry.yarnpkg.com/@types/prop-types/-/prop-types-15.7.3.tgz#2ab0d5da2e5815f94b0b9d4b95d1e5f243ab2ca7"
   integrity sha512-KfRL3PuHmqQLOG+2tGpRO26Ctg+Cq1E01D2DMriKEATHgWLfeNDmq9e29Q9WIky0dQ3NPkd1mzYH8Lm936Z9qw==
 
+"@types/ps-tree@^1.1.2":
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@types/ps-tree/-/ps-tree-1.1.2.tgz#5c60773a38ffb1402e049902a7b7a8d3c67cd59a"
+  integrity sha512-ZREFYlpUmPQJ0esjxoG1fMvB2HNaD3z+mjqdSosZvd3RalncI9NEur73P8ZJz4YQdL64CmV1w0RuqoRUlhQRBw==
+
 "@types/q@^1.5.1":
   version "1.5.4"
   resolved "https://registry.yarnpkg.com/@types/q/-/q-1.5.4.tgz#15925414e0ad2cd765bfef58842f7e26a7accb24"
@@ -17892,13 +17897,6 @@ terminal-link@^2.1.1:
   dependencies:
     ansi-escapes "^4.2.1"
     supports-hyperlinks "^2.0.0"
-
-terminate@^2.5.0:
-  version "2.5.0"
-  resolved "https://registry.yarnpkg.com/terminate/-/terminate-2.5.0.tgz#c10f324ec1072f16fc6d028dd26ce7fe8f10bd26"
-  integrity sha512-WnhIjfoTiIvmrfey4GSkqJevEHbIFnSdKeutHwA+cm81/1+GlAHLw1pBKxsKqkrqMaQKK65V6WrvUa851phbgA==
-  dependencies:
-    ps-tree "^1.2.0"
 
 terser-webpack-plugin@2.3.5:
   version "2.3.5"

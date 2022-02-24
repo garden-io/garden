@@ -41,7 +41,8 @@ local: true
 include: []
 services:
   - name: frontend-local
-    deployCommand: ["yarn", "run", "dev"]
-    persistent: true
+    devMode:
+      command: ["yarn", "run", "dev"]
+    deployCommand: ["exit", "0"]
     statusCommand: [./check-local-status.sh]
     env: ${modules.frontend.var.env}

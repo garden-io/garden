@@ -17,7 +17,6 @@ import Stream from "ts-stream"
 import { LoggerType, logLevelMap, LogLevel, parseLogLevel } from "../logger/logger"
 import { StringsParameter, BooleanParameter, IntegerParameter, DurationParameter, TagsOption } from "../cli/params"
 import { printHeader, renderDivider } from "../logger/util"
-import stripAnsi = require("strip-ansi")
 import hasAnsi = require("has-ansi")
 import { dedent, deline } from "../util/string"
 import { padSection } from "../logger/renderers"
@@ -71,8 +70,10 @@ const logsOpts = {
       unless \`--tail\` is set. Note that we don't recommend using a large value here when in follow mode.
     `,
   }),
+  // DEPRECATED: Remove in --original-color flag in v0.13 because we now always apply the original style to logs.
   "original-color": new BooleanParameter({
     help: "Show the original color output of the logs instead of color coding them.",
+    hidden: true,
     defaultValue: false,
   }),
   "hide-service": new BooleanParameter({
@@ -114,7 +115,6 @@ export class LogsCommand extends Command<Args, Opts> {
         garden logs service-a,service-b        # interleaves color-coded logs for service-a and service-b
         garden logs --follow                   # keeps running and streams all incoming logs to the console
         garden logs --tag container=service-a  # only shows logs from containers with names matching the pattern
-        garden logs --original-color           # interleaves logs from all services and prints the original output color
   `
 
   arguments = logsArgs
@@ -142,8 +142,6 @@ export class LogsCommand extends Command<Args, Opts> {
     const { follow, timestamps, tag } = opts
     let tail = opts.tail as number | undefined
     let since = opts.since as string | undefined
-    // TODO: Remove in v0.13 because we now always apply the original style to logs.
-    const originalColor = opts["original-color"]
     const showContainer = opts["show-container"]
     const showTags = opts["show-tags"]
     const hideService = opts["hide-service"]
@@ -231,7 +229,7 @@ export class LogsCommand extends Command<Args, Opts> {
     const formatEntry = (entry: ServiceLogEntry) => {
       const style = chalk[colorMap[entry.serviceName]]
       const sectionStyle = style.bold
-      const serviceLog = originalColor ? entry.msg : stripAnsi(entry.msg)
+      const serviceLog = entry.msg
       const entryLevel = entry.level || LogLevel.info
 
       let timestamp: string | undefined

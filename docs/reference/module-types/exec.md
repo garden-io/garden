@@ -224,20 +224,22 @@ services:
     # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
     cleanupCommand:
 
-    # If set to true, Garden will not wait for the command to exit. Useful for long running local processes
-    # such as local dev servers.
-    #
-    # If a `statusCommand` is specified, Garden will wait until until it returns a 0 exit code before
-    # considering the service ready.
-    persistent:
-
-    # The maximum duration (in seconds) to wait for a local script to exit. In the case of a persistent
-    # local process, this is the maximum duration to wait for the `statusCommand` to return a 0
+    # The maximum duration (in seconds) to wait for a local script to exit. For persistent dev mode commands,
+    # this is the maximum duration to wait for the `statusCommand` to return a 0
     # exit code, if it's set.
     timeout:
 
     # Environment variables to set when running the deploy and status commands.
     env: {}
+
+    devMode:
+      # The commmand to run to deploy the service in dev mode. When in dev mode, Garden assumes that
+      # the command starts a persistent process and does not wait for it return. The logs from the process
+      # can be retrieved via the `garden logs` command as usual.
+      #
+      # By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+      # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
+      command:
 
 # A list of tasks that can be run in this module.
 tasks:
@@ -744,26 +746,12 @@ If the top level `local` directive is set to `true`, the command runs in the mod
 | --------------- | -------- |
 | `array[string]` | No       |
 
-### `services[].persistent`
-
-[services](#services) > persistent
-
-If set to true, Garden will not wait for the command to exit. Useful for long running local processes
-such as local dev servers.
-
-If a `statusCommand` is specified, Garden will wait until until it returns a 0 exit code before
-considering the service ready.
-
-| Type      | Required |
-| --------- | -------- |
-| `boolean` | No       |
-
 ### `services[].timeout`
 
 [services](#services) > timeout
 
-The maximum duration (in seconds) to wait for a local script to exit. In the case of a persistent
-local process, this is the maximum duration to wait for the `statusCommand` to return a 0
+The maximum duration (in seconds) to wait for a local script to exit. For persistent dev mode commands,
+this is the maximum duration to wait for the `statusCommand` to return a 0
 exit code, if it's set.
 
 | Type     | Required |
@@ -779,6 +767,29 @@ Environment variables to set when running the deploy and status commands.
 | Type     | Default | Required |
 | -------- | ------- | -------- |
 | `object` | `{}`    | No       |
+
+### `services[].devMode`
+
+[services](#services) > devMode
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `services[].devMode.command[]`
+
+[services](#services) > [devMode](#servicesdevmode) > command
+
+The commmand to run to deploy the service in dev mode. When in dev mode, Garden assumes that
+the command starts a persistent process and does not wait for it return. The logs from the process
+can be retrieved via the `garden logs` command as usual.
+
+By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
 ### `tasks[]`
 

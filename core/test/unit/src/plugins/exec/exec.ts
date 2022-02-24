@@ -6,9 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { spawn } from "child_process"
 import { expect } from "chai"
 import { join, resolve } from "path"
-import terminate from "terminate/promise"
+import psTree from "ps-tree"
 
 import { Garden } from "../../../../../src/garden"
 import { gardenPlugin, configureExecModule, getLogFilePath } from "../../../../../src/plugins/exec/exec"
@@ -583,7 +584,7 @@ describe("exec plugin", () => {
             `)
         )
       })
-      context("persistent", () => {
+      context("devMode", () => {
         // We set the pid in the "it" statements.
         let pid = -1
 
@@ -592,13 +593,22 @@ describe("exec plugin", () => {
             try {
               // This ensures the actual child process gets killed.
               // See: https://github.com/sindresorhus/execa/issues/96#issuecomment-776280798
-              await terminate(pid)
+              psTree(pid, function (_err, children) {
+                spawn(
+                  "kill",
+                  ["-9"].concat(
+                    children.map(function (p) {
+                      return p.PID
+                    })
+                  )
+                )
+              })
             } catch (_err) {}
           }
         })
 
-        it("should run a persistent local service", async () => {
-          const service = graph.getService("persistent")
+        it("should run a persistent local service in dev mode", async () => {
+          const service = graph.getService("dev-mode")
           const actions = await garden.getActionRouter()
           const res = await actions.deployService({
             devMode: true,
@@ -619,7 +629,7 @@ describe("exec plugin", () => {
         })
         it("should write logs to a local file with the proper format", async () => {
           // This services just echos a string N times before exiting.
-          const service = graph.getService("persistent-with-logs")
+          const service = graph.getService("dev-mode-with-logs")
           const actions = await garden.getActionRouter()
           const res = await actions.deployService({
             devMode: true,
@@ -634,7 +644,8 @@ describe("exec plugin", () => {
             },
           })
 
-          // Wait for entries to be written since we otherwise don't wait on persistent commands (unless a status command is set).
+          // Wait for entries to be written since we otherwise don't wait on persistent commands (unless
+          // a status command is set).
           await sleep(1500)
 
           pid = res.detail.pid
@@ -657,34 +668,34 @@ describe("exec plugin", () => {
 
           expect(logEntriesWithoutTimestamps).to.eql([
             {
-              serviceName: "persistent-with-logs",
+              serviceName: "dev-mode-with-logs",
               msg: "Hello 1",
-              level: "info",
+              level: 2,
             },
             {
-              serviceName: "persistent-with-logs",
+              serviceName: "dev-mode-with-logs",
               msg: "Hello 2",
-              level: "info",
+              level: 2,
             },
             {
-              serviceName: "persistent-with-logs",
+              serviceName: "dev-mode-with-logs",
               msg: "Hello 3",
-              level: "info",
+              level: 2,
             },
             {
-              serviceName: "persistent-with-logs",
+              serviceName: "dev-mode-with-logs",
               msg: "Hello 4",
-              level: "info",
+              level: 2,
             },
             {
-              serviceName: "persistent-with-logs",
+              serviceName: "dev-mode-with-logs",
               msg: "Hello 5",
-              level: "info",
+              level: 2,
             },
           ])
         })
         it("should eventually timeout if status command is set and it returns a non-zero exit code ", async () => {
-          const service = graph.getService("persistent-timeout")
+          const service = graph.getService("dev-mode-timeout")
           const actions = await garden.getActionRouter()
           let error: any
           try {
@@ -707,10 +718,10 @@ describe("exec plugin", () => {
           pid = error.detail.pid
           expect(pid).to.be.a("number")
           expect(pid).to.be.greaterThan(0)
-          expect(error.detail.serviceName).to.eql("persistent-timeout")
+          expect(error.detail.serviceName).to.eql("dev-mode-timeout")
           expect(error.detail.statusCommand).to.eql([`/bin/sh -c "exit 1"`])
           expect(error.detail.timeout).to.eql(1)
-          expect(error.message).to.eql(`Timed out waiting for local service persistent-timeout to be ready`)
+          expect(error.message).to.eql(`Timed out waiting for local service dev-mode-timeout to be ready`)
         })
       })
     })
