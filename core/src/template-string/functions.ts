@@ -7,6 +7,7 @@
  */
 
 import { v4 as uuidv4 } from "uuid"
+import { createHash } from "crypto"
 import { TemplateStringError } from "../exceptions"
 import { keyBy, mapValues, escapeRegExp, trim, isEmpty, camelCase, kebabCase, isArrayLike } from "lodash"
 import { joi, JoiDescription, joiPrimitive, Primitive } from "../config/common"
@@ -185,6 +186,18 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
     ],
     fn: (str: string, substring: string, replacement: string) =>
       str.replace(new RegExp(escapeRegExp(substring), "g"), replacement),
+  },
+  {
+    name: "sha256",
+    description: "Creates a SHA256 hash of the provided string.",
+    arguments: {
+      string: joi.string().required().description("The string to hash."),
+    },
+    outputSchema: joi.string(),
+    exampleArguments: [
+      { input: ["Some String"], output: "7f0fd64653ba0bb1a579ced2b6bf375e916cc60662109ee0c0b24f0a750c3a6c" },
+    ],
+    fn: (str: string) => createHash("sha256").update(str).digest("hex"),
   },
   {
     name: "slice",

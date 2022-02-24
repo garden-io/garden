@@ -137,6 +137,16 @@ Examples:
 * `${replace("string_with_underscores", "_", "-")}` -> `"string-with-underscores"`
 * `${replace("remove.these.dots", ".", "")}` -> `"removethesedots"`
 
+### sha256
+
+Creates a SHA256 hash of the provided string.
+
+Usage: `sha256(string)`
+
+Examples:
+
+* `${sha256("Some String")}` -> `"7f0fd64653ba0bb1a579ced2b6bf375e916cc60662109ee0c0b24f0a750c3a6c"`
+
 ### slice
 
 Slices a string or array at the specified start/end offsets. Note that you can use a negative number for the end offset to count backwards from the end.

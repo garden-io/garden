@@ -1066,6 +1066,11 @@ describe("resolveTemplateString", async () => {
       expect(res).to.equal("Zm9v")
     })
 
+    it("generates a correct hash with a string literal from the sha256 helper function", () => {
+      const res = resolveTemplateString("${sha256('This Is A Test String')}", new TestContext({}))
+      expect(res).to.equal("9a058284378d1cc6b4348aacb6ba847918376054b094bbe06eb5302defc52685")
+    })
+
     it("throws if an argument is missing", () => {
       expectError(
         () => resolveTemplateString("${base64Decode()}", new TestContext({})),
