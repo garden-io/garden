@@ -107,7 +107,7 @@
     "moment": "^2.26.0",
     "nan": "^2.14.1",
     "node-emoji": "^1.10.0",
-    "node-forge": "^0.10.0",
+    "node-forge": "^1.0.0",
     "node-notifier": "^10.0.0",
     "nopt": "^5.0.0",
     "normalize-path": "^3.0.0",
