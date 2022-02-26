@@ -97,4 +97,4 @@ We highly recommend reading all the other docs in this section to learn about th
 
 The [Variables and Templating guide](./variables-and-templating.md) explains how you can reference across different providers and modules, as well as how to supply secret values to your configuration.
 
-Also, be sure to look at the [Reference section](../reference/README.md) for more details on each of the available configuration fields, and the [Template Strings Reference](../reference/template-strings.md) for the keys available in template strings.
+Also, be sure to look at the [Reference section](../reference/README.md) for more details on each of the available configuration fields, and the [Template Strings Reference](../reference/template-strings/README.md) for the keys available in template strings.

@@ -137,13 +137,13 @@ values:
 
 ### Helper functions
 
-You can use a variety of helper functions in template strings, for things like string processing, parsing, conversions etc. You find a [full list in the reference docs](../reference/template-strings.md#helper-functions), but here are a couple of examples:
+You can use a variety of helper functions in template strings, for things like string processing, parsing, conversions etc. You find a [full list in the reference docs](../reference/template-strings/functions.md), but here are a couple of examples:
 
 * `${base64Encode('my value')}` encodes the `'my value'` string as base64.
 * `${base64Decode('bXkgdmFsdWU=')}` decodes the given base64 string.
 * `${replace(var.someVariable, "_", "-")}` returns the `someVariable` variable with all underscores replaced with dashes.
 
-Check out [the reference](../reference/template-strings.md#helper-functions) to explore all the available functions.
+Check out [the reference](../reference/template-strings/functions.md) to explore all the available functions.
 
 ### Multi-line if/else statements
 
@@ -682,6 +682,6 @@ Different module types expose different output keys for their services and tasks
 
 ## Next steps
 
-For a full reference of the keys available in template strings, please look at the [Template Strings Reference](../reference/template-strings.md), as well as individual [providers](../reference/providers/README.md) for provider outputs, and [module types](../reference/module-types/README.md) for module and runtime output keys.
+For a full reference of the keys available in template strings, please look at the [Template Strings Reference](../reference/template-strings/README.md), as well as individual [providers](../reference/providers/README.md) for provider outputs, and [module types](../reference/module-types/README.md) for module and runtime output keys.
 
 Also take a look at our [Guides section](../guides/README.md) for various specific uses of Garden.

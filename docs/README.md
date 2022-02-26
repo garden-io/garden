@@ -77,13 +77,21 @@
   * [`persistentvolumeclaim`](./reference/module-types/persistentvolumeclaim.md)
   * [`templated`](./reference/module-types/templated.md)
   * [`terraform`](./reference/module-types/terraform.md)
-* [Config Files](./reference/config.md)
+* [Template Strings](./reference/template-strings/README.md)
+  * [Project configuration context](./reference/template-strings/projects.md)
+  * [Environment configuration context](./reference/template-strings/environments.md)
+  * [Provider configuration context](./reference/template-strings/providers.md)
+  * [Module configuration context](./reference/template-strings/modules.md)
+  * [Remote Source configuration context](./reference/template-strings/remote-sources.md)
+  * [Project Output configuration context](./reference/template-strings/project-outputs.md)
+  * [Custom Command configuration context](./reference/template-strings/custom-commands.md)
+  * [Workflow configuration context](./reference/template-strings/workflows.md)
+  * [Template Helper Functions](./reference/template-strings/functions.md)
 * [Glossary](./reference/glossary.md)
 * [Commands](./reference/commands.md)
 * [Project Configuration](./reference/project-config.md)
 * [Module Template Configuration](./reference/module-template-config.md)
 * [Workflow Configuration](./reference/workflow-config.md)
-* [Template Strings](./reference/template-strings.md)
 
 ## 🌹 Misc
 

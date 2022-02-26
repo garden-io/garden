@@ -10,7 +10,6 @@ import { joi, apiVersionSchema, joiUserIdentifier, CustomObjectSchema } from "./
 import { baseModuleSpecSchema, BaseModuleSpec, ModuleConfig } from "./module"
 import { dedent, deline } from "../util/string"
 import { GardenResource, prepareModuleResource } from "./base"
-import { DOCS_BASE_URL } from "../constants"
 import { resolveTemplateStrings } from "../template-string/template-string"
 import { validateWithPath } from "./validation"
 import { Garden } from "../garden"
@@ -26,7 +25,7 @@ import { ModuleTemplateConfigContext } from "./template-contexts/module"
 const inputTemplatePattern = "${inputs.*}"
 const parentNameTemplate = "${parent.name}"
 const moduleTemplateNameTemplate = "${template.name}"
-const moduleTemplateReferenceUrl = DOCS_BASE_URL + "/reference/template-strings#module-configuration-context"
+const moduleTemplateReferenceUrl = "./template-strings/modules.md"
 
 export const templateKind = "ModuleTemplate"
 

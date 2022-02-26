@@ -35,16 +35,15 @@ inputsSchemaPath:
 # module root.
 #
 # In addition to any template strings you can normally use for modules (see [the
-# reference](https://docs.garden.io/reference/template-strings#module-configuration-context)), you can reference the
-# inputs described by the inputs schema for the template, using ${inputs.*} template strings, as well as
-# ${parent.name} and ${template.name}, to reference the name of the module using the template, and the name of the
-# template itself, respectively. This also applies to file contents specified under the `files` key.
+# reference](./template-strings/modules.md)), you can reference the inputs described by the inputs schema for the
+# template, using ${inputs.*} template strings, as well as ${parent.name} and ${template.name}, to reference the name
+# of the module using the template, and the name of the template itself, respectively. This also applies to file
+# contents specified under the `files` key.
 #
 # **Important: Make sure you use templates for any identifiers that must be unique, such as module names, service
 # names and task names. Otherwise you'll inevitably run into configuration errors. The module names can reference the
 # ${inputs.*}, ${parent.name} and ${template.name} keys. Other identifiers can also reference those, plus any other
-# keys available for module templates (see [the module context
-# reference](https://docs.garden.io/reference/template-strings#module-configuration-context)).**
+# keys available for module templates (see [the module context reference](./template-strings/modules.md)).**
 modules:
   - # The schema version of this config (currently not used).
     apiVersion: garden.io/v0
@@ -220,9 +219,9 @@ Path to a JSON schema file describing the expected inputs for the template. Must
 
 A list of modules this template will output. The schema for each is the same as when you create modules normally in configuration files, with the addition of a `path` field, which allows you to specify a sub-directory to set as the module root.
 
-In addition to any template strings you can normally use for modules (see [the reference](https://docs.garden.io/reference/template-strings#module-configuration-context)), you can reference the inputs described by the inputs schema for the template, using ${inputs.*} template strings, as well as ${parent.name} and ${template.name}, to reference the name of the module using the template, and the name of the template itself, respectively. This also applies to file contents specified under the `files` key.
+In addition to any template strings you can normally use for modules (see [the reference](./template-strings/modules.md)), you can reference the inputs described by the inputs schema for the template, using ${inputs.*} template strings, as well as ${parent.name} and ${template.name}, to reference the name of the module using the template, and the name of the template itself, respectively. This also applies to file contents specified under the `files` key.
 
-**Important: Make sure you use templates for any identifiers that must be unique, such as module names, service names and task names. Otherwise you'll inevitably run into configuration errors. The module names can reference the ${inputs.*}, ${parent.name} and ${template.name} keys. Other identifiers can also reference those, plus any other keys available for module templates (see [the module context reference](https://docs.garden.io/reference/template-strings#module-configuration-context)).**
+**Important: Make sure you use templates for any identifiers that must be unique, such as module names, service names and task names. Otherwise you'll inevitably run into configuration errors. The module names can reference the ${inputs.*}, ${parent.name} and ${template.name} keys. Other identifiers can also reference those, plus any other keys available for module templates (see [the module context reference](./template-strings/modules.md)).**
 
 | Type            | Required |
 | --------------- | -------- |

@@ -121,7 +121,7 @@ You can then retrieve this value by running e.g. `garden get outputs -o json` an
 
 ### Variables
 
-Variables defined in the project config are accessible in [template strings](../reference/template-strings.md) for all the project's module configurations. To illustrate, here's the project configuration from the `project-variables` example project:
+Variables defined in the project config are accessible in [template strings](../reference/template-strings/README.md) for all the project's module configurations. To illustrate, here's the project configuration from the `project-variables` example project:
 
 ```yaml
 # examples/project-variables/garden.yml
@@ -162,7 +162,7 @@ services:
 
 * [Full project config reference](../reference/project-config.md).
 * [A guide on template strings and setting project wide variables](../using-garden/variables-and-templating.md).
-* [Template string reference](../reference/template-strings.md).
+* [Template string reference](../reference/template-strings/README.md).
 
 ## Next Steps
 

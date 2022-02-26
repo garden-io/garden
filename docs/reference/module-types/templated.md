@@ -164,8 +164,8 @@ template:
 # Note: You can use template strings for the inputs, but be aware that inputs that are used to generate the resulting
 # module names and other top-level identifiers must be resolvable when scanning for modules, and thus cannot reference
 # other modules or runtime variables. See the [environment configuration context
-# reference](https://docs.garden.io/reference/template-strings#environment-configuration-context) to see template
-# strings that are safe to use for inputs used to generate module identifiers.
+# reference](../template-strings/environments.md) to see template strings that are safe to use for inputs used to
+# generate module identifiers.
 inputs:
 ```
 
@@ -473,7 +473,7 @@ The ModuleTemplate to use to generate the sub-modules of this module.
 
 A map of inputs to pass to the ModuleTemplate. These must match the inputs schema of the ModuleTemplate.
 
-Note: You can use template strings for the inputs, but be aware that inputs that are used to generate the resulting module names and other top-level identifiers must be resolvable when scanning for modules, and thus cannot reference other modules or runtime variables. See the [environment configuration context reference](https://docs.garden.io/reference/template-strings#environment-configuration-context) to see template strings that are safe to use for inputs used to generate module identifiers.
+Note: You can use template strings for the inputs, but be aware that inputs that are used to generate the resulting module names and other top-level identifiers must be resolvable when scanning for modules, and thus cannot reference other modules or runtime variables. See the [environment configuration context reference](../template-strings/environments.md) to see template strings that are safe to use for inputs used to generate module identifiers.
 
 | Type     | Required |
 | -------- | -------- |
