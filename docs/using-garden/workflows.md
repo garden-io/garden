@@ -53,7 +53,7 @@ steps:
 Not all Garden commands can be run in workflows, and some option flags are not available. Please see the [command reference](../reference/commands.md) to see which commands are supported in workflows.
 {% endhint %}
 
-The available keys for templating can be found in the [template reference](../reference/template-strings.md#workflow-configuration-context).
+The available keys for templating can be found in the [template reference](../reference/template-strings/workflows.md).
 
 ### Script steps
 

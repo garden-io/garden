@@ -71,7 +71,7 @@ The `gardenCommand` field is a simple array, which normally should start with th
 
 ## Templating
 
-The `exec` and `gardenCommand` fields can be templated with many of the fields available for project and environment configuration. See [the reference](../reference/template-strings.md#custom-command-configuration-context) for all the fields available.
+The `exec` and `gardenCommand` fields can be templated with many of the fields available for project and environment configuration. See [the reference](../reference/template-strings/custom-commands.md) for all the fields available.
 
 Of special note are the `${args.*}` and `${opts.*}` variables. You can [see below](#defining-arguments-and-option-flags) how to explicitly define both positional arguments and option flags, but you can also use the following predefined variables:
 

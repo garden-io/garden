@@ -330,7 +330,7 @@ export const projectDocsSchema = () =>
         A list of output values that the project should export. These are exported by the \`garden get outputs\` command, as well as when referencing a project as a sub-project within another project.
 
         You may use any template strings to specify the values, including references to provider outputs, module
-        outputs and runtime outputs. For a full reference, see the [Output configuration context](${DOCS_BASE_URL}/reference/template-strings#output-configuration-context) section in the Template String Reference.
+        outputs and runtime outputs. For a full reference, see the [Output configuration context](./template-strings/project-outputs.md) section in the Template String Reference.
 
         Note that if any runtime outputs are referenced, the referenced services and tasks will be deployed and run if necessary when resolving the outputs.
         `
