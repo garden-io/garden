@@ -12,6 +12,9 @@
     "outDir": "build"
   },
   "references": [
+    {
+      "path": "../cli"
+    },
     { "path": "../core" }
   ]
 }

@@ -5,6 +5,7 @@
     "test/**/*.ts"
   ],
   "compilerOptions": {
+    "composite": true,
     "outDir": "build"
   },
   "references": [
