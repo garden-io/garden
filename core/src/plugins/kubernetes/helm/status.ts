@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ServiceStatus, ServiceState, ForwardablePort, GardenService } from "../../../types/service"
+import { ServiceStatus, ServiceState, ForwardablePort, GardenService, ServiceIngress } from "../../../types/service"
 import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
 import { LogEntry } from "../../../logger/log-entry"
 import { helm } from "./helm-cli"
@@ -21,6 +21,7 @@ import { startDevModeSync } from "../dev-mode"
 import { isConfiguredForDevMode } from "../status/status"
 import { KubeApi } from "../api"
 import Bluebird from "bluebird"
+import { getK8sIngresses } from "../status/ingress"
 
 export const gardenCloudAECPauseAnnotation = "garden.io/aec-status"
 
@@ -72,10 +73,13 @@ export async function getServiceStatus({
   }
 
   let forwardablePorts: ForwardablePort[] = []
+  let ingresses: ServiceIngress[] = []
 
   if (state !== "missing") {
     const deployedResources = await getRenderedResources({ ctx: k8sCtx, module, releaseName, log })
+
     forwardablePorts = getForwardablePorts(deployedResources, service)
+    ingresses = getK8sIngresses(deployedResources)
 
     if (state === "ready" && devMode && service.spec.devMode) {
       // Need to start the dev-mode sync here, since the deployment handler won't be called.
@@ -125,6 +129,7 @@ export async function getServiceStatus({
     detail,
     devMode: deployedWithDevModeOrHotReloading,
     namespaceStatuses: [namespaceStatus],
+    ingresses,
   }
 }
 

@@ -27,6 +27,7 @@ import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kube
 import { streamK8sLogs } from "../logs"
 import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
 import { getForwardablePorts, getPortForwardHandler, killPortForwards } from "../port-forward"
+import { getK8sIngresses } from "../status/ingress"
 import { compareDeployedResources, isConfiguredForDevMode, waitForResources } from "../status/status"
 import { getTaskResult } from "../task-results"
 import { getTestResult } from "../test-results"
@@ -136,6 +137,7 @@ export async function getKubernetesServiceStatus({
     detail: { remoteResources },
     devMode: deployedWithDevMode || deployedWithHotReloading,
     namespaceStatuses: [namespaceStatus],
+    ingresses: getK8sIngresses(remoteResources),
   }
 }
 

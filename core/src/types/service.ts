@@ -111,8 +111,12 @@ export interface ServiceIngressSpec {
   protocol: ServiceProtocol
 }
 
-export interface ServiceIngress extends ServiceIngressSpec {
+export interface ServiceIngress {
   hostname: string
+  linkUrl?: string
+  path: string
+  port?: number
+  protocol: ServiceProtocol
 }
 
 export const ingressHostnameSchema = () =>
@@ -149,7 +153,6 @@ export const serviceIngressSchema = () =>
   serviceIngressSpecSchema()
     .keys({
       hostname: joi.string().required().description("The hostname where the service can be accessed."),
-      port: portSchema().required(),
     })
     .unknown(true)
     .description("A description of a deployed service ingress.")
