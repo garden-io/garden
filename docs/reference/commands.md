@@ -149,7 +149,11 @@ deployments:
 
     # List of currently deployed ingress endpoints for the service.
     ingresses:
-      - # The ingress path that should be matched to route to this service.
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
+
+        # The ingress path that should be matched to route to this service.
         path:
 
         # The protocol to use for the ingress.
@@ -157,10 +161,6 @@ deployments:
 
         # The hostname where the service can be accessed.
         hostname:
-
-        # The port number that the service is exposed on internally.
-        # This defaults to the first specified port for the service.
-        port:
 
     # Latest status message of the service (if any).
     lastMessage:
@@ -484,7 +484,11 @@ serviceStatuses:
 
     # List of currently deployed ingress endpoints for the service.
     ingresses:
-      - # The ingress path that should be matched to route to this service.
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
+
+        # The ingress path that should be matched to route to this service.
         path:
 
         # The protocol to use for the ingress.
@@ -492,10 +496,6 @@ serviceStatuses:
 
         # The hostname where the service can be accessed.
         hostname:
-
-        # The port number that the service is exposed on internally.
-        # This defaults to the first specified port for the service.
-        port:
 
     # Latest status message of the service (if any).
     lastMessage:
@@ -594,7 +594,11 @@ Examples:
 
   # List of currently deployed ingress endpoints for the service.
   ingresses:
-    - # The ingress path that should be matched to route to this service.
+    - # The port number that the service is exposed on internally.
+      # This defaults to the first specified port for the service.
+      port:
+
+      # The ingress path that should be matched to route to this service.
       path:
 
       # The protocol to use for the ingress.
@@ -602,10 +606,6 @@ Examples:
 
       # The hostname where the service can be accessed.
       hostname:
-
-      # The port number that the service is exposed on internally.
-      # This defaults to the first specified port for the service.
-      port:
 
   # Latest status message of the service (if any).
   lastMessage:
@@ -757,7 +757,11 @@ deployments:
 
     # List of currently deployed ingress endpoints for the service.
     ingresses:
-      - # The ingress path that should be matched to route to this service.
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
+
+        # The ingress path that should be matched to route to this service.
         path:
 
         # The protocol to use for the ingress.
@@ -765,10 +769,6 @@ deployments:
 
         # The hostname where the service can be accessed.
         hostname:
-
-        # The port number that the service is exposed on internally.
-        # This defaults to the first specified port for the service.
-        port:
 
     # Latest status message of the service (if any).
     lastMessage:
@@ -2381,7 +2381,11 @@ services:
 
     # List of currently deployed ingress endpoints for the service.
     ingresses:
-      - # The ingress path that should be matched to route to this service.
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
+
+        # The ingress path that should be matched to route to this service.
         path:
 
         # The protocol to use for the ingress.
@@ -2389,10 +2393,6 @@ services:
 
         # The hostname where the service can be accessed.
         hostname:
-
-        # The port number that the service is exposed on internally.
-        # This defaults to the first specified port for the service.
-        port:
 
     # Latest status message of the service (if any).
     lastMessage:
@@ -2949,7 +2949,11 @@ deployments:
 
     # List of currently deployed ingress endpoints for the service.
     ingresses:
-      - # The ingress path that should be matched to route to this service.
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
+
+        # The ingress path that should be matched to route to this service.
         path:
 
         # The protocol to use for the ingress.
@@ -2957,10 +2961,6 @@ deployments:
 
         # The hostname where the service can be accessed.
         hostname:
-
-        # The port number that the service is exposed on internally.
-        # This defaults to the first specified port for the service.
-        port:
 
     # Latest status message of the service (if any).
     lastMessage:
@@ -3524,7 +3524,11 @@ deployments:
 
     # List of currently deployed ingress endpoints for the service.
     ingresses:
-      - # The ingress path that should be matched to route to this service.
+      - # The port number that the service is exposed on internally.
+        # This defaults to the first specified port for the service.
+        port:
+
+        # The ingress path that should be matched to route to this service.
         path:
 
         # The protocol to use for the ingress.
@@ -3532,10 +3536,6 @@ deployments:
 
         # The hostname where the service can be accessed.
         hostname:
-
-        # The port number that the service is exposed on internally.
-        # This defaults to the first specified port for the service.
-        port:
 
     # Latest status message of the service (if any).
     lastMessage:
