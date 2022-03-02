@@ -4,12 +4,6 @@ const app = express();
 
 const backendServiceEndpoint = `http://backend/hello-backend`
 
-let idx = 0
-setInterval(() => {
-  console.log(`Hello ${idx}`)
-  idx++
-}, 1500);
-
 app.get('/healthz', (req, res) => res.send('ok'));
 
 app.get('/hello-frontend', (req, res) => res.send('Hello from the frontend!'));

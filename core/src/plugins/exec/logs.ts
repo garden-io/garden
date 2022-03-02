@@ -204,11 +204,13 @@ export class ExecLogsFollower {
     })
 
     this.events.on("change", async () => {
+      // If tailing is progress we'll retry on the file end event.
       if (!this.isTailing) {
         await this.tailFile({ cursorStartPos: this.bytesRead, follow: true })
       }
     })
 
+    // This suggests the log file was reset
     this.events.on("rename", async () => {
       this.reset()
       // Wait while file is being rotated
@@ -267,18 +269,8 @@ export class ExecLogsFollower {
       return
     }
 
-    let fsWait = false
     try {
       this.watcher = watch(this.logFilePath, (event, _filename) => {
-        // Debounce events since some OS's may emit multiple events on a single change/rename event
-        if (fsWait) {
-          return
-        }
-        fsWait = true
-        setTimeout(() => {
-          fsWait = false
-        }, 100)
-
         if (event === "change") {
           this.modified = true
           this.events.emit("change", {})

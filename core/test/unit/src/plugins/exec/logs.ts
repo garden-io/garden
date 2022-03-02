@@ -289,7 +289,7 @@ describe("ExecLogsFollower", () => {
 
         expect(logs).to.eql([...firstBatch, ...secondBatch])
       })
-      it("should handle log file rotation", async () => {
+      it("should handle log file being reset while watching", async () => {
         const logFilePath = join(tmpDir.path, `log-${randomString(8)}.jsonl`)
         const [stream, logs] = getStream()
 
@@ -316,7 +316,7 @@ describe("ExecLogsFollower", () => {
 
         expect(logs).to.eql(firstBatch)
 
-        // Rotate the log file. Note that this deletes the entire file so that subsequent incoming
+        // Reset the log file. Note that this deletes the entire file so that subsequent incoming
         // entries are written to the beginning of the new file.
         await remove(logFilePath)
         await ensureFile(logFilePath)
