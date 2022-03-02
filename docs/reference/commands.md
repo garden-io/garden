@@ -2724,7 +2724,6 @@ Examples:
     garden logs service-a,service-b        # interleaves color-coded logs for service-a and service-b
     garden logs --follow                   # keeps running and streams all incoming logs to the console
     garden logs --tag container=service-a  # only shows logs from containers with names matching the pattern
-    garden logs --original-color           # interleaves logs from all services and prints the original output color
 
 #### Usage
 
@@ -2747,7 +2746,6 @@ Examples:
   | `--show-tags` |  | boolean | Show any tags attached to each log line. May not apply to all providers
   | `--timestamps` |  | boolean | Show timestamps with log output.
   | `--since` |  | moment | Only show logs newer than a relative duration like 5s, 2m, or 3h. Defaults to &#x60;&quot;1m&quot;&#x60; when &#x60;--follow&#x60; is true unless &#x60;--tail&#x60; is set. Note that we don&#x27;t recommend using a large value here when in follow mode.
-  | `--original-color` |  | boolean | Show the original color output of the logs instead of color coding them.
   | `--hide-service` |  | boolean | Hide the service name and render the logs directly.
 
 

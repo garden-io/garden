@@ -43,6 +43,6 @@ services:
   - name: frontend-local
     devMode:
       command: ["yarn", "run", "dev"]
+      statusCommand: [./check-local-status.sh]
     deployCommand: ["exit", "0"]
-    statusCommand: [./check-local-status.sh]
     env: ${modules.frontend.var.env}

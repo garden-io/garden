@@ -224,9 +224,7 @@ services:
     # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
     cleanupCommand:
 
-    # The maximum duration (in seconds) to wait for a local script to exit. For persistent dev mode commands,
-    # this is the maximum duration to wait for the `statusCommand` to return a 0
-    # exit code, if it's set.
+    # The maximum duration (in seconds) to wait for a local script to exit.
     timeout:
 
     # Environment variables to set when running the deploy and status commands.
@@ -237,9 +235,25 @@ services:
       # the command starts a persistent process and does not wait for it return. The logs from the process
       # can be retrieved via the `garden logs` command as usual.
       #
+      # If a `statusCommand` is set, Garden will wait until it returns a zero exit code before considering
+      # the service ready. Otherwise it considers the service immediately ready.
+      #
       # By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
       # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
       command:
+
+      # Optionally set a command to check the status of the service in dev mode. Garden will run the status command
+      # at an interval until it returns a zero exit code or times out.
+      #
+      # If no `statusCommand` is set, Garden will consider the service ready as soon as it has started the process.
+      #
+      # By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+      # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
+      statusCommand:
+
+      # The maximum duration (in seconds) to wait for a for the `statusCommand` to return a zero
+      # exit code. Ignored if no `statusCommand` is set.
+      timeout: 10
 
 # A list of tasks that can be run in this module.
 tasks:
@@ -750,9 +764,7 @@ If the top level `local` directive is set to `true`, the command runs in the mod
 
 [services](#services) > timeout
 
-The maximum duration (in seconds) to wait for a local script to exit. For persistent dev mode commands,
-this is the maximum duration to wait for the `statusCommand` to return a 0
-exit code, if it's set.
+The maximum duration (in seconds) to wait for a local script to exit.
 
 | Type     | Required |
 | -------- | -------- |
@@ -784,12 +796,42 @@ The commmand to run to deploy the service in dev mode. When in dev mode, Garden 
 the command starts a persistent process and does not wait for it return. The logs from the process
 can be retrieved via the `garden logs` command as usual.
 
+If a `statusCommand` is set, Garden will wait until it returns a zero exit code before considering
+the service ready. Otherwise it considers the service immediately ready.
+
 By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
 If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
 
 | Type            | Required |
 | --------------- | -------- |
 | `array[string]` | No       |
+
+### `services[].devMode.statusCommand[]`
+
+[services](#services) > [devMode](#servicesdevmode) > statusCommand
+
+Optionally set a command to check the status of the service in dev mode. Garden will run the status command
+at an interval until it returns a zero exit code or times out.
+
+If no `statusCommand` is set, Garden will consider the service ready as soon as it has started the process.
+
+By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `services[].devMode.timeout`
+
+[services](#services) > [devMode](#servicesdevmode) > timeout
+
+The maximum duration (in seconds) to wait for a for the `statusCommand` to return a zero
+exit code. Ignored if no `statusCommand` is set.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `10`    | No       |
 
 ### `tasks[]`
 
