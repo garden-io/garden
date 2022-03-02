@@ -17,7 +17,7 @@ kind: Module
 name: frontend
 type: container
 include: ["."] # <--- Include is required when modules overlap
-variables: 
+variables:
   env: # <--- Define env as a variable so that we can re-use it in the local module
     PORT: 8080
 # ...
@@ -34,7 +34,7 @@ services:
     devMode:
       command: ["yarn", "run", "dev"] # <--- This is the command Garden runs to start the process in dev mode
       statusCommand: [./check-local-status.sh] # <--- Optionally set a status command that checks whether the local service is ready
-    deployCommand: ["exit", "0"] # <--- A no op since we only want to deploy it when we're in dev mode
+    deployCommand: [] # <--- A no op since we only want to deploy it when we're in dev mode
     env: ${modules.frontend.env} # <--- Reference the env variable defined above
 ```
 

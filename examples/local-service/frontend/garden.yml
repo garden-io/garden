@@ -44,5 +44,5 @@ services:
     devMode:
       command: ["yarn", "run", "dev"]
       statusCommand: [./check-local-status.sh]
-    deployCommand: ["exit", "0"]
+    deployCommand: []
     env: ${modules.frontend.var.env}
