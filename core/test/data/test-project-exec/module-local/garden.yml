@@ -19,3 +19,5 @@ services:
   - name: error
     deployCommand: [sh, -c "echo fail! && exit 1"]
     cleanupCommand: [sh, -c "echo fail! && exit 1"]
+  - name: empty
+    deployCommand: []

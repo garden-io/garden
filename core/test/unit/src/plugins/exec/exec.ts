@@ -259,6 +259,19 @@ describe("exec plugin", () => {
           name: "error",
         },
       },
+      {
+        dependencies: [],
+        disabled: false,
+        hotReloadable: false,
+        name: "empty",
+        spec: {
+          dependencies: [],
+          deployCommand: [],
+          disabled: false,
+          env: {},
+          name: "empty",
+        },
+      },
     ])
     expect(moduleLocal.taskConfigs).to.eql([
       {
@@ -555,6 +568,24 @@ describe("exec plugin", () => {
           },
         })
         expect(res.detail.deployCommandOutput).to.eql("deployed echo service")
+      })
+
+      it("skips deploying if deploy command is empty but does not throw", async () => {
+        const service = graph.getService("empty")
+        const actions = await garden.getActionRouter()
+        const res = await actions.deployService({
+          devMode: false,
+          force: false,
+          hotReload: false,
+          log,
+          service,
+          graph,
+          runtimeContext: {
+            envVars: {},
+            dependencies: [],
+          },
+        })
+        expect(res.detail.skipped).to.eql(true)
       })
 
       it("throws if deployCommand returns with non-zero code", async () => {

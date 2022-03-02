@@ -636,6 +636,9 @@ export const deployExecService: ServiceActionHandlers["deployService"] = async (
   const devModeSpec = service.spec.devMode
   if (devMode && devModeSpec && devModeSpec.command.length > 0) {
     return deployPersistentExecService({ module, log, ctx, env, devModeSpec, serviceName: service.name })
+  } else if (service.spec.deployCommand.length === 0) {
+    log.info({ msg: "No deploy command found. Skipping.", symbol: "info" })
+    return { state: "ready", detail: { skipped: true } }
   } else {
     const serviceSpec = service.spec
     const result = await run({
@@ -706,6 +709,8 @@ async function deployPersistentExecService({
     let ready = false
 
     while (!ready) {
+      await sleep(persistentLocalProcRetryIntervalMs)
+
       const now = new Date()
       const timeElapsedSec = (now.getTime() - startedAt.getTime()) / 1000
 
@@ -727,8 +732,6 @@ async function deployPersistentExecService({
       })
 
       ready = result.exitCode === 0
-
-      await sleep(persistentLocalProcRetryIntervalMs)
     }
   }
 
