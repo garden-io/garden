@@ -14,11 +14,19 @@ brew install --cask google-cloud-sdk
 gcloud components update
 gcloud components install beta
 
-# install nvm and node
+# install nvm
 curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.35.1/install.sh | bash
+# make nvm command active without terminal reopening
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+# install node
 nvm install 12
 nvm alias default 12
 nvm use default
 
 # install/update global packages
 npm install -g gulp-cli ts-node typescript
+
+# install yarn
+npm install --global yarn
