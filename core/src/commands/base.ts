@@ -276,7 +276,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
           Are you sure you want to continue? (run the command with the "--yes" flag to skip this check).
 
       `)
-      const answer: any = userPrompt({
+      const answer = await userPrompt({
         name: "continue",
         message: defaultMessage,
         type: "confirm",
