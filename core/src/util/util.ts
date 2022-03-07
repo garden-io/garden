@@ -857,7 +857,7 @@ export function userPrompt(params: {
   default?: any
   choices?: string[]
   pageSize?: number
-}) {
+}): Promise<any> {
   return require("inquirer").prompt(params)
 }
 
