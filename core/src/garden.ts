@@ -57,7 +57,14 @@ import { BuildDependencyConfig, ModuleConfig } from "./config/module"
 import { ModuleResolver, moduleResolutionConcurrencyLimit } from "./resolve-module"
 import { createPluginContext, CommandInfo, PluginEventBroker } from "./plugin-context"
 import { ModuleAndRuntimeActionHandlers, RegisterPluginParam } from "./types/plugin/plugin"
-import { SUPPORTED_PLATFORMS, SupportedPlatform, DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "./constants"
+import {
+  SUPPORTED_PLATFORMS,
+  SupportedPlatform,
+  DEFAULT_GARDEN_DIR_NAME,
+  gardenEnv,
+  SupportedArchitecture,
+  SUPPORTED_ARCHITECTURES,
+} from "./constants"
 import { LogEntry } from "./logger/log-entry"
 import { EventBus } from "./events"
 import { Watcher } from "./watch"
@@ -292,7 +299,7 @@ export class Garden {
       throw new RuntimeError(`Unsupported platform: ${currentPlatform}`, { platform: currentPlatform })
     }
 
-    if (currentArch !== "x64") {
+    if (!SUPPORTED_ARCHITECTURES.includes(<SupportedArchitecture>currentArch)) {
       throw new RuntimeError(`Unsupported CPU architecture: ${currentArch}`, { arch: currentArch })
     }
 

@@ -619,6 +619,17 @@ export const mutagenCliSpec: PluginToolSpec = {
       },
     },
     {
+      platform: "darwin",
+      architecture: "arm64",
+      url:
+        "https://github.com/mutagen-io/mutagen/releases/download/v0.13.0-garden-1/mutagen_darwin_arm64_v0.13.0.tar.gz",
+      sha256: "ed5bd30bb9d10ac7b36f1ed4f9f3c3eea11044125f573776617cc7874398b1ed",
+      extract: {
+        format: "tar",
+        targetPath: "mutagen",
+      },
+    },
+    {
       platform: "linux",
       architecture: "amd64",
       url: "https://github.com/garden-io/mutagen/releases/download/v0.13.0-garden-1/mutagen_linux_amd64_v0.13.0.tar.gz",

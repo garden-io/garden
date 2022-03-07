@@ -38,6 +38,9 @@ export const DEFAULT_TASK_TIMEOUT = 60 * 1000
 export type SupportedPlatform = "linux" | "darwin" | "win32"
 export const SUPPORTED_PLATFORMS: SupportedPlatform[] = ["linux", "darwin", "win32"]
 
+export type SupportedArchitecture = "x64" | "arm64"
+export const SUPPORTED_ARCHITECTURES: SupportedArchitecture[] = ["x64", "arm64"]
+
 export const SEGMENT_DEV_API_KEY = "D3DUZ3lBSDO3krnuIO7eYDdtlDAjooKW"
 export const SEGMENT_PROD_API_KEY = "b6ovUD9A0YjQqT3ZWetWUbuZ9OmGxKMa"
 
