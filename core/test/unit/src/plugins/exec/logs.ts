@@ -86,6 +86,31 @@ describe("ExecLogsFollower", () => {
       expect(logs).to.eql(entries)
     })
 
+    it("should include error entries", async () => {
+      const logFilePath = join(tmpDir.path, `log-${randomString(8)}.jsonl`)
+      const [stream, logs] = getStream()
+
+      const execLogsFollower = new ExecLogsFollower({
+        stream,
+        serviceName: "foo",
+        log,
+        logFilePath,
+      })
+
+      const entries = range(10).map((el) => ({
+        msg: String(el),
+        timestamp: new Date(),
+        serviceName: "foo",
+        level: 0,
+      }))
+
+      await writeLogFile(logFilePath, entries)
+
+      await execLogsFollower.streamLogs({ follow: false })
+
+      expect(logs).to.eql(entries)
+    })
+
     it("should optionally stream last N entries", async () => {
       const logFilePath = join(tmpDir.path, `log-${randomString(8)}.jsonl`)
       const [stream, logs] = getStream()

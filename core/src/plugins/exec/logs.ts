@@ -39,7 +39,7 @@ export type LocalServiceLogEntry = ServiceLogEntry & {
 }
 
 function isValidServiceLogEntry(entry: any): entry is LocalServiceLogEntry {
-  if (!entry.timestamp || !entry.level) {
+  if (!entry.timestamp || isNaN(entry.level)) {
     return false
   }
 
