@@ -819,7 +819,7 @@ export const containerModuleSpecSchema = () =>
         Specify extra flags to use when building the container image.
         Note that arguments may not be portable across implementations.`),
       // TODO: validate the image name format
-      image: joi.string().description(deline`
+      image: joi.string().allow(false, null).empty([false, null]).description(deline`
         Specify the image name for the container. Should be a valid Docker image identifier. If specified and
         the module does not contain a Dockerfile, this image will be used to deploy services for this module.
         If specified and the module does contain a Dockerfile, this identifier is used when pushing the built image.`),
