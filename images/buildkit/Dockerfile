@@ -1,5 +1,5 @@
 ARG BASE_IMAGE_SUFFIX
-ARG BUILDKIT_VERSION=v0.8.1
+ARG BUILDKIT_VERSION=v0.9.3
 FROM moby/buildkit:${BUILDKIT_VERSION} as deps
 
 RUN apk add --no-cache curl
