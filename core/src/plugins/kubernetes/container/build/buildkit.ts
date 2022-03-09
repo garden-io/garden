@@ -36,7 +36,7 @@ import { getDockerBuildArgs } from "../../../container/build"
 import { getRunningDeploymentPod, millicpuToString, megabytesToString, usingInClusterRegistry } from "../../util"
 import { PodRunner } from "../../run"
 
-export const buildkitImageName = "gardendev/buildkit:v0.8.1-4"
+export const buildkitImageName = "gardendev/buildkit:v0.9.3-1"
 export const buildkitDeploymentName = "garden-buildkit"
 const buildkitContainerName = "buildkitd"
 
