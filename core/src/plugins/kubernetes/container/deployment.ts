@@ -9,7 +9,7 @@
 import chalk from "chalk"
 import { V1Container, V1Affinity, V1VolumeMount, V1PodSpec, V1Deployment, V1DaemonSet } from "@kubernetes/client-node"
 import { GardenService } from "../../../types/service"
-import { extend, find, keyBy, merge, set, omit } from "lodash"
+import { extend, find, keyBy, set, omit } from "lodash"
 import { ContainerModule, ContainerService, ContainerVolumeSpec, ContainerServiceConfig } from "../../container/config"
 import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
@@ -219,7 +219,7 @@ export async function deployContainerServiceBlueGreen(params: DeployServiceParam
 
     // First patch the generated service to point to the new version of the deployment
     const serviceManifest = find(manifests, (manifest) => manifest.kind === "Service")
-    const patchedServiceManifest = merge(serviceManifest, servicePatchBody)
+    const patchedServiceManifest = { ...serviceManifest, ...servicePatchBody }
     // Compare with the deployed Service
     const result = await compareDeployedResources(k8sCtx, api, namespace, [patchedServiceManifest], log)
 

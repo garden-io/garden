@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import chalk from "chalk"
-import { every, flatten, intersection, merge, union, uniqWith, without, groupBy } from "lodash"
+import { every, flatten, intersection, union, uniqWith, without, groupBy } from "lodash"
 import { BaseTask, TaskDefinitionError, TaskType } from "./tasks/base"
 import { gardenEnv } from "./constants"
 import { LogEntry, LogEntryMetadata, TaskLogStatus } from "./logger/log-entry"
@@ -117,7 +117,14 @@ export class TaskGraph extends EventEmitter2 {
      * Note that these promises will never throw errors, since all errors in async code related
      * to processing tasks are caught in processNode and stored on that task's result.error.
      */
-    const results: GraphResults = merge({}, ...(await Bluebird.map(batches, (b) => b.promise)))
+    const results: GraphResults = {}
+    const batchResults = await Bluebird.map(batches, (b) => b.promise)
+
+    for (const batch of batchResults) {
+      for (const [key, result] of Object.entries(batch)) {
+        results[key] = result
+      }
+    }
 
     if (opts && opts.throwOnError) {
       const failed = Object.entries(results).filter(([_, result]) => result && result.error)

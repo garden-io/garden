@@ -8,7 +8,7 @@
 
 import logSymbols from "log-symbols"
 import nodeEmoji from "node-emoji"
-import { cloneDeep, merge, round } from "lodash"
+import { cloneDeep, round } from "lodash"
 
 import { LogLevel, logLevelMap, LogNode } from "./logger"
 import { Omit } from "../util/util"
@@ -213,7 +213,7 @@ export class LogEntry implements LogNode {
 
     let metadata: LogEntryMetadata | undefined = undefined
     if (this.metadata || params.metadata) {
-      metadata = merge(cloneDeep(this.metadata || {}), params.metadata || {})
+      metadata = { ...cloneDeep(this.metadata || {}), ...(params.metadata || {}) }
     }
 
     return new LogEntry({
