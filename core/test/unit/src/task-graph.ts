@@ -16,6 +16,7 @@ import { Garden } from "../../../src/garden"
 import { deepFilter, defer, sleep, uuidv4 } from "../../../src/util/util"
 import { range } from "lodash"
 import { toGraphResultEventPayload } from "../../../src/events"
+import { sanitizeObject } from "../../../src/logger/util"
 
 const projectRoot = join(dataDir, "test-project-empty")
 
@@ -194,23 +195,12 @@ describe("task-graph", () => {
       // repeatedTask has the same key and version as task, so its result is already cached
       const repeatedTask = new TestTask(garden, "a", false)
       const results = await graph.process([repeatedTask])
-      const generatedBatchId = results?.a?.batchId || uuidv4()
 
       expect(garden.events.eventLog).to.eql([
         { name: "taskGraphProcessing", payload: { startedAt: now } },
         {
           name: "taskComplete",
-          payload: {
-            startedAt: now,
-            completedAt: now,
-            batchId: generatedBatchId,
-            description: "a",
-            key: task.getKey(),
-            type: "test",
-            name: "a",
-            version: task.version,
-            output: { result: "result-a" },
-          },
+          payload: toGraphResultEventPayload(results["a"]!),
         },
         { name: "taskGraphComplete", payload: { completedAt: now } },
       ])
@@ -249,7 +239,7 @@ describe("task-graph", () => {
             versionString: task.version,
           },
         },
-        { name: "taskError", payload: result["a"] },
+        { name: "taskError", payload: sanitizeObject(result["a"]) },
         { name: "taskGraphComplete", payload: { completedAt: now } },
       ])
     })

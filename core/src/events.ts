@@ -17,6 +17,7 @@ import { AuthTokenResponse } from "./cloud/api"
 import { RenderedActionGraph } from "./config-graph"
 import { BuildState } from "./types/plugin/module/build"
 import { CommandInfo } from "./plugin-context"
+import { sanitizeObject } from "./logger/util"
 
 export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
 
@@ -72,7 +73,7 @@ export interface ServiceStatusPayload extends Omit<ServiceStatus, "detail"> {
 }
 
 export function toGraphResultEventPayload(result: GraphResult): GraphResultEventPayload {
-  const payload = omit(result, "dependencyResults")
+  const payload = sanitizeObject(omit(result, "dependencyResults"))
   if (result.output) {
     // TODO: Use a combined blacklist of fields from all task types instead of hardcoding here.
     payload.output = omit(result.output, "dependencyResults", "log", "buildLog", "detail")
