@@ -116,6 +116,7 @@ export interface ContainerServiceSpec extends CommonServiceSpec {
   args: string[]
   daemon: boolean
   devMode?: ContainerDevModeSpec
+  localMode?: ContainerLocalModeSpec
   ingresses: ContainerIngressSpec[]
   env: PrimitiveMap
   healthCheck?: ServiceHealthCheckSpec
@@ -300,6 +301,29 @@ export const containerDevModeSchema = () =>
 
     See the [Code Synchronization guide](${devModeGuideLink}) for more information.
   `)
+
+export interface ContainerLocalModeSpec {
+  port: number
+  command: string[]
+  remoteContainerName: string
+}
+
+export const containerLocalModeSchema = () =>
+  joi.object().keys({
+    port: joi
+      .number()
+      .description(
+        "The port of the local service to be connected to the remote k8s cluster via the reverse proxy server container."
+      ),
+    command: joi.sparseArray().items(joi.string()).description("The command that’s run locally to start the service."),
+    remoteContainerName: joi
+      .string()
+      .description(
+        "The name of the remote k8s container in the relevant Pod spec that is to be replaced with the proxy server container."
+      ),
+  }).description(dedent`
+    Specifies which service in the remote k8s cluster must be replaced by the local one.
+  `) // todo: link to the guide + guide itself
 
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
 
@@ -586,6 +610,7 @@ const containerServiceSchema = () =>
         May not be supported by all providers.
       `),
     devMode: containerDevModeSchema(),
+    localMode: containerLocalModeSchema(),
     ingresses: joiSparseArray(ingressSchema())
       .description("List of ingress endpoints that the service exposes.")
       .example([{ path: "/api", port: "http" }]),
