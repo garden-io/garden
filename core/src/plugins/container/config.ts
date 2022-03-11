@@ -18,7 +18,7 @@ import {
   joiIdentifier,
   joiSparseArray,
 } from "../../config/common"
-import { ArtifactSpec } from "./../../config/validation"
+import { ArtifactSpec } from "../../config/validation"
 import { GardenService, ingressHostnameSchema, linkUrlSchema } from "../../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
 import { ModuleSpec, ModuleConfig, baseBuildSpecSchema, BaseBuildSpec } from "../../config/module"
