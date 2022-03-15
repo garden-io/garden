@@ -578,7 +578,7 @@ export async function getKubectlExecDestination({
   targetPath: string
 }) {
   const kubectl = ctx.tools["kubernetes.kubectl"]
-  const kubectlPath = (await kubectl.getPath(log)).replaceAll(" ", "\\ ") // Escape spaces in path
+  const kubectlPath = (await kubectl.getPath(log)).replace(/ /g, "\\ ") // Escape spaces in path
 
   const connectionOpts = prepareConnectionOpts({
     provider: ctx.provider,
