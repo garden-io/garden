@@ -61,10 +61,10 @@ export class FancyTerminalWriter extends Writer {
 
   private initStream(logger: Logger): CustomStream {
     // Create custom stream that calls write method with the 'noIntercept' option.
-    const stream = <CustomStream>{
+    const stream = <CustomStream>(<unknown>{
       ...process.stdout,
       write: (str, enc, cb) => (<any>process.stdout.write)(str, enc, cb, { noIntercept: true }),
-    }
+    })
 
     const onIntercept = (msg) => logger.info({ msg, fromStdStream: true })
 

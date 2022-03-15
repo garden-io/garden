@@ -28,7 +28,7 @@
     "strictFunctionTypes": true,
     "strictNullChecks": true,
     "sourceMap": true,
-    "target": "es6"
+    "target": "es2019"
   },
   "exclude": [
     "core/build",

@@ -56,10 +56,11 @@ export class AuthRedirectServer {
 
     http.get("/", async (ctx) => {
       const { jwt, rt, jwtval } = ctx.request.query
+      // TODO: validate properly
       const tokenResponse: AuthTokenResponse = {
-        token: getFirstValue(jwt),
-        refreshToken: getFirstValue(rt),
-        tokenValidity: parseInt(getFirstValue(jwtval), 10),
+        token: getFirstValue(jwt!),
+        refreshToken: getFirstValue(rt!),
+        tokenValidity: parseInt(getFirstValue(jwtval!), 10),
       }
       this.log.debug("Received client auth token")
       this.events.emit("receivedToken", tokenResponse)

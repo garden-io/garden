@@ -25,6 +25,7 @@ const tmpDir = resolve(repoRoot, "tmp", "pkg")
 const tmpStaticDir = resolve(tmpDir, "static")
 const pkgPath = resolve(repoRoot, "cli", "node_modules", ".bin", "pkg")
 const pkgFetchPath = resolve(repoRoot, "node_modules", ".bin", "pkg-fetch")
+const prebuildInstallPath = resolve(repoRoot, "node_modules", ".bin", "prebuild-install")
 const distPath = resolve(repoRoot, "dist")
 const sqliteBinFilename = "better_sqlite3.node"
 
@@ -42,14 +43,15 @@ interface TargetHandlerParams {
 
 interface TargetSpec {
   pkgType: string
+  nodeBinaryPlatform: string
   handler: (params: TargetHandlerParams) => Promise<void>
 }
 
 const targets: { [name: string]: TargetSpec } = {
-  "macos-amd64": { pkgType: "node12-macos-x64", handler: pkgMacos },
-  "linux-amd64": { pkgType: "node12-linux-x64", handler: pkgLinux },
-  "windows-amd64": { pkgType: "node12-win-x64", handler: pkgWindows },
-  "alpine-amd64": { pkgType: "node12-alpine-x64", handler: pkgAlpine },
+  "macos-amd64": { pkgType: "node14-macos-x64", handler: pkgMacos, nodeBinaryPlatform: "darwin" },
+  "linux-amd64": { pkgType: "node14-linux-x64", handler: pkgLinux, nodeBinaryPlatform: "linux" },
+  "windows-amd64": { pkgType: "node14-win-x64", handler: pkgWindows, nodeBinaryPlatform: "win32" },
+  "alpine-amd64": { pkgType: "node14-alpine-x64", handler: pkgAlpine, nodeBinaryPlatform: "linuxmusl" },
 }
 
 async function buildBinaries(args: string[]) {
@@ -199,6 +201,8 @@ async function pkgAlpine({ targetName, version }: TargetHandlerParams) {
 
   await exec("docker", [
     "build",
+    "--platform",
+    "linux/amd64",
     "-t",
     imageName,
     "-f",
@@ -246,11 +250,27 @@ async function pkgCommon({
   ])
 
   console.log(` - ${targetName} -> ${sqliteBinFilename}`)
-  await copy(
-    resolve(GARDEN_CORE_ROOT, "lib", "better-sqlite3", `${targetName}-node-v68`, sqliteBinFilename),
-    resolve(targetPath, sqliteBinFilename)
-  )
 
+  // Copy the package to avoid conflicts with other targets
+  const betterSqlitePath = resolve(sourcePath, "node_modules", "better-sqlite3")
+  const tmpRoot = resolve(tmpDir, "better-sqlite3")
+  const tmpPath = resolve(tmpRoot, targetName)
+  await mkdirp(tmpRoot)
+  await remove(tmpPath)
+  await copy(betterSqlitePath, tmpPath)
+
+  const { nodeBinaryPlatform } = targets[targetName]
+
+  await exec(
+    prebuildInstallPath,
+    ["--download", "--runtime", "node", "--arch", "x64", "--platform", nodeBinaryPlatform, "--force"],
+    {
+      cwd: tmpPath,
+    }
+  )
+  await copy(resolve(tmpPath, "build", "Release", sqliteBinFilename), resolve(targetPath, sqliteBinFilename))
+
+  console.log(` - ${targetName} -> static`)
   await copyStatic(targetName)
 }
 

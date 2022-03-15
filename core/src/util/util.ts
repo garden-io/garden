@@ -339,13 +339,13 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
 
     proc.on("close", (code) => {
       _timeout && clearTimeout(_timeout)
-      result.code = code
+      result.code = code!
 
       if (code === 0 || ignoreError) {
         resolve(result)
       } else {
         const msg = makeErrorMsg({
-          code,
+          code: code!,
           cmd,
           args,
           output: result.all || result.stdout || result.stderr || "",

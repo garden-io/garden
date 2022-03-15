@@ -4,7 +4,7 @@ FROM gardendev/garden:${TAG}
 # Build dependencies
 RUN apk add --virtual=build gcc libffi-dev musl-dev openssl-dev make readline linux-pam \
 # Runtime dependency
-  && apk add bash sudo shadow python3-dev && pip3 install -U pip \
+  && apk add bash sudo shadow python3-dev py3-pip && pip3 install -U pip \
 # Actual azure cli
   && pip3 --no-cache-dir install azure-cli \
 # Remove build dependencies

@@ -15,10 +15,15 @@ orbs:
     GARDEN_K8S_BUILD_SYNC_MODE: "mutagen"
     GARDEN_LOGGER_TYPE: basic
 
+  remote-docker: &remote-docker
+    setup_remote_docker:
+      version: 20.10.11
+      docker_layer_caching: true
+
   # Configuration for our node jobs
   node-config: &node-config
     docker:
-      - image: gardendev/circleci-runner:12.22.10-0
+      - image: gardendev/circleci-runner:14.19.0-1
         environment:
           <<: *shared-env-config
     resource_class: medium
@@ -171,8 +176,8 @@ commands:
             # ...export for subsequent runs...
             echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
             echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
-            nvm install 12
-            nvm alias default 12
+            nvm install 14
+            nvm alias default 14
             nvm use default
             # ...and finally symlink for when calling Garden with sudo below
             sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/node" "/usr/local/bin/node"
@@ -205,8 +210,7 @@ commands:
         default: ""
     steps:
       # We need Docker for building the Alpine package
-      - setup_remote_docker:
-          docker_layer_caching: true
+      - *remote-docker
       - checkout
       - npm_install
       - *attach-workspace
@@ -300,7 +304,7 @@ jobs:
     <<: *node-config
     steps:
       - checkout
-      - setup_remote_docker
+      - *remote-docker
       - npm_install
       - *attach-workspace
       - configure_git
@@ -342,8 +346,7 @@ jobs:
   build-docker-alpine:
     <<: *node-config
     steps:
-      - setup_remote_docker:
-          docker_layer_caching: true
+      - *remote-docker
       - checkout
       - *attach-workspace
       - docker_login
@@ -356,8 +359,7 @@ jobs:
   build-docker-aws:
     <<: *node-config
     steps:
-      - setup_remote_docker:
-          docker_layer_caching: true
+      - *remote-docker
       - checkout
       - *attach-workspace
       - docker_login
@@ -370,8 +372,7 @@ jobs:
   build-docker-azure:
     <<: *node-config
     steps:
-      - setup_remote_docker:
-          docker_layer_caching: true
+      - *remote-docker
       - checkout
       - *attach-workspace
       - docker_login
@@ -384,8 +385,7 @@ jobs:
   build-docker-gcloud:
     <<: *node-config
     steps:
-      - setup_remote_docker:
-          docker_layer_caching: true
+      - *remote-docker
       - checkout
       - *attach-workspace
       - docker_login
@@ -398,8 +398,7 @@ jobs:
   build-docker-aws-gcloud:
     <<: *node-config
     steps:
-      - setup_remote_docker:
-          docker_layer_caching: true
+      - *remote-docker
       - checkout
       - *attach-workspace
       - docker_login
@@ -412,8 +411,7 @@ jobs:
   build-docker-aws-gcloud-azure:
     <<: *node-config
     steps:
-      - setup_remote_docker:
-          docker_layer_caching: true
+      - *remote-docker
       - checkout
       - *attach-workspace
       - docker_login
@@ -426,8 +424,7 @@ jobs:
   build-docker-full:
     <<: *node-config
     steps:
-      - setup_remote_docker:
-          docker_layer_caching: true
+      - *remote-docker
       - checkout
       - *attach-workspace
       - docker_login
@@ -435,13 +432,12 @@ jobs:
           name: Build image and push to registry
           command: |
             TAG=gardendev/garden-full:${CIRCLE_SHA1}
-            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/aws-gcloud-azure-ibmcloud.Dockerfile dist/alpine-amd64
+            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/full.Dockerfile dist/alpine-amd64
             docker push ${TAG}
   build-docker-buster:
     <<: *node-config
     steps:
-      - setup_remote_docker:
-          docker_layer_caching: true
+      - *remote-docker
       - checkout
       - *attach-workspace
       - docker_login
@@ -475,8 +471,7 @@ jobs:
   release-service-docker:
     <<: *node-config
     steps:
-      - setup_remote_docker:
-          docker_layer_caching: true
+      - *remote-docker
       - checkout
       # This is to copy the pre-built code from a previous step
       - *attach-workspace
@@ -783,7 +778,7 @@ jobs:
       - *attach-workspace
       # - run:
       #     name: Configure Node.js
-      #     command: nvm install 12 && nvm alias default 12
+      #     command: nvm install 14 && nvm alias default 14
       - run:
           name: brew install
           command: brew install docker kubectl
@@ -870,15 +865,15 @@ workflows:
       - build-docker-aws-gcloud:
           <<: *only-internal-prs
           context: docker
-          requires: [build-docker-alpine]
+          requires: [build-docker-gcloud]
       - build-docker-aws-gcloud-azure:
           <<: *only-internal-prs
           context: docker
-          requires: [build-docker-alpine]
+          requires: [build-docker-gcloud]
       - build-docker-full:
           <<: *only-internal-prs
           context: docker
-          requires: [build-docker-alpine]
+          requires: [build-docker-gcloud]
       - build-docker-buster:
           <<: *only-internal-prs
           context: docker
