@@ -1,5 +1,5 @@
 # Note: This is used by build-pkg.ts, and is not usable as a Garden container
-ARG NODE_VERSION=12.18.3-alpine3.11
+ARG NODE_VERSION=14.19.0-alpine3.14
 FROM node:${NODE_VERSION} as builder
 
 RUN apk add --no-cache \
@@ -9,33 +9,36 @@ RUN apk add --no-cache \
   libstdc++ \
   openssh \
   openssl \
+  python3 \
+  make \
+  gcc \
+  g++ \
+  musl-dev \
   tar
 
-WORKDIR /tmp/pkg
+WORKDIR /garden-tmp/pkg
 
-# Pre-fetch the node12 binary for pkg
+# Pre-fetch the node binary for pkg
 RUN yarn add pkg@5.5.2 && \
-  node_modules/.bin/pkg-fetch node12 alpine x64
+  node_modules/.bin/pkg-fetch node14 alpine x64
 
 # Add all the packages
-ADD cli /tmp/cli
-ADD core /tmp/core
-ADD plugins /tmp/plugins
-ADD sdk /tmp/sdk
+ADD cli /garden-tmp/cli
+ADD core /garden-tmp/core
+ADD plugins /garden-tmp/plugins
+ADD sdk /garden-tmp/sdk
 
 # Install the CLI deps
-WORKDIR /tmp/cli
+WORKDIR /garden-tmp/cli
 
-RUN apk add --no-cache python make gcc g++ --virtual .build-deps && \
-  yarn && \
+RUN yarn && \
   # Fix for error in this particular package
-  rm -rf node_modules/es-get-iterator/test && \
-  apk del .build-deps
+  rm -rf node_modules/es-get-iterator/test
 
 ADD static /garden/static
 
 # Create the binary
 RUN mkdir -p /garden \
-  && node_modules/.bin/pkg --target node12-alpine-x64 . --output /garden/garden \
+  && node_modules/.bin/pkg --target node14-alpine-x64 . --output /garden/garden \
   && cp node_modules/better-sqlite3/build/Release/better_sqlite3.node /garden \
   && /garden/garden version
