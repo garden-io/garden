@@ -1,4 +1,26 @@
 
+<a name="0.12.36-0"></a>
+## [0.12.36-0](https://github.com/garden-io/garden/compare/0.12.35...0.12.36-0) (2022-03-09)
+
+### Bug Fixes
+
+* **cli:** allow running garden CLI in custom Command `exec` field ([6c8577a8](https://github.com/garden-io/garden/commit/6c8577a8))
+* **core:** treat null/false as undefined for container image field ([65e7f7f8](https://github.com/garden-io/garden/commit/65e7f7f8))
+* **core:** add missing await for user prompt ([0696fb4f](https://github.com/garden-io/garden/commit/0696fb4f))
+* **core:** fix infinite recursion that could cause OOM error ([c1c6c896](https://github.com/garden-io/garden/commit/c1c6c896))
+* **exec:** ensure we stream error log entries ([08b98ca1](https://github.com/garden-io/garden/commit/08b98ca1))
+* **k8s:** sync error with space in user home directory name ([7f55c31b](https://github.com/garden-io/garden/commit/7f55c31b))
+* **scripts:** fixed deps installation script ([f902f404](https://github.com/garden-io/garden/commit/f902f404))
+
+### Features
+
+* **core:** support persistent local processes ([40c21a00](https://github.com/garden-io/garden/commit/40c21a00))
+* **core:** add template string sha256 function ([ae49bd7b](https://github.com/garden-io/garden/commit/ae49bd7b))
+
+### Improvements
+
+* **k8s:** bump BuildKit version to 0.9.3 ([34ef856c](https://github.com/garden-io/garden/commit/34ef856c))
+
 <a name="0.12.35"></a>
 ## [0.12.35](https://github.com/garden-io/garden/compare/0.12.34...0.12.35) (2022-01-26)
 
