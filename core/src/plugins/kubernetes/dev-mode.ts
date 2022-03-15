@@ -214,7 +214,7 @@ export async function startDevModeSync({
     for (const s of spec.sync) {
       const key = `${keyBase}-${i}`
 
-      const localPath = joinWithPosix(moduleRoot, s.source)
+      const localPath = joinWithPosix(moduleRoot, s.source).replace(/ /g, "\\ ") // Escape spaces in path
       const remoteDestination = await getKubectlExecDestination({
         ctx: k8sCtx,
         log,
