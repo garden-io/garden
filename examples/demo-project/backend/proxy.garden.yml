@@ -1,0 +1,33 @@
+kind: Module
+name: backend
+description: Backend service container
+type: container
+dockerfile: proxy.dockerfile
+
+# You can specify variables here at the module level
+variables:
+  ingressPath: /hello-backend
+
+services:
+  - name: backend
+    env:
+      PUBLIC_KEY_FILE: proxy-key.pub
+      USER_NAME: proxy-user
+    #    healthCheck:
+    #      httpGet:
+    #        path: /hello-backend
+    #        port: http
+    ports:
+      - name: http
+        containerPort: 8080
+        # Maps service:80 -> container:8080
+        servicePort: 80
+      - name: ssh
+        containerPort: 2222
+    ingresses:
+      - path: ${var.ingressPath}
+        port: http
+
+tasks:
+  - name: test
+    command: ["sh", "-c", "echo task output"]
