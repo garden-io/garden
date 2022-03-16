@@ -43,9 +43,11 @@ export const mavenSpec: PluginToolSpec = {
       platform: "windows",
       architecture: "amd64",
       ...spec,
+      url: "https://archive.apache.org/dist/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.zip",
+      sha256: "444522b0af3a85e966f25c50adfcd00a1a6fc5fce79f503bff096e02b9977c2e",
       extract: {
         format: "zip",
-        targetPath: spec.extract.targetPath + ".bat",
+        targetPath: spec.extract.targetPath + ".cmd",
       },
     },
   ],
