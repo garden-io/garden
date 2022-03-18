@@ -3,15 +3,18 @@ name: backend
 description: Backend service container
 type: container
 dockerfile: proxy.dockerfile
+buildArgs:
+  PUBLIC_KEY_FILE: ${var.publicKeyFile}
 
 # You can specify variables here at the module level
 variables:
   ingressPath: /hello-backend
+  publicKeyFile: proxy-key.pub
 
 services:
   - name: backend
     env:
-      PUBLIC_KEY_FILE: proxy-key.pub
+      PUBLIC_KEY_FILE: ${var.publicKeyFile}
       USER_NAME: proxy-user
     #    healthCheck:
     #      httpGet:

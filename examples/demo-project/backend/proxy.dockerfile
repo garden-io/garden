@@ -1,7 +1,8 @@
 FROM linuxserver/openssh-server:latest
 
+ARG PUBLIC_KEY_FILE
 WORKDIR /app
-COPY proxy-key.pub /app
+COPY ${PUBLIC_KEY_FILE} /app
 
 ENV SSH_PORT=2222
 EXPOSE ${SSH_PORT}
