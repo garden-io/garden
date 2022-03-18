@@ -10,4 +10,5 @@ EXPOSE ${SSH_PORT}
 ENV APP_PORT=8080
 EXPOSE ${APP_PORT}
 
-COPY sshd_config /etc/ssh/sshd_config
+RUN sed -i 's/AllowTcpForwarding no/AllowTcpForwarding yes/g' /etc/ssh/sshd_config && \
+    sed -i 's/GatewayPorts no/GatewayPorts yes/g' /etc/ssh/sshd_config
