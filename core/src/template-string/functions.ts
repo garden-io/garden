@@ -259,6 +259,19 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
     fn: (str: string) => str.toUpperCase(),
   },
   {
+    name: "string",
+    description: "Converts the given value to a string.",
+    arguments: {
+      value: joi.any().required().description("The value to convert to string."),
+    },
+    outputSchema: joi.string(),
+    exampleArguments: [
+      { input: [1], output: "1" },
+      { input: [true], output: "true" },
+    ],
+    fn: (val: any) => String(val),
+  },
+  {
     name: "uuidv4",
     description: "Generates a random v4 UUID.",
     arguments: {},

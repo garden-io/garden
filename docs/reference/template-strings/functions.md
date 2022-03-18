@@ -165,6 +165,17 @@ Examples:
 * `${split("a,b,c", ",")}` -> `["a","b","c"]`
 * `${split("1:2:3:4", ":")}` -> `["1","2","3","4"]`
 
+## string
+
+Converts the given value to a string.
+
+Usage: `string(value)`
+
+Examples:
+
+* `${string(1)}` -> `"1"`
+* `${string(true)}` -> `"true"`
+
 ## trim
 
 Trims whitespace (or other specified characters) off the ends of the given string.
