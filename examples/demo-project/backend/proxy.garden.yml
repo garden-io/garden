@@ -10,9 +10,14 @@ buildArgs:
 variables:
   ingressPath: /hello-backend
   publicKeyFile: proxy-key.pub
+  localAppPort: "8090"
 
 services:
-  - name: backend
+  - name: backend # backend replacement container
+    localMode:
+      port: ${var.localAppPort}
+      command: [] # example: [ "npm", "run", "serve", "-p", "${var.localAppPort}" ]
+      remoteContainerName: remote-app-container
     env:
       PUBLIC_KEY_FILE: ${var.publicKeyFile}
       USER_NAME: proxy-user
