@@ -11,6 +11,10 @@ services:
     devMode:
       command: [/bin/bash -c 'for((i=1;i<=5;i+=1)); do echo "Hello $i"; done']
     deployCommand: []
+  - name: dev-mode-with-empty-log-lines
+    devMode:
+      command: [/bin/bash -c 'for((i=1;i<=3;i+=1)); do printf "Hello\n\n$i\n"; done']
+    deployCommand: []
   - name: dev-mode-timeout
     persistent: true
     devMode:

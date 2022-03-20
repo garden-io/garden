@@ -725,6 +725,76 @@ describe("exec plugin", () => {
             },
           ])
         })
+        it("should handle empty log lines", async () => {
+          // This services just echos a string N times before exiting.
+          const service = graph.getService("dev-mode-with-empty-log-lines")
+          const actions = await garden.getActionRouter()
+          const res = await actions.deployService({
+            devMode: true,
+            force: false,
+            hotReload: false,
+            log,
+            service,
+            graph,
+            runtimeContext: {
+              envVars: {},
+              dependencies: [],
+            },
+          })
+
+          // Wait for entries to be written since we otherwise don't wait on persistent commands (unless
+          // a status command is set).
+          await sleep(1500)
+
+          pid = res.detail.pid
+
+          const logFilePath = getLogFilePath({ projectRoot: garden.projectRoot, serviceName: service.name })
+          const logFileContents = (await readFile(logFilePath)).toString()
+          const logEntriesWithoutTimestamps = logFileContents
+            .split("\n")
+            .filter((line) => !!line)
+            .map((line) => JSON.parse(line))
+            .map((parsed) => {
+              return {
+                serviceName: parsed.serviceName,
+                msg: parsed.msg,
+                level: parsed.level,
+              }
+            })
+
+          expect(logEntriesWithoutTimestamps).to.eql([
+            {
+              serviceName: "dev-mode-with-empty-log-lines",
+              msg: "Hello",
+              level: 2,
+            },
+            {
+              serviceName: "dev-mode-with-empty-log-lines",
+              msg: "1",
+              level: 2,
+            },
+            {
+              serviceName: "dev-mode-with-empty-log-lines",
+              msg: "Hello",
+              level: 2,
+            },
+            {
+              serviceName: "dev-mode-with-empty-log-lines",
+              msg: "2",
+              level: 2,
+            },
+            {
+              serviceName: "dev-mode-with-empty-log-lines",
+              msg: "Hello",
+              level: 2,
+            },
+            {
+              serviceName: "dev-mode-with-empty-log-lines",
+              msg: "3",
+              level: 2,
+            },
+          ])
+        })
         it("should eventually timeout if status command is set and it returns a non-zero exit code ", async () => {
           const service = graph.getService("dev-mode-timeout")
           const actions = await garden.getActionRouter()
