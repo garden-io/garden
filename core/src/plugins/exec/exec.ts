@@ -388,6 +388,7 @@ function runPersistent({
       transform(chunk, _encoding, cb) {
         const line = chunk.toString().trim()
         if (!line) {
+          cb(null)
           return
         }
         const entry = {
