@@ -259,7 +259,7 @@ On every merge to `master` we also publish an **unstable** release with the vers
 
 The [release script](https://github.com/garden-io/garden/blob/master/scripts/release.ts) has the signature:
 ```sh
-./scripts/release.tsx <minor | patch | preminor | prepatch | prerelease> [--force] [--dry-run]
+./scripts/release.ts <minor | patch | preminor | prepatch | prerelease> [--force] [--dry-run]
 ```
 and does the following:
 
@@ -276,7 +276,8 @@ To make a new release, set your current working directory to the garden root dir
 2. The next step depends on the release type:
     * If you're making the first pre-release:
         1. Reset `latest-release` to `master` with `git reset --hard origin/master`.
-        2. Run `./scripts/release.ts preminor|prepatch`.
+        2. Run `git log` to make sure that the latest commit is the expected one and there are no unwanted changes from master included in the release.
+        3. Run `./scripts/release.ts preminor|prepatch`.
     * If you’ve already created a pre-release, e.g. `1.2.3-0`, and want to create a new pre-release `1.2.3-1` which includes fixes merged to master since `1.2.3-0` was created, do the following:
         1. Checkout to the most recent pre-release branch, in this case `1.2.3-0`, and cherry-pick the appropriate commits from `master`.
         2. Run `./scripts/release.ts prerelease`.
@@ -286,14 +287,16 @@ To make a new release, set your current working directory to the garden root dir
         3. Run `./scripts/release.ts minor | patch`. This way, the version bump commits and changelog entries created by the pre-releases are omitted from the final history.
 3. If you're making a pre-release you're done, and you can now start testing the binaries that were just published to our Github [Releases page](https://github.com/garden-io/garden/releases) (**step 4**). Otherwise, go to **step 5**.
 4. Manual testing (using the pre-release/release binary)
-    * On a **Windows** machine, run `garden dev --hot=vote` in the `vote` example project.
+    * On a **Windows** machine, run `garden deploy --dev vote --env remote` in the `vote` example project.
+        * If there are any issues with syncing, consider changing the `services[].devMode.sync[].mode` value(s) to `one-way-replica` and restart Garden.
         * Change a file in the `vote` service and verify that the hot reload was successful.
         * Open the dashboard, verify that the initial page loads without errors.
-    * On **macOS** or **Linux**, run the `./scripts/test-release <version>` script. The script runs some simple tests to sanity check the release.
+    * On **macOS** or **Linux**, run the `./scripts/test-release.sh <version>` script, where `<version>` should have the format `<major>.<minor>.<patch>-<preReleaseCounter>`, e.g. `0.12.38-0`. The script runs some simple tests to sanity check the release.
 5. Go to our Github [Releases page](https://github.com/garden-io/garden/releases) and click the **Edit** button for the draft just created from CI. Note that for drafts, a new one is always created instead of replacing a previous one.
 6. Write release notes. The notes should give an overview of the release and mention all relevant features. They should also **acknowledge all external contributors** and contain the changelog for that release.
-    * To generate a changelog for just that tag, run `git-chglog <tag-name>`
+    * To generate a changelog for just that tag, run `git-chglog <previous-release-tag-name>..<tag-name>`
     * To get a list of all contributors between releases, ordered by count, run: `git log <previous-tag>..<current-tag> --no-merges "$@" | grep ^Author | sort | uniq -c | sort -nr`. Note that authors of squashed commits won't show up, so it might be good to do a quick sanity check on Github as well.
+    * Remember to put the list of features on top of the list of bug fixes.
 7. Click the **Publish release** button.
 8. Make a pull request for the branch that was pushed by the script.
 9. Make sure the `latest-release` branch contains the released version, and push it to the remote. **This branch is used for our documentation, so this step is important.**
