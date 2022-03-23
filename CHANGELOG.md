@@ -1,4 +1,19 @@
 
+<a name="0.12.37"></a>
+## [0.12.37](https://github.com/garden-io/garden/compare/0.12.36...0.12.37) (2022-03-18)
+
+### Bug Fixes
+
+* fix maven download for windows ([7686eade](https://github.com/garden-io/garden/commit/7686eade))
+* **docs:** fix broken anchor link ([9b6f264e](https://github.com/garden-io/garden/commit/9b6f264e))
+* **examples:** updated golang version in examples ([241118e6](https://github.com/garden-io/garden/commit/241118e6))
+* **exec:** properly handle empty lines in local service logs ([5147f60e](https://github.com/garden-io/garden/commit/5147f60e))
+* **k8s:** escape spaces in local mutagen dests ([f100d1d2](https://github.com/garden-io/garden/commit/f100d1d2))
+
+### Features
+
+* **template:** add 'string' template function ([6b96296c](https://github.com/garden-io/garden/commit/6b96296c))
+
 <a name="0.12.36"></a>
 ## [0.12.36](https://github.com/garden-io/garden/compare/0.12.35...0.12.36) (2022-03-15)
 
