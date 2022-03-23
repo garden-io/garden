@@ -1117,7 +1117,7 @@ Examples:
 **[EXPERIMENTAL] List groups.**
 
 List all groups from Garden Cloud. This is useful for getting the group IDs when creating
-users via the `garden cloud users create` coomand.
+users via the `garden cloud users create` command.
 
 Examples:
     garden cloud groups list                       # list all groups
