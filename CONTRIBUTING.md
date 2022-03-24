@@ -168,7 +168,7 @@ You can also run the end-to-end tests for a specific example project using:
 yarn run e2e-project -- --project=<example project name>
 ```
 
-End to end tests are run in CI by using Garden itself to test the project defined in `./core/test/e2e/garden.yml`. Cf. the appropriate job in `circleci/config.yml` for details.
+End-to-end tests are run in CI by using Garden itself to test the project defined in `./core/test/e2e/garden.yml`. Cf. the appropriate job in `circleci/config.yml` for details.
 
 ### Commit messages
 
@@ -231,7 +231,7 @@ ANALYTICS_DEV=true
 
 ## CI
 
-We use [Circle CI](https://circleci.com) for integration and end to end testing. The configuration is in `.circleci/config.yml`.
+We use [Circle CI](https://circleci.com) for integration and end-to-end testing. The configuration is in `.circleci/config.yml`.
 
 ## License/copyright headers
 
@@ -249,7 +249,7 @@ Our release process generates the following packages:
 
 ### Process
 
-We have a dedicated release branch, `latest-release`, off of which we create our releases using our [release script](https://github.com/garden-io/garden/blob/master/scripts/release.ts). Once we're ready to release, we reset the `latest-release` branch to `master` and create a pre-release with the script. If there are issues with the pre-release, we merge the fixes to `master` and cherry pick them to the `latest-release` branch. We repeat this process until all issues have been resolved and we can make a proper release.
+We have a dedicated release branch, `latest-release`, off of which we create our releases using our [release script](https://github.com/garden-io/garden/blob/master/scripts/release.ts). Once we're ready to release, we reset the `latest-release` branch to `master` and create a pre-release with the script. If there are issues with the pre-release, we merge the fixes to `master` and cherry-pick them to the `latest-release` branch. We repeat this process until all issues have been resolved and we can make a proper release.
 
 This procedure allows us to continue merging features into `master` without them being included in the release.
 
@@ -266,7 +266,7 @@ and does the following:
 * Checks out a branch named `release-<version>`.
 * Updates `core/package.json`, `core/yarn.lock` and `CHANGELOG.md`.
 * Commits the changes, tags the commit, and pushes the tag and branch.
-* Pushing the tag triggers a CI process that creates the release artifacts and publishes them to Github. If the the release is not a pre-release, we create a draft instead of actually publishing.
+* Pushing the tag triggers a CI process that creates the release artifacts and publishes them to Github. If the release is not a pre-release, we create a draft instead of actually publishing.
 
 ### Steps
 
@@ -284,7 +284,7 @@ To make a new release, set your current working directory to the garden root dir
         1. Checkout to the most recent pre-release branch, e.g. `1.2.3-1`.
         2. Remove all the `bump version...` commits. E.g. by using `git rebase -i <hash-before-first-version-bump>` and `drop`-ing the commits. In this case we drop `chore(release): bump version to 1.2.3-0` and `chore(release): bump version to v.1.2.3-1`.
         3. Run `./scripts/release.ts minor | patch`. This way, the version bump commits and changelog entries created by the pre-releases are omitted from the final history.
-3. If you're making a pre-release you're done, and you can now start testing the binaries that were just published to our Github [Releases page](https://github.com/garden-io/garden/releases) (**step 4**). Otherwise go to **step 5**.
+3. If you're making a pre-release you're done, and you can now start testing the binaries that were just published to our Github [Releases page](https://github.com/garden-io/garden/releases) (**step 4**). Otherwise, go to **step 5**.
 4. Manual testing (using the pre-release/release binary)
     * On a **Windows** machine, run `garden dev --hot=vote` in the `vote` example project.
         * Change a file in the `vote` service and verify that the hot reload was successful.
@@ -293,11 +293,11 @@ To make a new release, set your current working directory to the garden root dir
 5. Go to our Github [Releases page](https://github.com/garden-io/garden/releases) and click the **Edit** button for the draft just created from CI. Note that for drafts, a new one is always created instead of replacing a previous one.
 6. Write release notes. The notes should give an overview of the release and mention all relevant features. They should also **acknowledge all external contributors** and contain the changelog for that release.
     * To generate a changelog for just that tag, run `git-chglog <tag-name>`
-    * To get a list of all contributors between releases, ordered by count, run: `git log <previous-tag>..<current-tag> --no-merges "$@" | grep ^Author | sort | uniq -c | sort -nr`. Note that authors of squashed commits won't show up so it might be good to do a quick sanity check on Github as well.
+    * To get a list of all contributors between releases, ordered by count, run: `git log <previous-tag>..<current-tag> --no-merges "$@" | grep ^Author | sort | uniq -c | sort -nr`. Note that authors of squashed commits won't show up, so it might be good to do a quick sanity check on Github as well.
 7. Click the **Publish release** button.
 8. Make a pull request for the branch that was pushed by the script.
 9. Make sure the `latest-release` branch contains the released version, and push it to the remote. **This branch is used for our documentation, so this step is important.**
-10. Check the `update-homebrew` GitHub Action run succesfully and the [homebrew repo](https://github.com/garden-io/homebrew-garden) contains the latest version.
+10. Check the `update-homebrew` GitHub Action run successfully and the [homebrew repo](https://github.com/garden-io/homebrew-garden) contains the latest version.
 11. Install the Homebrew package and make sure it works okay:
     * `brew tap garden-io/garden && brew install garden-cli || true && brew update && brew upgrade garden-cli`
     * Run `$(brew --prefix garden-cli)/bin/garden dev` (to make sure you're using the packaged release) in an example project and see if all looks well.
@@ -305,4 +305,4 @@ To make a new release, set your current working directory to the garden root dir
 
 ## Changelog
 
-We keep a changelog under `CHANGELOG.md` that get's updated on every release. For pre-releases, we include every pre-release tag in that release cycle in the changelog. So if we're releasing, say, `0.12.6-3`, the changelog will include entries for `0.12.6-0`, `0.12.6-1`, `0.12.6-2`, assuming those tags exist. Once we make a proper release, we remove the pre-release tags so that the changelog only shows changes between `0.12.5` and `0.12.6`. A changelog with the pre-releases is of course always available in our Git history.
+We keep a changelog under `CHANGELOG.md` that gets updated on every release. For pre-releases, we include every pre-release tag in that release cycle in the changelog. So if we're releasing, say, `0.12.6-3`, the changelog will include entries for `0.12.6-0`, `0.12.6-1`, `0.12.6-2`, assuming those tags exist. Once we make a proper release, we remove the pre-release tags so that the changelog only shows changes between `0.12.5` and `0.12.6`. A changelog with the pre-releases is of course always available in our Git history.
