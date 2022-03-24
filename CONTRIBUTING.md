@@ -142,6 +142,14 @@ yarn test                    # run all unit tests
 yarn test -- -g "taskGraph"  # run only tests with descriptions matching "taskGraph"
 ```
 
+#### ARM64 compatibility
+On ARM64 platforms (like Mac machines with M1 chips) the `yarn test` command may fail with the following error:
+```sh
+FATAL ERROR: wasm code commit Allocation failed - process out of memory
+```
+In order to fix it, the terminal must be running in the **Rosetta** mode, the detailed instructions can be found in
+[this SO answer](https://stackoverflow.com/a/67813764/2753863).
+
 Integration tests are run with:
 
 ```sh
