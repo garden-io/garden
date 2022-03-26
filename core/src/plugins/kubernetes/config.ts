@@ -141,6 +141,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
   ingressHttpsPort: number
   ingressClass?: string
   kubeconfig?: string
+  kubectlPath?: string
   namespace?: NamespaceConfig
   registryProxyTolerations: V1Toleration[]
   setupIngressController: string | null
@@ -714,6 +715,8 @@ export const namespaceSchema = () =>
     Note that the framework may generate other namespaces as well with this name as a prefix. Also note that if the namespace previously exists, Garden will attempt to add the specified labels and annotations. If the user does not have permissions to do so, a warning is shown.
   `)
 
+const kubectlPathExample = "${local.env.GARDEN_KUBECTL_PATH}?"
+
 export const configSchema = () =>
   kubernetesConfigBase()
     .keys({
@@ -733,6 +736,13 @@ export const configSchema = () =>
         .default(443)
         .description("The external HTTPS port of the cluster's ingress controller."),
       kubeconfig: joi.string().description("Path to kubeconfig file to use instead of the system default."),
+      kubectlPath: joi.string().description(dedent`
+        Set a specific path to a kubectl binary, instead of having Garden download it automatically as required.
+
+        It may be useful in some scenarios to allow individual users to set this, e.g. with an environment variable. You could configure that with something like \`kubectlPath: ${kubectlPathExample}\`.
+
+        **Warning**: Garden may make some assumptions with respect to the kubectl version, so it is suggested to only use this when necessary.
+      `),
       namespace: namespaceSchema(),
       setupIngressController: joi
         .string()
