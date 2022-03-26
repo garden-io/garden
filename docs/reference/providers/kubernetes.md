@@ -390,6 +390,15 @@ providers:
     # Path to kubeconfig file to use instead of the system default.
     kubeconfig:
 
+    # Set a specific path to a kubectl binary, instead of having Garden download it automatically as required.
+    #
+    # It may be useful in some scenarios to allow individual users to set this, e.g. with an environment variable. You
+    # could configure that with something like `kubectlPath: ${local.env.GARDEN_KUBECTL_PATH}?`.
+    #
+    # **Warning**: Garden may make some assumptions with respect to the kubectl version, so it is suggested to only
+    # use this when necessary.
+    kubectlPath:
+
     # Specify which namespace to deploy services to, and optionally annotations/labels to apply to the namespace.
     #
     # You can specify a string as a shorthand for `name: <name>`. Defaults to `<project name>-<environment
@@ -2062,6 +2071,20 @@ The external HTTPS port of the cluster's ingress controller.
 [providers](#providers) > kubeconfig
 
 Path to kubeconfig file to use instead of the system default.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].kubectlPath`
+
+[providers](#providers) > kubectlPath
+
+Set a specific path to a kubectl binary, instead of having Garden download it automatically as required.
+
+It may be useful in some scenarios to allow individual users to set this, e.g. with an environment variable. You could configure that with something like `kubectlPath: ${local.env.GARDEN_KUBECTL_PATH}?`.
+
+**Warning**: Garden may make some assumptions with respect to the kubectl version, so it is suggested to only use this when necessary.
 
 | Type     | Required |
 | -------- | -------- |

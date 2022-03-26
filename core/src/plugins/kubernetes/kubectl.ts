@@ -17,6 +17,8 @@ import { hashManifest } from "./util"
 import { PluginToolSpec } from "../../types/plugin/tools"
 import { PluginContext } from "../../plugin-context"
 import { KubeApi } from "./api"
+import { pathExists } from "fs-extra"
+import { ConfigurationError } from "../../exceptions"
 
 // Corresponds to the default prune whitelist in `kubectl`.
 // See: https://github.com/kubernetes/kubectl/blob/master/pkg/cmd/apply/prune.go#L176-L192
@@ -200,6 +202,22 @@ export function kubectl(ctx: PluginContext, provider: KubernetesProvider) {
 class Kubectl extends PluginTool {
   constructor(spec: PluginToolSpec, private provider: KubernetesProvider) {
     super(spec)
+  }
+
+  async getPath(log: LogEntry) {
+    const override = this.provider.config.kubectlPath
+
+    if (override) {
+      const exists = await pathExists(override)
+
+      if (!exists) {
+        throw new ConfigurationError(`Could not find configured kubectlPath: ${override}`, { kubectlPath: override })
+      }
+
+      return override
+    }
+
+    return super.getPath(log)
   }
 
   async stdout(params: KubectlParams) {
