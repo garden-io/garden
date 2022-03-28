@@ -828,7 +828,7 @@ jobs:
             .\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --env remote --force-build
       - run:
           name: Cleanup
-          command: (kubectl delete namespace --wait=false demo-project-$env:CIRCLE_BUILD_NUM) -or $true
+          command: (kubectl delete namespace --wait=false demo-project-$env:CIRCLE_BUILD_NUM-win) -or $true
           when: always
 
 workflows:
