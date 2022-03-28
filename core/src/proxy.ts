@@ -250,7 +250,7 @@ async function createProxy({ garden, graph, log, service, spec }: StartPortProxy
     try {
       localPort = await getPort({ host: localIp, port: preferredLocalPort })
     } catch (err) {
-      if (err.errno === "EADDRNOTAVAIL") {
+      if (err.code === "EADDRNOTAVAIL") {
         // If we're not allowed to bind to other 127.x.x.x addresses, we fall back to localhost. This will almost always
         // be the case on Mac, until we come up with something more clever (that doesn't require sudo).
         localIp = defaultLocalAddress
