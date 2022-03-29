@@ -79,30 +79,26 @@ export async function checkForUpdates(config: GlobalConfigStore, logger: LogEntr
     platform: platform(),
     platformVersion: release(),
   }
-  try {
-    const globalConfig = await config.get()
-    const headers = {}
-    headers["X-user-id"] = getUserId(globalConfig)
-    headers["X-ci-check"] = ci.isCI
-    if (ci.isCI) {
-      headers["X-ci-name"] = ci.name
-    }
 
-    const res = await got(`${VERSION_CHECK_URL}?${qs.stringify(query)}`, { headers }).json<any>()
-    const configObj = await config.get()
-    const showMessage =
-      configObj.lastVersionCheck && moment().subtract(1, "days").isAfter(moment(configObj.lastVersionCheck.lastRun))
+  const globalConfig = await config.get()
+  const headers = {}
+  headers["X-user-id"] = getUserId(globalConfig)
+  headers["X-ci-check"] = ci.isCI
+  if (ci.isCI) {
+    headers["X-ci-name"] = ci.name
+  }
 
-    // we check again for lastVersionCheck because in the first run it doesn't exist
-    if (showMessage || !configObj.lastVersionCheck) {
-      if (res.status === "OUTDATED") {
-        res.message && printWarningMessage(logger, res.message)
-        await config.set([globalConfigKeys.lastVersionCheck], { lastRun: new Date() })
-      }
+  const res = await got(`${VERSION_CHECK_URL}?${qs.stringify(query)}`, { headers }).json<any>()
+  const configObj = await config.get()
+  const showMessage =
+    configObj.lastVersionCheck && moment().subtract(1, "days").isAfter(moment(configObj.lastVersionCheck.lastRun))
+
+  // we check again for lastVersionCheck because in the first run it doesn't exist
+  if (showMessage || !configObj.lastVersionCheck) {
+    if (res.status === "OUTDATED") {
+      res.message && printWarningMessage(logger, res.message)
+      await config.set([globalConfigKeys.lastVersionCheck], { lastRun: new Date() })
     }
-  } catch (err) {
-    logger.verbose("Something went wrong while checking for the latest Garden version.")
-    logger.verbose(err)
   }
 }
 
