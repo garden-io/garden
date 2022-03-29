@@ -89,8 +89,12 @@ test_release() {
   echo "→ Respond to the prompts to see if the create command works"
   echo ""
   ${garden_release} create module
+
+  cd ..
+  cd vote
   echo ""
-  echo "→ Running 'garden dev' in demo project - exits after 1 minute"
+  echo "→ Running 'garden dev' in vote project - exits after 1 minute"
+  echo "→ Try e.g. to update this file: ${garden_root}/examples/vote/vote/src/views/Home.vue"
   echo ""
   timeout 1m ${garden_release} dev
 
@@ -101,15 +105,6 @@ test_release() {
   cd ..
   cd disabled-configs
   timeout 1m ${garden_release} serve
-
-  echo ""
-  echo "→ Running 'garden dev' in vote-helm project - exits after 2 minutes. Use the chance to change services and test the dashboard."
-  echo "→ Try e.g. to change the status in the POST method in this file: ${garden_root}/examples/vote-helm/api-image/app.py"
-  echo "→ It should break the integ test"
-  echo ""
-  cd ..
-  cd vote-helm
-  timeout 2m ${garden_release} dev
 
   echo ""
   echo "→ Running 'garden deploy --hot=node-service' in hot-reload project - exits after 1 minute. Use the chance to test if hot-reload works"
