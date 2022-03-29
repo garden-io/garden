@@ -264,7 +264,7 @@ describe("task-graph", () => {
 
       await expectError(
         () => graph.process([task], { throwOnError: true }),
-        (err) => expect(err.message).to.include("task(s) failed")
+        (err) => expect(err.message).to.include("action(s) failed")
       )
     })
 

@@ -139,7 +139,7 @@ export class RunTestCommand extends Command<Args, Opts> {
       localModeServiceNames: [],
     })
 
-    const graphResults = await garden.processTasks([testTask])
+    const graphResults = await garden.processTasks([testTask], { throwOnError: true })
 
     return handleTaskResult({
       log,
