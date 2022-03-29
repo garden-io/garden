@@ -403,8 +403,11 @@ ${renderCommands(commands)}
         analytics = await AnalyticsHandler.init(garden, log)
         analytics.trackCommand(command.getFullName())
 
-        // tslint:disable-next-line: no-floating-promises
-        checkForUpdates(garden.globalConfigStore, headerLog)
+        // Note: No reason to await the check
+        checkForUpdates(garden.globalConfigStore, headerLog).catch((err) => {
+          headerLog.verbose("Something went wrong while checking for the latest Garden version.")
+          headerLog.verbose(err)
+        })
 
         await checkForStaticDir()
 
