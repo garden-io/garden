@@ -1,4 +1,12 @@
 
+<a name="0.12.38"></a>
+## [0.12.38](https://github.com/garden-io/garden/compare/0.12.37...0.12.38) (2022-03-28)
+
+### Bug Fixes
+
+* **cli:** error when starting file watching on macOS ([0ef33fbe](https://github.com/garden-io/garden/commit/0ef33fbe))
+* **core:** fix EADDRNOTAVAIL error in watch mode ([07989820](https://github.com/garden-io/garden/commit/07989820))
+
 <a name="0.12.37"></a>
 ## [0.12.37](https://github.com/garden-io/garden/compare/0.12.36...0.12.37) (2022-03-18)
 
