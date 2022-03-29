@@ -11,7 +11,6 @@ import chalk from "chalk"
 import execa from "execa"
 import { apply as jsonMerge } from "json-merge-patch"
 import { cloneDeep, keyBy, mapValues, flatten } from "lodash"
-import { TreeCache } from "../cache"
 import { parseCliArgs, prepareMinimistOpts } from "../cli/helpers"
 import { BooleanParameter, globalOptions, IntegerParameter, Parameter, StringParameter } from "../cli/params"
 import { loadConfigResources } from "../config/base"
@@ -26,13 +25,12 @@ import { joi } from "../config/common"
 import { CustomCommandContext } from "../config/template-contexts/custom-command"
 import { validateWithPath } from "../config/validation"
 import { ConfigurationError, GardenBaseError, InternalError, RuntimeError, toGardenError } from "../exceptions"
-import { VoidLogger } from "../logger/logger"
 import { resolveTemplateStrings } from "../template-string/template-string"
-import { findConfigPathsInPath, configFilenamePattern } from "../util/fs"
-import { GitHandler } from "../vcs/git"
+import { listDirectory, isConfigFilename } from "../util/fs"
 import { Command, CommandGroup, CommandParams, CommandResult, PrintHeaderParams } from "./base"
 import { customMinimist } from "../lib/minimist"
 import { removeSlice } from "../util/util"
+import { join } from "path"
 
 function convertArgSpec(spec: CustomCommandOption) {
   const params = {
@@ -228,12 +226,8 @@ export class CustomCommandWrapper extends Command {
 
 export async function getCustomCommands(builtinCommands: (Command | CommandGroup)[], projectRoot: string) {
   // Look for Command resources in the project root directory
-  const paths = await findConfigPathsInPath({
-    vcs: new GitHandler(projectRoot, projectRoot, [], new TreeCache()),
-    dir: projectRoot,
-    include: [configFilenamePattern],
-    log: new VoidLogger().placeholder(),
-  })
+  const rootFiles = await listDirectory(projectRoot, { recursive: false })
+  const paths = rootFiles.filter(isConfigFilename).map((p) => join(projectRoot, p))
 
   const resources = flatten(await Bluebird.map(paths, (path) => loadConfigResources(projectRoot, path)))
 

@@ -59,7 +59,7 @@ describe("cli", () => {
     it("aborts with help text if no positional argument is provided", async () => {
       const { code, consoleOutput } = await cli.run({ args: [], exitOnError: false })
 
-      expect(code).to.equal(1)
+      expect(code).to.equal(0)
       expect(consoleOutput).to.equal(await cli.renderHelp("/"))
     })
 
