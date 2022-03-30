@@ -55,6 +55,7 @@ describe("kubernetes", () => {
         service,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       await garden.processTasks([deployTask], { throwOnError: true })
@@ -99,6 +100,7 @@ describe("kubernetes", () => {
           service,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         await garden.processTasks([deployTask], { throwOnError: true })
@@ -164,6 +166,7 @@ describe("kubernetes", () => {
           service,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
         const deleteTask = new DeleteServiceTask({
           garden,

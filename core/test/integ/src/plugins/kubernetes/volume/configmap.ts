@@ -82,6 +82,7 @@ describe("configmap module", () => {
       forceBuild: false,
       devModeServiceNames: [],
       hotReloadServiceNames: [],
+      localModeServiceNames: [],
     })
 
     await garden.processTasks([deployTask], { throwOnError: true })

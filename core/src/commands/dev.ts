@@ -22,7 +22,12 @@ import { processModules } from "../process"
 import { GardenModule } from "../types/module"
 import { getTestTasks } from "../tasks/test"
 import { ConfigGraph } from "../config-graph"
-import { getDevModeModules, getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
+import {
+  getDevModeModules,
+  getDevModeServiceNames,
+  getHotReloadServiceNames,
+  validateHotReloadServiceNames,
+} from "./helpers"
 import { startServer } from "../server/server"
 import { BuildTask } from "../tasks/build"
 import { DeployTask } from "../tasks/deploy"
@@ -50,6 +55,10 @@ const devOpts = {
     `,
     alias: "hot",
   }),
+  "local-mode": new StringsParameter({
+    help: deline`[EXPERIMENTAL] The name of the service to be executed locally with local mode enabled.`,
+    alias: "local",
+  }), // todo: description
   "skip-tests": new BooleanParameter({
     help: "Disable running the tests.",
   }),
@@ -159,6 +168,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       // Since dev mode is implicit when using this command, we consider explicitly enabling hot reloading to
       // take precedence over dev mode.
       .filter((name) => !hotReloadServiceNames.includes(name))
+    const localModeServiceNames = getDevModeServiceNames(opts["local-mode"], graph)
 
     const initialTasks = await getDevCommandInitialTasks({
       garden,
@@ -168,6 +178,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       services,
       devModeServiceNames,
       hotReloadServiceNames,
+      localModeServiceNames,
       skipTests,
       forceDeploy: opts.force,
     })
@@ -190,6 +201,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
           servicesWatched: devModeServiceNames,
           devModeServiceNames,
           hotReloadServiceNames,
+          localModeServiceNames,
           testNames: opts["test-names"],
           skipTests,
         })
@@ -208,6 +220,7 @@ export async function getDevCommandInitialTasks({
   services,
   devModeServiceNames,
   hotReloadServiceNames,
+  localModeServiceNames,
   skipTests,
   forceDeploy,
 }: {
@@ -218,6 +231,7 @@ export async function getDevCommandInitialTasks({
   services: GardenService[]
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
+  localModeServiceNames: string[]
   skipTests: boolean
   forceDeploy: boolean
 }) {
@@ -242,6 +256,7 @@ export async function getDevCommandInitialTasks({
             module,
             devModeServiceNames,
             hotReloadServiceNames,
+            localModeServiceNames,
             force: forceDeploy,
             forceBuild: false,
           })
@@ -264,6 +279,7 @@ export async function getDevCommandInitialTasks({
           fromWatch: false,
           devModeServiceNames,
           hotReloadServiceNames,
+          localModeServiceNames,
         })
     )
 
@@ -278,6 +294,7 @@ export async function getDevCommandWatchTasks({
   servicesWatched,
   devModeServiceNames,
   hotReloadServiceNames,
+  localModeServiceNames,
   testNames,
   skipTests,
 }: {
@@ -288,6 +305,7 @@ export async function getDevCommandWatchTasks({
   servicesWatched: string[]
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
+  localModeServiceNames: string[]
   testNames: string[] | undefined
   skipTests: boolean
 }) {
@@ -299,6 +317,7 @@ export async function getDevCommandWatchTasks({
     servicesWatched,
     devModeServiceNames,
     hotReloadServiceNames,
+    localModeServiceNames,
   })
 
   if (!skipTests) {
@@ -315,6 +334,7 @@ export async function getDevCommandWatchTasks({
             fromWatch: true,
             devModeServiceNames,
             hotReloadServiceNames,
+            localModeServiceNames,
           })
         )
       )

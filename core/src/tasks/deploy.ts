@@ -32,6 +32,7 @@ export interface DeployTaskParams {
   skipRuntimeDependencies?: boolean
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
+  localModeServiceNames: string[]
 }
 
 @Profile()
@@ -45,6 +46,7 @@ export class DeployTask extends BaseTask {
   skipRuntimeDependencies: boolean
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
+  localModeServiceNames: string[]
 
   constructor({
     garden,
@@ -57,6 +59,7 @@ export class DeployTask extends BaseTask {
     skipRuntimeDependencies = false,
     devModeServiceNames,
     hotReloadServiceNames,
+    localModeServiceNames,
   }: DeployTaskParams) {
     super({ garden, log, force, version: service.version })
     this.graph = graph
@@ -66,6 +69,7 @@ export class DeployTask extends BaseTask {
     this.skipRuntimeDependencies = skipRuntimeDependencies
     this.devModeServiceNames = devModeServiceNames
     this.hotReloadServiceNames = hotReloadServiceNames
+    this.localModeServiceNames = localModeServiceNames
   }
 
   async resolveDependencies() {

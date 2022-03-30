@@ -308,6 +308,7 @@ describe("exec plugin", () => {
       forceBuild: false,
       devModeServiceNames: [],
       hotReloadServiceNames: [],
+      localModeServiceNames: [],
     })
     const results = await _garden.processTasks([taskTask])
 
@@ -333,6 +334,7 @@ describe("exec plugin", () => {
       forceBuild: false,
       devModeServiceNames: [],
       hotReloadServiceNames: [],
+      localModeServiceNames: [],
     })
 
     await emptyDir(_garden.artifactsPath)
@@ -356,6 +358,7 @@ describe("exec plugin", () => {
       forceBuild: false,
       devModeServiceNames: [],
       hotReloadServiceNames: [],
+      localModeServiceNames: [],
     })
 
     await emptyDir(_garden.artifactsPath)

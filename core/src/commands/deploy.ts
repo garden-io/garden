@@ -67,6 +67,10 @@ export const deployOpts = {
     `,
     alias: "hot",
   }),
+  "local-mode": new StringsParameter({
+    help: deline`[EXPERIMENTAL] The name of the service to be executed locally with local mode enabled.`,
+    alias: "local",
+  }), // todo: description
   "skip": new StringsParameter({
     help: "The name(s) of services you'd like to skip when deploying.",
   }),
@@ -185,6 +189,7 @@ export class DeployCommand extends Command<Args, Opts> {
     const modules = Array.from(new Set(services.map((s) => s.module)))
     const devModeServiceNames = getDevModeServiceNames(opts["dev-mode"], initGraph)
     const hotReloadServiceNames = getHotReloadServiceNames(opts["hot-reload"], initGraph)
+    const localModeServiceNames = getDevModeServiceNames(opts["local-mode"], initGraph)
 
     let watch = opts.watch
 
@@ -218,6 +223,7 @@ export class DeployCommand extends Command<Args, Opts> {
           skipRuntimeDependencies,
           devModeServiceNames,
           hotReloadServiceNames,
+          localModeServiceNames,
         })
     )
 
@@ -239,6 +245,7 @@ export class DeployCommand extends Command<Args, Opts> {
           servicesWatched: services.map((s) => s.name),
           devModeServiceNames,
           hotReloadServiceNames,
+          localModeServiceNames,
         })
 
         return tasks

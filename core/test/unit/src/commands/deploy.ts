@@ -120,6 +120,7 @@ describe("DeployCommand", () => {
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
         "hot-reload": undefined,
+        "local-mode": undefined,
         "watch": false,
         "force": false,
         "force-build": true,
@@ -469,6 +470,7 @@ describe("DeployCommand", () => {
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
         "hot-reload": undefined,
+        "local-mode": undefined,
         "watch": false,
         "force": false,
         "force-build": true,
@@ -517,6 +519,7 @@ describe("DeployCommand", () => {
         opts: withDefaultGlobalOpts({
           "dev-mode": undefined,
           "hot-reload": undefined,
+          "local-mode": undefined,
           "watch": false,
           "force": false,
           "force-build": true,
@@ -575,6 +578,7 @@ describe("DeployCommand", () => {
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
         "hot-reload": undefined,
+        "local-mode": undefined,
         "watch": false,
         "force": false,
         "force-build": true,
@@ -627,6 +631,7 @@ describe("DeployCommand", () => {
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
         "hot-reload": undefined,
+        "local-mode": undefined,
         "watch": false,
         "force": false,
         "force-build": true,
@@ -672,6 +677,7 @@ describe("DeployCommand", () => {
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
         "hot-reload": undefined,
+        "local-mode": undefined,
         "watch": false,
         "force": false,
         "force-build": true,
@@ -702,6 +708,7 @@ describe("DeployCommand", () => {
         opts: withDefaultGlobalOpts({
           "dev-mode": undefined,
           "hot-reload": undefined,
+          "local-mode": undefined,
           "watch": true,
           "force": false,
           "force-build": true,
@@ -726,6 +733,7 @@ describe("DeployCommand", () => {
         opts: withDefaultGlobalOpts({
           "dev-mode": [],
           "hot-reload": undefined,
+          "local-mode": undefined,
           "watch": false,
           "force": false,
           "force-build": true,
@@ -750,6 +758,7 @@ describe("DeployCommand", () => {
         opts: withDefaultGlobalOpts({
           "dev-mode": undefined,
           "hot-reload": ["*"],
+          "local-mode": undefined,
           "watch": false,
           "force": false,
           "force-build": true,
@@ -773,6 +782,7 @@ describe("DeployCommand", () => {
         opts: withDefaultGlobalOpts({
           "dev-mode": undefined,
           "hot-reload": undefined,
+          "local-mode": undefined,
           "watch": false,
           "force": false,
           "force-build": true,

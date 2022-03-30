@@ -325,6 +325,7 @@ describe("Terraform module type", () => {
       forceBuild: false,
       devModeServiceNames: [],
       hotReloadServiceNames: [],
+      localModeServiceNames: [],
     })
 
     return garden.processTasks([deployTask], { throwOnError: true })
@@ -347,6 +348,7 @@ describe("Terraform module type", () => {
       forceBuild: false,
       devModeServiceNames: [],
       hotReloadServiceNames: [],
+      localModeServiceNames: [],
     })
 
     return garden.processTasks([taskTask], { throwOnError: true })
@@ -615,6 +617,7 @@ describe("Terraform module type", () => {
         forceBuild: false,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       const result = await _garden.processTasks([taskTask], { throwOnError: true })

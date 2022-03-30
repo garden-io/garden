@@ -41,6 +41,7 @@ export interface TestTaskParams {
   skipRuntimeDependencies?: boolean
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
+  localModeServiceNames: string[]
   silent?: boolean
   interactive?: boolean
 }
@@ -55,6 +56,7 @@ export class TestTask extends BaseTask {
   skipRuntimeDependencies: boolean
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
+  localModeServiceNames: string[]
   silent: boolean
 
   constructor({
@@ -68,6 +70,7 @@ export class TestTask extends BaseTask {
     skipRuntimeDependencies = false,
     devModeServiceNames,
     hotReloadServiceNames,
+    localModeServiceNames,
     silent = true,
     interactive = false,
   }: TestTaskParams) {
@@ -80,6 +83,7 @@ export class TestTask extends BaseTask {
     this.skipRuntimeDependencies = skipRuntimeDependencies
     this.devModeServiceNames = devModeServiceNames
     this.hotReloadServiceNames = hotReloadServiceNames
+    this.localModeServiceNames = localModeServiceNames
     this.silent = silent
     this.interactive = interactive
   }
@@ -223,6 +227,7 @@ export async function getTestTasks({
   filterNames,
   devModeServiceNames,
   hotReloadServiceNames,
+  localModeServiceNames,
   force = false,
   forceBuild = false,
   fromWatch = false,
@@ -235,6 +240,7 @@ export async function getTestTasks({
   filterNames?: string[]
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
+  localModeServiceNames: string[]
   force?: boolean
   forceBuild?: boolean
   fromWatch?: boolean
@@ -261,6 +267,7 @@ export async function getTestTasks({
         test: testFromConfig(module, testConfig, graph),
         devModeServiceNames,
         hotReloadServiceNames,
+        localModeServiceNames,
         skipRuntimeDependencies,
       })
   )

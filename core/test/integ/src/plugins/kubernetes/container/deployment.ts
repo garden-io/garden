@@ -522,6 +522,7 @@ describe("kubernetes container deployment handlers", () => {
           forceBuild: false,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         const results = await garden.processTasks([deployTask], { throwOnError: true })
@@ -589,6 +590,7 @@ describe("kubernetes container deployment handlers", () => {
           forceBuild: false,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         await garden.processTasks([deployTask], { throwOnError: true })
@@ -626,6 +628,7 @@ describe("kubernetes container deployment handlers", () => {
           forceBuild: false,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         const results = await garden.processTasks([deployTask], { throwOnError: true })
@@ -646,6 +649,7 @@ describe("kubernetes container deployment handlers", () => {
           forceBuild: false,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         const results = await garden.processTasks([deployTask], { throwOnError: true })
@@ -680,6 +684,7 @@ describe("kubernetes container deployment handlers", () => {
           forceBuild: false,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         const results = await garden.processTasks([deployTask], { throwOnError: true })
@@ -703,6 +708,7 @@ describe("kubernetes container deployment handlers", () => {
           forceBuild: false,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         const results = await garden.processTasks([deployTask], { throwOnError: true })
@@ -737,6 +743,7 @@ describe("kubernetes container deployment handlers", () => {
           forceBuild: false,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         const results = await garden.processTasks([deployTask], { throwOnError: true })
@@ -766,6 +773,7 @@ describe("kubernetes container deployment handlers", () => {
           forceBuild: false,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         const results = await garden.processTasks([deployTask], { throwOnError: true })
@@ -795,6 +803,7 @@ describe("kubernetes container deployment handlers", () => {
           forceBuild: false,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         const results = await garden.processTasks([deployTask], { throwOnError: true })

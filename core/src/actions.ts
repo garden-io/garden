@@ -826,6 +826,7 @@ export class ActionRouter implements TypeGuard {
           fromWatch: false,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
     )
 

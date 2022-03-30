@@ -321,6 +321,19 @@ services:
           # information.
           defaultGroup:
 
+    # Specifies which service in the remote k8s cluster must be replaced by the local one.
+    localMode:
+      # The port of the local service to be connected to the remote k8s cluster via the reverse proxy server
+      # container.
+      port:
+
+      # The command that’s run locally to start the service.
+      command:
+
+      # The name of the remote k8s container in the relevant Pod spec that is to be replaced with the proxy server
+      # container.
+      remoteContainerName:
+
     # List of ingress endpoints that the service exposes.
     ingresses:
       - # Annotations to attach to the ingress (Note: May not be applicable to all providers)
@@ -1432,6 +1445,46 @@ Set the default group on files and directories at the target. Specify either an 
 | Type              | Required |
 | ----------------- | -------- |
 | `number | string` | No       |
+
+### `services[].localMode`
+
+[services](#services) > localMode
+
+Specifies which service in the remote k8s cluster must be replaced by the local one.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `services[].localMode.port`
+
+[services](#services) > [localMode](#serviceslocalmode) > port
+
+The port of the local service to be connected to the remote k8s cluster via the reverse proxy server container.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `services[].localMode.command[]`
+
+[services](#services) > [localMode](#serviceslocalmode) > command
+
+The command that’s run locally to start the service.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `services[].localMode.remoteContainerName`
+
+[services](#services) > [localMode](#serviceslocalmode) > remoteContainerName
+
+The name of the remote k8s container in the relevant Pod spec that is to be replaced with the proxy server container.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `services[].ingresses[]`
 
