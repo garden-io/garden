@@ -578,7 +578,7 @@ export async function getKubectlExecDestination({
   targetPath: string
 }) {
   const kubectl = ctx.tools["kubernetes.kubectl"]
-  const kubectlPath = (await kubectl.getPath(log)).replace(/ /g, "\\ ") // Escape spaces in path
+  const kubectlPath = await kubectl.getPath(log)
 
   const connectionOpts = prepareConnectionOpts({
     provider: ctx.provider,
@@ -611,8 +611,8 @@ export const mutagenCliSpec: PluginToolSpec = {
       platform: "darwin",
       architecture: "amd64",
       url:
-        "https://github.com/garden-io/mutagen/releases/download/v0.13.0-garden-1/mutagen_darwin_amd64_v0.13.0.tar.gz",
-      sha256: "ef0642bfcd787ab20d30ab218f9f1cd92e51f035ab9fbaa38132bb0726abea74",
+        "https://github.com/garden-io/mutagen/releases/download/v0.13.0-garden-2/mutagen_darwin_amd64_v0.13.0.tar.gz",
+      sha256: "cbcf52f653081606c48e0886f3c0755544c1fa0a1d981e899c913c91e757570f",
       extract: {
         format: "tar",
         targetPath: "mutagen",
@@ -622,8 +622,8 @@ export const mutagenCliSpec: PluginToolSpec = {
       platform: "darwin",
       architecture: "arm64",
       url:
-        "https://github.com/mutagen-io/mutagen/releases/download/v0.13.0-garden-1/mutagen_darwin_arm64_v0.13.0.tar.gz",
-      sha256: "ed5bd30bb9d10ac7b36f1ed4f9f3c3eea11044125f573776617cc7874398b1ed",
+        "https://github.com/mutagen-io/mutagen/releases/download/v0.13.0-garden-2/mutagen_darwin_arm64_v0.13.0.tar.gz",
+      sha256: "186408d720188393354d7f517e16541dc0fac1e90a6e6e74a3d2a2729a6c9942",
       extract: {
         format: "tar",
         targetPath: "mutagen",
@@ -632,8 +632,8 @@ export const mutagenCliSpec: PluginToolSpec = {
     {
       platform: "linux",
       architecture: "amd64",
-      url: "https://github.com/garden-io/mutagen/releases/download/v0.13.0-garden-1/mutagen_linux_amd64_v0.13.0.tar.gz",
-      sha256: "733d92d8d8eeab82ac4755df34c4a359eec3b600861b075b130bd8f954908640",
+      url: "https://github.com/garden-io/mutagen/releases/download/v0.13.0-garden-2/mutagen_linux_amd64_v0.13.0.tar.gz",
+      sha256: "6a5c4f61fa7302ce450f0c8f3005d7dc76cf9cba53191d14f8810d6b45e9ed05",
       extract: {
         format: "tar",
         targetPath: "mutagen",
@@ -642,8 +642,8 @@ export const mutagenCliSpec: PluginToolSpec = {
     {
       platform: "windows",
       architecture: "amd64",
-      url: "https://github.com/garden-io/mutagen/releases/download/v0.13.0-garden-1/mutagen_windows_amd64_v0.13.0.zip",
-      sha256: "50235fb453d55e9c07a4f287c3afe7562b91786a288ef836bd58905f48d7be31",
+      url: "https://github.com/garden-io/mutagen/releases/download/v0.13.0-garden-2/mutagen_windows_amd64_v0.13.0.zip",
+      sha256: "b753534e2a291be69759929691987a720ec6060184d5c9556c362a2648b3a49e",
       extract: {
         format: "zip",
         targetPath: "mutagen.exe",
