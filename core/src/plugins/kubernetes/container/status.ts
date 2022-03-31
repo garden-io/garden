@@ -112,6 +112,7 @@ export async function waitForContainerService(
   service: GardenService,
   devMode: boolean,
   hotReload: boolean,
+  localMode: boolean,
   timeout = KUBECTL_DEFAULT_TIMEOUT
 ) {
   const startTime = new Date().getTime()
@@ -125,6 +126,7 @@ export async function waitForContainerService(
       module: service.module,
       devMode,
       hotReload,
+      localMode,
     })
 
     if (status.state === "ready" || status.state === "outdated") {

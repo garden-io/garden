@@ -132,6 +132,7 @@ describe("kubernetes-module handlers", () => {
         force: false,
         devMode: false,
         hotReload: false,
+        localMode: false,
         runtimeContext: emptyRuntimeContext,
       }
       service.module.spec.manifests = [

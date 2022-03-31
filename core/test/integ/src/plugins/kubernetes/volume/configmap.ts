@@ -94,6 +94,7 @@ describe("configmap module", () => {
       graph,
       devMode: false,
       hotReload: false,
+      localMode: false,
       runtimeContext: emptyRuntimeContext,
     })
 

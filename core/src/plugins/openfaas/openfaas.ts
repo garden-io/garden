@@ -338,6 +338,7 @@ async function deleteService(params: DeleteServiceParams<OpenFaasModule>): Promi
       module: service.module,
       devMode: false,
       hotReload: false,
+      localMode: false,
     })
 
     found = !!status.state

@@ -98,6 +98,7 @@ export function getServiceStatusDeps(task: RuntimeTask, deps: DependencyRelation
       force: false,
       devModeServiceNames: task.devModeServiceNames,
       hotReloadServiceNames: task.hotReloadServiceNames,
+      localModeServiceNames: task.localModeServiceNames,
     })
   })
 }

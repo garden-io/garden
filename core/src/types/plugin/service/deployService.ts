@@ -18,6 +18,7 @@ export interface DeployServiceParams<M extends GardenModule = GardenModule, S ex
   devMode: boolean
   force: boolean
   hotReload: boolean
+  localMode: boolean
   runtimeContext: RuntimeContext
 }
 

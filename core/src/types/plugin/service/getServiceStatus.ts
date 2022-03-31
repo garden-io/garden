@@ -19,6 +19,7 @@ export interface GetServiceStatusParams<M extends GardenModule = GardenModule, S
   extends PluginServiceActionParamsBase<M, S> {
   devMode: boolean
   hotReload: boolean
+  localMode: boolean
   runtimeContext: RuntimeContext
 }
 

@@ -91,6 +91,7 @@ describe("dev mode deployments and sync behavior", () => {
       log,
       devMode: true,
       hotReload: false,
+      localMode: false,
     })
     expect(status.devMode).to.eql(true)
 
@@ -155,6 +156,7 @@ describe("dev mode deployments and sync behavior", () => {
       log,
       devMode: true,
       hotReload: false,
+      localMode: false,
     })
 
     const workload = status.detail.workload!

@@ -554,13 +554,22 @@ describe("ActionRouter", () => {
           runtimeContext,
           devMode: false,
           hotReload: false,
+          localMode: false,
         })
         expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } })
       })
 
       it("should emit a serviceStatus event", async () => {
         garden.events.eventLog = []
-        await actions.getServiceStatus({ log, service, graph, runtimeContext, devMode: false, hotReload: false })
+        await actions.getServiceStatus({
+          log,
+          service,
+          graph,
+          runtimeContext,
+          devMode: false,
+          hotReload: false,
+          localMode: false,
+        })
         const event = garden.events.eventLog[0]
         expect(event).to.exist
         expect(event.name).to.eql("serviceStatus")
@@ -577,7 +586,16 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.getServiceStatus({ log, service, graph, runtimeContext, devMode: false, hotReload: false }),
+          () =>
+            actions.getServiceStatus({
+              log,
+              service,
+              graph,
+              runtimeContext,
+              devMode: false,
+              hotReload: false,
+              localMode: false,
+            }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from service 'service-a': key .foo must be a string"
@@ -591,7 +609,16 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.getServiceStatus({ log, service, graph, runtimeContext, devMode: false, hotReload: false }),
+          () =>
+            actions.getServiceStatus({
+              log,
+              service,
+              graph,
+              runtimeContext,
+              devMode: false,
+              hotReload: false,
+              localMode: false,
+            }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from service 'service-a': key .base must be a string"
@@ -610,6 +637,7 @@ describe("ActionRouter", () => {
           force: true,
           devMode: false,
           hotReload: false,
+          localMode: false,
         })
         expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } })
       })
@@ -624,6 +652,7 @@ describe("ActionRouter", () => {
           force: true,
           devMode: false,
           hotReload: false,
+          localMode: false,
         })
         const moduleVersion = service.module.version.versionString
         const event1 = garden.events.eventLog[0]
@@ -661,6 +690,7 @@ describe("ActionRouter", () => {
               force: true,
               devMode: false,
               hotReload: false,
+              localMode: false,
             }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
@@ -684,6 +714,7 @@ describe("ActionRouter", () => {
               force: true,
               devMode: false,
               hotReload: false,
+              localMode: false,
             }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
@@ -1715,6 +1746,7 @@ describe("ActionRouter", () => {
           log,
           devMode: false,
           hotReload: false,
+          localMode: false,
           force: false,
         },
         defaultHandler: handler,
@@ -1765,6 +1797,7 @@ describe("ActionRouter", () => {
           log,
           devMode: false,
           hotReload: false,
+          localMode: false,
           force: false,
         },
         defaultHandler: handler,
@@ -1818,6 +1851,7 @@ describe("ActionRouter", () => {
           log,
           devMode: false,
           hotReload: false,
+          localMode: false,
           force: false,
         },
         defaultHandler: async (params) => {
@@ -1868,6 +1902,7 @@ describe("ActionRouter", () => {
               log,
               devMode: false,
               hotReload: false,
+              localMode: false,
               force: false,
             },
             defaultHandler: async () => {

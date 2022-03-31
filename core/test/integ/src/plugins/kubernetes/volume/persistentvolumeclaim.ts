@@ -98,6 +98,7 @@ describe("persistentvolumeclaim", () => {
       service,
       devMode: false,
       hotReload: false,
+      localMode: false,
       graph,
       runtimeContext: emptyRuntimeContext,
     })
