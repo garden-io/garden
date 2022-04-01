@@ -17,6 +17,8 @@ export const MAX_CONFIGMAP_DATA_SIZE = 1024 * 1024 // max ConfigMap data size is
 // the outputs field, so we cap at 250kB.
 export const MAX_RUN_RESULT_LOG_LENGTH = 250 * 1024
 
+export const PROXY_CONTAINER_SSH_TUNNEL_PORT = 2222
+
 export const systemDockerAuthSecretName = "builder-docker-config"
 export const dockerAuthSecretKey = ".dockerconfigjson"
 export const inClusterRegistryHostname = "127.0.0.1:5000"

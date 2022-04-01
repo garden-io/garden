@@ -304,9 +304,12 @@ services:
     #
     # See the [Local mode guide](https://docs.garden.io/guides/...) for more information.
     localMode:
+      # The local port of the ssh tunnel to the target remote k8s cluster.
+      localAppPort:
+
       # The port of the local service to be connected to the remote k8s cluster via the reverse proxy server
       # container.
-      port:
+      localSshPort:
 
       # The command that’s run locally to start the service.
       command:
@@ -1399,9 +1402,19 @@ See the [Local mode guide](https://docs.garden.io/guides/...) for more informati
 | -------- | -------- |
 | `object` | No       |
 
-### `services[].localMode.port`
+### `services[].localMode.localAppPort`
 
-[services](#services) > [localMode](#serviceslocalmode) > port
+[services](#services) > [localMode](#serviceslocalmode) > localAppPort
+
+The local port of the ssh tunnel to the target remote k8s cluster.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `services[].localMode.localSshPort`
+
+[services](#services) > [localMode](#serviceslocalmode) > localSshPort
 
 The port of the local service to be connected to the remote k8s cluster via the reverse proxy server container.
 

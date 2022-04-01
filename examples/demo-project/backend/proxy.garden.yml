@@ -11,11 +11,13 @@ variables:
   ingressPath: /hello-backend
   publicKeyFile: proxy-key.pub
   localAppPort: "8090"
+  localSshPort: "2222"
 
 services:
   - name: backend # backend replacement container
     localMode:
-      port: ${var.localAppPort}
+      localAppPort: ${var.localAppPort}
+      localSshPort: ${var.localSshPort}
       command: [] # example: [ "npm", "run", "serve", "-p", "${var.localAppPort}" ]
       remoteContainerName: remote-app-container
     env:
@@ -30,8 +32,6 @@ services:
         containerPort: 8080
         # Maps service:80 -> container:8080
         servicePort: 80
-      - name: ssh
-        containerPort: 2222
     ingresses:
       - path: ${var.ingressPath}
         port: http

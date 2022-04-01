@@ -36,6 +36,7 @@ import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { hotReloadableKinds, HotReloadableResource } from "../hot-reload/hot-reload"
 import { getResourceRequirements, getSecurityContext } from "./util"
 import { configureLocalMode } from "../local-mode"
+import { PROXY_CONTAINER_SSH_TUNNEL_PORT } from "../constants"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters
@@ -450,6 +451,18 @@ export async function createWorkloadManifest({
 
   const ports = spec.ports
 
+  // todo: state validation, service cannot be in dev and local mode at the same time
+  const localModeSpec = service.spec.localMode
+
+  if (enableLocalMode && localModeSpec) {
+    ports.push({
+      name: "ssh",
+      protocol: "TCP",
+      containerPort: PROXY_CONTAINER_SSH_TUNNEL_PORT,
+      servicePort: PROXY_CONTAINER_SSH_TUNNEL_PORT,
+    })
+  }
+
   for (const port of ports) {
     container.ports!.push({
       name: port.name,
@@ -542,8 +555,6 @@ export async function createWorkloadManifest({
   }
 
   const devModeSpec = service.spec.devMode
-  // todo: state validation, service cannot be in dev and local mode at the same time
-  const localModeSpec = service.spec.localMode
 
   if (enableDevMode && devModeSpec) {
     log.debug({ section: service.name, msg: chalk.gray(`-> Configuring in dev mode`) })

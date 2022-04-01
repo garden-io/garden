@@ -9,7 +9,6 @@
 import { containerLocalModeSchema, ContainerLocalModeSpec } from "../container/config"
 import { dedent, gardenAnnotationKey } from "../../util/string"
 import { set } from "lodash"
-import { getResourceContainer } from "./util"
 import { HotReloadableResource } from "./hot-reload/hot-reload"
 import { joi } from "../../config/common"
 
@@ -46,8 +45,8 @@ export const kubernetesLocalModeSchema = () =>
 /**
  * Configures the specified Deployment, DaemonSet or StatefulSet for local mode.
  */
-export function configureLocalMode({ target, spec, containerName }: ConfigureLocalModeParams): void {
+export function configureLocalMode({ target /*, service, containerName*/ }: ConfigureLocalModeParams): void {
   set(target, ["metadata", "annotations", gardenAnnotationKey("local-mode")], "true")
-  const mainContainer = getResourceContainer(target, containerName)
-  // todo: configure ports
+  // const mainContainer = getResourceContainer(target, containerName)
+  // todo: check if anything should be configured here
 }
