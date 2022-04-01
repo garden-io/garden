@@ -461,6 +461,7 @@ export async function createWorkloadManifest({
       containerPort: PROXY_CONTAINER_SSH_TUNNEL_PORT,
       servicePort: PROXY_CONTAINER_SSH_TUNNEL_PORT,
     })
+    delete spec.healthCheck // fixme: disabled health checks for proxy container, should those be enabled?
   }
 
   for (const port of ports) {

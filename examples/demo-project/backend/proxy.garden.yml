@@ -24,10 +24,10 @@ services:
     env:
       PUBLIC_KEY_FILE: ${var.proxyContainerPublicKeyFile}
       USER_NAME: ${var.proxyContainerUserName}
-    #    healthCheck:
-    #      httpGet:
-    #        path: /hello-backend
-    #        port: http
+    healthCheck:
+      httpGet:
+        path: /hello-backend
+        port: http
     ports:
       - name: http
         containerPort: 8080
