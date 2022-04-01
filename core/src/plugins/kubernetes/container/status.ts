@@ -37,6 +37,7 @@ export async function getContainerServiceStatus({
   log,
   devMode,
   hotReload,
+  localMode,
 }: GetServiceStatusParams<ContainerModule>): Promise<ContainerServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
@@ -54,6 +55,7 @@ export async function getContainerServiceStatus({
     runtimeContext,
     enableDevMode: devMode,
     enableHotReload: hotReload,
+    enableLocalMode: localMode,
     blueGreen: provider.config.deploymentStrategy === "blue-green",
   })
   const { state, remoteResources, deployedWithDevMode, deployedWithHotReloading } = await compareDeployedResources(

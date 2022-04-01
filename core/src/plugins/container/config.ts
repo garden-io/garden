@@ -30,6 +30,7 @@ import { dedent, deline } from "../../util/string"
 import { ContainerModuleOutputs } from "./container"
 import { devModeGuideLink } from "../kubernetes/dev-mode"
 import { k8sDeploymentTimeoutSchema } from "../kubernetes/config"
+import { localModeGuideLink } from "../kubernetes/local-mode"
 
 export const defaultContainerLimits: ServiceLimitSpec = {
   cpu: 1000, // = 1000 millicpu = 1 CPU
@@ -323,6 +324,8 @@ export const containerLocalModeSchema = () =>
       ),
   }).description(dedent`
     Specifies which service in the remote k8s cluster must be replaced by the local one.
+
+    See the [Local mode guide](${localModeGuideLink}) for more information.
   `) // todo: link to the guide + guide itself
 
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>

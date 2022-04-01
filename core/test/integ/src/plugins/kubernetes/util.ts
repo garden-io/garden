@@ -108,6 +108,7 @@ describe("util", () => {
           namespace: provider.config.namespace!.name!,
           enableDevMode: false,
           enableHotReload: false,
+          enableLocalMode: false,
           log: garden.log,
           production: false,
           blueGreen: false,

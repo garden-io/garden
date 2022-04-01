@@ -35,6 +35,7 @@ import { configureHotReload } from "../hot-reload/helpers"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { hotReloadableKinds, HotReloadableResource } from "../hot-reload/hot-reload"
 import { getResourceRequirements, getSecurityContext } from "./util"
+import { configureLocalMode } from "../local-mode"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters
@@ -46,7 +47,7 @@ export const PRODUCTION_MINIMUM_REPLICAS = 3
 export async function deployContainerService(
   params: DeployServiceParams<ContainerModule>
 ): Promise<ContainerServiceStatus> {
-  const { ctx, service, log, devMode } = params
+  const { ctx, service, log, devMode, localMode } = params
   const { deploymentStrategy } = params.ctx.provider.config
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx, k8sCtx.provider)
@@ -69,6 +70,10 @@ export async function deployContainerService(
       status,
       service,
     })
+  }
+
+  if (localMode) {
+    // todo: start local service from here?
   }
 
   return status
@@ -106,7 +111,7 @@ export async function startContainerDevSync({
 }
 
 export async function deployContainerServiceRolling(params: DeployServiceParams<ContainerModule> & { api: KubeApi }) {
-  const { ctx, api, service, runtimeContext, log, devMode, hotReload } = params
+  const { ctx, api, service, runtimeContext, log, devMode, hotReload, localMode } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
@@ -120,6 +125,7 @@ export async function deployContainerServiceRolling(params: DeployServiceParams<
     runtimeContext,
     enableDevMode: devMode,
     enableHotReload: hotReload,
+    enableLocalMode: localMode,
     blueGreen: false,
   })
 
@@ -140,7 +146,7 @@ export async function deployContainerServiceRolling(params: DeployServiceParams<
 }
 
 export async function deployContainerServiceBlueGreen(params: DeployServiceParams<ContainerModule> & { api: KubeApi }) {
-  const { ctx, api, service, runtimeContext, log, devMode, hotReload } = params
+  const { ctx, api, service, runtimeContext, log, devMode, hotReload, localMode } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
   const namespace = namespaceStatus.namespaceName
@@ -154,6 +160,7 @@ export async function deployContainerServiceBlueGreen(params: DeployServiceParam
     runtimeContext,
     enableDevMode: devMode,
     enableHotReload: hotReload,
+    enableLocalMode: localMode,
     blueGreen: true,
   })
 
@@ -264,6 +271,7 @@ export async function createContainerManifests({
   runtimeContext,
   enableDevMode,
   enableHotReload,
+  enableLocalMode,
   blueGreen,
 }: {
   ctx: PluginContext
@@ -273,6 +281,7 @@ export async function createContainerManifests({
   runtimeContext: RuntimeContext
   enableDevMode: boolean
   enableHotReload: boolean
+  enableLocalMode: boolean
   blueGreen: boolean
 }) {
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -288,6 +297,7 @@ export async function createContainerManifests({
     namespace,
     enableDevMode,
     enableHotReload,
+    enableLocalMode,
     log,
     production,
     blueGreen,
@@ -314,6 +324,7 @@ interface CreateDeploymentParams {
   namespace: string
   enableDevMode: boolean
   enableHotReload: boolean
+  enableLocalMode: boolean
   log: LogEntry
   production: boolean
   blueGreen: boolean
@@ -327,6 +338,7 @@ export async function createWorkloadManifest({
   namespace,
   enableDevMode,
   enableHotReload,
+  enableLocalMode,
   log,
   production,
   blueGreen,
@@ -350,6 +362,14 @@ export async function createWorkloadManifest({
   if (enableHotReload && configuredReplicas > 1) {
     log.warn({
       msg: chalk.yellow(`Ignoring replicas config on container service ${service.name} while in hot-reload mode`),
+      symbol: "warning",
+    })
+    configuredReplicas = 1
+  }
+
+  if (enableLocalMode && configuredReplicas > 1) {
+    log.warn({
+      msg: chalk.yellow(`Ignoring replicas config on container service ${service.name} while in local mode`),
       symbol: "warning",
     })
     configuredReplicas = 1
@@ -421,7 +441,7 @@ export async function createWorkloadManifest({
   }
 
   if (spec.healthCheck) {
-    configureHealthCheck(container, spec, enableHotReload || enableDevMode)
+    configureHealthCheck(container, spec, enableHotReload || enableDevMode || enableLocalMode)
   }
 
   if (spec.volumes && spec.volumes.length) {
@@ -522,6 +542,8 @@ export async function createWorkloadManifest({
   }
 
   const devModeSpec = service.spec.devMode
+  // todo: state validation, service cannot be in dev and local mode at the same time
+  const localModeSpec = service.spec.localMode
 
   if (enableDevMode && devModeSpec) {
     log.debug({ section: service.name, msg: chalk.gray(`-> Configuring in dev mode`) })
@@ -542,6 +564,13 @@ export async function createWorkloadManifest({
       hotReloadSpec,
       hotReloadCommand: service.spec.hotReloadCommand,
       hotReloadArgs: service.spec.hotReloadArgs,
+    })
+  } else if (enableLocalMode && localModeSpec) {
+    log.debug({ section: service.name, msg: chalk.gray(`-> Configuring in local mode`) })
+
+    configureLocalMode({
+      target: workload,
+      spec: localModeSpec,
     })
   }
 

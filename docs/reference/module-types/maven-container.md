@@ -301,6 +301,8 @@ services:
           defaultGroup:
 
     # Specifies which service in the remote k8s cluster must be replaced by the local one.
+    #
+    # See the [Local mode guide](https://docs.garden.io/guides/...) for more information.
     localMode:
       # The port of the local service to be connected to the remote k8s cluster via the reverse proxy server
       # container.
@@ -1390,6 +1392,8 @@ Set the default group on files and directories at the target. Specify either an 
 [services](#services) > localMode
 
 Specifies which service in the remote k8s cluster must be replaced by the local one.
+
+See the [Local mode guide](https://docs.garden.io/guides/...) for more information.
 
 | Type     | Required |
 | -------- | -------- |

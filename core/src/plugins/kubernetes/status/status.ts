@@ -461,6 +461,10 @@ export function isConfiguredForHotReloading(resource: HotReloadableResource): bo
   return resource.metadata.annotations?.[gardenAnnotationKey("hot-reload")] === "true"
 }
 
+export function isConfiguredForLocalMode(resource: HotReloadableResource): boolean {
+  return resource.metadata.annotations?.[gardenAnnotationKey("local-mode")] === "true"
+}
+
 export async function getDeployedResource(
   ctx: PluginContext,
   provider: KubernetesProvider,
