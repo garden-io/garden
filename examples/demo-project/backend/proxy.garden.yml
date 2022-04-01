@@ -4,14 +4,15 @@ description: Backend service container
 type: container
 dockerfile: proxy.dockerfile
 buildArgs:
-  PUBLIC_KEY_FILE: ${var.publicKeyFile}
+  PUBLIC_KEY_FILE: ${var.proxyContainerPublicKeyFile}
 
 # You can specify variables here at the module level
 variables:
   ingressPath: /hello-backend
-  publicKeyFile: proxy-key.pub
   localAppPort: "8090"
   localSshPort: "2222"
+  proxyContainerPublicKeyFile: proxy-key.pub
+  proxyContainerUserName: proxy-user
 
 services:
   - name: backend # backend replacement container
@@ -21,8 +22,8 @@ services:
       command: [] # example: [ "npm", "run", "serve", "-p", "${var.localAppPort}" ]
       remoteContainerName: remote-app-container
     env:
-      PUBLIC_KEY_FILE: ${var.publicKeyFile}
-      USER_NAME: proxy-user
+      PUBLIC_KEY_FILE: ${var.proxyContainerPublicKeyFile}
+      USER_NAME: ${var.proxyContainerUserName}
     #    healthCheck:
     #      httpGet:
     #        path: /hello-backend
