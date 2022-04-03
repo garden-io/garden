@@ -62,7 +62,7 @@
     "dns-lookup-cache": "^1.0.4",
     "docker-file-parser": "^1.0.4",
     "dockerode": "^3.2.0",
-    "dotenv": "^8.2.0",
+    "dotenv": "^16.0.0",
     "elegant-spinner": "^2.0.0",
     "env-var": "^6.2.0",
     "escape-string-regexp": "^4.0.0",
