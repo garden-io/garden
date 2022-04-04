@@ -73,7 +73,7 @@ export async function deployContainerService(
   }
 
   if (localMode) {
-    // todo: start local service from here?
+    // todo: start the local service, ssh tunnel and port forwarding from here?
   }
 
   return status
