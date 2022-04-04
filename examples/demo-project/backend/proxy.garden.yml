@@ -7,21 +7,17 @@ dockerfile: proxy.dockerfile
 # You can specify variables here at the module level
 variables:
   ingressPath: /hello-backend
-  localAppPort: "8090"
-  localSshPort: "2222"
-  proxyContainerPublicKey: "[public-ssh-key]"
-  proxyContainerUserName: "proxy-user"
 
 services:
   - name: backend # backend replacement container
     localMode:
-      localAppPort: ${var.localAppPort}
-      localSshPort: ${var.localSshPort}
+      localAppPort: 8090
+      localSshPort: 2222
       command: [] # example: [ "npm", "run", "serve", "-p", "${var.localAppPort}" ]
       proxyContainer:
-        publicKey: ${var.proxyContainerPublicKey}
-        username: ${var.proxyContainerUserName}
-        remoteContainerName: remote-app-container
+        publicKey: "[public-ssh-key]"
+        username: "proxy-user"
+        remoteContainerName: "backend"
     healthCheck:
       httpGet:
         path: /hello-backend
