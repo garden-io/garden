@@ -314,9 +314,16 @@ services:
       # The command that’s run locally to start the service.
       command:
 
-      # The name of the remote k8s container in the relevant Pod spec that is to be replaced with the proxy server
-      # container.
-      remoteContainerName:
+      # Specifies the configuration of the remote proxy container which will replace the actual remote app.
+      proxyContainer:
+        # The public ssh key to be stored in the proxy container.
+        publicKey:
+
+        # The username to login to the proxy container.
+        username:
+
+        # The k8s name of the remote container.
+        remoteContainerName:
 
     # List of ingress endpoints that the service exposes.
     ingresses:
@@ -1432,11 +1439,41 @@ The command that’s run locally to start the service.
 | --------------- | -------- |
 | `array[string]` | No       |
 
-### `services[].localMode.remoteContainerName`
+### `services[].localMode.proxyContainer`
 
-[services](#services) > [localMode](#serviceslocalmode) > remoteContainerName
+[services](#services) > [localMode](#serviceslocalmode) > proxyContainer
 
-The name of the remote k8s container in the relevant Pod spec that is to be replaced with the proxy server container.
+Specifies the configuration of the remote proxy container which will replace the actual remote app.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `services[].localMode.proxyContainer.publicKey`
+
+[services](#services) > [localMode](#serviceslocalmode) > [proxyContainer](#serviceslocalmodeproxycontainer) > publicKey
+
+The public ssh key to be stored in the proxy container.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `services[].localMode.proxyContainer.username`
+
+[services](#services) > [localMode](#serviceslocalmode) > [proxyContainer](#serviceslocalmodeproxycontainer) > username
+
+The username to login to the proxy container.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `services[].localMode.proxyContainer.remoteContainerName`
+
+[services](#services) > [localMode](#serviceslocalmode) > [proxyContainer](#serviceslocalmodeproxycontainer) > remoteContainerName
+
+The k8s name of the remote container.
 
 | Type     | Required |
 | -------- | -------- |

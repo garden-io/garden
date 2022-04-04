@@ -7,10 +7,10 @@
  */
 
 import { containerLocalModeSchema, ContainerLocalModeSpec, ContainerServiceSpec } from "../container/config"
-import { dedent, gardenAnnotationKey } from "../../util/string"
+import { gardenAnnotationKey } from "../../util/string"
 import { set } from "lodash"
 import { HotReloadableResource } from "./hot-reload/hot-reload"
-import { joi } from "../../config/common"
+import { PrimitiveMap } from "../../config/common"
 import { PROXY_CONTAINER_SSH_TUNNEL_PORT } from "./constants"
 
 // todo: build the image
@@ -20,34 +20,52 @@ export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
 export const localModeGuideLink = "https://docs.garden.io/guides/..." // todo
 
+interface ConfigureProxyContainerParams {
+  enableLocalMode: boolean
+  spec: ContainerServiceSpec
+}
+
 interface ConfigureLocalModeParams {
   target: HotReloadableResource
-  spec: ContainerLocalModeSpec
   containerName?: string
 }
 
 export interface KubernetesLocalModeSpec extends ContainerLocalModeSpec {
-  containerName?: string
+  //containerName?: string
 }
 
-export const kubernetesLocalModeSchema = () =>
-  containerLocalModeSchema().keys({
-    containerName: joi
-      .string()
-      .description(
-        "The name of the remote k8s container in the relevant Pod spec that is to be replaced with the proxy server container."
-      ),
-  }).description(dedent`
-    Specifies which service in the remote k8s cluster must be replaced by the local one.
+export const kubernetesLocalModeSchema = () => containerLocalModeSchema()
 
-    See the [Local mode guide](${localModeGuideLink}) for more information.
-  `) // todo: link to the guide + guide itself
+export type ProxyContainerEnvVar = "PUBLIC_KEY" | "USER_NAME" | "APP_PORT"
 
-export function configureProxyContainer(spec: ContainerServiceSpec): void {
-  const ports = spec.ports
-  const hasSshPort = ports.some((portSpec) => portSpec.name === "ssh")
+export function prepareLocalModeEnvVars({ enableLocalMode, spec }: ConfigureProxyContainerParams): PrimitiveMap {
+  const localModeSpec = spec.localMode
+  if (!enableLocalMode || !localModeSpec) {
+    return {}
+  }
+
+  // todo: is it a good way to pick up the right port?
+  const httpPortSpec = spec.ports.find((portSpec) => portSpec.name === "http")!
+
+  const proxyContainerSpec = localModeSpec.proxyContainer
+  // const publicKey = fs.readFileSync(proxyContainerSpec.publicKeyFile).toString("utf-8")
+
+  return {
+    APP_PORT: httpPortSpec.containerPort,
+    PUBLIC_KEY: proxyContainerSpec.publicKey,
+    USER_NAME: proxyContainerSpec.username,
+  }
+}
+
+export function configureLocalModeProxyContainer({ enableLocalMode, spec }: ConfigureProxyContainerParams): void {
+  const localModeSpec = spec.localMode
+  if (!enableLocalMode || !localModeSpec) {
+    return
+  }
+
+  const hasSshPort = spec.ports.some((portSpec) => portSpec.name === "ssh")
   if (!hasSshPort) {
-    ports.push({
+    spec.ports.push({
       name: "ssh",
       protocol: "TCP",
       containerPort: PROXY_CONTAINER_SSH_TUNNEL_PORT,
@@ -62,7 +80,7 @@ export function configureProxyContainer(spec: ContainerServiceSpec): void {
 /**
  * Configures the specified Deployment, DaemonSet or StatefulSet for local mode.
  */
-export function configureLocalMode({ target /*, service, containerName*/ }: ConfigureLocalModeParams): void {
+export function configureLocalMode({ target }: ConfigureLocalModeParams): void {
   set(target, ["metadata", "annotations", gardenAnnotationKey("local-mode")], "true")
   // const mainContainer = getResourceContainer(target, containerName)
   // todo: check if anything should be configured here

@@ -35,7 +35,7 @@ import { configureHotReload } from "../hot-reload/helpers"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { hotReloadableKinds, HotReloadableResource } from "../hot-reload/hot-reload"
 import { getResourceRequirements, getSecurityContext } from "./util"
-import { configureLocalMode, configureProxyContainer } from "../local-mode"
+import { configureLocalMode, configureLocalModeProxyContainer, prepareLocalModeEnvVars } from "../local-mode"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters
@@ -375,7 +375,11 @@ export async function createWorkloadManifest({
     configuredReplicas = 1
   }
 
-  const env = prepareEnvVars({ ...runtimeContext.envVars, ...service.spec.env })
+  // todo: state validation, the same service cannot be in dev and local mode at the same time
+
+  const localModeEnvVars = prepareLocalModeEnvVars({ enableLocalMode, spec })
+
+  const env = prepareEnvVars({ ...runtimeContext.envVars, ...service.spec.env, ...localModeEnvVars })
 
   // expose some metadata to the container
   env.push({
@@ -417,6 +421,8 @@ export async function createWorkloadManifest({
 
   const { cpu, memory, limits } = spec
 
+  configureLocalModeProxyContainer({ enableLocalMode, spec })
+
   const container: V1Container = {
     name: service.name,
     image: imageId,
@@ -449,13 +455,6 @@ export async function createWorkloadManifest({
   }
 
   const ports = spec.ports
-
-  // todo: state validation, service cannot be in dev and local mode at the same time
-  const localModeSpec = service.spec.localMode
-
-  if (enableLocalMode && localModeSpec) {
-    configureProxyContainer(spec)
-  }
 
   for (const port of ports) {
     container.ports!.push({
@@ -570,12 +569,11 @@ export async function createWorkloadManifest({
       hotReloadCommand: service.spec.hotReloadCommand,
       hotReloadArgs: service.spec.hotReloadArgs,
     })
-  } else if (enableLocalMode && localModeSpec) {
+  } else if (enableLocalMode && service.spec.localMode) {
     log.debug({ section: service.name, msg: chalk.gray(`-> Configuring in local mode`) })
 
     configureLocalMode({
       target: workload,
-      spec: localModeSpec,
     })
   }
 

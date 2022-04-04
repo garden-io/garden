@@ -9,8 +9,8 @@ variables:
   ingressPath: /hello-backend
   localAppPort: "8090"
   localSshPort: "2222"
-  proxyContainerPublicKeyFile: proxy-key.pub
-  proxyContainerUserName: proxy-user
+  proxyContainerPublicKey: "[public-ssh-key]"
+  proxyContainerUserName: "proxy-user"
 
 services:
   - name: backend # backend replacement container
@@ -18,11 +18,10 @@ services:
       localAppPort: ${var.localAppPort}
       localSshPort: ${var.localSshPort}
       command: [] # example: [ "npm", "run", "serve", "-p", "${var.localAppPort}" ]
-      remoteContainerName: remote-app-container
-    env: # todo: define these env variables in the code iff localMode is enabled
-      PUBLIC_KEY: "[public-ssh-key]" # todo: read it from file into PUBLIC_KEY env variable in the code
-      USER_NAME: ${var.proxyContainerUserName}
-      APP_PORT: 8080 # todo: read it from services.ports.containerPort
+      proxyContainer:
+        publicKey: ${var.proxyContainerPublicKey}
+        username: ${var.proxyContainerUserName}
+        remoteContainerName: remote-app-container
     healthCheck:
       httpGet:
         path: /hello-backend
