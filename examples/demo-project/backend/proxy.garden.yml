@@ -21,9 +21,10 @@ services:
       localSshPort: ${var.localSshPort}
       command: [] # example: [ "npm", "run", "serve", "-p", "${var.localAppPort}" ]
       remoteContainerName: remote-app-container
-    env:
+    env: # todo: define these env variables in the code iff localMode is enabled
       PUBLIC_KEY_FILE: ${var.proxyContainerPublicKeyFile}
       USER_NAME: ${var.proxyContainerUserName}
+      APP_PORT: 8080 # todo: read it from services.ports.containerPort
     healthCheck:
       httpGet:
         path: /hello-backend
