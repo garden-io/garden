@@ -6,11 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { containerLocalModeSchema, ContainerLocalModeSpec } from "../container/config"
+import { containerLocalModeSchema, ContainerLocalModeSpec, ContainerServiceSpec } from "../container/config"
 import { dedent, gardenAnnotationKey } from "../../util/string"
 import { set } from "lodash"
 import { HotReloadableResource } from "./hot-reload/hot-reload"
 import { joi } from "../../config/common"
+import { PROXY_CONTAINER_SSH_TUNNEL_PORT } from "./constants"
 
 // todo: build the image
 //const proxyImageName = "gardendev/k8s-proxy:0.0.1"
@@ -41,6 +42,22 @@ export const kubernetesLocalModeSchema = () =>
 
     See the [Local mode guide](${localModeGuideLink}) for more information.
   `) // todo: link to the guide + guide itself
+
+export function configureProxyContainer(spec: ContainerServiceSpec): void {
+  const ports = spec.ports
+  const hasSshPort = ports.some((portSpec) => portSpec.name === "ssh")
+  if (!hasSshPort) {
+    ports.push({
+      name: "ssh",
+      protocol: "TCP",
+      containerPort: PROXY_CONTAINER_SSH_TUNNEL_PORT,
+      servicePort: PROXY_CONTAINER_SSH_TUNNEL_PORT,
+    })
+  }
+  if (!!spec.healthCheck) {
+    delete spec.healthCheck // fixme: disabled health checks for proxy container, should those be enabled?
+  }
+}
 
 /**
  * Configures the specified Deployment, DaemonSet or StatefulSet for local mode.

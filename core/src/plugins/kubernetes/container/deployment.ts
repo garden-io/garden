@@ -35,8 +35,7 @@ import { configureHotReload } from "../hot-reload/helpers"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { hotReloadableKinds, HotReloadableResource } from "../hot-reload/hot-reload"
 import { getResourceRequirements, getSecurityContext } from "./util"
-import { configureLocalMode } from "../local-mode"
-import { PROXY_CONTAINER_SSH_TUNNEL_PORT } from "../constants"
+import { configureLocalMode, configureProxyContainer } from "../local-mode"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters
@@ -455,13 +454,7 @@ export async function createWorkloadManifest({
   const localModeSpec = service.spec.localMode
 
   if (enableLocalMode && localModeSpec) {
-    ports.push({
-      name: "ssh",
-      protocol: "TCP",
-      containerPort: PROXY_CONTAINER_SSH_TUNNEL_PORT,
-      servicePort: PROXY_CONTAINER_SSH_TUNNEL_PORT,
-    })
-    delete spec.healthCheck // fixme: disabled health checks for proxy container, should those be enabled?
+    configureProxyContainer(spec)
   }
 
   for (const port of ports) {
