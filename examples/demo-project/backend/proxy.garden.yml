@@ -3,8 +3,6 @@ name: backend
 description: Backend service container
 type: container
 dockerfile: proxy.dockerfile
-buildArgs:
-  PUBLIC_KEY_FILE: ${var.proxyContainerPublicKeyFile}
 
 # You can specify variables here at the module level
 variables:
@@ -22,7 +20,7 @@ services:
       command: [] # example: [ "npm", "run", "serve", "-p", "${var.localAppPort}" ]
       remoteContainerName: remote-app-container
     env: # todo: define these env variables in the code iff localMode is enabled
-      PUBLIC_KEY_FILE: ${var.proxyContainerPublicKeyFile}
+      PUBLIC_KEY: "[public-ssh-key]" # todo: read it from file into PUBLIC_KEY env variable in the code
       USER_NAME: ${var.proxyContainerUserName}
       APP_PORT: 8080 # todo: read it from services.ports.containerPort
     healthCheck:
