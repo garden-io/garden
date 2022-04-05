@@ -26,6 +26,12 @@ const secretsShowOpts = {
   }),
 }
 
+const secretsShowArgs = {
+  name: new StringsParameter({
+    help: deline`Name of the secret to show.`,
+  }),
+}
+
 type Opts = typeof secretsShowOpts
 
 export class SecretsShowCommand extends Command<{}, Opts> {
