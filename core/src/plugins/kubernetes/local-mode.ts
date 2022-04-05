@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { containerLocalModeSchema, ContainerLocalModeSpec, ContainerServiceSpec } from "../container/config"
+import { containerLocalModeSchema, ContainerServiceSpec } from "../container/config"
 import { gardenAnnotationKey } from "../../util/string"
 import { set } from "lodash"
 import { HotReloadableResource } from "./hot-reload/hot-reload"
@@ -31,13 +31,7 @@ interface ConfigureLocalModeParams {
   containerName?: string
 }
 
-export interface KubernetesLocalModeSpec extends ContainerLocalModeSpec {
-  //containerName?: string
-}
-
 export const kubernetesLocalModeSchema = () => containerLocalModeSchema()
-
-export type ProxyContainerEnvVar = "PUBLIC_KEY" | "USER_NAME" | "APP_PORT"
 
 export function prepareLocalModeEnvVars({ enableLocalMode, spec }: ConfigureProxyContainerParams): PrimitiveMap {
   const localModeSpec = spec.localMode
