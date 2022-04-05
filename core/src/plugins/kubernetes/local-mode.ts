@@ -12,6 +12,7 @@ import { set } from "lodash"
 import { HotReloadableResource } from "./hot-reload/hot-reload"
 import { PrimitiveMap } from "../../config/common"
 import { PROXY_CONTAINER_SSH_TUNNEL_PORT } from "./constants"
+import { ConfigurationError } from "../../exceptions"
 
 // todo: build the image
 //const proxyImageName = "gardendev/k8s-reverse-proxy:0.0.1"
@@ -45,7 +46,10 @@ export function prepareLocalModeEnvVars({ enableLocalMode, spec }: ConfigureProx
   }
 
   // todo: is it a good way to pick up the right port?
-  const httpPortSpec = spec.ports.find((portSpec) => portSpec.name === "http")!
+  const httpPortSpec = spec.ports.find((portSpec) => portSpec.name === "http")
+  if (!httpPortSpec) {
+    throw new ConfigurationError(`Could not find http port defined for service ${spec.name}`, spec.ports)
+  }
 
   const proxyContainerSpec = localModeSpec.proxyContainer
   // const publicKey = fs.readFileSync(proxyContainerSpec.publicKeyFile).toString("utf-8")
