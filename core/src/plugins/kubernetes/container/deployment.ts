@@ -375,8 +375,6 @@ export async function createWorkloadManifest({
     configuredReplicas = 1
   }
 
-  // todo: state validation, the same service cannot be in dev and local mode at the same time
-
   const localModeEnvVars = prepareLocalModeEnvVars({ enableLocalMode, spec })
 
   const env = prepareEnvVars({ ...runtimeContext.envVars, ...service.spec.env, ...localModeEnvVars })

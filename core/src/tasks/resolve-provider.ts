@@ -74,6 +74,7 @@ export class ResolveProviderTask extends BaseTask {
     this.plugin = params.plugin
     this.forceRefresh = params.forceRefresh
     this.forceInit = params.forceInit
+    this.validate()
   }
 
   getName() {

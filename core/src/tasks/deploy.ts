@@ -20,6 +20,7 @@ import { prepareRuntimeContext } from "../runtime-context"
 import { GetServiceStatusTask } from "./get-service-status"
 import { Profile } from "../util/profiling"
 import { getServiceStatusDeps, getTaskResultDeps, getDeployDeps, getTaskDeps } from "./helpers"
+import { ConfigurationError } from "../exceptions"
 
 export interface DeployTaskParams {
   garden: Garden
@@ -70,6 +71,19 @@ export class DeployTask extends BaseTask {
     this.devModeServiceNames = devModeServiceNames
     this.hotReloadServiceNames = hotReloadServiceNames
     this.localModeServiceNames = localModeServiceNames
+    this.validate()
+  }
+
+  validate(): void {
+    const localModeServiceNames = new Set(this.localModeServiceNames)
+    const devLocalModeIntersection = new Set(this.devModeServiceNames.filter((name) => localModeServiceNames.has(name)))
+    if (devLocalModeIntersection.size > 0) {
+      const devLocalModeConflicts = [...devLocalModeIntersection].join(", ")
+      throw new ConfigurationError(
+        `Got conflicting deployment options --dev-mode and --local-mode for services: ${devLocalModeConflicts}.`,
+        {}
+      )
+    }
   }
 
   async resolveDependencies() {
@@ -134,7 +148,7 @@ export class DeployTask extends BaseTask {
 
     const devMode = includes(this.devModeServiceNames, this.service.name)
     const hotReload = !devMode && includes(this.hotReloadServiceNames, this.service.name)
-    const localMode = !devMode && includes(this.localModeServiceNames, this.service.name)
+    const localMode = includes(this.localModeServiceNames, this.service.name)
 
     const dependencies = this.graph.getDependencies({
       nodeType: "deploy",

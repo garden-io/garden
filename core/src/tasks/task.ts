@@ -69,6 +69,7 @@ export class TaskTask extends BaseTask {
     this.devModeServiceNames = devModeServiceNames
     this.hotReloadServiceNames = hotReloadServiceNames
     this.localModeServiceNames = localModeServiceNames
+    this.validate()
   }
 
   async resolveDependencies(): Promise<BaseTask[]> {
