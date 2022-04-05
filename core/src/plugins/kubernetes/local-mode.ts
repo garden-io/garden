@@ -14,7 +14,7 @@ import { PrimitiveMap } from "../../config/common"
 import { PROXY_CONTAINER_SSH_TUNNEL_PORT } from "./constants"
 
 // todo: build the image
-//const proxyImageName = "gardendev/k8s-proxy:0.0.1"
+//const proxyImageName = "gardendev/k8s-reverse-proxy:0.0.1"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
