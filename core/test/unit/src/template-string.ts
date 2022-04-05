@@ -340,35 +340,54 @@ describe("resolveTemplateString", async () => {
     expect(res).to.equal("b")
   })
 
-  it("should handle a logical AND between booleans", async () => {
-    const res = resolveTemplateString("${true && a}", new TestContext({ a: true }))
-    expect(res).to.equal(true)
-  })
+  context("logical AND (&& operator)", () => {
+    it("true literal and true variable reference", async () => {
+      const res = resolveTemplateString("${true && a}", new TestContext({ a: true }))
+      expect(res).to.equal(true)
+    })
 
-  it("should handle a logical AND where the first part is false but the second part is not resolvable", async () => {
-    // i.e. the 2nd clause should not need to be evaluated
-    const res = resolveTemplateString("${false && a}", new TestContext({}))
-    expect(res).to.equal(false)
-  })
+    it("two true variable references", async () => {
+      const res = resolveTemplateString("${var.a && var.b}", new TestContext({ var: { a: true, b: true } }))
+      expect(res).to.equal(true)
+    })
 
-  it("should handle a logical AND with an empty string as the first clause", async () => {
-    const res = resolveTemplateString("${'' && true}", new TestContext({}))
-    expect(res).to.equal("")
-  })
+    it("first part is false but the second part is not resolvable", async () => {
+      // i.e. the 2nd clause should not need to be evaluated
+      const res = resolveTemplateString("${false && a}", new TestContext({}))
+      expect(res).to.equal(false)
+    })
 
-  it("should handle a logical AND with an empty string as the second clause", async () => {
-    const res = resolveTemplateString("${true && ''}", new TestContext({}))
-    expect(res).to.equal("")
-  })
+    it("an empty string as the first clause", async () => {
+      const res = resolveTemplateString("${'' && true}", new TestContext({}))
+      expect(res).to.equal("")
+    })
 
-  it("should handle a logical AND with a missing reference as the first clause", async () => {
-    const res = resolveTemplateString("${var.foo && 'a'}", new TestContext({ var: {} }))
-    expect(res).to.equal(false)
-  })
+    it("an empty string as the second clause", async () => {
+      const res = resolveTemplateString("${true && ''}", new TestContext({}))
+      expect(res).to.equal("")
+    })
 
-  it("should handle a logical AND with a missing reference as the second clause", async () => {
-    const res = resolveTemplateString("${'a' && var.foo}", new TestContext({ var: {} }))
-    expect(res).to.equal(false)
+    it("a missing reference as the first clause", async () => {
+      const res = resolveTemplateString("${var.foo && 'a'}", new TestContext({ var: {} }))
+      expect(res).to.equal(false)
+    })
+
+    it("a missing reference as the second clause", async () => {
+      const res = resolveTemplateString("${'a' && var.foo}", new TestContext({ var: {} }))
+      expect(res).to.equal(false)
+    })
+
+    context("partial resolution", () => {
+      it("a missing reference as the first clause returns the original template", async () => {
+        const res = resolveTemplateString("${var.foo && 'a'}", new TestContext({ var: {} }), { allowPartial: true })
+        expect(res).to.equal("${var.foo && 'a'}")
+      })
+
+      it("a missing reference as the second clause returns the original template", async () => {
+        const res = resolveTemplateString("${'a' && var.foo}", new TestContext({ var: {} }), { allowPartial: true })
+        expect(res).to.equal("${'a' && var.foo}")
+      })
+    })
   })
 
   it("should handle a positive equality comparison between equal resolved values", async () => {
