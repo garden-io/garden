@@ -1,0 +1,31 @@
+kind: Project
+name: my-project
+environments:
+  - name: local
+    defaultNamespace: local
+
+providers: 
+  - name: exec
+
+---
+
+kind: Module
+type: exec
+local: true
+name: test
+include: []
+
+variables:
+  truthy-1: true
+  truthy-2: true
+
+tasks:
+  - name: true-and-true
+    command: [echo, "value is ${var.truthy-1 && var.truthy-2}"]
+    description: "This prints 'value is false'"
+  - name: bad-name-and-bad-name 
+    command: [echo, "value is ${foo && bar}"]
+    description: "This prints 'value is false'"
+      # - name: error-as-expected 
+      #   command: [echo, "value is ${foo}"]
+      #   description: "This errors as expected"
