@@ -6,43 +6,43 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { containerLocalModeSchema, ContainerServiceSpec } from "../container/config"
+import { containerLocalModeSchema, ContainerServiceSpec, ServicePortSpec } from "../container/config"
 import { gardenAnnotationKey } from "../../util/string"
 import { set } from "lodash"
 import { HotReloadableResource } from "./hot-reload/hot-reload"
 import { PrimitiveMap } from "../../config/common"
 import { PROXY_CONTAINER_SSH_TUNNEL_PORT } from "./constants"
 import { ConfigurationError } from "../../exceptions"
+import { getResourceContainer, prepareEnvVars } from "./util"
+import { V1Container } from "@kubernetes/client-node"
 
 // todo: build the image
-//const proxyImageName = "gardendev/k8s-reverse-proxy:0.0.1"
+//const reverseProxyImageName = "gardendev/k8s-reverse-proxy:0.0.1"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
 export const localModeGuideLink = "https://docs.garden.io/guides/..." // todo
 
-interface ConfigureProxyContainerParams {
-  enableLocalMode: boolean
-  spec: ContainerServiceSpec
-}
-
 interface ConfigureLocalModeParams {
   target: HotReloadableResource
-  containerName?: string
+  originalServiceSpec: ContainerServiceSpec
 }
 
 export const kubernetesLocalModeSchema = () => containerLocalModeSchema()
 
-export function prepareLocalModeEnvVars({ enableLocalMode, spec }: ConfigureProxyContainerParams): PrimitiveMap {
-  const localModeSpec = spec.localMode
-  if (!enableLocalMode || !localModeSpec) {
+function prepareLocalModeEnvVars(originalServiceSpec: ContainerServiceSpec): PrimitiveMap {
+  const localModeSpec = originalServiceSpec.localMode!
+  if (!localModeSpec) {
     return {}
   }
 
   // todo: is it a good way to pick up the right port?
-  const httpPortSpec = spec.ports.find((portSpec) => portSpec.name === "http")
+  const httpPortSpec = originalServiceSpec.ports.find((portSpec) => portSpec.name === "http")
   if (!httpPortSpec) {
-    throw new ConfigurationError(`Could not find http port defined for service ${spec.name}`, spec.ports)
+    throw new ConfigurationError(
+      `Could not find http port defined for service ${originalServiceSpec.name}`,
+      originalServiceSpec.ports
+    )
   }
 
   const proxyContainerSpec = localModeSpec.proxyContainer
@@ -55,31 +55,124 @@ export function prepareLocalModeEnvVars({ enableLocalMode, spec }: ConfigureProx
   }
 }
 
-export function configureLocalModeProxyContainer({ enableLocalMode, spec }: ConfigureProxyContainerParams): void {
-  const localModeSpec = spec.localMode
-  if (!enableLocalMode || !localModeSpec) {
-    return
+function prepareLocalModePorts(originalServiceSpec: ContainerServiceSpec): ServicePortSpec[] {
+  if (!originalServiceSpec.localMode) {
+    return []
   }
 
-  const hasSshPort = spec.ports.some((portSpec) => portSpec.name === "ssh")
-  if (!hasSshPort) {
-    spec.ports.push({
+  const hasSshPort = originalServiceSpec.ports.some((portSpec) => portSpec.name === "ssh")
+  if (hasSshPort) {
+    return []
+  }
+
+  return [
+    {
       name: "ssh",
       protocol: "TCP",
       containerPort: PROXY_CONTAINER_SSH_TUNNEL_PORT,
       servicePort: PROXY_CONTAINER_SSH_TUNNEL_PORT,
+    },
+  ]
+}
+
+/**
+ * Patches the original service spec by adding localMode-specific settings like ports, environment variables,
+ * and readiness probe settings.
+ * The original service spec which is used to define k8s service
+ * in `core/src/plugins/kubernetes/container/deployment.ts`
+ *
+ * TODO: check if it would be possible to use `workload` instead of `service` in the line
+ *       const kubeservices = await createServiceResources(service, namespace, blueGreen)
+ *       see the impl of createContainerManifests() in core/src/plugins/kubernetes/container/deployment.ts
+ *       It would allow to avoid the same changes in 2 places
+ *
+ * TODO: Consider configuring service specific part in
+ *       core/src/plugins/kubernetes/container/service.ts -> createServiceResources()
+ * @param originalServiceSpec the original service spec
+ * @param localModeEnvVars the list of localMode-specific environment variables
+ * @param localModePorts the list of localMode-specific ports (e.g. ssh port for tunnel setup)
+ */
+function patchOriginalServiceSpec(
+  originalServiceSpec: ContainerServiceSpec,
+  localModeEnvVars: PrimitiveMap,
+  localModePorts: ServicePortSpec[]
+) {
+  const hasSshPort = originalServiceSpec.ports.some((portSpec) => portSpec.name === "ssh")
+  if (!hasSshPort) {
+    originalServiceSpec.ports.push(...localModePorts)
+  }
+
+  for (const key in localModeEnvVars) {
+    originalServiceSpec.env[key] = localModeEnvVars[key]
+  }
+
+  delete originalServiceSpec.healthCheck
+}
+
+/**
+ * Patches the main container by adding localMode-specific settings like ports, environment variables,
+ * docker image name and readiness probe settings.
+ * @param mainContainer the main container object to be patched
+ * @param proxyContainerName the target container name
+ * @param localModeEnvVars the list of localMode-specific environment variables
+ * @param localModePorts the list of localMode-specific ports (e.g. ssh port for tunnel setup)
+ */
+function patchMainContainer(
+  mainContainer: V1Container,
+  proxyContainerName: string,
+  localModeEnvVars: PrimitiveMap,
+  localModePorts: ServicePortSpec[]
+) {
+  mainContainer.name = proxyContainerName
+  // mainContainer.image = reverseProxyImageName
+
+  const extraEnvVars = prepareEnvVars(localModeEnvVars)
+  if (!mainContainer.env) {
+    mainContainer.env = []
+  }
+  mainContainer.env.push(...extraEnvVars)
+
+  if (!mainContainer.ports) {
+    mainContainer.ports = []
+  }
+  for (const port of localModePorts) {
+    mainContainer.ports.push({
+      name: port.name,
+      protocol: port.protocol,
+      containerPort: port.containerPort,
     })
   }
-  if (!!spec.healthCheck) {
-    delete spec.healthCheck // fixme: disabled health checks for proxy container, should those be enabled?
-  }
+
+  // fixme: disabled health checks for proxy container, should those be enabled?
+  delete mainContainer.readinessProbe
 }
 
 /**
  * Configures the specified Deployment, DaemonSet or StatefulSet for local mode.
  */
-export function configureLocalMode({ target }: ConfigureLocalModeParams): void {
+export function configureLocalMode({ target, originalServiceSpec }: ConfigureLocalModeParams): void {
+  const localModeSpec = originalServiceSpec.localMode
+  if (!localModeSpec) {
+    return
+  }
+
   set(target, ["metadata", "annotations", gardenAnnotationKey("local-mode")], "true")
-  // const mainContainer = getResourceContainer(target, containerName)
-  // todo: check if anything should be configured here
+
+  const remoteContainerName = localModeSpec.proxyContainer.remoteContainerName
+  const mainContainer = getResourceContainer(target, remoteContainerName)
+  if (!!remoteContainerName && !mainContainer) {
+    throw new ConfigurationError(
+      `Could not find remote k8s container for name '${remoteContainerName}'. Please check the localMode configuration`,
+      {}
+    )
+  }
+  const proxyContainerName = !!remoteContainerName ? remoteContainerName : mainContainer.name
+
+  const localModeEnvVars = prepareLocalModeEnvVars(originalServiceSpec)
+  const localModePorts = prepareLocalModePorts(originalServiceSpec)
+
+  patchOriginalServiceSpec(originalServiceSpec, localModeEnvVars, localModePorts)
+  patchMainContainer(mainContainer, proxyContainerName, localModeEnvVars, localModePorts)
+
+  // todo: check if anything else should be configured here
 }
