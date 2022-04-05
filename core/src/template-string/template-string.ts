@@ -557,7 +557,7 @@ function buildBinaryExpression(head: any, tail: any) {
   }, head)
 }
 
-function buildLogicalExpression(head: any, tail: any) {
+function buildLogicalExpression(head: any, tail: any, opts: ContextResolveOpts) {
   return tail.reduce((result: any, element: any) => {
     const operator = element[1]
     const leftRes = result
@@ -566,24 +566,28 @@ function buildLogicalExpression(head: any, tail: any) {
     switch (operator) {
       case "&&":
         if (leftRes && leftRes._error) {
-          if (leftRes._error.type === missingKeyExceptionType) {
+          if (!opts.allowPartial && leftRes._error.type === missingKeyExceptionType) {
             return false
           }
           return leftRes
         }
+
         const leftValue = getValue(leftRes)
+
         if (leftValue === undefined) {
           return { resolved: false }
         } else if (!leftValue) {
           return { resolved: leftValue }
         } else {
           if (rightRes && rightRes._error) {
-            if (rightRes._error.type === missingKeyExceptionType) {
+            if (!opts.allowPartial && rightRes._error.type === missingKeyExceptionType) {
               return false
             }
             return rightRes
           }
+
           const rightValue = getValue(rightRes)
+
           if (rightValue === undefined) {
             return { resolved: false }
           } else {

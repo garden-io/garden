@@ -327,7 +327,7 @@ EqualityOperator
 LogicalANDExpression
   = head:EqualityExpression
     tail:(__ LogicalANDOperator __ EqualityExpression)*
-    { return buildLogicalExpression(head, tail); }
+    { return buildLogicalExpression(head, tail, options); }
 
 LogicalANDOperator
   = "&&"
@@ -335,7 +335,7 @@ LogicalANDOperator
 LogicalORExpression
   = head:LogicalANDExpression
     tail:(__ LogicalOROperator __ LogicalANDExpression)*
-    { return buildLogicalExpression(head, tail); }
+    { return buildLogicalExpression(head, tail, options); }
 
 LogicalOROperator
   = "||"
