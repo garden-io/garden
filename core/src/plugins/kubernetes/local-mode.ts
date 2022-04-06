@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { containerLocalModeSchema, ContainerServiceSpec, ServicePortSpec } from "../container/config"
+import { containerLocalModeSchema, ContainerService, ContainerServiceSpec, ServicePortSpec } from "../container/config"
 import { gardenAnnotationKey } from "../../util/string"
 import { set } from "lodash"
 import { HotReloadableResource } from "./hot-reload/hot-reload"
@@ -15,6 +15,11 @@ import { PROXY_CONTAINER_SSH_TUNNEL_PORT } from "./constants"
 import { ConfigurationError } from "../../exceptions"
 import { getResourceContainer, prepareEnvVars } from "./util"
 import { V1Container } from "@kubernetes/client-node"
+import { KubernetesPluginContext } from "./config"
+import { LogEntry } from "../../logger/log-entry"
+import { getAppNamespace } from "./namespace"
+import { getPortForward, getTargetResource } from "./port-forward"
+import chalk from "chalk"
 
 const reverseProxyImageName = "gardendev/k8s-reverse-proxy:0.0.1"
 
@@ -174,4 +179,42 @@ export function configureLocalMode({ target, originalServiceSpec }: ConfigureLoc
   patchMainContainer(mainContainer, proxyContainerName, localModeEnvVars, localModePorts)
 
   // todo: check if anything else should be configured here
+}
+
+/**
+ * Creates SSH tunnel between the local machine and the target container in the k8s cluster.
+ * @param ctx the k8s plugin context
+ * @param log the logger
+ * @param service the target k8s service container
+ */
+
+/*
+ TODO: looks like persistent mode configures the necessary tunnels automatically,
+       so it might be better to mute forwardable ports if the service is running in local-mode
+ */
+export async function startLocalModePortForwarding({
+  ctx,
+  log,
+  service,
+}: {
+  ctx: KubernetesPluginContext
+  log: LogEntry
+  service: ContainerService
+}) {
+  if (!service.spec.localMode) {
+    return
+  }
+
+  const namespace = await getAppNamespace(ctx, log, ctx.provider)
+  const targetResource = getTargetResource(service)
+  const port = PROXY_CONTAINER_SSH_TUNNEL_PORT
+  const fwd = await getPortForward({ ctx, log, namespace, targetResource, port })
+  const localSshUrl = chalk.underline(`ssh://localhost:${fwd.localPort}`)
+  const remoteSshUrl = chalk.underline(`ssh://${targetResource}:${fwd.port}`)
+  const logEntry = log.info({
+    status: "active",
+    section: service.name,
+    msg: chalk.gray(`→ Forward: ${localSshUrl} → ${remoteSshUrl}`),
+  })
+  logEntry.setSuccess()
 }

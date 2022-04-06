@@ -35,7 +35,7 @@ import { configureHotReload } from "../hot-reload/helpers"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { hotReloadableKinds, HotReloadableResource } from "../hot-reload/hot-reload"
 import { getResourceRequirements, getSecurityContext } from "./util"
-import { configureLocalMode } from "../local-mode"
+import { configureLocalMode, startLocalModePortForwarding } from "../local-mode"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters
@@ -65,7 +65,7 @@ export async function deployContainerService(
 
   if (devMode) {
     await startContainerDevSync({
-      ctx: <KubernetesPluginContext>ctx,
+      ctx: k8sCtx,
       log,
       status,
       service,
@@ -73,7 +73,11 @@ export async function deployContainerService(
   }
 
   if (localMode) {
-    // todo: start the local service, ssh tunnel and port forwarding from here?
+    await startLocalModePortForwarding({
+      ctx: k8sCtx,
+      log,
+      service,
+    })
   }
 
   return status

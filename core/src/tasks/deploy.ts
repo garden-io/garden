@@ -218,7 +218,8 @@ export class DeployTask extends BaseTask {
       log.info(chalk.gray("→ Ingress: ") + chalk.underline.gray(getLinkUrl(ingress)))
     }
 
-    if (this.garden.persistent) {
+    // fixme: `!localMode` condition is a quick hack, mute deploy task's forwardable ports in local mode, see `status`
+    if (this.garden.persistent && !localMode) {
       const proxies = await startPortProxies({
         garden: this.garden,
         graph: this.graph,
