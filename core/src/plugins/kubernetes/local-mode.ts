@@ -185,11 +185,6 @@ export function configureLocalMode({ target, originalServiceSpec }: ConfigureLoc
  * @param log the logger
  * @param service the target k8s service container
  */
-
-/*
- TODO: looks like persistent mode configures the necessary tunnels automatically,
-       so it might be better to mute forwardable ports if the service is running in local-mode
- */
 export async function startLocalModePortForwarding({
   ctx,
   log,

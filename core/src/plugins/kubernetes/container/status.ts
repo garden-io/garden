@@ -67,18 +67,20 @@ export async function getContainerServiceStatus({
   )
   const ingresses = await getIngresses(service, api, provider)
 
-  const forwardablePorts: ForwardablePort[] = service.spec.ports
-    .filter((p) => p.protocol === "TCP")
-    .map((p) => {
-      return {
-        name: p.name,
-        protocol: "TCP",
-        targetPort: p.servicePort,
-        preferredLocalPort: p.localPort,
-        // TODO: this needs to be configurable
-        // urlProtocol: "http",
-      }
-    })
+  const forwardablePorts: ForwardablePort[] = localMode
+    ? []
+    : service.spec.ports
+        .filter((p) => p.protocol === "TCP")
+        .map((p) => {
+          return {
+            name: p.name,
+            protocol: "TCP",
+            targetPort: p.servicePort,
+            preferredLocalPort: p.localPort,
+            // TODO: this needs to be configurable
+            // urlProtocol: "http",
+          }
+        })
 
   const status = {
     forwardablePorts,
