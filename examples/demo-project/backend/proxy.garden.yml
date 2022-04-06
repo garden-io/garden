@@ -15,6 +15,7 @@ services:
       command: [] # example: [ "npm", "run", "serve", "-p", "${var.localAppPort}" ]
       proxyContainer:
         # TODO: support relative paths?
+        privateKeyFilePath: "/path/to/private-key-file"
         publicKeyFilePath: "/path/to/public-key-file"
         username: "proxy-user"
         remoteContainerName: "backend"

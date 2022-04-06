@@ -304,6 +304,7 @@ export const containerDevModeSchema = () =>
   `)
 
 export interface ProxyContainerSpec {
+  privateKeyFilePath: string
   publicKeyFilePath: string
   username: string
   remoteContainerName?: string
@@ -311,6 +312,10 @@ export interface ProxyContainerSpec {
 
 export const proxyContainerSchema = () =>
   joi.object().keys({
+    privateKeyFilePath: joi
+      .string()
+      .required()
+      .description("The file with the private ssh key to be used in the proxy container reverse port forwarding."),
     publicKeyFilePath: joi
       .string()
       .required()

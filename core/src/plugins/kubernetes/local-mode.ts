@@ -18,13 +18,15 @@ import { V1Container } from "@kubernetes/client-node"
 import { KubernetesPluginContext } from "./config"
 import { LogEntry } from "../../logger/log-entry"
 import { getAppNamespace } from "./namespace"
-import { getPortForward, getTargetResource } from "./port-forward"
+import { getPortForward, getTargetResource, PortForward } from "./port-forward"
 import chalk from "chalk"
 import fs from "fs"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
 export const localModeGuideLink = "https://docs.garden.io/guides/..." // todo
+
+const defaultReverseForwardingPortName = "http"
 
 interface ConfigureLocalModeParams {
   target: HotReloadableResource
@@ -33,36 +35,39 @@ interface ConfigureLocalModeParams {
 
 export const kubernetesLocalModeSchema = () => containerLocalModeSchema()
 
+function readSshKeyFromFile(filePath: string): string {
+  try {
+    return fs.readFileSync(filePath).toString("utf-8")
+  } catch (err) {
+    const message = !!err.message ? err.message.toString() : "unknown"
+    throw new ConfigurationError(`Could not read public key file from path ${filePath}; cause: ${message}`, err)
+  }
+}
+
+function findPortByName(serviceSpec: ContainerServiceSpec, portName: string): ServicePortSpec | undefined {
+  return serviceSpec.ports.find((portSpec) => portSpec.name === portName)
+}
+
 function prepareLocalModeEnvVars(originalServiceSpec: ContainerServiceSpec): PrimitiveMap {
   const localModeSpec = originalServiceSpec.localMode!
   if (!localModeSpec) {
     return {}
   }
 
+  const proxyContainerSpec = localModeSpec.proxyContainer
+
   // todo: is it a good way to pick up the right port?
-  const httpPortSpec = originalServiceSpec.ports.find((portSpec) => portSpec.name === "http")
+  const httpPortSpec = findPortByName(originalServiceSpec, defaultReverseForwardingPortName)
   if (!httpPortSpec) {
     throw new ConfigurationError(
-      `Could not find http port defined for service ${originalServiceSpec.name}`,
+      `Could not find ${defaultReverseForwardingPortName} port defined for service ${originalServiceSpec.name}`,
       originalServiceSpec.ports
     )
   }
-
-  const proxyContainerSpec = localModeSpec.proxyContainer
-  try {
-    const publicKey = fs.readFileSync(proxyContainerSpec.publicKeyFilePath).toString("utf-8")
-
-    return {
-      APP_PORT: httpPortSpec.containerPort,
-      PUBLIC_KEY: publicKey,
-      USER_NAME: proxyContainerSpec.username,
-    }
-  } catch (err) {
-    const message = !!err.message ? err.message.toString() : "unknown"
-    throw new ConfigurationError(
-      `Could not read public key file from path ${proxyContainerSpec.publicKeyFilePath}; cause: ${message}`,
-      err
-    )
+  return {
+    APP_PORT: httpPortSpec.containerPort,
+    PUBLIC_KEY: readSshKeyFromFile(proxyContainerSpec.publicKeyFilePath),
+    USER_NAME: proxyContainerSpec.username,
   }
 }
 
@@ -194,6 +199,63 @@ export function configureLocalMode({ target, originalServiceSpec }: ConfigureLoc
  * @param log the logger
  * @param service the target k8s service container
  */
+async function openSshTunnel({
+  ctx,
+  log,
+  service,
+}: {
+  ctx: KubernetesPluginContext
+  log: LogEntry
+  service: ContainerService
+}): Promise<PortForward> {
+  const namespace = await getAppNamespace(ctx, log, ctx.provider)
+  const targetResource = getTargetResource(service)
+  const port = PROXY_CONTAINER_SSH_TUNNEL_PORT
+  // todo: retrying and error handling
+  return getPortForward({ ctx, log, namespace, targetResource, port })
+}
+
+/**
+ * Starts reverse port forwarding from the remote service's containerPort to the local app port.
+ * This reverse port forwarding works on top of the existing ssh tunnel.
+ * @param service the remote proxy container which replaces the actual k8s service
+ * @param portForward the ssh tunnel details
+ */
+function startReversePortForwarding(service: ContainerService, portForward: PortForward): string {
+  const localModeSpec = service.spec.localMode!
+  const proxyContainer = localModeSpec.proxyContainer
+  const privateKeyFilePath = proxyContainer.privateKeyFilePath
+  const username = proxyContainer.username
+  const localAppPort = localModeSpec.localAppPort
+  const localSshPort = portForward.localPort
+  const remoteContainerPortSpec = findPortByName(service.spec, defaultReverseForwardingPortName)
+  if (!remoteContainerPortSpec) {
+    throw new ConfigurationError(
+      `Could not find ${defaultReverseForwardingPortName} port defined for service ${service.name}`,
+      service.spec.ports
+    )
+  }
+  const remoteContainerPort = remoteContainerPortSpec.containerPort
+
+  const command =
+    `ssh -R ` +
+    `${remoteContainerPort}:127.0.0.1:${localAppPort} ` +
+    `${username}@127.0.0.1 ` +
+    `-p${localSshPort} ` +
+    `-i ${privateKeyFilePath} ` +
+    `-oStrictHostKeyChecking=accept-new`
+  // todo: execute the ssh command with retry and proper error handing
+  return command
+}
+
+/**
+ * Configures the necessary port forwarding to replace remote k8s service by a local one:
+ *   1. Opens SSH tunnel between the local machine and the remote k8s service.
+ *   2. Starts reverse port forwarding from the remote proxy's containerPort to the local app port.
+ * @param ctx the k8s plugin context
+ * @param log the logger
+ * @param service the target k8s service container
+ */
 export async function startLocalModePortForwarding({
   ctx,
   log,
@@ -207,16 +269,21 @@ export async function startLocalModePortForwarding({
     return
   }
 
-  const namespace = await getAppNamespace(ctx, log, ctx.provider)
-  const targetResource = getTargetResource(service)
-  const port = PROXY_CONTAINER_SSH_TUNNEL_PORT
-  const fwd = await getPortForward({ ctx, log, namespace, targetResource, port })
-  const localSshUrl = chalk.underline(`ssh://localhost:${fwd.localPort}`)
-  const remoteSshUrl = chalk.underline(`ssh://${targetResource}:${fwd.port}`)
-  const logEntry = log.info({
+  const portForward = await openSshTunnel({ ctx, log, service })
+  const localSshUrl = chalk.underline(`ssh://localhost:${portForward.localPort}`)
+  const remoteSshUrl = chalk.underline(`ssh://${service.name}:${portForward.port}`)
+  log.info({
     status: "active",
     section: service.name,
     msg: chalk.gray(`→ Forward: ${localSshUrl} → ${remoteSshUrl}`),
   })
-  logEntry.setSuccess()
+
+  const command = startReversePortForwarding(service, portForward)
+  log.info({
+    status: "active",
+    section: service.name,
+    msg: chalk.grey(
+      `→ Execute this command to connect your local service to the remote k8s cluster: ${chalk.white(command)}`
+    ),
+  })
 }

@@ -316,6 +316,9 @@ services:
 
       # Specifies the configuration of the remote proxy container which will replace the actual remote app.
       proxyContainer:
+        # The file with the private ssh key to be used in the proxy container reverse port forwarding.
+        privateKeyFilePath:
+
         # The file with the public ssh key to be stored in the proxy container.
         publicKeyFilePath:
 
@@ -1438,6 +1441,16 @@ Specifies the configuration of the remote proxy container which will replace the
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
+
+### `services[].localMode.proxyContainer.privateKeyFilePath`
+
+[services](#services) > [localMode](#serviceslocalmode) > [proxyContainer](#serviceslocalmodeproxycontainer) > privateKeyFilePath
+
+The file with the private ssh key to be used in the proxy container reverse port forwarding.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
 ### `services[].localMode.proxyContainer.publicKeyFilePath`
 
