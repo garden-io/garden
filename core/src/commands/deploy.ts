@@ -126,7 +126,7 @@ export class DeployCommand extends Command<Args, Opts> {
   outputsSchema = () => processCommandResultSchema()
 
   isPersistent({ opts }: PrepareParams<Args, Opts>) {
-    return !!opts.watch || !!opts["hot-reload"] || !!opts["dev-mode"] || !!opts.forward
+    return !!opts.watch || !!opts["hot-reload"] || !!opts["dev-mode"] || !!opts["local-mode"] || !!opts.forward
   }
 
   printHeader({ headerLog }) {
