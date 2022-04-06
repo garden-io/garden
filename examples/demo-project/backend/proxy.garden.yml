@@ -14,6 +14,7 @@ services:
       localSshPort: 2222
       command: [] # example: [ "npm", "run", "serve", "-p", "${var.localAppPort}" ]
       proxyContainer:
+        # TODO: read the key from file
         publicKey: "[public-ssh-key]"
         username: "proxy-user"
         remoteContainerName: "backend"
