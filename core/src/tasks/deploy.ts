@@ -175,10 +175,14 @@ export class DeployTask extends BaseTask {
     let status = serviceStatuses[this.service.name]
     const devModeSkipRedeploy = status.devMode && (devMode || hotReload)
 
+    const reverseProxyImageName = "gardendev/k8s-reverse-proxy:0.0.1"
+    const deployLogMsg = localMode
+      ? `Deploying in local mode, proxy container ${reverseProxyImageName} will be deployed instead of ${version}...`
+      : `Deploying version ${version}...`
     const log = this.log.info({
       status: "active",
       section: this.service.name,
-      msg: `Deploying version ${version}...`,
+      msg: deployLogMsg,
     })
 
     if (!this.force && status.state === "ready" && (version === status.version || devModeSkipRedeploy)) {

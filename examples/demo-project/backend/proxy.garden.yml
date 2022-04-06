@@ -2,7 +2,6 @@ kind: Module
 name: backend
 description: Backend service container
 type: container
-dockerfile: proxy.dockerfile
 
 # You can specify variables here at the module level
 variables:

@@ -16,8 +16,7 @@ import { ConfigurationError } from "../../exceptions"
 import { getResourceContainer, prepareEnvVars } from "./util"
 import { V1Container } from "@kubernetes/client-node"
 
-// todo: build the image
-//const reverseProxyImageName = "gardendev/k8s-reverse-proxy:0.0.1"
+const reverseProxyImageName = "gardendev/k8s-reverse-proxy:0.0.1"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -124,7 +123,7 @@ function patchMainContainer(
   localModePorts: ServicePortSpec[]
 ) {
   mainContainer.name = proxyContainerName
-  // mainContainer.image = reverseProxyImageName
+  mainContainer.image = reverseProxyImageName
 
   const extraEnvVars = prepareEnvVars(localModeEnvVars)
   if (!mainContainer.env) {
