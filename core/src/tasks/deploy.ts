@@ -21,6 +21,7 @@ import { GetServiceStatusTask } from "./get-service-status"
 import { Profile } from "../util/profiling"
 import { getServiceStatusDeps, getTaskResultDeps, getDeployDeps, getTaskDeps } from "./helpers"
 import { ConfigurationError } from "../exceptions"
+import { reverseProxyImageName } from "../plugins/kubernetes/constants"
 
 export interface DeployTaskParams {
   garden: Garden
@@ -175,7 +176,6 @@ export class DeployTask extends BaseTask {
     let status = serviceStatuses[this.service.name]
     const devModeSkipRedeploy = status.devMode && (devMode || hotReload)
 
-    const reverseProxyImageName = "gardendev/k8s-reverse-proxy:0.0.1"
     const deployLogMsg = localMode
       ? `Deploying in local mode, proxy container ${reverseProxyImageName} will be deployed instead of ${version}...`
       : `Deploying version ${version}...`

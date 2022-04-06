@@ -11,7 +11,7 @@ import { gardenAnnotationKey } from "../../util/string"
 import { set } from "lodash"
 import { HotReloadableResource } from "./hot-reload/hot-reload"
 import { PrimitiveMap } from "../../config/common"
-import { PROXY_CONTAINER_SSH_TUNNEL_PORT } from "./constants"
+import { PROXY_CONTAINER_SSH_TUNNEL_PORT, reverseProxyImageName } from "./constants"
 import { ConfigurationError } from "../../exceptions"
 import { getResourceContainer, prepareEnvVars } from "./util"
 import { V1Container } from "@kubernetes/client-node"
@@ -20,8 +20,6 @@ import { LogEntry } from "../../logger/log-entry"
 import { getAppNamespace } from "./namespace"
 import { getPortForward, getTargetResource } from "./port-forward"
 import chalk from "chalk"
-
-const reverseProxyImageName = "gardendev/k8s-reverse-proxy:0.0.1"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 

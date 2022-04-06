@@ -35,8 +35,7 @@ import {
 import { joi, joiIdentifier } from "../../config/common"
 import { KubernetesPluginContext, KubernetesProvider } from "./config"
 import { isConfiguredForDevMode } from "./status/status"
-
-const syncUtilImageName = "gardendev/k8s-sync:0.1.3"
+import { syncUtilImageName } from "./constants"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
