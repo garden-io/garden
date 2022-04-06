@@ -337,8 +337,8 @@ services:
 
       # Specifies the configuration of the remote proxy container which will replace the actual remote app.
       proxyContainer:
-        # The public ssh key to be stored in the proxy container.
-        publicKey:
+        # The file with the public ssh key to be stored in the proxy container.
+        publicKeyFilePath:
 
         # The username to login to the proxy container.
         username:
@@ -1510,11 +1510,11 @@ Specifies the configuration of the remote proxy container which will replace the
 | -------- | -------- |
 | `object` | No       |
 
-### `services[].localMode.proxyContainer.publicKey`
+### `services[].localMode.proxyContainer.publicKeyFilePath`
 
-[services](#services) > [localMode](#serviceslocalmode) > [proxyContainer](#serviceslocalmodeproxycontainer) > publicKey
+[services](#services) > [localMode](#serviceslocalmode) > [proxyContainer](#serviceslocalmodeproxycontainer) > publicKeyFilePath
 
-The public ssh key to be stored in the proxy container.
+The file with the public ssh key to be stored in the proxy container.
 
 | Type     | Required |
 | -------- | -------- |

@@ -304,14 +304,17 @@ export const containerDevModeSchema = () =>
   `)
 
 export interface ProxyContainerSpec {
-  publicKey: string
+  publicKeyFilePath: string
   username: string
   remoteContainerName?: string
 }
 
 export const proxyContainerSchema = () =>
   joi.object().keys({
-    publicKey: joi.string().required().description("The public ssh key to be stored in the proxy container."),
+    publicKeyFilePath: joi
+      .string()
+      .required()
+      .description("The file with the public ssh key to be stored in the proxy container."),
     username: joi.string().required().description("The username to login to the proxy container."),
     remoteContainerName: joi.string().optional().description("The k8s name of the remote container."),
   }).description(dedent`

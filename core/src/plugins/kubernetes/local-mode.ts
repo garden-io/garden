@@ -20,6 +20,7 @@ import { LogEntry } from "../../logger/log-entry"
 import { getAppNamespace } from "./namespace"
 import { getPortForward, getTargetResource } from "./port-forward"
 import chalk from "chalk"
+import fs from "fs"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -48,12 +49,20 @@ function prepareLocalModeEnvVars(originalServiceSpec: ContainerServiceSpec): Pri
   }
 
   const proxyContainerSpec = localModeSpec.proxyContainer
-  // const publicKey = fs.readFileSync(proxyContainerSpec.publicKeyFile).toString("utf-8")
+  try {
+    const publicKey = fs.readFileSync(proxyContainerSpec.publicKeyFilePath).toString("utf-8")
 
-  return {
-    APP_PORT: httpPortSpec.containerPort,
-    PUBLIC_KEY: proxyContainerSpec.publicKey,
-    USER_NAME: proxyContainerSpec.username,
+    return {
+      APP_PORT: httpPortSpec.containerPort,
+      PUBLIC_KEY: publicKey,
+      USER_NAME: proxyContainerSpec.username,
+    }
+  } catch (err) {
+    const message = !!err.message ? err.message.toString() : "unknown"
+    throw new ConfigurationError(
+      `Could not read public key file from path ${proxyContainerSpec.publicKeyFilePath}; cause: ${message}`,
+      err
+    )
   }
 }
 
