@@ -36,6 +36,7 @@ import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { hotReloadableKinds, HotReloadableResource } from "../hot-reload/hot-reload"
 import { getResourceRequirements, getSecurityContext } from "./util"
 import { configureLocalMode, startLocalModePortForwarding } from "../local-mode"
+import { reverseProxyImageName } from "../constants"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters
@@ -570,7 +571,12 @@ export async function createWorkloadManifest({
   }
 
   if (enableLocalMode) {
-    log.debug({ section: service.name, msg: chalk.gray(`-> Configuring in local mode`) })
+    log.info({
+      section: service.name,
+      msg: chalk.gray(
+        `Configuring in local mode, proxy container ${chalk.underline(reverseProxyImageName)} will be deployed`
+      ),
+    })
 
     configureLocalMode({
       target: workload,
