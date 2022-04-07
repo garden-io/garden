@@ -21,6 +21,7 @@ import { getAppNamespace } from "./namespace"
 import { getPortForward, getTargetResource, PortForward } from "./port-forward"
 import chalk from "chalk"
 import fs from "fs"
+import { exec } from "../../util/util"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -220,8 +221,13 @@ async function openSshTunnel({
  * This reverse port forwarding works on top of the existing ssh tunnel.
  * @param service the remote proxy container which replaces the actual k8s service
  * @param portForward the ssh tunnel details
+ * @param log the logger
  */
-function startReversePortForwarding(service: ContainerService, portForward: PortForward): string {
+async function startReversePortForwarding(
+  service: ContainerService,
+  portForward: PortForward,
+  log: LogEntry
+): Promise<{ command: string; success: boolean }> {
   const localModeSpec = service.spec.localMode!
   const proxyContainer = localModeSpec.proxyContainer
   const privateKeyFilePath = proxyContainer.privateKeyFilePath
@@ -237,15 +243,31 @@ function startReversePortForwarding(service: ContainerService, portForward: Port
   }
   const remoteContainerPort = remoteContainerPortSpec.containerPort
 
-  const command =
-    `ssh -R ` +
-    `${remoteContainerPort}:127.0.0.1:${localAppPort} ` +
-    `${username}@127.0.0.1 ` +
-    `-p${localSshPort} ` +
-    `-i ${privateKeyFilePath} ` +
-    `-oStrictHostKeyChecking=accept-new`
-  // todo: execute the ssh command with retry and proper error handing
-  return command
+  const sshCommandName = "ssh"
+  const sshCommandArgs = [
+    "-R",
+    `${remoteContainerPort}:127.0.0.1:${localAppPort}`,
+    `${username}@127.0.0.1`,
+    `-p${localSshPort}`,
+    `-i ${privateKeyFilePath}`,
+    "-oStrictHostKeyChecking=accept-new",
+  ]
+
+  const reversePortForwardingCommand = `${sshCommandName} ${sshCommandArgs.join(" ")}`
+  try {
+    // fixme: Warning: Identity file  ${privateKeyFilePath} not accessible: No such file or directory.
+    //   Tried assigning file/dir permissions here in the code, got no result. The same command works from terminal.
+    await exec(sshCommandName, sshCommandArgs)
+  } catch (err) {
+    log.warn({
+      status: "active",
+      section: service.name,
+      msg: err.message,
+    })
+    return { command: reversePortForwardingCommand, success: false }
+  }
+
+  return { command: reversePortForwardingCommand, success: true }
 }
 
 /**
@@ -278,12 +300,19 @@ export async function startLocalModePortForwarding({
     msg: chalk.gray(`→ Forward: ${localSshUrl} → ${remoteSshUrl}`),
   })
 
-  const command = startReversePortForwarding(service, portForward)
+  const reversePortForward = await startReversePortForwarding(service, portForward, log)
+  const command = reversePortForward.command
   log.info({
     status: "active",
     section: service.name,
-    msg: chalk.grey(
-      `→ Execute this command to connect your local service to the remote k8s cluster: ${chalk.white(command)}`
-    ),
+    msg: reversePortForward.success
+      ? chalk.grey(
+          `→ Started reverse port forwarding between the local machine and the remote k8s proxy: ${chalk.white(
+            command
+          )}`
+        )
+      : chalk.red(
+          `→ Failed to start reverse port forwarding, try to execute this command manually: ${chalk.white(command)}`
+        ),
   })
 }
