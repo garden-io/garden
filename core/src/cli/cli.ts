@@ -12,7 +12,14 @@ import { resolve, join } from "path"
 import chalk from "chalk"
 import { pathExists } from "fs-extra"
 import { getBuiltinCommands } from "../commands/commands"
-import { shutdown, sleep, getPackageVersion, uuidv4, registerCleanupFunction } from "../util/util"
+import {
+  shutdown,
+  sleep,
+  getPackageVersion,
+  uuidv4,
+  registerCleanupFunction,
+  getCloudDistributionName,
+} from "../util/util"
 import { Command, CommandResult, CommandGroup, BuiltinArgs } from "../commands/base"
 import { PluginError, toGardenError, GardenBaseError } from "../exceptions"
 import { Garden, GardenOpts, DummyGarden } from "../garden"
@@ -54,6 +61,9 @@ import { Profile } from "../util/profiling"
 import { prepareDebugLogfiles } from "./debug-logs"
 import { LogEntry } from "../logger/log-entry"
 import { JsonFileWriter } from "../logger/writers/json-file-writer"
+import { dedent } from "../util/string"
+import { renderDivider } from "../logger/util"
+import { emoji as nodeEmoji } from "node-emoji"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   const environments = gardenOpts.environmentName
@@ -74,6 +84,35 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   gardenOpts.config = config
 
   return DummyGarden.factory(root, { noEnterprise: true, ...gardenOpts })
+}
+
+function renderHeader({
+  environmentName,
+  namespaceName,
+  namespaceUrl,
+  distroName,
+}: {
+  environmentName: string
+  namespaceName: string
+  namespaceUrl?: string
+  distroName?: string
+}) {
+  const divider = chalk.gray(renderDivider())
+  let msg = `${nodeEmoji.earth_africa}  Running in namespace ${chalk.cyan(namespaceName + "." + environmentName)}`
+
+  if (namespaceUrl) {
+    msg += dedent`
+      \n
+      ${nodeEmoji.lightning}   Connected to ${distroName}
+      ${nodeEmoji.link}  ${chalk.blueBright.underline(namespaceUrl)}
+    `
+  }
+
+  return dedent`
+    ${divider}
+    ${msg}
+    ${divider}\n
+  `
 }
 
 export interface RunOutput {
@@ -320,8 +359,7 @@ ${renderCommands(commands)}
         } else {
           garden = await this.getGarden(workingDir, contextOpts)
 
-          const envDescription = `${garden.namespace}.${garden.environmentName}`
-          nsLog.setState(`${chalk.gray(`Using environment ${chalk.white.bold(envDescription)}\n`)}`)
+          nsLog.setState(renderHeader({ namespaceName: garden.namespace, environmentName: garden.environmentName }))
 
           if (processRecord) {
             // Update the db record for the process
@@ -356,7 +394,34 @@ ${renderCommands(commands)}
             })
           }
 
-          if (persistent && command.server) {
+          let namespaceUrl: string | undefined
+          if (cloudApi && cloudApi.environmentId && cloudApi.namespaceId) {
+            const project = await cloudApi.getProject()
+            const path = `/projects/${project.id}/environments/${cloudApi.environmentId}/namespaces/${cloudApi.namespaceId}/stack`
+            const url = new URL(path, cloudApi.domain)
+            namespaceUrl = url.href
+          }
+
+          // Print a different header and footer when persistent and connected to Garden Cloud.
+          if (persistent && namespaceUrl) {
+            const distroName = getCloudDistributionName(cloudApi?.domain || "")
+            nsLog.setState(
+              renderHeader({
+                namespaceName: garden.namespace,
+                environmentName: garden.environmentName,
+                namespaceUrl,
+                distroName,
+              })
+            )
+            const msg = dedent`
+              ${chalk.cyan(`Connected to ${distroName}! Visit your namespace to streams logs and more.`)}
+              ${nodeEmoji.link}  ${chalk.blueBright.underline(namespaceUrl)}
+            `
+            footerLog.info({
+              emoji: "sunflower",
+              msg,
+            })
+          } else if (persistent && command.server) {
             // If there is an explicit `garden dashboard` process running for the current project+env, and a server
             // is started in this Command, we show the URL to the external dashboard. Otherwise the built-in one.
 
