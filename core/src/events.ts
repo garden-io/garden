@@ -98,7 +98,7 @@ export interface Events extends LoggerEvents {
 
   // Process events
   serversUpdated: {
-    servers: { host: string; command: string }[]
+    servers: { host: string; command: string; serverAuthKey: string }[]
   }
   receivedToken: AuthTokenResponse
 

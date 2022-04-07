@@ -79,15 +79,15 @@ export class GardenServer {
     this.debugLog = this.log.placeholder({ level: LogLevel.debug, childEntriesInheritLevel: true })
     this.garden = undefined
     this.port = port
-    this.authKey = randomString(64)
+    this.authKey = randomString(24)
     this.incomingEvents = new EventBus()
     this.activePersistentRequests = {}
 
     this.serversUpdatedListener = ({ servers }) => {
       // Update status log line with new `garden dashboard` server, if any
-      for (const { host, command } of servers) {
+      for (const { host, command, serverAuthKey } of servers) {
         if (command === "dashboard") {
-          this.showUrl(host)
+          this.showUrl(`${host}?key=${serverAuthKey}`)
           return
         }
       }
@@ -104,13 +104,15 @@ export class GardenServer {
 
     this.app = await this.createApp()
 
+    const hostname = gardenEnv.GARDEN_SERVER_HOSTNAME || "localhost"
+
     if (this.port) {
-      this.server = this.app.listen(this.port)
+      this.server = this.app.listen(this.port, hostname)
     } else {
       do {
         try {
           this.port = await getPort({ port: defaultWatchServerPort })
-          this.server = this.app.listen(this.port)
+          this.server = this.app.listen(this.port, hostname)
         } catch {}
       } while (!this.server)
     }
@@ -119,8 +121,12 @@ export class GardenServer {
     this.statusLog = this.log.placeholder()
   }
 
-  getUrl() {
+  getBaseUrl() {
     return `http://localhost:${this.port}`
+  }
+
+  getUrl() {
+    return `${this.getBaseUrl()}?key=${this.authKey}`
   }
 
   showUrl(url?: string) {
@@ -156,6 +162,16 @@ export class GardenServer {
     const app = websockify(new Koa())
     const http = new Router()
 
+    http.use((ctx, next) => {
+      const authToken = ctx.header[authTokenHeader] || ctx.query.key
+
+      if (authToken !== this.authKey) {
+        ctx.throw(401, `Unauthorized request`)
+        return
+      }
+      return next()
+    })
+
     /**
      * HTTP API endpoint (POST /api)
      *
@@ -164,7 +180,6 @@ export class GardenServer {
      * means we can keep a consistent format across mechanisms.
      */
     http.post("/api", async (ctx) => {
-      // TODO: require auth key here from 0.13.0 onwards
       if (!this.garden) {
         return this.notReady(ctx)
       }
@@ -239,15 +254,7 @@ export class GardenServer {
      * The API matches that of the Garden Cloud /events endpoint.
      */
     http.post("/events", async (ctx) => {
-      const authHeader = ctx.header[authTokenHeader]
-
-      if (authHeader !== this.authKey) {
-        ctx.status = 401
-        return
-      }
-
       // TODO: validate the input
-
       const batch = ctx.request.body as ApiEventBatch
       this.debugLog.debug(`Received ${batch.events.length} events from session ${batch.sessionId}`)
 
@@ -258,6 +265,7 @@ export class GardenServer {
     })
 
     app.use(bodyParser())
+
     app.use(http.routes())
     app.use(http.allowedMethods())
 
@@ -277,7 +285,7 @@ export class GardenServer {
     return app
   }
 
-  private notReady(ctx: Router.IRouterContext) {
+  private notReady(ctx: Router.IRouterContext | Koa.ParameterizedContext) {
     ctx.status = 503
     ctx.response.body = notReadyMessage
   }
@@ -297,8 +305,6 @@ export class GardenServer {
 
       const connId = uuidv4()
 
-      // TODO: require auth key on connections here, from 0.13.0 onwards
-
       // The typing for koa-websocket isn't working currently
       const websocket: Koa.Context["ws"] = ctx["websocket"]
 
@@ -316,6 +322,13 @@ export class GardenServer {
       const error = (message: string, requestId?: string) => {
         this.log.debug(message)
         return send("error", { message, requestId })
+      }
+
+      // TODO: Only allow auth key authentication
+      if (ctx.query.sessionId !== `${this.garden.sessionId}` && ctx.query.key !== `${this.authKey}`) {
+        error(`401 Unauthorized`)
+        websocket.terminate()
+        return
       }
 
       // Set up heartbeat to detect dead connections

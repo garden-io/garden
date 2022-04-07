@@ -9,13 +9,14 @@
 import { css } from "emotion"
 import styled from "@emotion/styled"
 import React from "react"
-import { NavLink as ReactRouterNavLink } from "react-router-dom"
+import { NavLink as ReactRouterNavLink, NavLinkProps as ReactRouterNavLinkProps } from "react-router-dom"
 
 import logo from "../assets/logo.png"
 
 import { colors } from "../styles/variables"
 import { useUiState } from "../hooks"
 import { Page } from "../contexts/api"
+import { getAuthKey } from "../util/helpers"
 
 interface Props {
   pages: Page[]
@@ -46,7 +47,28 @@ const Nav = styled.nav`
   width: 100%;
 `
 
-const NavLink = (props: any) => <ReactRouterNavLink {...props} activeStyle={{ color: colors.gardenGreenDark }} />
+type NavLinkProps = Omit<ReactRouterNavLinkProps, "to"> & {
+  to: {
+    pathname: string
+    search?: string
+    hash?: string
+    state?: any
+  }
+}
+
+/**
+ * Helper class for ensuring that the auth key param is set on routes.
+ */
+const NavLink = (props: NavLinkProps) => {
+  const urlParams = new URLSearchParams(props.to.search)
+  urlParams.set("key", getAuthKey() || "")
+  const to = {
+    ...props.to,
+    search: urlParams.toString(),
+  }
+
+  return <ReactRouterNavLink {...props} to={to} activeStyle={{ color: colors.gardenGreenDark }} />
+}
 
 const A = styled.a(linkStyle)
 const Link = styled(NavLink)(linkStyle)
@@ -77,7 +99,7 @@ const Menu: React.FC<Props> = ({ pages }) => {
     <>
       <MenuContainer visible={isMenuOpen}>
         <Nav>
-          <NavLink to="/">
+          <NavLink to={{ pathname: "/" }}>
             <Logo src={logo} alt="Home" />
           </NavLink>
           {pages.map((page) => (
