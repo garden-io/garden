@@ -103,7 +103,7 @@
     "micromatch": "^4.0.4",
     "mimic-fn": "^3.1.0",
     "minimatch": "^3.0.4",
-    "minimist": "^1.2.5",
+    "minimist": "^1.2.6",
     "moment": "^2.26.0",
     "nan": "^2.14.1",
     "node-emoji": "^1.10.0",
