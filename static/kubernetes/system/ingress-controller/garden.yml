@@ -28,5 +28,9 @@ values:
     nodeSelector: ${var.system-node-selector}
     admissionWebhooks:
       enabled: false
+    ingressClassResource:
+      name: nginx
+      enabled: true
+      default: true
   defaultBackend:
     enabled: false
