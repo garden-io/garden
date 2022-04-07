@@ -57,7 +57,6 @@ const devOpts = {
   }),
   "local-mode": new StringsParameter({
     help: deline`[EXPERIMENTAL] The name of the service to be executed locally with local mode enabled.`,
-    alias: "local",
   }), // todo: description
   "skip-tests": new BooleanParameter({
     help: "Disable running the tests.",

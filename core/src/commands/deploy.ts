@@ -69,7 +69,6 @@ export const deployOpts = {
   }),
   "local-mode": new StringsParameter({
     help: deline`[EXPERIMENTAL] The name of the service to be executed locally with local mode enabled.`,
-    alias: "local",
   }), // todo: description
   "skip": new StringsParameter({
     help: "The name(s) of services you'd like to skip when deploying.",
