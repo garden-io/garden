@@ -113,6 +113,7 @@ export class CloudApi {
   private log: LogEntry
   private intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
   private apiPrefix = "api"
+  private _project?: GetProjectResponse["data"]
   public domain: string
   public projectId: string
 
@@ -533,8 +534,13 @@ export class CloudApi {
   }
 
   async getProject() {
+    if (this._project) {
+      return this._project
+    }
+
     const res = await this.get<GetProjectResponse>(`/projects/uid/${this.projectId}`)
-    return res.data
+    this._project = res.data
+    return this._project
   }
 
   /**
