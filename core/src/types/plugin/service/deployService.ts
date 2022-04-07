@@ -34,6 +34,7 @@ export const deployService = () => ({
     force: joi.boolean().description("Whether to force a re-deploy, even if the service is already deployed."),
     runtimeContext: runtimeContextSchema(),
     hotReload: joi.boolean().default(false).description("Whether to configure the service for hot-reloading."),
+    localMode: joi.boolean().default(false).description("Whether the service should be configured in local mode."),
   }),
   resultSchema: serviceStatusSchema(),
 })
