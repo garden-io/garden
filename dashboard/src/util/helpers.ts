@@ -96,3 +96,11 @@ export function getTextWidth(text: string, font: string) {
   const metrics = context.measureText(text)
   return metrics.width
 }
+
+/**
+ * Returns the auth key from the current page's URL params.
+ */
+export function getAuthKey() {
+  const urlParams = new URLSearchParams(window.location.search)
+  return urlParams.get("key")
+}

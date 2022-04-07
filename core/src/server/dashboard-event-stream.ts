@@ -62,7 +62,11 @@ export class DashboardEventStream extends BufferedEventStream {
       this.log.debug(`Updated list of running dashboard servers: ${servers.map((p) => p.serverHost).join(", ")}`)
 
       this.garden.events.emit("serversUpdated", {
-        servers: servers.map((p) => ({ command: p.command!, host: p.serverHost! })),
+        servers: servers.map((p) => ({
+          command: p.command!,
+          host: p.serverHost!,
+          serverAuthKey: p.serverAuthKey || "",
+        })),
       })
     }
 

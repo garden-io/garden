@@ -36,7 +36,7 @@ import {
   FetchTaskResultParams,
   FetchTestResultParams,
 } from "./api"
-import { getTestKey } from "../util/helpers"
+import { getAuthKey, getTestKey } from "../util/helpers"
 import { ProviderMap } from "@garden-io/core/build/src/config/provider"
 import { DashboardPage } from "@garden-io/core/build/src/types/plugin/provider/getDashboardPage"
 
@@ -113,7 +113,7 @@ function processConfigInitResult(entities: Entities, config: ConfigDump) {
         path: `/provider/${provider.name}/${page.name}`,
         description: page.description + ` (from provider ${provider.name})`,
         // Use static URL if provided, otherwise we'll request a redirect from this API endpoint
-        url: page.url || `/dashboardPages/${provider.name}/${page.name}`,
+        url: page.url || `/dashboardPages/${provider.name}/${page.name}?key=${getAuthKey()}`,
       }))
     })
 

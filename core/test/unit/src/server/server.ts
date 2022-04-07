@@ -58,40 +58,75 @@ describe("GardenServer", () => {
   it("should update dashboard URL with new one if another is started", async () => {
     gardenServer.showUrl("http://foo")
     garden.events.emit("serversUpdated", {
-      servers: [{ host: "http://localhost:9800", command: "dashboard" }],
+      servers: [{ host: "http://localhost:9800", command: "dashboard", serverAuthKey: "foo" }],
     })
     const line = gardenServer["statusLog"]
     await sleep(1) // This is enough to let go of the control loop
     const status = stripAnsi(line.getLatestMessage().msg || "")
-    expect(status).to.equal(`Garden dashboard running at http://localhost:9800`)
+    expect(status).to.equal(`Garden dashboard running at http://localhost:9800?key=foo`)
   })
 
   describe("GET /", () => {
     it("should return the dashboard index page", async () => {
-      await request(server).get("/").expect(200)
+      await request(server)
+        .get("/")
+        .set({ [authTokenHeader]: gardenServer.authKey })
+        .expect(200)
     })
   })
 
   describe("POST /api", () => {
+    it("returns 401 if missing auth header", async () => {
+      await request(server).post("/api").send({}).expect(401)
+    })
+
+    it("returns 401 if auth header doesn't match auth key", async () => {
+      await request(server)
+        .post("/api")
+        .set({ [authTokenHeader]: "foo" })
+        .send({})
+        .expect(401)
+    })
+
     it("should 400 on non-JSON body", async () => {
-      await request(server).post("/api").send("foo").expect(400)
+      await request(server)
+        .post("/api")
+        .set({ [authTokenHeader]: gardenServer.authKey })
+        .send("foo")
+        .expect(400)
     })
 
     it("should 400 on invalid payload", async () => {
-      await request(server).post("/api").send({ foo: "bar" }).expect(400)
+      await request(server)
+        .post("/api")
+        .set({ [authTokenHeader]: gardenServer.authKey })
+        .send({ foo: "bar" })
+        .expect(400)
     })
 
     it("should 404 on invalid command", async () => {
-      await request(server).post("/api").send({ command: "foo" }).expect(404)
+      await request(server)
+        .post("/api")
+        .set({ [authTokenHeader]: gardenServer.authKey })
+        .send({ command: "foo" })
+        .expect(404)
     })
 
     it("should 503 when Garden instance is not set", async () => {
       gardenServer["garden"] = undefined
-      await request(server).post("/api").send({ command: "get.config" }).expect(503)
+      await request(server)
+        .post("/api")
+        .set({ [authTokenHeader]: gardenServer.authKey })
+        .send({ command: "get.config" })
+        .expect(503)
     })
 
     it("should execute a command and return its results", async () => {
-      const res = await request(server).post("/api").send({ command: "get.config" }).expect(200)
+      const res = await request(server)
+        .post("/api")
+        .set({ [authTokenHeader]: gardenServer.authKey })
+        .send({ command: "get.config" })
+        .expect(200)
       const config = await garden.dumpConfig({ log: garden.log })
       expect(res.body.result).to.eql(deepOmitUndefined(config))
     })
@@ -99,6 +134,7 @@ describe("GardenServer", () => {
     it("should correctly map arguments and options to commands", async () => {
       const res = await request(server)
         .post("/api")
+        .set({ [authTokenHeader]: gardenServer.authKey })
         .send({
           command: "build",
           parameters: {
@@ -119,8 +155,23 @@ describe("GardenServer", () => {
   })
 
   describe("/dashboardPages", () => {
+    it("returns 401 if missing auth header", async () => {
+      await request(server).get("/dashboardPages/test-plugin/test").expect(401)
+    })
+
+    it("returns 401 if auth header doesn't match auth key", async () => {
+      await request(server)
+        .get("/dashboardPages/test-plugin/test")
+        .set({ [authTokenHeader]: "foo" })
+        .send({})
+        .expect(401)
+    })
+
     it("should resolve the URL for the given dashboard page and redirect", async () => {
-      const res = await request(server).get("/dashboardPages/test-plugin/test").expect(302)
+      const res = await request(server)
+        .get("/dashboardPages/test-plugin/test")
+        .set({ [authTokenHeader]: gardenServer.authKey })
+        .expect(302)
 
       expect(res.header.location).to.equal("http://localhost:12345/test")
     })
@@ -162,7 +213,7 @@ describe("GardenServer", () => {
     let ws: WebSocket
 
     beforeEach((done) => {
-      ws = new WebSocket(`ws://localhost:${port}/ws`)
+      ws = new WebSocket(`ws://localhost:${port}/ws?sessionId=${garden.sessionId}`)
       ws.on("open", () => {
         done()
       })
@@ -176,6 +227,34 @@ describe("GardenServer", () => {
     const onMessage = (cb: (req: object) => void) => {
       ws.on("message", (msg) => cb(JSON.parse(msg.toString())))
     }
+
+    it("terminates the connection if auth query params are missing", (done) => {
+      const badWs = new WebSocket(`ws://localhost:${port}/ws`)
+      badWs.on("close", () => {
+        done()
+      })
+    })
+
+    it("terminates the connection if key doesn't match and sessionId is missing", (done) => {
+      const badWs = new WebSocket(`ws://localhost:${port}/ws?key=foo`)
+      badWs.on("close", () => {
+        done()
+      })
+    })
+
+    it("terminates the connection if sessionId doesn't match and key is missing", (done) => {
+      const badWs = new WebSocket(`ws://localhost:${port}/ws?sessionId=foo`)
+      badWs.on("close", () => {
+        done()
+      })
+    })
+
+    it("terminates the connection if both sessionId and key are bad", (done) => {
+      const badWs = new WebSocket(`ws://localhost:${port}/ws?sessionId=foo&key=bar`)
+      badWs.on("close", () => {
+        done()
+      })
+    })
 
     it("should emit events from the Garden event bus", (done) => {
       onMessage((req) => {

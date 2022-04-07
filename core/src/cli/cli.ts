@@ -370,7 +370,11 @@ ${renderCommands(commands)}
               namespace: garden.namespace,
             })
 
-            command.server.showUrl(dashboardProcess?.serverHost || undefined)
+            let url: string | undefined
+            if (dashboardProcess) {
+              url = `${dashboardProcess.serverHost}?key=${dashboardProcess.serverAuthKey}`
+            }
+            command.server.showUrl(url)
           }
         }
 
