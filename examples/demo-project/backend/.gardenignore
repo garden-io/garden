@@ -25,6 +25,3 @@ _testmain.go
 
 .vscode/settings.json
 webserver/*server*
-
-# todo: remove once proxy is ready
-backend.garden.yml
