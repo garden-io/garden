@@ -41,7 +41,7 @@
     "lodash": "^4.17.15",
     "markdown-link-check": "^3.9.3",
     "minimatch": "^3.0.4",
-    "minimist": "^1.2.5",
+    "minimist": "^1.2.6",
     "npm-license-crawler": "^0.2.1",
     "prettier": "^2.1.1",
     "remark-cli": "^8.0.0",

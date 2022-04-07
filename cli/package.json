@@ -37,7 +37,7 @@
     "chai": "^4.2.0",
     "execa": "^4.0.3",
     "lodash": "^4.17.20",
-    "minimist": "^1.2.5",
+    "minimist": "^1.2.6",
     "mocha": "^8.1.1",
     "patch-package": "^6.4.7",
     "pkg": "5.5.2",
