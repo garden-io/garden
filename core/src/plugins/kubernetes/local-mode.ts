@@ -21,7 +21,7 @@ import { getAppNamespace } from "./namespace"
 import { getPortForward, getTargetResource, PortForward } from "./port-forward"
 import chalk from "chalk"
 import fs from "fs"
-import { exec } from "../../util/util"
+import { ChildProcess, exec, ExecException } from "child_process"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -216,6 +216,17 @@ async function openSshTunnel({
   return getPortForward({ ctx, log, namespace, targetResource, port })
 }
 
+function executeCommand(
+  command: string,
+  callback?: (error: ExecException | null, stdout: string, stderr: string) => void
+): ChildProcess {
+  const childProcess = exec(command, callback)
+  process.on("exit", () => {
+    childProcess.kill()
+  })
+  return childProcess
+}
+
 /**
  * Starts reverse port forwarding from the remote service's containerPort to the local app port.
  * This reverse port forwarding works on top of the existing ssh tunnel.
@@ -227,7 +238,7 @@ async function startReversePortForwarding(
   service: ContainerService,
   portForward: PortForward,
   log: LogEntry
-): Promise<{ command: string; success: boolean }> {
+): Promise<void> {
   const localModeSpec = service.spec.localMode!
   const proxyContainer = localModeSpec.proxyContainer
   const privateKeyFilePath = proxyContainer.privateKeyFilePath
@@ -252,22 +263,62 @@ async function startReversePortForwarding(
     `-i ${privateKeyFilePath}`,
     "-oStrictHostKeyChecking=accept-new",
   ]
-
   const reversePortForwardingCommand = `${sshCommandName} ${sshCommandArgs.join(" ")}`
+
   try {
-    // fixme: Warning: Identity file  ${privateKeyFilePath} not accessible: No such file or directory.
-    //   Tried assigning file/dir permissions here in the code, got no result. The same command works from terminal.
-    await exec(sshCommandName, sshCommandArgs)
+    // The command { exec } from "../../util/util" does not work here.
+    // Despite the key files have the right access permissions, it fails with the following error:
+    // > Warning: Identity file  ${privateKeyFilePath} not accessible: No such file or directory
+
+    const reversePortForward = executeCommand(
+      reversePortForwardingCommand,
+      function (error: ExecException | null, stdout: string, stderr: string): void {
+        error &&
+          log.error({
+            status: "active",
+            section: service.name,
+            msg: chalk.red(
+              `Reverse port-forwarding failed with error: ${JSON.stringify(error)}. ` +
+                `Consider running it manually: ${chalk.white(reversePortForwardingCommand)}`
+            ),
+          })
+        stderr &&
+          log.warn({
+            status: "active",
+            section: service.name,
+            msg: chalk.red(
+              `Reverse port-forwarding failed with error: ${stderr}. ` +
+                `Consider running it manually: ${chalk.white(reversePortForwardingCommand)}`
+            ),
+          })
+        stdout &&
+          log.info({
+            status: "active",
+            section: service.name,
+            msg: `Reverse port-forwarding output> ${stdout}`,
+          })
+      }
+    )
+
+    log.info({
+      status: "active",
+      section: service.name,
+      msg: chalk.gray(
+        `→ Started reverse port forwarding between the local machine and the remote k8s proxy ` +
+          `with PID ${reversePortForward.pid}: ` +
+          `${chalk.white(reversePortForward.spawnargs.join(" "))}`
+      ),
+    })
   } catch (err) {
     log.warn({
       status: "active",
       section: service.name,
-      msg: err.message,
+      msg: chalk.red(
+        `Reverse port-forwarding failed with error: ${err.message}. ` +
+          `Consider running it manually: ${chalk.white(reversePortForwardingCommand)}`
+      ),
     })
-    return { command: reversePortForwardingCommand, success: false }
   }
-
-  return { command: reversePortForwardingCommand, success: true }
 }
 
 /**
@@ -300,19 +351,5 @@ export async function startLocalModePortForwarding({
     msg: chalk.gray(`→ Forward: ${localSshUrl} → ${remoteSshUrl}`),
   })
 
-  const reversePortForward = await startReversePortForwarding(service, portForward, log)
-  const command = reversePortForward.command
-  log.info({
-    status: "active",
-    section: service.name,
-    msg: reversePortForward.success
-      ? chalk.grey(
-          `→ Started reverse port forwarding between the local machine and the remote k8s proxy: ${chalk.white(
-            command
-          )}`
-        )
-      : chalk.red(
-          `→ Failed to start reverse port forwarding, try to execute this command manually: ${chalk.white(command)}`
-        ),
-  })
+  await startReversePortForwarding(service, portForward, log)
 }
