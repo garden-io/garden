@@ -328,7 +328,6 @@ export const proxyContainerSchema = () =>
 
 export interface ContainerLocalModeSpec {
   localAppPort: number
-  localSshPort: number
   command: string[]
   proxyContainer: ProxyContainerSpec
 }
@@ -336,11 +335,6 @@ export interface ContainerLocalModeSpec {
 export const containerLocalModeSchema = () =>
   joi.object().keys({
     localAppPort: joi.number().description("The local port of the ssh tunnel to the target remote k8s cluster."),
-    localSshPort: joi
-      .number()
-      .description(
-        "The port of the local service to be connected to the remote k8s cluster via the reverse proxy server container."
-      ),
     command: joi.sparseArray().items(joi.string()).description("The command that’s run locally to start the service."),
     proxyContainer: proxyContainerSchema(),
   }).description(dedent`
