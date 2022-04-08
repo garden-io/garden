@@ -1,4 +1,25 @@
 
+<a name="0.12.39"></a>
+## [0.12.39](https://github.com/garden-io/garden/compare/0.12.38...0.12.39) (2022-04-08)
+
+### Bug Fixes
+
+* add default ingress class for nginx ingress controller ([31b0773f](https://github.com/garden-io/garden/commit/31b0773f))
+* **cli:** avoid unnecessary git scan at startup ([5eeea39c](https://github.com/garden-io/garden/commit/5eeea39c))
+* **cli:** uncaught promise error when version check fails ([6cf6ed65](https://github.com/garden-io/garden/commit/6cf6ed65))
+* **core:** require auth key for server endpoints ([56051a5b](https://github.com/garden-io/garden/commit/56051a5b))
+* **core:** always show dashboard link ([64dd9b86](https://github.com/garden-io/garden/commit/64dd9b86))
+* **k8s:** handle spaces in kubectl path provided to Mutagen ([2045cf41](https://github.com/garden-io/garden/commit/2045cf41))
+* **template:** error in && operator during partial initial resolution ([8a8215de](https://github.com/garden-io/garden/commit/8a8215de))
+
+### Features
+
+* **k8s:** allow overriding kubectl path in provider config ([233c5a1b](https://github.com/garden-io/garden/commit/233c5a1b))
+
+### Improvements
+
+* **cloud:** print link to Cloud namespace if applicable ([dac340b8](https://github.com/garden-io/garden/commit/dac340b8))
+
 <a name="0.12.38"></a>
 ## [0.12.38](https://github.com/garden-io/garden/compare/0.12.37...0.12.38) (2022-03-28)
 
