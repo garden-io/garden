@@ -13,8 +13,8 @@ services:
       localAppPort: 8090
       command: [] # example: [ "npm", "run", "serve", "-p", "${var.localAppPort}" ]
       remoteContainerName: "backend"
+      # TODO: remove this and generate the ssh keys automatically in folder `.garden`
       proxyContainer:
-        # TODO: support relative paths?
         privateKeyFilePath: "/path/to/private-key-file"
         publicKeyFilePath: "/path/to/public-key-file"
     healthCheck:
