@@ -132,7 +132,7 @@ export class GardenServer {
   showUrl(url?: string) {
     this.statusLog.setState({
       emoji: "sunflower",
-      msg: chalk.cyan("Garden dashboard running at ") + (url || this.getUrl()),
+      msg: chalk.cyan("Garden dashboard running at ") + chalk.blueBright(url || this.getUrl()),
     })
   }
 

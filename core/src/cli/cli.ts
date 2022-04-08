@@ -402,7 +402,7 @@ ${renderCommands(commands)}
             namespaceUrl = url.href
           }
 
-          // Print a different header and footer when persistent and connected to Garden Cloud.
+          // Print a specific header and footer when persistent and connected to Garden Cloud.
           if (persistent && namespaceUrl) {
             const distroName = getCloudDistributionName(cloudApi?.domain || "")
             nsLog.setState(
@@ -414,14 +414,14 @@ ${renderCommands(commands)}
               })
             )
             const msg = dedent`
-              ${chalk.cyan(`Connected to ${distroName}! Visit your namespace to stream logs and more.`)}
+              \n${nodeEmoji.lightning}   ${chalk.cyan(`Connected to ${distroName}! Visit your namespace to stream logs and more.`)}
               ${nodeEmoji.link}  ${chalk.blueBright.underline(namespaceUrl)}
             `
-            footerLog.info({
-              emoji: "sunflower",
-              msg,
-            })
-          } else if (persistent && command.server) {
+            footerLog.info(msg)
+          }
+
+          // TODO: "Tone down" dashboard link when connected to Garden Cloud.
+          if (persistent && command.server) {
             // If there is an explicit `garden dashboard` process running for the current project+env, and a server
             // is started in this Command, we show the URL to the external dashboard. Otherwise the built-in one.
 
@@ -439,6 +439,7 @@ ${renderCommands(commands)}
             if (dashboardProcess) {
               url = `${dashboardProcess.serverHost}?key=${dashboardProcess.serverAuthKey}`
             }
+
             command.server.showUrl(url)
           }
         }
