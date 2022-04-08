@@ -306,7 +306,6 @@ export const containerDevModeSchema = () =>
 export interface ProxyContainerSpec {
   privateKeyFilePath: string
   publicKeyFilePath: string
-  username: string
   remoteContainerName?: string
 }
 
@@ -320,7 +319,6 @@ export const proxyContainerSchema = () =>
       .string()
       .required()
       .description("The file with the public ssh key to be stored in the proxy container."),
-    username: joi.string().required().description("The username to login to the proxy container."),
     remoteContainerName: joi.string().optional().description("The k8s name of the remote container."),
   }).description(dedent`
   Specifies the configuration of the remote proxy container which will replace the actual remote app.

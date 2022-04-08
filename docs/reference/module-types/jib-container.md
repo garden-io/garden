@@ -339,9 +339,6 @@ services:
         # The file with the public ssh key to be stored in the proxy container.
         publicKeyFilePath:
 
-        # The username to login to the proxy container.
-        username:
-
         # The k8s name of the remote container.
         remoteContainerName:
 
@@ -1514,16 +1511,6 @@ The file with the private ssh key to be used in the proxy container reverse port
 [services](#services) > [localMode](#serviceslocalmode) > [proxyContainer](#serviceslocalmodeproxycontainer) > publicKeyFilePath
 
 The file with the public ssh key to be stored in the proxy container.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `services[].localMode.proxyContainer.username`
-
-[services](#services) > [localMode](#serviceslocalmode) > [proxyContainer](#serviceslocalmodeproxycontainer) > username
-
-The username to login to the proxy container.
 
 | Type     | Required |
 | -------- | -------- |

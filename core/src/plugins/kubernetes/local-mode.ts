@@ -11,7 +11,7 @@ import { gardenAnnotationKey } from "../../util/string"
 import { set } from "lodash"
 import { HotReloadableResource } from "./hot-reload/hot-reload"
 import { PrimitiveMap } from "../../config/common"
-import { PROXY_CONTAINER_SSH_TUNNEL_PORT, reverseProxyImageName } from "./constants"
+import { PROXY_CONTAINER_SSH_TUNNEL_PORT, PROXY_CONTAINER_USER_NAME, reverseProxyImageName } from "./constants"
 import { ConfigurationError } from "../../exceptions"
 import { getResourceContainer, prepareEnvVars } from "./util"
 import { V1Container } from "@kubernetes/client-node"
@@ -55,8 +55,6 @@ function prepareLocalModeEnvVars(originalServiceSpec: ContainerServiceSpec): Pri
     return {}
   }
 
-  const proxyContainerSpec = localModeSpec.proxyContainer
-
   // todo: is it a good way to pick up the right port?
   const httpPortSpec = findPortByName(originalServiceSpec, defaultReverseForwardingPortName)
   if (!httpPortSpec) {
@@ -67,8 +65,8 @@ function prepareLocalModeEnvVars(originalServiceSpec: ContainerServiceSpec): Pri
   }
   return {
     APP_PORT: httpPortSpec.containerPort,
-    PUBLIC_KEY: readSshKeyFromFile(proxyContainerSpec.publicKeyFilePath),
-    USER_NAME: proxyContainerSpec.username,
+    PUBLIC_KEY: readSshKeyFromFile(localModeSpec.proxyContainer.publicKeyFilePath),
+    USER_NAME: PROXY_CONTAINER_USER_NAME,
   }
 }
 
@@ -242,7 +240,6 @@ async function startReversePortForwarding(
   const localModeSpec = service.spec.localMode!
   const proxyContainer = localModeSpec.proxyContainer
   const privateKeyFilePath = proxyContainer.privateKeyFilePath
-  const username = proxyContainer.username
   const localAppPort = localModeSpec.localAppPort
   const localSshPort = portForward.localPort
   const remoteContainerPortSpec = findPortByName(service.spec, defaultReverseForwardingPortName)
@@ -258,7 +255,7 @@ async function startReversePortForwarding(
   const sshCommandArgs = [
     "-R",
     `${remoteContainerPort}:127.0.0.1:${localAppPort}`,
-    `${username}@127.0.0.1`,
+    `${PROXY_CONTAINER_USER_NAME}@127.0.0.1`,
     `-p${localSshPort}`,
     `-i ${privateKeyFilePath}`,
     "-oStrictHostKeyChecking=accept-new",

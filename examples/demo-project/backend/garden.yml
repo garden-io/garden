@@ -16,7 +16,6 @@ services:
         # TODO: support relative paths?
         privateKeyFilePath: "/path/to/private-key-file"
         publicKeyFilePath: "/path/to/public-key-file"
-        username: "proxy-user"
         remoteContainerName: "backend"
     healthCheck:
       httpGet:
