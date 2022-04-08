@@ -310,6 +310,9 @@ services:
       # The command that’s run locally to start the service.
       command:
 
+      # The k8s name of the remote container.
+      remoteContainerName:
+
       # Specifies the configuration of the remote proxy container which will replace the actual remote app.
       proxyContainer:
         # The file with the private ssh key to be used in the proxy container reverse port forwarding.
@@ -317,9 +320,6 @@ services:
 
         # The file with the public ssh key to be stored in the proxy container.
         publicKeyFilePath:
-
-        # The k8s name of the remote container.
-        remoteContainerName:
 
     # List of ingress endpoints that the service exposes.
     ingresses:
@@ -1415,6 +1415,16 @@ The command that’s run locally to start the service.
 | --------------- | -------- |
 | `array[string]` | No       |
 
+### `services[].localMode.remoteContainerName`
+
+[services](#services) > [localMode](#serviceslocalmode) > remoteContainerName
+
+The k8s name of the remote container.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
 ### `services[].localMode.proxyContainer`
 
 [services](#services) > [localMode](#serviceslocalmode) > proxyContainer
@@ -1444,16 +1454,6 @@ The file with the public ssh key to be stored in the proxy container.
 | Type     | Required |
 | -------- | -------- |
 | `string` | Yes      |
-
-### `services[].localMode.proxyContainer.remoteContainerName`
-
-[services](#services) > [localMode](#serviceslocalmode) > [proxyContainer](#serviceslocalmodeproxycontainer) > remoteContainerName
-
-The k8s name of the remote container.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
 
 ### `services[].ingresses[]`
 

@@ -173,7 +173,7 @@ export function configureLocalMode({ target, originalServiceSpec }: ConfigureLoc
 
   set(target, ["metadata", "annotations", gardenAnnotationKey("local-mode")], "true")
 
-  const remoteContainerName = localModeSpec.proxyContainer.remoteContainerName
+  const remoteContainerName = localModeSpec.remoteContainerName
   const mainContainer = getResourceContainer(target, remoteContainerName)
   if (!!remoteContainerName && !mainContainer) {
     throw new ConfigurationError(
