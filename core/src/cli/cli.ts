@@ -414,7 +414,7 @@ ${renderCommands(commands)}
               })
             )
             const msg = dedent`
-              ${chalk.cyan(`Connected to ${distroName}! Visit your namespace to streams logs and more.`)}
+              ${chalk.cyan(`Connected to ${distroName}! Visit your namespace to stream logs and more.`)}
               ${nodeEmoji.link}  ${chalk.blueBright.underline(namespaceUrl)}
             `
             footerLog.info({
