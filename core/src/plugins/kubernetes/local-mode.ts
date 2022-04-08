@@ -232,11 +232,7 @@ function executeCommand(
  * @param portForward the ssh tunnel details
  * @param log the logger
  */
-async function startReversePortForwarding(
-  service: ContainerService,
-  portForward: PortForward,
-  log: LogEntry
-): Promise<void> {
+function startReversePortForwarding(service: ContainerService, portForward: PortForward, log: LogEntry): void {
   const localModeSpec = service.spec.localMode!
   const proxyContainer = localModeSpec.proxyContainer
   const privateKeyFilePath = proxyContainer.privateKeyFilePath
@@ -348,5 +344,5 @@ export async function startLocalModePortForwarding({
     msg: chalk.gray(`→ Forward: ${localSshUrl} → ${remoteSshUrl}`),
   })
 
-  await startReversePortForwarding(service, portForward, log)
+  startReversePortForwarding(service, portForward, log)
 }
