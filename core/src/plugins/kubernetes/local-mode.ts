@@ -22,6 +22,7 @@ import { getPortForward, getTargetResource, PortForward } from "./port-forward"
 import chalk from "chalk"
 import fs from "fs"
 import { ChildProcess, exec, ExecException } from "child_process"
+import pRetry = require("p-retry")
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -210,8 +211,18 @@ async function openSshTunnel({
   const namespace = await getAppNamespace(ctx, log, ctx.provider)
   const targetResource = getTargetResource(service)
   const port = PROXY_CONTAINER_SSH_TUNNEL_PORT
-  // todo: retrying and error handling
-  return getPortForward({ ctx, log, namespace, targetResource, port })
+
+  return pRetry(async () => await getPortForward({ ctx, log, namespace, targetResource, port }), {
+    retries: 3,
+    minTimeout: 2000,
+    onFailedAttempt: async (err) => {
+      log.warn({
+        status: "active",
+        section: service.name,
+        msg: `Failed to start ssh tunnel between the local machine and the remote k8s cluster. ${err.retriesLeft} attempts left.`,
+      })
+    },
+  })
 }
 
 function executeCommand(
