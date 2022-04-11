@@ -1,8 +1,8 @@
 diff --git a/node_modules/pkg/prelude/bootstrap.js b/node_modules/pkg/prelude/bootstrap.js
-index 7285b7c..27d3975 100644
+index 9c2ad55..f8304de 100644
 --- a/node_modules/pkg/prelude/bootstrap.js
 +++ b/node_modules/pkg/prelude/bootstrap.js
-@@ -1870,7 +1870,7 @@ function payloadFileSync(pointer) {
+@@ -1963,7 +1963,7 @@ function payloadFileSync(pointer) {
      }
      const opts = args[pos];
      if (!opts.env) opts.env = _extend({}, process.env);
