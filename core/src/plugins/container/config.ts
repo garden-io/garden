@@ -303,30 +303,10 @@ export const containerDevModeSchema = () =>
     See the [Code Synchronization guide](${devModeGuideLink}) for more information.
   `)
 
-export interface ProxyContainerSpec {
-  privateKeyFilePath: string
-  publicKeyFilePath: string
-}
-
-export const proxyContainerSchema = () =>
-  joi.object().keys({
-    privateKeyFilePath: joi
-      .string()
-      .required()
-      .description("The file with the private ssh key to be used in the proxy container reverse port forwarding."),
-    publicKeyFilePath: joi
-      .string()
-      .required()
-      .description("The file with the public ssh key to be stored in the proxy container."),
-  }).description(dedent`
-  Specifies the configuration of the remote proxy container which will replace the actual remote app.
-  `)
-
 export interface ContainerLocalModeSpec {
   localAppPort: number
   command: string[]
   remoteContainerName?: string
-  proxyContainer: ProxyContainerSpec
 }
 
 export const containerLocalModeSchema = () =>
@@ -334,7 +314,6 @@ export const containerLocalModeSchema = () =>
     localAppPort: joi.number().description("The local port of the ssh tunnel to the target remote k8s cluster."),
     command: joi.sparseArray().items(joi.string()).description("The command that’s run locally to start the service."),
     remoteContainerName: joi.string().optional().description("The k8s name of the remote container."),
-    proxyContainer: proxyContainerSchema(),
   }).description(dedent`
     Specifies which service in the remote k8s cluster must be replaced by the local one.
 

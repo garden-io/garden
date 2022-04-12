@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { containerLocalModeSchema, ContainerService, ContainerServiceSpec, ServicePortSpec } from "../container/config"
+import { ContainerService, ContainerServiceSpec, ServicePortSpec } from "../container/config"
 import { gardenAnnotationKey } from "../../util/string"
 import { set } from "lodash"
 import { HotReloadableResource } from "./hot-reload/hot-reload"
@@ -20,9 +20,11 @@ import { LogEntry } from "../../logger/log-entry"
 import { getAppNamespace } from "./namespace"
 import { getPortForward, getTargetResource, PortForward } from "./port-forward"
 import chalk from "chalk"
-import fs from "fs"
-import { ChildProcess, exec, ExecException } from "child_process"
+import fs, { existsSync, rmSync } from "fs"
+import { ChildProcess, exec, ExecException, execSync } from "child_process"
 import pRetry = require("p-retry")
+import { join, resolve } from "path"
+import { ensureDir } from "fs-extra"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -32,17 +34,83 @@ const defaultReverseForwardingPortName = "http"
 
 interface ConfigureLocalModeParams {
   target: HotReloadableResource
-  originalServiceSpec: ContainerServiceSpec
+  service: ContainerService
+  log: LogEntry
 }
 
-export const kubernetesLocalModeSchema = () => containerLocalModeSchema()
+class ProxySshKeystore {
+  private readonly proxySshKeyDirPath: string
+  private readonly log: LogEntry
 
-function readSshKeyFromFile(filePath: string): string {
-  try {
-    return fs.readFileSync(filePath).toString("utf-8")
-  } catch (err) {
-    const message = !!err.message ? err.message.toString() : "unknown"
-    throw new ConfigurationError(`Could not read public key file from path ${filePath}; cause: ${message}`, err)
+  constructor(proxySshKeyDirPath: string, log: LogEntry) {
+    this.proxySshKeyDirPath = proxySshKeyDirPath
+    this.log = log
+  }
+
+  private async buildProxySshKeysPathForModule(moduleName: string): Promise<string> {
+    await ensureDir(this.proxySshKeyDirPath)
+    const path = resolve(this.proxySshKeyDirPath, moduleName)
+    await ensureDir(path)
+    return path
+  }
+
+  public async getPrivateSshKeyPath(service: ContainerService): Promise<string> {
+    const moduleName = service.module.name
+    const serviceName = service.name
+    const moduleSshKeyDirPath = await this.buildProxySshKeysPathForModule(moduleName)
+    return `${join(moduleSshKeyDirPath, serviceName)}`
+  }
+
+  public async getPublicSshKeyPath(service: ContainerService): Promise<string> {
+    const privateSshKeyPath = await this.getPrivateSshKeyPath(service)
+    return `${privateSshKeyPath}.pub`
+  }
+
+  public async getPublicSshKey(service: ContainerService): Promise<string> {
+    const publicSshKeyPath = await this.getPublicSshKeyPath(service)
+    return ProxySshKeystore.readSshKeyFromFile(publicSshKeyPath)
+  }
+
+  public async generateSshKeys(
+    service: ContainerService
+  ): Promise<{ publicSshKeyPath: string; privateSshKeyPath: string }> {
+    const publicSshKeyPath = await this.getPublicSshKeyPath(service)
+    const privateSshKeyPath = await this.getPrivateSshKeyPath(service)
+    if (!existsSync(privateSshKeyPath)) {
+      await pRetry(() => execSync(`ssh-keygen -N "" -f ${privateSshKeyPath}`), {
+        retries: 5,
+        minTimeout: 2000,
+        onFailedAttempt: async (err) => {
+          this.log.warn({
+            status: "active",
+            section: service.name,
+            msg: `Failed to create an ssh key pair for reverse proxy container. ${err.retriesLeft} attempts left.`,
+          })
+        },
+      })
+    }
+    process.on("exit", () => {
+      this.deleteFile(publicSshKeyPath)
+      this.deleteFile(privateSshKeyPath)
+    })
+    return { privateSshKeyPath, publicSshKeyPath }
+  }
+
+  private deleteFile(filePath: string): void {
+    try {
+      rmSync(filePath, { force: true })
+    } catch (err) {
+      this.log.warn(`Could not remove file: ${filePath}; cause: ${err.message}`)
+    }
+  }
+
+  private static readSshKeyFromFile(filePath: string): string {
+    try {
+      return fs.readFileSync(filePath).toString("utf-8")
+    } catch (err) {
+      const message = !!err.message ? err.message.toString() : "unknown"
+      throw new ConfigurationError(`Could not read public key file from path ${filePath}; cause: ${message}`, err)
+    }
   }
 }
 
@@ -50,7 +118,11 @@ function findPortByName(serviceSpec: ContainerServiceSpec, portName: string): Se
   return serviceSpec.ports.find((portSpec) => portSpec.name === portName)
 }
 
-function prepareLocalModeEnvVars(originalServiceSpec: ContainerServiceSpec): PrimitiveMap {
+async function prepareLocalModeEnvVars(
+  service: ContainerService,
+  proxySshKeystore: ProxySshKeystore
+): Promise<PrimitiveMap> {
+  const originalServiceSpec = service.spec
   const localModeSpec = originalServiceSpec.localMode!
   if (!localModeSpec) {
     return {}
@@ -64,9 +136,12 @@ function prepareLocalModeEnvVars(originalServiceSpec: ContainerServiceSpec): Pri
       originalServiceSpec.ports
     )
   }
+
+  const publicSshKey = await proxySshKeystore.getPublicSshKey(service)
+
   return {
     APP_PORT: httpPortSpec.containerPort,
-    PUBLIC_KEY: readSshKeyFromFile(localModeSpec.proxyContainer.publicKeyFilePath),
+    PUBLIC_KEY: publicSshKey,
     USER_NAME: PROXY_CONTAINER_USER_NAME,
   }
 }
@@ -169,7 +244,8 @@ function patchMainContainer(
 /**
  * Configures the specified Deployment, DaemonSet or StatefulSet for local mode.
  */
-export function configureLocalMode({ target, originalServiceSpec }: ConfigureLocalModeParams): void {
+export async function configureLocalMode({ target, service, log }: ConfigureLocalModeParams): Promise<void> {
+  const originalServiceSpec = service.spec
   const localModeSpec = originalServiceSpec.localMode
   if (!localModeSpec) {
     return
@@ -187,7 +263,14 @@ export function configureLocalMode({ target, originalServiceSpec }: ConfigureLoc
   }
   const proxyContainerName = !!remoteContainerName ? remoteContainerName : mainContainer.name
 
-  const localModeEnvVars = prepareLocalModeEnvVars(originalServiceSpec)
+  const proxySshKeystore = new ProxySshKeystore(service.module.proxySshKeyDirPath, log)
+  const { publicSshKeyPath, privateSshKeyPath } = await proxySshKeystore.generateSshKeys(service)
+  log.debug({
+    section: service.name,
+    msg: `Created ssh key pair for reverse proxy container: "${publicSshKeyPath}" and "${privateSshKeyPath}".`,
+  })
+
+  const localModeEnvVars = await prepareLocalModeEnvVars(service, proxySshKeystore)
   const localModePorts = prepareLocalModePorts(originalServiceSpec)
 
   patchOriginalServiceSpec(originalServiceSpec, localModeEnvVars, localModePorts)
@@ -216,7 +299,7 @@ async function openSshTunnel({
   const port = PROXY_CONTAINER_SSH_TUNNEL_PORT
 
   return pRetry(async () => await getPortForward({ ctx, log, namespace, targetResource, port }), {
-    retries: 3,
+    retries: 5,
     minTimeout: 2000,
     onFailedAttempt: async (err) => {
       log.warn({
@@ -228,7 +311,7 @@ async function openSshTunnel({
   })
 }
 
-function executeCommand(
+function startChildProcess(
   command: string,
   callback?: (error: ExecException | null, stdout: string, stderr: string) => void
 ): ChildProcess {
@@ -246,10 +329,15 @@ function executeCommand(
  * @param portForward the ssh tunnel details
  * @param log the logger
  */
-function startReversePortForwarding(service: ContainerService, portForward: PortForward, log: LogEntry): void {
+async function startReversePortForwarding(
+  service: ContainerService,
+  portForward: PortForward,
+  log: LogEntry
+): Promise<void> {
   const localModeSpec = service.spec.localMode!
-  const proxyContainer = localModeSpec.proxyContainer
-  const privateKeyFilePath = proxyContainer.privateKeyFilePath
+  const proxySshKeystore = new ProxySshKeystore(service.module.proxySshKeyDirPath, log)
+  const privateSshKeyPath = await proxySshKeystore.getPrivateSshKeyPath(service)
+
   const localAppPort = localModeSpec.localAppPort
   const localSshPort = portForward.localPort
   const remoteContainerPortSpec = findPortByName(service.spec, defaultReverseForwardingPortName)
@@ -267,7 +355,7 @@ function startReversePortForwarding(service: ContainerService, portForward: Port
     `${remoteContainerPort}:127.0.0.1:${localAppPort}`,
     `${PROXY_CONTAINER_USER_NAME}@127.0.0.1`,
     `-p${localSshPort}`,
-    `-i ${privateKeyFilePath}`,
+    `-i ${privateSshKeyPath}`,
     "-oStrictHostKeyChecking=accept-new",
   ]
   const reversePortForwardingCommand = `${sshCommandName} ${sshCommandArgs.join(" ")}`
@@ -277,7 +365,7 @@ function startReversePortForwarding(service: ContainerService, portForward: Port
     // Despite the key files have the right access permissions, it fails with the following error:
     // > Warning: Identity file  ${privateKeyFilePath} not accessible: No such file or directory
 
-    const reversePortForward = executeCommand(
+    const reversePortForward = startChildProcess(
       reversePortForwardingCommand,
       function (error: ExecException | null, stdout: string, stderr: string): void {
         error &&
@@ -344,7 +432,7 @@ export async function startLocalModePortForwarding({
   ctx: KubernetesPluginContext
   log: LogEntry
   service: ContainerService
-}) {
+}): Promise<void> {
   if (!service.spec.localMode) {
     return
   }
@@ -358,5 +446,5 @@ export async function startLocalModePortForwarding({
     msg: chalk.gray(`→ Forward: ${localSshUrl} → ${remoteSshUrl}`),
   })
 
-  startReversePortForwarding(service, portForward, log)
+  await startReversePortForwarding(service, portForward, log)
 }

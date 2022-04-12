@@ -313,14 +313,6 @@ services:
       # The k8s name of the remote container.
       remoteContainerName:
 
-      # Specifies the configuration of the remote proxy container which will replace the actual remote app.
-      proxyContainer:
-        # The file with the private ssh key to be used in the proxy container reverse port forwarding.
-        privateKeyFilePath:
-
-        # The file with the public ssh key to be stored in the proxy container.
-        publicKeyFilePath:
-
     # List of ingress endpoints that the service exposes.
     ingresses:
       - # Annotations to attach to the ingress (Note: May not be applicable to all providers)
@@ -1434,36 +1426,6 @@ The k8s name of the remote container.
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
-
-### `services[].localMode.proxyContainer`
-
-[services](#services) > [localMode](#serviceslocalmode) > proxyContainer
-
-Specifies the configuration of the remote proxy container which will replace the actual remote app.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `services[].localMode.proxyContainer.privateKeyFilePath`
-
-[services](#services) > [localMode](#serviceslocalmode) > [proxyContainer](#serviceslocalmodeproxycontainer) > privateKeyFilePath
-
-The file with the private ssh key to be used in the proxy container reverse port forwarding.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `services[].localMode.proxyContainer.publicKeyFilePath`
-
-[services](#services) > [localMode](#serviceslocalmode) > [proxyContainer](#serviceslocalmodeproxycontainer) > publicKeyFilePath
-
-The file with the public ssh key to be stored in the proxy container.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
 
 ### `services[].ingresses[]`
 

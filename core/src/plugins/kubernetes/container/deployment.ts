@@ -578,9 +578,10 @@ export async function createWorkloadManifest({
       ),
     })
 
-    configureLocalMode({
+    await configureLocalMode({
       target: workload,
-      originalServiceSpec: spec,
+      service,
+      log,
     })
   }
 
