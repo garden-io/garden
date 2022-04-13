@@ -158,7 +158,7 @@ We are trying to make Garden the best tool possible, and it's very useful for us
 
 When you use Garden we collect information about the commands you run, the tasks getting executed, the project and operating system. We care about your privacy and we take special care to anonymize all the information. For example, we hash module names, and use randomly generated IDs to identify projects.
 
-If you are curious to see an example of the data we collect or if you would like to update your preference, please visit the [Telemetry](https://docs.garden.io/telemetry) page.
+If you are curious to see an example of the data we collect or if you would like to update your preference, please visit the [Telemetry](https://docs.garden.io/misc/telemetry) page.
 
 ## License
 
