@@ -174,6 +174,7 @@ export class DeployTask extends BaseTask {
 
     let status = serviceStatuses[this.service.name]
     const devModeSkipRedeploy = status.devMode && (devMode || hotReload)
+    const localModeSkipRedeploy = status.localMode && localMode
 
     const log = this.log.info({
       status: "active",
@@ -181,7 +182,11 @@ export class DeployTask extends BaseTask {
       msg: `Deploying version ${version}...`,
     })
 
-    if (!this.force && status.state === "ready" && (version === status.version || devModeSkipRedeploy)) {
+    if (
+      !this.force &&
+      status.state === "ready" &&
+      (version === status.version || devModeSkipRedeploy || localModeSkipRedeploy)
+    ) {
       // already deployed and ready
       log.setSuccess({
         msg: chalk.green("Already deployed"),
