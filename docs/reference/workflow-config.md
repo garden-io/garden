@@ -142,8 +142,9 @@ triggers:
     # this trigger's environment, as defined in your project's environment configs.
     namespace:
 
-    # A list of [GitHub events](https://docs.github.com/en/developers/webhooks-and-events/webhook-events-and-payloads)
-    # that should trigger this workflow.
+    # A list of [GitHub
+    # events](https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads) that
+    # should trigger this workflow.
     #
     # See the Garden Cloud documentation on [configuring
     # workflows](https://cloud.docs.garden.io/getting-started/workflows) for more details.
@@ -527,7 +528,7 @@ The namespace to use for the workflow when matched by this trigger. Follows the 
 
 [triggers](#triggers) > events
 
-A list of [GitHub events](https://docs.github.com/en/developers/webhooks-and-events/webhook-events-and-payloads) that should trigger this workflow.
+A list of [GitHub events](https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads) that should trigger this workflow.
 
 See the Garden Cloud documentation on [configuring workflows](https://cloud.docs.garden.io/getting-started/workflows) for more details.
 
