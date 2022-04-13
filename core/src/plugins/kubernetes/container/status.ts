@@ -58,13 +58,13 @@ export async function getContainerServiceStatus({
     enableLocalMode: localMode,
     blueGreen: provider.config.deploymentStrategy === "blue-green",
   })
-  const { state, remoteResources, deployedWithDevMode, deployedWithHotReloading } = await compareDeployedResources(
-    k8sCtx,
-    api,
-    namespace,
-    manifests,
-    log
-  )
+  const {
+    state,
+    remoteResources,
+    deployedWithDevMode,
+    deployedWithHotReloading,
+    deployedWithLocalMode,
+  } = await compareDeployedResources(k8sCtx, api, namespace, manifests, log)
   const ingresses = await getIngresses(service, api, provider)
 
   const forwardablePorts: ForwardablePort[] = localMode
@@ -90,6 +90,7 @@ export async function getContainerServiceStatus({
     version: state === "ready" ? service.version : undefined,
     detail: { remoteResources, workload },
     devMode: deployedWithDevMode || deployedWithHotReloading,
+    localMode: deployedWithLocalMode,
   }
 
   if (state === "ready" && devMode) {

@@ -112,6 +112,9 @@ deployments:
     # Whether the service was deployed with dev mode enabled.
     devMode:
 
+    # Whether the service was deployed with local mode enabled.
+    localMode:
+
     namespaceStatuses:
       - pluginName:
 
@@ -449,6 +452,9 @@ serviceStatuses:
     # Whether the service was deployed with dev mode enabled.
     devMode:
 
+    # Whether the service was deployed with local mode enabled.
+    localMode:
+
     namespaceStatuses:
       - pluginName:
 
@@ -558,6 +564,9 @@ Examples:
 
   # Whether the service was deployed with dev mode enabled.
   devMode:
+
+  # Whether the service was deployed with local mode enabled.
+  localMode:
 
   namespaceStatuses:
     - pluginName:
@@ -722,6 +731,9 @@ deployments:
 
     # Whether the service was deployed with dev mode enabled.
     devMode:
+
+    # Whether the service was deployed with local mode enabled.
+    localMode:
 
     namespaceStatuses:
       - pluginName:
@@ -2348,6 +2360,9 @@ services:
     # Whether the service was deployed with dev mode enabled.
     devMode:
 
+    # Whether the service was deployed with local mode enabled.
+    localMode:
+
     namespaceStatuses:
       - pluginName:
 
@@ -2915,6 +2930,9 @@ deployments:
 
     # Whether the service was deployed with dev mode enabled.
     devMode:
+
+    # Whether the service was deployed with local mode enabled.
+    localMode:
 
     namespaceStatuses:
       - pluginName:
@@ -3491,6 +3509,9 @@ deployments:
 
     # Whether the service was deployed with dev mode enabled.
     devMode:
+
+    # Whether the service was deployed with local mode enabled.
+    localMode:
 
     namespaceStatuses:
       - pluginName:
