@@ -119,7 +119,9 @@ function patchOriginalServiceSpec(
   }
 
   for (const key in localModeEnvVars) {
-    originalServiceSpec.env[key] = localModeEnvVars[key]
+    if (!originalServiceSpec.env[key]) {
+      originalServiceSpec.env[key] = localModeEnvVars[key]
+    }
   }
 
   delete originalServiceSpec.healthCheck
@@ -146,7 +148,8 @@ function patchMainContainer(
   if (!mainContainer.env) {
     mainContainer.env = []
   }
-  mainContainer.env.push(...extraEnvVars)
+  const existingEnvVarNames = new Set(mainContainer.env.map((v) => v.name))
+  extraEnvVars.filter((v) => !existingEnvVarNames.has(v.name)).forEach((v) => mainContainer.env!.push(v))
 
   if (!mainContainer.ports) {
     mainContainer.ports = []
