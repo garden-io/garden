@@ -20,11 +20,11 @@ import { LogEntry } from "../../logger/log-entry"
 import { getAppNamespace } from "./namespace"
 import { getPortForward, getTargetResource, PortForward } from "./port-forward"
 import chalk from "chalk"
-import fs, { existsSync, rmSync } from "fs"
+import { existsSync, rmSync } from "fs"
 import { ChildProcess, exec, ExecException, execSync } from "child_process"
-import pRetry = require("p-retry")
 import { join, resolve } from "path"
-import { ensureDir } from "fs-extra"
+import { ensureDir, readFileSync } from "fs-extra"
+import pRetry = require("p-retry")
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -106,7 +106,7 @@ class ProxySshKeystore {
 
   private static readSshKeyFromFile(filePath: string): string {
     try {
-      return fs.readFileSync(filePath).toString("utf-8")
+      return readFileSync(filePath).toString("utf-8")
     } catch (err) {
       const message = !!err.message ? err.message.toString() : "unknown"
       throw new ConfigurationError(`Could not read public key file from path ${filePath}; cause: ${message}`, err)
