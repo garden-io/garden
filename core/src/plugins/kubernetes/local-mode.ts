@@ -363,56 +363,45 @@ async function startReversePortForwarding(
   ]
   const reversePortForwardingCommand = `${sshCommandName} ${sshCommandArgs.join(" ")}`
 
-  try {
-    const reversePortForward = startChildProcess(
-      reversePortForwardingCommand,
-      function (error: ExecException | null, stdout: string, stderr: string): void {
-        error &&
-          log.error({
-            status: "active",
-            section: service.name,
-            msg: chalk.red(
-              `Reverse port-forwarding failed with error: ${JSON.stringify(error)}. ` +
-                `Consider running it manually: ${chalk.white(reversePortForwardingCommand)}`
-            ),
-          })
-        stderr &&
-          log.warn({
-            status: "active",
-            section: service.name,
-            msg: chalk.red(
-              `Reverse port-forwarding failed with error: ${stderr}. ` +
-                `Consider running it manually: ${chalk.white(reversePortForwardingCommand)}`
-            ),
-          })
-        stdout &&
-          log.info({
-            status: "active",
-            section: service.name,
-            msg: `Reverse port-forwarding output> ${stdout}`,
-          })
-      }
-    )
+  const reversePortForward = startChildProcess(
+    reversePortForwardingCommand,
+    function (error: ExecException | null, stdout: string, stderr: string): void {
+      error &&
+        log.error({
+          status: "active",
+          section: service.name,
+          msg: chalk.red(
+            `Reverse port-forwarding failed with error: ${JSON.stringify(error)}. ` +
+              `Consider running it manually: ${chalk.white(reversePortForwardingCommand)}`
+          ),
+        })
+      stderr &&
+        log.warn({
+          status: "active",
+          section: service.name,
+          msg: chalk.red(
+            `Reverse port-forwarding failed with error: ${stderr}. ` +
+              `Consider running it manually: ${chalk.white(reversePortForwardingCommand)}`
+          ),
+        })
+      stdout &&
+        log.info({
+          status: "active",
+          section: service.name,
+          msg: `Reverse port-forwarding output> ${stdout}`,
+        })
+    }
+  )
 
-    log.info({
-      status: "active",
-      section: service.name,
-      msg: chalk.gray(
-        `→ Started reverse port forwarding between the local machine and the remote k8s proxy ` +
-          `with PID ${reversePortForward.pid}: ` +
-          `${chalk.white(reversePortForward.spawnargs.join(" "))}`
-      ),
-    })
-  } catch (err) {
-    log.warn({
-      status: "active",
-      section: service.name,
-      msg: chalk.red(
-        `Reverse port-forwarding failed with error: ${err.message}. ` +
-          `Consider running it manually: ${chalk.white(reversePortForwardingCommand)}`
-      ),
-    })
-  }
+  log.info({
+    status: "active",
+    section: service.name,
+    msg: chalk.gray(
+      `→ Started reverse port forwarding between the local machine and the remote k8s proxy ` +
+        `with PID ${reversePortForward.pid}: ` +
+        `${chalk.white(reversePortForward.spawnargs.join(" "))}`
+    ),
+  })
 }
 
 /**
@@ -442,7 +431,7 @@ export async function startLocalModePortForwarding({
   log.info({
     status: "active",
     section: service.name,
-    msg: chalk.gray(`→ Forward: ${localSshUrl} → ${remoteSshUrl}`),
+    msg: chalk.gray(`→ Forward: ${localSshUrl} → ${remoteSshUrl} with PID ${portForward.proc.pid}`),
   })
 
   await startReversePortForwarding(service, portForward, log)
