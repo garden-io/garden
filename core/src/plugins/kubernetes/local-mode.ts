@@ -315,6 +315,9 @@ function startChildProcess(
   command: string,
   callback?: (error: ExecException | null, stdout: string, stderr: string) => void
 ): ChildProcess {
+  // The command { exec } from "../../util/util" does not work here.
+  // Despite the key files have the right access permissions, it fails with the following error:
+  // > Warning: Identity file  ${privateKeyFilePath} not accessible: No such file or directory
   const childProcess = exec(command, callback)
   process.on("exit", () => {
     childProcess.kill()
@@ -361,10 +364,6 @@ async function startReversePortForwarding(
   const reversePortForwardingCommand = `${sshCommandName} ${sshCommandArgs.join(" ")}`
 
   try {
-    // The command { exec } from "../../util/util" does not work here.
-    // Despite the key files have the right access permissions, it fails with the following error:
-    // > Warning: Identity file  ${privateKeyFilePath} not accessible: No such file or directory
-
     const reversePortForward = startChildProcess(
       reversePortForwardingCommand,
       function (error: ExecException | null, stdout: string, stderr: string): void {
