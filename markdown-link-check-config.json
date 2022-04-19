@@ -11,6 +11,10 @@
       "reason": "Ignore example URL"
     },
     {
+      "pattern": "^https://docs\\.github\\.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads$",
+      "reason": "Ignore this particular GitHub URL, it fails consistently with HTTP 403 code despite the link works fine"
+    },
+    {
       "pattern": "^[^\/]+\/[^\/].*$|^\/[^\/].*$",
       "reason": "Ignore relative paths. Those are handled by another tool due to: https://github.com/tcort/markdown-link-check/issues/65"
     },
