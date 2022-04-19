@@ -10,7 +10,7 @@ import Stream from "ts-stream"
 import split2 = require("split2")
 
 import { LogEntry } from "../../logger/log-entry"
-import { ServiceLogEntry, serviceLogEntrySchema } from "../../types/plugin/service/getServiceLogs"
+import { ServiceLogEntry } from "../../types/service"
 import { pathExists, stat, watch } from "fs-extra"
 import parseDuration from "parse-duration"
 import { validateSchema } from "../../config/validation"
@@ -19,6 +19,7 @@ import { EventEmitter2 } from "eventemitter2"
 import { getGitHubIssueLink, sleep } from "../../util/util"
 import { dedent } from "../../util/string"
 import { LogLevel } from "../../logger/logger"
+import { serviceLogEntrySchema } from "../../types/service"
 
 const defaultRetryIntervalMs = 5000
 const watcherShelfLifeSec = 15

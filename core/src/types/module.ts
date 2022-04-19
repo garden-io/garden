@@ -14,13 +14,23 @@ import { pathToCacheContext } from "../cache"
 import { Garden } from "../garden"
 import { joiArray, joiIdentifier, joiIdentifierMap, joi, moduleVersionSchema, DeepPrimitiveMap } from "../config/common"
 import { getModuleTypeBases } from "../plugins"
-import { ModuleType } from "./plugin/plugin"
-import { moduleOutputsSchema } from "./plugin/module/getModuleOutputs"
+import { moduleOutputsSchema } from "../plugin/handlers/module/get-outputs"
 import { LogEntry } from "../logger/log-entry"
+import { ModuleTypeDefinition } from "../plugin/module-types"
+import { GardenPlugin } from "../plugin/plugin"
 
 export interface FileCopySpec {
   source: string
   target: string
+}
+
+export interface ModuleType<T extends GardenModule = GardenModule> extends ModuleTypeDefinition<T> {
+  plugin: GardenPlugin
+  needsBuild: boolean
+}
+
+export interface ModuleTypeMap {
+  [name: string]: ModuleType
 }
 
 /**
@@ -141,7 +151,7 @@ export async function moduleFromConfig({
   }
 
   for (const d of module.build.dependencies) {
-    const key = getModuleKey(d.name, d.plugin)
+    const key = d.name
     module.buildDependencies[key] = findByName(buildDependencies, key)!
   }
 
@@ -154,9 +164,4 @@ export function moduleNeedsBuild(moduleConfig: ModuleConfig, moduleType: ModuleT
 
 export function getModuleCacheContext<M extends ModuleConfig>(config: M) {
   return pathToCacheContext(config.path)
-}
-
-export function getModuleKey(name: string, plugin?: string) {
-  const hasPrefix = !!name.match(/--/)
-  return plugin && !hasPrefix ? `${plugin}--${name}` : name
 }

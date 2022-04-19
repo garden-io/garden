@@ -165,7 +165,7 @@ interface WaitParams {
   namespace: string
   ctx: PluginContext
   provider: KubernetesProvider
-  serviceName?: string
+  actionName?: string
   resources: KubernetesResource[]
   log: LogEntry
   timeoutSec: number
@@ -178,7 +178,7 @@ export async function waitForResources({
   namespace,
   ctx,
   provider,
-  serviceName,
+  actionName,
   resources,
   log,
   timeoutSec,
@@ -192,7 +192,7 @@ export async function waitForResources({
   const waitingMsg = `Waiting for resources to be ready...`
   const statusLine = log.info({
     symbol: "info",
-    section: serviceName,
+    section: actionName,
     msg: waitingMsg,
   })
   emitLog(waitingMsg)
@@ -200,7 +200,7 @@ export async function waitForResources({
   if (resources.length === 0) {
     const noResourcesMsg = `No resources to wait`
     emitLog(noResourcesMsg)
-    statusLine.setState({ symbol: "info", section: serviceName, msg: noResourcesMsg })
+    statusLine.setState({ symbol: "info", section: actionName, msg: noResourcesMsg })
     return []
   }
 
@@ -222,7 +222,7 @@ export async function waitForResources({
       emitLog(statusLogMsg)
 
       if (status.state === "unhealthy") {
-        let msg = `Error deploying ${serviceName || "resources"}: ${status.lastMessage || statusMessage}`
+        let msg = `Error deploying ${actionName || "resources"}: ${status.lastMessage || statusMessage}`
 
         if (status.logs) {
           msg += "\n\n" + status.logs
@@ -230,7 +230,7 @@ export async function waitForResources({
 
         emitLog(msg)
         throw new DeploymentError(msg, {
-          serviceName,
+          serviceName: actionName,
           status,
         })
       }
@@ -258,7 +258,7 @@ export async function waitForResources({
 
     if (now - startTime > timeoutSec * 1000) {
       const deploymentErrMsg = deline`
-        Timed out waiting for ${serviceName || "resources"} to deploy after ${timeoutSec} seconds
+        Timed out waiting for ${actionName || "resources"} to deploy after ${timeoutSec} seconds
       `
       emitLog(deploymentErrMsg)
       throw new DeploymentError(deploymentErrMsg, { statuses })
@@ -267,7 +267,7 @@ export async function waitForResources({
 
   const readyMsg = `Resources ready`
   emitLog(readyMsg)
-  statusLine.setState({ symbol: "info", section: serviceName, msg: readyMsg })
+  statusLine.setState({ symbol: "info", section: actionName, msg: readyMsg })
 
   return statuses
 }

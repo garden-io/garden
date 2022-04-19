@@ -12,7 +12,7 @@ import { getAppNamespace } from "../namespace"
 import { KubernetesPluginContext } from "../config"
 import { execInWorkload, getServiceResource, getServiceResourceSpec } from "../util"
 import { ExecInServiceParams } from "../../../types/plugin/service/execInService"
-import { HelmModule } from "./config"
+import { HelmModule } from "./moduleConfig"
 import { getServiceStatus } from "./status"
 import { getBaseModule, getChartResources } from "./common"
 

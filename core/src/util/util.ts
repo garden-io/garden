@@ -47,6 +47,7 @@ import execa = require("execa")
 import { execSync } from "child_process"
 
 export { v4 as uuidv4 } from "uuid"
+export { apply as jsonMerge } from "json-merge-patch"
 
 export type HookCallback = (callback?: () => void) => void
 

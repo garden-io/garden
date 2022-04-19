@@ -12,10 +12,10 @@ import { collectTemplateReferences } from "../template-string/template-string"
 import { ConfigurationError } from "../exceptions"
 import { ModuleConfig, moduleConfigSchema } from "./module"
 import { uniq } from "lodash"
-import { GardenPlugin } from "../types/plugin/plugin"
-import { EnvironmentStatus } from "../types/plugin/provider/getEnvironmentStatus"
+import { GardenPlugin } from "../plugin/plugin"
+import { EnvironmentStatus } from "../plugin/handlers/provider/getEnvironmentStatus"
 import { environmentStatusSchema } from "./status"
-import { DashboardPage, dashboardPagesSchema } from "../types/plugin/provider/getDashboardPage"
+import { DashboardPage, dashboardPagesSchema } from "../plugin/handlers/provider/getDashboardPage"
 
 export interface BaseProviderConfig {
   name: string

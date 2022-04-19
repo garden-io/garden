@@ -9,24 +9,23 @@
 import { cloneDeep, flatten, isPlainObject } from "lodash"
 import { join, resolve } from "path"
 import { pathExists, readFile, remove, writeFile } from "fs-extra"
-import { apply as jsonMerge } from "json-merge-patch"
+import cryptoRandomString = require("crypto-random-string")
 
 import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
-import { getModuleNamespace } from "../namespace"
+import { getActionNamespace } from "../namespace"
 import { KubernetesResource } from "../types"
 import { loadAll } from "js-yaml"
 import { helm } from "./helm-cli"
-import { HelmModule, HelmModuleConfig } from "./config"
+import { HelmModule, HelmModuleConfig } from "./moduleConfig"
 import { ConfigurationError, PluginError } from "../../../exceptions"
 import { GardenModule } from "../../../types/module"
 import { deline, tailString } from "../../../util/string"
 import { flattenResources, getAnnotation } from "../util"
 import { KubernetesPluginContext } from "../config"
-import { RunResult } from "../../../types/plugin/base"
+import { RunResult } from "../../../plugin/base"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants"
-import { dumpYaml } from "../../../util/util"
-import cryptoRandomString = require("crypto-random-string")
+import { dumpYaml, jsonMerge } from "../../../util/util"
 
 const gardenValuesFilename = "garden-values.yml"
 
@@ -137,7 +136,7 @@ export async function prepareTemplates({
   await dumpYaml(valuesPath, specValues)
 
   const releaseName = getReleaseName(module)
-  const namespace = await getModuleNamespace({
+  const namespace = await getActionNamespace({
     ctx,
     log,
     module,
@@ -210,7 +209,7 @@ export async function filterManifests(renderedTemplates: string) {
  * Returns the base module of the specified Helm module, or undefined if none is specified.
  * Throws an error if the referenced module is missing, or is not a Helm module.
  */
-export function getBaseModule(module: HelmModule) {
+export function getBaseModule(module: HelmModule): HelmModule | undefined {
   if (!module.spec.base) {
     return
   }
@@ -305,7 +304,7 @@ export async function renderHelmTemplateString(
   const relPath = join("templates", cryptoRandomString({ length: 16 }) + ".yaml")
   const tempFilePath = join(chartPath, relPath)
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getModuleNamespace({
+  const namespace = await getActionNamespace({
     ctx: k8sCtx,
     log,
     module,

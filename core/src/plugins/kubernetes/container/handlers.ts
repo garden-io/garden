@@ -6,24 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { deployContainerService, deleteService } from "./deployment"
 import { getServiceLogs } from "./logs"
 import { runContainerModule, runContainerService, runContainerTask } from "./run"
 import { execInService } from "./exec"
 import { testContainerModule } from "./test"
 import { ConfigurationError } from "../../../exceptions"
 import { KubernetesProvider } from "../config"
-import { ConfigureModuleParams } from "../../../types/plugin/module/configure"
-import { getContainerServiceStatus } from "./status"
+import { ConfigureModuleParams } from "../../../plugin/handlers/module/configure"
+import { getContainerDeployStatus } from "./status"
 import { getTestResult } from "../test-results"
-import { ContainerModule } from "../../container/config"
+import { ContainerBuildAction, ContainerBuildOutputs, ContainerModule } from "../../container/moduleConfig"
 import { getTaskResult } from "../task-results"
-import { k8sBuildContainer, k8sGetContainerBuildStatus } from "./build/build"
 import { k8sPublishContainerModule } from "./publish"
 import { getPortForwardHandler } from "../port-forward"
-import { GetModuleOutputsParams } from "../../../types/plugin/module/getModuleOutputs"
+import { GetModuleOutputsParams } from "../../../plugin/handlers/module/get-outputs"
 import { containerHelpers } from "../../container/helpers"
 import { getContainerModuleOutputs } from "../../container/container"
+import { getContainerBuildActionOutputs } from "../../container/build"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
   let { moduleConfig } = await params.base!(params)
@@ -34,14 +33,10 @@ async function configure(params: ConfigureModuleParams<ContainerModule>) {
 export const containerHandlers = {
   configure,
   getModuleOutputs: k8sGetContainerModuleOutputs,
-  build: k8sBuildContainer,
-  deployService: deployContainerService,
-  deleteService,
   execInService,
-  getBuildStatus: k8sGetContainerBuildStatus,
   getPortForward: getPortForwardHandler,
   getServiceLogs,
-  getServiceStatus: getContainerServiceStatus,
+  getServiceStatus: getContainerDeployStatus,
   getTestResult,
   publish: k8sPublishContainerModule,
   runModule: runContainerModule,
@@ -58,16 +53,43 @@ export async function k8sGetContainerModuleOutputs(params: GetModuleOutputsParam
 
   const provider = <KubernetesProvider>ctx.provider
   outputs["deployment-image-name"] = containerHelpers.getDeploymentImageName(
-    moduleConfig,
+    moduleConfig.name,
+    moduleConfig.spec.image,
     provider.config.deploymentRegistry
   )
-  outputs["deployment-image-id"] = containerHelpers.getDeploymentImageId(
+  outputs["deployment-image-id"] = containerHelpers.getModuleDeploymentImageId(
     moduleConfig,
     version,
     provider.config.deploymentRegistry
   )
 
   return { outputs }
+}
+
+export function k8sGetContainerBuildActionOutputs({
+  provider,
+  action,
+}: {
+  provider: KubernetesProvider
+  action: ContainerBuildAction
+}): ContainerBuildOutputs {
+  const outputs = getContainerBuildActionOutputs(action)
+
+  const localId = action.getSpec("localId")
+
+  outputs.deploymentImageName = containerHelpers.getDeploymentImageName(
+    action.name,
+    localId,
+    provider.config.deploymentRegistry
+  )
+  outputs.deploymentImageId = containerHelpers.getBuildDeploymentImageId(
+    action.name,
+    localId,
+    action.version,
+    provider.config.deploymentRegistry
+  )
+
+  return outputs
 }
 
 async function validateConfig<T extends ContainerModule>(params: ConfigureModuleParams<T>) {

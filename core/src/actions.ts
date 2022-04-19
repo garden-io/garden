@@ -14,7 +14,7 @@ import tmp from "tmp-promise"
 import normalizePath = require("normalize-path")
 
 import { PublishModuleParams, PublishModuleResult } from "./types/plugin/module/publishModule"
-import { SetSecretParams, SetSecretResult } from "./types/plugin/provider/setSecret"
+import { SetSecretParams, SetSecretResult } from "./plugin/handlers/provider/setSecret"
 import { validateSchema } from "./config/validation"
 import { defaultProvider } from "./config/provider"
 import { ParameterError, PluginError, InternalError, RuntimeError } from "./exceptions"
@@ -30,10 +30,10 @@ import {
   PluginTaskActionParamsBase,
   RunResult,
   runStatus,
-} from "./types/plugin/base"
+} from "./plugin/base"
 import { BuildModuleParams, BuildResult, BuildState } from "./types/plugin/module/build"
 import { BuildStatus, GetBuildStatusParams } from "./types/plugin/module/getBuildStatus"
-import { GetTestResultParams, TestResult } from "./types/plugin/module/getTestResult"
+import { TestResult } from "./types/test"
 import { RunModuleParams } from "./types/plugin/module/runModule"
 import { TestModuleParams } from "./types/plugin/module/testModule"
 import {
@@ -41,9 +41,9 @@ import {
   ModuleActionParams,
   ModuleActionHandlers,
   ModuleAndRuntimeActionHandlers,
-  PluginActionOutputs,
-  PluginActionParams,
-  PluginActionHandlers,
+  ProviderActionOutputs,
+  ProviderActionParams,
+  ProviderActionHandlers,
   ServiceActionOutputs,
   ServiceActionParams,
   ServiceActionHandlers,
@@ -55,25 +55,25 @@ import {
   WrappedModuleActionHandler,
   WrappedActionHandler,
   ModuleTypeDefinition,
-  getPluginActionNames,
+  getProviderActionNames,
   getModuleActionNames,
-  getPluginActionDescriptions,
+  getProviderActionDescriptions,
   getModuleActionDescriptions,
-  PluginActionDescriptions,
+  ResolvedActionHandlerDescriptions,
   ModuleActionHandler,
   ActionHandler,
   TestActionParams,
   TestActionHandlers,
   TestActionOutputs,
-} from "./types/plugin/plugin"
-import { CleanupEnvironmentParams, CleanupEnvironmentResult } from "./types/plugin/provider/cleanupEnvironment"
-import { DeleteSecretParams, DeleteSecretResult } from "./types/plugin/provider/deleteSecret"
+} from "./plugin/plugin"
+import { CleanupEnvironmentParams, CleanupEnvironmentResult } from "./plugin/handlers/provider/cleanupEnvironment"
+import { DeleteSecretParams, DeleteSecretResult } from "./plugin/handlers/provider/deleteSecret"
 import {
   EnvironmentStatusMap,
   GetEnvironmentStatusParams,
   EnvironmentStatus,
-} from "./types/plugin/provider/getEnvironmentStatus"
-import { GetSecretParams, GetSecretResult } from "./types/plugin/provider/getSecret"
+} from "./plugin/handlers/provider/getEnvironmentStatus"
+import { GetSecretParams, GetSecretResult } from "./plugin/handlers/provider/getSecret"
 import { DeleteServiceParams } from "./types/plugin/service/deleteService"
 import { DeployServiceParams } from "./types/plugin/service/deployService"
 import { ExecInServiceParams, ExecInServiceResult } from "./types/plugin/service/execInService"
@@ -84,8 +84,8 @@ import { GetTaskResultParams } from "./types/plugin/task/getTaskResult"
 import { RunTaskParams, RunTaskResult } from "./types/plugin/task/runTask"
 import { ServiceStatus, ServiceStatusMap, ServiceState, GardenService } from "./types/service"
 import { Omit, getNames, uuidv4 } from "./util/util"
-import { DebugInfoMap } from "./types/plugin/provider/getDebugInfo"
-import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "./types/plugin/provider/prepareEnvironment"
+import { DebugInfoMap } from "./plugin/handlers/provider/getDebugInfo"
+import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "./plugin/handlers/provider/prepareEnvironment"
 import { GetPortForwardParams } from "./types/plugin/service/getPortForward"
 import { StopPortForwardParams } from "./types/plugin/service/stopPortForward"
 import { emptyRuntimeContext, RuntimeContext } from "./runtime-context"
@@ -93,28 +93,29 @@ import { GetServiceStatusTask } from "./tasks/get-service-status"
 import { getServiceStatuses } from "./tasks/base"
 import { getRuntimeTemplateReferences, resolveTemplateStrings } from "./template-string/template-string"
 import { getPluginBases, getPluginDependencies, getModuleTypeBases } from "./plugins"
-import { ConfigureProviderParams, ConfigureProviderResult } from "./types/plugin/provider/configureProvider"
+import { ConfigureProviderParams, ConfigureProviderResult } from "./plugin/handlers/provider/configureProvider"
 import { GardenTask } from "./types/task"
-import { ConfigureModuleParams, ConfigureModuleResult } from "./types/plugin/module/configure"
+import { ConfigureModuleParams, ConfigureModuleResult } from "./plugin/handlers/module/configure"
 import { PluginContext, PluginEventBroker } from "./plugin-context"
 import { DeleteServiceTask, deletedServiceStatuses } from "./tasks/delete-service"
 import { realpath, writeFile } from "fs-extra"
 import { relative, join } from "path"
 import { getArtifactKey } from "./util/artifacts"
-import { AugmentGraphResult, AugmentGraphParams } from "./types/plugin/provider/augmentGraph"
+import { AugmentGraphResult, AugmentGraphParams } from "./plugin/handlers/provider/augmentGraph"
 import { DeployTask } from "./tasks/deploy"
 import { BuildDependencyConfig } from "./config/module"
 import { Profile } from "./util/profiling"
 import { ConfigGraph } from "./config-graph"
 import { ModuleConfigContext } from "./config/template-contexts/module"
-import { GetDashboardPageParams, GetDashboardPageResult } from "./types/plugin/provider/getDashboardPage"
-import { GetModuleOutputsParams, GetModuleOutputsResult } from "./types/plugin/module/getModuleOutputs"
+import { GetDashboardPageParams, GetDashboardPageResult } from "./plugin/handlers/provider/getDashboardPage"
+import { GetModuleOutputsParams, GetModuleOutputsResult } from "./plugin/handlers/module/get-outputs"
 import { ConfigContext } from "./config/template-contexts/base"
+import { GetTestResultParams } from "./types/plugin/module/getTestResult"
 
 const maxArtifactLogLines = 5 // max number of artifacts to list in console after task+test runs
 
 type TypeGuard = {
-  readonly [P in keyof (PluginActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
+  readonly [P in keyof (ProviderActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
 }
 
 export interface DeployServicesParams {
@@ -137,8 +138,8 @@ export class ActionRouter implements TypeGuard {
   private readonly actionHandlers: WrappedPluginActionMap
   private readonly moduleActionHandlers: ModuleActionMap
   private readonly loadedPlugins: PluginMap
-  private readonly pluginActionDescriptions: PluginActionDescriptions
-  private readonly moduleActionDescriptions: PluginActionDescriptions
+  private readonly pluginActionDescriptions: ResolvedActionHandlerDescriptions
+  private readonly moduleActionDescriptions: ResolvedActionHandlerDescriptions
 
   constructor(
     private readonly garden: Garden,
@@ -146,10 +147,10 @@ export class ActionRouter implements TypeGuard {
     loadedPlugins: GardenPlugin[],
     private readonly moduleTypes: { [name: string]: ModuleTypeDefinition }
   ) {
-    const pluginActionNames = getPluginActionNames()
+    const pluginActionNames = getProviderActionNames()
     const moduleActionNames = getModuleActionNames()
 
-    this.pluginActionDescriptions = getPluginActionDescriptions()
+    this.pluginActionDescriptions = getProviderActionDescriptions()
     this.moduleActionDescriptions = getModuleActionDescriptions()
 
     this.actionHandlers = <WrappedPluginActionMap>fromPairs(pluginActionNames.map((n) => [n, {}]))
@@ -197,7 +198,7 @@ export class ActionRouter implements TypeGuard {
       defaultHandler: async ({ config }) => ({ config }),
     })
 
-    const handlerParams: PluginActionParams["configureProvider"] = {
+    const handlerParams: ProviderActionParams["configureProvider"] = {
       ...omit(params, ["pluginName"]),
       base: this.wrapBase(handler!.base),
     }
@@ -980,11 +981,11 @@ export class ActionRouter implements TypeGuard {
     pluginName,
     defaultHandler,
   }: {
-    params: ActionRouterParams<PluginActionParams[T]>
+    params: ActionRouterParams<ProviderActionParams[T]>
     actionType: T
     pluginName: string
-    defaultHandler?: PluginActionHandlers[T]
-  }): Promise<PluginActionOutputs[T]> {
+    defaultHandler?: ProviderActionHandlers[T]
+  }): Promise<ProviderActionOutputs[T]> {
     this.garden.log.silly(`Calling ${actionType} handler on plugin '${pluginName}'`)
 
     const handler = await this.getActionHandler({
@@ -993,7 +994,7 @@ export class ActionRouter implements TypeGuard {
       defaultHandler,
     })
 
-    const handlerParams: PluginActionParams[T] = {
+    const handlerParams: ProviderActionParams[T] = {
       ...(await this.commonParams(handler!, params.log, undefined, params.events)),
       ...(<any>params),
     }
@@ -1036,7 +1037,7 @@ export class ActionRouter implements TypeGuard {
       partialRuntimeResolution: false,
     })
     const handlerParams = {
-      ...(await this.commonParams(handler, params.log, templateContext, params.events)),
+      ...(await this.commonParams(handler, params.log, templateContext)),
       ...params,
       module: omit(module, ["_config"]),
     }
@@ -1251,7 +1252,7 @@ export class ActionRouter implements TypeGuard {
   private addActionHandler<T extends keyof WrappedPluginActionHandlers>(
     plugin: GardenPlugin,
     actionType: T,
-    handler: PluginActionHandlers[T]
+    handler: ProviderActionHandlers[T]
   ) {
     const pluginName = plugin.name
     const schema = this.pluginActionDescriptions[actionType].resultSchema
@@ -1395,7 +1396,7 @@ export class ActionRouter implements TypeGuard {
   }: {
     actionType: T
     pluginName: string
-    defaultHandler?: PluginActionHandlers[T]
+    defaultHandler?: ProviderActionHandlers[T]
     throwIfMissing?: boolean
   }): Promise<WrappedPluginActionHandlers[T] | null> {
     const handlers = Object.values(await this.getActionHandlers(actionType, pluginName))
@@ -1563,7 +1564,7 @@ type WrappedModuleAndRuntimeActionHandlers<T extends GardenModule = GardenModule
   WrappedTaskActionHandlers<T>
 
 type WrappedPluginActionHandlers = {
-  [P in keyof PluginActionParams]: WrappedActionHandler<PluginActionParams[P], PluginActionOutputs[P]>
+  [P in keyof ProviderActionParams]: WrappedActionHandler<ProviderActionParams[P], ProviderActionOutputs[P]>
 }
 
 interface WrappedActionHandlerMap<T extends keyof WrappedPluginActionHandlers> {

@@ -14,7 +14,7 @@ import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { DeploymentError } from "../../../exceptions"
 import { sleep } from "../../../util/util"
 import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
-import { ContainerModule } from "../../container/config"
+import { ContainerDeployAction, ContainerModule } from "../../container/moduleConfig"
 import { KubeApi } from "../api"
 import { compareDeployedResources } from "../status/status"
 import { getIngresses } from "./ingress"
@@ -22,6 +22,7 @@ import { getAppNamespaceStatus } from "../namespace"
 import { KubernetesPluginContext } from "../config"
 import { RuntimeContext } from "../../../runtime-context"
 import { KubernetesServerResource, KubernetesWorkload } from "../types"
+import { DeployActionHandler } from "../../../plugin/action-types"
 
 interface ContainerStatusDetail {
   remoteResources: KubernetesServerResource[]
@@ -30,14 +31,8 @@ interface ContainerStatusDetail {
 
 export type ContainerServiceStatus = ServiceStatus<ContainerStatusDetail>
 
-export async function getContainerServiceStatus({
-  ctx,
-  service,
-  runtimeContext,
-  log,
-  devMode,
-  localMode,
-}: GetServiceStatusParams<ContainerModule>): Promise<ContainerServiceStatus> {
+export const getContainerDeployStatus: DeployActionHandler<"deploy", ContainerDeployAction> = async (params) => {
+  const { ctx, action, runtimeContext, log, devMode, localMode } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
   const provider = k8sCtx.provider
@@ -51,7 +46,7 @@ export async function getContainerServiceStatus({
     ctx: k8sCtx,
     api,
     log,
-    service,
+    action,
     runtimeContext,
     enableDevMode,
     enableLocalMode: localMode,
@@ -64,12 +59,13 @@ export async function getContainerServiceStatus({
     manifests,
     log
   )
-  const ingresses = await getIngresses(service, api, provider)
+  const ingresses = await getIngresses(action, api, provider)
 
   // Local mode has its own port-forwarding configuration
   const forwardablePorts: ForwardablePort[] = deployedWithLocalMode
     ? []
-    : service.spec.ports
+    : action
+        .getSpec("ports")
         .filter((p) => p.protocol === "TCP")
         .map((p) => {
           return {
@@ -87,7 +83,7 @@ export async function getContainerServiceStatus({
     ingresses,
     state,
     namespaceStatuses: [namespaceStatus],
-    version: state === "ready" ? service.version : undefined,
+    version: state === "ready" ? action.version.versionString : undefined,
     detail: { remoteResources, workload },
     devMode: deployedWithDevMode,
     localMode: deployedWithLocalMode,
@@ -99,7 +95,7 @@ export async function getContainerServiceStatus({
       ctx: <KubernetesPluginContext>ctx,
       log,
       status,
-      service,
+      action,
     })
   }
 
@@ -122,7 +118,7 @@ export async function waitForContainerService(
   const startTime = new Date().getTime()
 
   while (true) {
-    const status = await getContainerServiceStatus({
+    const status = await getContainerDeployStatus({
       ctx,
       log,
       service,

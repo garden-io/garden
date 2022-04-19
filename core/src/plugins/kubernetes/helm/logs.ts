@@ -8,10 +8,10 @@
 
 import { GetServiceLogsParams } from "../../../types/plugin/service/getServiceLogs"
 import { streamK8sLogs } from "../logs"
-import { HelmModule } from "./config"
+import { HelmModule } from "./moduleConfig"
 import { KubernetesPluginContext } from "../config"
 import { getReleaseName } from "./common"
-import { getModuleNamespace } from "../namespace"
+import { getActionNamespace } from "../namespace"
 import { getRenderedResources } from "./status"
 import { sleep } from "../../../util/util"
 
@@ -20,7 +20,7 @@ export async function getServiceLogs(params: GetServiceLogsParams<HelmModule>) {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const releaseName = getReleaseName(module)
-  const namespace = await getModuleNamespace({
+  const namespace = await getActionNamespace({
     ctx: k8sCtx,
     log,
     module: service.module,

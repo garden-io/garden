@@ -17,15 +17,13 @@ import { gardenPlugin, ContainerProvider } from "../../../../../src/plugins/cont
 import { dataDir, expectError, makeTestGarden } from "../../../../helpers"
 import { moduleFromConfig } from "../../../../../src/types/module"
 import { LogEntry } from "../../../../../src/logger/log-entry"
-import {
-  ContainerModuleConfig,
-  defaultContainerResources,
-  defaultDeploymentStrategy,
-} from "../../../../../src/plugins/container/config"
+import { defaultDeploymentStrategy } from "../../../../../src/plugins/container/config"
+import { ContainerModuleConfig, defaultContainerResources } from "../../../../../src/plugins/container/moduleConfig"
 import {
   containerHelpers as helpers,
   minDockerVersion,
   DEFAULT_BUILD_TIMEOUT,
+  defaultDockerfileName,
 } from "../../../../../src/plugins/container/helpers"
 import { getDockerBuildFlags } from "../../../../../src/plugins/container/build"
 
@@ -210,6 +208,13 @@ describe("plugins.container", () => {
     expect(baseModule.version.versionString).to.not.equal(changedBuild.version.versionString)
   })
 
+  describe("convert", () => {
+    // TODO-G2: adapt from exec convert tests
+    it("TODO", () => {
+      throw "TODO"
+    })
+  })
+
   describe("configureContainerModule", () => {
     const containerModuleConfig: ContainerModuleConfig = {
       allowPublish: false,
@@ -324,7 +329,7 @@ describe("plugins.container", () => {
           disabled: false,
           apiVersion: "garden.io/v0",
           name: "module-a",
-          include: ["Dockerfile"],
+          include: [defaultDockerfileName],
           path: modulePath,
           type: "container",
           spec: {

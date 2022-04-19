@@ -17,8 +17,13 @@ const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
 import { getBuiltinPlugins } from "./plugins/plugins"
-import { GardenModule, getModuleCacheContext, getModuleKey, ModuleConfigMap, moduleFromConfig } from "./types/module"
-import { ModuleTypeMap } from "./types/plugin/plugin"
+import {
+  GardenModule,
+  getModuleCacheContext,
+  ModuleConfigMap,
+  moduleFromConfig,
+  ModuleTypeMap,
+} from "./types/module"
 import {
   SourceConfig,
   ProjectConfig,
@@ -47,7 +52,7 @@ import { BuildStaging } from "./build-staging/build-staging"
 import { ConfigGraph } from "./config-graph"
 import { TaskGraph, GraphResults, ProcessTasksOpts } from "./task-graph"
 import { getLogger } from "./logger/logger"
-import { PluginActionHandlers, GardenPlugin } from "./types/plugin/plugin"
+import { ProviderActionHandlers, GardenPlugin } from "./plugin/plugin"
 import { loadConfigResources, findProjectConfig, prepareModuleResource, GardenResource } from "./config/base"
 import { DeepPrimitiveMap, StringMap, PrimitiveMap, treeVersionSchema, joi } from "./config/common"
 import { BaseTask } from "./tasks/base"
@@ -56,7 +61,7 @@ import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { ModuleConfig } from "./config/module"
 import { ModuleResolver } from "./resolve-module"
 import { createPluginContext, CommandInfo, PluginEventBroker } from "./plugin-context"
-import { ModuleAndRuntimeActionHandlers, RegisterPluginParam } from "./types/plugin/plugin"
+import { ModuleAndRuntimeActionHandlers, RegisterPluginParam } from "./plugin/plugin"
 import {
   SUPPORTED_PLATFORMS,
   SupportedPlatform,
@@ -103,7 +108,7 @@ import {
   ModuleTemplateResource,
   resolveModuleTemplate,
   resolveTemplatedModule,
-  templateKind,
+  moduleTemplateKind,
   ModuleTemplateConfig,
 } from "./config/module-template"
 import { TemplatedModuleConfig } from "./plugins/templated"
@@ -117,8 +122,8 @@ import { ConfigContext } from "./config/template-contexts/base"
 import { validateSchema, validateWithPath } from "./config/validation"
 import { pMemoizeDecorator } from "./lib/p-memoize"
 
-export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
-  [actionName: string]: PluginActionHandlers[T]
+export interface ActionHandlerMap<T extends keyof ProviderActionHandlers> {
+  [actionName: string]: ProviderActionHandlers[T]
 }
 
 export interface ModuleActionHandlerMap<T extends keyof ModuleAndRuntimeActionHandlers> {
@@ -126,8 +131,8 @@ export interface ModuleActionHandlerMap<T extends keyof ModuleAndRuntimeActionHa
 }
 
 export type PluginActionMap = {
-  [A in keyof PluginActionHandlers]: {
-    [pluginName: string]: PluginActionHandlers[A]
+  [A in keyof ProviderActionHandlers]: {
+    [pluginName: string]: ProviderActionHandlers[A]
   }
 }
 
@@ -195,7 +200,6 @@ export class Garden {
   private loadedPlugins: GardenPlugin[]
   protected moduleConfigs: ModuleConfigMap
   protected workflowConfigs: WorkflowConfigMap
-  private pluginModuleConfigs: ModuleConfig[]
   private resolvedProviders: { [key: string]: Provider }
   protected configsScanned: boolean
   protected registeredPlugins: RegisterPluginParam[]
@@ -310,7 +314,6 @@ export class Garden {
     this.globalConfigStore = new GlobalConfigStore()
 
     this.moduleConfigs = {}
-    this.pluginModuleConfigs = []
     this.workflowConfigs = {}
     this.registeredPlugins = [...getBuiltinPlugins(), ...params.plugins]
     this.resolvedProviders = {}
@@ -760,7 +763,12 @@ export class Garden {
 
     const resolvedModules = await resolver.resolveAll()
 
+    // TODO-G2: convert modules to actions here
+    // -> Do the conversion
+    // -> Collect module outputs for templating from actions (attach to ConfigGraph?)
+
     // Require include/exclude on modules if their paths overlap
+    // TODO-G2: change this to detect overlap on Build actions
     const overlaps = detectModuleOverlap({
       projectRoot: this.projectRoot,
       gardenDirPath: this.gardenDirPath,
@@ -970,9 +978,9 @@ export class Garden {
         throwOnMissingSecretKeys(configs, this.secrets, kind, this.log)
       }
 
-      let rawModuleConfigs = [...this.pluginModuleConfigs, ...((groupedResources.Module as ModuleConfig[]) || [])]
+      let rawModuleConfigs = [...((groupedResources.Module as ModuleConfig[]) || [])]
       const rawWorkflowConfigs = (groupedResources.Workflow as WorkflowConfig[]) || []
-      const rawModuleTemplateResources = (groupedResources[templateKind] as ModuleTemplateResource[]) || []
+      const rawModuleTemplateResources = (groupedResources[moduleTemplateKind] as ModuleTemplateResource[]) || []
 
       // Resolve module templates
       const moduleTemplates = await Bluebird.map(rawModuleTemplateResources, (r) => resolveModuleTemplate(this, r))
@@ -988,7 +996,9 @@ export class Garden {
               )}`
           )
           .join("\n")
-        throw new ConfigurationError(`Found duplicate names of ${templateKind}s:\n${messages}`, { duplicateTemplates })
+        throw new ConfigurationError(`Found duplicate names of ${moduleTemplateKind}s:\n${messages}`, {
+          duplicateTemplates,
+        })
       }
 
       // Resolve templated modules
@@ -1022,7 +1032,7 @@ export class Garden {
    * Add a module config to the context, after validating and calling the appropriate configure plugin handler.
    */
   private async addModuleConfig(config: ModuleConfig) {
-    const key = getModuleKey(config.name, config.plugin)
+    const key = config.name
     this.log.silly(`Adding module ${key}`)
     const existing = this.moduleConfigs[key]
 
@@ -1070,9 +1080,9 @@ export class Garden {
    */
   private async loadResources(configPath: string): Promise<GardenResource[]> {
     configPath = resolve(this.projectRoot, configPath)
-    this.log.silly(`Load module and workflow configs from ${configPath}`)
+    this.log.silly(`Load configs from ${configPath}`)
     const resources = await loadConfigResources(this.projectRoot, configPath)
-    this.log.silly(`Loaded module and workflow configs from ${configPath}`)
+    this.log.silly(`Loaded configs from ${configPath}`)
     return <GardenResource[]>resources.filter((r) => r.kind && r.kind !== "Project")
   }
 

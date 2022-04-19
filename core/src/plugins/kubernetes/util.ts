@@ -18,20 +18,20 @@ import { splitLast, serializeValues, findByName, exec } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
 import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util/string"
 import { MAX_CONFIGMAP_DATA_SIZE, systemDockerAuthSecretName } from "./constants"
-import { ContainerEnvVars } from "../container/config"
+import { ContainerEnvVars } from "../container/moduleConfig"
 import { ConfigurationError, DeploymentError, PluginError } from "../../exceptions"
 import { ServiceResourceSpec, KubernetesProvider, KubernetesPluginContext } from "./config"
 import { LogEntry } from "../../logger/log-entry"
 import { PluginContext } from "../../plugin-context"
-import { HelmModule } from "./helm/config"
-import { KubernetesModule } from "./kubernetes-module/config"
+import { HelmModule } from "./helm/moduleConfig"
+import { KubernetesModule } from "./kubernetes-type/moduleConfig"
 import { getChartPath, renderHelmTemplateString } from "./helm/common"
 import { SyncableResource } from "./types"
 import { ProviderMap } from "../../config/provider"
 import { PodRunner } from "./run"
 import { isSubset } from "../../util/is-subset"
 import { checkPodStatus } from "./status/pod"
-import { getModuleNamespace } from "./namespace"
+import { getActionNamespace } from "./namespace"
 
 export const skopeoImage = "gardendev/skopeo:1.41.0-2"
 
@@ -589,7 +589,7 @@ export async function getServiceResource({
   if (resourceSpec.podSelector && !isEmpty(resourceSpec.podSelector)) {
     const api = await KubeApi.factory(log, ctx, provider)
     const k8sCtx = ctx as KubernetesPluginContext
-    const namespace = await getModuleNamespace({
+    const namespace = await getActionNamespace({
       ctx: k8sCtx,
       log,
       module,

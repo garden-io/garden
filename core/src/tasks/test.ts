@@ -12,7 +12,7 @@ import { find } from "lodash"
 import minimatch = require("minimatch")
 
 import { GardenModule } from "../types/module"
-import { TestResult } from "../types/plugin/module/getTestResult"
+import { TestResult } from "../types/test"
 import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults } from "../tasks/base"
 import { prepareRuntimeContext } from "../runtime-context"
 import { Garden } from "../garden"

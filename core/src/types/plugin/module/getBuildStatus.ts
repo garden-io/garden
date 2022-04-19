@@ -8,7 +8,7 @@
 
 import { dedent } from "../../../util/string"
 import { GardenModule } from "../../module"
-import { PluginModuleActionParamsBase, moduleActionParamsSchema } from "../base"
+import { PluginModuleActionParamsBase, moduleActionParamsSchema } from "../../../plugin/base"
 import { joi } from "../../../config/common"
 
 export interface GetBuildStatusParams<T extends GardenModule = GardenModule> extends PluginModuleActionParamsBase<T> {}

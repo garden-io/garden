@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginMap, createGardenPlugin } from "../../../../src/types/plugin/plugin"
+import { PluginMap, createGardenPlugin } from "../../../../src/plugin/plugin"
 import { getPluginBases } from "../../../../src/plugins"
 import { expect } from "chai"
 import { sortBy } from "lodash"

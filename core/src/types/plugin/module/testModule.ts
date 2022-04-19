@@ -8,10 +8,10 @@
 
 import { dedent } from "../../../util/string"
 import { GardenModule } from "../../module"
-import { PluginModuleActionParamsBase, artifactsPathSchema } from "../base"
+import { PluginModuleActionParamsBase, artifactsPathSchema } from "../../../plugin/base"
 import { RuntimeContext } from "../../../runtime-context"
 import { runModuleBaseSchema } from "./runModule"
-import { testResultSchema } from "./getTestResult"
+import { testResultSchema } from "../../test"
 import { GardenTest, testSchema } from "../../test"
 
 export interface TestModuleParams<T extends GardenModule = GardenModule> extends PluginModuleActionParamsBase<T> {

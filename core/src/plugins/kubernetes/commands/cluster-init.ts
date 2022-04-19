@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginCommand } from "../../../types/plugin/command"
+import { PluginCommand } from "../../../plugin/command"
 import { prepareSystem, getEnvironmentStatus } from "../init"
 import chalk from "chalk"
 

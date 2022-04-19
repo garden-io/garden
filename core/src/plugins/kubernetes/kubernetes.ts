@@ -8,15 +8,15 @@
 
 import Bluebird from "bluebird"
 
-import { createGardenPlugin } from "../../types/plugin/plugin"
-import { helmHandlers } from "./helm/handlers"
+import { createGardenPlugin } from "../../plugin/plugin"
+import { helmModuleHandlers } from "./helm/handlers"
 import { getAppNamespace, getSystemNamespace } from "./namespace"
 import { getSecret, setSecret, deleteSecret } from "./secrets"
 import { getEnvironmentStatus, prepareEnvironment, cleanupEnvironment } from "./init"
 import { containerHandlers } from "./container/handlers"
-import { kubernetesHandlers } from "./kubernetes-module/handlers"
-import { ConfigureProviderParams } from "../../types/plugin/provider/configureProvider"
-import { DebugInfo, GetDebugInfoParams } from "../../types/plugin/provider/getDebugInfo"
+import { kubernetesHandlers } from "./kubernetes-type/handlers"
+import { ConfigureProviderParams } from "../../plugin/handlers/provider/configureProvider"
+import { DebugInfo, GetDebugInfoParams } from "../../plugin/handlers/provider/getDebugInfo"
 import { kubectl, kubectlSpec } from "./kubectl"
 import { KubernetesConfig, KubernetesPluginContext } from "./config"
 import { configSchema } from "./config"
@@ -28,8 +28,8 @@ import { uninstallGardenServices } from "./commands/uninstall-garden-services"
 import { joi, joiIdentifier } from "../../config/common"
 import { resolve } from "path"
 import { dedent } from "../../util/string"
-import { kubernetesModuleSpecSchema } from "./kubernetes-module/config"
-import { helmModuleSpecSchema, helmModuleOutputsSchema } from "./helm/config"
+import { kubernetesModuleSpecSchema } from "./kubernetes-type/moduleConfig"
+import { helmModuleSpecSchema, helmModuleOutputsSchema } from "./helm/moduleConfig"
 import chalk from "chalk"
 import pluralize from "pluralize"
 import { getSystemMetadataNamespaceName } from "./system"
@@ -41,7 +41,9 @@ import { isString } from "lodash"
 import { mutagenCliSpec } from "./mutagen"
 import { configMapModuleDefinition } from "./volumes/configmap"
 import { jibContainerHandlers } from "./jib-container"
-import { kustomizeSpec } from "./kubernetes-module/kustomize"
+import { kustomizeSpec } from "./kubernetes-type/kustomize"
+import { k8sBuildContainer, k8sGetContainerBuildStatus } from "./container/build/build"
+import { containerDeploy, deleteContainerDeploy } from "./container/deployment"
 
 export async function configureProvider({
   namespace,
@@ -153,6 +155,7 @@ export const gardenPlugin = () =>
     configSchema: configSchema(),
     outputsSchema,
     commands: [cleanupClusterRegistry, clusterInit, uninstallGardenServices, pullImage],
+
     handlers: {
       configureProvider,
       getEnvironmentStatus,
@@ -163,6 +166,29 @@ export const gardenPlugin = () =>
       deleteSecret,
       getDebugInfo: debugInfo,
     },
+
+    extendActionTypes: {
+      build: [
+        {
+          name: "container",
+          handlers: {
+            build: k8sBuildContainer,
+            getStatus: k8sGetContainerBuildStatus,
+          },
+        },
+      ],
+      deploy: [
+        {
+          name: "container",
+          handlers: {
+            deploy: containerDeploy,
+            delete: deleteContainerDeploy,
+            getStatus: k8sGetContainerBuildStatus,
+          },
+        }
+      ]
+    },
+
     createModuleTypes: [
       {
         name: "helm",
@@ -172,7 +198,7 @@ export const gardenPlugin = () =>
       `,
         moduleOutputsSchema: helmModuleOutputsSchema(),
         schema: helmModuleSpecSchema(),
-        handlers: helmHandlers,
+        handlers: helmModuleHandlers,
       },
       {
         name: "kubernetes",

@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerModule } from "../../container/config"
+import { ContainerModule } from "../../container/moduleConfig"
 import { DEFAULT_TEST_TIMEOUT } from "../../../constants"
 import { storeTestResult } from "../test-results"
 import { TestModuleParams } from "../../../types/plugin/module/testModule"
-import { TestResult } from "../../../types/plugin/module/getTestResult"
+import { TestResult } from "../../../types/test"
 import { runAndCopy } from "../run"
 import { makePodName } from "../util"
 import { getAppNamespaceStatus } from "../namespace"

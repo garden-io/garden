@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerModule } from "../../container/config"
+import { ContainerModule } from "../../container/moduleConfig"
 import { PublishModuleParams } from "../../../types/plugin/module/publishModule"
 import { containerHelpers } from "../../container/helpers"
 import { KubernetesPluginContext } from "../config"
-import { publishContainerModule } from "../../container/publish"
+import { publishContainerBuild } from "../../container/publish"
 import { pullModule } from "../commands/pull-image"
 
 export async function k8sPublishContainerModule(params: PublishModuleParams<ContainerModule>) {
@@ -18,7 +18,7 @@ export async function k8sPublishContainerModule(params: PublishModuleParams<Cont
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
 
-  if (!containerHelpers.hasDockerfile(module, module.version)) {
+  if (!containerHelpers.moduleHasDockerfile(module, module.version)) {
     log.setState({ msg: `Nothing to publish` })
     return { published: false, message: undefined }
   }
@@ -34,5 +34,5 @@ export async function k8sPublishContainerModule(params: PublishModuleParams<Cont
     await pullModule(k8sCtx, module, log)
   }
 
-  return publishContainerModule({ ...params, ctx: { ...ctx, provider: provider.dependencies.container } })
+  return publishContainerBuild({ ...params, ctx: { ...ctx, provider: provider.dependencies.container } })
 }

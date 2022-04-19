@@ -19,7 +19,7 @@ import {
 } from "../../../../helpers"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { RunWorkflowCommand, shouldBeDropped } from "../../../../../src/commands/run/workflow"
-import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
+import { createGardenPlugin } from "../../../../../src/plugin/plugin"
 import { joi } from "../../../../../src/config/common"
 import { RunTaskParams } from "../../../../../src/types/plugin/task/runTask"
 import { ProjectConfig, defaultNamespace } from "../../../../../src/config/project"

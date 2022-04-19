@@ -19,7 +19,7 @@ import {
 } from "../../../../helpers"
 import { GetTaskResultCommand } from "../../../../../src/commands/get/get-task-result"
 import { expect } from "chai"
-import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
+import { createGardenPlugin } from "../../../../../src/plugin/plugin"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { GetTaskResultParams } from "../../../../../src/types/plugin/task/getTaskResult"
 import { getArtifactKey } from "../../../../../src/util/artifacts"

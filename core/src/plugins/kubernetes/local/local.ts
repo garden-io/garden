@@ -7,7 +7,7 @@
  */
 
 import { configureProvider, configSchema } from "./config"
-import { createGardenPlugin } from "../../../types/plugin/plugin"
+import { createGardenPlugin } from "../../../plugin/plugin"
 import { dedent } from "../../../util/string"
 import { DOCS_BASE_URL } from "../../../constants"
 
@@ -29,3 +29,13 @@ export const gardenPlugin = () =>
       configureProvider,
     },
   })
+
+// TODO-G2: pull image before deploying on local k8s
+// if (await containerHelpers.imageExistsLocally(module, log, ctx)) {
+//   return { fresh: false }
+// }
+// log.setState(`Pulling image ${image}...`)
+// const identifier = helpers.getPublicImageId(module)
+// await helpers.dockerCli({ cwd: module.buildPath, args: ["pull", identifier], log, ctx })
+// return { fetched: true }
+

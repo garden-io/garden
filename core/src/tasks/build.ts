@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import chalk from "chalk"
-import { GardenModule, getModuleKey } from "../types/module"
+import { GardenModule } from "../types/module"
 import { BuildResult } from "../types/plugin/module/build"
 import { BaseTask, TaskType } from "../tasks/base"
 import { Garden } from "../garden"
@@ -103,7 +103,7 @@ export class BuildTask extends BaseTask {
   }
 
   getName() {
-    return getModuleKey(this.module.name, this.module.plugin)
+    return this.module.name
   }
 
   getDescription() {

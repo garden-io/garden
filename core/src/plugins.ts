@@ -12,11 +12,10 @@ import {
   ModuleTypeDefinition,
   ModuleTypeExtension,
   pluginSchema,
-  ModuleTypeMap,
   RegisterPluginParam,
-  pluginModuleSchema,
+  pluginNodeModuleSchema,
   GardenPluginReference,
-} from "./types/plugin/plugin"
+} from "./plugin/plugin"
 import { GenericProviderConfig } from "./config/provider"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { uniq, mapValues, fromPairs, flatten, keyBy, some, isString, sortBy } from "lodash"
@@ -27,6 +26,7 @@ import { LogEntry } from "./logger/log-entry"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
 import { parse, resolve } from "path"
 import Bluebird from "bluebird"
+import { ModuleTypeMap } from "./types/module"
 
 export async function loadAndResolvePlugins(
   log: LogEntry,
@@ -142,7 +142,7 @@ export async function loadPlugin(log: LogEntry, projectRoot: string, nameOrPlugi
     }
 
     try {
-      pluginModule = validateSchema(pluginModule, pluginModuleSchema(), {
+      pluginModule = validateSchema(pluginModule, pluginNodeModuleSchema(), {
         context: `plugin module "${moduleNameOrLocation}"`,
       })
     } catch (err) {

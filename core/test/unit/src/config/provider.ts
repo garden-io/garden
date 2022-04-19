@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import { GenericProviderConfig, getAllProviderDependencyNames } from "../../../../src/config/provider"
 import { expectError } from "../../../helpers"
-import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
+import { createGardenPlugin } from "../../../../src/plugin/plugin"
 
 describe("getProviderDependencies", () => {
   const plugin = createGardenPlugin({

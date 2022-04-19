@@ -14,19 +14,15 @@ import { dedent } from "@garden-io/sdk/util/string"
 import { defaultTerraformVersion, supportedVersions, terraformCliSpecs } from "./cli"
 import { ConfigurationError } from "@garden-io/sdk/exceptions"
 import { TerraformBaseSpec, variablesSchema } from "./common"
-import {
-  configureTerraformModule,
-  deleteTerraformModule,
-  deployTerraform,
-  getTerraformStatus,
-  terraformModuleSchema,
-} from "./module"
+import { configureTerraformModule, terraformModuleSchema } from "./module"
 import { docsBaseUrl } from "@garden-io/sdk/constants"
 import { listDirectory } from "@garden-io/sdk/util/fs"
 import { getTerraformCommands } from "./commands"
+import { TerraformDeployConfig, terraformDeployOutputsSchema } from "./action"
 
 import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
-import { joi, joiVariables } from "@garden-io/core/build/src/config/common"
+import { joi } from "@garden-io/core/build/src/config/common"
+import { DOCS_BASE_URL } from "@garden-io/core/src/constants"
 
 type TerraformProviderConfig = GenericProviderConfig &
   TerraformBaseSpec & {
@@ -69,6 +65,7 @@ const configSchema = providerConfigBaseSchema()
   .unknown(false)
 
 // Need to make these variables to avoid escaping issues
+const deployOutputsTemplateString = "${deploys.<deploy-name>.outputs.<key>}"
 const serviceOutputsTemplateString = "${runtime.services.<module-name>.outputs.<key>}"
 const providerOutputsTemplateString = "${providers.terraform.outputs.<key>}"
 
@@ -102,6 +99,33 @@ export const gardenPlugin = () =>
       },
     },
     commands: getTerraformCommands(),
+
+    createActionTypes: {
+      deploy: [
+        {
+          name: "terraform",
+          docs: dedent`
+          Resolves a Terraform stack and either applies it automatically (if \`autoApply: true\`) or warns when the stack resources are not up-to-date.
+
+          **Note: It is not recommended to set \`autoApply\` to \`true\` for any production or shared environments, since this may result in accidental or conflicting changes to the stack.** Instead, it is recommended to manually plan and apply using the provided plugin commands. Run \`garden plugins terraform\` for details.
+
+          Stack outputs are made available as service outputs, that can be referenced by other modules under \`${deployOutputsTemplateString}\`. You can template in those values as e.g. command arguments or environment variables for other services.
+
+          Note that you can also declare a Terraform root in the \`terraform\` provider configuration by setting the \`initRoot\` parameter. This may be preferable if you need the outputs of the Terraform stack to be available to other provider configurations, e.g. if you spin up an environment with the Terraform provider, and then use outputs from that to configure another provider or other modules via \`${providerOutputsTemplateString}\` template strings.
+
+          See the [Terraform guide](${DOCS_BASE_URL}/advanced/terraform) for a high-level introduction to the \`terraform\` provider.
+          `,
+          schema: terraformModuleSchema(),
+          outputsSchema: terraformDeployOutputsSchema(),
+          handlers: {
+            deploy: deployTerraform,
+            getStatus: getTerraformStatus,
+            delete: deleteTerraformModule,
+          },
+        },
+      ],
+    },
+
     createModuleTypes: [
       {
         name: "terraform",
@@ -116,9 +140,40 @@ export const gardenPlugin = () =>
 
       See the [Terraform guide](${docsBaseUrl}/advanced/terraform) for a high-level introduction to the \`terraform\` provider.
     `,
-        serviceOutputsSchema: joiVariables().description("A map of all the outputs defined in the Terraform stack."),
+        serviceOutputsSchema: terraformDeployOutputsSchema(),
         schema: terraformModuleSchema(),
         handlers: {
+          async convert(params) {
+            const { module, dummyBuild, prepareRuntimeDependencies } = params
+            const actions: (ExecBuildConfig | TerraformDeployConfig)[] = []
+
+            if (dummyBuild) {
+              actions.push(dummyBuild)
+            }
+
+            actions.push({
+              kind: "Deploy",
+              type: "terraform",
+              name: module.name,
+              ...params.baseFields,
+
+              build: dummyBuild?.name,
+              dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
+
+              spec: {
+                ...module.spec,
+              },
+            })
+
+            return {
+              group: {
+                kind: "Group",
+                name: module.name,
+                actions,
+              },
+            }
+          },
+
           async suggestModules({ name, path }) {
             const files = await listDirectory(path, { recursive: false })
 
@@ -139,12 +194,11 @@ export const gardenPlugin = () =>
               return { suggestions: [] }
             }
           },
+
           configure: configureTerraformModule,
-          getServiceStatus: getTerraformStatus,
-          deployService: deployTerraform,
-          deleteService: deleteTerraformModule,
         },
       },
     ],
+
     tools: Object.values(terraformCliSpecs),
   })
