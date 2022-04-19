@@ -110,8 +110,8 @@ function makeMarkdownDescription(description: BaseKeyDescription, { showRequired
 }
 
 interface RenderYamlOpts {
-  // Comment out any keys that don't have a value set in `values`
-  commentOutEmpty?: boolean
+  // Comment out or remove any keys that don't have a value set in `values`
+  onEmptyValue?: "comment out" | "remove" | "keep"
   // Convert markdown links encountered in descriptions to just normal links
   filterMarkdown?: boolean
   level?: number
@@ -127,7 +127,7 @@ interface RenderYamlOpts {
 export function renderSchemaDescriptionYaml(
   schemaDescriptions: BaseKeyDescription[],
   {
-    commentOutEmpty = false,
+    onEmptyValue = "keep",
     filterMarkdown = false,
     presetValues = {},
     renderBasicDescription = false,
@@ -273,11 +273,15 @@ export function renderSchemaDescriptionYaml(
       keyAndValue.push(`${formattedName}:`)
     }
 
-    if (commentOutEmpty && !presetValue) {
+    if (onEmptyValue === "comment out" && !presetValue) {
       if (renderBasicDescription || renderFullDescription) {
         out.push("#")
       }
       keyAndValue = keyAndValue.map((line) => "# " + line)
+    }
+
+    if (onEmptyValue === "remove" && !presetValue) {
+      return
     }
 
     out.push(...keyAndValue)
@@ -292,7 +296,7 @@ export function renderSchemaDescriptionYaml(
 
       // Comment out the prefix if everything in the array will be commented out. Otherwise the output file
       // will include unwanted null values.
-      if (commentOutEmpty && parent && !getPresetValue(parent)) {
+      if (onEmptyValue === "comment out" && parent && !getPresetValue(parent)) {
         prefix = "#-"
       }
 
@@ -304,7 +308,7 @@ export function renderSchemaDescriptionYaml(
     return indented.join("\n")
   })
 
-  const schemaDescriptionYaml = output.join("\n")
+  const schemaDescriptionYaml = output.filter((l) => l !== undefined).join("\n")
 
   // NOTE: Because of an issue with GitBook, code examples inside YAML strings break the layout.
   // So something like:

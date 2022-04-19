@@ -141,9 +141,9 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
 
     const { yaml } = renderProjectConfigReference({
       yamlOpts: {
-        commentOutEmpty: true,
+        onEmptyValue: opts.noComments ? "remove" : "comment out",
         filterMarkdown: true,
-        renderBasicDescription: true,
+        renderBasicDescription: !opts.noComments,
         renderFullDescription: false,
         renderValue: "preferExample",
         presetValues: {

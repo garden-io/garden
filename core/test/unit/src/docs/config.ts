@@ -328,7 +328,7 @@ describe("docs config module", () => {
 
       const schemaDescriptions = normalizeJoiSchemaDescription(schema.describe() as JoiDescription)
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, {
-        commentOutEmpty: true,
+        onEmptyValue: "comment out",
         filterMarkdown: true,
         presetValues: { keyC: "foo" },
         renderBasicDescription: false,
