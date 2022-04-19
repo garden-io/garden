@@ -8,12 +8,12 @@
 
 import { projectNameSchema, projectRootSchema } from "../../../config/project"
 import { GenericProviderConfig, providerConfigBaseSchema, providerSchema, ProviderMap } from "../../../config/provider"
-import { logEntrySchema, PluginActionParamsBase, actionParamsSchema } from "../base"
+import { logEntrySchema, PluginActionParamsBase, actionParamsSchema } from "../../../plugin/base"
 import { configStoreSchema, ConfigStore } from "../../../config-store"
 import { joiArray, joi, joiIdentifier, joiIdentifierMap } from "../../../config/common"
 import { moduleConfigSchema, ModuleConfig } from "../../../config/module"
 import { deline, dedent } from "../../../util/string"
-import { ActionHandler } from "../plugin"
+import { ActionHandler } from "../../../plugin/plugin"
 import { LogEntry } from "../../../logger/log-entry"
 
 // Note: These are the only plugin handler params that don't inherit from PluginActionParamsBase

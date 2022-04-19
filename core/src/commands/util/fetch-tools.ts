@@ -9,7 +9,7 @@
 import { Command, CommandParams } from "../base"
 import { RuntimeError } from "../../exceptions"
 import dedent from "dedent"
-import { GardenPlugin } from "../../types/plugin/plugin"
+import { GardenPlugin } from "../../plugin/plugin"
 import { findProjectConfig } from "../../config/base"
 import { Garden, DummyGarden } from "../../garden"
 import Bluebird from "bluebird"

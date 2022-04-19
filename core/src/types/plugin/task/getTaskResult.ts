@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { taskActionParamsSchema, PluginTaskActionParamsBase, namespaceStatusSchema } from "../base"
+import { taskActionParamsSchema, PluginTaskActionParamsBase, namespaceStatusSchema } from "../../../plugin/base"
 import { dedent, deline } from "../../../util/string"
 import { GardenModule } from "../../module"
 import { joi, joiPrimitive, moduleVersionSchema } from "../../../config/common"

@@ -8,26 +8,13 @@
 
 import { dedent, deline } from "../../../util/string"
 import { GardenModule } from "../../module"
-import { PluginModuleActionParamsBase, moduleActionParamsSchema, RunResult, runResultSchema } from "../base"
-import { joi, joiPrimitive, moduleVersionSchema } from "../../../config/common"
-import { GardenTest, testSchema } from "../../test"
+import { PluginModuleActionParamsBase, moduleActionParamsSchema } from "../../../plugin/base"
+import { moduleVersionSchema } from "../../../config/common"
+import { GardenTest, testResultSchema, testSchema } from "../../test"
 
 export interface GetTestResultParams<T extends GardenModule = GardenModule> extends PluginModuleActionParamsBase<T> {
   test: GardenTest<T>
 }
-
-export interface TestResult extends RunResult {
-  testName: string
-}
-
-export const testResultSchema = () =>
-  runResultSchema().keys({
-    outputs: joi.object().pattern(/.+/, joiPrimitive()).description("A map of primitive values, output from the test."),
-    testName: joi.string().required().description("The name of the test that was run."),
-    version: joi.string().description(deline`
-        The test run's version, as a string. In addition to the parent module's version, this also
-        factors in the module versions of the test's runtime dependencies (if any).`),
-  })
 
 export const testVersionSchema = () =>
   moduleVersionSchema().description(deline`

@@ -72,7 +72,7 @@ export interface BaseBuildSpec {
   timeout?: number
 }
 
-export interface ModuleFileSpec {
+export interface GenerateFileSpec {
   sourcePath?: string
   targetPath: string
   resolveTemplates: boolean
@@ -88,7 +88,7 @@ interface ModuleSpecCommon {
   description?: string
   disabled?: boolean
   exclude?: string[]
-  generateFiles?: ModuleFileSpec[]
+  generateFiles?: GenerateFileSpec[]
   include?: string[]
   name: string
   path?: string
@@ -110,7 +110,7 @@ export interface BaseModuleSpec extends ModuleSpecCommon {
   disabled: boolean
 }
 
-const generatedFileSchema = () =>
+export const generatedFileSchema = () =>
   joi
     .object()
     .keys({

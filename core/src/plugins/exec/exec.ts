@@ -12,7 +12,7 @@ import { join } from "path"
 import split2 = require("split2")
 import { joiArray, joiEnvVars, joi, joiSparseArray, PrimitiveMap } from "../../config/common"
 import { validateWithPath, ArtifactSpec } from "../../config/validation"
-import { createGardenPlugin, ServiceActionHandlers } from "../../types/plugin/plugin"
+import { createGardenPlugin, ServiceActionHandlers } from "../../plugin/plugin"
 import { GardenModule, getModuleKey } from "../../types/module"
 import { baseServiceSpecSchema, CommonServiceSpec } from "../../config/service"
 import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
@@ -24,7 +24,6 @@ import { dedent } from "../../util/string"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../types/plugin/module/configure"
 import { BuildModuleParams, BuildResult } from "../../types/plugin/module/build"
 import { TestModuleParams } from "../../types/plugin/module/testModule"
-import { TestResult } from "../../types/plugin/module/getTestResult"
 import { RunTaskParams, RunTaskResult } from "../../types/plugin/task/runTask"
 import { exec, ExecOpts, renderOutputStream, runScript, sleep } from "../../util/util"
 import { ConfigurationError, RuntimeError, TimeoutError } from "../../exceptions"
@@ -35,7 +34,7 @@ import { artifactsTargetDescription } from "../container/config"
 import chalk = require("chalk")
 import { renderMessageWithDivider } from "../../logger/util"
 import { RunModuleParams } from "../../types/plugin/module/runModule"
-import { RunResult } from "../../types/plugin/base"
+import { RunResult } from "../../plugin/base"
 import { LogLevel } from "../../logger/logger"
 import { createWriteStream } from "fs"
 import { ensureFile, remove } from "fs-extra"
@@ -47,6 +46,7 @@ import { GetServiceStatusParams } from "../../types/plugin/service/getServiceSta
 import { DeleteServiceParams } from "../../types/plugin/service/deleteService"
 import { PluginContext } from "../../plugin-context"
 import { ServiceStatus } from "../../types/service"
+import { TestResult } from "../../types/test"
 
 const execPathDoc = dedent`
   By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).

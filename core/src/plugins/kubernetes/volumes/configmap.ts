@@ -10,7 +10,7 @@ import { joiIdentifier, joi, joiSparseArray, joiStringMap } from "../../../confi
 import { dedent } from "../../../util/string"
 import { BaseVolumeSpec } from "../../base-volume"
 import { V1ConfigMap } from "@kubernetes/client-node"
-import { ModuleTypeDefinition } from "../../../types/plugin/plugin"
+import { ModuleTypeDefinition } from "../../../plugin/plugin"
 import { DOCS_BASE_URL } from "../../../constants"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { ConfigureModuleParams } from "../../../types/plugin/module/configure"

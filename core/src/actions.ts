@@ -30,10 +30,10 @@ import {
   PluginTaskActionParamsBase,
   RunResult,
   runStatus,
-} from "./types/plugin/base"
+} from "./plugin/base"
 import { BuildModuleParams, BuildResult, BuildState } from "./types/plugin/module/build"
 import { BuildStatus, GetBuildStatusParams } from "./types/plugin/module/getBuildStatus"
-import { GetTestResultParams, TestResult } from "./types/plugin/module/getTestResult"
+import { TestResult } from "./types/test"
 import { RunModuleParams } from "./types/plugin/module/runModule"
 import { TestModuleParams } from "./types/plugin/module/testModule"
 import {
@@ -65,7 +65,7 @@ import {
   TestActionParams,
   TestActionHandlers,
   TestActionOutputs,
-} from "./types/plugin/plugin"
+} from "./plugin/plugin"
 import { CleanupEnvironmentParams, CleanupEnvironmentResult } from "./types/plugin/provider/cleanupEnvironment"
 import { DeleteSecretParams, DeleteSecretResult } from "./types/plugin/provider/deleteSecret"
 import {
@@ -110,6 +110,7 @@ import { ModuleConfigContext } from "./config/template-contexts/module"
 import { GetDashboardPageParams, GetDashboardPageResult } from "./types/plugin/provider/getDashboardPage"
 import { GetModuleOutputsParams, GetModuleOutputsResult } from "./types/plugin/module/getModuleOutputs"
 import { ConfigContext } from "./config/template-contexts/base"
+import { GetTestResultParams } from "./types/plugin/module/getTestResult"
 
 const maxArtifactLogLines = 5 // max number of artifacts to list in console after task+test runs
 

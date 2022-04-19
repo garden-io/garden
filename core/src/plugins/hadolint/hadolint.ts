@@ -21,7 +21,7 @@ import { baseBuildSpecSchema } from "../../config/module"
 import { getGitHubUrl } from "../../docs/common"
 import { TestModuleParams } from "../../types/plugin/module/testModule"
 import { GardenModule } from "../../types/module"
-import { createGardenPlugin } from "../../types/plugin/plugin"
+import { createGardenPlugin } from "../../plugin/plugin"
 
 const defaultConfigPath = join(STATIC_DIR, "hadolint", "default.hadolint.yaml")
 const configFilename = ".hadolint.yaml"

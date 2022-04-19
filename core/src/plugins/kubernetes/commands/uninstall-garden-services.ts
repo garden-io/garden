@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { PluginCommand } from "../../../types/plugin/command"
+import { PluginCommand } from "../../../plugin/command"
 import { getKubernetesSystemVariables } from "../init"
 import { KubernetesPluginContext } from "../config"
 import { getSystemGarden } from "../system"

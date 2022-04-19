@@ -7,7 +7,7 @@
  */
 
 import { joi, joiSparseArray } from "../../../config/common"
-import { PluginToolSpec } from "../../../types/plugin/tools"
+import { PluginToolSpec } from "../../../plugin/tools"
 
 export interface KubernetesKustomizeSpec {
   path: string

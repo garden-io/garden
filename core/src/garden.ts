@@ -18,7 +18,7 @@ const AsyncLock = require("async-lock")
 import { TreeCache } from "./cache"
 import { getBuiltinPlugins } from "./plugins/plugins"
 import { GardenModule, getModuleCacheContext, getModuleKey, ModuleConfigMap, moduleFromConfig } from "./types/module"
-import { ModuleTypeMap } from "./types/plugin/plugin"
+import { ModuleTypeMap } from "./plugin/plugin"
 import {
   SourceConfig,
   ProjectConfig,
@@ -47,7 +47,7 @@ import { BuildStaging } from "./build-staging/build-staging"
 import { ConfigGraph } from "./config-graph"
 import { TaskGraph, GraphResults, ProcessTasksOpts } from "./task-graph"
 import { getLogger } from "./logger/logger"
-import { PluginActionHandlers, GardenPlugin } from "./types/plugin/plugin"
+import { PluginActionHandlers, GardenPlugin } from "./plugin/plugin"
 import { loadConfigResources, findProjectConfig, prepareModuleResource, GardenResource } from "./config/base"
 import { DeepPrimitiveMap, StringMap, PrimitiveMap, treeVersionSchema, joi } from "./config/common"
 import { BaseTask } from "./tasks/base"
@@ -56,7 +56,7 @@ import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { ModuleConfig } from "./config/module"
 import { ModuleResolver } from "./resolve-module"
 import { createPluginContext, CommandInfo, PluginEventBroker } from "./plugin-context"
-import { ModuleAndRuntimeActionHandlers, RegisterPluginParam } from "./types/plugin/plugin"
+import { ModuleAndRuntimeActionHandlers, RegisterPluginParam } from "./plugin/plugin"
 import {
   SUPPORTED_PLATFORMS,
   SupportedPlatform,

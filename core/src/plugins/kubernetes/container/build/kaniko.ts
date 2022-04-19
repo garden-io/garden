@@ -18,7 +18,7 @@ import { PodRunner } from "../../run"
 import { ensureNamespace, getNamespaceStatus, getSystemNamespace } from "../../namespace"
 import { prepareSecrets } from "../../secrets"
 import { dedent } from "../../../../util/string"
-import { RunResult } from "../../../../types/plugin/base"
+import { RunResult } from "../../../../plugin/base"
 import { PluginContext } from "../../../../plugin-context"
 import { KubernetesPod } from "../../types"
 import {

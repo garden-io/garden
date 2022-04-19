@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { namespaceStatusesSchema } from "../types/plugin/base"
+import { namespaceStatusesSchema } from "../plugin/base"
 import { joi, joiVariables } from "./common"
 
 export const environmentStatusSchema = () =>

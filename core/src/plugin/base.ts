@@ -6,16 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogEntry } from "../../logger/log-entry"
-import { PluginContext, pluginContextSchema, PluginEventBroker } from "../../plugin-context"
-import { GardenModule, moduleSchema } from "../module"
-import { RuntimeContext, runtimeContextSchema } from "../../runtime-context"
-import { GardenService, serviceSchema } from "../service"
-import { GardenTask } from "../task"
-import { taskSchema } from "../../types/task"
-import { joi, joiIdentifier } from "../../config/common"
+import { LogEntry } from "../logger/log-entry"
+import { PluginContext, pluginContextSchema, PluginEventBroker } from "../plugin-context"
+import { GardenModule, moduleSchema } from "../types/module"
+import { RuntimeContext, runtimeContextSchema } from "../runtime-context"
+import { GardenService, serviceSchema } from "../types/service"
+import { GardenTask, taskSchema } from "../types/task"
+import { joi, joiIdentifier } from "../config/common"
 import { ActionHandlerParamsBase } from "./plugin"
-import { deline } from "../../util/string"
+import { deline } from "../util/string"
+import { BuildActionSpec, BuildActionWrapper } from "../actions/build"
+import { baseBuildSpecSchema } from "../config/module"
+import { DeployActionSpec, DeployActionWrapper } from "../actions/deploy"
+import { RunActionSpec, RunActionWrapper } from "../actions/run"
+import { TestActionSpec, TestActionWrapper } from "../actions/test"
 
 export interface PluginActionContextParams extends ActionHandlerParamsBase {
   ctx: PluginContext
@@ -40,6 +44,8 @@ export const actionParamsSchema = () =>
     ctx: pluginContextSchema().required(),
     log: logEntrySchema(),
     events: pluginEventBrokerSchema(),
+    // TODO: specify the action wrapper class further
+    action: joi.object().required(),
   })
 
 export type NamespaceState = "ready" | "missing"
@@ -60,6 +66,27 @@ export const namespaceStatusSchema = () =>
 
 export const namespaceStatusesSchema = () => joi.array().items(namespaceStatusSchema())
 
+export interface PluginBuildActionParamsBase<T extends BuildActionSpec = BuildActionSpec>
+  extends PluginActionParamsBase {
+  action: BuildActionWrapper<T>
+}
+
+export interface PluginDeployActionParamsBase<T extends DeployActionSpec = DeployActionSpec>
+  extends PluginActionParamsBase {
+  action: DeployActionWrapper<T>
+}
+
+export interface PluginRunActionParamsBase<T extends RunActionSpec = RunActionSpec> extends PluginActionParamsBase {
+  action: RunActionWrapper<T>
+}
+
+export interface PluginTestActionParamsBase<T extends TestActionSpec = TestActionSpec> extends PluginActionParamsBase {
+  action: TestActionWrapper<T>
+}
+
+/**
+ * START LEGACY
+ */
 export interface PluginModuleActionParamsBase<T extends GardenModule = GardenModule> extends PluginActionParamsBase {
   module: T
 }
@@ -89,6 +116,9 @@ export const taskActionParamsSchema = () =>
   moduleActionParamsSchema().keys({
     task: taskSchema(),
   })
+/**
+ * END LEGACY
+ */
 
 export const runBaseParams = () => ({
   interactive: joi.boolean().description("Whether to run the module interactively (i.e. attach to the terminal)."),

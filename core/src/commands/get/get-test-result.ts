@@ -7,7 +7,7 @@
  */
 
 import { Command, CommandResult, CommandParams } from "../base"
-import { TestResult, testResultSchema } from "../../types/plugin/module/getTestResult"
+import { TestResult, testResultSchema } from "../../types/test"
 import { printHeader } from "../../logger/util"
 import chalk from "chalk"
 import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"

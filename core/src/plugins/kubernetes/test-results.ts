@@ -15,7 +15,7 @@ import { KubernetesModule } from "./kubernetes-module/config"
 import { PluginContext } from "../../plugin-context"
 import { KubernetesPluginContext } from "./config"
 import { LogEntry } from "../../logger/log-entry"
-import { GetTestResultParams, TestResult } from "../../types/plugin/module/getTestResult"
+import { TestResult } from "../../types/test"
 import hasha from "hasha"
 import { gardenAnnotationKey } from "../../util/string"
 import { upsertConfigMap } from "./util"
@@ -23,6 +23,7 @@ import { trimRunOutput } from "./helm/common"
 import { getSystemNamespace } from "./namespace"
 import chalk from "chalk"
 import { GardenTest } from "../../types/test"
+import { GetTestResultParams } from "../../types/plugin/module/getTestResult"
 
 export async function getTestResult({
   ctx,

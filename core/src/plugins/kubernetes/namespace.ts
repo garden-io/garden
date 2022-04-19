@@ -23,7 +23,7 @@ import { KubernetesModule } from "./kubernetes-module/config"
 import { V1Namespace } from "@kubernetes/client-node"
 import { isSubset } from "../../util/is-subset"
 import chalk from "chalk"
-import { NamespaceStatus } from "../../types/plugin/base"
+import { NamespaceStatus } from "../../plugin/base"
 import { KubernetesServerResource } from "./types"
 
 const GARDEN_VERSION = getPackageVersion()
