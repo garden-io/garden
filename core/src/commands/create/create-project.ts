@@ -16,7 +16,7 @@ import { loadConfigResources } from "../../config/base"
 import { resolve, basename, relative, join } from "path"
 import { GardenBaseError, ParameterError } from "../../exceptions"
 import { renderProjectConfigReference } from "../../docs/config"
-import { addConfig } from "./helpers"
+import { addConfig, createBaseOpts } from "./helpers"
 import { wordWrap } from "../../util/string"
 import { LoggerType } from "../../logger/logger"
 import { PathParameter, StringParameter, BooleanParameter, StringOption } from "../../cli/params"
@@ -33,6 +33,7 @@ export const defaultProjectConfigFilename = "project.garden.yml"
 
 const createProjectArgs = {}
 const createProjectOpts = {
+  ...createBaseOpts,
   dir: new PathParameter({
     help: "Directory to place the project in (defaults to current directory).",
     defaultValue: ".",

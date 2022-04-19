@@ -52,6 +52,7 @@ describe("CreateModuleCommand", () => {
         name: undefined,
         type: "exec",
         filename: defaultConfigFilename,
+        noComments: false,
       }),
     })
     const { name, configPath } = result!
@@ -84,6 +85,7 @@ describe("CreateModuleCommand", () => {
         name: "test",
         type: "exec",
         filename: "custom.garden.yml",
+        noComments: false,
       }),
     })
     const { configPath } = result!
@@ -105,6 +107,7 @@ describe("CreateModuleCommand", () => {
         name: "test",
         type: "exec",
         filename: defaultConfigFilename,
+        noComments: false,
       }),
     })
     const { name, configPath } = result!
@@ -140,6 +143,7 @@ describe("CreateModuleCommand", () => {
         name: "test",
         type: "exec",
         filename: defaultConfigFilename,
+        noComments: false,
       }),
     })
     const { name, configPath } = result!
@@ -178,6 +182,7 @@ describe("CreateModuleCommand", () => {
             name: "test",
             type: "exec",
             filename: defaultConfigFilename,
+            noComments: false,
           }),
         }),
       (err) => expect(stripAnsi(err.message)).to.equal("A Garden module named test already exists in " + configPath)
@@ -200,6 +205,7 @@ describe("CreateModuleCommand", () => {
             name: "test",
             type: "exec",
             filename: defaultConfigFilename,
+            noComments: false,
           }),
         }),
       (err) => expect(err.message).to.equal(`Path ${dir} does not exist`)
@@ -221,6 +227,7 @@ describe("CreateModuleCommand", () => {
             name: undefined,
             type: "foo",
             filename: defaultConfigFilename,
+            noComments: false,
           }),
         }),
       (err) => expect(stripAnsi(err.message)).to.equal("Could not find module type foo")

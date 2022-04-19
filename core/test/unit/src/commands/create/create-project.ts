@@ -43,6 +43,7 @@ describe("CreateProjectCommand", () => {
         interactive: false,
         name: undefined,
         filename: defaultProjectConfigFilename,
+        noComments: false,
       }),
     })
     const { name, configPath, ignoreFileCreated, ignoreFilePath } = result!
@@ -81,6 +82,7 @@ describe("CreateProjectCommand", () => {
         interactive: false,
         name: undefined,
         filename: defaultProjectConfigFilename,
+        noComments: false,
       }),
     })
     const { ignoreFileCreated, ignoreFilePath } = result!
@@ -105,6 +107,7 @@ describe("CreateProjectCommand", () => {
         interactive: false,
         name: undefined,
         filename: defaultProjectConfigFilename,
+        noComments: false,
       }),
     })
     const { ignoreFileCreated, ignoreFilePath } = result!
@@ -126,6 +129,7 @@ describe("CreateProjectCommand", () => {
         interactive: false,
         name: "foo",
         filename: defaultProjectConfigFilename,
+        noComments: false,
       }),
     })
     const { name, configPath } = result!
@@ -161,6 +165,7 @@ describe("CreateProjectCommand", () => {
         interactive: false,
         name: undefined,
         filename: "garden.yml",
+        noComments: false,
       }),
     })
     const { name, configPath } = result!
@@ -189,6 +194,7 @@ describe("CreateProjectCommand", () => {
         interactive: false,
         name: undefined,
         filename: "custom.garden.yml",
+        noComments: false,
       }),
     })
     const { configPath } = result!
@@ -218,6 +224,7 @@ describe("CreateProjectCommand", () => {
             interactive: false,
             name: undefined,
             filename: defaultProjectConfigFilename,
+            noComments: false,
           }),
         }),
       (err) => expect(err.message).to.equal("A Garden project already exists in " + configPath)
@@ -239,6 +246,7 @@ describe("CreateProjectCommand", () => {
             interactive: false,
             name: undefined,
             filename: defaultProjectConfigFilename,
+            noComments: false,
           }),
         }),
       (err) => expect(err.message).to.equal(`Path ${dir} does not exist`)
