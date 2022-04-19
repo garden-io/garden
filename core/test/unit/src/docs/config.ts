@@ -318,7 +318,23 @@ describe("docs config module", () => {
         keyC: foo
       `)
     })
-
+    it("should optionally remove keys without preset values", () => {
+      const schema = joi.object().keys({
+        keyA: joi.string(),
+        keyB: joi.string().default("default-value"),
+        keyC: joi.number().example(4),
+        keyD: joi.number().description("foobar"),
+      })
+      const schemaDescriptions = normalizeJoiSchemaDescription(schema.describe() as JoiDescription)
+      const yaml = renderSchemaDescriptionYaml(schemaDescriptions, {
+        renderFullDescription: false,
+        presetValues: { keyA: "foo" },
+        onEmptyValue: "remove",
+      })
+      expect(yaml).to.equal(dedent`
+        keyA: foo
+      `)
+    })
     it("should optionally comment out keys without preset values", () => {
       const schema = joi.object().keys({
         keyA: joi.string(),
