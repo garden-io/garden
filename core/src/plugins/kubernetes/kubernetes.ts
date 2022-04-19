@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 
-import { createGardenPlugin } from "../../types/plugin/plugin"
+import { createGardenPlugin } from "../../plugin/plugin"
 import { helmHandlers } from "./helm/handlers"
 import { getAppNamespace, getSystemNamespace } from "./namespace"
 import { getSecret, setSecret, deleteSecret } from "./secrets"

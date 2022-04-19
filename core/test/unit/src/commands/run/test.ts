@@ -21,8 +21,8 @@ import { RunTestCommand } from "../../../../../src/commands/run/test"
 import { LogLevel } from "../../../../../src/logger/logger"
 import { dedent } from "../../../../../src/util/string"
 import { renderDivider } from "../../../../../src/logger/util"
-import { RegisterPluginParam } from "../../../../../src/types/plugin/plugin"
 import { getLogMessages } from "../../../../../src/util/testing"
+import { RegisterPluginParam } from "../../../../../src/plugin/plugin"
 
 const makeTestGardenTasksFails = async (extraPlugins: RegisterPluginParam[] = []) => {
   return makeTestGarden(projectTestFailsRoot, { plugins: extraPlugins })

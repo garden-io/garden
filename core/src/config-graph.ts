@@ -21,7 +21,7 @@ import { ServiceConfig } from "./config/service"
 import { TaskConfig } from "./config/task"
 import { makeTestTaskName } from "./tasks/helpers"
 import { TaskType, makeBaseKey } from "./tasks/base"
-import { ModuleTypeMap } from "./types/plugin/plugin"
+import { ModuleTypeMap } from "./plugin/plugin"
 import { testFromModule, GardenTest, testFromConfig } from "./types/test"
 
 // Each of these types corresponds to a Task class (e.g. BuildTask, DeployTask, ...).

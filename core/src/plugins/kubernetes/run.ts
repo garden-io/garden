@@ -10,7 +10,7 @@ import tar from "tar"
 import tmp from "tmp-promise"
 import { cloneDeep, omit, pick } from "lodash"
 import { V1PodSpec, V1Pod, V1Container } from "@kubernetes/client-node"
-import { RunResult } from "../../types/plugin/base"
+import { RunResult } from "../../plugin/base"
 import { GardenModule } from "../../types/module"
 import { LogEntry } from "../../logger/log-entry"
 import {

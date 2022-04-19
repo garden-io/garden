@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joi, joiIdentifier } from "../../config/common"
-import { deline } from "../../util/string"
-import { PluginTool } from "../../util/ext-tools"
+import { joi, joiIdentifier } from "../config/common"
+import { deline } from "../util/string"
+import { PluginTool } from "../util/ext-tools"
 
 export interface ToolBuildSpec {
   platform: string

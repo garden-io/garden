@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginActionParamsBase, actionParamsSchema, NamespaceStatus, namespaceStatusesSchema } from "../base"
+import { PluginActionParamsBase, actionParamsSchema, NamespaceStatus, namespaceStatusesSchema } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
 import { joi } from "../../../config/common"
 

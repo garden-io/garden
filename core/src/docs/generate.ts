@@ -19,7 +19,7 @@ import { writeFileSync, readFile, writeFile } from "fs-extra"
 import { renderModuleTypeReference, moduleTypes } from "./module-type"
 import { renderProviderReference } from "./provider"
 import { defaultNamespace } from "../config/project"
-import { GardenPlugin, GardenPluginReference } from "../types/plugin/plugin"
+import { GardenPlugin, GardenPluginReference } from "../plugin/plugin"
 import { workflowConfigSchema } from "../config/workflow"
 import { moduleTemplateSchema } from "../config/module-template"
 

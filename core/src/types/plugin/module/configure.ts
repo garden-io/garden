@@ -9,7 +9,7 @@
 import { dedent } from "../../../util/string"
 import { GardenModule } from "../../module"
 import { PluginContext, pluginContextSchema } from "../../../plugin-context"
-import { logEntrySchema, PluginActionContextParams } from "../base"
+import { logEntrySchema, PluginActionContextParams } from "../../../plugin/base"
 import { baseModuleSpecSchema, ModuleConfig, moduleConfigSchema } from "../../../config/module"
 import { joi } from "../../../config/common"
 import { LogEntry } from "../../../logger/log-entry"

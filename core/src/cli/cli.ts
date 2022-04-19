@@ -51,7 +51,7 @@ import { BufferedEventStream, ConnectBufferedEventStreamParams } from "../cloud/
 import { defaultDotIgnoreFile } from "../util/fs"
 import type { GardenProcess } from "../db/entities/garden-process"
 import { DashboardEventStream } from "../server/dashboard-event-stream"
-import { GardenPluginReference } from "../types/plugin/plugin"
+import { GardenPluginReference } from "../plugin/plugin"
 import { renderError } from "../logger/renderers"
 import { CloudApi } from "../cloud/api"
 import { findProjectConfig } from "../config/base"

@@ -23,7 +23,7 @@ import dedent = require("dedent")
 import { uniq } from "lodash"
 import { ConfigGraph } from "../config-graph"
 import { getEntityVersion } from "../vcs/vcs"
-import { NamespaceStatus, namespaceStatusesSchema } from "./plugin/base"
+import { NamespaceStatus, namespaceStatusesSchema } from "../plugin/base"
 
 export interface GardenService<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule> {
   name: string

@@ -7,7 +7,7 @@
  */
 
 import { Stream } from "ts-stream"
-import { PluginServiceActionParamsBase, serviceActionParamsSchema } from "../base"
+import { PluginServiceActionParamsBase, serviceActionParamsSchema } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
 import { GardenModule } from "../../module"
 import { runtimeContextSchema } from "../../../runtime-context"

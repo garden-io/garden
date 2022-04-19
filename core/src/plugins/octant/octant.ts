@@ -11,7 +11,7 @@ import { GetDashboardPageParams } from "../../types/plugin/provider/getDashboard
 import execa, { ExecaChildProcess } from "execa"
 import getPort from "get-port"
 import { getK8sProvider } from "../kubernetes/util"
-import { createGardenPlugin } from "../../types/plugin/plugin"
+import { createGardenPlugin } from "../../plugin/plugin"
 
 let octantProc: ExecaChildProcess
 let octantPort: number

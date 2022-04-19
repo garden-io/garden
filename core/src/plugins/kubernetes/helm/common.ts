@@ -23,7 +23,7 @@ import { GardenModule } from "../../../types/module"
 import { deline, tailString } from "../../../util/string"
 import { flattenResources, getAnnotation } from "../util"
 import { KubernetesPluginContext } from "../config"
-import { RunResult } from "../../../types/plugin/base"
+import { RunResult } from "../../../plugin/base"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants"
 import { dumpYaml } from "../../../util/util"
 import cryptoRandomString = require("crypto-random-string")

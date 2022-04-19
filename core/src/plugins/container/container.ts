@@ -10,7 +10,7 @@ import chalk from "chalk"
 import { keyBy } from "lodash"
 
 import { ConfigurationError } from "../../exceptions"
-import { createGardenPlugin } from "../../types/plugin/plugin"
+import { createGardenPlugin } from "../../plugin/plugin"
 import { containerHelpers } from "./helpers"
 import { ContainerModule, containerModuleSpecSchema } from "./config"
 import { buildContainerModule, getContainerBuildStatus } from "./build"

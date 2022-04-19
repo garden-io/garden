@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { PluginCommand } from "../../../types/plugin/command"
+import { PluginCommand } from "../../../plugin/command"
 
 export const cleanupClusterRegistry: PluginCommand = {
   name: "cleanup-cluster-registry",
