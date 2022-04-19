@@ -32,8 +32,8 @@ import { getNames, findByName, omitUndefined, exec } from "../../../src/util/uti
 import { LinkedSource } from "../../../src/config-store"
 import { getModuleVersionString, ModuleVersion, TreeVersion } from "../../../src/vcs/vcs"
 import { getModuleCacheContext } from "../../../src/types/module"
-import { createGardenPlugin, PluginDependency } from "../../../src/types/plugin/plugin"
-import { ConfigureProviderParams } from "../../../src/types/plugin/provider/configureProvider"
+import { createGardenPlugin, PluginDependency } from "../../../src/plugin/plugin"
+import { ConfigureProviderParams } from "../../../src/plugin/handlers/provider/configureProvider"
 import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
 import {
   ModuleConfig,

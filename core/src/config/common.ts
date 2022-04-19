@@ -9,10 +9,13 @@
 import Joi from "@hapi/joi"
 import Ajv from "ajv"
 import { splitLast } from "../util/util"
-import { deline, dedent } from "../util/string"
-import { cloneDeep, isArray } from "lodash"
+import { deline, dedent, naturalList } from "../util/string"
+import { cloneDeep, isArray, isPlainObject, isString } from "lodash"
 import { joiPathPlaceholder } from "./validation"
 import { DEFAULT_API_VERSION } from "../constants"
+import { ActionKind, actionKinds } from "../actions/base"
+import { ConfigurationError } from "../exceptions"
+import { ConfigContext } from "./template-contexts/base"
 
 export const objectSpreadKey = "$merge"
 export const arrayConcatKey = "$concat"
@@ -41,16 +44,26 @@ export interface DeepPrimitiveMap {
 export const includeGuideLink =
   "https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories"
 
-export const enumToArray = (Enum) => Object.values(Enum).filter((k) => typeof k === "string") as string[]
+export const enumToArray = (Enum: any) => Object.values(Enum).filter((k) => typeof k === "string") as string[]
 
 // Extend the Joi module with our custom rules
 interface MetadataKeys {
-  internal?: boolean
+  // Flag as an advanced feature, to be advised in generated docs
+  advanced?: boolean
+  // Flag as deprecated. Set to a string to provide a deprecation message for docs.
   deprecated?: boolean | string
+  // Field is specific to Garden Cloud/Enterprise
   enterprise?: boolean
+  // Indicate this schema is expected to be extended by e.g. plugins
   extendable?: boolean
+  // Flag as experimental in docs
   experimental?: boolean
+  // Used for clarity in documentation on key/value mapping fields
   keyPlaceholder?: string
+  // Flag for internal use only, so that the field will not appear in generated docs
+  internal?: boolean
+  // Advise which template context is available for the field, for documentation purposes
+  templateContext?: ConfigContext
 }
 
 // Need this to fix the Joi typing
@@ -130,6 +143,11 @@ export interface PosixPathSchema extends Joi.StringSchema {
   subPathOnly(): this
 }
 
+interface ActionReferenceSchema extends Joi.AnySchema {
+  kind(kind: ActionKind): this
+  actionType(type: string): this
+}
+
 export interface Schema extends Joi.Root {
   object: () => CustomObjectSchema
   environment: () => Joi.StringSchema
@@ -137,6 +155,7 @@ export interface Schema extends Joi.Root {
   posixPath: () => PosixPathSchema
   hostname: () => Joi.StringSchema
   sparseArray: () => Joi.ArraySchema
+  actionReference: () => ActionReferenceSchema
 }
 
 export let joi: Schema = Joi.extend({
@@ -388,7 +407,7 @@ joi = joi.extend({
   type: "hostname",
   messages: {
     base: "{{#label}} must be a valid hostname.",
-    wildcardLabel: "{{#label}} only first DNS label my contain a wildcard.",
+    wildcardLabel: "{{#label}} only first DNS label may contain a wildcard.",
   },
   validate(value: string, { error }) {
     const baseSchema = joi.string().hostname()
@@ -413,6 +432,154 @@ joi = joi.extend({
     }
 
     return { value }
+  },
+})
+
+export interface ActionReference {
+  kind: ActionKind
+  name: string
+}
+
+const actionRefParseError = (reference: any) => {
+  const validActionKinds = naturalList(
+    actionKinds.map((k) => "'" + k + "'"),
+    "or"
+  )
+
+  const refStr = JSON.stringify(reference)
+
+  return new ConfigurationError(
+    `Could not parse ${refStr} as a valid action reference. An action reference should be a "<kind>.<name>" string, where <kind> is one of ${validActionKinds} and <name> is a valid name of an action. You may also specify an object with separate kind and name fields.`,
+    { reference }
+  )
+}
+
+/**
+ * Parse, validate and normalize an action reference.
+ *
+ * The general format is <kind>.<name>, where kind is one of the defined action types, and name is a valid
+ * identifier (same as joiIdentifier).
+ *
+ * You can also specify a full object, e.g. `{ kind: "build", name: "foo" }`.
+ */
+export function parseActionReference(reference: string | object): ActionReference {
+  if (isString(reference)) {
+    const split = reference.toLowerCase().split(".")
+
+    if (split.length !== 2 || !actionKinds.includes(split[0]) || !split[1]) {
+      throw actionRefParseError(reference)
+    }
+
+    const [kind, name] = split
+    const nameResult = joiIdentifier().validate(name)
+
+    if (nameResult.error) {
+      throw actionRefParseError(reference)
+    }
+
+    return { kind: <ActionKind>kind, name }
+  } else if (isPlainObject(reference)) {
+    let kind = reference["kind"]
+
+    if (!isString(kind)) {
+      throw actionRefParseError(reference)
+    }
+
+    kind = kind.toLowerCase()
+    const nameResult = joiIdentifier().validate(reference["name"])
+
+    if (nameResult.error || !actionKinds.includes(kind)) {
+      throw actionRefParseError(reference)
+    }
+
+    return { kind: <ActionKind>kind, name: reference["name"] }
+  } else {
+    throw actionRefParseError(reference)
+  }
+}
+
+export const joiIdentifier = () =>
+  joi
+    .string()
+    .regex(identifierRegex)
+    .description(joiIdentifierDescription[0].toUpperCase() + joiIdentifierDescription.slice(1))
+
+/**
+ * Add a joi.actionReference() type, wrapping the parseActionReference() function and returning it as a parsed object.
+ */
+joi = joi.extend({
+  base: Joi.any(),
+  type: "actionReference",
+  flags: {
+    kind: { default: undefined },
+    actionType: { default: undefined },
+  },
+  messages: {
+    validation: "<not used>",
+    wrongKind: "{{#label}} has the wrong action kind.",
+  },
+  validate(originalValue: string | object, opts) {
+    try {
+      const value = parseActionReference(originalValue)
+
+      const expectedKind = opts.schema.$_getFlag("kind")
+
+      if (expectedKind && value.kind !== expectedKind) {
+        const error = opts.error("wrongKind")
+        error.message += ` Expected '${expectedKind}', got '${value.kind}'`
+        return { value, errors: error }
+      }
+
+      return { value }
+    } catch (err) {
+      const error = opts.error("validation")
+      error.message = err.message
+      return error
+    }
+  },
+  rules: {
+    kind: {
+      args: [
+        {
+          name: "kind",
+          normalize: (v) => {
+            try {
+              return v.toLowerCase()
+            } catch {
+              return v
+            }
+          },
+          assert: joi
+            .string()
+            .allow(...actionKinds)
+            .only(),
+        },
+      ],
+      method(value: string) {
+        // tslint:disable-next-line: no-invalid-this
+        return this.$_setFlag("kind", value.toLowerCase())
+      },
+      validate(value) {
+        // This is validated above ^
+        return value
+      },
+    },
+    actionType: {
+      args: [
+        {
+          name: "type",
+          assert: joiIdentifier(),
+        },
+      ],
+      method(value: string) {
+        // tslint:disable-next-line: no-invalid-this
+        return this.$_setFlag("actionType", value)
+      },
+      validate(value) {
+        // Note: This is currently only advisory, and must be validated elsewhere!
+        return value
+      },
+    },
   },
 })
 
@@ -463,12 +630,6 @@ const moduleIncludeDescription = (extraDescription?: string) => {
 
 export const joiModuleIncludeDirective = (extraDescription?: string) =>
   joi.array().items(joi.posixPath().allowGlobs().subPathOnly()).description(moduleIncludeDescription(extraDescription))
-
-export const joiIdentifier = () =>
-  joi
-    .string()
-    .regex(identifierRegex)
-    .description(joiIdentifierDescription[0].toUpperCase() + joiIdentifierDescription.slice(1))
 
 export const joiProviderName = (name: string) =>
   joiIdentifier().required().description("The name of the provider plugin to use.").default(name).example(name)
@@ -534,6 +695,10 @@ export const joiRepositoryUrl = () =>
     )
     .example("git+https://github.com/org/repo.git#v2.0")
 
+export function getSchemaDescription(schema: Joi.Schema) {
+  return (<any>schema.describe().flags).description
+}
+
 // TODO
 export const joiSchema = () => joi.object().unknown(true)
 
@@ -596,3 +761,7 @@ export function allowUnknown<T extends Joi.Schema>(schema: T) {
 
   return schema
 }
+
+export const artifactsTargetDescription = dedent`
+  A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at \`.garden/artifacts\`.
+`

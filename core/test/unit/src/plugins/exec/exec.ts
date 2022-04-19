@@ -12,7 +12,7 @@ import { join, resolve } from "path"
 import psTree from "ps-tree"
 
 import { Garden } from "../../../../../src/garden"
-import { gardenPlugin, configureExecModule, getLogFilePath } from "../../../../../src/plugins/exec/exec"
+import { gardenPlugin, getLogFilePath } from "../../../../../src/plugins/exec/exec"
 import { GARDEN_BUILD_VERSION_FILENAME, DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { keyBy } from "lodash"
@@ -30,6 +30,7 @@ import { testFromConfig } from "../../../../../src/types/test"
 import { dedent } from "../../../../../src/util/string"
 import { sleep } from "../../../../../src/util/util"
 import { defaultDotIgnoreFile } from "../../../../../src/util/fs"
+import { configureExecModule } from "../../../../../src/plugins/exec/moduleConfig"
 
 describe("exec plugin", () => {
   const moduleName = "module-a"
@@ -547,6 +548,86 @@ describe("exec plugin", () => {
     })
   })
 
+  describe("convert", () => {
+    it("adds configured variables to the Group", async () => {
+      throw "TODO"
+    })
+
+    it("adds a Build action if build.command is set", async () => {
+      throw "TODO"
+    })
+
+    it("adds a Build action if build.dependencies[].copy is set and adds a copy field", async () => {
+      throw "TODO"
+    })
+
+    it("converts the repositoryUrl field", async () => {
+      throw "TODO"
+    })
+
+    it("sets Build dependencies correctly", async () => {
+      throw "TODO"
+    })
+
+    it("sets buildAtSource on Build if local:true", async () => {
+      throw "TODO"
+    })
+
+    it("correctly maps a serviceConfig to a Deploy with a build", async () => {
+      throw "TODO"
+
+      // Dependencies
+      // build field
+      // timeout
+      // service spec
+    })
+
+    it("correctly maps a serviceConfig to a Deploy with no build", async () => {
+      throw "TODO"
+
+      // Dependencies
+      // + build dependencies
+      // timeout
+      // service spec
+    })
+
+    it("correctly maps a taskConfig to a Run with a build", async () => {
+      throw "TODO"
+
+      // Dependencies
+      // build field
+      // timeout
+      // task spec
+    })
+
+    it("correctly maps a taskConfig to a Run with no build", async () => {
+      throw "TODO"
+
+      // Dependencies
+      // + build dependencies
+      // timeout
+      // task spec
+    })
+
+    it("correctly maps a testConfig to a Test with a build", async () => {
+      throw "TODO"
+
+      // Dependencies
+      // build field
+      // timeout
+      // test spec
+    })
+
+    it("correctly maps a testConfig to a Test with no build", async () => {
+      throw "TODO"
+
+      // Dependencies
+      // + build dependencies
+      // timeout
+      // test spec
+    })
+  })
+
   context("services", () => {
     let touchFilePath: string
 
@@ -692,7 +773,7 @@ describe("exec plugin", () => {
           expect(pid).to.be.a("number")
           expect(pid).to.be.greaterThan(0)
 
-          const logFilePath = getLogFilePath({ projectRoot: garden.projectRoot, serviceName: service.name })
+          const logFilePath = getLogFilePath({ projectRoot: garden.projectRoot, deployName: service.name })
           const logFileContents = (await readFile(logFilePath)).toString()
           const logEntriesWithoutTimestamps = logFileContents
             .split("\n")
@@ -758,7 +839,7 @@ describe("exec plugin", () => {
 
           pid = res.detail.pid
 
-          const logFilePath = getLogFilePath({ projectRoot: garden.projectRoot, serviceName: service.name })
+          const logFilePath = getLogFilePath({ projectRoot: garden.projectRoot, deployName: service.name })
           const logFileContents = (await readFile(logFilePath)).toString()
           const logEntriesWithoutTimestamps = logFileContents
             .split("\n")

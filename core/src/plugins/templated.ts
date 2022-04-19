@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { createGardenPlugin } from "../types/plugin/plugin"
+import { createGardenPlugin } from "../plugin/plugin"
 import { ModuleConfig, ModuleSpec, baseModuleSpecKeys, baseBuildSpecSchema } from "../config/module"
-import { templateKind } from "../config/module-template"
+import { moduleTemplateKind } from "../config/module-template"
 import { joiIdentifier, joi, DeepPrimitiveMap } from "../config/common"
 import { dedent, naturalList } from "../util/string"
 import { omit } from "lodash"
@@ -27,10 +27,10 @@ export const templatedModuleSpecSchema = () =>
     disabled: baseModuleSpecKeys().disabled,
     template: joiIdentifier()
       .required()
-      .description(`The ${templateKind} to use to generate the sub-modules of this module.`),
+      .description(`The ${moduleTemplateKind} to use to generate the sub-modules of this module.`),
     inputs: joi.object().description(
       dedent`
-      A map of inputs to pass to the ${templateKind}. These must match the inputs schema of the ${templateKind}.
+      A map of inputs to pass to the ${moduleTemplateKind}. These must match the inputs schema of the ${moduleTemplateKind}.
 
       Note: You can use template strings for the inputs, but be aware that inputs that are used to generate the resulting module names and other top-level identifiers must be resolvable when scanning for modules, and thus cannot reference other modules or runtime variables. See the [environment configuration context reference](../template-strings/environments.md) to see template strings that are safe to use for inputs used to generate module identifiers.
       `

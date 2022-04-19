@@ -18,7 +18,7 @@ import {
 } from "./common"
 import { DEFAULT_API_VERSION } from "../constants"
 import { deline, dedent } from "../util/string"
-import { ServiceLimitSpec } from "../plugins/container/config"
+import { ServiceLimitSpec } from "../plugins/container/moduleConfig"
 import { Garden } from "../garden"
 import { WorkflowConfigContext } from "./template-contexts/workflow"
 import { resolveTemplateStrings } from "../template-string/template-string"

@@ -8,7 +8,12 @@
 
 import { dedent } from "../../../util/string"
 import { GardenModule } from "../../module"
-import { PluginModuleActionParamsBase, moduleActionParamsSchema, runBaseParams, runResultSchema } from "../base"
+import {
+  PluginModuleActionParamsBase,
+  moduleActionParamsSchema,
+  runBaseParams,
+  runResultSchema,
+} from "../../../plugin/base"
 import { RuntimeContext } from "../../../runtime-context"
 import { joiArray, joi } from "../../../config/common"
 

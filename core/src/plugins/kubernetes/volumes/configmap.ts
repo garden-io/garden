@@ -10,24 +10,29 @@ import { joiIdentifier, joi, joiSparseArray, joiStringMap } from "../../../confi
 import { dedent } from "../../../util/string"
 import { BaseVolumeSpec } from "../../base-volume"
 import { V1ConfigMap } from "@kubernetes/client-node"
-import { ModuleTypeDefinition } from "../../../types/plugin/plugin"
+import { ModuleTypeDefinition } from "../../../plugin/plugin"
 import { DOCS_BASE_URL } from "../../../constants"
 import { baseBuildSpecSchema } from "../../../config/module"
-import { ConfigureModuleParams } from "../../../types/plugin/module/configure"
+import { ConfigureModuleParams } from "../../../plugin/handlers/module/configure"
 import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
 import { GardenModule } from "../../../types/module"
-import { KubernetesModule, KubernetesModuleConfig } from "../kubernetes-module/config"
+import { KubernetesModule, KubernetesModuleConfig } from "../kubernetes-type/moduleConfig"
 import { KubernetesResource } from "../types"
-import { getKubernetesServiceStatus, deployKubernetesService } from "../kubernetes-module/handlers"
+import { getKubernetesServiceStatus, deployKubernetesService } from "../kubernetes-type/handlers"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { GardenService } from "../../../types/service"
+import { ConvertModuleParams } from "../../../plugin/handlers/module/convert"
+import { omit } from "lodash"
 
 // TODO: If we make a third one in addition to this and `persistentvolumeclaim`, we should dedupe some code.
 
-export interface ConfigMapSpec extends BaseVolumeSpec {
-  dependencies: string[]
+export interface ConfigmapDeploySpec extends BaseVolumeSpec {
   namespace: string
   data: Required<V1ConfigMap["data"]>
+}
+
+export interface ConfigMapSpec extends ConfigmapDeploySpec {
+  dependencies: string[]
 }
 
 type ConfigMapModule = GardenModule<ConfigMapSpec, ConfigMapSpec>
@@ -40,6 +45,7 @@ export const configMapModuleDefinition = (): ModuleTypeDefinition => ({
 
     See the [Mounting Kubernetes ConfigMaps](${DOCS_BASE_URL}/guides/container-modules#mounting-kubernetes-configmaps) guide for more info and usage examples.
     `,
+
   schema: joi.object().keys({
     build: baseBuildSpecSchema(),
     dependencies: joiSparseArray(joiIdentifier()).description(
@@ -50,6 +56,7 @@ export const configMapModuleDefinition = (): ModuleTypeDefinition => ({
     ),
     data: joiStringMap(joi.string()).required().description("The ConfigMap data, as a key/value map of string values."),
   }),
+
   handlers: {
     async configure({ moduleConfig }: ConfigureModuleParams) {
       // No need to scan for files
@@ -67,6 +74,33 @@ export const configMapModuleDefinition = (): ModuleTypeDefinition => ({
       ]
 
       return { moduleConfig }
+    },
+
+    async convert(params: ConvertModuleParams<ConfigMapModule>) {
+      const { module, dummyBuild, prepareRuntimeDependencies } = params
+
+      return {
+        group: {
+          kind: "Group",
+          name: module.name,
+          actions: [
+            ...(dummyBuild ? [dummyBuild] : []),
+            {
+              kind: "Deploy",
+              type: "configmap",
+              name: module.name,
+              ...params.baseFields,
+
+              build: dummyBuild?.name,
+              dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
+
+              spec: {
+                ...omit(module.spec, ["dependencies"]),
+              },
+            },
+          ],
+        }
+      }
     },
 
     async getServiceStatus(params: GetServiceStatusParams) {

@@ -27,9 +27,9 @@ const parentNameTemplate = "${parent.name}"
 const moduleTemplateNameTemplate = "${template.name}"
 const moduleTemplateReferenceUrl = "./template-strings/modules.md"
 
-export const templateKind = "ModuleTemplate"
+export const moduleTemplateKind = "ModuleTemplate"
 
-export type TemplateKind = typeof templateKind
+export type ModuleTemplateKind = typeof moduleTemplateKind
 
 interface TemplatedModuleSpec extends Partial<BaseModuleSpec> {
   type: string
@@ -64,7 +64,7 @@ export async function resolveModuleTemplate(
     path: resource.configPath || resource.path,
     schema: moduleTemplateSchema(),
     projectRoot: garden.projectRoot,
-    configType: templateKind,
+    configType: moduleTemplateKind,
   })
 
   // Read and validate the JSON schema, if specified
@@ -81,17 +81,20 @@ export async function resolveModuleTemplate(
     try {
       inputsJsonSchema = JSON.parse((await readFile(path)).toString())
     } catch (error) {
-      throw new ConfigurationError(`Unable to read inputs schema for ${templateKind} ${validated.name}: ${error}`, {
-        path,
-        error,
-      })
+      throw new ConfigurationError(
+        `Unable to read inputs schema for ${moduleTemplateKind} ${validated.name}: ${error}`,
+        {
+          path,
+          error,
+        }
+      )
     }
 
     const type = inputsJsonSchema?.type
 
     if (type !== "object") {
       throw new ConfigurationError(
-        `Inputs schema for ${templateKind} ${validated.name} has type ${type}, but should be "object".`,
+        `Inputs schema for ${moduleTemplateKind} ${validated.name} has type ${type}, but should be "object".`,
         { path, type }
       )
     }
@@ -186,7 +189,7 @@ export async function resolveTemplatedModule(
       }
 
       throw new ConfigurationError(
-        `${templateKind} ${template.name} returned an invalid module (named ${spec.name}) for templated module ${resolved.name}: ${msg}`,
+        `${moduleTemplateKind} ${template.name} returned an invalid module (named ${spec.name}) for templated module ${resolved.name}: ${msg}`,
         {
           moduleSpec: spec,
           parent: resolvedSpec,
@@ -221,10 +224,10 @@ export async function resolveTemplatedModule(
 export const moduleTemplateSchema = () =>
   joi.object().keys({
     apiVersion: apiVersionSchema(),
-    kind: joi.string().allow(templateKind).only().default(templateKind),
+    kind: joi.string().allow(moduleTemplateKind).only().default(moduleTemplateKind),
     name: joiUserIdentifier().description("The name of the template."),
-    path: joi.string().description(`The directory path of the ${templateKind}.`).meta({ internal: true }),
-    configPath: joi.string().description(`The path of the ${templateKind} config file.`).meta({ internal: true }),
+    path: joi.string().description(`The directory path of the ${moduleTemplateKind}.`).meta({ internal: true }),
+    configPath: joi.string().description(`The path of the ${moduleTemplateKind} config file.`).meta({ internal: true }),
     inputsSchemaPath: joi
       .posixPath()
       .relativeOnly()

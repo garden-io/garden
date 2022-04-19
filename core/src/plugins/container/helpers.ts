@@ -13,14 +13,12 @@ import { parse, CommandEntry } from "docker-file-parser"
 import isGlob from "is-glob"
 import { ConfigurationError, RuntimeError } from "../../exceptions"
 import { spawn, splitLast, SpawnOutput, splitFirst } from "../../util/util"
-import { ModuleConfig } from "../../config/module"
 import {
-  ContainerModule,
   ContainerRegistryConfig,
   defaultTag as _defaultTag,
   defaultImageNamespace,
   ContainerModuleConfig,
-} from "./config"
+} from "./moduleConfig"
 import { Writable } from "stream"
 import Bluebird from "bluebird"
 import { flatten, uniq, fromPairs } from "lodash"
@@ -32,6 +30,8 @@ import { deline, stripQuotes } from "../../util/string"
 import { PluginContext } from "../../plugin-context"
 import { ModuleVersion } from "../../vcs/vcs"
 import { SpawnParams } from "../../util/ext-tools"
+import { ContainerBuildAction } from "./config"
+import { joinWithPosix } from "../../util/fs"
 
 interface DockerVersion {
   client?: string
@@ -39,6 +39,7 @@ interface DockerVersion {
 }
 
 export const DEFAULT_BUILD_TIMEOUT = 600
+export const defaultDockerfileName = "Dockerfile"
 
 export const minDockerVersion: DockerVersion = {
   client: "19.03.0",
@@ -59,9 +60,9 @@ const helpers = {
    * Returns the image ID used locally, when building and deploying to local environments
    * (when we don't need to push to remote registries).
    */
-  getLocalImageId(config: ContainerModuleConfig, version: ModuleVersion): string {
+  getLocalImageId(buildName: string, explicitImage: string | undefined, version: ModuleVersion): string {
     const { versionString } = version
-    const name = helpers.getLocalImageName(config)
+    const name = helpers.getLocalImageName(buildName, explicitImage)
     const parsedImage = helpers.parseImageId(name)
     return helpers.unparseImageId({ ...parsedImage, tag: versionString })
   },
@@ -70,12 +71,12 @@ const helpers = {
    * Returns the image name used locally (without tag/version), when building and deploying to local environments
    * (when we don't need to push to remote registries).
    */
-  getLocalImageName(config: ContainerModuleConfig): string {
-    if (config.spec.image) {
-      const parsedImage = helpers.parseImageId(config.spec.image)
+  getLocalImageName(buildName: string, explicitImage: string | undefined): string {
+    if (explicitImage) {
+      const parsedImage = helpers.parseImageId(explicitImage)
       return helpers.unparseImageId({ ...parsedImage, tag: undefined })
     } else {
-      return config.name
+      return buildName
     }
   },
 
@@ -88,23 +89,23 @@ const helpers = {
    * - The tag  part of the `image` field, if one is set and it includes a tag part.
    * - The Garden version of the module.
    */
-  getPublicImageId(module: ContainerModule, tag?: string) {
+  getPublicImageId(action: ContainerBuildAction, tag?: string) {
     // TODO: allow setting a default user/org prefix in the project/plugin config
-    const explicitImage = module.spec.image
+    const explicitImage = action.getSpec("publishId")
 
     if (explicitImage) {
       // Getting the tag like this because it's otherwise defaulted to "latest"
       const imageTag = splitFirst(explicitImage, ":")[1]
       const parsedImage = helpers.parseImageId(explicitImage)
       if (!tag) {
-        tag = imageTag || module.version.versionString
+        tag = imageTag || action.getVersionString()
       }
       return helpers.unparseImageId({ ...parsedImage, tag })
     } else {
-      const localImageName = helpers.getLocalImageName(module)
+      const localImageName = action.name
       const parsedImage = helpers.parseImageId(localImageName)
       if (!tag) {
-        tag = module.version.versionString
+        tag = action.getVersionString()
       }
       return helpers.unparseImageId({ ...parsedImage, tag })
     }
@@ -113,8 +114,12 @@ const helpers = {
   /**
    * Returns the image name (sans tag/version) to be used when pushing to deployment registries.
    */
-  getDeploymentImageName(moduleConfig: ContainerModuleConfig, registryConfig?: ContainerRegistryConfig) {
-    const localName = moduleConfig.spec.image || moduleConfig.name
+  getDeploymentImageName(
+    buildName: string,
+    explicitImage: string | undefined,
+    registryConfig: ContainerRegistryConfig | undefined
+  ) {
+    const localName = explicitImage || buildName
     const parsedId = helpers.parseImageId(localName)
     const withoutVersion = helpers.unparseImageId({
       ...parsedId,
@@ -136,23 +141,32 @@ const helpers = {
   },
 
   /**
-   * Returns the image ID to be used when pushing to deployment registries. This always has the module version
+   * Returns the image ID to be used when pushing to deployment registries. This always has the version
    * set as the tag.
    */
-  getDeploymentImageId(
+  getBuildDeploymentImageId(
+    buildName: string,
+    explicitImage: string | undefined,
+    version: ModuleVersion,
+    // Requiring this parameter to avoid accidentally missing it
+    registryConfig: ContainerRegistryConfig | undefined
+  ): string {
+    const imageName = helpers.getDeploymentImageName(buildName, explicitImage, registryConfig)
+
+    return helpers.unparseImageId({
+      repository: imageName,
+      tag: version.versionString,
+    })
+  },
+
+  getModuleDeploymentImageId(
     moduleConfig: ContainerModuleConfig,
     version: ModuleVersion,
     // Requiring this parameter to avoid accidentally missing it
     registryConfig: ContainerRegistryConfig | undefined
   ): string {
-    if (helpers.hasDockerfile(moduleConfig, version)) {
-      // If building, return the deployment image name, with the current module version.
-      const imageName = helpers.getDeploymentImageName(moduleConfig, registryConfig)
-
-      return helpers.unparseImageId({
-        repository: imageName,
-        tag: version.versionString,
-      })
+    if (helpers.moduleHasDockerfile(moduleConfig, version)) {
+      return helpers.getBuildDeploymentImageId(moduleConfig.name, moduleConfig.spec.image, version, registryConfig)
     } else if (moduleConfig.spec.image) {
       // Otherwise, return the configured image ID.
       return moduleConfig.spec.image
@@ -221,13 +235,8 @@ const helpers = {
     }
   },
 
-  async pullImage(module: ContainerModule, log: LogEntry, ctx: PluginContext) {
-    const identifier = helpers.getPublicImageId(module)
-    await helpers.dockerCli({ cwd: module.buildPath, args: ["pull", identifier], log, ctx })
-  },
-
-  async imageExistsLocally(module: ContainerModule, log: LogEntry, ctx: PluginContext) {
-    const identifier = module.outputs["local-image-id"]
+  async imageExistsLocally(action: ContainerBuildAction, log: LogEntry, ctx: PluginContext) {
+    const identifier = action.getOutput("localImageId")
     const result = await helpers.dockerCli({
       cwd: module.path,
       args: ["images", identifier, "-q"],
@@ -328,19 +337,18 @@ const helpers = {
     return docker.spawn(params)
   },
 
-  hasDockerfile(config: ContainerModuleConfig, version: ModuleVersion): boolean {
+  moduleHasDockerfile(config: ContainerModuleConfig, version: ModuleVersion): boolean {
     // If we explicitly set a Dockerfile, we take that to mean you want it to be built.
     // If the file turns out to be missing, this will come up in the build handler.
-    const dockerfileSourcePath = helpers.getDockerfileSourcePath(config)
-    return !!config.spec.dockerfile || version.files.includes(dockerfileSourcePath)
+    return !!config.spec.dockerfile || version.files.includes(getDockerfilePath(config.path, config.spec.dockerfile))
   },
 
-  getDockerfileBuildPath(module: ContainerModule) {
-    return getDockerfilePath(module.buildPath, module.spec.dockerfile)
-  },
-
-  getDockerfileSourcePath(config: ModuleConfig) {
-    return getDockerfilePath(config.path, config.spec.dockerfile)
+  async actionHasDockerfile(action: ContainerBuildAction): Promise<boolean> {
+    // If we explicitly set a Dockerfile, we take that to mean you want it to be built.
+    // If the file turns out to be missing, this will come up in the build handler.
+    const dockerfile = action.getSpec("dockerfile")
+    const dockerfileSourcePath = getDockerfilePath(action.getBasePath(), dockerfile)
+    return action.version.files.includes(dockerfileSourcePath)
   },
 
   /**
@@ -349,7 +357,7 @@ const helpers = {
    * Returns an empty list if there is no Dockerfile, and an `image` is set.
    */
   async autoResolveIncludes(config: ContainerModuleConfig, log: LogEntry) {
-    const dockerfilePath = helpers.getDockerfileSourcePath(config)
+    const dockerfilePath = getDockerfilePath(config.path, config.spec.dockerfile)
 
     if (!(await pathExists(dockerfilePath))) {
       // No Dockerfile, nothing to build, return empty list
@@ -407,7 +415,7 @@ const helpers = {
     }
 
     // Make sure to include the Dockerfile
-    paths.push(config.spec.dockerfile || "Dockerfile")
+    paths.push(config.spec.dockerfile || defaultDockerfileName)
 
     return Bluebird.map(paths, async (path) => {
       const absPath = join(config.path, path)
@@ -447,6 +455,6 @@ function fixDockerVersionString(v: string) {
   return semver.coerce(v.replace(/\.0([\d]+)/g, ".$1"))!
 }
 
-function getDockerfilePath(basePath: string, dockerfile = "Dockerfile") {
-  return join(basePath, dockerfile)
+function getDockerfilePath(basePath: string, dockerfile = defaultDockerfileName) {
+  return joinWithPosix(basePath, dockerfile)
 }

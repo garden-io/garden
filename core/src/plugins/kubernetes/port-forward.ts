@@ -14,18 +14,19 @@ import { V1ContainerPort, V1Deployment, V1PodTemplate, V1Service } from "@kubern
 
 import { GetPortForwardParams, GetPortForwardResult } from "../../types/plugin/service/getPortForward"
 import { KubernetesProvider, KubernetesPluginContext } from "./config"
-import { getAppNamespace, getModuleNamespace } from "./namespace"
+import { getAppNamespace, getActionNamespace } from "./namespace"
 import { registerCleanupFunction, sleep } from "../../util/util"
 import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
 import { KubernetesResource } from "./types"
-import { ForwardablePort, GardenService } from "../../types/service"
+import { ForwardablePort } from "../../types/service"
 import { isBuiltIn, matchSelector } from "./util"
 import { LogEntry } from "../../logger/log-entry"
 import { RuntimeError } from "../../exceptions"
 import execa = require("execa")
-import { KubernetesService } from "./kubernetes-module/config"
-import { HelmService } from "./helm/config"
+import { KubernetesService } from "./kubernetes-type/moduleConfig"
+import { HelmService } from "./helm/moduleConfig"
+import { ContainerDeployAction } from "../container/config"
 
 // TODO: implement stopPortForward handler
 
@@ -55,9 +56,9 @@ export function killPortForward(targetResource: string, targetPort: number, log?
   }
 }
 
-export function killPortForwards(service: GardenService, forwardablePorts: ForwardablePort[], log: LogEntry) {
+export function killPortForwards(action: ContainerDeployAction, forwardablePorts: ForwardablePort[], log: LogEntry) {
   for (const port of forwardablePorts) {
-    const targetResource = getTargetResource(service, port.targetName)
+    const targetResource = getTargetResource(action, port.targetName)
     killPortForward(targetResource, port.targetPort, log)
   }
 }
@@ -186,14 +187,14 @@ export async function getPortForwardHandler({
   ctx,
   log,
   namespace,
-  service,
+  action,
   targetName,
   targetPort,
 }: GetPortForwardParams & { namespace?: string }): Promise<GetPortForwardResult> {
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = ctx.provider as KubernetesProvider
   if (!namespace) {
-    namespace = await getModuleNamespace({
+    namespace = await getActionNamespace({
       ctx: k8sCtx,
       log,
       module: service.module,
@@ -205,7 +206,7 @@ export async function getPortForwardHandler({
   if (!namespace) {
     namespace = await getAppNamespace(ctx, log, provider)
   }
-  const targetResource = getTargetResource(service, targetName)
+  const targetResource = getTargetResource(action, targetName)
 
   const fwd = await getPortForward({ ctx, log, namespace, targetResource, port: targetPort })
 
@@ -215,8 +216,8 @@ export async function getPortForwardHandler({
   }
 }
 
-function getTargetResource(service: GardenService, targetName?: string) {
-  return targetName || `Service/${service.name}`
+function getTargetResource(action: ContainerDeployAction, targetName?: string) {
+  return targetName || `Service/${action.name}`
 }
 
 /**

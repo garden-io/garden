@@ -13,18 +13,20 @@ import { KubeApi, KubernetesError } from "./api"
 import { KubernetesProvider, KubernetesPluginContext, NamespaceConfig } from "./config"
 import { DeploymentError, TimeoutError } from "../../exceptions"
 import { getPackageVersion, sleep } from "../../util/util"
-import { GetEnvironmentStatusParams } from "../../types/plugin/provider/getEnvironmentStatus"
+import { GetEnvironmentStatusParams } from "../../plugin/handlers/provider/getEnvironmentStatus"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { LogEntry } from "../../logger/log-entry"
 import { gardenAnnotationKey } from "../../util/string"
 import dedent from "dedent"
-import { HelmModule } from "./helm/config"
-import { KubernetesModule } from "./kubernetes-module/config"
+import { HelmModule } from "./helm/moduleConfig"
+import { KubernetesModule } from "./kubernetes-type/moduleConfig"
 import { V1Namespace } from "@kubernetes/client-node"
 import { isSubset } from "../../util/is-subset"
 import chalk from "chalk"
-import { NamespaceStatus } from "../../types/plugin/base"
+import { NamespaceStatus } from "../../plugin/base"
 import { KubernetesServerResource } from "./types"
+import { HelmHeployAction } from "./helm/config"
+import { KubernetesDeployAction } from "./kubernetes-type/config"
 
 const GARDEN_VERSION = getPackageVersion()
 
@@ -294,42 +296,44 @@ export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?:
   }
 }
 
-export async function getModuleNamespace({
+export async function getActionNamespace({
   ctx,
   log,
-  module,
+  action,
   provider,
   skipCreate,
 }: {
   ctx: KubernetesPluginContext
   log: LogEntry
-  module: HelmModule | KubernetesModule
+  action: HelmHeployAction | KubernetesDeployAction
   provider: KubernetesProvider
   skipCreate?: boolean
 }): Promise<string> {
-  const status = await getModuleNamespaceStatus({
+  const status = await getActionNamespaceStatus({
     ctx,
     log,
-    module,
+    action,
     provider,
     skipCreate,
   })
   return status.namespaceName
 }
 
-export async function getModuleNamespaceStatus({
+export async function getActionNamespaceStatus({
   ctx,
   log,
-  module,
+  action,
   provider,
   skipCreate,
 }: {
   ctx: KubernetesPluginContext
   log: LogEntry
-  module: HelmModule | KubernetesModule
+  action: HelmHeployAction | KubernetesDeployAction
   provider: KubernetesProvider
   skipCreate?: boolean
 }): Promise<NamespaceStatus> {
+  const namespace = action.getSpec("namespace")
+
   return getNamespaceStatus({
     log,
     ctx,

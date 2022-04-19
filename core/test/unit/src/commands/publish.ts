@@ -20,7 +20,7 @@ import {
   makeTestGarden,
 } from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
-import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
+import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { keyBy } from "lodash"
 import { PublishModuleParams, PublishModuleResult } from "../../../../src/types/plugin/module/publishModule"
 

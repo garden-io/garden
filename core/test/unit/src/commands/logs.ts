@@ -12,8 +12,8 @@ import { Garden } from "../../../../src"
 import { colors, LogsCommand } from "../../../../src/commands/logs"
 import { joi } from "../../../../src/config/common"
 import { ProjectConfig, defaultNamespace } from "../../../../src/config/project"
-import { createGardenPlugin, GardenPlugin } from "../../../../src/types/plugin/plugin"
-import { GetServiceLogsParams, ServiceLogEntry } from "../../../../src/types/plugin/service/getServiceLogs"
+import { createGardenPlugin, GardenPlugin } from "../../../../src/plugin/plugin"
+import { GetServiceLogsParams } from "../../../../src/types/plugin/service/getServiceLogs"
 import { TestGarden } from "../../../../src/util/testing"
 import { expectError, withDefaultGlobalOpts } from "../../../helpers"
 import execa from "execa"
@@ -24,6 +24,7 @@ import { LogEntry } from "../../../../src/logger/log-entry"
 import { LogLevel } from "../../../../src/logger/logger"
 import { ModuleConfig } from "../../../../src/config/module"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
+import { ServiceLogEntry } from "../../../../src/types/service"
 
 function makeCommandParams({
   garden,

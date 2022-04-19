@@ -8,7 +8,7 @@
 
 import { Command, CommandResult, CommandParams, CommandGroup } from "./base"
 import dedent = require("dedent")
-import { SetSecretResult } from "../types/plugin/provider/setSecret"
+import { SetSecretResult } from "../plugin/handlers/provider/setSecret"
 import { StringParameter } from "../cli/params"
 import { printHeader } from "../logger/util"
 

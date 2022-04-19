@@ -9,7 +9,6 @@
 import Bluebird from "bluebird"
 import { waitForResources } from "../status/status"
 import { helm } from "./helm-cli"
-import { HelmModule } from "./config"
 import {
   filterManifests,
   getBaseModule,
@@ -19,6 +18,7 @@ import {
   prepareManifests,
   prepareTemplates,
 } from "./common"
+import { HelmModule } from "./moduleConfig"
 import {
   gardenCloudAECPauseAnnotation,
   getPausedResources,
@@ -33,7 +33,7 @@ import { DeployServiceParams } from "../../../types/plugin/service/deployService
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 import { getForwardablePorts, killPortForwards } from "../port-forward"
 import { getServiceResource, getServiceResourceSpec } from "../util"
-import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
+import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { KubeApi } from "../api"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
@@ -54,7 +54,7 @@ export async function deployHelmService({
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, ctx, provider)
 
-  const namespaceStatus = await getModuleNamespaceStatus({
+  const namespaceStatus = await getActionNamespaceStatus({
     ctx: k8sCtx,
     log,
     module,
@@ -185,7 +185,7 @@ export async function deployHelmService({
     namespace,
     ctx,
     provider,
-    serviceName: service.name,
+    actionName: service.name,
     resources: manifests,
     log,
     timeoutSec: module.spec.timeout,
@@ -212,12 +212,12 @@ export async function deployHelmService({
     await startDevModeSync({
       ctx,
       log,
-      moduleRoot: service.sourceModule.path,
+      basePath: service.sourceModule.path,
       namespace: serviceResource.metadata.namespace || namespace,
       target: serviceResource,
       spec: service.spec.devMode,
       containerName: service.spec.devMode.containerName,
-      serviceName: service.name,
+      deployName: service.name,
     })
   }
 
@@ -237,7 +237,7 @@ export async function deleteService(params: DeleteServiceParams): Promise<HelmSe
   const provider = k8sCtx.provider
   const releaseName = getReleaseName(module)
 
-  const namespace = await getModuleNamespace({
+  const namespace = await getActionNamespace({
     ctx: k8sCtx,
     log,
     module,

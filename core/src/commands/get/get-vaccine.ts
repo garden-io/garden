@@ -97,7 +97,7 @@ export class GetVaccineCommand extends Command {
     const link = chalk.underline.bold
     const heartEmoji = printEmoji("heart", log) ? ` ${printEmoji("heart", log)}` : ""
     log.info(dedent`
-      Hello! This commmand will check for openings at Berlin's vaccination centers at a
+      Hello! This command will check for openings at Berlin's vaccination centers at a
       ${Math.floor(intervalMs / 1000)} second interval. If it finds one, you'll receive a notification
       with links to book an appointment.
 

@@ -78,13 +78,13 @@ export function base64(str: string) {
  * Returns an array of strings, joined together as a string in a natural language manner.
  * Example: `naturalList(["a", "b", "c"])` -> `"a, b and c"`
  */
-export function naturalList(list: string[]) {
+export function naturalList(list: string[], trailingWord = "and") {
   if (list.length === 0) {
     return ""
   } else if (list.length === 1) {
     return list[0]
   } else {
-    return list.slice(0, -1).join(", ") + " and " + list[list.length - 1]
+    return list.slice(0, -1).join(", ") + " " + trailingWord + " " + list[list.length - 1]
   }
 }
 

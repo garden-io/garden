@@ -10,7 +10,7 @@ import fs from "fs"
 import tmp from "tmp-promise"
 import { KubernetesPluginContext } from "../config"
 import { PluginError, ParameterError } from "../../../exceptions"
-import { PluginCommand } from "../../../types/plugin/command"
+import { PluginCommand } from "../../../plugin/command"
 import chalk from "chalk"
 import { GardenModule } from "../../../types/module"
 import { findByNames } from "../../../util/util"
@@ -73,7 +73,7 @@ function findModules(modules: GardenModule[], names: string[]): GardenModule[] {
 
 function ensureAllModulesValid(modules: GardenModule[]) {
   const invalidModules = filter(modules, (module) => {
-    return !module.compatibleTypes.includes("container") || !containerHelpers.hasDockerfile(module, module.version)
+    return !module.compatibleTypes.includes("container") || !containerHelpers.moduleHasDockerfile(module, module.version)
   })
 
   if (invalidModules.length > 0) {
@@ -91,7 +91,7 @@ function ensureAllModulesValid(modules: GardenModule[]) {
 async function pullModules(ctx: KubernetesPluginContext, modules: GardenModule[], log: LogEntry) {
   await Promise.all(
     modules.map(async (module) => {
-      const remoteId = containerHelpers.getPublicImageId(module)
+      const remoteId = action.getSpec("publishId") || action.getOutput("deploymentImageId")
       const localId = module.outputs["local-image-id"]
       log.info({ msg: chalk.cyan(`Pulling image ${remoteId} to ${localId}`) })
       await pullModule(ctx, module, log)

@@ -10,7 +10,7 @@ import Bluebird from "bluebird"
 import { isAbsolute, join, resolve, relative, parse, basename } from "path"
 import { emptyDir, ensureDir, mkdirp, pathExists, remove } from "fs-extra"
 import { ConfigurationError, InternalError } from "../exceptions"
-import { FileCopySpec, GardenModule, getModuleKey } from "../types/module"
+import { FileCopySpec, GardenModule } from "../types/module"
 import { normalizeRelativePath, joinWithPosix } from "../util/fs"
 import { LogEntry } from "../logger/log-entry"
 import { ModuleConfig } from "../config/module"
@@ -90,7 +90,7 @@ export class BuildStaging {
         return
       }
 
-      const sourceModule = graph.getModule(getModuleKey(buildDepConfig.name, buildDepConfig.plugin), true)
+      const sourceModule = graph.getModule(buildDepConfig.name, true)
       const sourceBuildPath = sourceModule.buildPath
 
       await Bluebird.map(buildDepConfig.copy, (copy: FileCopySpec) => {
@@ -132,9 +132,7 @@ export class BuildStaging {
     }
 
     // This returns the same result for modules and module configs
-    const moduleKey = getModuleKey(moduleOrConfig.name, moduleOrConfig.plugin)
-
-    return join(this.buildDirPath, moduleKey)
+    return join(this.buildDirPath, moduleOrConfig.name)
   }
 
   async ensureBuildPath(moduleOrConfig: GardenModule | ModuleConfig): Promise<string> {

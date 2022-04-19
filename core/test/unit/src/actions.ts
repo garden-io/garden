@@ -8,20 +8,20 @@
 
 import {
   ModuleAndRuntimeActionHandlers,
-  PluginActionHandlers,
+  ProviderActionHandlers,
   getModuleActionDescriptions,
-  getPluginActionDescriptions,
+  getProviderActionDescriptions,
   createGardenPlugin,
   ActionHandler,
   ModuleActionHandler,
-} from "../../../src/types/plugin/plugin"
+} from "../../../src/plugin/plugin"
 import { GardenService, ServiceState } from "../../../src/types/service"
 import { RuntimeContext, prepareRuntimeContext } from "../../../src/runtime-context"
 import { expectError, makeTestGardenA, stubModuleAction, projectRootA, TestGarden, makeTestGarden } from "../../helpers"
 import { ActionRouter } from "../../../src/actions"
 import { LogEntry } from "../../../src/logger/log-entry"
 import { GardenModule } from "../../../src/types/module"
-import { ServiceLogEntry } from "../../../src/types/plugin/service/getServiceLogs"
+import { ServiceLogEntry } from "../../../src/types/service"
 import Stream from "ts-stream"
 import { GardenTask } from "../../../src/types/task"
 import { expect } from "chai"
@@ -36,7 +36,7 @@ import { defaultDotIgnoreFile } from "../../../src/util/fs"
 import stripAnsi from "strip-ansi"
 import { emptyDir, pathExists, ensureFile, readFile } from "fs-extra"
 import { join } from "path"
-import { DashboardPage } from "../../../src/types/plugin/provider/getDashboardPage"
+import { DashboardPage } from "../../../src/plugin/handlers/provider/getDashboardPage"
 import { testFromModule, testFromConfig } from "../../../src/types/test"
 import { ConfigGraph } from "../../../src/config-graph"
 
@@ -2163,14 +2163,14 @@ const basePlugin = createGardenPlugin({
   ],
 })
 
-const pluginActionDescriptions = getPluginActionDescriptions()
+const pluginActionDescriptions = getProviderActionDescriptions()
 const moduleActionDescriptions = getModuleActionDescriptions()
 
 const testPlugin = createGardenPlugin({
   name: "test-plugin",
   dependencies: [{ name: "base" }],
 
-  handlers: <PluginActionHandlers>{
+  handlers: <ProviderActionHandlers>{
     configureProvider: async (params) => {
       validateParams(params, pluginActionDescriptions.configureProvider.paramsSchema)
       return { config: params.config }
@@ -2289,6 +2289,14 @@ const testPlugin = createGardenPlugin({
               testConfigs,
             },
           }
+        },
+
+        convert: async (params) => {
+          validateParams(params, moduleActionDescriptions.convert.paramsSchema)
+
+          // TODO-G2
+
+          return {}
         },
 
         getModuleOutputs: async (params) => {

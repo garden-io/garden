@@ -11,9 +11,9 @@ import { mkdirp, pathExists, readFile, remove, writeFile } from "fs-extra"
 import { join } from "path"
 import { ConfigGraph } from "../../../../../src/config-graph"
 import { LogEntry } from "../../../../../src/logger/log-entry"
-import { ContainerService } from "../../../../../src/plugins/container/config"
+import { ContainerService } from "../../../../../src/plugins/container/moduleConfig"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
-import { getContainerServiceStatus } from "../../../../../src/plugins/kubernetes/container/status"
+import { getContainerDeployStatus } from "../../../../../src/plugins/kubernetes/container/status"
 import { flushAllMutagenSyncs, killSyncDaemon } from "../../../../../src/plugins/kubernetes/mutagen"
 import { KubernetesWorkload } from "../../../../../src/plugins/kubernetes/types"
 import { execInWorkload } from "../../../../../src/plugins/kubernetes/util"
@@ -83,7 +83,7 @@ describe("dev mode deployments and sync behavior", () => {
     })
 
     await garden.processTasks([deployTask], { throwOnError: true })
-    const status = await getContainerServiceStatus({
+    const status = await getContainerDeployStatus({
       ctx,
       module,
       service,
@@ -148,7 +148,7 @@ describe("dev mode deployments and sync behavior", () => {
     })
 
     await garden.processTasks([deployTask], { throwOnError: true })
-    const status = await getContainerServiceStatus({
+    const status = await getContainerDeployStatus({
       ctx,
       module,
       service,

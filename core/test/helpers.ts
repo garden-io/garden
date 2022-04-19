@@ -11,24 +11,28 @@ import { join, relative, resolve } from "path"
 import { extend, intersection, mapValues, pick } from "lodash"
 import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
-import { containerModuleSpecSchema, containerTaskSchema, containerTestSchema } from "../src/plugins/container/config"
-import { buildExecModule, execBuildSpecSchema, testExecModule } from "../src/plugins/exec/exec"
+import {
+  containerModuleSpecSchema,
+  containerModuleTestSchema,
+  containerTaskSchema,
+} from "../src/plugins/container/moduleConfig"
+import { buildExecModule, testExecModule } from "../src/plugins/exec/exec"
 import { joi, joiArray } from "../src/config/common"
 import {
   createGardenPlugin,
   ModuleAndRuntimeActionHandlers,
-  PluginActionHandlers,
+  ProviderActionHandlers,
   RegisterPluginParam,
-} from "../src/types/plugin/plugin"
+} from "../src/plugin/plugin"
 import { Garden, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { ModuleVersion } from "../src/vcs/vcs"
 import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT, gardenEnv, LOCAL_CONFIG_FILENAME } from "../src/constants"
 import { globalOptions, GlobalOptions, Parameters, ParameterValues } from "../src/cli/params"
 import { RunModuleParams } from "../src/types/plugin/module/runModule"
-import { ConfigureModuleParams } from "../src/types/plugin/module/configure"
+import { ConfigureModuleParams } from "../src/plugin/handlers/module/configure"
 import { RunServiceParams } from "../src/types/plugin/service/runService"
-import { RunResult } from "../src/types/plugin/base"
+import { RunResult } from "../src/plugin/base"
 import { ExternalSourceType, getRemoteSourceRelPath, hashRepoUrl } from "../src/util/ext-source-util"
 import { ActionRouter } from "../src/actions"
 import { CommandParams, ProcessCommandResult } from "../src/commands/base"
@@ -48,6 +52,7 @@ import { assert, expect } from "chai"
 import Bluebird = require("bluebird")
 import execa = require("execa")
 import timekeeper = require("timekeeper")
+import { execBuildSpecSchema } from "../src/plugins/exec/moduleConfig"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError } from "../src/util/testing"
@@ -101,7 +106,7 @@ export const projectRootA = getDataDir("test-project-a")
 export const projectRootBuildDependants = getDataDir("test-build-dependants")
 export const projectTestFailsRoot = getDataDir("test-project-fails")
 
-const testModuleTestSchema = () => containerTestSchema().keys({ command: joi.sparseArray().items(joi.string()) })
+const testModuleTestSchema = () => containerModuleTestSchema().keys({ command: joi.sparseArray().items(joi.string()) })
 
 const testModuleTaskSchema = () => containerTaskSchema().keys({ command: joi.sparseArray().items(joi.string()) })
 
@@ -417,11 +422,11 @@ export const makeTestGardenBuildDependants = profileAsync(async function _makeTe
   return makeTestGarden(projectRootBuildDependants, { plugins: extraPlugins, forceRefresh: true, ...opts })
 })
 
-export async function stubAction<T extends keyof PluginActionHandlers>(
+export async function stubAction<T extends keyof ProviderActionHandlers>(
   garden: Garden,
   pluginName: string,
   type: T,
-  handler?: PluginActionHandlers[T]
+  handler?: ProviderActionHandlers[T]
 ) {
   if (handler) {
     handler["pluginName"] = pluginName

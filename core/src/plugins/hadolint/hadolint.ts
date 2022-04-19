@@ -16,12 +16,13 @@ import { STATIC_DIR } from "../../constants"
 import { padStart, padEnd } from "lodash"
 import chalk from "chalk"
 import { ConfigurationError } from "../../exceptions"
-import { containerHelpers } from "../container/helpers"
+import { containerHelpers, defaultDockerfileName } from "../container/helpers"
 import { baseBuildSpecSchema } from "../../config/module"
 import { getGitHubUrl } from "../../docs/common"
-import { TestModuleParams } from "../../types/plugin/module/testModule"
-import { GardenModule } from "../../types/module"
-import { createGardenPlugin } from "../../types/plugin/plugin"
+import { createGardenPlugin } from "../../plugin/plugin"
+import { TestAction, TestActionConfig } from "../../actions/test"
+import { TestActionHandlers } from "../../plugin/action-types"
+import { ContainerModule } from "../container/moduleConfig"
 
 const defaultConfigPath = join(STATIC_DIR, "hadolint", "default.hadolint.yaml")
 const configFilename = ".hadolint.yaml"
@@ -57,11 +58,12 @@ const configSchema = providerConfigBaseSchema()
   })
   .unknown(false)
 
-interface HadolintModuleSpec {
+interface HadolinTestSpec {
   dockerfilePath: string
 }
 
-type HadolintModule = GardenModule<HadolintModuleSpec>
+type HadolintTestConfig = TestActionConfig<"hadolint", HadolinTestSpec>
+type HadolintTest = TestAction<HadolintTestConfig, {}>
 
 const gitHubUrl = getGitHubUrl("examples/hadolint")
 
@@ -93,17 +95,15 @@ export const gardenPlugin = () =>
 
         return {
           addModules: await Bluebird.filter(modules, async (module) => {
-            const dockerfilePath = containerHelpers.getDockerfileSourcePath(module)
-
             return (
               // Pick all container or container-based modules
               module.compatibleTypes.includes("container") &&
               // Make sure we don't step on an existing custom hadolint module
-              !existingHadolintModuleDockerfiles.includes(dockerfilePath) &&
+              !existingHadolintModuleDockerfiles.includes(resolve(module.path, module.spec.dockerfile)) &&
               // Only create for modules with Dockerfiles
-              containerHelpers.hasDockerfile(module, module.version)
+              containerHelpers.moduleHasDockerfile(module, module.version)
             )
-          }).map((module) => {
+          }).map((module: ContainerModule) => {
             const baseName = "hadolint-" + module.name
 
             let name = baseName
@@ -121,11 +121,135 @@ export const gardenPlugin = () =>
               name,
               description: `hadolint test for module '${module.name}' (auto-generated)`,
               path: module.path,
-              dockerfilePath: relative(module.path, containerHelpers.getDockerfileSourcePath(module)),
+              dockerfilePath: relative(
+                module.path,
+                resolve(module.path, module.spec.dockerfile || defaultDockerfileName)
+              ),
             }
           }),
         }
       },
+    },
+    createActionTypes: {
+      test: [
+        {
+          name: "hadolint",
+          docs: dedent`
+          Runs \`hadolint\` on the specified Dockerfile.
+
+          > Note: In most cases, you'll let the [provider](../providers/hadolint.md) create this module type automatically, but you may in some cases want or need to manually specify a Dockerfile to lint.
+
+          To configure \`hadolint\`, you can use \`.hadolint.yaml\` config files. For each test, we first look for one in the action source directory. If none is found there, we check the project root, and if none is there we fall back to   configuration. Note that for reasons of portability, we do not fall back to global/user configuration files.
+
+          See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it.
+          `,
+          schema: joi.object().keys({
+            dockerfilePath: joi
+              .posixPath()
+              .relativeOnly()
+              .subPathOnly()
+              .required()
+              .description("POSIX-style path to a Dockerfile that you want to lint with `hadolint`."),
+          }),
+          handlers: <TestActionHandlers<HadolintTest>>{
+            run: async ({ ctx, log, action }) => {
+              const spec = action.getSpec()
+              const dockerfilePath = join(module.path, spec.dockerfilePath)
+              const startedAt = new Date()
+              let dockerfile: string
+
+              try {
+                dockerfile = (await readFile(dockerfilePath)).toString()
+              } catch {
+                throw new ConfigurationError(`hadolint: Could not find Dockerfile at ${spec.dockerfilePath}`, {
+                  modulePath: module.path,
+                  ...spec,
+                })
+              }
+
+              let configPath: string
+              const moduleConfigPath = join(module.path, configFilename)
+              const projectConfigPath = join(ctx.projectRoot, configFilename)
+
+              if (await pathExists(moduleConfigPath)) {
+                // Prefer configuration from the module root
+                configPath = moduleConfigPath
+              } else if (await pathExists(projectConfigPath)) {
+                // 2nd preference is configuration in project root
+                configPath = projectConfigPath
+              } else {
+                // Fall back to empty default config
+                configPath = defaultConfigPath
+              }
+
+              const args = ["--config", configPath, "--format", "json", dockerfilePath]
+              const result = await ctx.tools["hadolint.hadolint"].exec({ log, args, ignoreError: true })
+
+              let success = true
+
+              const parsed = JSON.parse(result.stdout)
+              const errors = parsed.filter((p: any) => p.level === "error")
+              const warnings = parsed.filter((p: any) => p.level === "warning")
+              const provider = ctx.provider as HadolintProvider
+
+              const resultCategories: string[] = []
+              let formattedResult = "OK"
+
+              if (errors.length > 0) {
+                resultCategories.push(`${errors.length} error(s)`)
+              }
+
+              if (warnings.length > 0) {
+                resultCategories.push(`${warnings.length} warning(s)`)
+              }
+
+              let formattedHeader = `hadolint reported ${naturalList(resultCategories)}`
+
+              if (parsed.length > 0) {
+                const dockerfileLines = splitLines(dockerfile)
+
+                formattedResult =
+                  `${formattedHeader}:\n\n` +
+                  parsed
+                    .map((msg: any) => {
+                      const color = msg.level === "error" ? chalk.bold.red : chalk.bold.yellow
+                      const rawLine = dockerfileLines[msg.line - 1]
+                      const linePrefix = padEnd(`${msg.line}:`, 5, " ")
+                      const columnCursorPosition = (msg.column || 1) + linePrefix.length
+
+                      return dedent`
+                      ${color(msg.code + ":")} ${chalk.bold(msg.message || "")}
+                      ${linePrefix}${chalk.gray(rawLine)}
+                      ${chalk.gray(padStart("^", columnCursorPosition, "-"))}
+                    `
+                    })
+                    .join("\n")
+              }
+
+              const threshold = provider.config.testFailureThreshold
+
+              if (warnings.length > 0 && threshold === "warning") {
+                success = false
+              } else if (errors.length > 0 && threshold !== "none") {
+                success = false
+              } else if (warnings.length > 0) {
+                log.warn(chalk.yellow(formattedHeader))
+              }
+
+              return {
+                testName: action.name,
+                moduleName: action.moduleName || action.name,
+                command: ["hadolint", ...args],
+                version: action.getVersionString(),
+                success,
+                startedAt,
+                completedAt: new Date(),
+                log: formattedResult,
+              }
+            },
+          },
+        },
+      ],
     },
     createModuleTypes: [
       {
@@ -153,101 +277,30 @@ export const gardenPlugin = () =>
         handlers: {
           configure: async ({ moduleConfig }) => {
             moduleConfig.include = [moduleConfig.spec.dockerfilePath]
-            moduleConfig.testConfigs = [{ name: "lint", dependencies: [], spec: {}, timeout: 10, disabled: false }]
             return { moduleConfig }
           },
-          testModule: async ({ ctx, log, module, test }: TestModuleParams<HadolintModule>) => {
-            const dockerfilePath = join(module.path, module.spec.dockerfilePath)
-            const startedAt = new Date()
-            let dockerfile: string
 
-            try {
-              dockerfile = (await readFile(dockerfilePath)).toString()
-            } catch {
-              throw new ConfigurationError(`hadolint: Could not find Dockerfile at ${module.spec.dockerfilePath}`, {
-                modulePath: module.path,
-                ...module.spec,
-              })
-            }
-
-            let configPath: string
-            const moduleConfigPath = join(module.path, configFilename)
-            const projectConfigPath = join(ctx.projectRoot, configFilename)
-
-            if (await pathExists(moduleConfigPath)) {
-              // Prefer configuration from the module root
-              configPath = moduleConfigPath
-            } else if (await pathExists(projectConfigPath)) {
-              // 2nd preference is configuration in project root
-              configPath = projectConfigPath
-            } else {
-              // Fall back to empty default config
-              configPath = defaultConfigPath
-            }
-
-            const args = ["--config", configPath, "--format", "json", dockerfilePath]
-            const result = await ctx.tools["hadolint.hadolint"].exec({ log, args, ignoreError: true })
-
-            let success = true
-
-            const parsed = JSON.parse(result.stdout)
-            const errors = parsed.filter((p: any) => p.level === "error")
-            const warnings = parsed.filter((p: any) => p.level === "warning")
-            const provider = ctx.provider as HadolintProvider
-
-            const resultCategories: string[] = []
-            let formattedResult = "OK"
-
-            if (errors.length > 0) {
-              resultCategories.push(`${errors.length} error(s)`)
-            }
-
-            if (warnings.length > 0) {
-              resultCategories.push(`${warnings.length} warning(s)`)
-            }
-
-            let formattedHeader = `hadolint reported ${naturalList(resultCategories)}`
-
-            if (parsed.length > 0) {
-              const dockerfileLines = splitLines(dockerfile)
-
-              formattedResult =
-                `${formattedHeader}:\n\n` +
-                parsed
-                  .map((msg: any) => {
-                    const color = msg.level === "error" ? chalk.bold.red : chalk.bold.yellow
-                    const rawLine = dockerfileLines[msg.line - 1]
-                    const linePrefix = padEnd(`${msg.line}:`, 5, " ")
-                    const columnCursorPosition = (msg.column || 1) + linePrefix.length
-
-                    return dedent`
-                    ${color(msg.code + ":")} ${chalk.bold(msg.message || "")}
-                    ${linePrefix}${chalk.gray(rawLine)}
-                    ${chalk.gray(padStart("^", columnCursorPosition, "-"))}
-                  `
-                  })
-                  .join("\n")
-            }
-
-            const threshold = provider.config.testFailureThreshold
-
-            if (warnings.length > 0 && threshold === "warning") {
-              success = false
-            } else if (errors.length > 0 && threshold !== "none") {
-              success = false
-            } else if (warnings.length > 0) {
-              log.warn(chalk.yellow(formattedHeader))
-            }
+          convert: async (params) => {
+            const { module } = params
 
             return {
-              testName: test.name,
-              moduleName: module.name,
-              command: ["hadolint", ...args],
-              version: test.version,
-              success,
-              startedAt,
-              completedAt: new Date(),
-              log: formattedResult,
+              actions: [
+                {
+                  kind: "Test",
+                  type: "hadolint",
+                  name: module.name,
+
+                  ...params.baseFields,
+                  configFilePath: module.configPath,
+
+                  include: [module.spec.dockerfilePath],
+
+                  timeout: 10,
+                  spec: {
+                    ...module.spec,
+                  },
+                },
+              ],
             }
           },
         },

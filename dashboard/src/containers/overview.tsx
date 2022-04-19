@@ -10,7 +10,7 @@ import React from "react"
 import styled from "@emotion/styled"
 
 import { ServiceState } from "@garden-io/core/build/src/types/service"
-import { RunState } from "@garden-io/core/build/src/types/plugin/base"
+import { RunState } from "@garden-io/core/build/src/plugin/base"
 
 import PageError from "../components/page-error"
 import { ModuleCard, Props as ModuleProps } from "../components/entity-cards/module"
