@@ -12,7 +12,7 @@ import {
   runBaseParams,
   RunResult,
   artifactsPathSchema,
-} from "../base"
+} from "../../../plugin/base"
 import { dedent } from "../../../util/string"
 import { GardenModule } from "../../module"
 import { RuntimeContext } from "../../../runtime-context"

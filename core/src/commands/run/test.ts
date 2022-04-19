@@ -11,7 +11,7 @@ import chalk from "chalk"
 import { CommandError, ParameterError } from "../../exceptions"
 import { printHeader } from "../../logger/util"
 import { TestTask } from "../../tasks/test"
-import { testFromConfig } from "../../types/test"
+import { testFromConfig, testResultSchema } from "../../types/test"
 import { dedent, deline } from "../../util/string"
 import { findByName, getNames } from "../../util/util"
 import {
@@ -24,7 +24,7 @@ import {
   handleTaskResult,
 } from "../base"
 import { joi } from "../../config/common"
-import { testResultSchema, TestResult } from "../../types/plugin/module/getTestResult"
+import { TestResult } from "../../types/test"
 import { GraphResults } from "../../task-graph"
 import { StringParameter, BooleanParameter } from "../../cli/params"
 

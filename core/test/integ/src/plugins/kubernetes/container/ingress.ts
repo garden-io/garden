@@ -27,7 +27,7 @@ import {
   ContainerServiceSpec,
 } from "../../../../../../src/plugins/container/config"
 import { defaultSystemNamespace } from "../../../../../../src/plugins/kubernetes/system"
-import { PluginTools } from "../../../../../../src/types/plugin/tools"
+import { PluginTools } from "../../../../../../src/plugin/tools"
 import { keyBy } from "lodash"
 import { PluginTool } from "../../../../../../src/util/ext-tools"
 import { kubectlSpec } from "../../../../../../src/plugins/kubernetes/kubectl"

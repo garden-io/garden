@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ModuleAndRuntimeActionHandlers } from "../../../types/plugin/plugin"
+import { ModuleAndRuntimeActionHandlers } from "../../../plugin/plugin"
 import { configureHelmModule, HelmModule } from "./config"
 import { buildHelmModule } from "./build"
 import { getServiceStatus } from "./status"

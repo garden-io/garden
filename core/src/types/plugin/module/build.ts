@@ -8,7 +8,7 @@
 
 import { dedent } from "../../../util/string"
 import { GardenModule } from "../../module"
-import { PluginModuleActionParamsBase, moduleActionParamsSchema } from "../base"
+import { PluginModuleActionParamsBase, moduleActionParamsSchema } from "../../../plugin/base"
 import { joi } from "../../../config/common"
 
 export interface BuildModuleParams<T extends GardenModule = GardenModule> extends PluginModuleActionParamsBase<T> {}
@@ -42,9 +42,7 @@ export const buildResultSchema = () =>
 
 export const build = () => ({
   description: dedent`
-    Build the current version of a module. This must wait until the build is complete before returning.
-
-    Called ahead of a number of actions, including \`deployService\` and \`publishModule\`.
+    Run the build. This must wait until the build is complete before returning.
   `,
 
   paramsSchema: moduleActionParamsSchema(),

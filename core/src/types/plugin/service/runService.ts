@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginServiceActionParamsBase, serviceActionParamsSchema, runBaseParams, runResultSchema } from "../base"
+import { PluginServiceActionParamsBase, serviceActionParamsSchema, runBaseParams, runResultSchema } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
 import { GardenModule } from "../../module"
 import { RuntimeContext } from "../../../runtime-context"

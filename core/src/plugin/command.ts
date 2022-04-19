@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogEntry } from "../../logger/log-entry"
-import { PluginContext, pluginContextSchema } from "../../plugin-context"
-import { joi, joiArray, joiIdentifier, joiIdentifierDescription } from "../../config/common"
-import { GardenModule, moduleSchema } from "../module"
+import { LogEntry } from "../logger/log-entry"
+import { PluginContext, pluginContextSchema } from "../plugin-context"
+import { joi, joiArray, joiIdentifier, joiIdentifierDescription } from "../config/common"
+import { GardenModule, moduleSchema } from "../types/module"
 import { logEntrySchema } from "./base"
 import { Garden } from "../.."
 

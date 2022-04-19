@@ -14,7 +14,7 @@ import {
   createGardenPlugin,
   ActionHandler,
   ModuleActionHandler,
-} from "../../../src/types/plugin/plugin"
+} from "../../../src/plugin/plugin"
 import { GardenService, ServiceState } from "../../../src/types/service"
 import { RuntimeContext, prepareRuntimeContext } from "../../../src/runtime-context"
 import { expectError, makeTestGardenA, stubModuleAction, projectRootA, TestGarden, makeTestGarden } from "../../helpers"

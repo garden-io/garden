@@ -13,7 +13,7 @@ import { runAndCopy } from "../run"
 import { getBaseModule, getChartResources } from "./common"
 import { KubernetesPluginContext } from "../config"
 import { TestModuleParams } from "../../../types/plugin/module/testModule"
-import { TestResult } from "../../../types/plugin/module/getTestResult"
+import { TestResult } from "../../../types/test"
 import {
   getResourceContainer,
   getResourcePodSpec,

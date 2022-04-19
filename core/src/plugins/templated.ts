@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { createGardenPlugin } from "../types/plugin/plugin"
+import { createGardenPlugin } from "../plugin/plugin"
 import { ModuleConfig, ModuleSpec, baseModuleSpecKeys, baseBuildSpecSchema } from "../config/module"
 import { templateKind } from "../config/module-template"
 import { joiIdentifier, joi, DeepPrimitiveMap } from "../config/common"

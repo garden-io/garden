@@ -12,7 +12,7 @@ import { resolve } from "path"
 import handlebars = require("handlebars")
 import { joiArray, joi } from "../config/common"
 import { providerConfigBaseSchema } from "../config/provider"
-import { GardenPlugin, PluginMap } from "../types/plugin/plugin"
+import { GardenPlugin, PluginMap } from "../plugin/plugin"
 import { getPluginBases } from "../plugins"
 import { renderTemplateStringReference, renderConfigReference, TEMPLATES_DIR } from "./config"
 

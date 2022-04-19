@@ -16,7 +16,7 @@ import {
   RegisterPluginParam,
   pluginModuleSchema,
   GardenPluginReference,
-} from "./types/plugin/plugin"
+} from "./plugin/plugin"
 import { GenericProviderConfig } from "./config/provider"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { uniq, mapValues, fromPairs, flatten, keyBy, some, isString, sortBy } from "lodash"

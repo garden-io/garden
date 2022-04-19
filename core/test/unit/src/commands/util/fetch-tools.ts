@@ -11,7 +11,7 @@ import { makeTempDir, TempDirectory, TestGarden, withDefaultGlobalOpts } from ".
 import { FetchToolsCommand } from "../../../../../src/commands/util/fetch-tools"
 import { expect } from "chai"
 import { DEFAULT_API_VERSION, GARDEN_GLOBAL_PATH } from "../../../../../src/constants"
-import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
+import { createGardenPlugin } from "../../../../../src/plugin/plugin"
 import { join } from "path"
 import { defaultNamespace } from "../../../../../src/config/project"
 import { defaultDotIgnoreFile } from "../../../../../src/util/fs"

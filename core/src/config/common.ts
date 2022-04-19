@@ -534,6 +534,10 @@ export const joiRepositoryUrl = () =>
     )
     .example("git+https://github.com/org/repo.git#v2.0")
 
+export function getSchemaDescription(schema: Joi.Schema) {
+  return (<any>schema.describe().flags).description
+}
+
 // TODO
 export const joiSchema = () => joi.object().unknown(true)
 

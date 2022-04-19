@@ -12,7 +12,7 @@ import { join } from "path"
 import { GARDEN_GLOBAL_PATH } from "../../../constants"
 import { mkdirp } from "fs-extra"
 import { StringMap } from "../../../config/common"
-import { PluginToolSpec } from "../../../types/plugin/tools"
+import { PluginToolSpec } from "../../../plugin/tools"
 
 export const helm3Spec: PluginToolSpec = {
   name: "helm",

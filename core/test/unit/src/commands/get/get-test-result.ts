@@ -18,7 +18,7 @@ import { GetTestResultCommand } from "../../../../../src/commands/get/get-test-r
 import { expect } from "chai"
 import { GetTestResultParams } from "../../../../../src/types/plugin/module/getTestResult"
 import { LogEntry } from "../../../../../src/logger/log-entry"
-import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
+import { createGardenPlugin } from "../../../../../src/plugin/plugin"
 import { joi } from "../../../../../src/config/common"
 import { getArtifactKey } from "../../../../../src/util/artifacts"
 import { join } from "path"

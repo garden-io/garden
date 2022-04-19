@@ -11,7 +11,7 @@ import execa from "execa"
 
 import { ProjectConfig, defaultNamespace } from "../../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
-import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
+import { createGardenPlugin } from "../../../../../src/plugin/plugin"
 import { joi } from "../../../../../src/config/common"
 import { ServiceState } from "../../../../../src/types/service"
 import { GetServiceStatusParams } from "../../../../../src/types/plugin/service/getServiceStatus"

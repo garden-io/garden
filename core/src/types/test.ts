@@ -11,11 +11,13 @@ import { TestConfig, testConfigSchema } from "../config/test"
 import { getEntityVersion, hashStrings, versionStringPrefix } from "../vcs/vcs"
 import { findByName } from "../util/util"
 import { NotFoundError } from "../exceptions"
-import { joi, joiUserIdentifier, versionStringSchema } from "../config/common"
+import { joi, joiPrimitive, joiUserIdentifier, versionStringSchema } from "../config/common"
 import { ConfigGraph } from "../config-graph"
 import { makeTestTaskName } from "../tasks/helpers"
 import { sortBy } from "lodash"
 import { serializeConfig } from "../config/module"
+import { RunResult, runResultSchema } from "../plugin/base"
+import { deline } from "../util/string"
 
 export interface GardenTest<M extends GardenModule = GardenModule> {
   name: string
@@ -79,3 +81,16 @@ export function testFromModule<M extends GardenModule = GardenModule>(
 
   return testFromConfig(module, config, graph)
 }
+
+export interface TestResult extends RunResult {
+  testName: string
+}
+
+export const testResultSchema = () =>
+  runResultSchema().keys({
+    outputs: joi.object().pattern(/.+/, joiPrimitive()).description("A map of primitive values, output from the test."),
+    testName: joi.string().required().description("The name of the test that was run."),
+    version: joi.string().description(deline`
+        The test run's version, as a string. In addition to the parent module's version, this also
+        factors in the module versions of the test's runtime dependencies (if any).`),
+  })

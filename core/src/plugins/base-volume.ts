@@ -9,7 +9,7 @@
 import { baseModuleSpecSchema, ModuleSpec } from "../config/module"
 import { joi } from "../config/common"
 import { dedent } from "../util/string"
-import { createGardenPlugin } from "../types/plugin/plugin"
+import { createGardenPlugin } from "../plugin/plugin"
 
 type VolumeAccessMode = "ReadOnlyMany" | "ReadWriteOnce" | "ReadWriteMany"
 

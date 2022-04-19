@@ -19,7 +19,7 @@ import {
   ModuleAndRuntimeActionHandlers,
   PluginActionHandlers,
   RegisterPluginParam,
-} from "../src/types/plugin/plugin"
+} from "../src/plugin/plugin"
 import { Garden, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { ModuleVersion } from "../src/vcs/vcs"
@@ -28,7 +28,7 @@ import { globalOptions, GlobalOptions, Parameters, ParameterValues } from "../sr
 import { RunModuleParams } from "../src/types/plugin/module/runModule"
 import { ConfigureModuleParams } from "../src/types/plugin/module/configure"
 import { RunServiceParams } from "../src/types/plugin/service/runService"
-import { RunResult } from "../src/types/plugin/base"
+import { RunResult } from "../src/plugin/base"
 import { ExternalSourceType, getRemoteSourceRelPath, hashRepoUrl } from "../src/util/ext-source-util"
 import { ActionRouter } from "../src/actions"
 import { CommandParams, ProcessCommandResult } from "../src/commands/base"

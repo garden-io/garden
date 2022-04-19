@@ -15,7 +15,7 @@ import { PluginTool } from "./util/ext-tools"
 import { ConfigContext, ContextResolveOpts } from "./config/template-contexts/base"
 import { resolveTemplateStrings } from "./template-string/template-string"
 import { LogEntry } from "./logger/log-entry"
-import { logEntrySchema } from "./types/plugin/base"
+import { logEntrySchema } from "./plugin/base"
 import { EventEmitter } from "eventemitter3"
 
 type WrappedFromGarden = Pick<

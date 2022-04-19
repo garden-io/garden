@@ -13,7 +13,7 @@ import { baseModuleSpecSchema } from "../config/module"
 import handlebars = require("handlebars")
 import { joi } from "../config/common"
 import { ModuleReferenceContext, ServiceRuntimeContext, TaskRuntimeContext } from "../config/template-contexts/module"
-import { ModuleTypeDefinition } from "../types/plugin/plugin"
+import { ModuleTypeDefinition } from "../plugin/plugin"
 import { renderConfigReference, renderTemplateStringReference, TEMPLATES_DIR } from "./config"
 
 const populateModuleSchema = (schema: Joi.ObjectSchema) => baseModuleSpecSchema().concat(schema)

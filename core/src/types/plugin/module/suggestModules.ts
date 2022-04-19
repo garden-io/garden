@@ -11,7 +11,7 @@ import { AddModuleSpec } from "../../../config/module"
 import { joi, joiArray } from "../../../config/common"
 import { addModuleSchema } from "../provider/augmentGraph"
 import { LogEntry } from "../../../logger/log-entry"
-import { ActionHandlerParamsBase } from "../plugin"
+import { ActionHandlerParamsBase } from "../../../plugin/plugin"
 
 export const maxDescriptionLength = 48
 

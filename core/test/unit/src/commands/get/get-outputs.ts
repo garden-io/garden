@@ -12,7 +12,7 @@ import { withDefaultGlobalOpts, TestGarden } from "../../../../helpers"
 import { GetOutputsCommand } from "../../../../../src/commands/get/get-outputs"
 import { ProjectConfig, defaultNamespace } from "../../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
-import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
+import { createGardenPlugin } from "../../../../../src/plugin/plugin"
 import { exec } from "../../../../../src/util/util"
 import { defaultDotIgnoreFile } from "../../../../../src/util/fs"
 

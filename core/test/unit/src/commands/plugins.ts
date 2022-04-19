@@ -8,7 +8,7 @@
 
 import { PluginsCommand } from "../../../../src/commands/plugins"
 import { withDefaultGlobalOpts, TestGarden, makeTempDir, TempDirectory } from "../../../helpers"
-import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
+import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { writeFile } from "fs-extra"
 import { join } from "path"
 import { dedent } from "../../../../src/util/string"
