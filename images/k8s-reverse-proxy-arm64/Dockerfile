@@ -1,4 +1,4 @@
-FROM linuxserver/openssh-server:latest
+FROM linuxserver/openssh-server:amd64-latest
 
 WORKDIR /app
 
