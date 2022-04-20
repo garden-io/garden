@@ -14,10 +14,10 @@ This directory contains two directories, with one container service each, `backe
 To initialize the project, we can use a helper command:
 
 ```sh
-garden create project
+garden create project --skip-comments
 ```
 
-This will create a basic boilerplate project configuration in the current directory, making it our project root. With the comments stripped out, it should look something like this:
+This will create a basic boilerplate project configuration in the current directory, making it our project root.
 
 ```yaml
 kind: Project
@@ -30,11 +30,11 @@ providers:
 
 We have one environment (`default`) and a single provider. We'll get back to this later.
 
-Next, let's create module configs for each of our two modules, starting with `backend`:
+Next, let's create module configs for each of our two modules, starting with `backend`. You can omit the `--skip-comments` flag to create a module with commented-out fields, which reveal all the options available.
 
 ```sh
 cd backend
-garden create module
+garden create module --skip-comments
 cd ..
 ```
 
@@ -42,13 +42,13 @@ You'll get a suggestion to make it a `container` module. Pick that, and give it 
 
 ```sh
 cd frontend
-garden create module
+garden create module --skip-comments
 cd ..
 ```
 
 This is now enough configuration to build the project. Before we can deploy, we need to configure `services` in each module configuration, as well as set up a local cluster or connect to a remote cluster.
 
-Starting with the former, go ahead and open the newly created `backend/garden.yml` file. You'll find a number of commented-out fields, which reveal all the options available for the `container` module type. One of them is the `services` field. Just to keep things simple for now, go ahead and replace that block (or append to the file) the following:
+Starting with the former, go ahead and open the newly created `backend/garden.yml` file. Just to keep things simple for now, go ahead and append to the file the following:
 
 ```yaml
 services:
