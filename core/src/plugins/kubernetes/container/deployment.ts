@@ -7,26 +7,26 @@
  */
 
 import chalk from "chalk"
-import { V1Container, V1Affinity, V1VolumeMount, V1PodSpec, V1Deployment, V1DaemonSet } from "@kubernetes/client-node"
+import { V1Affinity, V1Container, V1DaemonSet, V1Deployment, V1PodSpec, V1VolumeMount } from "@kubernetes/client-node"
 import { GardenService } from "../../../types/service"
-import { extend, find, keyBy, set, omit } from "lodash"
-import { ContainerModule, ContainerService, ContainerVolumeSpec, ContainerServiceConfig } from "../../container/config"
+import { extend, find, keyBy, omit, set } from "lodash"
+import { ContainerModule, ContainerService, ContainerServiceConfig, ContainerVolumeSpec } from "../../container/config"
 import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
-import { waitForResources, compareDeployedResources } from "../status/status"
+import { compareDeployedResources, waitForResources } from "../status/status"
 import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { getAppNamespace, getAppNamespaceStatus } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
-import { KubernetesProvider, KubernetesPluginContext } from "../config"
-import { KubernetesWorkload, KubernetesResource } from "../types"
+import { KubernetesPluginContext, KubernetesProvider } from "../config"
+import { KubernetesResource, KubernetesWorkload } from "../types"
 import { ConfigurationError } from "../../../exceptions"
-import { getContainerServiceStatus, ContainerServiceStatus } from "./status"
+import { ContainerServiceStatus, getContainerServiceStatus } from "./status"
 import { LogEntry } from "../../../logger/log-entry"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 import { prepareEnvVars, workloadTypes } from "../util"
-import { gardenAnnotationKey, deline } from "../../../util/string"
+import { deline, gardenAnnotationKey } from "../../../util/string"
 import { RuntimeContext } from "../../../runtime-context"
 import { resolve } from "path"
 import { killPortForwards } from "../port-forward"
@@ -36,7 +36,6 @@ import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { hotReloadableKinds, HotReloadableResource } from "../hot-reload/hot-reload"
 import { getResourceRequirements, getSecurityContext } from "./util"
 import { configureLocalMode, startLocalModePortForwarding } from "../local-mode"
-import { reverseProxyImageName } from "../constants"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters
@@ -571,13 +570,6 @@ export async function createWorkloadManifest({
   }
 
   if (enableLocalMode) {
-    log.info({
-      section: service.name,
-      msg: chalk.gray(
-        `Configuring in local mode, proxy container ${chalk.underline(reverseProxyImageName)} will be deployed`
-      ),
-    })
-
     await configureLocalMode({
       target: workload,
       service,
