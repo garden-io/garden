@@ -39,11 +39,11 @@ describe("CreateProjectCommand", () => {
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
-        dir: tmp.path,
-        interactive: false,
-        name: undefined,
-        filename: defaultProjectConfigFilename,
-        noComments: false,
+        "dir": tmp.path,
+        "interactive": false,
+        "name": undefined,
+        "filename": defaultProjectConfigFilename,
+        "skip-comments": false,
       }),
     })
     const { name, configPath, ignoreFileCreated, ignoreFilePath } = result!
@@ -78,11 +78,11 @@ describe("CreateProjectCommand", () => {
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
-        dir: tmp.path,
-        interactive: false,
-        name: undefined,
-        filename: defaultProjectConfigFilename,
-        noComments: false,
+        "dir": tmp.path,
+        "interactive": false,
+        "name": undefined,
+        "filename": defaultProjectConfigFilename,
+        "skip-comments": false,
       }),
     })
     const { ignoreFileCreated, ignoreFilePath } = result!
@@ -103,11 +103,11 @@ describe("CreateProjectCommand", () => {
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
-        dir: tmp.path,
-        interactive: false,
-        name: undefined,
-        filename: defaultProjectConfigFilename,
-        noComments: false,
+        "dir": tmp.path,
+        "interactive": false,
+        "name": undefined,
+        "filename": defaultProjectConfigFilename,
+        "skip-comments": false,
       }),
     })
     const { ignoreFileCreated, ignoreFilePath } = result!
@@ -125,11 +125,11 @@ describe("CreateProjectCommand", () => {
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
-        dir: tmp.path,
-        interactive: false,
-        name: "foo",
-        filename: defaultProjectConfigFilename,
-        noComments: false,
+        "dir": tmp.path,
+        "interactive": false,
+        "name": "foo",
+        "filename": defaultProjectConfigFilename,
+        "skip-comments": false,
       }),
     })
     const { name, configPath } = result!
@@ -161,11 +161,11 @@ describe("CreateProjectCommand", () => {
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
-        dir: tmp.path,
-        interactive: false,
-        name: undefined,
-        filename: "garden.yml",
-        noComments: false,
+        "dir": tmp.path,
+        "interactive": false,
+        "name": undefined,
+        "filename": "garden.yml",
+        "skip-comments": false,
       }),
     })
     const { name, configPath } = result!
@@ -190,11 +190,11 @@ describe("CreateProjectCommand", () => {
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
-        dir: tmp.path,
-        interactive: false,
-        name: undefined,
-        filename: "custom.garden.yml",
-        noComments: false,
+        "dir": tmp.path,
+        "interactive": false,
+        "name": undefined,
+        "filename": "custom.garden.yml",
+        "skip-comments": false,
       }),
     })
     const { configPath } = result!
@@ -220,11 +220,11 @@ describe("CreateProjectCommand", () => {
           log: garden.log,
           args: {},
           opts: withDefaultGlobalOpts({
-            dir: tmp.path,
-            interactive: false,
-            name: undefined,
-            filename: defaultProjectConfigFilename,
-            noComments: false,
+            "dir": tmp.path,
+            "interactive": false,
+            "name": undefined,
+            "filename": defaultProjectConfigFilename,
+            "skip-comments": false,
           }),
         }),
       (err) => expect(err.message).to.equal("A Garden project already exists in " + configPath)
@@ -243,10 +243,10 @@ describe("CreateProjectCommand", () => {
           args: {},
           opts: withDefaultGlobalOpts({
             dir,
-            interactive: false,
-            name: undefined,
-            filename: defaultProjectConfigFilename,
-            noComments: false,
+            "interactive": false,
+            "name": undefined,
+            "filename": defaultProjectConfigFilename,
+            "skip-comments": false,
           }),
         }),
       (err) => expect(err.message).to.equal(`Path ${dir} does not exist`)

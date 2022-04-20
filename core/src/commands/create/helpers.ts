@@ -10,7 +10,7 @@ import { pathExists, readFile, writeFile } from "fs-extra"
 import { BooleanParameter } from "../../cli/params"
 
 export const createBaseOpts = {
-  noComments: new BooleanParameter({
+  "skip-comments": new BooleanParameter({
     help: "Set to true to disable comment generation.",
     defaultValue: false,
   }),

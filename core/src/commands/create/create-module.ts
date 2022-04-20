@@ -198,9 +198,9 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
 
     const { yaml } = renderConfigReference(schema, {
       yamlOpts: {
-        onEmptyValue: opts.noComments ? "remove" : "comment out",
+        onEmptyValue: opts["skip-comments"] ? "remove" : "comment out",
         filterMarkdown: true,
-        renderBasicDescription: !opts.noComments,
+        renderBasicDescription: !opts["skip-comments"],
         renderFullDescription: false,
         renderValue: "preferExample",
         presetValues,
