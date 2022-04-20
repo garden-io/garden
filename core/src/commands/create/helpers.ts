@@ -11,7 +11,6 @@ import { BooleanParameter } from "../../cli/params"
 
 export const createBaseOpts = {
   noComments: new BooleanParameter({
-    alias: "no-comments",
     help: "Set to true to disable comment generation.",
     defaultValue: false,
   }),
