@@ -22,7 +22,7 @@ import { printHeader } from "../../logger/util"
 import { CommandError } from "../../exceptions"
 import { dedent, deline } from "../../util/string"
 import { RunTaskResult } from "../../types/plugin/task/runTask"
-import { taskResultSchema } from "../../types/plugin/task/getTaskResult"
+import { taskResultSchema } from "../../types/task"
 import { joi } from "../../config/common"
 import { StringParameter, BooleanParameter } from "../../cli/params"
 

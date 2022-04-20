@@ -6,18 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { dedent, deline } from "../../../util/string"
+import { dedent } from "../../../util/string"
 import { PluginTestActionParamsBase, actionParamsSchema } from "../../../plugin/base"
-import { moduleVersionSchema } from "../../../config/common"
 import { TestActionSpec } from "../../../actions/test"
 import { testResultSchema } from "../../../types/test"
 
 export interface GetTestResultParams<T extends TestActionSpec = TestActionSpec> extends PluginTestActionParamsBase<T> {}
-
-export const testVersionSchema = () =>
-  moduleVersionSchema().description(deline`
-    The test run's version. In addition to the parent module's version, this also
-    factors in the module versions of the test's runtime dependencies (if any).`)
 
 export const getTestResult = () => ({
   description: dedent`

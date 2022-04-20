@@ -10,9 +10,8 @@ import dotenv = require("dotenv")
 import { Command, CommandResult, CommandParams, PrepareParams } from "./base"
 import chalk from "chalk"
 import { every, some, sortBy } from "lodash"
-import { ServiceLogEntry } from "../types/plugin/service/getServiceLogs"
 import Bluebird = require("bluebird")
-import { GardenService } from "../types/service"
+import { GardenService, ServiceLogEntry } from "../types/service"
 import Stream from "ts-stream"
 import { LoggerType, logLevelMap, LogLevel, parseLogLevel } from "../logger/logger"
 import { StringsParameter, BooleanParameter, IntegerParameter, DurationParameter, TagsOption } from "../cli/params"
