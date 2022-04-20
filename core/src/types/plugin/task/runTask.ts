@@ -16,7 +16,7 @@ import {
 import { dedent } from "../../../util/string"
 import { GardenModule } from "../../module"
 import { RuntimeContext } from "../../../runtime-context"
-import { taskResultSchema } from "./getTaskResult"
+import { taskResultSchema } from "../../task"
 import { PrimitiveMap } from "../../../config/common"
 
 export interface RunTaskParams<T extends GardenModule = GardenModule> extends PluginTaskActionParamsBase<T> {

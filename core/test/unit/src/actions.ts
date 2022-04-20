@@ -21,7 +21,7 @@ import { expectError, makeTestGardenA, stubModuleAction, projectRootA, TestGarde
 import { ActionRouter } from "../../../src/actions"
 import { LogEntry } from "../../../src/logger/log-entry"
 import { GardenModule } from "../../../src/types/module"
-import { ServiceLogEntry } from "../../../src/types/plugin/service/getServiceLogs"
+import { ServiceLogEntry } from "../../../src/types/service"
 import Stream from "ts-stream"
 import { GardenTask } from "../../../src/types/task"
 import { expect } from "chai"

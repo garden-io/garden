@@ -12,7 +12,7 @@ import { printHeader } from "../../logger/util"
 import { RunTaskResult } from "../../types/plugin/task/runTask"
 import chalk from "chalk"
 import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
-import { taskResultSchema } from "../../types/plugin/task/getTaskResult"
+import { taskResultSchema } from "../../types/task"
 import { joiArray, joi } from "../../config/common"
 import { StringParameter } from "../../cli/params"
 

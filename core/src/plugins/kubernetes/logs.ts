@@ -10,7 +10,7 @@ import { omit, sortBy } from "lodash"
 import moment from "moment"
 import parseDuration from "parse-duration"
 
-import { ServiceLogEntry } from "../../types/plugin/service/getServiceLogs"
+import { ServiceLogEntry } from "../../types/service"
 import { KubernetesResource, KubernetesPod, BaseResource } from "./types"
 import { getAllPods } from "./util"
 import { KubeApi } from "./api"

@@ -9,7 +9,9 @@
 import { GardenModule } from "./module"
 import { TaskConfig, taskConfigSchema } from "../config/task"
 import { getEntityVersion } from "../vcs/vcs"
-import { joi, joiUserIdentifier, versionStringSchema } from "../config/common"
+import { joi, joiPrimitive, joiUserIdentifier, moduleVersionSchema, versionStringSchema } from "../config/common"
+import { namespaceStatusSchema } from "../plugin/base"
+import { deline } from "../util/string"
 
 export interface GardenTask<M extends GardenModule = GardenModule> {
   name: string
@@ -48,3 +50,28 @@ export function taskFromConfig<M extends GardenModule = GardenModule>(module: M,
     version: getEntityVersion(module, config),
   }
 }
+
+export const taskVersionSchema = () =>
+  moduleVersionSchema().description(deline`
+    The task run's version. In addition to the parent module's version, this also
+    factors in the module versions of the tasks's runtime dependencies (if any).`)
+
+export const taskResultSchema = () =>
+  joi
+    .object()
+    .unknown(true)
+    .keys({
+      moduleName: joi.string().description("The name of the module that the task belongs to, if applicable."),
+      taskName: joi.string().description("The name of the task that was run."),
+      command: joi.sparseArray().items(joi.string().allow("")).required().description("The command that the task ran."),
+      version: joi.string().description("The string version of the task."),
+      success: joi.boolean().required().description("Whether the task was successfully run."),
+      startedAt: joi.date().required().description("When the task run was started."),
+      completedAt: joi.date().required().description("When the task run was completed."),
+      log: joi.string().required().allow("").description("The output log from the run."),
+      outputs: joi
+        .object()
+        .pattern(/.+/, joiPrimitive())
+        .description("A map of primitive values, output from the task."),
+      namespaceStatus: namespaceStatusSchema().optional(),
+    })
