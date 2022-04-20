@@ -138,7 +138,8 @@ export const baseRuntimeActionSpec = () =>
         For example, you might create an \`exec\` Build which prepares some manifests, and then reference that in a \`kubernetes\` _Deploy_ action, and the resulting manifests from the Build.
 
         This would mean that instead of looking for manifest files relative to this action's location in your project structure, the output directory for the referenced \`exec\` Build would be the source.
-        `)
+        `
+      )
     ),
   })
 

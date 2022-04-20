@@ -9,20 +9,36 @@
 import Joi = require("@hapi/joi")
 import { BuildModuleParams, BuildResult, build } from "../types/plugin/module/build"
 import { BuildStatus, GetBuildStatusParams, getBuildStatus } from "../types/plugin/module/getBuildStatus"
-import { CleanupEnvironmentParams, CleanupEnvironmentResult, cleanupEnvironment } from "../types/plugin/provider/cleanupEnvironment"
+import {
+  CleanupEnvironmentParams,
+  CleanupEnvironmentResult,
+  cleanupEnvironment,
+} from "../types/plugin/provider/cleanupEnvironment"
 import { ConfigureModuleParams, ConfigureModuleResult, configure } from "../types/plugin/module/configure"
-import { ConfigureProviderParams, ConfigureProviderResult, configureProvider } from "../types/plugin/provider/configureProvider"
+import {
+  ConfigureProviderParams,
+  ConfigureProviderResult,
+  configureProvider,
+} from "../types/plugin/provider/configureProvider"
 import { DeleteSecretParams, DeleteSecretResult, deleteSecret } from "../types/plugin/provider/deleteSecret"
 import { DeleteServiceParams, deleteService } from "../types/plugin/service/deleteService"
 import { DeployServiceParams, deployService } from "../types/plugin/service/deployService"
-import { EnvironmentStatus, GetEnvironmentStatusParams, getEnvironmentStatus } from "../types/plugin/provider/getEnvironmentStatus"
+import {
+  EnvironmentStatus,
+  GetEnvironmentStatusParams,
+  getEnvironmentStatus,
+} from "../types/plugin/provider/getEnvironmentStatus"
 import { ExecInServiceParams, ExecInServiceResult, execInService } from "../types/plugin/service/execInService"
 import { GetSecretParams, GetSecretResult, getSecret } from "../types/plugin/provider/getSecret"
 import { GetServiceLogsParams, getServiceLogs } from "../types/plugin/service/getServiceLogs"
 import { GetServiceStatusParams, getServiceStatus } from "../types/plugin/service/getServiceStatus"
 import { GetTaskResultParams, getTaskResult } from "../types/plugin/task/getTaskResult"
 import { TestResult } from "../types/test"
-import { PrepareEnvironmentParams, PrepareEnvironmentResult, prepareEnvironment } from "../types/plugin/provider/prepareEnvironment"
+import {
+  PrepareEnvironmentParams,
+  PrepareEnvironmentResult,
+  prepareEnvironment,
+} from "../types/plugin/provider/prepareEnvironment"
 import { PublishModuleParams, PublishModuleResult, publishModule } from "../types/plugin/module/publishModule"
 import { RunModuleParams, runModule } from "../types/plugin/module/runModule"
 import { RunServiceParams, runService } from "../types/plugin/service/runService"
@@ -50,7 +66,11 @@ import {
   DashboardPage,
   dashboardPagesSchema,
 } from "../types/plugin/provider/getDashboardPage"
-import { getModuleOutputs, GetModuleOutputsParams, GetModuleOutputsResult } from "../types/plugin/module/getModuleOutputs"
+import {
+  getModuleOutputs,
+  GetModuleOutputsParams,
+  GetModuleOutputsResult,
+} from "../types/plugin/module/getModuleOutputs"
 import { getTestResult, GetTestResultParams } from "../types/plugin/module/getTestResult"
 
 export interface ActionHandlerParamsBase {
