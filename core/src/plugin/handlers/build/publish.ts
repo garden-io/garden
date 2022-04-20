@@ -12,7 +12,7 @@ import { joi } from "../../../config/common"
 import { BuildActionSpec } from "../../../actions/build"
 
 export interface PublishModuleParams<T extends BuildActionSpec = BuildActionSpec>
-extends PluginBuildActionParamsBase<T> {
+  extends PluginBuildActionParamsBase<T> {
   tag?: string
 }
 
