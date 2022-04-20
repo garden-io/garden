@@ -12,7 +12,7 @@ import { RuntimeContext } from "../../../runtime-context"
 import { DeployActionSpec } from "../../../actions/deploy"
 
 export interface RunServiceParams<T extends DeployActionSpec = DeployActionSpec>
-extends PluginDeployActionParamsBase<T> {
+  extends PluginDeployActionParamsBase<T> {
   interactive: boolean
   runtimeContext: RuntimeContext
   timeout?: number
