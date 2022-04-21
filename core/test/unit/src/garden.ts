@@ -4048,72 +4048,6 @@ describe("Garden", () => {
         expect(module.path).to.eql("/tmp")
       })
 
-      it("should apply returned build dependency relationships", async () => {
-        const foo = createGardenPlugin({
-          name: "foo",
-          createModuleTypes: [
-            {
-              name: "foo",
-              docs: "foo",
-              schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema() }),
-              handlers: {
-                configure: async ({ moduleConfig }) => {
-                  return { moduleConfig }
-                },
-              },
-            },
-          ],
-          handlers: {
-            augmentGraph: async () => {
-              return {
-                addBuildDependencies: [{ by: "foo", on: "bar" }],
-              }
-            },
-          },
-        })
-
-        const garden = await TestGarden.factory(pathFoo, {
-          plugins: [foo],
-          config: projectConfigFoo,
-        })
-
-        garden["moduleConfigs"] = {
-          foo: {
-            apiVersion: DEFAULT_API_VERSION,
-            name: "foo",
-            type: "foo",
-            allowPublish: false,
-            build: { dependencies: [] },
-            disabled: false,
-            path: "/tmp",
-            include: [],
-            serviceConfigs: [],
-            taskConfigs: [],
-            testConfigs: [],
-            spec: {},
-          },
-          bar: {
-            apiVersion: DEFAULT_API_VERSION,
-            name: "bar",
-            type: "foo",
-            allowPublish: false,
-            build: { dependencies: [] },
-            disabled: false,
-            path: "/tmp",
-            include: [],
-            serviceConfigs: [],
-            taskConfigs: [],
-            testConfigs: [],
-            spec: {},
-          },
-        }
-
-        const module = findByName(await garden.resolveModules({ log: garden.log }), "foo")!
-
-        expect(module).to.exist
-        expect(module.build.dependencies).to.eql([{ name: "bar", copy: [] }])
-      })
-
       it("should add modules before applying dependencies", async () => {
         const foo = createGardenPlugin({
           name: "foo",
@@ -4158,8 +4092,7 @@ describe("Garden", () => {
                     path: "/tmp",
                   },
                 ],
-                // These wouldn't work unless build deps are set in right order
-                addBuildDependencies: [{ by: "foo", on: "bar" }],
+                // This shouldn't work unless build deps are set in right order
                 addRuntimeDependencies: [{ by: "foo", on: "bar" }],
               }
             },
@@ -4174,7 +4107,6 @@ describe("Garden", () => {
         const module = findByName(await garden.resolveModules({ log: garden.log }), "foo")!
 
         expect(module).to.exist
-        expect(module.build.dependencies).to.eql([{ name: "bar", copy: [] }])
         expect(module.serviceConfigs).to.eql([
           {
             name: "foo",
@@ -4185,44 +4117,6 @@ describe("Garden", () => {
           },
         ])
         expect(module.spec).to.eql({ foo: "bar", build: { dependencies: [], timeout: defaultBuildTimeout } })
-      })
-
-      it("should throw if a build dependency's `by` reference can't be resolved", async () => {
-        const foo = createGardenPlugin({
-          name: "foo",
-          createModuleTypes: [
-            {
-              name: "foo",
-              docs: "foo",
-              schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema() }),
-              handlers: {
-                configure: async ({ moduleConfig }) => {
-                  return { moduleConfig }
-                },
-              },
-            },
-          ],
-          handlers: {
-            augmentGraph: async () => {
-              return {
-                addBuildDependencies: [{ by: "foo", on: "bar" }],
-              }
-            },
-          },
-        })
-
-        const garden = await TestGarden.factory(pathFoo, {
-          plugins: [foo],
-          config: projectConfigFoo,
-        })
-
-        await expectError(
-          () => garden.resolveModules({ log: garden.log }),
-          (err) =>
-            expect(stripAnsi(err.message)).to.equal(deline`
-              Provider 'foo' added a build dependency by module 'foo' on 'bar' but module 'foo' could not be found.
-            `)
-        )
       })
 
       it("should apply returned runtime dependency relationships", async () => {
@@ -4383,6 +4277,16 @@ describe("Garden", () => {
               schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema() }),
               handlers: {
                 configure: async ({ moduleConfig }) => {
+                  moduleConfig.serviceConfigs = [
+                    {
+                      name: moduleConfig.name,
+                      disabled: false,
+                      dependencies: [],
+                      hotReloadable: false,
+                      spec: {},
+                    },
+                  ]
+
                   return { moduleConfig }
                 },
               },
@@ -4418,7 +4322,7 @@ describe("Garden", () => {
             augmentGraph: async () => {
               return {
                 // This doesn't work unless providers are processed in right order
-                addBuildDependencies: [{ by: "foo", on: "bar" }],
+                addRuntimeDependencies: [{ by: "foo", on: "bar" }],
               }
             },
           },
@@ -4438,7 +4342,7 @@ describe("Garden", () => {
         const fooModule = findByName(await garden.resolveModules({ log: garden.log }), "foo")!
 
         expect(fooModule).to.exist
-        expect(fooModule.build.dependencies).to.eql([{ name: "bar", copy: [] }])
+        expect(fooModule.serviceConfigs[0].dependencies).to.eql(["bar"])
 
         // Then test wrong order and make sure it throws
         foo.dependencies = [{ name: "bar" }]
@@ -4453,7 +4357,7 @@ describe("Garden", () => {
           () => garden.resolveModules({ log: garden.log }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(deline`
-              Provider 'bar' added a build dependency by module 'foo' on 'bar' but module 'foo' could not be found.
+              Provider 'bar' added a runtime dependency by 'foo' on 'bar' but service or task 'foo' could not be found.
             `)
         )
       })
@@ -4471,9 +4375,9 @@ describe("Garden", () => {
         dependencyVersions: {},
         files: [],
       }
-      garden.cache.set(["moduleVersions", config.name], version, getModuleCacheContext(config))
+      garden.cache.set(garden.log, ["moduleVersions", config.name], version, getModuleCacheContext(config))
 
-      const result = await garden.resolveModuleVersion(config, [])
+      const result = await garden.resolveModuleVersion(garden.log, config, [])
 
       expect(result).to.eql(version)
     })
@@ -4482,7 +4386,7 @@ describe("Garden", () => {
       const garden = await makeTestGardenA()
       await garden.scanAndAddConfigs()
 
-      garden.cache.delete(["moduleVersions", "module-b"])
+      garden.cache.delete(garden.log, ["moduleVersions", "module-b"])
 
       const config = await garden.resolveModule("module-b")
       const resolveStub = td.replace(garden.vcs, "resolveModuleVersion")
@@ -4494,7 +4398,7 @@ describe("Garden", () => {
 
       td.when(resolveStub(), { ignoreExtraArgs: true }).thenResolve(version)
 
-      const result = await garden.resolveModuleVersion(config, [])
+      const result = await garden.resolveModuleVersion(garden.log, config, [])
 
       expect(result).to.eql(version)
     })
@@ -4507,9 +4411,9 @@ describe("Garden", () => {
         dependencyVersions: {},
         files: [],
       }
-      garden.cache.set(["moduleVersions", config.name], version, getModuleCacheContext(config))
+      garden.cache.set(garden.log, ["moduleVersions", config.name], version, getModuleCacheContext(config))
 
-      const result = await garden.resolveModuleVersion(config, [], true)
+      const result = await garden.resolveModuleVersion(garden.log, config, [], true)
 
       expect(result).to.not.eql(version)
     })

@@ -9,10 +9,10 @@
 import { isEqual } from "lodash"
 import { normalize, parse, sep } from "path"
 import { InternalError, NotFoundError, ParameterError } from "./exceptions"
+import { LogEntry } from "./logger/log-entry"
 
 export type CacheKey = string[]
 export type CacheContext = string[]
-export type CurriedKey = string
 
 export type CacheValue = any
 export type CacheValues = Map<CacheKey, CacheValue>
@@ -20,15 +20,15 @@ export type CacheValues = Map<CacheKey, CacheValue>
 interface CacheEntry {
   key: CacheKey
   value: CacheValue
-  contexts: { [curriedContext: string]: CacheContext }
+  contexts: { [stringContext: string]: CacheContext }
 }
 
-type CacheEntries = Map<CurriedKey, CacheEntry>
+type CacheEntries = Map<string, CacheEntry>
 
 interface ContextNode {
   key: CacheContext
   children: { [contextPart: string]: ContextNode }
-  entries: Set<CurriedKey>
+  entries: Set<string>
 }
 
 /**
@@ -68,11 +68,11 @@ export class TreeCache {
   private readonly contextTree: ContextNode
 
   constructor() {
-    this.cache = new Map<CurriedKey, CacheEntry>()
+    this.cache = new Map<string, CacheEntry>()
     this.contextTree = makeContextNode([])
   }
 
-  set(key: CacheKey, value: CacheValue, ...contexts: CacheContext[]) {
+  set(log: LogEntry, key: CacheKey, value: CacheValue, ...contexts: CacheContext[]) {
     if (key.length === 0) {
       throw new ParameterError(`Cache key must have at least one part`, {
         key,
@@ -87,18 +87,21 @@ export class TreeCache {
       })
     }
 
-    const curriedKey = curry(key)
-    let entry = this.cache.get(curriedKey)
+    const stringKey = stringifyKey(key)
+
+    log.silly(`TreeCache: Setting value for key ${stringKey}`)
+
+    let entry = this.cache.get(stringKey)
 
     if (entry === undefined) {
       entry = { key, value, contexts: {} }
-      this.cache.set(curriedKey, entry)
+      this.cache.set(stringKey, entry)
     } else {
       // merge with the existing entry
       entry.value = value
     }
 
-    contexts.forEach((c) => (entry!.contexts[curry(c)] = c))
+    contexts.forEach((c) => (entry!.contexts[stringifyKey(c)] = c))
 
     for (const context of Object.values(contexts)) {
       let node = this.contextTree
@@ -122,17 +125,25 @@ export class TreeCache {
         }
       }
 
-      node.entries.add(curriedKey)
+      node.entries.add(stringKey)
     }
   }
 
-  get(key: CacheKey): CacheValue | undefined {
-    const entry = this.cache.get(curry(key))
-    return entry ? entry.value : undefined
+  get(log: LogEntry, key: CacheKey): CacheValue | undefined {
+    const stringKey = stringifyKey(key)
+    const entry = this.cache.get(stringKey)
+
+    if (entry) {
+      log.silly(`TreeCache: Found cached value for key ${stringKey}`)
+      return entry.value
+    } else {
+      log.silly(`TreeCache: No cached value for key ${stringKey}`)
+      return
+    }
   }
 
-  getOrThrow(key: CacheKey): CacheValue {
-    const value = this.get(key)
+  getOrThrow(log: LogEntry, key: CacheKey): CacheValue {
+    const value = this.get(log, key)
     if (value === undefined) {
       throw new NotFoundError(`Could not find key ${key} in cache`, { key })
     }
@@ -145,10 +156,10 @@ export class TreeCache {
     const node = this.getNode(context)
 
     if (node) {
-      pairs = Array.from(node.entries).map((curriedKey) => {
-        const entry = this.cache.get(curriedKey)
+      pairs = Array.from(node.entries).map((stringKey) => {
+        const entry = this.cache.get(stringKey)
         if (!entry) {
-          throw new InternalError(`Invalid reference found in cache: ${curriedKey}`, { curriedKey })
+          throw new InternalError(`Invalid reference found in cache: ${stringKey}`, { stringKey })
         }
         return <[CacheKey, CacheValue]>[entry.key, entry.value]
       })
@@ -160,27 +171,31 @@ export class TreeCache {
   /**
    * Delete a specific entry from the cache.
    */
-  delete(key: CacheKey) {
-    const curriedKey = curry(key)
-    const entry = this.cache.get(curriedKey)
+  delete(log: LogEntry, key: CacheKey) {
+    log.silly(`TreeCache: Deleting key ${stringifyKey(key)}`)
+
+    const stringKey = stringifyKey(key)
+    const entry = this.cache.get(stringKey)
 
     if (entry === undefined) {
       return
     }
 
-    this.cache.delete(curriedKey)
+    this.cache.delete(stringKey)
 
     // clear the entry from its contexts
     for (const context of Object.values(entry.contexts)) {
       const node = this.getNode(context)
-      node && node.entries.delete(curriedKey)
+      node && node.entries.delete(stringKey)
     }
   }
 
   /**
    * Invalidates all cache entries whose context equals `context`
    */
-  invalidate(context: CacheContext) {
+  invalidate(log: LogEntry, context: CacheContext) {
+    log.silly(`TreeCache: Invalidating all caches for context ${stringifyKey(context)}`)
+
     const node = this.getNode(context)
 
     if (node) {
@@ -193,7 +208,9 @@ export class TreeCache {
    * Invalidates all cache entries where the given `context` starts with the entries' context
    * (i.e. the whole path from the tree root down to the context leaf)
    */
-  invalidateUp(context: CacheContext) {
+  invalidateUp(log: LogEntry, context: CacheContext) {
+    log.silly(`TreeCache: Invalidating caches up from context ${stringifyKey(context)}`)
+
     let node = this.contextTree
 
     for (const part of context) {
@@ -209,7 +226,9 @@ export class TreeCache {
    * Invalidates all cache entries whose context _starts_ with the given `context`
    * (i.e. the context node and the whole tree below it)
    */
-  invalidateDown(context: CacheContext) {
+  invalidateDown(log: LogEntry, context: CacheContext) {
+    log.silly(`TreeCache: Invalidating caches down from context ${stringifyKey(context)}`)
+
     const node = this.getNode(context)
 
     if (node) {
@@ -234,8 +253,8 @@ export class TreeCache {
   }
 
   private clearNode(node: ContextNode, clearChildNodes: boolean) {
-    for (const curriedKey of node.entries) {
-      const entry = this.cache.get(curriedKey)
+    for (const stringKey of node.entries) {
+      const entry = this.cache.get(stringKey)
 
       if (entry === undefined) {
         return
@@ -245,14 +264,14 @@ export class TreeCache {
       for (const context of Object.values(entry.contexts)) {
         if (!isEqual(context, node.key)) {
           const otherNode = this.getNode(context)
-          otherNode && otherNode.entries.delete(curriedKey)
+          otherNode && otherNode.entries.delete(stringKey)
         }
       }
 
-      this.cache.delete(curriedKey)
+      this.cache.delete(stringKey)
     }
 
-    node.entries = new Set<CurriedKey>()
+    node.entries = new Set<string>()
 
     if (clearChildNodes) {
       for (const child of Object.values(node.children)) {
@@ -266,11 +285,11 @@ function makeContextNode(key: CacheContext): ContextNode {
   return {
     key,
     children: {},
-    entries: new Set<CurriedKey>(),
+    entries: new Set<string>(),
   }
 }
 
-function curry(key: CacheKey | CacheContext) {
+function stringifyKey(key: CacheKey | CacheContext) {
   return JSON.stringify(key)
 }
 

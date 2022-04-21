@@ -38,7 +38,7 @@ import { merge } from "json-merge-patch"
 import { prepareBuildDependencies } from "./config/base"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
-export const moduleResolutionConcurrencyLimit = 40
+export const moduleResolutionConcurrencyLimit = 50
 
 /**
  * Resolves a set of module configurations in dependency order.
@@ -412,6 +412,8 @@ export class ModuleResolver {
   }
 
   private async resolveModule(resolvedConfig: ModuleConfig, buildPath: string, dependencies: GardenModule[]) {
+    this.log.silly(`Resolving module ${resolvedConfig.name}`)
+
     // Write module files
     const configContext = new ModuleConfigContext({
       garden: this.garden,
@@ -423,6 +425,8 @@ export class ModuleResolver {
       runtimeContext: this.runtimeContext,
       partialRuntimeResolution: true,
     })
+
+    let updatedFiles = false
 
     await Bluebird.map(resolvedConfig.generateFiles || [], async (fileSpec) => {
       let contents = fileSpec.value || ""
@@ -450,6 +454,21 @@ export class ModuleResolver {
       const targetDir = resolve(resolvedConfig.path, ...posix.dirname(fileSpec.targetPath).split(posix.sep))
       const targetPath = resolve(resolvedConfig.path, ...fileSpec.targetPath.split(posix.sep))
 
+      // Avoid unnecessary write + invalidating caches on the module path if no changes are made
+      try {
+        const prior = (await readFile(targetPath)).toString()
+        if (prior === resolvedContents) {
+          // No change, abort
+          return
+        } else {
+          // File is modified, proceed and flag for cache invalidation
+          updatedFiles = true
+        }
+      } catch {
+        // File doesn't exist, proceed and flag for cache invalidation
+        updatedFiles = true
+      }
+
       try {
         await mkdirp(targetDir)
         await writeFile(targetPath, resolvedContents)
@@ -464,10 +483,10 @@ export class ModuleResolver {
       }
     })
 
-    // Make sure version is re-computed after writing files
-    if (!!resolvedConfig.generateFiles?.length) {
+    // Make sure version is re-computed after writing new/updated files
+    if (updatedFiles) {
       const cacheContext = pathToCacheContext(resolvedConfig.path)
-      this.garden.cache.invalidateUp(cacheContext)
+      this.garden.cache.invalidateUp(this.log, cacheContext)
     }
 
     const module = await moduleFromConfig({

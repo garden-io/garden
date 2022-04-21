@@ -214,7 +214,7 @@ export class ActionRouter implements TypeGuard {
       actionType: "augmentGraph",
       pluginName,
       params: omit(params, ["pluginName"]),
-      defaultHandler: async () => ({ addBuildDependencies: [], addRuntimeDependencies: [], addModules: [] }),
+      defaultHandler: async () => ({ addRuntimeDependencies: [], addModules: [] }),
     })
   }
 
