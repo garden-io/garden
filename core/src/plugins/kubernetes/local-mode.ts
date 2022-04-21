@@ -397,6 +397,11 @@ async function startReversePortForwarding(
 
   const sshCommandName = "ssh"
   const sshCommandArgs = [
+    /*
+     Always disable pseudo-terminal allocation to avoid warnings like
+     "Pseudo-terminal will not be allocated because stdin is not a terminal".
+     */
+    "-T",
     "-R",
     `${remoteContainerPort}:127.0.0.1:${localAppPort}`,
     `${PROXY_CONTAINER_USER_NAME}@127.0.0.1`,

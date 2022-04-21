@@ -46,7 +46,7 @@ describe("local mode deployments and ssh tunneling behavior", () => {
     ctx = <KubernetesPluginContext>await garden.getPluginContext(provider)
   }
 
-  it("should deploy a service in local mode and successfully set a port-forwarding", async () => {
+  it("should deploy a service in local mode and successfully start a port-forwarding", async () => {
     await init("local")
     const service = graph.getService("local-mode")
     const module = service.module
@@ -84,12 +84,19 @@ describe("local mode deployments and ssh tunneling behavior", () => {
 
     const containerPort = service.config.spec.ports.find((p) => p.name === "http")!.containerPort
     const localPort = service.config.spec.localMode.localAppPort
-    const outputBuffer = execSync(
-      `ps aux | grep 'ssh -R ${containerPort}:127.0.0.1:${localPort} ${PROXY_CONTAINER_USER_NAME}@127.0.0.1'`
-    )
-    const processOutputLines = outputBuffer.toString("utf-8").split("\n")
+
+    const grepSshTunnelCommand = `ps -ef | grep 'ssh -T -R ${containerPort}:127.0.0.1:${localPort} ${PROXY_CONTAINER_USER_NAME}@127.0.0.1'`
+    log.info(`Looking for running ssh reverse port forwarding with command: ${grepSshTunnelCommand}`)
+    const foundSshProcessed = execSync(grepSshTunnelCommand).toString("utf-8").split("\n")
+
     const expectedSshKeyParam = `-i ${privateSshKeyPath}`
-    const isPortForwardingRunning = processOutputLines.some((line) => line.includes(expectedSshKeyParam))
+    const isPortForwardingRunning = foundSshProcessed.some((line) => line.includes(expectedSshKeyParam))
+    if (!isPortForwardingRunning) {
+      log.warn(
+        "Reverse ssh port forwarding has not been found. See the errors above if any, " +
+          `or check if the ssh process grep command was correct: ${grepSshTunnelCommand}`
+      )
+    }
     expect(isPortForwardingRunning).to.be.true
 
     // This is to make sure that the two-way sync doesn't recreate the local files we're about to delete here.
