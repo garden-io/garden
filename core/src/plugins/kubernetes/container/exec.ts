@@ -8,7 +8,7 @@
 
 import { includes } from "lodash"
 import { DeploymentError } from "../../../exceptions"
-import { ContainerModule } from "../../container/config"
+import { ContainerModule } from "../../container/moduleConfig"
 import { getAppNamespace } from "../namespace"
 import { getContainerServiceStatus } from "./status"
 import { KubernetesPluginContext } from "../config"

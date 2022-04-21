@@ -20,7 +20,7 @@ import {
   defaultTag as _defaultTag,
   defaultImageNamespace,
   ContainerModuleConfig,
-} from "./config"
+} from "./moduleConfig"
 import { Writable } from "stream"
 import Bluebird from "bluebird"
 import { flatten, uniq, fromPairs } from "lodash"

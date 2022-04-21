@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerModule } from "../../container/config"
+import { ContainerModule } from "../../container/moduleConfig"
 import { runAndCopy } from "../run"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
 import { storeTaskResult } from "../task-results"

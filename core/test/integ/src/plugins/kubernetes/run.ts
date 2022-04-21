@@ -44,7 +44,7 @@ import { getModuleNamespace } from "../../../../../src/plugins/kubernetes/namesp
 import { GardenModule } from "../../../../../src/types/module"
 import { V1Container, V1Pod, V1PodSpec } from "@kubernetes/client-node"
 import { getResourceRequirements } from "../../../../../src/plugins/kubernetes/container/util"
-import { ContainerResourcesSpec } from "../../../../../src/plugins/container/config"
+import { ContainerResourcesSpec } from "../../../../../src/plugins/container/moduleConfig"
 
 describe("kubernetes Pod runner functions", () => {
   let garden: Garden

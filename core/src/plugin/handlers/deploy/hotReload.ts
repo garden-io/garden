@@ -9,9 +9,9 @@
 import { actionParamsSchema, PluginDeployActionParamsBase } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
 import { joi } from "../../../config/common"
-import { DeployActionSpec } from "../../../actions/deploy"
+import { DeployActionConfig } from "../../../actions/deploy"
 
-export interface HotReloadServiceParams<T extends DeployActionSpec = DeployActionSpec>
+export interface HotReloadServiceParams<T extends DeployActionConfig = DeployActionConfig>
   extends PluginDeployActionParamsBase<T> {}
 
 export interface HotReloadDeployResult {}

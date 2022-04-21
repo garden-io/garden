@@ -11,10 +11,10 @@ import { actionParamsSchema, PluginDeployActionParamsBase } from "../../../plugi
 import { dedent } from "../../../util/string"
 import { runtimeContextSchema } from "../../../runtime-context"
 import { joi } from "../../../config/common"
-import { DeployActionSpec } from "../../../actions/deploy"
+import { DeployActionConfig } from "../../../actions/deploy"
 import { ServiceLogEntry } from "../../../types/service"
 
-export interface GetDeployLogsParams<T extends DeployActionSpec = DeployActionSpec>
+export interface GetDeployLogsParams<T extends DeployActionConfig = DeployActionConfig>
   extends PluginDeployActionParamsBase<T> {
   stream: Stream<ServiceLogEntry>
   follow: boolean

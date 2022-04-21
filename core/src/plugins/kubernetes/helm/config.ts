@@ -20,7 +20,7 @@ import { containsSource } from "./common"
 import { ConfigurationError } from "../../../exceptions"
 import { dedent, deline } from "../../../util/string"
 import { GardenService } from "../../../types/service"
-import { ContainerModule } from "../../container/config"
+import { ContainerModule } from "../../container/moduleConfig"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plugin/module/configure"
 import {

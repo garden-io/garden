@@ -13,7 +13,7 @@ import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesPluginContext } from "../config"
 import { getSystemNamespace } from "../namespace"
 import { got, GotTextOptions } from "../../../util/http"
-import { ContainerResourcesSpec, ServiceLimitSpec } from "../../container/config"
+import { ContainerResourcesSpec, ServiceLimitSpec } from "../../container/moduleConfig"
 import { V1ResourceRequirements, V1SecurityContext } from "@kubernetes/client-node"
 import { kilobytesToString, millicpuToString } from "../util"
 

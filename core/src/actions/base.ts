@@ -8,21 +8,70 @@
 
 import titleize from "titleize"
 import {
+  ActionReference,
   apiVersionSchema,
   DeepPrimitiveMap,
   includeGuideLink,
   joi,
   joiIdentifier,
+  joiRepositoryUrl,
+  joiSparseArray,
   joiUserIdentifier,
   joiVariables,
+  parseActionReference,
 } from "../config/common"
 import { varfileDescription } from "../config/project"
+import { DOCS_BASE_URL } from "../constants"
 import { dedent, naturalList } from "../util/string"
 
 export type ActionKind = "build" | "deploy" | "run" | "test"
 export const actionKinds = ["build", "deploy", "run", "test"]
 
-export interface BaseActionSpec {
+interface SourceRepositorySpec {
+  url: string
+  // TODO: subPath?: string
+  // TODO: commitHash?: string
+}
+
+export interface ActionSourceSpec {
+  path?: string
+  repository?: SourceRepositorySpec
+}
+
+const actionSourceSpecSchema = () =>
+  joi
+    .object()
+    .keys({
+      path: joi
+        .posixPath()
+        .relativeOnly()
+        .description(
+          `A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is ina git repository!`
+        ),
+      repository: joi
+        .object()
+        .keys({
+          url: joiRepositoryUrl().required(),
+        })
+        .description(
+          `When set, Garden will import the action source from this repository, but use this action configuration (and not scan for configs in the separate repository).`
+        ),
+    })
+    .description(
+      dedent`
+        By default, the directory where the action is defined is used as the source for the build context.
+
+        You can override this by setting either \`source.path\` to another (POSIX-style) path relative to the action source directory, or \`source.repository\` to get the source from an external repository.
+
+        If using \`source.path\`, you must make sure the target path is in a git repository.
+
+        For \`source.repository\` behavior, please refer to the [Remote Sources guide](${DOCS_BASE_URL}/advanced/using-remote-sources).
+      `
+    )
+    .xor("path", "url")
+    .meta({ advanced: true })
+
+export interface BaseActionConfig<S = any> {
   // Basics
   apiVersion?: string
   kind: string
@@ -30,10 +79,20 @@ export interface BaseActionSpec {
   name: string
   description?: string
 
-  // Location/metadata
-  path?: string
+  // Location
+  source?: ActionSourceSpec
 
-  // Controls
+  // Internal metadata
+  configDirPath: string
+  configFilePath?: string
+  moduleName?: string // For backwards-compatibility, applied on actions returned from module conversion handlers
+  // -> set by templates
+  parentName?: string
+  templateName?: string
+  inputs?: DeepPrimitiveMap
+
+  // Flow/execution control
+  dependencies?: (string | ActionReference)[]
   disabled?: boolean
 
   // Version/file handling
@@ -42,12 +101,15 @@ export interface BaseActionSpec {
 
   // Variables
   variables?: DeepPrimitiveMap
-  varfile?: string
+  varfiles?: string[]
+
+  // Type-specific
+  spec: S
 }
 
 export const includeExcludeSchema = () => joi.array().items(joi.posixPath().allowGlobs().subPathOnly())
 
-export const baseActionSpec = () =>
+export const baseActionConfig = () =>
   joi.object().keys({
     // Basics
     apiVersion: apiVersionSchema(),
@@ -68,13 +130,29 @@ export const baseActionSpec = () =>
       ),
     description: joi.string().description("A description of the action."),
 
-    // Controls
+    // Location
+    source: actionSourceSpecSchema(),
+
+    // Flow/execution control
+    dependencies: joiSparseArray(joi.actionReference())
+      .description(
+        dedent`
+        A list of other actions that this action depends on, and should be built, deployed or run (depending on the action type) before processing this action.
+
+        Each dependency should generally be expressed as a \`"<kind>.<name>"\` string, where _<kind>_ is one of \`build\`, \`deploy\`, \`run\` or \`test\`, and _<name>_ is the name of the action to depend on.
+
+        You may also optionally specify a dependency as an object, e.g. \`{ kind: "build", name: "some-image" }\`.
+
+        Any empty values (i.e. null or empty strings) are ignored, so that you can conditionally add in a dependency via template expressions.
+        `
+      )
+      .example(["build.my-image", "deploy.api"]),
     disabled: joi
       .boolean()
       .default(false)
       .description(
         dedent`
-        Set this to \`true\` to disable the action. You can use this with conditional template strings to disable modules based on, for example, the current environment or other variables (e.g. \`disabled: \${environment.name == "prod"}\`). This can be handy when you only need certain actions for specific environments, e.g. only for development.
+        Set this to \`true\` to disable the action. You can use this with conditional template strings to disable actions based on, for example, the current environment or other variables (e.g. \`disabled: \${environment.name == "prod"}\`). This can be handy when you only need certain actions for specific environments, e.g. only for development.
 
         For Build actions, this means the build is not performed _unless_ it is declared as a dependency by another enabled action (in which case the Build is assumed to be necessary for the dependant action to be run or built).
 
@@ -109,28 +187,32 @@ export const baseActionSpec = () =>
 
     // Variables
     variables: joiVariables().default(() => undefined).description(dedent`
-      A map of variables scoped to this particular action. These are resolved before any other parts of the action configuration and take precedence over project-scoped variables. They may reference project-scoped variables, and generally use any template strings normally allowed when resolving the action.
+      A map of variables scoped to this particular action. These are resolved before any other parts of the action configuration and take precedence over group-scoped variables (if applicable) and project-scoped variables, in that order. They may reference group-scoped and project-scoped variables, and generally can use any template strings normally allowed when resolving the action.
     `),
-    varfile: joi
+    varfiles: joi
       .posixPath()
       .description(
         dedent`
-          Specify a path (relative to the module root) to a file containing variables, that we apply on top of the action-level \`variables\` field.
+          Specify a list of paths (relative to the directory where the action is defined) to a file containing variables, that we apply on top of the action-level \`variables\` field, and take precedence over group-level variables (if applicable) and project-level variables, in that order.
+
+          If you specify multiple paths, they are merged in the order specified, i.e. the last one takes precedence over the previous ones.
 
           ${varfileDescription}
 
-          To use different action-level varfiles in different environments, you can template in the environment name to the varfile name, e.g. \`varfile: "my-action.\$\{environment.name\}.env\` (this assumes that the corresponding varfiles exist).
+          To use different varfiles in different environments, you can template in the environment name to the varfile name, e.g. \`varfile: "my-action.\$\{environment.name\}.env\` (this assumes that the corresponding varfiles exist).
+
+          If a listed varfile cannot be found, it is ignored.
         `
       )
       .example("my-action.env"),
   })
 
-export interface BaseRuntimeActionSpec extends BaseActionSpec {
+export interface BaseRuntimeActionConfig<S = any> extends BaseActionConfig<S> {
   build?: string
 }
 
-export const baseRuntimeActionSpec = () =>
-  baseActionSpec().keys({
+export const baseRuntimeActionConfig = () =>
+  baseActionConfig().keys({
     build: joiUserIdentifier().description(
       dedent(
         `Specify a _Build_ action, and resolve this action from the context of that Build.
@@ -143,10 +225,23 @@ export const baseRuntimeActionSpec = () =>
     ),
   })
 
-export class BaseActionWrapper<S extends BaseActionSpec> {
-  constructor(private spec: S) {}
+export class BaseActionWrapper<C extends BaseActionConfig> {
+  constructor(private config: C) {}
 
-  async getConfig(key: keyof S) {
-    return this.spec[key]
+  async getSourcePath() {
+    // TODO-G2
+    // TODO: handle repository.url
+  }
+
+  getDependencyReferences(): ActionReference[] {
+    return this.config.dependencies?.map(parseActionReference) || []
+  }
+
+  async getConfig(key: keyof C) {
+    return this.config[key]
+  }
+
+  async getSpec(key: keyof C["spec"]) {
+    return this.config.spec[key]
   }
 }

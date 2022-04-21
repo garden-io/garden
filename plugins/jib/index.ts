@@ -17,7 +17,7 @@ import { gradle, gradleSpec } from "./gradle"
 // TODO: gradually get rid of these core dependencies, move some to SDK etc.
 import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider"
 import { getGitHubUrl } from "@garden-io/core/build/src/docs/common"
-import { containerModuleSpecSchema } from "@garden-io/core/build/src/plugins/container/config"
+import { containerModuleSpecSchema } from "../../core/build/src/plugins/container/moduleConfig"
 import { joi } from "@garden-io/core/build/src/config/common"
 import { BuildModuleParams } from "@garden-io/core/build/src/types/plugin/module/build"
 import { renderOutputStream } from "@garden-io/core/build/src/util/util"

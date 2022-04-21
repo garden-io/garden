@@ -72,6 +72,7 @@ import {
   GetModuleOutputsResult,
 } from "../types/plugin/module/getModuleOutputs"
 import { getTestResult, GetTestResultParams } from "../types/plugin/module/getTestResult"
+import { convertModule, ConvertModuleParams, ConvertModuleResult } from "./handlers/module/convert"
 
 export interface ActionHandlerParamsBase {
   base?: ActionHandler<any, any>
@@ -306,6 +307,7 @@ const taskActionDescriptions: { [P in TaskActionName]: () => PluginActionDescrip
 
 interface _ModuleActionParams<T extends GardenModule = GardenModule> {
   configure: ConfigureModuleParams<T>
+  convert: ConvertModuleParams<T>
   suggestModules: SuggestModulesParams
   getBuildStatus: GetBuildStatusParams<T>
   build: BuildModuleParams<T>
@@ -333,6 +335,7 @@ export type ModuleAndRuntimeActionOutputs = ModuleActionOutputs &
 
 export interface ModuleActionOutputs extends ServiceActionOutputs {
   configure: ConfigureModuleResult
+  convert: ConvertModuleResult
   suggestModules: SuggestModulesResult
   getBuildStatus: BuildStatus
   build: BuildResult
@@ -351,6 +354,7 @@ export function getModuleActionDescriptions(): PluginActionDescriptions {
 
   const descriptions = {
     configure,
+    convertModule,
     getModuleOutputs,
     suggestModules,
     getBuildStatus,

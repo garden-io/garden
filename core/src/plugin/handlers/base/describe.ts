@@ -25,7 +25,7 @@ export const describeAction = () => ({
   description: dedent`
     Return documentation and a schema description of the action type.
 
-    The documentation should be in markdown format. A reference for the module type is automatically generated based on the provided schema, and a section appended to the provided documentation.
+    The documentation should be in markdown format. A reference for the action type is automatically generated based on the provided schema, and a section appended to the provided documentation.
 
     The schema should be a valid Joi schema describing the configuration keys that the user should use to declare the action.
 
@@ -37,7 +37,7 @@ export const describeAction = () => ({
   paramsSchema: joi.object().keys({}),
 
   resultSchema: joi.object().keys({
-    docs: joi.string().required().description("Documentation for the module type, in markdown format."),
+    docs: joi.string().required().description("Documentation for the action type, in markdown format."),
     // TODO: specify the schemas using primitives and not Joi objects
     outputsSchema: joi.object().default(() => joi.object().keys({})).description(dedent`
       A valid Joi schema describing the keys that each action outputs after execution, for use in template strings

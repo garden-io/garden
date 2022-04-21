@@ -12,7 +12,7 @@ import { gardenPlugin } from "../../../../../../src/plugins/container/container"
 import { resolve } from "path"
 import { Garden } from "../../../../../../src/garden"
 import { expect } from "chai"
-import { ContainerService } from "../../../../../../src/plugins/container/config"
+import { ContainerService } from "../../../../../../src/plugins/container/moduleConfig"
 import { gardenAnnotationKey } from "../../../../../../src/util/string"
 
 describe("createServiceResources", () => {

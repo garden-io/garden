@@ -9,19 +9,19 @@
 import { dedent } from "../../../util/string"
 import { artifactsPathSchema, PluginTestActionParamsBase } from "../../../plugin/base"
 import { RuntimeContext } from "../../../runtime-context"
-import { TestActionSpec } from "../../../actions/test"
+import { TestActionConfig } from "../../../actions/test"
 import { runBuildBaseSchema } from "../build/run"
 import { joi } from "../../../config/common"
 import { testResultSchema } from "../../../types/test"
 
-export interface TestModuleParams<T extends TestActionSpec = TestActionSpec> extends PluginTestActionParamsBase<T> {
+export interface TestActionParams<T extends TestActionConfig = TestActionConfig> extends PluginTestActionParamsBase<T> {
   artifactsPath: string
   interactive: boolean
   runtimeContext: RuntimeContext
   silent: boolean
 }
 
-export const testModule = () => ({
+export const testAction = () => ({
   description: dedent`
     Run the Test action.
 

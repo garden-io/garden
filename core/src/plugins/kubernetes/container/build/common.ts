@@ -8,7 +8,7 @@
 
 import AsyncLock from "async-lock"
 import pRetry from "p-retry"
-import { ContainerModule, ContainerRegistryConfig } from "../../../container/config"
+import { ContainerModule, ContainerRegistryConfig } from "../../../container/moduleConfig"
 import { GetBuildStatusParams, BuildStatus } from "../../../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams, BuildResult } from "../../../../types/plugin/module/build"
 import { getRunningDeploymentPod } from "../../util"

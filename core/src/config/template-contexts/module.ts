@@ -15,7 +15,7 @@ import { RuntimeContext } from "../../runtime-context"
 import { deline } from "../../util/string"
 import { getModuleTypeUrl } from "../../docs/common"
 import { GardenModule } from "../../types/module"
-import { templateKind } from "../module-template"
+import { moduleTemplateKind } from "../module-template"
 import { ConfigContext, schema, ErrorContext } from "./base"
 import { ProjectConfigContext, ProjectConfigContextParams } from "./project"
 import { ProviderConfigContext } from "./provider"
@@ -185,7 +185,7 @@ export class ParentContext extends ConfigContext {
 }
 
 export class ModuleTemplateContext extends ConfigContext {
-  @schema(joiIdentifier().description(`The name of the ${templateKind} being resolved.`))
+  @schema(joiIdentifier().description(`The name of the ${moduleTemplateKind} being resolved.`))
   public name: string
 
   constructor(root: ConfigContext, name: string) {
@@ -204,7 +204,7 @@ export class ModuleTemplateConfigContext extends ProjectConfigContext {
   public template: ModuleTemplateContext
 
   @schema(
-    joiVariables().description(`The inputs provided when resolving the ${templateKind}.`).meta({
+    joiVariables().description(`The inputs provided when resolving the ${moduleTemplateKind}.`).meta({
       keyPlaceholder: "<input-key>",
     })
   )
@@ -283,7 +283,7 @@ export interface ModuleConfigContextParams extends OutputConfigContextParams {
  */
 export class ModuleConfigContext extends OutputConfigContext {
   @schema(
-    joiVariables().description(`The inputs provided to the module through a ${templateKind}, if applicable.`).meta({
+    joiVariables().description(`The inputs provided to the module through a ${moduleTemplateKind}, if applicable.`).meta({
       keyPlaceholder: "<input-key>",
     })
   )
@@ -298,7 +298,7 @@ export class ModuleConfigContext extends OutputConfigContext {
 
   @schema(
     ModuleTemplateContext.getSchema().description(
-      `Information about the ${templateKind} used when generating the module.`
+      `Information about the ${moduleTemplateKind} used when generating the module.`
     )
   )
   public template?: ModuleTemplateContext

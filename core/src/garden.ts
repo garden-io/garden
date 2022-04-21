@@ -103,7 +103,7 @@ import {
   ModuleTemplateResource,
   resolveModuleTemplate,
   resolveTemplatedModule,
-  templateKind,
+  moduleTemplateKind,
   ModuleTemplateConfig,
 } from "./config/module-template"
 import { TemplatedModuleConfig } from "./plugins/templated"
@@ -195,7 +195,6 @@ export class Garden {
   private loadedPlugins: GardenPlugin[]
   protected moduleConfigs: ModuleConfigMap
   protected workflowConfigs: WorkflowConfigMap
-  private pluginModuleConfigs: ModuleConfig[]
   private resolvedProviders: { [key: string]: Provider }
   protected configsScanned: boolean
   protected registeredPlugins: RegisterPluginParam[]
@@ -310,7 +309,6 @@ export class Garden {
     this.globalConfigStore = new GlobalConfigStore()
 
     this.moduleConfigs = {}
-    this.pluginModuleConfigs = []
     this.workflowConfigs = {}
     this.registeredPlugins = [...getBuiltinPlugins(), ...params.plugins]
     this.resolvedProviders = {}
@@ -760,7 +758,10 @@ export class Garden {
 
     const resolvedModules = await resolver.resolveAll()
 
+    // TODO-G2: convert modules to actions here
+
     // Require include/exclude on modules if their paths overlap
+    // TODO-G2: change this to detect overlap on Build actions
     const overlaps = detectModuleOverlap({
       projectRoot: this.projectRoot,
       gardenDirPath: this.gardenDirPath,
@@ -970,9 +971,9 @@ export class Garden {
         throwOnMissingSecretKeys(configs, this.secrets, kind, this.log)
       }
 
-      let rawModuleConfigs = [...this.pluginModuleConfigs, ...((groupedResources.Module as ModuleConfig[]) || [])]
+      let rawModuleConfigs = [...((groupedResources.Module as ModuleConfig[]) || [])]
       const rawWorkflowConfigs = (groupedResources.Workflow as WorkflowConfig[]) || []
-      const rawModuleTemplateResources = (groupedResources[templateKind] as ModuleTemplateResource[]) || []
+      const rawModuleTemplateResources = (groupedResources[moduleTemplateKind] as ModuleTemplateResource[]) || []
 
       // Resolve module templates
       const moduleTemplates = await Bluebird.map(rawModuleTemplateResources, (r) => resolveModuleTemplate(this, r))
@@ -988,7 +989,7 @@ export class Garden {
               )}`
           )
           .join("\n")
-        throw new ConfigurationError(`Found duplicate names of ${templateKind}s:\n${messages}`, { duplicateTemplates })
+        throw new ConfigurationError(`Found duplicate names of ${moduleTemplateKind}s:\n${messages}`, { duplicateTemplates })
       }
 
       // Resolve templated modules
@@ -1070,9 +1071,9 @@ export class Garden {
    */
   private async loadResources(configPath: string): Promise<GardenResource[]> {
     configPath = resolve(this.projectRoot, configPath)
-    this.log.silly(`Load module and workflow configs from ${configPath}`)
+    this.log.silly(`Load configs from ${configPath}`)
     const resources = await loadConfigResources(this.projectRoot, configPath)
-    this.log.silly(`Loaded module and workflow configs from ${configPath}`)
+    this.log.silly(`Loaded configs from ${configPath}`)
     return <GardenResource[]>resources.filter((r) => r.kind && r.kind !== "Project")
   }
 

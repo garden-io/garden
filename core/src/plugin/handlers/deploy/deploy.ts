@@ -11,9 +11,9 @@ import { dedent } from "../../../util/string"
 import { RuntimeContext, runtimeContextSchema } from "../../../runtime-context"
 import { serviceStatusSchema } from "../../../types/service"
 import { joi } from "../../../config/common"
-import { DeployActionSpec } from "../../../actions/deploy"
+import { DeployActionConfig } from "../../../actions/deploy"
 
-export interface DeployParams<T extends DeployActionSpec = DeployActionSpec> extends PluginDeployActionParamsBase<T> {
+export interface DeployParams<T extends DeployActionConfig = DeployActionConfig> extends PluginDeployActionParamsBase<T> {
   devMode: boolean
   force: boolean
   hotReload: boolean

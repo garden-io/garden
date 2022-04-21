@@ -9,9 +9,9 @@
 import { dedent } from "../../../util/string"
 import { actionParamsSchema, PluginBuildActionParamsBase } from "../../../plugin/base"
 import { joi } from "../../../config/common"
-import { BuildActionSpec } from "../../../actions/build"
+import { BuildActionConfig } from "../../../actions/build"
 
-export interface BuildModuleParams<T extends BuildActionSpec = BuildActionSpec>
+export interface BuildActionParams<T extends BuildActionConfig = BuildActionConfig>
   extends PluginBuildActionParamsBase<T> {}
 
 /**
@@ -41,7 +41,7 @@ export const buildResultSchema = () =>
     details: joi.object().description("Additional information, specific to the provider."),
   })
 
-export const build = () => ({
+export const buildAction = () => ({
   description: dedent`
     Build the current version of a Build action. This must wait until the build is complete before returning.
   `,

@@ -7,7 +7,7 @@
  */
 
 import { GetTaskResultParams } from "../../types/plugin/task/getTaskResult"
-import { ContainerModule } from "../container/config"
+import { ContainerModule } from "../container/moduleConfig"
 import { HelmModule } from "./helm/config"
 import { KubernetesModule } from "./kubernetes-module/config"
 import { KubernetesPluginContext, KubernetesProvider } from "./config"

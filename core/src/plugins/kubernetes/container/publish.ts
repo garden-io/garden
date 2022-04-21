@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerModule } from "../../container/config"
+import { ContainerModule } from "../../container/moduleConfig"
 import { PublishModuleParams } from "../../../types/plugin/module/publishModule"
 import { containerHelpers } from "../../container/helpers"
 import { KubernetesPluginContext } from "../config"

@@ -7,7 +7,7 @@
  */
 
 import { GetServiceLogsParams } from "../../../types/plugin/service/getServiceLogs"
-import { ContainerModule } from "../../container/config"
+import { ContainerModule } from "../../container/moduleConfig"
 import { getAppNamespace } from "../namespace"
 import { streamK8sLogs } from "../logs"
 import { KubernetesPluginContext } from "../config"

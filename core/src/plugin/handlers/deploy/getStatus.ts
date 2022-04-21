@@ -11,11 +11,11 @@ import { dedent } from "../../../util/string"
 import { serviceStatusSchema } from "../../../types/service"
 import { RuntimeContext, runtimeContextSchema } from "../../../runtime-context"
 import { joi } from "../../../config/common"
-import { DeployActionSpec } from "../../../actions/deploy"
+import { DeployActionConfig } from "../../../actions/deploy"
 
 export type hotReloadStatus = "enabled" | "disabled"
 
-export interface GetDeployStatusParams<T extends DeployActionSpec = DeployActionSpec>
+export interface GetDeployStatusParams<T extends DeployActionConfig = DeployActionConfig>
   extends PluginDeployActionParamsBase<T> {
   devMode: boolean
   hotReload: boolean

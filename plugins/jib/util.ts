@@ -10,7 +10,7 @@ import { resolve } from "path"
 import { GardenModule } from "@garden-io/sdk/types"
 import { ConfigurationError } from "@garden-io/core/build/src/exceptions"
 import { getDockerBuildArgs } from "@garden-io/core/build/src/plugins/container/build"
-import { ContainerBuildSpec, ContainerModuleSpec } from "@garden-io/core/build/src/plugins/container/config"
+import { ContainerBuildSpec, ContainerModuleSpec } from "../../core/build/src/plugins/container/moduleConfig"
 
 interface JibModuleBuildSpec extends ContainerBuildSpec {
   dockerBuild?: boolean
