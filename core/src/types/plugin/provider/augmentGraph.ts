@@ -24,7 +24,6 @@ interface AddDependency {
 }
 
 export interface AugmentGraphResult {
-  addBuildDependencies?: AddDependency[]
   addRuntimeDependencies?: AddDependency[]
   addModules?: AddModuleSpec[]
 }
@@ -54,30 +53,6 @@ export const augmentGraph = () => ({
     providers: joiIdentifierMap(providerSchema()).description("Map of all configured providers in the project."),
   }),
   resultSchema: joi.object().keys({
-    addBuildDependencies: joi
-      .array()
-      .items(
-        joi
-          .object()
-          .optional()
-          .keys({
-            by: joiIdentifier().description(
-              "The _dependant_, i.e. the module that should have a build dependency on `on`."
-            ),
-            on: joiIdentifier().description("The _dependency, i.e. the module that `by` should depend on."),
-          })
-      )
-      .description(
-        dedent`
-        Add build dependencies between two modules, where \`by\` depends on \`on\`.
-
-        Both modules must be previously defined in the project, added by one of the providers that this provider depends
-        on, _or_ it can be one of the modules specified in \`addModules\`.
-
-        The most common use case for this field is to make an existing module depend on one of the modules specified
-        in \`addModules\`.
-      `
-      ),
     addRuntimeDependencies: joi
       .array()
       .items(
@@ -111,8 +86,7 @@ export const augmentGraph = () => ({
           a normal module specified in a \`garden.yml\` config file (which will later be passed to the appropriate
           \`configure\` handler(s) for the module type).
 
-          The added modules can be referenced in \`addBuildDependencies\`, and their services/tasks can be referenced
-          in \`addRuntimeDependencies\`.
+          Added services/tasks can be referenced in \`addRuntimeDependencies\`.
         `
       ),
   }),

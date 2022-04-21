@@ -220,7 +220,7 @@ describe("VcsHandler", () => {
       const cacheKey = getModuleTreeCacheKey(moduleConfig)
 
       const cachedResult = { contentHash: "abcdef", files: ["foo"] }
-      handlerA["cache"].set(cacheKey, cachedResult, ["foo", "bar"])
+      handlerA["cache"].set(gardenA.log, cacheKey, cachedResult, ["foo", "bar"])
 
       const result = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
       expect(result).to.eql(cachedResult)
@@ -231,7 +231,7 @@ describe("VcsHandler", () => {
       const cacheKey = getModuleTreeCacheKey(moduleConfig)
 
       const result = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
-      const cachedResult = handlerA["cache"].get(cacheKey)
+      const cachedResult = handlerA["cache"].get(gardenA.log, cacheKey)
 
       expect(result).to.eql(cachedResult)
     })
