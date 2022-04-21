@@ -9,9 +9,9 @@
 import { PluginRunActionParamsBase, actionParamsSchema } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
 import { taskResultSchema } from "../../../types/task"
-import { RunActionSpec } from "../../../actions/run"
+import { RunActionConfig } from "../../../actions/run"
 
-export interface GetRunResultParams<T extends RunActionSpec = RunActionSpec> extends PluginRunActionParamsBase<T> {}
+export interface GetRunResultParams<T extends RunActionConfig = RunActionConfig> extends PluginRunActionParamsBase<T> {}
 
 export const getRunResult = () => ({
   description: dedent`

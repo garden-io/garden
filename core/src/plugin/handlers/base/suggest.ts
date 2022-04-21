@@ -10,7 +10,7 @@ import { dedent } from "../../../util/string"
 import { joi, joiArray } from "../../../config/common"
 import { LogEntry } from "../../../logger/log-entry"
 import { ActionHandlerParamsBase } from "../../../plugin/plugin"
-import { BaseActionSpec, baseActionSpec } from "../../../actions/base"
+import { BaseActionConfig, baseActionConfig } from "../../../actions/base"
 
 export const maxDescriptionLength = 48
 
@@ -22,10 +22,10 @@ export interface SuggestActionsParams extends ActionHandlerParamsBase {
 
 export interface ActionSuggestion {
   description: string
-  action: BaseActionSpec
+  action: BaseActionConfig
 }
 
-export interface SuggestModulesResult {
+export interface SuggestActionsResult {
   suggestions: ActionSuggestion[]
 }
 
@@ -36,7 +36,7 @@ const suggestionSchema = () =>
       A short description (anything longer than ${maxDescriptionLength} chars will be truncated) of the action being suggested. If specified, this is shown in the list of suggested actions in the \`garden create action\` command, to help distinguish between multiple candidates and explain why the suggestion was made.
       `
     ),
-    action: baseActionSpec()
+    action: baseActionConfig()
       .required()
       .description(
         dedent`
@@ -45,7 +45,7 @@ const suggestionSchema = () =>
       ),
   })
 
-export const suggestModules = () => ({
+export const suggestActions = () => ({
   description: dedent`
     Given a directory path, return a list of suggested actions (if applicable).
 

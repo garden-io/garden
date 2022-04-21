@@ -7,19 +7,15 @@
  */
 
 import Bluebird from "bluebird"
-import { mapValues, omit } from "lodash"
+import { mapValues, omit, some } from "lodash"
 import { join } from "path"
 import split2 = require("split2")
-import { joiArray, joiEnvVars, joi, joiSparseArray, PrimitiveMap } from "../../config/common"
+import { joi, PrimitiveMap } from "../../config/common"
 import { validateWithPath, ArtifactSpec } from "../../config/validation"
 import { createGardenPlugin, ServiceActionHandlers } from "../../plugin/plugin"
-import { GardenModule, getModuleKey } from "../../types/module"
-import { baseServiceSpecSchema, CommonServiceSpec } from "../../config/service"
-import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
+import { getModuleKey } from "../../types/module"
 import { writeModuleVersionFile } from "../../vcs/vcs"
 import { GARDEN_BUILD_VERSION_FILENAME, LOGS_DIR } from "../../constants"
-import { ModuleSpec, BaseBuildSpec, baseBuildSpecSchema, ModuleConfig } from "../../config/module"
-import { BaseTaskSpec, baseTaskSpecSchema } from "../../config/task"
 import { dedent } from "../../util/string"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../types/plugin/module/configure"
 import { BuildModuleParams, BuildResult } from "../../types/plugin/module/build"
@@ -30,7 +26,6 @@ import { ConfigurationError, RuntimeError, TimeoutError } from "../../exceptions
 import { LogEntry } from "../../logger/log-entry"
 import { providerConfigBaseSchema } from "../../config/provider"
 import execa, { ExecaError, ExecaChildProcess } from "execa"
-import { artifactsTargetDescription } from "../container/config"
 import chalk = require("chalk")
 import { renderMessageWithDivider } from "../../logger/util"
 import { RunModuleParams } from "../../types/plugin/module/runModule"
@@ -47,12 +42,10 @@ import { DeleteServiceParams } from "../../types/plugin/service/deleteService"
 import { PluginContext } from "../../plugin-context"
 import { ServiceStatus } from "../../types/service"
 import { TestResult } from "../../types/test"
+import { ConvertModuleParams } from "../../plugin/handlers/module/convert"
+import { ExecActionConfig, ExecBuildConfig, ExecDevModeSpec } from "./config"
+import { ExecModule, execModuleSpecSchema } from "./moduleConfig"
 
-const execPathDoc = dedent`
-  By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
-  If the top level \`local\` directive is set to \`true\`, the command runs in the module source directory instead.
-`
-const localProcDefaultTimeoutSec = 10
 const persistentLocalProcRetryIntervalMs = 2500
 
 interface ExecProc {
@@ -61,230 +54,11 @@ interface ExecProc {
 }
 
 const localProcs: { [key: string]: ExecProc } = {}
-
 const localLogsDir = join(LOGS_DIR, "local-services")
 
 export function getLogFilePath({ projectRoot, serviceName }: { projectRoot: string; serviceName: string }) {
   return join(projectRoot, localLogsDir, `${serviceName}.jsonl`)
 }
-
-const artifactSchema = () =>
-  joi.object().keys({
-    source: joi
-      .posixPath()
-      .allowGlobs()
-      .relativeOnly()
-      .subPathOnly()
-      .required()
-      .description("A POSIX-style path or glob to copy, relative to the build root."),
-    target: joi.posixPath().relativeOnly().subPathOnly().default(".").description(artifactsTargetDescription),
-  })
-
-const artifactsSchema = () => joiSparseArray(artifactSchema())
-
-interface ExecServiceDevModeSpec {
-  command: string[]
-  timeout: number
-  statusCommand?: string[]
-}
-
-export interface ExecServiceSpec extends CommonServiceSpec {
-  cleanupCommand?: string[]
-  deployCommand: string[]
-  statusCommand?: string[]
-  devMode?: ExecServiceDevModeSpec
-  timeout?: number
-  env: { [key: string]: string }
-}
-
-export const execServiceSchema = () =>
-  baseServiceSpecSchema()
-    .keys({
-      deployCommand: joi
-        .sparseArray()
-        .items(joi.string().allow(""))
-        .description(
-          dedent`
-          The command to run to deploy the service.
-
-          ${execPathDoc}
-          `
-        )
-        .required(),
-      statusCommand: joi
-        .sparseArray()
-        .items(joi.string().allow(""))
-        .description(
-          dedent`
-          Optionally set a command to check the status of the service. If this is specified, it is run before the
-          \`deployCommand\`. If the command runs successfully and returns exit code of 0, the service is considered
-          already deployed and the \`deployCommand\` is not run.
-
-          If this is not specified, the service is always reported as "unknown", so it's highly recommended to specify
-          this command if possible.
-
-          ${execPathDoc}
-          `
-        ),
-      cleanupCommand: joi
-        .sparseArray()
-        .items(joi.string().allow(""))
-        .description(
-          dedent`
-          Optionally set a command to clean the service up, e.g. when running \`garden delete env\`.
-
-          ${execPathDoc}
-          `
-        ),
-      // TODO: Set a default in v0.13.
-      timeout: joi.number().description(dedent`
-        The maximum duration (in seconds) to wait for a local script to exit.
-      `),
-      env: joiEnvVars().description("Environment variables to set when running the deploy and status commands."),
-      devMode: joi.object().keys({
-        command: joi
-          .sparseArray()
-          .items(joi.string().allow(""))
-          .description(
-            dedent`
-              The command to run to deploy the service in dev mode. When in dev mode, Garden assumes that
-              the command starts a persistent process and does not wait for it return. The logs from the process
-              can be retrieved via the \`garden logs\` command as usual.
-
-              If a \`statusCommand\` is set, Garden will wait until it returns a zero exit code before considering
-              the service ready. Otherwise it considers the service immediately ready.
-
-              ${execPathDoc}
-            `
-          ),
-        statusCommand: joi
-          .sparseArray()
-          .items(joi.string().allow(""))
-          .description(
-            dedent`
-              Optionally set a command to check the status of the service in dev mode. Garden will run the status command
-              at an interval until it returns a zero exit code or times out.
-
-              If no \`statusCommand\` is set, Garden will consider the service ready as soon as it has started the process.
-
-              ${execPathDoc}
-              `
-          ),
-        timeout: joi.number().default(localProcDefaultTimeoutSec).description(dedent`
-          The maximum duration (in seconds) to wait for a for the \`statusCommand\` to return a zero
-          exit code. Ignored if no \`statusCommand\` is set.
-        `),
-      }),
-    })
-    .description("A service to deploy using shell commands.")
-
-export interface ExecTestSpec extends BaseTestSpec {
-  command: string[]
-  env: { [key: string]: string }
-  artifacts?: ArtifactSpec[]
-}
-
-export const execTestSchema = () =>
-  baseTestSpecSchema()
-    .keys({
-      command: joi
-        .sparseArray()
-        .items(joi.string().allow(""))
-        .description(
-          dedent`
-          The command to run to test the module.
-
-          ${execPathDoc}
-          `
-        )
-        .required(),
-      env: joiEnvVars().description("Environment variables to set when running the command."),
-      artifacts: artifactsSchema().description("A list of artifacts to copy after the test run."),
-    })
-    .description("The test specification of an exec module.")
-
-export interface ExecTaskSpec extends BaseTaskSpec {
-  artifacts?: ArtifactSpec[]
-  command: string[]
-  env: { [key: string]: string }
-}
-
-export const execTaskSpecSchema = () =>
-  baseTaskSpecSchema()
-    .keys({
-      artifacts: artifactsSchema().description("A list of artifacts to copy after the task run."),
-      command: joi
-        .sparseArray()
-        .items(joi.string().allow(""))
-        .description(
-          dedent`
-          The command to run.
-
-          ${execPathDoc}
-          `
-        )
-        .required(),
-      env: joiEnvVars().description("Environment variables to set when running the command."),
-    })
-    .description("A task that can be run in this module.")
-
-interface ExecBuildSpec extends BaseBuildSpec {
-  command: string[]
-}
-
-export interface ExecModuleSpecBase extends ModuleSpec {
-  build: ExecBuildSpec
-  env: { [key: string]: string }
-  services: ExecServiceSpec[]
-  tasks: ExecTaskSpec[]
-  tests: ExecTestSpec[]
-}
-
-export interface ExecModuleSpec extends ExecModuleSpecBase {
-  local?: boolean
-}
-
-export type ExecModuleConfig = ModuleConfig<ExecModuleSpec, any, ExecTestSpec, ExecTaskSpec>
-
-export const execBuildSpecSchema = () =>
-  baseBuildSpecSchema().keys({
-    command: joiArray(joi.string())
-      .description(
-        dedent`
-        The command to run to perform the build.
-
-        ${execPathDoc}
-      `
-      )
-      .example(["npm", "run", "build"]),
-  })
-
-export const execModuleSpecSchema = () =>
-  joi
-    .object()
-    .keys({
-      local: joi
-        .boolean()
-        .description(
-          dedent`
-          If set to true, Garden will run the build command, services, tests, and tasks in the module source directory,
-          instead of in the Garden build directory (under .garden/build/<module-name>).
-
-          Garden will therefore not stage the build for local exec modules. This means that include/exclude filters
-          and ignore files are not applied to local exec modules.
-          `
-        )
-        .default(false),
-      build: execBuildSpecSchema(),
-      env: joiEnvVars(),
-      services: joiSparseArray(execServiceSchema()).description("A list of services to deploy from this module."),
-      tasks: joiSparseArray(execTaskSpecSchema()).description("A list of tasks that can be run in this module."),
-      tests: joiSparseArray(execTestSchema()).description("A list of tests to run in the module."),
-    })
-    .unknown(false)
-    .description("The module specification for an exec module.")
-
-export interface ExecModule extends GardenModule<ExecModuleSpec, ExecServiceSpec, ExecTestSpec, ExecTaskSpec> {}
 
 export async function configureExecModule({
   ctx,
@@ -672,7 +446,7 @@ async function deployPersistentExecService({
   ctx: PluginContext
   serviceName: string
   log: LogEntry
-  devModeSpec: ExecServiceDevModeSpec
+  devModeSpec: ExecDevModeSpec
   module: ExecModule
   env: { [key: string]: string }
 }): Promise<ServiceStatus> {
@@ -769,34 +543,34 @@ export const execPlugin = () =>
   createGardenPlugin({
     name: "exec",
     docs: dedent`
-    A simple provider that allows running arbitary scripts when initializing providers, and provides the exec
-    module type.
+      A simple provider that allows running arbitary scripts when initializing providers, and provides the exec
+      module type.
 
-    _Note: This provider is always loaded when running Garden. You only need to explicitly declare it in your provider
-    configuration if you want to configure a script for it to run._
-  `,
+      _Note: This provider is always loaded when running Garden. You only need to explicitly declare it in your provider
+      configuration if you want to configure a script for it to run._
+    `,
     configSchema: providerConfigBaseSchema().keys({
       initScript: joi.string().description(dedent`
-      An optional script to run in the project root when initializing providers. This is handy for running an arbitrary
-      script when initializing. For example, another provider might declare a dependency on this provider, to ensure
-      this script runs before resolving that provider.
-    `),
+        An optional script to run in the project root when initializing providers. This is handy for running an arbitrary
+        script when initializing. For example, another provider might declare a dependency on this provider, to ensure
+        this script runs before resolving that provider.
+      `),
     }),
     createModuleTypes: [
       {
         name: "exec",
         docs: dedent`
-      A simple module for executing commands in your shell. This can be a useful escape hatch if no other module
-      type fits your needs, and you just need to execute something (as opposed to deploy it, track its status etc.).
+          A simple module for executing commands in your shell. This can be a useful escape hatch if no other module
+          type fits your needs, and you just need to execute something (as opposed to deploy it, track its status etc.).
 
-      By default, the \`exec\` module type executes the commands in the Garden build directory
-      (under .garden/build/<module-name>). By setting \`local: true\`, the commands are executed in the module
-      source directory instead.
+          By default, the \`exec\` module type executes the commands in the Garden build directory
+          (under .garden/build/<module-name>). By setting \`local: true\`, the commands are executed in the module
+          source directory instead.
 
-      Note that Garden does not sync the source code for local exec modules into the Garden build directory.
-      This means that include/exclude filters and ignore files are not applied to local exec modules, as the
-      filtering is done during the sync.
-    `,
+          Note that Garden does not sync the source code for local exec modules into the Garden build directory.
+          This means that include/exclude filters and ignore files are not applied to local exec modules, as the
+          filtering is done during the sync.
+        `,
         moduleOutputsSchema: joi.object().keys({}),
         schema: execModuleSpecSchema(),
         taskOutputsSchema: joi.object().keys({
@@ -810,6 +584,103 @@ export const execPlugin = () =>
             ),
         }),
         handlers: {
+          async convert({
+            moduleConfig,
+            convertBuildDependency,
+            convertRuntimeDependency,
+          }: ConvertModuleParams<ExecModule>) {
+            const actions: ExecActionConfig[] = []
+
+            let needsBuild = false
+
+            if (some(moduleConfig.build.dependencies.map((d) => d.copy.length > 0))) {
+              needsBuild = true
+            }
+
+            if (moduleConfig.spec.build?.command || moduleConfig.generateFiles || moduleConfig.repositoryUrl) {
+              needsBuild = true
+            }
+
+            let buildAction: ExecBuildConfig | undefined = undefined
+
+            if (needsBuild) {
+              buildAction = {
+                kind: "Build",
+                type: "exec",
+                name: moduleConfig.name,
+                configDirPath: moduleConfig.path,
+                configFilePath: moduleConfig.configPath,
+
+                allowPublish: moduleConfig.allowPublish,
+                buildAtSource: moduleConfig.spec.local,
+                dependencies: moduleConfig.build.dependencies.map(convertBuildDependency),
+                spec: {
+                  command: moduleConfig.spec.build?.command,
+                  env: moduleConfig.spec.env,
+                },
+              }
+              actions.push(buildAction)
+            }
+
+            for (const service of moduleConfig.serviceConfigs) {
+              actions.push({
+                kind: "Deploy",
+                type: "exec",
+                name: service.name,
+                configDirPath: moduleConfig.path,
+                configFilePath: moduleConfig.configPath,
+
+                build: buildAction ? buildAction.name : undefined,
+                dependencies: service.spec.dependencies.map(convertRuntimeDependency),
+                spec: {
+                  ...service.spec,
+                },
+              })
+            }
+
+            for (const task of moduleConfig.taskConfigs) {
+              actions.push({
+                kind: "Run",
+                type: "exec",
+                name: task.name,
+                configDirPath: moduleConfig.path,
+                configFilePath: moduleConfig.configPath,
+
+                build: buildAction ? buildAction.name : undefined,
+                dependencies: task.spec.dependencies.map(convertRuntimeDependency),
+                timeout: task.spec.timeout ? task.spec.timeout : undefined,
+                spec: {
+                  ...task.spec,
+                },
+              })
+            }
+
+            for (const test of moduleConfig.testConfigs) {
+              actions.push({
+                kind: "Test",
+                type: "exec",
+                name: moduleConfig.name + "-" + test.name,
+                configDirPath: moduleConfig.path,
+                configFilePath: moduleConfig.configPath,
+
+                build: buildAction ? buildAction.name : undefined,
+                dependencies: test.spec.dependencies.map(convertRuntimeDependency),
+                timeout: test.spec.timeout ? test.spec.timeout : undefined,
+                spec: {
+                  ...test.spec,
+                },
+              })
+            }
+
+            return {
+              group: {
+                kind: "Group",
+                name: moduleConfig.name,
+                actions,
+              },
+            }
+          },
+
           configure: configureExecModule,
           build: buildExecModule,
           deployService: deployExecService,

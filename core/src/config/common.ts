@@ -9,10 +9,12 @@
 import Joi from "@hapi/joi"
 import Ajv from "ajv"
 import { splitLast } from "../util/util"
-import { deline, dedent } from "../util/string"
-import { cloneDeep, isArray } from "lodash"
+import { deline, dedent, naturalList } from "../util/string"
+import { cloneDeep, isArray, isPlainObject, isString } from "lodash"
 import { joiPathPlaceholder } from "./validation"
 import { DEFAULT_API_VERSION } from "../constants"
+import { ActionKind, actionKinds } from "../actions/base"
+import { ConfigurationError } from "../exceptions"
 
 export const objectSpreadKey = "$merge"
 export const arrayConcatKey = "$concat"
@@ -45,6 +47,7 @@ export const enumToArray = (Enum) => Object.values(Enum).filter((k) => typeof k 
 
 // Extend the Joi module with our custom rules
 interface MetadataKeys {
+  advanced?: boolean
   internal?: boolean
   deprecated?: boolean | string
   enterprise?: boolean
@@ -137,6 +140,7 @@ export interface Schema extends Joi.Root {
   posixPath: () => PosixPathSchema
   hostname: () => Joi.StringSchema
   sparseArray: () => Joi.ArraySchema
+  actionReference: () => Joi.AnySchema
 }
 
 export let joi: Schema = Joi.extend({
@@ -388,7 +392,7 @@ joi = joi.extend({
   type: "hostname",
   messages: {
     base: "{{#label}} must be a valid hostname.",
-    wildcardLabel: "{{#label}} only first DNS label my contain a wildcard.",
+    wildcardLabel: "{{#label}} only first DNS label may contain a wildcard.",
   },
   validate(value: string, { error }) {
     const baseSchema = joi.string().hostname()
@@ -413,6 +417,90 @@ joi = joi.extend({
     }
 
     return { value }
+  },
+})
+
+export interface ActionReference {
+  kind: ActionKind
+  name: string
+}
+
+const actionRefParseError = (reference: any) => {
+  const validActionKinds = naturalList(
+    actionKinds.map((k) => "'" + k + "'"),
+    "or"
+  )
+
+  const refStr = JSON.stringify(reference)
+
+  return new ConfigurationError(
+    `Could not parse ${refStr} as a valid action reference. An action reference should be a "<kind>.<name>" string, where <kind> is one of ${validActionKinds} and <name> is a valid name of an action. You may also specify an object with separate kind and name fields.`,
+    { reference }
+  )
+}
+
+/**
+ * Parse, validate and normalize an action reference.
+ *
+ * The general format is <kind>.<name>, where kind is one of the defined action types, and name is a valid
+ * identifier (same as joiIdentifier).
+ *
+ * You can also specify a full object, e.g. `{ kind: "build", name: "foo" }`.
+ */
+export function parseActionReference(reference: string | object): ActionReference {
+  if (isString(reference)) {
+    const split = reference.toLowerCase().split(".")
+
+    if (split.length !== 2 || !actionKinds.includes(split[0]) || !split[1]) {
+      throw actionRefParseError(reference)
+    }
+
+    const [kind, name] = split
+    const nameResult = joiIdentifier().validate(name)
+
+    if (nameResult.error) {
+      throw actionRefParseError(reference)
+    }
+
+    return { kind: <ActionKind>kind, name }
+  } else if (isPlainObject(reference)) {
+    let kind = reference["kind"]
+
+    if (!isString(kind)) {
+      throw actionRefParseError(reference)
+    }
+
+    kind = kind.toLowerCase()
+    const nameResult = joiIdentifier().validate(reference["name"])
+
+    if (nameResult.error || !actionKinds.includes(kind)) {
+      throw actionRefParseError(reference)
+    }
+
+    return { kind: <ActionKind>kind, name: reference["name"] }
+  } else {
+    throw actionRefParseError(reference)
+  }
+}
+
+/**
+ * Add a joi.actionReference() type, wrapping the parseActionReference() function and returning it as a parsed object.
+ */
+joi = joi.extend({
+  base: Joi.any(),
+  type: "actionReference",
+  messages: {
+    validation: `<not used>`,
+  },
+  validate(originalValue: string | object, helpers) {
+    try {
+      const value = parseActionReference(originalValue)
+      return { value }
+    } catch (err) {
+      const error = helpers.error("validation")
+      error.message = err.message
+      return error
+    }
   },
 })
 
@@ -600,3 +688,7 @@ export function allowUnknown<T extends Joi.Schema>(schema: T) {
 
   return schema
 }
+
+export const artifactsTargetDescription = dedent`
+  A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at \`.garden/artifacts\`.
+`

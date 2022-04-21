@@ -13,7 +13,7 @@ import { GetConfigCommand } from "../../../../../src/commands/get/get-config"
 import { sortBy } from "lodash"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { defaultWorkflowResources, WorkflowConfig } from "../../../../../src/config/workflow"
-import { defaultContainerLimits, defaultContainerResources } from "../../../../../src/plugins/container/config"
+import { defaultContainerLimits, defaultContainerResources } from "../../../../../src/plugins/container/moduleConfig"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../../../../../src/plugins/kubernetes/kubectl"
 
 describe("GetConfigCommand", () => {

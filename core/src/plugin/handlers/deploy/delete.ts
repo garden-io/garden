@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeployActionSpec } from "../../../actions/deploy"
+import { DeployActionConfig } from "../../../actions/deploy"
 import { actionParamsSchema, PluginDeployActionParamsBase } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
 import { serviceStatusSchema } from "../../../types/service"
 
-export interface DeleteDeployParams<T extends DeployActionSpec = DeployActionSpec>
+export interface DeleteDeployParams<T extends DeployActionConfig = DeployActionConfig>
   extends PluginDeployActionParamsBase<T> {}
 
 export const deleteDeploy = () => ({

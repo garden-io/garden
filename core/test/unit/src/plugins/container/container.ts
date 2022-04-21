@@ -17,7 +17,7 @@ import { gardenPlugin, ContainerProvider } from "../../../../../src/plugins/cont
 import { dataDir, expectError, makeTestGarden } from "../../../../helpers"
 import { moduleFromConfig } from "../../../../../src/types/module"
 import { LogEntry } from "../../../../../src/logger/log-entry"
-import { ContainerModuleConfig, defaultContainerResources } from "../../../../../src/plugins/container/config"
+import { ContainerModuleConfig, defaultContainerResources } from "../../../../../src/plugins/container/moduleConfig"
 import {
   containerHelpers as helpers,
   minDockerVersion,

@@ -9,9 +9,9 @@
 import { runBaseParams, runResultSchema, actionParamsSchema, PluginDeployActionParamsBase } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
 import { RuntimeContext } from "../../../runtime-context"
-import { DeployActionSpec } from "../../../actions/deploy"
+import { DeployActionConfig } from "../../../actions/deploy"
 
-export interface RunServiceParams<T extends DeployActionSpec = DeployActionSpec>
+export interface RunServiceParams<T extends DeployActionConfig = DeployActionConfig>
   extends PluginDeployActionParamsBase<T> {
   interactive: boolean
   runtimeContext: RuntimeContext

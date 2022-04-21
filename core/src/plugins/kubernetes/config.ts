@@ -34,7 +34,7 @@ import {
   syncDefaultGroupSchema,
   syncDefaultOwnerSchema,
   syncExcludeSchema,
-} from "../container/config"
+} from "../container/moduleConfig"
 import { PluginContext } from "../../plugin-context"
 import { dedent, deline } from "../../util/string"
 import { defaultSystemNamespace } from "./system"

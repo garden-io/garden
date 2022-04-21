@@ -11,14 +11,14 @@ import { pluginContextSchema } from "../../../plugin-context"
 import { logEntrySchema, PluginActionContextParams } from "../../../plugin/base"
 import { joi } from "../../../config/common"
 import { LogEntry } from "../../../logger/log-entry"
-import { baseActionSpec, BaseActionSpec } from "../../../actions/base"
+import { baseActionConfig, BaseActionConfig } from "../../../actions/base"
 
-export interface ValidateActionParams<T extends BaseActionSpec = BaseActionSpec> extends PluginActionContextParams {
+export interface ValidateActionParams<T extends BaseActionConfig = BaseActionConfig> extends PluginActionContextParams {
   log: LogEntry
   spec: T
 }
 
-export interface ValidateActionResult<T extends BaseActionSpec = BaseActionSpec> {
+export interface ValidateActionResult<T extends BaseActionConfig = BaseActionConfig> {
   spec: T
 }
 
@@ -34,10 +34,10 @@ export const validateAction = () => ({
   paramsSchema: joi.object().keys({
     ctx: pluginContextSchema().required(),
     log: logEntrySchema(),
-    spec: baseActionSpec().required(),
+    spec: baseActionConfig().required(),
   }),
 
   resultSchema: joi.object().keys({
-    spec: baseActionSpec().required(),
+    spec: baseActionConfig().required(),
   }),
 })

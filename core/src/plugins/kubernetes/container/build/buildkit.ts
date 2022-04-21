@@ -30,7 +30,7 @@ import {
 import { getNamespaceStatus } from "../../namespace"
 import { LogLevel } from "../../../../logger/logger"
 import { renderOutputStream, sleep } from "../../../../util/util"
-import { ContainerModule } from "../../../container/config"
+import { ContainerModule } from "../../../container/moduleConfig"
 import { getDockerBuildArgs } from "../../../container/build"
 import { getRunningDeploymentPod, millicpuToString, megabytesToString } from "../../util"
 import { PodRunner } from "../../run"

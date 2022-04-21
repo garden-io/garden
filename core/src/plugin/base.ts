@@ -15,11 +15,11 @@ import { GardenTask, taskSchema } from "../types/task"
 import { joi, joiIdentifier } from "../config/common"
 import { ActionHandlerParamsBase } from "./plugin"
 import { deline } from "../util/string"
-import { BuildActionSpec, BuildActionWrapper } from "../actions/build"
+import { BuildActionConfig, BuildActionWrapper } from "../actions/build"
 import { baseBuildSpecSchema } from "../config/module"
-import { DeployActionSpec, DeployActionWrapper } from "../actions/deploy"
-import { RunActionSpec, RunActionWrapper } from "../actions/run"
-import { TestActionSpec, TestActionWrapper } from "../actions/test"
+import { DeployActionConfig, DeployActionWrapper } from "../actions/deploy"
+import { RunActionConfig, RunActionWrapper } from "../actions/run"
+import { TestActionConfig, TestActionWrapper } from "../actions/test"
 
 export interface PluginActionContextParams extends ActionHandlerParamsBase {
   ctx: PluginContext
@@ -66,21 +66,21 @@ export const namespaceStatusSchema = () =>
 
 export const namespaceStatusesSchema = () => joi.array().items(namespaceStatusSchema())
 
-export interface PluginBuildActionParamsBase<T extends BuildActionSpec = BuildActionSpec>
+export interface PluginBuildActionParamsBase<T extends BuildActionConfig = BuildActionConfig>
   extends PluginActionParamsBase {
   action: BuildActionWrapper<T>
 }
 
-export interface PluginDeployActionParamsBase<T extends DeployActionSpec = DeployActionSpec>
+export interface PluginDeployActionParamsBase<T extends DeployActionConfig = DeployActionConfig>
   extends PluginActionParamsBase {
   action: DeployActionWrapper<T>
 }
 
-export interface PluginRunActionParamsBase<T extends RunActionSpec = RunActionSpec> extends PluginActionParamsBase {
+export interface PluginRunActionParamsBase<T extends RunActionConfig = RunActionConfig> extends PluginActionParamsBase {
   action: RunActionWrapper<T>
 }
 
-export interface PluginTestActionParamsBase<T extends TestActionSpec = TestActionSpec> extends PluginActionParamsBase {
+export interface PluginTestActionParamsBase<T extends TestActionConfig = TestActionConfig> extends PluginActionParamsBase {
   action: TestActionWrapper<T>
 }
 

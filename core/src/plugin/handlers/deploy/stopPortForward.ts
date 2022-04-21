@@ -10,9 +10,9 @@ import { actionParamsSchema, PluginDeployActionParamsBase } from "../../../plugi
 import { dedent } from "../../../util/string"
 import { ForwardablePort, forwardablePortKeys } from "../../../types/service"
 import { joi } from "../../../config/common"
-import { DeployActionSpec } from "../../../actions/deploy"
+import { DeployActionConfig } from "../../../actions/deploy"
 
-export type StopPortForwardParams<T extends DeployActionSpec = DeployActionSpec> = PluginDeployActionParamsBase<T> &
+export type StopPortForwardParams<T extends DeployActionConfig = DeployActionConfig> = PluginDeployActionParamsBase<T> &
   ForwardablePort
 
 export const stopPortForward = () => ({

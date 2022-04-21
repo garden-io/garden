@@ -6,12 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BaseRuntimeActionSpec, baseRuntimeActionSpec, BaseActionWrapper } from "./base"
+import { joi } from "../config/common"
+import { BaseRuntimeActionConfig, baseRuntimeActionConfig, BaseActionWrapper } from "./base"
 
-export interface TestActionSpec extends BaseRuntimeActionSpec {
+export interface TestActionConfig<S = any> extends BaseRuntimeActionConfig<S> {
   kind: "Test"
+  timeout?: number
 }
 
-export const testActionSpec = () => baseRuntimeActionSpec()
+export const testActionConfig = () =>
+  baseRuntimeActionConfig().keys({
+    timeout: joi.number().integer().description("Set a timeout for the test to complete, in seconds."),
+  })
 
-export class TestActionWrapper<S extends BaseRuntimeActionSpec> extends BaseActionWrapper<S> {}
+export class TestActionWrapper<C extends BaseRuntimeActionConfig> extends BaseActionWrapper<C> {}

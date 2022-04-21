@@ -9,29 +9,32 @@
 import { dedent } from "../../../util/string"
 import { PluginContext, pluginContextSchema } from "../../../plugin-context"
 import { logEntrySchema, PluginActionContextParams } from "../../base"
-import { baseModuleSpecSchema, ModuleSpec } from "../../../config/module"
-import { joi, joiIdentifier, joiStringMap } from "../../../config/common"
+import { baseModuleSpecSchema, BuildDependencyConfig, ModuleConfig } from "../../../config/module"
+import { joi } from "../../../config/common"
 import { LogEntry } from "../../../logger/log-entry"
-import { BaseActionSpec, baseActionSpec } from "../../../actions/base"
+import { GroupConfig, groupConfig } from "../../../config/group"
 
-export interface ConvertModuleParams<T extends ModuleSpec = ModuleSpec> extends PluginActionContextParams {
+export interface ConvertModuleParams<T extends ModuleConfig = ModuleConfig> extends PluginActionContextParams {
   ctx: PluginContext
   log: LogEntry
-  moduleSpec: T
+  moduleConfig: T
+  convertBuildDependency: (d: string | BuildDependencyConfig) => string
+  convertRuntimeDependency: (d: string) => string
 }
 
 export interface ConvertModuleResult {
-  actions: BaseActionSpec[]
-  moduleOutputKeyMapping?: { [key: string]: string[] }
+  group: GroupConfig
 }
 
 export const convertModule = () => ({
   description: dedent`
-    Validate and convert the given module configuration to its atomic _action_ components (i.e. Build, Deploy, Run and Test). This is to allow backwards-compatibility from the Module configuration format to the newer action-oriented configuration style.
+    Validate and convert the given module configuration to a Group containing its atomic _action_ components (i.e. Build, Deploy, Run and Test). This is to allow backwards-compatibility from the Module configuration format to the newer action-oriented configuration style.
 
-    Note that this does not need to perform structural schema validation (the framework does that automatically), but should in turn perform semantic validation to make sure the configuration is sane.
+    The module config will be fully validated and resolved when passed to this handler.
 
-    If the converted module type had output keys, those need to be declared in the \`moduleOutputKeyMapping\` key, which is an object whose keys are the module's output keys (as previously returned by the \`getModuleOutputs\` handler), and the values are the corresponding action output reference, as a tuple of identifiers (e.g. \`["build", "converted-build-name", "outputs", "some-key"]\`). This is used to make module output references backwards-compatible.
+    The names of the returned actions must match the expected names based on the module config. If a Build action is returned, there must be only one and it must be named the same as the module. Deploy and Run actions returned must have corresponding service and task names in the module. Tests must be named "<module name>-<test name in module>". Any unexpected action names will cause a validation error.
+
+    To convert dependencies, two helpers are provided for build dependencies and runtime dependencies, \`convertBuildDependency\` and \`convertRuntimeDependency\` respectively. These should be used to make sure dependency references map correctly to converted actions in other modules.
 
     This handler is called on every resolution of the project graph, so it should return quickly and avoid doing any network calls.
   `,
@@ -39,11 +42,12 @@ export const convertModule = () => ({
   paramsSchema: joi.object().keys({
     ctx: pluginContextSchema().required(),
     log: logEntrySchema(),
-    moduleSpec: baseModuleSpecSchema().required(),
+    moduleConfig: baseModuleSpecSchema().required(),
+    convertBuildDependency: joi.function(),
+    convertRuntimeDependency: joi.function(),
   }),
 
   resultSchema: joi.object().keys({
-    actions: joi.array().items(baseActionSpec()).required(),
-    moduleOutputKeyMapping: joiStringMap(joi.array().items(joiIdentifier()).required()),
+    group: groupConfig().required(),
   }),
 })

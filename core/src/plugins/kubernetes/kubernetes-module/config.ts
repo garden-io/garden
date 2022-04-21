@@ -32,7 +32,7 @@ import {
   serviceResourceSchema,
   ServiceResourceSpec,
 } from "../config"
-import { ContainerModule } from "../../container/config"
+import { ContainerModule } from "../../container/moduleConfig"
 import { KubernetesKustomizeSpec, kustomizeSpecSchema } from "./kustomize"
 
 // A Kubernetes Module always maps to a single Service

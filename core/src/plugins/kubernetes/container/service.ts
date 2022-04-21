@@ -7,7 +7,7 @@
  */
 
 import { V1Service, V1ServicePort } from "@kubernetes/client-node"
-import { ContainerService, ServicePortSpec } from "../../container/config"
+import { ContainerService, ServicePortSpec } from "../../container/moduleConfig"
 import { getDeploymentSelector } from "./deployment"
 import { KubernetesResource } from "../types"
 import { find } from "lodash"
