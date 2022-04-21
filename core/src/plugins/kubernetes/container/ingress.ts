@@ -22,9 +22,7 @@ import { LogEntry } from "../../../logger/log-entry"
 import chalk from "chalk"
 
 // Ingress API versions in descending order of preference
-// NOTE: We currently prefer the v1beta1 API version if available, since users may not have an IngressClass set up
-// correctly
-export const supportedIngressApiVersions = ["networking.k8s.io/v1beta1", "networking.k8s.io/v1", "extensions/v1beta1"]
+export const supportedIngressApiVersions = ["networking.k8s.io/v1", "networking.k8s.io/v1beta1", "extensions/v1beta1"]
 
 interface ServiceIngressWithCert extends ServiceIngress {
   spec: ContainerIngressSpec
