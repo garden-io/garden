@@ -402,7 +402,7 @@ async function startReversePortForwarding(
     `${PROXY_CONTAINER_USER_NAME}@127.0.0.1`,
     `-p${localSshPort}`,
     `-i ${privateSshKeyPath}`,
-    "-oStrictHostKeyChecking=accept-new",
+    "-oStrictHostKeyChecking=no",
   ]
   const reversePortForwardingCommand = `${sshCommandName} ${sshCommandArgs.join(" ")}`
 
