@@ -10,7 +10,12 @@ import chalk from "chalk"
 import { V1Affinity, V1Container, V1DaemonSet, V1Deployment, V1PodSpec, V1VolumeMount } from "@kubernetes/client-node"
 import { GardenService } from "../../../types/service"
 import { extend, find, keyBy, omit, set } from "lodash"
-import { ContainerModule, ContainerService, ContainerServiceConfig, ContainerVolumeSpec } from "../../container/config"
+import {
+  ContainerModule,
+  ContainerService,
+  ContainerServiceConfig,
+  ContainerVolumeSpec,
+} from "../../container/moduleConfig"
 import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
 import { compareDeployedResources, waitForResources } from "../status/status"

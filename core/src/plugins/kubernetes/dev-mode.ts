@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerDevModeSpec, DevModeSyncSpec } from "../container/config"
+import { ContainerDevModeSpec, DevModeSyncSpec } from "../container/moduleConfig"
 import { gardenAnnotationKey } from "../../util/string"
 import { set } from "lodash"
 import { getResourceContainer, getResourcePodSpec } from "./util"

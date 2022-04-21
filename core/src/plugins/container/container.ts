@@ -7,12 +7,12 @@
  */
 
 import chalk from "chalk"
-import { keyBy } from "lodash"
+import { keyBy, some } from "lodash"
 
 import { ConfigurationError } from "../../exceptions"
 import { createGardenPlugin } from "../../plugin/plugin"
 import { containerHelpers } from "./helpers"
-import { ContainerModule, containerModuleSpecSchema } from "./config"
+import { ContainerActionConfig, ContainerModule, containerModuleSpecSchema } from "./moduleConfig"
 import { buildContainerModule, getContainerBuildStatus } from "./build"
 import { ConfigureModuleParams } from "../../types/plugin/module/configure"
 import { joi } from "../../config/common"
@@ -22,6 +22,7 @@ import { listDirectory } from "../../util/fs"
 import { dedent } from "../../util/string"
 import { Provider, GenericProviderConfig, providerConfigBaseSchema } from "../../config/provider"
 import { GetModuleOutputsParams } from "../../types/plugin/module/getModuleOutputs"
+import { ConvertModuleParams } from "../../plugin/handlers/module/convert"
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
 export type ContainerProvider = Provider<ContainerProviderConfig>
@@ -243,6 +244,91 @@ export const gardenPlugin = () =>
         schema: containerModuleSpecSchema(),
         taskOutputsSchema,
         handlers: {
+          async convert({
+            moduleConfig,
+            convertBuildDependency,
+            convertRuntimeDependency,
+          }: ConvertModuleParams<ContainerModule>) {
+            const actions: ContainerActionConfig[] = []
+
+            let needsBuild = false
+
+            if (some(moduleConfig.build.dependencies.map((d) => d.copy.length > 0))) {
+              needsBuild = true
+            }
+
+            if (moduleConfig.spec.build?.command || moduleConfig.generateFiles) {
+              needsBuild = true
+            }
+
+            let buildAction: ExecBuildConfig | undefined = undefined
+
+            if (needsBuild) {
+              buildAction = {
+                kind: "Build",
+                type: "exec",
+                name: moduleConfig.name,
+                allowPublish: moduleConfig.allowPublish,
+                buildAtSource: moduleConfig.spec.local,
+                dependencies: moduleConfig.build.dependencies.map(convertBuildDependency),
+                spec: {
+                  command: moduleConfig.spec.build?.command,
+                  env: moduleConfig.spec.env,
+                },
+              }
+              actions.push(buildAction)
+            }
+
+            for (const service of moduleConfig.serviceConfigs) {
+              actions.push({
+                kind: "Deploy",
+                type: "exec",
+                name: service.name,
+                build: buildAction ? buildAction.name : undefined,
+                dependencies: service.spec.dependencies.map(convertRuntimeDependency),
+                spec: {
+                  ...service.spec,
+                },
+              })
+            }
+
+            for (const task of moduleConfig.taskConfigs) {
+              actions.push({
+                kind: "Run",
+                type: "exec",
+                name: task.name,
+                build: buildAction ? buildAction.name : undefined,
+                dependencies: task.spec.dependencies.map(convertRuntimeDependency),
+                timeout: task.spec.timeout ? task.spec.timeout : undefined,
+                spec: {
+                  ...task.spec,
+                },
+              })
+            }
+
+            for (const test of moduleConfig.testConfigs) {
+              actions.push({
+                kind: "Test",
+                type: "exec",
+                name: moduleConfig.name + "-" + test.name,
+                build: buildAction ? buildAction.name : undefined,
+                dependencies: test.spec.dependencies.map(convertRuntimeDependency),
+                timeout: test.spec.timeout ? test.spec.timeout : undefined,
+                spec: {
+                  ...test.spec,
+                },
+              })
+            }
+
+            return {
+              group: {
+                kind: "Group",
+                name: moduleConfig.name,
+                actions,
+              },
+            }
+          },
+
           configure: configureContainerModule,
           suggestModules,
           getBuildStatus: getContainerBuildStatus,

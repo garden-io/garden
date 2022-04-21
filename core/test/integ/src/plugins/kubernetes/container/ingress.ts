@@ -19,13 +19,14 @@ import {
   createIngressResources,
   supportedIngressApiVersions,
 } from "../../../../../../src/plugins/kubernetes/container/ingress"
-import { defaultContainerResources, defaultDeploymentStrategy } from "../../../../../../src/plugins/container/config"
+import { defaultDeploymentStrategy } from "../../../../../../src/plugins/container/config"
+import { defaultContainerResources } from "../../../../../../src/plugins/container/moduleConfig"
 import {
   ServicePortProtocol,
   ContainerIngressSpec,
   ContainerService,
   ContainerServiceSpec,
-} from "../../../../../../src/plugins/container/config"
+} from "../../../../../../src/plugins/container/moduleConfig"
 import { defaultSystemNamespace } from "../../../../../../src/plugins/kubernetes/system"
 import { PluginTools } from "../../../../../../src/plugin/tools"
 import { keyBy } from "lodash"

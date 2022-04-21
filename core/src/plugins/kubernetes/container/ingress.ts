@@ -9,7 +9,7 @@
 import Bluebird from "bluebird"
 import { extend } from "lodash"
 import { findByName } from "../../../util/util"
-import { ContainerService, ContainerIngressSpec } from "../../container/config"
+import { ContainerService, ContainerIngressSpec } from "../../container/moduleConfig"
 import { IngressTlsCertificate, KubernetesProvider } from "../config"
 import { ServiceIngress, ServiceProtocol } from "../../../types/service"
 import { KubeApi } from "../api"

@@ -7,7 +7,7 @@
  */
 
 import { containerHelpers } from "./helpers"
-import { ContainerModule } from "./config"
+import { ContainerModule } from "./moduleConfig"
 import { ConfigurationError } from "../../exceptions"
 import { GetBuildStatusParams } from "../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams } from "../../types/plugin/module/build"

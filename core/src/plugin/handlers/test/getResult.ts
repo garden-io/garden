@@ -8,19 +8,14 @@
 
 import { dedent } from "../../../util/string"
 import { PluginTestActionParamsBase, actionParamsSchema } from "../../../plugin/base"
-import { TestActionSpec } from "../../../actions/test"
+import { TestActionConfig } from "../../../actions/test"
 import { testResultSchema } from "../../../types/test"
 
-export interface GetTestResultParams<T extends TestActionSpec = TestActionSpec> extends PluginTestActionParamsBase<T> {}
+export interface GetTestResultParams<T extends TestActionConfig = TestActionConfig> extends PluginTestActionParamsBase<T> {}
 
 export const getTestResult = () => ({
   description: dedent`
-    Retrieve the test result for the specified version. Use this along with the \`testModule\` handler
-    to avoid testing the same code repeatedly.
-
-    Note that the version string provided to this handler may be a hash of the module's version, as
-    well as any runtime dependencies configured for the test, so it may not match the current version
-    of the module itself.
+    Retrieve the test result for the specified version. Use this along with the \`testAction\` handler to avoid testing the same code repeatedly.
   `,
 
   paramsSchema: actionParamsSchema(),

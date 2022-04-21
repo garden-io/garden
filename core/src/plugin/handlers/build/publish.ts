@@ -9,14 +9,14 @@
 import { dedent } from "../../../util/string"
 import { actionParamsSchema, PluginBuildActionParamsBase } from "../../../plugin/base"
 import { joi } from "../../../config/common"
-import { BuildActionSpec } from "../../../actions/build"
+import { BuildActionConfig } from "../../../actions/build"
 
-export interface PublishModuleParams<T extends BuildActionSpec = BuildActionSpec>
+export interface PublishActionParams<T extends BuildActionConfig = BuildActionConfig>
   extends PluginBuildActionParamsBase<T> {
   tag?: string
 }
 
-export interface PublishModuleResult {
+export interface PublishActionResult {
   published: boolean
   message?: string
   identifier?: string

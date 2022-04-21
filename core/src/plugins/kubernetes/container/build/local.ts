@@ -15,7 +15,7 @@ import { loadImageToMicrok8s, getMicrok8sImageStatus } from "../../local/microk8
 import { ContainerProvider } from "../../../container/container"
 import { BuildHandler, BuildStatusHandler, getManifestInspectArgs } from "./common"
 import { BuildModuleParams } from "../../../../types/plugin/module/build"
-import { ContainerModule } from "../../../container/config"
+import { ContainerModule } from "../../../container/moduleConfig"
 
 export const getLocalBuildStatus: BuildStatusHandler = async (params) => {
   const { ctx, module, log } = params

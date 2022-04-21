@@ -11,8 +11,8 @@ import { join, relative, resolve } from "path"
 import { extend, intersection, mapValues, pick } from "lodash"
 import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
-import { containerModuleSpecSchema, containerTaskSchema, containerTestSchema } from "../src/plugins/container/config"
-import { buildExecModule, execBuildSpecSchema, testExecModule } from "../src/plugins/exec/exec"
+import { containerModuleSpecSchema, containerRunSchema, containerTestSchema } from "../src/plugins/container/moduleConfig"
+import { buildExecModule, testExecModule } from "../src/plugins/exec/exec"
 import { joi, joiArray } from "../src/config/common"
 import {
   createGardenPlugin,
@@ -48,6 +48,7 @@ import { assert, expect } from "chai"
 import Bluebird = require("bluebird")
 import execa = require("execa")
 import timekeeper = require("timekeeper")
+import { execBuildSpecSchema } from "../src/plugins/exec/moduleConfig"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError } from "../src/util/testing"
@@ -103,7 +104,7 @@ export const projectTestFailsRoot = getDataDir("test-project-fails")
 
 const testModuleTestSchema = () => containerTestSchema().keys({ command: joi.sparseArray().items(joi.string()) })
 
-const testModuleTaskSchema = () => containerTaskSchema().keys({ command: joi.sparseArray().items(joi.string()) })
+const testModuleTaskSchema = () => containerRunSchema().keys({ command: joi.sparseArray().items(joi.string()) })
 
 export const testModuleSpecSchema = () =>
   containerModuleSpecSchema().keys({

@@ -547,6 +547,59 @@ describe("exec plugin", () => {
     })
   })
 
+  describe("convert", () => {
+    it("adds a Build action if build.command is set", async () => {
+      throw "TODO"
+    })
+
+    it("adds a Build action if generateFiles is set", async () => {
+      throw "TODO"
+    })
+
+    it("adds a Build action if build.dependencies[].copy is set and adds a copy field", async () => {
+      throw "TODO"
+    })
+
+    it("adds a Build action if repositoryUrl is set and maps to new field", async () => {
+      throw "TODO"
+    })
+
+    it("sets Build dependencies correctly", async () => {
+      throw "TODO"
+    })
+
+    it("sets buildAtSource on Build if local:true", async () => {
+      throw "TODO"
+    })
+
+    it("correctly maps a serviceConfig to a Deploy", async () => {
+      throw "TODO"
+
+      // Dependencies
+      // build field
+      // timeout
+      // service spec
+    })
+
+    it("correctly maps a taskConfig to a Run", async () => {
+      throw "TODO"
+
+      // Dependencies
+      // build field
+      // timeout
+      // task spec
+    })
+
+    it("correctly maps a testConfig to a Test", async () => {
+      throw "TODO"
+
+      // Dependencies
+      // build field
+      // timeout
+      // test spec
+    })
+  })
+
   context("services", () => {
     let touchFilePath: string
 

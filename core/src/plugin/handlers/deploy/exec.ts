@@ -9,9 +9,9 @@
 import { actionParamsSchema, PluginDeployActionParamsBase } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
 import { joiArray, joi } from "../../../config/common"
-import { DeployActionSpec } from "../../../actions/deploy"
+import { DeployActionConfig } from "../../../actions/deploy"
 
-export interface ExecInDeployParams<T extends DeployActionSpec = DeployActionSpec>
+export interface ExecInDeployParams<T extends DeployActionConfig = DeployActionConfig>
   extends PluginDeployActionParamsBase<T> {
   command: string[]
   interactive: boolean

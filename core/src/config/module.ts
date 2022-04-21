@@ -22,7 +22,7 @@ import {
 import { TestConfig, testConfigSchema } from "./test"
 import { TaskConfig, taskConfigSchema } from "./task"
 import { dedent, stableStringify } from "../util/string"
-import { templateKind } from "./module-template"
+import { moduleTemplateKind } from "./module-template"
 import { varfileDescription } from "./project"
 
 export const defaultBuildTimeout = 1200
@@ -119,7 +119,7 @@ export const generatedFileSchema = () =>
         .relativeOnly()
         .description(
           dedent`
-          POSIX-style filename to read the source file contents from, relative to the path of the module (or the ${templateKind} configuration file if one is being applied).
+          POSIX-style filename to read the source file contents from, relative to the path of the module (or the ${moduleTemplateKind} configuration file if one is being applied).
           This file may contain template strings, much like any other field in the configuration.
           `
         ),

@@ -9,7 +9,7 @@
 import { deserializeValues } from "../../util/util"
 import { KubeApi } from "./api"
 import { GardenModule } from "../../types/module"
-import { ContainerModule } from "../container/config"
+import { ContainerModule } from "../container/moduleConfig"
 import { HelmModule } from "./helm/config"
 import { KubernetesModule } from "./kubernetes-module/config"
 import { PluginContext } from "../../plugin-context"

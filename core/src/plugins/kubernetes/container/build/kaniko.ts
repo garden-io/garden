@@ -7,7 +7,7 @@
  */
 
 import { V1PodSpec } from "@kubernetes/client-node"
-import { ContainerModule } from "../../../container/config"
+import { ContainerModule } from "../../../container/moduleConfig"
 import { millicpuToString, megabytesToString, makePodName } from "../../util"
 import { skopeoDaemonContainerName, dockerAuthSecretKey, k8sUtilImageName } from "../../constants"
 import { KubeApi } from "../../api"
