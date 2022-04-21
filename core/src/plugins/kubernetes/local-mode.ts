@@ -29,7 +29,7 @@ import pRetry = require("p-retry")
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
-export const localModeGuideLink = "https://docs.garden.io/guides/..." // todo
+export const localModeGuideLink = "https://docs.garden.io/guides/running-service-in-local-mode.md"
 
 const defaultReverseForwardingPortName = "http"
 

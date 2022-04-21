@@ -321,9 +321,16 @@ services:
           # information.
           defaultGroup:
 
-    # Specifies which service in the remote k8s cluster must be replaced by the local one.
+    # Specifies necessary configuration details of the local service which will replace a target remote service in the
+    # k8s cluster.
     #
-    # See the [Local mode guide](https://docs.garden.io/guides/...) for more information.
+    # The target service in the k8s cluster will be replaced by a proxy container with an ssh server running,
+    # and the reverse port forwarding will be automatically configured to route the traffic to the local service and
+    # back.
+    #
+    # Local mode is enabled by setting the `--local-mode` option on the `garden deploy` command.
+    #
+    # See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode.md) for more information.
     localMode:
       # The local port of the ssh tunnel to the target remote k8s cluster.
       localAppPort:
@@ -1450,9 +1457,14 @@ Set the default group on files and directories at the target. Specify either an 
 
 [services](#services) > localMode
 
-Specifies which service in the remote k8s cluster must be replaced by the local one.
+Specifies necessary configuration details of the local service which will replace a target remote service in the k8s cluster.
 
-See the [Local mode guide](https://docs.garden.io/guides/...) for more information.
+The target service in the k8s cluster will be replaced by a proxy container with an ssh server running,
+and the reverse port forwarding will be automatically configured to route the traffic to the local service and back.
+
+Local mode is enabled by setting the `--local-mode` option on the `garden deploy` command.
+
+See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode.md) for more information.
 
 | Type     | Required |
 | -------- | -------- |

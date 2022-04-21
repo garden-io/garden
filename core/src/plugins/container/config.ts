@@ -6,26 +6,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GardenModule, FileCopySpec } from "../../types/module"
+import { FileCopySpec, GardenModule } from "../../types/module"
 import {
-  joiUserIdentifier,
-  PrimitiveMap,
-  joiPrimitive,
-  joi,
   envVarRegex,
-  Primitive,
-  joiModuleIncludeDirective,
+  joi,
   joiIdentifier,
+  joiModuleIncludeDirective,
+  joiPrimitive,
   joiSparseArray,
+  joiStringMap,
+  joiUserIdentifier,
+  Primitive,
+  PrimitiveMap,
 } from "../../config/common"
 import { ArtifactSpec } from "../../config/validation"
 import { GardenService, ingressHostnameSchema, linkUrlSchema } from "../../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
-import { ModuleSpec, ModuleConfig, baseBuildSpecSchema, BaseBuildSpec } from "../../config/module"
-import { CommonServiceSpec, ServiceConfig, baseServiceSpecSchema } from "../../config/service"
-import { baseTaskSpecSchema, BaseTaskSpec, cacheResultSchema } from "../../config/task"
-import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
-import { joiStringMap } from "../../config/common"
+import { BaseBuildSpec, baseBuildSpecSchema, ModuleConfig, ModuleSpec } from "../../config/module"
+import { baseServiceSpecSchema, CommonServiceSpec, ServiceConfig } from "../../config/service"
+import { BaseTaskSpec, baseTaskSpecSchema, cacheResultSchema } from "../../config/task"
+import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
 import { dedent, deline } from "../../util/string"
 import { ContainerModuleOutputs } from "./container"
 import { devModeGuideLink } from "../kubernetes/dev-mode"
@@ -315,10 +315,15 @@ export const containerLocalModeSchema = () =>
     command: joi.sparseArray().items(joi.string()).description("The command that’s run locally to start the service."),
     containerName: joi.string().optional().description("The k8s name of the remote container."),
   }).description(dedent`
-    Specifies which service in the remote k8s cluster must be replaced by the local one.
+    Specifies necessary configuration details of the local service which will replace a target remote service in the k8s cluster.
 
-    See the [Local mode guide](${localModeGuideLink}) for more information.
-  `) // todo: link to the guide + guide itself
+    The target service in the k8s cluster will be replaced by a proxy container with an ssh server running,
+    and the reverse port forwarding will be automatically configured to route the traffic to the local service and back.
+
+    Local mode is enabled by setting the \`--local-mode\` option on the \`garden deploy\` command.
+
+    See the [Local Mode guide](${localModeGuideLink}) for more information.
+  `)
 
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
 
