@@ -311,7 +311,7 @@ services:
       command:
 
       # The k8s name of the remote container.
-      remoteContainerName:
+      containerName:
 
     # List of ingress endpoints that the service exposes.
     ingresses:
@@ -1407,9 +1407,9 @@ The command that’s run locally to start the service.
 | --------------- | -------- |
 | `array[string]` | No       |
 
-### `services[].localMode.remoteContainerName`
+### `services[].localMode.containerName`
 
-[services](#services) > [localMode](#serviceslocalmode) > remoteContainerName
+[services](#services) > [localMode](#serviceslocalmode) > containerName
 
 The k8s name of the remote container.
 

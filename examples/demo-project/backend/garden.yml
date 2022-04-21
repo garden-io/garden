@@ -12,7 +12,7 @@ services:
     localMode:
       localAppPort: 8090
       command: [] # example: [ "npm", "run", "serve", "-p", "${var.localAppPort}" ]
-      remoteContainerName: "backend"
+      containerName: "backend"
     healthCheck:
       httpGet:
         path: /hello-backend

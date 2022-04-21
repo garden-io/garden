@@ -296,7 +296,7 @@ export async function configureLocalMode({ target, service, log }: ConfigureLoca
 
   set(target, ["metadata", "annotations", gardenAnnotationKey("local-mode")], "true")
 
-  const remoteContainerName = localModeSpec.remoteContainerName
+  const remoteContainerName = localModeSpec.containerName
   const mainContainer = getResourceContainer(target, remoteContainerName)
   if (!!remoteContainerName && !mainContainer) {
     throw new ConfigurationError(
