@@ -16,7 +16,7 @@ import { loadConfigResources, findProjectConfig } from "../../config/base"
 import { resolve, basename, relative, join } from "path"
 import { GardenBaseError, ParameterError } from "../../exceptions"
 import { getModuleTypes, getPluginBaseNames } from "../../plugins"
-import { addConfig } from "./helpers"
+import { addConfig, createBaseOpts } from "./helpers"
 import { getSupportedPlugins } from "../../plugins/plugins"
 import { baseModuleSpecSchema } from "../../config/module"
 import { renderConfigReference } from "../../docs/config"
@@ -35,6 +35,7 @@ import { userPrompt } from "../../util/util"
 
 const createModuleArgs = {}
 const createModuleOpts = {
+  ...createBaseOpts,
   dir: new PathParameter({
     help: "Directory to place the module in (defaults to current directory).",
     defaultValue: ".",
@@ -197,9 +198,9 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
 
     const { yaml } = renderConfigReference(schema, {
       yamlOpts: {
-        commentOutEmpty: true,
+        onEmptyValue: opts["skip-comments"] ? "remove" : "comment out",
         filterMarkdown: true,
-        renderBasicDescription: true,
+        renderBasicDescription: !opts["skip-comments"],
         renderFullDescription: false,
         renderValue: "preferExample",
         presetValues,
