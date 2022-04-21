@@ -17,7 +17,7 @@ import { ConfigurationError, PluginError } from "../../../exceptions"
 import { ensureSecret } from "../secrets"
 import { getHostnamesFromPem } from "../../../util/tls"
 import { KubernetesResource } from "../types"
-import { ExtensionsV1beta1Ingress, V1Ingress, V1Secret } from "@kubernetes/client-node"
+import { ExtensionsV1beta1Ingress, V1Ingress, V1IngressClass, V1Secret } from "@kubernetes/client-node"
 import { LogEntry } from "../../../logger/log-entry"
 import chalk from "chalk"
 
@@ -70,6 +70,24 @@ export async function createIngressResources(
 
   const allIngresses = await getIngressesWithCert(service, api, provider)
 
+  if (apiVersion === "networking.k8s.io/v1") {
+    // Note: We do not create the IngressClass resource automatically here so add a warning if it's not there!
+    const ingressclasses = await api.listResources<KubernetesResource<V1IngressClass>>({
+      apiVersion,
+      kind: "IngressClass",
+      log,
+      namespace: "all",
+    })
+    const ingressclassWithCorrectName = ingressclasses.items.find(
+      (ic) => ic.metadata.name === provider.config.ingressClass
+    )
+    if (!ingressclassWithCorrectName) {
+      log.warn(
+        chalk.yellow(`ingressclass with name "${provider.config.ingressClass}" was not found, ingress might not work`)
+      )
+    }
+  }
+
   return Bluebird.map(allIngresses, async (ingress, index) => {
     const cert = ingress.certificate
 
@@ -80,7 +98,6 @@ export async function createIngressResources(
 
     if (apiVersion === "networking.k8s.io/v1") {
       // The V1 API has a different shape than the beta API
-      // Note: We do not create the IngressClass resource automatically here!
       const ingressResource: KubernetesResource<V1Ingress> = {
         apiVersion,
         kind: "Ingress",
