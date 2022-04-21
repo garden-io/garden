@@ -140,6 +140,7 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
       log.debug("Using microk8s's ingress addon")
       addons.push("ingress")
       remove(_systemServices, (s) => nginxServices.includes(s))
+      _systemServices.push("nginx-ingress-class")
     }
 
     await configureMicrok8sAddons(log, addons)
