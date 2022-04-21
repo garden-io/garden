@@ -106,7 +106,7 @@ export async function moduleFromConfig({
   buildDependencies: GardenModule[]
   forceVersion?: boolean
 }): Promise<GardenModule> {
-  const version = await garden.resolveModuleVersion(config, config.build.dependencies, forceVersion)
+  const version = await garden.resolveModuleVersion(log, config, config.build.dependencies, forceVersion)
   const actions = await garden.getActionRouter()
   const { outputs } = await actions.getModuleOutputs({ log, moduleConfig: config, version })
   const moduleTypes = await garden.getModuleTypes()

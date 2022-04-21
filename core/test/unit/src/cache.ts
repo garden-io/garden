@@ -9,9 +9,11 @@
 import { TreeCache } from "../../../src/cache"
 import { expect } from "chai"
 import { expectError } from "../../helpers"
+import { getLogger } from "../../../src/logger/logger"
 
 describe("TreeCache", () => {
   let cache: TreeCache
+  const log = getLogger().placeholder()
 
   beforeEach(() => {
     cache = new TreeCache()
@@ -24,9 +26,9 @@ describe("TreeCache", () => {
     const value = "my-value"
     const context = ["some", "context"]
 
-    cache.set(key, value, context)
+    cache.set(log, key, value, context)
 
-    expect(cache.get(key)).to.equal(value)
+    expect(cache.get(log, key)).to.equal(value)
   })
 
   it("should store and retrieve a multi-part key", () => {
@@ -34,9 +36,9 @@ describe("TreeCache", () => {
     const value = "my-value"
     const context = ["some", "context"]
 
-    cache.set(key, value, context)
+    cache.set(log, key, value, context)
 
-    expect(cache.get(key)).to.equal(value)
+    expect(cache.get(log, key)).to.equal(value)
   })
 
   describe("set", () => {
@@ -46,9 +48,9 @@ describe("TreeCache", () => {
       const contextA = ["context", "a"]
       const contextB = ["context", "b"]
 
-      cache.set(key, value, contextA, contextB)
+      cache.set(log, key, value, contextA, contextB)
 
-      expect(cache.get(key)).to.equal(value)
+      expect(cache.get(log, key)).to.equal(value)
       expect(mapToPairs(cache.getByContext(contextA))).to.eql([[key, value]])
       expect(mapToPairs(cache.getByContext(contextB))).to.eql([[key, value]])
     })
@@ -59,10 +61,10 @@ describe("TreeCache", () => {
       const contextA = ["context", "a"]
       const contextB = ["context", "b"]
 
-      cache.set(key, value, contextA)
-      cache.set(key, value, contextB)
+      cache.set(log, key, value, contextA)
+      cache.set(log, key, value, contextB)
 
-      expect(cache.get(key)).to.equal(value)
+      expect(cache.get(log, key)).to.equal(value)
       expect(mapToPairs(cache.getByContext(contextA))).to.eql([[key, value]])
       expect(mapToPairs(cache.getByContext(contextB))).to.eql([[key, value]])
     })
@@ -73,10 +75,10 @@ describe("TreeCache", () => {
       const valueB = "my-new-value"
       const context = ["context", "a"]
 
-      cache.set(key, value, context)
-      cache.set(key, valueB, context)
+      cache.set(log, key, value, context)
+      cache.set(log, key, valueB, context)
 
-      expect(cache.get(key)).to.equal(valueB)
+      expect(cache.get(log, key)).to.equal(valueB)
     })
 
     it("should throw with an empty key", async () => {
@@ -84,14 +86,14 @@ describe("TreeCache", () => {
       const value = "my-value"
       const context = ["some", "context"]
 
-      await expectError(() => cache.set(key, value, context), "parameter")
+      await expectError(() => cache.set(log, key, value, context), "parameter")
     })
 
     it("should throw with no context", async () => {
       const key = ["my-key"]
       const value = "my-value"
 
-      await expectError(() => cache.set(key, value), "parameter")
+      await expectError(() => cache.set(log, key, value), "parameter")
     })
 
     it("should throw with an empty context", async () => {
@@ -99,19 +101,19 @@ describe("TreeCache", () => {
       const value = "my-value"
       const context = []
 
-      await expectError(() => cache.set(key, value, context), "parameter")
+      await expectError(() => cache.set(log, key, value, context), "parameter")
     })
   })
 
   describe("get", () => {
     it("should return undefined when key does not exist", () => {
-      expect(cache.get(["bla"])).to.be.undefined
+      expect(cache.get(log, ["bla"])).to.be.undefined
     })
   })
 
   describe("getOrThrow", () => {
     it("should throw when key does not exist", async () => {
-      await expectError(() => cache.getOrThrow(["bla"]), "not-found")
+      await expectError(() => cache.getOrThrow(log, ["bla"]), "not-found")
     })
   })
 
@@ -121,10 +123,10 @@ describe("TreeCache", () => {
       const value = "my-value"
       const context = ["context", "a"]
 
-      cache.set(key, value, context)
-      cache.delete(key)
+      cache.set(log, key, value, context)
+      cache.delete(log, key)
 
-      expect(cache.get(key)).to.be.undefined
+      expect(cache.get(log, key)).to.be.undefined
       expect(cache.getByContext(context).size).to.equal(0)
     })
   })
@@ -135,18 +137,18 @@ describe("TreeCache", () => {
       const valueA = "value-a"
       const contextA = ["context", "a"]
 
-      cache.set(keyA, valueA, contextA)
+      cache.set(log, keyA, valueA, contextA)
 
       const keyB = ["key", "b"]
       const valueB = "value-b"
       const contextB = ["context", "b"]
 
-      cache.set(keyB, valueB, contextB)
+      cache.set(log, keyB, valueB, contextB)
 
-      cache.invalidate(contextA)
+      cache.invalidate(log, contextA)
 
-      expect(cache.get(keyA)).to.be.undefined
-      expect(cache.get(keyB)).to.equal(valueB)
+      expect(cache.get(log, keyA)).to.be.undefined
+      expect(cache.get(log, keyB)).to.equal(valueB)
     })
 
     it("should remove entry from all associated contexts", () => {
@@ -155,16 +157,16 @@ describe("TreeCache", () => {
       const contextA = ["some", "context"]
       const contextB = ["other", "context"]
 
-      cache.set(key, value, contextA, contextB)
-      cache.invalidate(contextB)
+      cache.set(log, key, value, contextA, contextB)
+      cache.invalidate(log, contextB)
 
-      expect(cache.get(key)).to.be.undefined
+      expect(cache.get(log, key)).to.be.undefined
       expect(mapToPairs(cache.getByContext(contextA))).to.eql([])
       expect(mapToPairs(cache.getByContext(contextB))).to.eql([])
     })
 
     it("should return if the specified context cannot be found", () => {
-      cache.invalidate(["bla"])
+      cache.invalidate(log, ["bla"])
     })
   })
 
@@ -174,29 +176,29 @@ describe("TreeCache", () => {
       const valueA = "value-a"
       const contextA = ["section-a", "a"]
 
-      cache.set(keyA, valueA, contextA)
+      cache.set(log, keyA, valueA, contextA)
 
       const keyB = ["key", "b"]
       const valueB = "value-b"
       const contextB = ["section-a", "a", "nested"]
 
-      cache.set(keyB, valueB, contextB)
+      cache.set(log, keyB, valueB, contextB)
 
       const keyC = ["key", "c"]
       const valueC = "value-c"
       const contextC = ["section-b", "c"]
 
-      cache.set(keyC, valueC, contextC)
+      cache.set(log, keyC, valueC, contextC)
 
-      cache.invalidateUp(contextB)
+      cache.invalidateUp(log, contextB)
 
-      expect(cache.get(keyA)).to.be.undefined
-      expect(cache.get(keyB)).to.be.undefined
-      expect(cache.get(keyC)).to.equal(valueC)
+      expect(cache.get(log, keyA)).to.be.undefined
+      expect(cache.get(log, keyB)).to.be.undefined
+      expect(cache.get(log, keyC)).to.equal(valueC)
     })
 
     it("should return if the specified context cannot be found", () => {
-      cache.invalidateUp(["bla"])
+      cache.invalidateUp(log, ["bla"])
     })
   })
 
@@ -206,29 +208,29 @@ describe("TreeCache", () => {
       const valueA = "value-a"
       const contextA = ["section-a", "a"]
 
-      cache.set(keyA, valueA, contextA)
+      cache.set(log, keyA, valueA, contextA)
 
       const keyB = ["key", "b"]
       const valueB = "value-b"
       const contextB = ["section-a", "a", "nested"]
 
-      cache.set(keyB, valueB, contextB)
+      cache.set(log, keyB, valueB, contextB)
 
       const keyC = ["key", "c"]
       const valueC = "value-c"
       const contextC = ["section-b", "c"]
 
-      cache.set(keyC, valueC, contextC)
+      cache.set(log, keyC, valueC, contextC)
 
-      cache.invalidateDown(["section-a"])
+      cache.invalidateDown(log, ["section-a"])
 
-      expect(cache.get(keyA)).to.be.undefined
-      expect(cache.get(keyB)).to.be.undefined
-      expect(cache.get(keyC)).to.equal(valueC)
+      expect(cache.get(log, keyA)).to.be.undefined
+      expect(cache.get(log, keyB)).to.be.undefined
+      expect(cache.get(log, keyC)).to.equal(valueC)
     })
 
     it("should return if the specified context cannot be found", () => {
-      cache.invalidateDown(["bla"])
+      cache.invalidateDown(log, ["bla"])
     })
   })
 })

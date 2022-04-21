@@ -12,7 +12,7 @@ import { ensureDir, readdir } from "fs-extra"
 import dedent from "dedent"
 import { platform, arch } from "os"
 import { relative, resolve, join } from "path"
-import { flatten, sortBy, fromPairs, keyBy, mapValues, cloneDeep, groupBy } from "lodash"
+import { flatten, sortBy, keyBy, mapValues, cloneDeep, groupBy } from "lodash"
 const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
@@ -54,7 +54,7 @@ import { BaseTask } from "./tasks/base"
 import { LocalConfigStore, ConfigStore, GlobalConfigStore, LinkedSource } from "./config-store"
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { BuildDependencyConfig, ModuleConfig } from "./config/module"
-import { ModuleResolver, moduleResolutionConcurrencyLimit } from "./resolve-module"
+import { ModuleResolver } from "./resolve-module"
 import { createPluginContext, CommandInfo, PluginEventBroker } from "./plugin-context"
 import { ModuleAndRuntimeActionHandlers, RegisterPluginParam } from "./types/plugin/plugin"
 import {
@@ -753,11 +753,6 @@ export class Garden {
 
     const resolvedModules = await resolver.resolveAll()
 
-    const actions = await this.getActionRouter()
-    const moduleTypes = await this.getModuleTypes()
-
-    let graph: ConfigGraph | undefined = undefined
-
     // Require include/exclude on modules if their paths overlap
     const overlaps = detectModuleOverlap({
       projectRoot: this.projectRoot,
@@ -768,6 +763,11 @@ export class Garden {
       const { message, detail } = this.makeOverlapError(overlaps)
       throw new ConfigurationError(message, detail)
     }
+
+    const actions = await this.getActionRouter()
+    const moduleTypes = await this.getModuleTypes()
+
+    let graph: ConfigGraph | undefined = undefined
 
     // Walk through all plugins in dependency order, and allow them to augment the graph
     const plugins = keyBy(await this.getAllPlugins(), "name")
@@ -796,7 +796,7 @@ export class Garden {
         graph = new ConfigGraph(resolvedModules, moduleTypes)
       }
 
-      const { addBuildDependencies, addRuntimeDependencies, addModules } = await actions.augmentGraph({
+      const { addRuntimeDependencies, addModules } = await actions.augmentGraph({
         pluginName,
         log,
         providers: resolvedProviders,
@@ -817,26 +817,6 @@ export class Garden {
         )
         graph = undefined
       })
-
-      // Note: For both kinds of dependencies we only validate that `by` resolves correctly, since the rest
-      // (i.e. whether all `on` references exist + circular deps) will be validated when initiating the ConfigGraph.
-      for (const dependency of addBuildDependencies || []) {
-        const by = findByName(resolvedModules, dependency.by)
-
-        if (!by) {
-          throw new PluginError(
-            deline`
-              Provider '${provider.name}' added a build dependency by module '${dependency.by}' on '${dependency.on}'
-              but module '${dependency.by}' could not be found.
-            `,
-            { provider, dependency }
-          )
-        }
-
-        // TODO: allow copy directives on build dependencies?
-        by.build.dependencies.push({ name: dependency.on, copy: [] })
-        graph = undefined
-      }
 
       for (const dependency of addRuntimeDependencies || []) {
         let found = false
@@ -873,40 +853,6 @@ export class Garden {
     // Ensure dependency structure is alright
     graph = new ConfigGraph(resolvedModules, moduleTypes)
 
-    // Need to update versions and add the build dependency modules to the Module objects here, because plugins can
-    // add build dependencies in the configure handler. This should resolve quickly because we perform caching as we
-    // resolve the versions, so unaffected modules should immediately get their version from cache.
-    // FIXME: This should be addressed higher up in the process, but is quite tricky to manage with the current
-    // TaskGraph structure which (understandably nb.) needs the dependency structure to be pre-determined before
-    // processing.
-    const modulesByName = keyBy(resolvedModules, "name")
-
-    await Bluebird.map(
-      resolvedModules,
-      async (module) => {
-        const buildDeps = module.build.dependencies.map((d) => {
-          const key = getModuleKey(d.name, d.plugin)
-          const depModule = modulesByName[key]
-
-          if (!depModule) {
-            throw new ConfigurationError(
-              chalk.red(deline`
-            Module ${chalk.white.bold(module.name)} specifies build dependency ${chalk.white.bold(key)} which
-            cannot be found.
-            `),
-              { dependencyName: key }
-            )
-          }
-
-          return depModule
-        })
-
-        module.buildDependencies = fromPairs(buildDeps.map((d) => [getModuleKey(d.name, d.plugin), d]))
-        module.version = await this.resolveModuleVersion(module, buildDeps)
-      },
-      { concurrency: moduleResolutionConcurrencyLimit }
-    )
-
     if (emit) {
       this.events.emit("stackGraph", graph.render())
     }
@@ -918,6 +864,7 @@ export class Garden {
    * Resolves the module version (i.e. build version) for the given configuration and its build dependencies.
    */
   async resolveModuleVersion(
+    log: LogEntry,
     moduleConfig: ModuleConfig,
     moduleDependencies: (GardenModule | BuildDependencyConfig)[],
     force = false
@@ -928,7 +875,7 @@ export class Garden {
     const cacheKey = ["moduleVersions", moduleName, ...depModuleNames]
 
     if (!force) {
-      const cached = <ModuleVersion>this.cache.get(cacheKey)
+      const cached = <ModuleVersion>this.cache.get(log, cacheKey)
 
       if (cached) {
         return cached
@@ -943,7 +890,7 @@ export class Garden {
 
     const version = await this.vcs.resolveModuleVersion(this.log, this.projectName, moduleConfig, dependencies)
 
-    this.cache.set(cacheKey, version, ...cacheContexts)
+    this.cache.set(log, cacheKey, version, ...cacheContexts)
     return version
   }
 

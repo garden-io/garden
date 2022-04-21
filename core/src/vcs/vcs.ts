@@ -119,7 +119,7 @@ export abstract class VcsHandler {
     // Make sure we don't concurrently scan the exact same context
     await scanLock.acquire(cacheKey.join(":"), async () => {
       if (!force) {
-        const cached = this.cache.get(cacheKey)
+        const cached = this.cache.get(log, cacheKey)
         if (cached) {
           log.silly(`Got cached tree version for module ${moduleConfig.name} (key ${cacheKey})`)
           result = cached
@@ -156,7 +156,7 @@ export abstract class VcsHandler {
         result.files = files.map((f) => f.path)
       }
 
-      this.cache.set(cacheKey, result, getModuleCacheContext(moduleConfig))
+      this.cache.set(log, cacheKey, result, getModuleCacheContext(moduleConfig))
     })
 
     return result

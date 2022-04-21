@@ -422,7 +422,7 @@ export class Watcher extends EventEmitter {
     // invalidate the cache for anything attached to the module path or upwards in the directory tree
     for (const module of modules) {
       const cacheContext = pathToCacheContext(module.path)
-      this.garden.cache.invalidateUp(cacheContext)
+      this.garden.cache.invalidateUp(this.log, cacheContext)
     }
   }
 }

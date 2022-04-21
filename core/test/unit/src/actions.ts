@@ -143,7 +143,6 @@ describe("ActionRouter", () => {
         const name = "added-by-test-plugin"
 
         expect(result).to.eql({
-          addBuildDependencies: [{ by: name, on: "module-b" }],
           addRuntimeDependencies: [{ by: name, on: "service-b" }],
           addModules: [
             {
@@ -2171,7 +2170,6 @@ const testPlugin = createGardenPlugin({
       const moduleName = "added-by-" + params.ctx.provider.name
 
       return {
-        addBuildDependencies: [{ by: moduleName, on: "module-b" }],
         addRuntimeDependencies: [{ by: moduleName, on: "service-b" }],
         addModules: [
           {
