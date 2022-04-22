@@ -19,7 +19,7 @@ import {
 } from "../../../helpers"
 import { expect } from "chai"
 import { ServiceStatus } from "../../../../src/types/service"
-import { EnvironmentStatus } from "../../../../src/types/plugin/provider/getEnvironmentStatus"
+import { EnvironmentStatus } from "../../../../src/plugin/handlers/provider/getEnvironmentStatus"
 import { DeleteServiceParams } from "../../../../src/types/plugin/service/deleteService"
 import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { testModuleSpecSchema } from "../../../helpers"

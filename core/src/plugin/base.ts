@@ -12,14 +12,27 @@ import { GardenModule, moduleSchema } from "../types/module"
 import { RuntimeContext, runtimeContextSchema } from "../runtime-context"
 import { GardenService, serviceSchema } from "../types/service"
 import { GardenTask, taskSchema } from "../types/task"
-import { joi, joiIdentifier } from "../config/common"
-import { ActionHandlerParamsBase } from "./plugin"
+import { CustomObjectSchema, joi, joiIdentifier } from "../config/common"
 import { deline } from "../util/string"
 import { BuildActionConfig, BuildActionWrapper } from "../actions/build"
-import { baseBuildSpecSchema } from "../config/module"
 import { DeployActionConfig, DeployActionWrapper } from "../actions/deploy"
 import { RunActionConfig, RunActionWrapper } from "../actions/run"
 import { TestActionConfig, TestActionWrapper } from "../actions/test"
+
+export interface ActionHandlerParamsBase {
+  base?: ActionHandler<any, any>
+}
+
+export type ActionHandler<P extends ActionHandlerParamsBase, O> = ((params: P) => Promise<O>) & {
+  actionType?: string
+  pluginName?: string
+  base?: ActionHandler<P, O>
+}
+
+export type WrappedActionHandler<P extends ActionHandlerParamsBase, O> = ActionHandler<P, O> & {
+  actionType: string
+  pluginName: string
+}
 
 export interface PluginActionContextParams extends ActionHandlerParamsBase {
   ctx: PluginContext
@@ -28,6 +41,13 @@ export interface PluginActionContextParams extends ActionHandlerParamsBase {
 export interface PluginActionParamsBase extends PluginActionContextParams {
   events?: PluginEventBroker
   log: LogEntry
+}
+
+export interface PluginActionDescription {
+  description: string
+  // TODO: specify the schemas using primitives and not Joi objects
+  paramsSchema: CustomObjectSchema
+  resultSchema: CustomObjectSchema
 }
 
 // Note: not specifying this further because we will later remove it from the API

@@ -38,7 +38,7 @@ import {
 } from "./api"
 import { getAuthKey, getTestKey } from "../util/helpers"
 import { ProviderMap } from "@garden-io/core/build/src/config/provider"
-import { DashboardPage } from "@garden-io/core/build/src/types/plugin/provider/getDashboardPage"
+import { DashboardPage } from "@garden-io/core/build/src/plugin/handlers/provider/getDashboardPage"
 import { AxiosError } from "axios"
 
 // This file contains the API action functions.

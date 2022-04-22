@@ -12,7 +12,6 @@ import {
   ModuleTypeDefinition,
   ModuleTypeExtension,
   pluginSchema,
-  ModuleTypeMap,
   RegisterPluginParam,
   pluginModuleSchema,
   GardenPluginReference,
@@ -27,6 +26,7 @@ import { LogEntry } from "./logger/log-entry"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
 import { parse, resolve } from "path"
 import Bluebird from "bluebird"
+import { ModuleTypeMap } from "./types/module"
 
 export async function loadAndResolvePlugins(
   log: LogEntry,

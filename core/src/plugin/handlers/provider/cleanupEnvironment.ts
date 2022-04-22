@@ -11,7 +11,7 @@ import {
   actionParamsSchema,
   NamespaceStatus,
   namespaceStatusesSchema,
-} from "../../../plugin/base"
+} from "../../base"
 import { dedent } from "../../../util/string"
 import { joi } from "../../../config/common"
 

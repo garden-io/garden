@@ -14,13 +14,23 @@ import { pathToCacheContext } from "../cache"
 import { Garden } from "../garden"
 import { joiArray, joiIdentifier, joiIdentifierMap, joi, moduleVersionSchema, DeepPrimitiveMap } from "../config/common"
 import { getModuleTypeBases } from "../plugins"
-import { ModuleType } from "../plugin/plugin"
 import { moduleOutputsSchema } from "./plugin/module/getModuleOutputs"
 import { LogEntry } from "../logger/log-entry"
+import { ModuleTypeDefinition } from "../plugin/moduleTypes"
+import { GardenPlugin } from "../plugin/plugin"
 
 export interface FileCopySpec {
   source: string
   target: string
+}
+
+export interface ModuleType<T extends GardenModule = GardenModule> extends ModuleTypeDefinition<T> {
+  plugin: GardenPlugin
+  needsBuild: boolean
+}
+
+export interface ModuleTypeMap {
+  [name: string]: ModuleType
 }
 
 /**

@@ -7,7 +7,7 @@
  */
 
 import { dedent } from "../../util/string"
-import { GetDashboardPageParams } from "../../types/plugin/provider/getDashboardPage"
+import { GetDashboardPageParams } from "../../plugin/handlers/provider/getDashboardPage"
 import execa, { ExecaChildProcess } from "execa"
 import getPort from "get-port"
 import { getK8sProvider } from "../kubernetes/util"
