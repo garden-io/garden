@@ -9,7 +9,7 @@
 import toposort from "toposort"
 import { flatten, pick, uniq, sortBy, pickBy } from "lodash"
 import { BuildDependencyConfig } from "./config/module"
-import { GardenModule, getModuleKey, moduleNeedsBuild } from "./types/module"
+import { GardenModule, getModuleKey, moduleNeedsBuild, ModuleTypeMap } from "./types/module"
 import { GardenService, serviceFromConfig } from "./types/service"
 import { GardenTask, taskFromConfig } from "./types/task"
 import { TestConfig } from "./config/test"
@@ -21,7 +21,6 @@ import { ServiceConfig } from "./config/service"
 import { TaskConfig } from "./config/task"
 import { makeTestTaskName } from "./tasks/helpers"
 import { TaskType, makeBaseKey } from "./tasks/base"
-import { ModuleTypeMap } from "./plugin/plugin"
 import { testFromModule, GardenTest, testFromConfig } from "./types/test"
 
 // Each of these types corresponds to a Task class (e.g. BuildTask, DeployTask, ...).

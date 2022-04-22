@@ -23,12 +23,12 @@ import { GetTaskResultCommandResult } from "@garden-io/core/build/src/commands/g
 import { GetTestResultCommandResult } from "@garden-io/core/build/src/commands/get/get-test-result"
 import { TestConfig } from "@garden-io/core/build/src/config/test"
 import { EventName } from "@garden-io/core/build/src/events"
-import { EnvironmentStatusMap } from "@garden-io/core/build/src/types/plugin/provider/getEnvironmentStatus"
+import { EnvironmentStatusMap } from "../../../core/build/src/plugin/handlers/provider/getEnvironmentStatus"
 import { isSupportedEvent, processWebSocketMessage } from "../api/ws"
 import { ServerWebsocketMessage } from "@garden-io/core/build/src/server/server"
 import { useWebsocket, useUiState } from "../hooks"
 import { ProviderMap } from "@garden-io/core/build/src/config/provider"
-import { DashboardPage } from "@garden-io/core/build/src/types/plugin/provider/getDashboardPage"
+import { DashboardPage } from "../../../core/build/src/plugin/handlers/provider/getDashboardPage"
 
 export type SupportedEventName = PickFromUnion<
   EventName,
