@@ -1,23 +1,23 @@
-# Environments and Namespaces
+# Environments and namespaces
 
 Every Garden project has one or more environments that are defined in the project level Garden configuration. Teams often define environments such as `dev`, `ci`, and `prod`. 
 
-Each environment can be broken down into several "namespaces", and each Garden run operates in a specific namespace. (This is not to be confused with a Kubernetes Namespace resource, although you will often use the same name for your Garden Namespace and your Kubernetes Namespace.)
+Each environment can be broken down into several "namespaces", and each Garden run operates in a specific namespace. (This is not to be confused with a Kubernetes Namespace resource, although you will often use the same name for your Garden namespace and your Kubernetes Namespace.)
 
-To specify which Garden Namespace to use, you can use either of the following:
+To specify which Garden namespace to use, you can use either of the following:
 
-- Set a specific Namespace using the CLI with the `--env` flag and prepending the Namespace to the environment name using the following format `--env <namespace>.<environment>`
-- Specify the default Namespace in your Garden configuration file, using the `defaultNamespace` field under the `environments` specification.
+- Set a specific namespace using the CLI with the `--env` flag and prepending the namespace to the environment name using the following format `--env <namespace>.<environment>`
+- Specify the default namespace in your Garden configuration file, using the [`defaultNamespace`](https://docs.garden.io/reference/project-config#environments-.defaultnamespace) field under the `environments` specification.
 
-## Using Namespaces
+## Using namespaces
 
-You can use Namespaces in various ways. Some common use cases include
+You can use namespaces in various ways. Some common use cases include
 
-* **Unique Namespaces per developer:** These are typically long-running and belong to the same environment (e.g. `dev`).
-* **Ephemeral Namespaces for each CI run:** These are deleted after the run completes.
-* **Short-lived preview Namespaces for each pull request:** These are created when the pull request is opened, updated on every push, and deleted when the pull request is closed.
+* **Unique namespaces per developer:** These are typically long-running and belong to the same environment (e.g. `dev`).
+* **Ephemeral namespaces for each CI run:** These are deleted after the run completes.
+* **Short-lived preview namespaces for each pull request:** These are created when the pull request is opened, updated on every push, and deleted when the pull request is closed.
 
-## An opinionated guide on using Namespaces
+## An opinionated guide on using namespaces
 
 
 Below is an opinionated guide on configuring environments and namespaces and the corresponding config.
@@ -27,7 +27,7 @@ Below is an opinionated guide on configuring environments and namespaces and the
 3. For namespaces in the `ci` environment, template in the build number from your CI runner. 
 4. For namespaces in the `preview` environment, template in the PR number.
 5. Use a deterministic namespace for your `prod` environment.
-6. In the `kubernetes` provider config, set `namespace: ${environment.namespace}`. This ensures the Kubernetes namespace corresponds to the  Garden namespace.
+6. In the `kubernetes` provider config, set `namespace: ${environment.namespace}`. This ensures the Kubernetes namespace corresponds to the Garden namespace.
 7. Define your namespace names as variables so that you can, for example, re-use them in hostnames to ensure each instance of your project has a unique hostname.
 
 The example configuration for this setup would look as follows:
@@ -58,8 +58,8 @@ environments:
     variables:
       hostname: ${var.dev-env-name}.dev.<my-company>.com
   - name: prod
-		defaultNamespace: my-project
-		variables:
+    defaultNamespace: my-project
+    variables:
       hostname: app.<my-company>.com
 
 providers:
@@ -72,9 +72,7 @@ providers:
 This allows each developer to get a unique namespace and a unique hostname for each service. Some further notes:
 
 * The `dev-env-name` namespace will be something like `my-project-janedoe` so each developer has a unique namespace per project.
-* This namespace is set at a provider level, so Garden will always deploy the project to that namespace when that developer runs `garden deploy`.
-* The `base-hostname` variable gives a unique hostname per project and per developer too. For example, if Jane Doe is working on a project called "Phoenix Project" at a company called Acme, her hostname would be `phoenix-project-janedoe.acme.com`
-* This can also be used in the container module, to add another level of subdomains for individual services. So if the "Phoenix Project" includes a Redis database, the hostname could be `redis.phoenix-project.janedoe.acme.com`. This also works for Kubernetes modules.
+* The hostname variable can be re-used in the module configuration. When using the container module type, you can e.g. set hostname: `my-service.${var.hostname}` under the [`services.ingress`](https://docs.garden.io/reference/module-types/container#services-.ingresses) field. A similar approach can be used for other module types.
 
 This serves as a good base for naming your hostnames and namespaces, but you can tweak it further to meet your specific needs. For example, at Garden we use a similar scheme for our CI and preview environments, but we use the PR or build number as a further unique identifier.
 
