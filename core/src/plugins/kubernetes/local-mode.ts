@@ -414,24 +414,38 @@ async function startReversePortForwarding(
   const reversePortForward = startChildProcess(
     reversePortForwardingCommand,
     function (error: ExecException | null, stdout: string, stderr: string): void {
-      stderr &&
-        log.warn({
-          status: "active",
+      if (stderr) {
+        if (stderr.includes('unsupported option "accept-new"')) {
+          log.error({
+            status: "warn",
+            section: service.name,
+            msg: chalk.yellow(
+              "It looks like you're using too old SSH version which doesn't support option -oStrictHostKeyChecking=accept-new. " +
+                "Consider upgrading to OpenSSH 7.6 or higher."
+            ),
+          })
+        }
+
+        log.error({
+          status: "error",
           section: service.name,
           msg: chalk.red(`Reverse port-forwarding failed with error: ${stderr}.`),
         })
-      error &&
+      }
+      if (error) {
         log.error({
-          status: "active",
+          status: "error",
           section: service.name,
           msg: chalk.red(`Exception details: ${JSON.stringify(error)}.`),
         })
-      stdout &&
+      }
+      if (stdout) {
         log.info({
           status: "active",
           section: service.name,
           msg: `Reverse port-forwarding is running> ${stdout}`,
         })
+      }
     }
   )
 
