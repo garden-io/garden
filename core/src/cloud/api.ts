@@ -8,7 +8,7 @@
 
 import { IncomingHttpHeaders } from "http"
 
-import { got, GotHeaders, GotHttpError, GotJsonOptions } from "../util/http"
+import { got, GotHeaders, GotHttpError, GotJsonOptions, GotResponse } from "../util/http"
 import { findProjectConfig } from "../config/base"
 import { CommandError, EnterpriseApiError } from "../exceptions"
 import { LogEntry } from "../logger/log-entry"
@@ -38,6 +38,19 @@ export function isGotError(error: any, statusCode: number): error is GotHttpErro
 
 function is401Error(error: any): error is GotHttpError {
   return isGotError(error, 401)
+}
+
+function stripLeadingSlash(str: string) {
+  return str.replace(/^\/+/, "")
+}
+
+// This is to prevent Unhandled Promise Rejections in got
+// See: https://github.com/sindresorhus/got/issues/1489#issuecomment-805485731
+function isGotResponseOk(response: GotResponse) {
+  const { statusCode } = response
+  const limitStatusCode = response.request.options.followRedirect ? 299 : 399
+
+  return (statusCode >= 200 && statusCode <= limitStatusCode) || statusCode === 304
 }
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
@@ -418,16 +431,28 @@ export class CloudApi {
       }
       requestOptions.hooks = {
         beforeRetry: [
-          (_options, error, retryCount) => {
+          (options, error, retryCount) => {
             if (error) {
-              const description = retryDescription || "Request"
+              // Intentionally skipping search params in case they contain tokens or sensitive data.
+              const href = options.url.origin + options.url.pathname
+              const description = retryDescription || `Request`
               retryLog = retryLog || this.log.debug("")
               const statusCodeDescription = error.code ? ` (status code ${error.code})` : ``
               retryLog.setState(deline`
                 ${description} failed with error ${error.message}${statusCodeDescription},
-                retrying (${retryCount}/${retryLimit})
+                retrying (${retryCount}/${retryLimit}) (url=${href})
               `)
             }
+          },
+        ],
+        // See: https://github.com/sindresorhus/got/issues/1489#issuecomment-805485731
+        afterResponse: [
+          (response) => {
+            if (isGotResponseOk(response)) {
+              response.request.destroy()
+            }
+
+            return response
           },
         ],
       }
@@ -435,7 +460,7 @@ export class CloudApi {
       requestOptions.retry = 0 // Disables retry
     }
 
-    const url = new URL(`/${this.apiPrefix}/${path}`, this.domain)
+    const url = new URL(`/${this.apiPrefix}/${stripLeadingSlash(path)}`, this.domain)
     const res = await got<T>(url.href, requestOptions)
 
     if (!isObject(res.body)) {
