@@ -18,14 +18,18 @@ import { V1Container } from "@kubernetes/client-node"
 import { KubernetesPluginContext } from "./config"
 import { LogEntry } from "../../logger/log-entry"
 import { getAppNamespace } from "./namespace"
-import { getPortForward, getTargetResource, PortForward } from "./port-forward"
+import { getTargetResource } from "./port-forward"
 import chalk from "chalk"
 import { existsSync, rmSync } from "fs"
-import { ChildProcess, exec, ExecException, execSync } from "child_process"
+import { execSync } from "child_process"
 import { join, resolve } from "path"
 import { ensureDir, readFileSync } from "fs-extra"
 import { arch, cpus } from "os"
+import { PluginContext } from "../../plugin-context"
+import { kubectl } from "./kubectl"
+import { OsCommand, RetriableProcess } from "../../util/process"
 import pRetry = require("p-retry")
+import getPort = require("get-port")
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -322,70 +326,49 @@ export async function configureLocalMode({ target, service, log }: ConfigureLoca
   // todo: check if anything else should be configured here
 }
 
-/**
- * Creates SSH tunnel between the local machine and the target container in the k8s cluster.
- * @param ctx the k8s plugin context
- * @param log the logger
- * @param service the target k8s service container
- */
-async function openSshTunnel({
-  ctx,
-  log,
-  service,
-}: {
-  ctx: KubernetesPluginContext
-  log: LogEntry
-  service: ContainerService
-}): Promise<PortForward> {
-  const namespace = await getAppNamespace(ctx, log, ctx.provider)
+async function getSshPortForwardCommand(
+  ctx: PluginContext,
+  log: LogEntry,
+  service: ContainerService,
+  localPort: number
+): Promise<OsCommand> {
+  const k8sCtx = <KubernetesPluginContext>ctx
+
+  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
   const targetResource = getTargetResource(service)
-  const port = PROXY_CONTAINER_SSH_TUNNEL_PORT
 
-  return pRetry(async () => await getPortForward({ ctx, log, namespace, targetResource, port }), {
-    retries: 5,
-    minTimeout: 2000,
-    onFailedAttempt: async (err) => {
-      log.warn({
-        status: "active",
-        section: service.name,
-        msg: `Failed to start ssh tunnel between the local machine and the remote k8s cluster. ${err.retriesLeft} attempts left.`,
-      })
-    },
-  })
-}
+  const portMapping = `${localPort}:${PROXY_CONTAINER_SSH_TUNNEL_PORT}`
 
-function startChildProcess(
-  command: string,
-  callback?: (error: ExecException | null, stdout: string, stderr: string) => void
-): ChildProcess {
-  // The command { exec } from "../../util/util" does not work here.
-  // Despite the key files have the right access permissions, it fails with the following error:
-  // > Warning: Identity file  ${privateKeyFilePath} not accessible: No such file or directory
-  const childProcess = exec(command, callback)
-  process.on("exit", () => {
-    childProcess.kill()
+  // TODO: use the API directly instead of kubectl (need to reverse-engineer kubectl quite a bit for that)
+  const { args: portForwardArgs } = kubectl(k8sCtx, k8sCtx.provider).prepareArgs({
+    namespace,
+    args: ["port-forward", targetResource, portMapping],
+    log,
   })
-  return childProcess
+
+  // Need to use execa directly to use its cleanup mechanism, otherwise processes can linger on Windows
+  const kubectlPath = await kubectl(k8sCtx, k8sCtx.provider).getPath(log)
+
+  return { command: kubectlPath, args: portForwardArgs }
 }
 
 /**
  * Starts reverse port forwarding from the remote service's containerPort to the local app port.
  * This reverse port forwarding works on top of the existing ssh tunnel.
  * @param service the remote proxy container which replaces the actual k8s service
- * @param portForward the ssh tunnel details
+ * @param localSshPort the local ssh tunnel port
  * @param log the logger
  */
-async function startReversePortForwarding(
+async function getReversePortForwardingCommand(
+  log: LogEntry,
   service: ContainerService,
-  portForward: PortForward,
-  log: LogEntry
-): Promise<void> {
+  localSshPort: number
+): Promise<OsCommand> {
   const localModeSpec = service.spec.localMode!
   const proxySshKeystore = new ProxySshKeystore(service.module.proxySshKeyDirPath, log)
   const privateSshKeyPath = await proxySshKeystore.getPrivateSshKeyPath(service)
 
   const localAppPort = localModeSpec.localAppPort
-  const localSshPort = portForward.localPort
   const remoteContainerPortSpec = findPortByName(service.spec, defaultReverseForwardingPortName)
   if (!remoteContainerPortSpec) {
     throw new ConfigurationError(
@@ -409,55 +392,46 @@ async function startReversePortForwarding(
     `-i ${privateSshKeyPath}`,
     "-oStrictHostKeyChecking=accept-new",
   ]
-  const reversePortForwardingCommand = `${sshCommandName} ${sshCommandArgs.join(" ")}`
+  return { command: sshCommandName, args: sshCommandArgs }
 
-  const reversePortForward = startChildProcess(
-    reversePortForwardingCommand,
-    function (error: ExecException | null, stdout: string, stderr: string): void {
-      if (stderr) {
-        if (stderr.includes('unsupported option "accept-new"')) {
-          log.error({
-            status: "warn",
-            section: service.name,
-            msg: chalk.yellow(
-              "It looks like you're using too old SSH version which doesn't support option -oStrictHostKeyChecking=accept-new. " +
-                "Consider upgrading to OpenSSH 7.6 or higher."
-            ),
-          })
-        }
-
-        log.error({
-          status: "error",
-          section: service.name,
-          msg: chalk.red(`Reverse port-forwarding failed with error: ${stderr}.`),
-        })
-      }
-      if (error) {
-        log.error({
-          status: "error",
-          section: service.name,
-          msg: chalk.red(`Exception details: ${JSON.stringify(error)}.`),
-        })
-      }
-      if (stdout) {
-        log.info({
-          status: "active",
-          section: service.name,
-          msg: `Reverse port-forwarding is running> ${stdout}`,
-        })
-      }
-    }
-  )
-
-  log.info({
-    status: "active",
-    section: service.name,
-    msg: chalk.gray(
-      `→ Started reverse port forwarding between the local machine and the remote k8s proxy ` +
-        `with PID ${reversePortForward.pid}: ` +
-        `${chalk.white(reversePortForward.spawnargs.join(" "))}`
-    ),
-  })
+  // const reversePortForward = startChildProcess(
+  //   reversePortForwardingCommand,
+  //   function (error: ExecException | null, stdout: string, stderr: string): void {
+  //     if (stderr) {
+  //       if (stderr.includes('unsupported option "accept-new"')) {
+  //         log.error({
+  //           status: "warn",
+  //           section: service.name,
+  //           msg: chalk.yellow(
+  //             "It looks like you're using too old SSH version " +
+  //             "which doesn't support option -oStrictHostKeyChecking=accept-new. " +
+  //               "Consider upgrading to OpenSSH 7.6 or higher."
+  //           ),
+  //         })
+  //       }
+  //
+  //       log.error({
+  //         status: "error",
+  //         section: service.name,
+  //         msg: chalk.red(`Reverse port-forwarding failed with error: ${stderr}.`),
+  //       })
+  //     }
+  //     if (error) {
+  //       log.error({
+  //         status: "error",
+  //         section: service.name,
+  //         msg: chalk.red(`Exception details: ${JSON.stringify(error)}.`),
+  //       })
+  //     }
+  //     if (stdout) {
+  //       log.info({
+  //         status: "active",
+  //         section: service.name,
+  //         msg: `Reverse port-forwarding is running> ${stdout}`,
+  //       })
+  //     }
+  //   }
+  // )
 }
 
 /**
@@ -480,15 +454,40 @@ export async function startLocalModePortForwarding({
   if (!service.spec.localMode) {
     return
   }
+  const localSshPort = await getPort()
 
-  const portForward = await openSshTunnel({ ctx, log, service })
-  const localSshUrl = chalk.underline(`ssh://localhost:${portForward.localPort}`)
-  const remoteSshUrl = chalk.underline(`ssh://${service.name}:${portForward.port}`)
+  const sshTunnelCommand = await getSshPortForwardCommand(ctx, log, service, localSshPort)
+  const reversePortForwardingCommand = await getReversePortForwardingCommand(log, service, localSshPort)
+
+  const sshTunnel = new RetriableProcess(sshTunnelCommand, 5, 2000, log)
+  const reversePortForward = new RetriableProcess(reversePortForwardingCommand, 5, 2000, log)
+  sshTunnel.addDescendantProcess(reversePortForward)
+  sshTunnel.start()
+  // todo: check if we need this
+  // process.on("exit", () => {
+  //   sshTunnel.proc.kill()
+  // })
+
+  const sshTunnelCommandString = `${sshTunnelCommand.command} ${sshTunnelCommand.args?.join(" ")}`
   log.info({
     status: "active",
     section: service.name,
-    msg: chalk.gray(`→ Forward: ${localSshUrl} → ${remoteSshUrl} with PID ${portForward.proc.pid}`),
+    msg: chalk.gray(
+      `→ Started ssh tunnel between the local machine and the remote k8s proxy with PID ${sshTunnel.getPid()}: ` +
+        `${chalk.white(sshTunnelCommandString)}`
+    ),
   })
 
-  await startReversePortForwarding(service, portForward, log)
+  const reversePortForwardingCommandString = `${
+    reversePortForwardingCommand.command
+  } ${reversePortForwardingCommand.args?.join(" ")}`
+  log.info({
+    status: "active",
+    section: service.name,
+    msg: chalk.gray(
+      `→ Started reverse port forwarding between the local machine and the remote k8s proxy ` +
+        `with PID ${reversePortForward.getPid()}: ` +
+        `${chalk.white(reversePortForwardingCommandString)}`
+    ),
+  })
 }
