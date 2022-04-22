@@ -95,7 +95,7 @@ import { getRuntimeTemplateReferences, resolveTemplateStrings } from "./template
 import { getPluginBases, getPluginDependencies, getModuleTypeBases } from "./plugins"
 import { ConfigureProviderParams, ConfigureProviderResult } from "./types/plugin/provider/configureProvider"
 import { GardenTask } from "./types/task"
-import { ConfigureModuleParams, ConfigureModuleResult } from "./types/plugin/module/configure"
+import { ConfigureModuleParams, ConfigureModuleResult } from "./plugin/handlers/module/configure"
 import { PluginContext, PluginEventBroker } from "./plugin-context"
 import { DeleteServiceTask, deletedServiceStatuses } from "./tasks/delete-service"
 import { realpath, writeFile } from "fs-extra"
