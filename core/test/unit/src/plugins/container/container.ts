@@ -207,6 +207,13 @@ describe("plugins.container", () => {
     expect(baseModule.version.versionString).to.not.equal(changedBuild.version.versionString)
   })
 
+  describe("convert", () => {
+    // TODO-G2: adapt from exec convert tests
+    it("TODO", () => {
+      throw "TODO"
+    })
+  })
+
   describe("configureContainerModule", () => {
     const containerModuleConfig: ContainerModuleConfig = {
       allowPublish: false,

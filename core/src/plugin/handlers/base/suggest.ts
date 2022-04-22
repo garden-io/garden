@@ -11,21 +11,22 @@ import { joi, joiArray } from "../../../config/common"
 import { LogEntry } from "../../../logger/log-entry"
 import { ActionHandlerParamsBase } from "../../../plugin/plugin"
 import { BaseActionConfig, baseActionConfig } from "../../../actions/base"
+import { ActionTypeHandlerSpec } from "./base"
 
 export const maxDescriptionLength = 48
 
-export interface SuggestActionsParams extends ActionHandlerParamsBase {
+interface SuggestActionsParams extends ActionHandlerParamsBase {
   log: LogEntry
   name: string
   path: string
 }
 
-export interface ActionSuggestion {
+interface ActionSuggestion {
   description: string
   action: BaseActionConfig
 }
 
-export interface SuggestActionsResult {
+interface SuggestActionsResult {
   suggestions: ActionSuggestion[]
 }
 
@@ -45,18 +46,23 @@ const suggestionSchema = () =>
       ),
   })
 
-export const suggestActions = () => ({
-  description: dedent`
+export class SuggestActions extends ActionTypeHandlerSpec<any, SuggestActionsParams, SuggestActionsResult> {
+  description = dedent`
     Given a directory path, return a list of suggested actions (if applicable).
 
     This is used by the \`garden create action\` command, to ease transition of existing projects to Garden, and to automate some of the parameters when defining actions.
-  `,
+  `
 
-  paramsSchema: joi.object().keys({
-    path: joi.string().required().description("The absolute path to the directory where the action is being created."),
-  }),
+  paramsSchema = () =>
+    joi.object().keys({
+      path: joi
+        .string()
+        .required()
+        .description("The absolute path to the directory where the action is being created."),
+    })
 
-  resultSchema: joi.object().keys({
-    suggestions: joiArray(suggestionSchema()).description("A list of actions to suggest for the given path."),
-  }),
-})
+  resultSchema = () =>
+    joi.object().keys({
+      suggestions: joiArray(suggestionSchema()).description("A list of actions to suggest for the given path."),
+    })
+}

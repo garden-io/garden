@@ -10,9 +10,9 @@ import { dedent } from "../../../util/string"
 import { actionParamsSchema, PluginBuildActionParamsBase } from "../../../plugin/base"
 import { joi } from "../../../config/common"
 import { BuildActionConfig } from "../../../actions/build"
+import { ActionTypeHandlerSpec } from "../base/base"
 
-export interface PublishActionParams<T extends BuildActionConfig = BuildActionConfig>
-  extends PluginBuildActionParamsBase<T> {
+interface PublishActionParams<T extends BuildActionConfig = BuildActionConfig> extends PluginBuildActionParamsBase<T> {
   tag?: string
 }
 
@@ -29,14 +29,21 @@ export const publishResultSchema = () =>
     identifier: joi.string().description("The published artifact identifier, if applicable."),
   })
 
-export const publishBuild = () => ({
-  description: dedent`
+export class PublishBuildAction<T extends BuildActionConfig = BuildActionConfig> extends ActionTypeHandlerSpec<
+  "build",
+  PublishActionParams<T>,
+  PublishActionResult
+> {
+  description = dedent`
     Publish a built artifact (e.g. a container image) to a remote registry.
 
     Called by the \`garden publish\` command.
-  `,
-  paramsSchema: actionParamsSchema().keys({
-    tag: joi.string().description("A specific tag to apply when publishing the artifact, instead of the default."),
-  }),
-  resultSchema: publishResultSchema(),
-})
+  `
+
+  paramsSchema = () =>
+    actionParamsSchema().keys({
+      tag: joi.string().description("A specific tag to apply when publishing the artifact, instead of the default."),
+    })
+
+  resultSchema = () => publishResultSchema()
+}

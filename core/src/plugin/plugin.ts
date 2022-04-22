@@ -73,6 +73,7 @@ import {
 } from "../types/plugin/module/getModuleOutputs"
 import { getTestResult, GetTestResultParams } from "../types/plugin/module/getTestResult"
 import { convertModule, ConvertModuleParams, ConvertModuleResult } from "./handlers/module/convert"
+import { baseHandlerSchema } from "./handlers/base/base"
 
 export interface ActionHandlerParamsBase {
   base?: ActionHandler<any, any>
@@ -173,16 +174,6 @@ export interface PluginActionOutputs {
   getDashboardPage: GetDashboardPageResult
   getDebugInfo: DebugInfo
 }
-
-// No way currently to further validate the shape of the super function
-const baseHandlerSchema = () =>
-  joi
-    .func()
-    .arity(1)
-    .description(
-      "When a handler is overriding a handler from a base plugin, this is provided to call the base handler. " +
-        "This accepts the same parameters as the handler calling it."
-    )
 
 export interface PluginActionDescriptions {
   [actionName: string]: PluginActionDescription
@@ -344,7 +335,7 @@ export interface ModuleActionOutputs extends ServiceActionOutputs {
   getModuleOutputs: GetModuleOutputsResult
 }
 
-// It takes a short while to resolve all these scemas, so we cache the result
+// It takes a short while to resolve all these schemas, so we cache the result
 let _moduleActionDescriptions: PluginActionDescriptions
 
 export function getModuleActionDescriptions(): PluginActionDescriptions {

@@ -12,7 +12,7 @@ import { keyBy, some } from "lodash"
 import { ConfigurationError } from "../../exceptions"
 import { createGardenPlugin } from "../../plugin/plugin"
 import { containerHelpers } from "./helpers"
-import { ContainerActionConfig, ContainerModule, containerModuleSpecSchema } from "./moduleConfig"
+import { ContainerActionConfig, ContainerBuildActionConfig, ContainerModule, containerModuleSpecSchema } from "./moduleConfig"
 import { buildContainerModule, getContainerBuildStatus } from "./build"
 import { ConfigureModuleParams } from "../../types/plugin/module/configure"
 import { joi } from "../../config/common"
@@ -23,6 +23,7 @@ import { dedent } from "../../util/string"
 import { Provider, GenericProviderConfig, providerConfigBaseSchema } from "../../config/provider"
 import { GetModuleOutputsParams } from "../../types/plugin/module/getModuleOutputs"
 import { ConvertModuleParams } from "../../plugin/handlers/module/convert"
+import { ExecActionConfig } from "../exec/config"
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
 export type ContainerProvider = Provider<ContainerProviderConfig>
@@ -245,77 +246,128 @@ export const gardenPlugin = () =>
         taskOutputsSchema,
         handlers: {
           async convert({
-            moduleConfig,
+            module,
             convertBuildDependency,
             convertRuntimeDependency,
           }: ConvertModuleParams<ContainerModule>) {
-            const actions: ContainerActionConfig[] = []
+            const actions: (ContainerActionConfig | ExecActionConfig)[] = []
 
-            let needsBuild = false
+            let needsExecBuild = false
+            let needsContainerBuild = false
 
-            if (some(moduleConfig.build.dependencies.map((d) => d.copy.length > 0))) {
-              needsBuild = true
+            if (some(module.build.dependencies.map((d) => d.copy.length > 0))) {
+              needsExecBuild = true
             }
 
-            if (moduleConfig.spec.build?.command || moduleConfig.generateFiles) {
-              needsBuild = true
+            if (module.generateFiles) {
+              needsExecBuild = true
             }
 
-            let buildAction: ExecBuildConfig | undefined = undefined
+            const hasDockerfile = containerHelpers.hasDockerfile(module, module.version)
 
-            if (needsBuild) {
+            if (hasDockerfile) {
+              needsContainerBuild = true
+            }
+
+            let buildAction: ContainerActionConfig | ExecActionConfig | undefined = undefined
+
+            if (needsContainerBuild) {
+              buildAction = {
+                kind: "Build",
+                type: "docker-image",
+                name: module.name,
+                configDirPath: module.path,
+                configFilePath: module.configPath,
+
+                allowPublish: module.allowPublish,
+                dependencies: module.build.dependencies.map(convertBuildDependency),
+                spec: {
+                  buildArgs: module.spec.buildArgs,
+                  dockerfile: module.spec.dockerfile || "Dockerfile",
+                  extraFlags: module.spec.extraFlags,
+                  publishId: module.spec.image,
+                  targetStage: module.spec.build.targetImage,
+                  timeout: module.spec.build.timeout,
+                },
+              }
+              actions.push(buildAction)
+            } else if (needsExecBuild) {
               buildAction = {
                 kind: "Build",
                 type: "exec",
-                name: moduleConfig.name,
-                allowPublish: moduleConfig.allowPublish,
-                buildAtSource: moduleConfig.spec.local,
-                dependencies: moduleConfig.build.dependencies.map(convertBuildDependency),
+                name: module.name,
+                configDirPath: module.path,
+                configFilePath: module.configPath,
+
+                allowPublish: module.allowPublish,
+                dependencies: module.build.dependencies.map(convertBuildDependency),
                 spec: {
-                  command: moduleConfig.spec.build?.command,
-                  env: moduleConfig.spec.env,
+                  env: {},
                 },
               }
               actions.push(buildAction)
             }
 
-            for (const service of moduleConfig.serviceConfigs) {
+            function prepRuntimeDeps(deps: string[]) {
+              if (buildAction) {
+                return deps.map(convertRuntimeDependency)
+              } else {
+                // If we don't return a Build action, we must still include any declared build dependencies
+                return [...module.build.dependencies.map(convertBuildDependency), ...deps.map(convertRuntimeDependency)]
+              }
+            }
+
+            for (const service of module.serviceConfigs) {
               actions.push({
                 kind: "Deploy",
-                type: "exec",
+                type: "container",
                 name: service.name,
+                configDirPath: module.path,
+                configFilePath: module.configPath,
+
                 build: buildAction ? buildAction.name : undefined,
-                dependencies: service.spec.dependencies.map(convertRuntimeDependency),
+                dependencies: prepRuntimeDeps(service.spec.dependencies),
+
                 spec: {
                   ...service.spec,
                 },
               })
             }
 
-            for (const task of moduleConfig.taskConfigs) {
+            for (const task of module.taskConfigs) {
               actions.push({
                 kind: "Run",
-                type: "exec",
+                type: "container",
                 name: task.name,
+                configDirPath: module.path,
+                configFilePath: module.configPath,
+
                 build: buildAction ? buildAction.name : undefined,
-                dependencies: task.spec.dependencies.map(convertRuntimeDependency),
+                dependencies: prepRuntimeDeps(task.spec.dependencies),
                 timeout: task.spec.timeout ? task.spec.timeout : undefined,
+
                 spec: {
                   ...task.spec,
+                  image: buildAction ? undefined : module.spec.image,
                 },
               })
             }
 
-            for (const test of moduleConfig.testConfigs) {
+            for (const test of module.testConfigs) {
               actions.push({
                 kind: "Test",
-                type: "exec",
-                name: moduleConfig.name + "-" + test.name,
+                type: "container",
+                name: module.name + "-" + test.name,
+                configDirPath: module.path,
+                configFilePath: module.configPath,
+
                 build: buildAction ? buildAction.name : undefined,
-                dependencies: test.spec.dependencies.map(convertRuntimeDependency),
+                dependencies: prepRuntimeDeps(test.spec.dependencies),
                 timeout: test.spec.timeout ? test.spec.timeout : undefined,
+
                 spec: {
                   ...test.spec,
+                  image: buildAction ? undefined : module.spec.image,
                 },
               })
             }
@@ -323,7 +375,7 @@ export const gardenPlugin = () =>
             return {
               group: {
                 kind: "Group",
-                name: moduleConfig.name,
+                name: module.name,
                 actions,
               },
             }

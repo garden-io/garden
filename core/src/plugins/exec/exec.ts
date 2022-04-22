@@ -599,20 +599,16 @@ export const execPlugin = () =>
             ),
         }),
         handlers: {
-          async convert({
-            moduleConfig,
-            convertBuildDependency,
-            convertRuntimeDependency,
-          }: ConvertModuleParams<ExecModule>) {
+          async convert({ module, convertBuildDependency, convertRuntimeDependency }: ConvertModuleParams<ExecModule>) {
             const actions: ExecActionConfig[] = []
 
             let needsBuild = false
 
-            if (some(moduleConfig.build.dependencies.map((d) => d.copy.length > 0))) {
+            if (some(module.build.dependencies.map((d) => d.copy.length > 0))) {
               needsBuild = true
             }
 
-            if (moduleConfig.spec.build?.command || moduleConfig.generateFiles || moduleConfig.repositoryUrl) {
+            if (module.spec.build?.command || module.generateFiles || module.repositoryUrl) {
               needsBuild = true
             }
 
@@ -622,47 +618,56 @@ export const execPlugin = () =>
               buildAction = {
                 kind: "Build",
                 type: "exec",
-                name: moduleConfig.name,
-                configDirPath: moduleConfig.path,
-                configFilePath: moduleConfig.configPath,
+                name: module.name,
+                configDirPath: module.path,
+                configFilePath: module.configPath,
 
-                allowPublish: moduleConfig.allowPublish,
-                buildAtSource: moduleConfig.spec.local,
-                dependencies: moduleConfig.build.dependencies.map(convertBuildDependency),
+                allowPublish: module.allowPublish,
+                buildAtSource: module.spec.local,
+                dependencies: module.build.dependencies.map(convertBuildDependency),
                 spec: {
-                  command: moduleConfig.spec.build?.command,
-                  env: moduleConfig.spec.env,
+                  command: module.spec.build?.command,
+                  env: module.spec.env,
                 },
               }
               actions.push(buildAction)
             }
 
-            for (const service of moduleConfig.serviceConfigs) {
+            function prepRuntimeDeps(deps: string[]) {
+              if (buildAction) {
+                return deps.map(convertRuntimeDependency)
+              } else {
+                // If we don't return a Build action, we must still include any declared build dependencies
+                return [...module.build.dependencies.map(convertBuildDependency), ...deps.map(convertRuntimeDependency)]
+              }
+            }
+
+            for (const service of module.serviceConfigs) {
               actions.push({
                 kind: "Deploy",
                 type: "exec",
                 name: service.name,
-                configDirPath: moduleConfig.path,
-                configFilePath: moduleConfig.configPath,
+                configDirPath: module.path,
+                configFilePath: module.configPath,
 
                 build: buildAction ? buildAction.name : undefined,
-                dependencies: service.spec.dependencies.map(convertRuntimeDependency),
+                dependencies: prepRuntimeDeps(service.spec.dependencies),
                 spec: {
                   ...service.spec,
                 },
               })
             }
 
-            for (const task of moduleConfig.taskConfigs) {
+            for (const task of module.taskConfigs) {
               actions.push({
                 kind: "Run",
                 type: "exec",
                 name: task.name,
-                configDirPath: moduleConfig.path,
-                configFilePath: moduleConfig.configPath,
+                configDirPath: module.path,
+                configFilePath: module.configPath,
 
                 build: buildAction ? buildAction.name : undefined,
-                dependencies: task.spec.dependencies.map(convertRuntimeDependency),
+                dependencies: prepRuntimeDeps(task.spec.dependencies),
                 timeout: task.spec.timeout ? task.spec.timeout : undefined,
                 spec: {
                   ...task.spec,
@@ -670,16 +675,16 @@ export const execPlugin = () =>
               })
             }
 
-            for (const test of moduleConfig.testConfigs) {
+            for (const test of module.testConfigs) {
               actions.push({
                 kind: "Test",
                 type: "exec",
-                name: moduleConfig.name + "-" + test.name,
-                configDirPath: moduleConfig.path,
-                configFilePath: moduleConfig.configPath,
+                name: module.name + "-" + test.name,
+                configDirPath: module.path,
+                configFilePath: module.configPath,
 
                 build: buildAction ? buildAction.name : undefined,
-                dependencies: test.spec.dependencies.map(convertRuntimeDependency),
+                dependencies: prepRuntimeDeps(test.spec.dependencies),
                 timeout: test.spec.timeout ? test.spec.timeout : undefined,
                 spec: {
                   ...test.spec,
@@ -690,7 +695,7 @@ export const execPlugin = () =>
             return {
               group: {
                 kind: "Group",
-                name: moduleConfig.name,
+                name: module.name,
                 actions,
               },
             }

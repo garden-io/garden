@@ -6,17 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginRunActionParamsBase, actionParamsSchema } from "../../../plugin/base"
+import { PluginRunActionParamsBase, actionParamsSchema, RunResult } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
 import { taskResultSchema } from "../../../types/task"
 import { RunActionConfig } from "../../../actions/run"
+import { ActionTypeHandlerSpec } from "../base/base"
 
-export interface GetRunResultParams<T extends RunActionConfig = RunActionConfig> extends PluginRunActionParamsBase<T> {}
+interface GetRunResultParams<T extends RunActionConfig> extends PluginRunActionParamsBase<T> {}
 
-export const getRunResult = () => ({
-  description: dedent`
+export class GetRunActionResult<T extends RunActionConfig = RunActionConfig> extends ActionTypeHandlerSpec<
+  "run",
+  GetRunResultParams<T>,
+  RunResult
+> {
+  description = dedent`
     Retrieve the Run result for the specified version.
-  `,
-  paramsSchema: actionParamsSchema(),
-  resultSchema: taskResultSchema().allow(null),
-})
+  `
+
+  paramsSchema = () => actionParamsSchema()
+  resultSchema = () => taskResultSchema().allow(null)
+}

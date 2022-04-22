@@ -18,25 +18,32 @@ import { RuntimeContext } from "../../../runtime-context"
 import { taskResultSchema } from "../../../types/task"
 import { PrimitiveMap } from "../../../config/common"
 import { RunActionConfig } from "../../../actions/run"
+import { ActionTypeHandlerSpec } from "../base/base"
 
-export interface RunActionParams<T extends RunActionConfig = RunActionConfig> extends PluginRunActionParamsBase<T> {
+interface RunActionParams<T extends RunActionConfig> extends PluginRunActionParamsBase<T> {
   artifactsPath: string
   interactive: boolean
   runtimeContext: RuntimeContext
   timeout?: number
 }
 
-export interface RunActionResult extends RunResult {
+interface RunActionResult extends RunResult {
   taskName: string
   outputs: PrimitiveMap
 }
 
-export const runAction = () => ({
-  description: dedent`
+export class RunAction<T extends RunActionConfig = RunActionConfig> extends ActionTypeHandlerSpec<
+  "run",
+  RunActionParams<T>,
+  RunActionResult
+> {
+  description = dedent`
     Performs a Run. This should wait until execution completes, and return its output.
-  `,
-  paramsSchema: actionParamsSchema().keys(runBaseParams()).keys({
-    artifactsPath: artifactsPathSchema(),
-  }),
-  resultSchema: taskResultSchema(),
-})
+  `
+
+  paramsSchema = () =>
+    actionParamsSchema().keys(runBaseParams()).keys({
+      artifactsPath: artifactsPathSchema(),
+    })
+  resultSchema = () => taskResultSchema()
+}

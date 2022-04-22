@@ -11,14 +11,18 @@ import { dedent } from "../../../util/string"
 import { ForwardablePort, forwardablePortKeys } from "../../../types/service"
 import { joi } from "../../../config/common"
 import { DeployActionConfig } from "../../../actions/deploy"
+import { ActionTypeHandlerSpec } from "../base/base"
 
-export type StopPortForwardParams<T extends DeployActionConfig = DeployActionConfig> = PluginDeployActionParamsBase<T> &
-  ForwardablePort
+type StopPortForwardParams<T extends DeployActionConfig> = PluginDeployActionParamsBase<T> & ForwardablePort
 
-export const stopPortForward = () => ({
-  description: dedent`
+export class StopDeployPortForward<T extends DeployActionConfig = DeployActionConfig> extends ActionTypeHandlerSpec<
+  "deploy",
+  StopPortForwardParams<T>,
+  {}
+> {
+  description = dedent`
     Close a port forward created by \`getPortForward\`.
-  `,
-  paramsSchema: actionParamsSchema().keys(forwardablePortKeys()),
-  resultSchema: joi.object().keys({}),
-})
+  `
+  paramsSchema = () => actionParamsSchema().keys(forwardablePortKeys())
+  resultSchema = () => joi.object().keys({})
+}

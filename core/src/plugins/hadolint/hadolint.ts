@@ -57,11 +57,11 @@ const configSchema = providerConfigBaseSchema()
   })
   .unknown(false)
 
-interface HadolintModuleSpec {
+interface HadolinTestSpec {
   dockerfilePath: string
 }
 
-type HadolintModule = GardenModule<HadolintModuleSpec>
+type HadolintModule = GardenModule<HadolinTestSpec>
 
 const gitHubUrl = getGitHubUrl("examples/hadolint")
 
@@ -156,6 +156,27 @@ export const gardenPlugin = () =>
             moduleConfig.testConfigs = [{ name: "lint", dependencies: [], spec: {}, timeout: 10, disabled: false }]
             return { moduleConfig }
           },
+
+          convert: async ({ module }) => {
+            return {
+              actions: [
+                {
+                  kind: "Test",
+                  type: "hadolint",
+                  name: module.name,
+
+                  configDirPath: module.path,
+                  configFilePath: module.configPath,
+
+                  timeout: 10,
+                  spec: {
+                    ...module.spec,
+                  },
+                },
+              ],
+            }
+          },
+
           testModule: async ({ ctx, log, module, test }: TestModuleParams<HadolintModule>) => {
             const dockerfilePath = join(module.path, module.spec.dockerfilePath)
             const startedAt = new Date()

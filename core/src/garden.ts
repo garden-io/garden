@@ -759,6 +759,8 @@ export class Garden {
     const resolvedModules = await resolver.resolveAll()
 
     // TODO-G2: convert modules to actions here
+    // -> Do the conversion
+    // -> Collect module outputs for templating from actions (attach to ConfigGraph?)
 
     // Require include/exclude on modules if their paths overlap
     // TODO-G2: change this to detect overlap on Build actions

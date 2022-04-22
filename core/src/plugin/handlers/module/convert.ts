@@ -9,26 +9,29 @@
 import { dedent } from "../../../util/string"
 import { PluginContext, pluginContextSchema } from "../../../plugin-context"
 import { logEntrySchema, PluginActionContextParams } from "../../base"
-import { baseModuleSpecSchema, BuildDependencyConfig, ModuleConfig } from "../../../config/module"
+import { BuildDependencyConfig } from "../../../config/module"
 import { joi } from "../../../config/common"
 import { LogEntry } from "../../../logger/log-entry"
 import { GroupConfig, groupConfig } from "../../../config/group"
+import { GardenModule, moduleSchema } from "../../../types/module"
+import { baseActionConfig, BaseActionConfig } from "../../../actions/base"
 
-export interface ConvertModuleParams<T extends ModuleConfig = ModuleConfig> extends PluginActionContextParams {
+export interface ConvertModuleParams<T extends GardenModule = GardenModule> extends PluginActionContextParams {
   ctx: PluginContext
   log: LogEntry
-  moduleConfig: T
+  module: T
   convertBuildDependency: (d: string | BuildDependencyConfig) => string
   convertRuntimeDependency: (d: string) => string
 }
 
 export interface ConvertModuleResult {
-  group: GroupConfig
+  group?: GroupConfig
+  actions?: BaseActionConfig[]
 }
 
 export const convertModule = () => ({
   description: dedent`
-    Validate and convert the given module configuration to a Group containing its atomic _action_ components (i.e. Build, Deploy, Run and Test). This is to allow backwards-compatibility from the Module configuration format to the newer action-oriented configuration style.
+    Validate and convert the given module configuration to a Group containing its atomic _action_ components (i.e. Build, Deploy, Run and Test), and/or individual actions. This is to allow backwards-compatibility from the Module configuration format to the newer action-oriented configuration style.
 
     The module config will be fully validated and resolved when passed to this handler.
 
@@ -42,12 +45,13 @@ export const convertModule = () => ({
   paramsSchema: joi.object().keys({
     ctx: pluginContextSchema().required(),
     log: logEntrySchema(),
-    moduleConfig: baseModuleSpecSchema().required(),
+    module: moduleSchema().required(),
     convertBuildDependency: joi.function(),
     convertRuntimeDependency: joi.function(),
   }),
 
   resultSchema: joi.object().keys({
-    group: groupConfig().required(),
+    group: groupConfig(),
+    actions: joi.array().items(baseActionConfig()),
   }),
 })
