@@ -45,7 +45,7 @@ export interface ContainerService extends GardenService<ContainerModule> {}
 export type ContainerTestSpec = BaseTestSpec & ContainerTestActionSpec
 export const containerTestSchema = () => baseTestSpecSchema().keys(containerTestSpecKeys())
 
-export type ContainerRunSpec = BaseTaskSpec & ContainerRunActionSpec
+export type ContainerTaskSpec = BaseTaskSpec & ContainerRunActionSpec
 export const containerRunSchema = () =>
   baseTaskSpecSchema().keys(containerRunSpecKeys()).description("A task that can be run in the container.")
 
@@ -65,7 +65,7 @@ export interface ContainerModuleSpec extends ModuleSpec {
   hotReload?: ContainerHotReloadSpec
   services: ContainerServiceSpec[]
   tests: ContainerTestSpec[]
-  tasks: ContainerRunSpec[]
+  tasks: ContainerTaskSpec[]
 }
 
 export interface ContainerModuleConfig extends ModuleConfig<ContainerModuleSpec> {}
@@ -132,6 +132,6 @@ export interface ContainerModule<
   M extends ContainerModuleSpec = ContainerModuleSpec,
   S extends ContainerServiceSpec = ContainerServiceSpec,
   T extends ContainerTestSpec = ContainerTestSpec,
-  W extends ContainerRunSpec = ContainerRunSpec,
+  W extends ContainerTaskSpec = ContainerTaskSpec,
   O extends ContainerModuleOutputs = ContainerModuleOutputs
 > extends GardenModule<M, S, T, W, O> {}
