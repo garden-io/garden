@@ -9,16 +9,21 @@
 import { dedent } from "../../../util/string"
 import { PluginTestActionParamsBase, actionParamsSchema } from "../../../plugin/base"
 import { TestActionConfig } from "../../../actions/test"
-import { testResultSchema } from "../../../types/test"
+import { TestResult, testResultSchema } from "../../../types/test"
+import { ActionTypeHandlerSpec } from "../base/base"
 
-export interface GetTestResultParams<T extends TestActionConfig = TestActionConfig> extends PluginTestActionParamsBase<T> {}
+interface GetTestResultParams<T extends TestActionConfig> extends PluginTestActionParamsBase<T> {}
 
-export const getTestResult = () => ({
-  description: dedent`
+export class GetTestActionResult<T extends TestActionConfig = TestActionConfig> extends ActionTypeHandlerSpec<
+  "test",
+  GetTestResultParams<T>,
+  TestResult
+> {
+  description = dedent`
     Retrieve the test result for the specified version. Use this along with the \`testAction\` handler to avoid testing the same code repeatedly.
-  `,
+  `
 
-  paramsSchema: actionParamsSchema(),
+  paramsSchema = () => actionParamsSchema()
 
-  resultSchema: testResultSchema().allow(null),
-})
+  resultSchema = () => testResultSchema().allow(null)
+}

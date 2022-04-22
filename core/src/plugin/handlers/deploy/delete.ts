@@ -9,17 +9,22 @@
 import { DeployActionConfig } from "../../../actions/deploy"
 import { actionParamsSchema, PluginDeployActionParamsBase } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
-import { serviceStatusSchema } from "../../../types/service"
+import { ServiceStatus, serviceStatusSchema } from "../../../types/service"
+import { ActionTypeHandlerSpec } from "../base/base"
 
-export interface DeleteDeployParams<T extends DeployActionConfig = DeployActionConfig>
-  extends PluginDeployActionParamsBase<T> {}
+interface DeleteDeployParams<T extends DeployActionConfig> extends PluginDeployActionParamsBase<T> {}
 
-export const deleteDeploy = () => ({
-  description: dedent`
+export class DeleteDeploy<T extends DeployActionConfig = DeployActionConfig> extends ActionTypeHandlerSpec<
+  "deploy",
+  DeleteDeployParams<T>,
+  ServiceStatus
+> {
+  description = dedent`
     Terminate a deployed service. This should wait until the service is no longer running.
 
     Called by the \`garden delete service\` command.
-  `,
-  paramsSchema: actionParamsSchema(),
-  resultSchema: serviceStatusSchema(),
-})
+  `
+
+  paramsSchema = () => actionParamsSchema()
+  resultSchema = () => serviceStatusSchema()
+}

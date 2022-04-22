@@ -10,8 +10,9 @@ import { dedent } from "../../../util/string"
 import { actionParamsSchema, PluginBuildActionParamsBase } from "../../../plugin/base"
 import { joi } from "../../../config/common"
 import { BuildActionConfig } from "../../../actions/build"
+import { ActionTypeHandlerSpec } from "../base/base"
 
-export interface GetBuildStatusParams<T extends BuildActionConfig = BuildActionConfig>
+interface GetBuildStatusParams<T extends BuildActionConfig = BuildActionConfig>
   extends PluginBuildActionParamsBase<T> {}
 
 export interface BuildStatus {
@@ -19,13 +20,20 @@ export interface BuildStatus {
   detail?: any
 }
 
-export const getBuildStatus = () => ({
-  description: dedent`
+export class GetBuildActionStatus<T extends BuildActionConfig = BuildActionConfig> extends ActionTypeHandlerSpec<
+  "build",
+  GetBuildStatusParams<T>,
+  BuildStatus
+> {
+  description = dedent`
     Check and return the build status of a Build action, i.e. whether the current version has been built.
-  `,
-  paramsSchema: actionParamsSchema(),
-  resultSchema: joi.object().keys({
-    ready: joi.boolean().required().description("Whether an up-to-date build is ready for the action."),
-    detail: joi.any().description("Optional provider-specific information about the build."),
-  }),
-})
+  `
+
+  paramsSchema = () => actionParamsSchema()
+
+  resultSchema = () =>
+    joi.object().keys({
+      ready: joi.boolean().required().description("Whether an up-to-date build is ready for the action."),
+      detail: joi.any().description("Optional provider-specific information about the build."),
+    })
+}

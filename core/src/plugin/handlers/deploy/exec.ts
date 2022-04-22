@@ -10,39 +10,44 @@ import { actionParamsSchema, PluginDeployActionParamsBase } from "../../../plugi
 import { dedent } from "../../../util/string"
 import { joiArray, joi } from "../../../config/common"
 import { DeployActionConfig } from "../../../actions/deploy"
+import { ActionTypeHandlerSpec } from "../base/base"
 
-export interface ExecInDeployParams<T extends DeployActionConfig = DeployActionConfig>
-  extends PluginDeployActionParamsBase<T> {
+interface ExecInDeployParams<T extends DeployActionConfig> extends PluginDeployActionParamsBase<T> {
   command: string[]
   interactive: boolean
 }
 
-export interface ExecInDeployResult {
+interface ExecInDeployResult {
   code: number
   output: string
   stdout?: string
   stderr?: string
 }
 
-export const execInDeployResultSchema = () =>
+const execInDeployResultSchema = () =>
   joi.object().keys({
-    code: joi.number().required().description("The exit code of the command executed in the service container."),
+    code: joi.number().required().description("The exit code of the command executed."),
     output: joi.string().allow("").required().description("The output of the executed command."),
     stdout: joi.string().allow("").description("The stdout output of the executed command (if available)."),
     stderr: joi.string().allow("").description("The stderr output of the executed command (if available)."),
   })
 
-export const execInService = () => ({
-  description: dedent`
-    Execute the specified command next to a running service, e.g. in a service container.
+export class ExecInDeploy<T extends DeployActionConfig = DeployActionConfig> extends ActionTypeHandlerSpec<
+  "deploy",
+  ExecInDeployParams<T>,
+  ExecInDeployResult
+> {
+  description = dedent`
+    Execute the specified command in the context of a running Deploy, e.g. in a running container.
 
     Called by the \`garden exec\` command.
-  `,
+  `
 
-  paramsSchema: actionParamsSchema().keys({
-    command: joiArray(joi.string()).description("The command to run alongside the service."),
-    interactive: joi.boolean(),
-  }),
+  paramsSchema = () =>
+    actionParamsSchema().keys({
+      command: joiArray(joi.string()).description("The command to run."),
+      interactive: joi.boolean(),
+    })
 
-  resultSchema: execInDeployResultSchema(),
-})
+  resultSchema = () => execInDeployResultSchema()
+}

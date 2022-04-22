@@ -2291,6 +2291,14 @@ const testPlugin = createGardenPlugin({
           }
         },
 
+        convert: async (params) => {
+          validateParams(params, moduleActionDescriptions.convert.paramsSchema)
+
+          // TODO-G2
+
+          return {}
+        },
+
         getModuleOutputs: async (params) => {
           validateParams(params, moduleActionDescriptions.getModuleOutputs.paramsSchema)
           return { outputs: { foo: "bar" } }

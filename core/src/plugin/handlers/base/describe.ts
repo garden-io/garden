@@ -10,6 +10,7 @@ import Joi = require("@hapi/joi")
 import { dedent } from "../../../util/string"
 import { joi } from "../../../config/common"
 import { templateStringLiteral } from "../../../docs/common"
+import { ActionTypeHandlerSpec } from "./base"
 
 export interface DescribeActionParams {}
 
@@ -21,8 +22,8 @@ export interface ActionDescription {
   title?: string
 }
 
-export const describeAction = () => ({
-  description: dedent`
+export class DescribeActionType extends ActionTypeHandlerSpec<any, {}, ActionDescription> {
+  description = dedent`
     Return documentation and a schema description of the action type.
 
     The documentation should be in markdown format. A reference for the action type is automatically generated based on the provided schema, and a section appended to the provided documentation.
@@ -32,27 +33,28 @@ export const describeAction = () => ({
     Used when auto-generating framework documentation.
 
     This action is called on every resolution of the project graph, so it should return quickly and avoid doing any network calls or computation.
-  `,
+  `
 
-  paramsSchema: joi.object().keys({}),
+  paramsSchema = () => joi.object().keys({})
 
-  resultSchema: joi.object().keys({
-    docs: joi.string().required().description("Documentation for the action type, in markdown format."),
-    // TODO: specify the schemas using primitives and not Joi objects
-    outputsSchema: joi.object().default(() => joi.object().keys({})).description(dedent`
+  resultSchema = () =>
+    joi.object().keys({
+      docs: joi.string().required().description("Documentation for the action type, in markdown format."),
+      // TODO: specify the schemas using primitives and not Joi objects
+      outputsSchema: joi.object().default(() => joi.object().keys({})).description(dedent`
       A valid Joi schema describing the keys that each action outputs after execution, for use in template strings
       (e.g. ${templateStringLiteral("builds.my-build.outputs.some-key")}).
 
       If no schema is provided, an error may be thrown if an action attempts to return an output.
     `),
-    schema: joi
-      .object()
-      .required()
-      .description("A valid Joi schema describing the configuration keys for the action configuration."),
-    title: joi
-      .string()
-      .description(
-        "Readable title for the action type. Defaults to the title-cased type name, with dashes replaced by spaces."
-      ),
-  }),
-})
+      schema: joi
+        .object()
+        .required()
+        .description("A valid Joi schema describing the configuration keys for the action configuration."),
+      title: joi
+        .string()
+        .description(
+          "Readable title for the action type. Defaults to the title-cased type name, with dashes replaced by spaces."
+        ),
+    })
+}

@@ -10,9 +10,9 @@ import { dedent } from "../../../util/string"
 import { actionParamsSchema, PluginBuildActionParamsBase } from "../../../plugin/base"
 import { joi } from "../../../config/common"
 import { BuildActionConfig } from "../../../actions/build"
+import { ActionTypeHandlerSpec } from "../base/base"
 
-export interface BuildActionParams<T extends BuildActionConfig = BuildActionConfig>
-  extends PluginBuildActionParamsBase<T> {}
+interface BuildActionParams<T extends BuildActionConfig> extends PluginBuildActionParamsBase<T> {}
 
 /**
  * - `fetched`: The build was fetched from a remote repository instead of building.
@@ -41,11 +41,15 @@ export const buildResultSchema = () =>
     details: joi.object().description("Additional information, specific to the provider."),
   })
 
-export const buildAction = () => ({
-  description: dedent`
+export class BuildAction<T extends BuildActionConfig = BuildActionConfig> extends ActionTypeHandlerSpec<
+  "build",
+  BuildActionParams<T>,
+  BuildResult
+> {
+  description = dedent`
     Build the current version of a Build action. This must wait until the build is complete before returning.
-  `,
+  `
 
-  paramsSchema: actionParamsSchema(),
-  resultSchema: buildResultSchema(),
-})
+  paramsSchema = () => actionParamsSchema()
+  resultSchema = () => buildResultSchema()
+}

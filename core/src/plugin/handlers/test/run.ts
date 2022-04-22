@@ -12,26 +12,33 @@ import { RuntimeContext } from "../../../runtime-context"
 import { TestActionConfig } from "../../../actions/test"
 import { runBuildBaseSchema } from "../build/run"
 import { joi } from "../../../config/common"
-import { testResultSchema } from "../../../types/test"
+import { TestResult, testResultSchema } from "../../../types/test"
+import { ActionTypeHandlerSpec } from "../base/base"
 
-export interface TestActionParams<T extends TestActionConfig = TestActionConfig> extends PluginTestActionParamsBase<T> {
+interface TestActionParams<T extends TestActionConfig> extends PluginTestActionParamsBase<T> {
   artifactsPath: string
   interactive: boolean
   runtimeContext: RuntimeContext
   silent: boolean
 }
 
-export const testAction = () => ({
-  description: dedent`
+export class TestAction<T extends TestActionConfig = TestActionConfig> extends ActionTypeHandlerSpec<
+  "test",
+  TestActionParams<T>,
+  TestResult
+> {
+  description = dedent`
     Run the Test action.
 
     This should complete the test run and return the logs from the test run, and signal whether the tests completed successfully.
 
     It should also store the test results and provide the accompanying \`getTestResult\` handler, so that the same version does not need to be tested multiple times.
-  `,
-  paramsSchema: runBuildBaseSchema().keys({
-    artifactsPath: artifactsPathSchema(),
-    silent: joi.boolean().description("Set to true if no log output should be emitted during execution"),
-  }),
-  resultSchema: testResultSchema(),
-})
+  `
+
+  paramsSchema = () =>
+    runBuildBaseSchema().keys({
+      artifactsPath: artifactsPathSchema(),
+      silent: joi.boolean().description("Set to true if no log output should be emitted during execution"),
+    })
+  resultSchema = () => testResultSchema()
+}

@@ -10,16 +10,19 @@ import { actionParamsSchema, PluginDeployActionParamsBase } from "../../../plugi
 import { dedent } from "../../../util/string"
 import { joi } from "../../../config/common"
 import { DeployActionConfig } from "../../../actions/deploy"
+import { ActionTypeHandlerSpec } from "../base/base"
 
-export interface HotReloadServiceParams<T extends DeployActionConfig = DeployActionConfig>
-  extends PluginDeployActionParamsBase<T> {}
+interface HotReloadServiceParams<T extends DeployActionConfig> extends PluginDeployActionParamsBase<T> {}
 
-export interface HotReloadDeployResult {}
-
-export const hotReloadDeploy = () => ({
-  description: dedent`
+export class HotReloadDeploy<T extends DeployActionConfig = DeployActionConfig> extends ActionTypeHandlerSpec<
+  "deploy",
+  HotReloadServiceParams<T>,
+  {}
+> {
+  description = dedent`
     Synchronize changes directly into a running deployment, instead of doing a full redeploy.
-  `,
-  paramsSchema: actionParamsSchema(),
-  resultSchema: joi.object().keys({}),
-})
+  `
+
+  paramsSchema = () => actionParamsSchema()
+  resultSchema = () => joi.object().keys({})
+}
