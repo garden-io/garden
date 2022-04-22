@@ -414,29 +414,23 @@ async function startReversePortForwarding(
   const reversePortForward = startChildProcess(
     reversePortForwardingCommand,
     function (error: ExecException | null, stdout: string, stderr: string): void {
-      error &&
-        log.error({
-          status: "active",
-          section: service.name,
-          msg: chalk.red(
-            `Reverse port-forwarding failed with error: ${JSON.stringify(error)}. ` +
-              `Consider running it manually: ${chalk.white(reversePortForwardingCommand)}`
-          ),
-        })
       stderr &&
         log.warn({
           status: "active",
           section: service.name,
-          msg: chalk.red(
-            `Reverse port-forwarding failed with error: ${stderr}. ` +
-              `Consider running it manually: ${chalk.white(reversePortForwardingCommand)}`
-          ),
+          msg: chalk.red(`Reverse port-forwarding failed with error: ${stderr}.`),
+        })
+      error &&
+        log.error({
+          status: "active",
+          section: service.name,
+          msg: chalk.red(`Exception details: ${JSON.stringify(error)}.`),
         })
       stdout &&
         log.info({
           status: "active",
           section: service.name,
-          msg: `Reverse port-forwarding output> ${stdout}`,
+          msg: `Reverse port-forwarding is running> ${stdout}`,
         })
     }
   )
