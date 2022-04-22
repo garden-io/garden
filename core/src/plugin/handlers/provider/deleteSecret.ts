@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginActionParamsBase } from "../../../plugin/base"
+import { PluginActionParamsBase } from "../../base"
 import { dedent } from "../../../util/string"
 import { getSecretParamsSchema } from "./getSecret"
 import { joi } from "../../../config/common"

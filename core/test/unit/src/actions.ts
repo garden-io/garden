@@ -36,7 +36,7 @@ import { defaultDotIgnoreFile } from "../../../src/util/fs"
 import stripAnsi from "strip-ansi"
 import { emptyDir, pathExists, ensureFile, readFile } from "fs-extra"
 import { join } from "path"
-import { DashboardPage } from "../../../src/types/plugin/provider/getDashboardPage"
+import { DashboardPage } from "../../../src/plugin/handlers/provider/getDashboardPage"
 import { testFromModule, testFromConfig } from "../../../src/types/test"
 import { ConfigGraph } from "../../../src/config-graph"
 

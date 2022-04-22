@@ -17,8 +17,14 @@ const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
 import { getBuiltinPlugins } from "./plugins/plugins"
-import { GardenModule, getModuleCacheContext, getModuleKey, ModuleConfigMap, moduleFromConfig } from "./types/module"
-import { ModuleTypeMap } from "./plugin/plugin"
+import {
+  GardenModule,
+  getModuleCacheContext,
+  getModuleKey,
+  ModuleConfigMap,
+  moduleFromConfig,
+  ModuleTypeMap,
+} from "./types/module"
 import {
   SourceConfig,
   ProjectConfig,
@@ -991,7 +997,9 @@ export class Garden {
               )}`
           )
           .join("\n")
-        throw new ConfigurationError(`Found duplicate names of ${moduleTemplateKind}s:\n${messages}`, { duplicateTemplates })
+        throw new ConfigurationError(`Found duplicate names of ${moduleTemplateKind}s:\n${messages}`, {
+          duplicateTemplates,
+        })
       }
 
       // Resolve templated modules

@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginActionParamsBase, actionParamsSchema } from "../../../plugin/base"
+import { PluginActionParamsBase, actionParamsSchema } from "../../base"
 import { dedent } from "../../../util/string"
 import { joi, joiArray, joiIdentifier, joiIdentifierMap } from "../../../config/common"
 import { baseModuleSpecSchema, AddModuleSpec } from "../../../config/module"
 import { providerSchema, ProviderMap } from "../../../config/provider"
-import { GardenModule, moduleSchema } from "../../module"
+import { GardenModule, moduleSchema } from "../../../types/module"
 
 export interface AugmentGraphParams extends PluginActionParamsBase {
   modules: GardenModule[]
