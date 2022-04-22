@@ -11,7 +11,7 @@ import { gardenAnnotationKey } from "../../util/string"
 import { set } from "lodash"
 import { HotReloadableResource } from "./hot-reload/hot-reload"
 import { PrimitiveMap } from "../../config/common"
-import { PROXY_CONTAINER_SSH_TUNNEL_PORT, PROXY_CONTAINER_USER_NAME, reverseProxyImageBaseName } from "./constants"
+import { PROXY_CONTAINER_SSH_TUNNEL_PORT, PROXY_CONTAINER_USER_NAME, reverseProxyImageName } from "./constants"
 import { ConfigurationError } from "../../exceptions"
 import { getResourceContainer, prepareEnvVars } from "./util"
 import { V1Container } from "@kubernetes/client-node"
@@ -24,7 +24,6 @@ import { existsSync, rmSync } from "fs"
 import { execSync } from "child_process"
 import { join, resolve } from "path"
 import { ensureDir, readFileSync } from "fs-extra"
-import { arch, cpus } from "os"
 import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
 import { OsCommand, RetriableProcess } from "../../util/process"
@@ -36,36 +35,6 @@ export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 export const localModeGuideLink = "https://docs.garden.io/guides/running-service-in-local-mode.md"
 
 const defaultReverseForwardingPortName = "http"
-
-type HardwareArchitecture = "arm64" | string
-const currentHardwareName: HardwareArchitecture = arch()
-
-/**
- * @return arch-specific Docker image name for reverse proxy container.
- */
-function getReverseProxyName(logContext?: { log: LogEntry; service: ContainerService }): string {
-  // fixme: ugly hack to detect arm64 machine with node js running in x64 mode
-  const cpuInfos = cpus()
-  const cpuModels = cpuInfos.map((v) => v.model)
-  const hasAppleCpu = cpuModels.some((m) => m.toLowerCase().includes("apple"))
-
-  let imageTagSuffix
-  if (hasAppleCpu && currentHardwareName !== "arm64") {
-    imageTagSuffix = "arm64"
-    if (!!logContext) {
-      logContext.log.warn({
-        section: logContext.service.name,
-        msg: chalk.yellow(
-          "It looks like Node.js is running in x86_64 emulation mode on arm64 machine. " +
-            "Native arm64 reserve proxy container will be used."
-        ),
-      })
-    }
-  } else {
-    imageTagSuffix = currentHardwareName === "arm64" ? "arm64" : "amd64"
-  }
-  return `${reverseProxyImageBaseName}-${imageTagSuffix}`
-}
 
 interface ConfigureLocalModeParams {
   target: HotReloadableResource
@@ -252,7 +221,7 @@ function patchMainContainer(
   localModePorts: ServicePortSpec[]
 ) {
   mainContainer.name = proxyContainerName
-  mainContainer.image = getReverseProxyName()
+  mainContainer.image = reverseProxyImageName
 
   const extraEnvVars = prepareEnvVars(localModeEnvVars)
   if (!mainContainer.env) {
@@ -289,12 +258,7 @@ export async function configureLocalMode({ target, service, log }: ConfigureLoca
   log.info({
     section: service.name,
     msg: chalk.gray(
-      `Configuring in local mode, proxy container ${chalk.underline(
-        getReverseProxyName({
-          log,
-          service,
-        })
-      )} will be deployed`
+      `Configuring in local mode, proxy container ${chalk.underline(reverseProxyImageName)} will be deployed`
     ),
   })
 
