@@ -423,8 +423,8 @@ export async function startLocalModePortForwarding({
   const sshTunnelCommand = await getSshPortForwardCommand(ctx, log, service, localSshPort)
   const reversePortForwardingCommand = await getReversePortForwardingCommand(log, service, localSshPort)
 
-  const sshTunnel = new RetriableProcess(sshTunnelCommand, 5, 2000, log)
-  const reversePortForward = new RetriableProcess(reversePortForwardingCommand, 5, 2000, log)
+  const sshTunnel = new RetriableProcess(sshTunnelCommand, 10, 3000, log)
+  const reversePortForward = new RetriableProcess(reversePortForwardingCommand, 10, 3000, log)
   sshTunnel.addDescendantProcess(reversePortForward)
   sshTunnel.start()
   // todo: check if we need this
