@@ -16,4 +16,4 @@ For more details on how to use Helm charts, please refer to our
 [Helm user guide](https://docs.garden.io/guides/using-helm-charts).
 
 The usage and workflow is the same as in the [vote project](../vote/README.md), please refer to that for usage
-instructions.
+instructions. Only difference being the base hostname (defined in project's [garden.yml file](garden.yml)).
