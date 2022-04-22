@@ -548,6 +548,10 @@ describe("exec plugin", () => {
   })
 
   describe("convert", () => {
+    it("adds configured variables to the Group", async () => {
+      throw "TODO"
+    })
+
     it("adds a Build action if build.command is set", async () => {
       throw "TODO"
     })
@@ -560,7 +564,7 @@ describe("exec plugin", () => {
       throw "TODO"
     })
 
-    it("adds a Build action if repositoryUrl is set and maps to new field", async () => {
+    it("converts the repositoryUrl field", async () => {
       throw "TODO"
     })
 
@@ -572,7 +576,7 @@ describe("exec plugin", () => {
       throw "TODO"
     })
 
-    it("correctly maps a serviceConfig to a Deploy", async () => {
+    it("correctly maps a serviceConfig to a Deploy with a build", async () => {
       throw "TODO"
 
       // Dependencies
@@ -581,7 +585,16 @@ describe("exec plugin", () => {
       // service spec
     })
 
-    it("correctly maps a taskConfig to a Run", async () => {
+    it("correctly maps a serviceConfig to a Deploy with no build", async () => {
+      throw "TODO"
+
+      // Dependencies
+      // + build dependencies
+      // timeout
+      // service spec
+    })
+
+    it("correctly maps a taskConfig to a Run with a build", async () => {
       throw "TODO"
 
       // Dependencies
@@ -590,11 +603,29 @@ describe("exec plugin", () => {
       // task spec
     })
 
-    it("correctly maps a testConfig to a Test", async () => {
+    it("correctly maps a taskConfig to a Run with no build", async () => {
+      throw "TODO"
+
+      // Dependencies
+      // + build dependencies
+      // timeout
+      // task spec
+    })
+
+    it("correctly maps a testConfig to a Test with a build", async () => {
       throw "TODO"
 
       // Dependencies
       // build field
+      // timeout
+      // test spec
+    })
+
+    it("correctly maps a testConfig to a Test with no build", async () => {
+      throw "TODO"
+
+      // Dependencies
+      // + build dependencies
       // timeout
       // test spec
     })

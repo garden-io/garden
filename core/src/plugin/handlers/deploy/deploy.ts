@@ -9,29 +9,37 @@
 import { actionParamsSchema, PluginDeployActionParamsBase } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
 import { RuntimeContext, runtimeContextSchema } from "../../../runtime-context"
-import { serviceStatusSchema } from "../../../types/service"
+import { ServiceStatus, serviceStatusSchema } from "../../../types/service"
 import { joi } from "../../../config/common"
 import { DeployActionConfig } from "../../../actions/deploy"
+import { ActionTypeHandlerSpec } from "../base/base"
 
-export interface DeployParams<T extends DeployActionConfig = DeployActionConfig> extends PluginDeployActionParamsBase<T> {
+interface DeployParams<T extends DeployActionConfig> extends PluginDeployActionParamsBase<T> {
   devMode: boolean
   force: boolean
   hotReload: boolean
   runtimeContext: RuntimeContext
 }
 
-export const doDeploy = () => ({
-  description: dedent`
+export class DeployAction<T extends DeployActionConfig = DeployActionConfig> extends ActionTypeHandlerSpec<
+  "deploy",
+  DeployParams<T>,
+  ServiceStatus
+> {
+  description = dedent`
     Deploy the specified service. This should wait until the service is ready and accessible,
     and fail if the service doesn't reach a ready state.
 
     Called by the \`garden deploy\` and \`garden dev\` commands.
-  `,
-  paramsSchema: actionParamsSchema().keys({
-    devMode: joi.boolean().default(false).description("Whether the service should be configured in dev mode."),
-    force: joi.boolean().description("Whether to force a re-deploy, even if the service is already deployed."),
-    runtimeContext: runtimeContextSchema(),
-    hotReload: joi.boolean().default(false).description("Whether to configure the service for hot-reloading."),
-  }),
-  resultSchema: serviceStatusSchema(),
-})
+  `
+
+  paramsSchema = () =>
+    actionParamsSchema().keys({
+      devMode: joi.boolean().default(false).description("Whether the service should be configured in dev mode."),
+      force: joi.boolean().description("Whether to force a re-deploy, even if the service is already deployed."),
+      runtimeContext: runtimeContextSchema(),
+      hotReload: joi.boolean().default(false).description("Whether to configure the service for hot-reloading."),
+    })
+
+  resultSchema = () => serviceStatusSchema()
+}

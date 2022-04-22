@@ -802,7 +802,7 @@ export const containerRunActionSchema = () => joi.object().keys(containerRunSpec
 
 export interface ContainerBuildActionSpec {
   buildArgs: PrimitiveMap
-  dockerfile?: string
+  dockerfile: string
   extraFlags: string[]
   publishId?: string
   targetStage?: string

@@ -12,32 +12,39 @@ import { logEntrySchema, PluginActionContextParams } from "../../../plugin/base"
 import { joi } from "../../../config/common"
 import { LogEntry } from "../../../logger/log-entry"
 import { baseActionConfig, BaseActionConfig } from "../../../actions/base"
+import { ActionTypeHandlerSpec } from "./base"
 
-export interface ValidateActionParams<T extends BaseActionConfig = BaseActionConfig> extends PluginActionContextParams {
+interface ValidateActionParams<T extends BaseActionConfig> extends PluginActionContextParams {
   log: LogEntry
   spec: T
 }
 
-export interface ValidateActionResult<T extends BaseActionConfig = BaseActionConfig> {
+interface ValidateActionResult<T extends BaseActionConfig> {
   spec: T
 }
 
-export const validateAction = () => ({
-  description: dedent`
+export class ValidateAction<T extends BaseActionConfig = BaseActionConfig> extends ActionTypeHandlerSpec<
+  any,
+  ValidateActionParams<T>,
+  ValidateActionResult<T>
+> {
+  description = dedent`
     Validate and (optionally) transform the given action spec.
 
     Note that this does not need to perform structural schema validation (the framework does that automatically), but should in turn perform semantic validation to make sure the configuration is sane.
 
     This handler is called on every resolution of the project graph, so it should return quickly and avoid doing any network calls or expensive computation.
-  `,
+  `
 
-  paramsSchema: joi.object().keys({
-    ctx: pluginContextSchema().required(),
-    log: logEntrySchema(),
-    spec: baseActionConfig().required(),
-  }),
+  paramsSchema = () =>
+    joi.object().keys({
+      ctx: pluginContextSchema().required(),
+      log: logEntrySchema(),
+      spec: baseActionConfig().required(),
+    })
 
-  resultSchema: joi.object().keys({
-    spec: baseActionConfig().required(),
-  }),
-})
+  resultSchema = () =>
+    joi.object().keys({
+      spec: baseActionConfig().required(),
+    })
+}

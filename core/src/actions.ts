@@ -1037,7 +1037,7 @@ export class ActionRouter implements TypeGuard {
       partialRuntimeResolution: false,
     })
     const handlerParams = {
-      ...(await this.commonParams(handler, params.log, templateContext, params.events)),
+      ...(await this.commonParams(handler, params.log, templateContext)),
       ...params,
       module: omit(module, ["_config"]),
     }

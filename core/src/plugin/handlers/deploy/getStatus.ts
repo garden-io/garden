@@ -8,33 +8,38 @@
 
 import { actionParamsSchema, PluginDeployActionParamsBase } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
-import { serviceStatusSchema } from "../../../types/service"
+import { ServiceStatus, serviceStatusSchema } from "../../../types/service"
 import { RuntimeContext, runtimeContextSchema } from "../../../runtime-context"
 import { joi } from "../../../config/common"
 import { DeployActionConfig } from "../../../actions/deploy"
+import { ActionTypeHandlerSpec } from "../base/base"
 
-export type hotReloadStatus = "enabled" | "disabled"
-
-export interface GetDeployStatusParams<T extends DeployActionConfig = DeployActionConfig>
-  extends PluginDeployActionParamsBase<T> {
+interface GetDeployStatusParams<T extends DeployActionConfig> extends PluginDeployActionParamsBase<T> {
   devMode: boolean
   hotReload: boolean
   runtimeContext: RuntimeContext
 }
 
-export const getDeployStatus = () => ({
-  description: dedent`
+export class GetDeployStatus<T extends DeployActionConfig = DeployActionConfig> extends ActionTypeHandlerSpec<
+  "deploy",
+  GetDeployStatusParams<T>,
+  ServiceStatus
+> {
+  description = dedent`
     Check and return the current runtime status of a deployment.
 
     Called ahead of any actions that expect a deployment to be running, as well as the \`garden get status\` command.
-  `,
-  paramsSchema: actionParamsSchema().keys({
-    runtimeContext: runtimeContextSchema(),
-    devMode: joi.boolean().default(false).description("Whether the deployment should be configured in dev mode."),
-    hotReload: joi
-      .boolean()
-      .default(false)
-      .description("Whether the deployment should be configured for hot-reloading."),
-  }),
-  resultSchema: serviceStatusSchema(),
-})
+  `
+
+  paramsSchema = () =>
+    actionParamsSchema().keys({
+      runtimeContext: runtimeContextSchema(),
+      devMode: joi.boolean().default(false).description("Whether the deployment should be configured in dev mode."),
+      hotReload: joi
+        .boolean()
+        .default(false)
+        .description("Whether the deployment should be configured for hot-reloading."),
+    })
+
+  resultSchema = () => serviceStatusSchema()
+}
