@@ -12,13 +12,13 @@ Tasks may depend on other tasks having been run and/or other services being depl
 
 This project consists of three modules:
 
-- `postgres` — a minimally configured PostgreSQL service with a simple health check
-- `hello` — a simple JS/Node service
-- `user` — a simple Ruby/Sinatra service
+- [postgres](postgres/garden.yml) — a minimally configured PostgreSQL service with a simple health check
+- [hello](hello/garden.yml) — a simple JS/Node service
+- [user](user/garden.yml) — a simple Ruby/Sinatra service
 
 There are two tasks defined in this project:
-- `node-migration` (defined in `hello`), which creates a `users` table, and
-- `ruby-migration` (defined in `user`), which inserts a few records into the `users` table.
+- `node-migration` (defined in [hello/garden.yml](hello/garden.yml)), which creates a `users` table, and
+- `ruby-migration` (defined in [user/garden.yml](user/garden.yml)), which inserts a few records into the `users` table.
 
 Before `node-migration` can be run, the database has to be up and running, therefore `postgres` is a service dependency of `node-migration`. And before `ruby-migration` can insert records into the `users` table, that table has to exist. `ruby-migration` also requires the database to be up and running, but that's already required by its dependency, `node-migration`, so there's no need for `ruby-migration` to directly depend on `postgres`.
 
@@ -41,3 +41,5 @@ garden call hello
 
 Hello from Node! Usernames: John, Paul, George, Ringo
 ```
+
+For more complex use-cases and additional configuration options please refer to the [docs](https://docs.garden.io/using-garden/tasks).
