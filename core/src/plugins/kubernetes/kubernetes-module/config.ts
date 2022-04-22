@@ -9,7 +9,7 @@
 import { dependenciesSchema } from "../../../config/service"
 import { joi, joiModuleIncludeDirective, joiSparseArray } from "../../../config/common"
 import { GardenModule } from "../../../types/module"
-import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plugin/module/configure"
+import { ConfigureModuleParams, ConfigureModuleResult } from "../../../plugin/handlers/module/configure"
 import { GardenService } from "../../../types/service"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { KubernetesResource } from "../types"

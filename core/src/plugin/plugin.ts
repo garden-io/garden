@@ -14,7 +14,7 @@ import {
   CleanupEnvironmentResult,
   cleanupEnvironment,
 } from "../types/plugin/provider/cleanupEnvironment"
-import { ConfigureModuleParams, ConfigureModuleResult, configure } from "../types/plugin/module/configure"
+import { ConfigureModuleParams, ConfigureModuleResult, configure } from "./handlers/module/configure"
 import {
   ConfigureProviderParams,
   ConfigureProviderResult,

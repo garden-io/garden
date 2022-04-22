@@ -7,7 +7,7 @@
  */
 
 import { dedent } from "../../../util/string"
-import { GardenModule } from "../../module"
+import { GardenModule } from "../../../types/module"
 import { PluginContext, pluginContextSchema } from "../../../plugin-context"
 import { logEntrySchema, PluginActionContextParams } from "../../../plugin/base"
 import { baseModuleSpecSchema, ModuleConfig, moduleConfigSchema } from "../../../config/module"
