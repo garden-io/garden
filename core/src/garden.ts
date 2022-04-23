@@ -20,7 +20,6 @@ import { getBuiltinPlugins } from "./plugins/plugins"
 import {
   GardenModule,
   getModuleCacheContext,
-  getModuleKey,
   ModuleConfigMap,
   moduleFromConfig,
   ModuleTypeMap,
@@ -1033,7 +1032,7 @@ export class Garden {
    * Add a module config to the context, after validating and calling the appropriate configure plugin handler.
    */
   private async addModuleConfig(config: ModuleConfig) {
-    const key = getModuleKey(config.name, config.plugin)
+    const key = config.name
     this.log.silly(`Adding module ${key}`)
     const existing = this.moduleConfigs[key]
 

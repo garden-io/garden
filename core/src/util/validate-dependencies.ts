@@ -10,7 +10,6 @@ import { DepGraph } from "dependency-graph"
 import { flatten, uniq } from "lodash"
 import indentString from "indent-string"
 import { get, isEqual, join, set, uniqWith } from "lodash"
-import { getModuleKey } from "../types/module"
 import { ConfigurationError } from "../exceptions"
 import { ModuleConfig } from "../config/module"
 import { deline } from "./string"
@@ -35,7 +34,7 @@ export function detectMissingDependencies(moduleConfigs: ModuleConfig[]) {
   ]
 
   for (const m of moduleConfigs) {
-    const buildDepKeys = m.build.dependencies.map((d) => getModuleKey(d.name, d.plugin))
+    const buildDepKeys = m.build.dependencies.map((d) => d.name)
 
     for (const missingModule of buildDepKeys.filter((k) => !moduleNames.has(k))) {
       missingDepDescriptions.push(
