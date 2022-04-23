@@ -9,7 +9,7 @@
 import toposort from "toposort"
 import { flatten, pick, uniq, sortBy, pickBy } from "lodash"
 import { BuildDependencyConfig } from "./config/module"
-import { GardenModule, getModuleKey, moduleNeedsBuild, ModuleTypeMap } from "./types/module"
+import { GardenModule, moduleNeedsBuild, ModuleTypeMap } from "./types/module"
 import { GardenService, serviceFromConfig } from "./types/service"
 import { GardenTask, taskFromConfig } from "./types/task"
 import { TestConfig } from "./config/test"
@@ -99,7 +99,7 @@ export class ConfigGraph {
 
     // Add nodes to graph and validate
     for (const module of modules) {
-      const moduleKey = this.keyForModule(module)
+      const moduleKey = module.name
       this.modules[moduleKey] = module
 
       // Add services
@@ -171,17 +171,16 @@ export class ConfigGraph {
       const type = moduleTypes[module.type]
       const needsBuild = moduleNeedsBuild(module, type)
 
-      const moduleKey = this.keyForModule(module)
+      const moduleKey = module.name
       this.modules[moduleKey] = module
 
       const addBuildDeps = (node: DependencyGraphNode) => {
         for (const buildDep of module.build.dependencies) {
-          const buildDepKey = getModuleKey(buildDep.name, buildDep.plugin)
           this.addRelation({
             dependant: node,
             dependencyType: "build",
-            dependencyName: buildDepKey,
-            dependencyModuleName: buildDepKey,
+            dependencyName: buildDep.name,
+            dependencyModuleName: buildDep.name,
           })
         }
       }
@@ -274,11 +273,6 @@ export class ConfigGraph {
       const errMsg = `\nCircular dependencies detected: \n\n${description}\n`
       throw new ConfigurationError(errMsg, { "circular-dependencies": description })
     }
-  }
-
-  // Convenience method used in the constructor above.
-  keyForModule(module: GardenModule | BuildDependencyConfig) {
-    return getModuleKey(module.name, module.plugin)
   }
 
   private addRuntimeRelation(node: DependencyGraphNode, depName: string) {
@@ -515,7 +509,7 @@ export class ConfigGraph {
    * modules required to satisfy those dependencies.
    */
   resolveDependencyModules(buildDependencies: BuildDependencyConfig[], runtimeDependencies: string[]): GardenModule[] {
-    const moduleNames = buildDependencies.map((d) => getModuleKey(d.name, d.plugin))
+    const moduleNames = buildDependencies.map((d) => d.name)
     const serviceNames = runtimeDependencies.filter(
       (d) => this.serviceConfigs[d] && !this.isDisabled(this.serviceConfigs[d])
     )
@@ -746,10 +740,6 @@ export class DependencyGraphNode {
   }
 }
 
-/**
- * Note: If type === "build", name should be a prefix-qualified module name, as
- * returned by keyForModule or getModuleKey.
- */
 export function nodeKey(type: DependencyGraphNodeType, name: string) {
   return `${type}.${name}`
 }

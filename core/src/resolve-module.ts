@@ -260,7 +260,7 @@ export class ModuleResolver {
       buildDeps = resolvedDeps
         // We only collect fully-resolved references here
         .filter((d) => !mayContainTemplateString(d) && (isString(d) || d.name))
-        .map((d) => (isString(d) ? d : getModuleKey(d.name, d.plugin)))
+        .map((d) => (isString(d) ? d : d.name))
     }
 
     const deps = [...templateDeps, ...buildDeps]
@@ -431,21 +431,6 @@ export class ModuleResolver {
           configType: `configuration for module '${config.name}' (base schema from '${base.name}' plugin)`,
           ErrorClass: ConfigurationError,
         })
-      }
-    }
-
-    // FIXME: We should be able to avoid this
-    config.name = getModuleKey(config.name, config.plugin)
-
-    if (config.plugin) {
-      for (const serviceConfig of config.serviceConfigs) {
-        serviceConfig.name = getModuleKey(serviceConfig.name, config.plugin)
-      }
-      for (const taskConfig of config.taskConfigs) {
-        taskConfig.name = getModuleKey(taskConfig.name, config.plugin)
-      }
-      for (const testConfig of config.testConfigs) {
-        testConfig.name = getModuleKey(testConfig.name, config.plugin)
       }
     }
 

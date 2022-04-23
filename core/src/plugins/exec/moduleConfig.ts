@@ -13,7 +13,7 @@
 
 import { joiArray, joiEnvVars, joi, joiSparseArray } from "../../config/common"
 import { ArtifactSpec, validateWithPath } from "../../config/validation"
-import { GardenModule, getModuleKey } from "../../types/module"
+import { GardenModule } from "../../types/module"
 import { baseServiceSpecSchema, CommonServiceSpec } from "../../config/service"
 import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
 import { ModuleSpec, BaseBuildSpec, baseBuildSpecSchema, ModuleConfig } from "../../config/module"
@@ -38,7 +38,7 @@ export async function configureExecModule({
   if (moduleConfig.spec.local && buildDeps.some((d) => d.copy.length > 0)) {
     const buildDependenciesWithCopySpec = buildDeps
       .filter((d) => !!d.copy)
-      .map((d) => getModuleKey(d.name, d.plugin))
+      .map((d) => d.name)
       .join(", ")
     throw new ConfigurationError(
       dedent`
