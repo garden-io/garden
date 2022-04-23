@@ -23,6 +23,10 @@ import {
 import { varfileDescription } from "../config/project"
 import { DOCS_BASE_URL } from "../constants"
 import { dedent, naturalList } from "../util/string"
+import type { BuildActionConfig } from "./build"
+import type { DeployActionConfig } from "./deploy"
+import type { RunActionConfig } from "./run"
+import type { TestActionConfig } from "./test"
 
 export type ActionKind = "build" | "deploy" | "run" | "test"
 export const actionKinds = ["build", "deploy", "run", "test"]
@@ -224,6 +228,13 @@ export const baseRuntimeActionConfig = () =>
       )
     ),
   })
+
+export interface ActionConfigTypes {
+  build: BuildActionConfig
+  deploy: DeployActionConfig
+  run: RunActionConfig
+  test: TestActionConfig
+}
 
 export class BaseActionWrapper<C extends BaseActionConfig> {
   constructor(private config: C) {}

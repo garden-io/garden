@@ -13,7 +13,7 @@ import {
   ModuleTypeExtension,
   pluginSchema,
   RegisterPluginParam,
-  pluginModuleSchema,
+  pluginNodeModuleSchema,
   GardenPluginReference,
 } from "./plugin/plugin"
 import { GenericProviderConfig } from "./config/provider"
@@ -142,7 +142,7 @@ export async function loadPlugin(log: LogEntry, projectRoot: string, nameOrPlugi
     }
 
     try {
-      pluginModule = validateSchema(pluginModule, pluginModuleSchema(), {
+      pluginModule = validateSchema(pluginModule, pluginNodeModuleSchema(), {
         context: `plugin module "${moduleNameOrLocation}"`,
       })
     } catch (err) {

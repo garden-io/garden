@@ -283,9 +283,11 @@ export interface ModuleConfigContextParams extends OutputConfigContextParams {
  */
 export class ModuleConfigContext extends OutputConfigContext {
   @schema(
-    joiVariables().description(`The inputs provided to the module through a ${moduleTemplateKind}, if applicable.`).meta({
-      keyPlaceholder: "<input-key>",
-    })
+    joiVariables()
+      .description(`The inputs provided to the module through a ${moduleTemplateKind}, if applicable.`)
+      .meta({
+        keyPlaceholder: "<input-key>",
+      })
   )
   public inputs: DeepPrimitiveMap
 

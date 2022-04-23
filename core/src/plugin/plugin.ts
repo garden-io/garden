@@ -7,141 +7,31 @@
  */
 
 import Joi = require("@hapi/joi")
-import {
-  CleanupEnvironmentParams,
-  CleanupEnvironmentResult,
-  cleanupEnvironment,
-} from "./handlers/provider/cleanupEnvironment"
-import {
-  ConfigureProviderParams,
-  ConfigureProviderResult,
-  configureProvider,
-} from "./handlers/provider/configureProvider"
-import { DeleteSecretParams, DeleteSecretResult, deleteSecret } from "./handlers/provider/deleteSecret"
-import {
-  EnvironmentStatus,
-  GetEnvironmentStatusParams,
-  getEnvironmentStatus,
-} from "./handlers/provider/getEnvironmentStatus"
-import { GetSecretParams, GetSecretResult, getSecret } from "./handlers/provider/getSecret"
-import {
-  PrepareEnvironmentParams,
-  PrepareEnvironmentResult,
-  prepareEnvironment,
-} from "./handlers/provider/prepareEnvironment"
-import { SetSecretParams, SetSecretResult, setSecret } from "./handlers/provider/setSecret"
 import { joiArray, joiIdentifier, joi, joiSchema } from "../config/common"
-import { ActionHandler } from "./base"
 import { mapValues } from "lodash"
-import { getDebugInfo, DebugInfo, GetDebugInfoParams } from "./handlers/provider/getDebugInfo"
 import { dedent } from "../util/string"
 import { pluginCommandSchema, PluginCommand } from "./command"
-import { AugmentGraphResult, AugmentGraphParams, augmentGraph } from "./handlers/provider/augmentGraph"
-import { templateStringLiteral } from "../docs/common"
 import { toolSchema, PluginToolSpec } from "./tools"
+import { DashboardPage, dashboardPagesSchema } from "./handlers/provider/getDashboardPage"
 import {
-  GetDashboardPageParams,
-  GetDashboardPageResult,
-  getDashboardPage,
-  DashboardPage,
-  dashboardPagesSchema,
-} from "./handlers/provider/getDashboardPage"
-import { baseHandlerSchema } from "./handlers/base/base"
-import { getModuleActionDescriptions, ModuleTypeDefinition, ModuleTypeExtension } from "./moduleTypes"
-import { PluginActionDescription } from "../../build/src/types/plugin/plugin"
+  createModuleTypeSchema,
+  extendModuleTypeSchema,
+  ModuleTypeDefinition,
+  ModuleTypeExtension,
+} from "./moduleTypes"
+import { getProviderActionDescriptions, ProviderActionHandlers } from "./providers"
+import {
+  ActionTypeDefinitions,
+  ActionTypeExtensions,
+  createActionTypesSchema,
+  extendActionTypesSchema,
+} from "./actionTypes"
 import { PluginContext } from "../plugin-context"
-import { join } from "path"
 
 // FIXME: Reduce number of import updates needed
 export * from "./base"
 export * from "./moduleTypes"
-
-export type PluginActionHandlers = {
-  [P in keyof PluginActionParams]: ActionHandler<PluginActionParams[P], PluginActionOutputs[P]>
-}
-
-// export type AllActionHandlers<T extends GardenModule = GardenModule> = PluginActionHandlers &
-//   ModuleAndRuntimeActionHandlers<T>
-
-export type PluginActionName = keyof PluginActionHandlers
-
-export interface PluginActionParams {
-  configureProvider: ConfigureProviderParams
-  augmentGraph: AugmentGraphParams
-
-  getEnvironmentStatus: GetEnvironmentStatusParams
-  prepareEnvironment: PrepareEnvironmentParams
-  cleanupEnvironment: CleanupEnvironmentParams
-
-  getSecret: GetSecretParams
-  setSecret: SetSecretParams
-  deleteSecret: DeleteSecretParams
-
-  getDashboardPage: GetDashboardPageParams
-  getDebugInfo: GetDebugInfoParams
-}
-
-export interface PluginActionOutputs {
-  configureProvider: ConfigureProviderResult
-  augmentGraph: AugmentGraphResult
-
-  getEnvironmentStatus: EnvironmentStatus
-  prepareEnvironment: PrepareEnvironmentResult
-  cleanupEnvironment: CleanupEnvironmentResult
-
-  getSecret: GetSecretResult
-  setSecret: SetSecretResult
-  deleteSecret: DeleteSecretResult
-
-  getDashboardPage: GetDashboardPageResult
-  getDebugInfo: DebugInfo
-}
-
-export interface PluginActionDescriptions {
-  [actionName: string]: PluginActionDescription
-}
-
-// It takes a short while to resolve all these scemas, so we cache the result
-let _pluginActionDescriptions: PluginActionDescriptions
-
-export function getPluginActionDescriptions(): PluginActionDescriptions {
-  if (_pluginActionDescriptions) {
-    return _pluginActionDescriptions
-  }
-
-  const descriptions = {
-    configureProvider,
-    augmentGraph,
-
-    getEnvironmentStatus,
-    prepareEnvironment,
-    cleanupEnvironment,
-
-    getSecret,
-    setSecret,
-    deleteSecret,
-
-    getDashboardPage,
-    getDebugInfo,
-  }
-
-  _pluginActionDescriptions = <PluginActionDescriptions>mapValues(descriptions, (f) => {
-    const desc = f()
-
-    return {
-      ...desc,
-      paramsSchema: desc.paramsSchema.keys({
-        base: baseHandlerSchema(),
-      }),
-    }
-  })
-
-  return _pluginActionDescriptions
-}
-
-export function getPluginActionNames() {
-  return <PluginActionName[]>Object.keys(getPluginActionDescriptions())
-}
+export * from "./providers"
 
 export interface PluginDependency {
   name: string
@@ -168,25 +58,30 @@ export interface GardenPluginSpec {
 
   dependencies?: PluginDependency[]
 
-  handlers?: Partial<PluginActionHandlers>
+  handlers?: Partial<ProviderActionHandlers>
   commands?: PluginCommand[]
   tools?: PluginToolSpec[]
   dashboardPages?: DashboardPage[]
 
   createModuleTypes?: ModuleTypeDefinition[]
   extendModuleTypes?: ModuleTypeExtension[]
+
+  createActionTypes?: ActionTypeDefinitions
+  extendActionTypes?: ActionTypeExtensions
 }
 
 export interface GardenPlugin extends GardenPluginSpec {
   dependencies: PluginDependency[]
 
-  handlers: Partial<PluginActionHandlers>
+  handlers: Partial<ProviderActionHandlers>
   commands: PluginCommand[]
+  dashboardPages: DashboardPage[]
 
   createModuleTypes: ModuleTypeDefinition[]
   extendModuleTypes: ModuleTypeExtension[]
 
-  dashboardPages: DashboardPage[]
+  createActionTypes: ActionTypeDefinitions
+  extendActionTypes: ActionTypeExtensions
 }
 
 export interface GardenPluginReference {
@@ -201,80 +96,6 @@ export interface PluginMap {
 }
 
 export type RegisterPluginParam = string | GardenPlugin | GardenPluginReference
-
-const moduleHandlersSchema = () =>
-  joi
-    .object()
-    .keys(mapValues(getModuleActionDescriptions(), () => joi.func()))
-    .description("A map of module action handlers provided by the plugin.")
-
-const extendModuleTypeSchema = () =>
-  joi.object().keys({
-    name: joiIdentifier().required().description("The name of module type."),
-    handlers: moduleHandlersSchema(),
-  })
-
-const outputSchemaDocs = dedent`
-The schema must be a single level object, with string keys. Each value must be a primitive
-(null, boolean, number or string).
-
-If no schema is provided, an error may be thrown if a plugin handler attempts to return an output key.
-
-If the module type has a \`base\`, you must either omit this field to inherit the base's schema, make sure
-that the specified schema is a _superset_ of the base's schema (i.e. only adds or further constrains existing fields),
-_or_ override the necessary handlers to make sure their output matches the base's schemas.
-This is to ensure that plugin handlers made for the base type also work with this module type.
-`
-
-const createModuleTypeSchema = () =>
-  extendModuleTypeSchema().keys({
-    base: joiIdentifier().description(dedent`
-        Name of module type to use as a base for this module type.
-
-        If specified, providers that support the base module type also work with this module type.
-        Note that some constraints apply on the configuration and output schemas. Please see each of the schema
-        fields for details.
-      `),
-    docs: joi.string().description("Documentation for the module type, in markdown format."),
-    handlers: joi.object().keys(mapValues(getModuleActionDescriptions(), () => joi.func())).description(dedent`
-        A map of module action handlers provided by the plugin.
-      `),
-    // TODO: specify the schemas using JSONSchema instead of Joi objects
-    // TODO: validate outputs against the output schemas
-    moduleOutputsSchema: joiSchema().description(dedent`
-        A valid Joi schema describing the keys that each module outputs at config resolution time,
-        for use in template strings (e.g. ${templateStringLiteral("modules.my-module.outputs.some-key")}).
-
-        ${outputSchemaDocs}
-      `),
-    schema: joiSchema().description(dedent`
-        A valid Joi schema describing the configuration keys for the \`module\` field in the module's \`garden.yml\`.
-
-        If the module type has a \`base\`, you must either omit this field to inherit the base's schema, make sure
-        that the specified schema is a _superset_ of the base's schema (i.e. only adds or further constrains existing
-        fields), _or_ specify a \`configure\` handler that returns a module config compatible with the base's
-        schema. This is to ensure that plugin handlers made for the base type also work with this module type.
-      `),
-    serviceOutputsSchema: joiSchema().description(dedent`
-        A valid Joi schema describing the keys that each service outputs at runtime, for use in template strings
-        and environment variables (e.g. ${templateStringLiteral("runtime.services.my-service.outputs.some-key")} and
-        \`GARDEN_SERVICES_MY_SERVICE__OUTPUT_SOME_KEY\`).
-
-        ${outputSchemaDocs}
-      `),
-    taskOutputsSchema: joiSchema().description(dedent`
-        A valid Joi schema describing the keys that each task outputs at runtime, for use in template strings
-        and environment variables (e.g. ${templateStringLiteral("runtime.tasks.my-task.outputs.some-key")} and
-        \`GARDEN_TASKS_MY_TASK__OUTPUT_SOME_KEY\`).
-
-        ${outputSchemaDocs}
-      `),
-    title: joi
-      .string()
-      .description(
-        "Readable title for the module type. Defaults to the title-cased type name, with dashes replaced by spaces."
-      ),
-  })
 
 export const pluginSchema = () =>
   joi
@@ -321,7 +142,7 @@ export const pluginSchema = () =>
         \`outputsSchema\`.
       `),
 
-      handlers: joi.object().keys(mapValues(getPluginActionDescriptions(), () => joi.func())).description(dedent`
+      handlers: joi.object().keys(mapValues(getProviderActionDescriptions(), () => joi.func())).description(dedent`
         A map of plugin action handlers provided by the plugin.
 
         If you specify a \`base\`, you can use this field to add new handlers or override the handlers from the base
@@ -348,6 +169,16 @@ export const pluginSchema = () =>
         List of module types to extend/override with additional handlers.
       `),
 
+      createActionTypes: createActionTypesSchema().description(dedent`
+        Define one or more action types.
+
+        If you specify a \`base\`, these module types are added in addition to the action types created by the base
+        plugin. To augment the base plugin's action types, use the \`extendActionTypes\` field.
+      `),
+      extendActionTypes: extendActionTypesSchema().description(dedent`
+        Extend one or more action types by adding new or overriding existing handlers.
+      `),
+
       dashboardPages: dashboardPagesSchema(),
 
       tools: joi.array().items(toolSchema()).unique("name").description(dedent`
@@ -362,14 +193,14 @@ export const pluginSchema = () =>
     })
     .description("The schema for Garden plugins.")
 
-export const pluginModuleSchema = () =>
+export const pluginNodeModuleSchema = () =>
   joi
     .object()
     .keys({
       gardenPlugin: pluginSchema().required(),
     })
     .unknown(true)
-    .description("A module containing a Garden plugin.")
+    .description("A Node.JS module containing a Garden plugin.")
 
 // This doesn't do much at the moment, but it makes sense to make this an SDK function to make it more future-proof
 export function createGardenPlugin(spec: GardenPluginSpec): GardenPlugin {
@@ -379,6 +210,8 @@ export function createGardenPlugin(spec: GardenPluginSpec): GardenPlugin {
     commands: spec.commands || [],
     createModuleTypes: spec.createModuleTypes || [],
     extendModuleTypes: spec.extendModuleTypes || [],
+    createActionTypes: spec.createActionTypes || {},
+    extendActionTypes: spec.extendActionTypes || {},
     handlers: spec.handlers || {},
     dashboardPages: spec.dashboardPages || [],
   }

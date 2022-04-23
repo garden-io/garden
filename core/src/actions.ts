@@ -41,9 +41,9 @@ import {
   ModuleActionParams,
   ModuleActionHandlers,
   ModuleAndRuntimeActionHandlers,
-  PluginActionOutputs,
-  PluginActionParams,
-  PluginActionHandlers,
+  ProviderActionOutputs,
+  ProviderActionParams,
+  ProviderActionHandlers,
   ServiceActionOutputs,
   ServiceActionParams,
   ServiceActionHandlers,
@@ -55,11 +55,11 @@ import {
   WrappedModuleActionHandler,
   WrappedActionHandler,
   ModuleTypeDefinition,
-  getPluginActionNames,
+  getProviderActionNames,
   getModuleActionNames,
-  getPluginActionDescriptions,
+  getProviderActionDescriptions,
   getModuleActionDescriptions,
-  PluginActionDescriptions,
+  ResolvedActionHandlerDescriptions,
   ModuleActionHandler,
   ActionHandler,
   TestActionParams,
@@ -115,7 +115,7 @@ import { GetTestResultParams } from "./types/plugin/module/getTestResult"
 const maxArtifactLogLines = 5 // max number of artifacts to list in console after task+test runs
 
 type TypeGuard = {
-  readonly [P in keyof (PluginActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
+  readonly [P in keyof (ProviderActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
 }
 
 export interface DeployServicesParams {
@@ -138,8 +138,8 @@ export class ActionRouter implements TypeGuard {
   private readonly actionHandlers: WrappedPluginActionMap
   private readonly moduleActionHandlers: ModuleActionMap
   private readonly loadedPlugins: PluginMap
-  private readonly pluginActionDescriptions: PluginActionDescriptions
-  private readonly moduleActionDescriptions: PluginActionDescriptions
+  private readonly pluginActionDescriptions: ResolvedActionHandlerDescriptions
+  private readonly moduleActionDescriptions: ResolvedActionHandlerDescriptions
 
   constructor(
     private readonly garden: Garden,
@@ -147,10 +147,10 @@ export class ActionRouter implements TypeGuard {
     loadedPlugins: GardenPlugin[],
     private readonly moduleTypes: { [name: string]: ModuleTypeDefinition }
   ) {
-    const pluginActionNames = getPluginActionNames()
+    const pluginActionNames = getProviderActionNames()
     const moduleActionNames = getModuleActionNames()
 
-    this.pluginActionDescriptions = getPluginActionDescriptions()
+    this.pluginActionDescriptions = getProviderActionDescriptions()
     this.moduleActionDescriptions = getModuleActionDescriptions()
 
     this.actionHandlers = <WrappedPluginActionMap>fromPairs(pluginActionNames.map((n) => [n, {}]))
@@ -198,7 +198,7 @@ export class ActionRouter implements TypeGuard {
       defaultHandler: async ({ config }) => ({ config }),
     })
 
-    const handlerParams: PluginActionParams["configureProvider"] = {
+    const handlerParams: ProviderActionParams["configureProvider"] = {
       ...omit(params, ["pluginName"]),
       base: this.wrapBase(handler!.base),
     }
@@ -981,11 +981,11 @@ export class ActionRouter implements TypeGuard {
     pluginName,
     defaultHandler,
   }: {
-    params: ActionRouterParams<PluginActionParams[T]>
+    params: ActionRouterParams<ProviderActionParams[T]>
     actionType: T
     pluginName: string
-    defaultHandler?: PluginActionHandlers[T]
-  }): Promise<PluginActionOutputs[T]> {
+    defaultHandler?: ProviderActionHandlers[T]
+  }): Promise<ProviderActionOutputs[T]> {
     this.garden.log.silly(`Calling ${actionType} handler on plugin '${pluginName}'`)
 
     const handler = await this.getActionHandler({
@@ -994,7 +994,7 @@ export class ActionRouter implements TypeGuard {
       defaultHandler,
     })
 
-    const handlerParams: PluginActionParams[T] = {
+    const handlerParams: ProviderActionParams[T] = {
       ...(await this.commonParams(handler!, params.log, undefined, params.events)),
       ...(<any>params),
     }
@@ -1252,7 +1252,7 @@ export class ActionRouter implements TypeGuard {
   private addActionHandler<T extends keyof WrappedPluginActionHandlers>(
     plugin: GardenPlugin,
     actionType: T,
-    handler: PluginActionHandlers[T]
+    handler: ProviderActionHandlers[T]
   ) {
     const pluginName = plugin.name
     const schema = this.pluginActionDescriptions[actionType].resultSchema
@@ -1396,7 +1396,7 @@ export class ActionRouter implements TypeGuard {
   }: {
     actionType: T
     pluginName: string
-    defaultHandler?: PluginActionHandlers[T]
+    defaultHandler?: ProviderActionHandlers[T]
     throwIfMissing?: boolean
   }): Promise<WrappedPluginActionHandlers[T] | null> {
     const handlers = Object.values(await this.getActionHandlers(actionType, pluginName))
@@ -1564,7 +1564,7 @@ type WrappedModuleAndRuntimeActionHandlers<T extends GardenModule = GardenModule
   WrappedTaskActionHandlers<T>
 
 type WrappedPluginActionHandlers = {
-  [P in keyof PluginActionParams]: WrappedActionHandler<PluginActionParams[P], PluginActionOutputs[P]>
+  [P in keyof ProviderActionParams]: WrappedActionHandler<ProviderActionParams[P], ProviderActionOutputs[P]>
 }
 
 interface WrappedActionHandlerMap<T extends keyof WrappedPluginActionHandlers> {

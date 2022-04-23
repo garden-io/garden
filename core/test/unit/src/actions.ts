@@ -8,9 +8,9 @@
 
 import {
   ModuleAndRuntimeActionHandlers,
-  PluginActionHandlers,
+  ProviderActionHandlers,
   getModuleActionDescriptions,
-  getPluginActionDescriptions,
+  getProviderActionDescriptions,
   createGardenPlugin,
   ActionHandler,
   ModuleActionHandler,
@@ -2163,14 +2163,14 @@ const basePlugin = createGardenPlugin({
   ],
 })
 
-const pluginActionDescriptions = getPluginActionDescriptions()
+const pluginActionDescriptions = getProviderActionDescriptions()
 const moduleActionDescriptions = getModuleActionDescriptions()
 
 const testPlugin = createGardenPlugin({
   name: "test-plugin",
   dependencies: [{ name: "base" }],
 
-  handlers: <PluginActionHandlers>{
+  handlers: <ProviderActionHandlers>{
     configureProvider: async (params) => {
       validateParams(params, pluginActionDescriptions.configureProvider.paramsSchema)
       return { config: params.config }

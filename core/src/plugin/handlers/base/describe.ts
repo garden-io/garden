@@ -12,9 +12,9 @@ import { joi } from "../../../config/common"
 import { templateStringLiteral } from "../../../docs/common"
 import { ActionTypeHandlerSpec } from "./base"
 
-export interface DescribeActionParams {}
+// NOTE: THIS IS CURRENTLY NOT USED
 
-export interface ActionDescription {
+interface ActionDescription {
   docs: string
   // TODO: specify the schemas using primitives (e.g. JSONSchema/OpenAPI) and not Joi objects
   outputsSchema?: Joi.ObjectSchema

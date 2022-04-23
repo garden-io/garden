@@ -15,8 +15,7 @@ import { DeployActionConfig } from "../../../actions/deploy"
 import { ServiceLogEntry } from "../../../types/service"
 import { ActionTypeHandlerSpec } from "../base/base"
 
-interface GetDeployLogsParams<T extends DeployActionConfig>
-  extends PluginDeployActionParamsBase<T> {
+interface GetDeployLogsParams<T extends DeployActionConfig> extends PluginDeployActionParamsBase<T> {
   stream: Stream<ServiceLogEntry>
   follow: boolean
   tail?: number
