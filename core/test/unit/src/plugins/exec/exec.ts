@@ -12,7 +12,7 @@ import { join, resolve } from "path"
 import psTree from "ps-tree"
 
 import { Garden } from "../../../../../src/garden"
-import { gardenPlugin, configureExecModule, getLogFilePath } from "../../../../../src/plugins/exec/exec"
+import { gardenPlugin, getLogFilePath } from "../../../../../src/plugins/exec/exec"
 import { GARDEN_BUILD_VERSION_FILENAME, DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { keyBy } from "lodash"
@@ -30,6 +30,7 @@ import { testFromConfig } from "../../../../../src/types/test"
 import { dedent } from "../../../../../src/util/string"
 import { sleep } from "../../../../../src/util/util"
 import { defaultDotIgnoreFile } from "../../../../../src/util/fs"
+import { configureExecModule } from "../../../../../src/plugins/exec/moduleConfig"
 
 describe("exec plugin", () => {
   const moduleName = "module-a"
@@ -776,7 +777,7 @@ describe("exec plugin", () => {
           expect(pid).to.be.a("number")
           expect(pid).to.be.greaterThan(0)
 
-          const logFilePath = getLogFilePath({ projectRoot: garden.projectRoot, serviceName: service.name })
+          const logFilePath = getLogFilePath({ projectRoot: garden.projectRoot, deployName: service.name })
           const logFileContents = (await readFile(logFilePath)).toString()
           const logEntriesWithoutTimestamps = logFileContents
             .split("\n")
@@ -842,7 +843,7 @@ describe("exec plugin", () => {
 
           pid = res.detail.pid
 
-          const logFilePath = getLogFilePath({ projectRoot: garden.projectRoot, serviceName: service.name })
+          const logFilePath = getLogFilePath({ projectRoot: garden.projectRoot, deployName: service.name })
           const logFileContents = (await readFile(logFilePath)).toString()
           const logEntriesWithoutTimestamps = logFileContents
             .split("\n")

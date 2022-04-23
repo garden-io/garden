@@ -27,7 +27,7 @@ import { varfileDescription } from "./project"
 
 export const defaultBuildTimeout = 1200
 
-export interface BuildCopySpec {
+interface BuildCopySpec {
   source: string
   target: string
 }

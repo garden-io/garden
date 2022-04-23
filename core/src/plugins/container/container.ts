@@ -258,18 +258,17 @@ export const gardenPlugin = () =>
             if (some(module.build.dependencies.map((d) => d.copy.length > 0))) {
               needsExecBuild = true
             }
-
-            if (module.generateFiles) {
+            if (module.generateFiles || module.repositoryUrl) {
               needsExecBuild = true
             }
 
-            const hasDockerfile = containerHelpers.hasDockerfile(module, module.version)
-
-            if (hasDockerfile) {
+            if (containerHelpers.hasDockerfile(module, module.version)) {
               needsContainerBuild = true
             }
 
             let buildAction: ContainerActionConfig | ExecActionConfig | undefined = undefined
+
+            const source = module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
 
             if (needsContainerBuild) {
               buildAction = {
@@ -277,10 +276,11 @@ export const gardenPlugin = () =>
                 type: "docker-image",
                 name: module.name,
                 configDirPath: module.path,
-                configFilePath: module.configPath,
 
+                source,
                 allowPublish: module.allowPublish,
                 dependencies: module.build.dependencies.map(convertBuildDependency),
+
                 spec: {
                   buildArgs: module.spec.buildArgs,
                   dockerfile: module.spec.dockerfile || "Dockerfile",
@@ -297,10 +297,11 @@ export const gardenPlugin = () =>
                 type: "exec",
                 name: module.name,
                 configDirPath: module.path,
-                configFilePath: module.configPath,
 
+                source,
                 allowPublish: module.allowPublish,
                 dependencies: module.build.dependencies.map(convertBuildDependency),
+
                 spec: {
                   env: {},
                 },
@@ -323,7 +324,6 @@ export const gardenPlugin = () =>
                 type: "container",
                 name: service.name,
                 configDirPath: module.path,
-                configFilePath: module.configPath,
 
                 build: buildAction ? buildAction.name : undefined,
                 dependencies: prepRuntimeDeps(service.spec.dependencies),
@@ -340,7 +340,6 @@ export const gardenPlugin = () =>
                 type: "container",
                 name: task.name,
                 configDirPath: module.path,
-                configFilePath: module.configPath,
 
                 build: buildAction ? buildAction.name : undefined,
                 dependencies: prepRuntimeDeps(task.spec.dependencies),
@@ -359,7 +358,6 @@ export const gardenPlugin = () =>
                 type: "container",
                 name: module.name + "-" + test.name,
                 configDirPath: module.path,
-                configFilePath: module.configPath,
 
                 build: buildAction ? buildAction.name : undefined,
                 dependencies: prepRuntimeDeps(test.spec.dependencies),
@@ -377,6 +375,8 @@ export const gardenPlugin = () =>
                 kind: "Group",
                 name: module.name,
                 actions,
+                variables: module.variables,
+                varfiles: module.varfile ? [module.varfile] : undefined,
               },
             }
           },

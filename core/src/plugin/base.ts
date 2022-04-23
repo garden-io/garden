@@ -14,10 +14,10 @@ import { GardenService, serviceSchema } from "../types/service"
 import { GardenTask, taskSchema } from "../types/task"
 import { CustomObjectSchema, joi, joiIdentifier } from "../config/common"
 import { deline } from "../util/string"
-import { BuildActionConfig, BuildActionWrapper } from "../actions/build"
-import { DeployActionConfig, DeployActionWrapper } from "../actions/deploy"
-import { RunActionConfig, RunActionWrapper } from "../actions/run"
-import { TestActionConfig, TestActionWrapper } from "../actions/test"
+import { BuildActionConfig, BuildAction } from "../actions/build"
+import { DeployActionConfig, DeployAction } from "../actions/deploy"
+import { RunActionConfig, RunAction } from "../actions/run"
+import { TestActionConfig, TestAction } from "../actions/test"
 
 export interface ActionHandlerParamsBase {
   base?: ActionHandler<any, any>
@@ -45,6 +45,7 @@ export interface PluginActionParamsBase extends PluginActionContextParams {
 
 export interface ResolvedActionHandlerDescription {
   description: string
+  required?: boolean
   // TODO: specify the schemas using primitives and not Joi objects
   paramsSchema: CustomObjectSchema
   resultSchema: CustomObjectSchema
@@ -92,21 +93,25 @@ export const namespaceStatusesSchema = () => joi.array().items(namespaceStatusSc
 
 export interface PluginBuildActionParamsBase<T extends BuildActionConfig = BuildActionConfig>
   extends PluginActionParamsBase {
-  action: BuildActionWrapper<T>
+  _configType: T
+  action: BuildAction<T>
 }
 
 export interface PluginDeployActionParamsBase<T extends DeployActionConfig = DeployActionConfig>
   extends PluginActionParamsBase {
-  action: DeployActionWrapper<T>
+  _configType: T
+  action: DeployAction<T>
 }
 
 export interface PluginRunActionParamsBase<T extends RunActionConfig = RunActionConfig> extends PluginActionParamsBase {
-  action: RunActionWrapper<T>
+  _configType: T
+  action: RunAction<T>
 }
 
 export interface PluginTestActionParamsBase<T extends TestActionConfig = TestActionConfig>
   extends PluginActionParamsBase {
-  action: TestActionWrapper<T>
+  _configType: T
+  action: TestAction<T>
 }
 
 /**

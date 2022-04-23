@@ -23,6 +23,7 @@ import {
 import { varfileDescription } from "../config/project"
 import { DOCS_BASE_URL } from "../constants"
 import { dedent, naturalList } from "../util/string"
+import { ModuleVersion } from "../vcs/vcs"
 import type { BuildActionConfig } from "./build"
 import type { DeployActionConfig } from "./deploy"
 import type { RunActionConfig } from "./run"
@@ -236,10 +237,34 @@ export interface ActionConfigTypes {
   test: TestActionConfig
 }
 
-export class BaseActionWrapper<C extends BaseActionConfig> {
-  constructor(private config: C) {}
+interface ActionWrapperParams<C extends BaseActionConfig> {
+  // TODO-G2: need to vary this based on build field
+  buildPath: string
+  buildMetadataPath: string
+  moduleName: string
+  config: C
+  version: ModuleVersion
+}
 
-  async getSourcePath() {
+export class Action<C extends BaseActionConfig = BaseActionConfig> {
+  public readonly name: string
+  public readonly buildPath: string
+  public readonly buildMetadataPath: string
+  public readonly moduleName: string // Temporary, during transition
+  public readonly version: ModuleVersion
+
+  private config: C
+
+  constructor(params: ActionWrapperParams<C>) {
+    this.name = params.config.name
+    this.buildPath = params.buildPath
+    this.buildMetadataPath = params.buildMetadataPath
+    this.moduleName = params.moduleName
+    this.config = params.config
+    this.version = params.version
+  }
+
+  getSourcePath() {
     // TODO-G2
     // TODO: handle repository.url
   }
@@ -252,7 +277,9 @@ export class BaseActionWrapper<C extends BaseActionConfig> {
     return this.config[key]
   }
 
-  async getSpec(key: keyof C["spec"]) {
-    return this.config.spec[key]
+  async getSpec(): Promise<C["spec"]>
+  async getSpec<K extends keyof C["spec"]>(key: K): Promise<C["spec"][K]>
+  async getSpec(key?: keyof C["spec"]) {
+    return key ? this.config.spec[key] : this.config.spec
   }
 }

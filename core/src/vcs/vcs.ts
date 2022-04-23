@@ -45,6 +45,7 @@ export interface TreeVersions {
   [moduleName: string]: TreeVersion
 }
 
+// TODO-G2: rename
 export interface ModuleVersion {
   versionString: string
   dependencyVersions: DependencyVersions
