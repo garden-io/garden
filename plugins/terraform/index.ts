@@ -24,9 +24,11 @@ import {
 import { docsBaseUrl } from "@garden-io/sdk/constants"
 import { listDirectory } from "@garden-io/sdk/util/fs"
 import { getTerraformCommands } from "./commands"
+import { TerraformDeployConfig, terraformDeployOutputsSchema } from "./action"
 
 import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
-import { joi, joiVariables } from "@garden-io/core/build/src/config/common"
+import { joi } from "@garden-io/core/build/src/config/common"
+import { DOCS_BASE_URL } from "@garden-io/core/src/constants"
 
 type TerraformProviderConfig = GenericProviderConfig &
   TerraformBaseSpec & {
@@ -69,6 +71,7 @@ const configSchema = providerConfigBaseSchema()
   .unknown(false)
 
 // Need to make these variables to avoid escaping issues
+const deployOutputsTemplateString = "${deploys.<deploy-name>.outputs.<key>}"
 const serviceOutputsTemplateString = "${runtime.services.<module-name>.outputs.<key>}"
 const providerOutputsTemplateString = "${providers.terraform.outputs.<key>}"
 
@@ -102,6 +105,33 @@ export const gardenPlugin = () =>
       },
     },
     commands: getTerraformCommands(),
+
+    createActionTypes: {
+      deploy: [
+        {
+          name: "terraform",
+          docs: dedent`
+          Resolves a Terraform stack and either applies it automatically (if \`autoApply: true\`) or warns when the stack resources are not up-to-date.
+
+          **Note: It is not recommended to set \`autoApply\` to \`true\` for any production or shared environments, since this may result in accidental or conflicting changes to the stack.** Instead, it is recommended to manually plan and apply using the provided plugin commands. Run \`garden plugins terraform\` for details.
+
+          Stack outputs are made available as service outputs, that can be referenced by other modules under \`${deployOutputsTemplateString}\`. You can template in those values as e.g. command arguments or environment variables for other services.
+
+          Note that you can also declare a Terraform root in the \`terraform\` provider configuration by setting the \`initRoot\` parameter. This may be preferable if you need the outputs of the Terraform stack to be available to other provider configurations, e.g. if you spin up an environment with the Terraform provider, and then use outputs from that to configure another provider or other modules via \`${providerOutputsTemplateString}\` template strings.
+
+          See the [Terraform guide](${DOCS_BASE_URL}/advanced/terraform) for a high-level introduction to the \`terraform\` provider.
+          `,
+          schema: terraformModuleSchema(),
+          outputsSchema: terraformDeployOutputsSchema(),
+          handlers: {
+            deploy: deployTerraform,
+            getStatus: getTerraformStatus,
+            delete: deleteTerraformModule,
+          },
+        },
+      ],
+    },
+
     createModuleTypes: [
       {
         name: "terraform",
@@ -116,9 +146,70 @@ export const gardenPlugin = () =>
 
       See the [Terraform guide](${docsBaseUrl}/advanced/terraform) for a high-level introduction to the \`terraform\` provider.
     `,
-        serviceOutputsSchema: joiVariables().description("A map of all the outputs defined in the Terraform stack."),
+        serviceOutputsSchema: terraformDeployOutputsSchema(),
         schema: terraformModuleSchema(),
         handlers: {
+          async convert({ module, convertBuildDependency, convertRuntimeDependency, needsBuild, copyFrom }) {
+            const actions: (ExecBuildConfig | TerraformDeployConfig)[] = []
+
+            let buildAction: ExecBuildConfig | undefined = undefined
+
+            if (needsBuild) {
+              buildAction = {
+                kind: "Build",
+                type: "exec",
+                name: module.name,
+
+                configDirPath: module.path,
+                configFilePath: module.configPath,
+
+                copyFrom,
+                source: module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
+
+                allowPublish: module.allowPublish,
+                dependencies: module.build.dependencies.map(convertBuildDependency),
+
+                spec: {
+                  env: {},
+                },
+              }
+              actions.push(buildAction)
+            }
+
+            function prepRuntimeDeps(deps: string[]) {
+              if (buildAction) {
+                return deps.map(convertRuntimeDependency)
+              } else {
+                // If we don't return a Build action, we must still include any declared build dependencies
+                return [...module.build.dependencies.map(convertBuildDependency), ...deps.map(convertRuntimeDependency)]
+              }
+            }
+
+            actions.push({
+              kind: "Deploy",
+              type: "terraform",
+              name: module.name,
+              configDirPath: module.path,
+
+              build: buildAction ? buildAction.name : undefined,
+              dependencies: prepRuntimeDeps(module.spec.dependencies),
+
+              spec: {
+                ...module.spec,
+              },
+            })
+
+            return {
+              group: {
+                kind: "Group",
+                name: module.name,
+                actions,
+                variables: module.variables,
+                varfiles: module.varfile ? [module.varfile] : undefined,
+              },
+            }
+          },
+
           async suggestModules({ name, path }) {
             const files = await listDirectory(path, { recursive: false })
 
@@ -139,12 +230,11 @@ export const gardenPlugin = () =>
               return { suggestions: [] }
             }
           },
+
           configure: configureTerraformModule,
-          getServiceStatus: getTerraformStatus,
-          deployService: deployTerraform,
-          deleteService: deleteTerraformModule,
         },
       },
     ],
+
     tools: Object.values(terraformCliSpecs),
   })

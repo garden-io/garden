@@ -6,18 +6,42 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { includeGuideLink, joi, joiSparseArray } from "../config/common"
+import { includeGuideLink, joi, joiSparseArray, joiUserIdentifier } from "../config/common"
 import { generatedFileSchema, GenerateFileSpec } from "../config/module"
 import { dedent } from "../util/string"
 import { BaseActionConfig, baseActionConfig, Action, includeExcludeSchema } from "./base"
+
+export interface BuildCopyFrom {
+  build: string
+  sourcePath: string
+  targetPath: string
+}
 
 export interface BuildActionConfig<S = any> extends BaseActionConfig<S> {
   kind: "Build"
   allowPublish?: boolean
   buildAtSource?: boolean
+  copyFrom?: BuildCopyFrom[]
   generateFiles?: GenerateFileSpec[]
   timeout?: number
 }
+
+export const copyFromSchema = () =>
+  joi.object().keys({
+    build: joiUserIdentifier().required().description("The name of the Build action to copy from."),
+    sourcePath: joi
+      .posixPath()
+      .allowGlobs()
+      .subPathOnly()
+      .required()
+      .description(
+        "POSIX-style path or filename of the directory or file(s) to copy to the target, relative to the build path of the source build."
+      ),
+    targetPath: joi.posixPath().subPathOnly().default("").description(dedent`
+      POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
+      Defaults to to same as source path.
+    `),
+  })
 
 export const buildActionConfig = () =>
   baseActionConfig().keys({
@@ -42,6 +66,12 @@ export const buildActionConfig = () =>
         While there may be good reasons to do this in some situations, please be aware that this increases the potential for side-effects and variability in builds. **You must take extra care**, including making sure that files generated during builds are excluded with e.g. \`.gardenignore\` files or \`exclude\` fields on potentially affected actions. Another potential issue is causing infinite loops when running with file-watching enabled, basically triggering a new build during the build.
         `
       ),
+
+    copyFrom: joiSparseArray(copyFromSchema()).description(
+      dedent`
+        Copy files from other builds, ahead of running this build.
+      `
+    ),
 
     include: includeExcludeSchema()
       .description(

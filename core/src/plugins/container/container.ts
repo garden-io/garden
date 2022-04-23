@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { keyBy, some } from "lodash"
+import { keyBy } from "lodash"
 
 import { ConfigurationError } from "../../exceptions"
 import { createGardenPlugin } from "../../plugin/plugin"
@@ -249,18 +249,12 @@ export const gardenPlugin = () =>
             module,
             convertBuildDependency,
             convertRuntimeDependency,
+            needsBuild: needsExecBuild,
+            copyFrom,
           }: ConvertModuleParams<ContainerModule>) {
             const actions: (ContainerActionConfig | ExecActionConfig)[] = []
 
-            let needsExecBuild = false
             let needsContainerBuild = false
-
-            if (some(module.build.dependencies.map((d) => d.copy.length > 0))) {
-              needsExecBuild = true
-            }
-            if (module.generateFiles || module.repositoryUrl) {
-              needsExecBuild = true
-            }
 
             if (containerHelpers.hasDockerfile(module, module.version)) {
               needsContainerBuild = true
@@ -268,7 +262,7 @@ export const gardenPlugin = () =>
 
             let buildAction: ContainerActionConfig | ExecActionConfig | undefined = undefined
 
-            const source = module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
+            const source = module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined
 
             if (needsContainerBuild) {
               buildAction = {
@@ -277,6 +271,7 @@ export const gardenPlugin = () =>
                 name: module.name,
                 configDirPath: module.path,
 
+                copyFrom,
                 source,
                 allowPublish: module.allowPublish,
                 dependencies: module.build.dependencies.map(convertBuildDependency),
