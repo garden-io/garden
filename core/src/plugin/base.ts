@@ -43,11 +43,15 @@ export interface PluginActionParamsBase extends PluginActionContextParams {
   log: LogEntry
 }
 
-export interface PluginActionDescription {
+export interface ResolvedActionHandlerDescription {
   description: string
   // TODO: specify the schemas using primitives and not Joi objects
   paramsSchema: CustomObjectSchema
   resultSchema: CustomObjectSchema
+}
+
+export interface ResolvedActionHandlerDescriptions {
+  [actionName: string]: ResolvedActionHandlerDescription
 }
 
 // Note: not specifying this further because we will later remove it from the API
@@ -100,7 +104,8 @@ export interface PluginRunActionParamsBase<T extends RunActionConfig = RunAction
   action: RunActionWrapper<T>
 }
 
-export interface PluginTestActionParamsBase<T extends TestActionConfig = TestActionConfig> extends PluginActionParamsBase {
+export interface PluginTestActionParamsBase<T extends TestActionConfig = TestActionConfig>
+  extends PluginActionParamsBase {
   action: TestActionWrapper<T>
 }
 

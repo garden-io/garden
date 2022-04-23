@@ -11,13 +11,17 @@ import { join, relative, resolve } from "path"
 import { extend, intersection, mapValues, pick } from "lodash"
 import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
-import { containerModuleSpecSchema, containerRunSchema, containerTestSchema } from "../src/plugins/container/moduleConfig"
+import {
+  containerModuleSpecSchema,
+  containerRunSchema,
+  containerTestSchema,
+} from "../src/plugins/container/moduleConfig"
 import { buildExecModule, testExecModule } from "../src/plugins/exec/exec"
 import { joi, joiArray } from "../src/config/common"
 import {
   createGardenPlugin,
   ModuleAndRuntimeActionHandlers,
-  PluginActionHandlers,
+  ProviderActionHandlers,
   RegisterPluginParam,
 } from "../src/plugin/plugin"
 import { Garden, GardenOpts } from "../src/garden"
@@ -418,11 +422,11 @@ export const makeTestGardenBuildDependants = profileAsync(async function _makeTe
   return makeTestGarden(projectRootBuildDependants, { plugins: extraPlugins, forceRefresh: true, ...opts })
 })
 
-export async function stubAction<T extends keyof PluginActionHandlers>(
+export async function stubAction<T extends keyof ProviderActionHandlers>(
   garden: Garden,
   pluginName: string,
   type: T,
-  handler?: PluginActionHandlers[T]
+  handler?: ProviderActionHandlers[T]
 ) {
   if (handler) {
     handler["pluginName"] = pluginName
