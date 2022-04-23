@@ -568,15 +568,16 @@ export const execPlugin = () =>
             ),
         }),
         handlers: {
-          async convert({ module, convertBuildDependency, convertRuntimeDependency }: ConvertModuleParams<ExecModule>) {
+          async convert({
+            module,
+            convertBuildDependency,
+            convertRuntimeDependency,
+            needsBuild,
+            copyFrom,
+          }: ConvertModuleParams<ExecModule>) {
             const actions: ExecActionConfig[] = []
 
-            let needsBuild = false
-
-            if (some(module.build.dependencies.map((d) => d.copy.length > 0))) {
-              needsBuild = true
-            }
-            if (module.spec.build?.command || module.generateFiles || module.repositoryUrl) {
+            if (module.spec.build?.command) {
               needsBuild = true
             }
 
@@ -591,6 +592,7 @@ export const execPlugin = () =>
                 configDirPath: module.path,
                 configFilePath: module.configPath,
 
+                copyFrom,
                 source: module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
 
                 allowPublish: module.allowPublish,
