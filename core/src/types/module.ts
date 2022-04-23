@@ -151,7 +151,7 @@ export async function moduleFromConfig({
   }
 
   for (const d of module.build.dependencies) {
-    const key = getModuleKey(d.name, d.plugin)
+    const key = d.name
     module.buildDependencies[key] = findByName(buildDependencies, key)!
   }
 
@@ -164,9 +164,4 @@ export function moduleNeedsBuild(moduleConfig: ModuleConfig, moduleType: ModuleT
 
 export function getModuleCacheContext<M extends ModuleConfig>(config: M) {
   return pathToCacheContext(config.path)
-}
-
-export function getModuleKey(name: string, plugin?: string) {
-  const hasPrefix = !!name.match(/--/)
-  return plugin && !hasPrefix ? `${plugin}--${name}` : name
 }

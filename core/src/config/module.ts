@@ -51,7 +51,6 @@ const copySchema = () =>
 
 export interface BuildDependencyConfig {
   name: string
-  plugin?: string
   copy: BuildCopySpec[]
 }
 
