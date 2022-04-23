@@ -10,10 +10,12 @@ import Joi from "@hapi/joi"
 import { ActionKind } from "../../../actions/base"
 import { joi } from "../../../config/common"
 
-export abstract class ActionTypeHandlerSpec<K extends ActionKind | "module", P extends {}, R extends {}> {
+export abstract class ActionTypeHandlerSpec<K extends ActionKind, P extends {}, R extends {}> {
   abstract description: string
   abstract paramsSchema: () => Joi.ObjectSchema
   abstract resultSchema: () => Joi.ObjectSchema
+
+  required = false
 
   // These are used internally to map types
   _kindType: K

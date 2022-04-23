@@ -29,7 +29,7 @@ import { RunTaskParams, RunTaskResult, runTask } from "../types/plugin/task/runT
 import { TestModuleParams, testModule } from "../types/plugin/module/testModule"
 import { joiIdentifier, joi, joiSchema } from "../config/common"
 import { GardenModule } from "../types/module"
-import { ActionHandlerParamsBase, PluginActionDescription, RunResult, WrappedActionHandler } from "./base"
+import { ActionHandlerParamsBase, ResolvedActionHandlerDescription, RunResult, WrappedActionHandler } from "./base"
 import { ServiceStatus } from "../types/service"
 import { mapValues } from "lodash"
 import { dedent } from "../util/string"
@@ -45,7 +45,7 @@ import {
 import { getTestResult, GetTestResultParams } from "../types/plugin/module/getTestResult"
 import { convertModule, ConvertModuleParams, ConvertModuleResult } from "./handlers/module/convert"
 import { baseHandlerSchema } from "./handlers/base/base"
-import { PluginActionDescriptions } from "./plugin"
+import { ResolvedActionHandlerDescriptions } from "./plugin"
 
 export type ModuleActionHandler<P extends ActionHandlerParamsBase, O> = ((params: P) => Promise<O>) & {
   actionType?: string
@@ -113,7 +113,7 @@ export interface ServiceActionOutputs {
   stopPortForward: {}
 }
 
-const serviceActionDescriptions: { [P in ServiceActionName]: () => PluginActionDescription } = {
+const serviceActionDescriptions: { [P in ServiceActionName]: () => ResolvedActionHandlerDescription } = {
   deployService,
   deleteService,
   execInService,
@@ -142,7 +142,7 @@ export interface TaskActionOutputs {
   getTaskResult: RunTaskResult | null | undefined
 }
 
-const taskActionDescriptions: { [P in TaskActionName]: () => PluginActionDescription } = {
+const taskActionDescriptions: { [P in TaskActionName]: () => ResolvedActionHandlerDescription } = {
   getTaskResult,
   runTask,
 }
@@ -187,9 +187,9 @@ export interface ModuleActionOutputs extends ServiceActionOutputs {
 }
 
 // It takes a short while to resolve all these schemas, so we cache the result
-let _moduleActionDescriptions: PluginActionDescriptions
+let _moduleActionDescriptions: ResolvedActionHandlerDescriptions
 
-export function getModuleActionDescriptions(): PluginActionDescriptions {
+export function getModuleActionDescriptions(): ResolvedActionHandlerDescriptions {
   if (_moduleActionDescriptions) {
     return _moduleActionDescriptions
   }
@@ -210,7 +210,7 @@ export function getModuleActionDescriptions(): PluginActionDescriptions {
     ...taskActionDescriptions,
   }
 
-  _moduleActionDescriptions = <PluginActionDescriptions>mapValues(descriptions, (f) => {
+  _moduleActionDescriptions = <ResolvedActionHandlerDescriptions>mapValues(descriptions, (f) => {
     const desc = f()
 
     return {

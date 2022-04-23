@@ -81,10 +81,13 @@ export async function resolveModuleTemplate(
     try {
       inputsJsonSchema = JSON.parse((await readFile(path)).toString())
     } catch (error) {
-      throw new ConfigurationError(`Unable to read inputs schema for ${moduleTemplateKind} ${validated.name}: ${error}`, {
-        path,
-        error,
-      })
+      throw new ConfigurationError(
+        `Unable to read inputs schema for ${moduleTemplateKind} ${validated.name}: ${error}`,
+        {
+          path,
+          error,
+        }
+      )
     }
 
     const type = inputsJsonSchema?.type

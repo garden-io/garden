@@ -53,7 +53,7 @@ import { BuildStaging } from "./build-staging/build-staging"
 import { ConfigGraph } from "./config-graph"
 import { TaskGraph, GraphResults, ProcessTasksOpts } from "./task-graph"
 import { getLogger } from "./logger/logger"
-import { PluginActionHandlers, GardenPlugin } from "./plugin/plugin"
+import { ProviderActionHandlers, GardenPlugin } from "./plugin/plugin"
 import { loadConfigResources, findProjectConfig, prepareModuleResource, GardenResource } from "./config/base"
 import { DeepPrimitiveMap, StringMap, PrimitiveMap, treeVersionSchema, joi } from "./config/common"
 import { BaseTask } from "./tasks/base"
@@ -123,8 +123,8 @@ import { ConfigContext } from "./config/template-contexts/base"
 import { validateSchema, validateWithPath } from "./config/validation"
 import { pMemoizeDecorator } from "./lib/p-memoize"
 
-export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
-  [actionName: string]: PluginActionHandlers[T]
+export interface ActionHandlerMap<T extends keyof ProviderActionHandlers> {
+  [actionName: string]: ProviderActionHandlers[T]
 }
 
 export interface ModuleActionHandlerMap<T extends keyof ModuleAndRuntimeActionHandlers> {
@@ -132,8 +132,8 @@ export interface ModuleActionHandlerMap<T extends keyof ModuleAndRuntimeActionHa
 }
 
 export type PluginActionMap = {
-  [A in keyof PluginActionHandlers]: {
-    [pluginName: string]: PluginActionHandlers[A]
+  [A in keyof ProviderActionHandlers]: {
+    [pluginName: string]: ProviderActionHandlers[A]
   }
 }
 
