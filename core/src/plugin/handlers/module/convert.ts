@@ -10,16 +10,19 @@ import { dedent } from "../../../util/string"
 import { PluginContext, pluginContextSchema } from "../../../plugin-context"
 import { logEntrySchema, PluginActionContextParams } from "../../base"
 import { BuildDependencyConfig } from "../../../config/module"
-import { joi } from "../../../config/common"
+import { joi, joiArray } from "../../../config/common"
 import { LogEntry } from "../../../logger/log-entry"
 import { GroupConfig, groupConfig } from "../../../config/group"
 import { GardenModule, moduleSchema } from "../../../types/module"
 import { baseActionConfig, BaseActionConfig } from "../../../actions/base"
+import { BuildCopyFrom, copyFromSchema } from "../../../actions/build"
 
 export interface ConvertModuleParams<T extends GardenModule = GardenModule> extends PluginActionContextParams {
   ctx: PluginContext
   log: LogEntry
   module: T
+  needsBuild: boolean
+  copyFrom: BuildCopyFrom[]
   convertBuildDependency: (d: string | BuildDependencyConfig) => string
   convertRuntimeDependency: (d: string) => string
 }
@@ -39,6 +42,8 @@ export const convertModule = () => ({
 
     To convert dependencies, two helpers are provided for build dependencies and runtime dependencies, \`convertBuildDependency\` and \`convertRuntimeDependency\` respectively. These should be used to make sure dependency references map correctly to converted actions in other modules.
 
+    Additionally, two variables are provided: \`needsBuild\` is set to true if one or more Build-only features are used on the module. If this is set, a Build action is expected to be returned. Another is \`copyFrom\`, which is provided as a convenience to set the field with the same name on the generated Build action, based on the module's build dependencies.
+
     This handler is called on every resolution of the project graph, so it should return quickly and avoid doing any network calls.
   `,
 
@@ -46,6 +51,8 @@ export const convertModule = () => ({
     ctx: pluginContextSchema().required(),
     log: logEntrySchema(),
     module: moduleSchema().required(),
+    needsBuild: joi.boolean(),
+    copyFrom: joiArray(copyFromSchema()),
     convertBuildDependency: joi.function(),
     convertRuntimeDependency: joi.function(),
   }),
