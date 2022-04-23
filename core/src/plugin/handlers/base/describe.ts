@@ -22,7 +22,7 @@ interface ActionDescription {
   title?: string
 }
 
-export class DescribeActionType extends ActionTypeHandlerSpec<any, {}, ActionDescription> {
+export class DescribeActionType extends ActionTypeHandlerSpec<any, any, ActionDescription> {
   description = dedent`
     Return documentation and a schema description of the action type.
 

@@ -9,7 +9,7 @@
 import { includeGuideLink, joi, joiSparseArray } from "../config/common"
 import { generatedFileSchema, GenerateFileSpec } from "../config/module"
 import { dedent } from "../util/string"
-import { BaseActionConfig, baseActionConfig, BaseActionWrapper, includeExcludeSchema } from "./base"
+import { BaseActionConfig, baseActionConfig, Action, includeExcludeSchema } from "./base"
 
 export interface BuildActionConfig<S = any> extends BaseActionConfig<S> {
   kind: "Build"
@@ -74,4 +74,4 @@ export const buildActionConfig = () =>
     timeout: joi.number().integer().description("Set a timeout for the build to complete, in seconds."),
   })
 
-export class BuildActionWrapper<C extends BuildActionConfig> extends BaseActionWrapper<C> {}
+export class BuildAction<C extends BuildActionConfig> extends Action<C> {}

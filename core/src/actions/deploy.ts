@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BaseRuntimeActionConfig, baseRuntimeActionConfig, BaseActionWrapper } from "./base"
+import { BaseRuntimeActionConfig, baseRuntimeActionConfig, Action } from "./base"
 
 export interface DeployActionConfig<S = any> extends BaseRuntimeActionConfig<S> {
   kind: "Deploy"
@@ -14,4 +14,4 @@ export interface DeployActionConfig<S = any> extends BaseRuntimeActionConfig<S> 
 
 export const deployActionSpec = () => baseRuntimeActionConfig()
 
-export class DeployActionWrapper<S extends BaseRuntimeActionConfig> extends BaseActionWrapper<S> {}
+export class DeployAction<S extends DeployActionConfig = DeployActionConfig> extends Action<S> {}
