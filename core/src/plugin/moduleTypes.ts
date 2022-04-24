@@ -29,7 +29,7 @@ import { RunTaskParams, RunTaskResult, runTask } from "../types/plugin/task/runT
 import { TestModuleParams, testModule } from "../types/plugin/module/testModule"
 import { joiIdentifier, joi, joiSchema } from "../config/common"
 import { GardenModule } from "../types/module"
-import { ActionHandlerParamsBase, ResolvedActionHandlerDescription, RunResult, WrappedActionHandler } from "./base"
+import { ActionHandlerParamsBase, outputSchemaDocs, ResolvedActionHandlerDescription, RunResult, WrappedActionHandler } from "./base"
 import { ServiceStatus } from "../types/service"
 import { mapValues } from "lodash"
 import { dedent } from "../util/string"
@@ -265,18 +265,6 @@ export const extendModuleTypeSchema = () =>
     name: joiIdentifier().required().description("The name of module type."),
     handlers: moduleHandlersSchema(),
   })
-
-const outputSchemaDocs = dedent`
-The schema must be a single level object, with string keys. Each value must be a primitive
-(null, boolean, number or string).
-
-If no schema is provided, an error may be thrown if a plugin handler attempts to return an output key.
-
-If the module type has a \`base\`, you must either omit this field to inherit the base's schema, make sure
-that the specified schema is a _superset_ of the base's schema (i.e. only adds or further constrains existing fields),
-_or_ override the necessary handlers to make sure their output matches the base's schemas.
-This is to ensure that plugin handlers made for the base type also work with this module type.
-`
 
 export const createModuleTypeSchema = () =>
   extendModuleTypeSchema().keys({

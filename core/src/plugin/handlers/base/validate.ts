@@ -9,29 +9,32 @@
 import { dedent } from "../../../util/string"
 import { pluginContextSchema } from "../../../plugin-context"
 import { logEntrySchema, PluginActionContextParams } from "../../../plugin/base"
-import { joi } from "../../../config/common"
+import { identifierRegex, joi } from "../../../config/common"
 import { LogEntry } from "../../../logger/log-entry"
 import { baseActionConfig, BaseActionConfig } from "../../../actions/base"
 import { ActionTypeHandlerSpec } from "./base"
 
-interface ValidateActionParams<T extends BaseActionConfig> extends PluginActionContextParams {
+interface ValidateActionConfigParams<T extends BaseActionConfig> extends PluginActionContextParams {
   log: LogEntry
-  spec: T
+  config: T
+  dependencies: BaseActionConfig[]
 }
 
-interface ValidateActionResult<T extends BaseActionConfig> {
-  spec: T
+interface ValidateActionConfigResult<T extends BaseActionConfig> {
+  spec: T["spec"]
 }
 
-export class ValidateAction<T extends BaseActionConfig = BaseActionConfig> extends ActionTypeHandlerSpec<
+export class ValidateActionConfig<T extends BaseActionConfig = BaseActionConfig> extends ActionTypeHandlerSpec<
   any,
-  ValidateActionParams<T>,
-  ValidateActionResult<T>
+  ValidateActionConfigParams<T>,
+  ValidateActionConfigResult<T>
 > {
   description = dedent`
-    Validate and (optionally) transform the given action spec.
+    Validate the given action configuration, and optionally transform its spec.
 
-    Note that this does not need to perform structural schema validation (the framework does that automatically), but should in turn perform semantic validation to make sure the configuration is sane.
+    This does not need to perform structural schema validation (the framework does that automatically), but should in turn perform semantic validation to make sure the configuration is sane.
+
+    Note that the handler can only transform the \`spec\` field, and not the other built-in parts of the action config, such as dependencies.
 
     This handler is called on every resolution of the project graph, so it should return quickly and avoid doing any network calls or expensive computation.
   `
@@ -40,11 +43,21 @@ export class ValidateAction<T extends BaseActionConfig = BaseActionConfig> exten
     joi.object().keys({
       ctx: pluginContextSchema().required(),
       log: logEntrySchema(),
-      spec: baseActionConfig().required(),
+      config: baseActionConfig()
+        .required()
+        .description(
+          "The config for the action, with all built-in fields fully resolved, and the `spec` field partially resolved (excluding references to other actions)."
+        ),
+      dependencies: joi
+        .object()
+        .pattern(identifierRegex, baseActionConfig())
+        .description(
+          "A list of configs for every dependency of this action, transitively (i.e. including dependencies of dependencies etc.)."
+        ),
     })
 
   resultSchema = () =>
     joi.object().keys({
-      spec: baseActionConfig().required(),
+      spec: joi.object(),
     })
 }

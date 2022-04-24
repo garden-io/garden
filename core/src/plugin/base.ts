@@ -13,7 +13,7 @@ import { RuntimeContext, runtimeContextSchema } from "../runtime-context"
 import { GardenService, serviceSchema } from "../types/service"
 import { GardenTask, taskSchema } from "../types/task"
 import { CustomObjectSchema, joi, joiIdentifier } from "../config/common"
-import { deline } from "../util/string"
+import { dedent, deline } from "../util/string"
 import { BuildActionConfig, BuildAction } from "../actions/build"
 import { DeployActionConfig, DeployAction } from "../actions/deploy"
 import { RunActionConfig, RunAction } from "../actions/run"
@@ -93,24 +93,20 @@ export const namespaceStatusesSchema = () => joi.array().items(namespaceStatusSc
 
 export interface PluginBuildActionParamsBase<T extends BuildActionConfig = BuildActionConfig>
   extends PluginActionParamsBase {
-  _configType: T
   action: BuildAction<T>
 }
 
 export interface PluginDeployActionParamsBase<T extends DeployActionConfig = DeployActionConfig>
   extends PluginActionParamsBase {
-  _configType: T
   action: DeployAction<T>
 }
 
 export interface PluginRunActionParamsBase<T extends RunActionConfig = RunActionConfig> extends PluginActionParamsBase {
-  _configType: T
   action: RunAction<T>
 }
 
 export interface PluginTestActionParamsBase<T extends TestActionConfig = TestActionConfig>
   extends PluginActionParamsBase {
-  _configType: T
   action: TestAction<T>
 }
 
@@ -217,3 +213,11 @@ export function runStatus<R extends RunResult>(result: R | null | undefined): Ru
     return { state: result === null ? "outdated" : "not-implemented" }
   }
 }
+
+export const outputSchemaDocs = dedent`
+  The schema must be a single level object, with string keys. Each value must be a primitive (null, boolean, number or string).
+
+  If no schema is provided, an error may be thrown if a plugin handler attempts to return an output key.
+
+  If the module type has a \`base\`, you must either omit this field to inherit the base's schema, make sure that the specified schema is a _superset_ of the base's schema (i.e. only adds or further constrains existing fields), _or_ override the necessary handlers to make sure their output matches the base's schemas. This is to ensure that plugin handlers made for the base type also work with this type.
+`

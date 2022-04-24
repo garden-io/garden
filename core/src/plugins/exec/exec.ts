@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { mapValues, some } from "lodash"
+import { mapValues } from "lodash"
 import { join } from "path"
 import split2 = require("split2")
 import { joi, PrimitiveMap, StringMap } from "../../config/common"
