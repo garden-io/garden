@@ -264,9 +264,10 @@ export class Action<C extends BaseActionConfig = BaseActionConfig> {
     this.version = params.version
   }
 
-  getSourcePath() {
+  getSourcePath(): string {
     // TODO-G2
     // TODO: handle repository.url
+    return this.config.configDirPath
   }
 
   getDependencyReferences(): ActionReference[] {

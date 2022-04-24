@@ -7,9 +7,9 @@
  */
 
 import { mapValues } from "lodash"
-import { ResolvedActionHandlerDescriptions } from "./plugin"
+import { outputSchemaDocs, ResolvedActionHandlerDescriptions } from "./plugin"
 import { ActionTypeHandlerSpec, baseHandlerSchema } from "./handlers/base/base"
-import { ValidateAction } from "./handlers/base/validate"
+import { ValidateActionConfig } from "./handlers/base/validate"
 import { BuildAction } from "./handlers/build/build"
 import { GetBuildActionStatus } from "./handlers/build/getStatus"
 import { PublishBuildAction } from "./handlers/build/publish"
@@ -28,16 +28,19 @@ import { GetTestActionResult } from "./handlers/test/getResult"
 import { TestAction } from "./handlers/test/run"
 import { ActionKind, BaseActionConfig } from "../actions/base"
 import Joi from "@hapi/joi"
-import { joi, joiArray, joiUserIdentifier } from "../config/common"
+import { joi, joiArray, joiSchema, joiUserIdentifier } from "../config/common"
 import titleize from "titleize"
 import { BuildActionConfig } from "../actions/build"
 import { DeployActionConfig } from "../actions/deploy"
 import { RunActionConfig } from "../actions/run"
 import { TestActionConfig } from "../actions/test"
 import { DeployAction } from "./handlers/deploy/deploy"
+import { dedent } from "../util/string"
+import { templateStringLiteral } from "../docs/common"
 
-type BaseHandlers<C extends BaseActionConfig> = {
-  validate: ValidateAction<C>
+type BaseHandlers<_ extends BaseActionConfig> = {
+  // TODO: see if this is actually needed, consider only allowing validating fully-resolved Actions
+  // validateConfig: ValidateActionConfig<C>
 }
 
 type BuildActionDescriptions<C extends BuildActionConfig = BuildActionConfig> = BaseHandlers<C> & {
@@ -85,7 +88,7 @@ type TestActionDescriptions<C extends TestActionConfig = TestActionConfig> = Bas
 }
 
 export type TestActionHandlers<C extends TestActionConfig = TestActionConfig> = {
-  [N in keyof TestActionDescriptions]: GetActionTypeHandler<TestActionDescriptions<C>[N], N>
+  [N in keyof TestActionDescriptions]?: GetActionTypeHandler<TestActionDescriptions<C>[N], N>
 }
 
 export type TestActionHandler<
@@ -159,14 +162,14 @@ export function getActionTypeHandlerDescriptions(): ResolvedActionTypeHandlerDes
 
   const descriptions: _ActionTypeHandlerDescriptions = {
     build: {
-      validate: new ValidateAction(),
+      // validateConfig: new ValidateActionConfig(),
       build: new BuildAction(),
       getStatus: new GetBuildActionStatus(),
       publish: new PublishBuildAction(),
       run: new RunBuildAction(),
     },
     deploy: {
-      validate: new ValidateAction(),
+      // validateConfig: new ValidateActionConfig(),
       delete: new DeleteDeploy(),
       deploy: new DeployAction(),
       exec: new ExecInDeploy(),
@@ -178,12 +181,12 @@ export function getActionTypeHandlerDescriptions(): ResolvedActionTypeHandlerDes
       stopPortForward: new StopDeployPortForward(),
     },
     run: {
-      validate: new ValidateAction(),
+      // validateConfig: new ValidateActionConfig(),
       getResult: new GetRunActionResult(),
       run: new RunAction(),
     },
     test: {
-      validate: new ValidateAction(),
+      // validateConfig: new ValidateActionConfig(),
       getResult: new GetTestActionResult(),
       run: new TestAction(),
     },
@@ -234,6 +237,26 @@ const createActionTypeSchema = (kind: ActionKind) => {
     .object()
     .keys({
       name: joiUserIdentifier().description(`The name of the ${titleKind} type to create.`),
+      docs: joi.string().required().description("Documentation for the action, in markdown format."),
+      title: joi
+        .string()
+        .description(
+          "Readable title for the module type. Defaults to the title-cased type name, with dashes replaced by spaces."
+        ),
+      schema: joiSchema().required().description(dedent`
+        A valid Joi schema describing the configuration keys for the \`spec\` field on the action type.
+
+        If the action type has a \`base\`, you must either omit this field to inherit the base's schema, make sure
+        that the specified schema is a _superset_ of the base's schema (i.e. only adds or further constrains existing
+        fields), _or_ specify a \`configure\` handler that returns a module config compatible with the base's
+        schema. This is to ensure that plugin handlers made for the base type also work with this action type.
+      `),
+      outputsSchema: joiSchema().description(dedent`
+        A valid Joi schema describing the keys that each action of this type outputs at config resolution time,
+        for use in template strings (e.g. ${templateStringLiteral(`${kind}.my-${kind}.outputs.some-key`)}).
+
+        ${outputSchemaDocs}
+      `),
       handlers: mapValues(descriptions[kind], (d) => {
         const schema = baseHandlerSchema().description(d.description)
         return d.required ? schema.required() : schema
