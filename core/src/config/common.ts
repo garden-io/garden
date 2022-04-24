@@ -133,6 +133,11 @@ export interface PosixPathSchema extends Joi.StringSchema {
   subPathOnly(): this
 }
 
+interface ActionReferenceSchema extends Joi.AnySchema {
+  kind(kind: ActionKind): this
+  actionType(type: string): this
+}
+
 export interface Schema extends Joi.Root {
   object: () => CustomObjectSchema
   environment: () => Joi.StringSchema
@@ -140,7 +145,7 @@ export interface Schema extends Joi.Root {
   posixPath: () => PosixPathSchema
   hostname: () => Joi.StringSchema
   sparseArray: () => Joi.ArraySchema
-  actionReference: () => Joi.AnySchema
+  actionReference: () => ActionReferenceSchema
 }
 
 export let joi: Schema = Joi.extend({
@@ -483,24 +488,88 @@ export function parseActionReference(reference: string | object): ActionReferenc
   }
 }
 
+export const joiIdentifier = () =>
+  joi
+    .string()
+    .regex(identifierRegex)
+    .description(joiIdentifierDescription[0].toUpperCase() + joiIdentifierDescription.slice(1))
+
 /**
  * Add a joi.actionReference() type, wrapping the parseActionReference() function and returning it as a parsed object.
  */
 joi = joi.extend({
   base: Joi.any(),
   type: "actionReference",
-  messages: {
-    validation: `<not used>`,
+  flags: {
+    kind: { default: undefined },
+    actionType: { default: undefined },
   },
-  validate(originalValue: string | object, helpers) {
+  messages: {
+    validation: "<not used>",
+    wrongKind: "{{#label}} has the wrong action kind.",
+  },
+  validate(originalValue: string | object, opts) {
     try {
       const value = parseActionReference(originalValue)
+
+      const expectedKind = opts.schema.$_getFlag("kind")
+
+      if (expectedKind && value.kind !== expectedKind) {
+        const error = opts.error("wrongKind")
+        error.message += ` Expected '${expectedKind}', got '${value.kind}'`
+        return { value, errors: error }
+      }
+
       return { value }
     } catch (err) {
-      const error = helpers.error("validation")
+      const error = opts.error("validation")
       error.message = err.message
       return error
     }
+  },
+  rules: {
+    kind: {
+      args: [
+        {
+          name: "kind",
+          normalize: (v) => {
+            try {
+              return v.toLowerCase()
+            } catch {
+              return v
+            }
+          },
+          assert: joi
+            .string()
+            .allow(...actionKinds)
+            .only(),
+        },
+      ],
+      method(value: string) {
+        // tslint:disable-next-line: no-invalid-this
+        return this.$_setFlag("kind", value.toLowerCase())
+      },
+      validate(value) {
+        // This is validated above ^
+        return value
+      },
+    },
+    actionType: {
+      args: [
+        {
+          name: "type",
+          assert: joiIdentifier(),
+        },
+      ],
+      method(value: string) {
+        // tslint:disable-next-line: no-invalid-this
+        return this.$_setFlag("actionType", value)
+      },
+      validate(value) {
+        // Note: This is currently only advisory, and must be validated elsewhere!
+        return value
+      },
+    },
   },
 })
 
@@ -551,12 +620,6 @@ const moduleIncludeDescription = (extraDescription?: string) => {
 
 export const joiModuleIncludeDirective = (extraDescription?: string) =>
   joi.array().items(joi.posixPath().allowGlobs().subPathOnly()).description(moduleIncludeDescription(extraDescription))
-
-export const joiIdentifier = () =>
-  joi
-    .string()
-    .regex(identifierRegex)
-    .description(joiIdentifierDescription[0].toUpperCase() + joiIdentifierDescription.slice(1))
 
 export const joiProviderName = (name: string) =>
   joiIdentifier().required().description("The name of the provider plugin to use.").default(name).example(name)
