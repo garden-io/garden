@@ -96,11 +96,6 @@ export class RetriableProcess {
   }
 
   private registerListeners(proc: ChildProcess): void {
-    // todo: check if we need this?
-    // proc.on("exit", (code) => {
-    //   // no op
-    // })
-
     const renderAttemptsMessage: () => string = () => {
       return !!this.retriesLeft
         ? `${this.retriesLeft} attempts left, next in ${this.minTimeoutMs}ms`
@@ -194,7 +189,8 @@ export class RetriableProcess {
   }
 
   public start(): RetriableProcess {
-    const proc = exec(this.command) // todo: add retry here?
+    // no need to use pRetry here, the failures will be handled by event the process listeners
+    const proc = exec(this.command)
     this.registerListeners(proc)
     for (const descendant of this.descendants) {
       descendant.start()
