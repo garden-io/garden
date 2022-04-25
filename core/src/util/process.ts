@@ -16,6 +16,13 @@ export interface OsCommand {
   args?: string[]
 }
 
+export interface RetriableProcessConfig {
+  osCommand: OsCommand
+  maxRetries: number
+  minTimeoutMs: number
+  log: LogEntry
+}
+
 export class RetriableProcess {
   public readonly command: string
   private proc: ChildProcess | undefined
@@ -29,15 +36,17 @@ export class RetriableProcess {
 
   private readonly log: LogEntry
 
-  constructor(osCommand: OsCommand, maxRetries: number, minTimeoutMs: number, log: LogEntry) {
-    this.command = !!osCommand.args ? `${osCommand.command} ${osCommand.args.join(" ")}` : osCommand.command
+  constructor(config: RetriableProcessConfig) {
+    this.command = !!config.osCommand.args
+      ? `${config.osCommand.command} ${config.osCommand.args.join(" ")}`
+      : config.osCommand.command
     this.proc = undefined
     this.parent = undefined
     this.descendants = []
-    this.maxRetries = maxRetries
-    this.minTimeoutMs = minTimeoutMs
-    this.retriesLeft = maxRetries
-    this.log = log
+    this.maxRetries = config.maxRetries
+    this.minTimeoutMs = config.minTimeoutMs
+    this.retriesLeft = config.maxRetries
+    this.log = config.log
 
     // todo: state validation in methods
   }
