@@ -289,6 +289,7 @@ export const containerDevModeSchema = () =>
       .description("Override the default container arguments when in dev mode."),
     command: joi
       .sparseArray()
+      .optional()
       .items(joi.string())
       .description("Override the default container command (i.e. entrypoint) when in dev mode."),
     sync: joi
@@ -305,7 +306,7 @@ export const containerDevModeSchema = () =>
 
 export interface ContainerLocalModeSpec {
   localAppPort: number
-  command: string[]
+  command?: string[]
   containerName?: string
 }
 

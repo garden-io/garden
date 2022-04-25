@@ -290,6 +290,14 @@ export async function configureLocalMode({ target, service, log }: ConfigureLoca
   // todo: check if anything else should be configured here
 }
 
+function getLocalServiceCmd(service: ContainerService): OsCommand | undefined {
+  const command = service.spec.localMode!.command
+  if (!command || command.length === 0) {
+    return undefined
+  }
+  return { command: command.join(" ") }
+}
+
 async function getSshPortForwardCommand(
   ctx: PluginContext,
   log: LogEntry,
@@ -359,6 +367,21 @@ async function getReversePortForwardingCommand(
   return { command: sshCommandName, args: sshCommandArgs }
 }
 
+function composeProcessTree(
+  localService: RetriableProcess | undefined,
+  sshTunnel: RetriableProcess,
+  reversePortForward: RetriableProcess
+): RetriableProcess {
+  sshTunnel.addDescendantProcess(reversePortForward)
+
+  if (!!localService) {
+    localService.addDescendantProcess(sshTunnel)
+    return localService
+  } else {
+    return sshTunnel
+  }
+}
+
 /**
  * Configures the necessary port forwarding to replace remote k8s service by a local one:
  *   1. Opens SSH tunnel between the local machine and the remote k8s service.
@@ -381,6 +404,7 @@ export async function startLocalModePortForwarding({
   }
   const localSshPort = await getPort()
 
+  const localServiceCmd = getLocalServiceCmd(service)
   const sshTunnelCmd = await getSshPortForwardCommand(ctx, log, service, localSshPort)
   const reversePortForwardingCmd = await getReversePortForwardingCommand(log, service, localSshPort)
 
@@ -409,12 +433,20 @@ export async function startLocalModePortForwarding({
       },
     },
   })
-  sshTunnel.addDescendantProcess(reversePortForward)
+  const localService = !!localServiceCmd
+    ? new RetriableProcess({
+        osCommand: localServiceCmd,
+        maxRetries: 6,
+        minTimeoutMs: 5000,
+        log,
+      })
+    : undefined
 
+  const processTree: RetriableProcess = composeProcessTree(localService, sshTunnel, reversePortForward)
   log.info({
     status: "active",
     section: service.name,
-    msg: chalk.gray(`→ Starting local mode process tree:\n` + `${chalk.white(`${sshTunnel.renderProcessTree()}`)}`),
+    msg: chalk.gray(`→ Starting local mode process tree:\n` + `${chalk.white(`${processTree.renderProcessTree()}`)}`),
   })
-  sshTunnel.start()
+  processTree.start()
 }
