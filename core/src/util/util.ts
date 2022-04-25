@@ -6,28 +6,45 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isArray, isPlainObject, extend, mapValues, pickBy, range, trimEnd, omit, groupBy, some } from "lodash"
-import split2 = require("split2")
-import Bluebird = require("bluebird")
+import {
+  difference,
+  extend,
+  find,
+  fromPairs,
+  groupBy,
+  isArray,
+  isPlainObject,
+  mapValues,
+  omit,
+  pick,
+  pickBy,
+  range,
+  some,
+  trimEnd,
+  uniqBy,
+} from "lodash"
 import { ResolvableProps } from "bluebird"
 import exitHook from "async-exit-hook"
 import Cryo from "cryo"
 import _spawn from "cross-spawn"
 import { readFile, writeFile } from "fs-extra"
-import { find, pick, difference, fromPairs, uniqBy } from "lodash"
-import { TimeoutError, ParameterError, RuntimeError, GardenError } from "../exceptions"
+import { GardenError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
 import highlight from "cli-highlight"
 import chalk from "chalk"
-import { safeDump, safeLoad, DumpOptions } from "js-yaml"
+import { DumpOptions, safeDump, safeLoad } from "js-yaml"
 import { createHash } from "crypto"
-import { tailString, dedent } from "./string"
-import { Writable, Readable } from "stream"
+import { dedent, tailString } from "./string"
+import { Readable, Writable } from "stream"
 import { LogEntry } from "../logger/log-entry"
-import execa = require("execa")
 import { PrimitiveMap } from "../config/common"
 import { isAbsolute, relative } from "path"
 import { getDefaultProfiler } from "./profiling"
 import { gardenEnv } from "../constants"
+import { spawnSync } from "child_process"
+import split2 = require("split2")
+import Bluebird = require("bluebird")
+import execa = require("execa")
+
 export { v4 as uuidv4 } from "uuid"
 
 export type HookCallback = (callback?: () => void) => void
@@ -102,6 +119,11 @@ export function getCloudDistributionName(domain: string) {
 
 export async function sleep(msec: number) {
   return new Promise((resolve) => setTimeout(resolve, msec))
+}
+
+export function sleepSync(msec: number) {
+  // it seems to be the best available solution to sleep synchronously, see https://stackoverflow.com/a/50098685/2753863
+  spawnSync(process.argv[0], ["-e", "setTimeout(function(){}," + msec + ")"])
 }
 
 /**
