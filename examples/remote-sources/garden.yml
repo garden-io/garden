@@ -2,13 +2,18 @@ kind: Project
 name: remote-sources
 sources:
   - name: web-services
-    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git#v0.3.0
+    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git#v0.4.0
   - name: db-services
-    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#v0.2.0
+  # use #your-branch to specify a branch or #v0.3.0 to specify a tag
+    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#master
 environments:
   - name: local
+    variables:
+      baseHostname: vote.local.app.garden
   - name: testing
-    defaultNamespace: testing-${local.env.CIRCLE_BUILD_NUM || local.username}
+    defaultNamespace: testing-${var.userId}
+    variables:
+      baseHostname: vote-testing-${var.userId}.dev-1.sys.garden
 providers:
   - name: local-kubernetes
     environments: [local]
@@ -18,6 +23,7 @@ providers:
     defaultHostname: ${environment.namespace}.dev-1.sys.garden
     buildMode: kaniko
 variables:
+  userId: ${local.env.CIRCLE_BUILD_NUM || local.username}
   postgres-database: postgres
   # Only use for testing!
   postgres-username: postgres
