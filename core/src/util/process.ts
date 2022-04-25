@@ -16,10 +16,23 @@ export interface OsCommand {
   args?: string[]
 }
 
+export interface IOStreamListener {
+  /**
+   * Some stderr events are not errors, those can be just warnings.
+   * We want to have a way to recognize command specific warnings and do not interpret those as errors,
+   * i.e. we want to avoid restarting the process for such kind of warning-events.
+   * @param chunk the data chuck from the stderr stream
+   */
+  denyRestart?: (chunk: any) => boolean
+  onData: (chunk: any) => void
+}
+
 export interface RetriableProcessConfig {
   osCommand: OsCommand
   maxRetries: number
   minTimeoutMs: number
+  stderrListener?: IOStreamListener
+  stdoutListener?: IOStreamListener
   log: LogEntry
 }
 
@@ -34,6 +47,9 @@ export class RetriableProcess {
   private readonly minTimeoutMs: number
   private retriesLeft: number
 
+  private readonly stderrListener?: IOStreamListener
+  private readonly stdoutListener?: IOStreamListener
+
   private readonly log: LogEntry
 
   constructor(config: RetriableProcessConfig) {
@@ -46,6 +62,8 @@ export class RetriableProcess {
     this.maxRetries = config.maxRetries
     this.minTimeoutMs = config.minTimeoutMs
     this.retriesLeft = config.maxRetries
+    this.stderrListener = config.stderrListener
+    this.stdoutListener = config.stdoutListener
     this.log = config.log
 
     // todo: state validation in methods
@@ -104,15 +122,21 @@ export class RetriableProcess {
     })
 
     proc.stderr!.on("data", async (line) => {
-      const command = this.command
-      const errorMsg = `Failed to start process '${command}' with PID ${this.getPid()}: ${line}.`
-      this.log.error(`${errorMsg}. ${!!this.retriesLeft ? this.retriesLeft : "no"} attempts left`)
-
-      await this.tryRestart(new RuntimeError(errorMsg, { command, line }))
+      const denyRestartFn = this.stderrListener?.denyRestart
+      if (!!denyRestartFn && denyRestartFn(line)) {
+        this.log.warn(`[Process PID=${this.getPid()}] >> '${line}'`)
+        this.stderrListener?.onData(line)
+      } else {
+        const command = this.command
+        const errorMsg = `Failed to start process '${command}' with PID ${this.getPid()}: ${line}.`
+        this.log.error(`${errorMsg}. ${!!this.retriesLeft ? this.retriesLeft : "no"} attempts left`)
+        await this.tryRestart(new RuntimeError(errorMsg, { command, line }))
+      }
     })
 
     proc.stdout!.on("data", (line) => {
       this.log.info(`[Process PID=${this.getPid()}] >> '${line}'`)
+      this.stdoutListener?.onData(line)
       this.resetRetriesLeftRecursively()
     })
   }

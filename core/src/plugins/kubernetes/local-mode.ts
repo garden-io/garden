@@ -357,45 +357,6 @@ async function getReversePortForwardingCommand(
     "-oStrictHostKeyChecking=accept-new",
   ]
   return { command: sshCommandName, args: sshCommandArgs }
-
-  // const reversePortForward = startChildProcess(
-  //   reversePortForwardingCommand,
-  //   function (error: ExecException | null, stdout: string, stderr: string): void {
-  //     if (stderr) {
-  //       if (stderr.includes('unsupported option "accept-new"')) {
-  //         log.error({
-  //           status: "warn",
-  //           section: service.name,
-  //           msg: chalk.yellow(
-  //             "It looks like you're using too old SSH version " +
-  //             "which doesn't support option -oStrictHostKeyChecking=accept-new. " +
-  //               "Consider upgrading to OpenSSH 7.6 or higher."
-  //           ),
-  //         })
-  //       }
-  //
-  //       log.error({
-  //         status: "error",
-  //         section: service.name,
-  //         msg: chalk.red(`Reverse port-forwarding failed with error: ${stderr}.`),
-  //       })
-  //     }
-  //     if (error) {
-  //       log.error({
-  //         status: "error",
-  //         section: service.name,
-  //         msg: chalk.red(`Exception details: ${JSON.stringify(error)}.`),
-  //       })
-  //     }
-  //     if (stdout) {
-  //       log.info({
-  //         status: "active",
-  //         section: service.name,
-  //         msg: `Reverse port-forwarding is running> ${stdout}`,
-  //       })
-  //     }
-  //   }
-  // )
 }
 
 /**
@@ -429,6 +390,24 @@ export async function startLocalModePortForwarding({
     maxRetries: 10,
     minTimeoutMs: 3000,
     log: log,
+    stderrListener: {
+      denyRestart: (chunk: string) => chunk.toLowerCase().includes("warning: permanently added"),
+      onData: (chunk: string) => {
+        if (chunk.toLowerCase().includes('unsupported option "accept-new"')) {
+          log.error({
+            status: "warn",
+            section: service.name,
+            msg: chalk.yellow(
+              "It looks like you're using too old SSH version " +
+                "which doesn't support option -oStrictHostKeyChecking=accept-new. " +
+                "Consider upgrading to OpenSSH 7.6 or higher."
+            ),
+          })
+        } else {
+          log.warn(chunk)
+        }
+      },
+    },
   })
   sshTunnel.addDescendantProcess(reversePortForward)
   sshTunnel.start()
