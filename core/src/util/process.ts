@@ -8,7 +8,7 @@
 
 import { ChildProcess, exec } from "child_process"
 import { LogEntry } from "../logger/log-entry"
-import { sleep } from "./util"
+import { sleepSync } from "./util"
 import { GardenBaseError, RuntimeError } from "../exceptions"
 
 export interface OsCommand {
@@ -168,7 +168,8 @@ export class RetriableProcess {
   private async tryRestart(error: Error | ErrorEvent | GardenBaseError | string): Promise<void> {
     if (this.retriesLeft > 0) {
       this.retriesLeft--
-      await sleep(this.minTimeoutMs)
+      // sleep synchronously to avoid pre-mature ssh connection attempts
+      sleepSync(this.minTimeoutMs)
       // todo: lookup to parent to check if it's restarting
       this.unregisterListenersRecursively()
       this.killRecursively()
