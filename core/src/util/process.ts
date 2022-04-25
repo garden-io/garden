@@ -22,6 +22,7 @@ export interface IOStreamListener {
    * We want to have a way to recognize command specific warnings and do not interpret those as errors,
    * i.e. we want to avoid restarting the process for such kind of warning-events.
    * @param chunk the data chuck from the stderr stream
+   * @return {@code true} if the stderr data should not cause a restart or {@code false} otherwise
    */
   denyRestart?: (chunk: any) => boolean
   onData: (chunk: any) => void
