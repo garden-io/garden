@@ -410,19 +410,11 @@ export async function startLocalModePortForwarding({
     },
   })
   sshTunnel.addDescendantProcess(reversePortForward)
-  sshTunnel.start()
-  // todo: check if we need this
-  // process.on("exit", () => {
-  //   sshTunnel.proc.kill()
-  // })
 
   log.info({
     status: "active",
     section: service.name,
-    msg: chalk.gray(
-      `→ Starting ssh tunnels between the local machine and the remote k8s proxy:\n` +
-        `  → ${chalk.white(`${sshTunnelCmd.command} ${sshTunnelCmd.args?.join(" ")}`)}\n` +
-        `  → ${chalk.white(`${reversePortForwardingCmd.command} ${reversePortForwardingCmd.args?.join(" ")}`)}`
-    ),
+    msg: chalk.gray(`→ Starting local mode process tree:\n` + `${chalk.white(`${sshTunnel.renderProcessTree()}`)}`),
   })
+  sshTunnel.start()
 }

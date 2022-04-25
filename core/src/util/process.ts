@@ -189,6 +189,19 @@ export class RetriableProcess {
     return this.proc?.pid
   }
 
+  private renderProcessTreeRecursively(indent: string, output: string): string {
+    output += indent + `-> '${this.command}'\n`
+    for (const descendant of this.descendants) {
+      output = descendant.renderProcessTreeRecursively(indent + "..", output)
+    }
+    return output
+  }
+
+  public renderProcessTree(): string {
+    const output = ""
+    return this.renderProcessTreeRecursively("", output)
+  }
+
   public start(): RetriableProcess {
     // no need to use pRetry here, the failures will be handled by event the process listeners
     const proc = exec(this.command)
