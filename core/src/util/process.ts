@@ -130,6 +130,7 @@ export class RetriableProcess {
         const command = this.command
         const errorMsg = `Failed to start process '${command}' with PID ${this.getPid()}: ${line}.`
         this.log.error(`${errorMsg}. ${!!this.retriesLeft ? this.retriesLeft : "no"} attempts left`)
+        this.stderrListener?.onData(line)
         await this.tryRestart(new RuntimeError(errorMsg, { command, line }))
       }
     })

@@ -381,12 +381,12 @@ export async function startLocalModePortForwarding({
   }
   const localSshPort = await getPort()
 
-  const sshTunnelCommand = await getSshPortForwardCommand(ctx, log, service, localSshPort)
-  const reversePortForwardingCommand = await getReversePortForwardingCommand(log, service, localSshPort)
+  const sshTunnelCmd = await getSshPortForwardCommand(ctx, log, service, localSshPort)
+  const reversePortForwardingCmd = await getReversePortForwardingCommand(log, service, localSshPort)
 
-  const sshTunnel = new RetriableProcess({ osCommand: sshTunnelCommand, maxRetries: 10, minTimeoutMs: 3000, log })
+  const sshTunnel = new RetriableProcess({ osCommand: sshTunnelCmd, maxRetries: 10, minTimeoutMs: 3000, log })
   const reversePortForward = new RetriableProcess({
-    osCommand: reversePortForwardingCommand,
+    osCommand: reversePortForwardingCmd,
     maxRetries: 10,
     minTimeoutMs: 3000,
     log,
@@ -416,26 +416,13 @@ export async function startLocalModePortForwarding({
   //   sshTunnel.proc.kill()
   // })
 
-  const sshTunnelCommandString = `${sshTunnelCommand.command} ${sshTunnelCommand.args?.join(" ")}`
   log.info({
     status: "active",
     section: service.name,
     msg: chalk.gray(
-      `→ Started ssh tunnel between the local machine and the remote k8s proxy with PID ${sshTunnel.getPid()}: ` +
-        `${chalk.white(sshTunnelCommandString)}`
-    ),
-  })
-
-  const reversePortForwardingCommandString = `${
-    reversePortForwardingCommand.command
-  } ${reversePortForwardingCommand.args?.join(" ")}`
-  log.info({
-    status: "active",
-    section: service.name,
-    msg: chalk.gray(
-      `→ Started reverse port forwarding between the local machine and the remote k8s proxy ` +
-        `with PID ${reversePortForward.getPid()}: ` +
-        `${chalk.white(reversePortForwardingCommandString)}`
+      `→ Starting ssh tunnels between the local machine and the remote k8s proxy:\n` +
+        `  → ${chalk.white(`${sshTunnelCmd.command} ${sshTunnelCmd.args?.join(" ")}`)}\n` +
+        `  → ${chalk.white(`${reversePortForwardingCmd.command} ${reversePortForwardingCmd.args?.join(" ")}`)}`
     ),
   })
 }
