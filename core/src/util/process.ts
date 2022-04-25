@@ -38,9 +38,9 @@ export interface RetriableProcessConfig {
 
 export class RetriableProcess {
   public readonly command: string
-  private proc: ChildProcess | undefined
+  private proc?: ChildProcess
 
-  private parent: RetriableProcess | undefined
+  private parent?: RetriableProcess
   private descendants: RetriableProcess[]
 
   private readonly maxRetries: number
