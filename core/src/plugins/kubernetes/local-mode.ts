@@ -384,11 +384,11 @@ export async function startLocalModePortForwarding({
   const sshTunnelCmd = await getSshPortForwardCommand(ctx, log, service, localSshPort)
   const reversePortForwardingCmd = await getReversePortForwardingCommand(log, service, localSshPort)
 
-  const sshTunnel = new RetriableProcess({ osCommand: sshTunnelCmd, maxRetries: 10, minTimeoutMs: 3000, log })
+  const sshTunnel = new RetriableProcess({ osCommand: sshTunnelCmd, maxRetries: 6, minTimeoutMs: 5000, log })
   const reversePortForward = new RetriableProcess({
     osCommand: reversePortForwardingCmd,
-    maxRetries: 10,
-    minTimeoutMs: 3000,
+    maxRetries: 6,
+    minTimeoutMs: 5000,
     log,
     stderrListener: {
       denyRestart: (chunk: string) => chunk.toLowerCase().includes("warning: permanently added"),
