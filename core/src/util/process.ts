@@ -101,13 +101,17 @@ export class RetriableProcess {
     //   // no op
     // })
 
-    const renderAttemptsMessage: () => string = () => `${!!this.retriesLeft ? this.retriesLeft : "no"} attempts left`
+    const renderAttemptsMessage: () => string = () => {
+      return !!this.retriesLeft
+        ? `${this.retriesLeft} attempts left, next in ${this.minTimeoutMs}ms`
+        : "no attempts left"
+    }
 
     proc.on("error", async (error) => {
       this.log.error(
         `Error starting process '${this.command}' with PID ${this.getPid()}: ${JSON.stringify(
           error
-        )}. ${renderAttemptsMessage}`
+        )}. ${renderAttemptsMessage()}`
       )
 
       await this.tryRestart(error)
@@ -116,7 +120,7 @@ export class RetriableProcess {
     proc.on("close", async (code: number, signal: NodeJS.Signals) => {
       const command = this.command
       const errorMsg = `Process '${command}' with PID ${this.getPid()} exited with code ${code} and signal ${signal}.`
-      this.log.error(`${errorMsg}. ${!!this.retriesLeft ? this.retriesLeft : "no"} attempts left`)
+      this.log.error(`${errorMsg}. ${renderAttemptsMessage()}`)
 
       await this.tryRestart(new RuntimeError(errorMsg, { command, code }))
     })
@@ -129,7 +133,7 @@ export class RetriableProcess {
       } else {
         const command = this.command
         const errorMsg = `Failed to start process '${command}' with PID ${this.getPid()}: ${line}.`
-        this.log.error(`${errorMsg}. ${!!this.retriesLeft ? this.retriesLeft : "no"} attempts left`)
+        this.log.error(`${errorMsg}. ${renderAttemptsMessage()}`)
         this.stderrListener?.onData(line)
         await this.tryRestart(new RuntimeError(errorMsg, { command, line }))
       }
