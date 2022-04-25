@@ -354,7 +354,7 @@ async function getReversePortForwardingCommand(
     `${PROXY_CONTAINER_USER_NAME}@127.0.0.1`,
     `-p${localSshPort}`,
     `-i ${privateSshKeyPath}`,
-    "-oStrictHostKeyChecking=accept-new",
+    "-oStrictHostKeyChecking=no",
   ]
   return { command: sshCommandName, args: sshCommandArgs }
 }
