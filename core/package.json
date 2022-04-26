@@ -32,7 +32,7 @@
     "analytics-node": "3.3.0",
     "ansi-escapes": "^4.3.1",
     "archiver": "^4.0.1",
-    "async": "^3.2.0",
+    "async": "^3.2.2",
     "async-exit-hook": "^2.0.1",
     "async-lock": "^1.2.4",
     "axios": "^0.21.2",
