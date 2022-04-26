@@ -35,6 +35,7 @@ export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 export const localModeGuideLink = "https://docs.garden.io/guides/running-service-in-local-mode.md"
 
 const defaultReverseForwardingPortName = "http"
+const localhost = "127.0.0.1"
 
 interface ConfigureLocalModeParams {
   target: HotReloadableResource
@@ -115,6 +116,18 @@ class ProxySshKeystore {
       const message = !!err.message ? err.message.toString() : "unknown"
       throw new ConfigurationError(`Could not read public key file from path ${filePath}; cause: ${message}`, err)
     }
+  }
+}
+
+function cleanupKnownHosts(localPort: number, log: LogEntry): void {
+  const localhostEscaped = localhost.split(".").join("\\.")
+  const command = `sed -i -r '/^\\[${localhostEscaped}\\]:${localPort}/d' $\{HOME}/.ssh/known_hosts`
+  try {
+    log.debug("Cleaning up .ssh/known_hosts file...")
+    execSync(command)
+    log.debug("Cleaned up .ssh/known_hosts successfully!")
+  } catch (err) {
+    log.warn(`Error cleaning up .ssh/known_hosts file: ${err}`)
   }
 }
 
@@ -358,8 +371,8 @@ async function getReversePortForwardingCommand(
      */
     "-T",
     "-R",
-    `${remoteContainerPort}:127.0.0.1:${localAppPort}`,
-    `${PROXY_CONTAINER_USER_NAME}@127.0.0.1`,
+    `${remoteContainerPort}:${localhost}:${localAppPort}`,
+    `${PROXY_CONTAINER_USER_NAME}@${localhost}`,
     `-p${localSshPort}`,
     `-i ${privateSshKeyPath}`,
     "-oStrictHostKeyChecking=no",
@@ -403,6 +416,9 @@ export async function startServiceInLocalMode({
     return
   }
   const localSshPort = await getPort()
+  process.on("exit", () => {
+    cleanupKnownHosts(localSshPort, log)
+  })
 
   const localServiceCmd = getLocalServiceCmd(service)
   const sshTunnelCmd = await getSshPortForwardCommand(ctx, log, service, localSshPort)
