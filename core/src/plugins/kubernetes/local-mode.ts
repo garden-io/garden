@@ -43,6 +43,7 @@ interface ConfigureLocalModeParams {
   log: LogEntry
 }
 
+// todo: init it once per service, now it's being created a few times
 class ProxySshKeystore {
   private readonly proxySshKeyDirPath: string
   private readonly log: LogEntry
