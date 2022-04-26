@@ -2,7 +2,7 @@
 version: 2.1
 
 orbs:
-  win: circleci/windows@1.0.0
+  win: circleci/windows@2.2.0
   rok8s-scripts: fairwinds/rok8s-scripts@11.1.3
 
 # Shared config to use between jobs
@@ -800,7 +800,7 @@ jobs:
           when: always
 
   test-windows:
-    executor: win/vs2019
+    executor: win/default
     steps:
       - checkout
       - *attach-workspace
