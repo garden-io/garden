@@ -2,7 +2,7 @@
 version: 2.1
 
 orbs:
-  win: circleci/windows@1.0.0
+  win: circleci/windows@2.2.0
   rok8s-scripts: fairwinds/rok8s-scripts@11.1.3
 
 # Shared config to use between jobs
@@ -14,6 +14,10 @@ orbs:
     GARDEN_DISABLE_ANALYTICS: "true"
     GARDEN_K8S_BUILD_SYNC_MODE: "mutagen"
     GARDEN_LOGGER_TYPE: basic
+
+  shared-machine-config: &shared-machine-config
+    image: 'ubuntu-2004:202010-01'
+    docker_layer_caching: true
 
   remote-docker: &remote-docker
     setup_remote_docker:
@@ -557,8 +561,7 @@ jobs:
 
   test-plugins:
     machine:
-      image: 'ubuntu-1604:201903-01'
-      docker_layer_caching: true
+      <<: *shared-machine-config
     parameters:
       kindNodeImage:
         description: The kind node image to use
@@ -593,8 +596,7 @@ jobs:
 
   test-kind:
     machine:
-      image: 'ubuntu-1604:201903-01'
-      docker_layer_caching: true
+      <<: *shared-machine-config
     parameters:
       kindNodeImage:
         description: The kind node image to use
@@ -630,8 +632,7 @@ jobs:
 
   test-microk8s:
     machine:
-      image: 'ubuntu-1604:202004-01'
-      docker_layer_caching: true
+      <<: *shared-machine-config
     parameters:
       kubernetesVersion:
         description: The Kubernetes version to run
@@ -692,8 +693,7 @@ jobs:
 
   test-minikube:
     machine:
-      image: 'ubuntu-1604:202004-01'
-      docker_layer_caching: true
+      <<: *shared-machine-config
     resource_class: large
     parameters:
       minikubeVersion:
@@ -800,7 +800,7 @@ jobs:
           when: always
 
   test-windows:
-    executor: win/vs2019
+    executor: win/default
     steps:
       - checkout
       - *attach-workspace
