@@ -1,4 +1,17 @@
 
+<a name="0.12.40-0"></a>
+## [0.12.40-0](https://github.com/garden-io/garden/compare/0.12.39...0.12.40-0) (2022-04-26)
+
+### Bug Fixes
+
+* **cli:** sporadic fsevents error on mac machines ([c5fcc672](https://github.com/garden-io/garden/commit/c5fcc672))
+* **core:** attempt to fix unhandled promise rejection from got ([8aa4bc1c](https://github.com/garden-io/garden/commit/8aa4bc1c))
+* **docs:** fixed broken links ([014bfb65](https://github.com/garden-io/garden/commit/014bfb65))
+
+### Features
+
+* add skip-comments option to cli create command ([2e0f20c9](https://github.com/garden-io/garden/commit/2e0f20c9))
+
 <a name="0.12.39"></a>
 ## [0.12.39](https://github.com/garden-io/garden/compare/0.12.38...0.12.39) (2022-04-08)
 
