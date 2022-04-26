@@ -15,6 +15,10 @@ orbs:
     GARDEN_K8S_BUILD_SYNC_MODE: "mutagen"
     GARDEN_LOGGER_TYPE: basic
 
+  shared-machine-config: &shared-machine-config
+    image: 'ubuntu-2004:202010-01'
+    docker_layer_caching: true
+
   remote-docker: &remote-docker
     setup_remote_docker:
       version: 20.10.11
@@ -557,8 +561,7 @@ jobs:
 
   test-plugins:
     machine:
-      image: 'ubuntu-1604:201903-01'
-      docker_layer_caching: true
+      <<: *shared-machine-config
     parameters:
       kindNodeImage:
         description: The kind node image to use
@@ -593,8 +596,7 @@ jobs:
 
   test-kind:
     machine:
-      image: 'ubuntu-1604:201903-01'
-      docker_layer_caching: true
+      <<: *shared-machine-config
     parameters:
       kindNodeImage:
         description: The kind node image to use
@@ -630,8 +632,7 @@ jobs:
 
   test-microk8s:
     machine:
-      image: 'ubuntu-1604:202004-01'
-      docker_layer_caching: true
+      <<: *shared-machine-config
     parameters:
       kubernetesVersion:
         description: The Kubernetes version to run
@@ -692,8 +693,7 @@ jobs:
 
   test-minikube:
     machine:
-      image: 'ubuntu-1604:202004-01'
-      docker_layer_caching: true
+      <<: *shared-machine-config
     resource_class: large
     parameters:
       minikubeVersion:
