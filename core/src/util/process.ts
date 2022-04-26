@@ -22,6 +22,10 @@ export interface IOStreamListener {
    * We want to have a way to recognize command specific warnings and do not interpret those as errors,
    * i.e. we want to avoid restarting the process.
    *
+   * Alternatively, stdout may contain some info which can be interpreted as an error.
+   * Thus, there is also a way to recognize some errors coming from stdout
+   * (if there are any utilities which print errors to stdout?) and to trigger the process restart.
+   *
    * @param chunk the data chuck from the stderr stream
    * @return {@code true} if the stderr data has any actual errors or {@code false} otherwise
    */
@@ -123,28 +127,37 @@ export class RetriableProcess {
     proc.on("close", async (code: number, signal: NodeJS.Signals) => {
       const command = this.command
       const errorMsg = `${renderPid()} command '${command}' exited with code ${code} and signal ${signal}.`
-      this.log.error(`${errorMsg}. ${renderAttemptsMessage()}`)
+      this.log.error(`${errorMsg} ${renderAttemptsMessage()}`)
 
       await this.tryRestart(new RuntimeError(errorMsg, { command, code }))
     })
 
-    proc.stderr!.on("data", async (line) => {
+    proc.stderr!.on("data", async (chunk: string) => {
       const hasErrorsFn = this.stderrListener?.hasErrors
-      if (!hasErrorsFn || hasErrorsFn(line)) {
+      if (!hasErrorsFn || hasErrorsFn(chunk)) {
         const command = this.command
-        const errorMsg = `${renderPid()} Failed to start process '${command}': ${line}.`
-        this.log.error(`${errorMsg}. ${renderAttemptsMessage()}`)
-        this.stderrListener?.onError(line)
-        await this.tryRestart(new RuntimeError(errorMsg, { command, line }))
+        const errorMsg = `${renderPid()} Failed to start process '${command}': ${chunk}.`
+        this.log.error(`${errorMsg} ${renderAttemptsMessage()}`)
+        this.stderrListener?.onError(chunk)
+        await this.tryRestart(new RuntimeError(errorMsg, { command, line: chunk }))
       } else {
-        this.log.info(`${renderPid()} ${line}`)
+        this.log.info(`${renderPid()} ${chunk}`)
+        this.resetRetriesLeftRecursively()
       }
     })
 
-    proc.stdout!.on("data", (line) => {
-      this.log.info(`${renderPid()} ${line}`)
-      this.stdoutListener?.onError(line)
-      this.resetRetriesLeftRecursively()
+    proc.stdout!.on("data", async (chunk: string) => {
+      const hasErrorsFn = this.stdoutListener?.hasErrors
+      if (!hasErrorsFn || !hasErrorsFn(chunk)) {
+        this.log.info(`${renderPid()} ${chunk}`)
+        this.resetRetriesLeftRecursively()
+      } else {
+        const command = this.command
+        const errorMsg = `${renderPid()} Failed to start process '${command}': ${chunk}.`
+        this.log.error(`${errorMsg} ${renderAttemptsMessage()}`)
+        this.stdoutListener?.onError(chunk)
+        await this.tryRestart(new RuntimeError(errorMsg, { command, line: chunk }))
+      }
     })
   }
 
