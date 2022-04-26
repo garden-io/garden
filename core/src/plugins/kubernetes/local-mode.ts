@@ -423,8 +423,8 @@ export async function startServiceInLocalMode({
     minTimeoutMs: 5000,
     log,
     stderrListener: {
-      denyRestart: (chunk: string) => chunk.toLowerCase().includes("warning: permanently added"),
-      onData: (chunk: string) => {
+      hasErrors: (chunk: string) => !chunk.toLowerCase().includes("warning: permanently added"),
+      onError: (chunk: string) => {
         if (chunk.toLowerCase().includes('unsupported option "accept-new"')) {
           log.error({
             status: "warn",
@@ -435,8 +435,6 @@ export async function startServiceInLocalMode({
                 "Consider upgrading to OpenSSH 7.6 or higher."
             ),
           })
-        } else {
-          log.warn(chunk)
         }
       },
     },
