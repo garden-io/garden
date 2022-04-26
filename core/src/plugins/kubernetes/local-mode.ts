@@ -95,7 +95,7 @@ class ProxySshKeystore {
         },
       })
     }
-    process.on("exit", () => {
+    process.once("exit", () => {
       this.deleteFile(publicSshKeyPath)
       this.deleteFile(privateSshKeyPath)
     })
@@ -417,7 +417,7 @@ export async function startServiceInLocalMode({
     return
   }
   const localSshPort = await getPort()
-  process.on("exit", () => {
+  process.once("exit", () => {
     cleanupKnownHosts(localSshPort, log)
   })
 
