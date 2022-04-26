@@ -390,7 +390,7 @@ function composeProcessTree(
  * @param log the logger
  * @param service the target k8s service container
  */
-export async function startLocalModePortForwarding({
+export async function startServiceInLocalMode({
   ctx,
   log,
   service,

@@ -35,7 +35,7 @@ import { configureHotReload } from "../hot-reload/helpers"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { hotReloadableKinds, HotReloadableResource } from "../hot-reload/hot-reload"
 import { getResourceRequirements, getSecurityContext } from "./util"
-import { configureLocalMode, startLocalModePortForwarding } from "../local-mode"
+import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters
@@ -73,7 +73,7 @@ export async function deployContainerService(
   }
 
   if (localMode) {
-    await startLocalModePortForwarding({
+    await startServiceInLocalMode({
       ctx: k8sCtx,
       log,
       service,
