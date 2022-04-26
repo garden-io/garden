@@ -8,7 +8,7 @@
 
 import { includes } from "lodash"
 import { DeploymentError } from "../../../exceptions"
-import { KubernetesModule } from "./config"
+import { KubernetesModule } from "./moduleConfig"
 import { getAppNamespace } from "../namespace"
 import { KubernetesPluginContext } from "../config"
 import { execInWorkload, getServiceResource, getServiceResourceSpec } from "../util"

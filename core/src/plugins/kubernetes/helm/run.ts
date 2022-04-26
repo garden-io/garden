@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { HelmModule } from "./config"
+import { HelmModule } from "./moduleConfig"
 import { PodRunner, runAndCopy } from "../run"
 import { getBaseModule, getChartResources } from "./common"
 import {

@@ -15,6 +15,7 @@ import { joiPathPlaceholder } from "./validation"
 import { DEFAULT_API_VERSION } from "../constants"
 import { ActionKind, actionKinds } from "../actions/base"
 import { ConfigurationError } from "../exceptions"
+import { ConfigContext } from "./template-contexts/base"
 
 export const objectSpreadKey = "$merge"
 export const arrayConcatKey = "$concat"
@@ -43,17 +44,26 @@ export interface DeepPrimitiveMap {
 export const includeGuideLink =
   "https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories"
 
-export const enumToArray = (Enum) => Object.values(Enum).filter((k) => typeof k === "string") as string[]
+export const enumToArray = (Enum: any) => Object.values(Enum).filter((k) => typeof k === "string") as string[]
 
 // Extend the Joi module with our custom rules
 interface MetadataKeys {
+  // Flag as an advanced feature, to be advised in generated docs
   advanced?: boolean
-  internal?: boolean
+  // Flag as deprecated. Set to a string to provide a deprecation message for docs.
   deprecated?: boolean | string
+  // Field is specific to Garden Cloud/Enterprise
   enterprise?: boolean
+  // Indicate this schema is expected to be extended by e.g. plugins
   extendable?: boolean
+  // Flag as experimental in docs
   experimental?: boolean
+  // Used for clarity in documentation on key/value mapping fields
   keyPlaceholder?: string
+  // Flag for internal use only, so that the field will not appear in generated docs
+  internal?: boolean
+  // Advise which template context is available for the field, for documentation purposes
+  templateContext?: ConfigContext
 }
 
 // Need this to fix the Joi typing
