@@ -419,7 +419,7 @@ ${renderCommands(commands)}
             )}
               ${nodeEmoji.link}  ${chalk.blueBright.underline(namespaceUrl)}
             `
-            footerLog.info(msg)
+            footerLog.setState(msg)
           }
 
           // TODO: "Tone down" dashboard link when connected to Garden Cloud.
