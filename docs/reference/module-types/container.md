@@ -300,8 +300,8 @@ services:
           # information.
           defaultGroup:
 
-    # Specifies necessary configuration details of the local service which will replace a target remote service in the
-    # k8s cluster.
+    # Specifies necessary configuration details of the local application which will replace a target remote service in
+    # the k8s cluster.
     #
     # The target service in the k8s cluster will be replaced by a proxy container with an ssh server running,
     # and the reverse port forwarding will be automatically configured to route the traffic to the local service and
@@ -311,14 +311,14 @@ services:
     #
     # See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode.md) for more information.
     localMode:
-      # The local port of the ssh tunnel to the target remote k8s cluster.
-      localAppPort:
-
-      # The command that’s run locally to start the service.
+      # The command to run the local application (optional).
       command:
 
-      # The k8s name of the remote container.
+      # The k8s name of the remote container (optional).
       containerName:
+
+      # The working port of the local application.
+      localAppPort:
 
     # List of ingress endpoints that the service exposes.
     ingresses:
@@ -1386,7 +1386,7 @@ Set the default group on files and directories at the target. Specify either an 
 
 [services](#services) > localMode
 
-Specifies necessary configuration details of the local service which will replace a target remote service in the k8s cluster.
+Specifies necessary configuration details of the local application which will replace a target remote service in the k8s cluster.
 
 The target service in the k8s cluster will be replaced by a proxy container with an ssh server running,
 and the reverse port forwarding will be automatically configured to route the traffic to the local service and back.
@@ -1399,21 +1399,11 @@ See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-loca
 | -------- | -------- |
 | `object` | No       |
 
-### `services[].localMode.localAppPort`
-
-[services](#services) > [localMode](#serviceslocalmode) > localAppPort
-
-The local port of the ssh tunnel to the target remote k8s cluster.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
 ### `services[].localMode.command[]`
 
 [services](#services) > [localMode](#serviceslocalmode) > command
 
-The command that’s run locally to start the service.
+The command to run the local application (optional).
 
 | Type            | Required |
 | --------------- | -------- |
@@ -1423,11 +1413,21 @@ The command that’s run locally to start the service.
 
 [services](#services) > [localMode](#serviceslocalmode) > containerName
 
-The k8s name of the remote container.
+The k8s name of the remote container (optional).
 
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `services[].localMode.localAppPort`
+
+[services](#services) > [localMode](#serviceslocalmode) > localAppPort
+
+The working port of the local application.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
 
 ### `services[].ingresses[]`
 

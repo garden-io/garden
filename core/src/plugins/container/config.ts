@@ -312,11 +312,11 @@ export interface ContainerLocalModeSpec {
 
 export const containerLocalModeSchema = () =>
   joi.object().keys({
-    localAppPort: joi.number().description("The local port of the ssh tunnel to the target remote k8s cluster."),
-    command: joi.sparseArray().items(joi.string()).description("The command that’s run locally to start the service."),
-    containerName: joi.string().optional().description("The k8s name of the remote container."),
+    command: joi.sparseArray().items(joi.string()).description("The command to run the local application (optional)."),
+    containerName: joi.string().optional().description("The k8s name of the remote container (optional)."),
+    localAppPort: joi.number().description("The working port of the local application."),
   }).description(dedent`
-    Specifies necessary configuration details of the local service which will replace a target remote service in the k8s cluster.
+    Specifies necessary configuration details of the local application which will replace a target remote service in the k8s cluster.
 
     The target service in the k8s cluster will be replaced by a proxy container with an ssh server running,
     and the reverse port forwarding will be automatically configured to route the traffic to the local service and back.
