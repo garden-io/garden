@@ -25,9 +25,10 @@ kind: Project
 name: remote-sources
 sources:
   - name: web-services
-    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git#v0.1.0
+    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git
   - name: db-services
-    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#v0.1.0
+  # use #your-branch to specify a branch or #v0.3.0 to configure git version
+    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#master
 ```
 
 Note that the URL must point to a specific branch or tag.
@@ -52,7 +53,7 @@ $ tree .
 
 You can imagine that this file tree gets merged into the parent project.
 
-If you now run `garden get status` you will see all the services from the two remote repositories (`vote` and `result` from the [web-services repo](https://github.com/garden-io/garden-example-remote-sources-web-services) and `db` and `redis` from the [db-services repo](https://github.com/garden-io/garden-example-remote-sources-db-services)):
+If you now run `garden get status` you will see all the services from the two remote repositories (`vote`, `result` and `api` from the [web-services repo](https://github.com/garden-io/garden-example-remote-sources-web-services) and `db` and `redis` from the [db-services repo](https://github.com/garden-io/garden-example-remote-sources-db-services)):
 
 ```sh
 services:
@@ -77,10 +78,10 @@ You can import the source code for a _single_ Garden module from another reposit
 ```yaml
 # examples/remote-sources/worker/garden.yml
 kind: Module
-description: Java Worker
+description: The worker that collects votes and stores results in a postgres table
 type: container
-repositoryUrl: https://github.com/garden-io/garden-example-remote-module-jworker.git#v0.1.0
 name: worker
+repositoryUrl: https://github.com/garden-io/garden-example-remote-module-jworker.git
 services:
   - name: worker
   ...
