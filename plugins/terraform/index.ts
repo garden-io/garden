@@ -159,7 +159,7 @@ export const gardenPlugin = () =>
                 type: "exec",
                 name: module.name,
 
-                configDirPath: module.path,
+                basePath: module.path,
                 configFilePath: module.configPath,
 
                 copyFrom,
@@ -188,7 +188,7 @@ export const gardenPlugin = () =>
               kind: "Deploy",
               type: "terraform",
               name: module.name,
-              configDirPath: module.path,
+              basePath: module.path,
 
               build: buildAction ? buildAction.name : undefined,
               dependencies: prepRuntimeDeps(module.spec.dependencies),

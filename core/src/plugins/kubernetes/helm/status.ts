@@ -10,7 +10,7 @@ import { ForwardablePort, GardenService, ServiceIngress, ServiceState, ServiceSt
 import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
 import { LogEntry } from "../../../logger/log-entry"
 import { helm } from "./helm-cli"
-import { HelmModule } from "./config"
+import { HelmModule } from "./moduleConfig"
 import { getBaseModule, getReleaseName, loadTemplate } from "./common"
 import { KubernetesPluginContext } from "../config"
 import { getForwardablePorts } from "../port-forward"

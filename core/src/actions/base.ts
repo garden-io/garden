@@ -85,16 +85,18 @@ export interface BaseActionConfig<S = any> {
   description?: string
 
   // Location
+  basePath: string
   source?: ActionSourceSpec
 
   // Internal metadata
-  configDirPath: string
-  configFilePath?: string
-  moduleName?: string // For backwards-compatibility, applied on actions returned from module conversion handlers
-  // -> set by templates
-  parentName?: string
-  templateName?: string
-  inputs?: DeepPrimitiveMap
+  internal?: {
+    configFilePath?: string
+    moduleName?: string // For backwards-compatibility, applied on actions returned from module conversion handlers
+    // -> set by templates
+    parentName?: string
+    templateName?: string
+    inputs?: DeepPrimitiveMap
+  }
 
   // Flow/execution control
   dependencies?: (string | ActionReference)[]
@@ -267,7 +269,7 @@ export class Action<C extends BaseActionConfig = BaseActionConfig> {
   getSourcePath(): string {
     // TODO-G2
     // TODO: handle repository.url
-    return this.config.configDirPath
+    return this.config.basePath
   }
 
   getDependencyReferences(): ActionReference[] {

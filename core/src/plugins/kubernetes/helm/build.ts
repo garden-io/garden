@@ -8,7 +8,7 @@
 
 import { move } from "fs-extra"
 import tmp from "tmp-promise"
-import { HelmModule } from "./config"
+import { HelmModule } from "./moduleConfig"
 import { containsBuildSource, getBaseModule, getChartPath } from "./common"
 import { helm } from "./helm-cli"
 import { ConfigurationError } from "../../../exceptions"

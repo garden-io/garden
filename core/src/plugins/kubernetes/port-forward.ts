@@ -24,8 +24,8 @@ import { isBuiltIn, matchSelector } from "./util"
 import { LogEntry } from "../../logger/log-entry"
 import { RuntimeError } from "../../exceptions"
 import execa = require("execa")
-import { KubernetesService } from "./kubernetes-module/config"
-import { HelmService } from "./helm/config"
+import { KubernetesService } from "./kubernetes-type/moduleConfig"
+import { HelmService } from "./helm/moduleConfig"
 
 // TODO: implement stopPortForward handler
 

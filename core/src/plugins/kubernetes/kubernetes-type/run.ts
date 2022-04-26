@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { KubernetesModule } from "./config"
+import { KubernetesModule } from "./moduleConfig"
 import { runAndCopy } from "../run"
 import {
   getServiceResource,

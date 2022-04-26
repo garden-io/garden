@@ -306,7 +306,7 @@ export const gardenPlugin = () =>
                   type: "conftest",
                   name: module.name + "-conftest",
                   build: module.spec.sourceModule ? "build:" + module.spec.sourceModule : undefined,
-                  configDirPath: module.path,
+                  basePath: module.path,
                   disabled: module.disabled,
                   timeout: 10,
                   include: module.spec.files,

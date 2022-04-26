@@ -13,8 +13,8 @@ import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
 import {
   containerModuleSpecSchema,
-  containerRunSchema,
-  containerTestSchema,
+  containerModuleTestSchema,
+  containerTaskSchema,
 } from "../src/plugins/container/moduleConfig"
 import { buildExecModule, testExecModule } from "../src/plugins/exec/exec"
 import { joi, joiArray } from "../src/config/common"
@@ -106,9 +106,9 @@ export const projectRootA = getDataDir("test-project-a")
 export const projectRootBuildDependants = getDataDir("test-build-dependants")
 export const projectTestFailsRoot = getDataDir("test-project-fails")
 
-const testModuleTestSchema = () => containerTestSchema().keys({ command: joi.sparseArray().items(joi.string()) })
+const testModuleTestSchema = () => containerModuleTestSchema().keys({ command: joi.sparseArray().items(joi.string()) })
 
-const testModuleTaskSchema = () => containerRunSchema().keys({ command: joi.sparseArray().items(joi.string()) })
+const testModuleTaskSchema = () => containerTaskSchema().keys({ command: joi.sparseArray().items(joi.string()) })
 
 export const testModuleSpecSchema = () =>
   containerModuleSpecSchema().keys({

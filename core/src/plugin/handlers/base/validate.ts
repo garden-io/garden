@@ -30,11 +30,11 @@ export class ValidateActionConfig<T extends BaseActionConfig = BaseActionConfig>
   ValidateActionConfigResult<T>
 > {
   description = dedent`
-    Validate the given action configuration, and optionally transform its spec.
+    Validate the given action configuration, and optionally transform parts of it.
+
+    When passed to this handler, be aware that the \`spec\` field will *not* be fully resolved, so validation on that field may not be advisable at this stage. Specifically, references to other actions (e.g. runtime outputs) will be resolved later.
 
     This does not need to perform structural schema validation (the framework does that automatically), but should in turn perform semantic validation to make sure the configuration is sane.
-
-    Note that the handler can only transform the \`spec\` field, and not the other built-in parts of the action config, such as dependencies.
 
     This handler is called on every resolution of the project graph, so it should return quickly and avoid doing any network calls or expensive computation.
   `

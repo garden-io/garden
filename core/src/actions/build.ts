@@ -7,7 +7,6 @@
  */
 
 import { includeGuideLink, joi, joiSparseArray, joiUserIdentifier } from "../config/common"
-import { generatedFileSchema, GenerateFileSpec } from "../config/module"
 import { dedent } from "../util/string"
 import { BaseActionConfig, baseActionConfig, Action, includeExcludeSchema } from "./base"
 
@@ -22,7 +21,6 @@ export interface BuildActionConfig<S = any> extends BaseActionConfig<S> {
   allowPublish?: boolean
   buildAtSource?: boolean
   copyFrom?: BuildCopyFrom[]
-  generateFiles?: GenerateFileSpec[]
   timeout?: number
 }
 
@@ -94,12 +92,6 @@ export const buildActionConfig = () =>
         `
       )
       .example(["tmp/**/*", "*.log"]),
-
-    generateFiles: joiSparseArray(generatedFileSchema()).description(dedent`
-      A list of files to write to the action source directory when resolving this action. This is useful to automatically generate (and template) any supporting files needed for the build.
-
-      **Note that in a future version, this may be limited to only generating files in the _build directory_, and not the action's source directory.**
-    `),
 
     timeout: joi.number().integer().description("Set a timeout for the build to complete, in seconds."),
   })

@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { KubernetesService } from "../../../../../src/plugins/kubernetes/kubernetes-module/config"
+import { KubernetesService } from "../../../../../src/plugins/kubernetes/kubernetes-type/moduleConfig"
 import { getForwardablePorts } from "../../../../../src/plugins/kubernetes/port-forward"
 
 describe("getForwardablePorts", () => {

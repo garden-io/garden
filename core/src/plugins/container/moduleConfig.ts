@@ -14,7 +14,7 @@ import { CommonServiceSpec, ServiceConfig, baseServiceSpecSchema } from "../../c
 import { baseTaskSpecSchema, BaseTaskSpec } from "../../config/task"
 import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { dedent, deline } from "../../util/string"
-import { ContainerModuleOutputs } from "./container"
+import { ContainerBuildOutputs } from "./container"
 import {
   containerCommonBuildSpecKeys,
   containerDeploySchemaKeys,
@@ -43,10 +43,10 @@ const containerDeploySchema = () => baseServiceSpecSchema().keys(containerDeploy
 export interface ContainerService extends GardenService<ContainerModule> {}
 
 export type ContainerTestSpec = BaseTestSpec & ContainerTestActionSpec
-export const containerTestSchema = () => baseTestSpecSchema().keys(containerTestSpecKeys())
+export const containerModuleTestSchema = () => baseTestSpecSchema().keys(containerTestSpecKeys())
 
 export type ContainerTaskSpec = BaseTaskSpec & ContainerRunActionSpec
-export const containerRunSchema = () =>
+export const containerTaskSchema = () =>
   baseTaskSpecSchema().keys(containerRunSpecKeys()).description("A task that can be run in the container.")
 
 // TODO-G2: remove
@@ -119,9 +119,9 @@ export const containerModuleSpecSchema = () =>
       services: joiSparseArray(containerDeploySchema())
         .unique("name")
         .description("A list of services to deploy from this container module."),
-      tests: joiSparseArray(containerTestSchema()).description("A list of tests to run in the module."),
+      tests: joiSparseArray(containerModuleTestSchema()).description("A list of tests to run in the module."),
       // We use the user-facing term "tasks" as the key here, instead of "tasks".
-      tasks: joiSparseArray(containerRunSchema()).description(deline`
+      tasks: joiSparseArray(containerTaskSchema()).description(deline`
         A list of tasks that can be run from this container module. These can be used as dependencies for services
         (executed before the service is deployed) or for other tasks.
       `),
@@ -133,5 +133,5 @@ export interface ContainerModule<
   S extends ContainerServiceSpec = ContainerServiceSpec,
   T extends ContainerTestSpec = ContainerTestSpec,
   W extends ContainerTaskSpec = ContainerTaskSpec,
-  O extends ContainerModuleOutputs = ContainerModuleOutputs
+  O extends ContainerBuildOutputs = ContainerBuildOutputs
 > extends GardenModule<M, S, T, W, O> {}
