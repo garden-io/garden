@@ -174,9 +174,9 @@ export class RetriableProcess {
   private async tryRestart(error: Error | ErrorEvent | GardenBaseError | string): Promise<void> {
     if (this.retriesLeft > 0) {
       this.retriesLeft--
-      // sleep synchronously to avoid pre-mature ssh connection attempts
+      // sleep synchronously to avoid pre-mature retry attempts
       sleepSync(this.minTimeoutMs)
-      // todo: lookup to parent to check if it's restarting
+      // todo: Should we lookup to parent nodes to find the parent-most killed/restarting process?
       this.unregisterListenersRecursively()
       this.killRecursively()
       this.start()
