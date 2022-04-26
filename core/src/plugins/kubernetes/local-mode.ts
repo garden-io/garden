@@ -408,6 +408,14 @@ export async function startLocalModePortForwarding({
   const sshTunnelCmd = await getSshPortForwardCommand(ctx, log, service, localSshPort)
   const reversePortForwardingCmd = await getReversePortForwardingCommand(log, service, localSshPort)
 
+  const localService = !!localServiceCmd
+    ? new RetriableProcess({
+        osCommand: localServiceCmd,
+        maxRetries: 6,
+        minTimeoutMs: 5000,
+        log,
+      })
+    : undefined
   const sshTunnel = new RetriableProcess({ osCommand: sshTunnelCmd, maxRetries: 6, minTimeoutMs: 5000, log })
   const reversePortForward = new RetriableProcess({
     osCommand: reversePortForwardingCmd,
@@ -433,14 +441,6 @@ export async function startLocalModePortForwarding({
       },
     },
   })
-  const localService = !!localServiceCmd
-    ? new RetriableProcess({
-        osCommand: localServiceCmd,
-        maxRetries: 6,
-        minTimeoutMs: 5000,
-        log,
-      })
-    : undefined
 
   const processTree: RetriableProcess = composeProcessTree(localService, sshTunnel, reversePortForward)
   log.info({
