@@ -557,10 +557,6 @@ describe("exec plugin", () => {
       throw "TODO"
     })
 
-    it("adds a Build action if generateFiles is set", async () => {
-      throw "TODO"
-    })
-
     it("adds a Build action if build.dependencies[].copy is set and adds a copy field", async () => {
       throw "TODO"
     })

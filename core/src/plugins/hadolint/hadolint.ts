@@ -274,7 +274,6 @@ export const gardenPlugin = () =>
         handlers: {
           configure: async ({ moduleConfig }) => {
             moduleConfig.include = [moduleConfig.spec.dockerfilePath]
-            moduleConfig.testConfigs = [{ name: "lint", dependencies: [], spec: {}, timeout: 10, disabled: false }]
             return { moduleConfig }
           },
 
@@ -286,8 +285,10 @@ export const gardenPlugin = () =>
                   type: "hadolint",
                   name: module.name,
 
-                  configDirPath: module.path,
+                  basePath: module.path,
                   configFilePath: module.configPath,
+
+                  include: [module.spec.dockerfilePath],
 
                   timeout: 10,
                   spec: {

@@ -602,7 +602,7 @@ export const execPlugin = () =>
                 type: "exec",
                 name: module.name,
 
-                configDirPath: module.path,
+                basePath: module.path,
                 configFilePath: module.configPath,
 
                 copyFrom,
@@ -639,7 +639,7 @@ export const execPlugin = () =>
                 kind: "Deploy",
                 type: "exec",
                 name: service.name,
-                configDirPath: module.path,
+                basePath: module.path,
                 configFilePath: module.configPath,
 
                 build: buildAction ? buildAction.name : undefined,
@@ -656,7 +656,7 @@ export const execPlugin = () =>
                 kind: "Run",
                 type: "exec",
                 name: task.name,
-                configDirPath: module.path,
+                basePath: module.path,
                 configFilePath: module.configPath,
 
                 build: buildAction ? buildAction.name : undefined,
@@ -674,7 +674,7 @@ export const execPlugin = () =>
                 kind: "Test",
                 type: "exec",
                 name: module.name + "-" + test.name,
-                configDirPath: module.path,
+                basePath: module.path,
                 configFilePath: module.configPath,
 
                 build: buildAction ? buildAction.name : undefined,

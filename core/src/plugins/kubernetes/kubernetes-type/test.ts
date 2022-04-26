@@ -8,7 +8,7 @@
 
 import { DEFAULT_TEST_TIMEOUT } from "../../../constants"
 import { storeTestResult } from "../test-results"
-import { KubernetesModule } from "./config"
+import { KubernetesModule } from "./moduleConfig"
 import { runAndCopy } from "../run"
 import { KubernetesPluginContext } from "../config"
 import { TestModuleParams } from "../../../types/plugin/module/testModule"

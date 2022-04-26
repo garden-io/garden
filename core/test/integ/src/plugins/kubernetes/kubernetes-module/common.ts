@@ -11,8 +11,8 @@ import { cloneDeep } from "lodash"
 import { resolve } from "path"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { PluginContext } from "../../../../../../src/plugin-context"
-import { readManifests } from "../../../../../../src/plugins/kubernetes/kubernetes-module/common"
-import { KubernetesModule } from "../../../../../../src/plugins/kubernetes/kubernetes-module/config"
+import { readManifests } from "../../../../../../src/plugins/kubernetes/kubernetes-type/common"
+import { KubernetesModule } from "../../../../../../src/plugins/kubernetes/kubernetes-type/moduleConfig"
 import { TestGarden, dataDir, makeTestGarden, getExampleDir, expectError } from "../../../../../helpers"
 
 let kubernetesTestGarden: TestGarden

@@ -14,7 +14,7 @@ import tmp from "tmp-promise"
 import { TestGarden } from "../../../../../helpers"
 import { getKubernetesTestGarden } from "./common"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
-import { getManifests } from "../../../../../../src/plugins/kubernetes/kubernetes-module/common"
+import { getManifests } from "../../../../../../src/plugins/kubernetes/kubernetes-type/common"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { LogEntry } from "../../../../../../src/logger/log-entry"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
@@ -26,7 +26,7 @@ import { DeleteServiceTask } from "../../../../../../src/tasks/delete-service"
 import {
   deployKubernetesService,
   getKubernetesServiceStatus,
-} from "../../../../../../src/plugins/kubernetes/kubernetes-module/handlers"
+} from "../../../../../../src/plugins/kubernetes/kubernetes-type/handlers"
 import { emptyRuntimeContext } from "../../../../../../src/runtime-context"
 import Bluebird from "bluebird"
 import { buildHelmModules } from "../helm/common"

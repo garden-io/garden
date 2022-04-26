@@ -8,7 +8,7 @@
 
 import { GetServiceLogsParams } from "../../../types/plugin/service/getServiceLogs"
 import { streamK8sLogs } from "../logs"
-import { HelmModule } from "./config"
+import { HelmModule } from "./moduleConfig"
 import { KubernetesPluginContext } from "../config"
 import { getReleaseName } from "./common"
 import { getModuleNamespace } from "../namespace"

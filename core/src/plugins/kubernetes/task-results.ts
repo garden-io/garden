@@ -8,8 +8,8 @@
 
 import { GetTaskResultParams } from "../../types/plugin/task/getTaskResult"
 import { ContainerModule } from "../container/moduleConfig"
-import { HelmModule } from "./helm/config"
-import { KubernetesModule } from "./kubernetes-module/config"
+import { HelmModule } from "./helm/moduleConfig"
+import { KubernetesModule } from "./kubernetes-type/moduleConfig"
 import { KubernetesPluginContext, KubernetesProvider } from "./config"
 import { KubeApi } from "./api"
 import { getAppNamespace } from "./namespace"

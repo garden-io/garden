@@ -9,7 +9,6 @@
 import Bluebird from "bluebird"
 import { waitForResources } from "../status/status"
 import { helm } from "./helm-cli"
-import { HelmModule } from "./config"
 import {
   filterManifests,
   getBaseModule,
@@ -19,6 +18,7 @@ import {
   prepareManifests,
   prepareTemplates,
 } from "./common"
+import { HelmModule } from "./moduleConfig"
 import {
   gardenCloudAECPauseAnnotation,
   getPausedResources,

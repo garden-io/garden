@@ -12,7 +12,7 @@ import Bluebird from "bluebird"
 import { flatten, set } from "lodash"
 import { safeLoadAll } from "js-yaml"
 
-import { KubernetesModule } from "./config"
+import { KubernetesModule } from "./moduleConfig"
 import { KubernetesResource } from "../types"
 import { KubeApi } from "../api"
 import { gardenAnnotationKey } from "../../../util/string"

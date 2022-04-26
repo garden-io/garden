@@ -24,18 +24,24 @@ import { Provider, GenericProviderConfig, providerConfigBaseSchema } from "../..
 import { GetModuleOutputsParams } from "../../types/plugin/module/getModuleOutputs"
 import { ConvertModuleParams } from "../../plugin/handlers/module/convert"
 import { ExecActionConfig } from "../exec/config"
+import {
+  containerDeploySchema,
+  containerRunActionSchema,
+  containerTestActionSchema,
+  dockerImageBuildSpecSchema,
+} from "./config"
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
 export type ContainerProvider = Provider<ContainerProviderConfig>
 
-export interface ContainerModuleOutputs {
+export interface ContainerBuildOutputs {
   "local-image-name": string
   "local-image-id": string
   "deployment-image-name": string
   "deployment-image-id": string
 }
 
-export const containerModuleOutputsSchema = () =>
+export const containerBuildOutputsSchema = () =>
   joi.object().keys({
     "local-image-name": joi
       .string()
@@ -229,19 +235,78 @@ export const gardenPlugin = () =>
       Provides the [container](../module-types/container.md) module type.
       _Note that this provider is currently automatically included, and you do not need to configure it in your project configuration._
     `,
+
+    createActionTypes: {
+      build: [
+        {
+          name: "container",
+          docs: dedent`
+            Build a Docker container image, and (if applicable) push to a remote registry.
+          `,
+          outputsSchema: containerBuildOutputsSchema(),
+          schema: dockerImageBuildSpecSchema(),
+          handlers: {
+            // TODO-G2
+          },
+        },
+      ],
+      deploy: [
+        {
+          name: "container",
+          docs: dedent`
+            Deploy a container image, e.g. in a Kubernetes namespace (when used with the \`kubernetes\` provider).
+
+            This is a simplified abstraction, which can be convenient for simple deployments, but has limited features compared to more platform-specific types. For example, you cannot specify replicas for redundancy, and various platform-specific options are not included. For more flexibility, please look at other Deploy types like [helm](./helm.md) or [kubernetes](./kubernetes.md).
+          `,
+          schema: containerDeploySchema(),
+          handlers: {
+            // TODO-G2
+          },
+        },
+      ],
+      run: [
+        {
+          name: "container",
+          docs: dedent`
+            Run a command in a container image, e.g. in a Kubernetes namespace (when used with the \`kubernetes\` provider).
+
+            This is a simplified abstraction, which can be convenient for simple tasks, but has limited features compared to more platform-specific types. For example, you cannot specify replicas for redundancy, and various platform-specific options are not included. For more flexibility, please look at other Run types like [helm](./helm.md) or [kubernetes](./kubernetes.md).
+          `,
+          schema: containerRunActionSchema(),
+          handlers: {
+            // TODO-G2
+          },
+        },
+      ],
+      test: [
+        {
+          name: "container",
+          docs: dedent`
+            Define a Test which runs a command in a container image, e.g. in a Kubernetes namespace (when used with the \`kubernetes\` provider).
+
+            This is a simplified abstraction, which can be convenient for simple scenarios, but has limited features compared to more platform-specific types. For example, you cannot specify replicas for redundancy, and various platform-specific options are not included. For more flexibility, please look at other Test types like [helm](./helm.md) or [kubernetes](./kubernetes.md).
+          `,
+          schema: containerTestActionSchema(),
+          handlers: {
+            // TODO-G2
+          },
+        },
+      ],
+    },
+
     createModuleTypes: [
       {
         name: "container",
         docs: dedent`
-        Specify a container image to build or pull from a remote registry.
-        You may also optionally specify services to deploy, tasks or tests to run inside the container.
+          Specify a container image to build or pull from a remote registry.
+          You may also optionally specify services to deploy, tasks or tests to run inside the container.
 
-        Note that the runtime services have somewhat limited features in this module type. For example, you cannot
-        specify replicas for redundancy, and various platform-specific options are not included. For those, look at
-        other module types like [helm](./helm.md) or
-        [kubernetes](./kubernetes.md).
-      `,
-        moduleOutputsSchema: containerModuleOutputsSchema(),
+          Note that the runtime services have somewhat limited features in this module type. For example, you cannot
+          specify replicas for redundancy, and various platform-specific options are not included. For those, look at
+          other module types like [helm](./helm.md) or
+          [kubernetes](./kubernetes.md).
+        `,
+        moduleOutputsSchema: containerBuildOutputsSchema(),
         schema: containerModuleSpecSchema(),
         taskOutputsSchema,
         handlers: {
@@ -269,7 +334,7 @@ export const gardenPlugin = () =>
                 kind: "Build",
                 type: "docker-image",
                 name: module.name,
-                configDirPath: module.path,
+                basePath: module.path,
 
                 copyFrom,
                 source,
@@ -291,7 +356,7 @@ export const gardenPlugin = () =>
                 kind: "Build",
                 type: "exec",
                 name: module.name,
-                configDirPath: module.path,
+                basePath: module.path,
 
                 source,
                 allowPublish: module.allowPublish,
@@ -318,7 +383,7 @@ export const gardenPlugin = () =>
                 kind: "Deploy",
                 type: "container",
                 name: service.name,
-                configDirPath: module.path,
+                basePath: module.path,
 
                 build: buildAction ? buildAction.name : undefined,
                 dependencies: prepRuntimeDeps(service.spec.dependencies),
@@ -334,7 +399,7 @@ export const gardenPlugin = () =>
                 kind: "Run",
                 type: "container",
                 name: task.name,
-                configDirPath: module.path,
+                basePath: module.path,
 
                 build: buildAction ? buildAction.name : undefined,
                 dependencies: prepRuntimeDeps(task.spec.dependencies),
@@ -352,7 +417,7 @@ export const gardenPlugin = () =>
                 kind: "Test",
                 type: "container",
                 name: module.name + "-" + test.name,
-                configDirPath: module.path,
+                basePath: module.path,
 
                 build: buildAction ? buildAction.name : undefined,
                 dependencies: prepRuntimeDeps(test.spec.dependencies),
