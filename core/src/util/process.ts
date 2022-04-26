@@ -105,6 +105,7 @@ export class RetriableProcess {
   }
 
   private registerListeners(proc: ChildProcess): void {
+    const renderPid: () => string = () => `[Process PID=${this.getPid()}]`
     const renderAttemptsMessage: () => string = () => {
       return !!this.retriesLeft
         ? `${this.retriesLeft} attempts left, next in ${this.minTimeoutMs}ms`
@@ -113,9 +114,7 @@ export class RetriableProcess {
 
     proc.on("error", async (error) => {
       this.log.error(
-        `Error starting process '${this.command}' with PID ${this.getPid()}: ${JSON.stringify(
-          error
-        )}. ${renderAttemptsMessage()}`
+        `${renderPid()} Error starting process '${this.command}': ${JSON.stringify(error)}. ${renderAttemptsMessage()}`
       )
 
       await this.tryRestart(error)
@@ -123,7 +122,7 @@ export class RetriableProcess {
 
     proc.on("close", async (code: number, signal: NodeJS.Signals) => {
       const command = this.command
-      const errorMsg = `Process '${command}' with PID ${this.getPid()} exited with code ${code} and signal ${signal}.`
+      const errorMsg = `${renderPid()} command '${command}' exited with code ${code} and signal ${signal}.`
       this.log.error(`${errorMsg}. ${renderAttemptsMessage()}`)
 
       await this.tryRestart(new RuntimeError(errorMsg, { command, code }))
@@ -133,17 +132,17 @@ export class RetriableProcess {
       const hasErrorsFn = this.stderrListener?.hasErrors
       if (!hasErrorsFn || hasErrorsFn(line)) {
         const command = this.command
-        const errorMsg = `Failed to start process '${command}' with PID ${this.getPid()}: ${line}.`
+        const errorMsg = `${renderPid()} Failed to start process '${command}': ${line}.`
         this.log.error(`${errorMsg}. ${renderAttemptsMessage()}`)
         this.stderrListener?.onError(line)
         await this.tryRestart(new RuntimeError(errorMsg, { command, line }))
       } else {
-        this.log.info(`[Process PID=${this.getPid()}] >> '${line}'`)
+        this.log.info(`${renderPid()} ${line}`)
       }
     })
 
     proc.stdout!.on("data", (line) => {
-      this.log.info(`[Process PID=${this.getPid()}] >> '${line}'`)
+      this.log.info(`${renderPid()} ${line}`)
       this.stdoutListener?.onError(line)
       this.resetRetriesLeftRecursively()
     })
