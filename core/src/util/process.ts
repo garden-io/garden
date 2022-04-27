@@ -109,8 +109,9 @@ export class RetriableProcess {
   }
 
   private registerListeners(proc: ChildProcess): void {
-    const renderPid: () => string = () => `[Process PID=${this.getPid()}]`
-    const renderAttemptsMessage: () => string = () => {
+    const processSays: (string) => string = (message: string) => `[Process PID=${this.getPid()}] says "${message}"`
+
+    const attemptsLeft: () => string = () => {
       return !!this.retriesLeft
         ? `${this.retriesLeft} attempts left, next in ${this.minTimeoutMs}ms`
         : "no attempts left"
@@ -118,7 +119,7 @@ export class RetriableProcess {
 
     proc.on("error", async (error) => {
       this.log.error(
-        `${renderPid()} Error starting process '${this.command}': ${JSON.stringify(error)}. ${renderAttemptsMessage()}`
+        processSays(`Error starting process '${this.command}': ${JSON.stringify(error)}. ${attemptsLeft()}`)
       )
 
       await this.tryRestart(error)
@@ -126,8 +127,8 @@ export class RetriableProcess {
 
     proc.on("close", async (code: number, signal: NodeJS.Signals) => {
       const command = this.command
-      const errorMsg = `${renderPid()} command '${command}' exited with code ${code} and signal ${signal}.`
-      this.log.error(`${errorMsg} ${renderAttemptsMessage()}`)
+      const errorMsg = `Command '${command}' exited with code ${code} and signal ${signal}.`
+      this.log.error(processSays(`${errorMsg} ${attemptsLeft()}`))
 
       await this.tryRestart(new RuntimeError(errorMsg, { command, code }))
     })
@@ -136,12 +137,12 @@ export class RetriableProcess {
       const hasErrorsFn = this.stderrListener?.hasErrors
       if (!hasErrorsFn || hasErrorsFn(chunk)) {
         const command = this.command
-        const errorMsg = `${renderPid()} Failed to start process '${command}': ${chunk}.`
-        this.log.error(`${errorMsg} ${renderAttemptsMessage()}`)
+        const errorMsg = `Failed to start process '${command}': ${chunk}.`
+        this.log.error(processSays(`${errorMsg} ${attemptsLeft()}`))
         this.stderrListener?.onError(chunk)
         await this.tryRestart(new RuntimeError(errorMsg, { command, line: chunk }))
       } else {
-        this.log.info(`${renderPid()} ${chunk}`)
+        this.log.info(processSays(chunk))
         this.resetRetriesLeftRecursively()
       }
     })
@@ -149,12 +150,12 @@ export class RetriableProcess {
     proc.stdout!.on("data", async (chunk: string) => {
       const hasErrorsFn = this.stdoutListener?.hasErrors
       if (!hasErrorsFn || !hasErrorsFn(chunk)) {
-        this.log.info(`${renderPid()} ${chunk}`)
+        this.log.info(processSays(chunk))
         this.resetRetriesLeftRecursively()
       } else {
         const command = this.command
-        const errorMsg = `${renderPid()} Failed to start process '${command}': ${chunk}.`
-        this.log.error(`${errorMsg} ${renderAttemptsMessage()}`)
+        const errorMsg = `Failed to start process '${command}': ${chunk}.`
+        this.log.error(processSays(`${errorMsg} ${attemptsLeft()}`))
         this.stdoutListener?.onError(chunk)
         await this.tryRestart(new RuntimeError(errorMsg, { command, line: chunk }))
       }
