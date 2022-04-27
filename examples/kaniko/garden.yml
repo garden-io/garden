@@ -8,6 +8,9 @@ environments:
 providers:
   - name: local-kubernetes
     environments: [local]
+    buildMode: kaniko
+    kaniko:
+      namespace: null # This will make the kaniko builder pod appear in the same namespace as the project
   - name: kubernetes
     environments: [remote]
     context: gke_garden-ci_europe-west1-b_core-ci
