@@ -109,7 +109,7 @@ export class RetriableProcess {
 
     proc.on("error", async (error) => {
       this.log.error(
-        processSays(`Error starting process '${this.command}': ${JSON.stringify(error)}. ${attemptsLeft()}`)
+        processSays(`Command '${this.command}' failed with error: ${JSON.stringify(error)}. ${attemptsLeft()}`)
       )
 
       await this.tryRestart(error)
@@ -127,7 +127,7 @@ export class RetriableProcess {
       const hasErrorsFn = this.stderrListener?.hasErrors
       if (!hasErrorsFn || hasErrorsFn(chunk)) {
         const command = this.command
-        const errorMsg = `Failed to start process '${command}': ${chunk}.`
+        const errorMsg = `Command '${command}' terminated: ${chunk}.`
         this.log.error(processSays(`${errorMsg} ${attemptsLeft()}`))
         this.stderrListener?.onError(chunk)
         await this.tryRestart(new RuntimeError(errorMsg, { command, line: chunk }))
@@ -144,7 +144,7 @@ export class RetriableProcess {
         this.resetRetriesLeftRecursively()
       } else {
         const command = this.command
-        const errorMsg = `Failed to start process '${command}': ${chunk}.`
+        const errorMsg = `Command '${command}' terminated: ${chunk}.`
         this.log.error(processSays(`${errorMsg} ${attemptsLeft()}`))
         this.stdoutListener?.onError(chunk)
         await this.tryRestart(new RuntimeError(errorMsg, { command, line: chunk }))
