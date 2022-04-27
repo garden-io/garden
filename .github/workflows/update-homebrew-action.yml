@@ -1,0 +1,41 @@
+name: Update Homebrew Formula
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  homebrew-release:
+
+    runs-on: macOS-latest
+
+    steps:
+    - name: Checks if pre-release
+      if: github.event.release.prerelease == true
+      run: |
+        echo This is running against a pre-release.
+        echo Skipping all the next steps.
+    - name: Release Homebrew Formula
+      if: github.event.release.prerelease != true
+      uses: mislav/bump-homebrew-formula-action@v1.16
+      with:
+        formula-name: garden-cli
+        formula-path: Formula/garden-cli.rb
+        homebrew-tap: garden-io/homebrew-garden
+        base-branch: master
+        create-pullrequest: true
+        download-url: https://github.com/garden-io/garden/releases/download/${{ github.event.release.tag_name }}/garden-${{ github.event.release.tag_name }}-macos-amd64.tar.gz
+        commit-message: |
+          Bump {{formulaName}} to {{version}}.
+
+          For more info: https://github.com/garden-io/garden
+      env:
+        COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
+    - name: Test Homebrew package
+      if: github.event.release.prerelease != true
+      run: |
+        echo 'Testing brew install'
+        brew tap garden-io/garden
+        brew install garden-cli
+        echo 'Running garden --version'
+        garden --version
