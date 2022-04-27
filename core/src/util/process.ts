@@ -53,6 +53,7 @@ export class RetriableProcess {
   public readonly command: string
   private proc?: ChildProcess
 
+  // tslint:disable: no-unused-variable
   private parent?: RetriableProcess
   private descendants: RetriableProcess[]
 
@@ -89,17 +90,6 @@ export class RetriableProcess {
     }
 
     !proc.killed && proc.kill()
-    const parent = this.parent
-    if (parent) {
-      // delete killed process from parent's descendants
-      parent.descendants.splice(
-        parent.descendants.findIndex((p) => p.proc!.pid === proc.pid),
-        1
-      )
-    }
-    // remove reference to parent from a dead child
-    this.parent = undefined
-
     this.proc = undefined
   }
 
@@ -190,7 +180,7 @@ export class RetriableProcess {
       this.retriesLeft--
       // sleep synchronously to avoid pre-mature retry attempts
       sleepSync(this.minTimeoutMs)
-      // todo: Should we lookup to parent nodes to find the parent-most killed/restarting process?
+      // todo: should we lookup to parent nodes to find the parent-most killed/restarting process?
       this.unregisterListenersRecursively()
       this.killRecursively()
       this.start()
