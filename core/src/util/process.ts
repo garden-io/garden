@@ -133,6 +133,7 @@ export class RetriableProcess {
         const errorMsg = `Command '${command}' terminated: ${chunk}.`
         this.log.error(processSays(`${errorMsg} ${attemptsLeft()}`))
         this.stderrListener?.onError(chunk)
+
         await this.tryRestart(new RuntimeError(errorMsg, { command, line: chunk }))
       } else {
         this.log.info(processSays(chunk))
@@ -150,6 +151,7 @@ export class RetriableProcess {
         const errorMsg = `Command '${command}' terminated: ${chunk}.`
         this.log.error(processSays(`${errorMsg} ${attemptsLeft()}`))
         this.stdoutListener?.onError(chunk)
+
         await this.tryRestart(new RuntimeError(errorMsg, { command, line: chunk }))
       }
     })
