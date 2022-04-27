@@ -7,6 +7,7 @@ environments:
 providers:
   - name: local-kubernetes
     environments: [local]
+    namespace: kubernetes-secrets
   - name: kubernetes
     environments: [testing]
     context: gke_garden-ci_europe-west1-b_core-ci
