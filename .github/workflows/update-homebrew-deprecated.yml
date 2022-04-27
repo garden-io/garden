@@ -1,4 +1,4 @@
-name: Update Homebrew Formula
+name: Update Homebrew Formula (deprecated)
 
 on:
   release:
