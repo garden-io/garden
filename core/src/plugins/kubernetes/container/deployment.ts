@@ -73,9 +73,10 @@ export async function deployContainerService(
   }
 
   if (localMode) {
-    await startServiceInLocalMode({
+    await startLocalMode({
       ctx: k8sCtx,
       log,
+      status,
       service,
     })
   }
@@ -111,6 +112,35 @@ export async function startContainerDevSync({
     target,
     spec: service.spec.devMode,
     serviceName: service.name,
+  })
+}
+
+export async function startLocalMode({
+  ctx,
+  log,
+  status,
+  service,
+}: {
+  ctx: KubernetesPluginContext
+  status: ContainerServiceStatus
+  log: LogEntry
+  service: ContainerService
+}) {
+  if (!service.spec.localMode) {
+    return
+  }
+
+  const namespace = await getAppNamespace(ctx, log, ctx.provider)
+  const target = status.detail.remoteResources.find((r) =>
+    hotReloadableKinds.includes(r.kind)
+  )! as HotReloadableResource
+
+  await startServiceInLocalMode({
+    target,
+    service,
+    log,
+    ctx,
+    namespace,
   })
 }
 

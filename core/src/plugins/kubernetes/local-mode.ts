@@ -27,6 +27,7 @@ import { ensureDir, readFileSync } from "fs-extra"
 import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
 import { OsCommand, RetriableProcess } from "../../util/process"
+import { isConfiguredForLocalMode } from "./status/status"
 import pRetry = require("p-retry")
 import getPort = require("get-port")
 
@@ -41,6 +42,11 @@ interface ConfigureLocalModeParams {
   target: HotReloadableResource
   service: ContainerService
   log: LogEntry
+}
+
+interface StartLocalModeParams extends ConfigureLocalModeParams {
+  ctx: PluginContext
+  namespace: string
 }
 
 // todo: init it once per service, now it's being created a few times
@@ -269,20 +275,20 @@ export async function configureLocalMode({ target, service, log }: ConfigureLoca
     return
   }
 
+  set(target, ["metadata", "annotations", gardenAnnotationKey("local-mode")], "true")
+
   log.info({
     section: service.name,
     msg: chalk.gray(
-      `Configuring in local mode, proxy container ${chalk.underline(reverseProxyImageName)} will be deployed`
+      `Configuring in local mode, proxy container ${chalk.underline(reverseProxyImageName)} will be deployed.`
     ),
   })
-
-  set(target, ["metadata", "annotations", gardenAnnotationKey("local-mode")], "true")
 
   const remoteContainerName = localModeSpec.containerName
   const mainContainer = getResourceContainer(target, remoteContainerName)
   if (!!remoteContainerName && !mainContainer) {
     throw new ConfigurationError(
-      `Could not find remote k8s container for name '${remoteContainerName}'. Please check the localMode configuration`,
+      `Could not find remote k8s container for name '${remoteContainerName}'. Please check the localMode configuration.`,
       {}
     )
   }
@@ -304,7 +310,7 @@ export async function configureLocalMode({ target, service, log }: ConfigureLoca
   // todo: check if anything else should be configured here
 }
 
-function getLocalServiceCmd(service: ContainerService): OsCommand | undefined {
+function getLocalServiceCommand({ service }: StartLocalModeParams): OsCommand | undefined {
   const command = service.spec.localMode!.command
   if (!command || command.length === 0) {
     return undefined
@@ -313,21 +319,19 @@ function getLocalServiceCmd(service: ContainerService): OsCommand | undefined {
 }
 
 async function getSshPortForwardCommand(
-  ctx: PluginContext,
-  log: LogEntry,
-  service: ContainerService,
+  { target, service, log, ctx, namespace }: StartLocalModeParams,
   localPort: number
 ): Promise<OsCommand> {
   const k8sCtx = <KubernetesPluginContext>ctx
 
-  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+  const targetNamespace = target.metadata.namespace || namespace
   const targetResource = getTargetResource(service)
 
   const portMapping = `${localPort}:${PROXY_CONTAINER_SSH_TUNNEL_PORT}`
 
   // TODO: use the API directly instead of kubectl (need to reverse-engineer kubectl quite a bit for that)
   const { args: portForwardArgs } = kubectl(k8sCtx, k8sCtx.provider).prepareArgs({
-    namespace,
+    namespace: targetNamespace,
     args: ["port-forward", targetResource, portMapping],
     log,
   })
@@ -346,8 +350,7 @@ async function getSshPortForwardCommand(
  * @param log the logger
  */
 async function getReversePortForwardingCommand(
-  log: LogEntry,
-  service: ContainerService,
+  { service, log }: StartLocalModeParams,
   localSshPort: number
 ): Promise<OsCommand> {
   const localModeSpec = service.spec.localMode!
@@ -400,30 +403,31 @@ function composeProcessTree(
  * Configures the necessary port forwarding to replace remote k8s service by a local one:
  *   1. Opens SSH tunnel between the local machine and the remote k8s service.
  *   2. Starts reverse port forwarding from the remote proxy's containerPort to the local app port.
- * @param ctx the k8s plugin context
- * @param log the logger
- * @param service the target k8s service container
  */
-export async function startServiceInLocalMode({
-  ctx,
-  log,
-  service,
-}: {
-  ctx: KubernetesPluginContext
-  log: LogEntry
-  service: ContainerService
-}): Promise<void> {
+export async function startServiceInLocalMode(params: StartLocalModeParams): Promise<void> {
+  const service = params.service
   if (!service.spec.localMode) {
     return
   }
+
+  const target = params.target
+  // Validate the target
+  if (!isConfiguredForLocalMode(target)) {
+    const resourceName = `${target.kind}/${target.metadata.name}`
+    throw new ConfigurationError(`Resource ${resourceName} is not deployed in local mode`, {
+      target,
+    })
+  }
+
   const localSshPort = await getPort()
+  const log = params.log
   process.once("exit", () => {
     cleanupKnownHosts(localSshPort, log)
   })
 
-  const localServiceCmd = getLocalServiceCmd(service)
-  const sshTunnelCmd = await getSshPortForwardCommand(ctx, log, service, localSshPort)
-  const reversePortForwardingCmd = await getReversePortForwardingCommand(log, service, localSshPort)
+  const localServiceCmd = getLocalServiceCommand(params)
+  const sshTunnelCmd = await getSshPortForwardCommand(params, localSshPort)
+  const reversePortForwardingCmd = await getReversePortForwardingCommand(params, localSshPort)
 
   const localService = !!localServiceCmd
     ? new RetriableProcess({
