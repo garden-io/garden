@@ -44,6 +44,14 @@ You could e.g. use [command line variables](https://docs.garden.io/using-garden/
 
 ## Usage
 
+If you want to run the frontend service locally you'll need to have yarn installed and also have to install the packages for the frontend project
+
+```console
+cd frontend
+yarn install
+cd ..
+```
+
 Assuming you've [set _your_ K8s context](https://docs.garden.io/getting-started/3-connect-to-a-cluster), you can start the project with:
 
 ```console
