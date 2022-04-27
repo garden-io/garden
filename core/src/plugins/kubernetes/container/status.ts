@@ -67,6 +67,7 @@ export async function getContainerServiceStatus({
   } = await compareDeployedResources(k8sCtx, api, namespace, manifests, log)
   const ingresses = await getIngresses(service, api, provider)
 
+  // Local mode has its own port-forwarding configuration
   const forwardablePorts: ForwardablePort[] = localMode
     ? []
     : service.spec.ports
