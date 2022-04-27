@@ -26,4 +26,4 @@ jobs:
 
             For more info: https://github.com/garden-io/garden
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
