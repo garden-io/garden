@@ -49,9 +49,12 @@ export interface RetriableProcessConfig {
   log: LogEntry
 }
 
+type RetriableProcessState = "runnable" | "running" | "killed" | "retrying"
+
 export class RetriableProcess {
   public readonly command: string
   private proc?: ChildProcess
+  private state: RetriableProcessState
 
   // tslint:disable: no-unused-variable
   private parent?: RetriableProcess
@@ -79,8 +82,7 @@ export class RetriableProcess {
     this.stderrListener = config.stderrListener
     this.stdoutListener = config.stdoutListener
     this.log = config.log
-
-    // todo: state validation in methods
+    this.state = "runnable"
   }
 
   private kill(): void {
@@ -91,6 +93,7 @@ export class RetriableProcess {
 
     !proc.killed && proc.kill()
     this.proc = undefined
+    this.state = "killed"
   }
 
   private killRecursively(): void {
@@ -176,20 +179,26 @@ export class RetriableProcess {
   }
 
   private async tryRestart(error: Error | ErrorEvent | GardenBaseError | string): Promise<void> {
+    // todo: should we lookup to parent nodes to find the parent-most killed/restarting process?
+    this.unregisterListenersRecursively()
+    this.killRecursively()
     if (this.retriesLeft > 0) {
-      this.retriesLeft--
       // sleep synchronously to avoid pre-mature retry attempts
       sleepSync(this.minTimeoutMs)
-      // todo: should we lookup to parent nodes to find the parent-most killed/restarting process?
-      this.unregisterListenersRecursively()
-      this.killRecursively()
+      this.retriesLeft--
+      this.state = "retrying"
       this.start()
     } else {
+      this.state = "killed"
       throw error
     }
   }
 
   public addDescendantProcess(descendant: RetriableProcess): RetriableProcess {
+    if (this.state === "running") {
+      throw new RuntimeError("Cannot attach a descendant to already rinning process", this)
+    }
+
     descendant.parent = this
     this.descendants.push(descendant)
     return descendant
@@ -213,6 +222,9 @@ export class RetriableProcess {
   }
 
   public start(): RetriableProcess {
+    if (this.state === "running") {
+      throw new RuntimeError("Process is already running", this)
+    }
     // no need to use pRetry here, the failures will be handled by event the process listeners
     const proc = exec(this.command)
     this.registerListeners(proc)
@@ -220,6 +232,7 @@ export class RetriableProcess {
       descendant.start()
     }
     this.proc = proc
+    this.state = "running"
     return this
   }
 }
