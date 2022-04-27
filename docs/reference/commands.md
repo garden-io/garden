@@ -682,7 +682,7 @@ Examples:
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-deploy.
   | `--dev-mode` | `-dev` | array:string | The name(s) of the service(s) to deploy with dev mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with dev mode enabled. When this option is used, the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
   | `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading). When this option is used, the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
-  | `--local-mode` |  | array:string | [EXPERIMENTAL] The name of the service to be executed locally with local mode enabled.
+  | `--local-mode` |  | array:string | [EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with local mode enabled. When this option is used, the command is run in persistent mode.
   | `--skip` |  | array:string | The name(s) of services you&#x27;d like to skip when deploying.
   | `--skip-dependencies` | `-no-deps` | boolean | Deploy the specified services, but don&#x27;t deploy any additional services that they depend on or run any tasks that they depend on. This option can only be used when a list of service names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to deploy a subset of services in dev mode without redeploying any service dependencies that may have changed since you last deployed.
   | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. Ignored if --watch/-w flag is set or when in dev or hot-reload mode.
@@ -910,7 +910,6 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--force` |  | boolean | Force redeploy of service(s).
   | `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading).
-  | `--local-mode` |  | array:string | [EXPERIMENTAL] The name of the service to be executed locally with local mode enabled.
   | `--skip-tests` |  | boolean | Disable running the tests.
   | `--test-names` | `-tn` | array:string | Filter the tests to run by test name across all modules (leave unset to run all tests). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
 

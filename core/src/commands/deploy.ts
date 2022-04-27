@@ -68,8 +68,12 @@ export const deployOpts = {
     alias: "hot",
   }),
   "local-mode": new StringsParameter({
-    help: deline`[EXPERIMENTAL] The name of the service to be executed locally with local mode enabled.`,
-  }), // todo: description
+    help: deline`[EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled.
+    Use comma as a separator to specify multiple services. Use * to deploy all
+    services with local mode enabled. When this option is used,
+    the command is run in persistent mode.
+    `,
+  }),
   "skip": new StringsParameter({
     help: "The name(s) of services you'd like to skip when deploying.",
   }),
