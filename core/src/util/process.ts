@@ -192,7 +192,8 @@ export class RetriableProcess {
       this.start()
     } else {
       this.state = "killed"
-      throw error
+      this.log.error("Unable to start local mode, see the errors above. Shutting down...")
+      throw error // todo: shutdown gracefully
     }
   }
 
