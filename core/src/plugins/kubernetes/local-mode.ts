@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerService, ContainerServiceSpec, ServicePortSpec } from "../container/config"
+import { ContainerLocalModeSpec, ContainerService, ContainerServiceSpec, ServicePortSpec } from "../container/config"
 import { gardenAnnotationKey } from "../../util/string"
 import { set } from "lodash"
 import { HotReloadableResource } from "./hot-reload/hot-reload"
@@ -17,7 +17,6 @@ import { getResourceContainer, prepareEnvVars } from "./util"
 import { V1Container } from "@kubernetes/client-node"
 import { KubernetesPluginContext } from "./config"
 import { LogEntry } from "../../logger/log-entry"
-import { getAppNamespace } from "./namespace"
 import { getTargetResource } from "./port-forward"
 import chalk from "chalk"
 import { existsSync, rmSync } from "fs"
@@ -40,6 +39,7 @@ const localhost = "127.0.0.1"
 
 interface ConfigureLocalModeParams {
   target: HotReloadableResource
+  spec: ContainerLocalModeSpec
   service: ContainerService
   log: LogEntry
 }
@@ -143,14 +143,10 @@ function findPortByName(serviceSpec: ContainerServiceSpec, portName: string): Se
 }
 
 async function prepareLocalModeEnvVars(
-  service: ContainerService,
+  { service }: ConfigureLocalModeParams,
   proxySshKeystore: ProxySshKeystore
 ): Promise<PrimitiveMap> {
   const originalServiceSpec = service.spec
-  const localModeSpec = originalServiceSpec.localMode!
-  if (!localModeSpec) {
-    return {}
-  }
 
   // todo: is it a good way to pick up the right port?
   const httpPortSpec = findPortByName(originalServiceSpec, defaultReverseForwardingPortName)
@@ -170,12 +166,8 @@ async function prepareLocalModeEnvVars(
   }
 }
 
-function prepareLocalModePorts(originalServiceSpec: ContainerServiceSpec): ServicePortSpec[] {
-  if (!originalServiceSpec.localMode) {
-    return []
-  }
-
-  const hasSshPort = originalServiceSpec.ports.some((portSpec) => portSpec.name === "ssh")
+function prepareLocalModePorts({ service }: ConfigureLocalModeParams): ServicePortSpec[] {
+  const hasSshPort = service.spec.ports.some((portSpec) => portSpec.name === "ssh")
   if (hasSshPort) {
     return []
   }
@@ -268,13 +260,8 @@ function patchMainContainer(
 /**
  * Configures the specified Deployment, DaemonSet or StatefulSet for local mode.
  */
-export async function configureLocalMode({ target, service, log }: ConfigureLocalModeParams): Promise<void> {
-  const originalServiceSpec = service.spec
-  const localModeSpec = originalServiceSpec.localMode
-  if (!localModeSpec) {
-    return
-  }
-
+export async function configureLocalMode(configParams: ConfigureLocalModeParams): Promise<void> {
+  const { target, service, spec: localModeSpec, log } = configParams
   set(target, ["metadata", "annotations", gardenAnnotationKey("local-mode")], "true")
 
   log.info({
@@ -288,7 +275,8 @@ export async function configureLocalMode({ target, service, log }: ConfigureLoca
   const mainContainer = getResourceContainer(target, remoteContainerName)
   if (!!remoteContainerName && !mainContainer) {
     throw new ConfigurationError(
-      `Could not find remote k8s container for name '${remoteContainerName}'. Please check the localMode configuration.`,
+      `Could not find remote k8s container for name '${remoteContainerName}'. ` +
+        `Please check the localMode configuration.`,
       {}
     )
   }
@@ -301,17 +289,17 @@ export async function configureLocalMode({ target, service, log }: ConfigureLoca
     msg: `Created ssh key pair for reverse proxy container: "${publicSshKeyPath}" and "${privateSshKeyPath}".`,
   })
 
-  const localModeEnvVars = await prepareLocalModeEnvVars(service, proxySshKeystore)
-  const localModePorts = prepareLocalModePorts(originalServiceSpec)
+  const localModeEnvVars = await prepareLocalModeEnvVars(configParams, proxySshKeystore)
+  const localModePorts = prepareLocalModePorts(configParams)
 
-  patchOriginalServiceSpec(originalServiceSpec, localModeEnvVars, localModePorts)
+  patchOriginalServiceSpec(service.spec, localModeEnvVars, localModePorts)
   patchMainContainer(mainContainer, proxyContainerName, localModeEnvVars, localModePorts)
 
   // todo: check if anything else should be configured here
 }
 
-function getLocalServiceCommand({ service }: StartLocalModeParams): OsCommand | undefined {
-  const command = service.spec.localMode!.command
+function getLocalServiceCommand({ spec: localModeSpec }: StartLocalModeParams): OsCommand | undefined {
+  const command = localModeSpec.command
   if (!command || command.length === 0) {
     return undefined
   }
@@ -345,15 +333,11 @@ async function getSshPortForwardCommand(
 /**
  * Starts reverse port forwarding from the remote service's containerPort to the local app port.
  * This reverse port forwarding works on top of the existing ssh tunnel.
- * @param service the remote proxy container which replaces the actual k8s service
- * @param localSshPort the local ssh tunnel port
- * @param log the logger
  */
 async function getReversePortForwardingCommand(
-  { service, log }: StartLocalModeParams,
+  { service, spec: localModeSpec, log }: StartLocalModeParams,
   localSshPort: number
 ): Promise<OsCommand> {
-  const localModeSpec = service.spec.localMode!
   const proxySshKeystore = new ProxySshKeystore(service.module.proxySshKeyDirPath, log)
   const privateSshKeyPath = await proxySshKeystore.getPrivateSshKeyPath(service)
 
@@ -404,13 +388,9 @@ function composeProcessTree(
  *   1. Opens SSH tunnel between the local machine and the remote k8s service.
  *   2. Starts reverse port forwarding from the remote proxy's containerPort to the local app port.
  */
-export async function startServiceInLocalMode(params: StartLocalModeParams): Promise<void> {
-  const service = params.service
-  if (!service.spec.localMode) {
-    return
-  }
+export async function startServiceInLocalMode(configParams: StartLocalModeParams): Promise<void> {
+  const { target, service, log } = configParams
 
-  const target = params.target
   // Validate the target
   if (!isConfiguredForLocalMode(target)) {
     const resourceName = `${target.kind}/${target.metadata.name}`
@@ -420,14 +400,13 @@ export async function startServiceInLocalMode(params: StartLocalModeParams): Pro
   }
 
   const localSshPort = await getPort()
-  const log = params.log
   process.once("exit", () => {
     cleanupKnownHosts(localSshPort, log)
   })
 
-  const localServiceCmd = getLocalServiceCommand(params)
-  const sshTunnelCmd = await getSshPortForwardCommand(params, localSshPort)
-  const reversePortForwardingCmd = await getReversePortForwardingCommand(params, localSshPort)
+  const localServiceCmd = getLocalServiceCommand(configParams)
+  const sshTunnelCmd = await getSshPortForwardCommand(configParams, localSshPort)
+  const reversePortForwardingCmd = await getReversePortForwardingCommand(configParams, localSshPort)
 
   const localService = !!localServiceCmd
     ? new RetriableProcess({

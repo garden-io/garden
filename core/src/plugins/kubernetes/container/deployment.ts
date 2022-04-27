@@ -138,6 +138,7 @@ export async function startLocalMode({
   await startServiceInLocalMode({
     target,
     service,
+    spec: service.spec.localMode,
     log,
     ctx,
     namespace,
@@ -599,9 +600,11 @@ export async function createWorkloadManifest({
     })
   }
 
-  if (enableLocalMode) {
+  const localModeSpec = service.spec.localMode
+  if (enableLocalMode && localModeSpec) {
     await configureLocalMode({
       target: workload,
+      spec: localModeSpec,
       service,
       log,
     })
