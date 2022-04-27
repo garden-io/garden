@@ -7,35 +7,30 @@
  */
 
 import Bluebird from "bluebird"
-import deline = require("deline")
-import dedent = require("dedent")
 import chalk from "chalk"
 import { readFile } from "fs-extra"
 import { flatten } from "lodash"
-import moment = require("moment")
 import { join } from "path"
 
 import { getModuleWatchTasks } from "../tasks/helpers"
-import { Command, CommandResult, CommandParams, handleProcessResults, PrepareParams } from "./base"
+import { Command, CommandParams, CommandResult, handleProcessResults, PrepareParams } from "./base"
 import { STATIC_DIR } from "../constants"
 import { processModules } from "../process"
 import { GardenModule } from "../types/module"
 import { getTestTasks } from "../tasks/test"
 import { ConfigGraph } from "../config-graph"
-import {
-  getDevModeModules,
-  getMatchingServiceNames,
-  getHotReloadServiceNames,
-  validateHotReloadServiceNames,
-} from "./helpers"
+import { getDevModeModules, getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
 import { startServer } from "../server/server"
 import { BuildTask } from "../tasks/build"
 import { DeployTask } from "../tasks/deploy"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
-import { StringsParameter, BooleanParameter } from "../cli/params"
+import { BooleanParameter, StringsParameter } from "../cli/params"
 import { printHeader } from "../logger/util"
 import { GardenService } from "../types/service"
+import deline = require("deline")
+import dedent = require("dedent")
+import moment = require("moment")
 
 const ansiBannerPath = join(STATIC_DIR, "garden-banner-2.txt")
 
@@ -55,9 +50,6 @@ const devOpts = {
     `,
     alias: "hot",
   }),
-  "local-mode": new StringsParameter({
-    help: deline`[EXPERIMENTAL] The name of the service to be executed locally with local mode enabled.`,
-  }), // todo: description
   "skip-tests": new BooleanParameter({
     help: "Disable running the tests.",
   }),
@@ -167,7 +159,8 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       // Since dev mode is implicit when using this command, we consider explicitly enabling hot reloading to
       // take precedence over dev mode.
       .filter((name) => !hotReloadServiceNames.includes(name))
-    const localModeServiceNames = getMatchingServiceNames(opts["local-mode"], graph)
+    // ignore local mode services in dev mode
+    const localModeServiceNames = []
 
     const initialTasks = await getDevCommandInitialTasks({
       garden,
