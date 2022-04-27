@@ -24,7 +24,7 @@ import { getTestTasks } from "../tasks/test"
 import { ConfigGraph } from "../config-graph"
 import {
   getDevModeModules,
-  getDevModeServiceNames,
+  getMatchingServiceNames,
   getHotReloadServiceNames,
   validateHotReloadServiceNames,
 } from "./helpers"
@@ -167,7 +167,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       // Since dev mode is implicit when using this command, we consider explicitly enabling hot reloading to
       // take precedence over dev mode.
       .filter((name) => !hotReloadServiceNames.includes(name))
-    const localModeServiceNames = getDevModeServiceNames(opts["local-mode"], graph)
+    const localModeServiceNames = getMatchingServiceNames(opts["local-mode"], graph)
 
     const initialTasks = await getDevCommandInitialTasks({
       garden,

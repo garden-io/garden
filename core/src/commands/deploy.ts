@@ -25,7 +25,7 @@ import { printHeader } from "../logger/util"
 import { BaseTask } from "../tasks/base"
 import {
   getDevModeModules,
-  getDevModeServiceNames,
+  getMatchingServiceNames,
   getHotReloadServiceNames,
   validateHotReloadServiceNames,
 } from "./helpers"
@@ -186,9 +186,9 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const modules = Array.from(new Set(services.map((s) => s.module)))
-    const devModeServiceNames = getDevModeServiceNames(opts["dev-mode"], initGraph)
+    const devModeServiceNames = getMatchingServiceNames(opts["dev-mode"], initGraph)
     const hotReloadServiceNames = getHotReloadServiceNames(opts["hot-reload"], initGraph)
-    const localModeServiceNames = getDevModeServiceNames(opts["local-mode"], initGraph)
+    const localModeServiceNames = getMatchingServiceNames(opts["local-mode"], initGraph)
 
     let watch = opts.watch
 
