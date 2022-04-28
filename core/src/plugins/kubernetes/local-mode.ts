@@ -25,7 +25,7 @@ import { join, resolve } from "path"
 import { ensureDir, readFileSync } from "fs-extra"
 import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
-import { OsCommand, RetriableProcess } from "../../util/process"
+import { OsCommand, RetriableProcess } from "../../util/retriable-process"
 import { isConfiguredForLocalMode } from "./status/status"
 import pRetry = require("p-retry")
 import getPort = require("get-port")
