@@ -293,3 +293,5 @@ export class Action<C extends BaseActionConfig = BaseActionConfig, O extends {} 
     return this.outputs[key]
   }
 }
+
+export type GetActionOutputType<T> = T extends Action<any, infer O> ? O : any

@@ -8,14 +8,14 @@
 
 import Joi from "@hapi/joi"
 import { ActionKind, BaseActionConfig } from "../../../actions/base"
-import { joi } from "../../../config/common"
+import { joi, joiVariables } from "../../../config/common"
 
 export type ParamsBase<_ = any> = {}
 
 export abstract class ActionTypeHandlerSpec<
   K extends ActionKind,
   P extends ParamsBase,
-  R extends {},
+  R extends ParamsBase,
   C = BaseActionConfig
 > {
   abstract description: string
@@ -40,3 +40,8 @@ export const baseHandlerSchema = () =>
       "When a handler is overriding a handler from a base plugin, this is provided to call the base handler. " +
         "This accepts the same parameters as the handler calling it."
     )
+
+export const actionOutputsSchema = () =>
+  joiVariables().description(
+    "Structured outputs from the execution, as defined by individual action/module types, to be made available for dependencies and in templating."
+  )

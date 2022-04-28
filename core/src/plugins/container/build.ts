@@ -13,7 +13,7 @@ import { renderOutputStream } from "../../util/util"
 import { PrimitiveMap } from "../../config/common"
 import split2 from "split2"
 import { BuildActionHandler } from "../../plugin/action-types"
-import { ContainerBuildAction } from "./config"
+import { ContainerBuildAction, ContainerBuildOutputs } from "./config"
 import { joinWithPosix } from "../../util/fs"
 
 export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerBuildAction> = async ({
@@ -50,7 +50,9 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
     )
   }
 
-  const identifier = action.getOutput("localImageId")
+  const outputs = getContainerBuildActionOutputs(action)
+
+  const identifier = outputs.localImageId
 
   // build doesn't exist, so we create it
   log.setState(`Building ${identifier}...`)
@@ -79,7 +81,28 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
     ctx,
   })
 
-  return { fresh: true, buildLog: res.all || "", details: { identifier } }
+  return { fresh: true, buildLog: res.all || "", outputs, details: { identifier } }
+}
+
+export function getContainerBuildActionOutputs(action: ContainerBuildAction): ContainerBuildOutputs {
+  const spec = action.getSpec()
+
+  // Note: The deployment image name/ID outputs are overridden by the kubernetes provider, these defaults are
+  // generally not used.
+  const deploymentImageName = containerHelpers.getDeploymentImageName(action.name, spec.localId, undefined)
+  const deploymentImageId = containerHelpers.getBuildDeploymentImageId(
+    action.name,
+    spec.localId,
+    action.version,
+    undefined
+  )
+
+  return {
+    localImageName: containerHelpers.getLocalImageName(action.name, spec.localId),
+    localImageId: containerHelpers.getLocalImageId(action.name, spec.localId, action.version),
+    deploymentImageName,
+    deploymentImageId,
+  }
 }
 
 export function getDockerBuildFlags(action: ContainerBuildAction) {

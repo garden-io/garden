@@ -6,9 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BuildActionConfig } from "../../actions/build"
-import { DeployActionConfig } from "../../actions/deploy"
-import { joi, joiEnvVars, joiSparseArray, StringMap } from "../../config/common"
+import { BuildAction, BuildActionConfig } from "../../actions/build"
+import { DeployAction, DeployActionConfig } from "../../actions/deploy"
+import { joi, joiEnvVars, StringMap } from "../../config/common"
+import { openfaasModuleOutputsSchema } from "./config"
 
 interface OpenfaasBuildSpec {
   handler: string
@@ -17,6 +18,7 @@ interface OpenfaasBuildSpec {
 }
 
 export type OpenfaasBuildConfig = BuildActionConfig<"openfaas", OpenfaasBuildSpec>
+export type OpenfaasBuildAction = BuildAction<OpenfaasBuildConfig, {}>
 
 export const openfaasBuildActionSchema = () =>
   joi
@@ -38,7 +40,14 @@ interface OpenfaasDeploySpec {
   env: StringMap
 }
 
+interface OpenfaasDeployOutputs {
+  endpoint: string
+}
+
+export const openfaasDeployOutputsSchema = () => openfaasModuleOutputsSchema()
+
 export type OpenfaasDeployConfig = DeployActionConfig<"openfaas", OpenfaasDeploySpec>
+export type OpenfaasDeployAction = DeployAction<OpenfaasDeployConfig, OpenfaasDeployOutputs>
 
 export const openfaasDeployActionSchema = () =>
   joi

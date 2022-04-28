@@ -58,10 +58,11 @@ export async function k8sGetContainerModuleOutputs(params: GetModuleOutputsParam
 
   const provider = <KubernetesProvider>ctx.provider
   outputs["deployment-image-name"] = containerHelpers.getDeploymentImageName(
-    moduleConfig,
+    moduleConfig.name,
+    moduleConfig.spec.image,
     provider.config.deploymentRegistry
   )
-  outputs["deployment-image-id"] = containerHelpers.getDeploymentImageId(
+  outputs["deployment-image-id"] = containerHelpers.getModuleDeploymentImageId(
     moduleConfig,
     version,
     provider.config.deploymentRegistry
