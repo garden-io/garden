@@ -14,7 +14,6 @@ import isGlob from "is-glob"
 import { ConfigurationError, RuntimeError } from "../../exceptions"
 import { spawn, splitLast, SpawnOutput, splitFirst } from "../../util/util"
 import {
-  ContainerModule,
   ContainerRegistryConfig,
   defaultTag as _defaultTag,
   defaultImageNamespace,
@@ -61,9 +60,9 @@ const helpers = {
    * Returns the image ID used locally, when building and deploying to local environments
    * (when we don't need to push to remote registries).
    */
-  getLocalImageId(config: ContainerModuleConfig, version: ModuleVersion): string {
+  getLocalImageId(buildName: string, explicitImage: string | undefined, version: ModuleVersion): string {
     const { versionString } = version
-    const name = helpers.getLocalImageName(config)
+    const name = helpers.getLocalImageName(buildName, explicitImage)
     const parsedImage = helpers.parseImageId(name)
     return helpers.unparseImageId({ ...parsedImage, tag: versionString })
   },
@@ -72,12 +71,12 @@ const helpers = {
    * Returns the image name used locally (without tag/version), when building and deploying to local environments
    * (when we don't need to push to remote registries).
    */
-  getLocalImageName(config: ContainerModuleConfig): string {
-    if (config.spec.image) {
-      const parsedImage = helpers.parseImageId(config.spec.image)
+  getLocalImageName(buildName: string, explicitImage: string | undefined): string {
+    if (explicitImage) {
+      const parsedImage = helpers.parseImageId(explicitImage)
       return helpers.unparseImageId({ ...parsedImage, tag: undefined })
     } else {
-      return config.name
+      return buildName
     }
   },
 
@@ -115,8 +114,12 @@ const helpers = {
   /**
    * Returns the image name (sans tag/version) to be used when pushing to deployment registries.
    */
-  getDeploymentImageName(moduleConfig: ContainerModuleConfig, registryConfig?: ContainerRegistryConfig) {
-    const localName = moduleConfig.spec.image || moduleConfig.name
+  getDeploymentImageName(
+    buildName: string,
+    explicitImage: string | undefined,
+    registryConfig: ContainerRegistryConfig | undefined
+  ) {
+    const localName = explicitImage || buildName
     const parsedId = helpers.parseImageId(localName)
     const withoutVersion = helpers.unparseImageId({
       ...parsedId,
@@ -138,23 +141,32 @@ const helpers = {
   },
 
   /**
-   * Returns the image ID to be used when pushing to deployment registries. This always has the module version
+   * Returns the image ID to be used when pushing to deployment registries. This always has the version
    * set as the tag.
    */
-  getDeploymentImageId(
+  getBuildDeploymentImageId(
+    buildName: string,
+    explicitImage: string | undefined,
+    version: ModuleVersion,
+    // Requiring this parameter to avoid accidentally missing it
+    registryConfig: ContainerRegistryConfig | undefined
+  ): string {
+    const imageName = helpers.getDeploymentImageName(buildName, explicitImage, registryConfig)
+
+    return helpers.unparseImageId({
+      repository: imageName,
+      tag: version.versionString,
+    })
+  },
+
+  getModuleDeploymentImageId(
     moduleConfig: ContainerModuleConfig,
     version: ModuleVersion,
     // Requiring this parameter to avoid accidentally missing it
     registryConfig: ContainerRegistryConfig | undefined
   ): string {
     if (helpers.moduleHasDockerfile(moduleConfig, version)) {
-      // If building, return the deployment image name, with the current module version.
-      const imageName = helpers.getDeploymentImageName(moduleConfig, registryConfig)
-
-      return helpers.unparseImageId({
-        repository: imageName,
-        tag: version.versionString,
-      })
+      return helpers.getBuildDeploymentImageId(moduleConfig.name, moduleConfig.spec.image, version, registryConfig)
     } else if (moduleConfig.spec.image) {
       // Otherwise, return the configured image ID.
       return moduleConfig.spec.image

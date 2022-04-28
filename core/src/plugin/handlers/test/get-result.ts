@@ -11,13 +11,18 @@ import { PluginTestActionParamsBase, actionParamsSchema } from "../../base"
 import { TestAction } from "../../../actions/test"
 import { TestResult, testResultSchema } from "../../../types/test"
 import { ActionTypeHandlerSpec } from "../base/base"
+import { GetActionOutputType } from "../../../actions/base"
 
 interface GetTestResultParams<T extends TestAction> extends PluginTestActionParamsBase<T> {}
+
+interface GetTestResult<T extends TestAction> extends TestResult {
+  outputs: GetActionOutputType<T>
+}
 
 export class GetTestActionResult<T extends TestAction = TestAction> extends ActionTypeHandlerSpec<
   "test",
   GetTestResultParams<T>,
-  TestResult
+  GetTestResult<T>
 > {
   description = dedent`
     Retrieve the test result for the specified version. Use this along with the \`testAction\` handler to avoid testing the same code repeatedly.

@@ -12,8 +12,12 @@ import { keyBy } from "lodash"
 import { ConfigurationError } from "../../exceptions"
 import { createGardenPlugin } from "../../plugin/plugin"
 import { containerHelpers, defaultDockerfileName } from "./helpers"
-import { ContainerActionConfig, ContainerModule, containerModuleOutputsSchema,
-  containerModuleSpecSchema } from "./moduleConfig"
+import {
+  ContainerActionConfig,
+  ContainerModule,
+  containerModuleOutputsSchema,
+  containerModuleSpecSchema,
+} from "./moduleConfig"
 import { buildContainer, getContainerBuildStatus } from "./build"
 import { ConfigureModuleParams } from "../../plugin/handlers/module/configure"
 import { joi } from "../../config/common"
@@ -176,8 +180,12 @@ async function suggestModules({ name, path }: SuggestModulesParams): Promise<Sug
 }
 
 export async function getContainerModuleOutputs({ moduleConfig, version }: GetModuleOutputsParams) {
-  const deploymentImageName = containerHelpers.getDeploymentImageName(moduleConfig, undefined)
-  const deploymentImageId = containerHelpers.getDeploymentImageId(moduleConfig, version, undefined)
+  const deploymentImageName = containerHelpers.getDeploymentImageName(
+    moduleConfig.name,
+    moduleConfig.spec.image,
+    undefined
+  )
+  const deploymentImageId = containerHelpers.getModuleDeploymentImageId(moduleConfig, version, undefined)
 
   // If there is no Dockerfile (i.e. we don't need to build anything) we use the image field directly.
   // Otherwise we set the tag to the module version.
@@ -185,11 +193,11 @@ export async function getContainerModuleOutputs({ moduleConfig, version }: GetMo
   const localImageId =
     moduleConfig.spec.image && !hasDockerfile
       ? moduleConfig.spec.image
-      : containerHelpers.getLocalImageId(moduleConfig, version)
+      : containerHelpers.getLocalImageId(moduleConfig.name, moduleConfig.spec.image, version)
 
   return {
     outputs: {
-      "local-image-name": containerHelpers.getLocalImageName(moduleConfig),
+      "local-image-name": containerHelpers.getLocalImageName(moduleConfig.name, moduleConfig.spec.image),
       "local-image-id": localImageId,
       "deployment-image-name": deploymentImageName,
       "deployment-image-id": deploymentImageId,
@@ -215,7 +223,6 @@ export const gardenPlugin = () =>
           outputsSchema: containerBuildOutputsSchema(),
           schema: dockerImageBuildSpecSchema(),
           handlers: {
-            // TODO-G2
             build: buildContainer,
             getStatus: getContainerBuildStatus,
             publish: publishContainerBuild,
@@ -288,7 +295,7 @@ export const gardenPlugin = () =>
           getModuleOutputs: getContainerModuleOutputs,
 
           async convert(params: ConvertModuleParams<ContainerModule>) {
-            const { module, convertBuildDependency, convertRuntimeDependency, dummyBuild } = params
+            const { module, convertBuildDependency, dummyBuild, prepareRuntimeDependencies } = params
             const actions: (ContainerActionConfig | ExecActionConfig)[] = []
 
             let needsContainerBuild = false
@@ -325,15 +332,6 @@ export const gardenPlugin = () =>
               actions.push(buildAction)
             }
 
-            function prepRuntimeDeps(deps: string[]) {
-              if (buildAction) {
-                return deps.map(convertRuntimeDependency)
-              } else {
-                // If we don't return a Build action, we must still include any declared build dependencies
-                return [...module.build.dependencies.map(convertBuildDependency), ...deps.map(convertRuntimeDependency)]
-              }
-            }
-
             for (const service of module.serviceConfigs) {
               actions.push({
                 kind: "Deploy",
@@ -343,7 +341,7 @@ export const gardenPlugin = () =>
 
                 disabled: service.disabled,
                 build: buildAction?.name,
-                dependencies: prepRuntimeDeps(service.spec.dependencies),
+                dependencies: prepareRuntimeDependencies(service.spec.dependencies, buildAction),
 
                 spec: {
                   ...service.spec,
@@ -360,7 +358,7 @@ export const gardenPlugin = () =>
 
                 disabled: task.disabled,
                 build: buildAction?.name,
-                dependencies: prepRuntimeDeps(task.spec.dependencies),
+                dependencies: prepareRuntimeDependencies(task.spec.dependencies, buildAction),
                 timeout: task.spec.timeout ? task.spec.timeout : undefined,
 
                 spec: {
@@ -379,7 +377,7 @@ export const gardenPlugin = () =>
 
                 disabled: test.disabled,
                 build: buildAction?.name,
-                dependencies: prepRuntimeDeps(test.spec.dependencies),
+                dependencies: prepareRuntimeDependencies(test.spec.dependencies, buildAction),
                 timeout: test.spec.timeout ? test.spec.timeout : undefined,
 
                 spec: {
@@ -394,8 +392,6 @@ export const gardenPlugin = () =>
                 kind: "Group",
                 name: module.name,
                 actions,
-                variables: module.variables,
-                varfiles: module.varfile ? [module.varfile] : undefined,
               },
             }
           },
