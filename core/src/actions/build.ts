@@ -97,4 +97,4 @@ export const buildActionConfig = () =>
     timeout: joi.number().integer().description("Set a timeout for the build to complete, in seconds."),
   })
 
-export class BuildAction<C extends BuildActionConfig = any, O extends {} = {}> extends Action<C, O> {}
+export class BuildAction<C extends BuildActionConfig = any, O extends {} = any> extends Action<C, O> {}

@@ -172,7 +172,7 @@ async function run({
 
 export const buildExecModule: BuildActionHandler<"build", ExecBuild> = async ({ action, log, ctx }) => {
   const output: BuildResult = {}
-  const command = await action.getSpec("command")
+  const command = action.getSpec("command")
 
   if (command?.length) {
     const result = await run({ command, action, ctx, log })
@@ -194,11 +194,11 @@ export const buildExecModule: BuildActionHandler<"build", ExecBuild> = async ({ 
 
 export const execTestAction: TestActionHandler<"run", ExecTest> = async ({ log, action, artifactsPath, ctx }) => {
   const startedAt = new Date()
-  const { command, env } = await action.getSpec()
+  const { command, env } = action.getSpec()
 
   const result = await run({ command, action, ctx, log, env, opts: { reject: false } })
 
-  const artifacts = await action.getSpec("artifacts")
+  const artifacts = action.getSpec("artifacts")
   await copyArtifacts(log, artifacts, action.buildPath, artifactsPath)
 
   const outputLog = (result.stdout + result.stderr).trim()
@@ -220,7 +220,7 @@ export const execTestAction: TestActionHandler<"run", ExecTest> = async ({ log, 
 }
 
 export const execRunAction: RunActionHandler<"run", ExecRun> = async ({ artifactsPath, log, action, ctx }) => {
-  const { command, env, artifacts } = await action.getSpec()
+  const { command, env, artifacts } = action.getSpec()
   const startedAt = new Date()
 
   let completedAt: Date
@@ -264,7 +264,7 @@ const runExecBuild: BuildActionHandler<"run", ExecBuild> = async (params) => {
   const startedAt = new Date()
 
   const { action, ctx, args, interactive, log } = params
-  const env = await action.getSpec("env")
+  const env = action.getSpec("env")
 
   let completedAt: Date
   let outputLog: string
@@ -303,7 +303,7 @@ const runExecBuild: BuildActionHandler<"run", ExecBuild> = async (params) => {
 
 const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeploy> = async (params) => {
   const { action, log, ctx } = params
-  const { env, statusCommand } = await action.getSpec()
+  const { env, statusCommand } = action.getSpec()
 
   if (statusCommand) {
     const result = await run({
@@ -346,7 +346,7 @@ const getExecDeployLogs: DeployActionHandler<"getLogs", ExecDeploy> = async (par
 
 const execDeployAction: DeployActionHandler<"deploy", ExecDeploy> = async (params) => {
   const { action, log, ctx } = params
-  const spec = await action.getSpec()
+  const spec = action.getSpec()
 
   const devMode = params.devMode
   const env = spec.env
@@ -459,7 +459,7 @@ async function deployPersistentExecService({
 
 const deleteExecDeploy: DeployActionHandler<"delete", ExecDeploy> = async (params) => {
   const { action, log, ctx } = params
-  const { cleanupCommand, env } = await action.getSpec()
+  const { cleanupCommand, env } = action.getSpec()
 
   if (cleanupCommand) {
     const result = await run({

@@ -35,6 +35,7 @@ export const gardenPlugin = () =>
 //   return { fresh: false }
 // }
 // log.setState(`Pulling image ${image}...`)
-// await containerHelpers.pullImage(module, log, ctx)
+// const identifier = helpers.getPublicImageId(module)
+// await helpers.dockerCli({ cwd: module.buildPath, args: ["pull", identifier], log, ctx })
 // return { fetched: true }
 

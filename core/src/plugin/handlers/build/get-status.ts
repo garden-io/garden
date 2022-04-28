@@ -7,7 +7,7 @@
  */
 
 import { dedent } from "../../../util/string"
-import { actionParamsSchema, PluginBuildActionParamsBase } from "../../../plugin/base"
+import { actionParamsSchema, PluginBuildActionParamsBase } from "../../base"
 import { joi } from "../../../config/common"
 import { BuildAction } from "../../../actions/build"
 import { ActionTypeHandlerSpec } from "../base/base"

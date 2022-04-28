@@ -7,23 +7,25 @@
  */
 
 import { containerHelpers, defaultDockerfileName } from "./helpers"
-import { ContainerModule } from "./moduleConfig"
 import { ConfigurationError } from "../../exceptions"
-import { GetBuildStatusParams } from "../../types/plugin/module/getBuildStatus"
-import { BuildModuleParams } from "../../types/plugin/module/build"
 import { LogLevel } from "../../logger/logger"
 import { renderOutputStream } from "../../util/util"
 import { PrimitiveMap } from "../../config/common"
 import split2 from "split2"
 import { BuildActionHandler } from "../../plugin/actionTypes"
-import { ContainerBuildActionConfig } from "./config"
+import { ContainerBuildAction } from "./config"
+import { joinWithPosix } from "../../util/fs"
 
-export async function getContainerBuildStatus({ ctx, module, log }: GetBuildStatusParams<ContainerModule>) {
-  const identifier = await containerHelpers.imageExistsLocally(module, log, ctx)
+export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerBuildAction> = async ({
+  ctx,
+  action,
+  log,
+}) => {
+  const identifier = await containerHelpers.imageExistsLocally(action, log, ctx)
 
   if (identifier) {
     log.debug({
-      section: module.name,
+      section: action.name,
       msg: `Image ${identifier} already exists`,
       symbol: "info",
     })
@@ -32,32 +34,30 @@ export async function getContainerBuildStatus({ ctx, module, log }: GetBuildStat
   return { ready: !!identifier }
 }
 
-export const buildContainer: BuildActionHandler<"build", ContainerBuildActionConfig> = async ({ ctx, action, log }) => {
+export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> = async ({ ctx, action, log }) => {
   containerHelpers.checkDockerServerVersion(await containerHelpers.getDockerVersion())
 
   const buildPath = action.buildPath
-  const spec = await action.getSpec()
-  const image = spec.image
+  const spec = action.getSpec()
   const hasDockerfile = await containerHelpers.actionHasDockerfile(action)
 
   // make sure we can build the thing
   if (!hasDockerfile) {
     throw new ConfigurationError(
-      `Dockerfile not found at ${spec.dockerfile || defaultDockerfileName} for build ${action.name}. Please make sure the file exists, and is not excluded by include/exclude fields or .gardenignore files.`,
+      `Dockerfile not found at ${spec.dockerfile || defaultDockerfileName} for build ${action.name}.
+      Please make sure the file exists, and is not excluded by include/exclude fields or .gardenignore files.`,
       { spec }
     )
   }
 
-  const identifier = await action.getOutput("localImageId")
+  const identifier = action.getOutput("localImageId")
 
   // build doesn't exist, so we create it
   log.setState(`Building ${identifier}...`)
 
-  const cmdOpts = ["build", "-t", identifier, ...getDockerBuildFlags(module)]
+  const dockerfilePath = joinWithPosix(action.buildPath, spec.dockerfile)
 
-  if (module.spec.dockerfile) {
-    cmdOpts.push("--file", containerHelpers.getDockerfileBuildPath(module))
-  }
+  const cmdOpts = ["build", "-t", identifier, ...getDockerBuildFlags(action), "--file", dockerfilePath]
 
   // Stream verbose log to a status line
   const outputStream = split2()
@@ -68,9 +68,9 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildActionCon
     ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
     statusLine.setState(renderOutputStream(line.toString()))
   })
-  const timeout = module.spec.build.timeout
+  const timeout = spec.timeout
   const res = await containerHelpers.dockerCli({
-    cwd: module.buildPath,
+    cwd: action.buildPath,
     args: [...cmdOpts, buildPath],
     log,
     stdout: outputStream,
@@ -82,26 +82,30 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildActionCon
   return { fresh: true, buildLog: res.all || "", details: { identifier } }
 }
 
-export function getDockerBuildFlags(module: ContainerModule) {
+export function getDockerBuildFlags(action: ContainerBuildAction) {
   const args: string[] = []
 
-  for (const arg of getDockerBuildArgs(module)) {
+  for (const arg of getDockerBuildArgs(action)) {
     args.push("--build-arg", arg)
   }
 
-  if (module.spec.build.targetImage) {
-    args.push("--target", module.spec.build.targetImage)
+  const { targetStage, extraFlags } = action.getSpec()
+
+  if (targetStage) {
+    args.push("--target", targetStage)
   }
 
-  args.push(...(module.spec.extraFlags || []))
+  args.push(...(extraFlags || []))
 
   return args
 }
 
-export function getDockerBuildArgs(module: ContainerModule) {
+export function getDockerBuildArgs(action: ContainerBuildAction) {
+  const specBuildArgs = action.getSpec("buildArgs")
+
   const buildArgs: PrimitiveMap = {
-    GARDEN_MODULE_VERSION: module.version.versionString,
-    ...module.spec.buildArgs,
+    GARDEN_MODULE_VERSION: action.version.versionString,
+    ...specBuildArgs,
   }
 
   return Object.entries(buildArgs).map(([key, value]) => {

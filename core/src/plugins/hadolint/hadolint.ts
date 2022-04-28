@@ -151,7 +151,7 @@ export const gardenPlugin = () =>
           }),
           handlers: <TestActionHandlers<HadolintTest>>{
             run: async ({ ctx, log, action }) => {
-              const spec = await action.getSpec()
+              const spec = action.getSpec()
               const dockerfilePath = join(module.path, spec.dockerfilePath)
               const startedAt = new Date()
               let dockerfile: string
