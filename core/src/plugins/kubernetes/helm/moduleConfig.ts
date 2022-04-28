@@ -20,7 +20,7 @@ import { containsSource } from "./common"
 import { ConfigurationError } from "../../../exceptions"
 import { dedent, deline } from "../../../util/string"
 import { GardenService } from "../../../types/service"
-import { ContainerModule } from "../../container/moduleConfig"
+import { ContainerModule, hotReloadArgsSchema } from "../../container/moduleConfig"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../../plugin/handlers/module/configure"
 import {
@@ -43,6 +43,8 @@ import {
 import { posix } from "path"
 import { runPodSpecIncludeFields } from "../run"
 import { omit } from "lodash"
+import { kubernetesModuleDevModeSchema, KubernetesModuleDevModeSpec } from "../dev-mode"
+import { helmChartNameSchema, helmChartRepoSchema, helmChartVersionSchema, helmCommonSchemaKeys } from "./config"
 
 export const defaultHelmTimeout = 300
 
@@ -60,7 +62,7 @@ export interface HelmServiceSpec {
   chart?: string
   chartPath: string
   dependencies: string[]
-  devMode?: KubernetesDevModeSpec
+  devMode?: KubernetesModuleDevModeSpec
   localMode?: KubernetesLocalModeSpec
   namespace?: string
   portForwards?: PortForwardSpec[]
@@ -77,15 +79,6 @@ export interface HelmServiceSpec {
 }
 
 export type HelmService = GardenService<HelmModule, ContainerModule>
-
-const parameterValueSchema = () =>
-  joi
-    .alternatives(
-      joiPrimitive(),
-      joi.array().items(joi.link("#parameterValue")),
-      joi.object().pattern(/.+/, joi.link("#parameterValue"))
-    )
-    .id("parameterValue")
 
 export const helmModuleOutputsSchema = () =>
   joi.object().keys({
@@ -138,12 +131,7 @@ const helmTestSchema = () =>
 
 export const helmModuleSpecSchema = () =>
   joi.object().keys({
-    atomicInstall: joi
-      .boolean()
-      .default(true)
-      .description(
-        "Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more information about failures and then manually roll back, instead of having Helm do it automatically on failure."
-      ),
+    ...helmCommonSchemaKeys(),
     base: joiUserIdentifier()
       .description(
         deline`The name of another \`helm\` module to use as a base for this one. Use this to re-use a Helm chart across
@@ -156,13 +144,7 @@ export const helmModuleSpecSchema = () =>
       )
       .example("my-base-chart"),
     build: baseBuildSpecSchema(),
-    chart: joi
-      .string()
-      .description(
-        deline`A valid Helm chart name or URI (same as you'd input to \`helm install\`).
-      Required if the module doesn't contain the Helm chart itself.`
-      )
-      .example("ingress-nginx"),
+    chart: helmChartNameSchema(),
     chartPath: joi
       .posixPath()
       .subPathOnly()
@@ -174,7 +156,7 @@ export const helmModuleSpecSchema = () =>
     dependencies: joiSparseArray(joiIdentifier()).description(
       "List of names of services that should be deployed before this chart."
     ),
-    devMode: kubernetesDevModeSchema(),
+    devMode: kubernetesModuleDevModeSchema(),
     localMode: kubernetesLocalModeSchema(),
     include: joiModuleIncludeDirective(dedent`
       If neither \`include\` nor \`exclude\` is set, and the module has local chart sources, Garden
@@ -183,12 +165,7 @@ export const helmModuleSpecSchema = () =>
       If neither \`include\` nor \`exclude\` is set and the module specifies a remote chart, Garden
       automatically sets \`ìnclude\` to \`[]\`.
     `),
-    namespace: namespaceNameSchema(),
-    portForwards: portForwardsSchema(),
-    releaseName: joiIdentifier().description(
-      "Optionally override the release name used when installing (defaults to the module name)."
-    ),
-    repo: joi.string().description("The repository URL to fetch the chart from."),
+    repo: helmChartRepoSchema(),
     serviceResource: helmServiceResourceSchema().description(
       dedent`
       The Deployment, DaemonSet or StatefulSet or Pod that Garden should regard as the _Garden service_ in this module (not to be confused with Kubernetes Service resources).
@@ -207,33 +184,7 @@ export const helmModuleSpecSchema = () =>
       ),
     tasks: joiSparseArray(helmTaskSchema()).description("The task definitions for this module."),
     tests: joiSparseArray(helmTestSchema()).description("The test suite definitions for this module."),
-    timeout: joi
-      .number()
-      .integer()
-      .default(defaultHelmTimeout)
-      .description(
-        "Time in seconds to wait for Helm to complete any individual Kubernetes operation (like Jobs for hooks)."
-      ),
-    version: joi.string().description("The chart version to deploy."),
-    values: joi
-      .object()
-      .pattern(/.+/, parameterValueSchema())
-      .default(() => ({})).description(deline`
-      Map of values to pass to Helm when rendering the templates. May include arrays and nested objects.
-      When specified, these take precedence over the values in the \`values.yaml\` file (or the files specified
-      in \`valueFiles\`).
-    `),
-    valueFiles: joiSparseArray(joi.posixPath().subPathOnly()).description(dedent`
-      Specify value files to use when rendering the Helm chart. These will take precedence over the \`values.yaml\` file
-      bundled in the Helm chart, and should be specified in ascending order of precedence. Meaning, the last file in
-      this list will have the highest precedence.
-
-      If you _also_ specify keys under the \`values\` field, those will effectively be added as another file at the end
-      of this list, so they will take precedence over other files listed here.
-
-      Note that the paths here should be relative to the _module_ root, and the files should be contained in
-      your module directory.
-    `),
+    version: helmChartVersionSchema(),
   })
 
 export async function configureHelmModule({

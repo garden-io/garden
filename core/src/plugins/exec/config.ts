@@ -26,7 +26,7 @@ export interface ExecBuildActionSpec {
   timeout?: number
   env: StringMap
 }
-export type ExecBuildConfig = BuildActionConfig<ExecBuildActionSpec>
+export type ExecBuildConfig = BuildActionConfig<"exec", ExecBuildActionSpec>
 
 export const execBuildActionSchema = () =>
   joi.object().keys({
@@ -62,7 +62,7 @@ export interface ExecDeployActionSpec {
   env: StringMap
 }
 
-export type ExecDeployConfig = DeployActionConfig<ExecDeployActionSpec>
+export type ExecDeployConfig = DeployActionConfig<"exec", ExecDeployActionSpec>
 
 export const execDeployActionSchema = () =>
   joi
@@ -146,7 +146,7 @@ export interface ExecRunActionSpec {
   env: StringMap
 }
 
-export type ExecRunConfig = RunActionConfig<ExecRunActionSpec>
+export type ExecRunConfig = RunActionConfig<"exec", ExecRunActionSpec>
 
 export const execRunActionSchema = () =>
   joi
@@ -171,7 +171,7 @@ export const execRunActionSchema = () =>
 // TEST //
 
 export interface ExecTestActionSpec extends ExecRunActionSpec {}
-export type ExecTestConfig = TestActionConfig<ExecRunActionSpec>
+export type ExecTestConfig = TestActionConfig<"exec", ExecRunActionSpec>
 
 export const execTestActionSchema = () =>
   joi

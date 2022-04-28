@@ -568,14 +568,13 @@ export const execPlugin = () =>
             ),
         }),
         handlers: {
-          async convert({
-            module,
-            convertBuildDependency,
-            convertRuntimeDependency,
-            needsBuild,
-            copyFrom,
-          }: ConvertModuleParams<ExecModule>) {
+          configure: configureExecModule,
+
+          async convert(params: ConvertModuleParams<ExecModule>) {
+            const { module, convertBuildDependency, convertRuntimeDependency, dummyBuild } = params
             const actions: ExecActionConfig[] = []
+
+            let needsBuild = !!dummyBuild
 
             if (module.spec.build?.command) {
               needsBuild = true
@@ -589,15 +588,12 @@ export const execPlugin = () =>
                 type: "exec",
                 name: module.name,
 
-                basePath: module.path,
-                configFilePath: module.configPath,
+                ...params.baseFields,
+                ...dummyBuild,
 
-                copyFrom,
-                source: module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
-
-                allowPublish: module.allowPublish,
                 buildAtSource: module.spec.local,
                 dependencies: module.build.dependencies.map(convertBuildDependency),
+
                 spec: {
                   command: module.spec.build?.command,
                   env: module.spec.env,
@@ -626,11 +622,12 @@ export const execPlugin = () =>
                 kind: "Deploy",
                 type: "exec",
                 name: service.name,
-                basePath: module.path,
-                configFilePath: module.configPath,
+                ...params.baseFields,
 
+                disabled: service.disabled,
                 build: buildAction ? buildAction.name : undefined,
                 dependencies: prepRuntimeDeps(service.spec.dependencies),
+
                 spec: {
                   ...service.spec,
                   env: prepareEnv(service.spec.env),
@@ -643,12 +640,13 @@ export const execPlugin = () =>
                 kind: "Run",
                 type: "exec",
                 name: task.name,
-                basePath: module.path,
-                configFilePath: module.configPath,
+                ...params.baseFields,
 
+                disabled: task.disabled,
                 build: buildAction ? buildAction.name : undefined,
                 dependencies: prepRuntimeDeps(task.spec.dependencies),
                 timeout: task.spec.timeout ? task.spec.timeout : undefined,
+
                 spec: {
                   ...task.spec,
                   env: prepareEnv(task.spec.env),
@@ -661,12 +659,13 @@ export const execPlugin = () =>
                 kind: "Test",
                 type: "exec",
                 name: module.name + "-" + test.name,
-                basePath: module.path,
-                configFilePath: module.configPath,
+                ...params.baseFields,
 
+                disabled: test.disabled,
                 build: buildAction ? buildAction.name : undefined,
                 dependencies: prepRuntimeDeps(test.spec.dependencies),
                 timeout: test.spec.timeout ? test.spec.timeout : undefined,
+
                 spec: {
                   ...test.spec,
                   env: prepareEnv(test.spec.env),
@@ -684,8 +683,6 @@ export const execPlugin = () =>
               },
             }
           },
-
-          configure: configureExecModule,
         },
       },
     ],

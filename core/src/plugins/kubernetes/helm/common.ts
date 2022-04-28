@@ -9,7 +9,7 @@
 import { cloneDeep, flatten, isPlainObject } from "lodash"
 import { join, resolve } from "path"
 import { pathExists, readFile, remove, writeFile } from "fs-extra"
-import { apply as jsonMerge } from "json-merge-patch"
+import cryptoRandomString = require("crypto-random-string")
 
 import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
@@ -25,8 +25,7 @@ import { flattenResources, getAnnotation } from "../util"
 import { KubernetesPluginContext } from "../config"
 import { RunResult } from "../../../plugin/base"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants"
-import { dumpYaml } from "../../../util/util"
-import cryptoRandomString = require("crypto-random-string")
+import { dumpYaml, jsonMerge } from "../../../util/util"
 
 const gardenValuesFilename = "garden-values.yml"
 
@@ -210,7 +209,7 @@ export async function filterManifests(renderedTemplates: string) {
  * Returns the base module of the specified Helm module, or undefined if none is specified.
  * Throws an error if the referenced module is missing, or is not a Helm module.
  */
-export function getBaseModule(module: HelmModule) {
+export function getBaseModule(module: HelmModule): HelmModule | undefined {
   if (!module.spec.base) {
     return
   }

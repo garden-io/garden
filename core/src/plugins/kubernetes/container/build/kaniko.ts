@@ -83,7 +83,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
 
   const localId = module.outputs["local-image-id"]
   const deploymentImageId = module.outputs["deployment-image-id"]
-  const dockerfile = module.spec.dockerfile || "Dockerfile"
+  const dockerfile = module.spec.dockerfile || defaultDockerfileName
 
   let { authSecret } = await ensureUtilDeployment({
     ctx,

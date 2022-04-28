@@ -15,16 +15,32 @@ import { LogEntry } from "../../../logger/log-entry"
 import { GroupConfig, groupConfig } from "../../../config/group"
 import { GardenModule, moduleSchema } from "../../../types/module"
 import { baseActionConfig, BaseActionConfig } from "../../../actions/base"
-import { BuildCopyFrom, copyFromSchema } from "../../../actions/build"
+import { BuildActionConfig, buildActionConfig, BuildCopyFrom } from "../../../actions/build"
+import { GardenService, serviceSchema } from "../../../types/service"
+import { GardenTest, testSchema } from "../../../types/test"
+import { GardenTask, taskSchema } from "../../../types/task"
+import { ExecBuildConfig } from "../../../plugins/exec/config"
 
 export interface ConvertModuleParams<T extends GardenModule = GardenModule> extends PluginActionContextParams {
   ctx: PluginContext
   log: LogEntry
   module: T
-  needsBuild: boolean
-  copyFrom: BuildCopyFrom[]
+  services: GardenService<T>[]
+  tasks: GardenTask<T>[]
+  tests: GardenTest<T>[]
+  dummyBuild?: ExecBuildConfig
+  baseFields: {
+    basePath: string
+    copyFrom: BuildCopyFrom[]
+    source?: {
+      repository?: {
+        url: string
+      }
+    }
+  }
   convertBuildDependency: (d: string | BuildDependencyConfig) => string
   convertRuntimeDependency: (d: string) => string
+  prepareRuntimeDependencies: (deps: string[], build: BuildActionConfig | undefined) => string[]
 }
 
 export interface ConvertModuleResult {
@@ -40,21 +56,41 @@ export const convertModule = () => ({
 
     The names of the returned actions must match the expected names based on the module config. If a Build action is returned, there must be only one and it must be named the same as the module. Deploy and Run actions returned must have corresponding service and task names in the module. Tests must be named "<module name>-<test name in module>". Any unexpected action names will cause a validation error.
 
-    To convert dependencies, two helpers are provided for build dependencies and runtime dependencies, \`convertBuildDependency\` and \`convertRuntimeDependency\` respectively. These should be used to make sure dependency references map correctly to converted actions in other modules.
-
-    Additionally, two variables are provided: \`needsBuild\` is set to true if one or more Build-only features are used on the module. If this is set, a Build action is expected to be returned. Another is \`copyFrom\`, which is provided as a convenience to set the field with the same name on the generated Build action, based on the module's build dependencies.
+    See the parameter schema for helpers that are provided to facilitate the conversion.
 
     This handler is called on every resolution of the project graph, so it should return quickly and avoid doing any network calls.
   `,
 
   paramsSchema: joi.object().keys({
     ctx: pluginContextSchema().required(),
-    log: logEntrySchema(),
-    module: moduleSchema().required(),
-    needsBuild: joi.boolean(),
-    copyFrom: joiArray(copyFromSchema()),
-    convertBuildDependency: joi.function(),
-    convertRuntimeDependency: joi.function(),
+    log: logEntrySchema().required(),
+    module: moduleSchema().required().description("The resolved Module to convert."),
+    services: joiArray(serviceSchema()).description("Any Services belonging to the Module."),
+    tasks: joiArray(taskSchema()).description("Any Tasks belonging to the Module."),
+    tests: joiArray(testSchema()).description("Any Tests belonging to the Module."),
+    dummyBuildConfig: buildActionConfig().description(
+      "If a Build is required (i.e. if the Module uses any features that necessitate a Build action), this dummy exec Build is provided as a convenience. If an actual Build is created based on the Module, this config can be used as a base, since it sets some fields that would be needed on the returned Build, such as `copyFrom`."
+    ),
+    baseFields: joi
+      .object()
+      .unknown(true)
+      .required()
+      .description("Fields that should generally be applied to all returned actions, based on the input Module."),
+    convertBuildDependency: joi
+      .function()
+      .description(
+        "A helper that accepts an entry from `build.dependencies` on a Module and returns the corresponding Build action reference."
+      ),
+    convertRuntimeDependency: joi
+      .function()
+      .description(
+        "A helper that accepts a runtime dependency reference (i.e. a name of a Service or Task) and returns the corresponding Deploy or Run action reference."
+      ),
+    prepareRuntimeDependencies: joi
+      .function()
+      .description(
+        "Take a list of declared dependencies on a service, task or test, and a Build action (if any) and return the appropriate list of dependencies for the converted action."
+      ),
   }),
 
   resultSchema: joi.object().keys({
@@ -62,3 +98,36 @@ export const convertModule = () => ({
     actions: joi.array().items(baseActionConfig()),
   }),
 })
+
+// TODO-G2: provide these to the handlers, if applicable
+// dummybuild: {
+//   kind: "Build",
+//   type: "exec",
+//   name: module.name,
+
+//   basePath: module.path,
+
+//   copyFrom,
+//   source: module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
+
+//   allowPublish: module.allowPublish,
+//   dependencies: module.build.dependencies.map(convertBuildDependency),
+
+//   spec: {
+//     env: {},
+//   },
+// },
+//
+// function prepareRuntimeDependencies(deps: string[], build?: BuildActionConfig) {
+//   if (build) {
+//     return ["build:" + build.name, ...deps.map(convertRuntimeDependency)]]
+//   } else {
+//     // If we don't return a Build action, we must still include any declared build dependencies
+//     return [...module.build.dependencies.map(convertBuildDependency), ...deps.map(convertRuntimeDependency)]
+//   }
+// }
+
+// baseFields = {
+//   basePath: module.path,
+//   source: module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
+// }

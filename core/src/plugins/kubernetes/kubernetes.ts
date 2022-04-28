@@ -9,7 +9,7 @@
 import Bluebird from "bluebird"
 
 import { createGardenPlugin } from "../../plugin/plugin"
-import { helmHandlers } from "./helm/handlers"
+import { helmModuleHandlers } from "./helm/handlers"
 import { getAppNamespace, getSystemNamespace } from "./namespace"
 import { getSecret, setSecret, deleteSecret } from "./secrets"
 import { getEnvironmentStatus, prepareEnvironment, cleanupEnvironment } from "./init"
@@ -172,7 +172,7 @@ export const gardenPlugin = () =>
       `,
         moduleOutputsSchema: helmModuleOutputsSchema(),
         schema: helmModuleSpecSchema(),
-        handlers: helmHandlers,
+        handlers: helmModuleHandlers,
       },
       {
         name: "kubernetes",
