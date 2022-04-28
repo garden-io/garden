@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ChildProcess, exec } from "child_process"
+import { ChildProcess, exec, spawn } from "child_process"
 import { LogEntry } from "../logger/log-entry"
 import { sleepSync } from "./util"
 import { GardenBaseError, RuntimeError } from "../exceptions"
@@ -40,8 +40,16 @@ export interface IOStreamListener {
   onError: (chunk: any) => void
 }
 
+export type CommandExecutor = (command: string) => ChildProcess
+
+export namespace CommandExecutors {
+  export const spawnExecutor: CommandExecutor = (command: string) => spawn(command, { shell: true })
+  export const execExecutor: CommandExecutor = (command: string) => exec(command)
+}
+
 export interface RetriableProcessConfig {
   osCommand: OsCommand
+  executor?: CommandExecutor
   maxRetries: number
   minTimeoutMs: number
   stderrListener?: IOStreamListener
@@ -53,6 +61,7 @@ type RetriableProcessState = "runnable" | "running" | "killed" | "retrying"
 
 export class RetriableProcess {
   public readonly command: string
+  private readonly executor: CommandExecutor
   private proc?: ChildProcess
   private state: RetriableProcessState
 
@@ -73,6 +82,7 @@ export class RetriableProcess {
     this.command = !!config.osCommand.args
       ? `${config.osCommand.command} ${config.osCommand.args.join(" ")}`
       : config.osCommand.command
+    this.executor = config.executor || CommandExecutors.spawnExecutor
     this.proc = undefined
     this.parent = undefined
     this.descendants = []
@@ -229,7 +239,7 @@ export class RetriableProcess {
       throw new RuntimeError("Process is already running", this)
     }
     // no need to use pRetry here, the failures will be handled by event the process listeners
-    const proc = exec(this.command)
+    const proc = this.executor(this.command)
     this.registerListeners(proc)
     for (const descendant of this.descendants) {
       descendant.start()
