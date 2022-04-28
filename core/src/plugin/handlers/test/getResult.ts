@@ -8,13 +8,13 @@
 
 import { dedent } from "../../../util/string"
 import { PluginTestActionParamsBase, actionParamsSchema } from "../../../plugin/base"
-import { TestActionConfig } from "../../../actions/test"
+import { TestAction } from "../../../actions/test"
 import { TestResult, testResultSchema } from "../../../types/test"
 import { ActionTypeHandlerSpec } from "../base/base"
 
-interface GetTestResultParams<T extends TestActionConfig> extends PluginTestActionParamsBase<T> {}
+interface GetTestResultParams<T extends TestAction> extends PluginTestActionParamsBase<T> {}
 
-export class GetTestActionResult<T extends TestActionConfig = TestActionConfig> extends ActionTypeHandlerSpec<
+export class GetTestActionResult<T extends TestAction = TestAction> extends ActionTypeHandlerSpec<
   "test",
   GetTestResultParams<T>,
   TestResult

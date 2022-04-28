@@ -32,6 +32,8 @@ import { deline, stripQuotes } from "../../util/string"
 import { PluginContext } from "../../plugin-context"
 import { ModuleVersion } from "../../vcs/vcs"
 import { SpawnParams } from "../../util/ext-tools"
+import { ContainerBuildAction } from "./config"
+import { joinWithPosix } from "../../util/fs"
 
 interface DockerVersion {
   client?: string
@@ -146,7 +148,7 @@ const helpers = {
     // Requiring this parameter to avoid accidentally missing it
     registryConfig: ContainerRegistryConfig | undefined
   ): string {
-    if (helpers.hasDockerfile(moduleConfig, version)) {
+    if (helpers.moduleHasDockerfile(moduleConfig, version)) {
       // If building, return the deployment image name, with the current module version.
       const imageName = helpers.getDeploymentImageName(moduleConfig, registryConfig)
 
@@ -329,19 +331,18 @@ const helpers = {
     return docker.spawn(params)
   },
 
-  hasDockerfile(config: ContainerModuleConfig, version: ModuleVersion): boolean {
+  moduleHasDockerfile(config: ContainerModuleConfig, version: ModuleVersion): boolean {
     // If we explicitly set a Dockerfile, we take that to mean you want it to be built.
     // If the file turns out to be missing, this will come up in the build handler.
-    const dockerfileSourcePath = helpers.getDockerfileSourcePath(config)
-    return !!config.spec.dockerfile || version.files.includes(dockerfileSourcePath)
+    return !!config.spec.dockerfile || version.files.includes(getDockerfilePath(config.path, config.spec.dockerfile))
   },
 
-  getDockerfileBuildPath(module: ContainerModule) {
-    return getDockerfilePath(module.buildPath, module.spec.dockerfile)
-  },
-
-  getDockerfileSourcePath(config: ModuleConfig) {
-    return getDockerfilePath(config.path, config.spec.dockerfile)
+  async actionHasDockerfile(action: ContainerBuildAction): Promise<boolean> {
+    // If we explicitly set a Dockerfile, we take that to mean you want it to be built.
+    // If the file turns out to be missing, this will come up in the build handler.
+    const dockerfile = await action.getSpec("dockerfile")
+    const dockerfileSourcePath = getDockerfilePath(action.basePath, dockerfile)
+    return action.version.files.includes(dockerfileSourcePath)
   },
 
   /**
@@ -350,7 +351,7 @@ const helpers = {
    * Returns an empty list if there is no Dockerfile, and an `image` is set.
    */
   async autoResolveIncludes(config: ContainerModuleConfig, log: LogEntry) {
-    const dockerfilePath = helpers.getDockerfileSourcePath(config)
+    const dockerfilePath = getDockerfilePath(config.path, config.spec.dockerfile)
 
     if (!(await pathExists(dockerfilePath))) {
       // No Dockerfile, nothing to build, return empty list
@@ -449,5 +450,5 @@ function fixDockerVersionString(v: string) {
 }
 
 function getDockerfilePath(basePath: string, dockerfile = defaultDockerfileName) {
-  return join(basePath, dockerfile)
+  return joinWithPosix(basePath, dockerfile)
 }

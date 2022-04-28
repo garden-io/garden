@@ -12,8 +12,8 @@ import { keyBy } from "lodash"
 import { ConfigurationError } from "../../exceptions"
 import { createGardenPlugin } from "../../plugin/plugin"
 import { containerHelpers, defaultDockerfileName } from "./helpers"
-import { ContainerActionConfig, ContainerModule, containerModuleSpecSchema } from "./moduleConfig"
-import { buildContainerModule, getContainerBuildStatus } from "./build"
+import { ContainerActionConfig, ContainerModule, containerModuleOutputsSchema, containerModuleSpecSchema } from "./moduleConfig"
+import { buildContainer, getContainerBuildStatus } from "./build"
 import { ConfigureModuleParams } from "../../plugin/handlers/module/configure"
 import { joi } from "../../config/common"
 import { publishContainerModule } from "./publish"
@@ -25,6 +25,7 @@ import { GetModuleOutputsParams } from "../../types/plugin/module/getModuleOutpu
 import { ConvertModuleParams } from "../../plugin/handlers/module/convert"
 import { ExecActionConfig } from "../exec/config"
 import {
+  containerBuildOutputsSchema,
   containerDeploySchema,
   containerRunActionSchema,
   containerTestActionSchema,
@@ -33,39 +34,6 @@ import {
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
 export type ContainerProvider = Provider<ContainerProviderConfig>
-
-export interface ContainerBuildOutputs {
-  "local-image-name": string
-  "local-image-id": string
-  "deployment-image-name": string
-  "deployment-image-id": string
-}
-
-export const containerBuildOutputsSchema = () =>
-  joi.object().keys({
-    "local-image-name": joi
-      .string()
-      .required()
-      .description("The name of the image (without tag/version) that the module uses for local builds and deployments.")
-      .example("my-module"),
-    "local-image-id": joi
-      .string()
-      .required()
-      .description(
-        "The full ID of the image (incl. tag/version) that the module uses for local builds and deployments."
-      )
-      .example("my-module:v-abf3f8dca"),
-    "deployment-image-name": joi
-      .string()
-      .required()
-      .description("The name of the image (without tag/version) that the module will use during deployment.")
-      .example("my-deployment-registry.io/my-org/my-module"),
-    "deployment-image-id": joi
-      .string()
-      .required()
-      .description("The full ID of the image (incl. tag/version) that the module will use during deployment.")
-      .example("my-deployment-registry.io/my-org/my-module:v-abf3f8dca"),
-  })
 
 const taskOutputsSchema = joi.object().keys({
   log: joi
@@ -212,7 +180,7 @@ export async function getContainerModuleOutputs({ moduleConfig, version }: GetMo
 
   // If there is no Dockerfile (i.e. we don't need to build anything) we use the image field directly.
   // Otherwise we set the tag to the module version.
-  const hasDockerfile = containerHelpers.hasDockerfile(moduleConfig, version)
+  const hasDockerfile = containerHelpers.moduleHasDockerfile(moduleConfig, version)
   const localImageId =
     moduleConfig.spec.image && !hasDockerfile
       ? moduleConfig.spec.image
@@ -247,6 +215,7 @@ export const gardenPlugin = () =>
           schema: dockerImageBuildSpecSchema(),
           handlers: {
             // TODO-G2
+            build: buildContainer,
           },
         },
       ],
@@ -306,7 +275,7 @@ export const gardenPlugin = () =>
           other module types like [helm](./helm.md) or
           [kubernetes](./kubernetes.md).
         `,
-        moduleOutputsSchema: containerBuildOutputsSchema(),
+        moduleOutputsSchema: containerModuleOutputsSchema(),
         schema: containerModuleSpecSchema(),
         taskOutputsSchema,
         handlers: {
@@ -318,7 +287,7 @@ export const gardenPlugin = () =>
 
             let needsContainerBuild = false
 
-            if (containerHelpers.hasDockerfile(module, module.version)) {
+            if (containerHelpers.moduleHasDockerfile(module, module.version)) {
               needsContainerBuild = true
             }
 
@@ -427,7 +396,7 @@ export const gardenPlugin = () =>
 
           suggestModules,
           getBuildStatus: getContainerBuildStatus,
-          build: buildContainerModule,
+          build: buildContainer,
           publish: publishContainerModule,
           getModuleOutputs: getContainerModuleOutputs,
         },

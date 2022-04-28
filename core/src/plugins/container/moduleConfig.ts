@@ -14,11 +14,11 @@ import { CommonServiceSpec, ServiceConfig, baseServiceSpecSchema } from "../../c
 import { baseTaskSpecSchema, BaseTaskSpec } from "../../config/task"
 import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { dedent, deline } from "../../util/string"
-import { ContainerBuildOutputs } from "./container"
 import {
+  containerBuildOutputSchemaKeys,
   containerCommonBuildSpecKeys,
+  ContainerCommonDeploySpec,
   containerDeploySchemaKeys,
-  ContainerDeploySpec,
   ContainerHotReloadSpec,
   ContainerRunActionSpec,
   containerRunSpecKeys,
@@ -26,6 +26,7 @@ import {
   containerTestSpecKeys,
   hotReloadConfigSchema,
 } from "./config"
+import { kebabCase, mapKeys } from "lodash"
 
 /**
  * PLEASE DO NOT UPDATE THESE SCHEMAS UNLESS ABSOLUTELY NECESSARY, AND IF YOU DO, MAKE SURE
@@ -35,7 +36,11 @@ import {
 // To reduce the amount of edits to make before removing module configs
 export * from "./config"
 
-export type ContainerServiceSpec = CommonServiceSpec & ContainerDeploySpec
+export type ContainerServiceSpec = CommonServiceSpec &
+  ContainerCommonDeploySpec & {
+    hotReloadCommand?: string[]
+    hotReloadArgs?: string[]
+  }
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
 
 const containerDeploySchema = () => baseServiceSpecSchema().keys(containerDeploySchemaKeys())
@@ -128,10 +133,20 @@ export const containerModuleSpecSchema = () =>
     })
     .description("Configuration for a container module.")
 
+export interface ContainerModuleOutputs {
+  "local-image-name": string
+  "local-image-id": string
+  "deployment-image-name": string
+  "deployment-image-id": string
+}
+
+export const containerModuleOutputsSchema = () =>
+  joi.object().keys(mapKeys(containerBuildOutputSchemaKeys(), (_, k) => kebabCase(k)))
+
 export interface ContainerModule<
   M extends ContainerModuleSpec = ContainerModuleSpec,
   S extends ContainerServiceSpec = ContainerServiceSpec,
   T extends ContainerTestSpec = ContainerTestSpec,
   W extends ContainerTaskSpec = ContainerTaskSpec,
-  O extends ContainerBuildOutputs = ContainerBuildOutputs
+  O extends ContainerModuleOutputs = ContainerModuleOutputs
 > extends GardenModule<M, S, T, W, O> {}

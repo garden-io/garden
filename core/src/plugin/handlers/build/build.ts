@@ -9,10 +9,10 @@
 import { dedent } from "../../../util/string"
 import { actionParamsSchema, PluginBuildActionParamsBase } from "../../../plugin/base"
 import { joi } from "../../../config/common"
-import { BuildActionConfig } from "../../../actions/build"
+import { BuildAction, BuildActionConfig } from "../../../actions/build"
 import { ActionTypeHandlerSpec } from "../base/base"
 
-interface BuildActionParams<T extends BuildActionConfig> extends PluginBuildActionParamsBase<T> {}
+interface BuildActionParams<T extends BuildAction<any, any>> extends PluginBuildActionParamsBase<T> {}
 
 /**
  * - `fetched`: The build was fetched from a remote repository instead of building.
@@ -41,7 +41,7 @@ export const buildResultSchema = () =>
     details: joi.object().description("Additional information, specific to the provider."),
   })
 
-export class BuildAction<T extends BuildActionConfig = BuildActionConfig> extends ActionTypeHandlerSpec<
+export class BuildBuildAction<T extends BuildAction = BuildAction> extends ActionTypeHandlerSpec<
   "build",
   BuildActionParams<T>,
   BuildResult

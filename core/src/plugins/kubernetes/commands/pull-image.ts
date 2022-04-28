@@ -73,7 +73,7 @@ function findModules(modules: GardenModule[], names: string[]): GardenModule[] {
 
 function ensureAllModulesValid(modules: GardenModule[]) {
   const invalidModules = filter(modules, (module) => {
-    return !module.compatibleTypes.includes("container") || !containerHelpers.hasDockerfile(module, module.version)
+    return !module.compatibleTypes.includes("container") || !containerHelpers.moduleHasDockerfile(module, module.version)
   })
 
   if (invalidModules.length > 0) {

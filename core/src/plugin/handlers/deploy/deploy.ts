@@ -11,17 +11,17 @@ import { dedent } from "../../../util/string"
 import { RuntimeContext, runtimeContextSchema } from "../../../runtime-context"
 import { ServiceStatus, serviceStatusSchema } from "../../../types/service"
 import { joi } from "../../../config/common"
-import { DeployActionConfig } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
+import { DeployAction } from "../../../actions/deploy"
 
-interface DeployParams<T extends DeployActionConfig> extends PluginDeployActionParamsBase<T> {
+interface DeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   devMode: boolean
   force: boolean
   hotReload: boolean
   runtimeContext: RuntimeContext
 }
 
-export class DeployAction<T extends DeployActionConfig = DeployActionConfig> extends ActionTypeHandlerSpec<
+export class DeployDeployAction<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "deploy",
   DeployParams<T>,
   ServiceStatus

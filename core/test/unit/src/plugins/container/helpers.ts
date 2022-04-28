@@ -382,7 +382,7 @@ describe("containerHelpers", () => {
       module.spec.dockerfile = defaultDockerfileName
 
       td.reset()
-      expect(helpers.hasDockerfile(module, module.version)).to.be.true
+      expect(helpers.moduleHasDockerfile(module, module.version)).to.be.true
     })
 
     it("should return true if module sources include a Dockerfile", async () => {
@@ -394,7 +394,7 @@ describe("containerHelpers", () => {
 
       td.replace(helpers, "getDockerfileSourcePath", () => dockerfilePath)
 
-      expect(helpers.hasDockerfile(config, version)).to.be.true
+      expect(helpers.moduleHasDockerfile(config, version)).to.be.true
     })
 
     it("should return false if no Dockerfile is specified or included in sources", async () => {
@@ -403,7 +403,7 @@ describe("containerHelpers", () => {
 
       td.replace(helpers, "getDockerfileSourcePath", () => dockerfilePath)
 
-      expect(helpers.hasDockerfile(config, dummyVersion)).to.be.false
+      expect(helpers.moduleHasDockerfile(config, dummyVersion)).to.be.false
     })
   })
 

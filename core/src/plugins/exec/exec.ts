@@ -34,20 +34,20 @@ import { ServiceStatus } from "../../types/service"
 import { ConvertModuleParams } from "../../plugin/handlers/module/convert"
 import {
   ExecActionConfig,
+  ExecBuild,
   execBuildActionSchema,
   ExecBuildConfig,
+  ExecDeploy,
   execDeployActionSchema,
-  ExecDeployConfig,
   ExecDevModeSpec,
   execRunActionSchema,
-  ExecRunConfig,
+  ExecRun,
+  ExecTest,
   execTestActionSchema,
-  ExecTestConfig,
 } from "./config"
 import { configureExecModule, ExecModule, execModuleSpecSchema } from "./moduleConfig"
 import { BuildActionHandler, DeployActionHandler, RunActionHandler, TestActionHandler } from "../../plugin/actionTypes"
 import { Action } from "../../actions/base"
-import { DeployAction } from "../../actions/deploy"
 
 const persistentLocalProcRetryIntervalMs = 2500
 
@@ -162,7 +162,7 @@ async function run({
   })
 }
 
-export const buildExecModule: BuildActionHandler<"build", ExecBuildConfig> = async ({ action, log }) => {
+export const buildExecModule: BuildActionHandler<"build", ExecBuild> = async ({ action, log }) => {
   const output: BuildResult = {}
   const command = await action.getSpec("command")
 
@@ -184,7 +184,7 @@ export const buildExecModule: BuildActionHandler<"build", ExecBuildConfig> = asy
   return output
 }
 
-export const execTestAction: TestActionHandler<"run", ExecTestConfig> = async ({ log, action, artifactsPath }) => {
+export const execTestAction: TestActionHandler<"run", ExecTest> = async ({ log, action, artifactsPath }) => {
   const startedAt = new Date()
   const { command, env } = await action.getSpec()
 
@@ -211,7 +211,7 @@ export const execTestAction: TestActionHandler<"run", ExecTestConfig> = async ({
   }
 }
 
-export const execRunAction: RunActionHandler<"run", ExecRunConfig> = async ({ artifactsPath, log, action }) => {
+export const execRunAction: RunActionHandler<"run", ExecRun> = async ({ artifactsPath, log, action }) => {
   const { command, env, artifacts } = await action.getSpec()
   const startedAt = new Date()
 
@@ -252,7 +252,7 @@ export const execRunAction: RunActionHandler<"run", ExecRunConfig> = async ({ ar
   }
 }
 
-const runExecBuild: BuildActionHandler<"run", ExecBuildConfig> = async (params) => {
+const runExecBuild: BuildActionHandler<"run", ExecBuild> = async (params) => {
   const startedAt = new Date()
 
   const { action, args, interactive, log } = params
@@ -292,7 +292,7 @@ const runExecBuild: BuildActionHandler<"run", ExecBuildConfig> = async (params) 
   }
 }
 
-const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeployConfig> = async (params) => {
+const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeploy> = async (params) => {
   const { action, log } = params
   const { env, statusCommand } = await action.getSpec()
 
@@ -315,7 +315,7 @@ const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeployConfig> = 
   }
 }
 
-const getExecDeployLogs: DeployActionHandler<"getLogs", ExecDeployConfig> = async (params) => {
+const getExecDeployLogs: DeployActionHandler<"getLogs", ExecDeploy> = async (params) => {
   const { action, stream, follow, ctx, log } = params
 
   const logFilePath = getLogFilePath({ projectRoot: ctx.projectRoot, deployName: action.name })
@@ -334,7 +334,7 @@ const getExecDeployLogs: DeployActionHandler<"getLogs", ExecDeployConfig> = asyn
   return {}
 }
 
-const execDeployAction: DeployActionHandler<"deploy", ExecDeployConfig> = async (params) => {
+const execDeployAction: DeployActionHandler<"deploy", ExecDeploy> = async (params) => {
   const { action, log, ctx } = params
   const spec = await action.getSpec()
 
@@ -378,7 +378,7 @@ async function deployPersistentExecService({
   serviceName: string
   log: LogEntry
   devModeSpec: ExecDevModeSpec
-  action: DeployAction
+  action: ExecDeploy
   env: { [key: string]: string }
 }): Promise<ServiceStatus> {
   ctx.events.on("abort", () => {
@@ -445,7 +445,7 @@ async function deployPersistentExecService({
   return { state: "ready", detail: { persistent: true, pid: proc.pid } }
 }
 
-const deleteExecDeploy: DeployActionHandler<"delete", ExecDeployConfig> = async (params) => {
+const deleteExecDeploy: DeployActionHandler<"delete", ExecDeploy> = async (params) => {
   const { action, log } = params
   const { cleanupCommand, env } = await action.getSpec()
 

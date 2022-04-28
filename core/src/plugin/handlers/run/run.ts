@@ -17,10 +17,10 @@ import { dedent } from "../../../util/string"
 import { RuntimeContext } from "../../../runtime-context"
 import { taskResultSchema } from "../../../types/task"
 import { PrimitiveMap } from "../../../config/common"
-import { RunActionConfig } from "../../../actions/run"
+import { RunAction } from "../../../actions/run"
 import { ActionTypeHandlerSpec } from "../base/base"
 
-interface RunActionParams<T extends RunActionConfig> extends PluginRunActionParamsBase<T> {
+interface RunActionParams<T extends RunAction> extends PluginRunActionParamsBase<T> {
   artifactsPath: string
   interactive: boolean
   runtimeContext: RuntimeContext
@@ -32,7 +32,7 @@ interface RunActionResult extends RunResult {
   outputs: PrimitiveMap
 }
 
-export class RunAction<T extends RunActionConfig = RunActionConfig> extends ActionTypeHandlerSpec<
+export class RunRunAction<T extends RunAction = RunAction> extends ActionTypeHandlerSpec<
   "run",
   RunActionParams<T>,
   RunActionResult

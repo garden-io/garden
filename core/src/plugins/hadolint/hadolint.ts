@@ -20,7 +20,7 @@ import { containerHelpers } from "../container/helpers"
 import { baseBuildSpecSchema } from "../../config/module"
 import { getGitHubUrl } from "../../docs/common"
 import { createGardenPlugin } from "../../plugin/plugin"
-import { TestActionConfig } from "../../actions/test"
+import { TestAction, TestActionConfig } from "../../actions/test"
 import { TestActionHandlers } from "../../plugin/actionTypes"
 
 const defaultConfigPath = join(STATIC_DIR, "hadolint", "default.hadolint.yaml")
@@ -61,7 +61,8 @@ interface HadolinTestSpec {
   dockerfilePath: string
 }
 
-type HadolintTestConfig = TestActionConfig<HadolinTestSpec>
+type HadolintTestConfig = TestActionConfig<"hadolint", HadolinTestSpec>
+type HadolintTest = TestAction<HadolintTestConfig, {}>
 
 const gitHubUrl = getGitHubUrl("examples/hadolint")
 
@@ -101,7 +102,7 @@ export const gardenPlugin = () =>
               // Make sure we don't step on an existing custom hadolint module
               !existingHadolintModuleDockerfiles.includes(dockerfilePath) &&
               // Only create for modules with Dockerfiles
-              containerHelpers.hasDockerfile(module, module.version)
+              containerHelpers.moduleHasDockerfile(module, module.version)
             )
           }).map((module) => {
             const baseName = "hadolint-" + module.name
@@ -148,7 +149,7 @@ export const gardenPlugin = () =>
               .required()
               .description("POSIX-style path to a Dockerfile that you want to lint with `hadolint`."),
           }),
-          handlers: <TestActionHandlers<HadolintTestConfig>>{
+          handlers: <TestActionHandlers<HadolintTest>>{
             run: async ({ ctx, log, action }) => {
               const spec = await action.getSpec()
               const dockerfilePath = join(module.path, spec.dockerfilePath)

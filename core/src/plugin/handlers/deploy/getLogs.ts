@@ -11,11 +11,11 @@ import { actionParamsSchema, PluginDeployActionParamsBase } from "../../../plugi
 import { dedent } from "../../../util/string"
 import { runtimeContextSchema } from "../../../runtime-context"
 import { joi } from "../../../config/common"
-import { DeployActionConfig } from "../../../actions/deploy"
+import { DeployAction } from "../../../actions/deploy"
 import { ServiceLogEntry } from "../../../types/service"
 import { ActionTypeHandlerSpec } from "../base/base"
 
-interface GetDeployLogsParams<T extends DeployActionConfig> extends PluginDeployActionParamsBase<T> {
+interface GetDeployLogsParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   stream: Stream<ServiceLogEntry>
   follow: boolean
   tail?: number
@@ -23,7 +23,7 @@ interface GetDeployLogsParams<T extends DeployActionConfig> extends PluginDeploy
   startTime?: Date
 }
 
-export class GetDeployLogs<T extends DeployActionConfig = DeployActionConfig> extends ActionTypeHandlerSpec<
+export class GetDeployLogs<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "deploy",
   GetDeployLogsParams<T>,
   {}

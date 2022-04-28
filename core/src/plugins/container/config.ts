@@ -26,7 +26,7 @@ import { dedent, deline } from "../../util/string"
 import { devModeGuideLink } from "../kubernetes/dev-mode"
 import { k8sDeploymentTimeoutSchema } from "../kubernetes/config"
 import { localModeGuideLink } from "../kubernetes/local-mode"
-import { BuildActionConfig } from "../../actions/build"
+import { BuildAction, BuildActionConfig } from "../../actions/build"
 import { DeployActionConfig } from "../../actions/deploy"
 import { TestActionConfig } from "../../actions/test"
 import { RunActionConfig } from "../../actions/run"
@@ -437,30 +437,30 @@ const limitsSchema = () =>
       .meta({ deprecated: true }),
   })
 
-export const containerCpuSchema = (targetType: "deployment" | "run" | "test") =>
+export const containerCpuSchema = () =>
   joi.object().keys({
     min: joi.number().default(defaultContainerResources.cpu.min).description(deline`
-          The minimum amount of CPU the ${targetType} needs to be available for it to be deployed, in millicpus
+          The minimum amount of CPU the container needs to be available for it to be deployed, in millicpus
           (i.e. 1000 = 1 CPU)
         `),
     max: joi
       .number()
       .default(defaultContainerResources.cpu.max)
       .min(10)
-      .description(`The maximum amount of CPU the ${targetType} can use, in millicpus (i.e. 1000 = 1 CPU)`),
+      .description(`The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)`),
   })
 
-export const containerMemorySchema = (targetType: "deployment" | "run" | "test") =>
+export const containerMemorySchema = () =>
   joi.object().keys({
     min: joi.number().default(defaultContainerResources.memory.min).description(deline`
-        The minimum amount of RAM the ${targetType} needs to be available for it to be deployed, in megabytes
+        The minimum amount of RAM the container needs to be available for it to be deployed, in megabytes
         (i.e. 1024 = 1 GB)
       `),
     max: joi
       .number()
       .default(defaultContainerResources.memory.min)
       .min(64)
-      .description(`The maximum amount of RAM the ${targetType} can use, in megabytes (i.e. 1024 = 1 GB)`),
+      .description(`The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)`),
   })
 
 export const portSchema = () =>
@@ -549,35 +549,31 @@ const volumeSchema = () =>
     })
     .oxor("hostPath", "module")
 
-export function getContainerVolumesSchema(targetType: "deployment" | "run" | "test") {
+export function getContainerVolumesSchema() {
   return joiSparseArray(volumeSchema()).unique("name").description(dedent`
-    List of volumes that should be mounted when starting the ${targetType}.
+    List of volumes that should be mounted when starting the container.
 
     Note: If neither \`hostPath\` nor \`module\` is specified, an empty ephemeral volume is created and mounted when deploying the container.
   `)
 }
 
-const containerPrivilegedSchema = (targetType: "deployment" | "run" | "test") =>
+const containerPrivilegedSchema = () =>
   joi
     .boolean()
     .optional()
     .description(
-      `If true, run the ${targetType}'s main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.`
+      `If true, run the main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.`
     )
 
-const containerAddCapabilitiesSchema = (targetType: "deployment" | "run" | "test") =>
-  joi
-    .sparseArray()
-    .items(joi.string())
-    .optional()
-    .description(`POSIX capabilities to add to the running ${targetType}'s main container.`)
+const containerAddCapabilitiesSchema = () =>
+  joi.sparseArray().items(joi.string()).optional().description(`POSIX capabilities to add when running the container.`)
 
-const containerDropCapabilitiesSchema = (targetType: "deployment" | "run" | "test") =>
+const containerDropCapabilitiesSchema = () =>
   joi
     .sparseArray()
     .items(joi.string())
     .optional()
-    .description(`POSIX capabilities to remove from the running ${targetType}'s main container.`)
+    .description(`POSIX capabilities to remove when running the container.`)
 
 export const hotReloadCommandSchema = () =>
   joi
@@ -607,36 +603,72 @@ export const hotReloadArgsSchema = () =>
     .example(["nodemon", "my-server.js"])
     .meta({ deprecated: true })
 
-export interface ContainerDeploySpec {
-  annotations: Annotations
-  command?: string[]
+interface ContainerCommonRuntimeSpec {
   args: string[]
+  command?: string[]
+  env: PrimitiveMap
+
+  limits?: ServiceLimitSpec
+  cpu: ContainerResourcesSpec["cpu"]
+  memory: ContainerResourcesSpec["memory"]
+
+  volumes: ContainerVolumeSpec[]
+  privileged?: boolean
+  addCapabilities?: string[]
+  dropCapabilities?: string[]
+}
+
+// Passed to ContainerServiceSpec
+export interface ContainerCommonDeploySpec extends ContainerCommonRuntimeSpec {
+  annotations: Annotations
   daemon: boolean
   devMode?: ContainerDevModeSpec
   localMode?: ContainerLocalModeSpec
   ingresses: ContainerIngressSpec[]
-  env: PrimitiveMap
   healthCheck?: ServiceHealthCheckSpec
+  timeout?: number
+  ports: ServicePortSpec[]
+  replicas?: number
+  tty?: boolean
+}
+
+export interface ContainerDeploySpec extends ContainerCommonDeploySpec {
   // TODO: remove in 0.13
   hotReload?: {
     command?: string[]
     args?: string[]
   }
-  timeout?: number
-  limits?: ServiceLimitSpec
-  cpu: ContainerResourcesSpec["cpu"]
-  memory: ContainerResourcesSpec["memory"]
-  ports: ServicePortSpec[]
-  replicas?: number
-  volumes: ContainerVolumeSpec[]
-  privileged?: boolean
-  tty?: boolean
-  addCapabilities?: string[]
-  dropCapabilities?: string[]
 }
 export type ContainerDeployActionConfig = DeployActionConfig<"container", ContainerDeploySpec>
 
+const containerCommonRuntimeSchemaKeys = () => ({
+  command: joi
+    .sparseArray()
+    .items(joi.string().allow(""))
+    .description("The command/entrypoint to run the container with.")
+    .example(commandExample),
+  args: joi
+    .sparseArray()
+    .items(joi.string().allow(""))
+    .description("The arguments (on top of the `command`, i.e. entrypoint) to run the container with.")
+    .example(["npm", "start"]),
+  env: containerEnvVarsSchema(),
+  cpu: containerCpuSchema().default(defaultContainerResources.cpu),
+  memory: containerMemorySchema().default(defaultContainerResources.memory),
+  volumes: getContainerVolumesSchema(),
+  privileged: containerPrivilegedSchema(),
+  addCapabilities: containerAddCapabilitiesSchema(),
+  dropCapabilities: containerDropCapabilitiesSchema(),
+  tty: joi
+    .boolean()
+    .default(false)
+    .description(
+      "Specify if containers in this module have TTY support enabled (which implies having stdin support enabled)."
+    ),
+})
+
 export const containerDeploySchemaKeys = () => ({
+  ...containerCommonRuntimeSchemaKeys(),
   annotations: annotationsSchema().description(
     dedent`
     Annotations to attach to the service _(note: May not be applicable to all providers)_.
@@ -644,16 +676,6 @@ export const containerDeploySchemaKeys = () => ({
     When using the Kubernetes provider, these annotations are applied to both Service and Pod resources. You can generally specify the annotations intended for both Pods or Services here, and the ones that don't apply on either side will be ignored (i.e. if you put a Service annotation here, it'll also appear on Pod specs but will be safely ignored there, and vice versa).
     `
   ),
-  command: joi
-    .sparseArray()
-    .items(joi.string().allow(""))
-    .description("The command/entrypoint to run the container with when starting the service.")
-    .example(commandExample),
-  args: joi
-    .sparseArray()
-    .items(joi.string().allow(""))
-    .description("The arguments to run the container with when starting the service.")
-    .example(["npm", "start"]),
   daemon: joi.boolean().default(false).description(deline`
       Whether to run the service as a daemon (to ensure exactly one instance runs per node).
       May not be supported by all providers.
@@ -663,14 +685,11 @@ export const containerDeploySchemaKeys = () => ({
   ingresses: joiSparseArray(ingressSchema())
     .description("List of ingress endpoints that the service exposes.")
     .example([{ path: "/api", port: "http" }]),
-  env: containerEnvVarsSchema(),
   healthCheck: healthCheckSchema().description("Specify how the service's health should be checked after deploying."),
   timeout: k8sDeploymentTimeoutSchema(),
   limits: limitsSchema()
     .description("Specify resource limits for the service.")
     .meta({ deprecated: "Please use the `cpu` and `memory` fields instead." }),
-  cpu: containerCpuSchema("deployment").default(defaultContainerResources.cpu),
-  memory: containerMemorySchema("deployment").default(defaultContainerResources.memory),
   ports: joiSparseArray(portSchema()).unique("name").description("List of ports that the service container exposes."),
   replicas: joi.number().integer().description(deline`
     The number of instances of the service to deploy.
@@ -679,16 +698,6 @@ export const containerDeploySchemaKeys = () => ({
     Note: This setting may be overridden or ignored in some cases. For example, when running with \`daemon: true\`,
     with hot-reloading enabled, or if the provider doesn't support multiple replicas.
   `),
-  volumes: getContainerVolumesSchema("deployment"),
-  privileged: containerPrivilegedSchema("deployment"),
-  tty: joi
-    .boolean()
-    .default(false)
-    .description(
-      "Specify if containers in this module have TTY support enabled (which implies having stdin support enabled)."
-    ),
-  addCapabilities: containerAddCapabilitiesSchema("deployment"),
-  dropCapabilities: containerDropCapabilitiesSchema("deployment"),
 })
 
 export const containerDeploySchema = () => joi.object().keys(containerDeploySchemaKeys())
@@ -755,82 +764,60 @@ const artifactsSchema = () =>
     )
     .example([{ source: "/report/**/*" }])
 
-export interface ContainerTestActionSpec {
-  args: string[]
+export interface ContainerTestActionSpec extends ContainerCommonRuntimeSpec {
   artifacts: ArtifactSpec[]
-  command?: string[]
-  env: ContainerEnvVars
-  cpu: ContainerResourcesSpec["cpu"]
-  memory: ContainerResourcesSpec["memory"]
-  volumes: ContainerVolumeSpec[]
-  privileged?: boolean
-  addCapabilities?: string[]
-  dropCapabilities?: string[]
 }
 export type ContainerTestActionConfig = TestActionConfig<"container", ContainerTestActionSpec>
 
 export const containerTestSpecKeys = () => ({
-  args: joi
-    .sparseArray()
-    .items(joi.string().allow(""))
-    .description("The arguments used to run the test inside the container.")
-    .example(["npm", "test"]),
+  ...containerCommonRuntimeSchemaKeys(),
   artifacts: artifactsSchema(),
-  command: joi
-    .sparseArray()
-    .items(joi.string().allow(""))
-    .description("The command/entrypoint used to run the test inside the container.")
-    .example(commandExample),
-  env: containerEnvVarsSchema(),
-  cpu: containerCpuSchema("test").default(defaultContainerResources.cpu),
-  memory: containerMemorySchema("test").default(defaultContainerResources.memory),
-  volumes: getContainerVolumesSchema("test"),
-  privileged: containerPrivilegedSchema("test"),
-  addCapabilities: containerAddCapabilitiesSchema("test"),
-  dropCapabilities: containerDropCapabilitiesSchema("test"),
 })
 
 export const containerTestActionSchema = () => joi.object().keys(containerTestSpecKeys())
 
-export interface ContainerRunActionSpec {
-  args: string[]
-  artifacts: ArtifactSpec[]
+export interface ContainerRunActionSpec extends ContainerTestActionSpec {
   cacheResult: boolean
-  command?: string[]
-  env: ContainerEnvVars
-  image?: string
-  cpu: ContainerResourcesSpec["cpu"]
-  memory: ContainerResourcesSpec["memory"]
-  volumes: ContainerVolumeSpec[]
-  privileged?: boolean
-  addCapabilities?: string[]
-  dropCapabilities?: string[]
 }
 export type ContainerRunActionConfig = RunActionConfig<"container", ContainerRunActionSpec>
 
 export const containerRunSpecKeys = () => ({
-  args: joi
-    .sparseArray()
-    .items(joi.string().allow(""))
-    .description("The arguments used to run the container (applied on top of the command/entrypoint).")
-    .example(["rake", "db:migrate"]),
-  artifacts: artifactsSchema(),
+  ...containerTestSpecKeys(),
   cacheResult: cacheResultSchema(),
-  command: joi
-    .sparseArray()
-    .items(joi.string().allow(""))
-    .description("The command/entrypoint used when running the container.")
-    .example(commandExample),
-  env: containerEnvVarsSchema(),
-  cpu: containerCpuSchema("run").default(defaultContainerResources.cpu),
-  memory: containerMemorySchema("run").default(defaultContainerResources.memory),
-  volumes: getContainerVolumesSchema("run"),
-  privileged: containerPrivilegedSchema("run"),
-  addCapabilities: containerAddCapabilitiesSchema("run"),
-  dropCapabilities: containerDropCapabilitiesSchema("run"),
+})
+export const containerRunActionSchema = () => joi.object().keys(containerRunSpecKeys())
+
+export interface ContainerBuildOutputs {
+  localImageName: string
+  localImageId: string
+  deploymentImageName: string
+  deploymentImageId: string
+}
+
+export const containerBuildOutputSchemaKeys = () => ({
+  localImageName: joi
+    .string()
+    .required()
+    .description("The name of the image (without tag/version) that the module uses for local builds and deployments.")
+    .example("my-module"),
+  localImageId: joi
+    .string()
+    .required()
+    .description("The full ID of the image (incl. tag/version) that the module uses for local builds and deployments.")
+    .example("my-module:v-abf3f8dca"),
+  deploymentImageName: joi
+    .string()
+    .required()
+    .description("The name of the image (without tag/version) that the module will use during deployment.")
+    .example("my-deployment-registry.io/my-org/my-module"),
+  deploymentImageId: joi
+    .string()
+    .required()
+    .description("The full ID of the image (incl. tag/version) that the module will use during deployment.")
+    .example("my-deployment-registry.io/my-org/my-module:v-abf3f8dca"),
 })
 
-export const containerRunActionSchema = () => joi.object().keys(containerRunSpecKeys())
+export const containerBuildOutputsSchema = () => joi.object().keys(containerBuildOutputSchemaKeys())
 
 export interface ContainerBuildActionSpec {
   buildArgs: PrimitiveMap
@@ -841,6 +828,7 @@ export interface ContainerBuildActionSpec {
   timeout: number
 }
 export type ContainerBuildActionConfig = BuildActionConfig<"container", ContainerBuildActionSpec>
+export type ContainerBuildAction = BuildAction<ContainerBuildActionConfig, ContainerBuildOutputs>
 
 export const containerBuildSpecKeys = () => ({
   targetStage: joi.string().description(deline`

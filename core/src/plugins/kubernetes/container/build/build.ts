@@ -20,7 +20,7 @@ export async function k8sGetContainerBuildStatus(params: GetBuildStatusParams<Co
   const { ctx, module } = params
   const provider = <KubernetesProvider>ctx.provider
 
-  const hasDockerfile = containerHelpers.hasDockerfile(module, module.version)
+  const hasDockerfile = containerHelpers.moduleHasDockerfile(module, module.version)
 
   if (!hasDockerfile) {
     // Nothing to build
@@ -34,7 +34,7 @@ export async function k8sGetContainerBuildStatus(params: GetBuildStatusParams<Co
 export async function k8sBuildContainer(params: BuildModuleParams<ContainerModule>): Promise<BuildResult> {
   const { ctx, module } = params
 
-  if (!containerHelpers.hasDockerfile(module, module.version)) {
+  if (!containerHelpers.moduleHasDockerfile(module, module.version)) {
     return {}
   }
 
