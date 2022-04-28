@@ -21,7 +21,7 @@ import { SuggestModulesParams, SuggestModulesResult } from "../../types/plugin/m
 import { listDirectory } from "../../util/fs"
 import { dedent } from "../../util/string"
 import { Provider, GenericProviderConfig, providerConfigBaseSchema } from "../../config/provider"
-import { GetModuleOutputsParams } from "../../plugin/handlers/module/getOutputs"
+import { GetModuleOutputsParams } from "../../plugin/handlers/module/get-outputs"
 import { ConvertModuleParams } from "../../plugin/handlers/module/convert"
 import { ExecActionConfig } from "../exec/config"
 import {

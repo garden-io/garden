@@ -46,7 +46,7 @@ import {
   execTestActionSchema,
 } from "./config"
 import { configureExecModule, ExecModule, execModuleSpecSchema } from "./moduleConfig"
-import { BuildActionHandler, DeployActionHandler, RunActionHandler, TestActionHandler } from "../../plugin/actionTypes"
+import { BuildActionHandler, DeployActionHandler, RunActionHandler, TestActionHandler } from "../../plugin/action-types"
 import { Action } from "../../actions/base"
 
 const persistentLocalProcRetryIntervalMs = 2500

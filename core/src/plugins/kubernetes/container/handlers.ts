@@ -21,7 +21,7 @@ import { getTaskResult } from "../task-results"
 import { k8sBuildContainer, k8sGetContainerBuildStatus } from "./build/build"
 import { k8sPublishContainerModule } from "./publish"
 import { getPortForwardHandler } from "../port-forward"
-import { GetModuleOutputsParams } from "../../../plugin/handlers/module/getOutputs"
+import { GetModuleOutputsParams } from "../../../plugin/handlers/module/get-outputs"
 import { containerHelpers } from "../../container/helpers"
 import { getContainerModuleOutputs } from "../../container/container"
 

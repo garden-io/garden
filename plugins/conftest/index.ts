@@ -24,7 +24,7 @@ import { getGitHubUrl } from "@garden-io/core/build/src/docs/common"
 import { renderTemplates } from "@garden-io/core/build/src/plugins/kubernetes/helm/common"
 import { getK8sProvider } from "@garden-io/core/build/src/plugins/kubernetes/util"
 import { TestActionConfig } from "@garden-io/core/build/src/actions/test"
-import { TestActionHandlers } from "@garden-io/core/build/src/plugin/actionTypes"
+import { TestActionHandlers } from "../../core/build/src/plugin/action-types"
 
 export interface ConftestProviderConfig extends GenericProviderConfig {
   policyPath: string
