@@ -16,8 +16,7 @@ import { createGardenPlugin } from "../../plugin/plugin"
 import { writeModuleVersionFile } from "../../vcs/vcs"
 import { GARDEN_BUILD_VERSION_FILENAME, LOGS_DIR } from "../../constants"
 import { dedent } from "../../util/string"
-import { BuildResult } from "../../types/plugin/module/build"
-import { exec, ExecOpts, runScript, sleep, renderOutputStream } from "../../util/util"
+import { exec, ExecOpts, renderOutputStream, runScript, sleep } from "../../util/util"
 import { RuntimeError, TimeoutError } from "../../exceptions"
 import { LogEntry } from "../../logger/log-entry"
 import { providerConfigBaseSchema } from "../../config/provider"
@@ -48,6 +47,7 @@ import {
 import { configureExecModule, ExecModule, execModuleSpecSchema } from "./moduleConfig"
 import { BuildActionHandler, DeployActionHandler, RunActionHandler, TestActionHandler } from "../../plugin/action-types"
 import { Action } from "../../actions/base"
+import { BuildResult } from "../../plugin/handlers/build/build"
 
 const persistentLocalProcRetryIntervalMs = 2500
 
@@ -66,7 +66,7 @@ export function getLogFilePath({ projectRoot, deployName }: { projectRoot: strin
 function getDefaultEnvVars(action: Action) {
   return {
     ...process.env,
-    GARDEN_MODULE_VERSION: action.version.versionString,
+    GARDEN_MODULE_VERSION: action.getVersionString(),
     // Workaround for https://github.com/vercel/pkg/issues/897
     PKG_EXECPATH: "",
   }
@@ -117,7 +117,7 @@ function runPersistent({
     })
 
   const proc = execa(command.join(" "), [], {
-    cwd: action.buildPath,
+    cwd: action.getBuildPath(),
     env: {
       ...getDefaultEnvVars(action),
       ...(env ? mapValues(env, (v) => v + "") : {}),
@@ -158,7 +158,7 @@ async function run({
 
   return exec(command.join(" "), [], {
     ...opts,
-    cwd: action.buildPath,
+    cwd: action.getBuildPath(),
     env: {
       ...getDefaultEnvVars(action),
       ...(env ? mapValues(env, (v) => v + "") : {}),
@@ -171,7 +171,7 @@ async function run({
 }
 
 export const buildExecModule: BuildActionHandler<"build", ExecBuild> = async ({ action, log, ctx }) => {
-  const output: BuildResult = {}
+  const output: BuildResult = { outputs: {} }
   const command = action.getSpec("command")
 
   if (command?.length) {
@@ -199,7 +199,7 @@ export const execTestAction: TestActionHandler<"run", ExecTest> = async ({ log, 
   const result = await run({ command, action, ctx, log, env, opts: { reject: false } })
 
   const artifacts = action.getSpec("artifacts")
-  await copyArtifacts(log, artifacts, action.buildPath, artifactsPath)
+  await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
 
   const outputLog = (result.stdout + result.stderr).trim()
   if (outputLog) {
@@ -211,11 +211,12 @@ export const execTestAction: TestActionHandler<"run", ExecTest> = async ({ log, 
     moduleName: action.moduleName || action.name,
     command,
     testName: action.name,
-    version: action.version.versionString,
+    version: action.getVersionString(),
     success: result.exitCode === 0,
     startedAt,
     completedAt: new Date(),
     log: outputLog,
+    outputs: {},
   }
 }
 
@@ -243,13 +244,13 @@ export const execRunAction: RunActionHandler<"run", ExecRun> = async ({ artifact
     log.verbose(renderMessageWithDivider(prefix, outputLog, false, chalk.gray))
   }
 
-  await copyArtifacts(log, artifacts, action.buildPath, artifactsPath)
+  await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
 
   return {
     moduleName: action.moduleName || action.name,
     taskName: action.name,
     command,
-    version: action.version.versionString,
+    version: action.getVersionString(),
     success,
     log: outputLog,
     outputs: {
@@ -293,7 +294,7 @@ const runExecBuild: BuildActionHandler<"run", ExecBuild> = async (params) => {
   return {
     moduleName: action.moduleName || action.name,
     command: [],
-    version: action.version.versionString,
+    version: action.getVersionString(),
     success,
     log: outputLog,
     startedAt,
@@ -317,11 +318,11 @@ const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeploy> = async 
 
     return {
       state: result.exitCode === 0 ? "ready" : "outdated",
-      version: action.version.versionString,
+      version: action.getVersionString(),
       detail: { statusCommandOutput: result.all },
     }
   } else {
-    return { state: "unknown", version: action.version.versionString, detail: {} }
+    return { state: "unknown", version: action.getVersionString(), detail: {} }
   }
 }
 

@@ -15,7 +15,7 @@ import { getBaseModule, getReleaseName, loadTemplate } from "./common"
 import { KubernetesPluginContext } from "../config"
 import { getForwardablePorts } from "../port-forward"
 import { KubernetesServerResource } from "../types"
-import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
+import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
 import { getServiceResource, getServiceResourceSpec, isWorkload } from "../util"
 import { startDevModeSync } from "../dev-mode"
 import { isConfiguredForDevMode, isConfiguredForLocalMode } from "../status/status"
@@ -55,7 +55,7 @@ export async function getServiceStatus({
   let state: ServiceState
   let helmStatus: ServiceStatus
 
-  const namespaceStatus = await getModuleNamespaceStatus({
+  const namespaceStatus = await getActionNamespaceStatus({
     ctx: k8sCtx,
     log,
     module,
@@ -126,7 +126,7 @@ export async function getServiceStatus({
         if (isConfiguredForDevMode(target)) {
           const namespace =
             target.metadata.namespace ||
-            (await getModuleNamespace({
+            (await getActionNamespace({
               ctx: k8sCtx,
               log,
               module,
@@ -136,12 +136,12 @@ export async function getServiceStatus({
           await startDevModeSync({
             ctx,
             log,
-            moduleRoot: service.sourceModule.path,
+            basePath: service.sourceModule.path,
             namespace,
             target,
             spec: service.spec.devMode,
             containerName: service.spec.devMode.containerName,
-            serviceName: service.name,
+            deployName: service.name,
           })
         } else {
           state = "outdated"
@@ -173,7 +173,7 @@ export async function getRenderedResources({
   log: LogEntry
   module: HelmModule
 }) {
-  const namespace = await getModuleNamespace({
+  const namespace = await getActionNamespace({
     ctx,
     log,
     module,
@@ -209,7 +209,7 @@ export async function getReleaseStatus({
 }): Promise<ServiceStatus> {
   try {
     log.silly(`Getting the release status for ${releaseName}`)
-    const namespace = await getModuleNamespace({
+    const namespace = await getActionNamespace({
       ctx,
       log,
       module: service.module,

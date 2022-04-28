@@ -9,7 +9,7 @@
 import { DeepPrimitiveMap, joi, joiIdentifier, joiPrimitive, joiSparseArray } from "../../../config/common"
 import { namespaceNameSchema, PortForwardSpec, portForwardsSchema } from "../config"
 import { KubernetesDeployDevModeSpec, KubernetesDeployHotReloadSpec } from "../dev-mode"
-import { DeployActionConfig } from "../../../actions/deploy"
+import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
 import { dedent, deline } from "../../../util/string"
 
 // DEPLOY //
@@ -123,6 +123,7 @@ export const helmDeploySchema = () =>
   })
 
 export type HelmDeployConfig = DeployActionConfig<"helm", HelmDeployActionSpec>
+export type HelmHeployAction = DeployAction<HelmDeployConfig, {}>
 
 // NOTE: Runs and Tests are handled as `kubernetes` Run and Test actions
 

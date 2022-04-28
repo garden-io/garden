@@ -19,7 +19,7 @@ import { getPortForwardHandler } from "../port-forward"
 import { getTaskResult } from "../task-results"
 import { GetPortForwardParams } from "../../../types/plugin/service/getPortForward"
 import { KubernetesPluginContext } from "../config"
-import { getModuleNamespace } from "../namespace"
+import { getActionNamespace } from "../namespace"
 import { join } from "path"
 import { pathExists } from "fs-extra"
 import { SuggestModulesParams, SuggestModulesResult } from "../../../types/plugin/module/suggestModules"
@@ -188,7 +188,7 @@ export const helmModuleHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModu
   getPortForward: async (params: GetPortForwardParams) => {
     const { ctx, log, module } = params
     const k8sCtx = <KubernetesPluginContext>ctx
-    const namespace = await getModuleNamespace({
+    const namespace = await getActionNamespace({
       ctx: k8sCtx,
       log,
       module,

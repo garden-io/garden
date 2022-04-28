@@ -98,14 +98,14 @@ const helpers = {
       const imageTag = splitFirst(explicitImage, ":")[1]
       const parsedImage = helpers.parseImageId(explicitImage)
       if (!tag) {
-        tag = imageTag || action.version.versionString
+        tag = imageTag || action.getVersionString()
       }
       return helpers.unparseImageId({ ...parsedImage, tag })
     } else {
       const localImageName = action.name
       const parsedImage = helpers.parseImageId(localImageName)
       if (!tag) {
-        tag = action.version.versionString
+        tag = action.getVersionString()
       }
       return helpers.unparseImageId({ ...parsedImage, tag })
     }

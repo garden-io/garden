@@ -6,37 +6,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerModule } from "../../../container/moduleConfig"
+import { ContainerBuildAction, ContainerModule } from "../../../container/moduleConfig"
 import { containerHelpers } from "../../../container/helpers"
-import { GetBuildStatusParams, BuildStatus } from "../../../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams, BuildResult } from "../../../../types/plugin/module/build"
 import { KubernetesProvider, ContainerBuildMode } from "../../config"
 import { getKanikoBuildStatus, kanikoBuild } from "./kaniko"
 import { getLocalBuildStatus, localBuild } from "./local"
 import { BuildStatusHandler, BuildHandler } from "./common"
 import { buildkitBuildHandler, getBuildkitBuildStatus } from "./buildkit"
+import { BuildActionHandler } from "../../../../plugin/action-types"
 
-export async function k8sGetContainerBuildStatus(params: GetBuildStatusParams<ContainerModule>): Promise<BuildStatus> {
-  const { ctx, module } = params
+export const k8sGetContainerBuildStatus: BuildActionHandler<"getStatus", ContainerBuildAction> = async (params) => {
+  const { ctx } = params
   const provider = <KubernetesProvider>ctx.provider
-
-  const hasDockerfile = containerHelpers.moduleHasDockerfile(module, module.version)
-
-  if (!hasDockerfile) {
-    // Nothing to build
-    return { ready: true }
-  }
 
   const handler = buildStatusHandlers[provider.config.buildMode]
   return handler(params)
 }
 
-export async function k8sBuildContainer(params: BuildModuleParams<ContainerModule>): Promise<BuildResult> {
-  const { ctx, module } = params
-
-  if (!containerHelpers.moduleHasDockerfile(module, module.version)) {
-    return {}
-  }
+export const k8sBuildContainer: BuildActionHandler<"build", ContainerBuildAction> = async (params) => {
+  const { ctx } = params
 
   const provider = <KubernetesProvider>ctx.provider
   const handler = buildHandlers[provider.config.buildMode]

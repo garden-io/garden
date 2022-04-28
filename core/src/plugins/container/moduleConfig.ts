@@ -19,7 +19,7 @@ import {
   containerCommonBuildSpecKeys,
   ContainerCommonDeploySpec,
   containerDeploySchemaKeys,
-  ContainerHotReloadSpec,
+  ContainerModuleHotReloadSpec,
   ContainerRunActionSpec,
   containerRunSpecKeys,
   ContainerTestActionSpec,
@@ -67,7 +67,7 @@ export interface ContainerModuleSpec extends ModuleSpec {
   extraFlags: string[]
   image?: string
   dockerfile?: string
-  hotReload?: ContainerHotReloadSpec
+  hotReload?: ContainerModuleHotReloadSpec
   services: ContainerServiceSpec[]
   tests: ContainerTestSpec[]
   tasks: ContainerTaskSpec[]

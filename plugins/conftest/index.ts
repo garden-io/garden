@@ -134,7 +134,7 @@ export const gardenPlugin = () =>
 
               const spec = action.getSpec()
 
-              const buildPath = action.buildPath
+              const buildPath = action.getBuildPath()
               const buildPathFiles = await listDirectory(buildPath)
 
               // TODO: throw if a specific file is listed under `spec.files` but isn't found?
@@ -145,7 +145,7 @@ export const gardenPlugin = () =>
                   testName: action.name,
                   moduleName: action.moduleName || action.name,
                   command: [],
-                  version: action.version.versionString,
+                  version: action.getVersionString(),
                   success: true,
                   startedAt,
                   completedAt: new Date(),
@@ -164,7 +164,7 @@ export const gardenPlugin = () =>
                 testName: action.name,
                 moduleName: action.moduleName || action.name,
                 command: ["conftest", ...args],
-                version: action.version.versionString,
+                version: action.getVersionString(),
                 success,
                 startedAt,
                 completedAt: new Date(),

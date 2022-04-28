@@ -31,13 +31,13 @@ export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerB
     })
   }
 
-  return { ready: !!identifier }
+  return { ready: !!identifier, outputs: getContainerBuildActionOutputs(action) }
 }
 
 export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> = async ({ ctx, action, log }) => {
   containerHelpers.checkDockerServerVersion(await containerHelpers.getDockerVersion())
 
-  const buildPath = action.buildPath
+  const buildPath = action.getBuildPath()
   const spec = action.getSpec()
   const hasDockerfile = await containerHelpers.actionHasDockerfile(action)
 
@@ -57,7 +57,7 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
   // build doesn't exist, so we create it
   log.setState(`Building ${identifier}...`)
 
-  const dockerfilePath = joinWithPosix(action.buildPath, spec.dockerfile)
+  const dockerfilePath = joinWithPosix(action.getBuildPath(), spec.dockerfile)
 
   const cmdOpts = ["build", "-t", identifier, ...getDockerBuildFlags(action), "--file", dockerfilePath]
 
@@ -72,7 +72,7 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
   })
   const timeout = spec.timeout
   const res = await containerHelpers.dockerCli({
-    cwd: action.buildPath,
+    cwd: action.getBuildPath(),
     args: [...cmdOpts, buildPath],
     log,
     stdout: outputStream,
@@ -127,7 +127,7 @@ export function getDockerBuildArgs(action: ContainerBuildAction) {
   const specBuildArgs = action.getSpec("buildArgs")
 
   const buildArgs: PrimitiveMap = {
-    GARDEN_MODULE_VERSION: action.version.versionString,
+    GARDEN_MODULE_VERSION: action.getVersionString(),
     ...specBuildArgs,
   }
 

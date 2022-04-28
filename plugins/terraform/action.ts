@@ -85,7 +85,7 @@ export const getTerraformStatus: DeployActionHandler<"getStatus", TerraformDeplo
 
   return {
     state: status === "up-to-date" ? "ready" : "outdated",
-    version: action.version.versionString,
+    version: action.getVersionString(),
     outputs: await getTfOutputs({ log, ctx, provider, root }),
     detail: {},
   }
@@ -115,7 +115,7 @@ export const deployTerraform: DeployActionHandler<"deploy", TerraformDeploy> = a
 
   return {
     state: "ready",
-    version: action.version.versionString,
+    version: action.getVersionString(),
     outputs: await getTfOutputs({ log, ctx, provider, root }),
     detail: {},
   }
@@ -144,7 +144,7 @@ export const deleteTerraformModule: DeployActionHandler<"delete", TerraformDeplo
 
   return {
     state: "missing",
-    version: action.version.versionString,
+    version: action.getVersionString(),
     outputs: {},
     detail: {},
   }
@@ -152,5 +152,5 @@ export const deleteTerraformModule: DeployActionHandler<"delete", TerraformDeplo
 
 function getModuleStackRoot(action: TerraformDeploy, spec: TerraformDeploySpec) {
   // TODO-G2: doublecheck this path
-  return join(action.buildPath, spec.root)
+  return join(action.getBuildPath(), spec.root)
 }

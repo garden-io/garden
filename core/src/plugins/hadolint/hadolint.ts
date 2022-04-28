@@ -16,12 +16,13 @@ import { STATIC_DIR } from "../../constants"
 import { padStart, padEnd } from "lodash"
 import chalk from "chalk"
 import { ConfigurationError } from "../../exceptions"
-import { containerHelpers } from "../container/helpers"
+import { containerHelpers, defaultDockerfileName } from "../container/helpers"
 import { baseBuildSpecSchema } from "../../config/module"
 import { getGitHubUrl } from "../../docs/common"
 import { createGardenPlugin } from "../../plugin/plugin"
 import { TestAction, TestActionConfig } from "../../actions/test"
 import { TestActionHandlers } from "../../plugin/action-types"
+import { ContainerModule } from "../container/moduleConfig"
 
 const defaultConfigPath = join(STATIC_DIR, "hadolint", "default.hadolint.yaml")
 const configFilename = ".hadolint.yaml"
@@ -94,17 +95,15 @@ export const gardenPlugin = () =>
 
         return {
           addModules: await Bluebird.filter(modules, async (module) => {
-            const dockerfilePath = containerHelpers.getDockerfileSourcePath(module)
-
             return (
               // Pick all container or container-based modules
               module.compatibleTypes.includes("container") &&
               // Make sure we don't step on an existing custom hadolint module
-              !existingHadolintModuleDockerfiles.includes(dockerfilePath) &&
+              !existingHadolintModuleDockerfiles.includes(resolve(module.path, module.spec.dockerfile)) &&
               // Only create for modules with Dockerfiles
               containerHelpers.moduleHasDockerfile(module, module.version)
             )
-          }).map((module) => {
+          }).map((module: ContainerModule) => {
             const baseName = "hadolint-" + module.name
 
             let name = baseName
@@ -122,7 +121,10 @@ export const gardenPlugin = () =>
               name,
               description: `hadolint test for module '${module.name}' (auto-generated)`,
               path: module.path,
-              dockerfilePath: relative(module.path, containerHelpers.getDockerfileSourcePath(module)),
+              dockerfilePath: relative(
+                module.path,
+                resolve(module.path, module.spec.dockerfile || defaultDockerfileName)
+              ),
             }
           }),
         }
@@ -238,7 +240,7 @@ export const gardenPlugin = () =>
                 testName: action.name,
                 moduleName: action.moduleName || action.name,
                 command: ["hadolint", ...args],
-                version: action.version.versionString,
+                version: action.getVersionString(),
                 success,
                 startedAt,
                 completedAt: new Date(),

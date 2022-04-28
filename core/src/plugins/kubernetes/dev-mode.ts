@@ -181,20 +181,20 @@ export function configureDevMode({ target, spec, containerName }: ConfigureDevMo
 interface StartDevModeSyncParams extends ConfigureDevModeParams {
   ctx: PluginContext
   log: LogEntry
-  moduleRoot: string
+  basePath: string
   namespace: string
-  serviceName: string
+  deployName: string
 }
 
 export async function startDevModeSync({
   containerName,
   ctx,
   log,
-  moduleRoot,
+  basePath,
   namespace,
   spec,
   target,
-  serviceName,
+  deployName,
 }: StartDevModeSyncParams) {
   if (spec.sync.length === 0) {
     return
@@ -230,7 +230,7 @@ export async function startDevModeSync({
     for (const s of spec.sync) {
       const key = `${keyBase}-${i}`
 
-      const localPath = joinWithPosix(moduleRoot, s.source).replace(/ /g, "\\ ") // Escape spaces in path
+      const localPath = joinWithPosix(basePath, s.source).replace(/ /g, "\\ ") // Escape spaces in path
       const remoteDestination = await getKubectlExecDestination({
         ctx: k8sCtx,
         log,
@@ -254,14 +254,14 @@ export async function startDevModeSync({
 
       const description = `${sourceDescription} to ${targetDescription}`
 
-      log.info({ symbol: "info", section: serviceName, msg: chalk.gray(`Syncing ${description} (${s.mode})`) })
+      log.info({ symbol: "info", section: deployName, msg: chalk.gray(`Syncing ${description} (${s.mode})`) })
 
       await ensureMutagenSync({
         ctx,
         // Prefer to log to the main view instead of the handler log context
         log,
         key,
-        logSection: serviceName,
+        logSection: deployName,
         sourceDescription,
         targetDescription,
         config: makeSyncConfig({ defaults, spec: s, localPath, remoteDestination }),
