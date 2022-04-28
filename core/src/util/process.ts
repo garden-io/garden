@@ -65,7 +65,7 @@ export class RetriableProcess {
   private proc?: ChildProcess
   private state: RetriableProcessState
 
-  private parent?: RetriableProcess // tslint:disable: no-unused-variable
+  //private parent?: RetriableProcess
   private descendants: RetriableProcess[]
 
   private readonly maxRetries: number
@@ -83,7 +83,7 @@ export class RetriableProcess {
       : config.osCommand.command
     this.executor = config.executor || CommandExecutors.spawnExecutor
     this.proc = undefined
-    this.parent = undefined
+    //this.parent = undefined
     this.descendants = []
     this.maxRetries = config.maxRetries
     this.minTimeoutMs = config.minTimeoutMs
@@ -211,7 +211,7 @@ export class RetriableProcess {
       throw new RuntimeError("Cannot attach a descendant to already rinning process", this)
     }
 
-    descendant.parent = this
+    //descendant.parent = this
     this.descendants.push(descendant)
     return descendant
   }
