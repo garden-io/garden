@@ -8,8 +8,8 @@
 
 import { ChildProcess, exec, spawn } from "child_process"
 import { LogEntry } from "../logger/log-entry"
-import { sleepSync } from "./util"
-import { GardenBaseError, RuntimeError } from "../exceptions"
+import { shutdown, sleepSync } from "./util"
+import { RuntimeError } from "../exceptions"
 
 export interface OsCommand {
   command: string
@@ -124,26 +124,26 @@ export class RetriableProcess {
         processSays(`Command '${this.command}' failed with error: ${JSON.stringify(error)}. ${attemptsLeft()}`)
       )
 
-      await this.tryRestart(error)
+      await this.tryRestart()
     })
 
     proc.on("close", async (code: number, signal: NodeJS.Signals) => {
       const command = this.command
-      const errorMsg = `Command '${command}' exited with code ${code} and signal ${signal}.`
-      this.log.error(processSays(`${errorMsg} ${attemptsLeft()}`))
+      this.log.error(
+        processSays(`Command '${command}' exited with code ${code} and signal ${signal}. ${attemptsLeft()}`)
+      )
 
-      await this.tryRestart(new RuntimeError(errorMsg, { command, code }))
+      await this.tryRestart()
     })
 
     proc.stderr!.on("data", async (chunk: any) => {
       const hasErrorsFn = this.stderrListener?.hasErrors
       if (!hasErrorsFn || hasErrorsFn(chunk)) {
         const command = this.command
-        const errorMsg = `Command '${command}' terminated: ${chunk}.`
-        this.log.error(processSays(`${errorMsg} ${attemptsLeft()}`))
+        this.log.error(processSays(`Command '${command}' terminated: ${chunk}. ${attemptsLeft()}`))
         this.stderrListener?.onError(chunk)
 
-        await this.tryRestart(new RuntimeError(errorMsg, { command, line: chunk.toString() }))
+        await this.tryRestart()
       } else {
         this.log.info(processSays(chunk))
         this.resetRetriesLeftRecursively()
@@ -157,11 +157,10 @@ export class RetriableProcess {
         this.resetRetriesLeftRecursively()
       } else {
         const command = this.command
-        const errorMsg = `Command '${command}' terminated: ${chunk}.`
-        this.log.error(processSays(`${errorMsg} ${attemptsLeft()}`))
+        this.log.error(processSays(`Command '${command}' terminated: ${chunk}. ${attemptsLeft()}`))
         this.stdoutListener?.onError(chunk)
 
-        await this.tryRestart(new RuntimeError(errorMsg, { command, line: chunk.toString() }))
+        await this.tryRestart()
       }
     })
   }
@@ -189,7 +188,7 @@ export class RetriableProcess {
     this.descendants.forEach((descendant) => descendant.resetRetriesLeftRecursively())
   }
 
-  private async tryRestart(error: Error | ErrorEvent | GardenBaseError | string): Promise<void> {
+  private async tryRestart(): Promise<void> {
     // todo: should we lookup to parent nodes to find the parent-most killed/restarting process?
     this.unregisterListenersRecursively()
     this.killRecursively()
@@ -202,7 +201,7 @@ export class RetriableProcess {
     } else {
       this.state = "killed"
       this.log.error("Unable to start local mode, see the errors above. Shutting down...")
-      throw error // todo: shutdown gracefully
+      await shutdown(1)
     }
   }
 
