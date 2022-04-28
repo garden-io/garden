@@ -17,7 +17,6 @@ import { GetActionOutputType } from "../../../actions/base"
 
 interface GetDeployStatusParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   devMode: boolean
-  hotReload: boolean
   runtimeContext: RuntimeContext
 }
 
@@ -36,10 +35,6 @@ export class GetDeployStatus<T extends DeployAction = DeployAction> extends Acti
     actionParamsSchema().keys({
       runtimeContext: runtimeContextSchema(),
       devMode: joi.boolean().default(false).description("Whether the deployment should be configured in dev mode."),
-      hotReload: joi
-        .boolean()
-        .default(false)
-        .description("Whether the deployment should be configured for hot-reloading."),
     })
 
   resultSchema = () => serviceStatusSchema()
