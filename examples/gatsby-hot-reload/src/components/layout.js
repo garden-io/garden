@@ -19,7 +19,7 @@ const Layout = ({ children }) => (
     render={data => (
       <>
         <Helmet
-          title={"Hot reload demo"}
+          title={"Garden Code Sync Demo"}
           meta={[
             { name: 'description', content: 'Sample' },
             { name: 'keywords', content: 'sample, something' },
