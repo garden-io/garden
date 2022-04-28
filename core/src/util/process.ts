@@ -238,12 +238,12 @@ export class RetriableProcess {
     }
     // no need to use pRetry here, the failures will be handled by event the process listeners
     const proc = this.executor(this.command)
+    this.proc = proc
+    this.state = "running"
     this.registerListeners(proc)
     for (const descendant of this.descendants) {
       descendant.start()
     }
-    this.proc = proc
-    this.state = "running"
     return this
   }
 }
