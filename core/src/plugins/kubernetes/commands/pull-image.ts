@@ -91,7 +91,7 @@ function ensureAllModulesValid(modules: GardenModule[]) {
 async function pullModules(ctx: KubernetesPluginContext, modules: GardenModule[], log: LogEntry) {
   await Promise.all(
     modules.map(async (module) => {
-      const remoteId = containerHelpers.getPublicImageId(module)
+      const remoteId = action.getSpec("publishId") || action.getOutput("deploymentImageId")
       const localId = module.outputs["local-image-id"]
       log.info({ msg: chalk.cyan(`Pulling image ${remoteId} to ${localId}`) })
       await pullModule(ctx, module, log)

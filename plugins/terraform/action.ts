@@ -68,7 +68,7 @@ export const terraformDeployOutputsSchema = () =>
 
 export const getTerraformStatus: DeployActionHandler<"getStatus", TerraformDeploy> = async ({ ctx, log, action }) => {
   const provider = ctx.provider as TerraformProvider
-  const spec = await action.getSpec()
+  const spec = action.getSpec()
   const root = getModuleStackRoot(action, spec)
 
   const variables = spec.variables
@@ -93,7 +93,7 @@ export const getTerraformStatus: DeployActionHandler<"getStatus", TerraformDeplo
 
 export const deployTerraform: DeployActionHandler<"deploy", TerraformDeploy> = async ({ ctx, log, action }) => {
   const provider = ctx.provider as TerraformProvider
-  const spec = await action.getSpec()
+  const spec = action.getSpec()
   const workspace = spec.workspace || null
   const root = getModuleStackRoot(action, spec)
 
@@ -123,7 +123,7 @@ export const deployTerraform: DeployActionHandler<"deploy", TerraformDeploy> = a
 
 export const deleteTerraformModule: DeployActionHandler<"delete", TerraformDeploy> = async ({ ctx, log, action }) => {
   const provider = ctx.provider as TerraformProvider
-  const spec = await action.getSpec()
+  const spec = action.getSpec()
 
   if (!spec.allowDestroy) {
     log.warn({ section: action.name, msg: "allowDestroy is set to false. Not calling terraform destroy." })

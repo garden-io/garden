@@ -7,8 +7,8 @@
  */
 
 import { deline } from "../../../util/string"
-import { GardenModule } from "../../module"
-import { PluginActionContextParams, logEntrySchema } from "../../../plugin/base"
+import { GardenModule } from "../../../types/module"
+import { PluginActionContextParams, logEntrySchema } from "../../base"
 import { joi, PrimitiveMap, joiVariables, moduleVersionSchema } from "../../../config/common"
 import { templateStringLiteral } from "../../../docs/common"
 import { ModuleVersion } from "../../../vcs/vcs"

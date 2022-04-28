@@ -250,7 +250,7 @@ interface ActionWrapperParams<C extends BaseActionConfig, O extends {}> {
   version: ModuleVersion
 }
 
-export class Action<C extends BaseActionConfig = BaseActionConfig, O extends {} = {}> {
+export class Action<C extends BaseActionConfig = BaseActionConfig, O extends {} = any> {
   public readonly name: string
   public readonly buildPath: string
   public readonly buildMetadataPath: string
@@ -279,17 +279,17 @@ export class Action<C extends BaseActionConfig = BaseActionConfig, O extends {} 
     return this.config.dependencies?.map(parseActionReference) || []
   }
 
-  async getConfig(key: keyof C) {
+  getConfig(key: keyof C) {
     return this.config[key]
   }
 
-  async getSpec(): Promise<C["spec"]>
-  async getSpec<K extends keyof C["spec"]>(key: K): Promise<C["spec"][K]>
-  async getSpec(key?: keyof C["spec"]) {
+  getSpec(): C["spec"]
+  getSpec<K extends keyof C["spec"]>(key: K): C["spec"][K]
+  getSpec(key?: keyof C["spec"]) {
     return key ? this.config.spec[key] : this.config.spec
   }
 
-  async getOutput<K extends keyof O>(key: K) {
+  getOutput<K extends keyof O>(key: K) {
     return this.outputs[key]
   }
 }

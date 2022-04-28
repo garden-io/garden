@@ -13,7 +13,6 @@ import { parse, CommandEntry } from "docker-file-parser"
 import isGlob from "is-glob"
 import { ConfigurationError, RuntimeError } from "../../exceptions"
 import { spawn, splitLast, SpawnOutput, splitFirst } from "../../util/util"
-import { ModuleConfig } from "../../config/module"
 import {
   ContainerModule,
   ContainerRegistryConfig,
@@ -91,23 +90,23 @@ const helpers = {
    * - The tag  part of the `image` field, if one is set and it includes a tag part.
    * - The Garden version of the module.
    */
-  getPublicImageId(module: ContainerModule, tag?: string) {
+  getPublicImageId(action: ContainerBuildAction, tag?: string) {
     // TODO: allow setting a default user/org prefix in the project/plugin config
-    const explicitImage = module.spec.image
+    const explicitImage = action.getSpec("publishId")
 
     if (explicitImage) {
       // Getting the tag like this because it's otherwise defaulted to "latest"
       const imageTag = splitFirst(explicitImage, ":")[1]
       const parsedImage = helpers.parseImageId(explicitImage)
       if (!tag) {
-        tag = imageTag || module.version.versionString
+        tag = imageTag || action.version.versionString
       }
       return helpers.unparseImageId({ ...parsedImage, tag })
     } else {
-      const localImageName = helpers.getLocalImageName(module)
+      const localImageName = action.name
       const parsedImage = helpers.parseImageId(localImageName)
       if (!tag) {
-        tag = module.version.versionString
+        tag = action.version.versionString
       }
       return helpers.unparseImageId({ ...parsedImage, tag })
     }
@@ -224,13 +223,8 @@ const helpers = {
     }
   },
 
-  async pullImage(module: ContainerModule, log: LogEntry, ctx: PluginContext) {
-    const identifier = helpers.getPublicImageId(module)
-    await helpers.dockerCli({ cwd: module.buildPath, args: ["pull", identifier], log, ctx })
-  },
-
-  async imageExistsLocally(module: ContainerModule, log: LogEntry, ctx: PluginContext) {
-    const identifier = module.outputs["local-image-id"]
+  async imageExistsLocally(action: ContainerBuildAction, log: LogEntry, ctx: PluginContext) {
+    const identifier = action.getOutput("localImageId")
     const result = await helpers.dockerCli({
       cwd: module.path,
       args: ["images", identifier, "-q"],
@@ -340,8 +334,8 @@ const helpers = {
   async actionHasDockerfile(action: ContainerBuildAction): Promise<boolean> {
     // If we explicitly set a Dockerfile, we take that to mean you want it to be built.
     // If the file turns out to be missing, this will come up in the build handler.
-    const dockerfile = await action.getSpec("dockerfile")
-    const dockerfileSourcePath = getDockerfilePath(action.basePath, dockerfile)
+    const dockerfile = action.getSpec("dockerfile")
+    const dockerfileSourcePath = getDockerfilePath(action.getBasePath(), dockerfile)
     return action.version.files.includes(dockerfileSourcePath)
   },
 

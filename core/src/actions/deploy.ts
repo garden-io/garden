@@ -15,4 +15,4 @@ export interface DeployActionConfig<N extends string = any, S extends object = a
 
 export const deployActionSpec = () => baseRuntimeActionConfig()
 
-export class DeployAction<S extends DeployActionConfig = any, O extends {} = {}> extends Action<S, O> {}
+export class DeployAction<S extends DeployActionConfig = any, O extends {} = any> extends Action<S, O> {}

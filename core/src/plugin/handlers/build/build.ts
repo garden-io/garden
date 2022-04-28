@@ -9,10 +9,10 @@
 import { dedent } from "../../../util/string"
 import { actionParamsSchema, PluginBuildActionParamsBase } from "../../../plugin/base"
 import { joi } from "../../../config/common"
-import { BuildAction, BuildActionConfig } from "../../../actions/build"
+import { BuildAction } from "../../../actions/build"
 import { ActionTypeHandlerSpec } from "../base/base"
 
-interface BuildActionParams<T extends BuildAction<any, any>> extends PluginBuildActionParamsBase<T> {}
+interface BuildActionParams<T extends BuildAction> extends PluginBuildActionParamsBase<T> {}
 
 /**
  * - `fetched`: The build was fetched from a remote repository instead of building.

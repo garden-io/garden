@@ -20,4 +20,4 @@ export const testActionConfig = () =>
     timeout: joi.number().integer().description("Set a timeout for the test to complete, in seconds."),
   })
 
-export class TestAction<C extends TestActionConfig = any, O extends {} = {}> extends Action<C, O> {}
+export class TestAction<C extends TestActionConfig = any, O extends {} = any> extends Action<C, O> {}

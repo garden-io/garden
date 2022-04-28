@@ -10,7 +10,7 @@ import { ContainerModule } from "../../container/moduleConfig"
 import { PublishModuleParams } from "../../../types/plugin/module/publishModule"
 import { containerHelpers } from "../../container/helpers"
 import { KubernetesPluginContext } from "../config"
-import { publishContainerModule } from "../../container/publish"
+import { publishContainerBuild } from "../../container/publish"
 import { pullModule } from "../commands/pull-image"
 
 export async function k8sPublishContainerModule(params: PublishModuleParams<ContainerModule>) {
@@ -34,5 +34,5 @@ export async function k8sPublishContainerModule(params: PublishModuleParams<Cont
     await pullModule(k8sCtx, module, log)
   }
 
-  return publishContainerModule({ ...params, ctx: { ...ctx, provider: provider.dependencies.container } })
+  return publishContainerBuild({ ...params, ctx: { ...ctx, provider: provider.dependencies.container } })
 }

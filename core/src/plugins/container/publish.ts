@@ -6,24 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerModule } from "./moduleConfig"
-import { PublishModuleParams } from "../../types/plugin/module/publishModule"
+import { ContainerBuildAction } from "./moduleConfig"
 import { containerHelpers } from "./helpers"
+import { BuildActionHandler } from "../../plugin/actionTypes"
 
-export async function publishContainerModule({ ctx, module, log, tag }: PublishModuleParams<ContainerModule>) {
-  if (!containerHelpers.moduleHasDockerfile(module, module.version)) {
-    log.setState({ msg: `Nothing to publish` })
-    return { published: false }
-  }
-
-  const localId = module.outputs["local-image-id"]
-  const remoteId = containerHelpers.getPublicImageId(module, tag)
+export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuildAction> = async ({
+  ctx,
+  action,
+  log,
+  tag,
+}) => {
+  const localId = action.getOutput("localImageId")
+  const remoteId = containerHelpers.getPublicImageId(action, tag)
 
   log.setState({ msg: `Publishing image ${remoteId}...` })
 
   if (localId !== remoteId) {
     await containerHelpers.dockerCli({
-      cwd: module.buildPath,
+      cwd: action.buildPath,
       args: ["tag", localId, remoteId],
       log,
       ctx,
@@ -31,7 +31,7 @@ export async function publishContainerModule({ ctx, module, log, tag }: PublishM
   }
 
   // TODO: stream output to log if at debug log level
-  await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["push", remoteId], log, ctx })
+  await containerHelpers.dockerCli({ cwd: action.buildPath, args: ["push", remoteId], log, ctx })
 
   return { published: true, message: `Published ${remoteId}` }
 }
