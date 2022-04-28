@@ -321,6 +321,7 @@ export const gardenPlugin = () =>
                   buildArgs: module.spec.buildArgs,
                   dockerfile: module.spec.dockerfile || defaultDockerfileName,
                   extraFlags: module.spec.extraFlags,
+                  localId: module.spec.image,
                   publishId: module.spec.image,
                   targetStage: module.spec.build.targetImage,
                   timeout: module.spec.build.timeout,
@@ -363,7 +364,7 @@ export const gardenPlugin = () =>
 
                 spec: {
                   ...task.spec,
-                  image: buildAction ? undefined : module.spec.image,
+                  image: needsContainerBuild ? undefined : module.spec.image,
                 },
               })
             }
@@ -382,7 +383,7 @@ export const gardenPlugin = () =>
 
                 spec: {
                   ...test.spec,
-                  image: buildAction ? undefined : module.spec.image,
+                  image: needsContainerBuild ? undefined : module.spec.image,
                 },
               })
             }

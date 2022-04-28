@@ -7,7 +7,7 @@
  */
 
 import { V1PodSpec } from "@kubernetes/client-node"
-import { ContainerModule } from "../../../container/moduleConfig"
+import { ContainerBuildAction } from "../../../container/moduleConfig"
 import { millicpuToString, megabytesToString, makePodName } from "../../util"
 import { skopeoDaemonContainerName, dockerAuthSecretKey, k8sUtilImageName } from "../../constants"
 import { KubeApi } from "../../api"
@@ -40,6 +40,7 @@ import { LogLevel } from "../../../../logger/logger"
 import { renderOutputStream } from "../../../../util/util"
 import { getDockerBuildFlags } from "../../../container/build"
 import { defaultDockerfileName } from "../../../container/helpers"
+import { k8sGetContainerBuildActionOutputs } from "../handlers"
 
 export const DEFAULT_KANIKO_FLAGS = ["--cache=true"]
 
@@ -48,7 +49,7 @@ const sharedMountPath = "/.garden"
 const contextPath = sharedMountPath + "/context"
 
 export const getKanikoBuildStatus: BuildStatusHandler = async (params) => {
-  const { ctx, module, log } = params
+  const { ctx, action, log } = params
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
 
@@ -71,20 +72,23 @@ export const getKanikoBuildStatus: BuildStatusHandler = async (params) => {
     api,
     ctx,
     provider,
-    module,
+    action,
   })
 }
 
 export const kanikoBuild: BuildHandler = async (params) => {
-  const { ctx, module, log } = params
+  const { ctx, action, log } = params
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
 
   const projectNamespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
 
-  const localId = module.outputs["local-image-id"]
-  const deploymentImageId = module.outputs["deployment-image-id"]
-  const dockerfile = module.spec.dockerfile || defaultDockerfileName
+  const spec = action.getSpec()
+  const outputs = k8sGetContainerBuildActionOutputs({ provider, action })
+
+  const localId = outputs.localImageId
+  const deploymentImageId = outputs.deploymentImageId
+  const dockerfile = spec.dockerfile || defaultDockerfileName
 
   let { authSecret } = await ensureUtilDeployment({
     ctx,
@@ -147,10 +151,10 @@ export const kanikoBuild: BuildHandler = async (params) => {
     dockerfile,
     "--destination",
     deploymentImageId,
-    ...getKanikoFlags(module.spec.extraFlags, provider.config.kaniko?.extraFlags),
+    ...getKanikoFlags(spec.extraFlags, provider.config.kaniko?.extraFlags),
   ]
 
-  args.push(...getDockerBuildFlags(module))
+  args.push(...getDockerBuildFlags(action))
 
   const buildRes = await runKaniko({
     ctx,
@@ -159,14 +163,14 @@ export const kanikoBuild: BuildHandler = async (params) => {
     kanikoNamespace,
     utilNamespace: projectNamespace,
     authSecretName: authSecret.metadata.name,
-    module,
+    action,
     args,
   })
 
   buildLog = buildRes.log
 
   if (kanikoBuildFailed(buildRes)) {
-    throw new BuildError(`Failed building module ${chalk.bold(module.name)}:\n\n${buildLog}`, { buildLog })
+    throw new BuildError(`Failed building ${chalk.bold(action.name)}:\n\n${buildLog}`, { buildLog })
   }
 
   log.silly(buildLog)
@@ -175,7 +179,8 @@ export const kanikoBuild: BuildHandler = async (params) => {
     buildLog,
     fetched: false,
     fresh: true,
-    version: module.version.versionString,
+    version: action.version.versionString,
+    outputs,
   }
 }
 
@@ -212,7 +217,7 @@ interface RunKanikoParams {
   utilNamespace: string
   authSecretName: string
   log: LogEntry
-  module: ContainerModule
+  action: ContainerBuildAction
   args: string[]
 }
 
@@ -223,12 +228,12 @@ async function runKaniko({
   utilNamespace,
   authSecretName,
   log,
-  module,
+  action,
   args,
 }: RunKanikoParams): Promise<RunResult> {
   const api = await KubeApi.factory(log, ctx, provider)
 
-  const podName = makePodName("kaniko", module.name)
+  const podName = makePodName("kaniko", action.name)
 
   // Escape the args so that we can safely interpolate them into the kaniko command
   const argsStr = args.map((arg) => JSON.stringify(arg)).join(" ")
@@ -243,7 +248,7 @@ async function runKaniko({
   const kanikoImage = provider.config.kaniko?.image || DEFAULT_KANIKO_IMAGE
   const kanikoTolerations = [...(provider.config.kaniko?.tolerations || []), builderToleration]
   const utilHostname = `${utilDeploymentName}.${utilNamespace}.svc.cluster.local`
-  const sourceUrl = `rsync://${utilHostname}:${utilRsyncPort}/volume/${ctx.workingCopyId}/${module.name}/`
+  const sourceUrl = `rsync://${utilHostname}:${utilRsyncPort}/volume/${ctx.workingCopyId}/${action.name}/`
   const imagePullSecrets = await prepareSecrets({
     api,
     namespace: kanikoNamespace,
@@ -361,17 +366,19 @@ async function runKaniko({
     namespace: kanikoNamespace,
   })
 
+  const timeoutSec = action.getConfig("timeout")
+
   const result = await runner.runAndWait({
     log,
     remove: true,
     events: ctx.events,
-    timeoutSec: module.spec.build.timeout,
+    timeoutSec,
     tty: false,
   })
 
   return {
     ...result,
-    moduleName: module.name,
-    version: module.version.versionString,
+    moduleName: action.name,
+    version: action.getVersionString(),
   }
 }

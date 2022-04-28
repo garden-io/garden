@@ -21,7 +21,7 @@ import {
   getServiceResourceSpec,
   makePodName,
 } from "../util"
-import { getModuleNamespaceStatus } from "../namespace"
+import { getActionNamespaceStatus } from "../namespace"
 
 export async function testHelmModule(params: TestModuleParams<HelmModule>): Promise<TestResult> {
   const { ctx, log, module, test } = params
@@ -47,7 +47,7 @@ export async function testHelmModule(params: TestModuleParams<HelmModule>): Prom
     resourceSpec,
   })
   const container = getResourceContainer(target, resourceSpec.containerName)
-  const namespaceStatus = await getModuleNamespaceStatus({
+  const namespaceStatus = await getActionNamespaceStatus({
     ctx: k8sCtx,
     log,
     module,

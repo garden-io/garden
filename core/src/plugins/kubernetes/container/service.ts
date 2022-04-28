@@ -7,7 +7,8 @@
  */
 
 import { V1Service, V1ServicePort } from "@kubernetes/client-node"
-import { ContainerService, ServicePortSpec } from "../../container/moduleConfig"
+import { ServicePortSpec } from "../../container/moduleConfig"
+import { ContainerDeployAction } from "../../container/moduleConfig"
 import { getDeploymentSelector } from "./deployment"
 import { KubernetesResource } from "../types"
 import { find } from "lodash"
@@ -29,16 +30,17 @@ function toServicePort(portSpec: ServicePortSpec): V1ServicePort {
 
 // todo: consider returning Promise<KubernetesResource<V1Service>[]>
 export async function createServiceResources(
-  service: ContainerService,
+  action: ContainerDeployAction,
   namespace: string,
   blueGreen: boolean
 ): Promise<any> {
-  if (!service.spec.ports.length) {
+  const specPorts = action.getSpec("ports")
+
+  if (!specPorts.length) {
     return []
   }
 
-  const createServiceResource = (containerService: ContainerService): KubernetesResource<V1Service> => {
-    const specPorts = service.spec.ports
+  const createServiceResource = (containerAction: ContainerDeployAction): KubernetesResource<V1Service> => {
     const serviceType = !!find(specPorts, (portSpec) => !!portSpec.nodePort) ? "NodePort" : "ClusterIP"
     const servicePorts = specPorts.map(toServicePort)
 
@@ -46,19 +48,19 @@ export async function createServiceResources(
       apiVersion: "v1",
       kind: "Service",
       metadata: {
-        name: containerService.name,
-        annotations: containerService.spec.annotations,
+        name: containerAction.name,
+        annotations: containerAction.getSpec("annotations"),
         namespace,
       },
       spec: {
         ports: servicePorts,
-        selector: getDeploymentSelector(containerService, blueGreen),
+        selector: getDeploymentSelector(action, blueGreen),
         type: serviceType,
       },
     }
   }
 
-  return [createServiceResource(service)]
+  return [createServiceResource(action)]
 }
 
 export function rsyncPortName(serviceName: string) {

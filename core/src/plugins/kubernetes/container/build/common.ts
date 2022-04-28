@@ -8,9 +8,7 @@
 
 import AsyncLock from "async-lock"
 import pRetry from "p-retry"
-import { ContainerModule, ContainerRegistryConfig } from "../../../container/moduleConfig"
-import { GetBuildStatusParams, BuildStatus } from "../../../../types/plugin/module/getBuildStatus"
-import { BuildModuleParams, BuildResult } from "../../../../types/plugin/module/build"
+import { ContainerBuildAction, ContainerModule, ContainerRegistryConfig } from "../../../container/moduleConfig"
 import { getRunningDeploymentPod } from "../../util"
 import {
   buildSyncVolumeName,
@@ -39,6 +37,8 @@ import { V1Container, V1Service } from "@kubernetes/client-node"
 import { cloneDeep, isEmpty } from "lodash"
 import { compareDeployedResources, waitForResources } from "../../status/status"
 import { KubernetesDeployment, KubernetesResource } from "../../types"
+import { BuildActionHandler } from "../../../../plugin/action-types"
+import { k8sGetContainerBuildActionOutputs } from "../handlers"
 
 export const utilContainerName = "util"
 export const utilRsyncPort = 8730
@@ -62,14 +62,16 @@ export const builderToleration = {
   effect: "NoSchedule",
 }
 
-export type BuildStatusHandler = (params: GetBuildStatusParams<ContainerModule>) => Promise<BuildStatus>
-export type BuildHandler = (params: BuildModuleParams<ContainerModule>) => Promise<BuildResult>
+export type BuildStatusHandler = BuildActionHandler<"getStatus", ContainerBuildAction>
+export type BuildHandler = BuildActionHandler<"build", ContainerBuildAction>
 
 const deployLock = new AsyncLock()
 
-interface SyncToSharedBuildSyncParams extends BuildModuleParams<ContainerModule> {
+interface SyncToSharedBuildSyncParams {
   ctx: KubernetesPluginContext
+  log: LogEntry
   api: KubeApi
+  action: ContainerBuildAction
   namespace: string
   deploymentName: string
   rsyncPort: number
@@ -77,12 +79,12 @@ interface SyncToSharedBuildSyncParams extends BuildModuleParams<ContainerModule>
 }
 
 export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
-  const { ctx, module, log, api, namespace, deploymentName, rsyncPort } = params
+  const { ctx, action, log, api, namespace, deploymentName, rsyncPort } = params
 
-  const sourcePath = params.sourcePath || module.buildPath
+  const sourcePath = params.sourcePath || action.getBuildPath()
 
   // Because we're syncing to a shared volume, we need to scope by a unique ID
-  const contextRelPath = `${ctx.workingCopyId}/${module.name}`
+  const contextRelPath = `${ctx.workingCopyId}/${action.name}`
 
   // Absolute path mounted on the builder
   const contextPath = `/garden-build/${contextRelPath}`
@@ -97,8 +99,8 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
 
   if (gardenEnv.GARDEN_K8S_BUILD_SYNC_MODE === "mutagen") {
     // Sync using mutagen
-    const key = `build-sync-${module.name}-${randomString(8)}`
-    const targetPath = `/data/${ctx.workingCopyId}/${module.name}`
+    const key = `build-sync-${action.name}-${randomString(8)}`
+    const targetPath = `/data/${ctx.workingCopyId}/${action.name}`
 
     // Make sure the target path exists
     const runner = new PodRunner({
@@ -126,8 +128,8 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
         ctx,
         log,
         key,
-        logSection: module.name,
-        sourceDescription: `Module ${module.name} build path`,
+        logSection: action.name,
+        sourceDescription: `Module ${action.name} build path`,
         targetDescription: "Build sync Pod",
         config: {
           alpha: sourcePath,
@@ -198,7 +200,7 @@ export async function skopeoBuildStatus({
   api,
   ctx,
   provider,
-  module,
+  action,
 }: {
   namespace: string
   deploymentName: string
@@ -207,7 +209,7 @@ export async function skopeoBuildStatus({
   api: KubeApi
   ctx: PluginContext
   provider: KubernetesProvider
-  module: ContainerModule
+  action: ContainerBuildAction
 }) {
   const deploymentRegistry = provider.config.deploymentRegistry
 
@@ -215,7 +217,10 @@ export async function skopeoBuildStatus({
     // This is validated in the provider configure handler, so this is an internal error if it happens
     throw new InternalError(`Expected configured deploymentRegistry for remote build`, { config: provider.config })
   }
-  const remoteId = module.outputs["deployment-image-id"]
+
+  const outputs = k8sGetContainerBuildActionOutputs({ action, provider })
+
+  const remoteId = outputs.deploymentImageId
   const skopeoCommand = ["skopeo", "--command-timeout=30s", "inspect", "--raw", "--authfile", "/.docker/config.json"]
 
   skopeoCommand.push(`docker://${remoteId}`)
@@ -244,7 +249,7 @@ export async function skopeoBuildStatus({
       containerName,
       buffer: true,
     })
-    return { ready: true }
+    return { ready: true, outputs }
   } catch (err) {
     const res = err.detail?.result || {}
 
@@ -257,7 +262,7 @@ export async function skopeoBuildStatus({
         output,
       })
     }
-    return { ready: false }
+    return { ready: false, outputs }
   }
 }
 
@@ -356,7 +361,7 @@ export async function ensureUtilDeployment({
       namespace,
       ctx,
       provider,
-      serviceName: "garden-util",
+      actionName: "garden-util",
       resources: [deployment, service],
       log: deployLog,
       timeoutSec: 600,

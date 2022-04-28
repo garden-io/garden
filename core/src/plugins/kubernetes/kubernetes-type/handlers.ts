@@ -23,7 +23,7 @@ import { configureDevMode, KubernetesDeployDevModeSyncSpec, startDevModeSync } f
 import { HelmService } from "../helm/moduleConfig"
 import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { streamK8sLogs } from "../logs"
-import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
+import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
 import { getForwardablePorts, getPortForwardHandler, killPortForwards } from "../port-forward"
 import { getK8sIngresses } from "../status/ingress"
 import {
@@ -192,7 +192,7 @@ export async function getKubernetesServiceStatus({
   localMode,
 }: GetServiceStatusParams<KubernetesModule>): Promise<KubernetesServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespaceStatus = await getModuleNamespaceStatus({
+  const namespaceStatus = await getActionNamespaceStatus({
     ctx: k8sCtx,
     log,
     module,
@@ -252,6 +252,12 @@ export async function getKubernetesServiceStatus({
         module,
         manifests: remoteResources,
         resourceSpec: serviceResourceSpec,
+        basePath: service.sourceModule.path,
+        namespace,
+        target,
+        spec: service.spec.devMode,
+        containerName: service.spec.devMode.containerName,
+        deployName: service.name,
       })
 
       if (isConfiguredForDevMode(target)) {
@@ -292,7 +298,7 @@ export async function deployKubernetesService(
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, ctx, provider)
 
-  const namespaceStatus = await getModuleNamespaceStatus({
+  const namespaceStatus = await getActionNamespaceStatus({
     ctx: k8sCtx,
     log,
     module,
@@ -313,7 +319,7 @@ export async function deployKubernetesService(
       namespace,
       ctx,
       provider,
-      serviceName: service.name,
+      actionName: service.name,
       resources: namespaceManifests,
       log,
       timeoutSec: service.spec.timeout || KUBECTL_DEFAULT_TIMEOUT,
@@ -341,7 +347,7 @@ export async function deployKubernetesService(
       namespace,
       ctx,
       provider,
-      serviceName: service.name,
+      actionName: service.name,
       resources: prepareResult.manifests,
       log,
       timeoutSec: service.spec.timeout || KUBECTL_DEFAULT_TIMEOUT,
@@ -369,12 +375,12 @@ export async function deployKubernetesService(
       await startDevModeSync({
         ctx,
         log,
-        moduleRoot: service.sourceModule.path,
+        basePath: service.sourceModule.path,
         namespace,
         target,
         spec: service.spec.devMode,
         containerName: service.spec.devMode.containerName,
-        serviceName: service.name,
+        deployName: service.name,
       })
     }
   }
@@ -403,7 +409,7 @@ export async function deployKubernetesService(
 async function deleteService(params: DeleteServiceParams): Promise<KubernetesServiceStatus> {
   const { ctx, log, service, module } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getModuleNamespace({
+  const namespace = await getActionNamespace({
     ctx: k8sCtx,
     log,
     module,
@@ -464,7 +470,7 @@ async function getServiceLogs(params: GetServiceLogsParams<KubernetesModule>) {
   const { ctx, log, module } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const namespace = await getModuleNamespace({
+  const namespace = await getActionNamespace({
     ctx: k8sCtx,
     log,
     module,

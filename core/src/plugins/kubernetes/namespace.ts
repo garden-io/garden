@@ -25,6 +25,8 @@ import { isSubset } from "../../util/is-subset"
 import chalk from "chalk"
 import { NamespaceStatus } from "../../plugin/base"
 import { KubernetesServerResource } from "./types"
+import { HelmHeployAction } from "./helm/config"
+import { KubernetesDeployAction } from "./kubernetes-type/config"
 
 const GARDEN_VERSION = getPackageVersion()
 
@@ -294,42 +296,44 @@ export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?:
   }
 }
 
-export async function getModuleNamespace({
+export async function getActionNamespace({
   ctx,
   log,
-  module,
+  action,
   provider,
   skipCreate,
 }: {
   ctx: KubernetesPluginContext
   log: LogEntry
-  module: HelmModule | KubernetesModule
+  action: HelmHeployAction | KubernetesDeployAction
   provider: KubernetesProvider
   skipCreate?: boolean
 }): Promise<string> {
-  const status = await getModuleNamespaceStatus({
+  const status = await getActionNamespaceStatus({
     ctx,
     log,
-    module,
+    action,
     provider,
     skipCreate,
   })
   return status.namespaceName
 }
 
-export async function getModuleNamespaceStatus({
+export async function getActionNamespaceStatus({
   ctx,
   log,
-  module,
+  action,
   provider,
   skipCreate,
 }: {
   ctx: KubernetesPluginContext
   log: LogEntry
-  module: HelmModule | KubernetesModule
+  action: HelmHeployAction | KubernetesDeployAction
   provider: KubernetesProvider
   skipCreate?: boolean
 }): Promise<NamespaceStatus> {
+  const namespace = action.getSpec("namespace")
+
   return getNamespaceStatus({
     log,
     ctx,

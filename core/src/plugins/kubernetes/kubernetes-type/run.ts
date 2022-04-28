@@ -20,16 +20,16 @@ import { storeTaskResult } from "../task-results"
 import { RunTaskParams, RunTaskResult } from "../../../types/plugin/task/runTask"
 import { getManifests } from "./common"
 import { KubeApi } from "../api"
-import { getModuleNamespaceStatus } from "../namespace"
+import { getActionNamespaceStatus } from "../namespace"
 import { DEFAULT_TASK_TIMEOUT } from "../../../constants"
 
 export async function runKubernetesTask(params: RunTaskParams<KubernetesModule>): Promise<RunTaskResult> {
   const { ctx, log, module, task } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespaceStatus = await getModuleNamespaceStatus({
+  const namespaceStatus = await getActionNamespaceStatus({
     ctx: k8sCtx,
     log,
-    module,
+    action,
     provider: k8sCtx.provider,
   })
   const namespace = namespaceStatus.namespaceName

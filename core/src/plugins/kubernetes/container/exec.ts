@@ -10,7 +10,7 @@ import { includes } from "lodash"
 import { DeploymentError } from "../../../exceptions"
 import { ContainerModule } from "../../container/moduleConfig"
 import { getAppNamespace } from "../namespace"
-import { getContainerServiceStatus } from "./status"
+import { getContainerDeployStatus } from "./status"
 import { KubernetesPluginContext } from "../config"
 import { execInWorkload } from "../util"
 import { ExecInServiceParams } from "../../../types/plugin/service/execInService"
@@ -19,7 +19,7 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
   const { ctx, log, service, command, interactive } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const status = await getContainerServiceStatus({
+  const status = await getContainerDeployStatus({
     ...params,
     // The runtime context doesn't matter here. We're just checking if the service is running.
     runtimeContext: {
