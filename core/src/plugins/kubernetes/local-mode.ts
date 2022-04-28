@@ -423,9 +423,13 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
     minTimeoutMs: 5000,
     log,
     stderrListener: {
-      hasErrors: (chunk: string) => !chunk.toLowerCase().includes("warning: permanently added"),
-      onError: (chunk: string) => {
-        if (chunk.toLowerCase().includes('unsupported option "accept-new"')) {
+      hasErrors: (chunk: any) => {
+        const output = chunk.toString()
+        return !output.toLowerCase().includes("warning: permanently added")
+      },
+      onError: (chunk: any) => {
+        const output = chunk.toString()
+        if (output.toLowerCase().includes('unsupported option "accept-new"')) {
           log.error({
             status: "warn",
             section: service.name,

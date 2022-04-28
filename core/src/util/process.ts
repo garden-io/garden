@@ -126,7 +126,7 @@ export class RetriableProcess {
       await this.tryRestart(new RuntimeError(errorMsg, { command, code }))
     })
 
-    proc.stderr!.on("data", async (chunk: string) => {
+    proc.stderr!.on("data", async (chunk: any) => {
       const hasErrorsFn = this.stderrListener?.hasErrors
       if (!hasErrorsFn || hasErrorsFn(chunk)) {
         const command = this.command
@@ -134,14 +134,14 @@ export class RetriableProcess {
         this.log.error(processSays(`${errorMsg} ${attemptsLeft()}`))
         this.stderrListener?.onError(chunk)
 
-        await this.tryRestart(new RuntimeError(errorMsg, { command, line: chunk }))
+        await this.tryRestart(new RuntimeError(errorMsg, { command, line: chunk.toString() }))
       } else {
         this.log.info(processSays(chunk))
         this.resetRetriesLeftRecursively()
       }
     })
 
-    proc.stdout!.on("data", async (chunk: string) => {
+    proc.stdout!.on("data", async (chunk: any) => {
       const hasErrorsFn = this.stdoutListener?.hasErrors
       if (!hasErrorsFn || !hasErrorsFn(chunk)) {
         this.log.info(processSays(chunk))
@@ -152,7 +152,7 @@ export class RetriableProcess {
         this.log.error(processSays(`${errorMsg} ${attemptsLeft()}`))
         this.stdoutListener?.onError(chunk)
 
-        await this.tryRestart(new RuntimeError(errorMsg, { command, line: chunk }))
+        await this.tryRestart(new RuntimeError(errorMsg, { command, line: chunk.toString() }))
       }
     })
   }
