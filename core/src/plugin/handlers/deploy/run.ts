@@ -15,16 +15,16 @@ import {
 } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
 import { RuntimeContext } from "../../../runtime-context"
-import { DeployActionConfig } from "../../../actions/deploy"
+import { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
 
-interface RunDeployParams<T extends DeployActionConfig> extends PluginDeployActionParamsBase<T> {
+interface RunDeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   interactive: boolean
   runtimeContext: RuntimeContext
   timeout?: number
 }
 
-export class RunDeploy<T extends DeployActionConfig = DeployActionConfig> extends ActionTypeHandlerSpec<
+export class RunDeploy<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "deploy",
   RunDeployParams<T>,
   RunResult

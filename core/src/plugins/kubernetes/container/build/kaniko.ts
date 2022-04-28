@@ -39,6 +39,7 @@ import split2 from "split2"
 import { LogLevel } from "../../../../logger/logger"
 import { renderOutputStream } from "../../../../util/util"
 import { getDockerBuildFlags } from "../../../container/build"
+import { defaultDockerfileName } from "../../../container/helpers"
 
 export const DEFAULT_KANIKO_FLAGS = ["--cache=true"]
 

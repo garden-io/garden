@@ -8,11 +8,11 @@
 
 import { BaseRuntimeActionConfig, baseRuntimeActionConfig, Action } from "./base"
 
-export interface DeployActionConfig<N extends string = any, S extends object = any> extends BaseRuntimeActionConfig<S> {
-  kind: "Deploy"
+export interface DeployActionConfig<N extends string = any, S extends object = any>
+  extends BaseRuntimeActionConfig<"deploy", N, S> {
   type: N
 }
 
 export const deployActionSpec = () => baseRuntimeActionConfig()
 
-export class DeployAction<S extends DeployActionConfig = DeployActionConfig> extends Action<S> {}
+export class DeployAction<S extends DeployActionConfig = any, O extends {} = {}> extends Action<S, O> {}

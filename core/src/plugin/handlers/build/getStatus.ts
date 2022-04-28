@@ -9,18 +9,17 @@
 import { dedent } from "../../../util/string"
 import { actionParamsSchema, PluginBuildActionParamsBase } from "../../../plugin/base"
 import { joi } from "../../../config/common"
-import { BuildActionConfig } from "../../../actions/build"
+import { BuildAction } from "../../../actions/build"
 import { ActionTypeHandlerSpec } from "../base/base"
 
-interface GetBuildStatusParams<T extends BuildActionConfig = BuildActionConfig>
-  extends PluginBuildActionParamsBase<T> {}
+interface GetBuildStatusParams<T extends BuildAction = BuildAction> extends PluginBuildActionParamsBase<T> {}
 
 export interface BuildStatus {
   ready: boolean
   detail?: any
 }
 
-export class GetBuildActionStatus<T extends BuildActionConfig = BuildActionConfig> extends ActionTypeHandlerSpec<
+export class GetBuildActionStatus<T extends BuildAction = BuildAction> extends ActionTypeHandlerSpec<
   "build",
   GetBuildStatusParams<T>,
   BuildStatus

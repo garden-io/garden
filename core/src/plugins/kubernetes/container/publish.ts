@@ -18,7 +18,7 @@ export async function k8sPublishContainerModule(params: PublishModuleParams<Cont
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
 
-  if (!containerHelpers.hasDockerfile(module, module.version)) {
+  if (!containerHelpers.moduleHasDockerfile(module, module.version)) {
     log.setState({ msg: `Nothing to publish` })
     return { published: false, message: undefined }
   }

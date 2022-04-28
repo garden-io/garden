@@ -9,10 +9,10 @@
 import { dedent } from "../../../util/string"
 import { actionParamsSchema, PluginBuildActionParamsBase } from "../../../plugin/base"
 import { joi } from "../../../config/common"
-import { BuildActionConfig } from "../../../actions/build"
+import { BuildAction } from "../../../actions/build"
 import { ActionTypeHandlerSpec } from "../base/base"
 
-interface PublishActionParams<T extends BuildActionConfig = BuildActionConfig> extends PluginBuildActionParamsBase<T> {
+interface PublishActionParams<T extends BuildAction = BuildAction> extends PluginBuildActionParamsBase<T> {
   tag?: string
 }
 
@@ -29,7 +29,7 @@ export const publishResultSchema = () =>
     identifier: joi.string().description("The published artifact identifier, if applicable."),
   })
 
-export class PublishBuildAction<T extends BuildActionConfig = BuildActionConfig> extends ActionTypeHandlerSpec<
+export class PublishBuildAction<T extends BuildAction = BuildAction> extends ActionTypeHandlerSpec<
   "build",
   PublishActionParams<T>,
   PublishActionResult

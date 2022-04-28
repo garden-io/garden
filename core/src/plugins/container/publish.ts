@@ -11,7 +11,7 @@ import { PublishModuleParams } from "../../types/plugin/module/publishModule"
 import { containerHelpers } from "./helpers"
 
 export async function publishContainerModule({ ctx, module, log, tag }: PublishModuleParams<ContainerModule>) {
-  if (!containerHelpers.hasDockerfile(module, module.version)) {
+  if (!containerHelpers.moduleHasDockerfile(module, module.version)) {
     log.setState({ msg: `Nothing to publish` })
     return { published: false }
   }

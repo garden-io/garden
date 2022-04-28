@@ -9,10 +9,10 @@
 import { actionParamsSchema, PluginDeployActionParamsBase } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
 import { joiArray, joi } from "../../../config/common"
-import { DeployActionConfig } from "../../../actions/deploy"
+import { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
 
-interface ExecInDeployParams<T extends DeployActionConfig> extends PluginDeployActionParamsBase<T> {
+interface ExecInDeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   command: string[]
   interactive: boolean
 }
@@ -32,7 +32,7 @@ const execInDeployResultSchema = () =>
     stderr: joi.string().allow("").description("The stderr output of the executed command (if available)."),
   })
 
-export class ExecInDeploy<T extends DeployActionConfig = DeployActionConfig> extends ActionTypeHandlerSpec<
+export class ExecInDeploy<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "deploy",
   ExecInDeployParams<T>,
   ExecInDeployResult

@@ -16,8 +16,8 @@ export interface BuildCopyFrom {
   targetPath: string
 }
 
-export interface BuildActionConfig<N extends string = any, S extends object = any> extends BaseActionConfig<S> {
-  kind: "Build"
+export interface BuildActionConfig<N extends string = any, S extends object = any>
+  extends BaseActionConfig<"build", N, S> {
   type: N
   allowPublish?: boolean
   buildAtSource?: boolean
@@ -97,4 +97,4 @@ export const buildActionConfig = () =>
     timeout: joi.number().integer().description("Set a timeout for the build to complete, in seconds."),
   })
 
-export class BuildAction<C extends BuildActionConfig> extends Action<C> {}
+export class BuildAction<C extends BuildActionConfig = any, O extends {} = {}> extends Action<C, O> {}

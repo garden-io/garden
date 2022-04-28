@@ -29,6 +29,7 @@ export interface TerraformDeploySpec extends TerraformBaseSpec {
 }
 
 export type TerraformDeployConfig = DeployActionConfig<"terraform", TerraformDeploySpec>
+export type TerraformDeploy = DeployAction<TerraformDeployConfig, {}>
 
 export const terraformDeploySchemaKeys = () => ({
   allowDestroy: joi.boolean().default(false).description(dedent`
@@ -65,11 +66,7 @@ export const terraformDeploySchema = () => joi.object().keys(terraformDeploySche
 export const terraformDeployOutputsSchema = () =>
   joiVariables().description("A map of all the outputs defined in the Terraform stack.")
 
-export const getTerraformStatus: DeployActionHandler<"getStatus", TerraformDeployConfig> = async ({
-  ctx,
-  log,
-  action,
-}) => {
+export const getTerraformStatus: DeployActionHandler<"getStatus", TerraformDeploy> = async ({ ctx, log, action }) => {
   const provider = ctx.provider as TerraformProvider
   const spec = await action.getSpec()
   const root = getModuleStackRoot(action, spec)
@@ -94,7 +91,7 @@ export const getTerraformStatus: DeployActionHandler<"getStatus", TerraformDeplo
   }
 }
 
-export const deployTerraform: DeployActionHandler<"deploy", TerraformDeployConfig> = async ({ ctx, log, action }) => {
+export const deployTerraform: DeployActionHandler<"deploy", TerraformDeploy> = async ({ ctx, log, action }) => {
   const provider = ctx.provider as TerraformProvider
   const spec = await action.getSpec()
   const workspace = spec.workspace || null
@@ -124,11 +121,7 @@ export const deployTerraform: DeployActionHandler<"deploy", TerraformDeployConfi
   }
 }
 
-export const deleteTerraformModule: DeployActionHandler<"delete", TerraformDeployConfig> = async ({
-  ctx,
-  log,
-  action,
-}) => {
+export const deleteTerraformModule: DeployActionHandler<"delete", TerraformDeploy> = async ({ ctx, log, action }) => {
   const provider = ctx.provider as TerraformProvider
   const spec = await action.getSpec()
 
@@ -157,7 +150,7 @@ export const deleteTerraformModule: DeployActionHandler<"delete", TerraformDeplo
   }
 }
 
-function getModuleStackRoot(action: DeployAction, spec: TerraformDeploySpec) {
+function getModuleStackRoot(action: TerraformDeploy, spec: TerraformDeploySpec) {
   // TODO-G2: doublecheck this path
   return join(action.buildPath, spec.root)
 }

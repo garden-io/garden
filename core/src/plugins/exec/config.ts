@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BuildActionConfig } from "../../actions/build"
-import { DeployActionConfig } from "../../actions/deploy"
-import { RunActionConfig } from "../../actions/run"
-import { TestActionConfig } from "../../actions/test"
+import { BuildAction, BuildActionConfig } from "../../actions/build"
+import { DeployAction, DeployActionConfig } from "../../actions/deploy"
+import { RunAction, RunActionConfig } from "../../actions/run"
+import { TestAction, TestActionConfig } from "../../actions/test"
 import { artifactsTargetDescription, joi, joiEnvVars, joiSparseArray, StringMap } from "../../config/common"
 import { ArtifactSpec } from "../../config/validation"
 import { dedent } from "../../util/string"
@@ -27,6 +27,7 @@ export interface ExecBuildActionSpec {
   env: StringMap
 }
 export type ExecBuildConfig = BuildActionConfig<"exec", ExecBuildActionSpec>
+export type ExecBuild = BuildAction<ExecBuildConfig, {}>
 
 export const execBuildActionSchema = () =>
   joi.object().keys({
@@ -63,6 +64,7 @@ export interface ExecDeployActionSpec {
 }
 
 export type ExecDeployConfig = DeployActionConfig<"exec", ExecDeployActionSpec>
+export type ExecDeploy = DeployAction<ExecDeployConfig, {}>
 
 export const execDeployActionSchema = () =>
   joi
@@ -147,6 +149,7 @@ export interface ExecRunActionSpec {
 }
 
 export type ExecRunConfig = RunActionConfig<"exec", ExecRunActionSpec>
+export type ExecRun = RunAction<ExecRunConfig>
 
 export const execRunActionSchema = () =>
   joi
@@ -172,6 +175,7 @@ export const execRunActionSchema = () =>
 
 export interface ExecTestActionSpec extends ExecRunActionSpec {}
 export type ExecTestConfig = TestActionConfig<"exec", ExecRunActionSpec>
+export type ExecTest = TestAction<ExecTestConfig, {}>
 
 export const execTestActionSchema = () =>
   joi

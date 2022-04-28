@@ -10,12 +10,12 @@ import { actionParamsSchema, PluginDeployActionParamsBase } from "../../../plugi
 import { dedent } from "../../../util/string"
 import { ForwardablePort, forwardablePortKeys } from "../../../types/service"
 import { joi } from "../../../config/common"
-import { DeployActionConfig } from "../../../actions/deploy"
+import { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
 
-type StopPortForwardParams<T extends DeployActionConfig> = PluginDeployActionParamsBase<T> & ForwardablePort
+type StopPortForwardParams<T extends DeployAction> = PluginDeployActionParamsBase<T> & ForwardablePort
 
-export class StopDeployPortForward<T extends DeployActionConfig = DeployActionConfig> extends ActionTypeHandlerSpec<
+export class StopDeployPortForward<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "deploy",
   StopPortForwardParams<T>,
   {}

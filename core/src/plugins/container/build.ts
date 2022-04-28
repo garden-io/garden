@@ -15,6 +15,8 @@ import { LogLevel } from "../../logger/logger"
 import { renderOutputStream } from "../../util/util"
 import { PrimitiveMap } from "../../config/common"
 import split2 from "split2"
+import { BuildActionHandler } from "../../plugin/actionTypes"
+import { ContainerBuildActionConfig } from "./config"
 
 export async function getContainerBuildStatus({ ctx, module, log }: GetBuildStatusParams<ContainerModule>) {
   const identifier = await containerHelpers.imageExistsLocally(module, log, ctx)
@@ -30,31 +32,23 @@ export async function getContainerBuildStatus({ ctx, module, log }: GetBuildStat
   return { ready: !!identifier }
 }
 
-export async function buildContainerModule({ ctx, module, log }: BuildModuleParams<ContainerModule>) {
+export const buildContainer: BuildActionHandler<"build", ContainerBuildActionConfig> = async ({ ctx, action, log }) => {
   containerHelpers.checkDockerServerVersion(await containerHelpers.getDockerVersion())
 
-  const buildPath = module.buildPath
-  const image = module.spec.image
-  const hasDockerfile = containerHelpers.hasDockerfile(module, module.version)
-
-  if (!!image && !hasDockerfile) {
-    if (await containerHelpers.imageExistsLocally(module, log, ctx)) {
-      return { fresh: false }
-    }
-    log.setState(`Pulling image ${image}...`)
-    await containerHelpers.pullImage(module, log, ctx)
-    return { fetched: true }
-  }
+  const buildPath = action.buildPath
+  const spec = await action.getSpec()
+  const image = spec.image
+  const hasDockerfile = await containerHelpers.actionHasDockerfile(action)
 
   // make sure we can build the thing
   if (!hasDockerfile) {
     throw new ConfigurationError(
-      `Dockerfile not found at ${module.spec.dockerfile || defaultDockerfileName} for module ${module.name}`,
-      { spec: module.spec }
+      `Dockerfile not found at ${spec.dockerfile || defaultDockerfileName} for build ${action.name}. Please make sure the file exists, and is not excluded by include/exclude fields or .gardenignore files.`,
+      { spec }
     )
   }
 
-  const identifier = module.outputs["local-image-id"]
+  const identifier = await action.getOutput("localImageId")
 
   // build doesn't exist, so we create it
   log.setState(`Building ${identifier}...`)

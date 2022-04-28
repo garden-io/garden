@@ -9,12 +9,12 @@
 import { PluginRunActionParamsBase, actionParamsSchema, RunResult } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
 import { taskResultSchema } from "../../../types/task"
-import { RunActionConfig } from "../../../actions/run"
+import { RunAction } from "../../../actions/run"
 import { ActionTypeHandlerSpec } from "../base/base"
 
-interface GetRunResultParams<T extends RunActionConfig> extends PluginRunActionParamsBase<T> {}
+interface GetRunResultParams<T extends RunAction> extends PluginRunActionParamsBase<T> {}
 
-export class GetRunActionResult<T extends RunActionConfig = RunActionConfig> extends ActionTypeHandlerSpec<
+export class GetRunActionResult<T extends RunAction = RunAction> extends ActionTypeHandlerSpec<
   "run",
   GetRunResultParams<T>,
   RunResult
