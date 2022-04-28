@@ -19,12 +19,10 @@ import {
   containerCommonBuildSpecKeys,
   ContainerCommonDeploySpec,
   containerDeploySchemaKeys,
-  ContainerModuleHotReloadSpec,
   ContainerRunActionSpec,
   containerRunSpecKeys,
   ContainerTestActionSpec,
   containerTestSpecKeys,
-  hotReloadConfigSchema,
 } from "./config"
 import { kebabCase, mapKeys } from "lodash"
 
@@ -36,11 +34,7 @@ import { kebabCase, mapKeys } from "lodash"
 // To reduce the amount of edits to make before removing module configs
 export * from "./config"
 
-export type ContainerServiceSpec = CommonServiceSpec &
-  ContainerCommonDeploySpec & {
-    hotReloadCommand?: string[]
-    hotReloadArgs?: string[]
-  }
+export type ContainerServiceSpec = CommonServiceSpec & ContainerCommonDeploySpec
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
 
 const containerDeploySchema = () => baseServiceSpecSchema().keys(containerDeploySchemaKeys())
@@ -67,7 +61,6 @@ export interface ContainerModuleSpec extends ModuleSpec {
   extraFlags: string[]
   image?: string
   dockerfile?: string
-  hotReload?: ContainerModuleHotReloadSpec
   services: ContainerServiceSpec[]
   tests: ContainerTestSpec[]
   tasks: ContainerTaskSpec[]
@@ -107,14 +100,8 @@ export const containerModuleSpecSchema = () =>
         If neither \`include\` nor \`exclude\` is set, and the module
         specifies a remote image, Garden automatically sets \`include\` to \`[]\`.
       `),
-      // TODO: remove in 0.13
-      hotReload: hotReloadConfigSchema().description(
-        deline`
-          **DEPRECATED: Please use devMode.sync instead**
-
-          Specifies which files or directories to sync to which paths inside the running containers of hot reload-enabled services when those files or directories are modified. Applies to this module's services, and to services with this module as their \`sourceModule\`.
-        `
-      ),
+      // TODO: remove in 0.14, keeping around to avoid config failures
+      hotReload: joi.any().meta({ internal: true }),
       dockerfile: joi
         .posixPath()
         .subPathOnly()

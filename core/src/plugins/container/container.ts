@@ -33,7 +33,7 @@ import {
   containerDeploySchema,
   containerRunActionSchema,
   containerTestActionSchema,
-  dockerImageBuildSpecSchema,
+  containerBuildSpecSchema,
 } from "./config"
 import { publishContainerBuild } from "./publish"
 
@@ -221,7 +221,7 @@ export const gardenPlugin = () =>
             Build a Docker container image, and (if applicable) push to a remote registry.
           `,
           outputsSchema: containerBuildOutputsSchema(),
-          schema: dockerImageBuildSpecSchema(),
+          schema: containerBuildSpecSchema(),
           handlers: {
             build: buildContainer,
             getStatus: getContainerBuildStatus,
@@ -240,7 +240,6 @@ export const gardenPlugin = () =>
           schema: containerDeploySchema(),
           handlers: {
             // Implemented by other providers (e.g. kubernetes)
-            hotReload: async () => ({}),
           },
         },
       ],
