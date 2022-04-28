@@ -7,7 +7,7 @@
  */
 
 import { dedent } from "../../../util/string"
-import { PluginTestActionParamsBase, actionParamsSchema } from "../../../plugin/base"
+import { PluginTestActionParamsBase, actionParamsSchema } from "../../base"
 import { TestAction } from "../../../actions/test"
 import { TestResult, testResultSchema } from "../../../types/test"
 import { ActionTypeHandlerSpec } from "../base/base"

@@ -12,7 +12,7 @@ import { LogLevel } from "../../logger/logger"
 import { renderOutputStream } from "../../util/util"
 import { PrimitiveMap } from "../../config/common"
 import split2 from "split2"
-import { BuildActionHandler } from "../../plugin/actionTypes"
+import { BuildActionHandler } from "../../plugin/action-types"
 import { ContainerBuildAction } from "./config"
 import { joinWithPosix } from "../../util/fs"
 

@@ -8,7 +8,7 @@
 
 import { ContainerBuildAction } from "./moduleConfig"
 import { containerHelpers } from "./helpers"
-import { BuildActionHandler } from "../../plugin/actionTypes"
+import { BuildActionHandler } from "../../plugin/action-types"
 
 export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuildAction> = async ({
   ctx,

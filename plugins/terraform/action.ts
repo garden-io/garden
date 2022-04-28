@@ -7,8 +7,8 @@
  */
 
 import { join } from "path"
-import { joi, joiVariables } from "@garden-io/core/src/config/common"
-import { dedent, deline } from "@garden-io/core/src/util/string"
+import { joi, joiVariables } from "@garden-io/core/build/src/config/common"
+import { dedent, deline } from "@garden-io/core/build/src/util/string"
 import { supportedVersions, terraform } from "./cli"
 import {
   getStackStatus,
@@ -21,8 +21,8 @@ import {
 } from "./common"
 import { TerraformProvider } from "."
 import chalk = require("chalk")
-import { DeployAction, DeployActionConfig } from "@garden-io/core/src/actions/deploy"
-import { DeployActionHandler } from "@garden-io/core/src/plugin/actionTypes"
+import { DeployAction, DeployActionConfig } from "@garden-io/core/build/src/actions/deploy"
+import { DeployActionHandler } from "@garden-io/core/build/src/plugin/action-types"
 
 export interface TerraformDeploySpec extends TerraformBaseSpec {
   root: string
