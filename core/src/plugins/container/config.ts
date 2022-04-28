@@ -605,34 +605,6 @@ const containerDropCapabilitiesSchema = () =>
     .optional()
     .description(`POSIX capabilities to remove when running the container.`)
 
-export const hotReloadCommandSchema = () =>
-  joi
-    .sparseArray()
-    .items(joi.string())
-    .description(
-      deline`
-      **DEPRECATED: Please use devMode instead.**
-
-      If running with hot-reloading enabled, the container will be run with this command/entrypoint instead of the default.
-      `
-    )
-    .example(commandExample)
-    .meta({ deprecated: true })
-
-export const hotReloadArgsSchema = () =>
-  joi
-    .sparseArray()
-    .items(joi.string())
-    .description(
-      deline`
-      **DEPRECATED: Please use devMode instead.**
-
-      If specified, overrides the arguments for the main container when running in hot-reload mode.
-      `
-    )
-    .example(["nodemon", "my-server.js"])
-    .meta({ deprecated: true })
-
 interface ContainerCommonRuntimeSpec {
   args: string[]
   command?: string[]
@@ -663,13 +635,7 @@ export interface ContainerCommonDeploySpec extends ContainerCommonRuntimeSpec {
   deploymentStrategy: DeploymentStrategy
 }
 
-export interface ContainerDeploySpec extends ContainerCommonDeploySpec {
-  // TODO: remove in 0.13
-  hotReload?: ContainerModuleHotReloadSpec & {
-    command?: string[]
-    args?: string[]
-  }
-}
+export interface ContainerDeploySpec extends ContainerCommonDeploySpec {}
 export type ContainerDeployActionConfig = DeployActionConfig<"container", ContainerDeploySpec>
 export type ContainerDeployAction = DeployAction<ContainerDeployActionConfig, {}>
 
@@ -723,6 +689,8 @@ export const containerDeploySchemaKeys = () => ({
     .description("List of ingress endpoints that the service exposes.")
     .example([{ path: "/api", port: "http" }]),
   healthCheck: healthCheckSchema().description("Specify how the service's health should be checked after deploying."),
+  // TODO: remove in 0.14, keeping around to avoid config failures
+  hotReload: joi.any().meta({ internal: true }),
   timeout: k8sDeploymentTimeoutSchema(),
   limits: limitsSchema()
     .description("Specify resource limits for the service.")
@@ -732,8 +700,7 @@ export const containerDeploySchemaKeys = () => ({
     The number of instances of the service to deploy.
     Defaults to 3 for environments configured with \`production: true\`, otherwise 1.
 
-    Note: This setting may be overridden or ignored in some cases. For example, when running with \`daemon: true\`,
-    with hot-reloading enabled, or if the provider doesn't support multiple replicas.
+    Note: This setting may be overridden or ignored in some cases. For example, when running with \`daemon: true\` or if the provider doesn't support multiple replicas.
   `),
 })
 
@@ -914,7 +881,7 @@ export const containerCommonBuildSpecKeys = () => ({
     Note that arguments may not be portable across implementations.`),
 })
 
-export const dockerImageBuildSpecSchema = () =>
+export const containerBuildSpecSchema = () =>
   joi.object().keys({
     dockerfile: joi
       .posixPath()
@@ -926,6 +893,8 @@ export const dockerImageBuildSpecSchema = () =>
       https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for
       details).
     `),
+    // TODO: remove in 0.14, keeping around to avoid config failures
+    hotReload: joi.any().meta({ internal: true }),
   })
 
 export type ContainerActionConfig =

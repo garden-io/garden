@@ -69,13 +69,6 @@ export interface KubernetesDeployDevModeSpec {
   syncs?: KubernetesDeployDevModeSyncSpec[]
 }
 
-// DEPRECATED, remove in 0.13
-export interface KubernetesDeployHotReloadSpec {
-  build?: string
-  command?: string[]
-  args?: string[]
-}
-
 /**
  * Provider-level dev mode settings for the local and remote k8s providers.
  */

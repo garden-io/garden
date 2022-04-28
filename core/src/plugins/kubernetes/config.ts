@@ -836,7 +836,7 @@ export interface ServiceResourceSpec {
 }
 
 export interface KubernetesTargetResourceSpec {
-  kind?: HotReloadableKind
+  kind?: SyncableKind
   name?: string
   podSelector?: { [key: string]: string }
   containerName?: string
@@ -848,7 +848,7 @@ export const targetResourceSpecSchema = () =>
     .keys({
       kind: joi
         .string()
-        .valid(...hotReloadableKinds)
+        .valid(...syncableKinds)
         .description("The kind of Kubernetes resource to target."),
       name: joi
         .string()

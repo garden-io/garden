@@ -18,7 +18,6 @@ import { ExecInDeploy } from "./handlers/deploy/exec"
 import { GetDeployLogs } from "./handlers/deploy/get-logs"
 import { GetDeployPortForward } from "./handlers/deploy/get-port-forward"
 import { GetDeployStatus } from "./handlers/deploy/get-status"
-import { HotReloadDeploy } from "./handlers/deploy/hot-reload"
 import { RunDeploy } from "./handlers/deploy/run"
 import { StopDeployPortForward } from "./handlers/deploy/stop-port-forward"
 import { GetRunActionResult } from "./handlers/run/get-result"
@@ -61,7 +60,6 @@ type DeployActionDescriptions<C extends DeployAction = DeployAction> = BaseHandl
   getLogs: GetDeployLogs<C>
   getPortForward: GetDeployPortForward<C>
   getStatus: GetDeployStatus<C>
-  hotReload: HotReloadDeploy<C>
   run: RunDeploy<C>
   stopPortForward: StopDeployPortForward<C>
 }
@@ -180,7 +178,6 @@ export function getActionTypeHandlerDescriptions(): ResolvedActionTypeHandlerDes
       getLogs: new GetDeployLogs(),
       getPortForward: new GetDeployPortForward(),
       getStatus: new GetDeployStatus(),
-      hotReload: new HotReloadDeploy(),
       run: new RunDeploy(),
       stopPortForward: new StopDeployPortForward(),
     },
