@@ -65,8 +65,7 @@ export class RetriableProcess {
   private proc?: ChildProcess
   private state: RetriableProcessState
 
-  // tslint:disable: no-unused-variable
-  private parent?: RetriableProcess
+  private parent?: RetriableProcess // tslint:disable: no-unused-variable
   private descendants: RetriableProcess[]
 
   private readonly maxRetries: number
