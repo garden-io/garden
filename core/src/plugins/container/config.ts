@@ -823,6 +823,7 @@ export interface ContainerBuildActionSpec {
   buildArgs: PrimitiveMap
   dockerfile: string
   extraFlags: string[]
+  localId?: string
   publishId?: string
   targetStage?: string
   timeout: number
@@ -831,11 +832,29 @@ export type ContainerBuildActionConfig = BuildActionConfig<"container", Containe
 export type ContainerBuildAction = BuildAction<ContainerBuildActionConfig, ContainerBuildOutputs>
 
 export const containerBuildSpecKeys = () => ({
+  localId: joi
+    .string()
+    .allow(false, null)
+    .empty([false, null])
+    .description(
+      deline`
+      Specify an image ID to use when building locally, instead of the default of using the action name. Must be a valid Docker image identifier. **Note that the image _tag_ is always set to the action version.**
+      `
+    ),
+  publishId: joi
+    .string()
+    .allow(false, null)
+    .empty([false, null])
+    .description(
+      deline`
+      Specify an image ID to use when publishing the image (via the \`garden publish\` command), instead of the default of using the action name. Must be a valid Docker image identifier.
+      `
+    ),
   targetStage: joi.string().description(deline`
-      For multi-stage Dockerfiles, specify which image/stage to build (see
-      https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for
-      details).
-    `),
+    For multi-stage Dockerfiles, specify which image/stage to build (see
+    https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for
+    details).
+  `),
 })
 
 export const containerCommonBuildSpecKeys = () => ({

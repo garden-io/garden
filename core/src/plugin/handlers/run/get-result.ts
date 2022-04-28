@@ -11,13 +11,18 @@ import { dedent } from "../../../util/string"
 import { taskResultSchema } from "../../../types/task"
 import { RunAction } from "../../../actions/run"
 import { ActionTypeHandlerSpec } from "../base/base"
+import { GetActionOutputType } from "../../../actions/base"
 
 interface GetRunResultParams<T extends RunAction> extends PluginRunActionParamsBase<T> {}
+
+interface GetRunResult<T extends RunAction> extends RunResult {
+  outputs: GetActionOutputType<T>
+}
 
 export class GetRunActionResult<T extends RunAction = RunAction> extends ActionTypeHandlerSpec<
   "run",
   GetRunResultParams<T>,
-  RunResult
+  GetRunResult<T>
 > {
   description = dedent`
     Retrieve the Run result for the specified version.

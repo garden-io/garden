@@ -14,6 +14,7 @@ import { runBuildBaseSchema } from "../build/run"
 import { joi } from "../../../config/common"
 import { TestResult, testResultSchema } from "../../../types/test"
 import { ActionTypeHandlerSpec } from "../base/base"
+import { GetActionOutputType } from "../../../actions/base"
 
 interface TestActionParams<T extends TestAction> extends PluginTestActionParamsBase<T> {
   artifactsPath: string
@@ -22,10 +23,14 @@ interface TestActionParams<T extends TestAction> extends PluginTestActionParamsB
   silent: boolean
 }
 
+interface RunTestResult<T extends TestAction> extends TestResult {
+  outputs: GetActionOutputType<T>
+}
+
 export class RunTestAction<T extends TestAction = TestAction> extends ActionTypeHandlerSpec<
   "test",
   TestActionParams<T>,
-  TestResult
+  RunTestResult<T>
 > {
   description = dedent`
     Run the Test action.

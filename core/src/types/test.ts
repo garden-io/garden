@@ -18,6 +18,7 @@ import { sortBy } from "lodash"
 import { serializeConfig } from "../config/module"
 import { RunResult, runResultSchema } from "../plugin/base"
 import { deline } from "../util/string"
+import { actionOutputsSchema } from "../plugin/handlers/base/base"
 
 export interface GardenTest<M extends GardenModule = GardenModule> {
   name: string
@@ -88,7 +89,7 @@ export interface TestResult extends RunResult {
 
 export const testResultSchema = () =>
   runResultSchema().keys({
-    outputs: joi.object().pattern(/.+/, joiPrimitive()).description("A map of primitive values, output from the test."),
+    outputs: actionOutputsSchema(),
     testName: joi.string().required().description("The name of the test that was run."),
     version: joi.string().description(deline`
         The test run's version, as a string. In addition to the parent module's version, this also

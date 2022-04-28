@@ -184,9 +184,9 @@ export const forwardablePortKeys = () => ({
 
 const forwardablePortSchema = () => joi.object().keys(forwardablePortKeys())
 
-export interface ServiceStatus<T = any> {
+export interface ServiceStatus<D = any, O = PrimitiveMap> {
   createdAt?: string
-  detail: T
+  detail: D
   devMode?: boolean
   localMode?: boolean
   namespaceStatuses?: NamespaceStatus[]
@@ -196,7 +196,7 @@ export interface ServiceStatus<T = any> {
   ingresses?: ServiceIngress[]
   lastMessage?: string
   lastError?: string
-  outputs?: PrimitiveMap
+  outputs?: O
   runningReplicas?: number
   state: ServiceState
   updatedAt?: string
@@ -229,7 +229,7 @@ export const serviceStatusSchema = () =>
       .description("List of currently deployed ingress endpoints for the service."),
     lastMessage: joi.string().allow("").description("Latest status message of the service (if any)."),
     lastError: joi.string().description("Latest error status message of the service (if any)."),
-    outputs: joiVariables().description("A map of values output from the service."),
+    outputs: joiVariables().description("A map of values output from the deployment."),
     runningReplicas: joi.number().description("How many replicas of the service are currently running."),
     state: joi
       .string()

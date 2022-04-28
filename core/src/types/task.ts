@@ -12,6 +12,7 @@ import { getEntityVersion } from "../vcs/vcs"
 import { joi, joiPrimitive, joiUserIdentifier, moduleVersionSchema, versionStringSchema } from "../config/common"
 import { namespaceStatusSchema } from "../plugin/base"
 import { deline } from "../util/string"
+import { actionOutputsSchema } from "../plugin/handlers/base/base"
 
 export interface GardenTask<M extends GardenModule = GardenModule> {
   name: string
@@ -69,9 +70,6 @@ export const taskResultSchema = () =>
       startedAt: joi.date().required().description("When the task run was started."),
       completedAt: joi.date().required().description("When the task run was completed."),
       log: joi.string().required().allow("").description("The output log from the run."),
-      outputs: joi
-        .object()
-        .pattern(/.+/, joiPrimitive())
-        .description("A map of primitive values, output from the task."),
+      outputs: actionOutputsSchema(),
       namespaceStatus: namespaceStatusSchema().optional(),
     })

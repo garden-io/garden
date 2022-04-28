@@ -88,35 +88,31 @@ describe("containerHelpers", () => {
   }
 
   describe("getLocalImageId", () => {
-    it("should return configured image name if set, with the module version as the tag", async () => {
-      const config = cloneDeep(baseConfig)
-      config.spec.image = "some/image:1.1"
-      expect(helpers.getLocalImageId(config, dummyVersion)).to.equal("some/image:1234")
+    it("should return configured image name if set, with the version as the tag", async () => {
+      expect(helpers.getLocalImageId(baseConfig.name, "some/image:1.1", dummyVersion)).to.equal("some/image:1234")
     })
 
-    it("should return module name if image is not specified, with the module version as the tag", async () => {
-      expect(helpers.getLocalImageId(baseConfig, dummyVersion)).to.equal("test:1234")
+    it("should return build name if image is not specified, with the version as the tag", async () => {
+      expect(helpers.getLocalImageId(baseConfig.name, undefined, dummyVersion)).to.equal("test:1234")
     })
   })
 
   describe("getLocalImageName", () => {
-    it("should return configured image name with no version if specified", async () => {
+    it("should return explicit image name with no version if specified", async () => {
       td.replace(helpers, "hasDockerfile", () => false)
 
       const config = cloneDeep(baseConfig)
       config.spec.image = "some/image:1.1"
-      const module = await getTestModule(config)
 
-      expect(helpers.getLocalImageName(module)).to.equal("some/image")
+      expect(helpers.getLocalImageName(config.name, "some/image:1.1")).to.equal("some/image")
     })
 
-    it("should return module name if no image name is specified", async () => {
+    it("should return build name if no image name is specified", async () => {
       td.replace(helpers, "hasDockerfile", () => true)
 
       const config = cloneDeep(baseConfig)
-      const module = await getTestModule(config)
 
-      expect(helpers.getLocalImageName(module)).to.equal(config.name)
+      expect(helpers.getLocalImageName(config.name, undefined)).to.equal(config.name)
     })
   })
 
@@ -127,7 +123,7 @@ describe("containerHelpers", () => {
       const config = cloneDeep(baseConfig)
       const module = await getTestModule(config)
 
-      expect(helpers.getDeploymentImageId(config, module.version, undefined)).to.equal("test:1234")
+      expect(helpers.getModuleDeploymentImageId(config, module.version, undefined)).to.equal("test:1234")
     })
 
     it("should return image name with module version if there is a Dockerfile and image name is set", async () => {
@@ -137,7 +133,7 @@ describe("containerHelpers", () => {
       config.spec.image = "some/image:1.1"
       const module = await getTestModule(config)
 
-      expect(helpers.getDeploymentImageId(module, module.version, undefined)).to.equal("some/image:1234")
+      expect(helpers.getModuleDeploymentImageId(module, module.version, undefined)).to.equal("some/image:1234")
     })
 
     it("should return configured image tag if there is no Dockerfile", async () => {
@@ -147,7 +143,7 @@ describe("containerHelpers", () => {
       config.spec.image = "some/image:1.1"
       const module = await getTestModule(config)
 
-      expect(helpers.getDeploymentImageId(module, module.version, undefined)).to.equal("some/image:1.1")
+      expect(helpers.getModuleDeploymentImageId(module, module.version, undefined)).to.equal("some/image:1.1")
     })
 
     it("should throw if no image name is set and there is no Dockerfile", async () => {
@@ -155,7 +151,7 @@ describe("containerHelpers", () => {
 
       td.replace(helpers, "hasDockerfile", () => false)
 
-      await expectError(() => helpers.getDeploymentImageId(config, dummyVersion, undefined), "configuration")
+      await expectError(() => helpers.getModuleDeploymentImageId(config, dummyVersion, undefined), "configuration")
     })
   })
 
