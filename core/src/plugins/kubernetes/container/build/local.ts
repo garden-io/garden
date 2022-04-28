@@ -7,7 +7,7 @@
  */
 
 import { containerHelpers } from "../../../container/helpers"
-import { buildContainerModule, getContainerBuildStatus } from "../../../container/build"
+import { buildContainer, getContainerBuildStatus } from "../../../container/build"
 import { KubernetesProvider, KubernetesPluginContext } from "../../config"
 import { loadImageToKind, getKindImageStatus } from "../../local/kind"
 import chalk = require("chalk")
@@ -55,7 +55,7 @@ export const localBuild: BuildHandler = async (params) => {
   const { ctx, module, log } = params
   const provider = ctx.provider as KubernetesProvider
   const containerProvider = provider.dependencies.container as ContainerProvider
-  const base = params.base || buildContainerModule
+  const base = params.base || buildContainer
 
   const buildResult = await base!({ ...params, ctx: { ...ctx, provider: containerProvider } })
 
@@ -64,7 +64,7 @@ export const localBuild: BuildHandler = async (params) => {
     return buildResult
   }
 
-  if (!containerHelpers.hasDockerfile(module, module.version)) {
+  if (!containerHelpers.moduleHasDockerfile(module, module.version)) {
     return buildResult
   }
 

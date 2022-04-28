@@ -153,7 +153,7 @@ export const gardenPlugin = () =>
                 }
               }
 
-              const args = prepareArgs(ctx, provider, action.getSourcePath(), spec)
+              const args = prepareArgs(ctx, provider, action.getBasePath(), spec)
               args.push(...files)
 
               const result = await ctx.tools["conftest.conftest"].exec({ log, args, ignoreError: true, cwd: buildPath })

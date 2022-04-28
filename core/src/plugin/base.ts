@@ -14,10 +14,10 @@ import { GardenService, serviceSchema } from "../types/service"
 import { GardenTask, taskSchema } from "../types/task"
 import { CustomObjectSchema, joi, joiIdentifier } from "../config/common"
 import { dedent, deline } from "../util/string"
-import { BuildActionConfig, BuildAction } from "../actions/build"
-import { DeployActionConfig, DeployAction } from "../actions/deploy"
-import { RunActionConfig, RunAction } from "../actions/run"
-import { TestActionConfig, TestAction } from "../actions/test"
+import { BuildAction } from "../actions/build"
+import { DeployAction } from "../actions/deploy"
+import { RunAction } from "../actions/run"
+import { TestAction } from "../actions/test"
 
 export interface ActionHandlerParamsBase {
   base?: ActionHandler<any, any>
@@ -91,23 +91,20 @@ export const namespaceStatusSchema = () =>
 
 export const namespaceStatusesSchema = () => joi.array().items(namespaceStatusSchema())
 
-export interface PluginBuildActionParamsBase<T extends BuildActionConfig = BuildActionConfig>
-  extends PluginActionParamsBase {
-  action: BuildAction<T>
+export interface PluginBuildActionParamsBase<T extends BuildAction<any, any>> extends PluginActionParamsBase {
+  action: T
 }
 
-export interface PluginDeployActionParamsBase<T extends DeployActionConfig = DeployActionConfig>
-  extends PluginActionParamsBase {
-  action: DeployAction<T>
+export interface PluginDeployActionParamsBase<T extends DeployAction<any, any>> extends PluginActionParamsBase {
+  action: T
 }
 
-export interface PluginRunActionParamsBase<T extends RunActionConfig = RunActionConfig> extends PluginActionParamsBase {
-  action: RunAction<T>
+export interface PluginRunActionParamsBase<T extends RunAction<any, any>> extends PluginActionParamsBase {
+  action: T
 }
 
-export interface PluginTestActionParamsBase<T extends TestActionConfig = TestActionConfig>
-  extends PluginActionParamsBase {
-  action: TestAction<T>
+export interface PluginTestActionParamsBase<T extends TestAction<any, any>> extends PluginActionParamsBase {
+  action: T
 }
 
 /**

@@ -16,12 +16,12 @@ import {
 } from "../../../plugin/base"
 import { RuntimeContext } from "../../../runtime-context"
 import { joiArray, joi } from "../../../config/common"
-import { BuildActionConfig } from "../../../actions/build"
+import { BuildAction } from "../../../actions/build"
 import { ActionTypeHandlerSpec } from "../base/base"
 
 // TODO: remove in 0.13? Seems out of place now.
 
-interface RunBuildParams<T extends BuildActionConfig> extends PluginBuildActionParamsBase<T> {
+interface RunBuildParams<T extends BuildAction> extends PluginBuildActionParamsBase<T> {
   command?: string[]
   args: string[]
   interactive: boolean
@@ -37,7 +37,7 @@ const runBuildParamsSchema = () =>
     args: joiArray(joi.string()).description("The arguments passed to the command/entrypoint to run in the build."),
   })
 
-export class RunBuildAction<T extends BuildActionConfig = BuildActionConfig> extends ActionTypeHandlerSpec<
+export class RunBuildAction<T extends BuildAction = BuildAction> extends ActionTypeHandlerSpec<
   "build",
   RunBuildParams<T>,
   RunResult

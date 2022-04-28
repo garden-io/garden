@@ -76,11 +76,11 @@ const actionSourceSpecSchema = () =>
     .xor("path", "url")
     .meta({ advanced: true })
 
-export interface BaseActionConfig<S = any> {
+export interface BaseActionConfig<K extends ActionKind = any, N = any, S = any> {
   // Basics
   apiVersion?: string
-  kind: string
-  type: string
+  kind: `${Capitalize<K>}`
+  type: N
   name: string
   description?: string
 
@@ -214,7 +214,8 @@ export const baseActionConfig = () =>
       .example("my-action.env"),
   })
 
-export interface BaseRuntimeActionConfig<S = any> extends BaseActionConfig<S> {
+export interface BaseRuntimeActionConfig<K extends ActionKind = any, N = any, S = any>
+  extends BaseActionConfig<K, N, S> {
   build?: string
 }
 
@@ -239,16 +240,17 @@ export interface ActionConfigTypes {
   test: TestActionConfig
 }
 
-interface ActionWrapperParams<C extends BaseActionConfig> {
+interface ActionWrapperParams<C extends BaseActionConfig, O extends {}> {
   // TODO-G2: need to vary this based on build field
   buildPath: string
   buildMetadataPath: string
-  moduleName: string
   config: C
+  moduleName: string
+  outputs: O
   version: ModuleVersion
 }
 
-export class Action<C extends BaseActionConfig = BaseActionConfig> {
+export class Action<C extends BaseActionConfig = BaseActionConfig, O extends {} = {}> {
   public readonly name: string
   public readonly buildPath: string
   public readonly buildMetadataPath: string
@@ -256,8 +258,9 @@ export class Action<C extends BaseActionConfig = BaseActionConfig> {
   public readonly version: ModuleVersion
 
   private config: C
+  private outputs: O
 
-  constructor(params: ActionWrapperParams<C>) {
+  constructor(params: ActionWrapperParams<C, O>) {
     this.name = params.config.name
     this.buildPath = params.buildPath
     this.buildMetadataPath = params.buildMetadataPath
@@ -266,7 +269,7 @@ export class Action<C extends BaseActionConfig = BaseActionConfig> {
     this.version = params.version
   }
 
-  getSourcePath(): string {
+  getBasePath(): string {
     // TODO-G2
     // TODO: handle repository.url
     return this.config.basePath
@@ -284,5 +287,9 @@ export class Action<C extends BaseActionConfig = BaseActionConfig> {
   async getSpec<K extends keyof C["spec"]>(key: K): Promise<C["spec"][K]>
   async getSpec(key?: keyof C["spec"]) {
     return key ? this.config.spec[key] : this.config.spec
+  }
+
+  async getOutput<K extends keyof O>(key: K) {
+    return this.outputs[key]
   }
 }

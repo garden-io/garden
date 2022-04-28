@@ -9,8 +9,7 @@
 import { mapValues } from "lodash"
 import { outputSchemaDocs, ResolvedActionHandlerDescriptions } from "./plugin"
 import { ActionTypeHandlerSpec, baseHandlerSchema } from "./handlers/base/base"
-import { ValidateActionConfig } from "./handlers/base/validate"
-import { BuildAction } from "./handlers/build/build"
+import { BuildBuildAction } from "./handlers/build/build"
 import { GetBuildActionStatus } from "./handlers/build/getStatus"
 import { PublishBuildAction } from "./handlers/build/publish"
 import { RunBuildAction } from "./handlers/build/run"
@@ -23,28 +22,28 @@ import { HotReloadDeploy } from "./handlers/deploy/hotReload"
 import { RunDeploy } from "./handlers/deploy/run"
 import { StopDeployPortForward } from "./handlers/deploy/stopPortForward"
 import { GetRunActionResult } from "./handlers/run/getResult"
-import { RunAction } from "./handlers/run/run"
+import { RunRunAction } from "./handlers/run/run"
 import { GetTestActionResult } from "./handlers/test/getResult"
-import { TestAction } from "./handlers/test/run"
-import { ActionKind, BaseActionConfig } from "../actions/base"
+import { RunTestAction } from "./handlers/test/run"
+import { Action, ActionKind } from "../actions/base"
 import Joi from "@hapi/joi"
 import { joi, joiArray, joiSchema, joiUserIdentifier } from "../config/common"
 import titleize from "titleize"
-import { BuildActionConfig } from "../actions/build"
-import { DeployActionConfig } from "../actions/deploy"
-import { RunActionConfig } from "../actions/run"
-import { TestActionConfig } from "../actions/test"
-import { DeployAction } from "./handlers/deploy/deploy"
+import { BuildAction } from "../actions/build"
+import { DeployAction } from "../actions/deploy"
+import { RunAction } from "../actions/run"
+import { TestAction } from "../actions/test"
+import { DeployDeployAction } from "./handlers/deploy/deploy"
 import { dedent } from "../util/string"
 import { templateStringLiteral } from "../docs/common"
 
-type BaseHandlers<_ extends BaseActionConfig> = {
+type BaseHandlers<_ extends Action> = {
   // TODO: see if this is actually needed, consider only allowing validating fully-resolved Actions
   // validateConfig: ValidateActionConfig<C>
 }
 
-type BuildActionDescriptions<C extends BuildActionConfig = BuildActionConfig> = BaseHandlers<C> & {
-  build: BuildAction<C>
+type BuildActionDescriptions<C extends BuildAction = BuildAction> = BaseHandlers<C> & {
+  build: BuildBuildAction<C>
   getStatus: GetBuildActionStatus<C>
   publish: PublishBuildAction<C>
   run: RunBuildAction<C>
@@ -52,12 +51,12 @@ type BuildActionDescriptions<C extends BuildActionConfig = BuildActionConfig> = 
 
 export type BuildActionHandler<
   N extends keyof BuildActionDescriptions,
-  C extends BuildActionConfig = BuildActionConfig
+  C extends BuildAction = BuildAction
 > = GetActionTypeHandler<BuildActionDescriptions<C>[N], N>
 
-type DeployActionDescriptions<C extends DeployActionConfig = DeployActionConfig> = BaseHandlers<C> & {
+type DeployActionDescriptions<C extends DeployAction = DeployAction> = BaseHandlers<C> & {
   delete: DeleteDeploy<C>
-  deploy: DeployAction<C>
+  deploy: DeployDeployAction<C>
   exec: ExecInDeploy<C>
   getLogs: GetDeployLogs<C>
   getPortForward: GetDeployPortForward<C>
@@ -69,31 +68,31 @@ type DeployActionDescriptions<C extends DeployActionConfig = DeployActionConfig>
 
 export type DeployActionHandler<
   N extends keyof DeployActionDescriptions,
-  C extends DeployActionConfig = DeployActionConfig
+  C extends DeployAction = DeployAction
 > = GetActionTypeHandler<DeployActionDescriptions<C>[N], N>
 
-type RunActionDescriptions<C extends RunActionConfig = RunActionConfig> = BaseHandlers<C> & {
+type RunActionDescriptions<C extends RunAction = RunAction> = BaseHandlers<C> & {
   getResult: GetRunActionResult<C>
-  run: RunAction<C>
+  run: RunRunAction<C>
 }
 
 export type RunActionHandler<
   N extends keyof RunActionDescriptions,
-  C extends RunActionConfig = RunActionConfig
+  C extends RunAction = RunAction
 > = GetActionTypeHandler<RunActionDescriptions<C>[N], N>
 
-type TestActionDescriptions<C extends TestActionConfig = TestActionConfig> = BaseHandlers<C> & {
+type TestActionDescriptions<C extends TestAction = TestAction> = BaseHandlers<C> & {
   getResult: GetTestActionResult<C>
-  run: TestAction<C>
+  run: RunTestAction<C>
 }
 
-export type TestActionHandlers<C extends TestActionConfig = TestActionConfig> = {
+export type TestActionHandlers<C extends TestAction = TestAction> = {
   [N in keyof TestActionDescriptions]?: GetActionTypeHandler<TestActionDescriptions<C>[N], N>
 }
 
 export type TestActionHandler<
   N extends keyof TestActionDescriptions,
-  C extends TestActionConfig = TestActionConfig
+  C extends TestAction = TestAction
 > = GetActionTypeHandler<TestActionDescriptions<C>[N], N>
 
 interface _ActionTypeHandlerDescriptions {
@@ -163,7 +162,7 @@ export function getActionTypeHandlerDescriptions(): ResolvedActionTypeHandlerDes
   const descriptions: _ActionTypeHandlerDescriptions = {
     build: {
       // validateConfig: new ValidateActionConfig(),
-      build: new BuildAction(),
+      build: new BuildBuildAction(),
       getStatus: new GetBuildActionStatus(),
       publish: new PublishBuildAction(),
       run: new RunBuildAction(),
@@ -171,7 +170,7 @@ export function getActionTypeHandlerDescriptions(): ResolvedActionTypeHandlerDes
     deploy: {
       // validateConfig: new ValidateActionConfig(),
       delete: new DeleteDeploy(),
-      deploy: new DeployAction(),
+      deploy: new DeployDeployAction(),
       exec: new ExecInDeploy(),
       getLogs: new GetDeployLogs(),
       getPortForward: new GetDeployPortForward(),
@@ -183,12 +182,12 @@ export function getActionTypeHandlerDescriptions(): ResolvedActionTypeHandlerDes
     run: {
       // validateConfig: new ValidateActionConfig(),
       getResult: new GetRunActionResult(),
-      run: new RunAction(),
+      run: new RunRunAction(),
     },
     test: {
       // validateConfig: new ValidateActionConfig(),
       getResult: new GetTestActionResult(),
-      run: new TestAction(),
+      run: new RunTestAction(),
     },
   }
 
