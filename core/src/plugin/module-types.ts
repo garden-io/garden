@@ -17,11 +17,6 @@ import { GetServiceLogsParams, getServiceLogs } from "../types/plugin/service/ge
 import { GetServiceStatusParams, getServiceStatus } from "../types/plugin/service/getServiceStatus"
 import { GetTaskResultParams, getTaskResult } from "../types/plugin/task/getTaskResult"
 import { TestResult } from "../types/test"
-import {
-  HotReloadServiceParams,
-  HotReloadServiceResult,
-  hotReloadService,
-} from "../types/plugin/service/hotReloadService"
 import { PublishModuleParams, PublishModuleResult, publishModule } from "../types/plugin/module/publishModule"
 import { RunModuleParams, runModule } from "../types/plugin/module/runModule"
 import { RunServiceParams, runService } from "../types/plugin/service/runService"
@@ -89,7 +84,6 @@ interface _ServiceActionParams<T extends GardenModule = GardenModule> {
   getPortForward: GetPortForwardParams<T>
   getServiceLogs: GetServiceLogsParams<T>
   getServiceStatus: GetServiceStatusParams<T>
-  hotReloadService: HotReloadServiceParams<T>
   runService: RunServiceParams<T>
   stopPortForward: StopPortForwardParams<T>
 }
@@ -108,7 +102,6 @@ export interface ServiceActionOutputs {
   getPortForward: GetPortForwardResult
   getServiceLogs: {}
   getServiceStatus: ServiceStatus
-  hotReloadService: HotReloadServiceResult
   runService: RunResult
   stopPortForward: {}
 }
@@ -120,7 +113,6 @@ const serviceActionDescriptions: { [P in ServiceActionName]: () => ResolvedActio
   getPortForward,
   getServiceLogs,
   getServiceStatus,
-  hotReloadService,
   runService,
   stopPortForward,
 }

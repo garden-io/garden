@@ -8,7 +8,7 @@
 
 import { DeepPrimitiveMap, joi, joiIdentifier, joiPrimitive, joiSparseArray } from "../../../config/common"
 import { namespaceNameSchema, PortForwardSpec, portForwardsSchema } from "../config"
-import { KubernetesDeployDevModeSpec, KubernetesDeployHotReloadSpec } from "../dev-mode"
+import { KubernetesDeployDevModeSpec } from "../dev-mode"
 import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
 import { dedent, deline } from "../../../util/string"
 
@@ -25,7 +25,6 @@ interface HelmDeployActionSpec {
     version?: string // Formerly `version`
   }
   devMode?: KubernetesDeployDevModeSpec
-  hotReload?: KubernetesDeployHotReloadSpec
   namespace?: string
   portForwards?: PortForwardSpec[]
   releaseName?: string

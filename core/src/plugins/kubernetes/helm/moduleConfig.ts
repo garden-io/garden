@@ -11,7 +11,6 @@ import {
   joi,
   joiIdentifier,
   joiModuleIncludeDirective,
-  joiPrimitive,
   joiSparseArray,
   joiUserIdentifier,
 } from "../../../config/common"
@@ -20,22 +19,18 @@ import { containsSource } from "./common"
 import { ConfigurationError } from "../../../exceptions"
 import { dedent, deline } from "../../../util/string"
 import { GardenService } from "../../../types/service"
-import { ContainerModule, hotReloadArgsSchema } from "../../container/moduleConfig"
+import { ContainerModule } from "../../container/moduleConfig"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../../plugin/handlers/module/configure"
 import {
   containerModuleSchema,
-  kubernetesDevModeSchema,
-  KubernetesDevModeSpec,
   kubernetesLocalModeSchema,
   KubernetesLocalModeSpec,
   kubernetesTaskSchema,
   KubernetesTaskSpec,
   kubernetesTestSchema,
   KubernetesTestSpec,
-  namespaceNameSchema,
   PortForwardSpec,
-  portForwardsSchema,
   serviceResourceDescription,
   serviceResourceSchema,
   ServiceResourceSpec,
