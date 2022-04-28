@@ -95,11 +95,6 @@ export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<Kubernet
     if (serviceResource?.containerModule) {
       const build = convertBuildDependency(serviceResource.containerModule)
 
-      deployAction.spec.hotReload = {
-        build,
-        command: serviceResource?.hotReloadCommand,
-        args: serviceResource?.hotReloadArgs,
-      }
       // TODO-G2: make this implicit
       deployAction.dependencies?.push(build)
     }

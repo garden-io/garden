@@ -19,7 +19,6 @@ import {
 } from "../config"
 import {
   KubernetesDeployDevModeSpec,
-  KubernetesDeployHotReloadSpec,
   kubernetesDevModeDefaultsSchema,
 } from "../dev-mode"
 import { KubernetesKustomizeSpec, kustomizeSpecSchema } from "./kustomize"
@@ -28,7 +27,6 @@ import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
 import { RunAction, RunActionConfig } from "../../../actions/run"
 import { TestAction, TestActionConfig } from "../../../actions/test"
 import { templateStringLiteral } from "../../../docs/common"
-import { hotReloadArgsSchema, hotReloadCommandSchema, hotReloadConfigSchema } from "../../container/config"
 
 // DEPLOY //
 
@@ -79,8 +77,6 @@ export interface KubernetesTypeCommonDeploySpec {
 
 interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySpec {
   devMode?: KubernetesDeployDevModeSpec
-  // DEPRECATED, remove in 0.13
-  hotReload?: KubernetesDeployHotReloadSpec
 }
 export type KubernetesDeployActionConfig = DeployActionConfig<"kubernetes", KubernetesDeployActionSpec>
 export type KubernetesDeployAction = DeployAction<KubernetesDeployActionConfig>
@@ -133,20 +129,8 @@ export const kubernetesDeploySchema = () =>
         `
       ),
 
-    hotReload: hotReloadConfigSchema()
-      .keys({
-        build: joiIdentifier().required().description("The Build to sync files from, to the target."),
-        command: hotReloadCommandSchema(),
-        args: hotReloadArgsSchema(),
-      })
-      .description(
-        dedent`
-          **DEPRECATED: Please use devMode.sync instead.**
-
-          Configure this action for hot reloading.
-        `
-      )
-      .meta({ deprecated: true }),
+    // TODO: remove in 0.14 (keeping around to avoid configs breaking on upgrade)
+    hotReload: joi.any().meta({ internal: true }),
   })
 
 // RUN //
