@@ -19,6 +19,8 @@ import { gardenAnnotationKey } from "../../../util/string"
 import { LogEntry } from "../../../logger/log-entry"
 import { PluginContext } from "../../../plugin-context"
 import { ConfigurationError, PluginError } from "../../../exceptions"
+import { KubernetesTargetResourceSpec, ServiceResourceSpec } from "../config"
+import { HelmModule } from "../helm/moduleConfig"
 
 /**
  * Reads the manifests and makes sure each has a namespace set (when applicable) and adds annotations.
@@ -148,4 +150,22 @@ export async function readManifests(
  */
 export function gardenNamespaceAnnotationValue(namespaceName: string) {
   return `garden-namespace--${namespaceName}`
+}
+
+export function convertServiceResource(
+  module: KubernetesModule | HelmModule,
+  serviceResourceSpec?: ServiceResourceSpec
+): KubernetesTargetResourceSpec | null {
+  const s = serviceResourceSpec || module.spec.serviceResource
+
+  if (!s) {
+    return null
+  }
+
+  return {
+    kind: s.kind,
+    name: s.name,
+    podSelector: s.podSelector,
+    containerName: s.containerName,
+  }
 }

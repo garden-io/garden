@@ -23,11 +23,16 @@ import { KubernetesResource } from "../types"
 import { getKubernetesServiceStatus, deployKubernetesService } from "../kubernetes-type/handlers"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { GardenService } from "../../../types/service"
+import { ConvertModuleParams } from "../../../plugin/handlers/module/convert"
+import { omit } from "lodash"
 
-export interface PersistentVolumeClaimSpec extends BaseVolumeSpec {
-  dependencies: string[]
+export interface PersistentVolumeClaimDeploySpec extends BaseVolumeSpec {
   namespace: string
   spec: V1PersistentVolumeClaimSpec
+}
+
+export interface PersistentVolumeClaimSpec extends PersistentVolumeClaimDeploySpec {
+  dependencies: string[]
 }
 
 type PersistentVolumeClaimModule = GardenModule<PersistentVolumeClaimSpec, PersistentVolumeClaimSpec>
@@ -45,6 +50,7 @@ export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
 
     See the [Mounting volumes](../../guides/container-modules.md#mounting-volumes) guide for more info and usage examples.
     `,
+
   schema: joi.object().keys({
     build: baseBuildSpecSchema(),
     dependencies: joiSparseArray(joiIdentifier()).description(
@@ -61,6 +67,7 @@ export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
         "The spec for the PVC. This is passed directly to the created PersistentVolumeClaim resource. Note that the spec schema may include (or even require) additional fields, depending on the used `storageClass`. See the [PersistentVolumeClaim docs](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) for details."
       ),
   }),
+
   handlers: {
     async configure({ moduleConfig }: ConfigureModuleParams) {
       // No need to scan for files
@@ -79,6 +86,33 @@ export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
       ]
 
       return { moduleConfig }
+    },
+
+    async convert(params: ConvertModuleParams<PersistentVolumeClaimModule>) {
+      const { module, dummyBuild, prepareRuntimeDependencies } = params
+
+      return {
+        group: {
+          kind: "Group",
+          name: module.name,
+          actions: [
+            ...(dummyBuild ? [dummyBuild] : []),
+            {
+              kind: "Deploy",
+              type: "persistentvolumeclaim",
+              name: module.name,
+              ...params.baseFields,
+
+              build: dummyBuild?.name,
+              dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
+
+              spec: {
+                ...omit(module.spec, ["dependencies"]),
+              },
+            },
+          ],
+        }
+      }
     },
 
     async getServiceStatus(params: GetServiceStatusParams) {

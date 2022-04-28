@@ -14,13 +14,7 @@ import { dedent } from "@garden-io/sdk/util/string"
 import { defaultTerraformVersion, supportedVersions, terraformCliSpecs } from "./cli"
 import { ConfigurationError } from "@garden-io/sdk/exceptions"
 import { TerraformBaseSpec, variablesSchema } from "./common"
-import {
-  configureTerraformModule,
-  deleteTerraformModule,
-  deployTerraform,
-  getTerraformStatus,
-  terraformModuleSchema,
-} from "./module"
+import { configureTerraformModule, terraformModuleSchema } from "./module"
 import { docsBaseUrl } from "@garden-io/sdk/constants"
 import { listDirectory } from "@garden-io/sdk/util/fs"
 import { getTerraformCommands } from "./commands"
@@ -148,50 +142,22 @@ export const gardenPlugin = () =>
         serviceOutputsSchema: terraformDeployOutputsSchema(),
         schema: terraformModuleSchema(),
         handlers: {
-          async convert({ module, convertBuildDependency, convertRuntimeDependency, needsBuild, copyFrom }) {
+          async convert(params) {
+            const { module, dummyBuild, prepareRuntimeDependencies } = params
             const actions: (ExecBuildConfig | TerraformDeployConfig)[] = []
 
-            let buildAction: ExecBuildConfig | undefined = undefined
-
-            if (needsBuild) {
-              buildAction = {
-                kind: "Build",
-                type: "exec",
-                name: module.name,
-
-                basePath: module.path,
-                configFilePath: module.configPath,
-
-                copyFrom,
-                source: module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
-
-                allowPublish: module.allowPublish,
-                dependencies: module.build.dependencies.map(convertBuildDependency),
-
-                spec: {
-                  env: {},
-                },
-              }
-              actions.push(buildAction)
-            }
-
-            function prepRuntimeDeps(deps: string[]) {
-              if (buildAction) {
-                return deps.map(convertRuntimeDependency)
-              } else {
-                // If we don't return a Build action, we must still include any declared build dependencies
-                return [...module.build.dependencies.map(convertBuildDependency), ...deps.map(convertRuntimeDependency)]
-              }
+            if (dummyBuild) {
+              actions.push(dummyBuild)
             }
 
             actions.push({
               kind: "Deploy",
               type: "terraform",
               name: module.name,
-              basePath: module.path,
+              ...params.baseFields,
 
-              build: buildAction ? buildAction.name : undefined,
-              dependencies: prepRuntimeDeps(module.spec.dependencies),
+              build: dummyBuild?.name,
+              dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
 
               spec: {
                 ...module.spec,
@@ -203,8 +169,6 @@ export const gardenPlugin = () =>
                 kind: "Group",
                 name: module.name,
                 actions,
-                variables: module.variables,
-                varfiles: module.varfile ? [module.varfile] : undefined,
               },
             }
           },

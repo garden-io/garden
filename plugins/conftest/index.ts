@@ -173,6 +173,7 @@ export const gardenPlugin = () =>
             },
           },
         },
+        // TODO-G2: move to conftest-kubernetes
         {
           name: "conftest-helm",
           base: "conftest",
@@ -298,18 +299,22 @@ export const gardenPlugin = () =>
             return { moduleConfig }
           },
 
-          convert: async ({ module }) => {
+          convert: async (params) => {
+            const { module, dummyBuild, convertBuildDependency } = params
+
             return {
               actions: [
+                ...(dummyBuild ? [dummyBuild] : []),
                 {
                   kind: "Test",
                   type: "conftest",
                   name: module.name + "-conftest",
-                  build: module.spec.sourceModule ? "build:" + module.spec.sourceModule : undefined,
-                  basePath: module.path,
-                  disabled: module.disabled,
+                  ...params.baseFields,
+
+                  build: module.spec.sourceModule ? convertBuildDependency(module.spec.sourceModule) : undefined,
                   timeout: 10,
                   include: module.spec.files,
+
                   spec: {
                     ...module.spec,
                   },

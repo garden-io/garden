@@ -45,6 +45,7 @@ import Bluebird = require("bluebird")
 import execa = require("execa")
 
 export { v4 as uuidv4 } from "uuid"
+export { apply as jsonMerge } from "json-merge-patch"
 
 export type HookCallback = (callback?: () => void) => void
 

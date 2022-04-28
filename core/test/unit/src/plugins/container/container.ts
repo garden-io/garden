@@ -22,6 +22,7 @@ import {
   containerHelpers as helpers,
   minDockerVersion,
   DEFAULT_BUILD_TIMEOUT,
+  defaultDockerfileName,
 } from "../../../../../src/plugins/container/helpers"
 import { getDockerBuildFlags } from "../../../../../src/plugins/container/build"
 
@@ -325,7 +326,7 @@ describe("plugins.container", () => {
           disabled: false,
           apiVersion: "garden.io/v0",
           name: "module-a",
-          include: ["Dockerfile"],
+          include: [defaultDockerfileName],
           path: modulePath,
           type: "container",
           spec: {
