@@ -94,6 +94,10 @@ export class RetriableProcess {
     this.state = "runnable"
   }
 
+  private getCurrentPid(): number | undefined {
+    return this.proc?.pid
+  }
+
   private kill(): void {
     const proc = this.proc
     if (!proc) {
@@ -111,13 +115,11 @@ export class RetriableProcess {
   }
 
   private registerListeners(proc: ChildProcess): void {
-    const processSays: (string) => string = (message: string) => `[Process PID=${this.getPid()}] says "${message}"`
+    const processSays: (string) => string = (message: string) =>
+      `[Process PID=${this.getCurrentPid()}] says "${message}"`
 
-    const attemptsLeft: () => string = () => {
-      return !!this.retriesLeft
-        ? `${this.retriesLeft} attempts left, next in ${this.minTimeoutMs}ms`
-        : "no attempts left"
-    }
+    const attemptsLeft: () => string = () =>
+      !!this.retriesLeft ? `${this.retriesLeft} attempts left, next in ${this.minTimeoutMs}ms` : "no attempts left"
 
     proc.on("error", async (error) => {
       this.log.error(
@@ -213,10 +215,6 @@ export class RetriableProcess {
     //descendant.parent = this
     this.descendants.push(descendant)
     return descendant
-  }
-
-  public getPid(): number | undefined {
-    return this.proc?.pid
   }
 
   private renderProcessTreeRecursively(indent: string, output: string): string {
