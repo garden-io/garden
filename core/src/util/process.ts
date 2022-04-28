@@ -29,7 +29,7 @@ export interface IOStreamListener {
    * @param chunk the data chuck from the stderr stream
    * @return {@code true} if the stderr data has any actual errors or {@code false} otherwise
    */
-  hasErrors?: (chunk: any) => boolean
+  hasErrors: (chunk: any) => boolean
 
   /**
    * Allows to define some process specific error handling.
