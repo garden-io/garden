@@ -12,6 +12,15 @@ Requirements for the local machine environment:
 * OpenSSH 7.6 or higher
 * Kubectl
 
+## Current limitations
+
+This is the initial release of **experimental** feature. Currently, the _local mode_ creates port-forwarding **only for
+http port** of a target service. Thus, if the service needs to talk to some data sources like databases, message
+brokers, etc. then all these services are assumed to be running locally.
+
+The _local mode_ feature design and implementation is still in progress, the next step is to fully integrate local
+services into remote clusters and to establish connections to all dependent data sources and services.
+
 ## How it works
 
 Local mode does some on the fly modifications to the k8s target k8s cluster while deployment:
