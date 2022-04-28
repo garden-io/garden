@@ -8,7 +8,14 @@ hotReload:
 services:
   - name: node-service
     args: [npm, start]
-    hotReloadArgs: [npm, run, dev]
+    devMode:
+      command: [npm, run, dev] # Overrides the container's default when the service is deployed in dev mode
+      sync:
+        - source: src
+          target: /app/src
+          # Make sure to specify any paths that should not be synced!
+          exclude: [node_modules]
+          mode: one-way
     ports:
       - name: http
         containerPort: 8080

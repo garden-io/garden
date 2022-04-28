@@ -1,26 +1,28 @@
 # Hot-reload example project
 
-This example showcases Garden's hot-reloading functionality.
+This example showcases Garden's code synchronization functionality.
 
-When using the `local-kubernetes` or `kubernetes` providers, container modules can be configured to hot-reload their running services when the module's source files change without redeploying. In essence, hot-reloading copies source files into the appropriate running containers (local or remote) when code is changed by the user.
-
-For example, services that can be run with a file system watcher that automatically update the running application process when sources change (e.g. nodemon, Django, Ruby on Rails, and most popular web app frameworks) are a natural fit for this feature.
+You can synchronize your code (and other files) to and from running containers using dev mode.
 
 ## Structure of this project
 
 This project contains a single service called `node-service`. When running, the service waits for requests on `/hello` and responds with a message.
 
-In the `garden.yml` file of the `node-service` module we first enable hot-reloading and specify the target directory it should hot-reload changed sourcefiles into:
+In the `garden.yml` file of the `node-service` module we configure `devMode` and specify the target and source directories:
 
 ```yaml
 # ...
-hotReload:
+devMode:
   sync:
-    - target: /app/
+    - source: src
+      target: /app/src
+      # Make sure to specify any paths that should not be synced!
+      exclude: [node_modules]
+      mode: one-way
 # ...
 ```
 
-We also tell the module which command should be run if hot-reloading is enabled to start the service:
+We also tell the module which command should be run if dev mode is enabled to start the service:
 
 ```yaml
 # ...
@@ -30,10 +32,10 @@ hotReloadArgs: [npm, run, dev]
 
 ## Usage
 
-Hot-reloading is _not_ enabled by default. To spin up your Garden project with hot-reloading enabled for a particular module, use the `--hot` switch when invoking `garden dev` (or `garden deploy`):
+Just run the dev mode :)
 
 ```sh
-garden dev --hot=node-service
+garden dev
 ```
 
 Our service is now up and running. We can send the service a simple GET request using `garden call`:
@@ -54,10 +56,10 @@ Which will return a friendly greeting (Garden is friendly by default):
 }
 ```
 
-Now go into `node-service/app.js` and change the message to something different. If you look at the console, you will see Garden updated the service very quickly, without rebuilding the container:
+Now go into [node-service/src/app.js](node-service/src/app.js) and change the message to something different. If you look at the console, you will see Garden updated the service very quickly, without rebuilding the container:
 
 ```sh
-✔ node-service              → Hot reloading... → Done (took 485 ms)
+ℹ node-service              → Syncing src to /app/src in Deployment/node-service
 ```
 
 And you can verify the change by running `garden call node-service` again:
@@ -72,4 +74,4 @@ And you can verify the change by running `garden call node-service` again:
 }
 ```
 
-Check out the [docs](https://docs.garden.io/guides/hot-reload) for more information on hot-reloading. Hot-reloading also works with spring-boot, for which we have a dedicated [example project](https://github.com/garden-io/garden/tree/master/examples/spring-boot-hot-reload).
+Check out the [docs](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information on dev mode and code synchronization.

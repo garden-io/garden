@@ -4,13 +4,16 @@
   "description": "Greeting service",
   "main": "index.js",
   "scripts": {
-    "start": "node main.js",
-    "dev": "nodemon main.js",
+    "start": "node src/main.js",
+    "dev": "nodemon src/main.js",
     "test": "echo OK"
   },
   "author": "garden.io <info@garden.io>",
   "license": "ISC",
   "dependencies": {
     "express": "^4.17.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
   }
 }
