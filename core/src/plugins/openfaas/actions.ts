@@ -16,7 +16,7 @@ interface OpenfaasBuildSpec {
   lang: string
 }
 
-export type OpenfaasBuildConfig = BuildActionConfig<OpenfaasBuildSpec>
+export type OpenfaasBuildConfig = BuildActionConfig<"openfaas", OpenfaasBuildSpec>
 
 export const openfaasBuildActionSchema = () =>
   joi
@@ -38,7 +38,7 @@ interface OpenfaasDeploySpec {
   env: StringMap
 }
 
-export type OpenfaasDeployConfig = DeployActionConfig<OpenfaasDeploySpec>
+export type OpenfaasDeployConfig = DeployActionConfig<"openfaas", OpenfaasDeploySpec>
 
 export const openfaasDeployActionSchema = () =>
   joi

@@ -35,7 +35,7 @@ import { getDockerBuildArgs } from "../../../container/build"
 import { getRunningDeploymentPod, millicpuToString, megabytesToString } from "../../util"
 import { PodRunner } from "../../run"
 import { prepareSecrets } from "../../secrets"
-import { ContainerModuleOutputs } from "../../../container/container"
+import { defaultDockerfileName } from "../../../container/helpers"
 
 export const buildkitImageName = "gardendev/buildkit:v0.9.3-1"
 export const buildkitDeploymentName = "garden-buildkit"
@@ -86,7 +86,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
   })
 
   const localId = module.outputs["local-image-id"]
-  const dockerfile = module.spec.dockerfile || "Dockerfile"
+  const dockerfile = module.spec.dockerfile || defaultDockerfileName
 
   const { contextPath } = await syncToBuildSync({
     ...params,

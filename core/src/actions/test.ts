@@ -9,8 +9,9 @@
 import { joi } from "../config/common"
 import { BaseRuntimeActionConfig, baseRuntimeActionConfig, Action } from "./base"
 
-export interface TestActionConfig<S = any> extends BaseRuntimeActionConfig<S> {
+export interface TestActionConfig<N extends string = any, S extends object = any> extends BaseRuntimeActionConfig<S> {
   kind: "Test"
+  type: N
   timeout?: number
 }
 

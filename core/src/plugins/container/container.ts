@@ -11,7 +11,7 @@ import { keyBy } from "lodash"
 
 import { ConfigurationError } from "../../exceptions"
 import { createGardenPlugin } from "../../plugin/plugin"
-import { containerHelpers } from "./helpers"
+import { containerHelpers, defaultDockerfileName } from "./helpers"
 import { ContainerActionConfig, ContainerModule, containerModuleSpecSchema } from "./moduleConfig"
 import { buildContainerModule, getContainerBuildStatus } from "./build"
 import { ConfigureModuleParams } from "../../plugin/handlers/module/configure"
@@ -188,7 +188,7 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
 
 async function suggestModules({ name, path }: SuggestModulesParams): Promise<SuggestModulesResult> {
   const dockerfiles = (await listDirectory(path, { recursive: false })).filter(
-    (filename) => filename.startsWith("Dockerfile") || filename.endsWith("Dockerfile")
+    (filename) => filename.startsWith(defaultDockerfileName) || filename.endsWith(defaultDockerfileName)
   )
 
   return {
@@ -310,13 +310,10 @@ export const gardenPlugin = () =>
         schema: containerModuleSpecSchema(),
         taskOutputsSchema,
         handlers: {
-          async convert({
-            module,
-            convertBuildDependency,
-            convertRuntimeDependency,
-            needsBuild: needsExecBuild,
-            copyFrom,
-          }: ConvertModuleParams<ContainerModule>) {
+          configure: configureContainerModule,
+
+          async convert(params: ConvertModuleParams<ContainerModule>) {
+            const { module, convertBuildDependency, convertRuntimeDependency, dummyBuild } = params
             const actions: (ContainerActionConfig | ExecActionConfig)[] = []
 
             let needsContainerBuild = false
@@ -327,23 +324,20 @@ export const gardenPlugin = () =>
 
             let buildAction: ContainerActionConfig | ExecActionConfig | undefined = undefined
 
-            const source = module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined
-
             if (needsContainerBuild) {
               buildAction = {
                 kind: "Build",
-                type: "docker-image",
+                type: "container",
                 name: module.name,
-                basePath: module.path,
+                ...params.baseFields,
 
-                copyFrom,
-                source,
+                copyFrom: dummyBuild?.copyFrom,
                 allowPublish: module.allowPublish,
                 dependencies: module.build.dependencies.map(convertBuildDependency),
 
                 spec: {
                   buildArgs: module.spec.buildArgs,
-                  dockerfile: module.spec.dockerfile || "Dockerfile",
+                  dockerfile: module.spec.dockerfile || defaultDockerfileName,
                   extraFlags: module.spec.extraFlags,
                   publishId: module.spec.image,
                   targetStage: module.spec.build.targetImage,
@@ -351,21 +345,8 @@ export const gardenPlugin = () =>
                 },
               }
               actions.push(buildAction)
-            } else if (needsExecBuild) {
-              buildAction = {
-                kind: "Build",
-                type: "exec",
-                name: module.name,
-                basePath: module.path,
-
-                source,
-                allowPublish: module.allowPublish,
-                dependencies: module.build.dependencies.map(convertBuildDependency),
-
-                spec: {
-                  env: {},
-                },
-              }
+            } else if (dummyBuild) {
+              buildAction = dummyBuild
               actions.push(buildAction)
             }
 
@@ -383,8 +364,9 @@ export const gardenPlugin = () =>
                 kind: "Deploy",
                 type: "container",
                 name: service.name,
-                basePath: module.path,
+                ...params.baseFields,
 
+                disabled: service.disabled,
                 build: buildAction ? buildAction.name : undefined,
                 dependencies: prepRuntimeDeps(service.spec.dependencies),
 
@@ -399,8 +381,9 @@ export const gardenPlugin = () =>
                 kind: "Run",
                 type: "container",
                 name: task.name,
-                basePath: module.path,
+                ...params.baseFields,
 
+                disabled: task.disabled,
                 build: buildAction ? buildAction.name : undefined,
                 dependencies: prepRuntimeDeps(task.spec.dependencies),
                 timeout: task.spec.timeout ? task.spec.timeout : undefined,
@@ -417,8 +400,9 @@ export const gardenPlugin = () =>
                 kind: "Test",
                 type: "container",
                 name: module.name + "-" + test.name,
-                basePath: module.path,
+                ...params.baseFields,
 
+                disabled: test.disabled,
                 build: buildAction ? buildAction.name : undefined,
                 dependencies: prepRuntimeDeps(test.spec.dependencies),
                 timeout: test.spec.timeout ? test.spec.timeout : undefined,
@@ -441,7 +425,6 @@ export const gardenPlugin = () =>
             }
           },
 
-          configure: configureContainerModule,
           suggestModules,
           getBuildStatus: getContainerBuildStatus,
           build: buildContainerModule,

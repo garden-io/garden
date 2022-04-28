@@ -30,6 +30,7 @@ import { BuildActionConfig } from "../../actions/build"
 import { DeployActionConfig } from "../../actions/deploy"
 import { TestActionConfig } from "../../actions/test"
 import { RunActionConfig } from "../../actions/run"
+import { defaultDockerfileName } from "./helpers"
 
 export const defaultContainerLimits: ServiceLimitSpec = {
   cpu: 1000, // = 1000 millicpu = 1 CPU
@@ -608,6 +609,34 @@ const containerDropCapabilitiesSchema = (targetType: "deployment" | "run" | "tes
     .optional()
     .description(`POSIX capabilities to remove from the running ${targetType}'s main container.`)
 
+export const hotReloadCommandSchema = () =>
+  joi
+    .sparseArray()
+    .items(joi.string())
+    .description(
+      deline`
+      **DEPRECATED: Please use devMode instead.**
+
+      If running with hot-reloading enabled, the container will be run with this command/entrypoint instead of the default.
+      `
+    )
+    .example(commandExample)
+    .meta({ deprecated: true })
+
+export const hotReloadArgsSchema = () =>
+  joi
+    .sparseArray()
+    .items(joi.string())
+    .description(
+      deline`
+      **DEPRECATED: Please use devMode instead.**
+
+      If specified, overrides the arguments for the main container when running in hot-reload mode.
+      `
+    )
+    .example(["nodemon", "my-server.js"])
+    .meta({ deprecated: true })
+
 export interface ContainerDeploySpec {
   annotations: Annotations
   command?: string[]
@@ -618,8 +647,11 @@ export interface ContainerDeploySpec {
   ingresses: ContainerIngressSpec[]
   env: PrimitiveMap
   healthCheck?: ServiceHealthCheckSpec
-  hotReloadCommand?: string[]
-  hotReloadArgs?: string[]
+  // TODO: remove in 0.13
+  hotReload?: {
+    command?: string[]
+    args?: string[]
+  }
   timeout?: number
   limits?: ServiceLimitSpec
   cpu: ContainerResourcesSpec["cpu"]
@@ -633,7 +665,7 @@ export interface ContainerDeploySpec {
   dropCapabilities?: string[]
   deploymentStrategy: DeploymentStrategy
 }
-export type ContainerDeployActionConfig = DeployActionConfig<ContainerDeploySpec>
+export type ContainerDeployActionConfig = DeployActionConfig<"container", ContainerDeploySpec>
 
 export const containerDeploySchemaKeys = () => ({
   annotations: annotationsSchema().description(
@@ -774,7 +806,7 @@ export interface ContainerTestActionSpec {
   addCapabilities?: string[]
   dropCapabilities?: string[]
 }
-export type ContainerTestActionConfig = TestActionConfig<ContainerTestActionSpec>
+export type ContainerTestActionConfig = TestActionConfig<"container", ContainerTestActionSpec>
 
 export const containerTestSpecKeys = () => ({
   args: joi
@@ -813,7 +845,7 @@ export interface ContainerRunActionSpec {
   addCapabilities?: string[]
   dropCapabilities?: string[]
 }
-export type ContainerRunActionConfig = RunActionConfig<ContainerRunActionSpec>
+export type ContainerRunActionConfig = RunActionConfig<"container", ContainerRunActionSpec>
 
 export const containerRunSpecKeys = () => ({
   args: joi
@@ -847,7 +879,7 @@ export interface ContainerBuildActionSpec {
   targetStage?: string
   timeout: number
 }
-export type ContainerBuildActionConfig = BuildActionConfig<ContainerBuildActionSpec>
+export type ContainerBuildActionConfig = BuildActionConfig<"container", ContainerBuildActionSpec>
 
 export const containerBuildSpecKeys = () => ({
   targetStage: joi.string().description(deline`
@@ -876,7 +908,7 @@ export const dockerImageBuildSpecSchema = () =>
     dockerfile: joi
       .posixPath()
       .subPathOnly()
-      .default("Dockerfile")
+      .default(defaultDockerfileName)
       .description("POSIX-style name of a Dockerfile, relative to the action's source root."),
     targetStage: joi.string().description(deline`
       For multi-stage Dockerfiles, specify which image/stage to build (see

@@ -28,7 +28,7 @@ export interface TerraformDeploySpec extends TerraformBaseSpec {
   root: string
 }
 
-export type TerraformDeployConfig = DeployActionConfig<TerraformDeploySpec>
+export type TerraformDeployConfig = DeployActionConfig<"terraform", TerraformDeploySpec>
 
 export const terraformDeploySchemaKeys = () => ({
   allowDestroy: joi.boolean().default(false).description(dedent`

@@ -39,6 +39,7 @@ interface DockerVersion {
 }
 
 export const DEFAULT_BUILD_TIMEOUT = 600
+export const defaultDockerfileName = "Dockerfile"
 
 export const minDockerVersion: DockerVersion = {
   client: "19.03.0",
@@ -407,7 +408,7 @@ const helpers = {
     }
 
     // Make sure to include the Dockerfile
-    paths.push(config.spec.dockerfile || "Dockerfile")
+    paths.push(config.spec.dockerfile || defaultDockerfileName)
 
     return Bluebird.map(paths, async (path) => {
       const absPath = join(config.path, path)
@@ -447,6 +448,6 @@ function fixDockerVersionString(v: string) {
   return semver.coerce(v.replace(/\.0([\d]+)/g, ".$1"))!
 }
 
-function getDockerfilePath(basePath: string, dockerfile = "Dockerfile") {
+function getDockerfilePath(basePath: string, dockerfile = defaultDockerfileName) {
   return join(basePath, dockerfile)
 }

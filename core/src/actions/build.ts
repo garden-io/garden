@@ -16,8 +16,9 @@ export interface BuildCopyFrom {
   targetPath: string
 }
 
-export interface BuildActionConfig<S = any> extends BaseActionConfig<S> {
+export interface BuildActionConfig<N extends string = any, S extends object = any> extends BaseActionConfig<S> {
   kind: "Build"
+  type: N
   allowPublish?: boolean
   buildAtSource?: boolean
   copyFrom?: BuildCopyFrom[]

@@ -277,7 +277,9 @@ export const gardenPlugin = () =>
             return { moduleConfig }
           },
 
-          convert: async ({ module }) => {
+          convert: async (params) => {
+            const { module } = params
+
             return {
               actions: [
                 {
@@ -285,7 +287,7 @@ export const gardenPlugin = () =>
                   type: "hadolint",
                   name: module.name,
 
-                  basePath: module.path,
+                  ...params.baseFields,
                   configFilePath: module.configPath,
 
                   include: [module.spec.dockerfilePath],

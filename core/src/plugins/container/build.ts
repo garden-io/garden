@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { containerHelpers } from "./helpers"
+import { containerHelpers, defaultDockerfileName } from "./helpers"
 import { ContainerModule } from "./moduleConfig"
 import { ConfigurationError } from "../../exceptions"
 import { GetBuildStatusParams } from "../../types/plugin/module/getBuildStatus"
@@ -49,7 +49,7 @@ export async function buildContainerModule({ ctx, module, log }: BuildModulePara
   // make sure we can build the thing
   if (!hasDockerfile) {
     throw new ConfigurationError(
-      `Dockerfile not found at ${module.spec.dockerfile || "Dockerfile"} for module ${module.name}`,
+      `Dockerfile not found at ${module.spec.dockerfile || defaultDockerfileName} for module ${module.name}`,
       { spec: module.spec }
     )
   }

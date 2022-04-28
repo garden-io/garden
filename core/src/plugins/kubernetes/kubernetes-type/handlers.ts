@@ -19,7 +19,7 @@ import { ServiceStatus } from "../../../types/service"
 import { gardenAnnotationKey } from "../../../util/string"
 import { KubeApi } from "../api"
 import { KubernetesPluginContext, ServiceResourceSpec } from "../config"
-import { configureDevMode, startDevModeSync } from "../dev-mode"
+import { configureDevMode, KubernetesDeployDevModeSyncSpec, startDevModeSync } from "../dev-mode"
 import { HelmService } from "../helm/moduleConfig"
 import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { streamK8sLogs } from "../logs"
@@ -36,15 +36,135 @@ import { getTaskResult } from "../task-results"
 import { getTestResult } from "../test-results"
 import { BaseResource, KubernetesResource, KubernetesServerResource, SyncableResource } from "../types"
 import { getServiceResource, getServiceResourceSpec } from "../util"
-import { gardenNamespaceAnnotationValue, getManifests } from "./common"
+import { convertServiceResource, gardenNamespaceAnnotationValue, getManifests } from "./common"
 import { configureKubernetesModule, KubernetesModule, KubernetesService } from "./moduleConfig"
 import { execInKubernetesService } from "./exec"
 import { runKubernetesTask } from "./run"
 import { testKubernetesModule } from "./test"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
+import { ExecBuildConfig } from "../../exec/config"
+import { KubernetesActionConfig, KubernetesDeployActionConfig } from "./config"
 
 export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<KubernetesModule>> = {
   configure: configureKubernetesModule,
+
+  convert: async (params) => {
+    const { module, services, dummyBuild, convertBuildDependency, prepareRuntimeDependencies } = params
+    const actions: (ExecBuildConfig | KubernetesActionConfig)[] = []
+
+    if (dummyBuild) {
+      actions.push(dummyBuild)
+    }
+
+    const syncs: KubernetesDeployDevModeSyncSpec[] = []
+    const service = services[0] // There's always exactly one service on kubernetes modules
+
+    const serviceResource = module.spec.serviceResource
+
+    if (module.spec.devMode) {
+      const target = convertServiceResource(module, serviceResource)
+
+      if (target) {
+        syncs.push({
+          sourcePath: service.sourceModule.path,
+          target,
+        })
+      }
+    }
+
+    const deployAction: KubernetesDeployActionConfig = {
+      kind: "Deploy",
+      type: "kubernetes",
+      name: module.name,
+      ...params.baseFields,
+
+      build: dummyBuild?.name,
+      dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
+
+      include: module.spec.files,
+
+      spec: {
+        ...module.spec,
+
+        devMode: {
+          syncs,
+        },
+      },
+    }
+
+    if (serviceResource?.containerModule) {
+      const build = convertBuildDependency(serviceResource.containerModule)
+
+      deployAction.spec.hotReload = {
+        build,
+        command: serviceResource?.hotReloadCommand,
+        args: serviceResource?.hotReloadArgs,
+      }
+      // TODO-G2: make this implicit
+      deployAction.dependencies?.push(build)
+    }
+
+    actions.push(deployAction)
+
+    for (const task of module.testConfigs) {
+      const target = convertServiceResource(module, task.spec.resource)
+
+      if (!target) {
+        continue
+      }
+
+      actions.push({
+        kind: "Run",
+        type: "kubernetes",
+        name: module.name,
+        ...params.baseFields,
+        disabled: task.disabled,
+
+        build: dummyBuild?.name,
+        dependencies: prepareRuntimeDependencies(task.dependencies, dummyBuild),
+
+        spec: {
+          ...task.spec,
+          target,
+        },
+      })
+    }
+
+    for (const test of module.testConfigs) {
+      const target = convertServiceResource(module, test.spec.resource)
+
+      if (!target) {
+        continue
+      }
+
+      actions.push({
+        kind: "Test",
+        type: "kubernetes",
+        name: module.name + "-" + test.name,
+        ...params.baseFields,
+        disabled: test.disabled,
+
+        build: dummyBuild?.name,
+        dependencies: prepareRuntimeDependencies(test.dependencies, dummyBuild),
+
+        spec: {
+          ...test.spec,
+          target,
+        },
+      })
+    }
+
+    return {
+      group: {
+        kind: "Group",
+        name: module.name,
+        actions,
+        variables: module.variables,
+        varfiles: module.varfile ? [module.varfile] : undefined,
+      },
+    }
+  },
+
   deleteService,
   execInService: execInKubernetesService,
   deployService: deployKubernetesService,

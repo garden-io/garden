@@ -835,26 +835,67 @@ export interface ServiceResourceSpec {
   containerModule?: string
 }
 
-export interface KubernetesTaskSpec extends BaseTaskSpec {
+export interface KubernetesTargetResourceSpec {
+  kind?: HotReloadableKind
+  name?: string
+  podSelector?: { [key: string]: string }
+  containerName?: string
+}
+
+export const targetResourceSpecSchema = () =>
+  joi
+    .object()
+    .keys({
+      kind: joi
+        .string()
+        .valid(...hotReloadableKinds)
+        .description("The kind of Kubernetes resource to target."),
+      name: joi
+        .string()
+        .description(
+          "The name of the resource to sync to, of the specified `kind`. If specified, you must also specify `kind`."
+        ),
+      podSelector: podSelectorSchema(),
+      containerName: targetContainerNameSchema(),
+    })
+    .with("name", "kind")
+    .without("podSelector", ["kind", "name"])
+
+export interface KubernetesCommonRunSpec {
   args: string[]
   artifacts: ArtifactSpec[]
   cacheResult: boolean
   command?: string[]
   env: ContainerEnvVars
-  resource: ServiceResourceSpec
 }
 
-export interface KubernetesTestSpec extends BaseTestSpec {
-  args: string[]
-  artifacts: ArtifactSpec[]
-  command?: string[]
-  env: ContainerEnvVars
-  resource: ServiceResourceSpec
-}
+export type KubernetesTaskSpec = BaseTaskSpec &
+  KubernetesCommonRunSpec & {
+    resource: ServiceResourceSpec
+  }
+
+export type KubernetesTestSpec = BaseTestSpec &
+  KubernetesCommonRunSpec & {
+    resource: ServiceResourceSpec
+  }
 
 export const serviceResourceDescription = dedent`
   This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the \`kind\` and \`name\` fields, or a Pod via the \`podSelector\` field.
 `
+
+export const targetContainerNameSchema = () =>
+  joi
+    .string()
+    .description(
+      `The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.`
+    )
+
+export const podSelectorSchema = () =>
+  joiStringMap(joi.string()).description(
+    dedent`
+    A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+  `
+  )
 
 export const serviceResourceSchema = () =>
   joi
@@ -869,16 +910,8 @@ export const serviceResourceSchema = () =>
         deline`The name of the resource to sync to. If the module contains a single resource of the specified Kind,
         this can be omitted.`
       ),
-      containerName: joi
-        .string()
-        .description(
-          `The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.`
-        ),
-      podSelector: joiStringMap(joi.string()).description(
-        dedent`
-          A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
-        `
-      ),
+      containerName: targetContainerNameSchema(),
+      podSelector: podSelectorSchema(),
     })
     .oxor("podSelector", "name")
 
@@ -927,6 +960,22 @@ export const portForwardsSchema = () =>
 
 const runPodSpecWhitelistDescription = () => runPodSpecIncludeFields.map((f) => `* \`${f}\``).join("\n")
 
+export const kubernetesCommonRunSchemaKeys = () => ({
+  cacheResult: cacheResultSchema(),
+  command: joi
+    .sparseArray()
+    .items(joi.string().allow(""))
+    .description("The command/entrypoint used to run inside the container.")
+    .example(commandExample),
+  args: joi
+    .sparseArray()
+    .items(joi.string().allow(""))
+    .description("The arguments to pass to the command/entypoint used for execution.")
+    .example(["rake", "db:migrate"]),
+  env: containerEnvVarsSchema(),
+  artifacts: joiSparseArray(containerArtifactSchema()).description(artifactsDescription),
+})
+
 export const kubernetesTaskSchema = () =>
   baseTaskSpecSchema()
     .keys({
@@ -940,19 +989,7 @@ export const kubernetesTaskSchema = () =>
         The following pod spec fields from the service resource will be used (if present) when executing the task:
         ${runPodSpecWhitelistDescription()}`
       ),
-      cacheResult: cacheResultSchema(),
-      command: joi
-        .sparseArray()
-        .items(joi.string().allow(""))
-        .description("The command/entrypoint used to run the task inside the container.")
-        .example(commandExample),
-      args: joi
-        .sparseArray()
-        .items(joi.string().allow(""))
-        .description("The arguments to pass to the container used for execution.")
-        .example(["rake", "db:migrate"]),
-      env: containerEnvVarsSchema(),
-      artifacts: joiSparseArray(containerArtifactSchema()).description(artifactsDescription),
+      ...kubernetesCommonRunSchemaKeys(),
     })
     .description("The task definitions for this module.")
 

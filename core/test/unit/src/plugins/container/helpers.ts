@@ -21,7 +21,7 @@ import { moduleFromConfig } from "../../../../../src/types/module"
 import { ModuleConfig } from "../../../../../src/config/module"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { ContainerModuleSpec, ContainerModuleConfig } from "../../../../../src/plugins/container/moduleConfig"
-import { containerHelpers as helpers, DEFAULT_BUILD_TIMEOUT } from "../../../../../src/plugins/container/helpers"
+import { containerHelpers as helpers, defaultDockerfileName, DEFAULT_BUILD_TIMEOUT } from "../../../../../src/plugins/container/helpers"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { dedent } from "../../../../../src/util/string"
 import { ModuleVersion } from "../../../../../src/vcs/vcs"
@@ -166,7 +166,7 @@ describe("containerHelpers", () => {
       const module = await getTestModule(baseConfig)
 
       const path = helpers.getDockerfileBuildPath(module)
-      expect(path).to.equal(join(module.buildPath, "Dockerfile"))
+      expect(path).to.equal(join(module.buildPath, defaultDockerfileName))
     })
 
     it("should return the absolute user specified Dockerfile path", async () => {
@@ -186,7 +186,7 @@ describe("containerHelpers", () => {
       const module = await getTestModule(baseConfig)
 
       const path = helpers.getDockerfileSourcePath(module)
-      expect(path).to.equal(join(module.path, "Dockerfile"))
+      expect(path).to.equal(join(module.path, defaultDockerfileName))
     })
 
     it("should return the absolute user specified Dockerfile path", async () => {
@@ -255,7 +255,7 @@ describe("containerHelpers", () => {
   describe("getDockerfilePathFromConfig", () => {
     it("should return the absolute default Dockerfile path", async () => {
       const path = helpers.getDockerfileSourcePath(baseConfig)
-      expect(path).to.equal(join(baseConfig.path, "Dockerfile"))
+      expect(path).to.equal(join(baseConfig.path, defaultDockerfileName))
     })
 
     it("should return the absolute user specified Dockerfile path", async () => {
@@ -379,7 +379,7 @@ describe("containerHelpers", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("module-a")
 
-      module.spec.dockerfile = "Dockerfile"
+      module.spec.dockerfile = defaultDockerfileName
 
       td.reset()
       expect(helpers.hasDockerfile(module, module.version)).to.be.true
@@ -387,7 +387,7 @@ describe("containerHelpers", () => {
 
     it("should return true if module sources include a Dockerfile", async () => {
       const config = (await garden.getRawModuleConfigs(["module-a"]))[0]
-      const dockerfilePath = join(garden.projectRoot, "module-a", "Dockerfile")
+      const dockerfilePath = join(garden.projectRoot, "module-a", defaultDockerfileName)
 
       const version = cloneDeep(dummyVersion)
       version.files = [dockerfilePath]
@@ -399,7 +399,7 @@ describe("containerHelpers", () => {
 
     it("should return false if no Dockerfile is specified or included in sources", async () => {
       const config = (await garden.getRawModuleConfigs(["module-a"]))[0]
-      const dockerfilePath = join(garden.projectRoot, "module-a", "Dockerfile")
+      const dockerfilePath = join(garden.projectRoot, "module-a", defaultDockerfileName)
 
       td.replace(helpers, "getDockerfileSourcePath", () => dockerfilePath)
 
@@ -414,7 +414,7 @@ describe("containerHelpers", () => {
 
     beforeEach(async () => {
       tmpDir = await tmp.dir({ unsafeCleanup: true })
-      dockerfilePath = join(tmpDir.path, "Dockerfile")
+      dockerfilePath = join(tmpDir.path, defaultDockerfileName)
       config = {
         apiVersion: DEFAULT_API_VERSION,
         type: "container",
@@ -462,7 +462,7 @@ describe("containerHelpers", () => {
         "file-b",
         "file-c",
         "file-d",
-        "Dockerfile",
+        defaultDockerfileName,
       ])
     })
 
@@ -480,7 +480,7 @@ describe("containerHelpers", () => {
         "file-b",
         "file-c",
         "file-d",
-        "Dockerfile",
+        defaultDockerfileName,
       ])
     })
 
@@ -493,7 +493,7 @@ describe("containerHelpers", () => {
         ADD file-* /
         `
       )
-      expect(await helpers.autoResolveIncludes(config, log)).to.eql(["file-*", "Dockerfile"])
+      expect(await helpers.autoResolveIncludes(config, log)).to.eql(["file-*", defaultDockerfileName])
     })
 
     it("should pass globs through", async () => {
@@ -504,7 +504,7 @@ describe("containerHelpers", () => {
         ADD file-* /
         `
       )
-      expect(await helpers.autoResolveIncludes(config, log)).to.eql(["file-*", "Dockerfile"])
+      expect(await helpers.autoResolveIncludes(config, log)).to.eql(["file-*", defaultDockerfileName])
     })
 
     it("should handle quoted paths", async () => {
@@ -516,7 +516,7 @@ describe("containerHelpers", () => {
         ADD 'file-b' /
         `
       )
-      expect(await helpers.autoResolveIncludes(config, log)).to.eql(["file-a", "file-b", "Dockerfile"])
+      expect(await helpers.autoResolveIncludes(config, log)).to.eql(["file-a", "file-b", defaultDockerfileName])
     })
 
     it("should ignore --chown arguments", async () => {
@@ -528,7 +528,7 @@ describe("containerHelpers", () => {
         COPY --chown=bla file-b file-c /
         `
       )
-      expect(await helpers.autoResolveIncludes(config, log)).to.eql(["file-a", "file-b", "file-c", "Dockerfile"])
+      expect(await helpers.autoResolveIncludes(config, log)).to.eql(["file-a", "file-b", "file-c", defaultDockerfileName])
     })
 
     it("should ignore COPY statements with a --from argument", async () => {
@@ -540,7 +540,7 @@ describe("containerHelpers", () => {
         COPY --from=bla /file-b file-c /
         `
       )
-      expect(await helpers.autoResolveIncludes(config, log)).to.eql(["file-a", "Dockerfile"])
+      expect(await helpers.autoResolveIncludes(config, log)).to.eql(["file-a", defaultDockerfileName])
     })
 
     it("should ignore paths containing a template string", async () => {
@@ -555,7 +555,7 @@ describe("containerHelpers", () => {
 
     it("should pass through paths containing an escaped template string", async () => {
       await writeFile(dockerfilePath, "FROM foo\nADD file-a /\nCOPY file-\\$foo file-c /")
-      expect(await helpers.autoResolveIncludes(config, log)).to.eql(["file-a", "file-$foo", "file-c", "Dockerfile"])
+      expect(await helpers.autoResolveIncludes(config, log)).to.eql(["file-a", "file-$foo", "file-c", defaultDockerfileName])
     })
 
     it("should return if any source path is '.'", async () => {
@@ -580,7 +580,7 @@ describe("containerHelpers", () => {
         COPY file-b d/
         `
       )
-      expect(await helpers.autoResolveIncludes(config, log)).to.eql(["dir-a/**/*", "file-b", "Dockerfile"])
+      expect(await helpers.autoResolveIncludes(config, log)).to.eql(["dir-a/**/*", "file-b", defaultDockerfileName])
     })
   })
 })
