@@ -4,21 +4,21 @@
   </a>
 </p>
 
-# Hot reload example project with Gatsby.js
+# Code synchronization example project with Gatsby.js
 
-This project shows how you can configure Garden to use **hot reloading**. We'll use [Gatsby.js](https://www.gatsbyjs.org/), a static site generator with built-in hot reload support to try out the functionality.
+This project shows how you can configure Garden to use **code synchronization**. We'll use [Gatsby.js](https://www.gatsbyjs.org/), a static site generator with built-in hot reload support to try out the functionality.
 
 ## Usage
 
-Use the `dev` command but with the `--hot-reload` flag:
+Use the `dev` command:
 
 ```sh
-garden dev --hot-reload=website
+garden dev
 ```
 
 This tells Garden to reload the files into the container, without re-building and re-deploying.
 
-Now, open `http://gatsby-hot-reload.local.app.garden/` in your browser, and then try changing some of the website code. For example, open `src/pages/index.js` and change the text in the `h1` tag. You'll notice the page updates immediately in the browser!
+Now, open `http://gatsby-hot-reload.local.app.garden/` in your browser, and then try changing some of the website code. For example, open [src/pages/index.js](src/pages/index.js) and change the text in the `h1` tag. You'll notice the page updates immediately in the browser!
 
 ## Notes
 

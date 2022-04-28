@@ -11,12 +11,15 @@ kind: Module
 description: Minimal Gatsby example
 name: website
 type: container
-hotReload:
-  sync:
-    - target: /app/src
-      source: src
 services:
   - name: website
+    devMode:
+      sync:
+        - source: src
+          target: /app/src
+          # Make sure to specify any paths that should not be synced!
+          exclude: [node_modules]
+          mode: one-way
     args: [npm, run, dev]
     env:
       GATSBY_WEBPACK_PUBLICPATH: /
