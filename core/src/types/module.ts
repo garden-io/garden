@@ -14,9 +14,9 @@ import { pathToCacheContext } from "../cache"
 import { Garden } from "../garden"
 import { joiArray, joiIdentifier, joiIdentifierMap, joi, moduleVersionSchema, DeepPrimitiveMap } from "../config/common"
 import { getModuleTypeBases } from "../plugins"
-import { moduleOutputsSchema } from "../plugin/handlers/module/getOutputs"
+import { moduleOutputsSchema } from "../plugin/handlers/module/get-outputs"
 import { LogEntry } from "../logger/log-entry"
-import { ModuleTypeDefinition } from "../plugin/moduleTypes"
+import { ModuleTypeDefinition } from "../plugin/module-types"
 import { GardenPlugin } from "../plugin/plugin"
 
 export interface FileCopySpec {

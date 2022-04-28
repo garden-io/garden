@@ -41,7 +41,7 @@ import {
   getModuleOutputs,
   GetModuleOutputsParams,
   GetModuleOutputsResult,
-} from "./handlers/module/getOutputs"
+} from "./handlers/module/get-outputs"
 import { getTestResult, GetTestResultParams } from "../types/plugin/module/getTestResult"
 import { convertModule, ConvertModuleParams, ConvertModuleResult } from "./handlers/module/convert"
 import { baseHandlerSchema } from "./handlers/base/base"

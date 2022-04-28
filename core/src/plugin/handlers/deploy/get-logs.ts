@@ -7,7 +7,7 @@
  */
 
 import { Stream } from "ts-stream"
-import { actionParamsSchema, PluginDeployActionParamsBase } from "../../../plugin/base"
+import { actionParamsSchema, PluginDeployActionParamsBase } from "../../base"
 import { dedent } from "../../../util/string"
 import { runtimeContextSchema } from "../../../runtime-context"
 import { joi } from "../../../config/common"

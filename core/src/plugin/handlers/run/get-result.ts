@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginRunActionParamsBase, actionParamsSchema, RunResult } from "../../../plugin/base"
+import { PluginRunActionParamsBase, actionParamsSchema, RunResult } from "../../base"
 import { dedent } from "../../../util/string"
 import { taskResultSchema } from "../../../types/task"
 import { RunAction } from "../../../actions/run"

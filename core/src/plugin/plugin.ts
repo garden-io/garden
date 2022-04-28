@@ -18,19 +18,19 @@ import {
   extendModuleTypeSchema,
   ModuleTypeDefinition,
   ModuleTypeExtension,
-} from "./moduleTypes"
+} from "./module-types"
 import { getProviderActionDescriptions, ProviderActionHandlers } from "./providers"
 import {
   ActionTypeDefinitions,
   ActionTypeExtensions,
   createActionTypesSchema,
   extendActionTypesSchema,
-} from "./actionTypes"
+} from "./action-types"
 import { PluginContext } from "../plugin-context"
 
 // FIXME: Reduce number of import updates needed
 export * from "./base"
-export * from "./moduleTypes"
+export * from "./module-types"
 export * from "./providers"
 
 export interface PluginDependency {
