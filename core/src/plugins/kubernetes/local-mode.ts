@@ -324,7 +324,6 @@ async function getSshPortForwardCommand(
     log,
   })
 
-  // Need to use execa directly to use its cleanup mechanism, otherwise processes can linger on Windows
   const kubectlPath = await kubectl(k8sCtx, k8sCtx.provider).getPath(log)
 
   return { command: kubectlPath, args: portForwardArgs }
