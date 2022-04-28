@@ -25,7 +25,7 @@ import { RunResult } from "../../../plugin/base"
 import { RunTaskParams, RunTaskResult } from "../../../types/plugin/task/runTask"
 import { uniqByName } from "../../../util/util"
 import { KubeApi } from "../api"
-import { getModuleNamespaceStatus } from "../namespace"
+import { getActionNamespaceStatus } from "../namespace"
 import { DEFAULT_TASK_TIMEOUT } from "../../../constants"
 import { KubernetesPod } from "../types"
 
@@ -41,7 +41,7 @@ export async function runHelmModule({
 }: RunModuleParams<HelmModule>): Promise<RunResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const namespaceStatus = await getModuleNamespaceStatus({
+  const namespaceStatus = await getActionNamespaceStatus({
     ctx: k8sCtx,
     log,
     module,
@@ -151,7 +151,7 @@ export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<Ru
     resourceSpec,
   })
   const container = getResourceContainer(target, resourceSpec.containerName)
-  const namespaceStatus = await getModuleNamespaceStatus({
+  const namespaceStatus = await getActionNamespaceStatus({
     ctx: k8sCtx,
     log,
     module,

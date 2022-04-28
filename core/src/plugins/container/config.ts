@@ -27,9 +27,9 @@ import { devModeGuideLink } from "../kubernetes/dev-mode"
 import { k8sDeploymentTimeoutSchema } from "../kubernetes/config"
 import { localModeGuideLink } from "../kubernetes/local-mode"
 import { BuildAction, BuildActionConfig } from "../../actions/build"
-import { DeployActionConfig } from "../../actions/deploy"
-import { TestActionConfig } from "../../actions/test"
-import { RunActionConfig } from "../../actions/run"
+import { DeployAction, DeployActionConfig } from "../../actions/deploy"
+import { TestAction, TestActionConfig } from "../../actions/test"
+import { RunAction, RunActionConfig } from "../../actions/run"
 import { defaultDockerfileName } from "./helpers"
 
 export const defaultContainerLimits: ServiceLimitSpec = {
@@ -634,12 +634,13 @@ export interface ContainerCommonDeploySpec extends ContainerCommonRuntimeSpec {
 
 export interface ContainerDeploySpec extends ContainerCommonDeploySpec {
   // TODO: remove in 0.13
-  hotReload?: {
+  hotReload?: ContainerModuleHotReloadSpec & {
     command?: string[]
     args?: string[]
   }
 }
 export type ContainerDeployActionConfig = DeployActionConfig<"container", ContainerDeploySpec>
+export type ContainerDeployAction = DeployAction<ContainerDeployActionConfig, {}>
 
 const containerCommonRuntimeSchemaKeys = () => ({
   command: joi
@@ -766,8 +767,10 @@ const artifactsSchema = () =>
 
 export interface ContainerTestActionSpec extends ContainerCommonRuntimeSpec {
   artifacts: ArtifactSpec[]
+  image?: string
 }
 export type ContainerTestActionConfig = TestActionConfig<"container", ContainerTestActionSpec>
+export type ContainerTestAction = TestAction<ContainerTestActionConfig, {}>
 
 export const containerTestSpecKeys = () => ({
   ...containerCommonRuntimeSchemaKeys(),
@@ -780,6 +783,7 @@ export interface ContainerRunActionSpec extends ContainerTestActionSpec {
   cacheResult: boolean
 }
 export type ContainerRunActionConfig = RunActionConfig<"container", ContainerRunActionSpec>
+export type ContainerRunAction = RunAction<ContainerRunActionConfig, {}>
 
 export const containerRunSpecKeys = () => ({
   ...containerTestSpecKeys(),

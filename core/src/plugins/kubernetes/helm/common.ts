@@ -13,7 +13,7 @@ import cryptoRandomString = require("crypto-random-string")
 
 import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
-import { getModuleNamespace } from "../namespace"
+import { getActionNamespace } from "../namespace"
 import { KubernetesResource } from "../types"
 import { loadAll } from "js-yaml"
 import { helm } from "./helm-cli"
@@ -136,7 +136,7 @@ export async function prepareTemplates({
   await dumpYaml(valuesPath, specValues)
 
   const releaseName = getReleaseName(module)
-  const namespace = await getModuleNamespace({
+  const namespace = await getActionNamespace({
     ctx,
     log,
     module,
@@ -304,7 +304,7 @@ export async function renderHelmTemplateString(
   const relPath = join("templates", cryptoRandomString({ length: 16 }) + ".yaml")
   const tempFilePath = join(chartPath, relPath)
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getModuleNamespace({
+  const namespace = await getActionNamespace({
     ctx: k8sCtx,
     log,
     module,

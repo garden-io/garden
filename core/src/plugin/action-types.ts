@@ -71,6 +71,11 @@ export type DeployActionHandler<
   C extends DeployAction = DeployAction
 > = GetActionTypeHandler<DeployActionDescriptions<C>[N], N>
 
+export type DeployActionParams<
+  N extends keyof DeployActionDescriptions,
+  C extends DeployAction = DeployAction
+> = GetActionTypeParams<DeployActionDescriptions<C>[N]>
+
 type RunActionDescriptions<C extends RunAction = RunAction> = BaseHandlers<C> & {
   getResult: GetRunActionResult<C>
   run: RunRunAction<C>

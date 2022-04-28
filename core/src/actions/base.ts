@@ -245,20 +245,21 @@ interface ActionWrapperParams<C extends BaseActionConfig, O extends {}> {
   buildPath: string
   buildMetadataPath: string
   config: C
-  moduleName: string
+  moduleName?: string
   outputs: O
   version: ModuleVersion
 }
 
 export class Action<C extends BaseActionConfig = BaseActionConfig, O extends {} = any> {
   public readonly name: string
-  public readonly buildPath: string
   public readonly buildMetadataPath: string
-  public readonly moduleName: string // Temporary, during transition
   public readonly version: ModuleVersion
 
   private config: C
   private outputs: O
+
+  private readonly buildPath: string
+  private readonly moduleName?: string // Temporary, during transition
 
   constructor(params: ActionWrapperParams<C, O>) {
     this.name = params.config.name
@@ -272,14 +273,28 @@ export class Action<C extends BaseActionConfig = BaseActionConfig, O extends {} 
   getBasePath(): string {
     // TODO-G2
     // TODO: handle repository.url
+    // TODO: handle build field
     return this.config.basePath
+  }
+
+  getBuildPath(): string {
+    // TODO-G2: review
+    return this.buildPath
+  }
+
+  getModuleName(): string {
+    return this.moduleName || this.name
   }
 
   getDependencyReferences(): ActionReference[] {
     return this.config.dependencies?.map(parseActionReference) || []
   }
 
-  getConfig(key: keyof C) {
+  getVersionString(): string {
+    return this.version.versionString
+  }
+
+  getConfig<K extends keyof C>(key: K): C[K] {
     return this.config[key]
   }
 

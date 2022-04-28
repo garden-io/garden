@@ -24,9 +24,9 @@ import {
 } from "../dev-mode"
 import { KubernetesKustomizeSpec, kustomizeSpecSchema } from "./kustomize"
 import { KubernetesResource } from "../types"
-import { DeployActionConfig } from "../../../actions/deploy"
-import { RunActionConfig } from "../../../actions/run"
-import { TestActionConfig } from "../../../actions/test"
+import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
+import { RunAction, RunActionConfig } from "../../../actions/run"
+import { TestAction, TestActionConfig } from "../../../actions/test"
 import { templateStringLiteral } from "../../../docs/common"
 import { hotReloadArgsSchema, hotReloadCommandSchema, hotReloadConfigSchema } from "../../container/config"
 
@@ -83,6 +83,7 @@ interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySpec {
   hotReload?: KubernetesDeployHotReloadSpec
 }
 export type KubernetesDeployActionConfig = DeployActionConfig<"kubernetes", KubernetesDeployActionSpec>
+export type KubernetesDeployAction = DeployAction<KubernetesDeployActionConfig>
 
 const kubernetesResourceSchema = () =>
   joi
@@ -154,6 +155,7 @@ interface KubernetesRunActionSpec extends KubernetesCommonRunSpec {
   target: KubernetesTargetResourceSpec
 }
 export type KubernetesRunActionConfig = RunActionConfig<"kubernetes", KubernetesRunActionSpec>
+export type KubernetesRunAction = RunAction<KubernetesRunActionConfig>
 
 export const kubernetesRunActionSchema = () =>
   joi.object().keys({
@@ -167,6 +169,8 @@ export const kubernetesRunActionSchema = () =>
 
 interface KubernetesTestActionSpec extends KubernetesRunActionSpec {}
 export type KubernetesTestActionConfig = TestActionConfig<"kubernetes", KubernetesTestActionSpec>
+export type KubernetesTestAction = TestAction<KubernetesTestActionConfig>
+
 export const kubernetesTestActionSchema = () => kubernetesRunActionSchema()
 
 // COMMON //

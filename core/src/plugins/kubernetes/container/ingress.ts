@@ -9,7 +9,7 @@
 import Bluebird from "bluebird"
 import { extend } from "lodash"
 import { findByName } from "../../../util/util"
-import { ContainerService, ContainerIngressSpec } from "../../container/moduleConfig"
+import { ContainerIngressSpec, ContainerDeployAction } from "../../container/moduleConfig"
 import { IngressTlsCertificate, KubernetesProvider } from "../config"
 import { ServiceIngress, ServiceProtocol } from "../../../types/service"
 import { KubeApi } from "../api"
@@ -53,10 +53,12 @@ export async function createIngressResources(
   api: KubeApi,
   provider: KubernetesProvider,
   namespace: string,
-  service: ContainerService,
+  action: ContainerDeployAction,
   log: LogEntry
 ) {
-  if (service.spec.ingresses.length === 0) {
+  const { ports, ingresses } = action.getSpec()
+
+  if (ingresses.length === 0) {
     return []
   }
 
@@ -68,7 +70,7 @@ export async function createIngressResources(
     return []
   }
 
-  const allIngresses = await getIngressesWithCert(service, api, provider)
+  const allIngresses = await getIngressesWithCert(action, api, provider)
 
   return Bluebird.map(allIngresses, async (ingress, index) => {
     const cert = ingress.certificate
@@ -84,7 +86,7 @@ export async function createIngressResources(
         apiVersion,
         kind: "Ingress",
         metadata: {
-          name: `${service.name}-${index}`,
+          name: `${action.name}-${index}`,
           annotations: {
             "ingress.kubernetes.io/force-ssl-redirect": !!cert + "",
             ...ingress.spec.annotations,
@@ -103,9 +105,9 @@ export async function createIngressResources(
                     pathType: "Prefix",
                     backend: {
                       service: {
-                        name: service.name,
+                        name: action.name,
                         port: {
-                          number: findByName(service.spec.ports, ingress.spec.port)!.servicePort,
+                          number: findByName(ports, ingress.spec.port)!.servicePort,
                         },
                       },
                     },
@@ -133,7 +135,7 @@ export async function createIngressResources(
         apiVersion: apiVersion!,
         kind: "Ingress",
         metadata: {
-          name: `${service.name}-${index}`,
+          name: `${action.name}-${index}`,
           annotations,
           namespace,
         },
@@ -146,8 +148,8 @@ export async function createIngressResources(
                   {
                     path: ingress.path,
                     backend: {
-                      serviceName: service.name,
-                      servicePort: <any>findByName(service.spec.ports, ingress.spec.port)!.servicePort,
+                      serviceName: action.name,
+                      servicePort: <any>findByName(ports, ingress.spec.port)!.servicePort,
                     },
                   },
                 ],
@@ -163,7 +165,7 @@ export async function createIngressResources(
 }
 
 async function getIngress(
-  service: ContainerService,
+  action: ContainerDeployAction,
   api: KubeApi,
   provider: KubernetesProvider,
   spec: ContainerIngressSpec
@@ -172,10 +174,10 @@ async function getIngress(
 
   if (!hostname) {
     // this should be caught when parsing the module
-    throw new PluginError(`Missing hostname in ingress spec`, { serviceSpec: service.spec, ingressSpec: spec })
+    throw new PluginError(`Missing hostname in ingress spec`, { deploySpec: action.getSpec(), ingressSpec: spec })
   }
 
-  const certificate = await pickCertificate(service, api, provider, hostname)
+  const certificate = await pickCertificate(action, api, provider, hostname)
   // TODO: support other protocols
   const protocol: ServiceProtocol = !!certificate ? "https" : "http"
   const port = !!certificate ? provider.config.ingressHttpsPort : provider.config.ingressHttpPort
@@ -192,19 +194,20 @@ async function getIngress(
 }
 
 async function getIngressesWithCert(
-  service: ContainerService,
+  action: ContainerDeployAction,
   api: KubeApi,
   provider: KubernetesProvider
 ): Promise<ServiceIngressWithCert[]> {
-  return Bluebird.map(service.spec.ingresses, (spec) => getIngress(service, api, provider, spec))
+  const ingresses = action.getSpec("ingresses")
+  return Bluebird.map(ingresses, (spec) => getIngress(action, api, provider, spec))
 }
 
 export async function getIngresses(
-  service: ContainerService,
+  action: ContainerDeployAction,
   api: KubeApi,
   provider: KubernetesProvider
 ): Promise<ServiceIngress[]> {
-  return (await getIngressesWithCert(service, api, provider)).map((ingress) => ({
+  return (await getIngressesWithCert(action, api, provider)).map((ingress) => ({
     hostname: ingress.hostname,
     path: ingress.path,
     port: ingress.port,
@@ -260,7 +263,7 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
 }
 
 async function pickCertificate(
-  service: ContainerService,
+  action: ContainerDeployAction,
   api: KubeApi,
   provider: KubernetesProvider,
   hostname: string
@@ -278,9 +281,9 @@ async function pickCertificate(
   if (provider.config.forceSsl) {
     throw new ConfigurationError(
       `Could not find certificate for hostname '${hostname}' ` +
-        `configured on service '${service.name}' and forceSsl flag is set.`,
+        `configured on service '${action.name}' and forceSsl flag is set.`,
       {
-        serviceName: service.name,
+        actionName: action.name,
         hostname,
       }
     )

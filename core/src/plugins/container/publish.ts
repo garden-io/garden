@@ -23,7 +23,7 @@ export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuild
 
   if (localId !== remoteId) {
     await containerHelpers.dockerCli({
-      cwd: action.buildPath,
+      cwd: action.getBuildPath(),
       args: ["tag", localId, remoteId],
       log,
       ctx,
@@ -31,7 +31,7 @@ export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuild
   }
 
   // TODO: stream output to log if at debug log level
-  await containerHelpers.dockerCli({ cwd: action.buildPath, args: ["push", remoteId], log, ctx })
+  await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["push", remoteId], log, ctx })
 
   return { published: true, message: `Published ${remoteId}` }
 }

@@ -40,7 +40,7 @@ import { LogEntry } from "../../../../../src/logger/log-entry"
 import { sleep } from "../../../../../src/util/util"
 import { buildHelmModules, getHelmTestGarden } from "./helm/common"
 import { getBaseModule, getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
-import { getModuleNamespace } from "../../../../../src/plugins/kubernetes/namespace"
+import { getActionNamespace } from "../../../../../src/plugins/kubernetes/namespace"
 import { GardenModule } from "../../../../../src/types/module"
 import { V1Container, V1Pod, V1PodSpec } from "@kubernetes/client-node"
 import { getResourceRequirements } from "../../../../../src/plugins/kubernetes/container/util"
@@ -564,7 +564,7 @@ describe("kubernetes Pod runner functions", () => {
       })
       helmBaseModule = getBaseModule(helmModule)
       helmResourceSpec = getServiceResourceSpec(helmModule, helmBaseModule)
-      helmNamespace = await getModuleNamespace({
+      helmNamespace = await getActionNamespace({
         ctx: helmCtx,
         log: helmLog,
         module: helmModule,

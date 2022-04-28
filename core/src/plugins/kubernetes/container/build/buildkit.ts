@@ -221,7 +221,7 @@ export async function ensureBuildkit({
       namespace,
       ctx,
       provider,
-      serviceName: "garden-buildkit",
+      actionName: "garden-buildkit",
       resources: [manifest],
       log: deployLog,
       timeoutSec: 600,

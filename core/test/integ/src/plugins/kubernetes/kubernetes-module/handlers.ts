@@ -18,7 +18,7 @@ import { getManifests } from "../../../../../../src/plugins/kubernetes/kubernete
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { LogEntry } from "../../../../../../src/logger/log-entry"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
-import { getModuleNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
+import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
 import { getDeployedResource } from "../../../../../../src/plugins/kubernetes/status/status"
 import { ModuleConfig } from "../../../../../../src/config/module"
 import { BaseResource, KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
@@ -179,7 +179,7 @@ describe("kubernetes-module handlers", () => {
     it("should toggle devMode", async () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const service = graph.getService("with-source-module")
-      const namespace = await getModuleNamespace({
+      const namespace = await getActionNamespace({
         ctx,
         log,
         module: service.module,
@@ -330,7 +330,7 @@ describe("kubernetes-module handlers", () => {
       garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-module-ns-1")])
       let graph = await garden.getConfigGraph({ log, emit: false })
       let k8smodule = graph.getModule("namespace-resource")
-      const defaultNamespace = await getModuleNamespace({ ctx, log, module: k8smodule, provider: ctx.provider })
+      const defaultNamespace = await getActionNamespace({ ctx, log, module: k8smodule, provider: ctx.provider })
       let manifests = await getManifests({ ctx, api, log, module: k8smodule, defaultNamespace })
       ns1Manifest = manifests.find((resource) => resource.kind === "Namespace")
 
