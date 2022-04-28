@@ -12,16 +12,16 @@ import { keyBy } from "lodash"
 import { ConfigurationError } from "../../exceptions"
 import { createGardenPlugin } from "../../plugin/plugin"
 import { containerHelpers, defaultDockerfileName } from "./helpers"
-import { ContainerActionConfig, ContainerModule, containerModuleOutputsSchema, containerModuleSpecSchema } from "./moduleConfig"
+import { ContainerActionConfig, ContainerModule, containerModuleOutputsSchema,
+  containerModuleSpecSchema } from "./moduleConfig"
 import { buildContainer, getContainerBuildStatus } from "./build"
 import { ConfigureModuleParams } from "../../plugin/handlers/module/configure"
 import { joi } from "../../config/common"
-import { publishContainerModule } from "./publish"
 import { SuggestModulesParams, SuggestModulesResult } from "../../types/plugin/module/suggestModules"
 import { listDirectory } from "../../util/fs"
 import { dedent } from "../../util/string"
 import { Provider, GenericProviderConfig, providerConfigBaseSchema } from "../../config/provider"
-import { GetModuleOutputsParams } from "../../types/plugin/module/getModuleOutputs"
+import { GetModuleOutputsParams } from "../../plugin/handlers/module/getOutputs"
 import { ConvertModuleParams } from "../../plugin/handlers/module/convert"
 import { ExecActionConfig } from "../exec/config"
 import {
@@ -31,6 +31,7 @@ import {
   containerTestActionSchema,
   dockerImageBuildSpecSchema,
 } from "./config"
+import { publishContainerBuild } from "./publish"
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
 export type ContainerProvider = Provider<ContainerProviderConfig>
@@ -216,6 +217,8 @@ export const gardenPlugin = () =>
           handlers: {
             // TODO-G2
             build: buildContainer,
+            getStatus: getContainerBuildStatus,
+            publish: publishContainerBuild,
           },
         },
       ],
@@ -229,7 +232,8 @@ export const gardenPlugin = () =>
           `,
           schema: containerDeploySchema(),
           handlers: {
-            // TODO-G2
+            // Implemented by other providers (e.g. kubernetes)
+            hotReload: async () => ({}),
           },
         },
       ],
@@ -243,7 +247,7 @@ export const gardenPlugin = () =>
           `,
           schema: containerRunActionSchema(),
           handlers: {
-            // TODO-G2
+            // Implemented by other providers (e.g. kubernetes)
           },
         },
       ],
@@ -257,7 +261,7 @@ export const gardenPlugin = () =>
           `,
           schema: containerTestActionSchema(),
           handlers: {
-            // TODO-G2
+            // Implemented by other providers (e.g. kubernetes)
           },
         },
       ],
@@ -280,6 +284,8 @@ export const gardenPlugin = () =>
         taskOutputsSchema,
         handlers: {
           configure: configureContainerModule,
+          suggestModules,
+          getModuleOutputs: getContainerModuleOutputs,
 
           async convert(params: ConvertModuleParams<ContainerModule>) {
             const { module, convertBuildDependency, convertRuntimeDependency, dummyBuild } = params
@@ -336,7 +342,7 @@ export const gardenPlugin = () =>
                 ...params.baseFields,
 
                 disabled: service.disabled,
-                build: buildAction ? buildAction.name : undefined,
+                build: buildAction?.name,
                 dependencies: prepRuntimeDeps(service.spec.dependencies),
 
                 spec: {
@@ -353,7 +359,7 @@ export const gardenPlugin = () =>
                 ...params.baseFields,
 
                 disabled: task.disabled,
-                build: buildAction ? buildAction.name : undefined,
+                build: buildAction?.name,
                 dependencies: prepRuntimeDeps(task.spec.dependencies),
                 timeout: task.spec.timeout ? task.spec.timeout : undefined,
 
@@ -372,7 +378,7 @@ export const gardenPlugin = () =>
                 ...params.baseFields,
 
                 disabled: test.disabled,
-                build: buildAction ? buildAction.name : undefined,
+                build: buildAction?.name,
                 dependencies: prepRuntimeDeps(test.spec.dependencies),
                 timeout: test.spec.timeout ? test.spec.timeout : undefined,
 
@@ -393,12 +399,6 @@ export const gardenPlugin = () =>
               },
             }
           },
-
-          suggestModules,
-          getBuildStatus: getContainerBuildStatus,
-          build: buildContainer,
-          publish: publishContainerModule,
-          getModuleOutputs: getContainerModuleOutputs,
         },
       },
     ],

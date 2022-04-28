@@ -108,7 +108,7 @@ import { Profile } from "./util/profiling"
 import { ConfigGraph } from "./config-graph"
 import { ModuleConfigContext } from "./config/template-contexts/module"
 import { GetDashboardPageParams, GetDashboardPageResult } from "./plugin/handlers/provider/getDashboardPage"
-import { GetModuleOutputsParams, GetModuleOutputsResult } from "./types/plugin/module/getModuleOutputs"
+import { GetModuleOutputsParams, GetModuleOutputsResult } from "./plugin/handlers/module/getOutputs"
 import { ConfigContext } from "./config/template-contexts/base"
 import { GetTestResultParams } from "./types/plugin/module/getTestResult"
 

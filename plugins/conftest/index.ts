@@ -132,7 +132,7 @@ export const gardenPlugin = () =>
               const startedAt = new Date()
               const provider = ctx.provider as ConftestProvider
 
-              const spec = await action.getSpec()
+              const spec = action.getSpec()
 
               const buildPath = action.buildPath
               const buildPathFiles = await listDirectory(buildPath)
@@ -198,7 +198,7 @@ export const gardenPlugin = () =>
             run: async ({ ctx, log, action }) => {
               const startedAt = new Date()
               const provider = ctx.provider as ConftestProvider
-              const spec = await action.getSpec()
+              const spec = action.getSpec()
 
               // Render the Helm chart
               // TODO: find a way to avoid these direct code dependencies
