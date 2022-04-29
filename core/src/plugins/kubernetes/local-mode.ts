@@ -49,71 +49,13 @@ interface StartLocalModeParams extends ConfigureLocalModeParams {
   namespace: string
 }
 
-// todo: init it once per service, now it's being created a few times
-class ProxySshKeystore {
-  private readonly proxySshKeyDirPath: string
-  private readonly log: LogEntry
+export class KeyPair {
+  public readonly publicKeyPath: string
+  public readonly privateKeyPath: string
 
-  constructor(proxySshKeyDirPath: string, log: LogEntry) {
-    this.proxySshKeyDirPath = proxySshKeyDirPath
-    this.log = log
-  }
-
-  private async buildProxySshKeysPathForModule(moduleName: string): Promise<string> {
-    await ensureDir(this.proxySshKeyDirPath)
-    const path = resolve(this.proxySshKeyDirPath, moduleName)
-    await ensureDir(path)
-    return path
-  }
-
-  public async getPrivateSshKeyPath(service: ContainerService): Promise<string> {
-    const moduleName = service.module.name
-    const serviceName = service.name
-    const moduleSshKeyDirPath = await this.buildProxySshKeysPathForModule(moduleName)
-    return `${join(moduleSshKeyDirPath, serviceName)}`
-  }
-
-  public async getPublicSshKeyPath(service: ContainerService): Promise<string> {
-    const privateSshKeyPath = await this.getPrivateSshKeyPath(service)
-    return `${privateSshKeyPath}.pub`
-  }
-
-  public async getPublicSshKey(service: ContainerService): Promise<string> {
-    const publicSshKeyPath = await this.getPublicSshKeyPath(service)
-    return ProxySshKeystore.readSshKeyFromFile(publicSshKeyPath)
-  }
-
-  public async generateSshKeys(
-    service: ContainerService
-  ): Promise<{ publicSshKeyPath: string; privateSshKeyPath: string }> {
-    const publicSshKeyPath = await this.getPublicSshKeyPath(service)
-    const privateSshKeyPath = await this.getPrivateSshKeyPath(service)
-    if (!existsSync(privateSshKeyPath)) {
-      await pRetry(() => execSync(`ssh-keygen -N "" -f ${privateSshKeyPath}`), {
-        retries: 5,
-        minTimeout: 2000,
-        onFailedAttempt: async (err) => {
-          this.log.warn({
-            status: "active",
-            section: service.name,
-            msg: `Failed to create an ssh key pair for reverse proxy container. ${err.retriesLeft} attempts left.`,
-          })
-        },
-      })
-    }
-    process.once("exit", () => {
-      this.deleteFile(publicSshKeyPath)
-      this.deleteFile(privateSshKeyPath)
-    })
-    return { privateSshKeyPath, publicSshKeyPath }
-  }
-
-  private deleteFile(filePath: string): void {
-    try {
-      rmSync(filePath, { force: true })
-    } catch (err) {
-      this.log.warn(`Could not remove file: ${filePath}; cause: ${err.message}`)
-    }
+  constructor(rootPath: string) {
+    this.publicKeyPath = join(rootPath, "proxy-key.pub")
+    this.privateKeyPath = join(rootPath, "proxy-key")
   }
 
   private static readSshKeyFromFile(filePath: string): string {
@@ -124,11 +66,67 @@ class ProxySshKeystore {
       throw new ConfigurationError(`Could not read public key file from path ${filePath}; cause: ${message}`, err)
     }
   }
+
+  public readPublicSshKey(): string {
+    return KeyPair.readSshKeyFromFile(this.publicKeyPath)
+  }
+}
+
+export class ProxySshKeystore {
+  /**
+   * Stores service specific {@link KeyPair} instances.
+   * Each Garden service, which is running in local mode, has its own ssh keys directory.
+   * The lifecycle of each ssh key pair for a proxy container is the same as the Garden CLI application's lifecycle.
+   * Thus, there is no need to invalidate this cache. It just memoizes each module specific existing keystore.
+   */
+  private static readonly serviceKeyPairs: Record<string, KeyPair> = {}
+
+  private static deleteFileFailSafe(filePath: string, log: LogEntry): void {
+    try {
+      rmSync(filePath, { force: true })
+    } catch (err) {
+      log.warn(`Could not remove file: ${filePath}; cause: ${err.message}`)
+    }
+  }
+
+  private static async generateSshKeys(keyPair: KeyPair, service: ContainerService, log: LogEntry): Promise<KeyPair> {
+    if (!existsSync(keyPair.privateKeyPath)) {
+      await pRetry(() => execSync(`ssh-keygen -N "" -f ${keyPair.privateKeyPath}`), {
+        retries: 5,
+        minTimeout: 2000,
+        onFailedAttempt: async (err) => {
+          log.warn({
+            status: "active",
+            section: service.name,
+            msg: `Failed to create an ssh key pair for reverse proxy container. ${err.retriesLeft} attempts left.`,
+          })
+        },
+      })
+    }
+    process.once("exit", () => {
+      ProxySshKeystore.deleteFileFailSafe(keyPair.privateKeyPath, log)
+      ProxySshKeystore.deleteFileFailSafe(keyPair.publicKeyPath, log)
+    })
+    return keyPair
+  }
+
+  public static async getKeyPair(service: ContainerService, log: LogEntry): Promise<KeyPair> {
+    const rootPath = service.module.localModeSshKeystorePath
+    const moduleDirPath = resolve(rootPath, service.module.name)
+    const serviceDirPath = resolve(moduleDirPath, service.name)
+    if (!ProxySshKeystore.serviceKeyPairs[serviceDirPath]) {
+      await ensureDir(serviceDirPath)
+      const keyPair = new KeyPair(serviceDirPath)
+      ProxySshKeystore.serviceKeyPairs[serviceDirPath] = new KeyPair(serviceDirPath)
+      await ProxySshKeystore.generateSshKeys(keyPair, service, log)
+    }
+    return ProxySshKeystore.serviceKeyPairs[serviceDirPath]
+  }
 }
 
 function cleanupKnownHosts(localPort: number, log: LogEntry): void {
   const localhostEscaped = localhost.split(".").join("\\.")
-  const command = `sed -i -r '/^\\[${localhostEscaped}\\]:${localPort}/d' $\{HOME}/.ssh/known_hosts`
+  const command = `sed -i -r '/^\\[${localhostEscaped}\\]:${localPort}/d' \${HOME}/.ssh/known_hosts`
   try {
     log.debug("Cleaning up .ssh/known_hosts file...")
     execSync(command)
@@ -142,10 +140,7 @@ function findPortByName(serviceSpec: ContainerServiceSpec, portName: string): Se
   return serviceSpec.ports.find((portSpec) => portSpec.name === portName)
 }
 
-async function prepareLocalModeEnvVars(
-  { service }: ConfigureLocalModeParams,
-  proxySshKeystore: ProxySshKeystore
-): Promise<PrimitiveMap> {
+function prepareLocalModeEnvVars({ service }: ConfigureLocalModeParams, keyPair: KeyPair): PrimitiveMap {
   const originalServiceSpec = service.spec
 
   // todo: is it a good way to pick up the right port?
@@ -157,7 +152,7 @@ async function prepareLocalModeEnvVars(
     )
   }
 
-  const publicSshKey = await proxySshKeystore.getPublicSshKey(service)
+  const publicSshKey = keyPair.readPublicSshKey()
 
   return {
     APP_PORT: httpPortSpec.containerPort,
@@ -283,14 +278,14 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
   }
   const proxyContainerName = !!remoteContainerName ? remoteContainerName : mainContainer.name
 
-  const proxySshKeystore = new ProxySshKeystore(service.module.proxySshKeyDirPath, log)
-  const { publicSshKeyPath, privateSshKeyPath } = await proxySshKeystore.generateSshKeys(service)
+  const keyPair = await ProxySshKeystore.getKeyPair(service, log)
+
   log.debug({
     section: service.name,
-    msg: `Created ssh key pair for reverse proxy container: "${publicSshKeyPath}" and "${privateSshKeyPath}".`,
+    msg: `Created ssh key pair for proxy container: "${keyPair.publicKeyPath}" and "${keyPair.privateKeyPath}".`,
   })
 
-  const localModeEnvVars = await prepareLocalModeEnvVars(configParams, proxySshKeystore)
+  const localModeEnvVars = prepareLocalModeEnvVars(configParams, keyPair)
   const localModePorts = prepareLocalModePorts(configParams)
 
   patchOriginalServiceSpec(service.spec, localModeEnvVars, localModePorts)
@@ -334,9 +329,6 @@ async function getReversePortForwardingCommand(
   { service, spec: localModeSpec, log }: StartLocalModeParams,
   localSshPort: number
 ): Promise<OsCommand> {
-  const proxySshKeystore = new ProxySshKeystore(service.module.proxySshKeyDirPath, log)
-  const privateSshKeyPath = await proxySshKeystore.getPrivateSshKeyPath(service)
-
   const localAppPort = localModeSpec.localAppPort
   const remoteContainerPortSpec = findPortByName(service.spec, defaultReverseForwardingPortName)
   if (!remoteContainerPortSpec) {
@@ -346,6 +338,7 @@ async function getReversePortForwardingCommand(
     )
   }
   const remoteContainerPort = remoteContainerPortSpec.containerPort
+  const keyPair = await ProxySshKeystore.getKeyPair(service, log)
 
   const sshCommandName = "ssh"
   const sshCommandArgs = [
@@ -358,7 +351,7 @@ async function getReversePortForwardingCommand(
     `${remoteContainerPort}:${localhost}:${localAppPort}`,
     `${PROXY_CONTAINER_USER_NAME}@${localhost}`,
     `-p${localSshPort}`,
-    `-i ${privateSshKeyPath}`,
+    `-i ${keyPair.privateKeyPath}`,
     "-oStrictHostKeyChecking=accept-new",
   ]
   return { command: sshCommandName, args: sshCommandArgs }

@@ -54,7 +54,7 @@ export interface GardenModule<
   compatibleTypes: string[]
   _config: ModuleConfig<M, S, T, W>
 
-  proxySshKeyDirPath: string
+  localModeSshKeystorePath: string
 }
 
 export const moduleSchema = () =>
@@ -86,7 +86,7 @@ export const moduleSchema = () =>
     taskDependencyNames: joiArray(joiIdentifier())
       .required()
       .description("The names of all the tasks and services that the tasks in this module depend on."),
-    proxySshKeyDirPath: joi
+    localModeSshKeystorePath: joi
       .string()
       .description("The root directory to store proxy ssh keys for the services which are running in local mode."),
   })
@@ -145,7 +145,7 @@ export async function moduleFromConfig({
     compatibleTypes,
     _config: config,
 
-    proxySshKeyDirPath: join(garden.gardenDirPath, "ssh-keys"),
+    localModeSshKeystorePath: join(garden.gardenDirPath, "ssh-keys"),
   }
 
   for (const d of module.build.dependencies) {
