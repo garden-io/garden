@@ -116,25 +116,24 @@ export class RetriableProcess {
   }
 
   private registerListeners(proc: ChildProcess): void {
-    const processSays: (string) => string = (message: string) =>
-      `[Process PID=${this.getCurrentPid()}] says "${message}"`
+    const processSays = (chunk: any) => `[Process PID=${this.getCurrentPid()}] says "${chunk.toString()}"`
 
-    const attemptsLeft: () => string = () =>
+    const attemptsLeft = () =>
       !!this.retriesLeft ? `${this.retriesLeft} attempts left, next in ${this.minTimeoutMs}ms` : "no attempts left"
 
+    const logInfo = (chunk: any) => this.log.info(processSays(chunk))
+
+    const logError = (chunk: any) => this.log.error(`${processSays(chunk)}. ${attemptsLeft()}`)
+
     proc.on("error", async (error) => {
-      this.log.error(
-        processSays(`Command '${this.command}' failed with error: ${JSON.stringify(error)}. ${attemptsLeft()}`)
-      )
+      logError(`Command '${this.command}' failed with error: ${JSON.stringify(error)}`)
 
       await this.tryRestart()
     })
 
     proc.on("close", async (code: number, signal: NodeJS.Signals) => {
       const command = this.command
-      this.log.error(
-        processSays(`Command '${command}' exited with code ${code} and signal ${signal}. ${attemptsLeft()}`)
-      )
+      logError(`Command '${command}' exited with code ${code} and signal ${signal}.`)
 
       await this.tryRestart()
     })
@@ -143,12 +142,12 @@ export class RetriableProcess {
       const hasErrorsFn = this.stderrListener?.hasErrors
       if (!hasErrorsFn || hasErrorsFn(chunk)) {
         const command = this.command
-        this.log.error(processSays(`Command '${command}' terminated: ${chunk}. ${attemptsLeft()}`))
+        logError(`Command '${command}' terminated: ${chunk}.`)
         this.stderrListener?.onError(chunk)
 
         await this.tryRestart()
       } else {
-        this.log.info(processSays(chunk))
+        logInfo(processSays(chunk))
         this.resetRetriesLeftRecursively()
       }
     })
@@ -156,7 +155,7 @@ export class RetriableProcess {
     proc.stdout!.on("data", async (chunk: any) => {
       const hasErrorsFn = this.stdoutListener?.hasErrors
       if (!hasErrorsFn || !hasErrorsFn(chunk)) {
-        this.log.info(processSays(chunk))
+        logInfo(processSays(chunk))
         this.resetRetriesLeftRecursively()
       } else {
         const command = this.command
@@ -210,7 +209,7 @@ export class RetriableProcess {
 
   public addDescendantProcess(descendant: RetriableProcess): RetriableProcess {
     if (this.state === "running") {
-      throw new RuntimeError("Cannot attach a descendant to already rinning process", this)
+      throw new RuntimeError("Cannot attach a descendant to already running process", this)
     }
 
     //descendant.parent = this
