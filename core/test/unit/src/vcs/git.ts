@@ -485,6 +485,23 @@ describe("GitHandler", () => {
         expect(paths).to.eql([".gitmodules", join("sub", initFile)])
       })
 
+      it("should work if submodule is not initialized and not include any files", async () => {
+        await execa("git", ["submodule", "deinit", "--all"], { cwd: tmpPath })
+        const files = await handler.getFiles({ path: tmpPath, log })
+        const paths = files.map((f) => relative(tmpPath, f.path))
+
+        expect(paths).to.eql([".gitmodules", "sub"])
+      })
+
+      it("should work if submodule is initialized but not updated", async () => {
+        await execa("git", ["submodule", "deinit", "--all"], { cwd: tmpPath })
+        await execa("git", ["submodule", "init"], { cwd: tmpPath })
+        const files = await handler.getFiles({ path: tmpPath, log })
+        const paths = files.map((f) => relative(tmpPath, f.path))
+
+        expect(paths).to.eql([".gitmodules", "sub"])
+      })
+
       it("should include tracked files in submodules when multiple dotignore files are set", async () => {
         const _handler = new GitHandler(
           tmpPath,
