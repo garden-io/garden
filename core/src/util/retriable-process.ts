@@ -99,6 +99,11 @@ export class RetriableProcess {
     return this.proc?.pid
   }
 
+  private static recursiveAction(node: RetriableProcess, action: (node: RetriableProcess) => void): void {
+    action(node)
+    node.descendants.forEach((descendant) => RetriableProcess.recursiveAction(descendant, action))
+  }
+
   private kill(): void {
     const proc = this.proc
     if (!proc) {
@@ -111,8 +116,7 @@ export class RetriableProcess {
   }
 
   private killRecursively(): void {
-    this.kill()
-    this.descendants.forEach((descendant) => descendant.killRecursively())
+    RetriableProcess.recursiveAction(this, (node) => node.kill())
   }
 
   private registerListeners(proc: ChildProcess): void {
@@ -177,8 +181,7 @@ export class RetriableProcess {
   }
 
   private unregisterListenersRecursively(): void {
-    this.unregisterListeners()
-    this.descendants.forEach((descendant) => descendant.unregisterListenersRecursively())
+    RetriableProcess.recursiveAction(this, (node) => node.unregisterListeners())
   }
 
   private resetRetriesLeft(): void {
@@ -186,8 +189,7 @@ export class RetriableProcess {
   }
 
   private resetRetriesLeftRecursively(): void {
-    this.resetRetriesLeft()
-    this.descendants.forEach((descendant) => descendant.resetRetriesLeftRecursively())
+    RetriableProcess.recursiveAction(this, (node) => node.resetRetriesLeft())
   }
 
   private async tryRestart(): Promise<void> {
