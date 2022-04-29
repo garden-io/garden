@@ -30,6 +30,7 @@
 ## 🌿 Guides
 
 * [Cloud Provider Set-up](./guides/cloud-provider-setup.md)
+  * [Set up K8s and Garden on Digital Ocean](./guides/digital-ocean-setup.md)
 * [Code Synchronization (Dev Mode)](./guides/code-synchronization-dev-mode.md)
 * [Container Modules](./guides/container-modules.md)
 * [Helm Charts](./guides/using-helm-charts.md)
