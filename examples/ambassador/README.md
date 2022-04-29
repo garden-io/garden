@@ -2,7 +2,7 @@
 
 ## Note:
 
-This example is outdated and might not work with newer kubernetes versions. If you need an up to date ambassador example please file a issue or a pr.
+This example is outdated and might not work with newer kubernetes versions. If you need an up-to-date ambassador example please file an issue or a PR.
 
 ## Intro:
 
