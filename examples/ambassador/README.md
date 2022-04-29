@@ -1,5 +1,11 @@
 # Ambassador example project
 
+## Note:
+
+This example is outdated and might not work with newer kubernetes versions. If you need an up to date ambassador example please file a issue or a pr.
+
+## Intro:
+
 This example project demonstrates how to use the [Ambassador API Gateway](https://www.getambassador.io/) instead of the default Nginx ingress controller. Ambassador is an open source, Kubernetes-Native, API Gateway built on the [Envoy Proxy](https://github.com/envoyproxy/envoy). Services are configured via [annotations](https://docs.garden.io/reference/module-types/container#module-services-annotations) which Ambassador reads to configure its Envoy Proxy.
 
 Even though we chose Ambassador for this project, the same principles apply to e.g. [Traefik](https://traefik.io/), which also supports configuring route mappings via service annotations.
