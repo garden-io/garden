@@ -199,8 +199,8 @@ export class GitHandler extends VcsHandler {
           )
     )
 
-    // List all submodule paths in the current repo
-    const submodules = await this.getSubmodules(gitRoot)
+    // List all submodule paths in the current path
+    const submodules = await this.getSubmodules(path)
     const submodulePaths = submodules.map((s) => join(gitRoot, s.path))
     if (submodules.length > 0) {
       log.silly(`Submodules listed at ${submodules.map((s) => `${s.path} (${s.url})`).join(", ")}`)
@@ -591,12 +591,12 @@ export class GitHandler extends VcsHandler {
     }
   }
 
-  private async getSubmodules(gitRoot: string) {
+  private async getSubmodules(gitModulesConfigPath: string) {
     const submodules: Submodule[] = []
-    const gitmodulesPath = join(gitRoot, ".gitmodules")
+    const gitmodulesPath = join(gitModulesConfigPath, ".gitmodules")
 
     if (await pathExists(gitmodulesPath)) {
-      const parsed = await parseGitConfig({ cwd: gitRoot, path: ".gitmodules" })
+      const parsed = await parseGitConfig({ cwd: gitModulesConfigPath, path: ".gitmodules" })
 
       for (const [key, spec] of Object.entries(parsed || {}) as any) {
         if (!key.startsWith("submodule")) {
