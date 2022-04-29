@@ -45,6 +45,7 @@ export type CommandExecutor = (command: string) => ChildProcess
 export namespace CommandExecutors {
   export const spawnExecutor: CommandExecutor = (command: string) => spawn(command, { shell: true })
   export const execExecutor: CommandExecutor = (command: string) => exec(command)
+  // no fork executor support yet
 }
 
 export interface RetriableProcessConfig {

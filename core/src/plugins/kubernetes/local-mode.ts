@@ -221,6 +221,7 @@ function patchOriginalServiceSpec(
 /**
  * Patches the main container by adding localMode-specific settings like ports, environment variables,
  * docker image name and readiness probe settings.
+ *
  * @param mainContainer the main container object to be patched
  * @param proxyContainerName the target container name
  * @param localModeEnvVars the list of localMode-specific environment variables
@@ -329,10 +330,6 @@ async function getSshPortForwardCommand(
   return { command: kubectlPath, args: portForwardArgs }
 }
 
-/**
- * Starts reverse port forwarding from the remote service's containerPort to the local app port.
- * This reverse port forwarding works on top of the existing ssh tunnel.
- */
 async function getReversePortForwardingCommand(
   { service, spec: localModeSpec, log }: StartLocalModeParams,
   localSshPort: number
@@ -384,8 +381,9 @@ function composeProcessTree(
 
 /**
  * Configures the necessary port forwarding to replace remote k8s service by a local one:
- *   1. Opens SSH tunnel between the local machine and the remote k8s service.
- *   2. Starts reverse port forwarding from the remote proxy's containerPort to the local app port.
+ *   1. Starts a local service if a corresponding command is provided in the local mode config.
+ *   2. Opens SSH tunnel between the local machine and the remote k8s service.
+ *   3. Starts reverse port forwarding from the remote proxy's containerPort to the local app port.
  */
 export async function startServiceInLocalMode(configParams: StartLocalModeParams): Promise<void> {
   const { target, service, log } = configParams
@@ -424,6 +422,10 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
     stderrListener: {
       hasErrors: (chunk: any) => {
         const output = chunk.toString()
+        // A message containing "warning: permanently added" is printed by ssh command
+        // when the connection is established and the public key is added to the local known_hosts file.
+        // This message is printed to stderr, but it should not be considered as an error.
+        // It indicates the successful connection.
         return !output.toLowerCase().includes("warning: permanently added")
       },
       onError: (chunk: any) => {
