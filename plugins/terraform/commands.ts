@@ -11,13 +11,12 @@ import { terraform } from "./cli"
 import { TerraformProvider } from "."
 import { ConfigurationError, ParameterError } from "@garden-io/sdk/exceptions"
 import { prepareVariables, setWorkspace, tfValidate } from "./common"
-import { GardenModule, PluginCommand, PluginCommandParams } from "@garden-io/sdk/types"
-import { TerraformModule } from "./module"
+import { ConfigGraph, PluginCommand, PluginCommandParams } from "@garden-io/sdk/types"
 import { join } from "path"
 import { remove } from "fs-extra"
 
 import { getProviderStatusCachePath } from "@garden-io/core/build/src/tasks/resolve-provider"
-import { findByName } from "@garden-io/core/build/src/util/util"
+import { TerraformDeploy } from "./action"
 
 const commandsToWrap = ["apply", "plan", "destroy"]
 const initCommand = chalk.bold("terraform init")
@@ -25,7 +24,7 @@ const initCommand = chalk.bold("terraform init")
 export const getTerraformCommands = (): PluginCommand[] =>
   commandsToWrap.flatMap((commandName) => [makeRootCommand(commandName), makeModuleCommand(commandName)])
 
-function makeRootCommand(commandName: string) {
+function makeRootCommand(commandName: string): PluginCommand {
   const terraformCommand = chalk.bold("terraform " + commandName)
 
   return {
@@ -71,29 +70,30 @@ function makeRootCommand(commandName: string) {
   }
 }
 
-function makeModuleCommand(commandName: string) {
+function makeModuleCommand(commandName: string): PluginCommand {
   const terraformCommand = chalk.bold("terraform " + commandName)
 
   return {
     name: commandName + "-module",
-    description: `Runs ${terraformCommand} for the specified module, with the module variables automatically configured as inputs. Use the module name as first argument, followed by any arguments you want to pass to the command. If necessary, ${initCommand} is run first.`,
-    resolveModules: true,
+    description: `Runs ${terraformCommand} for the specified terraform Deploy, with variables automatically configured as inputs. Use the module name as first argument, followed by any arguments you want to pass to the command. If necessary, ${initCommand} is run first.`,
+    resolveGraph: true,
 
     title: ({ args }) =>
       chalk.bold.magenta(`Running ${chalk.white.bold(terraformCommand)} for module ${chalk.white.bold(args[0] || "")}`),
 
-    async handler({ ctx, args, log, modules }) {
-      const module = findModule(modules, args[0])
+    async handler({ ctx, args, log, graph }) {
+      const action = findAction(graph, args[0])
+      const spec = action.getSpec()
 
-      const root = join(module.path, module.spec.root)
+      const root = join(action.getBasePath(), spec.root)
 
       const provider = ctx.provider as TerraformProvider
-      const workspace = module.spec.workspace || null
+      const workspace = spec.workspace || null
 
       await setWorkspace({ ctx, provider, root, log, workspace })
       await tfValidate({ ctx, provider, root, log })
 
-      args = [commandName, ...(await prepareVariables(root, module.spec.variables)), ...args.slice(1)]
+      args = [commandName, ...(await prepareVariables(root, spec.variables)), ...args.slice(1)]
       await terraform(ctx, provider).spawnAndWait({
         log,
         args,
@@ -108,24 +108,19 @@ function makeModuleCommand(commandName: string) {
   }
 }
 
-function findModule(modules: GardenModule[], name: string): TerraformModule {
+function findAction(graph: ConfigGraph, name: string): TerraformDeploy {
   if (!name) {
-    throw new ParameterError(`The first command argument must be a module name.`, { name })
+    throw new ParameterError(`The first command argument must be an action name.`, { name })
   }
 
-  const module = findByName(modules, name)
+  const action = graph.getDeploy<TerraformDeploy>(name)
 
-  if (!module) {
-    throw new ParameterError(chalk.red(`Could not find module ${chalk.white(name)}.`), {})
-  }
-
-  if (!module.compatibleTypes.includes("terraform")) {
-    throw new ParameterError(chalk.red(`Module ${chalk.white(name)} is not a terraform module.`), {
+  if (!action.isCompatible("terraform")) {
+    throw new ParameterError(chalk.red(`Action ${chalk.white(name)} is not a terraform action (got ${action.type}).`), {
       name,
-      type: module.type,
-      compatibleTypes: module.compatibleTypes,
+      type: action.type,
     })
   }
 
-  return module
+  return action
 }

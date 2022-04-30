@@ -13,7 +13,12 @@ import { getPortForwardHandler } from "../port-forward"
 import { getActionNamespace } from "../namespace"
 import { KubernetesDeployAction, kubernetesDeploySchema } from "./config"
 import { execInKubernetesDeploy } from "./exec"
-import { deleteKubernetesDeploy, getKubernetesDeployLogs, getKubernetesDeployStatus, kubernetesDeploy } from "./handlers"
+import {
+  deleteKubernetesDeploy,
+  getKubernetesDeployLogs,
+  getKubernetesDeployStatus,
+  kubernetesDeploy,
+} from "./handlers"
 
 export const kubernetesDeployDocs = dedent`
   Specify one or more Kubernetes manifests to deploy.
@@ -53,3 +58,4 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
     },
   },
 })
+

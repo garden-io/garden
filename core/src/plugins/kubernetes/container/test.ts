@@ -30,14 +30,13 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
     addCapabilities,
     dropCapabilities,
   } = action.getSpec()
-  const testName = test.name
   const timeout = action.getConfig("timeout") || DEFAULT_TEST_TIMEOUT
   const k8sCtx = ctx as KubernetesPluginContext
 
   const image = getDeploymentImageId(action)
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
 
-  const result = await runAndCopy({
+  const res = await runAndCopy({
     ...params,
     command,
     args,
@@ -55,16 +54,18 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
     dropCapabilities,
   })
 
+  const result = {
+    testName: action.name,
+    namespaceStatus,
+    ...res,
+  }
+
   await storeTestResult({
     ctx,
     log,
     action,
-    result: {
-      testName,
-      namespaceStatus,
-      ...result,
-    },
+    result,
   })
 
-  return { result, outputs: {} }
+  return { result, outputs: { log: res.log } }
 }

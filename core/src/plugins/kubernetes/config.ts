@@ -846,12 +846,10 @@ export const targetResourceSpecSchema = () =>
       kind: joi
         .string()
         .valid(...syncableKinds)
-        .description("The kind of Kubernetes resource to target."),
+        .description("The kind of Kubernetes resource to find."),
       name: joi
         .string()
-        .description(
-          "The name of the resource to sync to, of the specified `kind`. If specified, you must also specify `kind`."
-        ),
+        .description("The name of the resource, of the specified `kind`. If specified, you must also specify `kind`."),
       podSelector: podSelectorSchema(),
       containerName: targetContainerNameSchema(),
     })
@@ -957,7 +955,7 @@ export const portForwardsSchema = () =>
       "Manually specify port forwards that Garden should set up when deploying in dev or watch mode. If specified, these override the auto-detection of forwardable ports, so you'll need to specify the full list of port forwards to create."
     )
 
-const runPodSpecWhitelistDescription = () => runPodSpecIncludeFields.map((f) => `* \`${f}\``).join("\n")
+export const runPodSpecWhitelistDescription = () => runPodSpecIncludeFields.map((f) => `* \`${f}\``).join("\n")
 
 export const kubernetesCommonRunSchemaKeys = () => ({
   cacheResult: cacheResultSchema(),

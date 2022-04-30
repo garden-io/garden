@@ -12,7 +12,6 @@ import {
   namespaceNameSchema,
   PortForwardSpec,
   portForwardsSchema,
-  targetResourceSpecSchema,
 } from "../config"
 import { kubernetesDeployDevModeSchema, KubernetesDeployDevModeSpec } from "../dev-mode"
 import { DeployAction, DeployActionConfig } from "../../../actions/deploy"

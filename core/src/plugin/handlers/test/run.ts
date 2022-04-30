@@ -8,20 +8,18 @@
 
 import { dedent } from "../../../util/string"
 import { artifactsPathSchema, PluginTestActionParamsBase } from "../../../plugin/base"
-import { RuntimeContext } from "../../../runtime-context"
 import { TestAction } from "../../../actions/test"
 import { runBuildBaseSchema } from "../build/run"
 import { joi } from "../../../config/common"
 import { testResultSchema } from "../../../types/test"
 import { ActionTypeHandlerSpec } from "../base/base"
 import { GetTestResult } from "./get-result"
+import { CommonRunParams } from "../run/run"
 
-interface TestActionParams<T extends TestAction> extends PluginTestActionParamsBase<T> {
-  artifactsPath: string
-  interactive: boolean
-  runtimeContext: RuntimeContext
-  silent: boolean
-}
+type TestActionParams<T extends TestAction> = PluginTestActionParamsBase<T> &
+  CommonRunParams & {
+    silent: boolean
+  }
 
 export class RunTestAction<T extends TestAction = TestAction> extends ActionTypeHandlerSpec<
   "test",

@@ -14,12 +14,7 @@ import { getAppNamespace, getSystemNamespace } from "./namespace"
 import { getSecret, setSecret, deleteSecret } from "./secrets"
 import { getEnvironmentStatus, prepareEnvironment, cleanupEnvironment } from "./init"
 import { containerHandlers } from "./container/handlers"
-import {
-  deleteKubernetesDeploy,
-  getKubernetesDeployLogs,
-  kubernetesDeploy,
-  kubernetesHandlers,
-} from "./kubernetes-type/handlers"
+import { kubernetesHandlers } from "./kubernetes-type/handlers"
 import { ConfigureProviderParams } from "../../plugin/handlers/provider/configureProvider"
 import { DebugInfo, GetDebugInfoParams } from "../../plugin/handlers/provider/getDebugInfo"
 import { kubectl, kubectlSpec } from "./kubectl"
@@ -48,8 +43,10 @@ import { configMapModuleDefinition } from "./volumes/configmap"
 import { jibContainerHandlers, k8sJibContainerBuildExtension } from "./jib-container"
 import { kustomizeSpec } from "./kubernetes-type/kustomize"
 import { k8sContainerBuildExtension, k8sContainerDeployExtension } from "./container/extensions"
-import { helmDeployDefinition, helmDeployDocs } from "./helm/actions"
-import { kubernetesDeployDefinition, kubernetesDeployDocs } from "./kubernetes-type/actions"
+import { helmDeployDefinition, helmDeployDocs } from "./helm/action"
+import { kubernetesDeployDefinition, kubernetesDeployDocs } from "./kubernetes-type/deploy"
+import { kubernetesRunDefinition } from "./kubernetes-type/run"
+import { kubernetesTestDefinition } from "./kubernetes-type/test"
 
 export async function configureProvider({
   namespace,
@@ -174,10 +171,7 @@ export const gardenPlugin = () =>
     },
 
     createActionTypes: {
-      deploy: [
-        kubernetesDeployDefinition(),
-        helmDeployDefinition(),
-      ],
+      deploy: [kubernetesDeployDefinition(), helmDeployDefinition()],
       run: [kubernetesRunDefinition()],
       test: [kubernetesTestDefinition()],
     },

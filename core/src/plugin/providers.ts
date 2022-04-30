@@ -40,9 +40,6 @@ export type ProviderActionHandlers = {
   [P in keyof ProviderActionParams]: ActionHandler<ProviderActionParams[P], ProviderActionOutputs[P]>
 }
 
-// export type AllActionHandlers<T extends GardenModule = GardenModule> = PluginActionHandlers &
-//   ModuleAndRuntimeActionHandlers<T>
-
 export type ProviderActionName = keyof ProviderActionHandlers
 
 export interface ProviderActionParams {

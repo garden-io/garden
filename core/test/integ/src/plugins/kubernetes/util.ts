@@ -237,7 +237,7 @@ describe("util", () => {
         provider: ctx.provider,
         module,
         manifests,
-        resourceSpec: getServiceResourceSpec(module, undefined),
+        query: getServiceResourceSpec(module, undefined),
       })
       const expected = find(manifests, (r) => r.kind === "Deployment")
       expect(result).to.eql(expected)
@@ -262,7 +262,7 @@ describe("util", () => {
             provider: ctx.provider,
             module,
             manifests,
-            resourceSpec: getServiceResourceSpec(module, undefined),
+            query: getServiceResourceSpec(module, undefined),
           }),
         (err) =>
           expect(stripAnsi(err.message)).to.equal(
@@ -295,7 +295,7 @@ describe("util", () => {
             provider: ctx.provider,
             module,
             manifests,
-            resourceSpec,
+            query: resourceSpec,
           }),
         (err) => expect(stripAnsi(err.message)).to.equal("helm module api contains no DaemonSets.")
       )
@@ -323,7 +323,7 @@ describe("util", () => {
             provider: ctx.provider,
             module,
             manifests,
-            resourceSpec,
+            query: resourceSpec,
           }),
         (err) => expect(stripAnsi(err.message)).to.equal("helm module api does not contain specified Deployment foo")
       )
@@ -350,7 +350,7 @@ describe("util", () => {
             provider: ctx.provider,
             module,
             manifests,
-            resourceSpec: getServiceResourceSpec(module, undefined),
+            query: getServiceResourceSpec(module, undefined),
           }),
         (err) =>
           expect(stripAnsi(err.message)).to.equal(
@@ -377,7 +377,7 @@ describe("util", () => {
         provider: ctx.provider,
         module,
         manifests,
-        resourceSpec: getServiceResourceSpec(module, undefined),
+        query: getServiceResourceSpec(module, undefined),
       })
       const expected = find(manifests, (r) => r.kind === "StatefulSet")
       expect(result).to.eql(expected)
@@ -418,7 +418,7 @@ describe("util", () => {
           module,
           manifests: [],
 
-          resourceSpec,
+          query: resourceSpec,
         })
 
         expect(pod.kind).to.equal("Pod")
@@ -444,7 +444,7 @@ describe("util", () => {
               module,
               manifests: [],
 
-              resourceSpec,
+              query: resourceSpec,
             }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(

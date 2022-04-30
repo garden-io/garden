@@ -21,7 +21,7 @@ export interface GetRunResult<T extends RunAction> {
   outputs: GetActionOutputType<T> | null
 }
 
-export class GetRunActionResult<T extends RunAction = RunAction> extends ActionTypeHandlerSpec<
+export class GetRunActionResult<T extends RunAction> extends ActionTypeHandlerSpec<
   "run",
   GetRunResultParams<T>,
   GetRunResult<T>

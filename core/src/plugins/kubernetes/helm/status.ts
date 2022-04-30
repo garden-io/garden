@@ -111,6 +111,8 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
           log,
           action,
           provider: k8sCtx.provider,
+          manifests: deployedResources,
+          query: resourceSpec,
         })
 
         await Bluebird.map(spec.devMode.syncs, async (syncSpec) => {

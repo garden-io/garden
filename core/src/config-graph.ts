@@ -22,8 +22,9 @@ import { TaskConfig } from "./config/task"
 import { makeTestTaskName } from "./tasks/helpers"
 import { TaskType, makeBaseKey } from "./tasks/base"
 import { testFromModule, GardenTest, testFromConfig } from "./types/test"
-import { ResolvedAction } from "./actions/base"
-import { BuildAction } from "./actions/build"
+import { ResolvedAction, ResolvedRuntimeAction } from "./actions/base"
+import { BuildAction, ResolvedBuildAction } from "./actions/build"
+import { DeployAction } from "./actions/deploy"
 
 // Each of these types corresponds to a Task class (e.g. BuildTask, DeployTask, ...).
 export type DependencyGraphNodeType = "build" | "deploy" | "run" | "test"
@@ -295,7 +296,19 @@ export class ConfigGraph {
     return moduleConfig.disabled || dep.config.disabled
   }
 
-  getBuild<T extends BuildAction>(name: string): ResolvedAction<T> {
+  getBuild<T extends BuildAction = BuildAction>(name: string): ResolvedBuildAction<T> {
+    // TODO-G2
+  }
+
+  getBuilds<T extends BuildAction = BuildAction>({ names, includeDisabled = false }: { names?: string[]; includeDisabled?: boolean } = {}): ResolvedBuildAction<T>[] {
+    // TODO-G2
+  }
+
+  getDeploy<T extends DeployAction = DeployAction>(name: string): ResolvedRuntimeAction<T> {
+    // TODO-G2
+  }
+
+  getDeploys<T extends DeployAction = DeployAction>({ names, includeDisabled = false }: { names?: string[]; includeDisabled?: boolean } = {}): ResolvedRuntimeAction<T>[] {
     // TODO-G2
   }
 

@@ -21,7 +21,7 @@ import {
 import { ContainerBuildMode, KubernetesProvider } from "../config"
 import { getPortForwardHandler } from "../port-forward"
 import { k8sGetRunResult } from "../run-results"
-import { k8sGetContainerTestResult } from "../test-results"
+import { k8sGetTestResult } from "../test-results"
 import { getBuildkitBuildStatus, buildkitBuildHandler } from "./build/buildkit"
 import { getClusterDockerBuildStatus, clusterDockerBuild } from "./build/cluster-docker"
 import { BuildStatusHandler, BuildHandler } from "./build/common"
@@ -86,7 +86,7 @@ export const k8sContainerTestExtension = (): TestActionExtension<ContainerTestAc
   name: "container",
   handlers: {
     run: k8sContainerTest,
-    getResult: k8sGetContainerTestResult,
+    getResult: k8sGetTestResult,
   },
 })
 

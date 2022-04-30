@@ -20,7 +20,7 @@ import { RunAction } from "../actions/run"
 import { TestAction } from "../actions/test"
 
 export interface ActionHandlerParamsBase<O = any> {
-  base?: ActionHandler<this, O>
+  base?: ActionHandler<any, O>
 }
 
 export type ActionHandler<P extends ActionHandlerParamsBase, O> = ((params: P) => Promise<O>) & {

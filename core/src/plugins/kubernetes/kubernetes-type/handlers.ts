@@ -29,7 +29,6 @@ import {
 import { BaseResource, KubernetesResource, KubernetesServerResource, SyncableResource } from "../types"
 import { convertServiceResource, gardenNamespaceAnnotationValue, getManifests } from "./common"
 import { configureKubernetesModule, KubernetesModule } from "./module-config"
-import { testKubernetesModule } from "./test"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import { ExecBuildConfig } from "../../exec/config"
 import { KubernetesActionConfig, KubernetesDeployAction, KubernetesDeployActionConfig } from "./config"
@@ -80,9 +79,9 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
     actions.push(deployAction)
 
     for (const task of module.testConfigs) {
-      const target = convertServiceResource(module, task.spec.resource)
+      const resource = convertServiceResource(module, task.spec.resource)
 
-      if (!target) {
+      if (!resource) {
         continue
       }
 
@@ -98,15 +97,15 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
         spec: {
           ...task.spec,
-          target,
+          resource,
         },
       })
     }
 
     for (const test of module.testConfigs) {
-      const target = convertServiceResource(module, test.spec.resource)
+      const resource = convertServiceResource(module, test.spec.resource)
 
-      if (!target) {
+      if (!resource) {
         continue
       }
 
@@ -122,7 +121,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
         spec: {
           ...test.spec,
-          target,
+          resource,
         },
       })
     }
@@ -137,11 +136,6 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
       },
     }
   },
-
-  getTaskResult,
-  getTestResult,
-  runTask: runKubernetesTask,
-  testModule: testKubernetesModule,
 }
 
 interface KubernetesStatusDetail {

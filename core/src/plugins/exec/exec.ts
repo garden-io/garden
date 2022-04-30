@@ -45,7 +45,14 @@ import {
   execTestActionSchema,
 } from "./config"
 import { configureExecModule, ExecModule, execModuleSpecSchema } from "./moduleConfig"
-import { BuildActionHandler, DeployActionHandler, RunActionHandler, TestActionHandler } from "../../plugin/action-types"
+import {
+  BuildActionHandler,
+  DeployActionHandler,
+  RunActionDefinition,
+  RunActionHandler,
+  TestActionDefinition,
+  TestActionHandler,
+} from "../../plugin/action-types"
 import { Action } from "../../actions/base"
 import { BuildResult } from "../../plugin/handlers/build/build"
 
@@ -187,7 +194,7 @@ export const buildExecModule: BuildActionHandler<"build", ExecBuild> = async ({ 
   }
   // keep track of which version has been built
   const buildVersionFilePath = join(action.buildMetadataPath, GARDEN_BUILD_VERSION_FILENAME)
-  await writeModuleVersionFile(buildVersionFilePath, action.version)
+  await writeModuleVersionFile(buildVersionFilePath, action.getFullVersion())
 
   return output
 }
@@ -208,14 +215,17 @@ export const execTestAction: TestActionHandler<"run", ExecTest> = async ({ log, 
   }
 
   return {
-    moduleName: action.moduleName || action.name,
-    command,
-    testName: action.name,
-    version: action.getVersionString(),
-    success: result.exitCode === 0,
-    startedAt,
-    completedAt: new Date(),
-    log: outputLog,
+    result: {
+      moduleName: action.getModuleName(),
+      command,
+      testName: action.name,
+      version: action.getVersionString(),
+      success: result.exitCode === 0,
+      startedAt,
+      completedAt: new Date(),
+      log: outputLog,
+      outputs: {},
+    },
     outputs: {},
   }
 }
@@ -247,17 +257,20 @@ export const execRunAction: RunActionHandler<"run", ExecRun> = async ({ artifact
   await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
 
   return {
-    moduleName: action.moduleName || action.name,
-    taskName: action.name,
-    command,
-    version: action.getVersionString(),
-    success,
-    log: outputLog,
-    outputs: {
+    result: {
+      moduleName: action.getModuleName(),
+      taskName: action.name,
+      command,
+      version: action.getVersionString(),
+      success,
       log: outputLog,
+      outputs: {
+        log: outputLog,
+      },
+      startedAt,
+      completedAt,
     },
-    startedAt,
-    completedAt,
+    outputs: {},
   }
 }
 
@@ -292,13 +305,14 @@ const runExecBuild: BuildActionHandler<"run", ExecBuild> = async (params) => {
   }
 
   return {
-    moduleName: action.moduleName || action.name,
+    moduleName: action.getModuleName(),
     command: [],
     version: action.getVersionString(),
     success,
     log: outputLog,
     startedAt,
     completedAt,
+    outputs: {},
   }
 }
 
@@ -530,7 +544,7 @@ export const execPlugin = () =>
         },
       ],
       run: [
-        {
+        <RunActionDefinition<ExecRun>>{
           name: "exec",
           docs: dedent`
             A simple Run action which runs a command locally with a shell command.
@@ -542,7 +556,7 @@ export const execPlugin = () =>
         },
       ],
       test: [
-        {
+        <TestActionDefinition<ExecTest>>{
           name: "exec",
           docs: dedent`
             A simple Test action which runs a command locally with a shell command.
@@ -571,16 +585,6 @@ export const execPlugin = () =>
         `,
         moduleOutputsSchema: joi.object().keys({}),
         schema: execModuleSpecSchema(),
-        taskOutputsSchema: joi.object().keys({
-          log: joi
-            .string()
-            .allow("")
-            .default("")
-            .description(
-              "The full log from the executed task. " +
-                "(Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)"
-            ),
-        }),
         handlers: {
           configure: configureExecModule,
 

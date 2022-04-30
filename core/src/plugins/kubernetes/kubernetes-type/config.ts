@@ -7,26 +7,14 @@
  */
 
 import { joi, joiSparseArray } from "../../../config/common"
-import {
-  namespaceNameSchema,
-  portForwardsSchema,
-  PortForwardSpec,
-  KubernetesCommonRunSpec,
-  kubernetesCommonRunSchemaKeys,
-  targetResourceSpecSchema,
-  KubernetesTargetResourceSpec,
-} from "../config"
-import {
-  kubernetesDeployDevModeSchema,
-  KubernetesDeployDevModeSpec,
-} from "../dev-mode"
+import { portForwardsSchema, PortForwardSpec, KubernetesTargetResourceSpec } from "../config"
+import { kubernetesDeployDevModeSchema, KubernetesDeployDevModeSpec } from "../dev-mode"
 import { KubernetesKustomizeSpec, kustomizeSpecSchema } from "./kustomize"
-import { KubernetesResource } from "../types"
-import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
-import { RunAction, RunActionConfig } from "../../../actions/run"
-import { TestAction, TestActionConfig } from "../../../actions/test"
+import type { KubernetesResource } from "../types"
+import type { DeployAction, DeployActionConfig } from "../../../actions/deploy"
 import { defaultTargetSchema } from "../helm/config"
-import { containerRunOutputSchema } from "../../container/config"
+import type { KubernetesRunActionConfig } from "./run"
+import type { KubernetesTestActionConfig } from "./test"
 
 // DEPLOY //
 
@@ -76,41 +64,6 @@ export const kubernetesDeploySchema = () =>
     defaultTarget: defaultTargetSchema(),
     devMode: kubernetesDeployDevModeSchema(),
   })
-
-// RUN //
-
-interface KubernetesRunOutputs {
-  log: string
-}
-
-export const kubernetesRunOutputsSchema = () => containerRunOutputSchema()
-
-interface KubernetesRunActionSpec extends KubernetesCommonRunSpec {
-  target: KubernetesTargetResourceSpec
-}
-export type KubernetesRunActionConfig = RunActionConfig<"kubernetes", KubernetesRunActionSpec>
-export type KubernetesRunAction = RunAction<KubernetesRunActionConfig, KubernetesRunOutputs>
-
-export const kubernetesRunActionSchema = () =>
-  joi.object().keys({
-    ...kubernetesCommonRunSchemaKeys(),
-    target: targetResourceSpecSchema()
-      .required()
-      .description("The Kubernetes resource to derive the Pod spec from, for the run."),
-    // TODO
-    // execInTarget: joi.boolean().description("Run directly inside a running container for the matched `target`.")
-  })
-
-// TEST //
-
-interface KubernetesTestOutputs extends KubernetesRunOutputs {}
-export const kubernetesTestOutputsSchema = () => kubernetesRunOutputsSchema()
-
-interface KubernetesTestActionSpec extends KubernetesRunActionSpec {}
-export type KubernetesTestActionConfig = TestActionConfig<"kubernetes", KubernetesTestActionSpec>
-export type KubernetesTestAction = TestAction<KubernetesTestActionConfig, KubernetesTestOutputs>
-
-export const kubernetesTestActionSchema = () => kubernetesRunActionSchema()
 
 // COMMON //
 
