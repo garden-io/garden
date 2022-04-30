@@ -19,7 +19,7 @@ import { KubeApi, KubernetesError } from "./api"
 import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util/string"
 import { MAX_CONFIGMAP_DATA_SIZE, systemDockerAuthSecretName } from "./constants"
 import { ContainerEnvVars } from "../container/moduleConfig"
-import { ConfigurationError, DeploymentError, PluginError } from "../../exceptions"
+import { ConfigurationError, DeploymentError, InternalError, PluginError } from "../../exceptions"
 import {
   ServiceResourceSpec,
   KubernetesProvider,
@@ -571,20 +571,20 @@ interface GetTargetResourceParams {
   ctx: PluginContext
   log: LogEntry
   provider: KubernetesProvider
-  manifests: KubernetesResource[]
+  manifests?: KubernetesResource[]
   action: SupportedRuntimeActions
-  resourceSpec: KubernetesTargetResourceSpec
+  query: KubernetesTargetResourceSpec
 }
 
 // TODO-G2
 /**
- * Finds and returns the configured resource from the specified manifests, that we can use for
- * service-specific functionality.
+ * Finds and returns the configured resource.
  *
- * Optionally provide a `resourceSpec`, which is then used instead of the default `module.serviceResource` spec.
- * This is used when individual tasks or tests specify a resource.
+ * If a `podSelector` is set on the query, we look for a running Pod matching the selector.
+ * If `manifests` are provided and the query doesn't set a `podSelector`, the resource is looked for in the given list.
+ * Otherwise the project namespace is queried for resource matching the kind and name in the query.
  *
- * Throws an error if no valid resource spec is given, or the resource spec doesn't match any of the given resources.
+ * Throws an error if an invalid query is given, or the resource spec doesn't match any of the given resources.
  */
 export async function getTargetResource({
   ctx,
@@ -592,84 +592,117 @@ export async function getTargetResource({
   provider,
   manifests,
   action,
-  resourceSpec,
+  query,
 }: GetTargetResourceParams): Promise<SyncableResource> {
-  const resourceMsgName = resourceSpec ? "resource" : "serviceResource"
+  const api = await KubeApi.factory(log, ctx, provider)
+  const k8sCtx = ctx as KubernetesPluginContext
+  const namespace = await getActionNamespace({
+    ctx: k8sCtx,
+    log,
+    action,
+    provider: k8sCtx.provider,
+  })
 
-  if (resourceSpec.podSelector && !isEmpty(resourceSpec.podSelector)) {
-    const api = await KubeApi.factory(log, ctx, provider)
-    const k8sCtx = ctx as KubernetesPluginContext
-    const namespace = await getActionNamespace({
-      ctx: k8sCtx,
-      log,
-      action,
-      provider: k8sCtx.provider,
-    })
-
-    const pods = await getReadyPods(api, namespace, resourceSpec.podSelector)
+  if (query.podSelector && !isEmpty(query.podSelector)) {
+    const pods = await getReadyPods(api, namespace, query.podSelector)
     const pod = sample(pods)
     if (!pod) {
-      const selectorStr = getSelectorString(resourceSpec.podSelector)
+      const selectorStr = getSelectorString(query.podSelector)
       throw new ConfigurationError(
         chalk.red(
-          `Could not find any Pod matching provided podSelector (${selectorStr}) for ${resourceMsgName} in ` +
-            `${action.type} module ${chalk.white(action.name)}`
+          `Could not find any Pod matching provided podSelector (${selectorStr}) for target in ` +
+            `${action.description()}`
         ),
-        { resourceSpec }
+        { query }
       )
     }
     return pod
   }
 
-  let targetName = resourceSpec.name
+  const targetKind = query.kind
+  let targetName = query.name
   let target: SyncableResource
 
-  const targetKind = resourceSpec.kind
-  const chartResourceNames = manifests.map((o) => `${o.kind}/${o.metadata.name}`)
-
-  const applicableChartResources = manifests.filter((o) => o.kind === targetKind)
-
-  if (targetKind && targetName) {
-    if (action.type === "helm" && targetName.includes("{{")) {
-      // need to resolve the template string
-      const chartPath = await getChartPath(action)
-      targetName = await renderHelmTemplateString(ctx, log, action, chartPath, targetName)
-    }
-
-    target = find(<SyncableResource[]>manifests, (o) => o.kind === targetKind && o.metadata.name === targetName)!
-
-    if (!target) {
-      throw new ConfigurationError(
-        chalk.red(
-          deline`${action.description()} does not contain specified ${targetKind}
-          ${chalk.white(targetName)}`
-        ),
-        { resourceSpec, chartResourceNames }
-      )
-    }
-  } else {
-    if (applicableChartResources.length === 0) {
-      throw new ConfigurationError(`${action.description()} contains no ${targetKind}s.`, {
-        resourceSpec,
-        chartResourceNames,
-      })
-    }
-
-    if (applicableChartResources.length > 1) {
-      throw new ConfigurationError(
-        chalk.red(
-          deline`${action.description()} contains multiple ${targetKind}s.
-          You must specify a resource name in the appropriate config in order to identify the correct ${targetKind}
-          to use.`
-        ),
-        { resourceSpec, chartResourceNames }
-      )
-    }
-
-    target = <SyncableResource>applicableChartResources[0]
+  if (!targetKind) {
+    // This should be caught in config/schema validation
+    throw new InternalError(`Neither kind nor podSelector set in resource query`, { query })
   }
 
-  return target
+  if (manifests) {
+    const chartResourceNames = manifests.map((o) => `${o.kind}/${o.metadata.name}`)
+
+    const applicableChartResources = manifests.filter((o) => o.kind === targetKind)
+
+    if (targetKind && targetName) {
+      if (action.type === "helm" && targetName.includes("{{")) {
+        // need to resolve the template string
+        const chartPath = await getChartPath(action)
+        targetName = await renderHelmTemplateString(ctx, log, action, chartPath, targetName)
+      }
+
+      target = find(<SyncableResource[]>manifests, (o) => o.kind === targetKind && o.metadata.name === targetName)!
+
+      if (!target) {
+        throw new ConfigurationError(
+          chalk.red(
+            deline`${action.description()} does not contain specified ${targetKind}
+            ${chalk.white(targetName)}`
+          ),
+          { query, chartResourceNames }
+        )
+      }
+    } else {
+      if (applicableChartResources.length === 0) {
+        throw new ConfigurationError(`${action.description()} contains no ${targetKind}s.`, {
+          query,
+          chartResourceNames,
+        })
+      }
+
+      if (applicableChartResources.length > 1) {
+        throw new ConfigurationError(
+          chalk.red(
+            deline`${action.description()} contains multiple ${targetKind}s.
+            You must specify a resource name in the appropriate config in order to identify the correct ${targetKind}
+            to use.`
+          ),
+          { query, chartResourceNames }
+        )
+      }
+
+      target = <SyncableResource>applicableChartResources[0]
+    }
+  }
+
+  if (!targetName) {
+    // This should be caught in config/schema validation
+    throw new InternalError(`Must specify name in resource/target query`, { query })
+  }
+
+  try {
+    if (targetKind === "Deployment") {
+      target = await api.apps.readNamespacedDeployment(targetName, namespace)
+    } else if (targetKind === "DaemonSet") {
+      target = await api.apps.readNamespacedDaemonSet(targetName, namespace)
+    } else if (targetKind === "StatefulSet") {
+      target = await api.apps.readNamespacedStatefulSet(targetName, namespace)
+    } else {
+      // This should be caught in config/schema validation
+      throw new InternalError(`Unsupported kind specified in resource/target query`, { query })
+    }
+    return target
+  } catch (err) {
+    if (err.statusCode === 404) {
+      throw new ConfigurationError(
+        chalk.red(
+          deline`${action.description()} specifies target resource ${targetKind}/${targetName}, which could not be found in namespace ${namespace}.`
+        ),
+        { query, namespace }
+      )
+    } else {
+      throw err
+    }
+  }
 }
 
 /**

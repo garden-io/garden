@@ -19,9 +19,15 @@ import { gardenAnnotationKey } from "../../../util/string"
 import { LogEntry } from "../../../logger/log-entry"
 import { PluginContext } from "../../../plugin-context"
 import { ConfigurationError, PluginError } from "../../../exceptions"
-import { KubernetesTargetResourceSpec, ServiceResourceSpec } from "../config"
+import { KubernetesPluginContext, KubernetesTargetResourceSpec, ServiceResourceSpec } from "../config"
 import { HelmModule } from "../helm/module-config"
 import { KubernetesDeployAction } from "./config"
+import { DEFAULT_TASK_TIMEOUT } from "../../../constants"
+import { CommonRunParams } from "../../../plugin/handlers/run/run"
+import { runAndCopy } from "../run"
+import { getTargetResource, getResourcePodSpec, getResourceContainer, makePodName } from "../util"
+import { KubernetesRunAction } from "./run"
+import { KubernetesTestAction } from "./test"
 
 /**
  * Reads the manifests and makes sure each has a namespace set (when applicable) and adds annotations.
@@ -171,4 +177,62 @@ export function convertServiceResource(
     podSelector: s.podSelector,
     containerName: s.containerName,
   }
+}
+
+export async function runOrTest(
+  params: CommonRunParams & {
+    ctx: KubernetesPluginContext
+    action: KubernetesRunAction | KubernetesTestAction
+    log: LogEntry
+    namespace: string
+  }
+) {
+  const { ctx, action, log, namespace } = params
+  // Get the container spec to use for running
+  const spec = action.getSpec()
+
+  let podSpec = spec.podSpec
+  let container = spec.podSpec?.containers[0]
+
+  if (!podSpec) {
+    const resourceSpec = spec.resource
+
+    if (!resourceSpec) {
+      // Note: This will generally be caught in schema validation.
+      throw new ConfigurationError(`${action.description()} specified neither podSpec nor resource.`, { spec })
+    }
+
+    const target = await getTargetResource({
+      ctx,
+      log,
+      provider: ctx.provider,
+      action,
+      query: resourceSpec,
+    })
+
+    podSpec = getResourcePodSpec(target)
+    container = getResourceContainer(target, resourceSpec.containerName)
+  } else if (!container) {
+    throw new ConfigurationError(
+      `${action.description()} specified a podSpec without containers. Please make sure there is at least one container in the spec.`,
+      { spec }
+    )
+  }
+
+  const { timeout } = action.getConfig()
+
+  return runAndCopy({
+    ...params,
+    container,
+    podSpec,
+    command: spec.command,
+    args: spec.args,
+    artifacts: spec.artifacts,
+    envVars: spec.env,
+    image: container.image!,
+    namespace,
+    podName: makePodName(action.kind.toLowerCase(), action.name),
+    timeout: timeout || DEFAULT_TASK_TIMEOUT,
+    version: action.getVersionString(),
+  })
 }

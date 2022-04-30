@@ -22,7 +22,7 @@ import {
 import { dedent, gardenAnnotationKey } from "../../util/string"
 import { cloneDeep, set } from "lodash"
 import { getResourceContainer, getResourcePodSpec, getTargetResource, labelSelectorToString } from "./util"
-import { KubernetesResource, SupportedRuntimeActions, syncableKinds, SyncableResource } from "./types"
+import { KubernetesResource, SupportedRuntimeActions, SyncableKind, syncableKinds, SyncableResource } from "./types"
 import { LogEntry } from "../../logger/log-entry"
 import chalk from "chalk"
 import {
@@ -38,6 +38,7 @@ import {
   KubernetesProvider,
   KubernetesTargetResourceSpec,
   targetContainerNameSchema,
+  targetResourceSpecSchema,
 } from "./config"
 import { isConfiguredForDevMode } from "./status/status"
 import { k8sSyncUtilImageName } from "./constants"
@@ -115,6 +116,7 @@ const exampleActionRef = templateStringLiteral("build.my-container-image.sourceP
 export const kubernetesDeployDevModeSyncSchema = () =>
   devModeDefaultsSchema()
     .keys({
+      target: targetResourceSpecSchema(),
       sourcePath: joi
         .string()
         .uri()
@@ -142,7 +144,11 @@ export const kubernetesDeployDevModeSyncSchema = () =>
     )
 
 export interface KubernetesDeployOverrideSpec {
-  target: KubernetesTargetResourceSpec
+  target: {
+    kind: SyncableKind
+    name: string
+    containerName?: string
+  }
   command?: string[]
   args?: string[]
 }
@@ -258,7 +264,7 @@ export async function configureDevMode({
       provider,
       manifests,
       action,
-      resourceSpec: t,
+      query: t,
     })
     resolvedTargets[targetKey(t)] = resolved
   })
@@ -402,7 +408,7 @@ export async function startDevModeSyncs({
         provider: k8sCtx.provider,
         manifests,
         action,
-        resourceSpec,
+        query: resourceSpec,
       })
 
       const resourceName = `${target.kind}/${target.metadata.name}`

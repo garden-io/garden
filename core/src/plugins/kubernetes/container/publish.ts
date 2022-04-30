@@ -9,7 +9,7 @@
 import { ContainerBuildAction } from "../../container/moduleConfig"
 import { KubernetesPluginContext } from "../config"
 import { publishContainerBuild } from "../../container/publish"
-import { pullModule } from "../commands/pull-image"
+import { pullBuild } from "../commands/pull-image"
 import { BuildActionHandler } from "../../../plugin/action-types"
 
 export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBuildAction> = async (params) => {
@@ -25,7 +25,7 @@ export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBu
     // We also generally prefer this because the remote cluster very likely doesn't (and shouldn't) have
     // privileges to push to production registries.
     log.setState(`Pulling from remote registry...`)
-    await pullModule(k8sCtx, action, log)
+    await pullBuild(k8sCtx, action, log)
   }
 
   return publishContainerBuild({ ...params, ctx: { ...ctx, provider: provider.dependencies.container } })

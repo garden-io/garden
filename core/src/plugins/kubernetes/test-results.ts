@@ -20,9 +20,12 @@ import { trimRunOutput } from "./helm/common"
 import { getSystemNamespace } from "./namespace"
 import chalk from "chalk"
 import { TestActionHandler } from "../../plugin/action-types"
+import { KubernetesTestAction } from "./kubernetes-type/test"
 
-export const k8sGetContainerTestResult: TestActionHandler<"getResult", ContainerTestAction> = async (params) => {
-  const { ctx, log, action } = params
+// TODO-G2: figure out how to get rid of the any case
+export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
+  const { ctx, log } = params
+  const action = <ContainerTestAction>params.action
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
   const testResultNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
@@ -48,7 +51,7 @@ export const k8sGetContainerTestResult: TestActionHandler<"getResult", Container
   }
 }
 
-export function getTestResultKey(ctx: PluginContext, action: ContainerTestAction) {
+export function getTestResultKey(ctx: PluginContext, action: ContainerTestAction | KubernetesTestAction) {
   const key = `${ctx.projectName}--${action.name}--${action.getVersionString()}`
   const hash = hasha(key, { algorithm: "sha1" })
   return `test-result--${hash.slice(0, 32)}`
@@ -57,7 +60,7 @@ export function getTestResultKey(ctx: PluginContext, action: ContainerTestAction
 interface StoreTestResultParams {
   ctx: PluginContext
   log: LogEntry
-  action: ContainerTestAction
+  action: ContainerTestAction | KubernetesTestAction
   result: TestResult
 }
 

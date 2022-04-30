@@ -62,7 +62,7 @@ export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = a
     provider,
     action,
     manifests,
-    resourceSpec: defaultTarget,
+    query: defaultTarget,
   })
 
   // TODO: this check should probably live outside of the plugin

@@ -26,6 +26,7 @@ export const k8sGetContainerDeployLogs: DeployActionHandler<"getLogs", Container
 
   const resources = [
     await createWorkloadManifest({
+      ctx,
       api,
       provider,
       action,

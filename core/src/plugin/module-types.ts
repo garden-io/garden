@@ -36,9 +36,6 @@ export type ModuleActionHandlers<T extends GardenModule = GardenModule> = {
   [P in keyof ModuleActionParams<T>]: ModuleActionHandler<ModuleActionParams<T>[P], ModuleActionOutputs[P]>
 }
 
-// export type AllActionHandlers<T extends GardenModule = GardenModule> = PluginActionHandlers &
-//   ModuleAndRuntimeActionHandlers<T>
-
 export type ModuleActionName = keyof ModuleActionParams
 
 interface _ModuleActionParams<T extends GardenModule = GardenModule> {

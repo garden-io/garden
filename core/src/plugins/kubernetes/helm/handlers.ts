@@ -26,6 +26,7 @@ import { convertServiceResource } from "../kubernetes-type/common"
 import { ConvertModuleParams } from "../../../plugin/handlers/module/convert"
 import { KubernetesModule, KubernetesService } from "../kubernetes-type/module-config"
 import { joinWithPosix } from "../../../util/fs"
+import { LogEntry } from "../../../logger/log-entry"
 
 export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
   configure: configureHelmModule,
@@ -93,9 +94,9 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
     actions.push(deployAction)
 
     for (const task of module.testConfigs) {
-      const target = convertServiceResource(module, task.spec.resource)
+      const resource = convertServiceResource(module, task.spec.resource)
 
-      if (!target) {
+      if (!resource) {
         continue
       }
 
@@ -112,15 +113,15 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
 
         spec: {
           ...task.spec,
-          target,
+          resource,
         },
       })
     }
 
     for (const test of module.testConfigs) {
-      const target = convertServiceResource(module, test.spec.resource)
+      const resource = convertServiceResource(module, test.spec.resource)
 
-      if (!target) {
+      if (!resource) {
         continue
       }
 
@@ -137,7 +138,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
 
         spec: {
           ...test.spec,
-          target,
+          resource,
         },
       })
     }
@@ -204,13 +205,19 @@ export function convertKubernetesDevModeSpec(
       }
 
       if (module.spec.devMode.command || module.spec.devMode.args) {
-        devMode.overrides = [
-          {
-            target,
-            command: module.spec.devMode.command,
-            args: module.spec.devMode.args,
-          },
-        ]
+        if (target.kind && target.name) {
+          devMode.overrides = [
+            {
+              target: {
+                kind: target.kind,
+                name: target.name,
+                containerName: target.containerName,
+              },
+              command: module.spec.devMode.command,
+              args: module.spec.devMode.args,
+            },
+          ]
+        }
       }
     }
   }

@@ -9,9 +9,10 @@
 import { LogEntry } from "../logger/log-entry"
 import { PluginContext, pluginContextSchema } from "../plugin-context"
 import { joi, joiArray, joiIdentifier, joiIdentifierDescription } from "../config/common"
-import { GardenModule, moduleSchema } from "../types/module"
+import { moduleSchema } from "../types/module"
 import { logEntrySchema } from "./base"
-import { Garden } from "../.."
+import { Garden } from "../garden"
+import { ConfigGraph } from "../config-graph"
 
 // TODO: parse args and opts with a schema
 export interface PluginCommandParams {
@@ -19,7 +20,7 @@ export interface PluginCommandParams {
   ctx: PluginContext
   args: string[]
   log: LogEntry
-  modules: GardenModule[]
+  graph: ConfigGraph
 }
 
 export const pluginParamsSchema = () =>
@@ -54,7 +55,7 @@ export interface PluginCommand {
   name: string
   description: string
   handler: PluginCommandHandler
-  resolveModules?: boolean
+  resolveGraph?: boolean
   title?: string | ((params: { args: string[]; environmentName: string }) => string | Promise<string>)
 }
 
@@ -64,11 +65,11 @@ export const pluginCommandSchema = () =>
       .required()
       .description("The name of the command. Must be " + joiIdentifierDescription),
     description: joi.string().required().description("A short description of the command."),
-    resolveModules: joi
+    resolveGraph: joi
       .boolean()
       .default(false)
       .description(
-        "Set this to true if the command needs modules to be resolved before calling the handler. If this is set to `true`, the `modules` array passed to the command handler will contain a full list of resolved modules in the project/environment (and is otherwise left empty)."
+        "Set this to true if the command needs the graph to be resolved before calling the handler. If this is set to `true`, the `graph` object passed to the command handler will contain a full list of resolved modules and actions in the project/environment (and is otherwise left empty)."
       ),
     title: joi
       .alternatives(joi.string(), joi.func())

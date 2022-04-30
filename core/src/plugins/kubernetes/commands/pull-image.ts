@@ -12,9 +12,6 @@ import { KubernetesPluginContext } from "../config"
 import { PluginError, ParameterError } from "../../../exceptions"
 import { PluginCommand } from "../../../plugin/command"
 import chalk from "chalk"
-import { GardenModule } from "../../../types/module"
-import { findByNames } from "../../../util/util"
-import { filter, map } from "lodash"
 import { KubeApi } from "../api"
 import { LogEntry } from "../../../logger/log-entry"
 import { containerHelpers } from "../../container/helpers"
@@ -27,6 +24,7 @@ import { PluginContext } from "../../../plugin-context"
 import { ensureBuilderSecret } from "../container/build/common"
 import { ContainerBuildAction } from "../../container/config"
 import { ResolvedAction } from "../../../actions/base"
+import { ResolvedBuildAction } from "../../../actions/build"
 
 const tmpTarPath = "/tmp/image.tar"
 const imagePullTimeoutSeconds = 60 * 20
@@ -35,9 +33,9 @@ export const pullImage: PluginCommand = {
   name: "pull-image",
   description: "Pull built images from a remote registry to a local docker daemon",
   title: "Pull images from a remote registry",
-  resolveModules: true,
+  resolveGraph: true,
 
-  handler: async ({ ctx, args, log, modules }) => {
+  handler: async ({ ctx, args, log, graph }) => {
     const result = {}
     const k8sCtx = ctx as KubernetesPluginContext
     const provider = k8sCtx.provider
@@ -48,10 +46,19 @@ export const pullImage: PluginCommand = {
       })
     }
 
-    const modulesToPull = findModules(modules, args)
-    log.info({ msg: chalk.cyan(`\nPulling images for ${modulesToPull.length} modules`) })
+    const buildsToPull = graph.getBuilds({ names: args.length > 0 ? args : undefined }).filter((b) => {
+      const valid = b.isCompatible("container")
+      if (!valid && args.includes(b.name)) {
+        throw new ParameterError(chalk.red(`Build ${chalk.white(b.name)} is not a container build.`), {
+          name: b.name,
+        })
+      }
+      return valid
+    })
 
-    await pullModules(k8sCtx, modulesToPull, log)
+    log.info({ msg: chalk.cyan(`\nPulling images for ${buildsToPull.length} builds`) })
+
+    await pullBuilds(k8sCtx, buildsToPull, log)
 
     log.info({ msg: chalk.green("\nDone!"), status: "success" })
 
@@ -59,52 +66,23 @@ export const pullImage: PluginCommand = {
   },
 }
 
-function findModules(modules: GardenModule[], names: string[]): GardenModule[] {
-  let foundModules: GardenModule[]
-
-  if (!names || names.length === 0) {
-    foundModules = modules
-  } else {
-    foundModules = findByNames(names, modules, "modules")
-  }
-
-  ensureAllModulesValid(foundModules)
-
-  return foundModules
-}
-
-function ensureAllModulesValid(modules: GardenModule[]) {
-  const invalidModules = filter(modules, (module) => {
-    return (
-      !module.compatibleTypes.includes("container") || !containerHelpers.moduleHasDockerfile(module, module.version)
-    )
-  })
-
-  if (invalidModules.length > 0) {
-    const invalidModuleNames = map(invalidModules, (module) => {
-      return module.name
-    })
-
-    throw new ParameterError(chalk.red(`Modules ${chalk.white(invalidModuleNames)} are not container modules.`), {
-      invalidModuleNames,
-      compatibleTypes: "container",
-    })
-  }
-}
-
-async function pullModules(ctx: KubernetesPluginContext, modules: GardenModule[], log: LogEntry) {
+async function pullBuilds(
+  ctx: KubernetesPluginContext,
+  builds: ResolvedBuildAction<ContainerBuildAction>[],
+  log: LogEntry
+) {
   await Promise.all(
-    modules.map(async (module) => {
+    builds.map(async (action) => {
       const remoteId = action.getSpec("publishId") || action.getOutput("deploymentImageId")
-      const localId = module.outputs["local-image-id"]
+      const localId = action.getOutput("localImageId")
       log.info({ msg: chalk.cyan(`Pulling image ${remoteId} to ${localId}`) })
-      await pullModule(ctx, module, log)
+      await pullBuild(ctx, action, log)
       log.info({ msg: chalk.green(`\nPulled image: ${remoteId} -> ${localId}`) })
     })
   )
 }
 
-export async function pullModule(
+export async function pullBuild(
   ctx: KubernetesPluginContext,
   action: ResolvedAction<ContainerBuildAction>,
   log: LogEntry
