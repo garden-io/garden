@@ -243,7 +243,7 @@ export class GardenServer {
         return ctx.throw(400, `Could not find page ${pageName} from provider ${pluginName}`)
       }
 
-      const { url } = await actions.getDashboardPage({ log: this.log, page, pluginName })
+      const { url } = await actions.provider.getDashboardPage({ log: this.log, page, pluginName })
       ctx.redirect(url)
     })
 

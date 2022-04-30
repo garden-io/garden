@@ -20,7 +20,7 @@ describe("GetSecretCommand", () => {
     const command = new GetSecretCommand()
 
     const actions = await garden.getActionRouter()
-    await actions.setSecret({
+    await actions.provider.setSecret({
       log,
       pluginName,
       key: "project.mykey",

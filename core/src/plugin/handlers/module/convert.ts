@@ -32,14 +32,16 @@ export interface ConvertModuleParams<T extends GardenModule = GardenModule> exte
   baseFields: {
     basePath: string
     copyFrom: BuildCopyFrom[]
+    disabled: boolean
     source?: {
       repository?: {
         url: string
       }
     }
   }
+  convertTestName: (d: string) => string
   convertBuildDependency: (d: string | BuildDependencyConfig) => string
-  convertRuntimeDependency: (d: string) => string
+  convertRuntimeDependencies: (d: string[]) => string[]
   prepareRuntimeDependencies: (deps: string[], build: BuildActionConfig | undefined) => string[]
 }
 
@@ -76,12 +78,17 @@ export const convertModule = () => ({
       .unknown(true)
       .required()
       .description("Fields that should generally be applied to all returned actions, based on the input Module."),
+    convertTestName: joi
+      .function()
+      .description(
+        "A helper that accepts a test name from the module and returns the correct action name for the converted test."
+      ),
     convertBuildDependency: joi
       .function()
       .description(
         "A helper that accepts an entry from `build.dependencies` on a Module and returns the corresponding Build action reference."
       ),
-    convertRuntimeDependency: joi
+    convertRuntimeDependencies: joi
       .function()
       .description(
         "A helper that accepts a runtime dependency reference (i.e. a name of a Service or Task) and returns the corresponding Deploy or Run action reference."

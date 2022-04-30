@@ -85,7 +85,7 @@ export const getTerraformStatus: DeployActionHandler<"getStatus", TerraformDeplo
 
   return {
     state: status === "up-to-date" ? "ready" : "outdated",
-    version: action.getVersionString(),
+    version: action.versionString(),
     outputs: await getTfOutputs({ log, ctx, provider, root }),
     detail: {},
   }
@@ -115,7 +115,7 @@ export const deployTerraform: DeployActionHandler<"deploy", TerraformDeploy> = a
 
   return {
     state: "ready",
-    version: action.getVersionString(),
+    version: action.versionString(),
     outputs: await getTfOutputs({ log, ctx, provider, root }),
     detail: {},
   }
@@ -126,7 +126,7 @@ export const deleteTerraformModule: DeployActionHandler<"delete", TerraformDeplo
   const spec = action.getSpec()
 
   if (!spec.allowDestroy) {
-    log.warn({ section: action.name, msg: "allowDestroy is set to false. Not calling terraform destroy." })
+    log.warn({ section: action.key(), msg: "allowDestroy is set to false. Not calling terraform destroy." })
     return {
       state: "outdated",
       detail: {},
@@ -144,7 +144,7 @@ export const deleteTerraformModule: DeployActionHandler<"delete", TerraformDeplo
 
   return {
     state: "missing",
-    version: action.getVersionString(),
+    version: action.versionString(),
     outputs: {},
     detail: {},
   }

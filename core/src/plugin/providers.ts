@@ -36,14 +36,11 @@ import { AugmentGraphResult, AugmentGraphParams, augmentGraph } from "./handlers
 import { GetDashboardPageParams, GetDashboardPageResult, getDashboardPage } from "./handlers/provider/getDashboardPage"
 import { baseHandlerSchema } from "./handlers/base/base"
 
-export type ProviderActionHandlers = {
+export type ProviderHandlers = {
   [P in keyof ProviderActionParams]: ActionHandler<ProviderActionParams[P], ProviderActionOutputs[P]>
 }
 
-// export type AllActionHandlers<T extends GardenModule = GardenModule> = PluginActionHandlers &
-//   ModuleAndRuntimeActionHandlers<T>
-
-export type ProviderActionName = keyof ProviderActionHandlers
+export type ProviderActionName = keyof ProviderHandlers
 
 export interface ProviderActionParams {
   configureProvider: ConfigureProviderParams
@@ -115,6 +112,6 @@ export function getProviderActionDescriptions(): ResolvedActionHandlerDescriptio
   return _providerActionDescriptions
 }
 
-export function getProviderActionNames() {
+export function getProviderHandlerNames() {
   return <ProviderActionName[]>Object.keys(getProviderActionDescriptions())
 }

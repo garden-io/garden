@@ -7,9 +7,9 @@
  */
 
 import { mapValues } from "lodash"
-import { outputSchemaDocs, ResolvedActionHandlerDescriptions } from "./plugin"
+import { outputSchemaDocs, ResolvedActionHandlerDescription } from "./plugin"
 import { ActionTypeHandlerSpec, baseHandlerSchema } from "./handlers/base/base"
-import { BuildBuildAction } from "./handlers/build/build"
+import { DoBuildAction } from "./handlers/build/build"
 import { GetBuildActionStatus } from "./handlers/build/get-status"
 import { PublishBuildAction } from "./handlers/build/publish"
 import { RunBuildAction } from "./handlers/build/run"
@@ -24,25 +24,107 @@ import { GetRunActionResult } from "./handlers/run/get-result"
 import { RunRunAction } from "./handlers/run/run"
 import { GetTestActionResult } from "./handlers/test/get-result"
 import { RunTestAction } from "./handlers/test/run"
-import { Action, ActionKind } from "../actions/base"
+import { Action, ResolvedRuntimeAction } from "../actions/base"
 import Joi from "@hapi/joi"
 import { joi, joiArray, joiSchema, joiUserIdentifier } from "../config/common"
 import titleize from "titleize"
-import { BuildAction } from "../actions/build"
+import { BuildAction, ResolvedBuildAction } from "../actions/build"
 import { DeployAction } from "../actions/deploy"
 import { RunAction } from "../actions/run"
 import { TestAction } from "../actions/test"
-import { DeployDeployAction } from "./handlers/deploy/deploy"
+import { DoDeployAction } from "./handlers/deploy/deploy"
 import { dedent } from "../util/string"
 import { templateStringLiteral } from "../docs/common"
+
+// BASE //
+
+type ActionTypeHandler<
+  K extends ActionKind,
+  N, // Name of handler
+  P extends {}, // Params type
+  R extends {} // Result type
+> = ((params: P) => Promise<R>) & {
+  handlerType?: N
+  actionType?: string
+  pluginName?: string
+  base?: ActionTypeHandler<K, N, P, R>
+}
+
+export type GetActionTypeParams<T> = T extends ActionTypeHandlerSpec<any, any, any> ? T["_paramsType"] : null
+export type GetActionTypeResults<T> = T extends ActionTypeHandlerSpec<any, any, any> ? T["_resultType"] : null
+export type GetActionTypeHandler<T, N> = T extends ActionTypeHandlerSpec<any, any, any>
+  ? ActionTypeHandler<T["_kindType"], N, T["_paramsType"], T["_resultType"]>
+  : ActionTypeHandler<any, N, any, any>
+export type WrappedActionTypeHandler<T, N> = GetActionTypeHandler<T, N> & {
+  handlerType: N
+  actionType: string
+  pluginName: string
+}
+
+const actionTypeClasses = {
+  build: {
+    // validateConfig: new ValidateActionConfig(),
+    build: new DoBuildAction(),
+    getStatus: new GetBuildActionStatus(),
+    publish: new PublishBuildAction(),
+    run: new RunBuildAction(),
+  },
+  deploy: {
+    // validateConfig: new ValidateActionConfig(),
+    delete: new DeleteDeploy(),
+    deploy: new DoDeployAction(),
+    exec: new ExecInDeploy(),
+    getLogs: new GetDeployLogs(),
+    getPortForward: new GetDeployPortForward(),
+    getStatus: new GetDeployStatus(),
+    run: new RunDeploy(),
+    stopPortForward: new StopDeployPortForward(),
+  },
+  run: {
+    // validateConfig: new ValidateActionConfig(),
+    getResult: new GetRunActionResult(),
+    run: new RunRunAction(),
+  },
+  test: {
+    // validateConfig: new ValidateActionConfig(),
+    getResult: new GetTestActionResult(),
+    run: new RunTestAction(),
+  },
+}
+
+type _ActionTypeClasses = typeof actionTypeClasses
+
+export type ActionKind = "build" | "deploy" | "run" | "test"
+export type ActionTypeClasses<K extends ActionKind> = _ActionTypeClasses[K]
+
+export type ActionHandlers = { [name: string]: ActionTypeHandler<any, any, any, any> }
 
 type BaseHandlers<_ extends Action> = {
   // TODO: see if this is actually needed, consider only allowing validating fully-resolved Actions
   // validateConfig: ValidateActionConfig<C>
 }
 
-type BuildActionDescriptions<C extends BuildAction = BuildAction> = BaseHandlers<C> & {
-  build: BuildBuildAction<C>
+export type ActionTypeExtension<H> = {
+  name: string
+  handlers: Partial<H>
+}
+
+export type ActionTypeDefinition<H> = ActionTypeExtension<H> & {
+  base?: string
+  docs: string
+  // TODO: specify the schemas using primitives (e.g. JSONSchema/OpenAPI) and not Joi objects
+  schema: Joi.ObjectSchema
+  outputsSchema?: Joi.ObjectSchema
+  title?: string
+}
+
+// BUILD //
+
+// These handlers receive an unresolved Action (i.e. without outputs)
+type UnresolvedBuildHandlers = "build" | "getStatus"
+
+export type BuildActionDescriptions<C extends BuildAction = BuildAction> = BaseHandlers<C> & {
+  build: DoBuildAction<C>
   getStatus: GetBuildActionStatus<C>
   publish: PublishBuildAction<C>
   run: RunBuildAction<C>
@@ -50,12 +132,37 @@ type BuildActionDescriptions<C extends BuildAction = BuildAction> = BaseHandlers
 
 export type BuildActionHandler<
   N extends keyof BuildActionDescriptions,
-  C extends BuildAction = BuildAction
-> = GetActionTypeHandler<BuildActionDescriptions<C>[N], N>
+  T extends BuildAction = BuildAction
+> = N extends UnresolvedBuildHandlers
+  ? GetActionTypeHandler<BuildActionDescriptions<T>[N], N>
+  : GetActionTypeHandler<BuildActionDescriptions<ResolvedBuildAction<T["_config"], T["_outputs"]>>[N], N>
+
+export type BuildActionParams<
+  N extends keyof BuildActionDescriptions,
+  T extends BuildAction = BuildAction
+> = N extends UnresolvedBuildHandlers
+  ? GetActionTypeParams<BuildActionDescriptions<T>[N]>
+  : GetActionTypeParams<BuildActionDescriptions<ResolvedBuildAction<T["_config"], T["_outputs"]>>[N]>
+
+export type BuildActionResults<
+  N extends keyof BuildActionDescriptions,
+  T extends BuildAction = BuildAction
+> = N extends UnresolvedBuildHandlers
+  ? GetActionTypeResults<BuildActionDescriptions<T>[N]>
+  : GetActionTypeResults<BuildActionDescriptions<ResolvedBuildAction<T["_config"], T["_outputs"]>>[N]>
+
+export type BuildActionHandlers<C extends BuildAction = BuildAction> = {
+  [N in keyof BuildActionDescriptions]?: BuildActionHandler<N, C>
+}
+
+export type BuildActionExtension<C extends BuildAction = BuildAction> = ActionTypeExtension<BuildActionHandlers<C>>
+export type BuildActionDefinition<C extends BuildAction = BuildAction> = ActionTypeDefinition<BuildActionHandlers<C>>
+
+// DEPLOY //
 
 type DeployActionDescriptions<C extends DeployAction = DeployAction> = BaseHandlers<C> & {
   delete: DeleteDeploy<C>
-  deploy: DeployDeployAction<C>
+  deploy: DoDeployAction<C>
   exec: ExecInDeploy<C>
   getLogs: GetDeployLogs<C>
   getPortForward: GetDeployPortForward<C>
@@ -64,15 +171,30 @@ type DeployActionDescriptions<C extends DeployAction = DeployAction> = BaseHandl
   stopPortForward: StopDeployPortForward<C>
 }
 
+type UnresolvedDeployHandlers = "deploy" | "getStatus"
+
 export type DeployActionHandler<
   N extends keyof DeployActionDescriptions,
-  C extends DeployAction = DeployAction
-> = GetActionTypeHandler<DeployActionDescriptions<C>[N], N>
+  T extends DeployAction = DeployAction
+> = N extends UnresolvedDeployHandlers
+  ? GetActionTypeHandler<DeployActionDescriptions<T>[N], N>
+  : GetActionTypeHandler<DeployActionDescriptions<ResolvedRuntimeAction<T["_config"], T["_outputs"]>>[N], N>
 
 export type DeployActionParams<
   N extends keyof DeployActionDescriptions,
   C extends DeployAction = DeployAction
 > = GetActionTypeParams<DeployActionDescriptions<C>[N]>
+
+export type DeployActionHandlers<C extends DeployAction = DeployAction> = {
+  [N in keyof DeployActionDescriptions]?: DeployActionHandler<N, C>
+}
+
+export type DeployActionExtension<C extends DeployAction = DeployAction> = ActionTypeExtension<DeployActionHandlers<C>>
+export type DeployActionDefinition<C extends DeployAction = DeployAction> = ActionTypeDefinition<
+  DeployActionHandlers<C>
+>
+
+// RUN //
 
 type RunActionDescriptions<C extends RunAction = RunAction> = BaseHandlers<C> & {
   getResult: GetRunActionResult<C>
@@ -84,13 +206,22 @@ export type RunActionHandler<
   C extends RunAction = RunAction
 > = GetActionTypeHandler<RunActionDescriptions<C>[N], N>
 
+export type RunActionHandlers<C extends RunAction = RunAction> = {
+  [N in keyof RunActionDescriptions]?: RunActionHandler<N, C>
+}
+
+export type RunActionExtension<C extends RunAction = RunAction> = ActionTypeExtension<RunActionHandlers<C>>
+export type RunActionDefinition<C extends RunAction = RunAction> = ActionTypeDefinition<RunActionHandlers<C>>
+
+// TEST //
+
 type TestActionDescriptions<C extends TestAction = TestAction> = BaseHandlers<C> & {
   getResult: GetTestActionResult<C>
   run: RunTestAction<C>
 }
 
 export type TestActionHandlers<C extends TestAction = TestAction> = {
-  [N in keyof TestActionDescriptions]?: GetActionTypeHandler<TestActionDescriptions<C>[N], N>
+  [N in keyof TestActionDescriptions]?: TestActionHandler<N, C>
 }
 
 export type TestActionHandler<
@@ -98,141 +229,108 @@ export type TestActionHandler<
   C extends TestAction = TestAction
 > = GetActionTypeHandler<TestActionDescriptions<C>[N], N>
 
-interface _ActionTypeHandlerDescriptions {
+export type TestActionExtension<C extends TestAction = TestAction> = ActionTypeExtension<TestActionHandlers<C>>
+export type TestActionDefinition<C extends TestAction = TestAction> = ActionTypeDefinition<TestActionHandlers<C>>
+
+// COMBINED //
+
+export interface ActionTypeDescriptions {
   build: BuildActionDescriptions
   deploy: DeployActionDescriptions
   run: RunActionDescriptions
   test: TestActionDescriptions
 }
 
-// type DescribeActionTypeHandler<T> = T extends ActionTypeHandlerSpec<infer K, infer P, infer R>
-//   ? { kind: K; params: P; results: R }
-//   : {}
-
-// export type ActionTypeHandlerDescriptions = {
-//   [K in keyof _ActionTypeHandlerDescriptions]: {
-//     [D in keyof _ActionTypeHandlerDescriptions[K]]: DescribeActionTypeHandler<_ActionTypeHandlerDescriptions[K][D]>
-//   }
-// }
-
-type ActionTypeHandler<
-  K extends ActionKind,
-  N, // Name of handler
-  P extends {}, // Params type
-  R extends {} // Result type
-> = ((params: P) => Promise<R>) & {
-  actionKind?: K
-  handlerName?: N
-  pluginName?: string
-  base?: ActionTypeHandler<K, N, P, R>
+export type GenericActionTypeMap = {
+  [K in ActionKind]: Action
 }
 
-// These helpers are needed because TS can't do nested mapping without them
-type GetActionTypeParams<T> = T extends ActionTypeHandlerSpec<any, any, any> ? T["_paramsType"] : null
-type GetActionTypeResults<T> = T extends ActionTypeHandlerSpec<any, any, any> ? T["_resultType"] : null
-type GetActionTypeHandler<T, N> = T extends ActionTypeHandlerSpec<any, any, any>
-  ? ActionTypeHandler<T["_kindType"], N, T["_paramsType"], T["_resultType"]>
-  : null
+export interface ActionTypeMap extends GenericActionTypeMap {
+  build: BuildAction
+  deploy: DeployAction
+  run: RunAction
+  test: TestAction
+}
 
-export type ActionTypeHandlerParams = {
+export type ActionTypeParams = {
   [K in ActionKind]: {
-    [D in keyof _ActionTypeHandlerDescriptions[K]]: GetActionTypeParams<_ActionTypeHandlerDescriptions[K][D]>
+    [H in keyof ActionTypeDescriptions[K]]: GetActionTypeParams<ActionTypeDescriptions[K][H]>
   }
 }
-export type ActionTypeHandlerResults = {
+
+export type ActionTypeResults = {
   [K in ActionKind]: {
-    [D in keyof _ActionTypeHandlerDescriptions[K]]: GetActionTypeResults<_ActionTypeHandlerDescriptions[K][D]>
+    [H in keyof ActionTypeDescriptions[K]]: GetActionTypeResults<ActionTypeDescriptions[K][H]>
   }
 }
+
 export type ActionTypeHandlers = {
-  [K in ActionKind]: {
-    [D in keyof _ActionTypeHandlerDescriptions[K]]: GetActionTypeHandler<_ActionTypeHandlerDescriptions[K][D], D>
-  }
+  build: BuildActionHandlers
+  deploy: DeployActionHandlers
+  run: RunActionHandlers
+  test: TestActionHandlers
+}
+
+export type ActionTypeHandlerNames = {
+  [K in ActionKind]: keyof ActionTypeHandlers[K]
+}
+
+export interface ResolvedActionTypeHandlerDescription<N = string> extends ResolvedActionHandlerDescription<N> {
+  cls: ActionTypeHandlerSpec<any, any, any>
 }
 
 export type ResolvedActionTypeHandlerDescriptions = {
-  [K in ActionKind]: ResolvedActionHandlerDescriptions
+  [K in ActionKind]: Required<
+    {
+      [H in keyof ActionTypeClasses<K>]: ResolvedActionTypeHandlerDescription<H>
+    }
+  >
 }
 
 // It takes a short while to resolve all these schemas, so we cache the result
-let _actionTypeHandlerDescriptions: ResolvedActionTypeHandlerDescriptions
+let _actionTypeHandlerDescriptions
 
-export function getActionTypeHandlerDescriptions(): ResolvedActionTypeHandlerDescriptions {
-  if (_actionTypeHandlerDescriptions) {
-    return _actionTypeHandlerDescriptions
+export function getActionTypeHandlerDescriptions<K extends ActionKind>(
+  kind: ActionKind
+): ResolvedActionTypeHandlerDescriptions[K] {
+  if (!_actionTypeHandlerDescriptions) {
+    _actionTypeHandlerDescriptions = {}
   }
 
-  const descriptions: _ActionTypeHandlerDescriptions = {
-    build: {
-      // validateConfig: new ValidateActionConfig(),
-      build: new BuildBuildAction(),
-      getStatus: new GetBuildActionStatus(),
-      publish: new PublishBuildAction(),
-      run: new RunBuildAction(),
-    },
-    deploy: {
-      // validateConfig: new ValidateActionConfig(),
-      delete: new DeleteDeploy(),
-      deploy: new DeployDeployAction(),
-      exec: new ExecInDeploy(),
-      getLogs: new GetDeployLogs(),
-      getPortForward: new GetDeployPortForward(),
-      getStatus: new GetDeployStatus(),
-      run: new RunDeploy(),
-      stopPortForward: new StopDeployPortForward(),
-    },
-    run: {
-      // validateConfig: new ValidateActionConfig(),
-      getResult: new GetRunActionResult(),
-      run: new RunRunAction(),
-    },
-    test: {
-      // validateConfig: new ValidateActionConfig(),
-      getResult: new GetTestActionResult(),
-      run: new RunTestAction(),
-    },
+  if (_actionTypeHandlerDescriptions[kind]) {
+    return _actionTypeHandlerDescriptions[kind]
   }
 
-  _actionTypeHandlerDescriptions = mapValues(descriptions, (byType) => {
-    return mapValues(byType, (cls) => {
-      return {
-        description: cls.description,
-        required: cls.required,
-        paramsSchema: cls.paramsSchema().keys({
-          base: baseHandlerSchema(),
-        }),
-        resultSchema: cls.resultSchema(),
-      }
-    })
+  _actionTypeHandlerDescriptions[kind] = mapValues(actionTypeClasses[kind], (cls, name: any) => {
+    return {
+      name,
+      cls,
+      ...cls.describe(),
+    }
   })
 
   return _actionTypeHandlerDescriptions
 }
 
-export interface ActionTypeExtension<K extends ActionKind> {
-  handlers: Partial<ActionTypeHandlers[K]>
-  name: string
-}
-
-export interface ActionTypeDefinition<K extends ActionKind> extends ActionTypeExtension<K> {
-  base?: string
-  docs: string
-  // TODO: specify the schemas using primitives (e.g. JSONSchema/OpenAPI) and not Joi objects
-  schema: Joi.ObjectSchema
-  outputsSchema?: Joi.ObjectSchema
-  title?: string
-}
-
-export type ActionTypeExtensions = {
-  [K in ActionKind]?: ActionTypeExtension<K>[]
+export type ManyActionTypeExtensions = {
+  build: BuildActionExtension[]
+  deploy: DeployActionExtension[]
+  run: RunActionExtension[]
+  test: TestActionExtension[]
 }
 export type ActionTypeDefinitions = {
-  [K in ActionKind]?: ActionTypeDefinition<K>[]
+  build: BuildActionDefinition
+  deploy: DeployActionDefinition
+  run: RunActionDefinition
+  test: TestActionDefinition
+}
+export type ManyActionTypeDefinitions = {
+  [K in ActionKind]: ActionTypeDefinitions[K][]
 }
 
 const createActionTypeSchema = (kind: ActionKind) => {
   const titleKind = titleize(kind)
-  const descriptions = getActionTypeHandlerDescriptions()
+  const descriptions = getActionTypeHandlerDescriptions(kind)
 
   return joi
     .object()
@@ -267,26 +365,26 @@ const createActionTypeSchema = (kind: ActionKind) => {
 }
 
 export const createActionTypesSchema = () => {
-  const descriptions = getActionTypeHandlerDescriptions()
   return joi
     .object()
-    .keys(mapValues(descriptions, (_, k: ActionKind) => joiArray(createActionTypeSchema(k)).unique("name")))
+    .keys(mapValues(actionTypeClasses, (_, k: ActionKind) => joiArray(createActionTypeSchema(k)).unique("name")))
 }
 
-const extendActionTypeSchema = (kind: string) => {
+const extendActionTypeSchema = (kind: ActionKind) => {
   const titleKind = titleize(kind)
-  const descriptions = getActionTypeHandlerDescriptions()
+  const descriptions = getActionTypeHandlerDescriptions(kind)
 
   return joi
     .object()
     .keys({
       name: joiUserIdentifier().description(`The name of the ${titleKind} action type to extend.`),
-      handlers: mapValues(descriptions[kind], (d) => baseHandlerSchema().description(d.description)),
+      handlers: mapValues(descriptions, (d) => baseHandlerSchema().description(d.description)),
     })
     .description(`Extend a ${titleKind} action.`)
 }
 
 export const extendActionTypesSchema = () => {
-  const descriptions = getActionTypeHandlerDescriptions()
-  return joi.object().keys(mapValues(descriptions, (_, k) => joiArray(extendActionTypeSchema(k)).unique("name")))
+  return joi
+    .object()
+    .keys(mapValues(actionTypeClasses, (_, k: ActionKind) => joiArray(extendActionTypeSchema(k)).unique("name")))
 }

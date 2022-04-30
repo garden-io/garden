@@ -13,8 +13,9 @@ import { get, isEqual, join, set, uniqWith } from "lodash"
 import { ConfigurationError } from "../exceptions"
 import { ModuleConfig } from "../config/module"
 import { deline } from "./string"
-import { DependencyGraph, DependencyGraphNode, nodeKey as configGraphNodeKey } from "../config-graph"
+import { DependencyGraph, DependencyGraphNode, nodeKey as configGraphNodeKey } from "../graph/config-graph"
 import { Profile } from "./profiling"
+import { ModuleDependencyGraph } from "../graph/modules"
 
 /**
  * Looks for dependencies on non-existent modules, services or tasks, and throws a ConfigurationError
@@ -76,7 +77,7 @@ export type DependencyValidationGraphNode = {
  */
 @Profile()
 export class DependencyValidationGraph extends DepGraph<string> {
-  static fromDependencyGraph(dependencyGraph: DependencyGraph) {
+  static fromDependencyGraph<G extends DependencyGraph | ModuleDependencyGraph>(dependencyGraph: G) {
     const withDeps = (node: DependencyGraphNode): DependencyValidationGraphNode => {
       return {
         key: configGraphNodeKey(node.type, node.name),

@@ -90,17 +90,17 @@ interface GetSystemServicesStatusParams {
   sysGarden: Garden
   log: LogEntry
   namespace: string
-  serviceNames: string[]
+  names: string[]
 }
 
-export async function getSystemServiceStatus({ sysGarden, log, serviceNames }: GetSystemServicesStatusParams) {
+export async function getSystemServiceStatus({ sysGarden, log, names }: GetSystemServicesStatusParams) {
   const actions = await sysGarden.getActionRouter()
   const graph = await sysGarden.getConfigGraph({ log, emit: false })
 
-  const serviceStatuses = await actions.getServiceStatuses({
+  const serviceStatuses = await actions.getDeployStatuses({
     log: log.placeholder({ level: LogLevel.verbose, childEntriesInheritLevel: true }),
     graph,
-    serviceNames,
+    names,
   })
   const state = combineStates(Object.values(serviceStatuses).map((s) => (s && s.state) || "unknown"))
 
@@ -114,7 +114,13 @@ interface PrepareSystemServicesParams extends GetSystemServicesStatusParams {
   force: boolean
 }
 
-export async function prepareSystemServices({ ctx, sysGarden, log, serviceNames, force }: PrepareSystemServicesParams) {
+export async function prepareSystemServices({
+  ctx,
+  sysGarden,
+  log,
+  names: serviceNames,
+  force,
+}: PrepareSystemServicesParams) {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
 
@@ -122,10 +128,10 @@ export async function prepareSystemServices({ ctx, sysGarden, log, serviceNames,
   if (serviceNames.length > 0) {
     const actions = await sysGarden.getActionRouter()
     const graph = await sysGarden.getConfigGraph({ log, emit: false })
-    const results = await actions.deployServices({
+    const results = await actions.deployMany({
       graph,
       log,
-      serviceNames,
+      deployNames: serviceNames,
       force,
       forceBuild: force,
     })

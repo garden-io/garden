@@ -7,7 +7,7 @@
  */
 
 import { GardenModule } from "../../types/module"
-import { PrimitiveMap, joi, joiModuleIncludeDirective, joiSparseArray } from "../../config/common"
+import { PrimitiveMap, joi, joiModuleIncludeDirective, joiSparseArray, joiIdentifier } from "../../config/common"
 import { GardenService } from "../../types/service"
 import { ModuleSpec, ModuleConfig, baseBuildSpecSchema, BaseBuildSpec } from "../../config/module"
 import { CommonServiceSpec, ServiceConfig, baseServiceSpecSchema } from "../../config/service"
@@ -23,6 +23,9 @@ import {
   containerRunSpecKeys,
   ContainerTestActionSpec,
   containerTestSpecKeys,
+  ContainerVolumeSpecBase,
+  getContainerVolumesSchema,
+  volumeSchemaBase,
 } from "./config"
 import { kebabCase, mapKeys } from "lodash"
 
@@ -34,29 +37,40 @@ import { kebabCase, mapKeys } from "lodash"
 // To reduce the amount of edits to make before removing module configs
 export * from "./config"
 
-export type ContainerServiceSpec = CommonServiceSpec & ContainerCommonDeploySpec
+interface ContainerModuleVolumeSpec extends ContainerVolumeSpecBase {
+  module?: string
+}
+
+export type ContainerServiceSpec = CommonServiceSpec &
+  ContainerCommonDeploySpec & {
+    volumes: ContainerModuleVolumeSpec[]
+  }
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
 
 const containerDeploySchema = () => baseServiceSpecSchema().keys(containerDeploySchemaKeys())
 
 export interface ContainerService extends GardenService<ContainerModule> {}
 
-export type ContainerTestSpec = BaseTestSpec & ContainerTestActionSpec
+export type ContainerTestSpec = BaseTestSpec &
+  ContainerTestActionSpec & {
+    volumes: ContainerModuleVolumeSpec[]
+  }
 export const containerModuleTestSchema = () => baseTestSpecSchema().keys(containerTestSpecKeys())
 
-export type ContainerTaskSpec = BaseTaskSpec & ContainerRunActionSpec
+export type ContainerTaskSpec = BaseTaskSpec &
+  ContainerRunActionSpec & {
+    volumes: ContainerModuleVolumeSpec[]
+  }
 export const containerTaskSchema = () =>
   baseTaskSpecSchema().keys(containerRunSpecKeys()).description("A task that can be run in the container.")
 
-// TODO-G2: remove
-export interface ContainerBuildSpec extends BaseBuildSpec {
+export interface ContainerModuleBuildSpec extends BaseBuildSpec {
   targetImage?: string
   timeout: number
 }
 
-// TODO-G2: remove
 export interface ContainerModuleSpec extends ModuleSpec {
-  build: ContainerBuildSpec
+  build: ContainerModuleBuildSpec
   buildArgs: PrimitiveMap
   extraFlags: string[]
   image?: string
@@ -71,13 +85,32 @@ export interface ContainerModuleConfig extends ModuleConfig<ContainerModuleSpec>
 export const defaultImageNamespace = "_"
 export const defaultTag = "latest"
 
-export const containerBuildSpecSchema = () =>
+const containerBuildSpecSchema = () =>
   baseBuildSpecSchema().keys({
     target: joi.string().description(deline`
       For multi-stage Dockerfiles, specify which image/stage to build (see
       https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for
       details).
     `),
+  })
+
+const containerServiceSchema = () =>
+  containerDeploySchema().keys({
+    volumes: getContainerVolumesSchema(
+      volumeSchemaBase()
+        .keys({
+          module: joiIdentifier().description(
+            dedent`
+            The name of a _volume module_ that should be mounted at \`containerPath\`. The supported module types will depend on which provider you are using. The \`kubernetes\` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
+
+            When a \`module\` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
+
+            Note: Make sure to pay attention to the supported \`accessModes\` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
+            `
+          ),
+        })
+        .oxor("hostPath", "module")
+    ),
   })
 
 // TODO-G2: peel out build action keys
@@ -108,7 +141,7 @@ export const containerModuleSpecSchema = () =>
         .allow(false, null)
         .empty([false, null])
         .description("POSIX-style name of a Dockerfile, relative to module root."),
-      services: joiSparseArray(containerDeploySchema())
+      services: joiSparseArray(containerServiceSchema())
         .unique("name")
         .description("A list of services to deploy from this container module."),
       tests: joiSparseArray(containerModuleTestSchema()).description("A list of tests to run in the module."),

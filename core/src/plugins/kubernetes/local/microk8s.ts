@@ -11,8 +11,7 @@ import { RuntimeError } from "../../../exceptions"
 import { LogEntry } from "../../../logger/log-entry"
 import { exec } from "../../../util/util"
 import { containerHelpers } from "../../container/helpers"
-import { ContainerModule } from "../../container/moduleConfig"
-import { BuildStatus } from "../../../types/plugin/module/getBuildStatus"
+import { ContainerBuildAction } from "../../container/moduleConfig"
 import chalk from "chalk"
 import { naturalList, deline } from "../../../util/string"
 import { ExecaReturnValue } from "execa"
@@ -54,7 +53,7 @@ export async function configureMicrok8sAddons(log: LogEntry, addons: string[]) {
   }
 }
 
-export async function getMicrok8sImageStatus(imageId: string): Promise<BuildStatus> {
+export async function getMicrok8sImageStatus(imageId: string) {
   const parsedId = containerHelpers.parseImageId(imageId)
   const clusterId = containerHelpers.unparseImageId({
     ...parsedId,
@@ -63,16 +62,16 @@ export async function getMicrok8sImageStatus(imageId: string): Promise<BuildStat
   })
 
   const res = await exec("microk8s", ["ctr", "images", "ls", "-q"])
-  return { ready: res.stdout.split("\n").includes(clusterId) }
+  return res.stdout.split("\n").includes(clusterId)
 }
 
 export async function loadImageToMicrok8s({
-  module,
+  action,
   imageId,
   log,
   ctx,
 }: {
-  module: ContainerModule
+  action: ContainerBuildAction
   imageId: string
   log: LogEntry
   ctx: PluginContext
@@ -81,7 +80,7 @@ export async function loadImageToMicrok8s({
     // See https://microk8s.io/docs/registry-images for reference
     await tmp.withFile(async (file) => {
       await containerHelpers.dockerCli({
-        cwd: module.buildPath,
+        cwd: action.getBuildPath(),
         args: ["save", "-o", file.path, imageId],
         log,
         ctx,

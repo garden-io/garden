@@ -21,7 +21,7 @@ import { joi, joiArray } from "../src/config/common"
 import {
   createGardenPlugin,
   ModuleAndRuntimeActionHandlers,
-  ProviderActionHandlers,
+  ProviderHandlers,
   RegisterPluginParam,
 } from "../src/plugin/plugin"
 import { Garden, GardenOpts } from "../src/garden"
@@ -34,7 +34,7 @@ import { ConfigureModuleParams } from "../src/plugin/handlers/module/configure"
 import { RunServiceParams } from "../src/types/plugin/service/runService"
 import { RunResult } from "../src/plugin/base"
 import { ExternalSourceType, getRemoteSourceRelPath, hashRepoUrl } from "../src/util/ext-source-util"
-import { ActionRouter } from "../src/actions"
+import { ActionRouter } from "../src/router/router"
 import { CommandParams, ProcessCommandResult } from "../src/commands/base"
 import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
 import { SuiteFunction, TestFunction } from "mocha"
@@ -422,11 +422,11 @@ export const makeTestGardenBuildDependants = profileAsync(async function _makeTe
   return makeTestGarden(projectRootBuildDependants, { plugins: extraPlugins, forceRefresh: true, ...opts })
 })
 
-export async function stubAction<T extends keyof ProviderActionHandlers>(
+export async function stubAction<T extends keyof ProviderHandlers>(
   garden: Garden,
   pluginName: string,
   type: T,
-  handler?: ProviderActionHandlers[T]
+  handler?: ProviderHandlers[T]
 ) {
   if (handler) {
     handler["pluginName"] = pluginName
@@ -439,17 +439,17 @@ export function stubModuleAction<T extends keyof ModuleAndRuntimeActionHandlers<
   actions: ActionRouter,
   moduleType: string,
   pluginName: string,
-  actionType: T,
+  handlerType: T,
   handler: ModuleAndRuntimeActionHandlers<any>[T]
 ) {
-  handler["actionType"] = actionType
+  handler["handlerType"] = handlerType
   handler["pluginName"] = pluginName
   handler["moduleType"] = moduleType
-  return td.replace(actions["moduleActionHandlers"][actionType][moduleType], pluginName, handler)
+  return td.replace(actions["moduleActionHandlers"][handlerType][moduleType], pluginName, handler)
 }
 
 export function taskResultOutputs(results: ProcessCommandResult) {
-  return mapValues(results.graphResults, (r) => r && r.output)
+  return mapValues(results.graphResults, (r) => r && r.result)
 }
 
 export const cleanProject = async (gardenDirPath: string) => {

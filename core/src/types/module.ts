@@ -18,6 +18,7 @@ import { moduleOutputsSchema } from "../plugin/handlers/module/get-outputs"
 import { LogEntry } from "../logger/log-entry"
 import { ModuleTypeDefinition } from "../plugin/module-types"
 import { GardenPlugin } from "../plugin/plugin"
+import { join } from "path"
 
 export interface FileCopySpec {
   source: string
@@ -118,14 +119,20 @@ export async function moduleFromConfig({
 }): Promise<GardenModule> {
   const version = await garden.resolveModuleVersion(log, config, buildDependencies, forceVersion)
   const actions = await garden.getActionRouter()
-  const { outputs } = await actions.getModuleOutputs({ log, moduleConfig: config, version })
+  const { outputs } = await actions.module.getModuleOutputs({ log, moduleConfig: config, version })
   const moduleTypes = await garden.getModuleTypes()
   const compatibleTypes = [config.type, ...getModuleTypeBases(moduleTypes[config.type], moduleTypes).map((t) => t.name)]
+
+  // Special-casing local exec modules, otherwise setting build path as <build dir>/<module name>
+  const buildPath =
+    config.type === "exec" && config.spec.local ? config.path : join(garden.buildStaging.buildDirPath, config.name)
+
+  await garden.buildStaging.ensureDir(buildPath)
 
   const module: GardenModule = {
     ...cloneDeep(config),
 
-    buildPath: await garden.buildStaging.ensureBuildPath(config),
+    buildPath,
     buildMetadataPath: await garden.buildStaging.ensureBuildMetadataPath(config.name),
 
     version,
@@ -164,4 +171,8 @@ export function moduleNeedsBuild(moduleConfig: ModuleConfig, moduleType: ModuleT
 
 export function getModuleCacheContext<M extends ModuleConfig>(config: M) {
   return pathToCacheContext(config.path)
+}
+
+export function moduleTestNameToActionName(moduleName: string, testName: string) {
+  return `${moduleName}-${testName}`
 }

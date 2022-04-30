@@ -19,9 +19,9 @@ import { relative, resolve, posix, dirname } from "path"
 import { Garden } from "./garden"
 import { ConfigurationError, FilesystemError, PluginError } from "./exceptions"
 import { deline, dedent } from "./util/string"
-import { getModuleKey, ModuleConfigMap, GardenModule, ModuleMap, moduleFromConfig } from "./types/module"
+import { ModuleConfigMap, GardenModule, ModuleMap, moduleFromConfig } from "./types/module"
 import { getModuleTypeBases } from "./plugins"
-import { ModuleConfig, moduleConfigSchema } from "./config/module"
+import { BuildDependencyConfig, ModuleConfig, moduleConfigSchema } from "./config/module"
 import { Profile } from "./util/profiling"
 import { getLinkedSources } from "./util/ext-source-util"
 import { allowUnknown, DeepPrimitiveMap } from "./config/common"
@@ -37,7 +37,14 @@ import { pathToCacheContext } from "./cache"
 import { loadVarfile } from "./config/base"
 import { merge } from "json-merge-patch"
 import { prepareBuildDependencies } from "./config/base"
-import { ModuleTypeDefinition, ModuleTypeMap } from "./types/plugin/plugin"
+import { ModuleTypeDefinition } from "./plugin/plugin"
+import { serviceFromConfig } from "./types/service"
+import { taskFromConfig } from "./types/task"
+import { testFromConfig } from "./types/test"
+import { BuildActionConfig, BuildCopyFrom } from "./actions/build"
+import { ModuleGraph } from "./graph/modules"
+import { GroupConfig } from "./config/group"
+import { BaseActionConfig } from "./actions/base"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 50
@@ -73,7 +80,7 @@ export class ModuleResolver {
   }) {
     this.garden = garden
     this.log = log
-    this.rawConfigsByKey = keyBy(rawConfigs, (c) => getModuleKey(c.name, c.plugin))
+    this.rawConfigsByKey = keyBy(rawConfigs, (c) => c.name)
     this.resolvedProviders = resolvedProviders
     this.runtimeContext = runtimeContext
     this.bases = {}
@@ -409,7 +416,7 @@ export class ModuleResolver {
     }
 
     const actions = await garden.getActionRouter()
-    const configureResult = await actions.configureModule({
+    const configureResult = await actions.module.configureModule({
       moduleConfig: config,
       log: garden.log,
     })
@@ -601,6 +608,82 @@ export class ModuleResolver {
 
 export interface ModuleConfigResolveOpts extends ContextResolveOpts {
   configContext: ModuleConfigContext
+}
+
+export async function convertModules(garden: Garden, log: LogEntry, modules: GardenModule[], graph: ModuleGraph) {
+  const allServices = keyBy(graph.getServices(), "name")
+  const allTasks = keyBy(graph.getTasks(), "name")
+
+  const groups: GroupConfig[] = []
+  const actions: BaseActionConfig[] = []
+
+  await Bluebird.map(modules, async (module) => {
+    const services = module.serviceConfigs.map((c) => serviceFromConfig(graph, module, c))
+    const tasks = module.taskConfigs.map((c) => taskFromConfig(module, c))
+    const tests = module.testConfigs.map((c) => testFromConfig(module, c, graph))
+
+    const router = await garden.getActionRouter()
+
+    const copyFrom: BuildCopyFrom[] = []
+
+    for (const d of module.build.dependencies) {
+      if (d.copy) {
+        copyFrom.push(...d.copy.map((c) => ({ build: d.name, sourcePath: c.source, targetPath: c.target })))
+      }
+    }
+
+    const convertRuntimeDependencies = (deps: string[]): string[] => {
+      const resolved: string[] = []
+
+      for (const d of deps) {
+        if (allServices[d]) {
+          resolved.push("deploy:" + d)
+        } else if (allTasks[d]) {
+          resolved.push("run:" + d)
+        }
+      }
+
+      return resolved
+    }
+
+    const result = await router.module.convert({
+      log,
+      module,
+      services,
+      tasks,
+      tests,
+      baseFields: {
+        basePath: module.path,
+        copyFrom,
+        disabled: module.disabled,
+        source: module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
+      },
+      convertBuildDependency: (d: string | BuildDependencyConfig) => {
+        if (typeof d === "string") {
+          return "build:" + d
+        } else {
+          return "build:" + d.name
+        }
+      },
+      convertRuntimeDependencies,
+      prepareRuntimeDependencies(deps: string[], build?: BuildActionConfig) {
+        const resolved: string[] = convertRuntimeDependencies(deps)
+        if (build) {
+          resolved.push("build:" + build.name)
+        }
+        return resolved
+      },
+    })
+
+    if (result.group) {
+      groups.push(result.group)
+    }
+    if (result.actions) {
+      actions.push(...result.actions)
+    }
+  })
+
+  return { groups, actions }
 }
 
 function missingBuildDependency(moduleName: string, dependencyName: string) {

@@ -9,6 +9,7 @@
 import Joi from "@hapi/joi"
 import { ActionKind, BaseActionConfig } from "../../../actions/base"
 import { joi, joiVariables } from "../../../config/common"
+import { RuntimeContext } from "../../../runtime-context"
 
 export type ParamsBase<_ = any> = {}
 
@@ -29,6 +30,17 @@ export abstract class ActionTypeHandlerSpec<
   _configType: C
   _paramsType: P
   _resultType: R
+
+  describe() {
+    return {
+      description: this.description,
+      required: this.required,
+      paramsSchema: this.paramsSchema().keys({
+        base: baseHandlerSchema(),
+      }),
+      resultSchema: this.resultSchema(),
+    }
+  }
 }
 
 // No way currently to further validate the shape of the super function
@@ -45,3 +57,11 @@ export const actionOutputsSchema = () =>
   joiVariables().description(
     "Structured outputs from the execution, as defined by individual action/module types, to be made available for dependencies and in templating."
   )
+
+export interface BaseRunParams {
+  command?: string[]
+  args: string[]
+  interactive: boolean
+  runtimeContext: RuntimeContext
+  timeout?: number
+}

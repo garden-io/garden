@@ -13,10 +13,8 @@ import { pathExists, readFile, remove } from "fs-extra"
 
 import { getLogMessages, makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
 import { findByName } from "@garden-io/core/build/src/util/util"
-import { TaskTask } from "@garden-io/core/build/src/tasks/task"
 import { getTerraformCommands } from "../commands"
-import { LogLevel } from "@garden-io/sdk/types"
-import { ConfigGraph } from "@garden-io/core/build/src/config-graph"
+import { ConfigGraph, LogLevel } from "@garden-io/sdk/types"
 import { gardenPlugin, TerraformProvider } from ".."
 import { DeployTask } from "@garden-io/core/build/src/tasks/deploy"
 import { emptyRuntimeContext } from "@garden-io/core/build/src/runtime-context"
@@ -215,7 +213,7 @@ describe("Terraform provider", () => {
         })
 
         const actions = await garden.getActionRouter()
-        await actions.cleanupEnvironment({ log: garden.log, pluginName: "terraform" })
+        await actions.provider.cleanupEnvironment({ log: garden.log, pluginName: "terraform" })
 
         // File should still exist
         const testFileContent = await readFile(testFilePath)
@@ -274,7 +272,7 @@ describe("Terraform provider", () => {
 
         // This should remove the file
         const actions = await garden.getActionRouter()
-        await actions.cleanupEnvironment({ log: garden.log, pluginName: "terraform" })
+        await actions.provider.cleanupEnvironment({ log: garden.log, pluginName: "terraform" })
 
         expect(await pathExists(testFilePath)).to.be.false
       })
@@ -323,9 +321,9 @@ describe("Terraform module type", () => {
       log: garden.log,
       force: false,
       forceBuild: false,
-      devModeServiceNames: [],
+      devModeDeployNames: [],
 
-      localModeServiceNames: [],
+      localModeDeployNames: [],
     })
 
     return garden.processTasks([deployTask], { throwOnError: true })
@@ -339,16 +337,16 @@ describe("Terraform module type", () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const task = graph.getTask("test-task")
 
-    const taskTask = new TaskTask({
+    const taskTask = new RunTask({
       garden,
       graph,
       task,
       log: garden.log,
       force: false,
       forceBuild: false,
-      devModeServiceNames: [],
+      devModeDeployNames: [],
 
-      localModeServiceNames: [],
+      localModeDeployNames: [],
     })
 
     return garden.processTasks([taskTask], { throwOnError: true })
@@ -512,8 +510,8 @@ describe("Terraform module type", () => {
 
       const result = await runTestTask(false)
 
-      expect(result["task.test-task"]!.output.log).to.equal("workspace: default, input: foo")
-      expect(result["task.test-task"]!.output.outputs.log).to.equal("workspace: default, input: foo")
+      expect(result["task.test-task"]!.result.log).to.equal("workspace: default, input: foo")
+      expect(result["task.test-task"]!.result.outputs.log).to.equal("workspace: default, input: foo")
     })
 
     it("should return outputs with the service status", async () => {
@@ -592,8 +590,8 @@ describe("Terraform module type", () => {
     it("should expose runtime outputs to template contexts", async () => {
       const result = await runTestTask(true)
 
-      expect(result["task.test-task"]!.output.log).to.equal("workspace: default, input: foo")
-      expect(result["task.test-task"]!.output.outputs.log).to.equal("workspace: default, input: foo")
+      expect(result["task.test-task"]!.result.log).to.equal("workspace: default, input: foo")
+      expect(result["task.test-task"]!.result.outputs.log).to.equal("workspace: default, input: foo")
     })
 
     it("sets the workspace before applying", async () => {
@@ -610,20 +608,20 @@ describe("Terraform module type", () => {
       const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
       const task = _graph.getTask("test-task")
 
-      const taskTask = new TaskTask({
+      const taskTask = new RunTask({
         garden: _garden,
         graph: _graph,
         task,
         log: _garden.log,
         force: false,
         forceBuild: false,
-        devModeServiceNames: [],
+        devModeDeployNames: [],
 
-        localModeServiceNames: [],
+        localModeDeployNames: [],
       })
 
       const result = await _garden.processTasks([taskTask], { throwOnError: true })
-      expect(result["task.test-task"]!.output.outputs.log).to.equal("workspace: foo, input: foo")
+      expect(result["task.test-task"]!.result.outputs.log).to.equal("workspace: foo, input: foo")
     })
   })
 
@@ -634,7 +632,7 @@ describe("Terraform module type", () => {
       const actions = await garden.getActionRouter()
       const service = graph.getService("tf")
 
-      await actions.deleteService({ service, log: garden.log, graph })
+      await actions.deploy.delete({ service, log: garden.log, graph })
 
       const testFileContent = await readFile(testFilePath)
       expect(testFileContent.toString()).to.equal("default")
@@ -648,7 +646,7 @@ describe("Terraform module type", () => {
       const actions = await garden.getActionRouter()
       const service = graph.getService("tf")
 
-      await actions.deleteService({ service, log: garden.log, graph })
+      await actions.deploy.delete({ service, log: garden.log, graph })
 
       expect(await pathExists(testFilePath)).to.be.false
     })
@@ -671,7 +669,7 @@ describe("Terraform module type", () => {
 
       await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
-      await actions.deleteService({ service, log: _garden.log, graph: _graph })
+      await actions.deploy.delete({ service, log: _garden.log, graph: _graph })
 
       const { selected } = await getWorkspaces({ ctx, provider, root: tfRoot, log: _garden.log })
       expect(selected).to.equal("foo")

@@ -6,9 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerBuildAction, ContainerModule } from "../../../container/moduleConfig"
-import { containerHelpers } from "../../../container/helpers"
-import { BuildModuleParams, BuildResult } from "../../../../types/plugin/module/build"
+import { ContainerBuildAction } from "../../../container/moduleConfig"
 import { KubernetesProvider, ContainerBuildMode } from "../../config"
 import { getKanikoBuildStatus, kanikoBuild } from "./kaniko"
 import { getLocalBuildStatus, localBuild } from "./local"

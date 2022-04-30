@@ -11,7 +11,7 @@ import { flatten, fromPairs } from "lodash"
 import { deepFilter } from "../../util/util"
 import { Command, CommandResult, CommandParams } from "../base"
 import { Garden } from "../../garden"
-import { ConfigGraph } from "../../config-graph"
+import { ConfigGraph } from "../../graph/config-graph"
 import { LogEntry } from "../../logger/log-entry"
 import { runStatus, RunStatus } from "../../plugin/base"
 import chalk from "chalk"
@@ -70,7 +70,7 @@ export class GetStatusCommand extends Command {
     const graph = await garden.getConfigGraph({ log, emit: true })
 
     const envStatus = await garden.getEnvironmentStatus(log)
-    const serviceStatuses = await actions.getServiceStatuses({ log, graph })
+    const serviceStatuses = await actions.getDeployStatuses({ log, graph })
 
     let result: StatusCommandResult = {
       providers: envStatus,
@@ -121,7 +121,7 @@ async function getTestStatuses(garden: Garden, configGraph: ConfigGraph, log: Lo
     flatten(
       await Bluebird.map(modules, async (module) => {
         return Bluebird.map(module.testConfigs, async (testConfig) => {
-          const result = await actions.getTestResult({
+          const result = await actions.test.getResult({
             module,
             log,
             graph: configGraph,
@@ -140,7 +140,7 @@ async function getTaskStatuses(garden: Garden, configGraph: ConfigGraph, log: Lo
 
   return fromPairs(
     await Bluebird.map(tasks, async (task) => {
-      const result = await actions.getTaskResult({ task, log, graph: configGraph })
+      const result = await actions.run.getResult({ task, log, graph: configGraph })
       return [task.name, runStatus(result)]
     })
   )

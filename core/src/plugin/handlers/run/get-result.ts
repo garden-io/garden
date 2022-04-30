@@ -12,14 +12,16 @@ import { taskResultSchema } from "../../../types/task"
 import { RunAction } from "../../../actions/run"
 import { ActionTypeHandlerSpec } from "../base/base"
 import { GetActionOutputType } from "../../../actions/base"
+import { joi } from "../../../config/common"
 
 interface GetRunResultParams<T extends RunAction> extends PluginRunActionParamsBase<T> {}
 
-interface GetRunResult<T extends RunAction> extends RunResult {
-  outputs: GetActionOutputType<T>
+export interface GetRunResult<T extends RunAction = RunAction> {
+  result: RunResult | null
+  outputs: GetActionOutputType<T> | null
 }
 
-export class GetRunActionResult<T extends RunAction = RunAction> extends ActionTypeHandlerSpec<
+export class GetRunActionResult<T extends RunAction> extends ActionTypeHandlerSpec<
   "run",
   GetRunResultParams<T>,
   GetRunResult<T>
@@ -29,5 +31,9 @@ export class GetRunActionResult<T extends RunAction = RunAction> extends ActionT
   `
 
   paramsSchema = () => actionParamsSchema()
-  resultSchema = () => taskResultSchema().allow(null)
+  resultSchema = () =>
+    joi.object().keys({
+      result: taskResultSchema().allow(null),
+      outputs: joi.object().allow(null),
+    })
 }

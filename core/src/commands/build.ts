@@ -17,7 +17,7 @@ import {
   processCommandResultSchema,
 } from "./base"
 import dedent from "dedent"
-import { processModules } from "../process"
+import { processActions } from "../process"
 import { printHeader } from "../logger/util"
 import { startServer } from "../server/server"
 import { flatten } from "lodash"
@@ -118,7 +118,7 @@ export class BuildCommand extends Command<Args, Opts> {
       // Then we include build dependants (recursively) in the list of modules to build.
       modules = uniqByName([
         ...modules,
-        ...flatten(modules.map((m) => graph.getDependants({ nodeType: "build", name: m.name, recursive: true }).build)),
+        ...flatten(modules.map((m) => graph.getDependants({ kind: "build", name: m.name, recursive: true }).build)),
       ])
     }
     const moduleNames = modules.map((m) => m.name)
@@ -127,7 +127,7 @@ export class BuildCommand extends Command<Args, Opts> {
       await Bluebird.map(modules, (module) => BuildTask.factory({ garden, graph, log, module, force: opts.force }))
     )
 
-    const results = await processModules({
+    const results = await processActions({
       garden,
       graph,
       log,
@@ -136,7 +136,7 @@ export class BuildCommand extends Command<Args, Opts> {
       watch: opts.watch,
       initialTasks,
       changeHandler: async (newGraph, module) => {
-        const deps = newGraph.getDependants({ nodeType: "build", name: module.name, recursive: true })
+        const deps = newGraph.getDependants({ kind: "build", name: module.name, recursive: true })
         const tasks = [module]
           .concat(deps.build)
           .filter((m) => moduleNames.includes(m.name))

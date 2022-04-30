@@ -18,7 +18,13 @@ import { configureTerraformModule, terraformModuleSchema } from "./module"
 import { docsBaseUrl } from "@garden-io/sdk/constants"
 import { listDirectory } from "@garden-io/sdk/util/fs"
 import { getTerraformCommands } from "./commands"
-import { TerraformDeployConfig, terraformDeployOutputsSchema } from "./action"
+import {
+  deleteTerraformModule,
+  deployTerraform,
+  getTerraformStatus,
+  TerraformDeployConfig,
+  terraformDeployOutputsSchema,
+} from "./action"
 
 import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
 import { joi } from "@garden-io/core/build/src/config/common"
@@ -140,7 +146,6 @@ export const gardenPlugin = () =>
 
       See the [Terraform guide](${docsBaseUrl}/advanced/terraform) for a high-level introduction to the \`terraform\` provider.
     `,
-        serviceOutputsSchema: terraformDeployOutputsSchema(),
         schema: terraformModuleSchema(),
         handlers: {
           async convert(params) {

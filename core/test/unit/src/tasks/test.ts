@@ -11,7 +11,7 @@ import { resolve } from "path"
 import { TestTask } from "../../../../src/tasks/test"
 import { dataDir, makeTestGarden, TestGarden } from "../../../helpers"
 import { LogEntry } from "../../../../src/logger/log-entry"
-import { ConfigGraph } from "../../../../src/config-graph"
+import { ConfigGraph } from "../../../../src/graph/config-graph"
 import { testFromConfig } from "../../../../src/types/test"
 
 describe("TestTask", () => {
@@ -37,9 +37,9 @@ describe("TestTask", () => {
         test: testFromConfig(moduleA, testConfig, graph),
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
+        devModeDeployNames: [],
 
-        localModeServiceNames: [],
+        localModeDeployNames: [],
       })
 
       const key = testTask.getKey()
@@ -61,9 +61,9 @@ describe("TestTask", () => {
         test: testFromConfig(moduleA, testConfig, graph),
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
+        devModeDeployNames: [],
 
-        localModeServiceNames: [],
+        localModeDeployNames: [],
       })
 
       const deps = await task.resolveDependencies()
@@ -84,9 +84,9 @@ describe("TestTask", () => {
           force: true,
           forceBuild: false,
           skipRuntimeDependencies: true, // <-----
-          devModeServiceNames: [],
+          devModeDeployNames: [],
 
-          localModeServiceNames: [],
+          localModeDeployNames: [],
         })
 
         const deps = await task.resolveDependencies()

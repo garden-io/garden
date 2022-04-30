@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import { mkdirp, pathExists, readFile, remove, writeFile } from "fs-extra"
 import { join } from "path"
-import { ConfigGraph } from "../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../src/graph/config-graph"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { ContainerService } from "../../../../../src/plugins/container/moduleConfig"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
@@ -77,9 +77,8 @@ describe("dev mode deployments and sync behavior", () => {
       service,
       force: true,
       forceBuild: false,
-      devModeServiceNames: [service.name],
-
-      localModeServiceNames: [],
+      devModeDeployNames: [service.name],
+      localModeDeployNames: [],
     })
 
     await garden.processTasks([deployTask], { throwOnError: true })
@@ -112,7 +111,7 @@ describe("dev mode deployments and sync behavior", () => {
 
     // This is to make sure that the two-way sync doesn't recreate the local files we're about to delete here.
     const actions = await garden.getActionRouter()
-    await actions.deleteService({ graph, log: garden.log, service })
+    await actions.deploy.delete({ graph, log: garden.log, service })
 
     // Clean up the files we created locally
     for (const filename of ["made_locally", "made_in_pod"]) {
@@ -142,9 +141,8 @@ describe("dev mode deployments and sync behavior", () => {
       service,
       force: true,
       forceBuild: false,
-      devModeServiceNames: [service.name],
-
-      localModeServiceNames: [],
+      devModeDeployNames: [service.name],
+      localModeDeployNames: [],
     })
 
     await garden.processTasks([deployTask], { throwOnError: true })

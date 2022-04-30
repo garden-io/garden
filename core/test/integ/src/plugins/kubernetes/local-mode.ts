@@ -62,9 +62,9 @@ describe("local mode deployments and ssh tunneling behavior", () => {
       service,
       force: true,
       forceBuild: false,
-      devModeServiceNames: [],
+      devModeDeployNames: [],
 
-      localModeServiceNames: [service.name],
+      localModeDeployNames: [service.name],
     })
 
     await garden.processTasks([deployTask], { throwOnError: true })

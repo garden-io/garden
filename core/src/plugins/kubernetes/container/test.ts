@@ -6,18 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerModule } from "../../container/moduleConfig"
+import { ContainerTestAction } from "../../container/moduleConfig"
 import { DEFAULT_TEST_TIMEOUT } from "../../../constants"
 import { storeTestResult } from "../test-results"
-import { TestModuleParams } from "../../../types/plugin/module/testModule"
-import { TestResult } from "../../../types/test"
 import { runAndCopy } from "../run"
 import { makePodName } from "../util"
 import { getAppNamespaceStatus } from "../namespace"
 import { KubernetesPluginContext } from "../config"
+import { TestActionHandler } from "../../../plugin/action-types"
+import { getDeploymentImageId } from "./util"
 
-export async function testContainerModule(params: TestModuleParams<ContainerModule>): Promise<TestResult> {
-  const { ctx, module, test, log } = params
+export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = async (params) => {
+  const { ctx, action, log } = params
   const {
     command,
     args,
@@ -29,15 +29,14 @@ export async function testContainerModule(params: TestModuleParams<ContainerModu
     privileged,
     addCapabilities,
     dropCapabilities,
-  } = test.config.spec
-  const testName = test.name
-  const timeout = test.config.timeout || DEFAULT_TEST_TIMEOUT
+  } = action.getSpec()
+  const timeout = action.getConfig("timeout") || DEFAULT_TEST_TIMEOUT
   const k8sCtx = ctx as KubernetesPluginContext
 
-  const image = module.outputs["deployment-image-id"]
+  const image = getDeploymentImageId(action)
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
 
-  const result = await runAndCopy({
+  const res = await runAndCopy({
     ...params,
     command,
     args,
@@ -46,25 +45,27 @@ export async function testContainerModule(params: TestModuleParams<ContainerModu
     resources: { cpu, memory },
     image,
     namespace: namespaceStatus.namespaceName,
-    podName: makePodName("test", module.name, testName),
-    description: `Test '${testName}' in container module '${module.name}'`,
+    podName: makePodName("test", action.name),
     timeout,
-    version: test.version,
+    version: action.versionString(),
     volumes,
     privileged,
     addCapabilities,
     dropCapabilities,
   })
 
-  return storeTestResult({
+  const result = {
+    testName: action.name,
+    namespaceStatus,
+    ...res,
+  }
+
+  await storeTestResult({
     ctx,
     log,
-    module,
-    test,
-    result: {
-      testName,
-      namespaceStatus,
-      ...result,
-    },
+    action,
+    result,
   })
+
+  return { result, outputs: { log: res.log } }
 }

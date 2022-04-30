@@ -12,7 +12,7 @@ import { emptyDir, pathExists } from "fs-extra"
 import { expect } from "chai"
 import { join, resolve } from "path"
 import { Garden } from "../../../../../../src/garden"
-import { ConfigGraph } from "../../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { findByName } from "../../../../../../src/util/util"
 import { deline } from "../../../../../../src/util/string"
 import { runContainerService } from "../../../../../../src/plugins/kubernetes/container/run"
@@ -190,9 +190,9 @@ describe("kubernetes container module handlers", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
+        devModeDeployNames: [],
 
-        localModeServiceNames: [],
+        localModeDeployNames: [],
       })
 
       garden.events.eventLog = []
@@ -202,8 +202,8 @@ describe("kubernetes container module handlers", () => {
 
       const key = "test.simple.echo-test-with-sleep"
       expect(result).to.have.property(key)
-      expect(result[key]!.output.log.trim()).to.equal("ok\nbear")
-      expect(result[key]!.output.namespaceStatus).to.exist
+      expect(result[key]!.result.log.trim()).to.equal("ok\nbear")
+      expect(result[key]!.result.namespaceStatus).to.exist
       expect(logEvent).to.exist
     })
 
@@ -222,9 +222,9 @@ describe("kubernetes container module handlers", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
+        devModeDeployNames: [],
 
-        localModeServiceNames: [],
+        localModeDeployNames: [],
       })
 
       await expectError(
@@ -237,7 +237,7 @@ describe("kubernetes container module handlers", () => {
       const actions = await garden.getActionRouter()
 
       // We also verify that, despite the test failing, its result was still saved.
-      const result = await actions.getTestResult({
+      const result = await actions.test.getResult({
         log: garden.log,
         graph,
         module,
@@ -258,9 +258,9 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
-          devModeServiceNames: [],
+          devModeDeployNames: [],
 
-          localModeServiceNames: [],
+          localModeDeployNames: [],
         })
 
         await emptyDir(garden.artifactsPath)
@@ -281,9 +281,9 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
-          devModeServiceNames: [],
+          devModeDeployNames: [],
 
-          localModeServiceNames: [],
+          localModeDeployNames: [],
         })
 
         await emptyDir(garden.artifactsPath)
@@ -306,9 +306,9 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
-          devModeServiceNames: [],
+          devModeDeployNames: [],
 
-          localModeServiceNames: [],
+          localModeDeployNames: [],
         })
 
         await emptyDir(garden.artifactsPath)
@@ -329,9 +329,9 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
-          devModeServiceNames: [],
+          devModeDeployNames: [],
 
-          localModeServiceNames: [],
+          localModeDeployNames: [],
         })
 
         const result = await garden.processTasks([testTask])
@@ -356,9 +356,9 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
-          devModeServiceNames: [],
+          devModeDeployNames: [],
 
-          localModeServiceNames: [],
+          localModeDeployNames: [],
         })
 
         const result = await garden.processTasks([testTask])

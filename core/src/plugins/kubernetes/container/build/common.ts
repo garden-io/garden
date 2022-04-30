@@ -8,7 +8,7 @@
 
 import AsyncLock from "async-lock"
 import pRetry from "p-retry"
-import { ContainerBuildAction, ContainerModule, ContainerRegistryConfig } from "../../../container/moduleConfig"
+import { ContainerBuildAction, ContainerRegistryConfig } from "../../../container/moduleConfig"
 import { getRunningDeploymentPod } from "../../util"
 import {
   buildSyncVolumeName,
@@ -37,7 +37,7 @@ import { V1Container, V1Service } from "@kubernetes/client-node"
 import { cloneDeep, isEmpty } from "lodash"
 import { compareDeployedResources, waitForResources } from "../../status/status"
 import { KubernetesDeployment, KubernetesResource } from "../../types"
-import { BuildActionHandler } from "../../../../plugin/action-types"
+import { BuildActionHandler, BuildActionResults } from "../../../../plugin/action-types"
 import { k8sGetContainerBuildActionOutputs } from "../handlers"
 
 export const utilContainerName = "util"
@@ -63,6 +63,7 @@ export const builderToleration = {
 }
 
 export type BuildStatusHandler = BuildActionHandler<"getStatus", ContainerBuildAction>
+export type BuildStatusResult = BuildActionResults<"getStatus", ContainerBuildAction>
 export type BuildHandler = BuildActionHandler<"build", ContainerBuildAction>
 
 const deployLock = new AsyncLock()
@@ -377,9 +378,7 @@ export async function ensureUtilDeployment({
   })
 }
 
-export async function getManifestInspectArgs(module: ContainerModule, deploymentRegistry: ContainerRegistryConfig) {
-  const remoteId = module.outputs["deployment-image-id"]
-
+export async function getManifestInspectArgs(remoteId: string, deploymentRegistry: ContainerRegistryConfig) {
   const dockerArgs = ["manifest", "inspect", remoteId]
   if (isLocalHostname(deploymentRegistry.hostname)) {
     dockerArgs.push("--insecure")

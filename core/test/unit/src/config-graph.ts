@@ -12,7 +12,7 @@ import { ensureDir } from "fs-extra"
 import stripAnsi from "strip-ansi"
 import { makeTestGardenA, makeTestGarden, dataDir, expectError, makeTestModule } from "../../helpers"
 import { getNames } from "../../../src/util/util"
-import { ConfigGraph, DependencyGraphNode } from "../../../src/config-graph"
+import { ConfigGraph, DependencyGraphNode } from "../../../src/graph/config-graph"
 import { Garden } from "../../../src/garden"
 import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT } from "../../../src/constants"
 
@@ -519,7 +519,7 @@ describe("ConfigGraph", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       const deps = graph.getDependencies({
-        nodeType: "build",
+        kind: "build",
         name: "module-b",
         recursive: false,
       })
@@ -562,7 +562,7 @@ describe("ConfigGraph", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       const deps = graph.getDependencies({
-        nodeType: "deploy",
+        kind: "deploy",
         name: "enabled-service",
         recursive: false,
       })
@@ -607,7 +607,7 @@ describe("ConfigGraph", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       const deps = graph.getDependencies({
-        nodeType: "deploy",
+        kind: "deploy",
         name: "enabled-service",
         recursive: false,
       })
@@ -668,7 +668,7 @@ describe("ConfigGraph", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       const deps = graph.getDependencies({
-        nodeType: "deploy",
+        kind: "deploy",
         name: "enabled-service",
         recursive: false,
       })
@@ -713,7 +713,7 @@ describe("ConfigGraph", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       const deps = graph.getDependencies({
-        nodeType: "deploy",
+        kind: "deploy",
         name: "enabled-task",
         recursive: false,
       })
@@ -758,7 +758,7 @@ describe("ConfigGraph", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       const deps = graph.getDependencies({
-        nodeType: "deploy",
+        kind: "deploy",
         name: "enabled-test",
         recursive: false,
       })
@@ -861,7 +861,7 @@ describe("ConfigGraph", () => {
       ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const deps = graph.getDependants({ nodeType: "build", name: "module-a", recursive: true })
+      const deps = graph.getDependants({ kind: "build", name: "module-a", recursive: true })
 
       expect(deps.deploy.map((m) => m.name)).to.eql([])
     })

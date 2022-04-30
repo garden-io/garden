@@ -25,7 +25,7 @@ describe("TestCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { modules: undefined },
+      args: { names: undefined },
       opts: withDefaultGlobalOpts({
         "name": undefined,
         "force": true,
@@ -161,7 +161,7 @@ describe("TestCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { modules: ["module-a"] },
+      args: { names: ["module-a"] },
       opts: withDefaultGlobalOpts({
         "name": undefined,
         "force": true,
@@ -248,7 +248,7 @@ describe("TestCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { modules: ["module-a"] },
+      args: { names: ["module-a"] },
       opts: withDefaultGlobalOpts({
         "name": ["int*"],
         "force": true,
@@ -307,7 +307,7 @@ describe("TestCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { modules: ["module-c"] },
+      args: { names: ["module-c"] },
       opts: withDefaultGlobalOpts({
         "name": undefined,
         "force": true,
@@ -327,9 +327,7 @@ describe("TestCommand", () => {
       "build.module-a",
       "build.module-b",
       "build.module-c",
-      "stage-build.module-a",
-      "stage-build.module-b",
-      "stage-build.module-c",
+
       "test.module-c.integ",
     ])
   })
@@ -346,7 +344,7 @@ describe("TestCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { modules: undefined },
+      args: { names: undefined },
       opts: withDefaultGlobalOpts({
         "name": undefined,
         "force": true,
@@ -367,8 +365,6 @@ describe("TestCommand", () => {
       "build.module-b",
       "deploy.service-a",
       "get-service-status.service-a",
-      "stage-build.module-a",
-      "stage-build.module-b",
       "test.module-a.integration",
       "test.module-a.unit",
       "test.module-b.unit",
@@ -416,7 +412,7 @@ describe("TestCommand", () => {
         log,
         headerLog: log,
         footerLog: log,
-        args: { modules: ["module-a"] },
+        args: { names: ["module-a"] },
         opts: withDefaultGlobalOpts({
           "name": undefined,
           "force": true,
@@ -437,7 +433,7 @@ describe("TestCommand", () => {
         // "deploy.service-a", // skipped
         // "deploy.service-b", // skipped
         "get-service-status.service-a",
-        "stage-build.module-a",
+
         "test.module-a.integration",
         "test.module-a.unit",
       ])
@@ -445,68 +441,6 @@ describe("TestCommand", () => {
   })
 
   it("should skip dependant modules if --skip-dependants is passed", async () => {
-    const garden = await makeTestGardenA()
-    const log = garden.log
-
-    const moduleConfigs: ModuleConfig[] = [
-      makeModuleConfig(garden.projectRoot, {
-        name: "module-a",
-        include: [],
-        spec: {
-          services: [{ name: "service-a" }],
-          tests: [
-            { name: "unit", command: ["echo", "OK"] },
-            { name: "integration", command: ["echo", "OK"], dependencies: ["service-a"] },
-          ],
-          tasks: [],
-          build: { command: ["echo", "A"], dependencies: [] },
-        },
-      }),
-      makeModuleConfig(garden.projectRoot, {
-        name: "module-b",
-        include: [],
-        spec: {
-          services: [{ name: "service-b" }],
-          tests: [
-            { name: "unit", command: ["echo", "OK"] },
-            { name: "integration", command: ["echo", "OK"], dependencies: ["service-a"] }, // <--- depends on service-a
-          ],
-          tasks: [],
-          build: { command: ["echo", "A"], dependencies: [] },
-        },
-      }),
-    ]
-
-    garden.setModuleConfigs(moduleConfigs)
-
-    const { result, errors } = await command.action({
-      garden,
-      log,
-      headerLog: log,
-      footerLog: log,
-      args: { modules: ["module-a"] },
-      opts: withDefaultGlobalOpts({
-        "name": undefined,
-        "force": true,
-        "force-build": false,
-        "watch": false,
-        "skip": [],
-        "skip-dependencies": false,
-        "skip-dependants": true, // <----
-      }),
-    })
-
-    if (errors) {
-      throw errors[0]
-    }
-
-    expect(Object.keys(taskResultOutputs(result!)).sort()).to.eql([
-      "build.module-a",
-      "deploy.service-a",
-      "get-service-status.service-a",
-      "stage-build.module-a",
-      "test.module-a.integration",
-      "test.module-a.unit",
-    ])
+    throw "TODO" // This is now the default, but need to review other tests
   })
 })

@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import { getDataDir, makeTestGarden, TestGarden } from "../../../../../helpers"
-import { ConfigGraph } from "../../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
 import { getServiceLogs } from "../../../../../../src/plugins/kubernetes/container/logs"
 import { Stream } from "ts-stream"
@@ -19,7 +19,7 @@ import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { emptyRuntimeContext } from "../../../../../../src/runtime-context"
 import { createWorkloadManifest } from "../../../../../../src/plugins/kubernetes/container/deployment"
 import { sleep } from "../../../../../../src/util/util"
-import { DeleteServiceTask } from "../../../../../../src/tasks/delete-service"
+import { DeleteDeployTask } from "../../../../../../src/tasks/delete-service"
 
 describe("kubernetes", () => {
   let garden: TestGarden
@@ -53,9 +53,9 @@ describe("kubernetes", () => {
         graph,
         log: garden.log,
         service,
-        devModeServiceNames: [],
+        devModeDeployNames: [],
 
-        localModeServiceNames: [],
+        localModeDeployNames: [],
       })
 
       await garden.processTasks([deployTask], { throwOnError: true })
@@ -98,9 +98,9 @@ describe("kubernetes", () => {
           graph,
           log: garden.log,
           service,
-          devModeServiceNames: [],
+          devModeDeployNames: [],
 
-          localModeServiceNames: [],
+          localModeDeployNames: [],
         })
 
         await garden.processTasks([deployTask], { throwOnError: true })
@@ -165,15 +165,15 @@ describe("kubernetes", () => {
           graph,
           log: garden.log,
           service,
-          devModeServiceNames: [],
+          devModeDeployNames: [],
 
-          localModeServiceNames: [],
+          localModeDeployNames: [],
         })
-        const deleteTask = new DeleteServiceTask({
+        const deleteTask = new DeleteDeployTask({
           garden,
           graph,
           log: garden.log,
-          service,
+          action: service,
         })
 
         const stream = new Stream<ServiceLogEntry>()

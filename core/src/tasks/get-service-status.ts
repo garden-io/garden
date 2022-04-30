@@ -7,74 +7,59 @@
  */
 
 import { includes } from "lodash"
-import { LogEntry } from "../logger/log-entry"
-import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults } from "./base"
-import { GardenService, ServiceStatus } from "../types/service"
-import { Garden } from "../garden"
-import { ConfigGraph } from "../config-graph"
+import { TaskType, getServiceStatuses, getRunTaskResults, BaseActionTask, BaseActionTaskParams } from "./base"
+import { ServiceStatus } from "../types/service"
+import { ConfigGraph } from "../graph/config-graph"
 import { GraphResults } from "../task-graph"
 import { prepareRuntimeContext } from "../runtime-context"
 import Bluebird from "bluebird"
 import { GetTaskResultTask } from "./get-task-result"
-import chalk from "chalk"
 import { Profile } from "../util/profiling"
+import { DeployAction, isDeployAction } from "../actions/deploy"
+import { isRunAction } from "../actions/run"
 
-export interface GetServiceStatusTaskParams {
-  garden: Garden
-  graph: ConfigGraph
-  service: GardenService
+export interface GetServiceStatusTaskParams extends BaseActionTaskParams<DeployAction> {
   force: boolean
-  log: LogEntry
-  devModeServiceNames: string[]
-  localModeServiceNames: string[]
+  devModeDeployNames: string[]
+  localModeDeployNames: string[]
 }
 
 @Profile()
-export class GetServiceStatusTask extends BaseTask {
+export class GetServiceStatusTask extends BaseActionTask<DeployAction> {
   type: TaskType = "get-service-status"
   concurrencyLimit = 20
   graph: ConfigGraph
-  service: GardenService
-  devModeServiceNames: string[]
-  localModeServiceNames: string[]
+  devModeDeployNames: string[]
+  localModeDeployNames: string[]
 
-  constructor({
-    garden,
-    graph,
-    log,
-    service,
-    force,
-    devModeServiceNames,
-    localModeServiceNames,
-  }: GetServiceStatusTaskParams) {
-    super({ garden, log, force, version: service.version })
+  constructor({ garden, graph, log, action, force, devModeDeployNames, localModeDeployNames }: GetServiceStatusTaskParams) {
+    super({ garden, log, force, action, graph })
     this.graph = graph
-    this.service = service
-    this.devModeServiceNames = devModeServiceNames
-    this.localModeServiceNames = localModeServiceNames
+    this.devModeDeployNames = devModeDeployNames
+    this.localModeDeployNames = localModeDeployNames
   }
 
   async resolveDependencies() {
-    const deps = this.graph.getDependencies({ nodeType: "deploy", name: this.getName(), recursive: false })
+    const deps = this.graph.getDependencies({ kind: "deploy", name: this.getName(), recursive: false })
 
-    const statusTasks = deps.deploy.map((service) => {
+    const statusTasks = deps.filter(isDeployAction).map((action) => {
       return new GetServiceStatusTask({
         garden: this.garden,
         graph: this.graph,
         log: this.log,
-        service,
+        action,
         force: false,
-        devModeServiceNames: this.devModeServiceNames,
-        localModeServiceNames: this.localModeServiceNames,
+        devModeDeployNames: this.devModeDeployNames,
+        localModeDeployNames: this.localModeDeployNames,
       })
     })
 
-    const taskResultTasks = await Bluebird.map(deps.run, async (task) => {
+    const taskResultTasks = await Bluebird.map(deps.filter(isRunAction), async (action) => {
       return new GetTaskResultTask({
         garden: this.garden,
         graph: this.graph,
         log: this.log,
-        task,
+        action,
         force: false,
       })
     })
@@ -82,22 +67,18 @@ export class GetServiceStatusTask extends BaseTask {
     return [...statusTasks, ...taskResultTasks]
   }
 
-  getName() {
-    return this.service.name
-  }
-
   getDescription() {
-    return `getting status for service '${this.service.name}' (from module '${this.service.module.name}')`
+    return `getting status for action ${this.action.longDescription()}`
   }
 
   async process(dependencyResults: GraphResults): Promise<ServiceStatus> {
     const log = this.log.placeholder()
 
-    const devMode = includes(this.devModeServiceNames, this.service.name)
-    const localMode = !devMode && includes(this.localModeServiceNames, this.service.name)
+    const devMode = includes(this.devModeDeployNames, this.action.name)
+    const localMode = !devMode && includes(this.localModeDeployNames, this.action.name)
 
     const dependencies = this.graph.getDependencies({
-      nodeType: "deploy",
+      kind: "deploy",
       name: this.getName(),
       recursive: false,
     })
@@ -110,7 +91,7 @@ export class GetServiceStatusTask extends BaseTask {
       graph: this.graph,
       dependencies,
       version: this.version,
-      moduleVersion: this.service.module.version.versionString,
+      moduleVersion: this.version,
       serviceStatuses,
       taskResults,
     })
@@ -120,9 +101,9 @@ export class GetServiceStatusTask extends BaseTask {
     let status: ServiceStatus = { state: "unknown", detail: {} }
 
     try {
-      status = await actions.getServiceStatus({
+      status = await actions.deploy.getStatus({
         graph: this.graph,
-        service: this.service,
+        action: this.action,
         log,
         devMode,
         localMode,
@@ -131,7 +112,7 @@ export class GetServiceStatusTask extends BaseTask {
     } catch (err) {
       // This can come up if runtime outputs are not resolvable
       if (err.type === "template-string") {
-        log.debug(`Unable to resolve status for service ${chalk.white(this.service.name)}: ${err.message}`)
+        log.debug(`Unable to resolve status for action ${this.action.longDescription()}: ${err.message}`)
       } else {
         throw err
       }

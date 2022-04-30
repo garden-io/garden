@@ -17,14 +17,13 @@ export interface BaseVolumeSpec extends ModuleSpec {
   accessModes: VolumeAccessMode[]
 }
 
-export const baseVolumeSpecSchema = () =>
-  baseModuleSpecSchema().keys({
-    accessModes: joi
-      .sparseArray()
-      .items(joi.string().allow("ReadOnlyMany", "ReadWriteOnce", "ReadWriteMany"))
-      .required()
-      .unique()
-      .min(1).description(dedent`
+export const baseVolumeSpecKeys = () => ({
+  accessModes: joi
+    .sparseArray()
+    .items(joi.string().allow("ReadOnlyMany", "ReadWriteOnce", "ReadWriteMany"))
+    .required()
+    .unique()
+    .min(1).description(dedent`
       A list of access modes supported by the volume when mounting. At least one must be specified. The available modes are as follows:
 
        ReadOnlyMany  - May be mounted as a read-only volume, concurrently by multiple targets.
@@ -33,6 +32,11 @@ export const baseVolumeSpecSchema = () =>
 
       At least one mode must be specified.
       `),
+})
+
+export const baseVolumeSpecSchema = () =>
+  baseModuleSpecSchema().keys({
+    ...baseVolumeSpecKeys(),
   })
 
 export const gardenPlugin = () =>

@@ -8,12 +8,12 @@
 
 import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
-import { GardenService, ServiceStatus, ForwardablePort } from "../../../types/service"
+import { ServiceStatus, ForwardablePort } from "../../../types/service"
 import { createContainerManifests, startContainerDevSync } from "./deployment"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { DeploymentError } from "../../../exceptions"
 import { sleep } from "../../../util/util"
-import { ContainerDeployAction } from "../../container/moduleConfig"
+import { ContainerDeployAction, ContainerDeployOutputs } from "../../container/moduleConfig"
 import { KubeApi } from "../api"
 import { compareDeployedResources } from "../status/status"
 import { getIngresses } from "./ingress"
@@ -22,23 +22,26 @@ import { KubernetesPluginContext } from "../config"
 import { RuntimeContext } from "../../../runtime-context"
 import { KubernetesServerResource, KubernetesWorkload } from "../types"
 import { DeployActionHandler } from "../../../plugin/action-types"
+import { getDeploymentImageId } from "./util"
 
 interface ContainerStatusDetail {
   remoteResources: KubernetesServerResource[]
   workload: KubernetesWorkload | null
 }
 
-export type ContainerServiceStatus = ServiceStatus<ContainerStatusDetail>
+export type ContainerServiceStatus = ServiceStatus<ContainerStatusDetail, ContainerDeployOutputs>
 
-export const getContainerDeployStatus: DeployActionHandler<"deploy", ContainerDeployAction> = async (params) => {
+export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", ContainerDeployAction> = async (params) => {
   const { ctx, action, runtimeContext, log, devMode, localMode } = params
   const k8sCtx = <KubernetesPluginContext>ctx
+
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, ctx, provider)
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
   const namespace = namespaceStatus.namespaceName
-  const enableDevMode = devMode && !!service.spec.devMode
+  const enableDevMode = devMode && !!action.getSpec("devMode")
+  const imageId = getDeploymentImageId(action)
 
   // FIXME: [objects, matched] and ingresses can be run in parallel
   const { workload, manifests } = await createContainerManifests({
@@ -46,6 +49,7 @@ export const getContainerDeployStatus: DeployActionHandler<"deploy", ContainerDe
     api,
     log,
     action,
+    imageId,
     runtimeContext,
     enableDevMode,
     enableLocalMode: localMode,
@@ -82,10 +86,13 @@ export const getContainerDeployStatus: DeployActionHandler<"deploy", ContainerDe
     ingresses,
     state,
     namespaceStatuses: [namespaceStatus],
-    version: state === "ready" ? action.version.versionString : undefined,
+    version: state === "ready" ? action.versionString() : undefined,
     detail: { remoteResources, workload },
     devMode: deployedWithDevMode,
     localMode: deployedWithLocalMode,
+    outputs: {
+      deployedImageId: imageId,
+    },
   }
 
   if (state === "ready" && devMode) {
@@ -109,7 +116,7 @@ export async function waitForContainerService(
   ctx: PluginContext,
   log: LogEntry,
   runtimeContext: RuntimeContext,
-  service: GardenService,
+  action: ContainerDeployAction,
   devMode: boolean,
   localMode: boolean,
   timeout = KUBECTL_DEFAULT_TIMEOUT
@@ -117,12 +124,11 @@ export async function waitForContainerService(
   const startTime = new Date().getTime()
 
   while (true) {
-    const status = await getContainerDeployStatus({
+    const status = await k8sGetContainerDeployStatus({
       ctx,
       log,
-      service,
+      action,
       runtimeContext,
-      module: service.module,
       devMode,
       localMode,
     })
@@ -131,11 +137,11 @@ export async function waitForContainerService(
       return
     }
 
-    log.silly(`Waiting for service ${service.name}`)
+    log.silly(`Waiting for service ${action.name}`)
 
     if (new Date().getTime() - startTime > timeout * 1000) {
-      throw new DeploymentError(`Timed out waiting for service ${service.name} to deploy after ${timeout} seconds`, {
-        serviceName: service.name,
+      throw new DeploymentError(`Timed out waiting for ${action.longDescription()} to deploy after ${timeout} seconds`, {
+        name: action.name,
         status,
       })
     }

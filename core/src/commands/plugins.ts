@@ -18,7 +18,7 @@ import Bluebird from "bluebird"
 import { printHeader, getTerminalWidth } from "../logger/util"
 import { LoggerType } from "../logger/logger"
 import { StringOption } from "../cli/params"
-import { GardenModule } from "../types/module"
+import { ConfigGraph } from "../graph/config-graph"
 
 const pluginArgs = {
   plugin: new StringOption({
@@ -104,18 +104,17 @@ export class PluginsCommand extends Command<Args> {
     const provider = await garden.resolveProvider(log, args.plugin)
     const ctx = await garden.getPluginContext(provider)
 
-    let modules: GardenModule[] = []
+    let graph = new ConfigGraph([], {})
 
     // Commands can optionally ask for all the modules in the project/environment
-    if (command.resolveModules) {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      modules = graph.getModules()
+    if (command.resolveGraph) {
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     }
 
     log.info("")
 
     try {
-      const { result, errors = [] } = await command.handler({ garden, ctx, log, args: commandArgs, modules })
+      const { result, errors = [] } = await command.handler({ ctx, log, args: commandArgs, graph })
       return { result, errors: errors.map(toGardenError) }
     } catch (err) {
       return { errors: [toGardenError(err)] }

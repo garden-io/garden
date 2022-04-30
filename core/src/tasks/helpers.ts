@@ -10,11 +10,11 @@ import { uniqBy } from "lodash"
 import { DeployTask } from "./deploy"
 import { Garden } from "../garden"
 import { GardenModule } from "../types/module"
-import { ConfigGraph, DependencyRelations } from "../config-graph"
+import { ConfigGraph, DependencyRelations } from "../graph/config-graph"
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask } from "./base"
 import { TestTask } from "./test"
-import { TaskTask } from "./task"
+import { RunTask } from "./task"
 import { GetServiceStatusTask } from "./get-service-status"
 import { GetTaskResultTask } from "./get-task-result"
 
@@ -28,21 +28,21 @@ export async function getModuleWatchTasks({
   graph,
   module,
   servicesWatched,
-  devModeServiceNames,
-  localModeServiceNames,
+  devModeDeployNames,
+  localModeDeployNames,
 }: {
   garden: Garden
   log: LogEntry
   graph: ConfigGraph
   module: GardenModule
   servicesWatched: string[]
-  devModeServiceNames: string[]
-  localModeServiceNames: string[]
+  devModeDeployNames: string[]
+  localModeDeployNames: string[]
 }): Promise<BaseTask[]> {
   const dependants = graph.getDependantsForModule(module, true)
 
   const deployTasks = dependants.deploy
-    .filter((s) => !s.disabled && servicesWatched.includes(s.name) && !devModeServiceNames.includes(s.name))
+    .filter((s) => !s.disabled && servicesWatched.includes(s.name) && !devModeDeployNames.includes(s.name))
     .map(
       (service) =>
         new DeployTask({
@@ -53,8 +53,8 @@ export async function getModuleWatchTasks({
           force: true,
           forceBuild: false,
           fromWatch: true,
-          devModeServiceNames,
-          localModeServiceNames,
+          devModeDeployNames,
+          localModeDeployNames,
         })
     )
 
@@ -78,8 +78,8 @@ export function getServiceStatusDeps(task: RuntimeTask, deps: DependencyRelation
       log: task.log,
       service,
       force: false,
-      devModeServiceNames: task.devModeServiceNames,
-      localModeServiceNames: task.localModeServiceNames,
+      devModeDeployNames: task.devModeDeployNames,
+      localModeDeployNames: task.localModeDeployNames,
     })
   })
 }
@@ -96,17 +96,17 @@ export function getTaskResultDeps(task: RuntimeTask, deps: DependencyRelations):
   })
 }
 
-export function getTaskDeps(task: RuntimeTask, deps: DependencyRelations, force: boolean): TaskTask[] {
+export function getTaskDeps(task: RuntimeTask, deps: DependencyRelations, force: boolean): RunTask[] {
   return deps.run.map((dep) => {
-    return new TaskTask({
+    return new RunTask({
       task: dep,
       garden: task.garden,
       log: task.log,
       graph: task.graph,
       force,
       forceBuild: task.forceBuild,
-      devModeServiceNames: task.devModeServiceNames,
-      localModeServiceNames: task.localModeServiceNames,
+      devModeDeployNames: task.devModeDeployNames,
+      localModeDeployNames: task.localModeDeployNames,
     })
   })
 }
@@ -122,12 +122,8 @@ export function getDeployDeps(task: RuntimeTask, deps: DependencyRelations, forc
         force,
         forceBuild: task.forceBuild,
         skipRuntimeDependencies: task.skipRuntimeDependencies,
-        devModeServiceNames: task.devModeServiceNames,
-        localModeServiceNames: task.localModeServiceNames,
+        devModeDeployNames: task.devModeDeployNames,
+        localModeDeployNames: task.localModeDeployNames,
       })
   )
-}
-
-export function makeTestTaskName(moduleName: string, testConfigName: string) {
-  return `${moduleName}.${testConfigName}`
 }

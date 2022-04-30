@@ -8,7 +8,7 @@
 
 import { expectError, grouped } from "../../../../../../helpers"
 import { Garden } from "../../../../../../../src/garden"
-import { ConfigGraph } from "../../../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../../../src/graph/config-graph"
 import {
   k8sBuildContainer,
   k8sGetContainerBuildStatus,

@@ -9,70 +9,59 @@
 import chalk from "chalk"
 import { includes } from "lodash"
 import { LogEntry } from "../logger/log-entry"
-import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults } from "./base"
-import { GardenService, ServiceStatus, getLinkUrl } from "../types/service"
-import { Garden } from "../garden"
-import { BuildTask } from "./build"
-import { ConfigGraph } from "../config-graph"
+import { TaskType, getServiceStatuses, getRunTaskResults, BaseActionTask, BaseActionTaskParams } from "./base"
+import { ServiceStatus, getLinkUrl } from "../types/service"
 import { startPortProxies } from "../proxy"
 import { GraphResults } from "../task-graph"
 import { prepareRuntimeContext } from "../runtime-context"
 import { GetServiceStatusTask } from "./get-service-status"
 import { Profile } from "../util/profiling"
 import { getServiceStatusDeps, getTaskResultDeps, getDeployDeps, getTaskDeps } from "./helpers"
+import { DeployAction } from "../actions/deploy"
 
-export interface DeployTaskParams {
-  garden: Garden
-  graph: ConfigGraph
-  service: GardenService
+export interface DeployTaskParams extends BaseActionTaskParams<DeployAction> {
   force: boolean
   forceBuild: boolean
-  fromWatch?: boolean
+  fromWatch: boolean
   log: LogEntry
-  skipRuntimeDependencies?: boolean
-  devModeServiceNames: string[]
-  localModeServiceNames: string[]
+  devModeDeployNames: string[]
+  localModeDeployNames: string[]
 }
 
 @Profile()
-export class DeployTask extends BaseTask {
+export class DeployTask extends BaseActionTask<DeployAction> {
   type: TaskType = "deploy"
   concurrencyLimit = 10
-  graph: ConfigGraph
-  service: GardenService
+
   forceBuild: boolean
   fromWatch: boolean
-  skipRuntimeDependencies: boolean
-  devModeServiceNames: string[]
-  localModeServiceNames: string[]
+  devModeDeployNames: string[]
+  localModeDeployNames: string[]
 
   constructor({
     garden,
     graph,
     log,
-    service,
+    action,
     force,
     forceBuild,
     fromWatch = false,
-    skipRuntimeDependencies = false,
-    devModeServiceNames,
-    localModeServiceNames,
+    devModeDeployNames,
+    localModeDeployNames,
   }: DeployTaskParams) {
-    super({ garden, log, force, version: service.version })
+    super({ garden, log, force, action, graph })
     this.graph = graph
-    this.service = service
     this.forceBuild = forceBuild
     this.fromWatch = fromWatch
-    this.skipRuntimeDependencies = skipRuntimeDependencies
-    this.devModeServiceNames = devModeServiceNames
-    this.localModeServiceNames = localModeServiceNames
+    this.devModeDeployNames = devModeDeployNames
+    this.localModeDeployNames = localModeDeployNames
   }
 
   async resolveDependencies() {
     const dg = this.graph
 
     const deps = dg.getDependencies({
-      nodeType: "deploy",
+      kind: "deploy",
       name: this.getName(),
       recursive: false,
     })
@@ -81,13 +70,12 @@ export class DeployTask extends BaseTask {
       garden: this.garden,
       graph: this.graph,
       log: this.log,
-      service: this.service,
+      action: this.action,
       force: false,
-      devModeServiceNames: this.devModeServiceNames,
-      localModeServiceNames: this.localModeServiceNames,
+      devModeDeployNames: this.devModeDeployNames,
+      localModeDeployNames: this.localModeDeployNames,
     })
 
-    const buildTasks = await this.getBuildTasks()
     if (this.skipRuntimeDependencies) {
       // Then we don't deploy any service dependencies or run any task dependencies, but only get existing
       // statuses and results.
@@ -97,32 +85,18 @@ export class DeployTask extends BaseTask {
     }
   }
 
-  private async getBuildTasks(): Promise<BaseTask[]> {
-    return BuildTask.factory({
-      garden: this.garden,
-      graph: this.graph,
-      log: this.log,
-      module: this.service.module,
-      force: this.forceBuild,
-    })
-  }
-
-  getName() {
-    return this.service.name
-  }
-
   getDescription() {
-    return `deploying service '${this.service.name}' (from module '${this.service.module.name}')`
+    return `deploying ${this.action.longDescription()})`
   }
 
   async process(dependencyResults: GraphResults): Promise<ServiceStatus> {
     const version = this.version
 
-    const devMode = includes(this.devModeServiceNames, this.service.name)
-    const localMode = includes(this.localModeServiceNames, this.service.name)
+    const devMode = includes(this.devModeDeployNames, this.action.name)
+    const localMode = includes(this.localModeDeployNames, this.action.name)
 
     const dependencies = this.graph.getDependencies({
-      nodeType: "deploy",
+      kind: "deploy",
       name: this.getName(),
       recursive: false,
     })
@@ -136,20 +110,20 @@ export class DeployTask extends BaseTask {
       graph: this.graph,
       dependencies,
       version,
-      moduleVersion: this.service.module.version.versionString,
+      moduleVersion: this.version,
       serviceStatuses,
       taskResults,
     })
 
     const actions = await this.garden.getActionRouter()
 
-    let status = serviceStatuses[this.service.name]
+    let status = serviceStatuses[this.action.name]
     const devModeSkipRedeploy = status.devMode && devMode
     const localModeSkipRedeploy = status.localMode && localMode
 
     const log = this.log.info({
       status: "active",
-      section: this.service.name,
+      section: this.action.name,
       msg: `Deploying version ${version}...`,
     })
 
@@ -165,9 +139,9 @@ export class DeployTask extends BaseTask {
       })
     } else {
       try {
-        status = await actions.deployService({
+        status = await actions.deploy.deploy({
           graph: this.graph,
-          service: this.service,
+          action: this.action,
           runtimeContext,
           log,
           force: this.force,
@@ -194,12 +168,12 @@ export class DeployTask extends BaseTask {
         garden: this.garden,
         graph: this.graph,
         log,
-        service: this.service,
+        action: this.action,
         status,
       })
 
       for (const proxy of proxies) {
-        const targetHost = proxy.spec.targetName || this.service.name
+        const targetHost = proxy.spec.targetName || this.action.name
 
         log.info(
           chalk.gray(

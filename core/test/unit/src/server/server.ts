@@ -149,7 +149,7 @@ describe("GardenServer", () => {
           buildLog: "A",
           fresh: true,
         },
-        "stage-build.module-a": {},
+
       })
     })
   })
@@ -391,7 +391,7 @@ describe("GardenServer", () => {
               buildLog: "A",
               fresh: true,
             },
-            "stage-build.module-a": {},
+
           },
         })
         done()

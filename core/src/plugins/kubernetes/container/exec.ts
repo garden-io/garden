@@ -8,19 +8,21 @@
 
 import { includes } from "lodash"
 import { DeploymentError } from "../../../exceptions"
-import { ContainerModule } from "../../container/moduleConfig"
+import { ContainerDeployAction } from "../../container/moduleConfig"
 import { getAppNamespace } from "../namespace"
-import { getContainerDeployStatus } from "./status"
 import { KubernetesPluginContext } from "../config"
 import { execInWorkload } from "../util"
-import { ExecInServiceParams } from "../../../types/plugin/service/execInService"
+import { DeployActionHandler } from "../../../plugin/action-types"
+import { k8sGetContainerDeployStatus } from "./status"
 
-export async function execInService(params: ExecInServiceParams<ContainerModule>) {
-  const { ctx, log, service, command, interactive } = params
+export const execInContainer: DeployActionHandler<"exec", ContainerDeployAction> = async (params) => {
+  const { ctx, log, action, command, interactive } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const status = await getContainerDeployStatus({
-    ...params,
+  const status = await k8sGetContainerDeployStatus({
+    ctx,
+    log,
+    action,
     // The runtime context doesn't matter here. We're just checking if the service is running.
     runtimeContext: {
       envVars: {},
@@ -33,8 +35,8 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
 
   // TODO: this check should probably live outside of the plugin
   if (!status.detail.workload || !includes(["ready", "outdated"], status.state)) {
-    throw new DeploymentError(`Service ${service.name} is not running`, {
-      name: service.name,
+    throw new DeploymentError(`${action.longDescription()} is not running`, {
+      name: action.name,
       state: status.state,
     })
   }

@@ -16,29 +16,29 @@ import {
   resultMetadataKeys,
   graphResultsSchema,
 } from "../base"
-import { TaskTask } from "../../tasks/task"
+import { RunTask } from "../../tasks/task"
 import { GraphResults } from "../../task-graph"
 import { printHeader } from "../../logger/util"
 import { CommandError } from "../../exceptions"
 import { dedent, deline } from "../../util/string"
-import { RunTaskResult } from "../../types/plugin/task/runTask"
 import { taskResultSchema } from "../../types/task"
 import { joi } from "../../config/common"
 import { StringParameter, BooleanParameter } from "../../cli/params"
+import { GetRunResult } from "../../plugin/handlers/run/get-result"
 
-export const runTaskArgs = {
-  task: new StringParameter({
-    help: "The name of the task to run.",
+const runTaskArgs = {
+  name: new StringParameter({
+    help: "The name of Run action.",
     required: true,
   }),
 }
 
-export const runTaskOpts = {
+const runTaskOpts = {
   "force": new BooleanParameter({
-    help: "Run the task even if it's disabled for the environment.",
+    help: "Run even if the action is disabled for the environment.",
   }),
   "force-build": new BooleanParameter({
-    help: "Force rebuild of module before running.",
+    help: "Force rebuild of Build dependencies before running.",
   }),
 }
 
@@ -46,19 +46,19 @@ type Args = typeof runTaskArgs
 type Opts = typeof runTaskOpts
 
 interface RunTaskOutput {
-  result: RunTaskResult & ProcessResultMetadata
+  result: GetRunResult & ProcessResultMetadata
   graphResults: GraphResults
 }
 
 export class RunTaskCommand extends Command<Args, Opts> {
-  name = "task"
-  alias = "t"
+  name = "run"
+  alias = "task"
   help = "Run a task (in the context of its parent module)."
 
   streamEvents = true
 
   description = dedent`
-    This is useful for re-running tasks ad-hoc, for example after writing/modifying database migrations.
+    This is useful for any ad-hoc runs, for example database migrations, or when developing.
 
     Examples:
 
@@ -75,34 +75,35 @@ export class RunTaskCommand extends Command<Args, Opts> {
     })
 
   printHeader({ headerLog, args }) {
-    const msg = `Running task ${chalk.white(args.task)}`
+    const msg = `Running ${chalk.white(args.task)}`
     printHeader(headerLog, msg, "runner")
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunTaskOutput>> {
     const graph = await garden.getConfigGraph({ log, emit: true })
-    const task = graph.getTask(args.task, true)
+    const action = graph.getRun(args.name, { includeDisabled: true })
 
-    if (task.disabled && !opts.force) {
+    if (action.isDisabled() && !opts.force) {
       throw new CommandError(
         chalk.red(deline`
-          Task ${chalk.redBright(task.name)} is disabled for the ${chalk.redBright(garden.environmentName)}
+          Task ${chalk.redBright(action.name)} is disabled for the ${chalk.redBright(garden.environmentName)}
           environment. If you're sure you want to run it anyway, please run the command again with the
           ${chalk.redBright("--force")} flag.
         `),
-        { moduleName: task.module.name, taskName: task.name, environmentName: garden.environmentName }
+        { moduleName: action.moduleName(), actionName: action.name, environmentName: garden.environmentName }
       )
     }
 
-    const taskTask = new TaskTask({
+    const taskTask = new RunTask({
       garden,
       graph,
-      task,
+      action,
       log,
       force: true,
       forceBuild: opts["force-build"],
-      devModeServiceNames: [],
-      localModeServiceNames: [],
+      devModeDeployNames: [],
+      localModeDeployNames: [],
+      fromWatch: false,
     })
     const graphResults = await garden.processTasks([taskTask], { throwOnError: true })
 

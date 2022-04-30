@@ -7,7 +7,7 @@
  */
 
 import { joi } from "../config/common"
-import { BaseRuntimeActionConfig, baseRuntimeActionConfig, Action } from "./base"
+import { Action, BaseRuntimeActionConfig, baseRuntimeActionConfig, RuntimeAction } from "./base"
 
 export interface RunActionConfig<N extends string = any, S extends object = any>
   extends BaseRuntimeActionConfig<"run", N, S> {
@@ -20,4 +20,10 @@ export const runActionConfig = () =>
     timeout: joi.number().integer().description("Set a timeout for the run to complete, in seconds."),
   })
 
-export class RunAction<C extends RunActionConfig = any, O extends {} = any> extends Action<C, O> {}
+export class RunAction<C extends RunActionConfig = RunActionConfig, O extends {} = any> extends RuntimeAction<C, O> {
+  kind: "Run"
+}
+
+export function isRunAction(action: Action): action is RunAction {
+  return action.kind === "Run"
+}

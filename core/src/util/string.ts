@@ -25,6 +25,8 @@ export const stableStringify = _stableStringify
 const gardenAnnotationPrefix = "garden.io/"
 
 export type GardenAnnotationKey =
+  | "actionType"
+  | "actionName"
   | "dev-mode"
   | "generated"
   | "helm-migrated"

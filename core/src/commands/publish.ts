@@ -17,35 +17,30 @@ import {
   processCommandResultSchema,
   resultMetadataKeys,
 } from "./base"
-import { GardenModule } from "../types/module"
 import { PublishTask } from "../tasks/publish"
-import { GraphResults } from "../task-graph"
-import { Garden } from "../garden"
-import { LogEntry } from "../logger/log-entry"
 import { printHeader } from "../logger/util"
 import dedent = require("dedent")
-import { ConfigGraph } from "../config-graph"
-import { PublishModuleResult, publishResultSchema } from "../types/plugin/module/publishModule"
+import { PublishActionResult, publishResultSchema } from "../plugin/handlers/build/publish"
 import { joiIdentifierMap } from "../config/common"
 import { StringsParameter, BooleanParameter, StringOption } from "../cli/params"
 
 export const publishArgs = {
-  modules: new StringsParameter({
+  names: new StringsParameter({
     help:
-      "The name(s) of the module(s) to publish (skip to publish all modules). " +
-      "Use comma as a separator to specify multiple modules.",
+      "The name(s) of the builds (or modules) to publish (skip to publish every build). " +
+      "Use comma as a separator to specify multiple names.",
   }),
 }
 
 export const publishOpts = {
   "force-build": new BooleanParameter({
-    help: "Force rebuild of module(s) before publishing.",
+    help: "Force rebuild before publishing.",
   }),
   "tag": new StringOption({
     help:
       "Override the tag on the built artifacts. You can use the same sorts of template " +
-      "strings as when templating values in module configs, with the addition of " +
-      "${module.*} tags, allowing you to reference the name and Garden version of the " +
+      "strings as when templating values in configs, with the addition of " +
+      "${build.*} tags, allowing you to reference the name and Garden version of the " +
       "module being tagged.",
   }),
 }
@@ -54,20 +49,19 @@ type Args = typeof publishArgs
 type Opts = typeof publishOpts
 
 interface PublishCommandResult extends ProcessCommandResult {
-  published: { [moduleName: string]: PublishModuleResult & ProcessResultMetadata }
+  published: { [moduleName: string]: PublishActionResult & ProcessResultMetadata }
 }
 
 export class PublishCommand extends Command<Args, Opts> {
   name = "publish"
-  help = "Build and publish module(s) (e.g. container images) to a remote registry."
+  help = "Build and publish artifacts (e.g. container images) to a remote registry."
 
   streamEvents = true
 
   description = dedent`
-    Publishes built module artifacts for all or specified modules.
-    Also builds modules and build dependencies if needed.
+    Publishes built artifacts for all or specified builds. Also builds dependencies if needed.
 
-    By default the artifacts/images are tagged with the Garden module version, but you can also specify the \`--tag\` option to specify a specific string tag _or_ a templated tag. Any template values that can be used on the module being tagged are available, in addition to ${"${module.name}"}, ${"${module.version}"} and ${"${module.hash}"} tags that allows referencing the name of the module being tagged, as well as its Garden version. ${"${module.version}"} includes the "v-" prefix normally used for Garden versions, and ${"${module.hash}"} doesn't.
+    By default the artifacts/images are tagged with the Garden action version, but you can also specify the \`--tag\` option to specify a specific string tag _or_ a templated tag. Any template values that can be used on the build being tagged are available, in addition to ${"${build.name}"}, ${"${build.version}"} and ${"${build.hash}"} tags that allows referencing the name of the build being tagged, as well as its Garden version. ${"${build.version}"} includes the "v-" prefix normally used for Garden versions, and ${"${build.hash}"} doesn't.
 
     Examples:
 
@@ -79,7 +73,7 @@ export class PublishCommand extends Command<Args, Opts> {
         garden publish my-container --tag "v0.1"
 
         # Publish my-container with a tag of v1.2-<hash> (e.g. v1.2-abcdef123)
-        garden publish my-container --tag "v1.2-${"${module.hash}"}"
+        garden publish my-container --tag "v1.2-${"${build.hash}"}"
   `
 
   arguments = publishArgs
@@ -104,16 +98,13 @@ export class PublishCommand extends Command<Args, Opts> {
     opts,
   }: CommandParams<Args, Opts>): Promise<CommandResult<PublishCommandResult>> {
     const graph = await garden.getConfigGraph({ log, emit: true })
-    const modules = graph.getModules({ names: args.modules })
+    const builds = graph.getBuilds({ names: args.names })
 
-    const results = await publishModules({
-      garden,
-      graph,
-      log,
-      modules,
-      forceBuild: !!opts["force-build"],
-      tagTemplate: opts.tag,
+    const tasks = builds.map((action) => {
+      return new PublishTask({ garden, graph, log, action, forceBuild: opts["force-build"], tagTemplate: opts.tag })
     })
+
+    const results = await garden.processTasks(tasks)
 
     const output = await handleProcessResults(footerLog, "publish", { taskResults: results })
 
@@ -125,26 +116,4 @@ export class PublishCommand extends Command<Args, Opts> {
       },
     }
   }
-}
-
-export async function publishModules({
-  garden,
-  graph,
-  log,
-  modules,
-  forceBuild,
-  tagTemplate,
-}: {
-  garden: Garden
-  graph: ConfigGraph
-  log: LogEntry
-  modules: GardenModule<any>[]
-  forceBuild: boolean
-  tagTemplate?: string
-}): Promise<GraphResults> {
-  const tasks = modules.map((module) => {
-    return new PublishTask({ garden, graph, log, module, forceBuild, tagTemplate })
-  })
-
-  return await garden.processTasks(tasks)
 }

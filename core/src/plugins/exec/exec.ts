@@ -45,7 +45,14 @@ import {
   execTestActionSchema,
 } from "./config"
 import { configureExecModule, ExecModule, execModuleSpecSchema } from "./moduleConfig"
-import { BuildActionHandler, DeployActionHandler, RunActionHandler, TestActionHandler } from "../../plugin/action-types"
+import {
+  BuildActionHandler,
+  DeployActionHandler,
+  RunActionDefinition,
+  RunActionHandler,
+  TestActionDefinition,
+  TestActionHandler,
+} from "../../plugin/action-types"
 import { Action } from "../../actions/base"
 import { BuildResult } from "../../plugin/handlers/build/build"
 
@@ -66,7 +73,7 @@ export function getLogFilePath({ projectRoot, deployName }: { projectRoot: strin
 function getDefaultEnvVars(action: Action) {
   return {
     ...process.env,
-    GARDEN_MODULE_VERSION: action.getVersionString(),
+    GARDEN_MODULE_VERSION: action.versionString(),
     // Workaround for https://github.com/vercel/pkg/issues/897
     PKG_EXECPATH: "",
   }
@@ -187,7 +194,7 @@ export const buildExecModule: BuildActionHandler<"build", ExecBuild> = async ({ 
   }
   // keep track of which version has been built
   const buildVersionFilePath = join(action.buildMetadataPath, GARDEN_BUILD_VERSION_FILENAME)
-  await writeModuleVersionFile(buildVersionFilePath, action.version)
+  await writeModuleVersionFile(buildVersionFilePath, action.getFullVersion())
 
   return output
 }
@@ -208,14 +215,17 @@ export const execTestAction: TestActionHandler<"run", ExecTest> = async ({ log, 
   }
 
   return {
-    moduleName: action.moduleName || action.name,
-    command,
-    testName: action.name,
-    version: action.getVersionString(),
-    success: result.exitCode === 0,
-    startedAt,
-    completedAt: new Date(),
-    log: outputLog,
+    result: {
+      moduleName: action.moduleName(),
+      command,
+      testName: action.name,
+      version: action.versionString(),
+      success: result.exitCode === 0,
+      startedAt,
+      completedAt: new Date(),
+      log: outputLog,
+      outputs: {},
+    },
     outputs: {},
   }
 }
@@ -247,17 +257,20 @@ export const execRunAction: RunActionHandler<"run", ExecRun> = async ({ artifact
   await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
 
   return {
-    moduleName: action.moduleName || action.name,
-    taskName: action.name,
-    command,
-    version: action.getVersionString(),
-    success,
-    log: outputLog,
-    outputs: {
+    result: {
+      moduleName: action.moduleName(),
+      taskName: action.name,
+      command,
+      version: action.versionString(),
+      success,
       log: outputLog,
+      outputs: {
+        log: outputLog,
+      },
+      startedAt,
+      completedAt,
     },
-    startedAt,
-    completedAt,
+    outputs: {},
   }
 }
 
@@ -292,13 +305,14 @@ const runExecBuild: BuildActionHandler<"run", ExecBuild> = async (params) => {
   }
 
   return {
-    moduleName: action.moduleName || action.name,
+    moduleName: action.moduleName(),
     command: [],
-    version: action.getVersionString(),
+    version: action.versionString(),
     success,
     log: outputLog,
     startedAt,
     completedAt,
+    outputs: {},
   }
 }
 
@@ -318,11 +332,11 @@ const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeploy> = async 
 
     return {
       state: result.exitCode === 0 ? "ready" : "outdated",
-      version: action.getVersionString(),
+      version: action.versionString(),
       detail: { statusCommandOutput: result.all },
     }
   } else {
-    return { state: "unknown", version: action.getVersionString(), detail: {} }
+    return { state: "unknown", version: action.versionString(), detail: {} }
   }
 }
 
@@ -475,7 +489,7 @@ const deleteExecDeploy: DeployActionHandler<"delete", ExecDeploy> = async (param
     return { state: "missing", detail: { cleanupCommandOutput: result.all } }
   } else {
     log.warn({
-      section: action.name,
+      section: action.key(),
       symbol: "warning",
       msg: chalk.gray(`Missing cleanupCommand, unable to clean up service`),
     })
@@ -530,7 +544,7 @@ export const execPlugin = () =>
         },
       ],
       run: [
-        {
+        <RunActionDefinition<ExecRun>>{
           name: "exec",
           docs: dedent`
             A simple Run action which runs a command locally with a shell command.
@@ -542,7 +556,7 @@ export const execPlugin = () =>
         },
       ],
       test: [
-        {
+        <TestActionDefinition<ExecTest>>{
           name: "exec",
           docs: dedent`
             A simple Test action which runs a command locally with a shell command.
@@ -571,21 +585,11 @@ export const execPlugin = () =>
         `,
         moduleOutputsSchema: joi.object().keys({}),
         schema: execModuleSpecSchema(),
-        taskOutputsSchema: joi.object().keys({
-          log: joi
-            .string()
-            .allow("")
-            .default("")
-            .description(
-              "The full log from the executed task. " +
-                "(Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)"
-            ),
-        }),
         handlers: {
           configure: configureExecModule,
 
           async convert(params: ConvertModuleParams<ExecModule>) {
-            const { module, convertBuildDependency, convertRuntimeDependency, dummyBuild } = params
+            const { module, convertBuildDependency, convertRuntimeDependencies, dummyBuild } = params
             const actions: ExecActionConfig[] = []
 
             let needsBuild = !!dummyBuild
@@ -616,12 +620,12 @@ export const execPlugin = () =>
               actions.push(buildAction)
             }
 
-            function prepRuntimeDeps(deps: string[]) {
+            function prepRuntimeDeps(deps: string[]): string[] {
               if (buildAction) {
-                return deps.map(convertRuntimeDependency)
+                return convertRuntimeDependencies(deps)
               } else {
                 // If we don't return a Build action, we must still include any declared build dependencies
-                return [...module.build.dependencies.map(convertBuildDependency), ...deps.map(convertRuntimeDependency)]
+                return [...module.build.dependencies.map(convertBuildDependency), ...convertRuntimeDependencies(deps)]
               }
             }
 

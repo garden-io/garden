@@ -95,9 +95,9 @@ describe("DevCommand", () => {
       "resolve-provider.templated",
       "resolve-provider.test-plugin",
       "resolve-provider.test-plugin-b",
-      "stage-build.module-a",
-      "stage-build.module-b",
-      "stage-build.module-c",
+
+
+
       "task.task-c",
       "test.module-a.integration",
       "test.module-a.unit",
@@ -261,9 +261,9 @@ describe("getDevCommandWatchTasks", () => {
       updatedGraph: graph,
       module: graph.getModule("module-b"),
       servicesWatched: graph.getServices().map((s) => s.name),
-      devModeServiceNames: [],
+      devModeDeployNames: [],
 
-      localModeServiceNames: [],
+      localModeDeployNames: [],
       testNames: undefined,
       skipTests: false,
     })
@@ -280,9 +280,9 @@ describe("getDevCommandWatchTasks", () => {
       "get-service-status.service-b",
       "get-service-status.service-c",
       "get-task-result.task-c",
-      "stage-build.module-a",
-      "stage-build.module-b",
-      "stage-build.module-c",
+
+
+
       "task.task-c",
       "test.module-b.unit",
       "test.module-c.integ",

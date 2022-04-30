@@ -6,13 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BaseRuntimeActionConfig, baseRuntimeActionConfig, Action } from "./base"
+import { Action, BaseRuntimeActionConfig, baseRuntimeActionConfig, RuntimeAction } from "./base"
 
 export interface DeployActionConfig<N extends string = any, S extends object = any>
   extends BaseRuntimeActionConfig<"deploy", N, S> {
   type: N
 }
 
-export const deployActionSpec = () => baseRuntimeActionConfig()
+export const deployActionConfig = () => baseRuntimeActionConfig()
 
-export class DeployAction<S extends DeployActionConfig = any, O extends {} = any> extends Action<S, O> {}
+export class DeployAction<S extends DeployActionConfig = any, O extends {} = any> extends RuntimeAction<S, O> {
+  kind: "Deploy"
+}
+
+export function isDeployAction(action: Action): action is DeployAction {
+  return action.kind === "Deploy"
+}

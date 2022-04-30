@@ -12,11 +12,13 @@ import { TestAction } from "../../../actions/test"
 import { TestResult, testResultSchema } from "../../../types/test"
 import { ActionTypeHandlerSpec } from "../base/base"
 import { GetActionOutputType } from "../../../actions/base"
+import { joi } from "../../../config/common"
 
 interface GetTestResultParams<T extends TestAction> extends PluginTestActionParamsBase<T> {}
 
-interface GetTestResult<T extends TestAction> extends TestResult {
-  outputs: GetActionOutputType<T>
+export interface GetTestResult<T extends TestAction> {
+  result: TestResult | null
+  outputs: GetActionOutputType<T> | null
 }
 
 export class GetTestActionResult<T extends TestAction = TestAction> extends ActionTypeHandlerSpec<
@@ -30,5 +32,9 @@ export class GetTestActionResult<T extends TestAction = TestAction> extends Acti
 
   paramsSchema = () => actionParamsSchema()
 
-  resultSchema = () => testResultSchema().allow(null)
+  resultSchema = () =>
+    joi.object().keys({
+      result: testResultSchema().allow(null),
+      outputs: joi.object().allow(null),
+    })
 }
