@@ -47,7 +47,7 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
     namespace: namespaceStatus.namespaceName,
     podName: makePodName("test", action.name),
     timeout,
-    version: action.getVersionString(),
+    version: action.versionString(),
     volumes,
     privileged,
     addCapabilities,

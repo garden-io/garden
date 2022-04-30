@@ -32,6 +32,7 @@ export interface ConvertModuleParams<T extends GardenModule = GardenModule> exte
   baseFields: {
     basePath: string
     copyFrom: BuildCopyFrom[]
+    disabled: boolean
     source?: {
       repository?: {
         url: string

@@ -86,7 +86,7 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
     ingresses,
     state,
     namespaceStatuses: [namespaceStatus],
-    version: state === "ready" ? action.getVersionString() : undefined,
+    version: state === "ready" ? action.versionString() : undefined,
     detail: { remoteResources, workload },
     devMode: deployedWithDevMode,
     localMode: deployedWithLocalMode,

@@ -9,9 +9,7 @@
 import { LogEntry } from "../logger/log-entry"
 import { PluginContext, pluginContextSchema, PluginEventBroker } from "../plugin-context"
 import { GardenModule, moduleSchema } from "../types/module"
-import { RuntimeContext, runtimeContextSchema } from "../runtime-context"
-import { GardenService, serviceSchema } from "../types/service"
-import { GardenTask, taskSchema } from "../types/task"
+import { runtimeContextSchema } from "../runtime-context"
 import { CustomObjectSchema, joi, joiIdentifier } from "../config/common"
 import { dedent, deline } from "../util/string"
 import { BuildAction } from "../actions/build"
@@ -118,28 +116,6 @@ export const moduleActionParamsSchema = () =>
   actionParamsSchema().keys({
     module: moduleSchema(),
   })
-
-export interface PluginServiceActionParamsBase<
-  M extends GardenModule = GardenModule,
-  S extends GardenModule = GardenModule
-> extends PluginModuleActionParamsBase<M> {
-  runtimeContext?: RuntimeContext
-  service: GardenService<M, S>
-}
-export const serviceActionParamsSchema = () =>
-  moduleActionParamsSchema().keys({
-    runtimeContext: runtimeContextSchema().optional(),
-    service: serviceSchema(),
-  })
-
-export interface PluginTaskActionParamsBase<T extends GardenModule = GardenModule>
-  extends PluginModuleActionParamsBase<T> {
-  task: GardenTask<T>
-}
-export const taskActionParamsSchema = () =>
-  moduleActionParamsSchema().keys({
-    task: taskSchema(),
-  })
 /**
  * END LEGACY
  */
@@ -153,12 +129,6 @@ export const runBaseParams = () => ({
 
 // TODO-G2: update this schema in 0.13
 export interface RunResult {
-  // FIXME: this field can always be inferred
-  moduleName: string
-  // FIXME: this field is overly specific, consider replacing with more generic metadata field(s)
-  command: string[]
-  // FIXME: this field can always be inferred
-  version: string
   success: boolean
   exitCode?: number
   // FIXME: we should avoid native Date objects
@@ -173,13 +143,6 @@ export const runResultSchema = () =>
     .object()
     .unknown(true)
     .keys({
-      moduleName: joi.string().description("The name of the module that was run."),
-      command: joi
-        .sparseArray()
-        .items(joi.string().allow(""))
-        .required()
-        .description("The command that was run in the module."),
-      version: joi.string().description("The string version of the module."),
       success: joi.boolean().required().description("Whether the module was successfully run."),
       exitCode: joi.number().integer().description("The exit code of the run (if applicable)."),
       startedAt: joi.date().required().description("When the module run was started."),

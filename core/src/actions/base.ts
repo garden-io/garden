@@ -31,6 +31,7 @@ import type { DeployActionConfig } from "./deploy"
 import type { RunActionConfig } from "./run"
 import type { TestActionConfig } from "./test"
 import { ActionKind } from "../plugin/action-types"
+import { GroupConfig } from "../config/group"
 
 export { ActionKind } from "../plugin/action-types"
 
@@ -87,6 +88,7 @@ export interface BaseActionConfig<K extends ActionKind = any, N = any, S = any> 
   type: N
   name: string
   description?: string
+  group?: GroupConfig
 
   // Location
   basePath: string
@@ -268,7 +270,7 @@ export abstract class Action<C extends BaseActionConfig = BaseActionConfig, O ex
   _outputs: O
 
   protected readonly baseBuildDirectory: string
-  protected readonly moduleName?: string // TODO: remove in 0.14
+  protected readonly _moduleName?: string // TODO: remove in 0.14
   protected readonly version: ModuleVersion
 
   constructor(private params: ActionWrapperParams<C>) {
@@ -278,7 +280,7 @@ export abstract class Action<C extends BaseActionConfig = BaseActionConfig, O ex
 
     this.baseBuildDirectory = params.baseBuildDirectory
     this.dependencies = params.dependencies
-    this.moduleName = params.moduleName
+    this._moduleName = params.moduleName
     this._config = params.config
     this.version = params.version
   }
@@ -291,7 +293,7 @@ export abstract class Action<C extends BaseActionConfig = BaseActionConfig, O ex
   description(): string {
     let d = `${this.type} ${this.kind} ${chalk.bold.white(this.name)}`
 
-    if (this.moduleName) {
+    if (this._moduleName) {
       d += `(from module ${chalk.bold.white(this.name)})`
     }
 
@@ -302,15 +304,19 @@ export abstract class Action<C extends BaseActionConfig = BaseActionConfig, O ex
     return !!this.getConfig("disabled")
   }
 
-  getBasePath(): string {
+  group() {
+    return this.getConfig("group")
+  }
+
+  basePath(): string {
     // TODO-G2
     // TODO: handle repository.url
     // TODO: handle build field
     return this._config.basePath
   }
 
-  getModuleName(): string {
-    return this.moduleName || this.name
+  moduleName(): string {
+    return this._moduleName || this.name
   }
 
   getDependencyReferences(): ActionReference[] {
@@ -322,7 +328,7 @@ export abstract class Action<C extends BaseActionConfig = BaseActionConfig, O ex
     return this.version
   }
 
-  getVersionString(): string {
+  versionString(): string {
     return this.version.versionString
   }
 
@@ -390,7 +396,7 @@ export abstract class RuntimeAction<
    */
   getBuildPath() {
     const buildAction = this.getBuildAction()
-    return buildAction?.getBuildPath() || this.getBasePath()
+    return buildAction?.getBuildPath() || this.basePath()
   }
 }
 

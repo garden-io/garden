@@ -169,7 +169,7 @@ function getKubernetesAction(action: PersistentVolumeClaimAction) {
     kind: "Deploy",
     type: "kubernetes",
     name: action.name,
-    basePath: action.getBasePath(),
+    basePath: action.basePath(),
     include: [],
     spec: {
       namespace: action.getSpec("namespace"),

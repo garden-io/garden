@@ -184,7 +184,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
     buildLog,
     fetched: false,
     fresh: true,
-    version: action.getVersionString(),
+    version: action.versionString(),
     outputs,
   }
 }
@@ -381,9 +381,5 @@ async function runKaniko({
     tty: false,
   })
 
-  return {
-    ...result,
-    moduleName: action.name,
-    version: action.getVersionString(),
-  }
+  return result
 }

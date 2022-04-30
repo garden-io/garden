@@ -84,7 +84,7 @@ function makeModuleCommand(commandName: string): PluginCommand {
       const action = findAction(graph, args[0])
       const spec = action.getSpec()
 
-      const root = join(action.getBasePath(), spec.root)
+      const root = join(action.basePath(), spec.root)
 
       const provider = ctx.provider as TerraformProvider
       const workspace = spec.workspace || null

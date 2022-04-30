@@ -52,7 +52,7 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
 }
 
 export function getTestResultKey(ctx: PluginContext, action: ContainerTestAction | KubernetesTestAction) {
-  const key = `${ctx.projectName}--${action.name}--${action.getVersionString()}`
+  const key = `${ctx.projectName}--${action.name}--${action.versionString()}`
   const hash = hasha(key, { algorithm: "sha1" })
   return `test-result--${hash.slice(0, 32)}`
 }
@@ -82,9 +82,9 @@ export async function storeTestResult({ ctx, log, action, result }: StoreTestRes
       namespace: testResultNamespace,
       key: getTestResultKey(k8sCtx, action),
       labels: {
-        [gardenAnnotationKey("module")]: action.getModuleName(),
+        [gardenAnnotationKey("module")]: action.moduleName(),
         [gardenAnnotationKey("test")]: test.name,
-        [gardenAnnotationKey("version")]: action.getVersionString(),
+        [gardenAnnotationKey("version")]: action.versionString(),
       },
       data,
     })

@@ -7,21 +7,9 @@
  */
 
 import toposort from "toposort"
-import { flatten, pick, uniq, sortBy, pickBy, difference } from "lodash"
-import { BuildDependencyConfig } from "../config/module"
-import { GardenModule, moduleNeedsBuild, ModuleTypeMap } from "../types/module"
-import { GardenService, serviceFromConfig } from "../types/service"
-import { GardenTask, taskFromConfig } from "../types/task"
-import { TestConfig } from "../config/test"
-import { uniqByName, pickKeys } from "../util/util"
-import { ConfigurationError, GardenBaseError } from "../exceptions"
-import { deline, naturalList } from "../util/string"
-import { detectMissingDependencies, DependencyValidationGraph } from "../util/validate-dependencies"
-import { ServiceConfig } from "../config/service"
-import { TaskConfig } from "../config/task"
-import { makeTestTaskName } from "../tasks/helpers"
-import { TaskType, makeBaseKey } from "../tasks/base"
-import { testFromModule, GardenTest, testFromConfig } from "../types/test"
+import { flatten, uniq, difference } from "lodash"
+import { GardenBaseError } from "../exceptions"
+import { naturalList } from "../util/string"
 import { Action, ActionKind, ResolvedAction, ResolvedRuntimeAction } from "../actions/base"
 import { BuildAction, ResolvedBuildAction } from "../actions/build"
 import { DeployAction } from "../actions/deploy"
@@ -73,9 +61,9 @@ export class GraphError extends GardenBaseError {
  */
 // TODO-G2: re-do for actions
 export class ConfigGraph {
-  private dependencyGraph: DependencyGraph
+  protected dependencyGraph: DependencyGraph
 
-  private actions: {
+  protected actions: {
     build: { [key: string]: ResolvedBuildAction<any> }
     deploy: { [key: string]: ResolvedRuntimeAction<any> }
     run: { [key: string]: ResolvedRuntimeAction<any> }
@@ -91,8 +79,6 @@ export class ConfigGraph {
       test: {},
     }
   }
-
-  private addAction(action: ResolvedAction<any>) {}
 
   validate() {
     // TODO-G2
@@ -153,19 +139,19 @@ export class ConfigGraph {
     return this.getActionByKind("test", name)
   }
 
-  getBuilds<T extends BuildAction = BuildAction>(params: GetActionsParams): ResolvedBuildAction<T>[] {
+  getBuilds<T extends BuildAction = BuildAction>(params: GetActionsParams = {}): ResolvedBuildAction<T>[] {
     return this.getActionsByKind("build", params)
   }
 
-  getDeploys<T extends DeployAction = DeployAction>(params: GetActionsParams): ResolvedRuntimeAction<T>[] {
+  getDeploys<T extends DeployAction = DeployAction>(params: GetActionsParams = {}): ResolvedRuntimeAction<T>[] {
     return this.getActionsByKind("deploy", params)
   }
 
-  getRuns<T extends RunAction = RunAction>(params: GetActionsParams): ResolvedRuntimeAction<T>[] {
+  getRuns<T extends RunAction = RunAction>(params: GetActionsParams = {}): ResolvedRuntimeAction<T>[] {
     return this.getActionsByKind("run", params)
   }
 
-  getTests<T extends TestAction = TestAction>(params: GetActionsParams): ResolvedRuntimeAction<T>[] {
+  getTests<T extends TestAction = TestAction>(params: GetActionsParams = {}): ResolvedRuntimeAction<T>[] {
     return this.getActionsByKind("test", params)
   }
 
@@ -173,26 +159,6 @@ export class ConfigGraph {
    * If filter is provided to any of the methods below that accept it, matching nodes
    * (and their dependencies/dependants, if recursive = true) are ignored.
    */
-
-  /**
-   * Returns the set union of modules with the set union of their dependants (across all dependency types, recursively).
-   */
-  withDependantModules(modules: GardenModule[]): GardenModule[] {
-    const dependants = modules.flatMap((m) => this.getDependantsForModule(m, true))
-    // We call getModules to ensure that the returned modules have up-to-date versions.
-    const dependantModules = this.modulesForRelations(this.mergeRelations(...dependants))
-    return this.getModules({ names: uniq(modules.concat(dependantModules).map((m) => m.name)), includeDisabled: true })
-  }
-
-  /**
-   * Returns all build and runtime dependants of a module and its services & tasks (recursively).
-   * Includes the services and tasks contained in the given module, but does _not_ contain the build node for the
-   * module itself.
-   */
-  getDependantsForModule(module: GardenModule, recursive: boolean): DependencyRelations {
-    return this.getDependants({ nodeType: "build", name: module.name, recursive })
-  }
-
   /**
    * Returns all dependencies of a node in the graph. As noted above, each ActionKind corresponds
    * to a Task class (e.g. BuildTask, DeployTask, ...), and name corresponds to the value returned by its getName
@@ -210,14 +176,12 @@ export class ConfigGraph {
     name: string
     recursive: boolean
     filter?: DependencyRelationFilterFn
-  }): DependencyRelations {
-    return this.toRelations(this.getDependencyNodes({ nodeType, name, recursive, filter }))
+  }) {
+    return this.nodesToActions(this.getDependencyNodes({ nodeType, name, recursive, filter }))
   }
 
   /**
-   * Returns all dependants of a node in the graph. As noted above, each ActionKind corresponds
-   * to a Task class (e.g. BuildTask, DeployTask, ...), and name corresponds to the value returned by its getName
-   * instance method.
+   * Returns all dependants of a node in the graph.
    *
    * If recursive = true, also includes those dependants' dependants, etc.
    */
@@ -231,8 +195,8 @@ export class ConfigGraph {
     name: string
     recursive: boolean
     filter?: DependencyRelationFilterFn
-  }): DependencyRelations {
-    return this.toRelations(this.getDependantNodes({ nodeType, name, recursive, filter }))
+  }) {
+    return this.nodesToActions(this.getDependantNodes({ nodeType, name, recursive, filter }))
   }
 
   /**
@@ -249,8 +213,8 @@ export class ConfigGraph {
     names: string[]
     recursive: boolean
     filter?: DependencyRelationFilterFn
-  }): DependencyRelations {
-    return this.toRelations(
+  }) {
+    return this.nodesToActions(
       flatten(names.map((name) => this.getDependencyNodes({ nodeType, name, recursive, filter })))
     )
   }
@@ -269,83 +233,9 @@ export class ConfigGraph {
     names: string[]
     recursive: boolean
     filter?: DependencyRelationFilterFn
-  }): DependencyRelations {
-    return this.toRelations(flatten(names.map((name) => this.getDependantNodes({ nodeType, name, recursive, filter }))))
-  }
-
-  /**
-   * Returns the set union for each node type across relationArr (i.e. concatenates and deduplicates for each key).
-   */
-  mergeRelations(...relationArr: DependencyRelations[]): DependencyRelations {
-    const names = {}
-    for (const type of ["build", "run", "deploy", "test"]) {
-      names[type] = uniqByName(flatten(relationArr.map((r) => r[type]))).map((r) => r.name)
-    }
-
-    return this.relationsFromNames({
-      build: names["build"],
-      deploy: names["deploy"],
-      run: names["run"],
-      test: names["test"],
-    })
-  }
-
-  /**
-   * Returns the (unique by name) list of modules represented in relations.
-   */
-  private modulesForRelations(relations: DependencyRelations): GardenModule[] {
-    const moduleNames = uniq(
-      flatten([
-        relations.build,
-        relations.deploy.map((s) => s.module),
-        relations.run.map((w) => w.module),
-        this.getModules({ names: relations.test.map((t) => this.testConfigs[t.name].moduleKey) }),
-      ]).map((m) => m.name)
-    )
-    // We call getModules to ensure that the returned modules have up-to-date versions.
-    return this.getModules({ names: moduleNames, includeDisabled: true })
-  }
-
-  /**
-   * Given the provided lists of build and runtime (service/task) dependencies, return a list of all
-   * modules required to satisfy those dependencies.
-   */
-  // TODO-G2: likely remove?
-  resolveDependencyModules(buildDependencies: BuildDependencyConfig[], runtimeDependencies: string[]): GardenModule[] {
-    const moduleNames = buildDependencies.map((d) => d.name)
-    const serviceNames = runtimeDependencies.filter(
-      (d) => this.serviceConfigs[d] && !this.isDisabled(this.serviceConfigs[d])
-    )
-    const taskNames = runtimeDependencies.filter((d) => this.taskConfigs[d] && !this.isDisabled(this.taskConfigs[d]))
-
-    const buildDeps = this.getDependenciesForMany({ nodeType: "build", names: moduleNames, recursive: true })
-    const serviceDeps = this.getDependenciesForMany({ nodeType: "deploy", names: serviceNames, recursive: true })
-    const taskDeps = this.getDependenciesForMany({ nodeType: "run", names: taskNames, recursive: true })
-
-    const modules = [
-      ...this.getModules({ names: moduleNames, includeDisabled: true }),
-      ...this.modulesForRelations(this.mergeRelations(buildDeps, serviceDeps, taskDeps)),
-    ]
-
-    return sortBy(uniqByName(modules), "name")
-  }
-
-  private toRelations(nodes: DependencyGraphNode[]) {
-    return this.relationsFromNames({
-      build: this.uniqueNames(nodes, "build"),
-      deploy: this.uniqueNames(nodes, "deploy"),
-      run: this.uniqueNames(nodes, "run"),
-      test: this.uniqueNames(nodes, "test"),
-    })
-  }
-
-  private relationsFromNames(names: DependencyRelationNames) {
-    return {
-      build: this.getModules({ names: names.build, includeDisabled: true }),
-      deploy: this.getServices({ names: names.deploy, includeDisabled: true }),
-      run: this.getTasks({ names: names.run, includeDisabled: true }),
-      test: Object.values(pick(this.testConfigs, names.test)).map((t) => t.config),
-    }
+  }) {
+    const nodes = flatten(names.map((name) => this.getDependantNodes({ nodeType, name, recursive, filter })))
+    return this.nodesToActions(nodes)
   }
 
   private getDependencyNodes({
@@ -378,41 +268,12 @@ export class ConfigGraph {
     return node ? node.getDependants(recursive, filter) : []
   }
 
+  private nodesToActions(nodes: DependencyGraphNode[]) {
+    return nodes.map((n) => this.actions[n.type][n.name])
+  }
+
   private uniqueNames(nodes: DependencyGraphNode[], type: ActionKind) {
     return uniq(nodes.filter((n) => n.type === type).map((n) => n.name))
-  }
-
-  // Idempotent.
-  private addRelation({
-    dependant,
-    dependencyType,
-    dependencyName,
-    dependencyModuleName,
-  }: {
-    dependant: DependencyGraphNode
-    dependencyType: ActionKind
-    dependencyName: string
-    dependencyModuleName: string
-  }) {
-    const dependency = this.getNode(dependencyType, dependencyName, dependencyModuleName, false)
-    dependant.addDependency(dependency)
-    dependency.addDependant(dependant)
-  }
-
-  // Idempotent.
-  private getNode(type: ActionKind, name: string, moduleName: string, disabled: boolean) {
-    const key = nodeKey(type, name)
-    const existingNode = this.dependencyGraph[key]
-    if (existingNode) {
-      if (disabled) {
-        existingNode.disabled = true
-      }
-      return existingNode
-    } else {
-      const newNode = new DependencyGraphNode(type, name, moduleName, disabled)
-      this.dependencyGraph[key] = newNode
-      return newNode
-    }
   }
 
   render(): RenderedActionGraph {
@@ -449,6 +310,44 @@ export class ConfigGraph {
   }
 }
 
+export class MutableConfigGraph extends ConfigGraph {
+  addAction(action: ResolvedAction<any>) {}
+
+  // Idempotent.
+  private getNode(type: ActionKind, name: string, moduleName: string, disabled: boolean) {
+    const key = nodeKey(type, name)
+    const existingNode = this.dependencyGraph[key]
+    if (existingNode) {
+      if (disabled) {
+        existingNode.disabled = true
+      }
+      return existingNode
+    } else {
+      const newNode = new DependencyGraphNode(type, name, moduleName, disabled)
+      this.dependencyGraph[key] = newNode
+      return newNode
+    }
+  }
+
+  // Idempotent.
+  private addRelation({
+    dependant,
+    dependencyType,
+    dependencyName,
+    dependencyModuleName,
+  }: {
+    dependant: DependencyGraphNode
+    dependencyType: ActionKind
+    dependencyName: string
+    dependencyModuleName: string
+  }) {
+    const dependency = this.getNode(dependencyType, dependencyName, dependencyModuleName, false)
+    dependant.addDependency(dependency)
+    dependency.addDependant(dependant)
+  }
+
+}
+
 export interface DependencyGraphEdge {
   dependant: DependencyGraphNode
   dependency: DependencyGraphNode
@@ -469,10 +368,8 @@ export class DependencyGraphNode {
   }
 
   render(): RenderedNode {
-    const name = this.type === "test" ? parseTestKey(this.name).testName : this.name
-
     return {
-      name,
+      name: this.name,
       type: this.type,
       moduleName: this.moduleName,
       key: this.name,

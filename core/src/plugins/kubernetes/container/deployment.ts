@@ -124,7 +124,7 @@ export async function startContainerDevSync({
     log,
     action,
     actionDefaults: {},
-    basePath: action.getBasePath(),
+    basePath: action.basePath(),
     defaultNamespace,
     defaultTarget: target,
     manifests: status.detail.remoteResources,
@@ -251,7 +251,7 @@ export const deployContainerServiceBlueGreen = async (
   } else {
     // A k8s service matching the current Garden service exist in the cluster.
     // Proceeding with blue-green deployment
-    const newVersion = action.getVersionString()
+    const newVersion = action.versionString()
     const versionKey = gardenAnnotationKey("version")
 
     // Remove Service manifest from generated resources
@@ -380,10 +380,10 @@ export async function createContainerManifests({
   const manifests = [workload, ...kubeServices, ...ingresses]
 
   for (const obj of manifests) {
-    set(obj, ["metadata", "labels", gardenAnnotationKey("module")], action.getModuleName())
+    set(obj, ["metadata", "labels", gardenAnnotationKey("module")], action.moduleName())
     set(obj, ["metadata", "labels", gardenAnnotationKey("service")], action.name)
     set(obj, ["metadata", "annotations", gardenAnnotationKey("generated")], "true")
-    set(obj, ["metadata", "annotations", gardenAnnotationKey("version")], action.getVersionString())
+    set(obj, ["metadata", "annotations", gardenAnnotationKey("version")], action.versionString())
   }
 
   return { workload, manifests }
@@ -604,7 +604,7 @@ export async function createWorkloadManifest({
                   {
                     key: gardenAnnotationKey("module"),
                     operator: "In",
-                    values: [action.getModuleName()],
+                    values: [action.moduleName()],
                   },
                   {
                     key: gardenAnnotationKey("service"),
@@ -665,19 +665,19 @@ export async function createWorkloadManifest({
 }
 
 function getDeploymentName(action: ContainerDeployAction, blueGreen: boolean) {
-  return blueGreen ? `${action.name}-${action.getVersionString()}` : action.name
+  return blueGreen ? `${action.name}-${action.versionString()}` : action.name
 }
 
 export function getDeploymentLabels(action: ContainerDeployAction, blueGreen: boolean) {
   if (blueGreen) {
     return {
-      [gardenAnnotationKey("module")]: action.getModuleName(),
+      [gardenAnnotationKey("module")]: action.moduleName(),
       [gardenAnnotationKey("service")]: action.name,
-      [gardenAnnotationKey("version")]: action.getVersionString(),
+      [gardenAnnotationKey("version")]: action.versionString(),
     }
   } else {
     return {
-      [gardenAnnotationKey("module")]: action.getModuleName(),
+      [gardenAnnotationKey("module")]: action.moduleName(),
       [gardenAnnotationKey("service")]: action.name,
     }
   }
@@ -825,7 +825,7 @@ export function configureVolumes(
       volumes.push({
         name: volumeName,
         hostPath: {
-          path: resolve(action.getBasePath(), volume.hostPath),
+          path: resolve(action.basePath(), volume.hostPath),
         },
       })
     } else if (volume.action) {

@@ -148,7 +148,7 @@ describe("deployHelmService", () => {
 
   after(async () => {
     const actions = await garden.getActionRouter()
-    await actions.deleteServices(graph, garden.log)
+    await actions.deleteDeploys(graph, garden.log)
     if (garden) {
       await garden.close()
     }

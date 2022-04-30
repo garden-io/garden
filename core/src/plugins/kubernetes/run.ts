@@ -413,7 +413,7 @@ async function runWithoutArtifacts({
 
   let result: RunResult
   const startedAt = new Date()
-  const moduleName = action.getModuleName()
+  const moduleName = action.moduleName()
 
   try {
     const res = await runner.runAndWait({
@@ -565,7 +565,7 @@ async function runWithArtifacts({
 
     // Escape the command, so that we can safely pass it as a single string
     const cmd = [...command!, ...(args || [])].map((s) => JSON.stringify(s))
-    const moduleName = action.getModuleName()
+    const moduleName = action.moduleName()
 
     try {
       // See https://stackoverflow.com/a/20564208

@@ -60,7 +60,7 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
 }
 
 export function getRunResultKey(ctx: PluginContext, action: Action) {
-  const key = `${ctx.projectName}--${action.type}:${action.name}--${action.getVersionString()}`
+  const key = `${ctx.projectName}--${action.type}:${action.name}--${action.versionString()}`
   const hash = hasha(key, { algorithm: "sha1" })
   return `run-result--${hash.slice(0, 32)}`
 }
@@ -91,10 +91,10 @@ export async function storeRunResult({ ctx, log, action, result }: StoreTaskResu
       namespace,
       key: getRunResultKey(ctx, action),
       labels: {
-        [gardenAnnotationKey("module")]: action.getModuleName(),
+        [gardenAnnotationKey("module")]: action.moduleName(),
         [gardenAnnotationKey("actionName")]: action.name,
         [gardenAnnotationKey("actionType")]: action.name,
-        [gardenAnnotationKey("version")]: action.getVersionString(),
+        [gardenAnnotationKey("version")]: action.versionString(),
       },
       data,
     })

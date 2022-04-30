@@ -25,10 +25,10 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       })
       if (status.ready) {
         // Then an actual build won't take place, so we emit a build status event to that effect.
-        const actionVersion = action.getVersionString()
+        const actionVersion = action.versionString()
 
         garden.events.emit("buildStatus", {
-          moduleName: action.getModuleName(),
+          moduleName: action.moduleName(),
           moduleVersion: actionVersion,
           actionName: action.name,
           actionVersion,
@@ -47,9 +47,9 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const startedAt = new Date()
 
       const actionName = action.name
-      const actionVersion = action.getVersionString()
+      const actionVersion = action.versionString()
       const moduleVersion = actionVersion
-      const moduleName = action.getModuleName()
+      const moduleName = action.moduleName()
 
       params.events.on("log", ({ timestamp, data }) => {
         garden.events.emit("log", {

@@ -24,10 +24,10 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
 
       const actionName = action.name
       const serviceName = actionName
-      const actionVersion = action.getVersionString()
+      const actionVersion = action.versionString()
       const moduleVersion = actionVersion
       const serviceVersion = actionVersion
-      const moduleName = action.getModuleName()
+      const moduleName = action.moduleName()
 
       params.events.on("log", ({ timestamp, data }) => {
         garden.events.emit("log", {
@@ -145,14 +145,14 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       const result = await router.callHandler({ params, handlerType: "getStatus" })
 
       const actionName = action.name
-      const actionVersion = action.getVersionString()
+      const actionVersion = action.versionString()
 
       garden.events.emit("serviceStatus", {
         actionName,
         actionVersion,
         serviceName: actionName,
         moduleVersion: actionVersion,
-        moduleName: action.getModuleName(),
+        moduleName: action.moduleName(),
         serviceVersion: actionVersion,
         status: omit(result, "detail"),
       })
