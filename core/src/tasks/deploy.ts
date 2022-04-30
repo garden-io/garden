@@ -165,7 +165,7 @@ export class DeployTask extends BaseTask {
       })
     } else {
       try {
-        status = await actions.deployService({
+        status = await actions.deploy.deploy({
           graph: this.graph,
           service: this.service,
           runtimeContext,

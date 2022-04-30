@@ -121,7 +121,7 @@ async function getTestStatuses(garden: Garden, configGraph: ConfigGraph, log: Lo
     flatten(
       await Bluebird.map(modules, async (module) => {
         return Bluebird.map(module.testConfigs, async (testConfig) => {
-          const result = await actions.getTestResult({
+          const result = await actions.test.getResult({
             module,
             log,
             graph: configGraph,
@@ -140,7 +140,7 @@ async function getTaskStatuses(garden: Garden, configGraph: ConfigGraph, log: Lo
 
   return fromPairs(
     await Bluebird.map(tasks, async (task) => {
-      const result = await actions.getTaskResult({ task, log, graph: configGraph })
+      const result = await actions.run.getResult({ task, log, graph: configGraph })
       return [task.name, runStatus(result)]
     })
   )

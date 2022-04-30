@@ -165,7 +165,7 @@ export class TaskTask extends BaseTask {
 
     let result: RunTaskResult
     try {
-      result = await actions.runTask({
+      result = await actions.run.run({
         graph: this.graph,
         task,
         log,

@@ -279,7 +279,7 @@ export class LogsCommand extends Command<Args, Opts> {
     this.events = new PluginEventBroker()
 
     await Bluebird.map(services, async (service: GardenService<any>) => {
-      await actions.getServiceLogs({ log, graph, service, stream, follow, tail, since, events: this.events })
+      await actions.deploy.getLogs({ log, graph, service, stream, follow, tail, since, events: this.events })
     })
 
     const sorted = sortBy(result, "timestamp")

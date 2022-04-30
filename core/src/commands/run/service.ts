@@ -120,7 +120,7 @@ export class RunServiceCommand extends Command<Args, Opts> {
       log.root.stop()
     }
 
-    const result = await actions.runService({
+    const result = await actions.deploy.runService({
       log,
       graph,
       service,

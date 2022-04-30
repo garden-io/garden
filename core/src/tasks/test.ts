@@ -167,7 +167,7 @@ export class TestTask extends BaseTask {
 
     let result: TestResult
     try {
-      result = await actions.testModule({
+      result = await actions.test.run({
         log,
         module: this.test.module,
         graph: this.graph,
@@ -203,7 +203,7 @@ export class TestTask extends BaseTask {
 
     const actions = await this.garden.getActionRouter()
 
-    return actions.getTestResult({
+    return actions.test.getResult({
       log: this.log,
       graph: this.graph,
       module: this.test.module,

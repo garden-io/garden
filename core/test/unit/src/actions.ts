@@ -354,7 +354,7 @@ describe("ActionRouter", () => {
           },
           graph
         )
-        const result = await actions.testModule({
+        const result = await actions.test.run({
           log,
           module,
           interactive: true,
@@ -394,7 +394,7 @@ describe("ActionRouter", () => {
           },
           graph
         )
-        await actions.testModule({
+        await actions.test.run({
           log,
           module,
           interactive: true,
@@ -451,7 +451,7 @@ describe("ActionRouter", () => {
 
         const test = testFromConfig(module, testConfig, graph)
 
-        await actions.testModule({
+        await actions.test.run({
           log,
           module,
           interactive: true,
@@ -486,7 +486,7 @@ describe("ActionRouter", () => {
     describe("getTestResult", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const test = testFromModule(module, "unit", graph)
-        const result = await actions.getTestResult({
+        const result = await actions.test.getResult({
           log,
           module,
           test,
@@ -511,7 +511,7 @@ describe("ActionRouter", () => {
     it("should emit a testStatus event", async () => {
       garden.events.eventLog = []
       const test = testFromModule(module, "unit", graph)
-      await actions.getTestResult({
+      await actions.test.getResult({
         log,
         module,
         test,
@@ -614,7 +614,7 @@ describe("ActionRouter", () => {
 
     describe("deployService", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.deployService({
+        const result = await actions.deploy.deploy({
           log,
           service,
           graph,
@@ -629,7 +629,7 @@ describe("ActionRouter", () => {
 
       it("should emit serviceStatus events", async () => {
         garden.events.eventLog = []
-        await actions.deployService({
+        await actions.deploy.deploy({
           log,
           service,
           graph,
@@ -667,7 +667,7 @@ describe("ActionRouter", () => {
 
         await expectError(
           () =>
-            actions.deployService({
+            actions.deploy.deploy({
               log,
               service,
               graph,
@@ -691,7 +691,7 @@ describe("ActionRouter", () => {
 
         await expectError(
           () =>
-            actions.deployService({
+            actions.deploy.deploy({
               log,
               service,
               graph,
@@ -711,14 +711,14 @@ describe("ActionRouter", () => {
 
     describe("deleteService", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.deleteService({ log, service, graph, runtimeContext })
+        const result = await actions.deploy.delete({ log, service, graph, runtimeContext })
         expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: {} })
       })
     })
 
     describe("execInService", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.execInService({
+        const result = await actions.deploy.exec({
           log,
           service,
           graph,
@@ -733,7 +733,7 @@ describe("ActionRouter", () => {
     describe("getServiceLogs", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const stream = new Stream<ServiceLogEntry>()
-        const result = await actions.getServiceLogs({
+        const result = await actions.deploy.getLogs({
           log,
           service,
           graph,
@@ -748,7 +748,7 @@ describe("ActionRouter", () => {
 
     describe("runService", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.runService({
+        const result = await actions.deploy.runService({
           log,
           service,
           interactive: true,
@@ -793,7 +793,7 @@ describe("ActionRouter", () => {
 
     describe("getTaskResult", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.getTaskResult({
+        const result = await actions.run.getResult({
           log,
           task,
           graph,
@@ -803,7 +803,7 @@ describe("ActionRouter", () => {
 
       it("should emit a taskStatus event", async () => {
         garden.events.eventLog = []
-        await actions.getTaskResult({
+        await actions.run.getResult({
           log,
           task,
           graph,
@@ -825,7 +825,7 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.getTaskResult({ log, task, graph }),
+          () => actions.run.getResult({ log, task, graph }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from task 'task-a': key .foo must be a string"
@@ -839,7 +839,7 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.getTaskResult({ log, task, graph }),
+          () => actions.run.getResult({ log, task, graph }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from task 'task-a': key .base must be a string"
@@ -850,7 +850,7 @@ describe("ActionRouter", () => {
 
     describe("runTask", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.runTask({
+        const result = await actions.run.run({
           log,
           task,
           interactive: true,
@@ -865,7 +865,7 @@ describe("ActionRouter", () => {
 
       it("should emit taskStatus events", async () => {
         garden.events.eventLog = []
-        await actions.runTask({
+        await actions.run.run({
           log,
           task,
           interactive: true,
@@ -903,7 +903,7 @@ describe("ActionRouter", () => {
 
         await expectError(
           () =>
-            actions.runTask({
+            actions.run.run({
               log,
               task,
               interactive: true,
@@ -927,7 +927,7 @@ describe("ActionRouter", () => {
 
         await expectError(
           () =>
-            actions.runTask({
+            actions.run.run({
               log,
               task,
               interactive: true,
@@ -960,7 +960,7 @@ describe("ActionRouter", () => {
           },
         ]
 
-        await actions.runTask({
+        await actions.run.run({
           log,
           task: _task,
           interactive: true,

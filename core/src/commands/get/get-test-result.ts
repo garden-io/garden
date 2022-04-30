@@ -70,7 +70,7 @@ export class GetTestResultCommand extends Command<Args> {
     const module = graph.getModule(moduleName)
     const test = testFromModule(module, testName, graph)
 
-    const testResult = await actions.getTestResult({
+    const testResult = await actions.test.getResult({
       log,
       graph,
       test,

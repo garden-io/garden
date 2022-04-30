@@ -61,7 +61,7 @@ describe("runHelmTask", () => {
 
     // We also verify that, despite the task failing, its result was still saved.
     const actions = await garden.getActionRouter()
-    const storedResult = await actions.getTaskResult({
+    const storedResult = await actions.run.getResult({
       log: garden.log,
       task,
       graph,
@@ -95,7 +95,7 @@ describe("runHelmTask", () => {
 
     // We also verify that, despite the task failing, its result was still saved.
     const actions = await garden.getActionRouter()
-    const storedResult = await actions.getTaskResult({
+    const storedResult = await actions.run.getResult({
       log: garden.log,
       task,
       graph,
@@ -153,7 +153,7 @@ describe("runHelmTask", () => {
     const actions = await garden.getActionRouter()
 
     // We also verify that, despite the task failing, its result was still saved.
-    const result = await actions.getTaskResult({
+    const result = await actions.run.getResult({
       log: garden.log,
       task,
       graph,

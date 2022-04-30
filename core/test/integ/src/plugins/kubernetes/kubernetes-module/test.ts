@@ -107,7 +107,7 @@ describe("testKubernetesModule", () => {
     const actions = await garden.getActionRouter()
 
     // We also verify that, despite the test failing, its result was still saved.
-    const result = await actions.getTestResult({
+    const result = await actions.test.getResult({
       log: garden.log,
       module,
       test,
