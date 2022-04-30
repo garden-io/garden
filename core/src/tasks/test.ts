@@ -17,7 +17,7 @@ import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults } from "../ta
 import { prepareRuntimeContext } from "../runtime-context"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
-import { ConfigGraph } from "../config-graph"
+import { ConfigGraph } from "../graph/config-graph"
 import { getDeployDeps, getServiceStatusDeps, getTaskDeps, getTaskResultDeps, makeTestTaskName } from "./helpers"
 import { BuildTask } from "./build"
 import { GraphResults } from "../task-graph"

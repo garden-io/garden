@@ -12,7 +12,7 @@ import { joi, joiArray, joiIdentifier, joiIdentifierDescription } from "../confi
 import { moduleSchema } from "../types/module"
 import { logEntrySchema } from "./base"
 import { Garden } from "../garden"
-import { ConfigGraph } from "../config-graph"
+import { ConfigGraph } from "../graph/config-graph"
 
 // TODO: parse args and opts with a schema
 export interface PluginCommandParams {

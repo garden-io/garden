@@ -12,7 +12,7 @@ import { ensureDir } from "fs-extra"
 import stripAnsi from "strip-ansi"
 import { makeTestGardenA, makeTestGarden, dataDir, expectError, makeTestModule } from "../../helpers"
 import { getNames } from "../../../src/util/util"
-import { ConfigGraph, DependencyGraphNode } from "../../../src/config-graph"
+import { ConfigGraph, DependencyGraphNode } from "../../../src/graph/config-graph"
 import { Garden } from "../../../src/garden"
 import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT } from "../../../src/constants"
 

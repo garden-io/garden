@@ -13,7 +13,7 @@ import { get, isEqual, join, set, uniqWith } from "lodash"
 import { ConfigurationError } from "../exceptions"
 import { ModuleConfig } from "../config/module"
 import { deline } from "./string"
-import { DependencyGraph, DependencyGraphNode, nodeKey as configGraphNodeKey } from "../config-graph"
+import { DependencyGraph, DependencyGraphNode, nodeKey as configGraphNodeKey } from "../graph/config-graph"
 import { Profile } from "./profiling"
 
 /**

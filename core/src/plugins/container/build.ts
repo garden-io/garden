@@ -21,7 +21,8 @@ export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerB
   action,
   log,
 }) => {
-  const identifier = await containerHelpers.imageExistsLocally(action, log, ctx)
+  const outputs = getContainerBuildActionOutputs(action)
+  const identifier = await containerHelpers.imageExistsLocally(outputs.localImageId, log, ctx)
 
   if (identifier) {
     log.debug({
@@ -31,7 +32,7 @@ export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerB
     })
   }
 
-  return { ready: !!identifier, outputs: getContainerBuildActionOutputs(action) }
+  return { ready: !!identifier, outputs }
 }
 
 export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> = async ({ ctx, action, log }) => {

@@ -9,7 +9,7 @@
 import { expect } from "chai"
 
 import { expectError, TestGarden } from "../../../../../helpers"
-import { ConfigGraph } from "../../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { getHelmTestGarden } from "./common"
 import { TestTask } from "../../../../../../src/tasks/test"
 import { findByName } from "../../../../../../src/util/util"

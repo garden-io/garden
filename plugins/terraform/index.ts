@@ -18,7 +18,13 @@ import { configureTerraformModule, terraformModuleSchema } from "./module"
 import { docsBaseUrl } from "@garden-io/sdk/constants"
 import { listDirectory } from "@garden-io/sdk/util/fs"
 import { getTerraformCommands } from "./commands"
-import { TerraformDeployConfig, terraformDeployOutputsSchema } from "./action"
+import {
+  deleteTerraformModule,
+  deployTerraform,
+  getTerraformStatus,
+  TerraformDeployConfig,
+  terraformDeployOutputsSchema,
+} from "./action"
 
 import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
 import { joi } from "@garden-io/core/build/src/config/common"

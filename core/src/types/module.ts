@@ -118,7 +118,7 @@ export async function moduleFromConfig({
 }): Promise<GardenModule> {
   const version = await garden.resolveModuleVersion(log, config, buildDependencies, forceVersion)
   const actions = await garden.getActionRouter()
-  const { outputs } = await actions.getModuleOutputs({ log, moduleConfig: config, version })
+  const { outputs } = await actions.module.getModuleOutputs({ log, moduleConfig: config, version })
   const moduleTypes = await garden.getModuleTypes()
   const compatibleTypes = [config.type, ...getModuleTypeBases(moduleTypes[config.type], moduleTypes).map((t) => t.name)]
 

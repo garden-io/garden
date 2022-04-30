@@ -18,6 +18,7 @@ import { GetActionOutputType } from "../../../actions/base"
 interface DeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   devMode: boolean
   force: boolean
+  localMode: boolean
   runtimeContext: RuntimeContext
 }
 
@@ -37,6 +38,7 @@ export class DoDeployAction<T extends DeployAction = DeployAction> extends Actio
     actionParamsSchema().keys({
       devMode: joi.boolean().default(false).description("Whether the service should be configured in dev mode."),
       force: joi.boolean().description("Whether to force a re-deploy, even if the service is already deployed."),
+      localMode: joi.boolean().default(false).description("Whether the service should be configured in local mode."),
       runtimeContext: runtimeContextSchema(),
     })
 

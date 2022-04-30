@@ -13,7 +13,7 @@ import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults } from "./bas
 import { GardenService, ServiceStatus, getLinkUrl } from "../types/service"
 import { Garden } from "../garden"
 import { BuildTask } from "./build"
-import { ConfigGraph } from "../config-graph"
+import { ConfigGraph } from "../graph/config-graph"
 import { startPortProxies } from "../proxy"
 import { GraphResults } from "../task-graph"
 import { prepareRuntimeContext } from "../runtime-context"

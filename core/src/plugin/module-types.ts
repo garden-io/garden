@@ -13,7 +13,7 @@ import { GardenModule } from "../types/module"
 import { ActionHandlerParamsBase, outputSchemaDocs, WrappedActionHandler } from "./base"
 import { mapValues } from "lodash"
 import { dedent } from "../util/string"
-import { suggestModules, SuggestModulesParams, SuggestModulesResult } from "../types/plugin/module/suggestModules"
+import { suggestModules, SuggestModulesParams, SuggestModulesResult } from "./handlers/module/suggest"
 import { templateStringLiteral } from "../docs/common"
 import { getModuleOutputs, GetModuleOutputsParams, GetModuleOutputsResult } from "./handlers/module/get-outputs"
 import { convertModule, ConvertModuleParams, ConvertModuleResult } from "./handlers/module/convert"
@@ -21,7 +21,7 @@ import { baseHandlerSchema } from "./handlers/base/base"
 import { ResolvedActionHandlerDescriptions } from "./plugin"
 
 export type ModuleActionHandler<P extends ActionHandlerParamsBase, O> = ((params: P) => Promise<O>) & {
-  actionType?: string
+  handlerType?: string
   pluginName?: string
   moduleType?: string
   base?: ModuleActionHandler<P, O>
@@ -36,6 +36,13 @@ export type ModuleActionHandlers<T extends GardenModule = GardenModule> = {
   [P in keyof ModuleActionParams<T>]: ModuleActionHandler<ModuleActionParams<T>[P], ModuleActionOutputs[P]>
 }
 
+export type ModuleActionMap = {
+  [A in keyof ModuleActionHandlers]: {
+    [moduleType: string]: {
+      [pluginName: string]: ModuleActionHandlers[A]
+    }
+  }
+}
 export type ModuleActionName = keyof ModuleActionParams
 
 interface _ModuleActionParams<T extends GardenModule = GardenModule> {
@@ -62,7 +69,7 @@ export interface ModuleActionOutputs {
 // It takes a short while to resolve all these schemas, so we cache the result
 let _moduleActionDescriptions: ResolvedActionHandlerDescriptions
 
-export function getModuleActionDescriptions(): ResolvedActionHandlerDescriptions {
+export function getModuleHandlerDescriptions(): ResolvedActionHandlerDescriptions {
   if (_moduleActionDescriptions) {
     return _moduleActionDescriptions
   }
@@ -74,11 +81,12 @@ export function getModuleActionDescriptions(): ResolvedActionHandlerDescriptions
     suggestModules,
   }
 
-  _moduleActionDescriptions = <ResolvedActionHandlerDescriptions>mapValues(descriptions, (f) => {
+  _moduleActionDescriptions = <ResolvedActionHandlerDescriptions>mapValues(descriptions, (f, name) => {
     const desc = f()
 
     return {
       ...desc,
+      name,
       paramsSchema: desc.paramsSchema.keys({
         base: baseHandlerSchema(),
       }),
@@ -88,15 +96,15 @@ export function getModuleActionDescriptions(): ResolvedActionHandlerDescriptions
   return _moduleActionDescriptions
 }
 
-export function getModuleActionNames() {
-  return <ModuleActionName[]>Object.keys(getModuleActionDescriptions())
+export function getModuleHandlerNames() {
+  return <ModuleActionName[]>Object.keys(getModuleHandlerDescriptions())
 }
 
 export interface ModuleTypeExtension<M extends GardenModule = GardenModule> {
   // Note: This needs to be this verbose because of issues with the TS compiler
   handlers: {
     [T in keyof ModuleActionParams<M>]?: ((params: ModuleActionParams<M>[T]) => Promise<ModuleActionOutputs[T]>) & {
-      actionType?: string
+      handlerType?: string
       pluginName?: string
       moduleType?: string
       base?: ModuleActionHandlers[T]
@@ -117,7 +125,7 @@ export interface ModuleTypeDefinition<T extends GardenModule = GardenModule> ext
 export const moduleHandlersSchema = () =>
   joi
     .object()
-    .keys(mapValues(getModuleActionDescriptions(), () => joi.func()))
+    .keys(mapValues(getModuleHandlerDescriptions(), () => joi.func()))
     .description("A map of module action handlers provided by the plugin.")
 
 export const extendModuleTypeSchema = () =>
@@ -136,7 +144,7 @@ export const createModuleTypeSchema = () =>
         fields for details.
       `),
     docs: joi.string().description("Documentation for the module type, in markdown format."),
-    handlers: joi.object().keys(mapValues(getModuleActionDescriptions(), () => joi.func())).description(dedent`
+    handlers: joi.object().keys(mapValues(getModuleHandlerDescriptions(), () => joi.func())).description(dedent`
         A map of module action handlers provided by the plugin.
       `),
     // TODO: specify the schemas using JSONSchema instead of Joi objects

@@ -9,7 +9,7 @@
 import React, { useState } from "react"
 import produce from "immer"
 import { ServiceIngress } from "@garden-io/core/build/src/types/service"
-import { DependencyGraphNodeType } from "@garden-io/core/build/src/config-graph"
+import { DependencyGraphNodeType } from "../../../core/build/src/graph/config-graph"
 import { PickFromUnion } from "@garden-io/core/build/src/util/util"
 
 interface UiState {

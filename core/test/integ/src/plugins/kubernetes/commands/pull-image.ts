@@ -8,7 +8,7 @@
 
 import { pullBuild } from "../../../../../../src/plugins/kubernetes/commands/pull-image"
 import { Garden } from "../../../../../../src/garden"
-import { ConfigGraph } from "../../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { getContainerTestGarden } from "../container/container"
 import { k8sBuildContainer } from "../../../../../../src/plugins/kubernetes/container/build/build"
 import { PluginContext } from "../../../../../../src/plugin-context"

@@ -11,7 +11,7 @@ import { RunModuleCommand } from "../../../../../src/commands/run/module"
 import { makeTestGardenA, TestGarden, testNow, withDefaultGlobalOpts } from "../../../../helpers"
 import { omit } from "lodash"
 import { LogEntry } from "../../../../../src/logger/log-entry"
-import { ConfigGraph } from "../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../src/graph/config-graph"
 
 describe("RunModuleCommand", () => {
   // TODO: test optional flags

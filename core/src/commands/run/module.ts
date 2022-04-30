@@ -125,7 +125,7 @@ export class RunModuleCommand extends Command<Args, Opts> {
       log.root.stop()
     }
 
-    const result = await actions.runModule({
+    const result = await actions.build.run({
       log,
       graph,
       module,

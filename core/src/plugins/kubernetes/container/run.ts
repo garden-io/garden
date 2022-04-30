@@ -24,6 +24,7 @@ export const k8sRunContainerBuild: BuildActionHandler<"run", ContainerBuildActio
 
   const result = await runAndCopy({
     ...params,
+    action,
     image,
     namespace: namespaceStatus.namespaceName,
     version: action.getVersionString(),

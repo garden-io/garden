@@ -9,17 +9,17 @@
 import chalk from "chalk"
 import { BuildTask } from "./build"
 import { GardenModule } from "../types/module"
-import { PublishModuleResult } from "../types/plugin/module/publishModule"
 import { BaseTask, TaskType } from "../tasks/base"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
-import { ConfigGraph } from "../config-graph"
+import { ConfigGraph } from "../graph/config-graph"
 import { emptyRuntimeContext } from "../runtime-context"
 import { resolveTemplateString } from "../template-string/template-string"
 import { joi } from "../config/common"
 import { versionStringPrefix } from "../vcs/vcs"
 import { ConfigContext, schema } from "../config/template-contexts/base"
 import { ModuleConfigContext, ModuleConfigContextParams } from "../config/template-contexts/module"
+import { PublishActionResult } from "../plugin/handlers/build/publish"
 
 export interface PublishTaskParams {
   garden: Garden
@@ -68,7 +68,7 @@ export class PublishTask extends BaseTask {
     return `publishing module ${this.module.name}`
   }
 
-  async process(): Promise<PublishModuleResult> {
+  async process(): Promise<PublishActionResult> {
     const module = this.module
 
     if (!module.allowPublish) {
@@ -112,9 +112,9 @@ export class PublishTask extends BaseTask {
 
     const actions = await this.garden.getActionRouter()
 
-    let result: PublishModuleResult
+    let result: PublishActionResult
     try {
-      result = await actions.publishModule({ module, log, graph: this.graph, tag })
+      result = await actions.build.publish({ module, log, graph: this.graph, tag })
     } catch (err) {
       log.setError()
       throw err

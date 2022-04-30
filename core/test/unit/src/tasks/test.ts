@@ -11,7 +11,7 @@ import { resolve } from "path"
 import { TestTask } from "../../../../src/tasks/test"
 import { dataDir, makeTestGarden, TestGarden } from "../../../helpers"
 import { LogEntry } from "../../../../src/logger/log-entry"
-import { ConfigGraph } from "../../../../src/config-graph"
+import { ConfigGraph } from "../../../../src/graph/config-graph"
 import { testFromConfig } from "../../../../src/types/test"
 
 describe("TestTask", () => {

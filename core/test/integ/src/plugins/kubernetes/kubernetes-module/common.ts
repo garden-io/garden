@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import { cloneDeep } from "lodash"
 import { resolve } from "path"
-import { ConfigGraph } from "../../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { readManifests } from "../../../../../../src/plugins/kubernetes/kubernetes-type/common"
 import { KubernetesModule } from "../../../../../../src/plugins/kubernetes/kubernetes-type/module-config"

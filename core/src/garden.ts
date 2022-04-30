@@ -43,10 +43,10 @@ import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { VcsHandler, ModuleVersion, getModuleVersionString, VcsInfo } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
 import { BuildStaging } from "./build-staging/build-staging"
-import { ConfigGraph } from "./config-graph"
+import { ConfigGraph } from "./graph/config-graph"
 import { TaskGraph, GraphResults, ProcessTasksOpts } from "./task-graph"
 import { getLogger } from "./logger/logger"
-import { ProviderActionHandlers, GardenPlugin } from "./plugin/plugin"
+import { ProviderHandlers, GardenPlugin } from "./plugin/plugin"
 import { loadConfigResources, findProjectConfig, prepareModuleResource, GardenResource } from "./config/base"
 import { DeepPrimitiveMap, StringMap, PrimitiveMap, treeVersionSchema, joi } from "./config/common"
 import { BaseTask } from "./tasks/base"
@@ -83,7 +83,7 @@ import {
   ProviderMap,
 } from "./config/provider"
 import { ResolveProviderTask } from "./tasks/resolve-provider"
-import { ActionRouter } from "./actions"
+import { ActionRouter } from "./router/router"
 import { RuntimeContext } from "./runtime-context"
 import { loadAndResolvePlugins, getDependencyOrder, getModuleTypes, loadPlugin } from "./plugins"
 import { deline, naturalList } from "./util/string"
@@ -115,9 +115,10 @@ import { getSecrets } from "./cloud/get-secrets"
 import { ConfigContext } from "./config/template-contexts/base"
 import { validateSchema, validateWithPath } from "./config/validation"
 import { pMemoizeDecorator } from "./lib/p-memoize"
+import { ModuleGraph } from "./graph/modules"
 
-export interface ActionHandlerMap<T extends keyof ProviderActionHandlers> {
-  [actionName: string]: ProviderActionHandlers[T]
+export interface ActionHandlerMap<T extends keyof ProviderHandlers> {
+  [actionName: string]: ProviderHandlers[T]
 }
 
 export interface ModuleActionHandlerMap<T extends keyof ModuleActionHandlers> {
@@ -125,16 +126,8 @@ export interface ModuleActionHandlerMap<T extends keyof ModuleActionHandlers> {
 }
 
 export type PluginActionMap = {
-  [A in keyof ProviderActionHandlers]: {
-    [pluginName: string]: ProviderActionHandlers[A]
-  }
-}
-
-export type ModuleActionMap = {
-  [A in keyof ModuleActionHandlers]: {
-    [moduleType: string]: {
-      [pluginName: string]: ModuleActionHandlers[A]
-    }
+  [A in keyof ProviderHandlers]: {
+    [pluginName: string]: ProviderHandlers[A]
   }
 }
 
@@ -757,9 +750,10 @@ export class Garden {
 
     const resolvedModules = await resolver.resolveAll()
 
-    // TODO-G2: convert modules to actions here
-    // -> Do the conversion
-    // -> Collect module outputs for templating from actions (attach to ConfigGraph?)
+    // Validate the module dependency structure. This will throw on failure.
+    const actions = await this.getActionRouter()
+    const moduleTypes = await this.getModuleTypes()
+    new ModuleGraph(resolvedModules, moduleTypes)
 
     // Require include/exclude on modules if their paths overlap
     // TODO-G2: change this to detect overlap on Build actions
@@ -773,8 +767,15 @@ export class Garden {
       throw new ConfigurationError(message, detail)
     }
 
-    const actions = await this.getActionRouter()
-    const moduleTypes = await this.getModuleTypes()
+    await Bluebird.map(resolvedModules, async (module) => {
+      const converted = await actions.convertModule({ module })
+    })
+
+    // TODO-G2: convert modules to actions here
+    // -> Do the conversion
+    // -> Collect module outputs for templating from actions (attach to ConfigGraph?)
+
+
 
     let graph: ConfigGraph | undefined = undefined
 
@@ -789,8 +790,8 @@ export class Garden {
       }
 
       // Skip the routine if the provider doesn't have the handler
-      const handler = await actions.getActionHandler({
-        actionType: "augmentGraph",
+      const handler = await actions.provider.getPluginHandler({
+        handlerType: "augmentGraph",
         pluginName,
         throwIfMissing: false,
       })
@@ -805,7 +806,7 @@ export class Garden {
         graph = new ConfigGraph(resolvedModules, moduleTypes)
       }
 
-      const { addRuntimeDependencies, addModules } = await actions.augmentGraph({
+      const { addRuntimeDependencies, addModules } = await actions.provider.augmentGraph({
         pluginName,
         log,
         providers: resolvedProviders,

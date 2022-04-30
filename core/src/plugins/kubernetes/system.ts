@@ -122,10 +122,10 @@ export async function prepareSystemServices({ ctx, sysGarden, log, serviceNames,
   if (serviceNames.length > 0) {
     const actions = await sysGarden.getActionRouter()
     const graph = await sysGarden.getConfigGraph({ log, emit: false })
-    const results = await actions.deployServices({
+    const results = await actions.deployMany({
       graph,
       log,
-      serviceNames,
+      deployNames: serviceNames,
       force,
       forceBuild: force,
     })

@@ -21,7 +21,7 @@ import { TaskTask } from "../../../../../src/tasks/task"
 import { readModuleVersionFile } from "../../../../../src/vcs/vcs"
 import { dataDir, makeTestGarden } from "../../../../helpers"
 import { ModuleConfig } from "../../../../../src/config/module"
-import { ConfigGraph } from "../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../src/graph/config-graph"
 import { pathExists, emptyDir } from "fs-extra"
 import { TestTask } from "../../../../../src/tasks/test"
 import { defaultNamespace } from "../../../../../src/config/project"
@@ -402,7 +402,7 @@ describe("exec plugin", () => {
 
       await garden.buildStaging.syncFromSrc(module, log)
       const actions = await garden.getActionRouter()
-      await actions.build({ log, module, graph })
+      await actions.build.build({ log, module, graph })
 
       const versionFileContents = await readModuleVersionFile(versionFilePath)
 
@@ -412,7 +412,7 @@ describe("exec plugin", () => {
     it("should run the build command in the module dir if local true", async () => {
       const module = graph.getModule("module-local")
       const actions = await garden.getActionRouter()
-      const res = await actions.build({ log, module, graph })
+      const res = await actions.build.build({ log, module, graph })
       expect(res.buildLog).to.eql(join(garden.projectRoot, "module-local"))
     })
 
@@ -421,7 +421,7 @@ describe("exec plugin", () => {
       const actions = await garden.getActionRouter()
 
       module.spec.build.command = ["echo", "$GARDEN_MODULE_VERSION"]
-      const res = await actions.build({ log, module, graph })
+      const res = await actions.build.build({ log, module, graph })
 
       expect(res.buildLog).to.equal(module.version.versionString)
     })
@@ -532,7 +532,7 @@ describe("exec plugin", () => {
     it("should run the module with the args that are passed through the command", async () => {
       const module = graph.getModule("module-local")
       const actions = await garden.getActionRouter()
-      const res = await actions.runModule({
+      const res = await actions.build.run({
         log,
         module,
         command: [],

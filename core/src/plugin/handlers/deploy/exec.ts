@@ -17,14 +17,14 @@ interface ExecInDeployParams<T extends DeployAction> extends PluginDeployActionP
   interactive: boolean
 }
 
-interface ExecInDeployResult {
+export interface ExecInDeployResult {
   code: number
   output: string
   stdout?: string
   stderr?: string
 }
 
-const execInDeployResultSchema = () =>
+export const execInDeployResultSchema = () =>
   joi.object().keys({
     code: joi.number().required().description("The exit code of the command executed."),
     output: joi.string().allow("").required().description("The output of the executed command."),

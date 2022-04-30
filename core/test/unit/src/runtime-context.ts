@@ -8,7 +8,7 @@
 
 import { Garden } from "../../../src/garden"
 import { makeTestGardenA } from "../../helpers"
-import { ConfigGraph } from "../../../src/config-graph"
+import { ConfigGraph } from "../../../src/graph/config-graph"
 import { prepareRuntimeContext } from "../../../src/runtime-context"
 import { expect } from "chai"
 

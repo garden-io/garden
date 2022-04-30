@@ -12,7 +12,7 @@ import { expect } from "chai"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import stripAnsi from "strip-ansi"
 import { omit } from "lodash"
-import { ConfigGraph } from "../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../src/graph/config-graph"
 
 describe("RunServiceCommand", () => {
   // TODO: test optional flags

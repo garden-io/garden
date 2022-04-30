@@ -20,7 +20,7 @@ import {
 } from "./moduleConfig"
 import { buildContainer, getContainerBuildStatus } from "./build"
 import { ConfigureModuleParams } from "../../plugin/handlers/module/configure"
-import { SuggestModulesParams, SuggestModulesResult } from "../../types/plugin/module/suggestModules"
+import { SuggestModulesParams, SuggestModulesResult } from "../../plugin/handlers/module/suggest"
 import { listDirectory } from "../../util/fs"
 import { dedent } from "../../util/string"
 import { Provider, GenericProviderConfig, providerConfigBaseSchema } from "../../config/provider"
