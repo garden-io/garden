@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { fromPairs, keyBy, pickBy } from "lodash"
+import { fromPairs, keyBy, mapValues, pickBy } from "lodash"
 
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
@@ -28,6 +28,7 @@ import {
   GetActionTypeResults,
   WrappedActionTypeHandler,
   ActionTypeClasses,
+  GetActionTypeParams,
 } from "../plugin/action-types"
 import { InternalError, ParameterError, PluginError } from "../exceptions"
 import { validateSchema } from "../config/validation"
@@ -39,6 +40,12 @@ import { ConfigGraph } from "../graph/config-graph"
 export type CommonParams = keyof PluginActionContextParams
 export type RequirePluginName<T> = T & { pluginName: string }
 
+export interface BaseRouterParams {
+  garden: Garden
+  configuredPlugins: GardenPlugin[]
+  loadedPlugins: GardenPlugin[]
+}
+
 /**
  * The ProviderRouter takes care of choosing which plugin should be responsible for handling a provider action,
  * and preparing common parameters (so as to reduce boilerplate on the usage side).
@@ -46,17 +53,17 @@ export type RequirePluginName<T> = T & { pluginName: string }
  * Each provider handler has a corresponding method on this class.
  */
 export abstract class BaseRouter {
+  protected readonly garden: Garden
+  protected readonly configuredPlugins: GardenPlugin[]
   protected readonly loadedPlugins: PluginMap
 
-  constructor(
-    protected readonly garden: Garden,
-    protected readonly configuredPlugins: GardenPlugin[],
-    loadedPlugins: GardenPlugin[]
-  ) {
-    this.loadedPlugins = keyBy(loadedPlugins, "name")
+  constructor(params: BaseRouterParams) {
+    this.garden = params.garden
+    this.configuredPlugins = params.configuredPlugins
+    this.loadedPlugins = keyBy(params.loadedPlugins, "name")
   }
 
-  protected emitNamespaceEvents(namespaceStatuses: NamespaceStatus[] | undefined) {
+  emitNamespaceEvents(namespaceStatuses: NamespaceStatus[] | undefined) {
     if (namespaceStatuses && namespaceStatuses.length > 0) {
       for (const status of namespaceStatuses) {
         this.emitNamespaceEvent(status)
@@ -64,7 +71,7 @@ export abstract class BaseRouter {
     }
   }
 
-  protected emitNamespaceEvent(namespaceStatus: NamespaceStatus | undefined) {
+  emitNamespaceEvent(namespaceStatus: NamespaceStatus | undefined) {
     if (namespaceStatus) {
       const { pluginName, state, namespaceName } = namespaceStatus
       this.garden.events.emit("namespaceStatus", { pluginName, state, namespaceName })
@@ -131,61 +138,68 @@ type HandlerMap<K extends ActionKind> = {
   }
 }
 
-// export function createRouter<K extends ActionKind>(kind: K,
-//   garden: Garden,
-//   configuredPlugins: GardenPlugin[],
-//   loadedPlugins: GardenPlugin[],
-//   classes: ActionTypeClasses<K>) {
+type HandlerParams<K extends ActionKind, H extends keyof ActionTypeClasses<K>> = Omit<
+  GetActionTypeParams<ActionTypeClasses<K>[H]>,
+  CommonParams
+> & {
+  graph: ConfigGraph
+  pluginName?: string
+}
 
-//   const handlers: {
-//     [T in keyof ActionTypeClasses<K>]: {
-//       [actionType: string]: {
-//         [pluginName: string]: WrappedActionTypeHandler<ActionTypeClasses<K>[T], T>
-//       }
-//     }
-//   } = mapValues(classes, () => ({}))
+type WrapRouterHandler<K extends ActionKind, H extends keyof ActionTypeClasses<K>> = {
+  (params: HandlerParams<K, H>): Promise<GetActionTypeResults<ActionTypeClasses<K>[H]>>
+}
 
-//   const definitions: { [name: string]: ActionTypeDefinition<any> } = {}
-//   const
+export type WrappedActionRouterHandlers<K extends ActionKind> = {
+  [H in keyof ActionTypeClasses<K>]: WrapRouterHandler<K, H>
+}
 
-//   for (const plugin of configuredPlugins) {
-//     const created = plugin.createActionTypes[kind] || []
-//     for (const spec of created) {
-//       definitions[spec.name] = spec
-//       for (const handlerType of Object.keys) {
-//         const handler = spec.handlers[handlerType]
-//         handler && this.addHandler(plugin, <any>handlerType, spec.name, handler)
-//       }
-//     }
+type ActionRouterHandler<K extends ActionKind, H extends keyof ActionTypeClasses<K>> = {
+  (
+    params: Omit<GetActionTypeParams<ActionTypeClasses<K>[H]>, CommonParams> & {
+      router: BaseActionRouter<K>
+      garden: Garden
+      graph: ConfigGraph
+      handlers: WrappedActionRouterHandlers<K>
+      pluginName?: string
+    }
+  ): Promise<GetActionTypeResults<ActionTypeClasses<K>[H]>>
+}
 
-//     const extended = <any>plugin.extendActionTypes[kind] || []
-//     for (const spec of extended) {
-//       for (const handlerType of handlerNames) {
-//         const handler = spec.handlers[handlerType]
-//         handler && this.addHandler(plugin, <any>handlerType, spec.name, handler)
-//       }
-//     }
-//   }
-// }
+export type ActionRouterHandlers<K extends ActionKind> = {
+  [H in keyof ActionTypeClasses<K>]: ActionRouterHandler<K, H>
+}
+
+export function createActionRouter<K extends ActionKind>(
+  kind: K,
+  baseParams: BaseRouterParams,
+  handlers: ActionRouterHandlers<K>
+): WrappedActionRouterHandlers<K> {
+  class Router extends BaseActionRouter<K> {}
+  const router = new Router(kind, baseParams)
+
+  const wrapped = mapValues(handlers, (h) => {
+    return (params: any) => {
+      return h({ ...params, router, garden: baseParams.garden, handlers: wrapped })
+    }
+  })
+
+  return wrapped
+}
 
 export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter {
   protected readonly handlers: HandlerMap<K>
   protected readonly handlerDescriptions: { [N in keyof ActionTypeClasses<K>]: ResolvedActionHandlerDescription }
   protected readonly definitions: { [name: string]: ActionTypeDefinition<any> }
 
-  constructor(
-    protected readonly kind: K,
-    garden: Garden,
-    configuredPlugins: GardenPlugin[],
-    loadedPlugins: GardenPlugin[]
-  ) {
-    super(garden, configuredPlugins, loadedPlugins)
+  constructor(protected readonly kind: K, params: BaseRouterParams) {
+    super(params)
 
     this.handlerDescriptions = <any>getActionTypeHandlerDescriptions()[kind]
     const handlerNames: (keyof ActionTypeClasses<K>)[] = <any>Object.keys(this.handlerDescriptions)
     this.handlers = <any>fromPairs(handlerNames.map((n) => [n, {}]))
 
-    for (const plugin of configuredPlugins) {
+    for (const plugin of params.configuredPlugins) {
       const created = <any>plugin.createActionTypes[kind] || []
       for (const spec of created) {
         this.definitions[spec.name] = spec
@@ -205,7 +219,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     }
   }
 
-  protected async callHandler<T extends keyof ActionTypeClasses<K>>({
+  async callHandler<T extends keyof ActionTypeClasses<K>>({
     params,
     handlerType,
     defaultHandler,
@@ -231,11 +245,11 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     })
 
     const providers = await this.garden.resolveProviders(log)
-    const templateContext = ModuleConfigContext.fromModule({
+    const templateContext = ActionConfigContext.fromAction({
       garden: this.garden,
       resolvedProviders: providers,
-      module,
-      modules: graph.getModules(),
+      action,
+      graph,
       partialRuntimeResolution: false,
     })
     const handlerParams = {
@@ -245,8 +259,11 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
     log.silly(`Calling ${handlerType} handler for action ${action.description()}`)
 
-    // TODO: figure out why this doesn't compile without the function cast
-    return (<Function>handler)(handlerParams)
+    const result: GetActionTypeResults<ActionTypeClasses<K>[T]> = await handler(handlerParams)
+
+    // TODO-G2: validate outputs here
+
+    return result
   }
 
   private addHandler<T extends keyof ActionTypeClasses<K>>(

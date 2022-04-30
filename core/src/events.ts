@@ -15,9 +15,9 @@ import { NamespaceStatus, RunStatus } from "./plugin/base"
 import { Omit } from "./util/util"
 import { AuthTokenResponse } from "./cloud/api"
 import { RenderedActionGraph } from "./graph/config-graph"
-import { BuildState } from "./types/plugin/module/build"
 import { CommandInfo } from "./plugin-context"
 import { sanitizeObject } from "./logger/util"
+import { BuildState } from "./plugin/handlers/build/build"
 
 export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
 
@@ -214,6 +214,10 @@ export interface Events extends LoggerEvents {
     }
   }
   taskStatus: {
+    actionName: string
+    actionVersion: string
+
+    // DEPRECATED: remove in 0.14
     taskName: string
     moduleName: string
     moduleVersion: string
@@ -227,6 +231,10 @@ export interface Events extends LoggerEvents {
     status: RunStatus
   }
   testStatus: {
+    actionName: string
+    actionVersion: string
+
+    // DEPRECATED: remove in 0.14
     testName: string
     moduleName: string
     moduleVersion: string
@@ -240,6 +248,10 @@ export interface Events extends LoggerEvents {
     status: RunStatus
   }
   serviceStatus: {
+    actionName: string
+    actionVersion: string
+
+    // DEPRECATED: remove in 0.14
     serviceName: string
     moduleName: string
     moduleVersion: string

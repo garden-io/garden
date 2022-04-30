@@ -112,7 +112,7 @@ describe("dev mode deployments and sync behavior", () => {
 
     // This is to make sure that the two-way sync doesn't recreate the local files we're about to delete here.
     const actions = await garden.getActionRouter()
-    await actions.deleteService({ graph, log: garden.log, service })
+    await actions.deploy.delete({ graph, log: garden.log, service })
 
     // Clean up the files we created locally
     for (const filename of ["made_locally", "made_in_pod"]) {

@@ -15,7 +15,6 @@ import { SetSecretParams, SetSecretResult } from "../plugin/handlers/provider/se
 import { validateSchema } from "../config/validation"
 import { defaultProvider } from "../config/provider"
 import { ParameterError, PluginError } from "../exceptions"
-import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { PluginActionParamsBase } from "../plugin/base"
 import {
@@ -44,7 +43,7 @@ import { PluginContext } from "../plugin-context"
 import { AugmentGraphResult, AugmentGraphParams } from "../plugin/handlers/provider/augmentGraph"
 import { Profile } from "../util/profiling"
 import { GetDashboardPageParams, GetDashboardPageResult } from "../plugin/handlers/provider/getDashboardPage"
-import { BaseRouter, CommonParams } from "./base"
+import { BaseRouter, BaseRouterParams, CommonParams } from "./base"
 
 /**
  * The ProviderRouter takes care of choosing which plugin should be responsible for handling a provider action,
@@ -57,14 +56,14 @@ export class ProviderRouter extends BaseRouter {
   private readonly pluginHandlers: WrappedPluginActionMap
   private readonly pluginHandlerDescriptions: ResolvedActionHandlerDescriptions
 
-  constructor(garden: Garden, configuredPlugins: GardenPlugin[], loadedPlugins: GardenPlugin[]) {
-    super(garden, configuredPlugins, loadedPlugins)
+  constructor(params: BaseRouterParams) {
+    super(params)
 
     const pluginHandlerNames = getProviderHandlerNames()
     this.pluginHandlerDescriptions = getProviderActionDescriptions()
     this.pluginHandlers = <WrappedPluginActionMap>fromPairs(pluginHandlerNames.map((n) => [n, {}]))
 
-    for (const plugin of configuredPlugins) {
+    for (const plugin of params.configuredPlugins) {
       const handlers = plugin.handlers || {}
 
       for (const handlerType of pluginHandlerNames) {

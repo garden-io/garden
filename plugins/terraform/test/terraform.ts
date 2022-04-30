@@ -633,7 +633,7 @@ describe("Terraform module type", () => {
       const actions = await garden.getActionRouter()
       const service = graph.getService("tf")
 
-      await actions.deleteService({ service, log: garden.log, graph })
+      await actions.deploy.delete({ service, log: garden.log, graph })
 
       const testFileContent = await readFile(testFilePath)
       expect(testFileContent.toString()).to.equal("default")
@@ -647,7 +647,7 @@ describe("Terraform module type", () => {
       const actions = await garden.getActionRouter()
       const service = graph.getService("tf")
 
-      await actions.deleteService({ service, log: garden.log, graph })
+      await actions.deploy.delete({ service, log: garden.log, graph })
 
       expect(await pathExists(testFilePath)).to.be.false
     })
@@ -670,7 +670,7 @@ describe("Terraform module type", () => {
 
       await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
-      await actions.deleteService({ service, log: _garden.log, graph: _graph })
+      await actions.deploy.delete({ service, log: _garden.log, graph: _graph })
 
       const { selected } = await getWorkspaces({ ctx, provider, root: tfRoot, log: _garden.log })
       expect(selected).to.equal("foo")

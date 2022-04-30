@@ -59,7 +59,7 @@ export class GetTaskResultTask extends BaseTask {
     // The default handler (for plugins that don't implement getTaskResult) returns undefined.
     let result: RunTaskResult | null | undefined
     try {
-      result = await actions.getTaskResult({
+      result = await actions.run.getResult({
         graph: this.graph,
         task: this.task,
         log,

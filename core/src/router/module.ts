@@ -10,7 +10,6 @@ import { fromPairs, uniqBy } from "lodash"
 import { validateSchema } from "../config/validation"
 import { defaultProvider } from "../config/provider"
 import { ParameterError, PluginError, InternalError } from "../exceptions"
-import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { GardenModule } from "../types/module"
 import {
@@ -33,7 +32,7 @@ import { BuildDependencyConfig } from "../config/module"
 import { Profile } from "../util/profiling"
 import { ConfigGraph } from "../graph/config-graph"
 import { GetModuleOutputsParams, GetModuleOutputsResult } from "../plugin/handlers/module/get-outputs"
-import { BaseRouter } from "./base"
+import { BaseRouter, BaseRouterParams } from "./base"
 import { ConvertModuleParams, ConvertModuleResult } from "../plugin/handlers/module/convert"
 
 export interface DeployManyParams {
@@ -56,19 +55,14 @@ export class ModuleRouter extends BaseRouter {
   private readonly moduleHandlers: ModuleActionMap
   private readonly moduleHandlerDescriptions: ResolvedActionHandlerDescriptions
 
-  constructor(
-    garden: Garden,
-    configuredPlugins: GardenPlugin[],
-    loadedPlugins: GardenPlugin[],
-    private readonly moduleTypes: { [name: string]: ModuleTypeDefinition }
-  ) {
-    super(garden, configuredPlugins, loadedPlugins)
+  constructor(params: BaseRouterParams, private readonly moduleTypes: { [name: string]: ModuleTypeDefinition }) {
+    super(params)
 
     const moduleHandlerNames = getModuleHandlerNames()
     this.moduleHandlerDescriptions = getModuleHandlerDescriptions()
     this.moduleHandlers = <WrappedModuleActionMap>fromPairs(moduleHandlerNames.map((n) => [n, {}]))
 
-    for (const plugin of configuredPlugins) {
+    for (const plugin of params.configuredPlugins) {
       for (const spec of plugin.createModuleTypes) {
         for (const handlerType of moduleHandlerNames) {
           const handler = spec.handlers[handlerType]

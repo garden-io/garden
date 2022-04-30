@@ -60,7 +60,7 @@ describe("runKubernetesTask", () => {
 
     // Verify that the result was saved
     const actions = await garden.getActionRouter()
-    const storedResult = await actions.getTaskResult({
+    const storedResult = await actions.run.getResult({
       log: garden.log,
       task,
       graph,
@@ -94,7 +94,7 @@ describe("runKubernetesTask", () => {
 
     // Verify that the result was saved
     const actions = await garden.getActionRouter()
-    const storedResult = await actions.getTaskResult({
+    const storedResult = await actions.run.getResult({
       log: garden.log,
       task,
       graph,
@@ -152,7 +152,7 @@ describe("runKubernetesTask", () => {
     const actions = await garden.getActionRouter()
 
     // We also verify that, despite the task failing, its result was still saved.
-    const result = await actions.getTaskResult({
+    const result = await actions.run.getResult({
       log: garden.log,
       task,
       graph,
