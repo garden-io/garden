@@ -112,7 +112,7 @@ async function createProxy({ garden, graph, log, service, spec }: StartPortProxy
       log.debug(`Starting port forward to ${key}`)
 
       try {
-        fwd = await actions.getPortForward({ service, log, graph, ...spec })
+        fwd = await actions.deploy.getPortForward({ service, log, graph, ...spec })
       } catch (err) {
         const msg = err.message.trim()
 

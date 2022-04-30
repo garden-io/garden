@@ -115,6 +115,6 @@ describe("persistentvolumeclaim", () => {
       })
     ).to.be.true
 
-    await actions.deleteService({ log: garden.log, service, graph })
+    await actions.deploy.delete({ log: garden.log, service, graph })
   })
 })
