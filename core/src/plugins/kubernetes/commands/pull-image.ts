@@ -25,6 +25,8 @@ import { getAppNamespace, getSystemNamespace } from "../namespace"
 import { randomString } from "../../../util/string"
 import { PluginContext } from "../../../plugin-context"
 import { ensureBuilderSecret } from "../container/build/common"
+import { ContainerBuildAction } from "../../container/config"
+import { ResolvedAction } from "../../../actions/base"
 
 const tmpTarPath = "/tmp/image.tar"
 const imagePullTimeoutSeconds = 60 * 20
@@ -73,7 +75,9 @@ function findModules(modules: GardenModule[], names: string[]): GardenModule[] {
 
 function ensureAllModulesValid(modules: GardenModule[]) {
   const invalidModules = filter(modules, (module) => {
-    return !module.compatibleTypes.includes("container") || !containerHelpers.moduleHasDockerfile(module, module.version)
+    return (
+      !module.compatibleTypes.includes("container") || !containerHelpers.moduleHasDockerfile(module, module.version)
+    )
   })
 
   if (invalidModules.length > 0) {
@@ -100,14 +104,19 @@ async function pullModules(ctx: KubernetesPluginContext, modules: GardenModule[]
   )
 }
 
-export async function pullModule(ctx: KubernetesPluginContext, module: GardenModule, log: LogEntry) {
-  const localId = module.outputs["local-image-id"]
-  await pullFromExternalRegistry(ctx, module, log, localId)
+export async function pullModule(
+  ctx: KubernetesPluginContext,
+  action: ResolvedAction<ContainerBuildAction>,
+  log: LogEntry
+) {
+  const localId = action.getOutput("localImageId")
+
+  await pullFromExternalRegistry(ctx, action, log, localId)
 }
 
 async function pullFromExternalRegistry(
   ctx: KubernetesPluginContext,
-  module: GardenModule,
+  action: ResolvedAction<ContainerBuildAction>,
   log: LogEntry,
   localId: string
 ) {
@@ -133,7 +142,7 @@ async function pullFromExternalRegistry(
     authSecretName = systemDockerAuthSecretName
   }
 
-  const imageId = module.outputs["deployment-image-id"]
+  const imageId = action.getOutput("deploymentImageId")
 
   // See https://github.com/containers/skopeo for how all this works and the syntax
   const skopeoCommand = [

@@ -14,7 +14,7 @@ import { getKubernetesTestGarden } from "./common"
 import { TaskTask } from "../../../../../../src/tasks/task"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
-import { clearTaskResult } from "../../../../../../src/plugins/kubernetes/task-results"
+import { clearTaskResult } from "../../../../../../src/plugins/kubernetes/run-results"
 
 describe("runKubernetesTask", () => {
   let garden: TestGarden

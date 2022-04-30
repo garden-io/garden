@@ -6,9 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { join } from "path"
 import { includeGuideLink, joi, joiSparseArray, joiUserIdentifier } from "../config/common"
 import { dedent } from "../util/string"
-import { BaseActionConfig, baseActionConfig, Action, includeExcludeSchema } from "./base"
+import { BaseActionConfig, baseActionConfig, Action, includeExcludeSchema, ResolvedActionWrapperParams } from "./base"
 
 export interface BuildCopyFrom {
   build: string
@@ -97,4 +98,33 @@ export const buildActionConfig = () =>
     timeout: joi.number().integer().description("Set a timeout for the build to complete, in seconds."),
   })
 
-export class BuildAction<C extends BuildActionConfig = any, O extends {} = any> extends Action<C, O> {}
+export class BuildAction<C extends BuildActionConfig = any, O extends {} = any> extends Action<C, O> {
+  /**
+   * Returns the build path for the action. The path is generally `<project root>/.garden/build/<action name>`.
+   * If `buildAtSource: true` is set on the config, the path is the base path of the action.
+   */
+  getBuildPath() {
+    if (this._config.buildAtSource) {
+      return this.getBasePath()
+    } else {
+      return join(this.baseBuildDirectory, this.name)
+    }
+  }
+
+  // TODO-G2: see if we actually need/want this
+  getBuildMetadataPath() {
+    return join(this.baseBuildDirectory, this.name + ".metadata")
+  }
+}
+
+// TODO: see if we can avoid the duplication here
+export abstract class ResolvedBuildAction<A extends BuildAction> extends BuildAction<A["_config"], A["_outputs"]> {
+  constructor(params: ResolvedActionWrapperParams<A["_config"], A["_outputs"]>) {
+    super(params)
+    this._outputs = params.outputs
+  }
+
+  getOutput<K extends keyof A["_outputs"]>(key: K) {
+    return this._outputs[key]
+  }
+}

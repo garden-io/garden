@@ -23,7 +23,7 @@ import {
   ServiceResourceSpec,
 } from "../../../../../src/plugins/kubernetes/config"
 import {
-  getServiceResource,
+  getTargetResource,
   getResourceContainer,
   getServiceResourceSpec,
   getResourcePodSpec,
@@ -570,7 +570,7 @@ describe("kubernetes Pod runner functions", () => {
         module: helmModule,
         provider: helmCtx.provider,
       })
-      helmTarget = await getServiceResource({
+      helmTarget = await getTargetResource({
         ctx: helmCtx,
         log: helmLog,
         provider: helmCtx.provider,

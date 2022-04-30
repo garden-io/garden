@@ -12,9 +12,9 @@ import { RuntimeContext } from "../../../runtime-context"
 import { TestAction } from "../../../actions/test"
 import { runBuildBaseSchema } from "../build/run"
 import { joi } from "../../../config/common"
-import { TestResult, testResultSchema } from "../../../types/test"
+import { testResultSchema } from "../../../types/test"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { GetActionOutputType } from "../../../actions/base"
+import { GetTestResult } from "./get-result"
 
 interface TestActionParams<T extends TestAction> extends PluginTestActionParamsBase<T> {
   artifactsPath: string
@@ -23,14 +23,10 @@ interface TestActionParams<T extends TestAction> extends PluginTestActionParamsB
   silent: boolean
 }
 
-interface RunTestResult<T extends TestAction> extends TestResult {
-  outputs: GetActionOutputType<T>
-}
-
 export class RunTestAction<T extends TestAction = TestAction> extends ActionTypeHandlerSpec<
   "test",
   TestActionParams<T>,
-  RunTestResult<T>
+  GetTestResult<T>
 > {
   description = dedent`
     Run the Test action.

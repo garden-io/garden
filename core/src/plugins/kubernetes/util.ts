@@ -32,6 +32,8 @@ import { PodRunner } from "./run"
 import { isSubset } from "../../util/is-subset"
 import { checkPodStatus } from "./status/pod"
 import { getActionNamespace } from "./namespace"
+import { KubernetesDeployAction } from "./kubernetes-type/config"
+import { HelmDeployAction } from "./helm/config"
 
 export const skopeoImage = "gardendev/skopeo:1.41.0-2"
 
@@ -558,17 +560,18 @@ export function getServiceResourceSpec(
   return <ServiceResourceSpec>resourceSpec
 }
 
-interface GetServiceResourceParams {
+interface GetTargetResourceParams {
   ctx: PluginContext
   log: LogEntry
   provider: KubernetesProvider
   manifests: KubernetesResource[]
-  module: HelmModule | KubernetesModule
+  action: HelmDeployAction | KubernetesDeployAction
   resourceSpec: ServiceResourceSpec
 }
 
+// TODO-G2
 /**
- * Finds and returns the configured service resource from the specified manifests, that we can use for
+ * Finds and returns the configured resource from the specified manifests, that we can use for
  * service-specific functionality.
  *
  * Optionally provide a `resourceSpec`, which is then used instead of the default `module.serviceResource` spec.
@@ -576,14 +579,14 @@ interface GetServiceResourceParams {
  *
  * Throws an error if no valid resource spec is given, or the resource spec doesn't match any of the given resources.
  */
-export async function getServiceResource({
+export async function getTargetResource({
   ctx,
   log,
   provider,
   manifests,
-  module,
+  action,
   resourceSpec,
-}: GetServiceResourceParams): Promise<SyncableResource> {
+}: GetTargetResourceParams): Promise<SyncableResource> {
   const resourceMsgName = resourceSpec ? "resource" : "serviceResource"
 
   if (resourceSpec.podSelector && !isEmpty(resourceSpec.podSelector)) {
@@ -592,7 +595,7 @@ export async function getServiceResource({
     const namespace = await getActionNamespace({
       ctx: k8sCtx,
       log,
-      module,
+      action,
       provider: k8sCtx.provider,
     })
 
@@ -603,7 +606,7 @@ export async function getServiceResource({
       throw new ConfigurationError(
         chalk.red(
           `Could not find any Pod matching provided podSelector (${selectorStr}) for ${resourceMsgName} in ` +
-            `${module.type} module ${chalk.white(module.name)}`
+            `${action.type} module ${chalk.white(action.name)}`
         ),
         { resourceSpec }
       )
@@ -620,10 +623,10 @@ export async function getServiceResource({
   const applicableChartResources = manifests.filter((o) => o.kind === targetKind)
 
   if (targetKind && targetName) {
-    if (module.type === "helm" && targetName.includes("{{")) {
+    if (action.type === "helm" && targetName.includes("{{")) {
       // need to resolve the template string
-      const chartPath = await getChartPath(<HelmModule>module)
-      targetName = await renderHelmTemplateString(ctx, log, module as HelmModule, chartPath, targetName)
+      const chartPath = await getChartPath(action)
+      targetName = await renderHelmTemplateString(ctx, log, action, chartPath, targetName)
     }
 
     target = find(<SyncableResource[]>manifests, (o) => o.kind === targetKind && o.metadata.name === targetName)!
@@ -631,7 +634,7 @@ export async function getServiceResource({
     if (!target) {
       throw new ConfigurationError(
         chalk.red(
-          deline`${module.type} module ${chalk.white(module.name)} does not contain specified ${targetKind}
+          deline`${action.description()} does not contain specified ${targetKind}
           ${chalk.white(targetName)}`
         ),
         { resourceSpec, chartResourceNames }
@@ -639,7 +642,7 @@ export async function getServiceResource({
     }
   } else {
     if (applicableChartResources.length === 0) {
-      throw new ConfigurationError(`${module.type} module ${chalk.white(module.name)} contains no ${targetKind}s.`, {
+      throw new ConfigurationError(`${action.description()} contains no ${targetKind}s.`, {
         resourceSpec,
         chartResourceNames,
       })
@@ -648,8 +651,8 @@ export async function getServiceResource({
     if (applicableChartResources.length > 1) {
       throw new ConfigurationError(
         chalk.red(
-          deline`${module.type} module ${chalk.white(module.name)} contains multiple ${targetKind}s.
-          You must specify a resource name in the appropriate config in order to identify the correct ${targetKind}
+          deline`${action.description()} contains multiple ${targetKind}s.
+          You must specify a resource name in the appropriate config in order to identify the correct ${targetKind}
           to use.`
         ),
         { resourceSpec, chartResourceNames }

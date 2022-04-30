@@ -11,13 +11,14 @@ import { DeploymentError } from "../../../exceptions"
 import { KubernetesModule } from "./moduleConfig"
 import { getAppNamespace } from "../namespace"
 import { KubernetesPluginContext } from "../config"
-import { execInWorkload, getServiceResource, getServiceResourceSpec } from "../util"
+import { execInWorkload, getTargetResource, getServiceResourceSpec } from "../util"
 import { getKubernetesServiceStatus } from "./handlers"
 import { ExecInServiceParams } from "../../../types/plugin/service/execInService"
+import { DeployActionHandler } from "../../../plugin/action-types"
+import { KubernetesDeployAction } from "./config"
 
-export async function execInKubernetesService(params: ExecInServiceParams<KubernetesModule>) {
-  const { ctx, log, service, command, interactive } = params
-  const module = service.module
+export const execInKubernetesDeploy: DeployActionHandler<"exec", KubernetesDeployAction> = async (params) => {
+  const { ctx, log, action, command, interactive } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const status = await getKubernetesServiceStatus({
@@ -32,20 +33,20 @@ export async function execInKubernetesService(params: ExecInServiceParams<Kubern
   })
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
-  const serviceResourceSpec = getServiceResourceSpec(module, undefined)
-  const serviceResource = await getServiceResource({
+  const serviceResourceSpec = getServiceResourceSpec(action, undefined)
+  const serviceResource = await getTargetResource({
     ctx,
     log,
     provider,
-    module,
+    action,
     manifests: status.detail.remoteResources,
     resourceSpec: serviceResourceSpec,
   })
 
   // TODO: this check should probably live outside of the plugin
   if (!serviceResource || !includes(["ready", "outdated"], status.state)) {
-    throw new DeploymentError(`Service ${service.name} is not running`, {
-      name: service.name,
+    throw new DeploymentError(`Deploy ${action.name} is not running`, {
+      name: action.name,
       state: status.state,
     })
   }

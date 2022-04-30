@@ -6,36 +6,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GetTaskResultParams } from "../../types/plugin/task/getTaskResult"
-import { ContainerModule } from "../container/moduleConfig"
-import { HelmModule } from "./helm/moduleConfig"
-import { KubernetesModule } from "./kubernetes-type/moduleConfig"
+import { ContainerRunAction } from "../container/moduleConfig"
 import { KubernetesPluginContext, KubernetesProvider } from "./config"
 import { KubeApi } from "./api"
 import { getAppNamespace } from "./namespace"
-import { RunTaskResult } from "../../types/plugin/task/runTask"
 import { deserializeValues } from "../../util/util"
 import { PluginContext } from "../../plugin-context"
 import { LogEntry } from "../../logger/log-entry"
-import { gardenAnnotationKey, tailString } from "../../util/string"
-import { GardenModule } from "../../types/module"
+import { gardenAnnotationKey } from "../../util/string"
 import hasha from "hasha"
 import { upsertConfigMap } from "./util"
 import { trimRunOutput } from "./helm/common"
-import { MAX_RUN_RESULT_LOG_LENGTH } from "./constants"
 import chalk from "chalk"
-import { GardenTask } from "../../types/task"
+import { Action, RuntimeAction } from "../../actions/base"
+import { RunResult } from "../../plugin/base"
+import { RunActionHandler } from "../../plugin/action-types"
 
-export async function getTaskResult({
-  ctx,
-  log,
-  module,
-  task,
-}: GetTaskResultParams<ContainerModule | HelmModule | KubernetesModule>): Promise<RunTaskResult | null> {
+export const k8sGetRunResult: RunActionHandler<"getResult", RuntimeAction> = async (params) => {
+  const { ctx, log, action } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
   const ns = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
-  const resultKey = getTaskResultKey(ctx, module, task.name, task.version)
+  const resultKey = getRunResultKey(ctx, action)
 
   try {
     const res = await api.core.readNamespacedConfigMap(resultKey, ns)
@@ -54,28 +46,27 @@ export async function getTaskResult({
       result.version = result.version.versionString
     }
 
-    return <RunTaskResult>result
+    return { result, outputs: { log: result.log } }
   } catch (err) {
     if (err.statusCode === 404) {
-      return null
+      return { result: null, outputs: null }
     } else {
       throw err
     }
   }
 }
 
-export function getTaskResultKey(ctx: PluginContext, module: GardenModule, taskName: string, version: string) {
-  const key = `${ctx.projectName}--${module.name}--${taskName}--${version}`
+export function getRunResultKey(ctx: PluginContext, action: Action) {
+  const key = `${ctx.projectName}--${action.type}:${action.name}--${action.getVersionString()}`
   const hash = hasha(key, { algorithm: "sha1" })
-  return `task-result--${hash.slice(0, 32)}`
+  return `run-result--${hash.slice(0, 32)}`
 }
 
 interface StoreTaskResultParams {
   ctx: PluginContext
   log: LogEntry
-  module: GardenModule
-  task: GardenTask
-  result: RunTaskResult
+  action: ContainerRunAction
+  result: RunResult
 }
 
 /**
@@ -83,34 +74,24 @@ interface StoreTaskResultParams {
  *
  * TODO: Implement a CRD for this.
  */
-export async function storeTaskResult({
-  ctx,
-  log,
-  module,
-  task,
-  result,
-}: StoreTaskResultParams): Promise<RunTaskResult> {
+export async function storeRunResult({ ctx, log, action, result }: StoreTaskResultParams): Promise<RunResult> {
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
   const namespace = await getAppNamespace(ctx, log, provider)
 
   // FIXME: We should store the logs separately, because of the 1MB size limit on ConfigMaps.
-  const data: RunTaskResult = trimRunOutput(result)
-
-  if (data.outputs.log && typeof data.outputs.log === "string") {
-    data.outputs.log = tailString(data.outputs.log, MAX_RUN_RESULT_LOG_LENGTH, true)
-  }
+  const data = trimRunOutput(result)
 
   try {
     await upsertConfigMap({
       api,
       namespace,
-      key: getTaskResultKey(ctx, module, task.name, task.version),
+      key: getRunResultKey(ctx, action),
       labels: {
-        [gardenAnnotationKey("module")]: module.name,
-        [gardenAnnotationKey("task")]: task.name,
-        [gardenAnnotationKey("moduleVersion")]: module.version.versionString,
-        [gardenAnnotationKey("version")]: task.version,
+        [gardenAnnotationKey("module")]: action.getModuleName(),
+        [gardenAnnotationKey("actionName")]: action.name,
+        [gardenAnnotationKey("actionType")]: action.name,
+        [gardenAnnotationKey("version")]: action.getVersionString(),
       },
       data,
     })
@@ -127,14 +108,17 @@ export async function storeTaskResult({
 export async function clearTaskResult({
   ctx,
   log,
-  module,
-  task,
-}: GetTaskResultParams<ContainerModule | HelmModule | KubernetesModule>) {
+  action,
+}: {
+  ctx: PluginContext
+  log: LogEntry
+  action: RuntimeAction
+}) {
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
   const namespace = await getAppNamespace(ctx, log, provider)
 
-  const key = getTaskResultKey(ctx, module, task.name, task.version)
+  const key = getRunResultKey(ctx, action)
 
   try {
     await api.core.deleteNamespacedConfigMap(key, namespace)

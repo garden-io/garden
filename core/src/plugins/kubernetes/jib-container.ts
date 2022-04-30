@@ -30,35 +30,44 @@ import { containerHandlers } from "./container/handlers"
 import { getNamespaceStatus } from "./namespace"
 import { PodRunner } from "./run"
 import { getRunningDeploymentPod } from "./util"
+import { ActionTypeHandlerParams, BuildActionExtension } from "../../plugin/action-types"
+import { ContainerBuildAction } from "../container/config"
 
 export const jibContainerHandlers: Partial<ModuleActionHandlers> = {
   ...containerHandlers,
+}
 
-  // Note: Can't import the JibContainerModule type until we move the kubernetes plugin out of the core package
-  async build(params: BuildModuleParams<GardenModule>) {
-    const { ctx, module, base } = params
-    const k8sCtx = ctx as KubernetesPluginContext
+// Note: Can't import the JibContainerModule type until we move the kubernetes plugin out of the core package
+export const k8sJibContainerBuildExtension: BuildActionExtension<ContainerBuildAction> = {
+  name: "jib-container",
+  handlers: {
+    build: async (params) => {
+      const { ctx, action, base } = params
+      const k8sCtx = ctx as KubernetesPluginContext
 
-    const provider = <KubernetesProvider>ctx.provider
+      const provider = <KubernetesProvider>ctx.provider
 
-    if (provider.name === "local-kubernetes") {
-      const result = await base!(params)
+      if (provider.name === "local-kubernetes") {
+        const result = await base!(params)
 
-      if (module.spec.build.dockerBuild) {
-        // We may need to explicitly load the image into the cluster if it's built in the docker daemon directly
-        await loadToLocalK8s(params)
+        const spec: any = action.getSpec()
+
+        if (spec.dockerBuild) {
+          // We may need to explicitly load the image into the cluster if it's built in the docker daemon directly
+          await loadToLocalK8s(params)
+        }
+        return result
+      } else if (k8sCtx.provider.config.jib?.pushViaCluster) {
+        return buildAndPushViaRemote(params)
+      } else {
+        return base!(params)
       }
-      return result
-    } else if (k8sCtx.provider.config.jib?.pushViaCluster) {
-      return buildAndPushViaRemote(params)
-    } else {
-      return base!(params)
-    }
+    },
   },
 }
 
-async function buildAndPushViaRemote(params: BuildModuleParams<GardenModule>) {
-  const { ctx, log, module, base } = params
+async function buildAndPushViaRemote(params: ActionTypeHandlerParams["build"]["build"]) {
+  const { ctx, log, action, base } = params
 
   const provider = <KubernetesProvider>ctx.provider
   let buildMode = provider.config.buildMode

@@ -22,6 +22,8 @@ import { TaskConfig } from "./config/task"
 import { makeTestTaskName } from "./tasks/helpers"
 import { TaskType, makeBaseKey } from "./tasks/base"
 import { testFromModule, GardenTest, testFromConfig } from "./types/test"
+import { ResolvedAction } from "./actions/base"
+import { BuildAction } from "./actions/build"
 
 // Each of these types corresponds to a Task class (e.g. BuildTask, DeployTask, ...).
 export type DependencyGraphNodeType = "build" | "deploy" | "run" | "test"
@@ -76,6 +78,7 @@ export type DependencyGraph = { [key: string]: DependencyGraphNode }
  *
  * This should be initialized with resolved and validated GardenModules.
  */
+// TODO-G2: re-do for actions
 export class ConfigGraph {
   private dependencyGraph: DependencyGraph
   private modules: { [key: string]: GardenModule }
@@ -290,6 +293,10 @@ export class ConfigGraph {
   private isDisabled(dep: EntityConfigEntry<any, any>) {
     const moduleConfig = this.modules[dep.moduleKey]
     return moduleConfig.disabled || dep.config.disabled
+  }
+
+  getBuild<T extends BuildAction>(name: string): ResolvedAction<T> {
+    // TODO-G2
   }
 
   /**
@@ -508,6 +515,7 @@ export class ConfigGraph {
    * Given the provided lists of build and runtime (service/task) dependencies, return a list of all
    * modules required to satisfy those dependencies.
    */
+  // TODO-G2: likely remove?
   resolveDependencyModules(buildDependencies: BuildDependencyConfig[], runtimeDependencies: string[]): GardenModule[] {
     const moduleNames = buildDependencies.map((d) => d.name)
     const serviceNames = runtimeDependencies.filter(

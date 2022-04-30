@@ -240,7 +240,7 @@ describe("CreateModuleCommand", () => {
 
     it("should include suggestions from providers if applicable", async () => {
       await writeFile(join(tmp.path, "Dockerfile"), "")
-      await writeFile(join(tmp.path, "Chart.yaml"), "")
+      await writeFile(join(tmp.path, helmChartYamlFilename), "")
       await writeFile(join(tmp.path, "foo.tf"), "")
 
       const result = <any>await getModuleTypeSuggestions(garden.log, moduleTypes, tmp.path, "test")

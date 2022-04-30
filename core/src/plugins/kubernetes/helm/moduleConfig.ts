@@ -15,7 +15,6 @@ import {
   joiUserIdentifier,
 } from "../../../config/common"
 import { GardenModule } from "../../../types/module"
-import { containsSource } from "./common"
 import { ConfigurationError } from "../../../exceptions"
 import { dedent, deline } from "../../../util/string"
 import { GardenService } from "../../../types/service"
@@ -35,11 +34,13 @@ import {
   serviceResourceSchema,
   ServiceResourceSpec,
 } from "../config"
-import { posix } from "path"
+import { join, posix } from "path"
 import { runPodSpecIncludeFields } from "../run"
 import { omit } from "lodash"
 import { kubernetesModuleDevModeSchema, KubernetesModuleDevModeSpec } from "../dev-mode"
 import { helmChartNameSchema, helmChartRepoSchema, helmChartVersionSchema, helmCommonSchemaKeys } from "./config"
+import { pathExists } from "fs-extra"
+import { helmChartYamlFilename } from "./common"
 
 export const defaultHelmTimeout = 300
 
@@ -201,7 +202,8 @@ export async function configureHelmModule({
     ]
   }
 
-  const containsSources = await containsSource(moduleConfig)
+  const yamlPath = join(module.path, moduleConfig.spec.chartPath, helmChartYamlFilename)
+  const containsSources = await pathExists(yamlPath)
 
   if (base) {
     if (containsSources) {

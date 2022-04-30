@@ -21,7 +21,7 @@ import { ActionTypeHandlerSpec } from "../base/base"
 
 // TODO: remove in 0.13? Seems out of place now.
 
-interface RunBuildParams<T extends BuildAction> extends PluginBuildActionParamsBase<T> {
+export interface RunBuildParams<T extends BuildAction> extends PluginBuildActionParamsBase<T> {
   command?: string[]
   args: string[]
   interactive: boolean

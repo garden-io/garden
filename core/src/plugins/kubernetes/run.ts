@@ -11,7 +11,6 @@ import tmp from "tmp-promise"
 import { cloneDeep, omit, pick } from "lodash"
 import { V1PodSpec, V1Pod, V1Container } from "@kubernetes/client-node"
 import { RunResult } from "../../plugin/base"
-import { GardenModule } from "../../types/module"
 import { LogEntry } from "../../logger/log-entry"
 import {
   PluginError,
@@ -27,8 +26,12 @@ import { uniqByName, sleep } from "../../util/util"
 import { KubeApi } from "./api"
 import { getPodLogs, checkPodStatus } from "./status/pod"
 import { KubernetesResource, KubernetesPod, KubernetesServerResource } from "./types"
-import { RunModuleParams } from "../../types/plugin/module/runModule"
-import { ContainerEnvVars, ContainerResourcesSpec, ContainerVolumeSpec } from "../container/moduleConfig"
+import {
+  ContainerAction,
+  ContainerEnvVars,
+  ContainerResourcesSpec,
+  ContainerVolumeSpec,
+} from "../container/moduleConfig"
 import { prepareEnvVars, makePodName } from "./util"
 import { deline, randomString } from "../../util/string"
 import { ArtifactSpec } from "../../config/validation"
@@ -42,6 +45,7 @@ import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { copy } from "fs-extra"
 import { K8sLogFollower, PodLogEntryConverter, PodLogEntryConverterParams } from "./logs"
 import { Stream } from "ts-stream"
+import { BaseRunParams } from "../../plugin/handlers/base/base"
 
 // Default timeout for individual run/exec operations
 const defaultTimeout = 600
@@ -103,10 +107,11 @@ export const makeRunLogEntry: PodLogEntryConverter<RunLogEntry> = ({ timestamp, 
 
 export const runContainerExcludeFields: (keyof V1Container)[] = ["readinessProbe", "livenessProbe", "startupProbe"]
 
+// TODO: jfc this function signature stinks like all hell - JE
 export async function runAndCopy({
   ctx,
   log,
-  module,
+  action,
   args,
   command,
   interactive,
@@ -127,7 +132,10 @@ export async function runAndCopy({
   privileged,
   addCapabilities,
   dropCapabilities,
-}: RunModuleParams<GardenModule> & {
+}: BaseRunParams & {
+  ctx: PluginContext
+  log: LogEntry
+  action: ContainerAction
   image: string
   container?: V1Container
   podName?: string
@@ -151,16 +159,16 @@ export async function runAndCopy({
   const mainContainerName = "main"
 
   if (!description) {
-    description = `Container module '${module.name}'`
+    description = action.description()
   }
 
-  const errorMetadata: any = { moduleName: module.name, description, args, artifacts }
+  const errorMetadata: any = { actionName: action.name, description, args, artifacts }
 
   podSpec = await prepareRunPodSpec({
     podSpec,
     getArtifacts,
     log,
-    module,
+    action,
     args,
     command,
     api,
@@ -181,7 +189,7 @@ export async function runAndCopy({
   })
 
   if (!podName) {
-    podName = makePodName("run", module.name)
+    podName = makePodName("run", action.name)
   }
 
   const runParams = {
@@ -189,7 +197,7 @@ export async function runAndCopy({
     api,
     provider,
     log,
-    module,
+    action,
     args,
     command,
     interactive,
@@ -231,7 +239,7 @@ export async function prepareRunPodSpec({
   api,
   provider,
   log,
-  module,
+  action,
   args,
   command,
   runtimeContext,
@@ -251,7 +259,7 @@ export async function prepareRunPodSpec({
   podSpec?: V1PodSpec
   getArtifacts: boolean
   log: LogEntry
-  module: GardenModule
+  action: ContainerAction
   args: string[]
   command: string[] | undefined
   api: KubeApi
@@ -305,7 +313,7 @@ export async function prepareRunPodSpec({
   }
 
   if (volumes) {
-    configureVolumes(module, preparedPodSpec, volumes)
+    configureVolumes(action, preparedPodSpec, volumes)
   }
 
   if (getArtifacts) {
@@ -341,7 +349,7 @@ async function runWithoutArtifacts({
   api,
   provider,
   log,
-  module,
+  action,
   args,
   command,
   timeout,
@@ -350,7 +358,10 @@ async function runWithoutArtifacts({
   namespace,
   interactive,
   version,
-}: RunModuleParams<GardenModule> & {
+}: BaseRunParams & {
+  ctx: PluginContext
+  log: LogEntry
+  action: ContainerAction
   api: KubeApi
   provider: KubernetesProvider
   podSpec: V1PodSpec
@@ -378,6 +389,7 @@ async function runWithoutArtifacts({
 
   let result: RunResult
   const startedAt = new Date()
+  const moduleName = action.getModuleName()
 
   try {
     const res = await runner.runAndWait({
@@ -389,7 +401,7 @@ async function runWithoutArtifacts({
     })
     result = {
       ...res,
-      moduleName: module.name,
+      moduleName,
       version,
     }
   } catch (err) {
@@ -399,7 +411,7 @@ async function runWithoutArtifacts({
         err.type === "out-of-memory" ? makeOutOfMemoryErrorLog(err.detail.logs) : makeTimeOutErrorLog(err.detail.logs)
       result = {
         log: errorLog,
-        moduleName: module.name,
+        moduleName,
         version,
         success: false,
         startedAt,
@@ -410,7 +422,7 @@ async function runWithoutArtifacts({
       // Command exited with non-zero code
       result = {
         log: err.detail.logs || err.message,
-        moduleName: module.name,
+        moduleName,
         version,
         success: false,
         startedAt,
@@ -430,7 +442,7 @@ async function runWithArtifacts({
   api,
   provider,
   log,
-  module,
+  action,
   args,
   command,
   timeout,
@@ -445,7 +457,10 @@ async function runWithArtifacts({
   stderr,
   namespace,
   version,
-}: RunModuleParams<GardenModule> & {
+}: BaseRunParams & {
+  ctx: PluginContext
+  log: LogEntry
+  action: ContainerAction
   podSpec: V1PodSpec
   podName: string
   mainContainerName: string
@@ -555,6 +570,7 @@ async function runWithArtifacts({
 
     // Escape the command, so that we can safely pass it as a single string
     const cmd = [...command!, ...(args || [])].map((s) => JSON.stringify(s))
+    const moduleName = action.getModuleName()
 
     try {
       // See https://stackoverflow.com/a/20564208
@@ -581,7 +597,7 @@ ${cmd.join(" ")}
       result = {
         ...res,
         log: (await runner.getMainContainerLogs()).trim() || res.log,
-        moduleName: module.name,
+        moduleName,
         version,
       }
     } catch (err) {
@@ -594,7 +610,7 @@ ${cmd.join(" ")}
           err.type === "out-of-memory" ? makeOutOfMemoryErrorLog(containerLogs) : makeTimeOutErrorLog(containerLogs)
         result = {
           log: errorLog,
-          moduleName: module.name,
+          moduleName,
           version,
           success: false,
           startedAt,
@@ -605,7 +621,7 @@ ${cmd.join(" ")}
         // Command exited with non-zero code
         result = {
           log: (await runner.getMainContainerLogs()).trim() || err.message,
-          moduleName: module.name,
+          moduleName,
           version,
           success: false,
           startedAt,

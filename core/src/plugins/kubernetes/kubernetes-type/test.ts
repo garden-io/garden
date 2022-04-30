@@ -18,7 +18,7 @@ import { KubeApi } from "../api"
 import { getManifests } from "./common"
 import {
   getServiceResourceSpec,
-  getServiceResource,
+  getTargetResource,
   getResourceContainer,
   makePodName,
   getResourcePodSpec,
@@ -39,7 +39,7 @@ export async function testKubernetesModule(params: TestModuleParams<KubernetesMo
   // Get the container spec to use for running
   const manifests = await getManifests({ ctx, api, log, action, defaultNamespace: namespace })
   const resourceSpec = test.config.spec.resource || getServiceResourceSpec(module, undefined)
-  const target = await getServiceResource({
+  const target = await getTargetResource({
     ctx: k8sCtx,
     log,
     provider: k8sCtx.provider,

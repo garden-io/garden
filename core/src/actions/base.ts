@@ -6,7 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import chalk from "chalk"
 import titleize from "titleize"
+import { ConfigGraph } from "../config-graph"
 import {
   ActionReference,
   apiVersionSchema,
@@ -24,7 +26,7 @@ import { varfileDescription } from "../config/project"
 import { DOCS_BASE_URL } from "../constants"
 import { dedent, naturalList } from "../util/string"
 import { ModuleVersion } from "../vcs/vcs"
-import type { BuildActionConfig } from "./build"
+import type { BuildAction, BuildActionConfig } from "./build"
 import type { DeployActionConfig } from "./deploy"
 import type { RunActionConfig } from "./run"
 import type { TestActionConfig } from "./test"
@@ -240,46 +242,65 @@ export interface ActionConfigTypes {
   test: TestActionConfig
 }
 
-interface ActionWrapperParams<C extends BaseActionConfig, O extends {}> {
-  // TODO-G2: need to vary this based on build field
-  buildPath: string
-  buildMetadataPath: string
+interface ActionWrapperParams<C extends BaseActionConfig> {
+  baseBuildDirectory: string // <project>/.garden/build by default
   config: C
+  dependencies: ConfigGraph
   moduleName?: string
-  outputs: O
   version: ModuleVersion
 }
 
-export class Action<C extends BaseActionConfig = BaseActionConfig, O extends {} = any> {
+export interface ResolvedActionWrapperParams<C extends BaseActionConfig, O extends {}> extends ActionWrapperParams<C> {
+  outputs: O
+}
+
+export abstract class Action<C extends BaseActionConfig = BaseActionConfig, O extends {} = any> {
+  public readonly kind: C["kind"]
+  public readonly type: C["type"]
   public readonly name: string
   public readonly buildMetadataPath: string
-  public readonly version: ModuleVersion
+  public readonly dependencies: ConfigGraph
 
-  private config: C
-  private outputs: O
+  // Note: These need to be public because we need to reference the types (a current TS limitation)
+  _config: C
+  _outputs: O
 
-  private readonly buildPath: string
-  private readonly moduleName?: string // Temporary, during transition
+  protected readonly baseBuildDirectory: string
+  protected readonly moduleName?: string // TODO: remove in 0.14
+  protected readonly version: ModuleVersion
 
-  constructor(params: ActionWrapperParams<C, O>) {
+  constructor(private params: ActionWrapperParams<C>) {
+    this.kind = params.config.kind
+    this.type = params.config.type
     this.name = params.config.name
-    this.buildPath = params.buildPath
-    this.buildMetadataPath = params.buildMetadataPath
+
+    this.baseBuildDirectory = params.baseBuildDirectory
+    this.dependencies = params.dependencies
     this.moduleName = params.moduleName
-    this.config = params.config
+    this._config = params.config
     this.version = params.version
+  }
+
+  abstract getBuildPath(): string
+
+  /**
+   * String description of the action. Useful for logging and error messages.
+   */
+  description(): string {
+    let d = `${this.type} ${this.kind} ${chalk.bold.white(this.name)}`
+
+    if (this.moduleName) {
+      d += `(from module ${chalk.bold.white(this.name)})`
+    }
+
+    return d
   }
 
   getBasePath(): string {
     // TODO-G2
     // TODO: handle repository.url
     // TODO: handle build field
-    return this.config.basePath
-  }
-
-  getBuildPath(): string {
-    // TODO-G2: review
-    return this.buildPath
+    return this._config.basePath
   }
 
   getModuleName(): string {
@@ -287,25 +308,98 @@ export class Action<C extends BaseActionConfig = BaseActionConfig, O extends {} 
   }
 
   getDependencyReferences(): ActionReference[] {
-    return this.config.dependencies?.map(parseActionReference) || []
+    return this._config.dependencies?.map(parseActionReference) || []
+  }
+
+  // Note: Making this name verbose so that people don't accidentally use this instead of getVersionString()
+  getFullVersion() {
+    return this.version
   }
 
   getVersionString(): string {
     return this.version.versionString
   }
 
-  getConfig<K extends keyof C>(key: K): C[K] {
-    return this.config[key]
+  getConfig(): C
+  getConfig<K extends keyof C>(key: K): C[K]
+  getConfig(key?: keyof C["spec"]) {
+    return key ? this._config[key] : this._config
   }
 
+  // TODO: allow nested key lookups here
   getSpec(): C["spec"]
   getSpec<K extends keyof C["spec"]>(key: K): C["spec"][K]
   getSpec(key?: keyof C["spec"]) {
-    return key ? this.config.spec[key] : this.config.spec
+    return key ? this._config.spec[key] : this._config.spec
   }
 
-  getOutput<K extends keyof O>(key: K) {
-    return this.outputs[key]
+  isCompatible(type: string) {
+    // TODO-G2
+    return false
+  }
+
+  /**
+   * Returns a fully resolved version of this action, including outputs.
+   *
+   * @param outputs The outputs returned from the resolution of the action
+   */
+  resolve(outputs: O): ResolvedAction<this> {
+    // TODO-G2: validate outputs here
+    const constructor = Object.getPrototypeOf(this).constructor
+    return constructor({ ...this.params, outputs })
+  }
+}
+
+export abstract class ResolvedAction<A extends Action> extends Action<A["_config"], A["_outputs"]> {
+  constructor(params: ResolvedActionWrapperParams<A["_config"], A["_outputs"]>) {
+    super(params)
+    this._outputs = params.outputs
+  }
+
+  getOutput<K extends keyof A["_outputs"]>(key: K) {
+    return this._outputs[key]
+  }
+}
+
+export abstract class RuntimeAction<
+  C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
+  O extends {} = any
+> extends Action<C, O> {
+  /**
+   * Return the Build action specified on the `build` field if defined, otherwise null
+   */
+  getBuildAction<T extends BuildAction>() {
+    const buildName = this.getConfig("build")
+    if (buildName) {
+      const buildAction = this.dependencies.getBuild<T>(buildName)
+      return buildAction
+    } else {
+      return null
+    }
+  }
+
+  /**
+   * Get the build path for the action. For runtime actions, if a `build` is set on the action, we return the build
+   * path of the referenced action. Otherwise the base path of the action is used (since no build is involved).
+   */
+  getBuildPath() {
+    const buildAction = this.getBuildAction()
+    return buildAction?.getBuildPath() || this.getBasePath()
+  }
+}
+
+// TODO: see if we can avoid the duplication here
+export abstract class ResolvedRuntimeAction<A extends RuntimeAction> extends RuntimeAction<
+  A["_config"],
+  A["_outputs"]
+> {
+  constructor(params: ResolvedActionWrapperParams<A["_config"], A["_outputs"]>) {
+    super(params)
+    this._outputs = params.outputs
+  }
+
+  getOutput<K extends keyof A["_outputs"]>(key: K) {
+    return this._outputs[key]
   }
 }
 
