@@ -6,24 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GetServiceLogsParams } from "../../../types/plugin/service/getServiceLogs"
 import { streamK8sLogs } from "../logs"
-import { HelmModule } from "./moduleConfig"
 import { KubernetesPluginContext } from "../config"
 import { getReleaseName } from "./common"
 import { getActionNamespace } from "../namespace"
 import { getRenderedResources } from "./status"
 import { sleep } from "../../../util/util"
+import { DeployActionHandler } from "../../../plugin/action-types"
+import { HelmDeployAction } from "./config"
 
-export async function getServiceLogs(params: GetServiceLogsParams<HelmModule>) {
-  const { ctx, module, log, service } = params
+export const getHelmDeployLogs: DeployActionHandler<"getLogs", HelmDeployAction> = async (params) => {
+  const { ctx, action, log } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const releaseName = getReleaseName(module)
+  const releaseName = getReleaseName(action)
   const namespace = await getActionNamespace({
     ctx: k8sCtx,
     log,
-    module: service.module,
+    action,
     provider,
   })
 
@@ -38,7 +38,7 @@ export async function getServiceLogs(params: GetServiceLogsParams<HelmModule>) {
     //    terminated when the command exits.
     while (true) {
       try {
-        resources = await getRenderedResources({ ctx: k8sCtx, module, releaseName, log })
+        resources = await getRenderedResources({ ctx: k8sCtx, action, releaseName, log })
         break
       } catch (err) {
         log.debug(`Failed getting deployed resources. Retrying...`)
@@ -47,7 +47,13 @@ export async function getServiceLogs(params: GetServiceLogsParams<HelmModule>) {
       await sleep(2000)
     }
   } else {
-    resources = await getRenderedResources({ ctx: k8sCtx, module, releaseName, log })
+    resources = await getRenderedResources({ ctx: k8sCtx, action, releaseName, log })
   }
-  return streamK8sLogs({ ...params, provider, defaultNamespace: namespace, resources: resources! })
+  return streamK8sLogs({
+    ...params,
+    provider,
+    defaultNamespace: namespace,
+    resources: resources!,
+    actionName: action.name,
+  })
 }

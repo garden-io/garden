@@ -12,7 +12,7 @@ import Bluebird from "bluebird"
 import { flatten, set } from "lodash"
 import { safeLoadAll } from "js-yaml"
 
-import { KubernetesModule } from "./moduleConfig"
+import { KubernetesModule } from "./module-config"
 import { KubernetesResource } from "../types"
 import { KubeApi } from "../api"
 import { gardenAnnotationKey } from "../../../util/string"
@@ -20,7 +20,7 @@ import { LogEntry } from "../../../logger/log-entry"
 import { PluginContext } from "../../../plugin-context"
 import { ConfigurationError, PluginError } from "../../../exceptions"
 import { KubernetesTargetResourceSpec, ServiceResourceSpec } from "../config"
-import { HelmModule } from "../helm/moduleConfig"
+import { HelmModule } from "../helm/module-config"
 import { KubernetesDeployAction } from "./config"
 
 /**

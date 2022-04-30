@@ -44,6 +44,7 @@ import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
 import { ArtifactSpec } from "../../config/validation"
 import { V1Toleration } from "@kubernetes/client-node"
 import { runPodSpecIncludeFields } from "./run"
+import { DevModeDefaults, devModeDefaultsSchema } from "./dev-mode"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { devModeGuideLink } from "./dev-mode"
 import { localModeGuideLink } from "./local-mode"
@@ -216,7 +217,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
   deploymentRegistry?: ContainerRegistryConfig
   deploymentStrategy?: DeploymentStrategy
   devMode?: {
-    defaults?: KubernetesDevModeDefaults
+    defaults?: DevModeDefaults
   }
   forceSsl: boolean
   imagePullSecrets: ProviderSecretRef[]
@@ -501,7 +502,7 @@ export const kubernetesConfigBase = () =>
     devMode: joi
       .object()
       .keys({
-        defaults: kubernetesDevModeDefaultsSchema(),
+        defaults: devModeDefaultsSchema(),
       })
       .description("Configuration options for dev mode."),
     forceSsl: joi
@@ -675,19 +676,15 @@ export const configSchema = () =>
     })
     .unknown(false)
 
-export interface ServiceResourceSpec {
-  kind?: SyncableKind
-  name?: string
-  containerName?: string
-  podSelector?: { [key: string]: string }
-  containerModule?: string
-}
-
 export interface KubernetesTargetResourceSpec {
   kind?: SyncableKind
   name?: string
   podSelector?: { [key: string]: string }
   containerName?: string
+}
+
+export interface ServiceResourceSpec extends KubernetesTargetResourceSpec {
+  containerModule?: string
 }
 
 export const targetResourceSpecSchema = () =>
@@ -706,8 +703,9 @@ export const targetResourceSpecSchema = () =>
       podSelector: podSelectorSchema(),
       containerName: targetContainerNameSchema(),
     })
-    .with("name", "kind")
+    .with("name", ["kind"])
     .without("podSelector", ["kind", "name"])
+    .xor("kind", "podSelector")
 
 export interface KubernetesCommonRunSpec {
   args: string[]
@@ -715,6 +713,7 @@ export interface KubernetesCommonRunSpec {
   cacheResult: boolean
   command?: string[]
   env: ContainerEnvVars
+  namespace?: string
 }
 
 export type KubernetesTaskSpec = BaseTaskSpec &
@@ -822,6 +821,7 @@ export const kubernetesCommonRunSchemaKeys = () => ({
     .example(["rake", "db:migrate"]),
   env: containerEnvVarsSchema(),
   artifacts: joiSparseArray(containerArtifactSchema()).description(artifactsDescription),
+  namespace: namespaceNameSchema(),
 })
 
 export const kubernetesTaskSchema = () =>

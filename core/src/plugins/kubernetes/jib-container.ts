@@ -11,8 +11,6 @@ import { resolve } from "path"
 import tar from "tar"
 import { defaultBuildTimeout } from "../../config/module"
 import { ConfigurationError, PluginError } from "../../exceptions"
-import { GardenModule } from "../../types/module"
-import { BuildModuleParams } from "../../types/plugin/module/build"
 import { ModuleActionHandlers } from "../../plugin/plugin"
 import { makeTempDir } from "../../util/fs"
 import { KubeApi } from "./api"
@@ -30,7 +28,7 @@ import { containerHandlers } from "./container/handlers"
 import { getNamespaceStatus } from "./namespace"
 import { PodRunner } from "./run"
 import { getRunningDeploymentPod } from "./util"
-import { ActionTypeHandlerParams, BuildActionExtension } from "../../plugin/action-types"
+import { BuildActionExtension, BuildActionParams } from "../../plugin/action-types"
 import { ContainerBuildAction } from "../container/config"
 
 export const jibContainerHandlers: Partial<ModuleActionHandlers> = {
@@ -38,7 +36,7 @@ export const jibContainerHandlers: Partial<ModuleActionHandlers> = {
 }
 
 // Note: Can't import the JibContainerModule type until we move the kubernetes plugin out of the core package
-export const k8sJibContainerBuildExtension: BuildActionExtension<ContainerBuildAction> = {
+export const k8sJibContainerBuildExtension = (): BuildActionExtension<ContainerBuildAction> => ({
   name: "jib-container",
   handlers: {
     build: async (params) => {
@@ -64,17 +62,18 @@ export const k8sJibContainerBuildExtension: BuildActionExtension<ContainerBuildA
       }
     },
   },
-}
+})
 
-async function buildAndPushViaRemote(params: ActionTypeHandlerParams["build"]["build"]) {
+async function buildAndPushViaRemote(params: BuildActionParams<"build", ContainerBuildAction>) {
   const { ctx, log, action, base } = params
 
   const provider = <KubernetesProvider>ctx.provider
   let buildMode = provider.config.buildMode
 
   // Build the tarball with the base handler
-  module.spec.build.tarOnly = true
-  module.spec.build.tarFormat = "oci"
+  const spec: any = action.getSpec()
+  spec.tarOnly = true
+  spec.tarFormat = "oci"
 
   const baseResult = await base!(params)
   const { tarPath } = baseResult.details
@@ -92,7 +91,7 @@ async function buildAndPushViaRemote(params: ActionTypeHandlerParams["build"]["b
 
   try {
     // Extract the tarball
-    const extractPath = resolve(tempDir.path, module.name)
+    const extractPath = resolve(tempDir.path, action.name)
     await mkdirp(extractPath)
     log.debug(`Extracting built image tarball from ${tarPath} to ${extractPath}`)
 
@@ -139,13 +138,14 @@ async function buildAndPushViaRemote(params: ActionTypeHandlerParams["build"]["b
       sourcePath: extractPath,
     })
 
-    const pushTimeout = module.build.timeout || defaultBuildTimeout
+    const pushTimeout = action.getConfig("timeout") || defaultBuildTimeout
 
     const syncCommand = ["skopeo", `--command-timeout=${pushTimeout}s`, "copy", "--authfile", "/.docker/config.json"]
 
-    syncCommand.push("oci:" + dataPath, "docker://" + module.outputs["deployment-image-id"])
+    const deploymentImageId = baseResult.outputs.deploymentImageId
+    syncCommand.push("oci:" + dataPath, "docker://" + deploymentImageId)
 
-    log.setState(`Pushing image ${module.outputs["deployment-image-id"]} to registry`)
+    log.setState(`Pushing image ${deploymentImageId} to registry`)
 
     const runner = new PodRunner({
       api,
@@ -168,7 +168,7 @@ async function buildAndPushViaRemote(params: ActionTypeHandlerParams["build"]["b
     })
 
     log.debug(skopeoLog)
-    log.setState(`Image ${module.outputs["deployment-image-id"]} built and pushed to registry`)
+    log.setState(`Image ${deploymentImageId} built and pushed to registry`)
 
     return baseResult
   } finally {

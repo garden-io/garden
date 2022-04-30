@@ -18,80 +18,56 @@ import {
   prepareManifests,
   prepareTemplates,
 } from "./common"
-import { HelmModule } from "./moduleConfig"
-import {
-  gardenCloudAECPauseAnnotation,
-  getPausedResources,
-  getReleaseStatus,
-  getRenderedResources,
-  HelmServiceStatus,
-} from "./status"
-import { SyncableResource } from "../types"
+import { gardenCloudAECPauseAnnotation, getPausedResources, getReleaseStatus, getRenderedResources } from "./status"
 import { apply, deleteResources } from "../kubectl"
-import { KubernetesPluginContext, ServiceResourceSpec } from "../config"
-import { DeployServiceParams } from "../../../types/plugin/service/deployService"
-import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
+import { KubernetesPluginContext } from "../config"
 import { getForwardablePorts, killPortForwards } from "../port-forward"
-import { getTargetResource, getServiceResourceSpec } from "../util"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
-import { configureDevMode, startDevModeSync } from "../dev-mode"
+import { configureDevMode, startDevModeSyncs } from "../dev-mode"
 import { KubeApi } from "../api"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
+import { DeployActionHandler } from "../../../plugin/action-types"
+import { HelmDeployAction } from "./config"
+import { isEmpty } from "lodash"
+import { SyncableResource } from "../types"
+import { getTargetResource } from "../util"
 
-export async function deployHelmService({
-  ctx,
-  module,
-  service,
-  log,
-  force,
-  devMode,
-  localMode,
-}: DeployServiceParams<HelmModule>): Promise<HelmServiceStatus> {
-  let serviceResourceSpec: ServiceResourceSpec | null = null
-  let serviceResource: SyncableResource | null = null
-
+export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async (params) => {
+  const { ctx, action, log, force, devMode, localMode } = params
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
+  const spec = action.getSpec()
+
   const api = await KubeApi.factory(log, ctx, provider)
 
   const namespaceStatus = await getActionNamespaceStatus({
     ctx: k8sCtx,
     log,
-    module,
+    action,
     provider: k8sCtx.provider,
   })
-  const namespace = namespaceStatus.namespaceName
 
+  const namespace = namespaceStatus.namespaceName
   const preparedTemplates = await prepareTemplates({
     ctx: k8sCtx,
-    module,
+    action,
     devMode,
     localMode,
     log,
-    version: service.version,
   })
-
-  const chartPath = await getChartPath(module)
-  const releaseName = getReleaseName(module)
-  const releaseStatus = await getReleaseStatus({
-    ctx: k8sCtx,
-    module,
-    service,
-    releaseName,
-    log,
-    devMode,
-    localMode,
-  })
+  const chartPath = await getChartPath(action)
+  const releaseName = getReleaseName(action)
+  const releaseStatus = await getReleaseStatus({ ctx: k8sCtx, action, releaseName, log, devMode, localMode })
 
   const commonArgs = [
     "--namespace",
     namespace,
     "--timeout",
-    module.spec.timeout.toString(10) + "s",
-    ...(await getValueArgs(module, devMode, localMode)),
+    spec.timeout.toString(10) + "s",
+    ...(await getValueArgs(action, devMode, localMode)),
   ]
 
-  if (module.spec.atomicInstall) {
+  if (spec.atomicInstall) {
     // Make sure chart gets purged if it fails to install
     commonArgs.push("--atomic")
   }
@@ -113,7 +89,7 @@ export async function deployHelmService({
     // dangling annotations created by Garden Cloud.
     if (ctx.cloudApi) {
       try {
-        const pausedResources = await getPausedResources({ ctx: k8sCtx, module, namespace, releaseName, log })
+        const pausedResources = await getPausedResources({ ctx: k8sCtx, action, namespace, releaseName, log })
         await Bluebird.all(
           pausedResources.map((resource) => {
             const { annotations } = resource.metadata
@@ -125,58 +101,63 @@ export async function deployHelmService({
           })
         )
       } catch (error) {
-        const errorMsg = `Failed to remove Garden Cloud AEC annotations for service: ${service.name}.`
+        const errorMsg = `Failed to remove Garden Cloud AEC annotations for service: ${action.name}.`
         log.warn(errorMsg)
         log.debug(error)
       }
     }
   }
 
-  const preparedManifests = await prepareManifests({
+  let preparedManifests = await prepareManifests({
     ctx: k8sCtx,
     log,
-    module,
+    action,
     devMode,
     localMode,
-    version: service.version,
     namespace: preparedTemplates.namespace,
     releaseName: preparedTemplates.releaseName,
     chartPath: preparedTemplates.chartPath,
   })
   const manifests = await filterManifests(preparedManifests)
 
-  if ((devMode && module.spec.devMode) || (localMode && module.spec.localMode)) {
-    serviceResourceSpec = getServiceResourceSpec(module, getBaseModule(module))
-    serviceResource = await getServiceResource({
+  const localModeTargetSpec = spec.localMode.target || spec.defaultTarget
+  let localModeTarget: SyncableResource | undefined = undefined
+
+  if (localMode && spec.localMode) {
+    localModeTarget = await getTargetResource({
       ctx,
       log,
       provider,
-      module,
+      action,
       manifests,
-      resourceSpec: serviceResourceSpec,
+      resourceSpec: localModeTargetSpec,
     })
   }
 
   // Because we need to modify the Deployment, and because there is currently no reliable way to do that before
   // installing/upgrading via Helm, we need to separately update the target here for dev-mode/local-mode.
   // Local mode always takes precedence over dev mode.
-  if (localMode && service.spec.localMode && serviceResourceSpec && serviceResource) {
+  if (localMode && spec.localMode && !isEmpty(spec.localMode) && localModeTarget) {
     await configureLocalMode({
       ctx,
-      spec: service.spec.localMode,
-      targetResource: serviceResource,
-      gardenService: service,
+      spec: spec.localMode,
+      targetResource: localModeTarget,
+      action,
       log,
-      containerName: service.spec.localMode.containerName,
+      containerName: spec.localMode.containerName,
     })
-    await apply({ log, ctx, api, provider, manifests: [serviceResource], namespace })
-  } else if (devMode && service.spec.devMode && serviceResourceSpec && serviceResource) {
-    configureDevMode({
-      target: serviceResource,
-      spec: service.spec.devMode,
-      containerName: service.spec.devMode.containerName,
+    await apply({ log, ctx, api, provider, manifests: [localModeTarget], namespace })
+  } else if (devMode && spec.devMode && !isEmpty(spec.devMode)) {
+    const configured = await configureDevMode({
+      ctx,
+      log,
+      provider,
+      action,
+      defaultTarget: spec.defaultTarget,
+      manifests,
+      spec: spec.devMode,
     })
-    await apply({ log, ctx, api, provider, manifests: [serviceResource], namespace })
+    await apply({ log, ctx, api, provider, manifests: configured.updated, namespace })
   }
 
   // FIXME: we should get these objects from the cluster, and not from the local `helm template` command, because
@@ -185,66 +166,67 @@ export async function deployHelmService({
     namespace,
     ctx,
     provider,
-    actionName: service.name,
+    actionName: action.name,
     resources: manifests,
     log,
-    timeoutSec: module.spec.timeout,
+    timeoutSec: spec.timeout,
   })
 
   // Local mode has its own port-forwarding configuration
-  const forwardablePorts = localMode && service.spec.localMode ? [] : getForwardablePorts(manifests, service)
+  const forwardablePorts = localMode && spec.localMode ? [] : getForwardablePorts(manifests, action)
 
   // Make sure port forwards work after redeployment
-  killPortForwards(service, forwardablePorts || [], log)
+  killPortForwards(action, forwardablePorts || [], log)
 
   // Local mode always takes precedence over dev mode.
-  if (localMode && service.spec.localMode && serviceResource && serviceResourceSpec) {
+  if (localMode && spec.localMode && localModeTarget) {
     await startServiceInLocalMode({
       ctx,
-      spec: service.spec.localMode,
-      targetResource: serviceResource,
-      gardenService: service,
+      spec: spec.localMode,
+      targetResource: localModeTarget,
+      action,
       namespace,
       log,
-      containerName: service.spec.localMode.containerName,
+      containerName: spec.localMode.containerName,
     })
-  } else if (devMode && service.spec.devMode && serviceResource && serviceResourceSpec) {
-    await startDevModeSync({
-      ctx,
+  } else if (devMode && spec.devMode?.syncs?.length) {
+    await startDevModeSyncs({
+      ctx: k8sCtx,
       log,
-      basePath: service.sourceModule.path,
-      namespace: serviceResource.metadata.namespace || namespace,
-      target: serviceResource,
-      spec: service.spec.devMode,
-      containerName: service.spec.devMode.containerName,
-      deployName: service.name,
+      action,
+      actionDefaults: spec.devMode.defaults || {},
+      defaultTarget: spec.defaultTarget,
+      basePath: action.getBasePath(), // TODO-G2: double check if this holds up
+      defaultNamespace: namespace,
+      manifests: preparedManifests,
+      syncs: spec.devMode.syncs,
     })
   }
 
   return {
     forwardablePorts,
     state: "ready",
-    version: service.version,
+    version: action.getVersionString(),
     detail: { remoteResources: statuses.map((s) => s.resource) },
     namespaceStatuses: [namespaceStatus],
   }
 }
 
-export async function deleteService(params: DeleteServiceParams): Promise<HelmServiceStatus> {
-  const { ctx, log, module } = params
+export const deleteHelmDeploy: DeployActionHandler<"delete", HelmDeployAction> = async (params) => {
+  const { ctx, log, action } = params
 
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const releaseName = getReleaseName(module)
+  const releaseName = getReleaseName(action)
 
   const namespace = await getActionNamespace({
     ctx: k8sCtx,
     log,
-    module,
+    action,
     provider: k8sCtx.provider,
   })
 
-  const resources = await getRenderedResources({ ctx: k8sCtx, module, releaseName, log })
+  const resources = await getRenderedResources({ ctx: k8sCtx, action, releaseName, log })
 
   await helm({ ctx: k8sCtx, log, namespace, args: ["uninstall", releaseName] })
 

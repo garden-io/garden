@@ -6,39 +6,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ModuleAndRuntimeActionHandlers } from "../../../plugin/plugin"
-import { configureHelmModule, HelmModule } from "./moduleConfig"
-import { getServiceStatus } from "./status"
-import { deleteService, deployHelmService } from "./deployment"
-import { getTestResult } from "../test-results"
-import { runHelmModule, runHelmTask } from "./run"
-import { getServiceLogs } from "./logs"
-import { testHelmModule } from "./test"
-import { getPortForwardHandler } from "../port-forward"
-import { getTaskResult } from "../run-results"
-import { GetPortForwardParams } from "../../../types/plugin/service/getPortForward"
-import { KubernetesPluginContext } from "../config"
-import { getActionNamespace } from "../namespace"
+import { ModuleActionHandlers } from "../../../plugin/plugin"
+import { HelmModule, configureHelmModule, HelmService } from "./module-config"
+import { ServiceResourceSpec } from "../config"
 import { join } from "path"
 import { pathExists } from "fs-extra"
 import { SuggestModulesParams, SuggestModulesResult } from "../../../types/plugin/module/suggestModules"
-import { getBaseModule, getReleaseName, helmChartYamlFilename } from "./common"
-import { execInHelmService } from "./exec"
 import chalk = require("chalk")
+import { getBaseModule, helmChartYamlFilename } from "./common"
 import { ExecBuildConfig } from "../../exec/config"
 import { KubernetesActionConfig } from "../kubernetes-type/config"
 import { HelmActionConfig, HelmDeployConfig } from "./config"
-import { KubernetesDeployDevModeSyncSpec } from "../dev-mode"
+import { KubernetesDeployDevModeSpec } from "../dev-mode"
 import { getServiceResourceSpec } from "../util"
 import { jsonMerge } from "../../../util/util"
 import { cloneDeep } from "lodash"
 import { DeepPrimitiveMap } from "../../../config/common"
 import { convertServiceResource } from "../kubernetes-type/common"
+import { ConvertModuleParams } from "../../../plugin/handlers/module/convert"
+import { KubernetesModule, KubernetesService } from "../kubernetes-type/module-config"
+import { joinWithPosix } from "../../../util/fs"
 
-export const helmModuleHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModule>> = {
+export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
   configure: configureHelmModule,
 
-  convert: async (params) => {
+  convert: async (params: ConvertModuleParams<HelmModule>) => {
     const { module, services, dummyBuild, convertBuildDependency, prepareRuntimeDependencies } = params
     const actions: (ExecBuildConfig | KubernetesActionConfig | HelmActionConfig)[] = []
 
@@ -46,7 +38,6 @@ export const helmModuleHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModu
       actions.push(dummyBuild)
     }
 
-    const syncs: KubernetesDeployDevModeSyncSpec[] = []
     const service = services[0] // There's always exactly one service on helm modules
 
     // The helm Deploy type does not support the `base` field. We handle the field here during conversion,
@@ -55,17 +46,6 @@ export const helmModuleHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModu
     //       sets a `build.dependencies[].copy` directive.
     const baseModule = getBaseModule(module)
     const serviceResource = getServiceResourceSpec(module, baseModule)
-
-    if (module.spec.devMode) {
-      const target = convertServiceResource(module, serviceResource)
-
-      if (target) {
-        syncs.push({
-          sourcePath: service.sourceModule.path,
-          target,
-        })
-      }
-    }
 
     const deployAction: HelmDeployConfig = {
       kind: "Deploy",
@@ -93,9 +73,7 @@ export const helmModuleHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModu
           version: module.spec.version,
         },
 
-        devMode: {
-          syncs,
-        },
+        devMode: convertKubernetesDevModeSpec(module, service, serviceResource),
       },
     }
 
@@ -180,31 +158,6 @@ export const helmModuleHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModu
       },
     }
   },
-  execInService: execInHelmService,
-  deleteService,
-  deployService: deployHelmService,
-
-  // Use the same getPortForward handler as container and kubernetes-module, except set the namespace
-  getPortForward: async (params: GetPortForwardParams) => {
-    const { ctx, log, module } = params
-    const k8sCtx = <KubernetesPluginContext>ctx
-    const namespace = await getActionNamespace({
-      ctx: k8sCtx,
-      log,
-      module,
-      provider: k8sCtx.provider,
-      skipCreate: true,
-    })
-    return getPortForwardHandler({ ...params, namespace })
-  },
-
-  getServiceLogs,
-  getServiceStatus,
-  getTaskResult,
-  getTestResult,
-  // TODO: add publishModule handler
-  runModule: runHelmModule,
-  runTask: runHelmTask,
 
   suggestModules: async ({ name, path }: SuggestModulesParams): Promise<SuggestModulesResult> => {
     const chartPath = join(path, helmChartYamlFilename)
@@ -225,6 +178,42 @@ export const helmModuleHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModu
       return { suggestions: [] }
     }
   },
+}
 
-  testModule: testHelmModule,
+export function convertKubernetesDevModeSpec(
+  module: HelmModule | KubernetesModule,
+  service: HelmService | KubernetesService,
+  serviceResource: ServiceResourceSpec | undefined
+) {
+  const devMode: KubernetesDeployDevModeSpec = {
+    syncs: [],
+  }
+
+  // Convert to the new dev mode spec
+  if (module.spec.devMode) {
+    const target = convertServiceResource(module, serviceResource)
+
+    if (target) {
+      for (const sync of module.spec.devMode.sync) {
+        devMode.syncs!.push({
+          ...sync,
+          sourcePath: joinWithPosix(service.sourceModule.path, sync.source),
+          containerPath: sync.target,
+          target,
+        })
+      }
+
+      if (module.spec.devMode.command || module.spec.devMode.args) {
+        devMode.overrides = [
+          {
+            target,
+            command: module.spec.devMode.command,
+            args: module.spec.devMode.args,
+          },
+        ]
+      }
+    }
+  }
+
+  return devMode
 }

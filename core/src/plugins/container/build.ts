@@ -93,13 +93,13 @@ export function getContainerBuildActionOutputs(action: ContainerBuildAction): Co
   const deploymentImageId = containerHelpers.getBuildDeploymentImageId(
     action.name,
     spec.localId,
-    action.version,
+    action.getFullVersion(),
     undefined
   )
 
   return {
     localImageName: containerHelpers.getLocalImageName(action.name, spec.localId),
-    localImageId: containerHelpers.getLocalImageId(action.name, spec.localId, action.version),
+    localImageId: containerHelpers.getLocalImageId(action.name, spec.localId, action.getFullVersion()),
     deploymentImageName,
     deploymentImageId,
   }

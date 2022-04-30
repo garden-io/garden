@@ -35,7 +35,7 @@ import { k8sContainerRun, k8sRunContainerBuild, k8sRunContainerDeploy } from "./
 import { k8sGetContainerDeployStatus } from "./status"
 import { k8sContainerTest } from "./test"
 
-export const k8sContainerBuildExtension: BuildActionExtension<ContainerBuildAction> = {
+export const k8sContainerBuildExtension = (): BuildActionExtension<ContainerBuildAction> => ({
   name: "container",
   handlers: {
     build: async (params) => {
@@ -58,35 +58,37 @@ export const k8sContainerBuildExtension: BuildActionExtension<ContainerBuildActi
     publish: k8sPublishContainerBuild,
     run: k8sRunContainerBuild,
   },
-}
+})
 
-export const k8sContainerDeployExtension: DeployActionExtension<ContainerDeployAction> = {
+export const k8sContainerDeployExtension = (): DeployActionExtension<ContainerDeployAction> => ({
   name: "container",
   handlers: {
     deploy: k8sContainerDeploy,
     exec: execInContainer,
     getLogs: k8sGetContainerDeployLogs,
-    getPortForward: getPortForwardHandler,
+    getPortForward: async (params) => {
+      return getPortForwardHandler({ ...params, namespace: undefined })
+    },
     getStatus: k8sGetContainerDeployStatus,
     run: k8sRunContainerDeploy,
   },
-}
+})
 
-export const k8sContainerRunExtension: RunActionExtension<ContainerRunAction> = {
+export const k8sContainerRunExtension = (): RunActionExtension<ContainerRunAction> => ({
   name: "container",
   handlers: {
     run: k8sContainerRun,
     getResult: k8sGetRunResult,
   },
-}
+})
 
-export const k8sContainerTestExtension: TestActionExtension<ContainerTestAction> = {
+export const k8sContainerTestExtension = (): TestActionExtension<ContainerTestAction> => ({
   name: "container",
   handlers: {
     run: k8sContainerTest,
     getResult: k8sGetContainerTestResult,
   },
-}
+})
 
 const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } = {
   "local-docker": getLocalBuildStatus,

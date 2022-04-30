@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { HelmModule } from "./moduleConfig"
+import { HelmModule } from "./module-config"
 import { PodRunner, runAndCopy } from "../run"
 import { getBaseModule, getChartResources } from "./common"
 import {
@@ -28,17 +28,20 @@ import { KubeApi } from "../api"
 import { getActionNamespaceStatus } from "../namespace"
 import { DEFAULT_TASK_TIMEOUT } from "../../../constants"
 import { KubernetesPod } from "../types"
+import { DeployActionHandler } from "../../../plugin/action-types"
+import { HelmDeployAction } from "./config"
 
-export async function runHelmModule({
-  ctx,
-  module,
-  args,
-  command,
-  interactive,
-  runtimeContext,
-  timeout,
-  log,
-}: RunModuleParams<HelmModule>): Promise<RunResult> {
+export const runHelmDeploy: DeployActionHandler<"run", HelmDeployAction> = async (params) => {
+  const {
+    ctx,
+    action,
+    args,
+    command,
+    interactive,
+    runtimeContext,
+    timeout,
+    log,
+  } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const namespaceStatus = await getActionNamespaceStatus({
@@ -117,75 +120,4 @@ export async function runHelmModule({
     version,
     namespaceStatus,
   }
-}
-
-export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<RunTaskResult> {
-  const { ctx, log, module, task } = params
-  // TODO: deduplicate this from testHelmModule
-  const k8sCtx = <KubernetesPluginContext>ctx
-
-  const { command, args } = task.spec
-  const manifests = await getChartResources({
-    ctx: k8sCtx,
-    module,
-    devMode: false,
-    localMode: false,
-    log,
-    version: module.version.versionString,
-  })
-  const baseModule = getBaseModule(module)
-  const resourceSpec = task.spec.resource || getServiceResourceSpec(module, baseModule)
-  const target = await getTargetResource({
-    ctx: k8sCtx,
-    log,
-    provider: k8sCtx.provider,
-    manifests,
-    module,
-    resourceSpec,
-  })
-  const container = getResourceContainer(target, resourceSpec.containerName)
-  const namespaceStatus = await getActionNamespaceStatus({
-    ctx: k8sCtx,
-    log,
-    module,
-    provider: k8sCtx.provider,
-  })
-  const namespace = namespaceStatus.namespaceName
-
-  const res = await runAndCopy({
-    ...params,
-    container,
-    podSpec: getResourcePodSpec(target),
-    command,
-    args,
-    artifacts: task.spec.artifacts,
-    envVars: task.spec.env,
-    image: container.image!,
-    namespace,
-    podName: makePodName("task", module.name, task.name),
-    description: `Task '${task.name}' in container module '${module.name}'`,
-    timeout: task.config.timeout || DEFAULT_TASK_TIMEOUT,
-    version: task.version,
-  })
-
-  const result: RunTaskResult = {
-    ...res,
-    taskName: task.name,
-    namespaceStatus,
-    outputs: {
-      log: res.log || "",
-    },
-  }
-
-  if (task.config.cacheResult) {
-    await storeRunResult({
-      ctx,
-      log,
-      module,
-      result,
-      task,
-    })
-  }
-
-  return result
 }
