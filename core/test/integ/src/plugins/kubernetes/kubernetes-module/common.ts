@@ -12,7 +12,7 @@ import { resolve } from "path"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { readManifests } from "../../../../../../src/plugins/kubernetes/kubernetes-type/common"
-import { KubernetesModule } from "../../../../../../src/plugins/kubernetes/kubernetes-type/moduleConfig"
+import { KubernetesModule } from "../../../../../../src/plugins/kubernetes/kubernetes-type/module-config"
 import { TestGarden, dataDir, makeTestGarden, getExampleDir, expectError } from "../../../../../helpers"
 
 let kubernetesTestGarden: TestGarden

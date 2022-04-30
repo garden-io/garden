@@ -13,20 +13,25 @@ import { loadImageToKind, getKindImageStatus } from "../../local/kind"
 import chalk = require("chalk")
 import { loadImageToMicrok8s, getMicrok8sImageStatus } from "../../local/microk8s"
 import { ContainerProvider } from "../../../container/container"
-import { BuildHandler, BuildStatusHandler, getManifestInspectArgs } from "./common"
-import { BuildModuleParams } from "../../../../types/plugin/module/build"
-import { ContainerModule } from "../../../container/moduleConfig"
+import { BuildHandler, BuildStatusHandler, BuildStatusResult, getManifestInspectArgs } from "./common"
+import { ContainerBuildAction } from "../../../container/moduleConfig"
+import { BuildActionParams } from "../../../../plugin/action-types"
+import { k8sGetContainerBuildActionOutputs } from "../handlers"
 
 export const getLocalBuildStatus: BuildStatusHandler = async (params) => {
-  const { ctx, module, log } = params
+  const { ctx, action, log } = params
   const k8sCtx = ctx as KubernetesPluginContext
   const config = k8sCtx.provider.config
   const deploymentRegistry = config.deploymentRegistry
 
+  const outputs = k8sGetContainerBuildActionOutputs({ provider: k8sCtx.provider, action })
+
+  const result: BuildStatusResult = { ready: false, outputs }
+
   if (deploymentRegistry) {
-    const args = await getManifestInspectArgs(module, deploymentRegistry)
+    const args = await getManifestInspectArgs(outputs.deploymentImageId, deploymentRegistry)
     const res = await containerHelpers.dockerCli({
-      cwd: module.buildPath,
+      cwd: action.getBuildPath(),
       args,
       log,
       ctx,
@@ -39,20 +44,24 @@ export const getLocalBuildStatus: BuildStatusHandler = async (params) => {
       log.warn(chalk.yellow(`Unable to query registry for image status: ${detail}`))
     }
 
-    return { ready: res.code === 0 }
+    result.ready = res.code === 0
   } else if (config.clusterType === "kind") {
-    const localId = module.outputs["local-image-id"]
-    return getKindImageStatus(config, localId, log)
+    result.ready = await getKindImageStatus(config, outputs.localImageId, log)
   } else if (k8sCtx.provider.config.clusterType === "microk8s") {
-    const localId = module.outputs["local-image-id"]
-    return getMicrok8sImageStatus(localId)
+    result.ready = await getMicrok8sImageStatus(outputs.localImageId)
   } else {
-    return getContainerBuildStatus({ ...params, ctx: { ...ctx, provider: ctx.provider.dependencies.container } })
+    const res = await getContainerBuildStatus({
+      ...params,
+      ctx: { ...ctx, provider: ctx.provider.dependencies.container },
+    })
+    result.ready = res.ready
   }
+
+  return result
 }
 
 export const localBuild: BuildHandler = async (params) => {
-  const { ctx, module, log } = params
+  const { ctx, action, log } = params
   const provider = ctx.provider as KubernetesProvider
   const containerProvider = provider.dependencies.container as ContainerProvider
   const base = params.base || buildContainer
@@ -64,17 +73,16 @@ export const localBuild: BuildHandler = async (params) => {
     return buildResult
   }
 
-  if (!containerHelpers.moduleHasDockerfile(module, module.version)) {
-    return buildResult
-  }
+  const outputs = k8sGetContainerBuildActionOutputs({ provider, action })
 
-  const localId = module.outputs["local-image-id"]
-  const remoteId = module.outputs["deployment-image-id"]
+  const localId = outputs.localImageId
+  const remoteId = outputs.deploymentImageId
+  const buildPath = action.getBuildPath()
 
   log.info({ msg: `→ Pushing image ${remoteId} to remote...` })
 
-  await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["tag", localId, remoteId], log, ctx })
-  await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["push", remoteId], log, ctx })
+  await containerHelpers.dockerCli({ cwd: buildPath, args: ["tag", localId, remoteId], log, ctx })
+  await containerHelpers.dockerCli({ cwd: buildPath, args: ["push", remoteId], log, ctx })
 
   return buildResult
 }
@@ -82,15 +90,15 @@ export const localBuild: BuildHandler = async (params) => {
 /**
  * Loads a built local image to a local Kubernetes instance
  */
-export async function loadToLocalK8s(params: BuildModuleParams<ContainerModule>) {
-  const { ctx, log, module } = params
+export async function loadToLocalK8s(params: BuildActionParams<"build", ContainerBuildAction>) {
+  const { ctx, log, action } = params
   const provider = ctx.provider as KubernetesProvider
 
-  const imageId = module.outputs["local-image-id"]
+  const { localImageId } = k8sGetContainerBuildActionOutputs({ provider, action })
 
   if (provider.config.clusterType === "kind") {
-    await loadImageToKind(imageId, provider.config, log)
+    await loadImageToKind(localImageId, provider.config, log)
   } else if (provider.config.clusterType === "microk8s") {
-    await loadImageToMicrok8s({ module, imageId, log, ctx })
+    await loadImageToMicrok8s({ action, imageId: localImageId, log, ctx })
   }
 }

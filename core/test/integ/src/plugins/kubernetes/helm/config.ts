@@ -16,7 +16,7 @@ import { dedent } from "../../../../../../src/util/string"
 import { defaultBuildTimeout, ModuleConfig } from "../../../../../../src/config/module"
 import { apply } from "json-merge-patch"
 import { getHelmTestGarden } from "./common"
-import { defaultHelmTimeout } from "../../../../../../src/plugins/kubernetes/helm/moduleConfig"
+import { defaultHelmTimeout } from "../../../../../../src/plugins/kubernetes/helm/module-config"
 import stripAnsi = require("strip-ansi")
 
 describe("configureHelmModule", () => {

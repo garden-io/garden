@@ -20,11 +20,16 @@ import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util
 import { MAX_CONFIGMAP_DATA_SIZE, systemDockerAuthSecretName } from "./constants"
 import { ContainerEnvVars } from "../container/moduleConfig"
 import { ConfigurationError, DeploymentError, PluginError } from "../../exceptions"
-import { ServiceResourceSpec, KubernetesProvider, KubernetesPluginContext } from "./config"
+import {
+  ServiceResourceSpec,
+  KubernetesProvider,
+  KubernetesPluginContext,
+  KubernetesTargetResourceSpec,
+} from "./config"
 import { LogEntry } from "../../logger/log-entry"
 import { PluginContext } from "../../plugin-context"
-import { HelmModule } from "./helm/moduleConfig"
-import { KubernetesModule } from "./kubernetes-type/moduleConfig"
+import { HelmModule } from "./helm/module-config"
+import { KubernetesModule } from "./kubernetes-type/module-config"
 import { getChartPath, renderHelmTemplateString } from "./helm/common"
 import { SyncableResource } from "./types"
 import { ProviderMap } from "../../config/provider"
@@ -32,8 +37,6 @@ import { PodRunner } from "./run"
 import { isSubset } from "../../util/is-subset"
 import { checkPodStatus } from "./status/pod"
 import { getActionNamespace } from "./namespace"
-import { KubernetesDeployAction } from "./kubernetes-type/config"
-import { HelmDeployAction } from "./helm/config"
 
 export const skopeoImage = "gardendev/skopeo:1.41.0-2"
 
@@ -42,6 +45,10 @@ export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "Stateful
 
 export function getAnnotation(obj: KubernetesResource, key: string): string | null {
   return get(obj, ["metadata", "annotations", key])
+}
+
+export function getResourceKey(manifest: KubernetesResource) {
+  return `${manifest.kind}/${manifest.metadata.name}`
 }
 
 /**
@@ -565,8 +572,8 @@ interface GetTargetResourceParams {
   log: LogEntry
   provider: KubernetesProvider
   manifests: KubernetesResource[]
-  action: HelmDeployAction | KubernetesDeployAction
-  resourceSpec: ServiceResourceSpec
+  action: SupportedRuntimeActions
+  resourceSpec: KubernetesTargetResourceSpec
 }
 
 // TODO-G2

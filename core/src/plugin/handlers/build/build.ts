@@ -45,7 +45,7 @@ export const buildResultSchema = () =>
     outputs: actionOutputsSchema(),
   })
 
-export class BuildBuildAction<T extends BuildAction = BuildAction> extends ActionTypeHandlerSpec<
+export class DoBuildAction<T extends BuildAction = BuildAction> extends ActionTypeHandlerSpec<
   "build",
   DoBuildActionParams<T>,
   BuildResult<T>

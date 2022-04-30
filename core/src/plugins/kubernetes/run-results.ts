@@ -21,8 +21,9 @@ import chalk from "chalk"
 import { Action, RuntimeAction } from "../../actions/base"
 import { RunResult } from "../../plugin/base"
 import { RunActionHandler } from "../../plugin/action-types"
+import { KubernetesRunAction } from "./kubernetes-type/config"
 
-export const k8sGetRunResult: RunActionHandler<"getResult", RuntimeAction> = async (params) => {
+export const k8sGetRunResult: RunActionHandler<"getResult", ContainerRunAction> = async (params) => {
   const { ctx, log, action } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
@@ -65,7 +66,7 @@ export function getRunResultKey(ctx: PluginContext, action: Action) {
 interface StoreTaskResultParams {
   ctx: PluginContext
   log: LogEntry
-  action: ContainerRunAction
+  action: ContainerRunAction | KubernetesRunAction
   result: RunResult
 }
 

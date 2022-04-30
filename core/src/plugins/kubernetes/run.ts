@@ -25,13 +25,8 @@ import { Writable, Readable, PassThrough } from "stream"
 import { uniqByName, sleep } from "../../util/util"
 import { KubeApi } from "./api"
 import { getPodLogs, checkPodStatus } from "./status/pod"
-import { KubernetesResource, KubernetesPod, KubernetesServerResource } from "./types"
-import {
-  ContainerAction,
-  ContainerEnvVars,
-  ContainerResourcesSpec,
-  ContainerVolumeSpec,
-} from "../container/moduleConfig"
+import { KubernetesResource, KubernetesPod, KubernetesServerResource, SupportedRuntimeActions } from "./types"
+import { ContainerEnvVars, ContainerResourcesSpec, ContainerVolumeSpec } from "../container/moduleConfig"
 import { prepareEnvVars, makePodName } from "./util"
 import { deline, randomString } from "../../util/string"
 import { ArtifactSpec } from "../../config/validation"
@@ -135,7 +130,7 @@ export async function runAndCopy({
 }: BaseRunParams & {
   ctx: PluginContext
   log: LogEntry
-  action: ContainerAction
+  action: SupportedRuntimeActions
   image: string
   container?: V1Container
   podName?: string
@@ -259,7 +254,7 @@ export async function prepareRunPodSpec({
   podSpec?: V1PodSpec
   getArtifacts: boolean
   log: LogEntry
-  action: ContainerAction
+  action: SupportedRuntimeActions
   args: string[]
   command: string[] | undefined
   api: KubeApi
@@ -361,7 +356,7 @@ async function runWithoutArtifacts({
 }: BaseRunParams & {
   ctx: PluginContext
   log: LogEntry
-  action: ContainerAction
+  action: SupportedRuntimeActions
   api: KubeApi
   provider: KubernetesProvider
   podSpec: V1PodSpec
@@ -460,7 +455,7 @@ async function runWithArtifacts({
 }: BaseRunParams & {
   ctx: PluginContext
   log: LogEntry
-  action: ContainerAction
+  action: SupportedRuntimeActions
   podSpec: V1PodSpec
   podName: string
   mainContainerName: string

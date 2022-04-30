@@ -9,12 +9,7 @@
 import chalk from "chalk"
 import { V1Affinity, V1Container, V1DaemonSet, V1Deployment, V1PodSpec, V1VolumeMount } from "@kubernetes/client-node"
 import { extend, find, keyBy, omit, set } from "lodash"
-import {
-  ContainerAction,
-  ContainerDeployAction,
-  ContainerDeploySpec,
-  ContainerVolumeSpec,
-} from "../../container/moduleConfig"
+import { ContainerDeployAction, ContainerDeploySpec, ContainerVolumeSpec } from "../../container/moduleConfig"
 import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
 import { compareDeployedResources, waitForResources } from "../status/status"
@@ -23,7 +18,14 @@ import { getAppNamespace, getAppNamespaceStatus } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { KubernetesPluginContext, KubernetesProvider } from "../config"
-import { KubernetesResource, KubernetesWorkload } from "../types"
+import {
+  KubernetesResource,
+  KubernetesWorkload,
+  SyncableKind,
+  SupportedRuntimeActions,
+  syncableKinds,
+  SyncableResource,
+} from "../types"
 import { ConfigurationError } from "../../../exceptions"
 import { ContainerServiceStatus, k8sGetContainerDeployStatus } from "./status"
 import { LogEntry } from "../../../logger/log-entry"
@@ -33,8 +35,7 @@ import { RuntimeContext } from "../../../runtime-context"
 import { resolve } from "path"
 import { killPortForwards } from "../port-forward"
 import { prepareSecrets } from "../secrets"
-import { configureDevMode, startDevModeSync } from "../dev-mode"
-import { syncableKinds, SyncableResource } from "../types"
+import { configureDevMode, startDevModeSyncs } from "../dev-mode"
 import { getDeploymentImageId, getResourceRequirements, getSecurityContext } from "./util"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import { DeployActionHandler, DeployActionParams } from "../../../plugin/action-types"
@@ -61,7 +62,8 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
     await deployContainerServiceRolling({ ...params, devMode: deployWithDevMode, api, imageId })
   }
 
-  const status = await k8sGetContainerDeployStatus(params)
+  // TODO-G2: work out why the any cast is needed here
+  const status = await k8sGetContainerDeployStatus(<any>params)
 
   // Make sure port forwards work after redeployment
   killPortForwards(action, status.forwardablePorts || [], log)
@@ -99,27 +101,39 @@ export async function startContainerDevSync({
   action: ContainerDeployAction
 }) {
   const devMode = action.getSpec("devMode")
+  const workload = status.detail.workload
 
-  if (!devMode) {
+  if (!devMode || !workload) {
     return
   }
 
   log.info({
-    section: service.name,
+    section: action.name,
     msg: chalk.grey(`Deploying in dev mode`),
   })
 
-  const namespace = await getAppNamespace(ctx, log, ctx.provider)
-  const target = status.detail.remoteResources.find((r) => syncableKinds.includes(r.kind))! as SyncableResource
+  const defaultNamespace = await getAppNamespace(ctx, log, ctx.provider)
 
-  await startDevModeSync({
+  const target = {
+    kind: <SyncableKind>workload.kind,
+    name: workload.metadata.name,
+  }
+
+  await startDevModeSyncs({
     ctx,
     log,
+    action,
+    actionDefaults: {},
     basePath: action.getBasePath(),
-    namespace,
-    target,
-    spec: devMode,
-    deployName: action.name,
+    defaultNamespace,
+    defaultTarget: target,
+    manifests: status.detail.remoteResources,
+    syncs: devMode.sync.map((s) => ({
+      ...s,
+      target,
+      sourcePath: s.source,
+      containerPath: s.target,
+    })),
   })
 }
 
@@ -337,6 +351,7 @@ export async function createContainerManifests({
   const namespace = await getAppNamespace(k8sCtx, log, provider)
   const ingresses = await createIngressResources(api, provider, namespace, action, log)
   const workload = await createWorkloadManifest({
+    ctx,
     api,
     provider,
     action,
@@ -375,6 +390,7 @@ export async function createContainerManifests({
 }
 
 interface CreateDeploymentParams {
+  ctx: PluginContext
   api: KubeApi
   provider: KubernetesProvider
   action: ContainerDeployAction
@@ -389,6 +405,7 @@ interface CreateDeploymentParams {
 }
 
 export async function createWorkloadManifest({
+  ctx,
   api,
   provider,
   action,
@@ -611,9 +628,20 @@ export async function createWorkloadManifest({
   } else if (enableDevMode && devModeSpec) {
     log.debug({ section: action.name, msg: chalk.gray(`-> Configuring in dev mode`) })
 
-    configureDevMode({
-      target: workload,
-      spec: devModeSpec,
+    const target = { kind: <SyncableKind>workload.kind, name: workload.metadata.name }
+    const overrides = devModeSpec.args || devModeSpec.command ? [{ target, ...devModeSpec }] : []
+
+    await configureDevMode({
+      ctx,
+      log,
+      provider,
+      action,
+      defaultTarget: target,
+      manifests: [workload],
+      spec: {
+        overrides,
+        syncs: devModeSpec.sync.map((s) => ({ ...s, target, sourcePath: s.source, containerPath: s.target })),
+      },
     })
   }
 
@@ -763,7 +791,7 @@ function configureHealthCheck(
 }
 
 export function configureVolumes(
-  action: ContainerAction,
+  action: SupportedRuntimeActions,
   podSpec: V1PodSpec,
   volumeSpecs: ContainerVolumeSpec[]
 ): void {

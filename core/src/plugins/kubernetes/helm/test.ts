@@ -8,7 +8,7 @@
 
 import { DEFAULT_TEST_TIMEOUT } from "../../../constants"
 import { storeTestResult } from "../test-results"
-import { HelmModule } from "./moduleConfig"
+import { HelmModule } from "./module-config"
 import { runAndCopy } from "../run"
 import { getBaseModule, getChartResources } from "./common"
 import { KubernetesPluginContext } from "../config"

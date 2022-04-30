@@ -17,7 +17,7 @@ import { getActionNamespace } from "../namespace"
 import { KubernetesResource } from "../types"
 import { loadAll } from "js-yaml"
 import { helm } from "./helm-cli"
-import { HelmModule } from "./moduleConfig"
+import { HelmModule } from "./module-config"
 import { ConfigurationError, PluginError } from "../../../exceptions"
 import { deline, tailString } from "../../../util/string"
 import { flattenResources, getAnnotation } from "../util"
@@ -50,7 +50,6 @@ interface GetChartResourcesParams {
   devMode: boolean
   localMode: boolean
   log: LogEntry
-  version: string
 }
 
 type PrepareManifestsParams = GetChartResourcesParams & {
@@ -70,7 +69,7 @@ export async function getChartResources(params: GetChartResourcesParams) {
  * Renders the given Helm module and returns a multi-document YAML string.
  */
 export async function renderTemplates(params: GetChartResourcesParams): Promise<string> {
-  const { ctx, action, devMode, localMode, version, log } = params
+  const { ctx, action, devMode, localMode, log } = params
   const { namespace, releaseName, chartPath } = await prepareTemplates(params)
 
   log.debug("Preparing chart...")
@@ -80,7 +79,6 @@ export async function renderTemplates(params: GetChartResourcesParams): Promise<
     action,
     devMode,
     localMode,
-    version,
     log,
     namespace,
     releaseName,
@@ -104,7 +102,7 @@ export async function prepareTemplates({
   values[".garden"] = {
     moduleName: action.name,
     projectName: ctx.projectName,
-    version,
+    version: action.getVersionString(),
   }
 
   const valuesPath = getGardenValuesPath(chartPath)

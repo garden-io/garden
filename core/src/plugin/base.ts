@@ -19,8 +19,8 @@ import { DeployAction } from "../actions/deploy"
 import { RunAction } from "../actions/run"
 import { TestAction } from "../actions/test"
 
-export interface ActionHandlerParamsBase {
-  base?: ActionHandler<any, any>
+export interface ActionHandlerParamsBase<O = any> {
+  base?: ActionHandler<this, O>
 }
 
 export type ActionHandler<P extends ActionHandlerParamsBase, O> = ((params: P) => Promise<O>) & {

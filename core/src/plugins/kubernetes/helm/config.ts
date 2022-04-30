@@ -7,8 +7,14 @@
  */
 
 import { DeepPrimitiveMap, joi, joiIdentifier, joiPrimitive, joiSparseArray } from "../../../config/common"
-import { namespaceNameSchema, PortForwardSpec, portForwardsSchema } from "../config"
-import { KubernetesDeployDevModeSpec } from "../dev-mode"
+import {
+  KubernetesTargetResourceSpec,
+  namespaceNameSchema,
+  PortForwardSpec,
+  portForwardsSchema,
+  targetResourceSpecSchema,
+} from "../config"
+import { kubernetesDeployDevModeSchema, KubernetesDeployDevModeSpec } from "../dev-mode"
 import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
 import { dedent, deline } from "../../../util/string"
 
@@ -25,6 +31,7 @@ interface HelmDeployActionSpec {
     repo?: string // Formerly `repo`
     version?: string // Formerly `version`
   }
+  defaultTarget?: KubernetesTargetResourceSpec
   devMode?: KubernetesDeployDevModeSpec
   namespace?: string
   portForwards?: PortForwardSpec[]
@@ -97,6 +104,19 @@ export const helmChartRepoSchema = () =>
     .description(`The repository URL to fetch the chart from. Defaults to the "stable" helm repo (${defaultHelmRepo}).`)
 export const helmChartVersionSchema = () => joi.string().description("The chart version to deploy.")
 
+export const defaultTargetSchema = () =>
+  targetResourceSpecSchema().description(
+    dedent`
+    Specify a default resource in the deployment to use for dev mode syncs, \`garden exec\` and \`garden run deploy\` commands.
+
+    Specify either \`kind\` and \`name\`, or a \`podSelector\`. The resource should be one of the resources deployed by this action (otherwise the target is not guaranteed to be deployed with adjustments required for syncing).
+
+    Set \`containerName\` to specify a container to connect to in the remote Pod. By default the first container in the Pod is used.
+
+    Note that if you specify \`podSelector\` here, it is not validated to be a selector matching one of the resources deployed by the action.
+    `
+  )
+
 export const helmDeploySchema = () =>
   joi.object().keys({
     ...helmCommonSchemaKeys(),
@@ -124,6 +144,8 @@ export const helmDeploySchema = () =>
         If the chart is remote, you must specify \`chart.name\` and \`chart.version\, and optionally \`chart.repo\` (if the chart is not in the default "stable" repo).
         `
       ),
+    defaultTarget: defaultTargetSchema(),
+    devMode: kubernetesDeployDevModeSchema(),
   })
 
 export type HelmDeployConfig = DeployActionConfig<"helm", HelmDeployActionSpec>

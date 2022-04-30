@@ -22,9 +22,7 @@ import { V1Namespace } from "@kubernetes/client-node"
 import { isSubset } from "../../util/is-subset"
 import chalk from "chalk"
 import { NamespaceStatus } from "../../plugin/base"
-import { KubernetesServerResource } from "./types"
-import { KubernetesDeployAction } from "./kubernetes-type/config"
-import { HelmDeployAction } from "./helm/config"
+import { KubernetesServerResource, SupportedRuntimeActions } from "./types"
 
 const GARDEN_VERSION = getPackageVersion()
 
@@ -303,7 +301,7 @@ export async function getActionNamespace({
 }: {
   ctx: KubernetesPluginContext
   log: LogEntry
-  action: HelmDeployAction | KubernetesDeployAction
+  action: SupportedRuntimeActions
   provider: KubernetesProvider
   skipCreate?: boolean
 }): Promise<string> {
@@ -326,11 +324,16 @@ export async function getActionNamespaceStatus({
 }: {
   ctx: KubernetesPluginContext
   log: LogEntry
-  action: HelmDeployAction | KubernetesDeployAction
+  action: SupportedRuntimeActions
   provider: KubernetesProvider
   skipCreate?: boolean
 }): Promise<NamespaceStatus> {
-  const namespace = action.getSpec("namespace")
+  let namespace: string | undefined
+
+  // TODO-G2: add namespace field on container Deploy
+  if (action.type !== "container") {
+    namespace = action.getSpec().namespace
+  }
 
   return getNamespaceStatus({
     log,
