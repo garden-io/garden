@@ -9,7 +9,7 @@
 import chalk from "chalk"
 import { BuildTask } from "./build"
 import { GardenModule } from "../types/module"
-import { BaseTask, TaskType } from "../tasks/base"
+import { BaseActionTask, BaseTask, TaskType } from "../tasks/base"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { ConfigGraph } from "../graph/config-graph"
@@ -20,42 +20,42 @@ import { versionStringPrefix } from "../vcs/vcs"
 import { ConfigContext, schema } from "../config/template-contexts/base"
 import { ModuleConfigContext, ModuleConfigContextParams } from "../config/template-contexts/module"
 import { PublishActionResult } from "../plugin/handlers/build/publish"
+import { BuildAction } from "../actions/build"
 
 export interface PublishTaskParams {
   garden: Garden
   graph: ConfigGraph
   log: LogEntry
-  module: GardenModule
+  action: BuildAction
   forceBuild: boolean
   tagTemplate?: string
 }
 
-export class PublishTask extends BaseTask {
+export class PublishTask extends BaseActionTask<BuildAction> {
   type: TaskType = "publish"
   concurrencyLimit = 5
 
   graph: ConfigGraph
-  module: GardenModule
   forceBuild: boolean
   tagTemplate?: string
 
-  constructor({ garden, graph, log, module, forceBuild, tagTemplate }: PublishTaskParams) {
-    super({ garden, log, version: module.version.versionString })
+  constructor({ garden, graph, log, action, forceBuild, tagTemplate }: PublishTaskParams) {
+    super({ garden, log, action })
     this.graph = graph
-    this.module = module
+    this.action = action
     this.forceBuild = forceBuild
     this.tagTemplate = tagTemplate
   }
 
   async resolveDependencies() {
-    if (!this.module.allowPublish) {
+    if (this.action.getConfig("allowPublish") === false) {
       return []
     }
     return BuildTask.factory({
       garden: this.garden,
       graph: this.graph,
       log: this.log,
-      module: this.module,
+      action: this.action,
       force: this.forceBuild,
     })
   }
@@ -133,30 +133,33 @@ export class PublishTask extends BaseTask {
   }
 }
 
-class ModuleSelfContext extends ConfigContext {
-  @schema(joi.string().description("The name of the module being tagged."))
+class BuildSelfContext extends ConfigContext {
+  @schema(joi.string().description("The name of the build being tagged."))
   public name: string
 
-  @schema(joi.string().description("The version of the module being tagged (including the 'v-' prefix)."))
+  @schema(joi.string().description("The version of the build being tagged (including the 'v-' prefix)."))
   public version: string
 
-  @schema(joi.string().description("The version hash of the module being tagged (minus the 'v-' prefix)."))
+  @schema(joi.string().description("The version hash of the build being tagged (minus the 'v-' prefix)."))
   public hash: string
 
-  constructor(parent: ConfigContext, module: GardenModule) {
+  constructor(parent: ConfigContext, build: BuildAction) {
     super(parent)
-    this.name = module.name
-    this.version = module.version.versionString
-    this.hash = module.version.versionString.slice(versionStringPrefix.length)
+    this.name = build.name
+    this.version = build.versionString()
+    this.hash = this.version.slice(versionStringPrefix.length)
   }
 }
 
 class ModuleTagContext extends ModuleConfigContext {
-  @schema(ModuleSelfContext.getSchema().description("Extended information about the module being tagged."))
-  public module: ModuleSelfContext
+  @schema(BuildSelfContext.getSchema().description("Extended information about the build being tagged."))
+  public build: BuildSelfContext
 
-  constructor(params: ModuleConfigContextParams & { module: GardenModule }) {
+  @schema(BuildSelfContext.getSchema().description("Alias kept for compatibility."))
+  public module: BuildSelfContext
+
+  constructor(params: ModuleConfigContextParams & { build: BuildAction }) {
     super(params)
-    this.module = new ModuleSelfContext(this, params.module)
+    this.build = this.module = new BuildSelfContext(this, params.build)
   }
 }

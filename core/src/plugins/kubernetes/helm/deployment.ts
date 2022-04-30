@@ -196,7 +196,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       action,
       actionDefaults: spec.devMode.defaults || {},
       defaultTarget: spec.defaultTarget,
-      basePath: action.getBasePath(), // TODO-G2: double check if this holds up
+      basePath: action.basePath(), // TODO-G2: double check if this holds up
       defaultNamespace: namespace,
       manifests: preparedManifests,
       syncs: spec.devMode.syncs,
@@ -206,7 +206,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   return {
     forwardablePorts,
     state: "ready",
-    version: action.getVersionString(),
+    version: action.versionString(),
     detail: { remoteResources: statuses.map((s) => s.resource) },
     namespaceStatuses: [namespaceStatus],
   }

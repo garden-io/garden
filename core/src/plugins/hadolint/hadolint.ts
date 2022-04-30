@@ -239,9 +239,9 @@ export const gardenPlugin = () =>
               return {
                 result: {
                   testName: action.name,
-                  moduleName: action.getModuleName(),
+                  moduleName: action.moduleName(),
                   command: ["hadolint", ...args],
-                  version: action.getVersionString(),
+                  version: action.versionString(),
                   success,
                   startedAt,
                   completedAt: new Date(),

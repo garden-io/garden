@@ -284,21 +284,25 @@ export type ResolvedActionTypeHandlerDescriptions = {
 }
 
 // It takes a short while to resolve all these schemas, so we cache the result
-let _actionTypeHandlerDescriptions: ResolvedActionTypeHandlerDescriptions
+let _actionTypeHandlerDescriptions
 
-export function getActionTypeHandlerDescriptions(): ResolvedActionTypeHandlerDescriptions {
-  if (_actionTypeHandlerDescriptions) {
-    return _actionTypeHandlerDescriptions
+export function getActionTypeHandlerDescriptions<K extends ActionKind>(
+  kind: ActionKind
+): ResolvedActionTypeHandlerDescriptions[K] {
+  if (!_actionTypeHandlerDescriptions) {
+    _actionTypeHandlerDescriptions = {}
   }
 
-  _actionTypeHandlerDescriptions = <any>mapValues(actionTypeClasses, (byType) => {
-    return mapValues(byType, (cls, name: any) => {
-      return {
-        name,
-        cls,
-        ...cls.describe(),
-      }
-    })
+  if (_actionTypeHandlerDescriptions[kind]) {
+    return _actionTypeHandlerDescriptions[kind]
+  }
+
+  _actionTypeHandlerDescriptions[kind] = mapValues(actionTypeClasses[kind], (cls, name: any) => {
+    return {
+      name,
+      cls,
+      ...cls.describe(),
+    }
   })
 
   return _actionTypeHandlerDescriptions
@@ -322,7 +326,7 @@ export type ManyActionTypeDefinitions = {
 
 const createActionTypeSchema = (kind: ActionKind) => {
   const titleKind = titleize(kind)
-  const descriptions = getActionTypeHandlerDescriptions()
+  const descriptions = getActionTypeHandlerDescriptions(kind)
 
   return joi
     .object()
@@ -357,26 +361,26 @@ const createActionTypeSchema = (kind: ActionKind) => {
 }
 
 export const createActionTypesSchema = () => {
-  const descriptions = getActionTypeHandlerDescriptions()
   return joi
     .object()
-    .keys(mapValues(descriptions, (_, k: ActionKind) => joiArray(createActionTypeSchema(k)).unique("name")))
+    .keys(mapValues(actionTypeClasses, (_, k: ActionKind) => joiArray(createActionTypeSchema(k)).unique("name")))
 }
 
-const extendActionTypeSchema = (kind: string) => {
+const extendActionTypeSchema = (kind: ActionKind) => {
   const titleKind = titleize(kind)
-  const descriptions = getActionTypeHandlerDescriptions()
+  const descriptions = getActionTypeHandlerDescriptions(kind)
 
   return joi
     .object()
     .keys({
       name: joiUserIdentifier().description(`The name of the ${titleKind} action type to extend.`),
-      handlers: mapValues(descriptions[kind], (d) => baseHandlerSchema().description(d.description)),
+      handlers: mapValues(descriptions, (d) => baseHandlerSchema().description(d.description)),
     })
     .description(`Extend a ${titleKind} action.`)
 }
 
 export const extendActionTypesSchema = () => {
-  const descriptions = getActionTypeHandlerDescriptions()
-  return joi.object().keys(mapValues(descriptions, (_, k) => joiArray(extendActionTypeSchema(k)).unique("name")))
+  return joi
+    .object()
+    .keys(mapValues(actionTypeClasses, (_, k: ActionKind) => joiArray(extendActionTypeSchema(k)).unique("name")))
 }

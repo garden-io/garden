@@ -15,7 +15,7 @@ import { GardenPlugin, ModuleTypeDefinition } from "../plugin/plugin"
 import { ServiceStatusMap } from "../types/service"
 import { GetServiceStatusTask } from "../tasks/get-service-status"
 import { getServiceStatuses } from "../tasks/base"
-import { DeleteServiceTask, deletedServiceStatuses } from "../tasks/delete-service"
+import { DeleteDeployTask, deletedServiceStatuses } from "../tasks/delete-service"
 import { DeployTask } from "../tasks/deploy"
 import { Profile } from "../util/profiling"
 import { ConfigGraph } from "../graph/config-graph"
@@ -122,19 +122,19 @@ export class ActionRouter extends BaseRouter {
   }
 
   /**
-   * Deletes all or specified services in the environment.
+   * Deletes all or specified deployments in the environment.
    */
-  async deleteServices(graph: ConfigGraph, log: LogEntry, names?: string[]) {
+  async deleteDeploys(graph: ConfigGraph, log: LogEntry, names?: string[]) {
     const servicesLog = log.info({ msg: chalk.white("Deleting services..."), status: "active" })
 
-    const services = graph.getServices({ names })
+    const deploys = graph.getDeploys({ names })
 
     const deleteResults = await this.garden.processTasks(
-      services.map((service) => {
-        return new DeleteServiceTask({
+      deploys.map((action) => {
+        return new DeleteDeployTask({
           garden: this.garden,
           graph,
-          service,
+          action,
           log: servicesLog,
           includeDependants: true,
         })

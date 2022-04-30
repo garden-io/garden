@@ -19,7 +19,7 @@ import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { emptyRuntimeContext } from "../../../../../../src/runtime-context"
 import { createWorkloadManifest } from "../../../../../../src/plugins/kubernetes/container/deployment"
 import { sleep } from "../../../../../../src/util/util"
-import { DeleteServiceTask } from "../../../../../../src/tasks/delete-service"
+import { DeleteDeployTask } from "../../../../../../src/tasks/delete-service"
 
 describe("kubernetes", () => {
   let garden: TestGarden
@@ -169,11 +169,11 @@ describe("kubernetes", () => {
 
           localModeServiceNames: [],
         })
-        const deleteTask = new DeleteServiceTask({
+        const deleteTask = new DeleteDeployTask({
           garden,
           graph,
           log: garden.log,
-          service,
+          action: service,
         })
 
         const stream = new Stream<ServiceLogEntry>()

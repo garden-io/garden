@@ -64,13 +64,13 @@ export type ContainerTaskSpec = BaseTaskSpec &
 export const containerTaskSchema = () =>
   baseTaskSpecSchema().keys(containerRunSpecKeys()).description("A task that can be run in the container.")
 
-export interface ContainerBuildSpec extends BaseBuildSpec {
+export interface ContainerModuleBuildSpec extends BaseBuildSpec {
   targetImage?: string
   timeout: number
 }
 
 export interface ContainerModuleSpec extends ModuleSpec {
-  build: ContainerBuildSpec
+  build: ContainerModuleBuildSpec
   buildArgs: PrimitiveMap
   extraFlags: string[]
   image?: string

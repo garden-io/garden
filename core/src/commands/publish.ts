@@ -25,7 +25,7 @@ import { LogEntry } from "../logger/log-entry"
 import { printHeader } from "../logger/util"
 import dedent = require("dedent")
 import { ConfigGraph } from "../graph/config-graph"
-import { PublishModuleResult, publishResultSchema } from "../types/plugin/module/publishModule"
+import { PublishActionResult, publishResultSchema } from "../plugin/handlers/build/publish"
 import { joiIdentifierMap } from "../config/common"
 import { StringsParameter, BooleanParameter, StringOption } from "../cli/params"
 
@@ -54,20 +54,19 @@ type Args = typeof publishArgs
 type Opts = typeof publishOpts
 
 interface PublishCommandResult extends ProcessCommandResult {
-  published: { [moduleName: string]: PublishModuleResult & ProcessResultMetadata }
+  published: { [moduleName: string]: PublishActionResult & ProcessResultMetadata }
 }
 
 export class PublishCommand extends Command<Args, Opts> {
   name = "publish"
-  help = "Build and publish module(s) (e.g. container images) to a remote registry."
+  help = "Build and publish artifacts (e.g. container images) to a remote registry."
 
   streamEvents = true
 
   description = dedent`
-    Publishes built module artifacts for all or specified modules.
-    Also builds modules and build dependencies if needed.
+    Publishes built artifacts for all or specified builds. Also builds dependencies if needed.
 
-    By default the artifacts/images are tagged with the Garden module version, but you can also specify the \`--tag\` option to specify a specific string tag _or_ a templated tag. Any template values that can be used on the module being tagged are available, in addition to ${"${module.name}"}, ${"${module.version}"} and ${"${module.hash}"} tags that allows referencing the name of the module being tagged, as well as its Garden version. ${"${module.version}"} includes the "v-" prefix normally used for Garden versions, and ${"${module.hash}"} doesn't.
+    By default the artifacts/images are tagged with the Garden action version, but you can also specify the \`--tag\` option to specify a specific string tag _or_ a templated tag. Any template values that can be used on the build being tagged are available, in addition to ${"${build.name}"}, ${"${build.version}"} and ${"${build.hash}"} tags that allows referencing the name of the build being tagged, as well as its Garden version. ${"${build.version}"} includes the "v-" prefix normally used for Garden versions, and ${"${build.hash}"} doesn't.
 
     Examples:
 
@@ -79,7 +78,7 @@ export class PublishCommand extends Command<Args, Opts> {
         garden publish my-container --tag "v0.1"
 
         # Publish my-container with a tag of v1.2-<hash> (e.g. v1.2-abcdef123)
-        garden publish my-container --tag "v1.2-${"${module.hash}"}"
+        garden publish my-container --tag "v1.2-${"${build.hash}"}"
   `
 
   arguments = publishArgs

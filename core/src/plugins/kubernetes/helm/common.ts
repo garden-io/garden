@@ -102,7 +102,7 @@ export async function prepareTemplates({
   values[".garden"] = {
     moduleName: action.name,
     projectName: ctx.projectName,
-    version: action.getVersionString(),
+    version: action.versionString(),
   }
 
   const valuesPath = getGardenValuesPath(chartPath)

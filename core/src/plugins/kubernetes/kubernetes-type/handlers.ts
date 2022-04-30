@@ -201,7 +201,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
       if (!isConfiguredForLocalMode(target)) {
         state = "outdated"
       }
-    } else if (devMode && spec.devMode) {
+    } else if (devMode && spec.devMode?.syncs?.length) {
       // Need to start the dev-mode sync here, since the deployment handler won't be called.
       const serviceResourceSpec = getServiceResourceSpec(action, undefined)
       const target = await getTargetResource({
@@ -215,15 +215,12 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
 
       if (isConfiguredForDevMode(target)) {
         await startDevModeSyncs({
+          ctx: k8sCtx,
           log,
-          namespace,
-          target,
-          spec: service.spec.devMode,
-          containerName: service.spec.devMode.containerName,
-          serviceName: service.name,
           action,
           actionDefaults: spec.devMode.defaults || {},
           defaultTarget: spec.defaultTarget,
+          basePath: action.basePath(), // TODO-G2: double check if this holds up
           defaultNamespace: namespace,
           manifests: preparedManifests,
           syncs: spec.devMode.syncs,
@@ -237,7 +234,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
   return {
     forwardablePorts,
     state,
-    version: state === "ready" ? action.getVersionString() : undefined,
+    version: state === "ready" ? action.versionString() : undefined,
     detail: { remoteResources },
     devMode: deployedWithDevMode,
     localMode: deployedWithLocalMode,
@@ -331,18 +328,14 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
         log,
         containerName: spec.localMode.containerName,
       })
-    } else if (devMode && spec.devMode) {
+    } else if (devMode && spec.devMode?.syncs?.length) {
       await startDevModeSyncs({
+        ctx: k8sCtx,
         log,
-        namespace,
-        target,
-        spec: spec.devMode,
-        containerName: spec.devMode.containerName,
-        deployName: action.name,
         action,
         actionDefaults: spec.devMode.defaults || {},
         defaultTarget: spec.defaultTarget,
-        basePath: action.getBasePath(), // TODO-G2: double check if this holds up
+        basePath: action.basePath(), // TODO-G2: double check if this holds up
         defaultNamespace: namespace,
         manifests: preparedManifests,
         syncs: spec.devMode.syncs,

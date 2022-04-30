@@ -22,7 +22,7 @@ import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/nam
 import { getDeployedResource } from "../../../../../../src/plugins/kubernetes/status/status"
 import { ModuleConfig } from "../../../../../../src/config/module"
 import { BaseResource, KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
-import { DeleteServiceTask } from "../../../../../../src/tasks/delete-service"
+import { DeleteDeployTask } from "../../../../../../src/tasks/delete-service"
 import {
   deployKubernetesService,
   getKubernetesServiceStatus,
@@ -405,11 +405,11 @@ describe("kubernetes-module handlers", () => {
       expect(await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log), "ns2resource").to.exist
 
       const graph = await garden.getConfigGraph({ log, emit: false })
-      const deleteServiceTask = new DeleteServiceTask({
+      const deleteServiceTask = new DeleteDeployTask({
         garden,
         graph,
         log,
-        service: graph.getService("namespace-resource"),
+        action: graph.getService("namespace-resource"),
       })
 
       // This should only delete kubernetes-module-ns-2.
