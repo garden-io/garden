@@ -73,7 +73,7 @@ export function getLogFilePath({ projectRoot, deployName }: { projectRoot: strin
 function getDefaultEnvVars(action: Action) {
   return {
     ...process.env,
-    GARDEN_MODULE_VERSION: action.getVersionString(),
+    GARDEN_MODULE_VERSION: action.versionString(),
     // Workaround for https://github.com/vercel/pkg/issues/897
     PKG_EXECPATH: "",
   }
@@ -208,10 +208,10 @@ export const execTestAction: TestActionHandler<"run", ExecTest> = async ({ log, 
 
   return {
     result: {
-      moduleName: action.getModuleName(),
+      moduleName: action.moduleName(),
       command,
       testName: action.name,
-      version: action.getVersionString(),
+      version: action.versionString(),
       success: result.exitCode === 0,
       startedAt,
       completedAt: new Date(),
@@ -250,10 +250,10 @@ export const execRunAction: RunActionHandler<"run", ExecRun> = async ({ artifact
 
   return {
     result: {
-      moduleName: action.getModuleName(),
+      moduleName: action.moduleName(),
       taskName: action.name,
       command,
-      version: action.getVersionString(),
+      version: action.versionString(),
       success,
       log: outputLog,
       outputs: {
@@ -296,9 +296,9 @@ const runExecBuild: BuildActionHandler<"run", ExecBuild> = async (params) => {
   }
 
   return {
-    moduleName: action.getModuleName(),
+    moduleName: action.moduleName(),
     command: [],
-    version: action.getVersionString(),
+    version: action.versionString(),
     success,
     log: outputLog,
     startedAt,
@@ -322,11 +322,11 @@ const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeploy> = async 
 
     return {
       state: result.exitCode === 0 ? "ready" : "outdated",
-      version: action.getVersionString(),
+      version: action.versionString(),
       detail: { statusCommandOutput: result.all },
     }
   } else {
-    return { state: "unknown", version: action.getVersionString(), detail: {} }
+    return { state: "unknown", version: action.versionString(), detail: {} }
   }
 }
 

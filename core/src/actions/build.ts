@@ -98,14 +98,14 @@ export const buildActionConfig = () =>
     timeout: joi.number().integer().description("Set a timeout for the build to complete, in seconds."),
   })
 
-export class BuildAction<C extends BuildActionConfig = any, O extends {} = any> extends Action<C, O> {
+export class BuildAction<C extends BuildActionConfig = BuildActionConfig, O extends {} = any> extends Action<C, O> {
   /**
    * Returns the build path for the action. The path is generally `<project root>/.garden/build/<action name>`.
    * If `buildAtSource: true` is set on the config, the path is the base path of the action.
    */
   getBuildPath() {
     if (this._config.buildAtSource) {
-      return this.getBasePath()
+      return this.basePath()
     } else {
       return join(this.baseBuildDirectory, this.name)
     }

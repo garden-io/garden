@@ -12,9 +12,9 @@ import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { pickBy, mapValues, mapKeys } from "lodash"
 import { ServiceStatus } from "../types/service"
-import { RunTaskResult } from "../types/plugin/task/runTask"
 import { splitLast } from "../util/util"
 import { Profile } from "../util/profiling"
+import { Action, actionKinds } from "../actions/base"
 
 export type TaskType =
   | "build"
@@ -38,11 +38,21 @@ export function makeBaseKey(type: TaskType, name: string) {
   return `${type}.${name}`
 }
 
-export interface TaskParams {
+interface CommonTaskParams {
+  garden: Garden
+  log: LogEntry
+  force?: boolean
+}
+
+export interface TaskParams extends CommonTaskParams {
   garden: Garden
   log: LogEntry
   force?: boolean
   version: string
+}
+
+export interface ActionTaskParams<T extends Action = Action> extends CommonTaskParams {
+  action: T
 }
 
 @Profile()
@@ -95,6 +105,16 @@ export abstract class BaseTask {
   abstract getDescription(): string
 
   abstract process(dependencyResults: GraphResults): Promise<any>
+}
+
+export abstract class BaseActionTask<T extends Action> extends BaseTask {
+  action: T
+
+  constructor(initArgs: ActionTaskParams<T>) {
+    const { action } = initArgs
+    super({ ...initArgs, version: action.versionString() })
+    this.action = action
+  }
 }
 
 export function getServiceStatuses(dependencyResults: GraphResults): { [name: string]: ServiceStatus } {

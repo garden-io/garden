@@ -173,7 +173,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     buildLog,
     fetched: false,
     fresh: true,
-    version: action.getVersionString(),
+    version: action.versionString(),
     outputs,
   }
 }

@@ -16,7 +16,7 @@ import { KubernetesServerResource } from "../types"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
 import { getTargetResource, isWorkload } from "../util"
 import { startDevModeSyncs } from "../dev-mode"
-import { isConfiguredForDevMode, isConfiguredForLocalMode } from "../status/status"
+import { isConfiguredForLocalMode } from "../status/status"
 import { KubeApi } from "../api"
 import Bluebird from "bluebird"
 import { getK8sIngresses } from "../status/ingress"
@@ -115,44 +115,17 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
           query: resourceSpec,
         })
 
-        await Bluebird.map(spec.devMode.syncs, async (syncSpec) => {
-          const resourceSpec = syncSpec.target || spec.defaultTarget
-
-          if (!resourceSpec) {
-            // Note: This is caught elsewhere with a warning
-            return
-          }
-
-          const target = await getTargetResource({
-            ctx: k8sCtx,
-            log,
-            provider: k8sCtx.provider,
-            action,
-            manifests: deployedResources,
-            resourceSpec,
-          })
-
-          // Make sure we don't fail if the service isn't actually properly configured (we don't want to throw in the
-          // status handler, generally)
-          if (!isConfiguredForDevMode(target)) {
-            state = "outdated"
-            return
-          }
+        await startDevModeSyncs({
+          ctx: k8sCtx,
+          log,
+          action,
+          actionDefaults: spec.devMode.defaults || {},
+          defaultTarget: spec.defaultTarget,
+          basePath: action.basePath(),
+          defaultNamespace,
+          manifests: deployedResources,
+          syncs: spec.devMode.syncs,
         })
-
-        if (state === "ready") {
-          await startDevModeSyncs({
-            ctx: k8sCtx,
-            log,
-            action,
-            actionDefaults: spec.devMode.defaults || {},
-            defaultTarget: spec.defaultTarget,
-            basePath: action.getBasePath(),
-            defaultNamespace,
-            manifests: deployedResources,
-            syncs: spec.devMode.syncs,
-          })
-        }
       }
     }
   }
@@ -160,7 +133,7 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
   return {
     forwardablePorts,
     state,
-    version: state === "ready" ? action.getVersionString() : undefined,
+    version: state === "ready" ? action.versionString() : undefined,
     detail,
     devMode: deployedWithDevMode,
     localMode: deployedWithLocalMode,
@@ -249,7 +222,7 @@ export async function getReleaseStatus({
         (localMode && !localModeEnabled) ||
         (!localMode && localModeEnabled) || // this is still a valid case for local-mode
         !deployedVersion ||
-        deployedVersion !== action.getVersionString()
+        deployedVersion !== action.versionString()
       ) {
         state = "outdated"
       }

@@ -98,14 +98,14 @@ const helpers = {
       const imageTag = splitFirst(explicitImage, ":")[1]
       const parsedImage = helpers.parseImageId(explicitImage)
       if (!tag) {
-        tag = imageTag || action.getVersionString()
+        tag = imageTag || action.versionString()
       }
       return helpers.unparseImageId({ ...parsedImage, tag })
     } else {
       const localImageName = action.name
       const parsedImage = helpers.parseImageId(localImageName)
       if (!tag) {
-        tag = action.getVersionString()
+        tag = action.versionString()
       }
       return helpers.unparseImageId({ ...parsedImage, tag })
     }
@@ -346,7 +346,7 @@ const helpers = {
     // If we explicitly set a Dockerfile, we take that to mean you want it to be built.
     // If the file turns out to be missing, this will come up in the build handler.
     const dockerfile = action.getSpec("dockerfile")
-    const dockerfileSourcePath = getDockerfilePath(action.getBasePath(), dockerfile)
+    const dockerfileSourcePath = getDockerfilePath(action.basePath(), dockerfile)
     return action.getFullVersion().files.includes(dockerfileSourcePath)
   },
 

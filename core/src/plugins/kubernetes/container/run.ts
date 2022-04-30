@@ -27,7 +27,7 @@ export const k8sRunContainerBuild: BuildActionHandler<"run", ContainerBuildActio
     action,
     image,
     namespace: namespaceStatus.namespaceName,
-    version: action.getVersionString(),
+    version: action.versionString(),
   })
 
   return {
@@ -56,7 +56,7 @@ export const k8sRunContainerDeploy: DeployActionHandler<"run", ContainerDeployAc
     interactive,
     runtimeContext,
     namespace: namespaceStatus.namespaceName,
-    version: action.getVersionString(),
+    version: action.versionString(),
     privileged,
     addCapabilities,
     dropCapabilities,
@@ -100,7 +100,7 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
     podName: makePodName("Run", action.name),
     timeout: action.getConfig("timeout"),
     volumes,
-    version: action.getVersionString(),
+    version: action.versionString(),
     privileged,
     addCapabilities,
     dropCapabilities,

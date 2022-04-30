@@ -67,24 +67,7 @@ export class StageBuildTask extends BaseTask {
   }
 
   async process(): Promise<BuildResult> {
-    let log: LogEntry | undefined = undefined
 
-    if (this.module.version.files.length > 0) {
-      log = this.log.verbose({
-        section: this.getName(),
-        msg: `Syncing module sources (${pluralize("file", this.module.version.files.length, true)})...`,
-        status: "active",
-      })
-    }
-
-    await this.garden.buildStaging.syncFromSrc(this.module, log || this.log)
-
-    if (log) {
-      log.setSuccess({
-        msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
-        append: true,
-      })
-    }
 
     return {}
   }

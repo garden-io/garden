@@ -128,7 +128,7 @@ export function getDockerBuildArgs(action: ContainerBuildAction) {
   const specBuildArgs = action.getSpec("buildArgs")
 
   const buildArgs: PrimitiveMap = {
-    GARDEN_MODULE_VERSION: action.getVersionString(),
+    GARDEN_MODULE_VERSION: action.versionString(),
     ...specBuildArgs,
   }
 

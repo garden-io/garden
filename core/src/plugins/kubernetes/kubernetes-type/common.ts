@@ -102,7 +102,7 @@ export async function readManifests(
   log: LogEntry,
   readFromSrcDir = false
 ) {
-  const manifestPath = readFromSrcDir ? action.getBasePath() : action.getBuildPath()
+  const manifestPath = readFromSrcDir ? action.basePath() : action.getBuildPath()
 
   const spec = action.getSpec()
 
@@ -233,6 +233,6 @@ export async function runOrTest(
     namespace,
     podName: makePodName(action.kind.toLowerCase(), action.name),
     timeout: timeout || DEFAULT_TASK_TIMEOUT,
-    version: action.getVersionString(),
+    version: action.versionString(),
   })
 }

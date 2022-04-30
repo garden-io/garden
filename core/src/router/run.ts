@@ -25,10 +25,10 @@ export const runRouter = (baseParams: BaseRouterParams) =>
       const artifactsPath = normalizePath(await realpath(tmpDir.path))
 
       const actionName = action.name
-      const actionVersion = action.getVersionString()
+      const actionVersion = action.versionString()
       const taskName = actionName
       const taskVersion = actionVersion
-      const moduleName = action.getModuleName()
+      const moduleName = action.moduleName()
       const moduleVersion = actionVersion
 
       garden.events.emit("taskStatus", {
@@ -101,10 +101,10 @@ export const runRouter = (baseParams: BaseRouterParams) =>
       })
 
       const actionName = action.name
-      const actionVersion = action.getVersionString()
+      const actionVersion = action.versionString()
       const taskName = actionName
       const taskVersion = actionVersion
-      const moduleName = action.getModuleName()
+      const moduleName = action.moduleName()
       const moduleVersion = actionVersion
 
       garden.events.emit("taskStatus", {

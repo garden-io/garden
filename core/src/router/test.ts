@@ -25,10 +25,10 @@ export const testRouter = (baseParams: BaseRouterParams) =>
       const actionUid = uuidv4()
 
       const actionName = action.name
-      const actionVersion = action.getVersionString()
+      const actionVersion = action.versionString()
       const testName = actionName
       const testVersion = actionVersion
-      const moduleName = action.getModuleName()
+      const moduleName = action.moduleName()
       const moduleVersion = actionVersion
 
       garden.events.emit("testStatus", {
@@ -100,13 +100,13 @@ export const testRouter = (baseParams: BaseRouterParams) =>
       })
 
       const actionName = action.name
-      const actionVersion = action.getVersionString()
+      const actionVersion = action.versionString()
 
       garden.events.emit("testStatus", {
         actionName,
         actionVersion,
         testName: actionName,
-        moduleName: action.getModuleName(),
+        moduleName: action.moduleName(),
         moduleVersion: actionVersion,
         testVersion: actionVersion,
         status: runStatus(result.result),

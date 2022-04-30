@@ -195,7 +195,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
   constructor(protected readonly kind: K, params: BaseRouterParams) {
     super(params)
 
-    this.handlerDescriptions = <any>getActionTypeHandlerDescriptions()[kind]
+    this.handlerDescriptions = <any>getActionTypeHandlerDescriptions(kind)
     const handlerNames: (keyof ActionTypeClasses<K>)[] = <any>Object.keys(this.handlerDescriptions)
     this.handlers = <any>fromPairs(handlerNames.map((n) => [n, {}]))
 
@@ -213,7 +213,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       for (const spec of extended) {
         for (const handlerType of handlerNames) {
           const handler = spec.handlers[handlerType]
-          handler && this.addHandler(plugin, <any>handlerType, spec.name, handler)
+          handler && this.addHandler(plugin, handlerType, spec.name, handler)
         }
       }
     }

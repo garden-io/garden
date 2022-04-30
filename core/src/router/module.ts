@@ -137,7 +137,14 @@ export class ModuleRouter extends BaseRouter {
       ...params,
     }
 
-    return handler(<any>handlerParams)
+    const result = await handler(<any>handlerParams)
+
+    // TODO-G2: Ensure some fields get copied over correctly
+    // (path, configPath, templateName, plugin, disabled, allowPublish, variables+varfiles on Group)
+    // Validate action names
+    // Dedupe dependencies on actions
+
+    return result
   }
 
   async getModuleOutputs<T extends GardenModule>(
