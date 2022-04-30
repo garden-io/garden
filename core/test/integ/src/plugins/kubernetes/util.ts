@@ -10,7 +10,7 @@ import { expect } from "chai"
 import { flatten, find, first } from "lodash"
 import stripAnsi from "strip-ansi"
 import { TestGarden, expectError } from "../../../../helpers"
-import { ConfigGraph } from "../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../src/graph/config-graph"
 import { Provider } from "../../../../../src/config/provider"
 import { DeployTask } from "../../../../../src/tasks/deploy"
 import { KubeApi } from "../../../../../src/plugins/kubernetes/api"
@@ -22,7 +22,7 @@ import {
 import {
   getWorkloadPods,
   getServiceResourceSpec,
-  getServiceResource,
+  getTargetResource,
   getResourceContainer,
   getResourcePodSpec,
 } from "../../../../../src/plugins/kubernetes/util"
@@ -95,9 +95,8 @@ describe("util", () => {
           graph,
           log: garden.log,
           service,
-          devModeServiceNames: [],
-
-          localModeServiceNames: [],
+          devModeDeployNames: [],
+          localModeDeployNames: [],
         })
 
         const resource = await createWorkloadManifest({
@@ -137,9 +136,8 @@ describe("util", () => {
           graph,
           log: garden.log,
           service,
-          devModeServiceNames: [],
-
-          localModeServiceNames: [],
+          devModeDeployNames: [],
+          localModeDeployNames: [],
         })
 
         const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
@@ -231,13 +229,13 @@ describe("util", () => {
         log,
         version: module.version.versionString,
       })
-      const result = await getServiceResource({
+      const result = await getTargetResource({
         ctx,
         log,
         provider: ctx.provider,
         module,
         manifests,
-        resourceSpec: getServiceResourceSpec(module, undefined),
+        query: getServiceResourceSpec(module, undefined),
       })
       const expected = find(manifests, (r) => r.kind === "Deployment")
       expect(result).to.eql(expected)
@@ -256,13 +254,13 @@ describe("util", () => {
       delete module.spec.serviceResource
       await expectError(
         () =>
-          getServiceResource({
+          getTargetResource({
             ctx,
             log,
             provider: ctx.provider,
             module,
             manifests,
-            resourceSpec: getServiceResourceSpec(module, undefined),
+            query: getServiceResourceSpec(module, undefined),
           }),
         (err) =>
           expect(stripAnsi(err.message)).to.equal(
@@ -289,13 +287,13 @@ describe("util", () => {
       }
       await expectError(
         () =>
-          getServiceResource({
+          getTargetResource({
             ctx,
             log,
             provider: ctx.provider,
             module,
             manifests,
-            resourceSpec,
+            query: resourceSpec,
           }),
         (err) => expect(stripAnsi(err.message)).to.equal("helm module api contains no DaemonSets.")
       )
@@ -317,13 +315,13 @@ describe("util", () => {
       }
       await expectError(
         () =>
-          getServiceResource({
+          getTargetResource({
             ctx,
             log,
             provider: ctx.provider,
             module,
             manifests,
-            resourceSpec,
+            query: resourceSpec,
           }),
         (err) => expect(stripAnsi(err.message)).to.equal("helm module api does not contain specified Deployment foo")
       )
@@ -344,13 +342,13 @@ describe("util", () => {
 
       await expectError(
         () =>
-          getServiceResource({
+          getTargetResource({
             ctx,
             log,
             provider: ctx.provider,
             module,
             manifests,
-            resourceSpec: getServiceResourceSpec(module, undefined),
+            query: getServiceResourceSpec(module, undefined),
           }),
         (err) =>
           expect(stripAnsi(err.message)).to.equal(
@@ -371,13 +369,13 @@ describe("util", () => {
         version: module.version.versionString,
       })
       module.spec.serviceResource.name = `{{ template "postgresql.primary.fullname" . }}`
-      const result = await getServiceResource({
+      const result = await getTargetResource({
         ctx,
         log,
         provider: ctx.provider,
         module,
         manifests,
-        resourceSpec: getServiceResourceSpec(module, undefined),
+        query: getServiceResourceSpec(module, undefined),
       })
       const expected = find(manifests, (r) => r.kind === "StatefulSet")
       expect(result).to.eql(expected)
@@ -394,9 +392,8 @@ describe("util", () => {
           graph: helmGraph,
           log: helmGarden.log,
           service,
-          devModeServiceNames: [],
-
-          localModeServiceNames: [],
+          devModeDeployNames: [],
+          localModeDeployNames: [],
         })
 
         await helmGarden.processTasks([deployTask], { throwOnError: true })
@@ -411,14 +408,14 @@ describe("util", () => {
           },
         }
 
-        const pod = await getServiceResource({
+        const pod = await getTargetResource({
           ctx,
           log,
           provider: ctx.provider,
           module,
           manifests: [],
 
-          resourceSpec,
+          query: resourceSpec,
         })
 
         expect(pod.kind).to.equal("Pod")
@@ -437,14 +434,14 @@ describe("util", () => {
 
         await expectError(
           () =>
-            getServiceResource({
+            getTargetResource({
               ctx,
               log,
               provider: ctx.provider,
               module,
               manifests: [],
 
-              resourceSpec,
+              query: resourceSpec,
             }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(

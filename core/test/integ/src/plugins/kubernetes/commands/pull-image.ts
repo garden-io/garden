@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { pullModule } from "../../../../../../src/plugins/kubernetes/commands/pull-image"
+import { pullBuild } from "../../../../../../src/plugins/kubernetes/commands/pull-image"
 import { Garden } from "../../../../../../src/garden"
-import { ConfigGraph } from "../../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { getContainerTestGarden } from "../container/container"
 import { k8sBuildContainer } from "../../../../../../src/plugins/kubernetes/container/build/build"
 import { PluginContext } from "../../../../../../src/plugin-context"
@@ -83,7 +83,7 @@ describe("pull-image plugin command", () => {
 
     it("should pull the image", async () => {
       await removeImage(module)
-      await pullModule(ctx as KubernetesPluginContext, module, garden.log)
+      await pullBuild({ ctx: ctx as KubernetesPluginContext, action: module, log: garden.log })
       await ensureImagePulled(module)
     })
   })
@@ -108,7 +108,7 @@ describe("pull-image plugin command", () => {
 
     it("should pull the image", async () => {
       await removeImage(module)
-      await pullModule(ctx as KubernetesPluginContext, module, garden.log)
+      await pullBuild({ ctx: ctx as KubernetesPluginContext, action: module, log: garden.log })
       await ensureImagePulled(module)
     })
   })

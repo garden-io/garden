@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ConfigGraph } from "../../config-graph"
+import { ConfigGraph } from "../../graph/config-graph"
 import { Command, CommandResult, CommandParams } from "../base"
 import { printHeader } from "../../logger/util"
 import { RunTaskResult } from "../../types/plugin/task/runTask"
@@ -59,7 +59,7 @@ export class GetTaskResultCommand extends Command<Args> {
 
     const actions = await garden.getActionRouter()
 
-    const taskResult = await actions.getTaskResult({
+    const taskResult = await actions.run.getResult({
       log,
       task,
       graph,

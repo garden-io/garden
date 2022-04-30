@@ -13,9 +13,30 @@ import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesPluginContext } from "../config"
 import { getSystemNamespace } from "../namespace"
 import { got, GotTextOptions } from "../../../util/http"
-import { ContainerResourcesSpec, ServiceLimitSpec } from "../../container/moduleConfig"
+import {
+  ContainerBuildAction,
+  ContainerResourcesSpec,
+  ContainerRuntimeAction,
+  ServiceLimitSpec,
+} from "../../container/moduleConfig"
 import { V1ResourceRequirements, V1SecurityContext } from "@kubernetes/client-node"
 import { kilobytesToString, millicpuToString } from "../util"
+import { ConfigurationError } from "../../../exceptions"
+
+export function getDeploymentImageId(action: ContainerRuntimeAction): string {
+  const explicitImage = action.getSpec().image
+  const build = action.getBuildAction<ContainerBuildAction>()
+
+  if (explicitImage) {
+    return explicitImage
+  } else if (build) {
+    return build.getOutput("deploymentImageId")
+  } else {
+    throw new ConfigurationError(`${action.longDescription()} specifies neither a \`build\` nor \`spec.image\``, {
+      config: action.getConfig(),
+    })
+  }
+}
 
 export async function queryRegistry(ctx: KubernetesPluginContext, log: LogEntry, path: string, opts?: GotTextOptions) {
   const registryFwd = await getRegistryPortForward(ctx, log)

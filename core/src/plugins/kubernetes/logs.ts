@@ -14,7 +14,6 @@ import { ServiceLogEntry } from "../../types/service"
 import { KubernetesResource, KubernetesPod, BaseResource } from "./types"
 import { getAllPods } from "./util"
 import { KubeApi } from "./api"
-import { GardenService } from "../../types/service"
 import Stream from "ts-stream"
 import { LogEntry } from "../../logger/log-entry"
 import Bluebird from "bluebird"
@@ -35,7 +34,7 @@ interface GetAllLogsParams {
   defaultNamespace: string
   log: LogEntry
   provider: KubernetesProvider
-  service: GardenService
+  actionName: string
   stream: Stream<ServiceLogEntry>
   follow: boolean
   tail?: number
@@ -48,7 +47,7 @@ interface GetAllLogsParams {
  */
 export async function streamK8sLogs(params: GetAllLogsParams) {
   const api = await KubeApi.factory(params.log, params.ctx, params.provider)
-  const entryConverter = makeServiceLogEntry(params.service.name)
+  const entryConverter = makeServiceLogEntry(params.actionName)
 
   if (params.follow) {
     const logsFollower = new K8sLogFollower({ ...params, entryConverter, k8sApi: api, log: params.ctx.log })

@@ -27,6 +27,8 @@ import { DependencyValidationGraph } from "./util/validate-dependencies"
 import { parse, resolve } from "path"
 import Bluebird from "bluebird"
 import { ModuleTypeMap } from "./types/module"
+import { ActionKind, actionKinds } from "./actions/base"
+import { ActionTypeDefinition } from "./plugin/action-types"
 
 export async function loadAndResolvePlugins(
   log: LogEntry,
@@ -236,7 +238,7 @@ function resolvePlugin(plugin: GardenPlugin, loadedPlugins: PluginMap, configs: 
       continue
     } else if (resolved.handlers[name]) {
       // Attach the overridden handler as a base, and attach metadata
-      resolved.handlers[name].base = Object.assign(handler, { actionType: name, pluginName: base.name })
+      resolved.handlers[name].base = Object.assign(handler, { handlerType: name, pluginName: base.name })
     } else {
       resolved.handlers[name] = handler
     }
@@ -370,6 +372,34 @@ export function getPluginDependencies(plugin: GardenPlugin, loadedPlugins: Plugi
   )
 }
 
+export type ActionDefinitionMap = {
+  [K in ActionKind]: {
+    [type: string]: ActionTypeDefinition<any>
+  }
+}
+
+/**
+ * Returns all the action types defined in the given list of plugins.
+ */
+export function getActionTypes(plugins: GardenPlugin[]): ActionDefinitionMap {
+  const map: ActionDefinitionMap = {
+    build: {},
+    deploy: {},
+    run: {},
+    test: {},
+  }
+
+  for (const p of plugins) {
+    for (const k of actionKinds) {
+      for (const d of p.createActionTypes[k]) {
+        map[k][d.name] = d
+      }
+    }
+  }
+
+  return map
+}
+
 /**
  * Returns all the module types defined in the given list of plugins.
  */
@@ -482,7 +512,7 @@ function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: GenericPr
 
         if (handler && baseHandler) {
           handler.base = cloneHandler(baseHandler)
-          handler.base!.actionType = handler.base!.actionType || name
+          handler.base!.handlerType = handler.base!.handlerType || name
           handler.base!.moduleType = handler.base!.moduleType || moduleType
           handler.base!.pluginName = handler.base!.pluginName || definition.plugin.name
         }
@@ -517,7 +547,7 @@ function resolveModuleDefinition(
       if (!handler) {
         continue
       }
-      handler.actionType = name
+      handler.handlerType = name
       handler.moduleType = spec.name
       handler.pluginName = plugin.name
     }
@@ -585,7 +615,7 @@ function resolveModuleDefinition(
 
       if (baseHandler) {
         handler.base = cloneHandler(baseHandler)
-        handler.base!.actionType = baseHandler!.actionType || name
+        handler.base!.handlerType = baseHandler!.handlerType || name
         handler.base!.moduleType = baseHandler!.moduleType || base.name
         handler.base!.pluginName = baseHandler!.pluginName || definitions[base.name].plugin.name
         break

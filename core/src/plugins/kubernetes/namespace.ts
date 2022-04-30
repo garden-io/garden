@@ -18,15 +18,11 @@ import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { LogEntry } from "../../logger/log-entry"
 import { gardenAnnotationKey } from "../../util/string"
 import dedent from "dedent"
-import { HelmModule } from "./helm/moduleConfig"
-import { KubernetesModule } from "./kubernetes-type/moduleConfig"
 import { V1Namespace } from "@kubernetes/client-node"
 import { isSubset } from "../../util/is-subset"
 import chalk from "chalk"
 import { NamespaceStatus } from "../../plugin/base"
-import { KubernetesServerResource } from "./types"
-import { HelmHeployAction } from "./helm/config"
-import { KubernetesDeployAction } from "./kubernetes-type/config"
+import { KubernetesServerResource, SupportedRuntimeActions } from "./types"
 
 const GARDEN_VERSION = getPackageVersion()
 
@@ -305,7 +301,7 @@ export async function getActionNamespace({
 }: {
   ctx: KubernetesPluginContext
   log: LogEntry
-  action: HelmHeployAction | KubernetesDeployAction
+  action: SupportedRuntimeActions
   provider: KubernetesProvider
   skipCreate?: boolean
 }): Promise<string> {
@@ -328,16 +324,21 @@ export async function getActionNamespaceStatus({
 }: {
   ctx: KubernetesPluginContext
   log: LogEntry
-  action: HelmHeployAction | KubernetesDeployAction
+  action: SupportedRuntimeActions
   provider: KubernetesProvider
   skipCreate?: boolean
 }): Promise<NamespaceStatus> {
-  const namespace = action.getSpec("namespace")
+  let namespace: string | undefined
+
+  // TODO-G2: add namespace field on container Deploy
+  if (action.type !== "container") {
+    namespace = action.getSpec().namespace
+  }
 
   return getNamespaceStatus({
     log,
     ctx,
-    override: module.spec?.namespace ? { name: module.spec.namespace } : undefined,
+    override: namespace ? { name: namespace } : undefined,
     provider,
     skipCreate,
   })

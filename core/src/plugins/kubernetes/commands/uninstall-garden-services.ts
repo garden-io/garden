@@ -28,19 +28,19 @@ export const uninstallGardenServices: PluginCommand = {
     const actions = await sysGarden.getActionRouter()
 
     const graph = await sysGarden.getConfigGraph({ log, emit: false })
-    const services = graph.getServices()
+    const deploys = graph.getDeploys()
 
     log.info("")
 
-    const serviceNames = services.map((s) => s.name)
-    const serviceStatuses = await actions.deleteServices(graph, log, serviceNames)
+    const deployNames = deploys.map((s) => s.name)
+    const statuses = await actions.deleteDeploys(graph, log, deployNames)
 
     log.info("")
 
-    const environmentStatuses = await actions.cleanupAll(log)
+    const environmentStatuses = await actions.provider.cleanupAll(log)
 
     log.info(chalk.green("\nDone!"))
 
-    return { result: { serviceStatuses, environmentStatuses } }
+    return { result: { serviceStatuses: statuses, environmentStatuses } }
   },
 }

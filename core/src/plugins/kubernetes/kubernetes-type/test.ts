@@ -6,79 +6,65 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DEFAULT_TEST_TIMEOUT } from "../../../constants"
 import { storeTestResult } from "../test-results"
-import { KubernetesModule } from "./moduleConfig"
-import { runAndCopy } from "../run"
 import { KubernetesPluginContext } from "../config"
-import { TestModuleParams } from "../../../types/plugin/module/testModule"
-import { TestResult } from "../../../types/test"
 import { getActionNamespaceStatus } from "../namespace"
-import { KubeApi } from "../api"
-import { getManifests } from "./common"
-import {
-  getServiceResourceSpec,
-  getServiceResource,
-  getResourceContainer,
-  makePodName,
-  getResourcePodSpec,
-} from "../util"
+import { runOrTest } from "./common"
+import { KubernetesRunActionSpec, KubernetesRunOutputs, kubernetesRunOutputsSchema, kubernetesRunSchema } from "./run"
+import { TestAction, TestActionConfig } from "../../../actions/test"
+import { TestActionDefinition } from "../../../plugin/action-types"
+import { dedent } from "../../../util/string"
+import { k8sGetTestResult } from "../test-results"
 
-export async function testKubernetesModule(params: TestModuleParams<KubernetesModule>): Promise<TestResult> {
-  const { ctx, log, action, test } = params
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const namespaceStatus = await getActionNamespaceStatus({
-    ctx: k8sCtx,
-    log,
-    action,
-    provider: k8sCtx.provider,
-  })
-  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
-  const namespace = namespaceStatus.namespaceName
+interface KubernetesTestOutputs extends KubernetesRunOutputs {}
+const kubernetesTestOutputsSchema = () => kubernetesRunOutputsSchema()
 
-  // Get the container spec to use for running
-  const manifests = await getManifests({ ctx, api, log, action, defaultNamespace: namespace })
-  const resourceSpec = test.config.spec.resource || getServiceResourceSpec(module, undefined)
-  const target = await getServiceResource({
-    ctx: k8sCtx,
-    log,
-    provider: k8sCtx.provider,
-    manifests,
-    module,
-    resourceSpec,
-  })
-  const container = getResourceContainer(target, resourceSpec.containerName)
+interface KubernetesTestActionSpec extends KubernetesRunActionSpec {}
+export type KubernetesTestActionConfig = TestActionConfig<"kubernetes", KubernetesTestActionSpec>
+export type KubernetesTestAction = TestAction<KubernetesTestActionConfig, KubernetesTestOutputs>
 
-  const testName = test.name
-  const { command, args } = test.config.spec
-  const image = container.image!
-  const timeout = test.config.timeout || DEFAULT_TEST_TIMEOUT
+const kubernetesTestSchema = () => kubernetesRunSchema()
 
-  const result = await runAndCopy({
-    ...params,
-    container,
-    podSpec: getResourcePodSpec(target),
-    command,
-    args,
-    artifacts: test.config.spec.artifacts,
-    envVars: test.config.spec.env,
-    image,
-    namespace,
-    podName: makePodName("test", module.name, testName),
-    description: `Test '${testName}' in container module '${module.name}'`,
-    timeout,
-    version: test.version,
-  })
+export const kubernetesTestDefinition = (): TestActionDefinition<KubernetesTestAction> => ({
+  name: "kubernetes-pod",
+  docs: dedent`
+    Run a test in an ad-hoc instance of a Kubernetes Pod.
 
-  return storeTestResult({
-    ctx: k8sCtx,
-    log,
-    module,
-    test,
-    result: {
-      testName,
-      namespaceStatus,
-      ...result,
+    TODO-G2
+  `,
+  schema: kubernetesTestSchema(),
+  outputsSchema: kubernetesTestOutputsSchema(),
+  handlers: {
+    run: async (params) => {
+      // TODO-G2: dedupe code from Run handler, does a lot of the same thing
+      const { ctx, log, action } = params
+      const k8sCtx = <KubernetesPluginContext>ctx
+      const namespaceStatus = await getActionNamespaceStatus({
+        ctx: k8sCtx,
+        log,
+        action,
+        provider: k8sCtx.provider,
+      })
+      const namespace = namespaceStatus.namespaceName
+
+      const res = await runOrTest({ ...params, ctx: k8sCtx, namespace })
+
+      const result = {
+        testName: action.name,
+        namespaceStatus,
+        ...res,
+      }
+
+      await storeTestResult({
+        ctx: k8sCtx,
+        log,
+        action,
+        result,
+      })
+
+      return { result, outputs: { log: res.log } }
     },
-  })
-}
+
+    getResult: k8sGetTestResult,
+  },
+})

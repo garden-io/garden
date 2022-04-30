@@ -12,9 +12,6 @@ import { KubernetesPluginContext } from "../config"
 import { PluginError, ParameterError } from "../../../exceptions"
 import { PluginCommand } from "../../../plugin/command"
 import chalk from "chalk"
-import { GardenModule } from "../../../types/module"
-import { findByNames } from "../../../util/util"
-import { filter, map } from "lodash"
 import { KubeApi } from "../api"
 import { LogEntry } from "../../../logger/log-entry"
 import { containerHelpers } from "../../container/helpers"
@@ -25,6 +22,8 @@ import { getAppNamespace, getSystemNamespace } from "../namespace"
 import { randomString } from "../../../util/string"
 import { PluginContext } from "../../../plugin-context"
 import { ensureBuilderSecret } from "../container/build/common"
+import { ContainerBuildAction } from "../../container/config"
+import { k8sGetContainerBuildActionOutputs } from "../container/handlers"
 
 const tmpTarPath = "/tmp/image.tar"
 const imagePullTimeoutSeconds = 60 * 20
@@ -33,9 +32,9 @@ export const pullImage: PluginCommand = {
   name: "pull-image",
   description: "Pull built images from a remote registry to a local docker daemon",
   title: "Pull images from a remote registry",
-  resolveModules: true,
+  resolveGraph: true,
 
-  handler: async ({ ctx, args, log, modules }) => {
+  handler: async ({ ctx, args, log, graph }) => {
     const result = {}
     const k8sCtx = ctx as KubernetesPluginContext
     const provider = k8sCtx.provider
@@ -46,10 +45,19 @@ export const pullImage: PluginCommand = {
       })
     }
 
-    const modulesToPull = findModules(modules, args)
-    log.info({ msg: chalk.cyan(`\nPulling images for ${modulesToPull.length} modules`) })
+    const buildsToPull = graph.getBuilds({ names: args.length > 0 ? args : undefined }).filter((b) => {
+      const valid = b.isCompatible("container")
+      if (!valid && args.includes(b.name)) {
+        throw new ParameterError(chalk.red(`Build ${chalk.white(b.name)} is not a container build.`), {
+          name: b.name,
+        })
+      }
+      return valid
+    })
 
-    await pullModules(k8sCtx, modulesToPull, log)
+    log.info({ msg: chalk.cyan(`\nPulling images for ${buildsToPull.length} builds`) })
+
+    await pullBuilds(k8sCtx, buildsToPull, log)
 
     log.info({ msg: chalk.green("\nDone!"), status: "success" })
 
@@ -57,60 +65,32 @@ export const pullImage: PluginCommand = {
   },
 }
 
-function findModules(modules: GardenModule[], names: string[]): GardenModule[] {
-  let foundModules: GardenModule[]
-
-  if (!names || names.length === 0) {
-    foundModules = modules
-  } else {
-    foundModules = findByNames(names, modules, "modules")
-  }
-
-  ensureAllModulesValid(foundModules)
-
-  return foundModules
-}
-
-function ensureAllModulesValid(modules: GardenModule[]) {
-  const invalidModules = filter(modules, (module) => {
-    return !module.compatibleTypes.includes("container") || !containerHelpers.moduleHasDockerfile(module, module.version)
-  })
-
-  if (invalidModules.length > 0) {
-    const invalidModuleNames = map(invalidModules, (module) => {
-      return module.name
-    })
-
-    throw new ParameterError(chalk.red(`Modules ${chalk.white(invalidModuleNames)} are not container modules.`), {
-      invalidModuleNames,
-      compatibleTypes: "container",
-    })
-  }
-}
-
-async function pullModules(ctx: KubernetesPluginContext, modules: GardenModule[], log: LogEntry) {
+async function pullBuilds(ctx: KubernetesPluginContext, builds: ContainerBuildAction[], log: LogEntry) {
   await Promise.all(
-    modules.map(async (module) => {
-      const remoteId = action.getSpec("publishId") || action.getOutput("deploymentImageId")
-      const localId = module.outputs["local-image-id"]
+    builds.map(async (action) => {
+      const outputs = k8sGetContainerBuildActionOutputs({ provider: ctx.provider, action })
+      const remoteId = action.getSpec("publishId") || outputs.deploymentImageId
+      const localId = outputs.localImageId
       log.info({ msg: chalk.cyan(`Pulling image ${remoteId} to ${localId}`) })
-      await pullModule(ctx, module, log)
+      await pullBuild({ ctx, action, log, localId, remoteId })
       log.info({ msg: chalk.green(`\nPulled image: ${remoteId} -> ${localId}`) })
     })
   )
 }
 
-export async function pullModule(ctx: KubernetesPluginContext, module: GardenModule, log: LogEntry) {
-  const localId = module.outputs["local-image-id"]
-  await pullFromExternalRegistry(ctx, module, log, localId)
+interface PullParams {
+  ctx: KubernetesPluginContext
+  action: ContainerBuildAction
+  log: LogEntry
+  localId: string
+  remoteId: string
 }
 
-async function pullFromExternalRegistry(
-  ctx: KubernetesPluginContext,
-  module: GardenModule,
-  log: LogEntry,
-  localId: string
-) {
+export async function pullBuild(params: PullParams) {
+  await pullFromExternalRegistry(params)
+}
+
+async function pullFromExternalRegistry({ ctx, log, localId, remoteId }: PullParams) {
   const api = await KubeApi.factory(log, ctx, ctx.provider)
   const buildMode = ctx.provider.config.buildMode
 
@@ -133,8 +113,6 @@ async function pullFromExternalRegistry(
     authSecretName = systemDockerAuthSecretName
   }
 
-  const imageId = module.outputs["deployment-image-id"]
-
   // See https://github.com/containers/skopeo for how all this works and the syntax
   const skopeoCommand = [
     "skopeo",
@@ -142,7 +120,7 @@ async function pullFromExternalRegistry(
     "--insecure-policy",
     "copy",
     "--quiet",
-    `docker://${imageId}`,
+    `docker://${remoteId}`,
     `docker-archive:${tmpTarPath}:${localId}`,
   ]
 
@@ -192,7 +170,7 @@ async function pullFromExternalRegistry(
     },
   })
 
-  log.debug(`Pulling image ${imageId} from registry to local docker`)
+  log.debug(`Pulling image ${remoteId} from registry to local docker`)
 
   try {
     await runner.start({ log })
@@ -208,9 +186,9 @@ async function pullFromExternalRegistry(
     log.debug(`Loading image to local docker with ID ${localId}`)
     await loadImage({ ctx, runner, log })
   } catch (err) {
-    throw new RuntimeError(`Failed pulling image ${imageId}: ${err.message}`, {
+    throw new RuntimeError(`Failed pulling image ${remoteId}: ${err.message}`, {
       err,
-      imageId,
+      remoteId,
       localId,
     })
   } finally {

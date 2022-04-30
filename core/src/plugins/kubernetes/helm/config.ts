@@ -7,14 +7,21 @@
  */
 
 import { DeepPrimitiveMap, joi, joiIdentifier, joiPrimitive, joiSparseArray } from "../../../config/common"
-import { namespaceNameSchema, PortForwardSpec, portForwardsSchema } from "../config"
-import { KubernetesDeployDevModeSpec } from "../dev-mode"
+import {
+  KubernetesTargetResourceSpec,
+  namespaceNameSchema,
+  PortForwardSpec,
+  portForwardsSchema,
+  targetResourceSpecSchema,
+} from "../config"
+import { kubernetesDeployDevModeSchema, KubernetesDeployDevModeSpec } from "../dev-mode"
 import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
 import { dedent, deline } from "../../../util/string"
 
 // DEPLOY //
 
 export const defaultHelmTimeout = 300
+export const defaultHelmRepo = "https://charts.helm.sh/stable"
 
 interface HelmDeployActionSpec {
   atomicInstall: boolean
@@ -24,11 +31,12 @@ interface HelmDeployActionSpec {
     repo?: string // Formerly `repo`
     version?: string // Formerly `version`
   }
+  defaultTarget?: KubernetesTargetResourceSpec
   devMode?: KubernetesDeployDevModeSpec
   namespace?: string
   portForwards?: PortForwardSpec[]
   releaseName?: string
-  timeout?: number
+  timeout: number
   values: DeepPrimitiveMap
   valueFiles: string[]
 }
@@ -90,8 +98,24 @@ export const helmChartNameSchema = () =>
     )
     .example("ingress-nginx")
 
-export const helmChartRepoSchema = () => joi.string().description("The repository URL to fetch the chart from.")
+export const helmChartRepoSchema = () =>
+  joi
+    .string()
+    .description(`The repository URL to fetch the chart from. Defaults to the "stable" helm repo (${defaultHelmRepo}).`)
 export const helmChartVersionSchema = () => joi.string().description("The chart version to deploy.")
+
+export const defaultTargetSchema = () =>
+  targetResourceSpecSchema().description(
+    dedent`
+    Specify a default resource in the deployment to use for dev mode syncs, \`garden exec\` and \`garden run deploy\` commands.
+
+    Specify either \`kind\` and \`name\`, or a \`podSelector\`. The resource should be one of the resources deployed by this action (otherwise the target is not guaranteed to be deployed with adjustments required for syncing).
+
+    Set \`containerName\` to specify a container to connect to in the remote Pod. By default the first container in the Pod is used.
+
+    Note that if you specify \`podSelector\` here, it is not validated to be a selector matching one of the resources deployed by the action.
+    `
+  )
 
 export const helmDeploySchema = () =>
   joi.object().keys({
@@ -109,6 +133,7 @@ export const helmDeploySchema = () =>
         repo: helmChartRepoSchema(),
         version: helmChartVersionSchema(),
       })
+      .with("name", ["version"])
       .without("path", ["name", "repo", "version"])
       .description(
         dedent`
@@ -116,13 +141,15 @@ export const helmDeploySchema = () =>
 
         If the chart is defined in the same directory as the action, you can skip this, and the chart sources will be detected. If the chart is in the source tree but in a sub-directory, you should set \`chart.path\` to the directory path, relative to the action directory.
 
-        If the chart is remote, you should specify \`chart.name\`, and optionally \`chart.repo\` and/or \`chart.version\`.
+        If the chart is remote, you must specify \`chart.name\` and \`chart.version\, and optionally \`chart.repo\` (if the chart is not in the default "stable" repo).
         `
       ),
+    defaultTarget: defaultTargetSchema(),
+    devMode: kubernetesDeployDevModeSchema(),
   })
 
 export type HelmDeployConfig = DeployActionConfig<"helm", HelmDeployActionSpec>
-export type HelmHeployAction = DeployAction<HelmDeployConfig, {}>
+export type HelmDeployAction = DeployAction<HelmDeployConfig, {}>
 
 // NOTE: Runs and Tests are handled as `kubernetes` Run and Test actions
 

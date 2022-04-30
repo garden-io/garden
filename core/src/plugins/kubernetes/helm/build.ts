@@ -8,63 +8,41 @@
 
 import { move } from "fs-extra"
 import tmp from "tmp-promise"
-import { HelmModule } from "./moduleConfig"
-import { containsBuildSource, getBaseModule, getChartPath } from "./common"
+import { getChartPath } from "./common"
 import { helm } from "./helm-cli"
-import { ConfigurationError } from "../../../exceptions"
-import { deline } from "../../../util/string"
 import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesPluginContext } from "../config"
-import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
 import { basename, join } from "path"
+import { defaultHelmRepo, HelmDeployAction } from "./config"
 
-export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<HelmModule>): Promise<BuildResult> {
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const baseModule = getBaseModule(module)
-
-  if (!baseModule && !(await containsBuildSource(module))) {
-    if (!module.spec.chart) {
-      throw new ConfigurationError(
-        deline`Module '${module.name}' neither specifies a chart name, base module,
-        nor contains chart sources at \`chartPath\`.`,
-        { module }
-      )
-    }
-    log.debug("Fetching chart...")
-    try {
-      await pullChart(k8sCtx, log, module)
-    } catch {
-      // Update the local helm repos and retry
-      log.debug("Updating Helm repos...")
-      // The stable repo is no longer added by default
-      await helm({
-        ctx: k8sCtx,
-        log,
-        args: ["repo", "add", "stable", "https://charts.helm.sh/stable", "--force-update"],
-      })
-      await helm({ ctx: k8sCtx, log, args: ["repo", "update"] })
-      log.debug("Fetching chart (after updating)...")
-      await pullChart(k8sCtx, log, module)
-    }
-  }
-
-  return { fresh: true }
-}
-
-async function pullChart(ctx: KubernetesPluginContext, log: LogEntry, module: HelmModule) {
-  const chartPath = await getChartPath(module)
+export async function pullChart(ctx: KubernetesPluginContext, log: LogEntry, action: HelmDeployAction) {
+  const chartPath = await getChartPath(action)
   const chartDir = basename(chartPath)
+
+  const chartSpec = action.getSpec("chart") || {}
+
+  if (!chartSpec.name) {
+    // Nothing to pull
+    // TODO-G2: check if this is okay by the callers
+    return
+  }
 
   const tmpDir = await tmp.dir({ unsafeCleanup: true })
 
   try {
-    const args = ["pull", module.spec.chart!, "--untar", "--untardir", tmpDir.path]
+    const args = [
+      "pull",
+      chartSpec.name,
+      // Instead of implicitly adding and updating the "stable" repo, we set the stable repo URL as a default here
+      "--repo",
+      chartSpec.repo || defaultHelmRepo,
+      "--untar",
+      "--untardir",
+      tmpDir.path,
+    ]
 
-    if (module.spec.version) {
-      args.push("--version", module.spec.version)
-    }
-    if (module.spec.repo) {
-      args.push("--repo", module.spec.repo)
+    if (chartSpec.version) {
+      args.push("--version", chartSpec.version)
     }
 
     await helm({ ctx, log, args: [...args], cwd: tmpDir.path })

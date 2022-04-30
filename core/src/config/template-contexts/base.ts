@@ -15,10 +15,9 @@ import {
   TemplateStringMissingKeyException,
   TemplateStringPassthroughException,
 } from "../../template-string/template-string"
-import { joi } from "../common"
+import { isPrimitive, joi } from "../common"
 import { KeyedSet } from "../../util/keyed-set"
 import { naturalList } from "../../util/string"
-import { isPrimitive } from "util"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]

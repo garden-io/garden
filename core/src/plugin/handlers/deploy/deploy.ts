@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { actionParamsSchema, PluginDeployActionParamsBase } from "../../../plugin/base"
+import { actionParamsSchema, PluginDeployActionParamsBase } from "../../base"
 import { dedent } from "../../../util/string"
 import { RuntimeContext, runtimeContextSchema } from "../../../runtime-context"
 import { ServiceStatus, serviceStatusSchema } from "../../../types/service"
@@ -18,10 +18,11 @@ import { GetActionOutputType } from "../../../actions/base"
 interface DeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   devMode: boolean
   force: boolean
+  localMode: boolean
   runtimeContext: RuntimeContext
 }
 
-export class DeployDeployAction<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
+export class DoDeployAction<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "deploy",
   DeployParams<T>,
   ServiceStatus<any, GetActionOutputType<T>>
@@ -37,6 +38,7 @@ export class DeployDeployAction<T extends DeployAction = DeployAction> extends A
     actionParamsSchema().keys({
       devMode: joi.boolean().default(false).description("Whether the service should be configured in dev mode."),
       force: joi.boolean().description("Whether to force a re-deploy, even if the service is already deployed."),
+      localMode: joi.boolean().default(false).description("Whether the service should be configured in local mode."),
       runtimeContext: runtimeContextSchema(),
     })
 

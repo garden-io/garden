@@ -20,7 +20,7 @@ import {
 import { getReleaseName } from "../../../../../../src/plugins/kubernetes/helm/common"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { buildHelmModules, getHelmLocalModeTestGarden, getHelmTestGarden } from "./common"
-import { ConfigGraph } from "../../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { isWorkload } from "../../../../../../src/plugins/kubernetes/util"
 import Bluebird from "bluebird"
 import { CloudApi } from "../../../../../../src/cloud/api"
@@ -148,7 +148,7 @@ describe("deployHelmService", () => {
 
   after(async () => {
     const actions = await garden.getActionRouter()
-    await actions.deleteServices(graph, garden.log)
+    await actions.deleteDeploys(graph, garden.log)
     if (garden) {
       await garden.close()
     }

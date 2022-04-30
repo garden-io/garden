@@ -13,7 +13,7 @@ import { pathExists } from "fs-extra"
 import { expect } from "chai"
 import { join } from "path"
 import { Garden } from "../../../../../src/garden"
-import { ConfigGraph } from "../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../src/graph/config-graph"
 import { deline, randomString, dedent } from "../../../../../src/util/string"
 import { runAndCopy, PodRunner, prepareRunPodSpec } from "../../../../../src/plugins/kubernetes/run"
 import { KubeApi } from "../../../../../src/plugins/kubernetes/api"
@@ -23,7 +23,7 @@ import {
   ServiceResourceSpec,
 } from "../../../../../src/plugins/kubernetes/config"
 import {
-  getServiceResource,
+  getTargetResource,
   getResourceContainer,
   getServiceResourceSpec,
   getResourcePodSpec,
@@ -570,13 +570,13 @@ describe("kubernetes Pod runner functions", () => {
         module: helmModule,
         provider: helmCtx.provider,
       })
-      helmTarget = await getServiceResource({
+      helmTarget = await getTargetResource({
         ctx: helmCtx,
         log: helmLog,
         provider: helmCtx.provider,
         manifests: helmManifests,
         module: helmModule,
-        resourceSpec: helmResourceSpec,
+        query: helmResourceSpec,
       })
       helmContainer = getResourceContainer(helmTarget, helmResourceSpec.containerName)
     })
@@ -1212,7 +1212,7 @@ describe("kubernetes Pod runner functions", () => {
 
         const actions = await garden.getActionRouter()
         await garden.buildStaging.syncFromSrc(module, garden.log)
-        await actions.build({
+        await actions.build.build({
           module,
           log: garden.log,
           graph,
@@ -1252,7 +1252,7 @@ describe("kubernetes Pod runner functions", () => {
 
         const actions = await garden.getActionRouter()
         await garden.buildStaging.syncFromSrc(module, garden.log)
-        await actions.build({
+        await actions.build.build({
           module,
           log: garden.log,
           graph,

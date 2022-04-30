@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
+import type {
   KubernetesObject,
   V1DaemonSet,
   V1Deployment,
@@ -20,7 +20,12 @@ import {
   ExtensionsV1beta1Ingress,
 } from "@kubernetes/client-node"
 
-import { Omit } from "../../util/util"
+import type { Omit } from "../../util/util"
+import type { ContainerBuildAction, ContainerDeployAction, ContainerRunAction, ContainerTestAction } from "../container/config"
+import type { HelmDeployAction } from "./helm/config"
+import type { KubernetesDeployAction } from "./kubernetes-type/config"
+import { KubernetesRunAction } from "./kubernetes-type/run"
+import { KubernetesTestAction } from "./kubernetes-type/test"
 
 export interface BaseResource {
   apiVersion: string
@@ -88,5 +93,14 @@ export function isPodResource(resource: KubernetesWorkload | KubernetesPod): res
 
 export type SyncableResource = KubernetesWorkload | KubernetesPod
 export type SyncableKind = "Deployment" | "DaemonSet" | "StatefulSet"
-
 export const syncableKinds: string[] = ["Deployment", "DaemonSet", "StatefulSet"]
+
+export type SupportedRuntimeActions =
+  | ContainerBuildAction
+  | ContainerDeployAction
+  | ContainerTestAction
+  | ContainerRunAction
+  | HelmDeployAction
+  | KubernetesDeployAction
+  | KubernetesRunAction
+  | KubernetesTestAction

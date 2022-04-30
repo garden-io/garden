@@ -75,7 +75,7 @@ describe("PublishCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {
-        modules: undefined,
+        names: undefined,
       },
       opts: withDefaultGlobalOpts({
         "force-build": false,
@@ -91,8 +91,8 @@ describe("PublishCommand", () => {
       "publish.module-a": { published: true, identifier: undefined },
       "publish.module-b": { published: true, identifier: undefined },
       "publish.module-c": { published: false },
-      "stage-build.module-a": {},
-      "stage-build.module-b": {},
+
+
     })
 
     const { published } = result!
@@ -146,7 +146,7 @@ describe("PublishCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {
-        modules: undefined,
+        names: undefined,
       },
       opts: withDefaultGlobalOpts({
         "force-build": false,
@@ -173,7 +173,7 @@ describe("PublishCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {
-        modules: undefined,
+        names: undefined,
       },
       opts: withDefaultGlobalOpts({
         "force-build": false,
@@ -199,7 +199,7 @@ describe("PublishCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {
-        modules: undefined,
+        names: undefined,
       },
       opts: withDefaultGlobalOpts({
         "force-build": true,
@@ -213,8 +213,8 @@ describe("PublishCommand", () => {
       "publish.module-a": { published: true, identifier: undefined },
       "publish.module-b": { published: true, identifier: undefined },
       "publish.module-c": { published: false },
-      "stage-build.module-a": {},
-      "stage-build.module-b": {},
+
+
     })
   })
 
@@ -228,7 +228,7 @@ describe("PublishCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {
-        modules: ["module-a"],
+        names: ["module-a"],
       },
       opts: withDefaultGlobalOpts({
         "force-build": false,
@@ -239,7 +239,7 @@ describe("PublishCommand", () => {
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: false },
       "publish.module-a": { published: true, identifier: undefined },
-      "stage-build.module-a": {},
+
     })
   })
 
@@ -253,7 +253,7 @@ describe("PublishCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {
-        modules: ["module-c"],
+        names: ["module-c"],
       },
       opts: withDefaultGlobalOpts({
         "force-build": false,
@@ -276,7 +276,7 @@ describe("PublishCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {
-        modules: ["module-a"],
+        names: ["module-a"],
       },
       opts: withDefaultGlobalOpts({
         "force-build": false,
@@ -293,7 +293,7 @@ describe("PublishCommand", () => {
         published: false,
         message: chalk.yellow("No publish handler available for module type test"),
       },
-      "stage-build.module-a": {},
+
     })
   })
 })

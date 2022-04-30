@@ -21,17 +21,18 @@ export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerB
   action,
   log,
 }) => {
-  const identifier = await containerHelpers.imageExistsLocally(action, log, ctx)
+  const outputs = getContainerBuildActionOutputs(action)
+  const identifier = await containerHelpers.imageExistsLocally(outputs.localImageId, log, ctx)
 
   if (identifier) {
     log.debug({
-      section: action.name,
+      section: action.key(),
       msg: `Image ${identifier} already exists`,
       symbol: "info",
     })
   }
 
-  return { ready: !!identifier, outputs: getContainerBuildActionOutputs(action) }
+  return { ready: !!identifier, outputs }
 }
 
 export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> = async ({ ctx, action, log }) => {
@@ -93,13 +94,13 @@ export function getContainerBuildActionOutputs(action: ContainerBuildAction): Co
   const deploymentImageId = containerHelpers.getBuildDeploymentImageId(
     action.name,
     spec.localId,
-    action.version,
+    action.getFullVersion(),
     undefined
   )
 
   return {
     localImageName: containerHelpers.getLocalImageName(action.name, spec.localId),
-    localImageId: containerHelpers.getLocalImageId(action.name, spec.localId, action.version),
+    localImageId: containerHelpers.getLocalImageId(action.name, spec.localId, action.getFullVersion()),
     deploymentImageName,
     deploymentImageId,
   }
@@ -127,7 +128,7 @@ export function getDockerBuildArgs(action: ContainerBuildAction) {
   const specBuildArgs = action.getSpec("buildArgs")
 
   const buildArgs: PrimitiveMap = {
-    GARDEN_MODULE_VERSION: action.getVersionString(),
+    GARDEN_MODULE_VERSION: action.versionString(),
     ...specBuildArgs,
   }
 

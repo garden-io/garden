@@ -13,7 +13,7 @@ import { ServiceStatus, ServiceStatusMap, serviceStatusSchema } from "../types/s
 import { printHeader } from "../logger/util"
 import { DeleteSecretResult } from "../plugin/handlers/provider/deleteSecret"
 import { EnvironmentStatusMap } from "../plugin/handlers/provider/getEnvironmentStatus"
-import { deletedServiceStatuses, DeleteServiceTask } from "../tasks/delete-service"
+import { DeleteDeployTask, deletedServiceStatuses } from "../tasks/delete-service"
 import { joi, joiIdentifierMap } from "../config/common"
 import { environmentStatusSchema } from "../config/status"
 import { BooleanParameter, StringParameter, StringsParameter } from "../cli/params"
@@ -68,7 +68,7 @@ export class DeleteSecretCommand extends Command<typeof deleteSecretArgs> {
   async action({ garden, log, args }: CommandParams<DeleteSecretArgs>): Promise<CommandResult<DeleteSecretResult>> {
     const key = args.key!
     const actions = await garden.getActionRouter()
-    const result = await actions.deleteSecret({ log, pluginName: args.provider!, key })
+    const result = await actions.provider.deleteSecret({ log, pluginName: args.provider!, key })
 
     if (result.found) {
       log.info(`Deleted config key ${args.key}`)
@@ -138,8 +138,7 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
   }: CommandParams<{}, DeleteEnvironmentOpts>): Promise<CommandResult<DeleteEnvironmentResult>> {
     const actions = await garden.getActionRouter()
     const graph = await garden.getConfigGraph({ log, emit: true })
-    const serviceStatuses = await deleteServices({
-      garden,
+    const serviceStatuses = await actions.deleteDeploys({
       graph,
       log,
       dependantsFirst: opts["dependants-first"],
@@ -147,7 +146,7 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
 
     log.info("")
 
-    const providerStatuses = await actions.cleanupAll(log)
+    const providerStatuses = await actions.provider.cleanupAll(log)
 
     return { result: { serviceStatuses, providerStatuses } }
   }
@@ -223,6 +222,9 @@ export class DeleteServiceCommand extends Command<DeleteServiceArgs, DeleteServi
         ...services.flatMap((s) => graph.getDependants({ nodeType: "deploy", name: s.name, recursive: true }).deploy),
       ])
     }
+    const deleteServiceTasks = services.map((service) => {
+      return new DeleteDeployTask({ garden, graph, log, action: service })
+    })
 
     // --with-dependants implies --dependants-first
     const dependantsFirst = opts["dependants-first"] || opts["with-dependants"]
@@ -250,9 +252,9 @@ async function deleteServices({
   dependantsFirst: boolean
 }): Promise<{ [serviceName: string]: ServiceStatus }> {
   const services = graph.getServices({ names: serviceNames })
-  const deleteServiceNames = services.map((s) => s.name)
+  const deleteDeployNames = services.map((s) => s.name)
   const deleteServiceTasks = services.map((service) => {
-    return new DeleteServiceTask({ garden, graph, log, service, deleteServiceNames, dependantsFirst })
+    return new DeleteServiceTask({ garden, graph, log, service, deleteDeployNames, dependantsFirst })
   })
   return deletedServiceStatuses(await garden.processTasks(deleteServiceTasks))
 }

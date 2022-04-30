@@ -18,6 +18,7 @@ import { isConfigFilename, matchPath } from "./util/fs"
 import Bluebird from "bluebird"
 import { InternalError } from "./exceptions"
 import { EventEmitter } from "events"
+import { Action } from "./actions/base"
 
 // How long we wait between processing added files and directories
 const DEFAULT_BUFFER_INTERVAL = 1250
@@ -43,7 +44,7 @@ export class Watcher extends EventEmitter {
   private log: LogEntry
   private paths: string[]
   private skipPaths: string[]
-  private modules: GardenModule[]
+  private actions: Action[]
   private bufferInterval: number = DEFAULT_BUFFER_INTERVAL
   private watcher?: FSWatcher
   private buffer: { [path: string]: ChangedPath }
@@ -55,14 +56,14 @@ export class Watcher extends EventEmitter {
     garden,
     log,
     paths,
-    modules,
+    actions,
     skipPaths,
     bufferInterval,
   }: {
     garden: Garden
     log: LogEntry
     paths: string[]
-    modules: GardenModule[]
+    actions: Action[]
     skipPaths?: string[]
     bufferInterval?: number
   }) {
@@ -70,7 +71,7 @@ export class Watcher extends EventEmitter {
     this.garden = garden
     this.log = log
     this.paths = paths
-    this.modules = modules
+    this.actions = actions
     this.skipPaths = skipPaths || []
     this.bufferInterval = bufferInterval || DEFAULT_BUFFER_INTERVAL
     this.buffer = {}
@@ -108,7 +109,7 @@ export class Watcher extends EventEmitter {
       const ignored = [...projectExcludes, ...this.skipPaths]
       // TODO: filter paths based on module excludes as well
       //       (requires more complex logic to handle overlapping module sources).
-      // const moduleExcludes = flatten(this.modules.map((m) => (m.exclude || []).map((p) => resolve(m.path, p))))
+      // const moduleExcludes = flatten(this.actions.map((m) => (m.exclude || []).map((p) => resolve(m.path, p))))
 
       // We keep a single instance of FSWatcher to avoid segfault issues on Mac
       if (watcher) {
@@ -222,29 +223,31 @@ export class Watcher extends EventEmitter {
         continue
       }
 
-      // First filter modules by path prefix, and include/exclude filters if applicable
-      const applicableModules = this.modules.filter((m) => {
+      // First filter actions by path prefix, and include/exclude filters if applicable
+      const applicableactions = this.actions.filter((m) => {
         return some(allChanged, (p) => {
+          const { include, exclude } = m.getConfig()
           return (
-            p.path.startsWith(m.path) && (isConfigFilename(basename(p.path)) || matchPath(p.path, m.include, m.exclude))
+            p.path.startsWith(m.basePath()) &&
+            (isConfigFilename(basename(p.path)) || matchPath(p.path, include, exclude))
           )
         })
       })
 
-      // No need to proceed if no modules are affected
-      if (applicableModules.length === 0) {
-        this.log.silly(`Watcher: No applicable modules for ${allChanged.length} changed path(s)`)
+      // No need to proceed if no actions are affected
+      if (applicableactions.length === 0) {
+        this.log.silly(`Watcher: No applicable actions for ${allChanged.length} changed path(s)`)
         continue
       }
 
-      this.log.silly(`Watcher: ${applicableModules.length} applicable modules for ${allChanged.length} changed path(s)`)
+      this.log.silly(`Watcher: ${applicableactions.length} applicable actions for ${allChanged.length} changed path(s)`)
 
       // Match removed files against current file lists
       removed.length > 0 && this.sourcesChanged(removed)
 
-      // If some modules still apply, update their file lists and match added files against those
-      this.invalidateCached(this.modules)
-      await this.updateModules()
+      // If some actions still apply, update their file lists and match added files against those
+      this.invalidateCached(this.actions)
+      await this.updateactions()
 
       added.length > 0 && this.sourcesChanged(added)
     }
@@ -255,7 +258,7 @@ export class Watcher extends EventEmitter {
   private checkForAddedConfig(added: ChangedPath[]) {
     for (const p of added) {
       if (isConfigFilename(basename(p.path))) {
-        this.invalidateCached(this.modules)
+        this.invalidateCached(this.actions)
         this.garden.events.emit("configAdded", { path: p.path })
         return true
       }
@@ -273,12 +276,12 @@ export class Watcher extends EventEmitter {
         return true
       }
 
-      // Check if any module directory was removed
-      for (const module of this.modules) {
-        if (p.type === "dir" && module.path.startsWith(p.path)) {
+      // Check if any action directory was removed
+      for (const action of this.actions) {
+        if (p.type === "dir" && action.basePath().startsWith(p.path)) {
           // at least one module's root dir was removed
-          this.invalidateCached(this.modules)
-          this.garden.events.emit("moduleRemoved", {})
+          this.invalidateCached(this.actions)
+          this.garden.events.emit("actionRemoved", {})
           return true
         }
       }
@@ -299,7 +302,7 @@ export class Watcher extends EventEmitter {
 
         if (configPaths.length > 0) {
           // The added dir contains one or more garden.yml files
-          this.invalidateCached(this.modules)
+          this.invalidateCached(this.actions)
           for (const configPath of configPaths) {
             this.garden.events.emit("configAdded", { path: configPath })
           }
@@ -311,20 +314,20 @@ export class Watcher extends EventEmitter {
     return dirWithConfigAdded
   }
 
-  private async updateModules() {
-    this.log.silly(`Watcher: Updating list of modules`)
+  private async updateactions() {
+    this.log.silly(`Watcher: Updating list of actions`)
     const graph = await this.garden.getConfigGraph({ log: this.log, emit: false })
-    this.modules = graph.getModules()
+    this.actions = graph.getActions()
   }
 
-  private matchModules(paths: ChangedPath[]) {
-    return this.modules.filter((m) =>
+  private matchactions(paths: ChangedPath[]) {
+    return this.actions.filter((a) =>
       some(
         paths,
         (p) =>
-          m.configPath === p.path ||
-          (p.type === "file" && m.version.files.includes(p.path)) ||
-          (p.type === "dir" && p.path.startsWith(m.path))
+          a.configPath() === p.path ||
+          (p.type === "file" && a.getFullVersion().files.includes(p.path)) ||
+          (p.type === "dir" && p.path.startsWith(a.basePath()))
       )
     )
   }
@@ -365,9 +368,9 @@ export class Watcher extends EventEmitter {
   }
 
   private sourcesChanged(paths: ChangedPath[]) {
-    const changedModules = this.matchModules(paths)
+    const changedActions = this.matchactions(paths)
 
-    this.log.silly(`Matched ${changedModules.length} modules`)
+    this.log.silly(`Matched ${changedActions.length} actions`)
 
     for (const { path, change } of paths) {
       const parsed = parse(path)
@@ -377,7 +380,7 @@ export class Watcher extends EventEmitter {
 
       if (isIgnoreFile) {
         // TODO: check to see if the project structure actually changed after the ignore file change
-        this.invalidateCached(this.modules)
+        this.invalidateCached(this.actions)
         this.garden.events.emit("projectConfigChanged", {})
 
         // No need to emit other events if config changed
@@ -386,14 +389,14 @@ export class Watcher extends EventEmitter {
 
       if (isConfigFilename(filename)) {
         this.log.silly(`Config file ${path} ${change}`)
-        this.invalidateCached(this.modules)
+        this.invalidateCached(this.actions)
 
         if (change === "changed") {
-          const changedModuleConfigs = changedModules.filter((m) => m.configPath === path)
+          const changedActionConfigs = changedActions.filter((a) => a.configPath() === path)
 
-          if (changedModuleConfigs.length > 0) {
-            const names = changedModuleConfigs.map((m) => m.name)
-            this.garden.events.emit("moduleConfigChanged", { names, path })
+          if (changedActionConfigs.length > 0) {
+            const names = changedActionConfigs.map((m) => m.name)
+            this.garden.events.emit("actionConfigChanged", { names, path })
           } else if (parsed.dir === this.garden.projectRoot) {
             this.garden.events.emit("projectConfigChanged", {})
           }
@@ -408,20 +411,20 @@ export class Watcher extends EventEmitter {
       }
     }
 
-    if (changedModules.length > 0) {
-      const names = changedModules.map((m) => m.name)
-      this.invalidateCached(changedModules)
-      this.garden.events.emit("moduleSourcesChanged", {
-        names,
+    if (changedActions.length > 0) {
+      const refs = changedActions.map((m) => m.reference())
+      this.invalidateCached(changedActions)
+      this.garden.events.emit("actionSourcesChanged", {
+        refs,
         pathsChanged: paths.map((p) => p.path),
       })
     }
   }
 
-  private invalidateCached(modules: GardenModule[]) {
+  private invalidateCached(actions: Action[]) {
     // invalidate the cache for anything attached to the module path or upwards in the directory tree
-    for (const module of modules) {
-      const cacheContext = pathToCacheContext(module.path)
+    for (const action of actions) {
+      const cacheContext = pathToCacheContext(action.basePath())
       this.garden.cache.invalidateUp(this.log, cacheContext)
     }
   }

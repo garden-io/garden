@@ -9,78 +9,28 @@
 import Bluebird from "bluebird"
 import chalk from "chalk"
 import { GardenModule } from "../types/module"
-import { BuildResult } from "../types/plugin/module/build"
-import { BaseTask, TaskType } from "../tasks/base"
-import { Garden } from "../garden"
+import { BaseActionTaskParams, BaseActionTask, TaskType } from "../tasks/base"
 import { LogEntry } from "../logger/log-entry"
-import { StageBuildTask } from "./stage-build"
 import { flatten } from "lodash"
 import { Profile } from "../util/profiling"
-import { ConfigGraph } from "../config-graph"
+import { BuildAction } from "../actions/build"
+import pluralize from "pluralize"
 
-export interface BuildTaskParams {
-  garden: Garden
-  graph: ConfigGraph
-  log: LogEntry
-  module: GardenModule
+export interface BuildTaskParams extends BaseActionTaskParams<BuildAction> {
   force: boolean
 }
 
 @Profile()
-export class BuildTask extends BaseTask {
+export class BuildTask extends BaseActionTask<BuildAction> {
   type: TaskType = "build"
   concurrencyLimit = 5
-  graph: ConfigGraph
-  module: GardenModule
-
-  constructor({ garden, graph, log, module, force }: BuildTaskParams & { _guard: true }) {
-    // Note: The _guard attribute is to prevent accidentally bypassing the factory method
-    super({ garden, log, force, version: module.version.versionString })
-    this.graph = graph
-    this.module = module
-  }
-
-  static async factory(params: BuildTaskParams): Promise<BaseTask[]> {
-    // We need to see if a build step is necessary for the module. If it is, return a build task for the module.
-    // Otherwise, return a build task for each of the module's dependencies.
-    // We do this to avoid displaying no-op build steps in the stack graph.
-    const { garden, graph, log, force } = params
-
-    const buildTask = new BuildTask({ ...params, _guard: true })
-
-    if (params.module.needsBuild) {
-      return [buildTask]
-    } else {
-      const buildTasks = await Bluebird.map(
-        Object.values(params.module.buildDependencies),
-        (module) =>
-          new BuildTask({
-            garden,
-            graph,
-            log,
-            module,
-            force,
-            _guard: true,
-          })
-      )
-      const stageBuildTask = new StageBuildTask({
-        garden,
-        graph,
-        log,
-        module: params.module,
-        force,
-        dependencies: buildTasks,
-      })
-      return [stageBuildTask, ...buildTasks]
-    }
-  }
 
   async resolveDependencies() {
-    const deps = this.graph.getDependencies({ nodeType: "build", name: this.getName(), recursive: false })
+    const deps = this.graph.getDependencies({ kind: "build", name: this.getName(), recursive: false })
 
     const buildTasks = flatten(
       await Bluebird.map(deps.build, async (m: GardenModule) => {
-        return BuildTask.factory({
+        return new BuildTask({
           garden: this.garden,
           graph: this.graph,
           log: this.log,
@@ -90,46 +40,33 @@ export class BuildTask extends BaseTask {
       })
     )
 
-    const stageBuildTask = new StageBuildTask({
-      garden: this.garden,
-      graph: this.graph,
-      log: this.log,
-      module: this.module,
-      force: this.force,
-      dependencies: buildTasks,
-    })
-
-    return [stageBuildTask, ...buildTasks]
-  }
-
-  getName() {
-    return this.module.name
+    return buildTasks
   }
 
   getDescription() {
-    return `building ${this.getName()}`
+    return `building ${this.action.longDescription()}`
   }
 
-  async process(): Promise<BuildResult> {
-    const module = this.module
-    const actions = await this.garden.getActionRouter()
+  async process() {
+    const action = this.action
+    const router = await this.garden.getActionRouter()
 
     let log: LogEntry
 
     if (this.force) {
       log = this.log.info({
         section: this.getName(),
-        msg: `Building version ${module.version.versionString}...`,
+        msg: `Building version ${this.version}...`,
         status: "active",
       })
     } else {
       log = this.log.info({
         section: this.getName(),
-        msg: `Getting build status for ${module.version.versionString}...`,
+        msg: `Getting build status for ${this.version}...`,
         status: "active",
       })
 
-      const status = await actions.getBuildStatus({ log: this.log, graph: this.graph, module })
+      const status = await router.build.getStatus({ log: this.log, graph: this.graph, action })
 
       if (status.ready) {
         log.setSuccess({
@@ -139,27 +76,44 @@ export class BuildTask extends BaseTask {
         return { fresh: false }
       }
 
-      log.setState(`Building version ${module.version.versionString}...`)
+      log.setState(`Building version ${this.version}...`)
     }
 
-    await this.garden.buildStaging.syncDependencyProducts(this.module, this.graph, log)
+    const files = action.getFullVersion().files
 
-    let result: BuildResult
+    if (files.length > 0) {
+      log = this.log.verbose({
+        section: this.getName(),
+        msg: `Syncing module sources (${pluralize("file", files.length, true)})...`,
+        status: "active",
+      })
+    }
+
+    await this.garden.buildStaging.syncFromSrc(action, log || this.log)
+
+    if (log) {
+      log.setSuccess({
+        msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
+        append: true,
+      })
+    }
+
+    await this.garden.buildStaging.syncDependencyProducts(action, log)
+
     try {
-      result = await actions.build({
+      const result = await router.build.build({
         graph: this.graph,
-        module,
+        action,
         log,
       })
+      log.setSuccess({
+        msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
+        append: true,
+      })
+      return result
     } catch (err) {
       log.setError()
       throw err
     }
-
-    log.setSuccess({
-      msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
-      append: true,
-    })
-    return result
   }
 }

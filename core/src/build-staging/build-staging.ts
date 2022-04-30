@@ -10,11 +10,8 @@ import Bluebird from "bluebird"
 import { isAbsolute, join, resolve, relative, parse, basename } from "path"
 import { emptyDir, ensureDir, mkdirp, pathExists, remove } from "fs-extra"
 import { ConfigurationError, InternalError } from "../exceptions"
-import { FileCopySpec, GardenModule } from "../types/module"
 import { normalizeRelativePath, joinWithPosix } from "../util/fs"
 import { LogEntry } from "../logger/log-entry"
-import { ModuleConfig } from "../config/module"
-import { ConfigGraph } from "../config-graph"
 import { Profile } from "../util/profiling"
 import async from "async"
 import chalk from "chalk"
@@ -22,14 +19,9 @@ import { hasMagic } from "glob"
 import { FileStatsHelper, syncFileAsync, cloneFile, scanDirectoryForClone, MappedPaths } from "./helpers"
 import { difference } from "lodash"
 import { unlink } from "fs"
+import { BuildAction, BuildActionConfig } from "../actions/build"
 
 const fileSyncConcurrencyLimit = 100
-
-// FIXME: We don't want to keep special casing this module type so we need to think
-// of a better way around this.
-function isLocalExecModule(moduleConfig: ModuleConfig) {
-  return moduleConfig.type === "exec" && moduleConfig.spec.local
-}
 
 export interface SyncParams {
   sourceRoot: string
@@ -60,60 +52,53 @@ export class BuildStaging {
     this.createdPaths = new Set()
   }
 
-  async syncFromSrc(module: GardenModule, log: LogEntry) {
+  async syncFromSrc(action: BuildAction, log: LogEntry) {
     // We don't sync local exec modules to the build dir
-    if (isLocalExecModule(module)) {
-      log.silly("Skipping syncing from source for local exec module")
+    if (action.getConfig("buildAtSource")) {
+      log.silly(`Skipping syncing from source, action ${action.longDescription()} has buildAtSource set to true`)
       return
     }
 
     // Normalize to relative POSIX-style paths
-    const files = module.version.files.map((f) => normalizeRelativePath(module.path, f))
+    const files = action.getFullVersion().files.map((f) => normalizeRelativePath(module.path, f))
 
-    await this.ensureDir(module.buildPath)
+    await this.ensureDir(action.getBuildPath())
 
     await this.sync({
-      sourceRoot: resolve(this.projectRoot, module.path),
-      targetRoot: module.buildPath,
+      sourceRoot: resolve(this.projectRoot, action.basePath()),
+      targetRoot: action.getBuildPath(),
       withDelete: true,
       log,
       files,
     })
   }
 
-  async syncDependencyProducts(module: GardenModule, graph: ConfigGraph, log: LogEntry) {
-    const buildPath = module.buildPath
-    const buildDependencies = module.build.dependencies
+  async syncDependencyProducts(action: BuildAction, log: LogEntry) {
+    const buildPath = action.getBuildPath()
 
-    await Bluebird.map(buildDependencies, async (buildDepConfig) => {
-      if (!buildDepConfig || !buildDepConfig.copy || buildDepConfig.copy.length === 0) {
-        return
+    await Bluebird.map(action.getConfig("copyFrom") || [], async (copy) => {
+      const sourceBuild = action.dependencies.getBuild(copy.build)
+      const sourceBuildPath = await this.getBuildPath(sourceBuild.getConfig())
+
+      if (isAbsolute(copy.sourcePath)) {
+        throw new ConfigurationError(`Source path in build dependency copy spec must be a relative path`, {
+          copySpec: copy,
+        })
       }
 
-      const sourceModule = graph.getModule(buildDepConfig.name, true)
-      const sourceBuildPath = sourceModule.buildPath
-
-      await Bluebird.map(buildDepConfig.copy, (copy: FileCopySpec) => {
-        if (isAbsolute(copy.source)) {
-          throw new ConfigurationError(`Source path in build dependency copy spec must be a relative path`, {
-            copySpec: copy,
-          })
-        }
-
-        if (isAbsolute(copy.target)) {
-          throw new ConfigurationError(`Target path in build dependency copy spec must be a relative path`, {
-            copySpec: copy,
-          })
-        }
-
-        return this.sync({
-          sourceRoot: sourceBuildPath,
-          targetRoot: buildPath,
-          sourceRelPath: copy.source,
-          targetRelPath: copy.target,
-          withDelete: false,
-          log,
+      if (isAbsolute(copy.targetPath)) {
+        throw new ConfigurationError(`Target path in build dependency copy spec must be a relative path`, {
+          copySpec: copy,
         })
+      }
+
+      return this.sync({
+        sourceRoot: sourceBuildPath,
+        targetRoot: buildPath,
+        sourceRelPath: copy.sourcePath,
+        targetRelPath: copy.targetPath,
+        withDelete: false,
+        log,
       })
     })
   }
@@ -125,18 +110,20 @@ export class BuildStaging {
     this.createdPaths.clear()
   }
 
-  getBuildPath(moduleOrConfig: GardenModule | ModuleConfig) {
+  // TODO-G2: remove
+  // TODO-G2: ensure build path elsewhere?
+  getBuildPath(config: BuildActionConfig): string {
     // We don't stage the build for local exec modules, so the module path is effectively the build path.
-    if (isLocalExecModule(moduleOrConfig)) {
-      return moduleOrConfig.path
+    if (config.buildAtSource) {
+      return config.basePath
     }
 
     // This returns the same result for modules and module configs
-    return join(this.buildDirPath, moduleOrConfig.name)
+    return join(this.buildDirPath, config.name)
   }
 
-  async ensureBuildPath(moduleOrConfig: GardenModule | ModuleConfig): Promise<string> {
-    const path = this.getBuildPath(moduleOrConfig)
+  async ensureBuildPath(config: BuildActionConfig): Promise<string> {
+    const path = this.getBuildPath(config)
     await this.ensureDir(path)
     return path
   }
@@ -155,7 +142,7 @@ export class BuildStaging {
     return path
   }
 
-  protected async ensureDir(path: string) {
+  async ensureDir(path: string) {
     if (!this.createdPaths.has(path)) {
       await mkdirp(path)
       this.createdPaths.add(path)

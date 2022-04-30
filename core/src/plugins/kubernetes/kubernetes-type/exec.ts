@@ -7,21 +7,35 @@
  */
 
 import { includes } from "lodash"
-import { DeploymentError } from "../../../exceptions"
-import { KubernetesModule } from "./moduleConfig"
+import { ConfigurationError, DeploymentError } from "../../../exceptions"
 import { getAppNamespace } from "../namespace"
 import { KubernetesPluginContext } from "../config"
-import { execInWorkload, getServiceResource, getServiceResourceSpec } from "../util"
-import { getKubernetesServiceStatus } from "./handlers"
-import { ExecInServiceParams } from "../../../types/plugin/service/execInService"
+import { execInWorkload, getTargetResource } from "../util"
+import { DeployActionHandler } from "../../../plugin/action-types"
+import { KubernetesDeployAction } from "./config"
+import { getKubernetesDeployStatus } from "./handlers"
 
-export async function execInKubernetesService(params: ExecInServiceParams<KubernetesModule>) {
-  const { ctx, log, service, command, interactive } = params
-  const module = service.module
+export const execInKubernetesDeploy: DeployActionHandler<"exec", KubernetesDeployAction> = async (params) => {
+  const { ctx, log, action, command, interactive } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const status = await getKubernetesServiceStatus({
-    ...params,
+
+  // TODO-G2: We should allow for alternatives here
+  const defaultTarget = action.getSpec("defaultTarget")
+
+  if (!defaultTarget) {
+    throw new ConfigurationError(
+      `${action.longDescription()} does not specify a defaultTarget. Please configure this in order to be able to use this command with.`,
+      {
+        name: action.name,
+      }
+    )
+  }
+
+  const status = await getKubernetesDeployStatus({
+    ctx,
+    log,
+    action,
     // The runtime context doesn't matter here. We're just checking if the service is running.
     runtimeContext: {
       envVars: {},
@@ -32,23 +46,22 @@ export async function execInKubernetesService(params: ExecInServiceParams<Kubern
   })
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
-  const serviceResourceSpec = getServiceResourceSpec(module, undefined)
-  const serviceResource = await getServiceResource({
+  const target = await getTargetResource({
     ctx,
     log,
     provider,
-    module,
+    action,
     manifests: status.detail.remoteResources,
-    resourceSpec: serviceResourceSpec,
+    query: defaultTarget,
   })
 
   // TODO: this check should probably live outside of the plugin
-  if (!serviceResource || !includes(["ready", "outdated"], status.state)) {
-    throw new DeploymentError(`Service ${service.name} is not running`, {
-      name: service.name,
+  if (!target || !includes(["ready", "outdated"], status.state)) {
+    throw new DeploymentError(`${action.longDescription()} is not running`, {
+      name: action.name,
       state: status.state,
     })
   }
 
-  return execInWorkload({ ctx, provider, log, namespace, workload: serviceResource, command, interactive })
+  return execInWorkload({ ctx, provider, log, namespace, workload: target, command, interactive })
 }

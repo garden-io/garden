@@ -117,7 +117,7 @@ describe("task-graph", () => {
           startedAt: now,
           completedAt: now,
           batchId: generatedBatchId,
-          output: {
+          result: {
             result: "result-a",
             dependencyResults: {},
           },
@@ -429,7 +429,7 @@ describe("task-graph", () => {
         startedAt: now,
         completedAt: now,
         batchId: generatedBatchId,
-        output: {
+        result: {
           result: "result-a.a1",
           dependencyResults: {},
         },
@@ -444,7 +444,7 @@ describe("task-graph", () => {
         startedAt: now,
         completedAt: now,
         batchId: generatedBatchId,
-        output: {
+        result: {
           result: "result-b.b1",
           dependencyResults: { a: resultA },
         },
@@ -459,7 +459,7 @@ describe("task-graph", () => {
         startedAt: now,
         completedAt: now,
         batchId: generatedBatchId,
-        output: {
+        result: {
           result: "result-c.c1",
           dependencyResults: { b: resultB },
         },
@@ -479,7 +479,7 @@ describe("task-graph", () => {
           startedAt: now,
           completedAt: now,
           batchId: generatedBatchId,
-          output: {
+          result: {
             result: "result-d.d1",
             dependencyResults: {
               b: resultB,
@@ -716,7 +716,7 @@ describe("task-graph", () => {
         startedAt: now,
         completedAt: now,
         batchId: generatedBatchId,
-        output: {
+        result: {
           result: "result-a",
           dependencyResults: {},
         },

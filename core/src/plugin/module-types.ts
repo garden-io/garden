@@ -7,43 +7,21 @@
  */
 
 import Joi = require("@hapi/joi")
-import { BuildModuleParams, BuildResult, build } from "../types/plugin/module/build"
-import { BuildStatus, GetBuildStatusParams, getBuildStatus } from "../types/plugin/module/getBuildStatus"
 import { ConfigureModuleParams, ConfigureModuleResult, configure } from "./handlers/module/configure"
-import { DeleteServiceParams, deleteService } from "../types/plugin/service/deleteService"
-import { DeployServiceParams, deployService } from "../types/plugin/service/deployService"
-import { ExecInServiceParams, ExecInServiceResult, execInService } from "../types/plugin/service/execInService"
-import { GetServiceLogsParams, getServiceLogs } from "../types/plugin/service/getServiceLogs"
-import { GetServiceStatusParams, getServiceStatus } from "../types/plugin/service/getServiceStatus"
-import { GetTaskResultParams, getTaskResult } from "../types/plugin/task/getTaskResult"
-import { TestResult } from "../types/test"
-import { PublishModuleParams, PublishModuleResult, publishModule } from "../types/plugin/module/publishModule"
-import { RunModuleParams, runModule } from "../types/plugin/module/runModule"
-import { RunServiceParams, runService } from "../types/plugin/service/runService"
-import { RunTaskParams, RunTaskResult, runTask } from "../types/plugin/task/runTask"
-import { TestModuleParams, testModule } from "../types/plugin/module/testModule"
 import { joiIdentifier, joi, joiSchema } from "../config/common"
 import { GardenModule } from "../types/module"
-import { ActionHandlerParamsBase, outputSchemaDocs, ResolvedActionHandlerDescription, RunResult, WrappedActionHandler } from "./base"
-import { ServiceStatus } from "../types/service"
+import { ActionHandlerParamsBase, outputSchemaDocs, WrappedActionHandler } from "./base"
 import { mapValues } from "lodash"
 import { dedent } from "../util/string"
-import { getPortForward, GetPortForwardParams, GetPortForwardResult } from "../types/plugin/service/getPortForward"
-import { StopPortForwardParams, stopPortForward } from "../types/plugin/service/stopPortForward"
-import { suggestModules, SuggestModulesParams, SuggestModulesResult } from "../types/plugin/module/suggestModules"
+import { suggestModules, SuggestModulesParams, SuggestModulesResult } from "./handlers/module/suggest"
 import { templateStringLiteral } from "../docs/common"
-import {
-  getModuleOutputs,
-  GetModuleOutputsParams,
-  GetModuleOutputsResult,
-} from "./handlers/module/get-outputs"
-import { getTestResult, GetTestResultParams } from "../types/plugin/module/getTestResult"
+import { getModuleOutputs, GetModuleOutputsParams, GetModuleOutputsResult } from "./handlers/module/get-outputs"
 import { convertModule, ConvertModuleParams, ConvertModuleResult } from "./handlers/module/convert"
 import { baseHandlerSchema } from "./handlers/base/base"
 import { ResolvedActionHandlerDescriptions } from "./plugin"
 
 export type ModuleActionHandler<P extends ActionHandlerParamsBase, O> = ((params: P) => Promise<O>) & {
-  actionType?: string
+  handlerType?: string
   pluginName?: string
   moduleType?: string
   base?: ModuleActionHandler<P, O>
@@ -58,97 +36,19 @@ export type ModuleActionHandlers<T extends GardenModule = GardenModule> = {
   [P in keyof ModuleActionParams<T>]: ModuleActionHandler<ModuleActionParams<T>[P], ModuleActionOutputs[P]>
 }
 
-export type ServiceActionHandlers<T extends GardenModule = GardenModule> = {
-  [P in keyof ServiceActionParams<T>]: ModuleActionHandler<ServiceActionParams<T>[P], ServiceActionOutputs[P]>
+export type ModuleActionMap = {
+  [A in keyof ModuleActionHandlers]: {
+    [moduleType: string]: {
+      [pluginName: string]: ModuleActionHandlers[A]
+    }
+  }
 }
-
-export type TaskActionHandlers<T extends GardenModule = GardenModule> = {
-  [P in keyof TaskActionParams<T>]: ModuleActionHandler<TaskActionParams<T>[P], TaskActionOutputs[P]>
-}
-
-export type ModuleAndRuntimeActionHandlers<T extends GardenModule = GardenModule> = ModuleActionHandlers<T> &
-  ServiceActionHandlers<T> &
-  TaskActionHandlers<T>
-
-// export type AllActionHandlers<T extends GardenModule = GardenModule> = PluginActionHandlers &
-//   ModuleAndRuntimeActionHandlers<T>
-
-export type ServiceActionName = keyof ServiceActionParams
-export type TaskActionName = keyof TaskActionParams
 export type ModuleActionName = keyof ModuleActionParams
-
-interface _ServiceActionParams<T extends GardenModule = GardenModule> {
-  deployService: DeployServiceParams<T>
-  deleteService: DeleteServiceParams<T>
-  execInService: ExecInServiceParams<T>
-  getPortForward: GetPortForwardParams<T>
-  getServiceLogs: GetServiceLogsParams<T>
-  getServiceStatus: GetServiceStatusParams<T>
-  runService: RunServiceParams<T>
-  stopPortForward: StopPortForwardParams<T>
-}
-
-// Specify base parameter more precisely than the base schema
-export type ServiceActionParams<T extends GardenModule = GardenModule> = {
-  [P in keyof _ServiceActionParams<T>]: _ServiceActionParams<T>[P] & {
-    base?: WrappedModuleActionHandler<_ServiceActionParams<T>[P], ServiceActionOutputs[P]>
-  }
-}
-
-export interface ServiceActionOutputs {
-  deployService: ServiceStatus
-  deleteService: ServiceStatus
-  execInService: ExecInServiceResult
-  getPortForward: GetPortForwardResult
-  getServiceLogs: {}
-  getServiceStatus: ServiceStatus
-  runService: RunResult
-  stopPortForward: {}
-}
-
-const serviceActionDescriptions: { [P in ServiceActionName]: () => ResolvedActionHandlerDescription } = {
-  deployService,
-  deleteService,
-  execInService,
-  getPortForward,
-  getServiceLogs,
-  getServiceStatus,
-  runService,
-  stopPortForward,
-}
-
-interface _TaskActionParams<T extends GardenModule = GardenModule> {
-  getTaskResult: GetTaskResultParams<T>
-  runTask: RunTaskParams<T>
-}
-
-// Specify base parameter more precisely than the base schema
-export type TaskActionParams<T extends GardenModule = GardenModule> = {
-  [P in keyof _TaskActionParams<T>]: _TaskActionParams<T>[P] & {
-    base?: WrappedModuleActionHandler<_TaskActionParams<T>[P], TaskActionOutputs[P]>
-  }
-}
-
-export interface TaskActionOutputs {
-  runTask: RunTaskResult
-  getTaskResult: RunTaskResult | null | undefined
-}
-
-const taskActionDescriptions: { [P in TaskActionName]: () => ResolvedActionHandlerDescription } = {
-  getTaskResult,
-  runTask,
-}
 
 interface _ModuleActionParams<T extends GardenModule = GardenModule> {
   configure: ConfigureModuleParams<T>
   convert: ConvertModuleParams<T>
   suggestModules: SuggestModulesParams
-  getBuildStatus: GetBuildStatusParams<T>
-  build: BuildModuleParams<T>
-  publish: PublishModuleParams<T>
-  runModule: RunModuleParams<T>
-  testModule: TestModuleParams<T>
-  getTestResult: GetTestResultParams<T>
   getModuleOutputs: GetModuleOutputsParams<T>
 }
 
@@ -159,29 +59,17 @@ export type ModuleActionParams<T extends GardenModule = GardenModule> = {
   }
 }
 
-export type ModuleAndRuntimeActionParams<T extends GardenModule = GardenModule> = ModuleActionParams<T> &
-  ServiceActionParams<T> &
-  TaskActionParams<T>
-
-export type ModuleAndRuntimeActionOutputs = ModuleActionOutputs & ServiceActionOutputs & TaskActionOutputs
-
-export interface ModuleActionOutputs extends ServiceActionOutputs {
+export interface ModuleActionOutputs {
   configure: ConfigureModuleResult
   convert: ConvertModuleResult
   suggestModules: SuggestModulesResult
-  getBuildStatus: BuildStatus
-  build: BuildResult
-  publish: PublishModuleResult
-  runModule: RunResult
-  testModule: TestResult
-  getTestResult: TestResult | null
   getModuleOutputs: GetModuleOutputsResult
 }
 
 // It takes a short while to resolve all these schemas, so we cache the result
 let _moduleActionDescriptions: ResolvedActionHandlerDescriptions
 
-export function getModuleActionDescriptions(): ResolvedActionHandlerDescriptions {
+export function getModuleHandlerDescriptions(): ResolvedActionHandlerDescriptions {
   if (_moduleActionDescriptions) {
     return _moduleActionDescriptions
   }
@@ -191,22 +79,14 @@ export function getModuleActionDescriptions(): ResolvedActionHandlerDescriptions
     convertModule,
     getModuleOutputs,
     suggestModules,
-    getBuildStatus,
-    build,
-    publish: publishModule,
-    runModule,
-    testModule,
-    getTestResult,
-
-    ...serviceActionDescriptions,
-    ...taskActionDescriptions,
   }
 
-  _moduleActionDescriptions = <ResolvedActionHandlerDescriptions>mapValues(descriptions, (f) => {
+  _moduleActionDescriptions = <ResolvedActionHandlerDescriptions>mapValues(descriptions, (f, name) => {
     const desc = f()
 
     return {
       ...desc,
+      name,
       paramsSchema: desc.paramsSchema.keys({
         base: baseHandlerSchema(),
       }),
@@ -216,20 +96,18 @@ export function getModuleActionDescriptions(): ResolvedActionHandlerDescriptions
   return _moduleActionDescriptions
 }
 
-export function getModuleActionNames() {
-  return <ModuleActionName[]>Object.keys(getModuleActionDescriptions())
+export function getModuleHandlerNames() {
+  return <ModuleActionName[]>Object.keys(getModuleHandlerDescriptions())
 }
 
 export interface ModuleTypeExtension<M extends GardenModule = GardenModule> {
   // Note: This needs to be this verbose because of issues with the TS compiler
   handlers: {
-    [T in keyof ModuleAndRuntimeActionParams<M>]?: ((
-      params: ModuleAndRuntimeActionParams<M>[T]
-    ) => Promise<ModuleAndRuntimeActionOutputs[T]>) & {
-      actionType?: string
+    [T in keyof ModuleActionParams<M>]?: ((params: ModuleActionParams<M>[T]) => Promise<ModuleActionOutputs[T]>) & {
+      handlerType?: string
       pluginName?: string
       moduleType?: string
-      base?: ModuleAndRuntimeActionHandlers[T]
+      base?: ModuleActionHandlers[T]
     }
   }
   name: string
@@ -241,15 +119,13 @@ export interface ModuleTypeDefinition<T extends GardenModule = GardenModule> ext
   // TODO: specify the schemas using primitives (e.g. JSONSchema/OpenAPI) and not Joi objects
   moduleOutputsSchema?: Joi.ObjectSchema
   schema?: Joi.ObjectSchema
-  serviceOutputsSchema?: Joi.ObjectSchema
-  taskOutputsSchema?: Joi.ObjectSchema
   title?: string
 }
 
 export const moduleHandlersSchema = () =>
   joi
     .object()
-    .keys(mapValues(getModuleActionDescriptions(), () => joi.func()))
+    .keys(mapValues(getModuleHandlerDescriptions(), () => joi.func()))
     .description("A map of module action handlers provided by the plugin.")
 
 export const extendModuleTypeSchema = () =>
@@ -268,7 +144,7 @@ export const createModuleTypeSchema = () =>
         fields for details.
       `),
     docs: joi.string().description("Documentation for the module type, in markdown format."),
-    handlers: joi.object().keys(mapValues(getModuleActionDescriptions(), () => joi.func())).description(dedent`
+    handlers: joi.object().keys(mapValues(getModuleHandlerDescriptions(), () => joi.func())).description(dedent`
         A map of module action handlers provided by the plugin.
       `),
     // TODO: specify the schemas using JSONSchema instead of Joi objects
