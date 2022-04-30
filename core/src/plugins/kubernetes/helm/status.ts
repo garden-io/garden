@@ -16,7 +16,7 @@ import { KubernetesPluginContext } from "../config"
 import { getForwardablePorts } from "../port-forward"
 import { KubernetesServerResource } from "../types"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
-import { getServiceResource, getServiceResourceSpec, isWorkload } from "../util"
+import { getTargetResource, getServiceResourceSpec, isWorkload } from "../util"
 import { startDevModeSync } from "../dev-mode"
 import { isConfiguredForDevMode, isConfiguredForLocalMode } from "../status/status"
 import { KubeApi } from "../api"
@@ -96,7 +96,7 @@ export async function getServiceStatus({
       if (localMode && service.spec.localMode) {
         const baseModule = getBaseModule(module)
         const serviceResourceSpec = getServiceResourceSpec(module, baseModule)
-        const target = await getServiceResource({
+        const target = await getTargetResource({
           ctx: k8sCtx,
           log,
           provider: k8sCtx.provider,
@@ -112,7 +112,7 @@ export async function getServiceStatus({
         // Need to start the dev-mode sync here, since the deployment handler won't be called.
         const baseModule = getBaseModule(module)
         const serviceResourceSpec = getServiceResourceSpec(module, baseModule)
-        const target = await getServiceResource({
+        const target = await getTargetResource({
           ctx: k8sCtx,
           log,
           provider: k8sCtx.provider,

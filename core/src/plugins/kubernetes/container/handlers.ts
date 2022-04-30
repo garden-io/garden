@@ -6,19 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getServiceLogs } from "./logs"
-import { runContainerModule, runContainerService, runContainerTask } from "./run"
-import { execInService } from "./exec"
-import { testContainerModule } from "./test"
 import { ConfigurationError } from "../../../exceptions"
 import { KubernetesProvider } from "../config"
 import { ConfigureModuleParams } from "../../../plugin/handlers/module/configure"
-import { getContainerDeployStatus } from "./status"
-import { getTestResult } from "../test-results"
 import { ContainerBuildAction, ContainerBuildOutputs, ContainerModule } from "../../container/moduleConfig"
-import { getTaskResult } from "../task-results"
-import { k8sPublishContainerModule } from "./publish"
-import { getPortForwardHandler } from "../port-forward"
 import { GetModuleOutputsParams } from "../../../plugin/handlers/module/get-outputs"
 import { containerHelpers } from "../../container/helpers"
 import { getContainerModuleOutputs } from "../../container/container"
@@ -33,17 +24,6 @@ async function configure(params: ConfigureModuleParams<ContainerModule>) {
 export const containerHandlers = {
   configure,
   getModuleOutputs: k8sGetContainerModuleOutputs,
-  execInService,
-  getPortForward: getPortForwardHandler,
-  getServiceLogs,
-  getServiceStatus: getContainerDeployStatus,
-  getTestResult,
-  publish: k8sPublishContainerModule,
-  runModule: runContainerModule,
-  runService: runContainerService,
-  runTask: runContainerTask,
-  getTaskResult,
-  testModule: testContainerModule,
 }
 
 export async function k8sGetContainerModuleOutputs(params: GetModuleOutputsParams) {
@@ -85,13 +65,14 @@ export function k8sGetContainerBuildActionOutputs({
   outputs.deploymentImageId = containerHelpers.getBuildDeploymentImageId(
     action.name,
     localId,
-    action.version,
+    action.getFullVersion(),
     provider.config.deploymentRegistry
   )
 
   return outputs
 }
 
+// TODO-G2: handle at action level as well
 async function validateConfig<T extends ContainerModule>(params: ConfigureModuleParams<T>) {
   // validate ingress specs
   const moduleConfig = params.moduleConfig

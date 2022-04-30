@@ -17,10 +17,7 @@ import {
   targetResourceSpecSchema,
   KubernetesTargetResourceSpec,
 } from "../config"
-import {
-  KubernetesDeployDevModeSpec,
-  kubernetesDevModeDefaultsSchema,
-} from "../dev-mode"
+import { KubernetesDeployDevModeSpec, kubernetesDevModeDefaultsSchema } from "../dev-mode"
 import { KubernetesKustomizeSpec, kustomizeSpecSchema } from "./kustomize"
 import { KubernetesResource } from "../types"
 import { DeployAction, DeployActionConfig } from "../../../actions/deploy"

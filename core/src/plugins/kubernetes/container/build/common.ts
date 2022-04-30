@@ -373,9 +373,7 @@ export async function ensureUtilDeployment({
   })
 }
 
-export async function getManifestInspectArgs(module: ContainerModule, deploymentRegistry: ContainerRegistryConfig) {
-  const remoteId = module.outputs["deployment-image-id"]
-
+export async function getManifestInspectArgs(remoteId: string, deploymentRegistry: ContainerRegistryConfig) {
   const dockerArgs = ["manifest", "inspect", remoteId]
   if (isLocalHostname(deploymentRegistry.hostname)) {
     dockerArgs.push("--insecure")

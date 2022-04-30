@@ -20,7 +20,6 @@ import { GetServiceStatusParams } from "../../../types/plugin/service/getService
 import { GardenModule } from "../../../types/module"
 import { KubernetesModule, KubernetesModuleConfig } from "../kubernetes-type/moduleConfig"
 import { KubernetesResource } from "../types"
-import { getKubernetesServiceStatus, deployKubernetesService } from "../kubernetes-type/handlers"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { GardenService } from "../../../types/service"
 import { ConvertModuleParams } from "../../../plugin/handlers/module/convert"
@@ -45,6 +44,8 @@ const jsonSchema = JSON.parse(readFileSync(join(STATIC_DIR, "kubernetes", "persi
 
 export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
   name: "persistentvolumeclaim",
+  base: "base-volume",
+
   docs: dedent`
     Creates a [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
 
@@ -111,7 +112,7 @@ export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
               },
             },
           ],
-        }
+        },
       }
     },
 
