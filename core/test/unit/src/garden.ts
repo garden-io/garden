@@ -464,7 +464,7 @@ describe("Garden", () => {
       expect(extended.name).to.equal("foo")
       expect(extended.handlers.build).to.exist
       expect(extended.handlers.build!.base).to.exist
-      expect(extended.handlers.build!.base!.actionType).to.equal("build")
+      expect(extended.handlers.build!.base!.handlerType).to.equal("build")
       expect(extended.handlers.build!.base!.moduleType).to.equal("foo")
       expect(extended.handlers.build!.base!.pluginName).to.equal("base")
       expect(extended.handlers.build!.base!.base).to.not.exist
@@ -591,7 +591,7 @@ describe("Garden", () => {
         const configureHandler = spec.handlers.configure!
         expect(configureHandler).to.exist
         expect(configureHandler.base).to.exist
-        expect(configureHandler.base!.actionType).to.equal("configure")
+        expect(configureHandler.base!.handlerType).to.equal("configure")
         expect(configureHandler.base!.moduleType).to.equal("foo-a")
         expect(configureHandler.base!.pluginName).to.equal("base-a")
         expect(configureHandler.base!.base).to.not.exist
@@ -599,7 +599,7 @@ describe("Garden", () => {
         const buildHandler = spec.handlers.build!
         expect(buildHandler).to.exist
         expect(buildHandler.base).to.exist
-        expect(buildHandler.base!.actionType).to.equal("build")
+        expect(buildHandler.base!.handlerType).to.equal("build")
         expect(buildHandler.base!.moduleType).to.equal("foo-b")
         expect(buildHandler.base!.pluginName).to.equal("base-b")
         expect(buildHandler.base!.base).to.not.exist
@@ -776,7 +776,7 @@ describe("Garden", () => {
 
         expect(parsed.handlers.getEnvironmentStatus).to.equal(base.handlers.getEnvironmentStatus)
         expect(parsed.handlers.configureProvider!.base).to.equal(base.handlers.configureProvider)
-        expect(parsed.handlers.configureProvider!.base!.actionType).to.equal("configureProvider")
+        expect(parsed.handlers.configureProvider!.base!.handlerType).to.equal("configureProvider")
         expect(parsed.handlers.configureProvider!.base!.pluginName).to.equal("base")
         expect(parsed.handlers.configureProvider!.base!.base).to.be.undefined
       })
@@ -1432,7 +1432,7 @@ describe("Garden", () => {
           expect(fooExtension.handlers.build).to.exist
           expect(fooExtension.handlers.getBuildStatus).to.exist
           expect(fooExtension.handlers.build!.base).to.exist
-          expect(fooExtension.handlers.build!.base!.actionType).to.equal("build")
+          expect(fooExtension.handlers.build!.base!.handlerType).to.equal("build")
           expect(fooExtension.handlers.build!.base!.moduleType).to.equal("foo")
           expect(fooExtension.handlers.build!.base!.pluginName).to.equal("base-a")
         })

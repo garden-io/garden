@@ -15,7 +15,7 @@ import { BaseTask, TaskType } from "../tasks/base"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { Profile } from "../util/profiling"
-import { ConfigGraph } from "../config-graph"
+import { ConfigGraph } from "../graph/config-graph"
 
 export interface StageBuildTaskParams {
   garden: Garden

@@ -30,6 +30,17 @@ export abstract class ActionTypeHandlerSpec<
   _configType: C
   _paramsType: P
   _resultType: R
+
+  describe() {
+    return {
+      description: this.description,
+      required: this.required,
+      paramsSchema: this.paramsSchema().keys({
+        base: baseHandlerSchema(),
+      }),
+      resultSchema: this.resultSchema(),
+    }
+  }
 }
 
 // No way currently to further validate the shape of the super function

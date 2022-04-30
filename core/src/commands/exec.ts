@@ -8,11 +8,11 @@
 
 import chalk from "chalk"
 import { LoggerType } from "../logger/logger"
-import { ExecInServiceResult, execInServiceResultSchema } from "../types/plugin/service/execInService"
 import { printHeader } from "../logger/util"
 import { Command, CommandResult, CommandParams } from "./base"
 import dedent = require("dedent")
 import { StringParameter, BooleanParameter, ParameterValues } from "../cli/params"
+import { ExecInDeployResult, execInDeployResultSchema } from "../plugin/handlers/deploy/exec"
 
 const execArgs = {
   service: new StringParameter({
@@ -56,7 +56,7 @@ export class ExecCommand extends Command<Args> {
   arguments = execArgs
   options = execOpts
 
-  outputsSchema = () => execInServiceResultSchema()
+  outputsSchema = () => execInDeployResultSchema()
 
   getLoggerType(): LoggerType {
     return "basic"
@@ -72,7 +72,7 @@ export class ExecCommand extends Command<Args> {
     )
   }
 
-  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ExecInServiceResult>> {
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ExecInDeployResult>> {
     const serviceName = args.service
     const command = this.getCommand(args)
 

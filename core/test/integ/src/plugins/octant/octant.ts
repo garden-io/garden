@@ -31,7 +31,7 @@ describe("octant provider", () => {
       })
       const actions = await garden.getActionRouter()
       const plugin = await garden.getPlugin("octant")
-      const { url } = await actions.getDashboardPage({
+      const { url } = await actions.provider.getDashboardPage({
         log: garden.log,
         page: plugin.dashboardPages[0],
         pluginName: "octant",

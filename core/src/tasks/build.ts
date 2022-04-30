@@ -16,7 +16,7 @@ import { LogEntry } from "../logger/log-entry"
 import { StageBuildTask } from "./stage-build"
 import { flatten } from "lodash"
 import { Profile } from "../util/profiling"
-import { ConfigGraph } from "../config-graph"
+import { ConfigGraph } from "../graph/config-graph"
 
 export interface BuildTaskParams {
   garden: Garden
@@ -129,7 +129,7 @@ export class BuildTask extends BaseTask {
         status: "active",
       })
 
-      const status = await actions.getBuildStatus({ log: this.log, graph: this.graph, module })
+      const status = await actions.build.build.getBuildStatus({ log: this.log, graph: this.graph, module })
 
       if (status.ready) {
         log.setSuccess({
@@ -146,7 +146,7 @@ export class BuildTask extends BaseTask {
 
     let result: BuildResult
     try {
-      result = await actions.build({
+      result = await actions.build.build({
         graph: this.graph,
         module,
         log,

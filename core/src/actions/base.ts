@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import titleize from "titleize"
-import { ConfigGraph } from "../config-graph"
+import { ConfigGraph } from "../graph/config-graph"
 import {
   ActionReference,
   apiVersionSchema,
@@ -30,9 +30,11 @@ import type { BuildAction, BuildActionConfig } from "./build"
 import type { DeployActionConfig } from "./deploy"
 import type { RunActionConfig } from "./run"
 import type { TestActionConfig } from "./test"
+import { ActionKind } from "../plugin/action-types"
 
-export type ActionKind = "build" | "deploy" | "run" | "test"
-export const actionKinds = ["build", "deploy", "run", "test"]
+export { ActionKind } from "../plugin/action-types"
+
+export const actionKinds: ActionKind[] = ["build", "deploy", "run", "test"]
 
 interface SourceRepositorySpec {
   url: string
@@ -294,6 +296,10 @@ export abstract class Action<C extends BaseActionConfig = BaseActionConfig, O ex
     }
 
     return d
+  }
+
+  isDisabled(): boolean {
+    return !!this.getConfig("disabled")
   }
 
   getBasePath(): string {

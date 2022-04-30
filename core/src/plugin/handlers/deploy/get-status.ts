@@ -17,6 +17,7 @@ import { GetActionOutputType } from "../../../actions/base"
 
 interface GetDeployStatusParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   devMode: boolean
+  localMode: boolean
   runtimeContext: RuntimeContext
 }
 
@@ -33,8 +34,9 @@ export class GetDeployStatus<T extends DeployAction = DeployAction> extends Acti
 
   paramsSchema = () =>
     actionParamsSchema().keys({
-      runtimeContext: runtimeContextSchema(),
       devMode: joi.boolean().default(false).description("Whether the deployment should be configured in dev mode."),
+      localMode: joi.boolean().default(false).description("Whether the service should be configured in local mode."),
+      runtimeContext: runtimeContextSchema(),
     })
 
   resultSchema = () => serviceStatusSchema()

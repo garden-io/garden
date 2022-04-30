@@ -13,7 +13,7 @@ import { Garden } from "../garden"
 import { GardenTask } from "../types/task"
 import { RunTaskResult } from "../types/plugin/task/runTask"
 import { Profile } from "../util/profiling"
-import { ConfigGraph } from "../config-graph"
+import { ConfigGraph } from "../graph/config-graph"
 
 export interface GetTaskResultTaskParams {
   force: boolean

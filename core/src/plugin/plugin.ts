@@ -19,10 +19,10 @@ import {
   ModuleTypeDefinition,
   ModuleTypeExtension,
 } from "./module-types"
-import { getProviderActionDescriptions, ProviderActionHandlers } from "./providers"
+import { getProviderActionDescriptions, ProviderHandlers } from "./providers"
 import {
-  ActionTypeDefinitions,
-  ActionTypeExtensions,
+  ManyActionTypeDefinitions,
+  ManyActionTypeExtensions,
   createActionTypesSchema,
   extendActionTypesSchema,
 } from "./action-types"
@@ -58,7 +58,7 @@ export interface GardenPluginSpec {
 
   dependencies?: PluginDependency[]
 
-  handlers?: Partial<ProviderActionHandlers>
+  handlers?: Partial<ProviderHandlers>
   commands?: PluginCommand[]
   tools?: PluginToolSpec[]
   dashboardPages?: DashboardPage[]
@@ -66,22 +66,22 @@ export interface GardenPluginSpec {
   createModuleTypes?: ModuleTypeDefinition[]
   extendModuleTypes?: ModuleTypeExtension[]
 
-  createActionTypes?: ActionTypeDefinitions
-  extendActionTypes?: ActionTypeExtensions
+  createActionTypes?: Partial<ManyActionTypeDefinitions>
+  extendActionTypes?: Partial<ManyActionTypeExtensions>
 }
 
 export interface GardenPlugin extends GardenPluginSpec {
   dependencies: PluginDependency[]
 
-  handlers: Partial<ProviderActionHandlers>
+  handlers: Partial<ProviderHandlers>
   commands: PluginCommand[]
   dashboardPages: DashboardPage[]
 
   createModuleTypes: ModuleTypeDefinition[]
   extendModuleTypes: ModuleTypeExtension[]
 
-  createActionTypes: ActionTypeDefinitions
-  extendActionTypes: ActionTypeExtensions
+  createActionTypes: ManyActionTypeDefinitions
+  extendActionTypes: ManyActionTypeExtensions
 }
 
 export interface GardenPluginReference {
@@ -210,8 +210,20 @@ export function createGardenPlugin(spec: GardenPluginSpec): GardenPlugin {
     commands: spec.commands || [],
     createModuleTypes: spec.createModuleTypes || [],
     extendModuleTypes: spec.extendModuleTypes || [],
-    createActionTypes: spec.createActionTypes || {},
-    extendActionTypes: spec.extendActionTypes || {},
+    createActionTypes: {
+      build: [],
+      deploy: [],
+      run: [],
+      test: [],
+      ...spec.createActionTypes || {}
+    },
+    extendActionTypes: {
+      build: [],
+      deploy: [],
+      run: [],
+      test: [],
+      ...spec.extendActionTypes || {}
+    },
     handlers: spec.handlers || {},
     dashboardPages: spec.dashboardPages || [],
   }

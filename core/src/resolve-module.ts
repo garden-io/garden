@@ -409,7 +409,7 @@ export class ModuleResolver {
     }
 
     const actions = await garden.getActionRouter()
-    const configureResult = await actions.configureModule({
+    const configureResult = await actions.module.configureModule({
       moduleConfig: config,
       log: garden.log,
     })

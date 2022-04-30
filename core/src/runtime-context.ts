@@ -8,7 +8,7 @@
 
 import { PrimitiveMap, joiEnvVars, joiPrimitive, joi, joiIdentifier, moduleVersionSchema } from "./config/common"
 import { Garden } from "./garden"
-import { ConfigGraph, DependencyRelations } from "./config-graph"
+import { ConfigGraph, DependencyRelations } from "./graph/config-graph"
 import { ServiceStatus } from "./types/service"
 import { RunTaskResult } from "./types/plugin/task/runTask"
 import { joiArray } from "./config/common"

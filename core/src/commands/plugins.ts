@@ -18,7 +18,7 @@ import Bluebird from "bluebird"
 import { printHeader, getTerminalWidth } from "../logger/util"
 import { LoggerType } from "../logger/logger"
 import { StringOption } from "../cli/params"
-import { ConfigGraph } from "../config-graph"
+import { ConfigGraph } from "../graph/config-graph"
 
 const pluginArgs = {
   plugin: new StringOption({

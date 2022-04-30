@@ -18,7 +18,7 @@ export { PluginContext } from "@garden-io/core/build/src/plugin-context"
 export { ProjectConfig } from "@garden-io/core/build/src/config/project"
 export { PluginToolSpec } from "../core/build/src/plugin/tools"
 export { GardenPlugin } from "@garden-io/core/build/src/plugin/plugin"
-export { ConfigGraph } from "@garden-io/core/build/src/config-graph"
+export { ConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
 export { PluginCommand, PluginCommandParams } from "@garden-io/core/build/src/types/plugin/command"
 export {
   PluginActionParams,

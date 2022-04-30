@@ -11,7 +11,6 @@ import { HelmModule, configureHelmModule, HelmService } from "./module-config"
 import { ServiceResourceSpec } from "../config"
 import { join } from "path"
 import { pathExists } from "fs-extra"
-import { SuggestModulesParams, SuggestModulesResult } from "../../../types/plugin/module/suggestModules"
 import chalk = require("chalk")
 import { getBaseModule, helmChartYamlFilename } from "./common"
 import { ExecBuildConfig } from "../../exec/config"
@@ -26,7 +25,7 @@ import { convertServiceResource } from "../kubernetes-type/common"
 import { ConvertModuleParams } from "../../../plugin/handlers/module/convert"
 import { KubernetesModule, KubernetesService } from "../kubernetes-type/module-config"
 import { joinWithPosix } from "../../../util/fs"
-import { LogEntry } from "../../../logger/log-entry"
+import { SuggestModulesParams, SuggestModulesResult } from "../../../plugin/handlers/module/suggest"
 
 export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
   configure: configureHelmModule,

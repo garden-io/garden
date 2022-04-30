@@ -10,7 +10,7 @@ import { LogEntry } from "../logger/log-entry"
 import { BaseTask, TaskType } from "./base"
 import { GardenService, ServiceStatus } from "../types/service"
 import { Garden } from "../garden"
-import { ConfigGraph } from "../config-graph"
+import { ConfigGraph } from "../graph/config-graph"
 import { GraphResults, GraphResult } from "../task-graph"
 import { StageBuildTask } from "./stage-build"
 

@@ -17,7 +17,7 @@ import { Garden } from "./garden"
 import { registerCleanupFunction, sleep } from "./util/util"
 import { LogEntry } from "./logger/log-entry"
 import { GetPortForwardResult } from "./types/plugin/service/getPortForward"
-import { ConfigGraph } from "./config-graph"
+import { ConfigGraph } from "./graph/config-graph"
 import { gardenEnv } from "./constants"
 
 interface PortProxy {

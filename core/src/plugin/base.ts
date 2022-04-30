@@ -24,13 +24,13 @@ export interface ActionHandlerParamsBase<O = any> {
 }
 
 export type ActionHandler<P extends ActionHandlerParamsBase, O> = ((params: P) => Promise<O>) & {
-  actionType?: string
+  handlerType?: string
   pluginName?: string
   base?: ActionHandler<P, O>
 }
 
 export type WrappedActionHandler<P extends ActionHandlerParamsBase, O> = ActionHandler<P, O> & {
-  actionType: string
+  handlerType: string
   pluginName: string
 }
 
@@ -43,7 +43,8 @@ export interface PluginActionParamsBase extends PluginActionContextParams {
   log: LogEntry
 }
 
-export interface ResolvedActionHandlerDescription {
+export interface ResolvedActionHandlerDescription<N = string> {
+  name: N
   description: string
   required?: boolean
   // TODO: specify the schemas using primitives and not Joi objects
