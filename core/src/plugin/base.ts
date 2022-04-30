@@ -150,7 +150,7 @@ export const runBaseParams = () => ({
   timeout: joi.number().optional().description("If set, how long to run the command before timing out."),
 })
 
-// TODO: update this schema in 0.13
+// TODO-G2: update this schema in 0.13
 export interface RunResult {
   // FIXME: this field can always be inferred
   moduleName: string

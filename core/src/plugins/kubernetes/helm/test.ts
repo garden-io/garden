@@ -17,8 +17,8 @@ import { TestResult } from "../../../types/test"
 import {
   getResourceContainer,
   getResourcePodSpec,
-  getServiceResource,
   getServiceResourceSpec,
+  getTargetResource,
   makePodName,
 } from "../util"
 import { getActionNamespaceStatus } from "../namespace"
@@ -38,7 +38,7 @@ export async function testHelmModule(params: TestModuleParams<HelmModule>): Prom
   })
   const baseModule = getBaseModule(module)
   const resourceSpec = test.config.spec.resource || getServiceResourceSpec(module, baseModule)
-  const target = await getServiceResource({
+  const target = await getTargetResource({
     ctx: k8sCtx,
     log,
     provider: k8sCtx.provider,

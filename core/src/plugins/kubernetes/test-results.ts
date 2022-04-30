@@ -8,10 +8,7 @@
 
 import { deserializeValues } from "../../util/util"
 import { KubeApi } from "./api"
-import { GardenModule } from "../../types/module"
-import { ContainerModule } from "../container/moduleConfig"
-import { HelmModule } from "./helm/moduleConfig"
-import { KubernetesModule } from "./kubernetes-type/moduleConfig"
+import { ContainerTestAction } from "../container/moduleConfig"
 import { PluginContext } from "../../plugin-context"
 import { KubernetesPluginContext } from "./config"
 import { LogEntry } from "../../logger/log-entry"
@@ -22,50 +19,37 @@ import { upsertConfigMap } from "./util"
 import { trimRunOutput } from "./helm/common"
 import { getSystemNamespace } from "./namespace"
 import chalk from "chalk"
-import { GardenTest } from "../../types/test"
-import { GetTestResultParams } from "../../types/plugin/module/getTestResult"
+import { TestActionHandler } from "../../plugin/action-types"
 
-export async function getTestResult({
-  ctx,
-  log,
-  module,
-  test,
-}: GetTestResultParams<ContainerModule | HelmModule | KubernetesModule>): Promise<TestResult | null> {
+export const k8sGetContainerTestResult: TestActionHandler<"getResult", ContainerTestAction> = async (params) => {
+  const { ctx, log, action } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
   const testResultNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
 
-  const resultKey = getTestResultKey(k8sCtx, module, test)
+  const resultKey = getTestResultKey(k8sCtx, action)
 
   try {
     const res = await api.core.readNamespacedConfigMap(resultKey, testResultNamespace)
     const result: any = deserializeValues(res.data!)
 
     // Backwards compatibility for modified result schema
-    if (!result.outputs) {
-      result.outputs = {}
-    }
-
-    if (!result.outputs.log) {
-      result.outputs.log = result.log || ""
-    }
-
     if (result.version.versionString) {
       result.version = result.version.versionString
     }
 
-    return <TestResult>result
+    return { result: <TestResult>result, outputs: { log: result.log || "" } }
   } catch (err) {
     if (err.statusCode === 404) {
-      return null
+      return { result: null, outputs: null }
     } else {
       throw err
     }
   }
 }
 
-export function getTestResultKey(ctx: PluginContext, module: GardenModule, test: GardenTest) {
-  const key = `${ctx.projectName}--${module.name}--${test.name}--${test.version}`
+export function getTestResultKey(ctx: PluginContext, action: ContainerTestAction) {
+  const key = `${ctx.projectName}--${action.name}--${action.getVersionString()}`
   const hash = hasha(key, { algorithm: "sha1" })
   return `test-result--${hash.slice(0, 32)}`
 }
@@ -73,8 +57,7 @@ export function getTestResultKey(ctx: PluginContext, module: GardenModule, test:
 interface StoreTestResultParams {
   ctx: PluginContext
   log: LogEntry
-  module: GardenModule
-  test: GardenTest
+  action: ContainerTestAction
   result: TestResult
 }
 
@@ -83,23 +66,22 @@ interface StoreTestResultParams {
  *
  * TODO: Implement a CRD for this.
  */
-export async function storeTestResult({ ctx, log, module, test, result }: StoreTestResultParams): Promise<TestResult> {
+export async function storeTestResult({ ctx, log, action, result }: StoreTestResultParams): Promise<TestResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
   const testResultNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
 
-  const data: TestResult = trimRunOutput(result)
+  const data = trimRunOutput(result)
 
   try {
     await upsertConfigMap({
       api,
       namespace: testResultNamespace,
-      key: getTestResultKey(k8sCtx, module, test),
+      key: getTestResultKey(k8sCtx, action),
       labels: {
-        [gardenAnnotationKey("module")]: module.name,
+        [gardenAnnotationKey("module")]: action.getModuleName(),
         [gardenAnnotationKey("test")]: test.name,
-        [gardenAnnotationKey("moduleVersion")]: module.version.versionString,
-        [gardenAnnotationKey("version")]: test.version,
+        [gardenAnnotationKey("version")]: action.getVersionString(),
       },
       data,
     })

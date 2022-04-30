@@ -10,13 +10,13 @@ import {
   artifactsTargetDescription,
   envVarRegex,
   joi,
-  joiIdentifier,
   joiPrimitive,
   joiSparseArray,
   joiStringMap,
   joiUserIdentifier,
   Primitive,
   PrimitiveMap,
+  CustomObjectSchema,
 } from "../../config/common"
 import { ArtifactSpec } from "../../config/validation"
 import { ingressHostnameSchema, linkUrlSchema } from "../../types/service"
@@ -69,11 +69,14 @@ export interface ServicePortSpec {
   nodePort?: number | true
 }
 
-export interface ContainerVolumeSpec {
+export interface ContainerVolumeSpecBase {
   name: string
   containerPath: string
   hostPath?: string
-  module?: string
+}
+
+export interface ContainerVolumeSpec extends ContainerVolumeSpecBase {
+  action?: string
 }
 
 export interface ServiceHealthCheckSpec {
@@ -189,8 +192,8 @@ const devModeSyncSchema = () =>
       .default(".")
       .description(
         deline`
-        POSIX-style path of the directory to sync to the target, relative to the module's top-level directory.
-        Must be a relative path. Defaults to the module's top-level directory if no value is provided.`
+        POSIX-style path of the directory to sync to the target, relative to the config's directory.
+        Must be a relative path. Defaults to the config's directory if no value is provided.`
       )
       .example("src"),
     target: joi
@@ -546,41 +549,45 @@ export const portSchema = () =>
       `),
   })
 
+export const volumeSchemaBase = () =>
+  joi.object().keys({
+    name: joiUserIdentifier().required().description("The name of the allocated volume."),
+    containerPath: joi
+      .posixPath()
+      .required()
+      .description("The path where the volume should be mounted in the container."),
+    hostPath: joi
+      .posixPath()
+      .description(
+        dedent`
+        _NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms and providers. Some providers may not support it at all._
+
+        A local path or path on the node that's running the container, to mount in the container, relative to the config source directory (or absolute).
+      `
+      )
+      .example("/some/dir"),
+  })
+
 const volumeSchema = () =>
-  joi
-    .object()
+  volumeSchemaBase()
     .keys({
-      name: joiUserIdentifier().required().description("The name of the allocated volume."),
-      containerPath: joi
-        .posixPath()
-        .required()
-        .description("The path where the volume should be mounted in the container."),
-      hostPath: joi
-        .posixPath()
+      // TODO-0.13: remove when kubernetes-container type is ready, better to swap out with raw k8s references
+      action: joi
+        .actionReference()
+        .kind("deploy")
+        .actionType("base-volume")
         .description(
           dedent`
-        _NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
-        and providers. Some providers may not support it at all._
+          The name of a _volume Deploy action_ that should be mounted at \`containerPath\`. The supported action types are [persistentvolumeclaim](./persistentvolumeclaim.md) and [configmap](./configmap.md), for example.
 
-        A local path or path on the node that's running the container, to mount in the container, relative to the
-        module source path (or absolute).
-      `
-        )
-        .example("/some/dir"),
-      module: joiIdentifier().description(
-        dedent`
-      The name of a _volume module_ that should be mounted at \`containerPath\`. The supported module types will depend on which provider you are using. The \`kubernetes\` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
-
-      When a \`module\` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
-
-      Note: Make sure to pay attention to the supported \`accessModes\` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
-      `
-      ),
+          Note: Make sure to pay attention to the supported \`accessModes\` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
+          `
+        ),
     })
-    .oxor("hostPath", "module")
+    .oxor("hostPath", "action")
 
-export function getContainerVolumesSchema() {
-  return joiSparseArray(volumeSchema()).unique("name").description(dedent`
+export function getContainerVolumesSchema(schema: CustomObjectSchema) {
+  return joiSparseArray(schema).unique("name").description(dedent`
     List of volumes that should be mounted when starting the container.
 
     Note: If neither \`hostPath\` nor \`module\` is specified, an empty ephemeral volume is created and mounted when deploying the container.
@@ -614,7 +621,6 @@ interface ContainerCommonRuntimeSpec {
   cpu: ContainerResourcesSpec["cpu"]
   memory: ContainerResourcesSpec["memory"]
 
-  volumes: ContainerVolumeSpec[]
   privileged?: boolean
   addCapabilities?: string[]
   dropCapabilities?: string[]
@@ -635,9 +641,22 @@ export interface ContainerCommonDeploySpec extends ContainerCommonRuntimeSpec {
   deploymentStrategy: DeploymentStrategy
 }
 
-export interface ContainerDeploySpec extends ContainerCommonDeploySpec {}
+export interface ContainerDeploySpec extends ContainerCommonDeploySpec {
+  volumes: ContainerVolumeSpec[]
+  image?: string
+}
 export type ContainerDeployActionConfig = DeployActionConfig<"container", ContainerDeploySpec>
-export type ContainerDeployAction = DeployAction<ContainerDeployActionConfig, {}>
+
+export interface ContainerDeployOutputs {
+  deployedImageId: string
+}
+
+export const containerDeployOutputsSchema = () =>
+  joi.object().keys({
+    deployedImageId: joi.string().required().description("The ID of the image that was deployed."),
+  })
+
+export type ContainerDeployAction = DeployAction<ContainerDeployActionConfig, ContainerDeployOutputs>
 
 const containerCommonRuntimeSchemaKeys = () => ({
   command: joi
@@ -653,7 +672,7 @@ const containerCommonRuntimeSchemaKeys = () => ({
   env: containerEnvVarsSchema(),
   cpu: containerCpuSchema().default(defaultContainerResources.cpu),
   memory: containerMemorySchema().default(defaultContainerResources.memory),
-  volumes: getContainerVolumesSchema(),
+  volumes: getContainerVolumesSchema(volumeSchema()),
   privileged: containerPrivilegedSchema(),
   addCapabilities: containerAddCapabilitiesSchema(),
   dropCapabilities: containerDropCapabilitiesSchema(),
@@ -685,6 +704,9 @@ export const containerDeploySchemaKeys = () => ({
     `),
   devMode: containerDevModeSchema(),
   localMode: containerLocalModeSchema(),
+  image: joi.string().allow(false, null).empty([false, null]).description(deline`
+    Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no \`build\` is specified.
+  `),
   ingresses: joiSparseArray(ingressSchema())
     .description("List of ingress endpoints that the service exposes.")
     .example([{ path: "/api", port: "http" }]),
@@ -734,6 +756,8 @@ export const containerRegistryConfigSchema = () =>
       .description("Set to true to allow insecure connections to the registry (without SSL)."),
   })
 
+// TEST //
+
 export const artifactsDescription = dedent`
 Specify artifacts to copy out of the container after the run. The artifacts are stored locally under
 the \`.garden/artifacts\` directory.
@@ -771,12 +795,27 @@ const artifactsSchema = () =>
     )
     .example([{ source: "/report/**/*" }])
 
+export interface ContainerTestOutputs {
+  log: string
+}
+export const containerTestOutputSchema = () =>
+  joi.object().keys({
+    log: joi
+      .string()
+      .allow("")
+      .default("")
+      .description(
+        "The full log output from the executed action. (Pro-tip: Make it machine readable so it can be parsed by dependants)"
+      ),
+  })
+
 export interface ContainerTestActionSpec extends ContainerCommonRuntimeSpec {
   artifacts: ArtifactSpec[]
   image?: string
+  volumes: ContainerVolumeSpec[]
 }
 export type ContainerTestActionConfig = TestActionConfig<"container", ContainerTestActionSpec>
-export type ContainerTestAction = TestAction<ContainerTestActionConfig, {}>
+export type ContainerTestAction = TestAction<ContainerTestActionConfig, ContainerTestOutputs>
 
 export const containerTestSpecKeys = () => ({
   ...containerCommonRuntimeSchemaKeys(),
@@ -785,17 +824,24 @@ export const containerTestSpecKeys = () => ({
 
 export const containerTestActionSchema = () => joi.object().keys(containerTestSpecKeys())
 
+// RUN //
+
+export interface ContainerRunOutputs extends ContainerTestOutputs {}
+export const containerRunOutputSchema = () => containerTestOutputSchema()
+
 export interface ContainerRunActionSpec extends ContainerTestActionSpec {
   cacheResult: boolean
 }
 export type ContainerRunActionConfig = RunActionConfig<"container", ContainerRunActionSpec>
-export type ContainerRunAction = RunAction<ContainerRunActionConfig, {}>
+export type ContainerRunAction = RunAction<ContainerRunActionConfig, ContainerRunOutputs>
 
 export const containerRunSpecKeys = () => ({
   ...containerTestSpecKeys(),
   cacheResult: cacheResultSchema(),
 })
 export const containerRunActionSchema = () => joi.object().keys(containerRunSpecKeys())
+
+// BUILD //
 
 export interface ContainerBuildOutputs {
   localImageName: string
@@ -902,3 +948,6 @@ export type ContainerActionConfig =
   | ContainerRunActionConfig
   | ContainerTestActionConfig
   | ContainerBuildActionConfig
+
+export type ContainerRuntimeAction = ContainerDeployAction | ContainerRunAction | ContainerTestAction
+export type ContainerAction = ContainerRuntimeAction | ContainerBuildAction

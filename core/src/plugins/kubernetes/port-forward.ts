@@ -12,7 +12,7 @@ import getPort = require("get-port")
 const AsyncLock = require("async-lock")
 import { V1ContainerPort, V1Deployment, V1PodTemplate, V1Service } from "@kubernetes/client-node"
 
-import { GetPortForwardParams, GetPortForwardResult } from "../../types/plugin/service/getPortForward"
+import { GetPortForwardResult } from "../../types/plugin/service/getPortForward"
 import { KubernetesProvider, KubernetesPluginContext } from "./config"
 import { getAppNamespace, getActionNamespace } from "./namespace"
 import { registerCleanupFunction, sleep } from "../../util/util"
@@ -24,9 +24,10 @@ import { isBuiltIn, matchSelector } from "./util"
 import { LogEntry } from "../../logger/log-entry"
 import { RuntimeError } from "../../exceptions"
 import execa = require("execa")
-import { KubernetesService } from "./kubernetes-type/moduleConfig"
-import { HelmService } from "./helm/moduleConfig"
 import { ContainerDeployAction } from "../container/config"
+import { KubernetesDeployAction } from "./kubernetes-type/config"
+import { HelmDeployAction } from "./helm/config"
+import { DeployActionParams } from "../../plugin/action-types"
 
 // TODO: implement stopPortForward handler
 
@@ -190,14 +191,14 @@ export async function getPortForwardHandler({
   action,
   targetName,
   targetPort,
-}: GetPortForwardParams & { namespace?: string }): Promise<GetPortForwardResult> {
+}: DeployActionParams<"getPortForward"> & { namespace?: string }): Promise<GetPortForwardResult> {
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = ctx.provider as KubernetesProvider
   if (!namespace) {
     namespace = await getActionNamespace({
       ctx: k8sCtx,
       log,
-      module: service.module,
+      action,
       provider,
       skipCreate: true,
     })
@@ -225,10 +226,12 @@ function getTargetResource(action: ContainerDeployAction, targetName?: string) {
  */
 export function getForwardablePorts(
   resources: KubernetesResource[],
-  parentService: KubernetesService | HelmService | undefined
+  parentAction: KubernetesDeployAction | HelmDeployAction | undefined
 ): ForwardablePort[] {
-  if (parentService?.spec.portForwards) {
-    return parentService?.spec.portForwards.map((p) => ({
+  const portForwards = parentAction?.getSpec("portForwards")
+
+  if (portForwards) {
+    return portForwards.map((p) => ({
       name: p.name,
       protocol: "TCP",
       targetName: p.resource,

@@ -14,7 +14,7 @@ import { actionOutputsSchema, ActionTypeHandlerSpec } from "../base/base"
 import _ from "lodash"
 import { GetActionOutputType } from "../../../actions/base"
 
-interface BuildActionParams<T extends BuildAction> extends PluginBuildActionParamsBase<T> {}
+interface DoBuildActionParams<T extends BuildAction> extends PluginBuildActionParamsBase<T> {}
 
 /**
  * - `fetched`: The build was fetched from a remote repository instead of building.
@@ -47,7 +47,7 @@ export const buildResultSchema = () =>
 
 export class BuildBuildAction<T extends BuildAction = BuildAction> extends ActionTypeHandlerSpec<
   "build",
-  BuildActionParams<T>,
+  DoBuildActionParams<T>,
   BuildResult<T>
 > {
   description = dedent`

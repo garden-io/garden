@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { cloneDeep, flatten, isPlainObject } from "lodash"
+import { flatten, isPlainObject } from "lodash"
 import { join, resolve } from "path"
 import { pathExists, readFile, remove, writeFile } from "fs-extra"
 import cryptoRandomString = require("crypto-random-string")
@@ -17,26 +17,22 @@ import { getActionNamespace } from "../namespace"
 import { KubernetesResource } from "../types"
 import { loadAll } from "js-yaml"
 import { helm } from "./helm-cli"
-import { HelmModule, HelmModuleConfig } from "./moduleConfig"
+import { HelmModule } from "./moduleConfig"
 import { ConfigurationError, PluginError } from "../../../exceptions"
-import { GardenModule } from "../../../types/module"
 import { deline, tailString } from "../../../util/string"
 import { flattenResources, getAnnotation } from "../util"
 import { KubernetesPluginContext } from "../config"
 import { RunResult } from "../../../plugin/base"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants"
-import { dumpYaml, jsonMerge } from "../../../util/util"
+import { dumpYaml } from "../../../util/util"
+import { HelmDeployAction } from "./config"
 
 const gardenValuesFilename = "garden-values.yml"
+export const helmChartYamlFilename = "Chart.yaml"
 
 interface Chart {
   apiVersion: string
   dependencies?: { name: string }[]
-}
-
-async function containsChart(basePath: string, config: HelmModuleConfig) {
-  const yamlPath = join(basePath, config.spec.chartPath, "Chart.yaml")
-  return pathExists(yamlPath)
 }
 
 async function dependencyUpdate(ctx: KubernetesPluginContext, log: LogEntry, namespace: string, chartPath: string) {
@@ -48,24 +44,9 @@ async function dependencyUpdate(ctx: KubernetesPluginContext, log: LogEntry, nam
   })
 }
 
-/**
- * Returns true if the specified Helm module contains a template (as opposed to just referencing a remote template).
- */
-export async function containsSource(config: HelmModuleConfig) {
-  return containsChart(config.path, config)
-}
-
-/**
- * Returns true if the specified Helm module contains a template in its build path (as opposed to just referencing
- * a remote template).
- */
-export async function containsBuildSource(module: HelmModule) {
-  return containsChart(module.buildPath, module)
-}
-
 interface GetChartResourcesParams {
   ctx: KubernetesPluginContext
-  module: GardenModule
+  action: HelmDeployAction
   devMode: boolean
   localMode: boolean
   log: LogEntry
@@ -89,14 +70,14 @@ export async function getChartResources(params: GetChartResourcesParams) {
  * Renders the given Helm module and returns a multi-document YAML string.
  */
 export async function renderTemplates(params: GetChartResourcesParams): Promise<string> {
-  const { ctx, module, devMode, localMode, version, log } = params
+  const { ctx, action, devMode, localMode, version, log } = params
   const { namespace, releaseName, chartPath } = await prepareTemplates(params)
 
   log.debug("Preparing chart...")
 
   return await prepareManifests({
     ctx,
-    module,
+    action,
     devMode,
     localMode,
     version,
@@ -109,37 +90,32 @@ export async function renderTemplates(params: GetChartResourcesParams): Promise<
 
 export async function prepareTemplates({
   ctx,
-  module,
+  action,
   log,
   version,
 }: GetChartResourcesParams): Promise<{ namespace: string; releaseName: string; chartPath: string }> {
-  const chartPath = await getChartPath(module)
+  const chartPath = await getChartPath(action)
 
   // create the values.yml file (merge the configured parameters into the default values)
   // Merge with the base module's values, if applicable
-  let specValues = module.spec.values || {}
-
-  const baseModule = getBaseModule(module)
-  if (baseModule) {
-    specValues = jsonMerge(cloneDeep(baseModule.spec.values), specValues)
-  }
+  const { values } = action.getSpec()
 
   // Add Garden metadata
-  specValues[".garden"] = {
-    moduleName: module.name,
+  values[".garden"] = {
+    moduleName: action.name,
     projectName: ctx.projectName,
     version,
   }
 
   const valuesPath = getGardenValuesPath(chartPath)
   log.silly(`Writing chart values to ${valuesPath}`)
-  await dumpYaml(valuesPath, specValues)
+  await dumpYaml(valuesPath, values)
 
-  const releaseName = getReleaseName(module)
+  const releaseName = getReleaseName(action)
   const namespace = await getActionNamespace({
     ctx,
     log,
-    module,
+    action,
     provider: ctx.provider,
     skipCreate: true,
   })
@@ -148,7 +124,7 @@ export async function prepareTemplates({
     await dependencyUpdate(ctx, log, namespace, chartPath)
   }
 
-  const chartYaml = join(chartPath, "Chart.yaml")
+  const chartYaml = join(chartPath, helmChartYamlFilename)
   if (await pathExists(chartYaml)) {
     const chart = <Chart[]>loadTemplate((await readFile(chartYaml)).toString())
     if (chart[0].dependencies?.length) {
@@ -159,7 +135,8 @@ export async function prepareTemplates({
 }
 
 export async function prepareManifests(params: PrepareManifestsParams): Promise<string> {
-  const { ctx, module, devMode, localMode, log, namespace, releaseName, chartPath } = params
+  const { ctx, action, devMode, localMode, log, namespace, releaseName, chartPath } = params
+  const timeout = action.getSpec("timeout")
   const res = await helm({
     ctx,
     log,
@@ -175,8 +152,8 @@ export async function prepareManifests(params: PrepareManifestsParams): Promise<
       "--output",
       "json",
       "--timeout",
-      module.spec.timeout.toString(10) + "s",
-      ...(await getValueArgs(module, devMode, localMode)),
+      timeout.toString(10) + "s",
+      ...(await getValueArgs(action, devMode, localMode)),
     ],
   })
 
@@ -236,20 +213,36 @@ export function getBaseModule(module: HelmModule): HelmModule | undefined {
 }
 
 /**
- * Get the full path to the chart, within the module build directory.
+ * Get the full absolute path to the chart, within the action build path.
  */
-export async function getChartPath(module: HelmModule) {
-  const baseModule = getBaseModule(module)
+export async function getChartPath(action: HelmDeployAction) {
+  const chartSpec = action.getSpec("chart") || {}
+  const chartPath = chartSpec.path || "."
+  const chartDir = resolve(action.getBuildPath(), chartPath)
+  const yamlPath = resolve(chartDir, helmChartYamlFilename)
+  const chartExists = await pathExists(yamlPath)
 
-  if (baseModule) {
-    return join(module.buildPath, baseModule.spec.chartPath)
-  } else if (await containsBuildSource(module)) {
-    return join(module.buildPath, module.spec.chartPath)
+  if (chartSpec.path) {
+    // Path is explicitly specified
+    if (!chartExists) {
+      throw new ConfigurationError(
+        `${action.description()} has explicitly set \`chart.path\` but no ${helmChartYamlFilename} file can be found in directory '${chartDir}.`,
+        { spec: action.getSpec() }
+      )
+    }
+    return chartDir
+  } else if (chartSpec.name) {
+    // Remote chart is specified. We set the chart path to the chart name in the build directory.
+    const splitName = chartSpec.name.split("/")
+    return join(action.getBuildPath(), splitName[splitName.length - 1])
+  } else if (chartExists) {
+    // Chart exists at the module build path
+    return chartDir
   } else {
-    // This value is validated to exist in the validate module action
-    const splitName = module.spec.chart!.split("/")
-    const chartDir = splitName[splitName.length - 1]
-    return join(module.buildPath, chartDir)
+    throw new ConfigurationError(
+      `${action.description()} has explicitly set \`chart.path\` but no ${helmChartYamlFilename} file can be found in directory '${chartDir}.`,
+      { spec: action.getSpec() }
+    )
   }
 }
 
@@ -263,13 +256,16 @@ export function getGardenValuesPath(chartPath: string) {
 /**
  * Get the value files arguments that should be applied to any helm install/render command.
  */
-export async function getValueArgs(module: HelmModule, devMode: boolean, localMode: boolean) {
-  const chartPath = await getChartPath(module)
+export async function getValueArgs(action: HelmDeployAction, devMode: boolean, localMode: boolean) {
+  const chartPath = await getChartPath(action)
   const gardenValuesPath = getGardenValuesPath(chartPath)
 
   // The garden-values.yml file (which is created from the `values` field in the module config) takes precedence,
   // so it's added to the end of the list.
-  const valueFiles = module.spec.valueFiles.map((f) => resolve(module.buildPath, f)).concat([gardenValuesPath])
+  const valueFiles = action
+    .getSpec("valueFiles")
+    .map((f) => resolve(action.getBuildPath(), f))
+    .concat([gardenValuesPath])
 
   const args = flatten(valueFiles.map((f) => ["--values", f]))
 
@@ -286,8 +282,8 @@ export async function getValueArgs(module: HelmModule, devMode: boolean, localMo
 /**
  * Get the release name to use for the module/chart (the module name, unless overridden in config).
  */
-export function getReleaseName(config: HelmModuleConfig) {
-  return config.spec.releaseName || config.name
+export function getReleaseName(action: HelmDeployAction) {
+  return action.getSpec("releaseName") || action.name
 }
 
 /**
@@ -297,7 +293,7 @@ export function getReleaseName(config: HelmModuleConfig) {
 export async function renderHelmTemplateString(
   ctx: PluginContext,
   log: LogEntry,
-  module: HelmModule,
+  action: HelmDeployAction,
   chartPath: string,
   value: string
 ): Promise<string> {
@@ -307,11 +303,11 @@ export async function renderHelmTemplateString(
   const namespace = await getActionNamespace({
     ctx: k8sCtx,
     log,
-    module,
+    action,
     provider: k8sCtx.provider,
     skipCreate: true,
   })
-  const releaseName = getReleaseName(module)
+  const releaseName = getReleaseName(action)
 
   try {
     // Need to add quotes for this to work as expected. Also makes sense since we only support string outputs here.
@@ -328,7 +324,7 @@ export async function renderHelmTemplateString(
           "--namespace",
           namespace,
           "--dependency-update",
-          ...(await getValueArgs(module, false, false)),
+          ...(await getValueArgs(action, false, false)),
           "--show-only",
           relPath,
           chartPath,

@@ -12,14 +12,14 @@ import { getBaseModule, getChartResources } from "./common"
 import {
   getResourceContainer,
   getResourcePodSpec,
-  getServiceResource,
   getServiceResourceSpec,
+  getTargetResource,
   makePodName,
   prepareEnvVars,
 } from "../util"
 import { ConfigurationError } from "../../../exceptions"
 import { KubernetesPluginContext } from "../config"
-import { storeTaskResult } from "../task-results"
+import { storeRunResult } from "../run-results"
 import { RunModuleParams } from "../../../types/plugin/module/runModule"
 import { RunResult } from "../../../plugin/base"
 import { RunTaskParams, RunTaskResult } from "../../../types/plugin/task/runTask"
@@ -60,15 +60,8 @@ export async function runHelmModule({
     )
   }
 
-  const manifests = await getChartResources({
-    ctx: k8sCtx,
-    module,
-    devMode: false,
-    localMode: false,
-    log,
-    version,
-  })
-  const target = await getServiceResource({
+  const manifests = await getChartResources({ ctx: k8sCtx, module, devMode: false, localMode: false, log, version })
+  const target = await getTargetResource({
     ctx: k8sCtx,
     log,
     provider: k8sCtx.provider,
@@ -142,7 +135,7 @@ export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<Ru
   })
   const baseModule = getBaseModule(module)
   const resourceSpec = task.spec.resource || getServiceResourceSpec(module, baseModule)
-  const target = await getServiceResource({
+  const target = await getTargetResource({
     ctx: k8sCtx,
     log,
     provider: k8sCtx.provider,
@@ -185,7 +178,7 @@ export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<Ru
   }
 
   if (task.config.cacheResult) {
-    await storeTaskResult({
+    await storeRunResult({
       ctx,
       log,
       module,

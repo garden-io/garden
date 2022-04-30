@@ -10,7 +10,7 @@ import { includes } from "lodash"
 import { DeploymentError } from "../../../exceptions"
 import { getAppNamespace } from "../namespace"
 import { KubernetesPluginContext } from "../config"
-import { execInWorkload, getServiceResource, getServiceResourceSpec } from "../util"
+import { execInWorkload, getTargetResource, getServiceResourceSpec } from "../util"
 import { ExecInServiceParams } from "../../../types/plugin/service/execInService"
 import { HelmModule } from "./moduleConfig"
 import { getServiceStatus } from "./status"
@@ -44,7 +44,7 @@ export async function execInHelmService(params: ExecInServiceParams<HelmModule>)
     version: service.version,
   })
 
-  const serviceResource = await getServiceResource({
+  const serviceResource = await getTargetResource({
     ctx,
     log,
     provider,

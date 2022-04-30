@@ -99,7 +99,7 @@ export const configMapModuleDefinition = (): ModuleTypeDefinition => ({
               },
             },
           ],
-        }
+        },
       }
     },
 

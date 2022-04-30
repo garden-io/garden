@@ -14,7 +14,7 @@ import { TaskTask } from "../../../../../../src/tasks/task"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
 import { getContainerTestGarden } from "./container"
-import { clearTaskResult } from "../../../../../../src/plugins/kubernetes/task-results"
+import { clearTaskResult } from "../../../../../../src/plugins/kubernetes/run-results"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { deline } from "../../../../../../src/util/string"
 

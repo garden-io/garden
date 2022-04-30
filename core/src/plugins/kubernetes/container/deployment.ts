@@ -10,10 +10,10 @@ import chalk from "chalk"
 import { V1Affinity, V1Container, V1DaemonSet, V1Deployment, V1PodSpec, V1VolumeMount } from "@kubernetes/client-node"
 import { extend, find, keyBy, omit, set } from "lodash"
 import {
-  ContainerModule,
-  ContainerVolumeSpec,
+  ContainerAction,
   ContainerDeployAction,
   ContainerDeploySpec,
+  ContainerVolumeSpec,
 } from "../../container/moduleConfig"
 import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
@@ -25,7 +25,7 @@ import { KubeApi } from "../api"
 import { KubernetesPluginContext, KubernetesProvider } from "../config"
 import { KubernetesResource, KubernetesWorkload } from "../types"
 import { ConfigurationError, RuntimeError } from "../../../exceptions"
-import { ContainerServiceStatus, getContainerDeployStatus } from "./status"
+import { ContainerServiceStatus, k8sGetContainerDeployStatus } from "./status"
 import { LogEntry } from "../../../logger/log-entry"
 import { prepareEnvVars, workloadTypes } from "../util"
 import { deline, gardenAnnotationKey } from "../../../util/string"
@@ -35,7 +35,7 @@ import { killPortForwards } from "../port-forward"
 import { prepareSecrets } from "../secrets"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { syncableKinds, SyncableResource } from "../types"
-import { getResourceRequirements, getSecurityContext } from "./util"
+import { getDeploymentImageId, getResourceRequirements, getSecurityContext } from "./util"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import { DeployActionHandler, DeployActionParams } from "../../../plugin/action-types"
 
@@ -46,20 +46,22 @@ export const REVISION_HISTORY_LIMIT_DEFAULT = 3
 export const DEFAULT_MINIMUM_REPLICAS = 1
 export const PRODUCTION_MINIMUM_REPLICAS = 3
 
-export const containerDeploy: DeployActionHandler<"deploy", ContainerDeployAction> = async (params) => {
+export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAction> = async (params) => {
   const { ctx, action, log, devMode, localMode } = params
   const { deploymentStrategy } = params.ctx.provider.config
   const deployWithDevMode = devMode && !!action.getSpec("devMode")
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx, k8sCtx.provider)
 
+  const imageId = getDeploymentImageId(action)
+
   if (deploymentStrategy === "blue-green") {
-    await deployContainerServiceBlueGreen({ ...params, devMode: deployWithDevMode, api })
+    await deployContainerServiceBlueGreen({ ...params, devMode: deployWithDevMode, api, imageId })
   } else {
-    await deployContainerServiceRolling({ ...params, devMode: deployWithDevMode, api })
+    await deployContainerServiceRolling({ ...params, devMode: deployWithDevMode, api, imageId })
   }
 
-  const status = await getContainerDeployStatus(params)
+  const status = await k8sGetContainerDeployStatus(params)
 
   // Make sure port forwards work after redeployment
   killPortForwards(action, status.forwardablePorts || [], log)
@@ -152,9 +154,9 @@ export async function startLocalMode({
 }
 
 export const deployContainerServiceRolling = async (
-  params: DeployActionParams<"deploy", ContainerDeployAction> & { api: KubeApi }
+  params: DeployActionParams<"deploy", ContainerDeployAction> & { api: KubeApi; imageId: string }
 ) => {
-  const { ctx, api, action, runtimeContext, log, devMode, localMode } = params
+  const { ctx, api, action, runtimeContext, log, devMode, imageId, localMode } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
@@ -165,6 +167,7 @@ export const deployContainerServiceRolling = async (
     api,
     log,
     action,
+    imageId,
     runtimeContext,
     enableDevMode: devMode,
     enableLocalMode: localMode,
@@ -188,9 +191,9 @@ export const deployContainerServiceRolling = async (
 }
 
 export const deployContainerServiceBlueGreen = async (
-  params: DeployActionParams<"deploy", ContainerDeployAction> & { api: KubeApi }
+  params: DeployActionParams<"deploy", ContainerDeployAction> & { api: KubeApi; imageId: string }
 ) => {
-  const { ctx, api, action, runtimeContext, log, devMode, localMode } = params
+  const { ctx, api, action, runtimeContext, log, devMode, imageId, localMode } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
   const namespace = namespaceStatus.namespaceName
@@ -201,6 +204,7 @@ export const deployContainerServiceBlueGreen = async (
     api,
     log,
     action,
+    imageId,
     runtimeContext,
     enableDevMode: devMode,
     enableLocalMode: localMode,
@@ -311,6 +315,7 @@ export async function createContainerManifests({
   api,
   log,
   action,
+  imageId,
   runtimeContext,
   enableDevMode,
   enableLocalMode,
@@ -320,6 +325,7 @@ export async function createContainerManifests({
   api: KubeApi
   log: LogEntry
   action: ContainerDeployAction
+  imageId: string
   runtimeContext: RuntimeContext
   enableDevMode: boolean
   enableLocalMode: boolean
@@ -334,6 +340,7 @@ export async function createContainerManifests({
     api,
     provider,
     action,
+    imageId,
     runtimeContext,
     namespace,
     enableDevMode,
@@ -373,6 +380,7 @@ interface CreateDeploymentParams {
   action: ContainerDeployAction
   runtimeContext: RuntimeContext
   namespace: string
+  imageId: string
   enableDevMode: boolean
   enableLocalMode: boolean
   log: LogEntry
@@ -384,6 +392,7 @@ export async function createWorkloadManifest({
   api,
   provider,
   action,
+  imageId,
   runtimeContext,
   namespace,
   enableDevMode,
@@ -454,8 +463,6 @@ export async function createWorkloadManifest({
     valueFrom: { fieldRef: { fieldPath: "metadata.uid" } },
   })
 
-  const imageId = service.module.outputs["deployment-image-id"]
-
   const { cpu, memory, limits } = spec
 
   const container: V1Container = {
@@ -499,7 +506,7 @@ export async function createWorkloadManifest({
   }
 
   if (spec.volumes && spec.volumes.length) {
-    configureVolumes(service.module, workload.spec.template.spec!, spec.volumes)
+    configureVolumes(action, workload.spec.template.spec!, spec.volumes)
   }
 
   const ports = spec.ports
@@ -767,7 +774,7 @@ function configureHealthCheck(
 }
 
 export function configureVolumes(
-  module: ContainerModule,
+  action: ContainerAction,
   podSpec: V1PodSpec,
   volumeSpecs: ContainerVolumeSpec[]
 ): void {
@@ -790,32 +797,32 @@ export function configureVolumes(
       volumes.push({
         name: volumeName,
         hostPath: {
-          path: resolve(module.path, volume.hostPath),
+          path: resolve(action.getBasePath(), volume.hostPath),
         },
       })
-    } else if (volume.module) {
-      // Make sure the module is a supported type
-      const volumeModule = module.buildDependencies[volume.module]
+    } else if (volume.action) {
+      // Make sure the action is a supported type
+      const volumeAction = action.dependencies.getBuild(volume.action)
 
-      if (volumeModule.compatibleTypes.includes("persistentvolumeclaim")) {
+      if (volumeAction.isCompatible("persistentvolumeclaim")) {
         volumes.push({
           name: volumeName,
           persistentVolumeClaim: {
-            claimName: volume.module,
+            claimName: volume.action,
           },
         })
-      } else if (volumeModule.compatibleTypes.includes("configmap")) {
+      } else if (volumeAction.isCompatible("configmap")) {
         volumes.push({
           name: volumeName,
           configMap: {
-            name: volume.module,
+            name: volume.action,
           },
         })
       } else {
         throw new ConfigurationError(
-          chalk.red(deline`Container module ${chalk.white(module.name)} specifies a unsupported module
-          ${chalk.white(volumeModule.name)} for volume mount ${chalk.white(volumeName)}. Only \`persistentvolumeclaim\`
-          and \`configmap\` modules are supported at this time.
+          chalk.red(deline`${action.description()} specifies a unsupported config
+          ${chalk.white(volumeAction.name)} for volume mount ${chalk.white(volumeName)}. Only \`persistentvolumeclaim\`
+          and \`configmap\` action are supported at this time.
           `),
           { volumeSpec: volume }
         )

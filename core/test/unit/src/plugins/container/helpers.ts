@@ -21,7 +21,11 @@ import { moduleFromConfig } from "../../../../../src/types/module"
 import { ModuleConfig } from "../../../../../src/config/module"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { ContainerModuleSpec, ContainerModuleConfig } from "../../../../../src/plugins/container/moduleConfig"
-import { containerHelpers as helpers, defaultDockerfileName, DEFAULT_BUILD_TIMEOUT } from "../../../../../src/plugins/container/helpers"
+import {
+  containerHelpers as helpers,
+  defaultDockerfileName,
+  DEFAULT_BUILD_TIMEOUT,
+} from "../../../../../src/plugins/container/helpers"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { dedent } from "../../../../../src/util/string"
 import { ModuleVersion } from "../../../../../src/vcs/vcs"
@@ -524,7 +528,12 @@ describe("containerHelpers", () => {
         COPY --chown=bla file-b file-c /
         `
       )
-      expect(await helpers.autoResolveIncludes(config, log)).to.eql(["file-a", "file-b", "file-c", defaultDockerfileName])
+      expect(await helpers.autoResolveIncludes(config, log)).to.eql([
+        "file-a",
+        "file-b",
+        "file-c",
+        defaultDockerfileName,
+      ])
     })
 
     it("should ignore COPY statements with a --from argument", async () => {
@@ -551,7 +560,12 @@ describe("containerHelpers", () => {
 
     it("should pass through paths containing an escaped template string", async () => {
       await writeFile(dockerfilePath, "FROM foo\nADD file-a /\nCOPY file-\\$foo file-c /")
-      expect(await helpers.autoResolveIncludes(config, log)).to.eql(["file-a", "file-$foo", "file-c", defaultDockerfileName])
+      expect(await helpers.autoResolveIncludes(config, log)).to.eql([
+        "file-a",
+        "file-$foo",
+        "file-c",
+        defaultDockerfileName,
+      ])
     })
 
     it("should return if any source path is '.'", async () => {

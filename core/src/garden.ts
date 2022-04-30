@@ -17,13 +17,7 @@ const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
 import { getBuiltinPlugins } from "./plugins/plugins"
-import {
-  GardenModule,
-  getModuleCacheContext,
-  ModuleConfigMap,
-  moduleFromConfig,
-  ModuleTypeMap,
-} from "./types/module"
+import { GardenModule, getModuleCacheContext, ModuleConfigMap, moduleFromConfig, ModuleTypeMap } from "./types/module"
 import {
   SourceConfig,
   ProjectConfig,

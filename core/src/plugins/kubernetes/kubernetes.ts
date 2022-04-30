@@ -14,7 +14,12 @@ import { getAppNamespace, getSystemNamespace } from "./namespace"
 import { getSecret, setSecret, deleteSecret } from "./secrets"
 import { getEnvironmentStatus, prepareEnvironment, cleanupEnvironment } from "./init"
 import { containerHandlers } from "./container/handlers"
-import { kubernetesHandlers } from "./kubernetes-type/handlers"
+import {
+  deleteKubernetesDeploy,
+  getKubernetesDeployLogs,
+  kubernetesDeploy,
+  kubernetesHandlers,
+} from "./kubernetes-type/handlers"
 import { ConfigureProviderParams } from "../../plugin/handlers/provider/configureProvider"
 import { DebugInfo, GetDebugInfoParams } from "../../plugin/handlers/provider/getDebugInfo"
 import { kubectl, kubectlSpec } from "./kubectl"
@@ -43,7 +48,11 @@ import { configMapModuleDefinition } from "./volumes/configmap"
 import { jibContainerHandlers } from "./jib-container"
 import { kustomizeSpec } from "./kubernetes-type/kustomize"
 import { k8sBuildContainer, k8sGetContainerBuildStatus } from "./container/build/build"
-import { containerDeploy, deleteContainerDeploy } from "./container/deployment"
+import { k8sContainerDeploy, deleteContainerDeploy } from "./container/deployment"
+import { getPortForwardHandler } from "./port-forward"
+import { kubernetesDeploySchema } from "./kubernetes-type/config"
+import { helmDeploySchema } from "./helm/config"
+import { k8sContainerBuildExtension, k8sContainerDeployExtension } from "./container/extensions"
 
 export async function configureProvider({
   namespace,
@@ -137,6 +146,23 @@ const outputsSchema = joi.object().keys({
     .meta({ deprecated: "The metadata namespace is no longer used." }),
 })
 
+const kubernetesDeployDocs = dedent`
+  Specify one or more Kubernetes manifests to deploy.
+
+  You can either (or both) specify the manifests as part of the \`garden.yml\` configuration, or you can refer to
+  one or more files with existing manifests.
+
+  Note that if you include the manifests in the \`garden.yml\` file, you can use
+  [template strings](../../using-garden/variables-and-templating.md) to interpolate values into the manifests.
+
+  If you need more advanced templating features you can use the [helm](./helm.md) Deploy type.
+`
+
+const helmDeployDocs = dedent`
+  Specify a Helm chart (either in your repository or remote from a registry) to deploy.
+  Refer to the [Helm guide](${DOCS_BASE_URL}/guides/using-helm-charts) for usage instructions.
+`
+
 export const gardenPlugin = () =>
   createGardenPlugin({
     name: "kubernetes",
@@ -167,52 +193,51 @@ export const gardenPlugin = () =>
       getDebugInfo: debugInfo,
     },
 
-    extendActionTypes: {
-      build: [
+    createActionTypes: {
+      deploy: [
         {
-          name: "container",
+          name: "kubernetes",
+          docs: kubernetesDeployDocs,
+          schema: kubernetesDeploySchema(),
+          outputsSchema: joi.object().keys({}),
           handlers: {
-            build: k8sBuildContainer,
-            getStatus: k8sGetContainerBuildStatus,
+            deploy: kubernetesDeploy,
+            delete: deleteKubernetesDeploy,
+            getLogs: getKubernetesDeployLogs,
+            getPortForward: getPortForwardHandler,
+          },
+        },
+        {
+          name: "helm",
+          docs: helmDeployDocs,
+          schema: helmDeploySchema(),
+          outputsSchema: helmDeployOutputsSchema(),
+          handlers: {
+            deploy: helmDeploy,
+            delete: deleteHelmDeploy,
+            getLogs: getHelmDeployLogs,
+            getPortForward: getHelmPortForward,
           },
         },
       ],
-      deploy: [
-        {
-          name: "container",
-          handlers: {
-            deploy: containerDeploy,
-            delete: deleteContainerDeploy,
-            getStatus: k8sGetContainerBuildStatus,
-          },
-        }
-      ]
+    },
+
+    extendActionTypes: {
+      build: [k8sContainerBuildExtension, k8sJibContainerBuildExtension],
+      deploy: [k8sContainerDeployExtension],
     },
 
     createModuleTypes: [
       {
         name: "helm",
-        docs: dedent`
-        Specify a Helm chart (either in your repository or remote from a registry) to deploy.
-        Refer to the [Helm guide](${DOCS_BASE_URL}/guides/using-helm-charts) for usage instructions.
-      `,
+        docs: helmDeployDocs,
         moduleOutputsSchema: helmModuleOutputsSchema(),
         schema: helmModuleSpecSchema(),
         handlers: helmModuleHandlers,
       },
       {
         name: "kubernetes",
-        docs: dedent`
-        Specify one or more Kubernetes manifests to deploy.
-
-        You can either (or both) specify the manifests as part of the \`garden.yml\` configuration, or you can refer to
-        one or more files with existing manifests.
-
-        Note that if you include the manifests in the \`garden.yml\` file, you can use
-        [template strings](../../using-garden/variables-and-templating.md) to interpolate values into the manifests.
-
-        If you need more advanced templating features you can use the [helm](./helm.md) module type.
-      `,
+        docs: kubernetesDeployDocs,
         moduleOutputsSchema: joi.object().keys({}),
         schema: kubernetesModuleSpecSchema(),
         handlers: kubernetesHandlers,
@@ -220,6 +245,7 @@ export const gardenPlugin = () =>
       pvcModuleDefinition(),
       configMapModuleDefinition(),
     ],
+
     extendModuleTypes: [
       {
         name: "container",

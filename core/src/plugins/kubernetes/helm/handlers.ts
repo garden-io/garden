@@ -8,7 +8,6 @@
 
 import { ModuleAndRuntimeActionHandlers } from "../../../plugin/plugin"
 import { configureHelmModule, HelmModule } from "./moduleConfig"
-import { buildHelmModule } from "./build"
 import { getServiceStatus } from "./status"
 import { deleteService, deployHelmService } from "./deployment"
 import { getTestResult } from "../test-results"
@@ -16,14 +15,14 @@ import { runHelmModule, runHelmTask } from "./run"
 import { getServiceLogs } from "./logs"
 import { testHelmModule } from "./test"
 import { getPortForwardHandler } from "../port-forward"
-import { getTaskResult } from "../task-results"
+import { getTaskResult } from "../run-results"
 import { GetPortForwardParams } from "../../../types/plugin/service/getPortForward"
 import { KubernetesPluginContext } from "../config"
 import { getActionNamespace } from "../namespace"
 import { join } from "path"
 import { pathExists } from "fs-extra"
 import { SuggestModulesParams, SuggestModulesResult } from "../../../types/plugin/module/suggestModules"
-import { getBaseModule, getReleaseName } from "./common"
+import { getBaseModule, getReleaseName, helmChartYamlFilename } from "./common"
 import { execInHelmService } from "./exec"
 import chalk = require("chalk")
 import { ExecBuildConfig } from "../../exec/config"
@@ -83,6 +82,7 @@ export const helmModuleHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModu
         portForwards: module.spec.portForwards,
         namespace: module.spec.namespace,
         releaseName: module.spec.releaseName,
+        timeout: module.spec.timeout,
         values: module.spec.values,
         valueFiles: module.spec.valueFiles,
 
@@ -173,17 +173,17 @@ export const helmModuleHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModu
     }
   },
 
-  build: buildHelmModule,
   getModuleOutputs: async ({ moduleConfig }) => {
     return {
       outputs: {
-        "release-name": getReleaseName(moduleConfig),
+        "release-name": moduleConfig.spec.releaseName || moduleConfig.name,
       },
     }
   },
   execInService: execInHelmService,
   deleteService,
   deployService: deployHelmService,
+
   // Use the same getPortForward handler as container and kubernetes-module, except set the namespace
   getPortForward: async (params: GetPortForwardParams) => {
     const { ctx, log, module } = params
@@ -197,6 +197,7 @@ export const helmModuleHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModu
     })
     return getPortForwardHandler({ ...params, namespace })
   },
+
   getServiceLogs,
   getServiceStatus,
   getTaskResult,
@@ -204,13 +205,14 @@ export const helmModuleHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModu
   // TODO: add publishModule handler
   runModule: runHelmModule,
   runTask: runHelmTask,
+
   suggestModules: async ({ name, path }: SuggestModulesParams): Promise<SuggestModulesResult> => {
-    const chartPath = join(path, "Chart.yaml")
+    const chartPath = join(path, helmChartYamlFilename)
     if (await pathExists(chartPath)) {
       return {
         suggestions: [
           {
-            description: `based on found ${chalk.white("Chart.yaml")}`,
+            description: `based on found ${chalk.white(helmChartYamlFilename)}`,
             module: {
               type: "helm",
               name,
@@ -223,5 +225,6 @@ export const helmModuleHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModu
       return { suggestions: [] }
     }
   },
+
   testModule: testHelmModule,
 }

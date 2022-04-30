@@ -9,6 +9,7 @@
 import Joi from "@hapi/joi"
 import { ActionKind, BaseActionConfig } from "../../../actions/base"
 import { joi, joiVariables } from "../../../config/common"
+import { RuntimeContext } from "../../../runtime-context"
 
 export type ParamsBase<_ = any> = {}
 
@@ -45,3 +46,11 @@ export const actionOutputsSchema = () =>
   joiVariables().description(
     "Structured outputs from the execution, as defined by individual action/module types, to be made available for dependencies and in templating."
   )
+
+export interface BaseRunParams {
+  command?: string[]
+  args: string[]
+  interactive: boolean
+  runtimeContext: RuntimeContext
+  timeout?: number
+}

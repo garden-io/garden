@@ -20,7 +20,6 @@ import {
 } from "./moduleConfig"
 import { buildContainer, getContainerBuildStatus } from "./build"
 import { ConfigureModuleParams } from "../../plugin/handlers/module/configure"
-import { joi } from "../../config/common"
 import { SuggestModulesParams, SuggestModulesResult } from "../../types/plugin/module/suggestModules"
 import { listDirectory } from "../../util/fs"
 import { dedent } from "../../util/string"
@@ -34,22 +33,14 @@ import {
   containerRunActionSchema,
   containerTestActionSchema,
   containerBuildSpecSchema,
+  containerDeployOutputsSchema,
+  containerTestOutputSchema,
+  containerRunOutputSchema,
 } from "./config"
 import { publishContainerBuild } from "./publish"
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
 export type ContainerProvider = Provider<ContainerProviderConfig>
-
-const taskOutputsSchema = joi.object().keys({
-  log: joi
-    .string()
-    .allow("")
-    .default("")
-    .description(
-      "The full log from the executed task. " +
-        "(Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)"
-    ),
-})
 
 export async function configureContainerModule({ log, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
   // validate services
@@ -212,6 +203,7 @@ export const gardenPlugin = () =>
       Provides the [container](../module-types/container.md) module type.
       _Note that this provider is currently automatically included, and you do not need to configure it in your project configuration._
     `,
+    configSchema: providerConfigBaseSchema(),
 
     createActionTypes: {
       build: [
@@ -238,6 +230,7 @@ export const gardenPlugin = () =>
             This is a simplified abstraction, which can be convenient for simple deployments, but has limited features compared to more platform-specific types. For example, you cannot specify replicas for redundancy, and various platform-specific options are not included. For more flexibility, please look at other Deploy types like [helm](./helm.md) or [kubernetes](./kubernetes.md).
           `,
           schema: containerDeploySchema(),
+          outputsSchema: containerDeployOutputsSchema(),
           handlers: {
             // Implemented by other providers (e.g. kubernetes)
           },
@@ -252,6 +245,7 @@ export const gardenPlugin = () =>
             This is a simplified abstraction, which can be convenient for simple tasks, but has limited features compared to more platform-specific types. For example, you cannot specify replicas for redundancy, and various platform-specific options are not included. For more flexibility, please look at other Run types like [helm](./helm.md) or [kubernetes](./kubernetes.md).
           `,
           schema: containerRunActionSchema(),
+          outputsSchema: containerRunOutputSchema(),
           handlers: {
             // Implemented by other providers (e.g. kubernetes)
           },
@@ -266,6 +260,7 @@ export const gardenPlugin = () =>
             This is a simplified abstraction, which can be convenient for simple scenarios, but has limited features compared to more platform-specific types. For example, you cannot specify replicas for redundancy, and various platform-specific options are not included. For more flexibility, please look at other Test types like [helm](./helm.md) or [kubernetes](./kubernetes.md).
           `,
           schema: containerTestActionSchema(),
+          outputsSchema: containerTestOutputSchema(),
           handlers: {
             // Implemented by other providers (e.g. kubernetes)
           },
@@ -287,7 +282,6 @@ export const gardenPlugin = () =>
         `,
         moduleOutputsSchema: containerModuleOutputsSchema(),
         schema: containerModuleSpecSchema(),
-        taskOutputsSchema,
         handlers: {
           configure: configureContainerModule,
           suggestModules,
@@ -398,7 +392,7 @@ export const gardenPlugin = () =>
         },
       },
     ],
-    configSchema: providerConfigBaseSchema(),
+
     tools: [
       {
         name: "docker",

@@ -22,7 +22,7 @@ import {
 import {
   getWorkloadPods,
   getServiceResourceSpec,
-  getServiceResource,
+  getTargetResource,
   getResourceContainer,
   getResourcePodSpec,
 } from "../../../../../src/plugins/kubernetes/util"
@@ -231,7 +231,7 @@ describe("util", () => {
         log,
         version: module.version.versionString,
       })
-      const result = await getServiceResource({
+      const result = await getTargetResource({
         ctx,
         log,
         provider: ctx.provider,
@@ -256,7 +256,7 @@ describe("util", () => {
       delete module.spec.serviceResource
       await expectError(
         () =>
-          getServiceResource({
+          getTargetResource({
             ctx,
             log,
             provider: ctx.provider,
@@ -289,7 +289,7 @@ describe("util", () => {
       }
       await expectError(
         () =>
-          getServiceResource({
+          getTargetResource({
             ctx,
             log,
             provider: ctx.provider,
@@ -317,7 +317,7 @@ describe("util", () => {
       }
       await expectError(
         () =>
-          getServiceResource({
+          getTargetResource({
             ctx,
             log,
             provider: ctx.provider,
@@ -344,7 +344,7 @@ describe("util", () => {
 
       await expectError(
         () =>
-          getServiceResource({
+          getTargetResource({
             ctx,
             log,
             provider: ctx.provider,
@@ -371,7 +371,7 @@ describe("util", () => {
         version: module.version.versionString,
       })
       module.spec.serviceResource.name = `{{ template "postgresql.primary.fullname" . }}`
-      const result = await getServiceResource({
+      const result = await getTargetResource({
         ctx,
         log,
         provider: ctx.provider,
@@ -411,7 +411,7 @@ describe("util", () => {
           },
         }
 
-        const pod = await getServiceResource({
+        const pod = await getTargetResource({
           ctx,
           log,
           provider: ctx.provider,
@@ -437,7 +437,7 @@ describe("util", () => {
 
         await expectError(
           () =>
-            getServiceResource({
+            getTargetResource({
               ctx,
               log,
               provider: ctx.provider,

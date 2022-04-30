@@ -21,6 +21,7 @@ import { PluginContext } from "../../../plugin-context"
 import { ConfigurationError, PluginError } from "../../../exceptions"
 import { KubernetesTargetResourceSpec, ServiceResourceSpec } from "../config"
 import { HelmModule } from "../helm/moduleConfig"
+import { KubernetesDeployAction } from "./config"
 
 /**
  * Reads the manifests and makes sure each has a namespace set (when applicable) and adds annotations.
@@ -30,18 +31,18 @@ export async function getManifests({
   ctx,
   api,
   log,
-  module,
+  action,
   defaultNamespace,
   readFromSrcDir = false,
 }: {
   ctx: PluginContext
   api: KubeApi
   log: LogEntry
-  module: KubernetesModule
+  action: KubernetesDeployAction
   defaultNamespace: string
   readFromSrcDir?: boolean
 }): Promise<KubernetesResource[]> {
-  const manifests = await readManifests(ctx, module, log, readFromSrcDir)
+  const manifests = await readManifests(ctx, action, log, readFromSrcDir)
 
   return Bluebird.map(manifests, async (manifest) => {
     // Ensure a namespace is set, if not already set, and if required by the resource type
@@ -68,7 +69,7 @@ export async function getManifests({
      * module that includes a namespace resource in its manifests.
      */
     const annotationValue =
-      manifest.kind === "Namespace" ? gardenNamespaceAnnotationValue(manifest.metadata.name) : module.name
+      manifest.kind === "Namespace" ? gardenNamespaceAnnotationValue(manifest.metadata.name) : action.name
     set(manifest, ["metadata", "annotations", gardenAnnotationKey("service")], annotationValue)
     set(manifest, ["metadata", "labels", gardenAnnotationKey("service")], annotationValue)
 
@@ -91,16 +92,18 @@ const disallowedKustomizeArgs = ["-o", "--output", "-h", "--help"]
  */
 export async function readManifests(
   ctx: PluginContext,
-  module: KubernetesModule,
+  action: KubernetesDeployAction,
   log: LogEntry,
   readFromSrcDir = false
 ) {
-  const manifestPath = readFromSrcDir ? module.path : module.buildPath
+  const manifestPath = readFromSrcDir ? action.getBasePath() : action.getBuildPath()
+
+  const spec = action.getSpec()
 
   const fileManifests = flatten(
-    await Bluebird.map(module.spec.files, async (path) => {
+    await Bluebird.map(spec.files, async (path) => {
       const absPath = resolve(manifestPath, path)
-      log.debug(`Reading manifest for module ${module.name} from path ${absPath}`)
+      log.debug(`Reading manifest for module ${action.name} from path ${absPath}`)
       const str = (await readFile(absPath)).toString()
       const resolved = ctx.resolveTemplateStrings(str, { allowPartial: true, unescape: true })
       return safeLoadAll(resolved)
@@ -109,17 +112,17 @@ export async function readManifests(
 
   let kustomizeManifests: any[] = []
 
-  if (module.spec.kustomize?.path) {
+  if (spec.kustomize?.path) {
     const kustomize = ctx.tools["kubernetes.kustomize"]
 
-    const extraArgs = module.spec.kustomize.extraArgs || []
+    const extraArgs = spec.kustomize.extraArgs || []
 
     for (const arg of disallowedKustomizeArgs) {
       if (extraArgs.includes(arg)) {
         throw new ConfigurationError(
           `kustomize.extraArgs must not include any of ${disallowedKustomizeArgs.join(", ")}`,
           {
-            moduleSpec: module.spec,
+            spec,
             extraArgs,
           }
         )
@@ -130,18 +133,18 @@ export async function readManifests(
       const kustomizeOutput = await kustomize.stdout({
         cwd: manifestPath,
         log,
-        args: ["build", module.spec.kustomize.path, ...extraArgs],
+        args: ["build", spec.kustomize.path, ...extraArgs],
       })
       kustomizeManifests = safeLoadAll(kustomizeOutput)
     } catch (error) {
       throw new PluginError(`Failed resolving kustomize manifests: ${error.message}`, {
         error,
-        moduleSpec: module.spec,
+        spec,
       })
     }
   }
 
-  return [...module.spec.manifests, ...fileManifests, ...kustomizeManifests]
+  return [...spec.manifests, ...fileManifests, ...kustomizeManifests]
 }
 
 /**

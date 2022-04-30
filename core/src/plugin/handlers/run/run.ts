@@ -6,19 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  runBaseParams,
-  RunResult,
-  artifactsPathSchema,
-  PluginRunActionParamsBase,
-  actionParamsSchema,
-} from "../../../plugin/base"
+import { runBaseParams, artifactsPathSchema, PluginRunActionParamsBase, actionParamsSchema } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
 import { RuntimeContext } from "../../../runtime-context"
 import { taskResultSchema } from "../../../types/task"
 import { RunAction } from "../../../actions/run"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { GetActionOutputType } from "../../../actions/base"
+import { GetRunResult } from "./get-result"
 
 interface RunActionParams<T extends RunAction> extends PluginRunActionParamsBase<T> {
   artifactsPath: string
@@ -27,15 +21,10 @@ interface RunActionParams<T extends RunAction> extends PluginRunActionParamsBase
   timeout?: number
 }
 
-interface RunActionResult<T extends RunAction> extends RunResult {
-  taskName: string
-  outputs: GetActionOutputType<T>
-}
-
 export class RunRunAction<T extends RunAction = RunAction> extends ActionTypeHandlerSpec<
   "run",
   RunActionParams<T>,
-  RunActionResult<T>
+  GetRunResult<T>
 > {
   description = dedent`
     Performs a Run. This should wait until execution completes, and return its output.

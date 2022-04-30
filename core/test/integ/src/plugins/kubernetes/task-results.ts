@@ -12,7 +12,7 @@ import { KubernetesConfig } from "../../../../../src/plugins/kubernetes/config"
 import { getDataDir, makeTestGarden } from "../../../../helpers"
 import { randomString } from "../../../../../src/util/string"
 import { expect } from "chai"
-import { storeTaskResult, getTaskResult } from "../../../../../src/plugins/kubernetes/task-results"
+import { storeTaskResult, getTaskResult } from "../../../../../src/plugins/kubernetes/run-results"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../../../../../src/plugins/kubernetes/constants"
 
 describe("kubernetes task results", () => {

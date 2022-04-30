@@ -15,6 +15,7 @@ import { dedent, deline } from "../../../util/string"
 // DEPLOY //
 
 export const defaultHelmTimeout = 300
+export const defaultHelmRepo = "https://charts.helm.sh/stable"
 
 interface HelmDeployActionSpec {
   atomicInstall: boolean
@@ -28,7 +29,7 @@ interface HelmDeployActionSpec {
   namespace?: string
   portForwards?: PortForwardSpec[]
   releaseName?: string
-  timeout?: number
+  timeout: number
   values: DeepPrimitiveMap
   valueFiles: string[]
 }
@@ -90,7 +91,10 @@ export const helmChartNameSchema = () =>
     )
     .example("ingress-nginx")
 
-export const helmChartRepoSchema = () => joi.string().description("The repository URL to fetch the chart from.")
+export const helmChartRepoSchema = () =>
+  joi
+    .string()
+    .description(`The repository URL to fetch the chart from. Defaults to the "stable" helm repo (${defaultHelmRepo}).`)
 export const helmChartVersionSchema = () => joi.string().description("The chart version to deploy.")
 
 export const helmDeploySchema = () =>
@@ -109,6 +113,7 @@ export const helmDeploySchema = () =>
         repo: helmChartRepoSchema(),
         version: helmChartVersionSchema(),
       })
+      .with("name", ["version"])
       .without("path", ["name", "repo", "version"])
       .description(
         dedent`
@@ -116,13 +121,13 @@ export const helmDeploySchema = () =>
 
         If the chart is defined in the same directory as the action, you can skip this, and the chart sources will be detected. If the chart is in the source tree but in a sub-directory, you should set \`chart.path\` to the directory path, relative to the action directory.
 
-        If the chart is remote, you should specify \`chart.name\`, and optionally \`chart.repo\` and/or \`chart.version\`.
+        If the chart is remote, you must specify \`chart.name\` and \`chart.version\, and optionally \`chart.repo\` (if the chart is not in the default "stable" repo).
         `
       ),
   })
 
 export type HelmDeployConfig = DeployActionConfig<"helm", HelmDeployActionSpec>
-export type HelmHeployAction = DeployAction<HelmDeployConfig, {}>
+export type HelmDeployAction = DeployAction<HelmDeployConfig, {}>
 
 // NOTE: Runs and Tests are handled as `kubernetes` Run and Test actions
 

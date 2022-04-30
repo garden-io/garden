@@ -9,14 +9,14 @@
 import { KubernetesModule } from "./moduleConfig"
 import { runAndCopy } from "../run"
 import {
-  getServiceResource,
+  getTargetResource,
   getResourceContainer,
   getResourcePodSpec,
   getServiceResourceSpec,
   makePodName,
 } from "../util"
 import { KubernetesPluginContext } from "../config"
-import { storeTaskResult } from "../task-results"
+import { storeRunResult } from "../run-results"
 import { RunTaskParams, RunTaskResult } from "../../../types/plugin/task/runTask"
 import { getManifests } from "./common"
 import { KubeApi } from "../api"
@@ -39,7 +39,7 @@ export async function runKubernetesTask(params: RunTaskParams<KubernetesModule>)
   const { command, args } = task.spec
   const manifests = await getManifests({ ctx, api, log, module, defaultNamespace: namespace })
   const resourceSpec = task.spec.resource || getServiceResourceSpec(module, undefined)
-  const target = await getServiceResource({
+  const target = await getTargetResource({
     ctx: k8sCtx,
     log,
     provider: k8sCtx.provider,
@@ -75,7 +75,7 @@ export async function runKubernetesTask(params: RunTaskParams<KubernetesModule>)
   }
 
   if (task.config.cacheResult) {
-    await storeTaskResult({
+    await storeRunResult({
       ctx,
       log,
       module,
