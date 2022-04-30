@@ -20,7 +20,9 @@ export const execInContainer: DeployActionHandler<"exec", ContainerDeployAction>
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const status = await k8sGetContainerDeployStatus({
-    ...params,
+    ctx,
+    log,
+    action,
     // The runtime context doesn't matter here. We're just checking if the service is running.
     runtimeContext: {
       envVars: {},

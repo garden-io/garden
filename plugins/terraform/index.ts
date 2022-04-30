@@ -139,7 +139,6 @@ export const gardenPlugin = () =>
 
       See the [Terraform guide](${docsBaseUrl}/advanced/terraform) for a high-level introduction to the \`terraform\` provider.
     `,
-        serviceOutputsSchema: terraformDeployOutputsSchema(),
         schema: terraformModuleSchema(),
         handlers: {
           async convert(params) {

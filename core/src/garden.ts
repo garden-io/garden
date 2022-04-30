@@ -55,7 +55,7 @@ import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { ModuleConfig } from "./config/module"
 import { ModuleResolver } from "./resolve-module"
 import { createPluginContext, CommandInfo, PluginEventBroker } from "./plugin-context"
-import { ModuleAndRuntimeActionHandlers, RegisterPluginParam } from "./plugin/plugin"
+import { ModuleActionHandlers, RegisterPluginParam } from "./plugin/plugin"
 import {
   SUPPORTED_PLATFORMS,
   SupportedPlatform,
@@ -120,8 +120,8 @@ export interface ActionHandlerMap<T extends keyof ProviderActionHandlers> {
   [actionName: string]: ProviderActionHandlers[T]
 }
 
-export interface ModuleActionHandlerMap<T extends keyof ModuleAndRuntimeActionHandlers> {
-  [actionName: string]: ModuleAndRuntimeActionHandlers[T]
+export interface ModuleActionHandlerMap<T extends keyof ModuleActionHandlers> {
+  [actionName: string]: ModuleActionHandlers[T]
 }
 
 export type PluginActionMap = {
@@ -131,9 +131,9 @@ export type PluginActionMap = {
 }
 
 export type ModuleActionMap = {
-  [A in keyof ModuleAndRuntimeActionHandlers]: {
+  [A in keyof ModuleActionHandlers]: {
     [moduleType: string]: {
-      [pluginName: string]: ModuleAndRuntimeActionHandlers[A]
+      [pluginName: string]: ModuleActionHandlers[A]
     }
   }
 }

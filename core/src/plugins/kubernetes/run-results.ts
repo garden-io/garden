@@ -21,10 +21,12 @@ import chalk from "chalk"
 import { Action, RuntimeAction } from "../../actions/base"
 import { RunResult } from "../../plugin/base"
 import { RunActionHandler } from "../../plugin/action-types"
-import { KubernetesRunAction } from "./kubernetes-type/config"
+import { KubernetesRunAction } from "./kubernetes-type/run"
 
-export const k8sGetRunResult: RunActionHandler<"getResult", ContainerRunAction> = async (params) => {
-  const { ctx, log, action } = params
+// TODO-G2: figure out how to get rid of the any cast here
+export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params) => {
+  const { ctx, log } = params
+  const action = <ContainerRunAction>params.action
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
   const ns = await getAppNamespace(k8sCtx, log, k8sCtx.provider)

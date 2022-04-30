@@ -21,7 +21,7 @@ import { baseBuildSpecSchema } from "../../config/module"
 import { getGitHubUrl } from "../../docs/common"
 import { createGardenPlugin } from "../../plugin/plugin"
 import { TestAction, TestActionConfig } from "../../actions/test"
-import { TestActionHandlers } from "../../plugin/action-types"
+import { TestActionDefinition } from "../../plugin/action-types"
 import { ContainerModule } from "../container/moduleConfig"
 
 const defaultConfigPath = join(STATIC_DIR, "hadolint", "default.hadolint.yaml")
@@ -132,7 +132,7 @@ export const gardenPlugin = () =>
     },
     createActionTypes: {
       test: [
-        {
+        <TestActionDefinition<HadolintTest>>{
           name: "hadolint",
           docs: dedent`
           Runs \`hadolint\` on the specified Dockerfile.
@@ -151,7 +151,7 @@ export const gardenPlugin = () =>
               .required()
               .description("POSIX-style path to a Dockerfile that you want to lint with `hadolint`."),
           }),
-          handlers: <TestActionHandlers<HadolintTest>>{
+          handlers: {
             run: async ({ ctx, log, action }) => {
               const spec = action.getSpec()
               const dockerfilePath = join(module.path, spec.dockerfilePath)
@@ -237,14 +237,17 @@ export const gardenPlugin = () =>
               }
 
               return {
-                testName: action.name,
-                moduleName: action.moduleName || action.name,
-                command: ["hadolint", ...args],
-                version: action.getVersionString(),
-                success,
-                startedAt,
-                completedAt: new Date(),
-                log: formattedResult,
+                result: {
+                  testName: action.name,
+                  moduleName: action.getModuleName(),
+                  command: ["hadolint", ...args],
+                  version: action.getVersionString(),
+                  success,
+                  startedAt,
+                  completedAt: new Date(),
+                  log: formattedResult,
+                },
+                outputs: {},
               }
             },
           },

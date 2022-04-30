@@ -30,12 +30,13 @@ import {
 import { getNamespaceStatus } from "../../namespace"
 import { LogLevel } from "../../../../logger/logger"
 import { renderOutputStream, sleep } from "../../../../util/util"
-import { ContainerModule } from "../../../container/moduleConfig"
+import { ContainerBuildAction } from "../../../container/moduleConfig"
 import { getDockerBuildArgs } from "../../../container/build"
 import { getRunningDeploymentPod, millicpuToString, megabytesToString } from "../../util"
 import { PodRunner } from "../../run"
 import { prepareSecrets } from "../../secrets"
 import { defaultDockerfileName } from "../../../container/helpers"
+import { k8sGetContainerBuildActionOutputs } from "../handlers"
 
 export const buildkitImageName = "gardendev/buildkit:v0.9.3-1"
 export const buildkitDeploymentName = "garden-buildkit"
@@ -44,7 +45,7 @@ const buildkitContainerName = "buildkitd"
 const deployLock = new AsyncLock()
 
 export const getBuildkitBuildStatus: BuildStatusHandler = async (params) => {
-  const { ctx, module, log } = params
+  const { ctx, action, log } = params
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
 
@@ -67,12 +68,14 @@ export const getBuildkitBuildStatus: BuildStatusHandler = async (params) => {
     api,
     ctx,
     provider,
-    module,
+    action,
   })
 }
 
 export const buildkitBuildHandler: BuildHandler = async (params) => {
-  const { ctx, module, log } = params
+  const { ctx, action, log } = params
+  const spec = action.getSpec()
+
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
   const namespace = (await getNamespaceStatus({ log, ctx, provider })).namespaceName
@@ -85,10 +88,12 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     namespace,
   })
 
-  const localId = module.outputs["local-image-id"]
-  const deploymentImageName = module.outputs["deployment-image-name"]
-  const deploymentImageId = module.outputs["deployment-image-id"]
-  const dockerfile = module.spec.dockerfile || defaultDockerfileName
+  const outputs = k8sGetContainerBuildActionOutputs({ provider, action })
+
+  const localId = outputs.localImageId
+  const deploymentImageName = outputs.deploymentImageName
+  const deploymentImageId = outputs.deploymentImageId
+  const dockerfile = spec.dockerfile || defaultDockerfileName
 
   const { contextPath } = await syncToBuildSync({
     ...params,
@@ -134,11 +139,11 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     "type=inline",
     "--import-cache",
     `type=registry,ref=${deploymentImageName}:${cacheTag}`,
-    ...getBuildkitFlags(module),
+    ...getBuildkitFlags(action),
   ]
 
   // Execute the build
-  const buildTimeout = module.spec.build.timeout
+  const buildTimeout = spec.timeout
 
   const pod = await getRunningDeploymentPod({ api, deploymentName: buildkitDeploymentName, namespace })
 
@@ -168,7 +173,8 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     buildLog,
     fetched: false,
     fresh: true,
-    version: module.version.versionString,
+    version: action.getVersionString(),
+    outputs,
   }
 }
 
@@ -233,18 +239,20 @@ export async function ensureBuildkit({
   })
 }
 
-export function getBuildkitFlags(module: ContainerModule) {
+export function getBuildkitFlags(action: ContainerBuildAction) {
   const args: string[] = []
 
-  for (const arg of getDockerBuildArgs(module)) {
+  for (const arg of getDockerBuildArgs(action)) {
     args.push("--opt", "build-arg:" + arg)
   }
 
-  if (module.spec.build.targetImage) {
-    args.push("--opt", "target=" + module.spec.build.targetImage)
+  const spec = action.getSpec()
+
+  if (spec.targetStage) {
+    args.push("--opt", "target=" + spec.targetStage)
   }
 
-  args.push(...(module.spec.extraFlags || []))
+  args.push(...(spec.extraFlags || []))
 
   return args
 }

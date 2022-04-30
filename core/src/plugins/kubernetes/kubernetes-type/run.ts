@@ -6,83 +6,121 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { KubernetesModule } from "./module-config"
-import { runAndCopy } from "../run"
 import {
-  getTargetResource,
-  getResourceContainer,
-  getResourcePodSpec,
-  getServiceResourceSpec,
-  makePodName,
-} from "../util"
-import { KubernetesPluginContext } from "../config"
-import { storeRunResult } from "../run-results"
-import { RunTaskParams, RunTaskResult } from "../../../types/plugin/task/runTask"
-import { getManifests } from "./common"
-import { KubeApi } from "../api"
+  kubernetesCommonRunSchemaKeys,
+  KubernetesCommonRunSpec,
+  KubernetesPluginContext,
+  KubernetesTargetResourceSpec,
+  runPodSpecWhitelistDescription,
+  targetResourceSpecSchema,
+} from "../config"
+import { k8sGetRunResult, storeRunResult } from "../run-results"
 import { getActionNamespaceStatus } from "../namespace"
-import { DEFAULT_TASK_TIMEOUT } from "../../../constants"
-import { RunActionHandler } from "../../../plugin/action-types"
-import { KubernetesRunAction } from "./config"
+import { STATIC_DIR } from "../../../constants"
+import type { RunActionDefinition } from "../../../plugin/action-types"
+import { dedent } from "../../../util/string"
+import type { RunAction, RunActionConfig } from "../../../actions/run"
+import { joi } from "../../../config/common"
+import { containerRunOutputSchema } from "../../container/config"
+import type { V1PodSpec } from "@kubernetes/client-node"
+import { readFileSync } from "fs"
+import { join } from "path"
+import { runOrTest } from "./common"
 
-export const kubernetesPodRun: RunActionHandler<"run", KubernetesRunAction> = async (params) => {
-  const { ctx, log, action } = params
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const namespaceStatus = await getActionNamespaceStatus({
-    ctx: k8sCtx,
-    log,
-    action,
-    provider: k8sCtx.provider,
-  })
-  const namespace = namespaceStatus.namespaceName
-  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
-
-  // Get the container spec to use for running
-  const spec = action.getSpec()
-  const manifests = await getManifests({ ctx, api, log, action, defaultNamespace: namespace })
-  const resourceSpec = spec.target
-  const target = await getTargetResource({
-    ctx: k8sCtx,
-    log,
-    provider: k8sCtx.provider,
-    manifests,
-    action,
-    resourceSpec,
-  })
-  const container = getResourceContainer(target, resourceSpec.containerName)
-
-  const res = await runAndCopy({
-    ...params,
-    container,
-    podSpec: getResourcePodSpec(target),
-    command: spec.command,
-    args: spec.args,
-    artifacts: spec.artifacts,
-    envVars: spec.env,
-    image: container.image!,
-    namespace,
-    podName: makePodName("run", action.name),
-    timeout: action.getConfig("timeout") || DEFAULT_TASK_TIMEOUT,
-    version: action.getVersionString(),
-  })
-
-  const result = {
-    ...res,
-    namespaceStatus,
-    taskName: action.name,
-    outputs: {
-      log: res.log || "",
-    },
-  }
-
-  if (spec.cacheResult) {
-    await storeRunResult({
-      ctx,
-      log,
-      action,
-      result,
-    })
-  }
-
-  return { result, outputs: result.outputs }
+export interface KubernetesRunOutputs {
+  log: string
 }
+export const kubernetesRunOutputsSchema = () => containerRunOutputSchema()
+
+export interface KubernetesRunActionSpec extends KubernetesCommonRunSpec {
+  resource?: KubernetesTargetResourceSpec
+  podSpec?: V1PodSpec
+}
+export type KubernetesRunActionConfig = RunActionConfig<"kubernetes", KubernetesRunActionSpec>
+export type KubernetesRunAction = RunAction<KubernetesRunActionConfig, KubernetesRunOutputs>
+
+// Need to use a sync read to avoid having to refactor createGardenPlugin()
+// The `pod-v1.json` file is copied from the handy
+// kubernetes-json-schema repo (https://github.com/instrumenta/kubernetes-json-schema/tree/master/v1.18.1-standalone).
+const jsonSchema = () =>
+  JSON.parse(readFileSync(join(STATIC_DIR, "kubernetes", "persistentvolumeclaim.json")).toString())
+
+export const kubernetesRunSchema = () =>
+  joi
+    .object()
+    .keys({
+      ...kubernetesCommonRunSchemaKeys(),
+      resource: targetResourceSpecSchema()
+        .required()
+        .description(
+          dedent`
+          Specify a Kubernetes resource to derive the Pod spec from for the run.
+
+          This resource will be fetched from the target namespace, so you'll need to make sure it's been deployed previously (say, by configuring a dependency on a \`helm\` or \`kubernetes\` Deploy).
+
+          The following fields from the Pod will be used (if present) when executing the task:
+          ${runPodSpecWhitelistDescription()}
+          `
+        ),
+      // TODO: allow reading the pod spec from a file
+      podSpec: joi
+        .object()
+        .jsonSchema({ ...jsonSchema().properties.spec, type: "object" })
+        .description(
+          dedent`
+          Supply a custom Pod specification. This should be a normal Kubernetes Pod manifest. Note that the spec will be modified for the run, including overriding with other fields you may set here (such as \`args\` and \`env\`), and removing certain fields that are not supported.
+
+          The following Pod spec fields from the will be used (if present) when executing the task:
+          ${runPodSpecWhitelistDescription()}
+        `
+        ),
+    })
+    .xor("resource", "podSpec")
+
+export const kubernetesRunDefinition = (): RunActionDefinition<KubernetesRunAction> => ({
+  name: "kubernetes-pod",
+  docs: dedent`
+    Run an ad-hoc instance of a Kubernetes Pod and wait for it to complete.
+
+    TODO-G2
+  `,
+  schema: kubernetesRunSchema(),
+  outputsSchema: kubernetesRunOutputsSchema(),
+  handlers: {
+    run: async (params) => {
+      const { ctx, log, action } = params
+      const k8sCtx = <KubernetesPluginContext>ctx
+      const namespaceStatus = await getActionNamespaceStatus({
+        ctx: k8sCtx,
+        log,
+        action,
+        provider: k8sCtx.provider,
+      })
+      const namespace = namespaceStatus.namespaceName
+
+      const res = await runOrTest({ ...params, ctx: k8sCtx, namespace })
+
+      const result = {
+        ...res,
+        namespaceStatus,
+        taskName: action.name,
+        outputs: {
+          log: res.log || "",
+        },
+      }
+
+      if (action.getSpec("cacheResult")) {
+        await storeRunResult({
+          ctx,
+          log,
+          action,
+          result,
+        })
+      }
+
+      return { result, outputs: result.outputs }
+    },
+
+    getResult: k8sGetRunResult,
+  },
+})

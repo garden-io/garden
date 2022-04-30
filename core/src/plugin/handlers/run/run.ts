@@ -14,12 +14,13 @@ import { RunAction } from "../../../actions/run"
 import { ActionTypeHandlerSpec } from "../base/base"
 import { GetRunResult } from "./get-result"
 
-interface RunActionParams<T extends RunAction> extends PluginRunActionParamsBase<T> {
+export interface CommonRunParams {
   artifactsPath: string
   interactive: boolean
   runtimeContext: RuntimeContext
-  timeout?: number
 }
+
+type RunActionParams<T extends RunAction> = PluginRunActionParamsBase<T> & CommonRunParams
 
 export class RunRunAction<T extends RunAction = RunAction> extends ActionTypeHandlerSpec<
   "run",

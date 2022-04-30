@@ -52,7 +52,7 @@ export const execInKubernetesDeploy: DeployActionHandler<"exec", KubernetesDeplo
     provider,
     action,
     manifests: status.detail.remoteResources,
-    resourceSpec: defaultTarget,
+    query: defaultTarget,
   })
 
   // TODO: this check should probably live outside of the plugin

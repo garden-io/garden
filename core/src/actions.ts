@@ -40,16 +40,9 @@ import {
   ModuleActionOutputs,
   ModuleActionParams,
   ModuleActionHandlers,
-  ModuleAndRuntimeActionHandlers,
   ProviderActionOutputs,
   ProviderActionParams,
   ProviderActionHandlers,
-  ServiceActionOutputs,
-  ServiceActionParams,
-  ServiceActionHandlers,
-  TaskActionOutputs,
-  TaskActionParams,
-  TaskActionHandlers,
   GardenPlugin,
   PluginMap,
   WrappedModuleActionHandler,
@@ -164,7 +157,7 @@ export class ActionRouter implements TypeGuard {
 
       for (const actionType of pluginActionNames) {
         const handler = handlers[actionType]
-        handler && this.addActionHandler(plugin, actionType, handler)
+        handler && this.addPluginActionHandler(plugin, actionType, handler)
       }
 
       for (const spec of plugin.createModuleTypes) {
@@ -213,7 +206,7 @@ export class ActionRouter implements TypeGuard {
   async augmentGraph(params: RequirePluginName<ActionRouterParams<AugmentGraphParams>>): Promise<AugmentGraphResult> {
     const { pluginName } = params
 
-    return this.callActionHandler({
+    return this.callPluginActionHandler({
       actionType: "augmentGraph",
       pluginName,
       params: omit(params, ["pluginName"]),
@@ -226,7 +219,7 @@ export class ActionRouter implements TypeGuard {
   ): Promise<EnvironmentStatus> {
     const { pluginName } = params
 
-    return this.callActionHandler({
+    return this.callPluginActionHandler({
       actionType: "getEnvironmentStatus",
       pluginName,
       params: omit(params, ["pluginName"]),
@@ -239,7 +232,7 @@ export class ActionRouter implements TypeGuard {
   ): Promise<PrepareEnvironmentResult> {
     const { pluginName } = params
 
-    const res = await this.callActionHandler({
+    const res = await this.callPluginActionHandler({
       actionType: "prepareEnvironment",
       pluginName,
       params: omit(params, ["pluginName"]),
@@ -255,7 +248,7 @@ export class ActionRouter implements TypeGuard {
     params: RequirePluginName<ActionRouterParams<CleanupEnvironmentParams>>
   ): Promise<CleanupEnvironmentResult> {
     const { pluginName } = params
-    const res = await this.callActionHandler({
+    const res = await this.callPluginActionHandler({
       actionType: "cleanupEnvironment",
       pluginName,
       params: omit(params, ["pluginName"]),
@@ -269,24 +262,24 @@ export class ActionRouter implements TypeGuard {
 
   async getSecret(params: RequirePluginName<ActionRouterParams<GetSecretParams>>): Promise<GetSecretResult> {
     const { pluginName } = params
-    return this.callActionHandler({ actionType: "getSecret", pluginName, params: omit(params, ["pluginName"]) })
+    return this.callPluginActionHandler({ actionType: "getSecret", pluginName, params: omit(params, ["pluginName"]) })
   }
 
   async setSecret(params: RequirePluginName<ActionRouterParams<SetSecretParams>>): Promise<SetSecretResult> {
     const { pluginName } = params
-    return this.callActionHandler({ actionType: "setSecret", pluginName, params: omit(params, ["pluginName"]) })
+    return this.callPluginActionHandler({ actionType: "setSecret", pluginName, params: omit(params, ["pluginName"]) })
   }
 
   async deleteSecret(params: RequirePluginName<ActionRouterParams<DeleteSecretParams>>): Promise<DeleteSecretResult> {
     const { pluginName } = params
-    return this.callActionHandler({ actionType: "deleteSecret", pluginName, params: omit(params, ["pluginName"]) })
+    return this.callPluginActionHandler({ actionType: "deleteSecret", pluginName, params: omit(params, ["pluginName"]) })
   }
 
   async getDashboardPage(
     params: RequirePluginName<ActionRouterParams<GetDashboardPageParams>>
   ): Promise<GetDashboardPageResult> {
     const { pluginName } = params
-    return this.callActionHandler({ actionType: "getDashboardPage", pluginName, params: omit(params, ["pluginName"]) })
+    return this.callPluginActionHandler({ actionType: "getDashboardPage", pluginName, params: omit(params, ["pluginName"]) })
   }
 
   //endregion
@@ -975,7 +968,7 @@ export class ActionRouter implements TypeGuard {
   }
 
   // We special-case the configureProvider handlers and don't call them through this
-  private async callActionHandler<T extends keyof Omit<WrappedPluginActionHandlers, "configureProvider">>({
+  private async callPluginActionHandler<T extends keyof Omit<WrappedPluginActionHandlers, "configureProvider">>({
     params,
     actionType,
     pluginName,
@@ -1025,7 +1018,7 @@ export class ActionRouter implements TypeGuard {
       moduleType: module.type,
       actionType,
       pluginName,
-      defaultHandler: defaultHandler as WrappedModuleAndRuntimeActionHandlers[T],
+      defaultHandler: defaultHandler as WrappedModuleActionHandlers[T],
     })
 
     const providers = await this.garden.resolveProviders(log)
@@ -1116,140 +1109,7 @@ export class ActionRouter implements TypeGuard {
     }
   }
 
-  /**
-   * This is essentially the same as `callModuleHandler`, with the addition of runtime template string resolution for
-   * the requested test config.
-   */
-  private async callTestHandler<T extends keyof TestActionHandlers>({
-    params,
-    actionType,
-    defaultHandler,
-  }: {
-    params: ModuleActionRouterParams<TestActionParams[T]>
-    actionType: T
-    defaultHandler?: TestActionHandlers[T]
-  }): Promise<TestActionOutputs[T]> {
-    let { module, test, pluginName, log, graph } = params
-    const runtimeContext = params["runtimeContext"] as RuntimeContext | undefined
-
-    log.silly(`Getting '${actionType}' handler for module '${module.name}' (type '${module.type}')`)
-
-    const handler = await this.getModuleActionHandler({
-      moduleType: module.type,
-      actionType,
-      pluginName,
-      defaultHandler: defaultHandler as WrappedModuleAndRuntimeActionHandlers[T],
-    })
-
-    const providers = await this.garden.resolveProviders(log)
-    const templateContext = ModuleConfigContext.fromModule({
-      garden: this.garden,
-      resolvedProviders: providers,
-      module,
-      modules: graph.getModules(),
-      partialRuntimeResolution: false,
-    })
-
-    // Resolve ${runtime.*} template strings if needed.
-    const runtimeContextIsEmpty = runtimeContext
-      ? Object.keys(runtimeContext.envVars).length === 0 && runtimeContext.dependencies.length === 0
-      : true
-
-    if (!runtimeContextIsEmpty && getRuntimeTemplateReferences(module).length > 0) {
-      log.silly(`Resolving runtime template strings for test '${module.name}.${test.name}'`)
-
-      // Resolve the graph again (TODO: avoid this somehow!)
-      graph = await this.garden.getConfigGraph({ log, runtimeContext, emit: false })
-
-      // Resolve the test again
-      test = graph.getTest(module.name, test.name)
-
-      // Set allowPartial=false to ensure all required strings are resolved.
-      test.config = resolveTemplateStrings(test.config, templateContext, { allowPartial: false })
-    }
-
-    const handlerParams = {
-      ...(await this.commonParams(handler, params.log, templateContext, params.events)),
-      ...params,
-      test,
-      module: omit(module, ["_config"]),
-    }
-
-    log.silly(`Calling ${actionType} handler for module ${module.name}`)
-
-    // TODO: figure out why this doesn't compile without the function cast
-    return (<Function>handler)(handlerParams)
-  }
-
-  private async callTaskHandler<T extends keyof TaskActionHandlers>({
-    params,
-    actionType,
-    defaultHandler,
-  }: {
-    params: TaskActionRouterParams<TaskActionParams[T]>
-    actionType: T
-    defaultHandler?: TaskActionHandlers[T]
-  }) {
-    let { task, log, graph } = params
-    const runtimeContext = params["runtimeContext"] as RuntimeContext | undefined
-    let module = task.module
-
-    log.silly(`Getting ${actionType} handler for task ${module.name}.${task.name}`)
-
-    const handler = await this.getModuleActionHandler({
-      moduleType: module.type,
-      actionType,
-      pluginName: params.pluginName,
-      defaultHandler: defaultHandler as ModuleAndRuntimeActionHandlers[T],
-    })
-
-    const providers = await this.garden.resolveProviders(log)
-
-    const modules = graph.getModules()
-    const templateContext = ModuleConfigContext.fromModule({
-      garden: this.garden,
-      resolvedProviders: providers,
-      module,
-      modules,
-      runtimeContext,
-      partialRuntimeResolution: false,
-    })
-
-    // Resolve ${runtime.*} template strings if needed.
-    const runtimeContextIsEmpty = runtimeContext
-      ? Object.keys(runtimeContext.envVars).length === 0 && runtimeContext.dependencies.length === 0
-      : true
-
-    if (!runtimeContextIsEmpty && getRuntimeTemplateReferences(module).length > 0) {
-      log.silly(`Resolving runtime template strings for task '${task.name}'`)
-
-      // Resolve the graph again (TODO: avoid this somehow!)
-      graph = await this.garden.getConfigGraph({ log, runtimeContext, emit: false })
-
-      // Resolve the task again
-      task = graph.getTask(task.name)
-      module = task.module
-
-      // Set allowPartial=false to ensure all required strings are resolved.
-      task.config = resolveTemplateStrings(task.config, templateContext, { allowPartial: false })
-    }
-
-    const handlerParams: any = {
-      ...(await this.commonParams(handler, (<any>params).log, templateContext, params.events)),
-      ...params,
-      module: omit(task.module, ["_config"]),
-      task,
-    }
-
-    log.silly(`Calling ${actionType} handler for task ${module.name}.${task.name}`)
-
-    return {
-      handler,
-      result: <TaskActionOutputs[T]>await handler(<any>handlerParams),
-    }
-  }
-
-  private addActionHandler<T extends keyof WrappedPluginActionHandlers>(
+  private addPluginActionHandler<T extends keyof WrappedPluginActionHandlers>(
     plugin: GardenPlugin,
     actionType: T,
     handler: ProviderActionHandlers[T]
@@ -1360,7 +1220,7 @@ export class ActionRouter implements TypeGuard {
   /**
    * Get a handler for the specified module action.
    */
-  private async getModuleActionHandlers<T extends keyof ModuleAndRuntimeActionHandlers>({
+  private async getModuleActionHandlers<T extends keyof ModuleActionHandlers>({
     actionType,
     moduleType,
     pluginName,
@@ -1438,7 +1298,7 @@ export class ActionRouter implements TypeGuard {
   /**
    * Get the configured handler for the specified action.
    */
-  async getModuleActionHandler<T extends keyof ModuleAndRuntimeActionHandlers>({
+  async getModuleActionHandler<T extends keyof ModuleActionHandlers>({
     actionType,
     moduleType,
     pluginName,
@@ -1447,8 +1307,8 @@ export class ActionRouter implements TypeGuard {
     actionType: T
     moduleType: string
     pluginName?: string
-    defaultHandler?: ModuleAndRuntimeActionHandlers[T]
-  }): Promise<WrappedModuleAndRuntimeActionHandlers[T]> {
+    defaultHandler?: ModuleActionHandlers[T]
+  }): Promise<WrappedModuleActionHandlers[T]> {
     const handlers = Object.values(await this.getModuleActionHandlers({ actionType, moduleType, pluginName }))
     const spec = this.moduleTypes[moduleType]
 
@@ -1510,7 +1370,7 @@ export class ActionRouter implements TypeGuard {
       }
     } else if (defaultHandler) {
       // Return the default handler, but wrap it to match the expected interface.
-      return Object.assign(<WrappedModuleAndRuntimeActionHandlers[T]>defaultHandler, {
+      return Object.assign(<WrappedModuleActionHandlers[T]>defaultHandler, {
         actionType,
         moduleType,
         pluginName: defaultProvider.name,
@@ -1542,26 +1402,9 @@ export class ActionRouter implements TypeGuard {
 
 type CommonParams = keyof PluginActionContextParams
 
-type WrappedServiceActionHandlers<T extends GardenModule = GardenModule> = {
-  [P in keyof ServiceActionParams<T>]: WrappedModuleActionHandler<ServiceActionParams<T>[P], ServiceActionOutputs[P]>
-}
-
-type WrappedTestActionHandlers<T extends GardenModule = GardenModule> = {
-  [P in keyof TestActionParams<T>]: WrappedModuleActionHandler<TestActionParams<T>[P], TestActionOutputs[P]>
-}
-
-type WrappedTaskActionHandlers<T extends GardenModule = GardenModule> = {
-  [P in keyof TaskActionParams<T>]: WrappedModuleActionHandler<TaskActionParams<T>[P], TaskActionOutputs[P]>
-}
-
 type WrappedModuleActionHandlers<T extends GardenModule = GardenModule> = {
   [P in keyof ModuleActionParams<T>]: WrappedModuleActionHandler<ModuleActionParams<T>[P], ModuleActionOutputs[P]>
 }
-
-type WrappedModuleAndRuntimeActionHandlers<T extends GardenModule = GardenModule> = WrappedModuleActionHandlers<T> &
-  WrappedServiceActionHandlers<T> &
-  WrappedTestActionHandlers<T> &
-  WrappedTaskActionHandlers<T>
 
 type WrappedPluginActionHandlers = {
   [P in keyof ProviderActionParams]: WrappedActionHandler<ProviderActionParams[P], ProviderActionOutputs[P]>
@@ -1571,8 +1414,8 @@ interface WrappedActionHandlerMap<T extends keyof WrappedPluginActionHandlers> {
   [actionName: string]: WrappedPluginActionHandlers[T]
 }
 
-interface WrappedModuleActionHandlerMap<T extends keyof ModuleAndRuntimeActionHandlers> {
-  [actionName: string]: WrappedModuleAndRuntimeActionHandlers[T]
+interface WrappedModuleActionHandlerMap<T extends keyof ModuleActionHandlers> {
+  [actionName: string]: WrappedModuleActionHandlers[T]
 }
 
 type WrappedPluginActionMap = {
@@ -1582,9 +1425,9 @@ type WrappedPluginActionMap = {
 }
 
 type WrappedModuleActionMap = {
-  [A in keyof ModuleAndRuntimeActionHandlers]: {
+  [A in keyof ModuleActionHandlers]: {
     [moduleType: string]: {
-      [pluginName: string]: WrappedModuleAndRuntimeActionHandlers[A]
+      [pluginName: string]: WrappedModuleActionHandlers[A]
     }
   }
 }
