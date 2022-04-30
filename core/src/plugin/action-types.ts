@@ -9,7 +9,7 @@
 import { mapValues } from "lodash"
 import { outputSchemaDocs, ResolvedActionHandlerDescriptions } from "./plugin"
 import { ActionTypeHandlerSpec, baseHandlerSchema } from "./handlers/base/base"
-import { BuildBuildAction } from "./handlers/build/build"
+import { DoBuildAction } from "./handlers/build/build"
 import { GetBuildActionStatus } from "./handlers/build/get-status"
 import { PublishBuildAction } from "./handlers/build/publish"
 import { RunBuildAction } from "./handlers/build/run"
@@ -32,7 +32,7 @@ import { BuildAction, ResolvedBuildAction } from "../actions/build"
 import { DeployAction } from "../actions/deploy"
 import { RunAction } from "../actions/run"
 import { TestAction } from "../actions/test"
-import { DeployDeployAction } from "./handlers/deploy/deploy"
+import { DoDeployAction } from "./handlers/deploy/deploy"
 import { dedent } from "../util/string"
 import { templateStringLiteral } from "../docs/common"
 
@@ -77,8 +77,11 @@ type ActionTypeDefinition<H> = ActionTypeExtension<H> & {
 
 // BUILD //
 
+// These handlers receive an unresolved Action (i.e. without outputs)
+type UnresolvedBuildHandlers = "build" | "getStatus"
+
 type BuildActionDescriptions<C extends BuildAction = BuildAction> = BaseHandlers<C> & {
-  build: BuildBuildAction<C>
+  build: DoBuildAction<C>
   getStatus: GetBuildActionStatus<C>
   publish: PublishBuildAction<C>
   run: RunBuildAction<C>
@@ -87,9 +90,23 @@ type BuildActionDescriptions<C extends BuildAction = BuildAction> = BaseHandlers
 export type BuildActionHandler<
   N extends keyof BuildActionDescriptions,
   C extends BuildAction = BuildAction
-> = N extends "build" | "getStatus"
+> = N extends UnresolvedBuildHandlers
   ? GetActionTypeHandler<BuildActionDescriptions<C>[N], N>
   : GetActionTypeHandler<BuildActionDescriptions<ResolvedBuildAction<C>>[N], N>
+
+export type BuildActionParams<
+  N extends keyof BuildActionDescriptions,
+  C extends BuildAction = BuildAction
+> = N extends UnresolvedBuildHandlers
+  ? GetActionTypeParams<BuildActionDescriptions<C>[N]>
+  : GetActionTypeParams<BuildActionDescriptions<ResolvedBuildAction<C>>[N]>
+
+export type BuildActionResults<
+  N extends keyof BuildActionDescriptions,
+  C extends BuildAction = BuildAction
+> = N extends UnresolvedBuildHandlers
+  ? GetActionTypeResults<BuildActionDescriptions<C>[N]>
+  : GetActionTypeResults<BuildActionDescriptions<ResolvedBuildAction<C>>[N]>
 
 export type BuildActionHandlers<C extends BuildAction = BuildAction> = {
   [N in keyof BuildActionDescriptions]?: BuildActionHandler<N, C>
@@ -102,7 +119,7 @@ export type BuildActionDefinition<C extends BuildAction = BuildAction> = ActionT
 
 type DeployActionDescriptions<C extends DeployAction = DeployAction> = BaseHandlers<C> & {
   delete: DeleteDeploy<C>
-  deploy: DeployDeployAction<C>
+  deploy: DoDeployAction<C>
   exec: ExecInDeploy<C>
   getLogs: GetDeployLogs<C>
   getPortForward: GetDeployPortForward<C>
@@ -111,10 +128,12 @@ type DeployActionDescriptions<C extends DeployAction = DeployAction> = BaseHandl
   stopPortForward: StopDeployPortForward<C>
 }
 
+type UnresolvedDeployHandlers = "deploy" | "getStatus"
+
 export type DeployActionHandler<
   N extends keyof DeployActionDescriptions,
   C extends DeployAction = DeployAction
-> = N extends "deploy" | "getStatus"
+> = N extends UnresolvedDeployHandlers
   ? GetActionTypeHandler<DeployActionDescriptions<C>[N], N>
   : GetActionTypeHandler<DeployActionDescriptions<ResolvedRuntimeAction<C>>[N], N>
 
@@ -139,11 +158,10 @@ type RunActionDescriptions<C extends RunAction = RunAction> = BaseHandlers<C> & 
   run: RunRunAction<C>
 }
 
-export type RunActionHandler<N extends keyof RunActionDescriptions, C extends RunAction = RunAction> = N extends
-  | "run"
-  | "getResult"
-  ? GetActionTypeHandler<RunActionDescriptions<C>[N], N>
-  : GetActionTypeHandler<RunActionDescriptions<ResolvedRuntimeAction<C>>[N], N>
+export type RunActionHandler<
+  N extends keyof RunActionDescriptions,
+  C extends RunAction = RunAction
+> = GetActionTypeHandler<RunActionDescriptions<C>[N], N>
 
 export type RunActionHandlers<C extends RunAction = RunAction> = {
   [N in keyof RunActionDescriptions]?: RunActionHandler<N, C>
@@ -163,11 +181,10 @@ export type TestActionHandlers<C extends TestAction = TestAction> = {
   [N in keyof TestActionDescriptions]?: TestActionHandler<N, C>
 }
 
-export type TestActionHandler<N extends keyof TestActionDescriptions, C extends TestAction = TestAction> = N extends
-  | "run"
-  | "getResult"
-  ? GetActionTypeHandler<TestActionDescriptions<C>[N], N>
-  : GetActionTypeHandler<TestActionDescriptions<ResolvedRuntimeAction<C>>[N], N>
+export type TestActionHandler<
+  N extends keyof TestActionDescriptions,
+  C extends TestAction = TestAction
+> = GetActionTypeHandler<TestActionDescriptions<C>[N], N>
 
 export type TestActionExtension<C extends TestAction = TestAction> = ActionTypeExtension<TestActionHandlers<C>>
 export type TestActionDefinition<C extends TestAction = TestAction> = ActionTypeDefinition<TestActionHandlers<C>>
@@ -196,7 +213,7 @@ export function getActionTypeHandlerDescriptions(): ResolvedActionTypeHandlerDes
   const descriptions: _ActionTypeHandlerDescriptions = {
     build: {
       // validateConfig: new ValidateActionConfig(),
-      build: new BuildBuildAction(),
+      build: new DoBuildAction(),
       getStatus: new GetBuildActionStatus(),
       publish: new PublishBuildAction(),
       run: new RunBuildAction(),
@@ -204,7 +221,7 @@ export function getActionTypeHandlerDescriptions(): ResolvedActionTypeHandlerDes
     deploy: {
       // validateConfig: new ValidateActionConfig(),
       delete: new DeleteDeploy(),
-      deploy: new DeployDeployAction(),
+      deploy: new DoDeployAction(),
       exec: new ExecInDeploy(),
       getLogs: new GetDeployLogs(),
       getPortForward: new GetDeployPortForward(),

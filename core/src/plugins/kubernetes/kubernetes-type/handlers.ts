@@ -8,23 +8,17 @@
 
 import Bluebird from "bluebird"
 import { cloneDeep, partition, set, uniq } from "lodash"
-import { LogEntry } from "../../../logger/log-entry"
 import { NamespaceStatus } from "../../../plugin/base"
-import { ModuleAndRuntimeActionHandlers } from "../../../plugin/plugin"
-import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
-import { DeployServiceParams } from "../../../types/plugin/service/deployService"
-import { GetServiceLogsParams } from "../../../types/plugin/service/getServiceLogs"
-import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
+import { ModuleActionHandlers } from "../../../plugin/plugin"
 import { ServiceStatus } from "../../../types/service"
 import { gardenAnnotationKey } from "../../../util/string"
 import { KubeApi } from "../api"
 import { KubernetesPluginContext, ServiceResourceSpec } from "../config"
-import { configureDevMode, KubernetesDeployDevModeSyncSpec, startDevModeSync } from "../dev-mode"
-import { HelmService } from "../helm/moduleConfig"
+import { configureDevMode, startDevModeSyncs } from "../dev-mode"
 import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { streamK8sLogs } from "../logs"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
-import { getForwardablePorts, getPortForwardHandler, killPortForwards } from "../port-forward"
+import { getForwardablePorts, killPortForwards } from "../port-forward"
 import { getK8sIngresses } from "../status/ingress"
 import {
   compareDeployedResources,
@@ -32,21 +26,19 @@ import {
   isConfiguredForLocalMode,
   waitForResources,
 } from "../status/status"
-import { getTaskResult } from "../run-results"
-import { getTestResult } from "../test-results"
-import { BaseResource, KubernetesResource, KubernetesServerResource } from "../types"
-import { getTargetResource, getServiceResourceSpec } from "../util"
+import { BaseResource, KubernetesResource, KubernetesServerResource, SyncableResource } from "../types"
 import { convertServiceResource, gardenNamespaceAnnotationValue, getManifests } from "./common"
-import { configureKubernetesModule, KubernetesModule, KubernetesService } from "./moduleConfig"
-import { execInKubernetesService } from "./exec"
-import { runKubernetesTask } from "./run"
+import { configureKubernetesModule, KubernetesModule } from "./module-config"
 import { testKubernetesModule } from "./test"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import { ExecBuildConfig } from "../../exec/config"
 import { KubernetesActionConfig, KubernetesDeployAction, KubernetesDeployActionConfig } from "./config"
 import { DeployActionHandler } from "../../../plugin/action-types"
+import { convertKubernetesDevModeSpec } from "../helm/handlers"
+import { getServiceResourceSpec, getTargetResource } from "../util"
+import { LogEntry } from "../../../logger/log-entry"
 
-export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<KubernetesModule>> = {
+export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>> = {
   configure: configureKubernetesModule,
 
   convert: async (params) => {
@@ -57,21 +49,8 @@ export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<Kubernet
       actions.push(dummyBuild)
     }
 
-    const syncs: KubernetesDeployDevModeSyncSpec[] = []
-    const service = services[0] // There's always exactly one service on kubernetes modules
-
+    const service = services[0] // There is always exactly one service in kubernetes modules
     const serviceResource = module.spec.serviceResource
-
-    if (module.spec.devMode) {
-      const target = convertServiceResource(module, serviceResource)
-
-      if (target) {
-        syncs.push({
-          sourcePath: service.sourceModule.path,
-          target,
-        })
-      }
-    }
 
     const deployAction: KubernetesDeployActionConfig = {
       kind: "Deploy",
@@ -87,9 +66,7 @@ export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<Kubernet
       spec: {
         ...module.spec,
 
-        devMode: {
-          syncs,
-        },
+        devMode: convertKubernetesDevModeSpec(module, service, serviceResource),
       },
     }
 
@@ -161,8 +138,6 @@ export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<Kubernet
     }
   },
 
-  execInService: execInKubernetesService,
-  getServiceStatus: getKubernetesServiceStatus,
   getTaskResult,
   getTestResult,
   runTask: runKubernetesTask,
@@ -177,16 +152,20 @@ export type KubernetesServiceStatus = ServiceStatus<KubernetesStatusDetail>
 
 export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", KubernetesDeployAction> = async (params) => {
   const { ctx, action, log, devMode, localMode } = params
+  const spec = action.getSpec()
+
   const k8sCtx = <KubernetesPluginContext>ctx
+  const provider = k8sCtx.provider
   const namespaceStatus = await getActionNamespaceStatus({
     ctx: k8sCtx,
     log,
     action,
-    provider: k8sCtx.provider,
+    provider,
     skipCreate: true,
   })
   const namespace = namespaceStatus.namespaceName
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
+
   // FIXME: We're currently reading the manifests from the module source dir (instead of build dir)
   // because the build may not have been staged.
   // This means that manifests added via the `build.dependencies[].copy` field will not be included.
@@ -199,29 +178,28 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
     localMode,
     manifests,
   })
+  const preparedManifests = prepareResult.manifests
 
   let { state, remoteResources, deployedWithDevMode, deployedWithLocalMode } = await compareDeployedResources(
     k8sCtx,
     api,
     namespace,
-    prepareResult.manifests,
+    preparedManifests,
     log
   )
 
   // Local mode has its own port-forwarding configuration
   const forwardablePorts = deployedWithLocalMode ? [] : getForwardablePorts(remoteResources, action)
 
-  const spec = action.getSpec()
-
   if (state === "ready") {
     // Local mode always takes precedence over dev mode
-    if (localMode && service.spec.localMode) {
-      const serviceResourceSpec = getServiceResourceSpec(module, undefined)
-      const target = await getServiceResource({
+    if (localMode && spec.localMode) {
+      const serviceResourceSpec = getServiceResourceSpec(action, undefined)
+      const target = await getTargetResource({
         ctx: k8sCtx,
         log,
         provider: k8sCtx.provider,
-        module,
+        action,
         manifests: remoteResources,
         resourceSpec: serviceResourceSpec,
       })
@@ -229,7 +207,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
       if (!isConfiguredForLocalMode(target)) {
         state = "outdated"
       }
-    } else if (devMode && service.spec.devMode) {
+    } else if (devMode && spec.devMode) {
       // Need to start the dev-mode sync here, since the deployment handler won't be called.
       const serviceResourceSpec = getServiceResourceSpec(action, undefined)
       const target = await getTargetResource({
@@ -242,15 +220,19 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
       })
 
       if (isConfiguredForDevMode(target)) {
-        await startDevModeSync({
-          ctx,
+        await startDevModeSyncs({
           log,
-          moduleRoot: service.sourceModule.path,
           namespace,
           target,
           spec: service.spec.devMode,
           containerName: service.spec.devMode.containerName,
           serviceName: service.name,
+          action,
+          actionDefaults: spec.devMode.defaults || {},
+          defaultTarget: spec.defaultTarget,
+          defaultNamespace: namespace,
+          manifests: preparedManifests,
+          syncs: spec.devMode.syncs,
         })
       } else {
         state = "outdated"
@@ -261,7 +243,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
   return {
     forwardablePorts,
     state,
-    version: state === "ready" ? action.version.versionString : undefined,
+    version: state === "ready" ? action.getVersionString() : undefined,
     detail: { remoteResources },
     devMode: deployedWithDevMode,
     localMode: deployedWithLocalMode,
@@ -272,6 +254,8 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
 
 export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAction> = async (params) => {
   const { ctx, action, log, devMode, localMode } = params
+
+  const spec = action.getSpec()
 
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
@@ -298,68 +282,76 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       namespace,
       ctx,
       provider,
-      actionName: service.name,
+      actionName: action.name,
       resources: namespaceManifests,
       log,
-      timeoutSec: service.spec.timeout || KUBECTL_DEFAULT_TIMEOUT,
+      timeoutSec: spec.timeout || KUBECTL_DEFAULT_TIMEOUT,
     })
   }
 
-  let target: SyncableResource | undefined
+  let target: SyncableResource | undefined = undefined
+  let preparedManifests = manifests
 
-  const pruneLabels = { [gardenAnnotationKey("service")]: service.name }
+  const pruneLabels = { [gardenAnnotationKey("service")]: action.name }
+
   if (otherManifests.length > 0) {
-    const prepareResult = await configureSpecialModesForManifests({
-      ctx: k8sCtx,
-      log,
-      module,
-      service,
-      devMode,
-      localMode,
-      manifests,
-    })
+    if ((devMode && spec.devMode) || (localMode && spec.localMode)) {
+      const configured = await configureSpecialModesForManifests({
+        ctx: k8sCtx,
+        log,
+        action,
+        devMode,
+        localMode,
+        manifests,
+      })
+      preparedManifests = configured.manifests
+      target = configured.target
+    }
 
-    target = prepareResult.target
-
-    await apply({ log, ctx, api, provider: k8sCtx.provider, manifests: prepareResult.manifests, pruneLabels })
+    await apply({ log, ctx, api, provider: k8sCtx.provider, manifests: preparedManifests, pruneLabels })
     await waitForResources({
       namespace,
       ctx,
       provider,
-      actionName: service.name,
-      resources: prepareResult.manifests,
+      actionName: action.name,
+      resources: preparedManifests,
       log,
-      timeoutSec: service.spec.timeout || KUBECTL_DEFAULT_TIMEOUT,
+      timeoutSec: spec.timeout || KUBECTL_DEFAULT_TIMEOUT,
     })
   }
 
-  const status = await getKubernetesServiceStatus(params)
+  const status = await getKubernetesDeployStatus(<any>params)
 
   // Make sure port forwards work after redeployment
   killPortForwards(action, status.forwardablePorts || [], log)
 
   if (target) {
     // Local mode always takes precedence over dev mode
-    if (localMode && service.spec.localMode) {
+    if (localMode && spec.localMode) {
       await startServiceInLocalMode({
         ctx,
-        spec: service.spec.localMode,
+        spec: spec.localMode,
         targetResource: target,
-        gardenService: service,
+        action,
         namespace,
         log,
-        containerName: service.spec.localMode.containerName,
+        containerName: spec.localMode.containerName,
       })
-    } else if (devMode && service.spec.devMode) {
-      await startDevModeSync({
-        ctx,
+    } else if (devMode && spec.devMode) {
+      await startDevModeSyncs({
         log,
-        basePath: service.sourceModule.path,
         namespace,
         target,
-        spec: service.spec.devMode,
-        containerName: service.spec.devMode.containerName,
-        deployName: service.name,
+        spec: spec.devMode,
+        containerName: spec.devMode.containerName,
+        deployName: action.name,
+        action,
+        actionDefaults: spec.devMode.defaults || {},
+        defaultTarget: spec.defaultTarget,
+        basePath: action.getBasePath(), // TODO-G2: double check if this holds up
+        defaultNamespace: namespace,
+        manifests: preparedManifests,
+        syncs: spec.devMode.syncs,
       })
     }
   }
@@ -479,22 +471,21 @@ export const getKubernetesDeployLogs: DeployActionHandler<"getLogs", KubernetesD
 async function configureSpecialModesForManifests({
   ctx,
   log,
-  module,
-  service,
+  action,
   devMode,
   localMode,
   manifests,
 }: {
   ctx: KubernetesPluginContext
-  service: KubernetesService | HelmService
   log: LogEntry
-  module: KubernetesModule
+  action: KubernetesDeployAction
   devMode: boolean
   localMode: boolean
   manifests: KubernetesResource<BaseResource>[]
 }) {
-  const devModeSpec = service.spec.devMode
-  const localModeSpec = service.spec.localMode
+  const spec = action.getSpec()
+  const devModeSpec = spec.devMode
+  const localModeSpec = spec.localMode
 
   let target: SyncableResource
   let resourceSpec: ServiceResourceSpec
@@ -506,7 +497,7 @@ async function configureSpecialModesForManifests({
         ctx,
         log,
         provider: ctx.provider,
-        module,
+        action,
         manifests,
         resourceSpec,
       })
@@ -533,13 +524,13 @@ async function configureSpecialModesForManifests({
       ctx,
       spec: localModeSpec,
       targetResource: target,
-      gardenService: service,
+      action,
       log,
       containerName: localModeSpec.containerName,
     })
   } else if (devMode && devModeSpec) {
     // The "dev-mode" annotation is set in `configureDevMode`.
-    configureDevMode({
+    await configureDevMode({
       target,
       spec: devModeSpec,
       containerName: devModeSpec.containerName,

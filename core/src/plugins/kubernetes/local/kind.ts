@@ -14,17 +14,12 @@ import { RuntimeError } from "../../../exceptions"
 import { KubeApi } from "../api"
 import { KubernetesResource } from "../types"
 import { PluginContext } from "../../../plugin-context"
-import { BuildStatus } from "../../../types/plugin/module/getBuildStatus"
 import { containerHelpers } from "../../container/helpers"
 import Bluebird from "bluebird"
 
 const nodeCache: { [context: string]: string[] } = {}
 
-export async function getKindImageStatus(
-  config: KubernetesConfig,
-  imageId: string,
-  log: LogEntry
-): Promise<BuildStatus> {
+export async function getKindImageStatus(config: KubernetesConfig, imageId: string, log: LogEntry): Promise<boolean> {
   const parsedId = containerHelpers.parseImageId(imageId)
   const clusterId = containerHelpers.unparseImageId({
     ...parsedId,
@@ -66,7 +61,7 @@ export async function getKindImageStatus(
     log.debug(`Image ${imageId} is not in kind cluster`)
   }
 
-  return { ready }
+  return ready
 }
 
 export async function loadImageToKind(imageId: string, config: KubernetesConfig, log: LogEntry): Promise<void> {

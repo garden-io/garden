@@ -120,17 +120,30 @@ export const defaultDeploymentStrategy: DeploymentStrategy = "RollingUpdate"
 
 export const commandExample = ["/bin/sh", "-c"]
 
-export type SyncMode = "one-way" | "one-way-replica" | "one-way-reverse" | "one-way-replica-reverse" | "two-way"
+export type SyncMode =
+  | "one-way"
+  | "one-way-safe"
+  | "one-way-replica"
+  | "one-way-reverse"
+  | "one-way-replica-reverse"
+  | "two-way"
+  | "two-way-safe"
+  | "two-way-resolved"
 
-export interface DevModeSyncSpec {
-  source: string
-  target: string
-  mode: SyncMode
+export const defaultDevModeSyncMode: SyncMode = "one-way-safe"
+
+export interface DevModeSyncOptions {
+  mode?: SyncMode
   exclude?: string[]
   defaultFileMode?: number
   defaultDirectoryMode?: number
   defaultOwner?: number | string
   defaultGroup?: number | string
+}
+
+interface DevModeSyncSpec extends DevModeSyncOptions {
+  source: string
+  target: string
 }
 
 const permissionsDocs =
@@ -151,6 +164,25 @@ export const syncExcludeSchema = () =>
       `
     )
     .example(["dist/**/*", "*.log"])
+
+export const syncModeSchema = () =>
+  joi
+    .string()
+    .allow(
+      "one-way",
+      "one-way-safe",
+      "one-way-replica",
+      "one-way-reverse",
+      "one-way-replica-reverse",
+      "two-way",
+      "two-way-safe",
+      "two-way-resolved"
+    )
+    .only()
+    .default(defaultDevModeSyncMode)
+    .description(
+      "The sync mode to use for the given paths. See the [Dev Mode guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details."
+    )
 
 export const syncDefaultFileModeSchema = () =>
   joi
@@ -182,6 +214,19 @@ export const syncDefaultGroupSchema = () =>
     .alternatives(joi.number().integer(), joi.string())
     .description("Set the default group on files and directories at the target. " + ownerDocs)
 
+export const syncTargetPathSchema = () =>
+  joi
+    .posixPath()
+    .absoluteOnly()
+    .required()
+    .invalid("/")
+    .description(
+      deline`
+      POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
+      `
+    )
+    .example("/app/src")
+
 const devModeSyncSchema = () =>
   joi.object().keys({
     source: joi
@@ -196,34 +241,9 @@ const devModeSyncSchema = () =>
         Must be a relative path. Defaults to the config's directory if no value is provided.`
       )
       .example("src"),
-    target: joi
-      .posixPath()
-      .absoluteOnly()
-      .required()
-      .description(
-        deline`
-        POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is
-        not allowed.`
-      )
-      .example("/app/src"),
+    target: syncTargetPathSchema(),
     exclude: syncExcludeSchema(),
-    mode: joi
-      .string()
-      .allow(
-        "one-way",
-        "one-way-safe",
-        "one-way-replica",
-        "one-way-reverse",
-        "one-way-replica-reverse",
-        "two-way",
-        "two-way-safe",
-        "two-way-resolved"
-      )
-      .only()
-      .default("one-way-safe")
-      .description(
-        "The sync mode to use for the given paths. See the [Dev Mode guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details."
-      ),
+    mode: syncModeSchema(),
     defaultFileMode: syncDefaultFileModeSchema(),
     defaultDirectoryMode: syncDefaultDirectoryModeSchema(),
     defaultOwner: syncDefaultOwnerSchema(),

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { KubernetesModule } from "./moduleConfig"
+import { KubernetesModule } from "./module-config"
 import { runAndCopy } from "../run"
 import {
   getTargetResource,
@@ -22,9 +22,11 @@ import { getManifests } from "./common"
 import { KubeApi } from "../api"
 import { getActionNamespaceStatus } from "../namespace"
 import { DEFAULT_TASK_TIMEOUT } from "../../../constants"
+import { RunActionHandler } from "../../../plugin/action-types"
+import { KubernetesRunAction } from "./config"
 
-export async function runKubernetesTask(params: RunTaskParams<KubernetesModule>): Promise<RunTaskResult> {
-  const { ctx, log, module, task } = params
+export const kubernetesPodRun: RunActionHandler<"run", KubernetesRunAction> = async (params) => {
+  const { ctx, log, action } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespaceStatus = await getActionNamespaceStatus({
     ctx: k8sCtx,
@@ -36,15 +38,15 @@ export async function runKubernetesTask(params: RunTaskParams<KubernetesModule>)
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
 
   // Get the container spec to use for running
-  const { command, args } = task.spec
-  const manifests = await getManifests({ ctx, api, log, module, defaultNamespace: namespace })
-  const resourceSpec = task.spec.resource || getServiceResourceSpec(module, undefined)
+  const spec = action.getSpec()
+  const manifests = await getManifests({ ctx, api, log, action, defaultNamespace: namespace })
+  const resourceSpec = spec.target
   const target = await getTargetResource({
     ctx: k8sCtx,
     log,
     provider: k8sCtx.provider,
     manifests,
-    module,
+    action,
     resourceSpec,
   })
   const container = getResourceContainer(target, resourceSpec.containerName)
@@ -53,36 +55,34 @@ export async function runKubernetesTask(params: RunTaskParams<KubernetesModule>)
     ...params,
     container,
     podSpec: getResourcePodSpec(target),
-    command,
-    args,
-    artifacts: task.spec.artifacts,
-    envVars: task.spec.env,
+    command: spec.command,
+    args: spec.args,
+    artifacts: spec.artifacts,
+    envVars: spec.env,
     image: container.image!,
     namespace,
-    podName: makePodName("task", module.name, task.name),
-    description: `Task '${task.name}' in container module '${module.name}'`,
-    timeout: task.config.timeout || DEFAULT_TASK_TIMEOUT,
-    version: task.version,
+    podName: makePodName("run", action.name),
+    timeout: action.getConfig("timeout") || DEFAULT_TASK_TIMEOUT,
+    version: action.getVersionString(),
   })
 
   const result = {
     ...res,
     namespaceStatus,
-    taskName: task.name,
+    taskName: action.name,
     outputs: {
       log: res.log || "",
     },
   }
 
-  if (task.config.cacheResult) {
+  if (spec.cacheResult) {
     await storeRunResult({
       ctx,
       log,
-      module,
+      action,
       result,
-      task,
     })
   }
 
-  return result
+  return { result, outputs: result.outputs }
 }
