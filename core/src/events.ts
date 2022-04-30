@@ -14,7 +14,7 @@ import { ServiceStatus } from "./types/service"
 import { NamespaceStatus, RunStatus } from "./plugin/base"
 import { Omit } from "./util/util"
 import { AuthTokenResponse } from "./cloud/api"
-import { RenderedActionGraph } from "./config-graph"
+import { RenderedActionGraph } from "./graph/config-graph"
 import { BuildState } from "./types/plugin/module/build"
 import { CommandInfo } from "./plugin-context"
 import { sanitizeObject } from "./logger/util"
@@ -196,6 +196,10 @@ export interface Events extends LoggerEvents {
    */
 
   buildStatus: {
+    actionName: string
+    actionVersion: string
+
+    // DEPRECATED: remove in 0.14
     moduleName: string
     moduleVersion: string
     /**

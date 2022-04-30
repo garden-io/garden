@@ -9,9 +9,9 @@
 import { dedent } from "../../../util/string"
 import { AddModuleSpec } from "../../../config/module"
 import { joi, joiArray } from "../../../config/common"
-import { addModuleSchema } from "../../../plugin/handlers/provider/augmentGraph"
+import { addModuleSchema } from "../provider/augmentGraph"
 import { LogEntry } from "../../../logger/log-entry"
-import { ActionHandlerParamsBase } from "../../../plugin/plugin"
+import { ActionHandlerParamsBase } from "../../plugin"
 
 export const maxDescriptionLength = 48
 

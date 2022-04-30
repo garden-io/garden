@@ -14,7 +14,6 @@ import { prepareVariables, setWorkspace, tfValidate } from "./common"
 import { ConfigGraph, PluginCommand, PluginCommandParams } from "@garden-io/sdk/types"
 import { join } from "path"
 import { remove } from "fs-extra"
-
 import { getProviderStatusCachePath } from "@garden-io/core/build/src/tasks/resolve-provider"
 import { TerraformDeploy } from "./action"
 

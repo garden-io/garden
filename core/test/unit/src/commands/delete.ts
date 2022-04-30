@@ -39,7 +39,7 @@ describe("DeleteSecretCommand", () => {
     const value = "myvalue"
 
     const actions = await garden.getActionRouter()
-    await actions.setSecret({ log, key, value, pluginName })
+    await actions.provider.setSecret({ log, key, value, pluginName })
 
     await command.action({
       garden,
@@ -50,7 +50,7 @@ describe("DeleteSecretCommand", () => {
       opts: withDefaultGlobalOpts({}),
     })
 
-    expect(await actions.getSecret({ log, pluginName, key })).to.eql({
+    expect(await actions.provider.getSecret({ log, pluginName, key })).to.eql({
       value: null,
     })
   })

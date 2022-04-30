@@ -236,7 +236,7 @@ function resolvePlugin(plugin: GardenPlugin, loadedPlugins: PluginMap, configs: 
       continue
     } else if (resolved.handlers[name]) {
       // Attach the overridden handler as a base, and attach metadata
-      resolved.handlers[name].base = Object.assign(handler, { actionType: name, pluginName: base.name })
+      resolved.handlers[name].base = Object.assign(handler, { handlerType: name, pluginName: base.name })
     } else {
       resolved.handlers[name] = handler
     }
@@ -482,7 +482,7 @@ function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: GenericPr
 
         if (handler && baseHandler) {
           handler.base = cloneHandler(baseHandler)
-          handler.base!.actionType = handler.base!.actionType || name
+          handler.base!.handlerType = handler.base!.handlerType || name
           handler.base!.moduleType = handler.base!.moduleType || moduleType
           handler.base!.pluginName = handler.base!.pluginName || definition.plugin.name
         }
@@ -517,7 +517,7 @@ function resolveModuleDefinition(
       if (!handler) {
         continue
       }
-      handler.actionType = name
+      handler.handlerType = name
       handler.moduleType = spec.name
       handler.pluginName = plugin.name
     }
@@ -585,7 +585,7 @@ function resolveModuleDefinition(
 
       if (baseHandler) {
         handler.base = cloneHandler(baseHandler)
-        handler.base!.actionType = baseHandler!.actionType || name
+        handler.base!.handlerType = baseHandler!.handlerType || name
         handler.base!.moduleType = baseHandler!.moduleType || base.name
         handler.base!.pluginName = baseHandler!.pluginName || definitions[base.name].plugin.name
         break

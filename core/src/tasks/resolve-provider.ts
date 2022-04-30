@@ -179,7 +179,7 @@ export class ResolveProviderTask extends BaseTask {
     const pluginsByName = keyBy(plugins, "name")
     const plugin = pluginsByName[providerName]
 
-    const configureOutput = await actions.configureProvider({
+    const configureOutput = await actions.provider.configureProvider({
       ctx: await this.garden.getPluginContext(
         providerFromConfig({
           plugin,
@@ -330,8 +330,8 @@ export class ResolveProviderTask extends BaseTask {
     }
 
     // TODO: avoid calling the handler manually (currently doing it to override the plugin context)
-    const handler = await actions["getActionHandler"]({
-      actionType: "getEnvironmentStatus",
+    const handler = await actions.provider["getPluginHandler"]({
+      handlerType: "getEnvironmentStatus",
       pluginName,
       defaultHandler: async () => defaultEnvironmentStatus,
     })
@@ -351,8 +351,8 @@ export class ResolveProviderTask extends BaseTask {
       })
 
       // TODO: avoid calling the handler manually
-      const prepareHandler = await actions["getActionHandler"]({
-        actionType: "prepareEnvironment",
+      const prepareHandler = await actions.provider["getPluginHandler"]({
+        handlerType: "prepareEnvironment",
         pluginName,
         defaultHandler: async () => ({ status }),
       })

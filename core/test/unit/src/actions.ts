@@ -7,9 +7,9 @@
  */
 
 import {
-  ModuleAndRuntimeActionHandlers,
-  ProviderActionHandlers,
-  getModuleActionDescriptions,
+  ModuleActionHandlers,
+  ProviderHandlers,
+  getModuleHandlerDescriptions,
   getProviderActionDescriptions,
   createGardenPlugin,
   ActionHandler,
@@ -18,7 +18,7 @@ import {
 import { GardenService, ServiceState } from "../../../src/types/service"
 import { RuntimeContext, prepareRuntimeContext } from "../../../src/runtime-context"
 import { expectError, makeTestGardenA, stubModuleAction, projectRootA, TestGarden, makeTestGarden } from "../../helpers"
-import { ActionRouter } from "../../../src/actions"
+import { ActionRouter } from "../../../src/router/router"
 import { LogEntry } from "../../../src/logger/log-entry"
 import { GardenModule } from "../../../src/types/module"
 import { ServiceLogEntry } from "../../../src/types/service"
@@ -38,7 +38,7 @@ import { emptyDir, pathExists, ensureFile, readFile } from "fs-extra"
 import { join } from "path"
 import { DashboardPage } from "../../../src/plugin/handlers/provider/getDashboardPage"
 import { testFromModule, testFromConfig } from "../../../src/types/test"
-import { ConfigGraph } from "../../../src/config-graph"
+import { ConfigGraph } from "../../../src/graph/config-graph"
 
 const now = new Date()
 
@@ -101,7 +101,7 @@ describe("ActionRouter", () => {
     describe("configureProvider", () => {
       it("should configure the provider", async () => {
         const config = { name: "test-plugin", foo: "bar", dependencies: [] }
-        const result = await actions.configureProvider({
+        const result = await actions.provider.configureProvider({
           ctx: await garden.getPluginContext(
             providerFromConfig({
               plugin: await garden.getPlugin("test-plugin"),
@@ -133,7 +133,7 @@ describe("ActionRouter", () => {
         graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const modules = graph.getModules()
         const providers = await garden.resolveProviders(garden.log)
-        const result = await actions.augmentGraph({
+        const result = await actions.provider.augmentGraph({
           log,
           pluginName: "test-plugin",
           modules,
@@ -170,7 +170,7 @@ describe("ActionRouter", () => {
           description: "foodefoodefoo",
           newWindow: false,
         }
-        const result = await actions.getDashboardPage({ log, pluginName: "test-plugin", page })
+        const result = await actions.provider.getDashboardPage({ log, pluginName: "test-plugin", page })
         expect(result).to.eql({
           url: "http://foo",
         })
@@ -179,7 +179,7 @@ describe("ActionRouter", () => {
 
     describe("getEnvironmentStatus", () => {
       it("should return the environment status for a provider", async () => {
-        const result = await actions.getEnvironmentStatus({ log, pluginName: "test-plugin" })
+        const result = await actions.provider.getEnvironmentStatus({ log, pluginName: "test-plugin" })
         expect(result).to.eql({
           ready: false,
           outputs: {},
@@ -189,7 +189,7 @@ describe("ActionRouter", () => {
 
     describe("prepareEnvironment", () => {
       it("should prepare the environment for a configured provider", async () => {
-        const result = await actions.prepareEnvironment({
+        const result = await actions.provider.prepareEnvironment({
           log,
           pluginName: "test-plugin",
           force: false,
@@ -206,28 +206,28 @@ describe("ActionRouter", () => {
 
     describe("cleanupEnvironment", () => {
       it("should clean up environment for a provider", async () => {
-        const result = await actions.cleanupEnvironment({ log, pluginName: "test-plugin" })
+        const result = await actions.provider.cleanupEnvironment({ log, pluginName: "test-plugin" })
         expect(result).to.eql({})
       })
     })
 
     describe("getSecret", () => {
       it("should retrieve a secret from the specified provider", async () => {
-        const result = await actions.getSecret({ log, pluginName: "test-plugin", key: "foo" })
+        const result = await actions.provider.getSecret({ log, pluginName: "test-plugin", key: "foo" })
         expect(result).to.eql({ value: "foo" })
       })
     })
 
     describe("setSecret", () => {
       it("should set a secret via the specified provider", async () => {
-        const result = await actions.setSecret({ log, pluginName: "test-plugin", key: "foo", value: "boo" })
+        const result = await actions.provider.setSecret({ log, pluginName: "test-plugin", key: "foo", value: "boo" })
         expect(result).to.eql({})
       })
     })
 
     describe("deleteSecret", () => {
       it("should delete a secret from the specified provider", async () => {
-        const result = await actions.deleteSecret({ log, pluginName: "test-plugin", key: "foo" })
+        const result = await actions.provider.deleteSecret({ log, pluginName: "test-plugin", key: "foo" })
         expect(result).to.eql({ found: true })
       })
     })
@@ -250,7 +250,7 @@ describe("ActionRouter", () => {
           },
         }
 
-        const result = await actions.configureModule({ log, moduleConfig })
+        const result = await actions.module.configureModule({ log, moduleConfig })
         expect(result.moduleConfig.build.dependencies).to.eql([
           {
             name: "module-b",
@@ -269,7 +269,7 @@ describe("ActionRouter", () => {
 
     describe("getBuildStatus", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.getBuildStatus({ log, module, graph })
+        const result = await actions.build.build.getBuildStatus({ log, module, graph })
         expect(result).to.eql({
           ready: true,
         })
@@ -277,7 +277,7 @@ describe("ActionRouter", () => {
 
       it("should emit a buildStatus event", async () => {
         garden.events.eventLog = []
-        await actions.getBuildStatus({ log, module, graph })
+        await actions.build.build.getBuildStatus({ log, module, graph })
         const event = garden.events.eventLog[0]
         expect(event).to.exist
         expect(event.name).to.eql("buildStatus")
@@ -290,13 +290,13 @@ describe("ActionRouter", () => {
 
     describe("build", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.build({ log, module, graph })
+        const result = await actions.build.build({ log, module, graph })
         expect(result).to.eql({})
       })
 
       it("should emit buildStatus events", async () => {
         garden.events.eventLog = []
-        await actions.build({ log, module, graph })
+        await actions.build.build({ log, module, graph })
         const event1 = garden.events.eventLog[0]
         const event2 = garden.events.eventLog[1]
         const moduleVersion = module.version.versionString
@@ -318,7 +318,7 @@ describe("ActionRouter", () => {
     describe("runModule", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const command = ["npm", "run"]
-        const result = await actions.runModule({
+        const result = await actions.build.run({
           log,
           module,
           args: command,
@@ -1001,7 +1001,7 @@ describe("ActionRouter", () => {
 
   describe("getModuleActionHandlers", () => {
     it("should return all handlers for a type", async () => {
-      const handlers = await actions["getModuleActionHandlers"]({ actionType: "build", moduleType: "exec" })
+      const handlers = await actions["getModuleActionHandlers"]({ handlerType: "build", moduleType: "exec" })
 
       expect(Object.keys(handlers)).to.eql(["exec"])
     })
@@ -1012,9 +1012,9 @@ describe("ActionRouter", () => {
       const gardenA = await makeTestGardenA()
       const actionsA = await gardenA.getActionRouter()
       const pluginName = "test-plugin-b"
-      const handler = await actionsA["getActionHandler"]({ actionType: "prepareEnvironment", pluginName })
+      const handler = await actionsA.provider["getPluginHandler"]({ handlerType: "prepareEnvironment", pluginName })
 
-      expect(handler!.actionType).to.equal("prepareEnvironment")
+      expect(handler!.handlerType).to.equal("prepareEnvironment")
       expect(handler!.pluginName).to.equal(pluginName)
     })
 
@@ -1022,7 +1022,7 @@ describe("ActionRouter", () => {
       const gardenA = await makeTestGardenA()
       const actionsA = await gardenA.getActionRouter()
       const pluginName = "test-plugin-b"
-      await expectError(() => actionsA["getActionHandler"]({ actionType: "cleanupEnvironment", pluginName }), "plugin")
+      await expectError(() => actionsA.provider["getPluginHandler"]({ handlerType: "cleanupEnvironment", pluginName }), "plugin")
     })
   })
 
@@ -1035,12 +1035,12 @@ describe("ActionRouter", () => {
       const defaultHandler = async () => {
         return { code: 0, output: "" }
       }
-      const handler = await actionsA["getModuleActionHandler"]({
-        actionType: "execInService",
+      const handler = await actionsA["getModuleHandler"]({
+        handlerType: "execInService",
         moduleType: "container",
         defaultHandler,
       })
-      expect(handler.actionType).to.equal("execInService")
+      expect(handler.handlerType).to.equal("execInService")
       expect(handler.moduleType).to.equal("container")
       expect(handler.pluginName).to.equal(defaultProvider.name)
     })
@@ -1049,7 +1049,7 @@ describe("ActionRouter", () => {
       const gardenA = await makeTestGardenA()
       const actionsA = await gardenA.getActionRouter()
       await expectError(
-        () => actionsA["getModuleActionHandler"]({ actionType: "execInService", moduleType: "container" }),
+        () => actionsA["getModuleHandler"]({ handlerType: "execInService", moduleType: "container" }),
         "parameter"
       )
     })
@@ -1087,9 +1087,9 @@ describe("ActionRouter", () => {
 
         const _actions = await _garden.getActionRouter()
 
-        const handler = await _actions["getModuleActionHandler"]({ actionType: "build", moduleType: "bar" })
+        const handler = await _actions["getModuleHandler"]({ handlerType: "build", moduleType: "bar" })
 
-        expect(handler.actionType).to.equal("build")
+        expect(handler.handlerType).to.equal("build")
         expect(handler.moduleType).to.equal("bar")
         expect(handler.pluginName).to.equal("foo")
       })
@@ -1140,9 +1140,9 @@ describe("ActionRouter", () => {
 
         const _actions = await _garden.getActionRouter()
 
-        const handler = await _actions["getModuleActionHandler"]({ actionType: "build", moduleType: "bar" })
+        const handler = await _actions["getModuleHandler"]({ handlerType: "build", moduleType: "bar" })
 
-        expect(handler.actionType).to.equal("build")
+        expect(handler.handlerType).to.equal("build")
         expect(handler.moduleType).to.equal("bar")
         expect(handler.pluginName).to.equal("foo")
       })
@@ -1210,9 +1210,9 @@ describe("ActionRouter", () => {
 
         const _actions = await _garden.getActionRouter()
 
-        const handler = await _actions["getModuleActionHandler"]({ actionType: "build", moduleType: "bar" })
+        const handler = await _actions["getModuleHandler"]({ handlerType: "build", moduleType: "bar" })
 
-        expect(handler.actionType).to.equal("build")
+        expect(handler.handlerType).to.equal("build")
         expect(handler.moduleType).to.equal("bar")
         expect(handler.pluginName).to.equal("too")
       })
@@ -1279,9 +1279,9 @@ describe("ActionRouter", () => {
 
           const _actions = await _garden.getActionRouter()
 
-          const handler = await _actions["getModuleActionHandler"]({ actionType: "build", moduleType: "bar" })
+          const handler = await _actions["getModuleHandler"]({ handlerType: "build", moduleType: "bar" })
 
-          expect(handler.actionType).to.equal("build")
+          expect(handler.handlerType).to.equal("build")
           expect(handler.moduleType).to.equal("bar")
           expect(handler.pluginName).to.equal("too")
         })
@@ -1331,9 +1331,9 @@ describe("ActionRouter", () => {
 
         const _actions = await _garden.getActionRouter()
 
-        const handler = await _actions["getModuleActionHandler"]({ actionType: "build", moduleType: "bar" })
+        const handler = await _actions["getModuleHandler"]({ handlerType: "build", moduleType: "bar" })
 
-        expect(handler.actionType).to.equal("build")
+        expect(handler.handlerType).to.equal("build")
         expect(handler.moduleType).to.equal("bar")
         expect(handler.pluginName).to.equal("foo")
       })
@@ -1389,9 +1389,9 @@ describe("ActionRouter", () => {
 
         const _actions = await _garden.getActionRouter()
 
-        const handler = await _actions["getModuleActionHandler"]({ actionType: "build", moduleType: "moo" })
+        const handler = await _actions["getModuleHandler"]({ handlerType: "build", moduleType: "moo" })
 
-        expect(handler.actionType).to.equal("build")
+        expect(handler.handlerType).to.equal("build")
         expect(handler.moduleType).to.equal("moo")
         expect(handler.pluginName).to.equal("foo")
       })
@@ -1431,9 +1431,9 @@ describe("ActionRouter", () => {
 
         const _actions = await _garden.getActionRouter()
 
-        const handler = await _actions["getModuleActionHandler"]({ actionType: "build", moduleType: "moo" })
+        const handler = await _actions["getModuleHandler"]({ handlerType: "build", moduleType: "moo" })
 
-        expect(handler.actionType).to.equal("build")
+        expect(handler.handlerType).to.equal("build")
         expect(handler.moduleType).to.equal("bar")
         expect(handler.pluginName).to.equal("base")
         expect(await handler(<any>{})).to.eql({ buildLog: "base" })
@@ -1497,9 +1497,9 @@ describe("ActionRouter", () => {
 
         const _actions = await _garden.getActionRouter()
 
-        const handler = await _actions["getModuleActionHandler"]({ actionType: "build", moduleType: "moo" })
+        const handler = await _actions["getModuleHandler"]({ handlerType: "build", moduleType: "moo" })
 
-        expect(handler.actionType).to.equal("build")
+        expect(handler.handlerType).to.equal("build")
         expect(handler.moduleType).to.equal("base-a")
         expect(handler.pluginName).to.equal("base-a")
         expect(await handler(<any>{})).to.eql({ buildLog: "base" })
@@ -1516,7 +1516,7 @@ describe("ActionRouter", () => {
           ready: true,
           outputs: {},
         }),
-        { actionType: "getEnvironmentStatus", pluginName: "base" }
+        { handlerType: "getEnvironmentStatus", pluginName: "base" }
       )
 
       const handler: ActionHandler<any, any> = async (params) => {
@@ -1528,7 +1528,7 @@ describe("ActionRouter", () => {
       handler.base = base
 
       await emptyActions["callActionHandler"]({
-        actionType: "getEnvironmentStatus", // Doesn't matter which one it is
+        handlerType: "getEnvironmentStatus", // Doesn't matter which one it is
         pluginName: "test-plugin",
         params: {
           log,
@@ -1590,7 +1590,7 @@ describe("ActionRouter", () => {
       const _actions = await _garden.getActionRouter()
 
       const result = await _actions["callActionHandler"]({
-        actionType: "getSecret", // Doesn't matter which one it is
+        handlerType: "getSecret", // Doesn't matter which one it is
         pluginName: "foo",
         params: {
           key: "foo",
@@ -1610,7 +1610,7 @@ describe("ActionRouter", () => {
       }
 
       const result = await emptyActions["callActionHandler"]({
-        actionType: "getEnvironmentStatus", // Doesn't matter which one it is
+        handlerType: "getEnvironmentStatus", // Doesn't matter which one it is
         pluginName: "test-plugin",
         params: {
           log,
@@ -1640,7 +1640,7 @@ describe("ActionRouter", () => {
           ready: true,
           outputs: {},
         }),
-        { actionType: "getBuildStatus", pluginName: "base", moduleType: "test" }
+        { handlerType: "getBuildStatus", pluginName: "base", moduleType: "test" }
       )
 
       const handler: ModuleActionHandler<any, any> = async (params) => {
@@ -1651,7 +1651,7 @@ describe("ActionRouter", () => {
       handler.base = base
 
       await emptyActions["callModuleHandler"]({
-        actionType: "getBuildStatus", // Doesn't matter which one it is
+        handlerType: "getBuildStatus", // Doesn't matter which one it is
         params: {
           module: moduleA,
           log,
@@ -1680,7 +1680,7 @@ describe("ActionRouter", () => {
       }
 
       const result = await emptyActions["callModuleHandler"]({
-        actionType: "getBuildStatus", // Doesn't matter which one it is
+        handlerType: "getBuildStatus", // Doesn't matter which one it is
         params: {
           module: moduleB,
           log,
@@ -1712,7 +1712,7 @@ describe("ActionRouter", () => {
           state: <ServiceState>"ready",
           detail: {},
         }),
-        { actionType: "deployService", pluginName: "base", moduleType: "test" }
+        { handlerType: "deployService", pluginName: "base", moduleType: "test" }
       )
 
       const handler: ModuleActionHandler<any, any> = async (params) => {
@@ -1723,7 +1723,7 @@ describe("ActionRouter", () => {
       handler.base = base
 
       await emptyActions["callServiceHandler"]({
-        actionType: "deployService", // Doesn't matter which one it is
+        handlerType: "deployService", // Doesn't matter which one it is
         params: {
           service: serviceA,
           graph,
@@ -1774,7 +1774,7 @@ describe("ActionRouter", () => {
       })
 
       const { result } = await emptyActions["callServiceHandler"]({
-        actionType: "deployService", // Doesn't matter which one it is
+        handlerType: "deployService", // Doesn't matter which one it is
         params: {
           service: serviceB,
           graph,
@@ -1828,7 +1828,7 @@ describe("ActionRouter", () => {
       })
 
       await emptyActions["callServiceHandler"]({
-        actionType: "deployService", // Doesn't matter which one it is
+        handlerType: "deployService", // Doesn't matter which one it is
         params: {
           service: serviceA,
           graph,
@@ -1879,7 +1879,7 @@ describe("ActionRouter", () => {
       await expectError(
         () =>
           emptyActions["callServiceHandler"]({
-            actionType: "deployService", // Doesn't matter which one it is
+            handlerType: "deployService", // Doesn't matter which one it is
             params: {
               service: serviceA,
               graph,
@@ -1927,7 +1927,7 @@ describe("ActionRouter", () => {
           completedAt: new Date(),
           log: "boo",
         }),
-        { actionType: "runTask", pluginName: "base", moduleType: "test" }
+        { handlerType: "runTask", pluginName: "base", moduleType: "test" }
       )
 
       const handler: ModuleActionHandler<any, any> = async (params) => {
@@ -1948,7 +1948,7 @@ describe("ActionRouter", () => {
       handler.base = base
 
       await emptyActions["callTaskHandler"]({
-        actionType: "runTask",
+        handlerType: "runTask",
         params: {
           artifactsPath: "/tmp",
           task: taskA,
@@ -1996,7 +1996,7 @@ describe("ActionRouter", () => {
       })
 
       const { result } = await emptyActions["callTaskHandler"]({
-        actionType: "runTask",
+        handlerType: "runTask",
         params: {
           artifactsPath: "/tmp", // Not used in this test
           task: taskA,
@@ -2063,7 +2063,7 @@ describe("ActionRouter", () => {
       })
 
       await emptyActions["callTaskHandler"]({
-        actionType: "runTask",
+        handlerType: "runTask",
         params: {
           artifactsPath: "/tmp", // Not used in this test
           task: taskA,
@@ -2124,7 +2124,7 @@ describe("ActionRouter", () => {
       await expectError(
         () =>
           emptyActions["callTaskHandler"]({
-            actionType: "runTask",
+            handlerType: "runTask",
             params: {
               artifactsPath: "/tmp", // Not used in this test
               task: taskA,
@@ -2164,13 +2164,13 @@ const basePlugin = createGardenPlugin({
 })
 
 const pluginActionDescriptions = getProviderActionDescriptions()
-const moduleActionDescriptions = getModuleActionDescriptions()
+const moduleActionDescriptions = getModuleHandlerDescriptions()
 
 const testPlugin = createGardenPlugin({
   name: "test-plugin",
   dependencies: [{ name: "base" }],
 
-  handlers: <ProviderActionHandlers>{
+  handlers: <ProviderHandlers>{
     configureProvider: async (params) => {
       validateParams(params, pluginActionDescriptions.configureProvider.paramsSchema)
       return { config: params.config }

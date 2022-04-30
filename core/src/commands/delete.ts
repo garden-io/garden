@@ -68,7 +68,7 @@ export class DeleteSecretCommand extends Command<typeof deleteSecretArgs> {
   async action({ garden, log, args }: CommandParams<DeleteSecretArgs>): Promise<CommandResult<DeleteSecretResult>> {
     const key = args.key!
     const actions = await garden.getActionRouter()
-    const result = await actions.deleteSecret({ log, pluginName: args.provider!, key })
+    const result = await actions.provider.deleteSecret({ log, pluginName: args.provider!, key })
 
     if (result.found) {
       log.info(`Deleted config key ${args.key}`)
@@ -147,7 +147,7 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
 
     log.info("")
 
-    const providerStatuses = await actions.cleanupAll(log)
+    const providerStatuses = await actions.provider.cleanupAll(log)
 
     return { result: { serviceStatuses, providerStatuses } }
   }

@@ -8,79 +8,54 @@
 
 import toposort from "toposort"
 import { flatten, pick, uniq, sortBy, pickBy } from "lodash"
-import { BuildDependencyConfig } from "./config/module"
-import { GardenModule, moduleNeedsBuild, ModuleTypeMap } from "./types/module"
-import { GardenService, serviceFromConfig } from "./types/service"
-import { GardenTask, taskFromConfig } from "./types/task"
-import { TestConfig } from "./config/test"
-import { uniqByName, pickKeys } from "./util/util"
-import { ConfigurationError } from "./exceptions"
-import { deline } from "./util/string"
-import { detectMissingDependencies, DependencyValidationGraph } from "./util/validate-dependencies"
-import { ServiceConfig } from "./config/service"
-import { TaskConfig } from "./config/task"
-import { makeTestTaskName } from "./tasks/helpers"
-import { TaskType, makeBaseKey } from "./tasks/base"
-import { testFromModule, GardenTest, testFromConfig } from "./types/test"
-import { ResolvedAction, ResolvedRuntimeAction } from "./actions/base"
-import { BuildAction, ResolvedBuildAction } from "./actions/build"
-import { DeployAction } from "./actions/deploy"
+import { BuildDependencyConfig } from "../config/module"
+import { GardenModule, moduleNeedsBuild, ModuleTypeMap } from "../types/module"
+import { GardenService, serviceFromConfig } from "../types/service"
+import { GardenTask, taskFromConfig } from "../types/task"
+import { TestConfig } from "../config/test"
+import { uniqByName, pickKeys } from "../util/util"
+import { ConfigurationError } from "../exceptions"
+import { deline } from "../util/string"
+import { detectMissingDependencies, DependencyValidationGraph } from "../util/validate-dependencies"
+import { ServiceConfig } from "../config/service"
+import { TaskConfig } from "../config/task"
+import { makeTestTaskName } from "../tasks/helpers"
+import { testFromModule, GardenTest, testFromConfig } from "../types/test"
+import { DependencyGraph, DependencyGraphEdge, DependencyRelationNames, nodeKey, RenderedActionGraph, RenderedNode } from "./config-graph"
+import { makeBaseKey, TaskType } from "../tasks/base"
 
 // Each of these types corresponds to a Task class (e.g. BuildTask, DeployTask, ...).
-export type DependencyGraphNodeType = "build" | "deploy" | "run" | "test"
+type DependencyGraphNodeType = "build" | "deploy" | "run" | "test"
 
 // The primary output type (for dependencies and dependants).
-export type DependencyRelations = {
+type DependencyRelations = {
   build: GardenModule[]
   deploy: GardenService[]
   run: GardenTask[]
   test: TestConfig[]
 }
 
-type DependencyRelationNames = {
-  build: string[]
-  deploy: string[]
-  run: string[]
-  test: string[]
-}
-
-export type DependencyRelationFilterFn = (node: DependencyGraphNode) => boolean
-
-// Output types for rendering/logging
-export type RenderedActionGraph = {
-  nodes: RenderedNode[]
-  relationships: RenderedEdge[]
-}
-export type RenderedEdge = { dependant: RenderedNode; dependency: RenderedNode }
-
-export interface RenderedNode {
-  type: DependencyGraphNodeType
-  name: string
-  moduleName: string
-  key: string
-  disabled: boolean
-}
+type DependencyRelationFilterFn = (node: DependencyGraphNode) => boolean
 
 type DepNodeTaskTypeMap = { [key in DependencyGraphNodeType]: TaskType }
 
 type EntityConfig = ServiceConfig | TaskConfig | TestConfig
 
-interface EntityConfigEntry<T extends string, C extends EntityConfig> {
+export interface EntityConfigEntry<T extends string, C extends EntityConfig> {
   type: T
   moduleKey: string
   config: C
 }
 
-export type DependencyGraph = { [key: string]: DependencyGraphNode }
-
 /**
  * A graph data structure that facilitates querying (recursive or non-recursive) of the project's dependency and
  * dependant relationships.
  *
+ * This is now primarily used to validate legacy modules, and their dependency structures.
+ *
  * This should be initialized with resolved and validated GardenModules.
  */
-// TODO-G2: re-do for actions
-export class ConfigGraph {
+export class ModuleGraph {
   private dependencyGraph: DependencyGraph
   private modules: { [key: string]: GardenModule }
 
@@ -296,22 +271,6 @@ export class ConfigGraph {
     return moduleConfig.disabled || dep.config.disabled
   }
 
-  getBuild<T extends BuildAction = BuildAction>(name: string): ResolvedBuildAction<T> {
-    // TODO-G2
-  }
-
-  getBuilds<T extends BuildAction = BuildAction>({ names, includeDisabled = false }: { names?: string[]; includeDisabled?: boolean } = {}): ResolvedBuildAction<T>[] {
-    // TODO-G2
-  }
-
-  getDeploy<T extends DeployAction = DeployAction>(name: string): ResolvedRuntimeAction<T> {
-    // TODO-G2
-  }
-
-  getDeploys<T extends DeployAction = DeployAction>({ names, includeDisabled = false }: { names?: string[]; includeDisabled?: boolean } = {}): ResolvedRuntimeAction<T>[] {
-    // TODO-G2
-  }
-
   /**
    * Returns the Module with the specified name. Throws error if it doesn't exist.
    */
@@ -336,7 +295,15 @@ export class ConfigGraph {
   /**
    * Returns the `testName` test from the `moduleName` module. Throws if either is not found.
    */
-  getTest(moduleName: string, testName: string, includeDisabled?: boolean): GardenTest {
+  getTest({
+    moduleName,
+    testName,
+    includeDisabled,
+  }: {
+    moduleName: string
+    testName: string
+    includeDisabled?: boolean
+  }): GardenTest {
     const module = this.getModule(moduleName, includeDisabled)
     return testFromModule(module, testName, this)
   }
@@ -674,11 +641,6 @@ const depNodeTaskTypeMap: DepNodeTaskTypeMap = {
   test: "test",
 }
 
-interface DependencyGraphEdge {
-  dependant: DependencyGraphNode
-  dependency: DependencyGraphNode
-}
-
 export class DependencyGraphNode {
   dependencies: DependencyGraphNode[]
   dependants: DependencyGraphNode[]
@@ -686,7 +648,7 @@ export class DependencyGraphNode {
   constructor(
     public type: DependencyGraphNodeType,
     public name: string,
-    public moduleName: string,
+    public moduleName: string | undefined,
     public disabled: boolean
   ) {
     this.dependencies = []
@@ -759,10 +721,6 @@ export class DependencyGraphNode {
       return nodes
     }
   }
-}
-
-export function nodeKey(type: DependencyGraphNodeType, name: string) {
-  return `${type}.${name}`
 }
 
 function parseTestKey(key: string) {

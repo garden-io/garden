@@ -15,8 +15,7 @@ import { getLogMessages, makeTestGarden, TestGarden } from "@garden-io/sdk/testi
 import { findByName } from "@garden-io/core/build/src/util/util"
 import { TaskTask } from "@garden-io/core/build/src/tasks/task"
 import { getTerraformCommands } from "../commands"
-import { LogLevel } from "@garden-io/sdk/types"
-import { ConfigGraph } from "@garden-io/core/build/src/config-graph"
+import { ConfigGraph, LogLevel } from "@garden-io/sdk/types"
 import { gardenPlugin, TerraformProvider } from ".."
 import { DeployTask } from "@garden-io/core/build/src/tasks/deploy"
 import { emptyRuntimeContext } from "@garden-io/core/build/src/runtime-context"
@@ -215,7 +214,7 @@ describe("Terraform provider", () => {
         })
 
         const actions = await garden.getActionRouter()
-        await actions.cleanupEnvironment({ log: garden.log, pluginName: "terraform" })
+        await actions.provider.cleanupEnvironment({ log: garden.log, pluginName: "terraform" })
 
         // File should still exist
         const testFileContent = await readFile(testFilePath)
@@ -274,7 +273,7 @@ describe("Terraform provider", () => {
 
         // This should remove the file
         const actions = await garden.getActionRouter()
-        await actions.cleanupEnvironment({ log: garden.log, pluginName: "terraform" })
+        await actions.provider.cleanupEnvironment({ log: garden.log, pluginName: "terraform" })
 
         expect(await pathExists(testFilePath)).to.be.false
       })

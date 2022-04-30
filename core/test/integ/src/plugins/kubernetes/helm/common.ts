@@ -23,7 +23,7 @@ import {
 import { LogEntry } from "../../../../../../src/logger/log-entry"
 import { BuildTask } from "../../../../../../src/tasks/build"
 import { dedent, deline } from "../../../../../../src/util/string"
-import { ConfigGraph } from "../../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config"
 import { safeLoadAll } from "js-yaml"
 import { Garden } from "../../../../../../src"

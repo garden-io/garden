@@ -10,7 +10,7 @@ import chalk from "chalk"
 import indentString from "indent-string"
 import { sortBy } from "lodash"
 
-import { ConfigGraph } from "../config-graph"
+import { ConfigGraph } from "../graph/config-graph"
 import { WorkflowConfig } from "../config/workflow"
 import { GardenModule } from "../types/module"
 import { GardenTask } from "../types/task"

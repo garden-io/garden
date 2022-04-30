@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import { getDataDir, makeTestGarden, TestGarden } from "../../../../../helpers"
-import { ConfigGraph } from "../../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
 import { getServiceLogs } from "../../../../../../src/plugins/kubernetes/container/logs"
 import { Stream } from "ts-stream"

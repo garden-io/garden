@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import { mkdirp, pathExists, readFile, remove, writeFile } from "fs-extra"
 import { join } from "path"
-import { ConfigGraph } from "../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../src/graph/config-graph"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { ContainerService } from "../../../../../src/plugins/container/moduleConfig"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"

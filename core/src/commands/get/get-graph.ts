@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { RenderedEdge, RenderedNode } from "../../config-graph"
+import { RenderedEdge, RenderedNode } from "../../graph/config-graph"
 import { printHeader } from "../../logger/util"
 import { Command, CommandResult, CommandParams } from "../base"
 

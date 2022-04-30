@@ -235,8 +235,7 @@ const helpers = {
     }
   },
 
-  async imageExistsLocally(action: ContainerBuildAction, log: LogEntry, ctx: PluginContext) {
-    const identifier = action.getOutput("localImageId")
+  async imageExistsLocally(identifier: string, log: LogEntry, ctx: PluginContext) {
     const result = await helpers.dockerCli({
       cwd: module.path,
       args: ["images", identifier, "-q"],
@@ -348,7 +347,7 @@ const helpers = {
     // If the file turns out to be missing, this will come up in the build handler.
     const dockerfile = action.getSpec("dockerfile")
     const dockerfileSourcePath = getDockerfilePath(action.getBasePath(), dockerfile)
-    return action.version.files.includes(dockerfileSourcePath)
+    return action.getFullVersion().files.includes(dockerfileSourcePath)
   },
 
   /**

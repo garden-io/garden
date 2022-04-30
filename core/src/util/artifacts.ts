@@ -6,9 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join } from "path"
-import { readFile } from "fs-extra"
+import { join, relative } from "path"
+import { readFile, writeFile } from "fs-extra"
 import { LogEntry } from "../logger/log-entry"
+import { Garden } from "../garden"
+import chalk from "chalk"
+
+const maxArtifactLogLines = 5 // max number of artifacts to list in console after task+test runs
 
 /**
  * @param type task | test
@@ -46,5 +50,62 @@ export async function getArtifactFileList({
   } catch (err) {
     log.debug(`Failed reading metadata file: ${err.message}`)
   }
+  return files
+}
+
+/**
+ * Copies the artifacts exported by a plugin handler to the user's artifact directory.
+ *
+ * @param log LogEntry
+ * @param artifactsPath the temporary directory path given to the plugin handler
+ */
+export async function copyArtifacts({
+  garden,
+  log,
+  artifactsPath,
+  key,
+}: {
+  garden: Garden
+  log: LogEntry
+  artifactsPath: string
+  key: string
+}) {
+  let files: string[] = []
+
+  // Note: lazy-loading for startup performance
+  const cpy = require("cpy")
+
+  try {
+    files = await cpy("**/*", garden.artifactsPath, { cwd: artifactsPath, parents: true })
+  } catch (err) {
+    // Ignore error thrown when the directory is empty
+    if (err.name !== "CpyError" || !err.message.includes("the file doesn't exist")) {
+      throw err
+    }
+  }
+
+  const count = files.length
+
+  if (count > 0) {
+    // Log the exported artifact paths (but don't spam the console)
+    if (count > maxArtifactLogLines) {
+      files = files.slice(0, maxArtifactLogLines)
+    }
+    for (const file of files) {
+      log.info(chalk.gray(`→ Artifact: ${relative(garden.projectRoot, file)}`))
+    }
+    if (count > maxArtifactLogLines) {
+      log.info(chalk.gray(`→ Artifact: … plus ${count - maxArtifactLogLines} more files`))
+    }
+  }
+
+  // Write list of files to a metadata file
+  const metadataPath = join(garden.artifactsPath, `.metadata.${key}.json`)
+  const metadata = {
+    key,
+    files: files.sort(),
+  }
+  await writeFile(metadataPath, JSON.stringify(metadata))
+
   return files
 }

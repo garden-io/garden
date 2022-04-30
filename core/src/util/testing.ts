@@ -23,9 +23,9 @@ import pathIsInside from "path-is-inside"
 import { resolve } from "path"
 import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT } from "../constants"
 import { getLogger } from "../logger/logger"
-import { ConfigGraph } from "../config-graph"
 import stripAnsi from "strip-ansi"
 import { VcsHandler } from "../vcs/vcs"
+import { ConfigGraph } from "../graph/config-graph"
 
 export class TestError extends GardenBaseError {
   type = "_test"

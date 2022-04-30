@@ -22,10 +22,10 @@ import { GardenModule } from "./module"
 import { ServiceConfig, serviceConfigSchema } from "../config/service"
 import dedent = require("dedent")
 import { uniq } from "lodash"
-import { ConfigGraph } from "../config-graph"
 import { getEntityVersion } from "../vcs/vcs"
 import { NamespaceStatus, namespaceStatusesSchema } from "../plugin/base"
 import { LogLevel } from "../logger/logger"
+import { ModuleGraph } from "../graph/modules"
 
 export interface GardenService<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule> {
   name: string
@@ -52,7 +52,7 @@ export const serviceSchema = () =>
     })
 
 export function serviceFromConfig<M extends GardenModule = GardenModule>(
-  graph: ConfigGraph,
+  graph: ModuleGraph,
   module: M,
   config: ServiceConfig
 ): GardenService<M> {

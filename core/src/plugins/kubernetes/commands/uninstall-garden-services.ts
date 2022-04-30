@@ -37,7 +37,7 @@ export const uninstallGardenServices: PluginCommand = {
 
     log.info("")
 
-    const environmentStatuses = await actions.cleanupAll(log)
+    const environmentStatuses = await actions.provider.cleanupAll(log)
 
     log.info(chalk.green("\nDone!"))
 
