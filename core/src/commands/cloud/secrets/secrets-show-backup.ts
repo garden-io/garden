@@ -12,7 +12,7 @@ import { Command, CommandParams, CommandResult } from "../../base"
 import { applyFilter, noApiMsg, SecretResult } from "../helpers"
 import chalk from "chalk"
 import { sortBy } from "lodash"
-import { StringParameter } from "../../../cli/params"
+import { StringsParameter } from "../../../cli/params"
 import { ConfigurationError } from "../../../exceptions"
 
 interface SecretShowResult {
@@ -20,20 +20,25 @@ interface SecretShowResult {
   value: string
 }
 
-const secretsShowArgs = {
-  secret: new StringParameter({
-    help: deline`Name of the secret to show.`,
-    required: true,
+const secretsShowOpts = {
+  "filter-names": new StringsParameter({
+    help: deline`Filter on secret name. Use comma as a separator to filter on multiple secret names. Accepts glob patterns.`,
   }),
 }
 
-type Args = typeof secretsShowArgs
+const secretsShowArgs = {
+  name: new StringsParameter({
+    help: deline`Name of the secret to show.`,
+  }),
+}
 
-export class SecretsShowCommand extends Command<Args, {}> {
+type Opts = typeof secretsShowOpts
+
+export class SecretsShowCommand extends Command<{}, Opts> {
   name = "show"
   help = "[EXPERIMENTAL] Show secrets."
   description = dedent`
-    Show the given secret frm Garden Cloud for the given project, environment and user triplet.
+    Show all secrets from Garden Cloud for the given project, environment and user triplet.
 
     Note that secrets can be scoped to a project, scoped to a project and an environment, or
     scoped to a project, an environment, and a user. Garden resolves secrets in that precedence
@@ -42,35 +47,50 @@ export class SecretsShowCommand extends Command<Args, {}> {
 
     Examples:
         garden cloud secrets show                                          # show all secrets
+        garden cloud secrets show --filter-names DB_*                      # show all secrets that start with DB_
   `
 
-  arguments = secretsShowArgs
+  options = secretsShowOpts
 
   printHeader({ headerLog }) {
     printHeader(headerLog, "Show secrets", "lock")
   }
 
-  async action({ garden, log, args }: CommandParams<Args, {}>): Promise<CommandResult<SecretShowResult | {}>> {
+  async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<SecretShowResult[]>> {
+    const nameFilter = opts["filter-names"] || []
+
     if (!garden.cloudApi) {
       throw new ConfigurationError(noApiMsg("show", "secrets"), {})
     }
 
+    const secrets = Object.entries(garden.secrets).map(([name, value]) => ({
+      name,
+      value,
+    }))
+
     log.info("")
 
-    if (Object.entries(garden.secrets).length === 0) {
+    if (secrets.length === 0) {
       log.info("No secrets found in project.")
       return { result: [] }
     }
 
-    const secret = garden.secrets[args.secret]
+    const filtered = sortBy(secrets, "name").filter((secret) => applyFilter(nameFilter, secret.name))
 
-    if (!secret) {
-      log.info(`Secret with name ${args.secret} not found.`)
-      return { result: {} }
+    if (filtered.length === 0) {
+      log.info("No secrets found in project that match filters.")
+      return { result: [] }
     }
 
-    log.info(secret)
+    log.debug(`Found ${filtered.length} secrets that match filters`)
 
-    return { result: { name: args.secret, value: secret } }
+    const heading = ["Name", "Value"].map((s) => chalk.bold(s))
+    const rows: string[][] = filtered.map((s) => {
+      return [chalk.cyan.bold(s.name), s.value]
+    })
+
+    log.info(renderTable([heading].concat(rows)))
+
+    return { result: filtered }
   }
 }
