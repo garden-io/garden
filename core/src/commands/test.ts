@@ -9,6 +9,7 @@
 import Bluebird from "bluebird"
 import { flatten } from "lodash"
 import dedent = require("dedent")
+import minimatch from "minimatch"
 
 import {
   Command,
@@ -54,6 +55,12 @@ export const testOpts = {
     help: "Watch for changes in module(s) and auto-test.",
     alias: "w",
     cliOnly: true,
+  }),
+  "skip": new StringsParameter({
+    help: deline`
+      The name(s) of tests you'd like to skip. Accepts glob patterns
+      (e.g. integ* would skip both 'integ' and 'integration'). Applied after the 'name' filter.
+    `,
   }),
   "skip-dependencies": new BooleanParameter({
     help: deline`Don't deploy any services or run any tasks that the requested tests depend on.
@@ -153,6 +160,7 @@ export class TestCommand extends Command<Args, Opts> {
     const force = opts.force
     const forceBuild = opts["force-build"]
     const skipRuntimeDependencies = opts["skip-dependencies"]
+    const skipped = opts.skip || []
 
     const initialTasks = flatten(
       await Bluebird.map(modules, (module) =>
@@ -169,6 +177,9 @@ export class TestCommand extends Command<Args, Opts> {
           skipRuntimeDependencies,
         })
       )
+    ).filter(
+      (testTask) =>
+        skipped.length === 0 || !skipped.some((s) => minimatch(testTask.test.name.toLowerCase(), s.toLowerCase()))
     )
 
     const results = await processModules({
