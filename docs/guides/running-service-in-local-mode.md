@@ -90,6 +90,8 @@ services:
   ...
 ```
 
+An example can be found in the [demo-project's backend service](../../examples/demo-project/backend/garden.yml).
+
 ### Configuring local mode for `kubernetes` and `helm` modules
 
 TODO: not supported yet

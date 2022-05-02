@@ -321,6 +321,9 @@ export const containerLocalModeSchema = () =>
     The target service in the k8s cluster will be replaced by a proxy container with an ssh server running,
     and the reverse port forwarding will be automatically configured to route the traffic to the local service and back.
 
+    If the \`command\` is provided then its value must contain a command which is executable from any location.
+    The \`command\` should not depend on the current service or module path.
+
     Local mode is enabled by setting the \`--local-mode\` option on the \`garden deploy\` command.
 
     See the [Local Mode guide](${localModeGuideLink}) for more information.
