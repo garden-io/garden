@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { BaseTask, TaskParams, TaskType } from "./base"
+import { BaseTask, BaseTaskParams, TaskType } from "./base"
 import {
   GenericProviderConfig,
   Provider,
@@ -36,7 +36,7 @@ import { hashString } from "../util/util"
 import { gardenEnv } from "../constants"
 import { stableStringify } from "../util/string"
 
-interface Params extends TaskParams {
+interface Params extends BaseTaskParams {
   plugin: GardenPlugin
   config: GenericProviderConfig
   forceRefresh: boolean
@@ -134,7 +134,7 @@ export class ResolveProviderTask extends BaseTask {
 
   async process(dependencyResults: GraphResults) {
     const resolvedProviders: ProviderMap = keyBy(
-      Object.values(dependencyResults).map((result) => result && result.output),
+      Object.values(dependencyResults).map((result) => result && result.result),
       "name"
     )
 

@@ -136,7 +136,7 @@ export class RunTestCommand extends Command<Args, Opts> {
     if (action.isDisabled() && !opts.force) {
       throw new CommandError(
         chalk.red(deline`
-          ${action.description()} is disabled for the ${chalk.redBright(garden.environmentName)} environment.
+          ${action.longDescription()} is disabled for the ${chalk.redBright(garden.environmentName)} environment.
           If you're sure you want to run it anyway,
           please run the command again with the ${chalk.redBright("--force")} flag.
         `),
@@ -156,8 +156,9 @@ export class RunTestCommand extends Command<Args, Opts> {
       graph,
       log,
       action,
-      devModeServiceNames: [],
-      localModeServiceNames: [],
+      devModeDeployNames: [],
+      localModeDeployNames: [],
+      fromWatch: false,
     })
 
     const graphResults = await garden.processTasks([testTask], { throwOnError: true })

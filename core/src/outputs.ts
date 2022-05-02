@@ -11,7 +11,7 @@ import { collectTemplateReferences, resolveTemplateStrings } from "./template-st
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { emptyRuntimeContext, prepareRuntimeContext } from "./runtime-context"
 import { DeployTask } from "./tasks/deploy"
-import { TaskTask } from "./tasks/task"
+import { RunTask } from "./tasks/task"
 import { GraphResults } from "./task-graph"
 import { getServiceStatuses, getRunTaskResults } from "./tasks/base"
 import { LogEntry } from "./logger/log-entry"
@@ -89,21 +89,21 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
           graph,
           log,
           service,
-          devModeServiceNames: [],
-          localModeServiceNames: [],
+          devModeDeployNames: [],
+          localModeDeployNames: [],
         })
     ),
     ...tasks.map(
       (task) =>
-        new TaskTask({
+        new RunTask({
           force: false,
           forceBuild: false,
           garden,
           graph,
           log,
           task,
-          devModeServiceNames: [],
-          localModeServiceNames: [],
+          devModeDeployNames: [],
+          localModeDeployNames: [],
         })
     ),
   ]

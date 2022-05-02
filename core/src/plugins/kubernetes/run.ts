@@ -154,7 +154,7 @@ export async function runAndCopy({
   const mainContainerName = "main"
 
   if (!description) {
-    description = action.description()
+    description = action.longDescription()
   }
 
   const errorMetadata: any = { actionName: action.name, description, args, artifacts }

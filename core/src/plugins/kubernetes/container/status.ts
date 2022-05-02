@@ -140,7 +140,7 @@ export async function waitForContainerService(
     log.silly(`Waiting for service ${action.name}`)
 
     if (new Date().getTime() - startTime > timeout * 1000) {
-      throw new DeploymentError(`Timed out waiting for ${action.description()} to deploy after ${timeout} seconds`, {
+      throw new DeploymentError(`Timed out waiting for ${action.longDescription()} to deploy after ${timeout} seconds`, {
         name: action.name,
         status,
       })

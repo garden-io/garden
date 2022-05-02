@@ -224,7 +224,7 @@ export async function getChartPath(action: HelmDeployAction) {
     // Path is explicitly specified
     if (!chartExists) {
       throw new ConfigurationError(
-        `${action.description()} has explicitly set \`chart.path\` but no ${helmChartYamlFilename} file can be found in directory '${chartDir}.`,
+        `${action.longDescription()} has explicitly set \`chart.path\` but no ${helmChartYamlFilename} file can be found in directory '${chartDir}.`,
         { spec: action.getSpec() }
       )
     }
@@ -238,7 +238,7 @@ export async function getChartPath(action: HelmDeployAction) {
     return chartDir
   } else {
     throw new ConfigurationError(
-      `${action.description()} has explicitly set \`chart.path\` but no ${helmChartYamlFilename} file can be found in directory '${chartDir}.`,
+      `${action.longDescription()} has explicitly set \`chart.path\` but no ${helmChartYamlFilename} file can be found in directory '${chartDir}.`,
       { spec: action.getSpec() }
     )
   }

@@ -33,13 +33,10 @@ class TestError extends Error {
 }
 
 export interface TestTaskParams extends BaseActionTaskParams<TestAction> {
-  graph: ConfigGraph
-  force: boolean
   forceBuild: boolean
-  fromWatch?: boolean
   skipRuntimeDependencies?: boolean
-  devModeServiceNames: string[]
-  localModeServiceNames: string[]
+  devModeDeployNames: string[]
+  localModeDeployNames: string[]
   silent?: boolean
   interactive?: boolean
 }
@@ -47,37 +44,21 @@ export interface TestTaskParams extends BaseActionTaskParams<TestAction> {
 @Profile()
 export class TestTask extends BaseActionTask<TestAction> {
   type: TaskType = "test"
-  action: TestAction
-  graph: ConfigGraph
+
   forceBuild: boolean
-  fromWatch: boolean
   skipRuntimeDependencies: boolean
-  devModeServiceNames: string[]
-  localModeServiceNames: string[]
+  localModeDeployNames: string[]
   silent: boolean
 
-  constructor({
-    garden,
-    graph,
-    log,
-    action,
-    force,
-    forceBuild,
-    fromWatch = false,
-    skipRuntimeDependencies = false,
-    devModeServiceNames,
-    localModeServiceNames,
-    silent = true,
-    interactive = false,
-  }: TestTaskParams) {
-    super({ garden, log, force, action })
-    this.graph = graph
-    this.force = force
+  constructor(params: TestTaskParams) {
+    super(params)
+
+    const { forceBuild, skipRuntimeDependencies = false, silent = true, interactive = false } = params
+
     this.forceBuild = forceBuild
-    this.fromWatch = fromWatch
     this.skipRuntimeDependencies = skipRuntimeDependencies
-    this.devModeServiceNames = devModeServiceNames
-    this.localModeServiceNames = localModeServiceNames
+    this.devModeDeployNames = params.devModeDeployNames
+    this.localModeDeployNames = params.localModeDeployNames
     this.silent = silent
     this.interactive = interactive
   }
@@ -94,7 +75,7 @@ export class TestTask extends BaseActionTask<TestAction> {
       name: this.getName(),
       recursive: false,
       filter: (depNode) =>
-        !(this.fromWatch && depNode.type === "deploy" && this.devModeServiceNames.includes(depNode.name)),
+        !(this.fromWatch && depNode.type === "deploy" && this.devModeDeployNames.includes(depNode.name)),
     })
 
     const buildTasks = await BuildTask.factory({
@@ -113,7 +94,7 @@ export class TestTask extends BaseActionTask<TestAction> {
   }
 
   getDescription() {
-    return `running ${this.action.description()}`
+    return `running ${this.action.longDescription()}`
   }
 
   async process(dependencyResults: GraphResults): Promise<TestResult> {
@@ -211,8 +192,8 @@ export async function getTestTasksFromModule({
   graph,
   module,
   filterNames,
-  devModeServiceNames,
-  localModeServiceNames,
+  devModeDeployNames,
+  localModeDeployNames,
   force = false,
   forceBuild = false,
   fromWatch = false,
@@ -223,8 +204,8 @@ export async function getTestTasksFromModule({
   graph: ConfigGraph
   module: GardenModule
   filterNames?: string[]
-  devModeServiceNames: string[]
-  localModeServiceNames: string[]
+  devModeDeployNames: string[]
+  localModeDeployNames: string[]
   force?: boolean
   forceBuild?: boolean
   fromWatch?: boolean
@@ -241,8 +222,8 @@ export async function getTestTasksFromModule({
         forceBuild,
         fromWatch,
         test: testFromConfig(module, testConfig, graph),
-        devModeServiceNames,
-        localModeServiceNames,
+        devModeDeployNames,
+        localModeDeployNames,
         skipRuntimeDependencies,
       })
   )

@@ -12,20 +12,21 @@ import chalk = require("chalk")
 import { createServer, Server, Socket } from "net"
 const AsyncLock = require("async-lock")
 import getPort = require("get-port")
-import { GardenService, ServiceStatus, ForwardablePort } from "./types/service"
+import { ServiceStatus, ForwardablePort } from "./types/service"
 import { Garden } from "./garden"
 import { registerCleanupFunction, sleep } from "./util/util"
 import { LogEntry } from "./logger/log-entry"
-import { GetPortForwardResult } from "./types/plugin/service/getPortForward"
 import { ConfigGraph } from "./graph/config-graph"
 import { gardenEnv } from "./constants"
+import { DeployAction } from "./actions/deploy"
+import { GetPortForwardResult } from "./plugin/handlers/deploy/get-port-forward"
 
 interface PortProxy {
   key: string
   localPort: number
   localUrl: string
   server: Server
-  service: GardenService
+  action: DeployAction
   spec: ForwardablePort
 }
 
@@ -45,18 +46,17 @@ registerCleanupFunction("kill-service-port-proxies", () => {
 
 const portLock = new AsyncLock()
 
-// tslint:disable-next-line: max-line-length
 export async function startPortProxies({
   garden,
   graph,
   log,
-  service,
+  action,
   status,
 }: {
   garden: Garden
   graph: ConfigGraph
   log: LogEntry
-  service: GardenService
+  action: DeployAction
   status: ServiceStatus
 }) {
   if (garden.disablePortForwards) {
@@ -65,7 +65,7 @@ export async function startPortProxies({
   }
 
   return Bluebird.map(status.forwardablePorts || [], (spec) => {
-    return startPortProxy({ garden, graph, log, service, spec })
+    return startPortProxy({ garden, graph, log, action, spec })
   })
 }
 
@@ -73,29 +73,29 @@ interface StartPortProxyParams {
   garden: Garden
   graph: ConfigGraph
   log: LogEntry
-  service: GardenService
+  action: DeployAction
   spec: ForwardablePort
 }
 
-async function startPortProxy({ garden, graph, log, service, spec }: StartPortProxyParams) {
-  const key = getPortKey(service, spec)
+async function startPortProxy({ garden, graph, log, action, spec }: StartPortProxyParams) {
+  const key = getPortKey(action, spec)
   let proxy = activeProxies[key]
 
   if (!proxy) {
     // Start new proxy
-    proxy = activeProxies[key] = await createProxy({ garden, graph, log, service, spec })
+    proxy = activeProxies[key] = await createProxy({ garden, graph, log, action, spec })
   } else if (!isEqual(proxy.spec, spec)) {
     // Stop existing proxy and create new one
     stopPortProxy(proxy, log)
-    proxy = activeProxies[key] = await createProxy({ garden, graph, log, service, spec })
+    proxy = activeProxies[key] = await createProxy({ garden, graph, log, action, spec })
   }
 
   return proxy
 }
 
-async function createProxy({ garden, graph, log, service, spec }: StartPortProxyParams): Promise<PortProxy> {
+async function createProxy({ garden, graph, log, action, spec }: StartPortProxyParams): Promise<PortProxy> {
   const actions = await garden.getActionRouter()
-  const key = getPortKey(service, spec)
+  const key = getPortKey(action, spec)
   let fwd: GetPortForwardResult | null = null
 
   let lastPrintedError = ""
@@ -112,7 +112,7 @@ async function createProxy({ garden, graph, log, service, spec }: StartPortProxy
       log.debug(`Starting port forward to ${key}`)
 
       try {
-        fwd = await actions.deploy.getPortForward({ service, log, graph, ...spec })
+        fwd = await actions.deploy.getPortForward({ action, log, graph, ...spec })
       } catch (err) {
         const msg = err.message.trim()
 
@@ -277,7 +277,7 @@ async function createProxy({ garden, graph, log, service, spec }: StartPortProxy
         )
       }
 
-      return { key, server, service, spec, localPort, localUrl }
+      return { key, server, action, spec, localPort, localUrl }
     } else {
       // Need to retry on different port
       localIp = defaultLocalAddress
@@ -297,12 +297,12 @@ function stopPortProxy(proxy: PortProxy, log?: LogEntry) {
   } catch {}
 }
 
-function getHostname(service: GardenService, spec: ForwardablePort) {
-  return spec.targetName || service.name
+function getHostname(action: DeployAction, spec: ForwardablePort) {
+  return spec.targetName || action.name
 }
 
-function getPortKey(service: GardenService, spec: ForwardablePort) {
-  return `${service.name}/${getHostname(service, spec)}:${spec.targetPort}`
+function getPortKey(action: DeployAction, spec: ForwardablePort) {
+  return `${action.name}/${getHostname(action, spec)}:${spec.targetPort}`
 }
 
 const standardProtocolPorts = {

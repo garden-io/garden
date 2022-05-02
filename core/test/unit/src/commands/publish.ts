@@ -75,7 +75,7 @@ describe("PublishCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {
-        modules: undefined,
+        names: undefined,
       },
       opts: withDefaultGlobalOpts({
         "force-build": false,
@@ -146,7 +146,7 @@ describe("PublishCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {
-        modules: undefined,
+        names: undefined,
       },
       opts: withDefaultGlobalOpts({
         "force-build": false,
@@ -173,7 +173,7 @@ describe("PublishCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {
-        modules: undefined,
+        names: undefined,
       },
       opts: withDefaultGlobalOpts({
         "force-build": false,
@@ -199,7 +199,7 @@ describe("PublishCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {
-        modules: undefined,
+        names: undefined,
       },
       opts: withDefaultGlobalOpts({
         "force-build": true,
@@ -228,7 +228,7 @@ describe("PublishCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {
-        modules: ["module-a"],
+        names: ["module-a"],
       },
       opts: withDefaultGlobalOpts({
         "force-build": false,
@@ -253,7 +253,7 @@ describe("PublishCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {
-        modules: ["module-c"],
+        names: ["module-c"],
       },
       opts: withDefaultGlobalOpts({
         "force-build": false,
@@ -276,7 +276,7 @@ describe("PublishCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {
-        modules: ["module-a"],
+        names: ["module-a"],
       },
       opts: withDefaultGlobalOpts({
         "force-build": false,

@@ -10,7 +10,7 @@ import { expect } from "chai"
 
 import { expectError, TestGarden } from "../../../../../helpers"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
-import { TaskTask } from "../../../../../../src/tasks/task"
+import { RunTask } from "../../../../../../src/tasks/task"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
 import { getContainerTestGarden } from "./container"
@@ -39,16 +39,16 @@ describe("runContainerTask", () => {
   it("should run a basic task and emit log events", async () => {
     const task = graph.getTask("echo-task-with-sleep")
 
-    const testTask = new TaskTask({
+    const testTask = new RunTask({
       garden,
       graph,
       task,
       log: garden.log,
       force: true,
       forceBuild: false,
-      devModeServiceNames: [],
+      devModeDeployNames: [],
 
-      localModeServiceNames: [],
+      localModeDeployNames: [],
     })
 
     garden.events.eventLog = []
@@ -61,10 +61,10 @@ describe("runContainerTask", () => {
     const logEvent = garden.events.eventLog.find((l) => l.name === "log" && l.payload["entity"]["type"] === "task")
 
     expect(result).to.exist
-    expect(result!.output.log.trim()).to.equal("ok\nbear")
-    expect(result!.output).to.have.property("outputs")
-    expect(result!.output.outputs.log.trim()).to.equal("ok\nbear")
-    expect(result!.output.namespaceStatus).to.exist
+    expect(result!.result.log.trim()).to.equal("ok\nbear")
+    expect(result!.result).to.have.property("outputs")
+    expect(result!.result.outputs.log.trim()).to.equal("ok\nbear")
+    expect(result!.result.namespaceStatus).to.exist
     expect(logEvent).to.exist
 
     // Verify that the result was saved
@@ -82,16 +82,16 @@ describe("runContainerTask", () => {
     const task = graph.getTask("echo-task")
     task.config.cacheResult = false
 
-    const testTask = new TaskTask({
+    const testTask = new RunTask({
       garden,
       graph,
       task,
       log: garden.log,
       force: true,
       forceBuild: false,
-      devModeServiceNames: [],
+      devModeDeployNames: [],
 
-      localModeServiceNames: [],
+      localModeDeployNames: [],
     })
 
     const ctx = await garden.getPluginContext(provider)
@@ -114,16 +114,16 @@ describe("runContainerTask", () => {
     const task = graph.getTask("echo-task")
     task.config.spec.command = ["bork"] // this will fail
 
-    const testTask = new TaskTask({
+    const testTask = new RunTask({
       garden,
       graph,
       task,
       log: garden.log,
       force: true,
       forceBuild: false,
-      devModeServiceNames: [],
+      devModeDeployNames: [],
 
-      localModeServiceNames: [],
+      localModeDeployNames: [],
     })
 
     const ctx = await garden.getPluginContext(provider)
@@ -149,16 +149,16 @@ describe("runContainerTask", () => {
     it("should copy artifacts out of the container", async () => {
       const task = graph.getTask("artifacts-task")
 
-      const testTask = new TaskTask({
+      const testTask = new RunTask({
         garden,
         graph,
         task,
         log: garden.log,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
+        devModeDeployNames: [],
 
-        localModeServiceNames: [],
+        localModeDeployNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -172,16 +172,16 @@ describe("runContainerTask", () => {
     it("should fail if an error occurs, but copy the artifacts out of the container", async () => {
       const task = graph.getTask("artifacts-task-fail")
 
-      const testTask = new TaskTask({
+      const testTask = new RunTask({
         garden,
         graph,
         task,
         log: garden.log,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
+        devModeDeployNames: [],
 
-        localModeServiceNames: [],
+        localModeDeployNames: [],
       })
       await emptyDir(garden.artifactsPath)
 
@@ -196,16 +196,16 @@ describe("runContainerTask", () => {
     it("should handle globs when copying artifacts out of the container", async () => {
       const task = graph.getTask("globs-task")
 
-      const testTask = new TaskTask({
+      const testTask = new RunTask({
         garden,
         graph,
         task,
         log: garden.log,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
+        devModeDeployNames: [],
 
-        localModeServiceNames: [],
+        localModeDeployNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -219,16 +219,16 @@ describe("runContainerTask", () => {
     it("should throw when container doesn't contain sh", async () => {
       const task = graph.getTask("missing-sh-task")
 
-      const testTask = new TaskTask({
+      const testTask = new RunTask({
         garden,
         graph,
         task,
         log: garden.log,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
+        devModeDeployNames: [],
 
-        localModeServiceNames: [],
+        localModeDeployNames: [],
       })
 
       const result = await garden.processTasks([testTask])
@@ -247,16 +247,16 @@ describe("runContainerTask", () => {
     it("should throw when container doesn't contain tar", async () => {
       const task = graph.getTask("missing-tar-task")
 
-      const testTask = new TaskTask({
+      const testTask = new RunTask({
         garden,
         graph,
         task,
         log: garden.log,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
+        devModeDeployNames: [],
 
-        localModeServiceNames: [],
+        localModeDeployNames: [],
       })
 
       const result = await garden.processTasks([testTask])

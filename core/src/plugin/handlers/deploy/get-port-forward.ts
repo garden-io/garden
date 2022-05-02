@@ -15,7 +15,7 @@ import { ActionTypeHandlerSpec } from "../base/base"
 
 type GetPortForwardParams<T extends DeployAction> = PluginDeployActionParamsBase<T> & ForwardablePort
 
-interface GetPortForwardResult {
+export interface GetPortForwardResult {
   hostname: string
   port: number
 }

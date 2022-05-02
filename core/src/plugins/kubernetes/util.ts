@@ -611,7 +611,7 @@ export async function getTargetResource({
       throw new ConfigurationError(
         chalk.red(
           `Could not find any Pod matching provided podSelector (${selectorStr}) for target in ` +
-            `${action.description()}`
+            `${action.longDescription()}`
         ),
         { query }
       )
@@ -645,7 +645,7 @@ export async function getTargetResource({
       if (!target) {
         throw new ConfigurationError(
           chalk.red(
-            deline`${action.description()} does not contain specified ${targetKind}
+            deline`${action.longDescription()} does not contain specified ${targetKind}
             ${chalk.white(targetName)}`
           ),
           { query, chartResourceNames }
@@ -653,7 +653,7 @@ export async function getTargetResource({
       }
     } else {
       if (applicableChartResources.length === 0) {
-        throw new ConfigurationError(`${action.description()} contains no ${targetKind}s.`, {
+        throw new ConfigurationError(`${action.longDescription()} contains no ${targetKind}s.`, {
           query,
           chartResourceNames,
         })
@@ -662,7 +662,7 @@ export async function getTargetResource({
       if (applicableChartResources.length > 1) {
         throw new ConfigurationError(
           chalk.red(
-            deline`${action.description()} contains multiple ${targetKind}s.
+            deline`${action.longDescription()} contains multiple ${targetKind}s.
             You must specify a resource name in the appropriate config in order to identify the correct ${targetKind}
             to use.`
           ),
@@ -695,7 +695,7 @@ export async function getTargetResource({
     if (err.statusCode === 404) {
       throw new ConfigurationError(
         chalk.red(
-          deline`${action.description()} specifies target resource ${targetKind}/${targetName}, which could not be found in namespace ${namespace}.`
+          deline`${action.longDescription()} specifies target resource ${targetKind}/${targetName}, which could not be found in namespace ${namespace}.`
         ),
         { query, namespace }
       )

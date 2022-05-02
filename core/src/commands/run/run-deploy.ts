@@ -21,35 +21,36 @@ import { printRuntimeContext } from "./run"
 import { GraphResults } from "../../task-graph"
 import { StringParameter, BooleanParameter } from "../../cli/params"
 
-const runServiceArgs = {
-  service: new StringParameter({
-    help: "The service to run.",
+const runDeployArgs = {
+  name: new StringParameter({
+    help: "The deploy/service to run.",
     required: true,
   }),
 }
 
-const runServiceOpts = {
+const runDeployOpts = {
   "force": new BooleanParameter({
-    help: "Run the service even if it's disabled for the environment.",
+    help: "Run the action even if it's disabled for the environment.",
   }),
   "force-build": new BooleanParameter({
-    help: "Force rebuild of module.",
+    help: "Force rebuild of any build dependencies.",
   }),
 }
 
-type Args = typeof runServiceArgs
-type Opts = typeof runServiceOpts
+type Args = typeof runDeployArgs
+type Opts = typeof runDeployOpts
 
-interface RunServiceOutput {
+interface RunDeployOutput {
   result: RunResult & ProcessResultMetadata
   graphResults: GraphResults
 }
 
-export class RunServiceCommand extends Command<Args, Opts> {
-  name = "service"
-  help = "Run an ad-hoc instance of the specified service."
+export class RunDeployCommand extends Command<Args, Opts> {
+  name = "deploy"
+  help = "Run an ad-hoc instance of the specified deploy/service."
+  alias = "service"
 
-  // Makes no sense to run a service (which is expected to stay running) except when attaching in the CLI
+  // Makes no sense to run a deploy (which is expected to stay running) except when attaching in the CLI
   cliOnly = true
 
   description = dedent`
@@ -57,30 +58,29 @@ export class RunServiceCommand extends Command<Args, Opts> {
 
     Examples:
 
-        garden run service my-service   # run an ad-hoc instance of a my-service and attach to it
+        garden run deploy my-service   # run an ad-hoc instance of my-service and attach to it
   `
 
-  arguments = runServiceArgs
-  options = runServiceOpts
+  arguments = runDeployArgs
+  options = runDeployOpts
 
   printHeader({ headerLog, args }) {
-    const serviceName = args.service
-    printHeader(headerLog, `Running service ${chalk.cyan(serviceName)}`, "runner")
+    printHeader(headerLog, `Running service ${chalk.cyan(args.name)}`, "runner")
   }
 
-  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunServiceOutput>> {
-    const serviceName = args.service
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunDeployOutput>> {
+    const serviceName = args.name
     const graph = await garden.getConfigGraph({ log, emit: false })
-    const service = graph.getService(serviceName, true)
+    const action = graph.getDeploy(serviceName, { includeDisabled: true })
 
-    if (service.disabled && !opts.force) {
+    if (action.isDisabled() && !opts.force) {
       throw new CommandError(
         chalk.red(deline`
-          Service ${chalk.redBright(service.name)} is disabled for the ${chalk.redBright(garden.environmentName)}
+          ${action.longDescription()} is disabled for the ${chalk.redBright(garden.environmentName)}
           environment. If you're sure you want to run it anyway, please run the command again with the
           ${chalk.redBright("--force")} flag.
         `),
-        { serviceName: service.name, environmentName: garden.environmentName }
+        { serviceName: action.name, environmentName: garden.environmentName }
       )
     }
 
@@ -93,9 +93,10 @@ export class RunServiceCommand extends Command<Args, Opts> {
       garden,
       graph,
       log,
-      service,
-      devModeServiceNames: [],
-      localModeServiceNames: [],
+      action,
+      fromWatch: false,
+      devModeDeployNames: [],
+      localModeDeployNames: [],
     })
     const dependencyResults = await garden.processTasks(await deployTask.resolveDependencies())
 
@@ -104,12 +105,14 @@ export class RunServiceCommand extends Command<Args, Opts> {
     const taskResults = getRunTaskResults(dependencyResults)
     const interactive = true
 
+    const version = action.versionString()
+
     const runtimeContext = await prepareRuntimeContext({
       garden,
       graph,
       dependencies,
-      version: service.version,
-      moduleVersion: service.module.version.versionString,
+      version,
+      moduleVersion: version,
       serviceStatuses,
       taskResults,
     })
@@ -123,7 +126,7 @@ export class RunServiceCommand extends Command<Args, Opts> {
     const result = await actions.deploy.run({
       log,
       graph,
-      service,
+      action,
       runtimeContext,
       interactive,
       timeout: 999999,
@@ -131,7 +134,7 @@ export class RunServiceCommand extends Command<Args, Opts> {
 
     return handleRunResult({
       log,
-      actionDescription: "run service",
+      actionDescription: "run deploy",
       result,
       interactive,
       graphResults: dependencyResults,

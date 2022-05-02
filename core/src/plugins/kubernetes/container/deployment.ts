@@ -626,7 +626,7 @@ export async function createWorkloadManifest({
   if (enableLocalMode && localModeSpec) {
     // no op here, local mode will be configured later after all manifests are ready
   } else if (enableDevMode && devModeSpec) {
-    log.debug({ section: action.name, msg: chalk.gray(`-> Configuring in dev mode`) })
+    log.debug({ section: action.key(), msg: chalk.gray(`-> Configuring in dev mode`) })
 
     const target = { kind: <SyncableKind>workload.kind, name: workload.metadata.name }
     const overrides = devModeSpec.args || devModeSpec.command ? [{ target, ...devModeSpec }] : []
@@ -837,7 +837,7 @@ export function configureVolumes(
         })
       } else {
         throw new ConfigurationError(
-          chalk.red(deline`${action.description()} specifies a unsupported config
+          chalk.red(deline`${action.longDescription()} specifies a unsupported config
           ${chalk.white(volumeAction.name)} for volume mount ${chalk.white(volumeName)}. Only \`persistentvolumeclaim\`
           and \`configmap\` action are supported at this time.
           `),

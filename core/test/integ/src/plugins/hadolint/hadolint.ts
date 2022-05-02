@@ -191,9 +191,8 @@ describe("hadolint provider", () => {
         test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
-
-        localModeServiceNames: [],
+        devModeDeployNames: [],
+        localModeDeployNames: [],
       })
 
       const key = testTask.getKey()
@@ -256,9 +255,8 @@ describe("hadolint provider", () => {
         test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
-
-        localModeServiceNames: [],
+        devModeDeployNames: [],
+        localModeDeployNames: [],
       })
 
       const key = testTask.getKey()
@@ -316,9 +314,8 @@ describe("hadolint provider", () => {
         test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
-
-        localModeServiceNames: [],
+        devModeDeployNames: [],
+        localModeDeployNames: [],
       })
 
       const key = testTask.getKey()
@@ -370,9 +367,8 @@ describe("hadolint provider", () => {
         test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
-
-        localModeServiceNames: [],
+        devModeDeployNames: [],
+        localModeDeployNames: [],
       })
 
       const key = testTask.getKey()
@@ -414,9 +410,8 @@ describe("hadolint provider", () => {
         test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
-
-        localModeServiceNames: [],
+        devModeDeployNames: [],
+        localModeDeployNames: [],
       })
 
       const key = testTask.getKey()
@@ -461,9 +456,8 @@ describe("hadolint provider", () => {
         graph,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
-
-        localModeServiceNames: [],
+        devModeDeployNames: [],
+        localModeDeployNames: [],
       })
 
       const key = testTask.getKey()

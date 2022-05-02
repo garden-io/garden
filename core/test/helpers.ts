@@ -449,7 +449,7 @@ export function stubModuleAction<T extends keyof ModuleAndRuntimeActionHandlers<
 }
 
 export function taskResultOutputs(results: ProcessCommandResult) {
-  return mapValues(results.graphResults, (r) => r && r.output)
+  return mapValues(results.graphResults, (r) => r && r.result)
 }
 
 export const cleanProject = async (gardenDirPath: string) => {

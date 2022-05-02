@@ -235,7 +235,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
   }): Promise<GetActionTypeResults<ActionTypeClasses<K>[T]>> {
     const { action, pluginName, log, graph } = params
 
-    log.silly(`Getting '${handlerType}' handler for ${action.description()}`)
+    log.silly(`Getting '${handlerType}' handler for ${action.longDescription()}`)
 
     const handler = await this.getHandler({
       actionType: action.type,
@@ -257,7 +257,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       ...params,
     }
 
-    log.silly(`Calling ${handlerType} handler for action ${action.description()}`)
+    log.silly(`Calling ${handlerType} handler for action ${action.longDescription()}`)
 
     const result: GetActionTypeResults<ActionTypeClasses<K>[T]> = await handler(handlerParams)
 

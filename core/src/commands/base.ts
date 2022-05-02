@@ -23,7 +23,6 @@ import { GraphResults, GraphResult } from "../task-graph"
 import { RunResult } from "../plugin/base"
 import { capitalize } from "lodash"
 import { getDurationMsec, splitFirst, userPrompt } from "../util/util"
-import { buildResultSchema, BuildResult } from "../types/plugin/module/build"
 import { ServiceStatus, serviceStatusSchema } from "../types/service"
 import { TestResult, testResultSchema } from "../types/test"
 import { renderOptions, renderCommands, renderArguments, getCliStyles } from "../cli/helpers"
@@ -442,8 +441,8 @@ export async function handleTaskResult({
   const result = graphResults[key]!
 
   // If there's an error, the task graph prints it
-  if (!interactive && !result.error && result.output.log) {
-    printResult({ log, result: result.output.log, success: true, actionDescription })
+  if (!interactive && !result.error && result.result.log) {
+    printResult({ log, result: result.result.log, success: true, actionDescription })
   }
 
   if (result.error) {
@@ -466,7 +465,7 @@ export type ProcessResultMetadata = {
   version?: string
 }
 
-export interface ProcessCommandResult {
+export interface ProcessCommandResult extends ActionTypeResults {
   builds: { [moduleName: string]: BuildResult & ProcessResultMetadata }
   deployments: { [serviceName: string]: ServiceStatus & ProcessResultMetadata }
   tests: { [testName: string]: TestResult & ProcessResultMetadata }
@@ -557,7 +556,7 @@ export function prepareProcessResults(taskType: string, graphResults: GraphResul
 
 function prepareProcessResult(graphResult: GraphResult | null) {
   return {
-    ...(graphResult?.output || {}),
+    ...(graphResult?.result || {}),
     aborted: !graphResult,
     durationMsec:
       graphResult?.startedAt &&
@@ -565,7 +564,7 @@ function prepareProcessResult(graphResult: GraphResult | null) {
       getDurationMsec(graphResult?.startedAt, graphResult?.completedAt),
     error: graphResult?.error?.message,
     success: !!graphResult && !graphResult.error,
-    version: graphResult?.output?.version || graphResult?.version,
+    version: graphResult?.result?.version || graphResult?.version,
   }
 }
 
