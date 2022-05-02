@@ -32,7 +32,7 @@ hotReloadArgs: [npm, run, dev]
 
 ## Usage
 
-Just run the dev mode :)
+You are now ready to run dev mode
 
 ```sh
 garden dev
