@@ -2,7 +2,7 @@
 
 A basic demo project showing different deployment strategies.
 
-It is based on the [examples/demo-project](../examples/demo-project) and it's meant to show how to configure the deployment strategies.
+It is based on the [examples/demo-project](../demo-project) and it's meant to show how to configure the deployment strategies.
 
 > NOTE: the "Deployment Strategies feature" is still in the experimental phase. This means there might be changes to the properties names/values or to the behaviour in the future. Please be aware of this when using the feature.
 
