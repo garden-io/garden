@@ -219,41 +219,6 @@ describe("PreReleaseTests", () => {
 
         await gardenWatch.run({ testSteps })
       })
-      it("runs the deploy command with hot reloading enabled, using a post-sync command", async () => {
-        const hotReloadProjectPath = resolve(examplesDir, "hot-reload-post-sync-command")
-        const gardenWatch = watchWithEnv(["deploy", "--hot=node-service"])
-
-        const testSteps = [
-          waitingForChangesStep(),
-          sleepStep(2000),
-          {
-            description: "change 'Node' -> 'foo' in node-service/app.js",
-            action: async () => {
-              await replaceInFile({
-                files: resolve(hotReloadProjectPath, "node-service/app.js"),
-                from: /Hello from Node/,
-                to: "Hello from foo",
-              })
-            },
-          },
-          sleepStep(2000),
-          {
-            description: "node-service returns the updated response text",
-            condition: async () => {
-              const callLogEntries = await runWithEnv(["call", "node-service"])
-              console.log(
-                callLogEntries
-                  .filter((l) => l.level !== "silly")
-                  .map((l) => stringifyJsonLog(l))
-                  .join("\n")
-              )
-              return searchLog(callLogEntries, /Hello from foo/)
-            },
-          },
-        ]
-
-        await gardenWatch.run({ testSteps })
-      })
     })
   }
 
