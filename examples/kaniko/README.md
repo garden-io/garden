@@ -2,7 +2,7 @@
 
 A very basic demo project for Garden showing in-cluster building with [kaniko](https://github.com/GoogleContainerTools/kaniko).
 
-Just run `garden deploy` and see the kaniko builder do it's job!
+Just run `garden deploy` and see the kaniko builder do its job!
 
 Snippet from [project config](garden.yml)
 ```yml
