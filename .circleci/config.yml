@@ -920,8 +920,8 @@ workflows:
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
-          name: e2e-hot-reload
-          project: hot-reload
+          name: e2e-code-synchronization
+          project: code-synchronization
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
