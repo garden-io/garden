@@ -31,7 +31,7 @@
 
 * [Cloud Provider Set-up](./guides/cloud-provider-setup.md)
 * [Code Synchronization (Dev Mode)](./guides/code-synchronization-dev-mode.md)
-* [Connecting local service to k8s cluster (Local Mode)](./guides/running-service-in-local-mode.md)
+* [Connecting a local service to a k8s cluster (Local Mode)](./guides/running-service-in-local-mode.md)
 * [Container Modules](./guides/container-modules.md)
 * [Environments and namespaces](./guides/namespaces.md)
 * [Helm Charts](./guides/using-helm-charts.md)

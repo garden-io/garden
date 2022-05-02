@@ -1,7 +1,18 @@
-# Connecting local service to k8s cluster (Local Mode)
+# Connecting a local service to a k8s cluster (Local Mode)
 
-You can replace a target service in k8s cluster with a local service (i.e. a service running on your local machine)
-using _local mode_.
+## Glossary
+
+* **Target Garden service** - a [Garden service](../using-garden/services.md) which will be deployed in _local mode_.
+* **Target k8s service** or **target Kubernetes service** -
+  a [Kubernetes service](https://kubernetes.io/docs/concepts/services-networking/service/) deployed in a k8s cluster on
+  the basis of the Garden service config.
+* **Local service** - a locally deployed and running application which is supposed to replace a target Garden service
+  configured in _local mode_.
+
+## Introduction
+
+By configuring a Garden service in _local mode_, one can replace a target Kubernetes service in a k8s cluster with a
+local service (i.e. an application running on your local machine).
 
 ## Pre-requisites
 
@@ -14,29 +25,41 @@ Requirements for the local machine environment:
 
 ## Current limitations
 
-This is the initial release of **experimental** feature. Currently, the _local mode_ creates port-forwarding **only for
-http port** of a target service. Thus, if the service needs to talk to some data sources like databases, message
-brokers, etc. then all these services are assumed to be running locally.
+This is the initial release of **experimental** feature. The _local mode_ feature design and implementation is still in
+progress. So, there is a number of functional limitations in the first release:
 
-The _local mode_ feature design and implementation is still in progress, the next step is to fully integrate local
-services into remote clusters and to establish connections to all dependent data sources and services.
+* The _local mode_ creates port-forwarding **only for http port** of a target Garden service. Thus, if the
+  service needs to talk to some data sources like databases, message brokers, etc. then all these services are assumed
+  to be running locally.
+* The _local mode_ is supported only by [container module type](./container-modules.md)
+  and [kubernetes provider](../reference/providers/kubernetes.md).
+
+The next step is to fully integrate local services into remote clusters and to establish connections to all dependent
+data sources and services.
 
 ## How it works
 
-Local mode does some on the fly modifications to the k8s target k8s cluster while deployment:
+Usually, a Garden service _declares_ a configuration and a deployment policy of a k8s service. A typical deployment flow
+looks like this: the Garden service takes its `Dockerfile`, builds an image if necessary, configures a Docker container,
+configures k8s entities and deploys them to the k8s cluster.
 
-1. The target service (which is running in _local mode_) is replaced by a special proxy container which is based
+The _local mode_ changes the usual deployment flow. It does the following on-the-fly modifications to the target k8s
+cluster in the deployment phase:
+
+1. The target k8s service container is replaced by a special proxy container which is based
    on **[openssh-server](https://docs.linuxserver.io/images/docker-openssh-server)**. This container exposes its SSH
-   port and the same HTTP port as the target service.
-2. The local service is started by Garden if `localMode.command` configuration option is specified in the
+   port and the same HTTP port as the target Garden service.
+2. The number of replicas of the target k8s service is always set to `1`.
+3. The local service is started by Garden if `localMode.command` configuration option is specified in the
    service's `garden.yml`. Otherwise, the local service should be started manually.
-3. The SSH port forwarding from a randomly assigned local port to the proxy container SSH port is initialized by means
+4. The SSH port forwarding from a randomly assigned local port to the proxy container SSH port is initialized by means
    of `kubectl port-forward` command.
-4. The reverse port forwarding (on top of the previous SSH port forwarding) between the remote proxy container's HTTP
+5. The reverse port forwarding (on top of the previous SSH port forwarding) between the remote proxy container's HTTP
    port and the local application HTTP port is established by means of `ssh` command.
 
-This connection schema allows to route the target service's traffic to the local service and back over the proxy
-container deployed in the k8s cluster.
+This connection schema allows to route the target k8s service's traffic to the local service and back over the proxy
+container deployed in the k8s cluster. The actual service is running on a local machine, and the target k8s service is
+replaced by the proxy container which connects the local service with the k8s cluster via port-forwarding.
 
 In order to maintain secure connections, Garden generates a new SSH key pair for each service running in _local mode_ on
 every CLI execution.
@@ -63,7 +86,7 @@ services:
     localMode:
       localAppPort: 8090 # The port of the local service, will be used for port-forward setup
       command: [ npm, run, serve ] # Starts the local service which will replace the target one in the k8s cluster
-      containerName: "node-service" # Optional. The name of the target service. It will be inferred automatically if this option is not defined.
+      containerName: "node-service" # Optional. The name of the target k8s service. It will be inferred automatically if this option is not defined.
   ...
 ```
 
