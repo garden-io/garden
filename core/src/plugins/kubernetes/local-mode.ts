@@ -294,6 +294,9 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
   // todo: check if anything else should be configured here
 }
 
+const attemptsLeft = (retriesLeft: number, timeoutMs: number) =>
+  !!retriesLeft ? `${retriesLeft} attempts left, next in ${timeoutMs}ms` : "no attempts left"
+
 function getLocalServiceCommand({ spec: localModeSpec }: StartLocalModeParams): OsCommand | undefined {
   const command = localModeSpec.command
   if (!command || command.length === 0) {
@@ -302,7 +305,43 @@ function getLocalServiceCommand({ spec: localModeSpec }: StartLocalModeParams): 
   return { command: command.join(" ") }
 }
 
-async function getSshPortForwardCommand(
+function getLocalServiceProcess(configParams: StartLocalModeParams): RetriableProcess | undefined {
+  const localServiceCmd = getLocalServiceCommand(configParams)
+  const { service, log } = configParams
+
+  return !!localServiceCmd
+    ? new RetriableProcess({
+        osCommand: localServiceCmd,
+        maxRetries: 6,
+        minTimeoutMs: 5000,
+        log,
+        stderrListener: {
+          hasErrors: (_chunk: any) => true,
+          onError: (msg: ProcessErrorMessage) => {
+            log.error({
+              status: "error",
+              section: service.name,
+              msg: chalk.red(`Failed to start local service, ${attemptsLeft(msg.retriesLeft, msg.minTimeoutMs)}`),
+            })
+          },
+          onMessage: (_msg: ProcessMessage) => {},
+        },
+        stdoutListener: {
+          hasErrors: (_chunk: any) => false,
+          onError: (_msg: ProcessErrorMessage) => {},
+          onMessage: (msg: ProcessMessage) => {
+            log.info({
+              status: "error",
+              section: service.name,
+              msg: chalk.white(`Local service started successfully with PID ${msg.pid}`),
+            })
+          },
+        },
+      })
+    : undefined
+}
+
+async function getKubectlPortForwardCommand(
   { target, service, log, ctx, namespace }: StartLocalModeParams,
   localPort: number
 ): Promise<OsCommand> {
@@ -325,7 +364,44 @@ async function getSshPortForwardCommand(
   return { command: kubectlPath, args: portForwardArgs }
 }
 
-async function getReversePortForwardingCommand(
+async function getKubectlPortForwardProcess(
+  configParams: StartLocalModeParams,
+  localSshPort: number
+): Promise<RetriableProcess> {
+  const kubectlPortForwardCmd = await getKubectlPortForwardCommand(configParams, localSshPort)
+  const { service, log } = configParams
+
+  return new RetriableProcess({
+    osCommand: kubectlPortForwardCmd,
+    maxRetries: 6,
+    minTimeoutMs: 5000,
+    log,
+    stderrListener: {
+      hasErrors: (_chunk: any) => true,
+      onError: (msg: ProcessErrorMessage) => {
+        log.error({
+          status: "error",
+          section: service.name,
+          msg: chalk.red(`Failed to start ssh port-forwarding, ${attemptsLeft(msg.retriesLeft, msg.minTimeoutMs)}`),
+        })
+      },
+      onMessage: (_msg: ProcessMessage) => {},
+    },
+    stdoutListener: {
+      hasErrors: (_chunk: any) => false,
+      onError: (_msg: ProcessErrorMessage) => {},
+      onMessage: (msg: ProcessMessage) => {
+        log.info({
+          status: "error",
+          section: service.name,
+          msg: chalk.white(`Ssh port-forwarding started successfully with PID ${msg.pid}`),
+        })
+      },
+    },
+  })
+}
+
+async function getReversePortForwardCommand(
   { service, spec: localModeSpec, log }: StartLocalModeParams,
   localSshPort: number
 ): Promise<OsCommand> {
@@ -357,109 +433,14 @@ async function getReversePortForwardingCommand(
   return { command: sshCommandName, args: sshCommandArgs }
 }
 
-function composeProcessTree(
-  localService: RetriableProcess | undefined,
-  sshTunnel: RetriableProcess,
-  reversePortForward: RetriableProcess
-): RetriableProcess {
-  sshTunnel.addDescendantProcess(reversePortForward)
+async function getReversePortForwardProcess(
+  configParams: StartLocalModeParams,
+  localSshPort: number
+): Promise<RetriableProcess> {
+  const reversePortForwardingCmd = await getReversePortForwardCommand(configParams, localSshPort)
+  const { service, log } = configParams
 
-  if (!!localService) {
-    localService.addDescendantProcess(sshTunnel)
-    return localService
-  } else {
-    return sshTunnel
-  }
-}
-
-/**
- * Configures the necessary port forwarding to replace remote k8s service by a local one:
- *   1. Starts a local service if a corresponding command is provided in the local mode config.
- *   2. Opens SSH tunnel between the local machine and the remote k8s service.
- *   3. Starts reverse port forwarding from the remote proxy's containerPort to the local app port.
- */
-export async function startServiceInLocalMode(configParams: StartLocalModeParams): Promise<void> {
-  const { target, service, log } = configParams
-
-  // Validate the target
-  if (!isConfiguredForLocalMode(target)) {
-    const resourceName = `${target.kind}/${target.metadata.name}`
-    throw new ConfigurationError(`Resource ${resourceName} is not deployed in local mode`, {
-      target,
-    })
-  }
-
-  const localSshPort = await getPort()
-  process.once("exit", () => {
-    cleanupKnownHosts(localSshPort, log)
-  })
-
-  const localServiceCmd = getLocalServiceCommand(configParams)
-  const sshTunnelCmd = await getSshPortForwardCommand(configParams, localSshPort)
-  const reversePortForwardingCmd = await getReversePortForwardingCommand(configParams, localSshPort)
-
-  const attemptsLeft = (retriesLeft: number, timeoutMs: number) =>
-    !!retriesLeft ? `${retriesLeft} attempts left, next in ${timeoutMs}ms` : "no attempts left"
-
-  const localService = !!localServiceCmd
-    ? new RetriableProcess({
-        osCommand: localServiceCmd,
-        maxRetries: 6,
-        minTimeoutMs: 5000,
-        log,
-        stderrListener: {
-          hasErrors: (_chunk: any) => true,
-          onError: (msg: ProcessErrorMessage) => {
-            log.error({
-              status: "error",
-              section: service.name,
-              msg: chalk.red(`Failed to start local service, ${attemptsLeft(msg.retriesLeft, msg.minTimeoutMs)}`),
-            })
-          },
-          onMessage: (_msg: ProcessMessage) => {},
-        },
-        stdoutListener: {
-          hasErrors: (_chunk: any) => false,
-          onError: (_msg: ProcessErrorMessage) => {},
-          onMessage: (msg: ProcessMessage) => {
-            log.info({
-              status: "error",
-              section: service.name,
-              msg: chalk.white(`Local service started successfully with PID ${msg.pid}`),
-            })
-          },
-        },
-      })
-    : undefined
-  const sshTunnel = new RetriableProcess({
-    osCommand: sshTunnelCmd,
-    maxRetries: 6,
-    minTimeoutMs: 5000,
-    log,
-    stderrListener: {
-      hasErrors: (_chunk: any) => true,
-      onError: (msg: ProcessErrorMessage) => {
-        log.error({
-          status: "error",
-          section: service.name,
-          msg: chalk.red(`Failed to start ssh port-forwarding, ${attemptsLeft(msg.retriesLeft, msg.minTimeoutMs)}`),
-        })
-      },
-      onMessage: (_msg: ProcessMessage) => {},
-    },
-    stdoutListener: {
-      hasErrors: (_chunk: any) => false,
-      onError: (_msg: ProcessErrorMessage) => {},
-      onMessage: (msg: ProcessMessage) => {
-        log.info({
-          status: "error",
-          section: service.name,
-          msg: chalk.white(`Ssh port-forwarding started successfully with PID ${msg.pid}`),
-        })
-      },
-    },
-  })
-  const reversePortForward = new RetriableProcess({
+  return new RetriableProcess({
     osCommand: reversePortForwardingCmd,
     maxRetries: 6,
     minTimeoutMs: 5000,
@@ -514,8 +495,50 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
       },
     },
   })
+}
 
-  const processTree: RetriableProcess = composeProcessTree(localService, sshTunnel, reversePortForward)
+function composeProcessTree(
+  localService: RetriableProcess | undefined,
+  sshTunnel: RetriableProcess,
+  reversePortForward: RetriableProcess
+): RetriableProcess {
+  sshTunnel.addDescendantProcess(reversePortForward)
+
+  if (!!localService) {
+    localService.addDescendantProcess(sshTunnel)
+    return localService
+  } else {
+    return sshTunnel
+  }
+}
+
+/**
+ * Configures the necessary port forwarding to replace remote k8s service by a local one:
+ *   1. Starts a local service if a corresponding command is provided in the local mode config.
+ *   2. Opens SSH tunnel between the local machine and the remote k8s service.
+ *   3. Starts reverse port forwarding from the remote proxy's containerPort to the local app port.
+ */
+export async function startServiceInLocalMode(configParams: StartLocalModeParams): Promise<void> {
+  const { target, service, log } = configParams
+
+  // Validate the target
+  if (!isConfiguredForLocalMode(target)) {
+    const resourceName = `${target.kind}/${target.metadata.name}`
+    throw new ConfigurationError(`Resource ${resourceName} is not deployed in local mode`, {
+      target,
+    })
+  }
+
+  const localSshPort = await getPort()
+  process.once("exit", () => {
+    cleanupKnownHosts(localSshPort, log)
+  })
+
+  const localService = getLocalServiceProcess(configParams)
+  const kubectlPortForward = await getKubectlPortForwardProcess(configParams, localSshPort)
+  const reversePortForward = await getReversePortForwardProcess(configParams, localSshPort)
+
+  const processTree: RetriableProcess = composeProcessTree(localService, kubectlPortForward, reversePortForward)
   log.info({
     status: "active",
     section: service.name,
