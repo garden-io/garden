@@ -16,6 +16,19 @@ export interface OsCommand {
   args?: string[]
 }
 
+export interface ProcessMessage {
+  pid: number
+  message: string
+}
+
+export interface ProcessErrorMessage extends ProcessMessage {
+  pid: number
+  message: string
+  maxRetries: number
+  minTimeoutMs: number
+  retriesLeft: number
+}
+
 export interface IOStreamListener {
   /**
    * Some stderr output may not contain any actual errors, it can have just warnings or some debug output.
@@ -35,9 +48,17 @@ export interface IOStreamListener {
    * Allows to define some process specific error handling.
    * This function will be called if {@link #hasErrors} returned {@code true}.
    *
-   * @param chunk the data chuck from the stderr stream
+   * @param msg the details of the error output from the stdio stream
    */
-  onError: (chunk: any) => void
+  onError: (msg: ProcessErrorMessage) => void
+
+  /**
+   * Allows to define some process specific normal output handling.
+   * This function will be called if {@link #hasErrors} returned {@code false}.
+   *
+   * @param msg the details of the normal output from the stdio stream
+   */
+  onMessage: (msg: ProcessMessage) => void
 }
 
 export type CommandExecutor = (command: string) => ChildProcess
@@ -125,19 +146,34 @@ export class RetriableProcess {
     const attemptsLeft = () =>
       !!this.retriesLeft ? `${this.retriesLeft} attempts left, next in ${this.minTimeoutMs}ms` : "no attempts left"
 
-    const logInfo = (chunk: any) => this.log.info(processSays(chunk))
+    const logDebugInfo = (chunk: any) => this.log.debug(processSays(chunk))
+    const logDebugError = (chunk: any) => this.log.debug(`${processSays(chunk)}. ${attemptsLeft()}`)
 
-    const logError = (chunk: any) => this.log.error(`${processSays(chunk)}. ${attemptsLeft()}`)
+    const processMessage: (string) => ProcessMessage = (message: string) => {
+      const pid = this.getCurrentPid()!
+      return { pid, message }
+    }
+
+    const processErrorMessage: (string) => ProcessErrorMessage = (message: string) => {
+      const pid = this.getCurrentPid()!
+      const maxRetries = this.maxRetries
+      const minTimeoutMs = this.minTimeoutMs
+      const retriesLeft = this.retriesLeft
+      return { pid, message, maxRetries, minTimeoutMs, retriesLeft }
+    }
 
     proc.on("error", async (error) => {
-      logError(`Command '${this.command}' failed with error: ${JSON.stringify(error)}`)
+      const message = `Command '${this.command}' failed with error: ${JSON.stringify(error)}`
+      logDebugError(message)
+      this.stderrListener?.onError(processErrorMessage(message))
 
       await this.tryRestart()
     })
 
     proc.on("close", async (code: number, signal: NodeJS.Signals) => {
-      const command = this.command
-      logError(`Command '${command}' exited with code ${code} and signal ${signal}.`)
+      const message = `Command '${this.command}' exited with code ${code} and signal ${signal}.`
+      logDebugError(message)
+      this.stderrListener?.onError(processErrorMessage(message))
 
       await this.tryRestart()
     })
@@ -145,13 +181,16 @@ export class RetriableProcess {
     proc.stderr!.on("data", async (chunk: any) => {
       const hasErrorsFn = this.stderrListener?.hasErrors
       if (!hasErrorsFn || hasErrorsFn(chunk)) {
-        const command = this.command
-        logError(`Command '${command}' terminated: ${chunk}.`)
-        this.stderrListener?.onError(chunk)
+        const message = `Command '${this.command}' terminated: ${chunk}.`
+        logDebugError(message)
+        this.stderrListener?.onError(processErrorMessage(message))
 
         await this.tryRestart()
       } else {
-        logInfo(processSays(chunk))
+        const message = chunk.toString()
+        logDebugInfo(message)
+        this.stderrListener?.onMessage(processMessage(message))
+
         this.resetRetriesLeftRecursively()
       }
     })
@@ -159,12 +198,15 @@ export class RetriableProcess {
     proc.stdout!.on("data", async (chunk: any) => {
       const hasErrorsFn = this.stdoutListener?.hasErrors
       if (!hasErrorsFn || !hasErrorsFn(chunk)) {
-        logInfo(processSays(chunk))
+        const message = chunk.toString()
+        logDebugInfo(message)
+        this.stdoutListener?.onMessage(processMessage(message))
+
         this.resetRetriesLeftRecursively()
       } else {
-        const command = this.command
-        this.log.error(processSays(`Command '${command}' terminated: ${chunk}. ${attemptsLeft()}`))
-        this.stdoutListener?.onError(chunk)
+        const message = `Command '${this.command}' terminated: ${chunk}. ${attemptsLeft()}`
+        logDebugError(message)
+        this.stdoutListener?.onError(processErrorMessage(message))
 
         await this.tryRestart()
       }
@@ -204,7 +246,7 @@ export class RetriableProcess {
       this.start()
     } else {
       this.state = "killed"
-      this.log.error("Unable to start local mode, see the errors above. Shutting down...")
+      this.log.error("Unable to start local mode, see the error details in the logs. Shutting down...")
       await shutdown(1)
     }
   }

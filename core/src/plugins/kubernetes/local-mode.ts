@@ -25,7 +25,7 @@ import { join, resolve } from "path"
 import { ensureDir, readFileSync } from "fs-extra"
 import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
-import { OsCommand, RetriableProcess } from "../../util/retriable-process"
+import { OsCommand, ProcessErrorMessage, ProcessMessage, RetriableProcess } from "../../util/retriable-process"
 import { isConfiguredForLocalMode } from "./status/status"
 import pRetry = require("p-retry")
 import getPort = require("get-port")
@@ -398,15 +398,67 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   const sshTunnelCmd = await getSshPortForwardCommand(configParams, localSshPort)
   const reversePortForwardingCmd = await getReversePortForwardingCommand(configParams, localSshPort)
 
+  const attemptsLeft = (retriesLeft: number, timeoutMs: number) =>
+    !!retriesLeft ? `${retriesLeft} attempts left, next in ${timeoutMs}ms` : "no attempts left"
+
   const localService = !!localServiceCmd
     ? new RetriableProcess({
         osCommand: localServiceCmd,
         maxRetries: 6,
         minTimeoutMs: 5000,
         log,
+        stderrListener: {
+          hasErrors: (_chunk: any) => true,
+          onError: (msg: ProcessErrorMessage) => {
+            log.error({
+              status: "error",
+              section: service.name,
+              msg: chalk.red(`Failed to start local service, ${attemptsLeft(msg.retriesLeft, msg.minTimeoutMs)}`),
+            })
+          },
+          onMessage: (_msg: ProcessMessage) => {},
+        },
+        stdoutListener: {
+          hasErrors: (_chunk: any) => false,
+          onError: (_msg: ProcessErrorMessage) => {},
+          onMessage: (msg: ProcessMessage) => {
+            log.info({
+              status: "error",
+              section: service.name,
+              msg: chalk.white(`Local service started successfully with PID ${msg.pid}`),
+            })
+          },
+        },
       })
     : undefined
-  const sshTunnel = new RetriableProcess({ osCommand: sshTunnelCmd, maxRetries: 6, minTimeoutMs: 5000, log })
+  const sshTunnel = new RetriableProcess({
+    osCommand: sshTunnelCmd,
+    maxRetries: 6,
+    minTimeoutMs: 5000,
+    log,
+    stderrListener: {
+      hasErrors: (_chunk: any) => true,
+      onError: (msg: ProcessErrorMessage) => {
+        log.error({
+          status: "error",
+          section: service.name,
+          msg: chalk.red(`Failed to start ssh port-forwarding, ${attemptsLeft(msg.retriesLeft, msg.minTimeoutMs)}`),
+        })
+      },
+      onMessage: (_msg: ProcessMessage) => {},
+    },
+    stdoutListener: {
+      hasErrors: (_chunk: any) => false,
+      onError: (_msg: ProcessErrorMessage) => {},
+      onMessage: (msg: ProcessMessage) => {
+        log.info({
+          status: "error",
+          section: service.name,
+          msg: chalk.white(`Ssh port-forwarding started successfully with PID ${msg.pid}`),
+        })
+      },
+    },
+  })
   const reversePortForward = new RetriableProcess({
     osCommand: reversePortForwardingCmd,
     maxRetries: 6,
@@ -421,19 +473,44 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
         // It indicates the successful connection.
         return !output.toLowerCase().includes("warning: permanently added")
       },
-      onError: (chunk: any) => {
-        const output = chunk.toString()
-        if (output.toLowerCase().includes('unsupported option "accept-new"')) {
+      onError: (msg: ProcessErrorMessage) => {
+        if (msg.message.toLowerCase().includes('unsupported option "accept-new"')) {
           log.error({
-            status: "warn",
+            status: "error",
             section: service.name,
-            msg: chalk.yellow(
+            msg: chalk.red(
               "It looks like you're using too old SSH version " +
                 "which doesn't support option -oStrictHostKeyChecking=accept-new. " +
-                "Consider upgrading to OpenSSH 7.6 or higher."
+                "Consider upgrading to OpenSSH 7.6 or higher. Local mode will not work."
+            ), // todo: exit gracefully without retries
+          })
+        } else {
+          log.error({
+            status: "error",
+            section: service.name,
+            msg: chalk.red(
+              `Failed to start reverse port-forwarding, ${attemptsLeft(msg.retriesLeft, msg.minTimeoutMs)}`
             ),
           })
         }
+      },
+      onMessage: (msg: ProcessMessage) => {
+        log.info({
+          status: "error",
+          section: service.name,
+          msg: chalk.white(`Reverse port-forwarding started successfully with PID ${msg.pid}`),
+        })
+      },
+    },
+    stdoutListener: {
+      hasErrors: (_chunk: any) => false,
+      onError: (_msg: ProcessErrorMessage) => {},
+      onMessage: (msg: ProcessMessage) => {
+        log.info({
+          status: "error",
+          section: service.name,
+          msg: chalk.white(`Reverse port-forwarding started successfully with PID ${msg.pid}`),
+        })
       },
     },
   })
