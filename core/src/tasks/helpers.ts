@@ -127,7 +127,3 @@ export function getDeployDeps(task: RuntimeTask, deps: DependencyRelations, forc
       })
   )
 }
-
-export function makeTestTaskName(moduleName: string, testConfigName: string) {
-  return `${moduleName}.${testConfigName}`
-}

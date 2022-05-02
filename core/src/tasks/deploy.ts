@@ -9,9 +9,8 @@
 import chalk from "chalk"
 import { includes } from "lodash"
 import { LogEntry } from "../logger/log-entry"
-import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults } from "./base"
+import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults, BaseActionTask, BaseActionTaskParams } from "./base"
 import { GardenService, ServiceStatus, getLinkUrl } from "../types/service"
-import { Garden } from "../garden"
 import { BuildTask } from "./build"
 import { ConfigGraph } from "../graph/config-graph"
 import { startPortProxies } from "../proxy"
@@ -20,11 +19,9 @@ import { prepareRuntimeContext } from "../runtime-context"
 import { GetServiceStatusTask } from "./get-service-status"
 import { Profile } from "../util/profiling"
 import { getServiceStatusDeps, getTaskResultDeps, getDeployDeps, getTaskDeps } from "./helpers"
+import { DeployAction } from "../actions/deploy"
 
-export interface DeployTaskParams {
-  garden: Garden
-  graph: ConfigGraph
-  service: GardenService
+export interface DeployTaskParams extends BaseActionTaskParams<DeployAction> {
   force: boolean
   forceBuild: boolean
   fromWatch?: boolean
@@ -35,7 +32,7 @@ export interface DeployTaskParams {
 }
 
 @Profile()
-export class DeployTask extends BaseTask {
+export class DeployTask extends BaseActionTask<DeployAction> {
   type: TaskType = "deploy"
   concurrencyLimit = 10
   graph: ConfigGraph
@@ -50,7 +47,7 @@ export class DeployTask extends BaseTask {
     garden,
     graph,
     log,
-    service,
+    action,
     force,
     forceBuild,
     fromWatch = false,
@@ -58,9 +55,8 @@ export class DeployTask extends BaseTask {
     devModeServiceNames,
     localModeServiceNames,
   }: DeployTaskParams) {
-    super({ garden, log, force, version: service.version })
+    super({ garden, log, force, action, graph })
     this.graph = graph
-    this.service = service
     this.forceBuild = forceBuild
     this.fromWatch = fromWatch
     this.skipRuntimeDependencies = skipRuntimeDependencies
@@ -72,7 +68,7 @@ export class DeployTask extends BaseTask {
     const dg = this.graph
 
     const deps = dg.getDependencies({
-      nodeType: "deploy",
+      kind: "deploy",
       name: this.getName(),
       recursive: false,
     })
@@ -87,7 +83,6 @@ export class DeployTask extends BaseTask {
       localModeServiceNames: this.localModeServiceNames,
     })
 
-    const buildTasks = await this.getBuildTasks()
     if (this.skipRuntimeDependencies) {
       // Then we don't deploy any service dependencies or run any task dependencies, but only get existing
       // statuses and results.
@@ -95,16 +90,6 @@ export class DeployTask extends BaseTask {
     } else {
       return [statusTask, ...buildTasks, ...getDeployDeps(this, deps, false), ...getTaskDeps(this, deps, false)]
     }
-  }
-
-  private async getBuildTasks(): Promise<BaseTask[]> {
-    return BuildTask.factory({
-      garden: this.garden,
-      graph: this.graph,
-      log: this.log,
-      module: this.service.module,
-      force: this.forceBuild,
-    })
   }
 
   getName() {
@@ -122,7 +107,7 @@ export class DeployTask extends BaseTask {
     const localMode = includes(this.localModeServiceNames, this.service.name)
 
     const dependencies = this.graph.getDependencies({
-      nodeType: "deploy",
+      kind: "deploy",
       name: this.getName(),
       recursive: false,
     })
@@ -167,7 +152,7 @@ export class DeployTask extends BaseTask {
       try {
         status = await actions.deploy.deploy({
           graph: this.graph,
-          service: this.service,
+          action: this.action,
           runtimeContext,
           log,
           force: this.force,

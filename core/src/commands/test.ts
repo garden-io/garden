@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { flatten } from "lodash"
+import { find, flatten } from "lodash"
 import dedent = require("dedent")
 import minimatch from "minimatch"
 
@@ -20,19 +20,23 @@ import {
   ProcessCommandResult,
   processCommandResultSchema,
 } from "./base"
-import { processModules } from "../process"
+import { processActions } from "../process"
 import { GardenModule } from "../types/module"
-import { getTestTasks } from "../tasks/test"
+import { getTestTasksFromModule, TestTask } from "../tasks/test"
 import { printHeader } from "../logger/util"
 import { startServer } from "../server/server"
 import { StringsParameter, BooleanParameter } from "../cli/params"
 import { deline } from "../util/string"
 import { Garden } from "../garden"
+import { ConfigGraph } from "../graph/config-graph"
+import { getNames } from "../util/util"
+import minimatch = require("minimatch")
+import { isTestAction } from "../actions/test"
 
 export const testArgs = {
-  modules: new StringsParameter({
+  names: new StringsParameter({
     help: deline`
-      The name(s) of the module(s) to test (skip to test all modules).
+      The name(s) of the test(s) (or module names) to test (skip to run all tests in the project).
       Use comma as a separator to specify multiple modules.
     `,
   }),
@@ -41,6 +45,8 @@ export const testArgs = {
 export const testOpts = {
   "name": new StringsParameter({
     help: deline`
+      DEPRECATED: you can now use globs in positional arguments.
+
       Only run tests with the specfied name (e.g. unit or integ).
       Accepts glob patterns (e.g. integ* would run both 'integ' and 'integration').
     `,
@@ -83,25 +89,25 @@ type Opts = typeof testOpts
 
 export class TestCommand extends Command<Args, Opts> {
   name = "test"
-  help = "Test all or specified modules."
+  help = "Run all or specified tests in the project."
 
   protected = true
   streamEvents = true
 
   description = dedent`
-    Runs all or specified tests defined in the project. Also builds modules and dependencies,
-    and deploys service dependencies if needed.
+    Runs all or specified tests defined in the project. Also run builds and other dependencies,
+    including deploys if needed.
 
-    Optionally stays running and automatically re-runs tests if their module source
-    (or their dependencies' sources) change.
+    Optionally stays running and automatically re-runs tests if their sources
+    (or their dependencies' sources) change, with the --watch/-w flag.
 
     Examples:
 
         garden test                   # run all tests in the project
+        garden test my-test           # run the my-test Test action
         garden test my-module         # run all tests in the my-module module
-        garden test --name integ      # run all tests with the name 'integ' in the project
-        garden test --name integ*     # run all tests with the name starting with 'integ' in the project
-        garden test -n unit -n lint   # run all tests called either 'unit' or 'lint' in the project
+        garden test *integ*           # run all tests with a name containing 'integ'
+        garden test *unit,*lint       # run all tests called either 'unit' or 'lint' in the project
         garden test --force           # force tests to be re-run, even if they've already run successfully
         garden test --watch           # watch for changes to code
   `
@@ -148,10 +154,10 @@ export class TestCommand extends Command<Args, Opts> {
     const skipDependants = opts["skip-dependants"]
     let modules: GardenModule[]
 
-    if (args.modules) {
+    if (args.names) {
       modules = skipDependants
-        ? graph.getModules({ names: args.modules })
-        : graph.withDependantModules(graph.getModules({ names: args.modules }))
+        ? graph.getModules({ names: args.names })
+        : graph.withDependantModules(graph.getModules({ names: args.names }))
     } else {
       modules = graph.getModules()
     }
@@ -162,43 +168,48 @@ export class TestCommand extends Command<Args, Opts> {
     const skipRuntimeDependencies = opts["skip-dependencies"]
     const skipped = opts.skip || []
 
-    const initialTasks = flatten(
-      await Bluebird.map(modules, (module) =>
-        getTestTasks({
+    const actions = getTestActions({ graph, modules, filterNames })
+
+    const initialTasks = actions.map(
+      (action) =>
+        new TestTask({
           garden,
-          log,
           graph,
-          module,
-          filterNames,
+          log,
           force,
           forceBuild,
+          fromWatch: false,
+          action,
           devModeServiceNames: [],
           localModeServiceNames: [],
           skipRuntimeDependencies,
         })
       )
-    ).filter(
+    .filter(
       (testTask) =>
         skipped.length === 0 || !skipped.some((s) => minimatch(testTask.test.name.toLowerCase(), s.toLowerCase()))
     )
 
-    const results = await processModules({
+    const results = await processActions({
       garden,
       graph,
       log,
       footerLog,
-      modules,
+      actions,
       initialTasks,
       watch: opts.watch,
-      changeHandler: async (updatedGraph, module) => {
-        const modulesToProcess = updatedGraph.withDependantModules([module])
+      changeHandler: async (updatedGraph, action) => {
+        if ()
+
+        const dependants = updatedGraph.getDependants({ kind: action.kind, name: action.name }).filter(isTestAction)
+
         return flatten(
-          await Bluebird.map(modulesToProcess, (m) =>
-            getTestTasks({
+          await Bluebird.map([action, ...dependants], (action) =>
+            getTestTasksFromModule({
               garden,
               log,
               graph: updatedGraph,
-              module: m,
+              action,
               filterNames,
               force,
               forceBuild,
@@ -213,4 +224,24 @@ export class TestCommand extends Command<Args, Opts> {
 
     return handleProcessResults(footerLog, "test", results)
   }
+}
+
+function getTestActions({
+  graph,
+  modules,
+  filterNames,
+}: {
+  graph: ConfigGraph
+  modules?: GardenModule[]
+  filterNames?: string[]
+}) {
+  let tests = graph.getTests().filter((t) => !t.isDisabled())
+  if (modules) {
+    const moduleNames = getNames(modules)
+    tests = tests.filter((t) => moduleNames.includes(t.moduleName()))
+  }
+  if (filterNames) {
+    tests = tests.filter((t) => find(filterNames, (n: string) => minimatch(t.name, n)))
+  }
+  return tests
 }

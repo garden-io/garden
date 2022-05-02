@@ -94,7 +94,7 @@ const actionTypeClasses = {
 
 type _ActionTypeClasses = typeof actionTypeClasses
 
-export type ActionKind = keyof _ActionTypeClasses
+export type ActionKind = "build" | "deploy" | "run" | "test"
 export type ActionTypeClasses<K extends ActionKind> = _ActionTypeClasses[K]
 
 export type ActionHandlers = { [name: string]: ActionTypeHandler<any, any, any, any> }
@@ -132,24 +132,24 @@ export type BuildActionDescriptions<C extends BuildAction = BuildAction> = BaseH
 
 export type BuildActionHandler<
   N extends keyof BuildActionDescriptions,
-  C extends BuildAction = BuildAction
+  T extends BuildAction = BuildAction
 > = N extends UnresolvedBuildHandlers
-  ? GetActionTypeHandler<BuildActionDescriptions<C>[N], N>
-  : GetActionTypeHandler<BuildActionDescriptions<ResolvedBuildAction<C>>[N], N>
+  ? GetActionTypeHandler<BuildActionDescriptions<T>[N], N>
+  : GetActionTypeHandler<BuildActionDescriptions<ResolvedBuildAction<T["_config"], T["_outputs"]>>[N], N>
 
 export type BuildActionParams<
   N extends keyof BuildActionDescriptions,
-  C extends BuildAction = BuildAction
+  T extends BuildAction = BuildAction
 > = N extends UnresolvedBuildHandlers
-  ? GetActionTypeParams<BuildActionDescriptions<C>[N]>
-  : GetActionTypeParams<BuildActionDescriptions<ResolvedBuildAction<C>>[N]>
+  ? GetActionTypeParams<BuildActionDescriptions<T>[N]>
+  : GetActionTypeParams<BuildActionDescriptions<ResolvedBuildAction<T["_config"], T["_outputs"]>>[N]>
 
 export type BuildActionResults<
   N extends keyof BuildActionDescriptions,
-  C extends BuildAction = BuildAction
+  T extends BuildAction = BuildAction
 > = N extends UnresolvedBuildHandlers
-  ? GetActionTypeResults<BuildActionDescriptions<C>[N]>
-  : GetActionTypeResults<BuildActionDescriptions<ResolvedBuildAction<C>>[N]>
+  ? GetActionTypeResults<BuildActionDescriptions<T>[N]>
+  : GetActionTypeResults<BuildActionDescriptions<ResolvedBuildAction<T["_config"], T["_outputs"]>>[N]>
 
 export type BuildActionHandlers<C extends BuildAction = BuildAction> = {
   [N in keyof BuildActionDescriptions]?: BuildActionHandler<N, C>
@@ -175,10 +175,10 @@ type UnresolvedDeployHandlers = "deploy" | "getStatus"
 
 export type DeployActionHandler<
   N extends keyof DeployActionDescriptions,
-  C extends DeployAction = DeployAction
+  T extends DeployAction = DeployAction
 > = N extends UnresolvedDeployHandlers
-  ? GetActionTypeHandler<DeployActionDescriptions<C>[N], N>
-  : GetActionTypeHandler<DeployActionDescriptions<ResolvedRuntimeAction<C>>[N], N>
+  ? GetActionTypeHandler<DeployActionDescriptions<T>[N], N>
+  : GetActionTypeHandler<DeployActionDescriptions<ResolvedRuntimeAction<T["_config"], T["_outputs"]>>[N], N>
 
 export type DeployActionParams<
   N extends keyof DeployActionDescriptions,
@@ -241,7 +241,11 @@ export interface ActionTypeDescriptions {
   test: TestActionDescriptions
 }
 
-export type ActionTypeMap = {
+export type GenericActionTypeMap = {
+  [K in ActionKind]: Action
+}
+
+export interface ActionTypeMap extends GenericActionTypeMap {
   build: BuildAction
   deploy: DeployAction
   run: RunAction

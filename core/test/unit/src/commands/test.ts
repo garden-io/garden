@@ -25,7 +25,7 @@ describe("TestCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { modules: undefined },
+      args: { names: undefined },
       opts: withDefaultGlobalOpts({
         "name": undefined,
         "force": true,
@@ -161,7 +161,7 @@ describe("TestCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { modules: ["module-a"] },
+      args: { names: ["module-a"] },
       opts: withDefaultGlobalOpts({
         "name": undefined,
         "force": true,
@@ -248,7 +248,7 @@ describe("TestCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { modules: ["module-a"] },
+      args: { names: ["module-a"] },
       opts: withDefaultGlobalOpts({
         "name": ["int*"],
         "force": true,
@@ -307,7 +307,7 @@ describe("TestCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { modules: ["module-c"] },
+      args: { names: ["module-c"] },
       opts: withDefaultGlobalOpts({
         "name": undefined,
         "force": true,
@@ -327,9 +327,9 @@ describe("TestCommand", () => {
       "build.module-a",
       "build.module-b",
       "build.module-c",
-      "stage-build.module-a",
-      "stage-build.module-b",
-      "stage-build.module-c",
+
+
+
       "test.module-c.integ",
     ])
   })
@@ -346,7 +346,7 @@ describe("TestCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { modules: undefined },
+      args: { names: undefined },
       opts: withDefaultGlobalOpts({
         "name": undefined,
         "force": true,
@@ -367,8 +367,8 @@ describe("TestCommand", () => {
       "build.module-b",
       "deploy.service-a",
       "get-service-status.service-a",
-      "stage-build.module-a",
-      "stage-build.module-b",
+
+
       "test.module-a.integration",
       "test.module-a.unit",
       "test.module-b.unit",
@@ -416,7 +416,7 @@ describe("TestCommand", () => {
         log,
         headerLog: log,
         footerLog: log,
-        args: { modules: ["module-a"] },
+        args: { names: ["module-a"] },
         opts: withDefaultGlobalOpts({
           "name": undefined,
           "force": true,
@@ -437,7 +437,7 @@ describe("TestCommand", () => {
         // "deploy.service-a", // skipped
         // "deploy.service-b", // skipped
         "get-service-status.service-a",
-        "stage-build.module-a",
+
         "test.module-a.integration",
         "test.module-a.unit",
       ])
@@ -484,7 +484,7 @@ describe("TestCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { modules: ["module-a"] },
+      args: { names: ["module-a"] },
       opts: withDefaultGlobalOpts({
         "name": undefined,
         "force": true,
@@ -504,7 +504,7 @@ describe("TestCommand", () => {
       "build.module-a",
       "deploy.service-a",
       "get-service-status.service-a",
-      "stage-build.module-a",
+
       "test.module-a.integration",
       "test.module-a.unit",
     ])

@@ -53,7 +53,7 @@ import { BaseTask } from "./tasks/base"
 import { LocalConfigStore, ConfigStore, GlobalConfigStore, LinkedSource } from "./config-store"
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { ModuleConfig } from "./config/module"
-import { ModuleResolver } from "./resolve-module"
+import { convertModules, ModuleResolver } from "./resolve-module"
 import { createPluginContext, CommandInfo, PluginEventBroker } from "./plugin-context"
 import { ModuleActionHandlers, RegisterPluginParam } from "./plugin/plugin"
 import {
@@ -85,7 +85,7 @@ import {
 import { ResolveProviderTask } from "./tasks/resolve-provider"
 import { ActionRouter } from "./router/router"
 import { RuntimeContext } from "./runtime-context"
-import { loadAndResolvePlugins, getDependencyOrder, getModuleTypes, loadPlugin } from "./plugins"
+import { loadAndResolvePlugins, getDependencyOrder, getModuleTypes, loadPlugin, getActionTypes, ActionDefinitionMap } from "./plugins"
 import { deline, naturalList } from "./util/string"
 import { ensureConnected } from "./db/connection"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
@@ -116,6 +116,11 @@ import { ConfigContext } from "./config/template-contexts/base"
 import { validateSchema, validateWithPath } from "./config/validation"
 import { pMemoizeDecorator } from "./lib/p-memoize"
 import { ModuleGraph } from "./graph/modules"
+import { serviceFromConfig } from "./types/service"
+import { taskFromConfig } from "./types/task"
+import { testFromConfig } from "./types/test"
+import { ActionTypeMap } from "./plugin/action-types"
+import { Action } from "./actions/base"
 
 export interface ActionHandlerMap<T extends keyof ProviderHandlers> {
   [actionName: string]: ProviderHandlers[T]
@@ -378,11 +383,11 @@ export class Garden {
    */
   async startWatcher({
     graph,
-    skipModules,
+    skipActions,
     bufferInterval,
   }: {
     graph: ConfigGraph
-    skipModules?: GardenModule[]
+    skipActions?: Action[]
     bufferInterval?: number
   }) {
     const modules = graph.getModules()
@@ -393,10 +398,10 @@ export class Garden {
     // module root except for the module's config path. This way, we can still react to changes in the module's
     // configuration.
     const skipPaths = flatten(
-      await Bluebird.map(skipModules || [], async (skipped: GardenModule) => {
-        return (await readdir(skipped.path))
-          .map((relPath) => resolve(skipped.path, relPath))
-          .filter((absPath) => absPath !== skipped.configPath)
+      await Bluebird.map(skipActions || [], async (skipped: Action) => {
+        return (await readdir(skipped.basePath()))
+          .map((relPath) => resolve(skipped.basePath(), relPath))
+          .filter((absPath) => absPath !== skipped.configPath())
       })
     )
     this.watcher = new Watcher({
@@ -475,6 +480,14 @@ export class Garden {
   async getModuleTypes(): Promise<ModuleTypeMap> {
     const configuredPlugins = await this.getConfiguredPlugins()
     return getModuleTypes(configuredPlugins)
+  }
+
+  /**
+   * Returns a mapping of all configured module types in the project and their definitions.
+   */
+  async getActionTypes(): Promise<ActionDefinitionMap> {
+    const configuredPlugins = await this.getConfiguredPlugins()
+    return getActionTypes(configuredPlugins)
   }
 
   getRawProviderConfigs(names?: string[]) {
@@ -751,9 +764,9 @@ export class Garden {
     const resolvedModules = await resolver.resolveAll()
 
     // Validate the module dependency structure. This will throw on failure.
-    const actions = await this.getActionRouter()
+    const router = await this.getActionRouter()
     const moduleTypes = await this.getModuleTypes()
-    new ModuleGraph(resolvedModules, moduleTypes)
+    const moduleGraph = new ModuleGraph(resolvedModules, moduleTypes)
 
     // Require include/exclude on modules if their paths overlap
     // TODO-G2: change this to detect overlap on Build actions
@@ -767,9 +780,7 @@ export class Garden {
       throw new ConfigurationError(message, detail)
     }
 
-    await Bluebird.map(resolvedModules, async (module) => {
-      const converted = await actions.convertModule({ module })
-    })
+    const { groups, actions } = await convertModules(this, log, resolvedModules, moduleGraph)
 
     // TODO-G2: convert modules to actions here
     // -> Do the conversion
@@ -790,7 +801,7 @@ export class Garden {
       }
 
       // Skip the routine if the provider doesn't have the handler
-      const handler = await actions.provider.getPluginHandler({
+      const handler = await router.provider.getPluginHandler({
         handlerType: "augmentGraph",
         pluginName,
         throwIfMissing: false,
@@ -806,7 +817,7 @@ export class Garden {
         graph = new ConfigGraph(resolvedModules, moduleTypes)
       }
 
-      const { addRuntimeDependencies, addModules } = await actions.provider.augmentGraph({
+      const { addRuntimeDependencies, addModules } = await router.provider.augmentGraph({
         pluginName,
         log,
         providers: resolvedProviders,

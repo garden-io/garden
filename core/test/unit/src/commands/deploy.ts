@@ -150,9 +150,9 @@ describe("DeployCommand", () => {
       "get-service-status.service-d",
       "get-task-result.task-a",
       "get-task-result.task-c",
-      "stage-build.module-a",
-      "stage-build.module-b",
-      "stage-build.module-c",
+
+
+
       "task.task-a",
       "task.task-c",
     ])
@@ -494,9 +494,9 @@ describe("DeployCommand", () => {
       "get-service-status.service-b",
       "get-task-result.task-a",
       "get-task-result.task-c",
-      "stage-build.module-a",
-      "stage-build.module-b",
-      "stage-build.module-c",
+
+
+
       "task.task-a",
       "task.task-c",
     ])
@@ -545,9 +545,9 @@ describe("DeployCommand", () => {
         "get-service-status.service-b",
         "get-service-status.service-c",
         "get-task-result.task-c",
-        "stage-build.module-a",
-        "stage-build.module-b",
-        "stage-build.module-c",
+
+
+
         // service-c has a dependency on task-c, it should be skipped here
         // "task.task-c",
       ])
@@ -604,9 +604,9 @@ describe("DeployCommand", () => {
       "get-service-status.service-d",
       "get-task-result.task-a",
       "get-task-result.task-c",
-      "stage-build.module-a",
-      "stage-build.module-b",
-      "stage-build.module-c",
+
+
+
       "task.task-a",
       "task.task-c",
     ])
@@ -653,8 +653,8 @@ describe("DeployCommand", () => {
       "get-service-status.service-a",
       "get-service-status.service-b",
       "get-task-result.task-a",
-      "stage-build.module-a",
-      "stage-build.module-b",
+
+
       "task.task-a",
     ])
   })

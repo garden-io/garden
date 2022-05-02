@@ -13,17 +13,18 @@ import minimatch = require("minimatch")
 
 import { GardenModule } from "../types/module"
 import { TestResult } from "../types/test"
-import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults } from "../tasks/base"
+import { TaskType, getServiceStatuses, getRunTaskResults, BaseActionTask, BaseActionTaskParams } from "../tasks/base"
 import { prepareRuntimeContext } from "../runtime-context"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { ConfigGraph } from "../graph/config-graph"
-import { getDeployDeps, getServiceStatusDeps, getTaskDeps, getTaskResultDeps, makeTestTaskName } from "./helpers"
+import { getDeployDeps, getServiceStatusDeps, getTaskDeps, getTaskResultDeps } from "./helpers"
 import { BuildTask } from "./build"
 import { GraphResults } from "../task-graph"
 import { Profile } from "../util/profiling"
-import { GardenTest, testFromConfig } from "../types/test"
 import { ModuleConfig } from "../config/module"
+import { testFromConfig } from "../types/test"
+import { TestAction } from "../actions/test"
 
 class TestError extends Error {
   toString() {
@@ -31,11 +32,8 @@ class TestError extends Error {
   }
 }
 
-export interface TestTaskParams {
-  garden: Garden
-  log: LogEntry
+export interface TestTaskParams extends BaseActionTaskParams<TestAction> {
   graph: ConfigGraph
-  test: GardenTest
   force: boolean
   forceBuild: boolean
   fromWatch?: boolean
@@ -47,9 +45,9 @@ export interface TestTaskParams {
 }
 
 @Profile()
-export class TestTask extends BaseTask {
+export class TestTask extends BaseActionTask<TestAction> {
   type: TaskType = "test"
-  test: GardenTest
+  action: TestAction
   graph: ConfigGraph
   forceBuild: boolean
   fromWatch: boolean
@@ -62,7 +60,7 @@ export class TestTask extends BaseTask {
     garden,
     graph,
     log,
-    test,
+    action,
     force,
     forceBuild,
     fromWatch = false,
@@ -72,8 +70,7 @@ export class TestTask extends BaseTask {
     silent = true,
     interactive = false,
   }: TestTaskParams) {
-    super({ garden, log, force, version: test.version })
-    this.test = test
+    super({ garden, log, force, action })
     this.graph = graph
     this.force = force
     this.forceBuild = forceBuild
@@ -93,7 +90,7 @@ export class TestTask extends BaseTask {
     }
 
     const deps = this.graph.getDependencies({
-      nodeType: "test",
+      kind: "test",
       name: this.getName(),
       recursive: false,
       filter: (depNode) =>
@@ -115,12 +112,8 @@ export class TestTask extends BaseTask {
     }
   }
 
-  getName() {
-    return makeTestTaskName(this.test.module.name, this.test.name)
-  }
-
   getDescription() {
-    return `running ${this.test.name} tests in module ${this.test.module.name}`
+    return `running ${this.action.description()}`
   }
 
   async process(dependencyResults: GraphResults): Promise<TestResult> {
@@ -146,8 +139,8 @@ export class TestTask extends BaseTask {
     })
 
     const dependencies = this.graph.getDependencies({
-      nodeType: "test",
-      name: this.getName(),
+      kind: "test",
+      name: this.test.name,
       recursive: false,
     })
     const serviceStatuses = getServiceStatuses(dependencyResults)
@@ -213,7 +206,7 @@ export class TestTask extends BaseTask {
   }
 }
 
-export async function getTestTasks({
+export async function getTestTasksFromModule({
   garden,
   log,
   graph,
