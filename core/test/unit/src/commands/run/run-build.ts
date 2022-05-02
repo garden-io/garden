@@ -7,13 +7,13 @@
  */
 
 import { expect } from "chai"
-import { RunModuleCommand } from "../../../../../src/commands/run/module"
+import { RunBuildCommand } from "../../../../../src/commands/run/run-build"
 import { makeTestGardenA, TestGarden, testNow, withDefaultGlobalOpts } from "../../../../helpers"
 import { omit } from "lodash"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
 
-describe("RunModuleCommand", () => {
+describe("RunBuildCommand", () => {
   // TODO: test optional flags
   let garden: TestGarden
   let graph: ConfigGraph
@@ -25,14 +25,14 @@ describe("RunModuleCommand", () => {
     graph = await garden.getConfigGraph({ log, emit: false })
   })
 
-  it("should run a module without an arguments param", async () => {
-    const cmd = new RunModuleCommand()
+  it("should run a build without an arguments param", async () => {
+    const cmd = new RunBuildCommand()
     const { result } = await cmd.action({
       garden,
       log,
       headerLog: log,
       footerLog: log,
-      args: { module: "module-a", arguments: [] },
+      args: { name: "build-a", arguments: [] },
       opts: withDefaultGlobalOpts({
         "command": undefined,
         "interactive": false,
@@ -42,11 +42,10 @@ describe("RunModuleCommand", () => {
 
     const expected = {
       aborted: false,
-      moduleName: "module-a",
       command: [],
       completedAt: testNow,
       log: "",
-      version: graph.getModule("module-a").version.versionString,
+      version: graph.getBuild("build-a").versionString(),
       startedAt: testNow,
       success: true,
     }
@@ -56,14 +55,14 @@ describe("RunModuleCommand", () => {
     expect(omit(result!.result, ["durationMsec"])).to.eql(expected)
   })
 
-  it("should run a module with an arguments param", async () => {
-    const cmd = new RunModuleCommand()
+  it("should run a build with an arguments param", async () => {
+    const cmd = new RunBuildCommand()
     const { result } = await cmd.action({
       garden,
       log,
       headerLog: log,
       footerLog: log,
-      args: { module: "module-a", arguments: ["my", "command"] },
+      args: { name: "build-a", arguments: ["my", "command"] },
       opts: withDefaultGlobalOpts({
         "command": undefined,
         "interactive": false,
@@ -73,11 +72,10 @@ describe("RunModuleCommand", () => {
 
     const expected = {
       aborted: false,
-      moduleName: "module-a",
       command: ["my", "command"],
       completedAt: testNow,
       log: "my command",
-      version: graph.getModule("module-a").version.versionString,
+      version: graph.getBuild("build-a").versionString(),
       startedAt: testNow,
       success: true,
     }
@@ -87,14 +85,14 @@ describe("RunModuleCommand", () => {
     expect(omit(result!.result, ["durationMsec"])).to.eql(expected)
   })
 
-  it("should run a module with a command option", async () => {
-    const cmd = new RunModuleCommand()
+  it("should run a build with a command option", async () => {
+    const cmd = new RunBuildCommand()
     const { result } = await cmd.action({
       garden,
       log,
       headerLog: log,
       footerLog: log,
-      args: { module: "module-a", arguments: ["my", "command"] },
+      args: { name: "build-a", arguments: ["my", "command"] },
       opts: withDefaultGlobalOpts({
         "interactive": false,
         "force-build": false,
@@ -104,11 +102,10 @@ describe("RunModuleCommand", () => {
 
     const expected = {
       aborted: false,
-      moduleName: "module-a",
       command: ["/bin/sh", "-c", "my", "command"],
       completedAt: testNow,
       log: "/bin/sh -c my command",
-      version: graph.getModule("module-a").version.versionString,
+      version: graph.getBuild("build-a").versionString(),
       startedAt: testNow,
       success: true,
     }

@@ -32,7 +32,7 @@ export function getDeploymentImageId(action: ContainerRuntimeAction): string {
   } else if (build) {
     return build.getOutput("deploymentImageId")
   } else {
-    throw new ConfigurationError(`${action.description()} specifies neither a \`build\` nor \`spec.image\``, {
+    throw new ConfigurationError(`${action.longDescription()} specifies neither a \`build\` nor \`spec.image\``, {
       config: action.getConfig(),
     })
   }

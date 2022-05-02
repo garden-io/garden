@@ -16,7 +16,7 @@ import { joi } from "../../../config/common"
 
 interface GetRunResultParams<T extends RunAction> extends PluginRunActionParamsBase<T> {}
 
-export interface GetRunResult<T extends RunAction> {
+export interface GetRunResult<T extends RunAction = RunAction> {
   result: RunResult | null
   outputs: GetActionOutputType<T> | null
 }

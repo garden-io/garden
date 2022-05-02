@@ -20,8 +20,8 @@ import { isRunAction } from "../actions/run"
 
 export interface GetServiceStatusTaskParams extends BaseActionTaskParams<DeployAction> {
   force: boolean
-  devModeServiceNames: string[]
-  localModeServiceNames: string[]
+  devModeDeployNames: string[]
+  localModeDeployNames: string[]
 }
 
 @Profile()
@@ -29,22 +29,14 @@ export class GetServiceStatusTask extends BaseActionTask<DeployAction> {
   type: TaskType = "get-service-status"
   concurrencyLimit = 20
   graph: ConfigGraph
-  devModeServiceNames: string[]
-  localModeServiceNames: string[]
+  devModeDeployNames: string[]
+  localModeDeployNames: string[]
 
-  constructor({
-    garden,
-    graph,
-    log,
-    action,
-    force,
-    devModeServiceNames,
-    localModeServiceNames,
-  }: GetServiceStatusTaskParams) {
+  constructor({ garden, graph, log, action, force, devModeDeployNames, localModeDeployNames }: GetServiceStatusTaskParams) {
     super({ garden, log, force, action, graph })
     this.graph = graph
-    this.devModeServiceNames = devModeServiceNames
-    this.localModeServiceNames = localModeServiceNames
+    this.devModeDeployNames = devModeDeployNames
+    this.localModeDeployNames = localModeDeployNames
   }
 
   async resolveDependencies() {
@@ -57,8 +49,8 @@ export class GetServiceStatusTask extends BaseActionTask<DeployAction> {
         log: this.log,
         action,
         force: false,
-        devModeServiceNames: this.devModeServiceNames,
-        localModeServiceNames: this.localModeServiceNames,
+        devModeDeployNames: this.devModeDeployNames,
+        localModeDeployNames: this.localModeDeployNames,
       })
     })
 
@@ -76,14 +68,14 @@ export class GetServiceStatusTask extends BaseActionTask<DeployAction> {
   }
 
   getDescription() {
-    return `getting status for action ${this.action.description()}`
+    return `getting status for action ${this.action.longDescription()}`
   }
 
   async process(dependencyResults: GraphResults): Promise<ServiceStatus> {
     const log = this.log.placeholder()
 
-    const devMode = includes(this.devModeServiceNames, this.action.name)
-    const localMode = !devMode && includes(this.localModeServiceNames, this.action.name)
+    const devMode = includes(this.devModeDeployNames, this.action.name)
+    const localMode = !devMode && includes(this.localModeDeployNames, this.action.name)
 
     const dependencies = this.graph.getDependencies({
       kind: "deploy",
@@ -120,7 +112,7 @@ export class GetServiceStatusTask extends BaseActionTask<DeployAction> {
     } catch (err) {
       // This can come up if runtime outputs are not resolvable
       if (err.type === "template-string") {
-        log.debug(`Unable to resolve status for action ${this.action.description()}: ${err.message}`)
+        log.debug(`Unable to resolve status for action ${this.action.longDescription()}: ${err.message}`)
       } else {
         throw err
       }

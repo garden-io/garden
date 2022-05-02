@@ -35,7 +35,7 @@ export const execInContainer: DeployActionHandler<"exec", ContainerDeployAction>
 
   // TODO: this check should probably live outside of the plugin
   if (!status.detail.workload || !includes(["ready", "outdated"], status.state)) {
-    throw new DeploymentError(`${action.description()} is not running`, {
+    throw new DeploymentError(`${action.longDescription()} is not running`, {
       name: action.name,
       state: status.state,
     })

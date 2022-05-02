@@ -71,7 +71,7 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction> {
   }
 
   getDescription() {
-    return `deleting service ${this.action.description()})`
+    return `deleting service ${this.action.longDescription()})`
   }
 
   async process(): Promise<ServiceStatus> {
@@ -94,7 +94,7 @@ export function deletedServiceStatuses(results: GraphResults): { [serviceName: s
   const statuses = {}
 
   for (const res of deleted) {
-    statuses[res.name] = res.output
+    statuses[res.name] = res.result
   }
 
   return statuses

@@ -65,8 +65,8 @@ describe("cloudEventHandlers", () => {
           skipDependencies: true,
         },
       })
-      expect(deployTask["devModeServiceNames"]).to.eql([])
-      expect(deployTask["localModeServiceNames"]).to.eql([])
+      expect(deployTask["devModeDeployNames"]).to.eql([])
+      expect(deployTask["localModeDeployNames"]).to.eql([])
       expect(deployTask.service.name).to.eql("service-a")
     })
 
@@ -84,7 +84,7 @@ describe("cloudEventHandlers", () => {
       })
       expect(deployTask["service"].name).to.eql("service-a")
       // todo
-      // expect(deployTask["devModeServiceNames"]).to.eql(["service-a"])
+      // expect(deployTask["devModeDeployNames"]).to.eql(["service-a"])
     })
 
     it("should return a local-mode deploy task for the requested service", async () => {
@@ -101,7 +101,7 @@ describe("cloudEventHandlers", () => {
       })
       expect(deployTask["service"].name).to.eql("service-a")
       // todo
-      // expect(deployTask["localModeServiceNames"]).to.eql(["service-a"])
+      // expect(deployTask["localModeDeployNames"]).to.eql(["service-a"])
     })
   })
 

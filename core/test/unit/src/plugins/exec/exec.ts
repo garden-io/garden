@@ -17,7 +17,7 @@ import { GARDEN_BUILD_VERSION_FILENAME, DEFAULT_API_VERSION } from "../../../../
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { keyBy } from "lodash"
 import { getDataDir, makeTestModule, expectError } from "../../../../helpers"
-import { TaskTask } from "../../../../../src/tasks/task"
+import { RunTask } from "../../../../../src/tasks/task"
 import { readModuleVersionFile } from "../../../../../src/vcs/vcs"
 import { dataDir, makeTestGarden } from "../../../../helpers"
 import { ModuleConfig } from "../../../../../src/config/module"
@@ -301,25 +301,25 @@ describe("exec plugin", () => {
     const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
     const taskB = _graph.getTask("task-b")
 
-    const taskTask = new TaskTask({
+    const taskTask = new RunTask({
       garden: _garden,
       graph: _graph,
       task: taskB,
       log: _garden.log,
       force: false,
       forceBuild: false,
-      devModeServiceNames: [],
+      devModeDeployNames: [],
 
-      localModeServiceNames: [],
+      localModeDeployNames: [],
     })
     const results = await _garden.processTasks([taskTask])
 
     // Task A echoes "task-a-output" and Task B echoes the output from Task A
     expect(results["task.task-b"]).to.exist
     expect(results["task.task-b"]).to.have.property("output")
-    expect(results["task.task-b"]!.output.log).to.equal("task-a-output")
-    expect(results["task.task-b"]!.output).to.have.property("outputs")
-    expect(results["task.task-b"]!.output.outputs.log).to.equal("task-a-output")
+    expect(results["task.task-b"]!.result.log).to.equal("task-a-output")
+    expect(results["task.task-b"]!.result).to.have.property("outputs")
+    expect(results["task.task-b"]!.result.outputs.log).to.equal("task-a-output")
   })
 
   it("should copy artifacts after task runs", async () => {
@@ -327,16 +327,16 @@ describe("exec plugin", () => {
     const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
     const task = _graph.getTask("task-a")
 
-    const taskTask = new TaskTask({
+    const taskTask = new RunTask({
       garden: _garden,
       graph: _graph,
       task,
       log: _garden.log,
       force: false,
       forceBuild: false,
-      devModeServiceNames: [],
+      devModeDeployNames: [],
 
-      localModeServiceNames: [],
+      localModeDeployNames: [],
     })
 
     await emptyDir(_garden.artifactsPath)
@@ -358,9 +358,9 @@ describe("exec plugin", () => {
       log: _garden.log,
       force: false,
       forceBuild: false,
-      devModeServiceNames: [],
+      devModeDeployNames: [],
 
-      localModeServiceNames: [],
+      localModeDeployNames: [],
     })
 
     await emptyDir(_garden.artifactsPath)

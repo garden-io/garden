@@ -20,7 +20,7 @@ export const runActionConfig = () =>
     timeout: joi.number().integer().description("Set a timeout for the run to complete, in seconds."),
   })
 
-export class RunAction<C extends RunActionConfig = any, O extends {} = any> extends RuntimeAction<C, O> {
+export class RunAction<C extends RunActionConfig = RunActionConfig, O extends {} = any> extends RuntimeAction<C, O> {
   kind: "Run"
 }
 

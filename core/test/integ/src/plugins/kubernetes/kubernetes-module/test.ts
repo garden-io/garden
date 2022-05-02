@@ -39,9 +39,9 @@ describe("testKubernetesModule", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      devModeServiceNames: [],
+      devModeDeployNames: [],
 
-      localModeServiceNames: [],
+      localModeDeployNames: [],
     })
 
     const key = testTask.getKey()
@@ -49,9 +49,9 @@ describe("testKubernetesModule", () => {
 
     expect(result).to.exist
     expect(result).to.have.property("output")
-    expect(result!.output.log.trim()).to.equal("ok")
-    expect(result!.output.namespaceStatus).to.exist
-    expect(result!.output.namespaceStatus.namespaceName).to.equal("kubernetes-module-test-default")
+    expect(result!.result.log.trim()).to.equal("ok")
+    expect(result!.result.namespaceStatus).to.exist
+    expect(result!.result.namespaceStatus.namespaceName).to.equal("kubernetes-module-test-default")
   })
 
   it("should run a test in different namespace, if configured", async () => {
@@ -64,9 +64,9 @@ describe("testKubernetesModule", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      devModeServiceNames: [],
+      devModeDeployNames: [],
 
-      localModeServiceNames: [],
+      localModeDeployNames: [],
     })
 
     const key = testTask.getKey()
@@ -74,9 +74,9 @@ describe("testKubernetesModule", () => {
 
     expect(result).to.exist
     expect(result).to.have.property("output")
-    expect(result!.output.log.trim()).to.equal(module.spec.namespace)
-    expect(result!.output.namespaceStatus).to.exist
-    expect(result!.output.namespaceStatus.namespaceName).to.equal(module.spec.namespace)
+    expect(result!.result.log.trim()).to.equal(module.spec.namespace)
+    expect(result!.result.namespaceStatus).to.exist
+    expect(result!.result.namespaceStatus.namespaceName).to.equal(module.spec.namespace)
   })
 
   it("should fail if an error occurs, but store the result", async () => {
@@ -94,9 +94,9 @@ describe("testKubernetesModule", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      devModeServiceNames: [],
+      devModeDeployNames: [],
 
-      localModeServiceNames: [],
+      localModeDeployNames: [],
     })
 
     await expectError(
@@ -128,9 +128,9 @@ describe("testKubernetesModule", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
+        devModeDeployNames: [],
 
-        localModeServiceNames: [],
+        localModeDeployNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -151,9 +151,9 @@ describe("testKubernetesModule", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
+        devModeDeployNames: [],
 
-        localModeServiceNames: [],
+        localModeDeployNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -176,9 +176,9 @@ describe("testKubernetesModule", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        devModeServiceNames: [],
+        devModeDeployNames: [],
 
-        localModeServiceNames: [],
+        localModeDeployNames: [],
       })
 
       await emptyDir(garden.artifactsPath)

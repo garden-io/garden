@@ -10,18 +10,13 @@ import Bluebird from "bluebird"
 import chalk from "chalk"
 import { GardenModule } from "../types/module"
 import { BaseActionTaskParams, BaseActionTask, TaskType } from "../tasks/base"
-import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { flatten } from "lodash"
 import { Profile } from "../util/profiling"
-import { ConfigGraph } from "../graph/config-graph"
 import { BuildAction } from "../actions/build"
 import pluralize from "pluralize"
 
-export interface BuildTaskParams<T = BuildAction> extends BaseActionTaskParams<T> {
-  garden: Garden
-  graph: ConfigGraph
-  log: LogEntry
+export interface BuildTaskParams extends BaseActionTaskParams<BuildAction> {
   force: boolean
 }
 
@@ -29,14 +24,6 @@ export interface BuildTaskParams<T = BuildAction> extends BaseActionTaskParams<T
 export class BuildTask extends BaseActionTask<BuildAction> {
   type: TaskType = "build"
   concurrencyLimit = 5
-  graph: ConfigGraph
-
-  constructor({ garden, graph, log, action, force }: BuildTaskParams<BuildAction> & { _guard: true }) {
-    // Note: The _guard attribute is to prevent accidentally bypassing the factory method
-    super({ garden, log, force, action, graph })
-    this.graph = graph
-    this.action = action
-  }
 
   async resolveDependencies() {
     const deps = this.graph.getDependencies({ kind: "build", name: this.getName(), recursive: false })
@@ -57,7 +44,7 @@ export class BuildTask extends BaseActionTask<BuildAction> {
   }
 
   getDescription() {
-    return `building ${this.action.description()}`
+    return `building ${this.action.longDescription()}`
   }
 
   async process() {
@@ -111,7 +98,7 @@ export class BuildTask extends BaseActionTask<BuildAction> {
       })
     }
 
-    await this.garden.buildStaging.syncDependencyProducts(action, this.graph, log)
+    await this.garden.buildStaging.syncDependencyProducts(action, log)
 
     try {
       const result = await router.build.build({

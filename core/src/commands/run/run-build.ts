@@ -18,21 +18,19 @@ import { printRuntimeContext } from "./run"
 import { GraphResults } from "../../task-graph"
 import { StringParameter, StringsParameter, BooleanParameter, StringOption } from "../../cli/params"
 
-const runModuleArgs = {
-  module: new StringParameter({
-    help: "The name of the module to run.",
+const runBuildArgs = {
+  name: new StringParameter({
+    help: "The name of the Build (or module) to run.",
     required: true,
   }),
   // TODO: make this a variadic arg
   arguments: new StringsParameter({
-    help: "The arguments to run the module with. Example: 'yarn run my-script'.",
+    help: "The arguments to run the build with. Example: 'yarn run my-script'.",
     delimiter: " ",
   }),
 }
 
-const runModuleOpts = {
-  // TODO: we could provide specific parameters like this by adding commands for specific modules, via plugins
-  //entrypoint: new StringParameter({ help: "Override default entrypoint in module" }),
+const runBuildOpts = {
   "interactive": new BooleanParameter({
     help: "Set to false to skip interactive mode and just output the command result.",
     defaultValue: false,
@@ -40,79 +38,79 @@ const runModuleOpts = {
     cliOnly: true,
   }),
   "force-build": new BooleanParameter({
-    help: "Force rebuild of module before running.",
+    help: "Force rebuild before running.",
   }),
   "command": new StringOption({
-    help: deline`The base command (a.k.a. entrypoint) to run in the module. For container modules, for example,
-      this overrides the image's default command/entrypoint. This option may not be relevant for all module types.
+    help: deline`The base command (a.k.a. entrypoint) to run in the build. For container images, for example,
+      this overrides the image's default command/entrypoint. This option may not be relevant for all types.
       Example: '/bin/sh -c'.`,
     alias: "c",
   }),
 }
 
-type Args = typeof runModuleArgs
-type Opts = typeof runModuleOpts
+type Args = typeof runBuildArgs
+type Opts = typeof runBuildOpts
 
-interface RunModuleOutput {
+interface RunBuildOutput {
   result: RunResult & ProcessResultMetadata
   graphResults: GraphResults
 }
 
-export class RunModuleCommand extends Command<Args, Opts> {
-  name = "module"
-  help = "Run an ad-hoc instance of a module."
+export class RunBuildCommand extends Command<Args, Opts> {
+  name = "build"
+  help = "Run an ad-hoc instance of a build."
+  alias: "module"
 
   description = dedent`
-    This is useful for debugging or ad-hoc experimentation with modules.
+    This is useful for debugging or ad-hoc experimentation with build/modules.
 
     Examples:
 
-        garden run module my-container                                   # run an ad-hoc instance of a my-container \
+        garden run build my-container                                   # run an ad-hoc instance of a my-container \
          container and attach to it
-        garden run module my-container /bin/sh                           # run an interactive shell in a new \
+        garden run build my-container /bin/sh                           # run an interactive shell in a new \
          my-container container
-        garden run module my-container --interactive=false /some/script  # execute a script in my-container and \
+        garden run build my-container --interactive=false /some/script  # execute a script in my-container and \
          return the output
   `
 
-  arguments = runModuleArgs
-  options = runModuleOpts
+  arguments = runBuildArgs
+  options = runBuildOpts
 
   printHeader({ headerLog, args }) {
-    const moduleName = args.module
     const msg = args.arguments
-      ? `Running module ${chalk.white(moduleName)} with arguments ${chalk.white(args.arguments.join(" "))}`
-      : `Running module ${chalk.white(moduleName)}`
+      ? `Running build ${chalk.white(args.name)} with arguments ${chalk.white(args.arguments.join(" "))}`
+      : `Running build ${chalk.white(args.name)}`
 
     printHeader(headerLog, msg, "runner")
   }
 
-  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunModuleOutput>> {
-    const moduleName = args.module
-
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunBuildOutput>> {
     const graph = await garden.getConfigGraph({ log, emit: false })
-    const module = graph.getModule(moduleName)
+    const action = graph.getBuild(args.name)
 
     const actions = await garden.getActionRouter()
 
-    const buildTasks = await BuildTask.factory({
+    const buildTask = new BuildTask({
       garden,
       graph,
       log,
-      module,
+      action,
+      fromWatch: false,
       force: opts["force-build"],
+      devModeDeployNames: [],
     })
-    const graphResults = await garden.processTasks(buildTasks)
+    const graphResults = await garden.processTasks([buildTask])
 
-    const dependencies = graph.getDependencies({ kind: "build", name: module.name, recursive: false })
+    const dependencies = graph.getDependencies({ kind: "build", name: args.name, recursive: false })
     const interactive = opts.interactive
 
     const runtimeContext = await prepareRuntimeContext({
       garden,
       graph,
       dependencies,
-      version: module.version.versionString,
-      moduleVersion: module.version.versionString,
+      version: action.versionString(),
+      moduleVersion: action.versionString(),
       serviceStatuses: {},
       taskResults: {},
     })
@@ -128,7 +126,7 @@ export class RunModuleCommand extends Command<Args, Opts> {
     const result = await actions.build.run({
       log,
       graph,
-      module,
+      action,
       command: opts.command?.split(" "),
       args: args.arguments || [],
       runtimeContext,
@@ -136,6 +134,6 @@ export class RunModuleCommand extends Command<Args, Opts> {
       timeout: interactive ? 999999 : undefined,
     })
 
-    return handleRunResult({ log, actionDescription: "run module", result, interactive, graphResults })
+    return handleRunResult({ log, actionDescription: "run build", result, interactive, graphResults })
   }
 }

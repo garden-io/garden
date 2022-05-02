@@ -612,7 +612,7 @@ export class Garden {
         })
       }
 
-      providers = Object.values(taskResults).map((result) => result!.output)
+      providers = Object.values(taskResults).map((result) => result!.result)
 
       const gotCachedResult = !!providers.find((p) => p.status.cached)
 

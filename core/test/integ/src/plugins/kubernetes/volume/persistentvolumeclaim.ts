@@ -86,8 +86,8 @@ describe("persistentvolumeclaim", () => {
       service,
       force: true,
       forceBuild: false,
-      devModeServiceNames: [],
-      localModeServiceNames: [],
+      devModeDeployNames: [],
+      localModeDeployNames: [],
     })
 
     await garden.processTasks([deployTask], { throwOnError: true })

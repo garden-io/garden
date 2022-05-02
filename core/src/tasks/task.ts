@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import chalk from "chalk"
-import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults } from "../tasks/base"
+import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults, BaseActionTask, BaseActionTaskParams } from "../tasks/base"
 import { Garden } from "../garden"
 import { GardenTask } from "../types/task"
 import { DeployTask } from "./deploy"
@@ -16,20 +16,15 @@ import { LogEntry } from "../logger/log-entry"
 import { prepareRuntimeContext } from "../runtime-context"
 import { ConfigGraph } from "../graph/config-graph"
 import { BuildTask } from "./build"
-import { RunTaskResult } from "../types/plugin/task/runTask"
 import { GraphResults } from "../task-graph"
 import { GetTaskResultTask } from "./get-task-result"
 import { Profile } from "../util/profiling"
+import { RunAction } from "../actions/run"
 
-export interface TaskTaskParams {
-  garden: Garden
-  log: LogEntry
-  graph: ConfigGraph
-  task: GardenTask
-  force: boolean
+export interface TaskTaskParams extends BaseActionTaskParams<RunAction> {
   forceBuild: boolean
-  devModeServiceNames: string[]
-  localModeServiceNames: string[]
+  devModeDeployNames: string[]
+  localModeDeployNames: string[]
 }
 
 class RunTaskError extends Error {
@@ -39,32 +34,17 @@ class RunTaskError extends Error {
 }
 
 @Profile()
-export class TaskTask extends BaseTask {
-  // ... to be renamed soon.
-  type: TaskType = "task"
-  graph: ConfigGraph
-  task: GardenTask
-  forceBuild: boolean
-  devModeServiceNames: string[]
-  localModeServiceNames: string[]
+export class RunTask extends BaseActionTask<RunAction> {
+  type: TaskType = "run"
 
-  constructor({
-    garden,
-    log,
-    graph,
-    task,
-    force,
-    forceBuild,
-    devModeServiceNames,
-    localModeServiceNames,
-  }: TaskTaskParams) {
-    super({ garden, log, force, version: task.version })
-    this.graph = graph
-    this.task = task
-    this.force = force
-    this.forceBuild = forceBuild
-    this.devModeServiceNames = devModeServiceNames
-    this.localModeServiceNames = localModeServiceNames
+  forceBuild: boolean
+  localModeDeployNames: string[]
+
+  constructor(params: TaskTaskParams) {
+    super(params)
+    this.forceBuild = params.forceBuild
+    this.devModeDeployNames = params.devModeDeployNames
+    this.localModeDeployNames = params.localModeDeployNames
   }
 
   async resolveDependencies(): Promise<BaseTask[]> {
@@ -86,21 +66,21 @@ export class TaskTask extends BaseTask {
         graph: this.graph,
         force: false,
         forceBuild: false,
-        devModeServiceNames: this.devModeServiceNames,
-        localModeServiceNames: this.localModeServiceNames,
+        devModeDeployNames: this.devModeDeployNames,
+        localModeDeployNames: this.localModeDeployNames,
       })
     })
 
     const taskTasks = await Bluebird.map(deps.run, (task) => {
-      return new TaskTask({
+      return new RunTask({
         task,
         log: this.log,
         garden: this.garden,
         graph: this.graph,
         force: false,
         forceBuild: false,
-        devModeServiceNames: this.devModeServiceNames,
-        localModeServiceNames: this.localModeServiceNames,
+        devModeDeployNames: this.devModeDeployNames,
+        localModeDeployNames: this.localModeDeployNames,
       })
     })
 
@@ -115,18 +95,14 @@ export class TaskTask extends BaseTask {
     return [...buildTasks, ...deployTasks, ...taskTasks, resultTask]
   }
 
-  getName() {
-    return this.task.name
-  }
-
   getDescription() {
-    return `running task ${this.task.name} in module ${this.task.module.name}`
+    return `running ${this.action.longDescription()}`
   }
 
   async process(dependencyResults: GraphResults) {
-    const task = this.task
+    const action = this.action
 
-    if (!this.force && task.config.cacheResult) {
+    if (!this.force && action.getConfig("cacheResult")) {
       const cachedResult = getRunTaskResults(dependencyResults)[this.task.name]
 
       if (cachedResult && cachedResult.success) {

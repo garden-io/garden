@@ -199,7 +199,7 @@ export async function runOrTest(
 
     if (!resourceSpec) {
       // Note: This will generally be caught in schema validation.
-      throw new ConfigurationError(`${action.description()} specified neither podSpec nor resource.`, { spec })
+      throw new ConfigurationError(`${action.longDescription()} specified neither podSpec nor resource.`, { spec })
     }
 
     const target = await getTargetResource({
@@ -214,7 +214,7 @@ export async function runOrTest(
     container = getResourceContainer(target, resourceSpec.containerName)
   } else if (!container) {
     throw new ConfigurationError(
-      `${action.description()} specified a podSpec without containers. Please make sure there is at least one container in the spec.`,
+      `${action.longDescription()} specified a podSpec without containers. Please make sure there is at least one container in the spec.`,
       { spec }
     )
   }

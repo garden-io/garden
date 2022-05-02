@@ -81,7 +81,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       const { action, router, handlers } = params
 
       const log = params.log.info({
-        section: action.name,
+        section: action.key(),
         msg: "Deleting...",
         status: "active",
       })
@@ -91,7 +91,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
 
       if (status.state === "missing") {
         log.setSuccess({
-          section: action.name,
+          section: action.key(),
           msg: "Not found",
         })
         return status
@@ -130,7 +130,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         handlerType: "getLogs",
         defaultHandler: async () => {
           log.warn({
-            section: action.name,
+            section: action.key(),
             msg: chalk.yellow(`No handler for log retrieval available for action type ${action.type}`),
           })
           return {}

@@ -93,7 +93,7 @@ export class ActionRouter extends BaseRouter {
           graph,
           log,
           action,
-          devModeServiceNames: [],
+          devModeDeployNames: [],
         })
     )
     const results = await this.garden.processTasks(tasks, { throwOnError: true })
@@ -114,7 +114,7 @@ export class ActionRouter extends BaseRouter {
           force,
           forceBuild,
           fromWatch: false,
-          devModeServiceNames: [],
+          devModeDeployNames: [],
         })
     )
 

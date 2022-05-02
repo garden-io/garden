@@ -8,11 +8,7 @@
 
 import chalk from "chalk"
 import { BuildTask } from "./build"
-import { GardenModule } from "../types/module"
-import { BaseActionTask, BaseTask, TaskType } from "../tasks/base"
-import { Garden } from "../garden"
-import { LogEntry } from "../logger/log-entry"
-import { ConfigGraph } from "../graph/config-graph"
+import { BaseActionTask, BaseActionTaskParams, TaskType } from "../tasks/base"
 import { emptyRuntimeContext } from "../runtime-context"
 import { resolveTemplateString } from "../template-string/template-string"
 import { joi } from "../config/common"
@@ -21,12 +17,9 @@ import { ConfigContext, schema } from "../config/template-contexts/base"
 import { ModuleConfigContext, ModuleConfigContextParams } from "../config/template-contexts/module"
 import { PublishActionResult } from "../plugin/handlers/build/publish"
 import { BuildAction } from "../actions/build"
+import { ActionConfigContext, ActionConfigContextParams } from "../config/template-contexts/actions"
 
-export interface PublishTaskParams {
-  garden: Garden
-  graph: ConfigGraph
-  log: LogEntry
-  action: BuildAction
+export interface PublishTaskParams extends BaseActionTaskParams<BuildAction> {
   forceBuild: boolean
   tagTemplate?: string
 }
@@ -35,45 +28,38 @@ export class PublishTask extends BaseActionTask<BuildAction> {
   type: TaskType = "publish"
   concurrencyLimit = 5
 
-  graph: ConfigGraph
   forceBuild: boolean
   tagTemplate?: string
 
-  constructor({ garden, graph, log, action, forceBuild, tagTemplate }: PublishTaskParams) {
-    super({ garden, log, action })
-    this.graph = graph
-    this.action = action
-    this.forceBuild = forceBuild
-    this.tagTemplate = tagTemplate
+  constructor(params: PublishTaskParams) {
+    super(params)
+    this.forceBuild = params.forceBuild
+    this.tagTemplate = params.tagTemplate
   }
 
   async resolveDependencies() {
     if (this.action.getConfig("allowPublish") === false) {
       return []
     }
-    return BuildTask.factory({
-      garden: this.garden,
-      graph: this.graph,
-      log: this.log,
-      action: this.action,
-      force: this.forceBuild,
-    })
-  }
-
-  getName() {
-    return this.module.name
+    return [
+      new BuildTask({
+        ...this.getBaseDependencyParams(),
+        action: this.action,
+        force: this.forceBuild,
+      }),
+    ]
   }
 
   getDescription() {
-    return `publishing module ${this.module.name}`
+    return `publishing ${this.action.longDescription()}`
   }
 
-  async process(): Promise<PublishActionResult> {
-    const module = this.module
+  async process(_, resolvedAction): Promise<PublishActionResult> {
+    const action = this.action
 
-    if (!module.allowPublish) {
+    if (!action.getConfig("allowPublish")) {
       this.log.info({
-        section: module.name,
+        section: action.key(),
         msg: "Publishing disabled (allowPublish=false set on module)",
         status: "active",
       })
@@ -86,9 +72,9 @@ export class PublishTask extends BaseActionTask<BuildAction> {
       const resolvedProviders = await this.garden.resolveProviders(this.log)
       const dependencies = Object.values(module.buildDependencies)
 
-      const templateContext = new ModuleTagContext({
+      const templateContext = new BuildTagContext({
         garden: this.garden,
-        moduleConfig: module,
+        action,
         variables: { ...this.garden.variables, ...module.variables },
         resolvedProviders,
         module,
@@ -105,16 +91,16 @@ export class PublishTask extends BaseActionTask<BuildAction> {
     }
 
     const log = this.log.info({
-      section: module.name,
+      section: action.key(),
       msg: "Publishing with tag " + tag,
       status: "active",
     })
 
-    const actions = await this.garden.getActionRouter()
+    const router = await this.garden.getActionRouter()
 
     let result: PublishActionResult
     try {
-      result = await actions.build.publish({ module, log, graph: this.graph, tag })
+      result = await router.build.publish({ action, log, graph: this.graph, tag })
     } catch (err) {
       log.setError()
       throw err
@@ -151,14 +137,14 @@ class BuildSelfContext extends ConfigContext {
   }
 }
 
-class ModuleTagContext extends ModuleConfigContext {
+class BuildTagContext extends ActionConfigContext {
   @schema(BuildSelfContext.getSchema().description("Extended information about the build being tagged."))
   public build: BuildSelfContext
 
   @schema(BuildSelfContext.getSchema().description("Alias kept for compatibility."))
   public module: BuildSelfContext
 
-  constructor(params: ModuleConfigContextParams & { build: BuildAction }) {
+  constructor(params: ActionConfigContextParams & { build: BuildAction }) {
     super(params)
     this.build = this.module = new BuildSelfContext(this, params.build)
   }
