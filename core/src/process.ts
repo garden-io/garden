@@ -10,10 +10,8 @@ import Bluebird from "bluebird"
 import chalk from "chalk"
 import { keyBy, flatten } from "lodash"
 
-import { GardenModule } from "./types/module"
 import { BaseTask } from "./tasks/base"
 import { GraphResults } from "./task-graph"
-import { isModuleLinked } from "./util/ext-source-util"
 import { Garden } from "./garden"
 import { EmojiName, LogEntry } from "./logger/log-entry"
 import { ConfigGraph } from "./graph/config-graph"
@@ -27,8 +25,9 @@ import { DeployTask } from "./tasks/deploy"
 import { filterTestConfigs, TestTask } from "./tasks/test"
 import { testFromConfig } from "./types/test"
 import { TaskTask } from "./tasks/task"
+import { Action, actionReferenceToString } from "./actions/base"
 
-export type ProcessHandler = (graph: ConfigGraph, module: GardenModule) => Promise<BaseTask[]>
+export type ProcessHandler = (graph: ConfigGraph, action: Action) => Promise<BaseTask[]>
 
 interface ProcessParams {
   garden: Garden
@@ -43,7 +42,7 @@ interface ProcessParams {
   /**
    * If provided, and if `watch === true`, don't watch files in the module roots of these modules.
    */
-  skipWatchModules?: GardenModule[]
+  skipWatch?: Action[]
   initialTasks: BaseTask[]
   /**
    * Use this if the behavior should be different on watcher changes than on initial processing
@@ -51,8 +50,8 @@ interface ProcessParams {
   changeHandler: ProcessHandler
 }
 
-export interface ProcessModulesParams extends ProcessParams {
-  modules: GardenModule[]
+export interface ProcessActionsParams extends ProcessParams {
+  actions: Action[]
 }
 
 export interface ProcessResults {
@@ -62,29 +61,30 @@ export interface ProcessResults {
 
 let statusLine: LogEntry
 
-export async function processModules({
+export async function processActions({
   garden,
   graph,
   log,
   footerLog,
-  modules,
+  actions,
   initialTasks,
-  skipWatchModules,
+  skipWatch,
   watch,
   changeHandler,
   overRideWatchStatusLine,
-}: ProcessModulesParams): Promise<ProcessResults> {
-  log.silly("Starting processModules")
+}: ProcessActionsParams): Promise<ProcessResults> {
+  log.silly("Starting processActions")
 
-  // Let the user know if any modules are linked to a local path
-  const linkedModulesMsg = modules
-    .filter((m) => isModuleLinked(m, garden))
-    .map((m) => `${chalk.cyan(m.name)} linked to path ${chalk.white(m.path)}`)
+  // Let the user know if any actions are linked to a local path
+  // TODO-G2: feels like this needs revisiting... - JE
+  const linkedActionsMsg = actions
+    .filter((a) => a.isLinked())
+    .map((a) => `${a.description()} linked to path ${chalk.white(a.basePath())}`)
     .map((msg) => "  " + msg) // indent list
 
-  if (linkedModulesMsg.length > 0) {
+  if (linkedActionsMsg.length > 0) {
     log.info(renderDivider())
-    log.info(chalk.gray(`The following modules are linked to a local path:\n${linkedModulesMsg.join("\n")}`))
+    log.info(chalk.gray(`The following actions are linked to a local path:\n${linkedActionsMsg.join("\n")}`))
     log.info(renderDivider())
   }
 
@@ -133,14 +133,13 @@ export async function processModules({
   }
 
   const deps = graph.getDependenciesForMany({
-    nodeType: "build",
-    names: modules.map((m) => m.name),
+    refs: actions.map((a) => a.reference()),
     recursive: true,
   })
-  const modulesToWatch = uniqByName(deps.build.concat(modules))
-  const modulesByName = keyBy(modulesToWatch, "name")
+  const actionsToWatch = uniqByName([...deps, ...actions])
+  const actionsByRef = keyBy(actionsToWatch, (a) => a.stringReference())
 
-  await garden.startWatcher({ graph, skipModules: skipWatchModules })
+  await garden.startWatcher({ graph, skipActions: skipWatch })
 
   const taskError = () => {
     if (!!statusLine) {
@@ -217,7 +216,7 @@ export async function processModules({
       }
     })
 
-    garden.events.on("moduleConfigChanged", async (event) => {
+    garden.events.on("actionConfigChanged", async (event) => {
       if (await validateConfigChange(garden, log, event.path, "changed")) {
         const moduleNames = event.names
         const section = moduleNames.length === 1 ? moduleNames[0] : undefined
@@ -230,24 +229,24 @@ export async function processModules({
       }
     })
 
-    garden.events.on("moduleSourcesChanged", async (event) => {
+    garden.events.on("actionSourcesChanged", async (event) => {
       graph = await garden.getConfigGraph({ log, emit: false })
-      const changedModuleNames = event.names.filter((moduleName) => !!modulesByName[moduleName])
+      const changedActionRefs = event.refs.filter((ref) => !!actionsByRef[actionReferenceToString(ref)])
 
-      if (changedModuleNames.length === 0) {
+      if (changedActionRefs.length === 0) {
         return
       }
 
       // Make sure the modules' versions are up to date.
-      const changedModules = graph.getModules({ names: changedModuleNames })
+      const changedActions = graph.getActions({ refs: changedActionRefs })
 
-      const moduleTasks = flatten(
-        await Bluebird.map(changedModules, async (m) => {
-          modulesByName[m.name] = m
-          return changeHandler!(graph, m)
+      const tasks = flatten(
+        await Bluebird.map(changedActions, async (a) => {
+          actionsByRef[a.name] = a
+          return changeHandler!(graph, a)
         })
       )
-      await garden.processTasks(moduleTasks)
+      await garden.processTasks(tasks)
     })
 
     garden.events.on("buildRequested", async (event: Events["buildRequested"]) => {

@@ -7,70 +7,52 @@
  */
 
 import chalk from "chalk"
-import { LogEntry } from "../logger/log-entry"
-import { BaseTask, TaskType } from "./base"
-import { Garden } from "../garden"
-import { GardenTask } from "../types/task"
-import { RunTaskResult } from "../types/plugin/task/runTask"
+import { BaseActionTask, BaseActionTaskParams, TaskType } from "./base"
 import { Profile } from "../util/profiling"
-import { ConfigGraph } from "../graph/config-graph"
+import { RunAction } from "../actions/run"
 
-export interface GetTaskResultTaskParams {
+export interface GetTaskResultTaskParams extends BaseActionTaskParams<RunAction> {
   force: boolean
-  garden: Garden
-  graph: ConfigGraph
-  log: LogEntry
-  task: GardenTask
 }
 
 @Profile()
-export class GetTaskResultTask extends BaseTask {
+export class GetTaskResultTask extends BaseActionTask<RunAction> {
   type: TaskType = "get-task-result"
   concurrencyLimit = 20
-  graph: ConfigGraph
-  task: GardenTask
 
   constructor(params: GetTaskResultTaskParams) {
-    super({ ...params, version: params.task.version })
+    super({ ...params })
     this.graph = params.graph
-    this.task = params.task
   }
 
   async resolveDependencies() {
     return []
   }
 
-  getName() {
-    return this.task.name
-  }
-
   getDescription() {
-    return `getting task result '${this.task.name}' (from module '${this.task.module.name}')`
+    return `getting result for action ${this.action.description()})`
   }
 
-  async process(): Promise<RunTaskResult | null | undefined> {
+  async process() {
     const log = this.log.info({
-      section: this.task.name,
+      section: this.action.name,
       msg: "Checking result...",
       status: "active",
     })
     const actions = await this.garden.getActionRouter()
 
     // The default handler (for plugins that don't implement getTaskResult) returns undefined.
-    let result: RunTaskResult | null | undefined
     try {
-      result = await actions.run.getResult({
+      const result = await actions.run.getResult({
         graph: this.graph,
-        task: this.task,
+        action: this.action,
         log,
       })
+      log.setSuccess({ msg: chalk.green(`Done`), append: true })
+      return result
     } catch (err) {
       log.setError()
       throw err
     }
-
-    log.setSuccess({ msg: chalk.green(`Done`), append: true })
-
-    return result
   }
 }

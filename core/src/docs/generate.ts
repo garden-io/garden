@@ -15,13 +15,14 @@ import { writeTableOfContents } from "./table-of-contents"
 import { Garden } from "../garden"
 import { defaultDotIgnoreFile } from "../util/fs"
 import { keyBy } from "lodash"
-import { writeFileSync, readFile, writeFile } from "fs-extra"
+import { writeFileSync, readFile, writeFile, mkdirp } from "fs-extra"
 import { renderModuleTypeReference, moduleTypes } from "./module-type"
 import { renderProviderReference } from "./provider"
 import { defaultNamespace } from "../config/project"
 import { GardenPlugin, GardenPluginReference } from "../plugin/plugin"
 import { workflowConfigSchema } from "../config/workflow"
 import { moduleTemplateSchema } from "../config/module-template"
+import { renderActionTypeReference } from "./action-type"
 
 export async function generateDocs(targetDir: string, plugins: GardenPluginReference[]) {
   // tslint:disable: no-console
@@ -100,8 +101,28 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
   writeFileSync(resolve(providerDir, `README.md`), providersReadme.join("\n"))
 
   // Render module types
+  const actionTypeDir = resolve(docsRoot, "reference", "action-types")
+  await mkdirp(actionTypeDir)
+  const actionsReadme = ["---", "order: 2", "title: Action Types", "---", "", "# Action Types", ""]
+  const actionTypeDefinitions = await garden.getActionTypes()
+
+  for (const [kind, types] of Object.entries(actionTypeDefinitions)) {
+    actionsReadme.push(`* \`kind\``)
+    for (const [type, definition] of Object.entries(types)) {
+      const path = resolve(actionTypeDir, kind, `${type}.md`)
+
+      console.log("->", path)
+      await writeFile(path, renderActionTypeReference(kind, type, definition))
+
+      actionsReadme.push(`  * [\`${type}\`](./${kind}/${type}.md)`)
+    }
+  }
+
+  await writeFile(resolve(actionTypeDir, `README.md`), actionsReadme.join("\n"))
+
+  // Render module types
   const moduleTypeDir = resolve(docsRoot, "reference", "module-types")
-  const readme = ["---", "order: 2", "title: Module Types", "---", "", "# Module Types", ""]
+  const moduleReadme = ["---", "order: 3", "title: Module Types", "---", "", "# Module Types", ""]
   const moduleTypeDefinitions = await garden.getModuleTypes()
 
   for (const { name } of moduleTypes) {
@@ -110,10 +131,10 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
     console.log("->", path)
     writeFileSync(path, renderModuleTypeReference(name, moduleTypeDefinitions))
 
-    readme.push(`* [\`${name}\`](./${name}.md)`)
+    moduleReadme.push(`* [\`${name}\`](./${name}.md)`)
   }
 
-  writeFileSync(resolve(moduleTypeDir, `README.md`), readme.join("\n"))
+  writeFileSync(resolve(moduleTypeDir, `README.md`), moduleReadme.join("\n"))
 
   // Render other config file references
   async function renderConfigTemplate(configType: string, context: any) {

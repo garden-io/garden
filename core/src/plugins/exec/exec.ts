@@ -576,7 +576,7 @@ export const execPlugin = () =>
           configure: configureExecModule,
 
           async convert(params: ConvertModuleParams<ExecModule>) {
-            const { module, convertBuildDependency, convertRuntimeDependency, dummyBuild } = params
+            const { module, convertBuildDependency, convertRuntimeDependencies, dummyBuild } = params
             const actions: ExecActionConfig[] = []
 
             let needsBuild = !!dummyBuild
@@ -607,12 +607,12 @@ export const execPlugin = () =>
               actions.push(buildAction)
             }
 
-            function prepRuntimeDeps(deps: string[]) {
+            function prepRuntimeDeps(deps: string[]): string[] {
               if (buildAction) {
-                return deps.map(convertRuntimeDependency)
+                return convertRuntimeDependencies(deps)
               } else {
                 // If we don't return a Build action, we must still include any declared build dependencies
-                return [...module.build.dependencies.map(convertBuildDependency), ...deps.map(convertRuntimeDependency)]
+                return [...module.build.dependencies.map(convertBuildDependency), ...convertRuntimeDependencies(deps)]
               }
             }
 

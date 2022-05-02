@@ -74,25 +74,25 @@ export class ActionRouter extends BaseRouter {
   //region Helper Methods
   //===========================================================================
 
-  async getServiceStatuses({
+  async getDeployStatuses({
     log,
     graph,
-    serviceNames,
+    names,
   }: {
     log: LogEntry
     graph: ConfigGraph
-    serviceNames?: string[]
+    names?: string[]
   }): Promise<ServiceStatusMap> {
-    const services = graph.getServices({ names: serviceNames })
+    const actions = graph.getDeploys({ names })
 
-    const tasks = services.map(
-      (service) =>
+    const tasks = actions.map(
+      (action) =>
         new GetServiceStatusTask({
           force: true,
           garden: this.garden,
           graph,
           log,
-          service,
+          action,
           devModeServiceNames: [],
         })
     )
@@ -101,16 +101,16 @@ export class ActionRouter extends BaseRouter {
     return getServiceStatuses(results)
   }
 
-  async deployMany({ graph, deployNames: serviceNames, force = false, forceBuild = false, log }: DeployManyParams) {
-    const services = graph.getServices({ names: serviceNames })
+  async deployMany({ graph, deployNames, force = false, forceBuild = false, log }: DeployManyParams) {
+    const deploys = graph.getDeploys({ names: deployNames })
 
-    const tasks = services.map(
-      (service) =>
+    const tasks = deploys.map(
+      (action) =>
         new DeployTask({
           garden: this.garden,
           log,
           graph,
-          service,
+          action,
           force,
           forceBuild,
           fromWatch: false,

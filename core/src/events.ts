@@ -18,6 +18,7 @@ import { RenderedActionGraph } from "./graph/config-graph"
 import { CommandInfo } from "./plugin-context"
 import { sanitizeObject } from "./logger/util"
 import { BuildState } from "./plugin/handlers/build/build"
+import { ActionReference } from "./config/common"
 
 export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
 
@@ -119,15 +120,15 @@ export interface Events extends LoggerEvents {
     error: Error
   }
   projectConfigChanged: {}
-  moduleConfigChanged: {
+  actionConfigChanged: {
     names: string[]
     path: string
   }
-  moduleSourcesChanged: {
-    names: string[]
+  actionSourcesChanged: {
+    refs: ActionReference[]
     pathsChanged: string[]
   }
-  moduleRemoved: {}
+  actionRemoved: {}
 
   // Command/project metadata events
   commandInfo: CommandInfo
@@ -347,10 +348,10 @@ export const pipedEventNames: EventName[] = [
   "configRemoved",
   "internalError",
   "log",
-  "moduleConfigChanged",
-  "moduleRemoved",
+  "actionConfigChanged",
+  "actionRemoved",
   "commandInfo",
-  "moduleSourcesChanged",
+  "actionSourcesChanged",
   "namespaceStatus",
   "projectConfigChanged",
   "serviceStatus",

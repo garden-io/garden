@@ -25,7 +25,9 @@ export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBu
     // We also generally prefer this because the remote cluster very likely doesn't (and shouldn't) have
     // privileges to push to production registries.
     log.setState(`Pulling from remote registry...`)
-    await pullBuild(k8sCtx, action, log)
+    const localId = action.getOutput("localImageId")
+    const remoteId = action.getOutput("deploymentImageId")
+    await pullBuild({ ctx: k8sCtx, action, log, localId, remoteId })
   }
 
   return publishContainerBuild({ ...params, ctx: { ...ctx, provider: provider.dependencies.container } })

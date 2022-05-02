@@ -48,9 +48,9 @@ describe("BuildCommand", () => {
       "build.module-a": { fresh: true, buildLog: "A" },
       "build.module-b": { fresh: true, buildLog: "B" },
       "build.module-c": {},
-      "stage-build.module-a": {},
-      "stage-build.module-b": {},
-      "stage-build.module-c": {},
+
+
+
     })
 
     for (const build of Object.values(builds)) {
@@ -108,8 +108,8 @@ describe("BuildCommand", () => {
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true, buildLog: "A" },
       "build.module-b": { fresh: true, buildLog: "B" },
-      "stage-build.module-a": {},
-      "stage-build.module-b": {},
+
+
     })
   })
 
@@ -139,8 +139,8 @@ describe("BuildCommand", () => {
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true, buildLog: "A" },
       "build.module-b": { fresh: true, buildLog: "B" },
-      "stage-build.module-a": {},
-      "stage-build.module-b": {},
+
+
     })
   })
 
@@ -167,9 +167,9 @@ describe("BuildCommand", () => {
       "build.module-a": { fresh: true, buildLog: "A" },
       "build.module-b": { fresh: true, buildLog: "B" },
       "build.module-c": {},
-      "stage-build.module-a": {},
-      "stage-build.module-b": {},
-      "stage-build.module-c": {},
+
+
+
     })
   })
 
@@ -238,10 +238,10 @@ describe("BuildCommand", () => {
       "build.module-b": { fresh: true, buildLog: "B" },
       "build.module-c": { fresh: true, buildLog: "C" },
       "build.module-d": { fresh: true, buildLog: "D" },
-      "stage-build.module-a": {},
-      "stage-build.module-b": {},
-      "stage-build.module-c": {},
-      "stage-build.module-d": {},
+
+
+
+
     })
   })
 

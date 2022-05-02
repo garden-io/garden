@@ -76,7 +76,7 @@ export class TaskTask extends BaseTask {
       force: this.forceBuild,
     })
 
-    const deps = this.graph.getDependencies({ nodeType: "run", name: this.getName(), recursive: false })
+    const deps = this.graph.getDependencies({ kind: "run", name: this.getName(), recursive: false })
 
     const deployTasks = deps.deploy.map((service) => {
       return new DeployTask({
@@ -146,7 +146,7 @@ export class TaskTask extends BaseTask {
       status: "active",
     })
 
-    const dependencies = this.graph.getDependencies({ nodeType: "run", name: this.getName(), recursive: false })
+    const dependencies = this.graph.getDependencies({ kind: "run", name: this.getName(), recursive: false })
 
     const serviceStatuses = getServiceStatuses(dependencyResults)
     const taskResults = getRunTaskResults(dependencyResults)

@@ -23,8 +23,7 @@ import { randomString } from "../../../util/string"
 import { PluginContext } from "../../../plugin-context"
 import { ensureBuilderSecret } from "../container/build/common"
 import { ContainerBuildAction } from "../../container/config"
-import { ResolvedAction } from "../../../actions/base"
-import { ResolvedBuildAction } from "../../../actions/build"
+import { k8sGetContainerBuildActionOutputs } from "../container/handlers"
 
 const tmpTarPath = "/tmp/image.tar"
 const imagePullTimeoutSeconds = 60 * 20
@@ -66,38 +65,32 @@ export const pullImage: PluginCommand = {
   },
 }
 
-async function pullBuilds(
-  ctx: KubernetesPluginContext,
-  builds: ResolvedBuildAction<ContainerBuildAction>[],
-  log: LogEntry
-) {
+async function pullBuilds(ctx: KubernetesPluginContext, builds: ContainerBuildAction[], log: LogEntry) {
   await Promise.all(
     builds.map(async (action) => {
-      const remoteId = action.getSpec("publishId") || action.getOutput("deploymentImageId")
-      const localId = action.getOutput("localImageId")
+      const outputs = k8sGetContainerBuildActionOutputs({ provider: ctx.provider, action })
+      const remoteId = action.getSpec("publishId") || outputs.deploymentImageId
+      const localId = outputs.localImageId
       log.info({ msg: chalk.cyan(`Pulling image ${remoteId} to ${localId}`) })
-      await pullBuild(ctx, action, log)
+      await pullBuild({ ctx, action, log, localId, remoteId })
       log.info({ msg: chalk.green(`\nPulled image: ${remoteId} -> ${localId}`) })
     })
   )
 }
 
-export async function pullBuild(
-  ctx: KubernetesPluginContext,
-  action: ResolvedAction<ContainerBuildAction>,
+interface PullParams {
+  ctx: KubernetesPluginContext
+  action: ContainerBuildAction
   log: LogEntry
-) {
-  const localId = action.getOutput("localImageId")
-
-  await pullFromExternalRegistry(ctx, action, log, localId)
+  localId: string
+  remoteId: string
 }
 
-async function pullFromExternalRegistry(
-  ctx: KubernetesPluginContext,
-  action: ResolvedAction<ContainerBuildAction>,
-  log: LogEntry,
-  localId: string
-) {
+export async function pullBuild(params: PullParams) {
+  await pullFromExternalRegistry(params)
+}
+
+async function pullFromExternalRegistry({ ctx, log, localId, remoteId }: PullParams) {
   const api = await KubeApi.factory(log, ctx, ctx.provider)
   const buildMode = ctx.provider.config.buildMode
 
@@ -120,8 +113,6 @@ async function pullFromExternalRegistry(
     authSecretName = systemDockerAuthSecretName
   }
 
-  const imageId = action.getOutput("deploymentImageId")
-
   // See https://github.com/containers/skopeo for how all this works and the syntax
   const skopeoCommand = [
     "skopeo",
@@ -129,7 +120,7 @@ async function pullFromExternalRegistry(
     "--insecure-policy",
     "copy",
     "--quiet",
-    `docker://${imageId}`,
+    `docker://${remoteId}`,
     `docker-archive:${tmpTarPath}:${localId}`,
   ]
 
@@ -179,7 +170,7 @@ async function pullFromExternalRegistry(
     },
   })
 
-  log.debug(`Pulling image ${imageId} from registry to local docker`)
+  log.debug(`Pulling image ${remoteId} from registry to local docker`)
 
   try {
     await runner.start({ log })
@@ -195,9 +186,9 @@ async function pullFromExternalRegistry(
     log.debug(`Loading image to local docker with ID ${localId}`)
     await loadImage({ ctx, runner, log })
   } catch (err) {
-    throw new RuntimeError(`Failed pulling image ${imageId}: ${err.message}`, {
+    throw new RuntimeError(`Failed pulling image ${remoteId}: ${err.message}`, {
       err,
-      imageId,
+      remoteId,
       localId,
     })
   } finally {

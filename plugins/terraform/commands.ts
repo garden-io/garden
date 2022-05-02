@@ -112,7 +112,7 @@ function findAction(graph: ConfigGraph, name: string): TerraformDeploy {
     throw new ParameterError(`The first command argument must be an action name.`, { name })
   }
 
-  const action = graph.getDeploy<TerraformDeploy>(name)
+  const action = graph.getDeploy(name)
 
   if (!action.isCompatible("terraform")) {
     throw new ParameterError(chalk.red(`Action ${chalk.white(name)} is not a terraform action (got ${action.type}).`), {

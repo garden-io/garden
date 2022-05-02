@@ -70,7 +70,7 @@ export class GetStatusCommand extends Command {
     const graph = await garden.getConfigGraph({ log, emit: true })
 
     const envStatus = await garden.getEnvironmentStatus(log)
-    const serviceStatuses = await actions.getServiceStatuses({ log, graph })
+    const serviceStatuses = await actions.getDeployStatuses({ log, graph })
 
     let result: StatusCommandResult = {
       providers: envStatus,

@@ -99,6 +99,8 @@ export const buildActionConfig = () =>
   })
 
 export class BuildAction<C extends BuildActionConfig = BuildActionConfig, O extends {} = any> extends Action<C, O> {
+  kind: "Build"
+
   /**
    * Returns the build path for the action. The path is generally `<project root>/.garden/build/<action name>`.
    * If `buildAtSource: true` is set on the config, the path is the base path of the action.
@@ -118,13 +120,20 @@ export class BuildAction<C extends BuildActionConfig = BuildActionConfig, O exte
 }
 
 // TODO: see if we can avoid the duplication here
-export abstract class ResolvedBuildAction<A extends BuildAction> extends BuildAction<A["_config"], A["_outputs"]> {
-  constructor(params: ResolvedActionWrapperParams<A["_config"], A["_outputs"]>) {
+export abstract class ResolvedBuildAction<
+  C extends BuildActionConfig = BuildActionConfig,
+  O extends {} = any
+> extends BuildAction<C, O> {
+  constructor(params: ResolvedActionWrapperParams<C, O>) {
     super(params)
     this._outputs = params.outputs
   }
 
-  getOutput<K extends keyof A["_outputs"]>(key: K) {
+  getOutput<K extends keyof O>(key: K) {
     return this._outputs[key]
   }
+}
+
+export function isBuildAction(action: Action): action is BuildAction {
+  return action.kind === "Build"
 }
