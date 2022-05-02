@@ -161,11 +161,11 @@ describe("PreReleaseTests", () => {
     })
   }
 
-  if (project === "hot-reload") {
-    describe("hot-reload", () => {
-      it("runs the deploy command with hot reloading enabled", async () => {
-        const hotReloadProjectPath = resolve(examplesDir, "hot-reload")
-        const gardenWatch = watchWithEnv(["deploy", "--hot=node-service"])
+  if (project === "code-synchronization") {
+    describe("code-synchronization", () => {
+      it("runs the dev command with code-synchronization enabled", async () => {
+        const currentProjectPath = resolve(examplesDir, "code-synchronization")
+        const gardenWatch = watchWithEnv(["dev"])
 
         const testSteps = [
           waitingForChangesStep(),
@@ -174,7 +174,7 @@ describe("PreReleaseTests", () => {
             description: "change 'Node' -> 'foo' in node-service/app.js",
             action: async () => {
               await replaceInFile({
-                files: resolve(hotReloadProjectPath, "node-service/app.js"),
+                files: resolve(currentProjectPath, "node-service/src/app.js"),
                 from: /Hello from Node/,
                 to: "Hello from foo",
               })
@@ -194,9 +194,9 @@ describe("PreReleaseTests", () => {
         await gardenWatch.run({ testSteps })
       })
 
-      it("should get logs after a hot reload event", async () => {
-        const gardenWatch = watchWithEnv(["deploy", "--hot=node-service"])
-        const hotReloadProjectPath = resolve(examplesDir, "hot-reload")
+      it("should get logs after code-synchronization", async () => {
+        const gardenWatch = watchWithEnv(["dev"])
+        const currentProjectPath = resolve(examplesDir, "code-synchronization")
 
         const testSteps = [
           waitingForChangesStep(),
@@ -207,7 +207,7 @@ describe("PreReleaseTests", () => {
               return searchLog(logEntries, /App started/)
             },
           },
-          changeFileStep(resolve(hotReloadProjectPath, "node-service/app.js"), "change node-service/app.js"),
+          changeFileStep(resolve(currentProjectPath, "node-service/src/app.js"), "change node-service/src/app.js"),
           {
             description: "get logs for node-service after hot reload event",
             condition: async () => {
