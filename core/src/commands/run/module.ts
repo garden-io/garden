@@ -104,7 +104,7 @@ export class RunModuleCommand extends Command<Args, Opts> {
     })
     const graphResults = await garden.processTasks(buildTasks)
 
-    const dependencies = graph.getDependencies({ nodeType: "build", name: module.name, recursive: false })
+    const dependencies = graph.getDependencies({ kind: "build", name: module.name, recursive: false })
     const interactive = opts.interactive
 
     const runtimeContext = await prepareRuntimeContext({

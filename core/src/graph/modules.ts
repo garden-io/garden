@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import toposort from "toposort"
 import { flatten, pick, uniq, sortBy, pickBy } from "lodash"
 import { BuildDependencyConfig } from "../config/module"
 import { GardenModule, moduleNeedsBuild, ModuleTypeMap } from "../types/module"
@@ -19,13 +18,11 @@ import { deline } from "../util/string"
 import { detectMissingDependencies, DependencyValidationGraph } from "../util/validate-dependencies"
 import { ServiceConfig } from "../config/service"
 import { TaskConfig } from "../config/task"
-import { makeTestTaskName } from "../tasks/helpers"
+import { TaskType, makeBaseKey } from "../tasks/base"
 import { testFromModule, GardenTest, testFromConfig } from "../types/test"
-import { DependencyGraph, DependencyGraphEdge, DependencyRelationNames, nodeKey, RenderedActionGraph, RenderedNode } from "./config-graph"
-import { makeBaseKey, TaskType } from "../tasks/base"
 
 // Each of these types corresponds to a Task class (e.g. BuildTask, DeployTask, ...).
-type DependencyGraphNodeType = "build" | "deploy" | "run" | "test"
+type ModuleDependencyGraphNodeType = "build" | "deploy" | "run" | "test"
 
 // The primary output type (for dependencies and dependants).
 type DependencyRelations = {
@@ -35,28 +32,48 @@ type DependencyRelations = {
   test: TestConfig[]
 }
 
-type DependencyRelationFilterFn = (node: DependencyGraphNode) => boolean
+type DependencyRelationNames = {
+  build: string[]
+  deploy: string[]
+  run: string[]
+  test: string[]
+}
 
-type DepNodeTaskTypeMap = { [key in DependencyGraphNodeType]: TaskType }
+type DependencyRelationFilterFn = (node: ModuleDependencyGraphNode) => boolean
+
+interface RenderedNode {
+  type: ModuleDependencyGraphNodeType
+  name: string
+  moduleName: string
+  key: string
+  disabled: boolean
+}
+
+type DepNodeTaskTypeMap = { [key in ModuleDependencyGraphNodeType]: TaskType }
 
 type EntityConfig = ServiceConfig | TaskConfig | TestConfig
 
-export interface EntityConfigEntry<T extends string, C extends EntityConfig> {
+interface EntityConfigEntry<T extends string, C extends EntityConfig> {
   type: T
   moduleKey: string
   config: C
 }
 
+export interface GetManyParams {
+  names?: string[]
+  includeDisabled?: boolean
+}
+
+export type ModuleDependencyGraph = { [key: string]: ModuleDependencyGraphNode }
+
 /**
  * A graph data structure that facilitates querying (recursive or non-recursive) of the project's dependency and
  * dependant relationships.
  *
- * This is now primarily used to validate legacy modules, and their dependency structures.
- *
  * This should be initialized with resolved and validated GardenModules.
  */
 export class ModuleGraph {
-  private dependencyGraph: DependencyGraph
+  private dependencyGraph: ModuleDependencyGraph
   private modules: { [key: string]: GardenModule }
 
   private serviceConfigs: {
@@ -78,7 +95,7 @@ export class ModuleGraph {
 
     // Add nodes to graph and validate
     for (const module of modules) {
-      const moduleKey = module.name
+      const moduleKey = this.keyForModule(module)
       this.modules[moduleKey] = module
 
       // Add services
@@ -150,16 +167,17 @@ export class ModuleGraph {
       const type = moduleTypes[module.type]
       const needsBuild = moduleNeedsBuild(module, type)
 
-      const moduleKey = module.name
+      const moduleKey = this.keyForModule(module)
       this.modules[moduleKey] = module
 
-      const addBuildDeps = (node: DependencyGraphNode) => {
+      const addBuildDeps = (node: ModuleDependencyGraphNode) => {
         for (const buildDep of module.build.dependencies) {
+          const buildDepKey = buildDep.name
           this.addRelation({
             dependant: node,
             dependencyType: "build",
-            dependencyName: buildDep.name,
-            dependencyModuleName: buildDep.name,
+            dependencyName: buildDepKey,
+            dependencyModuleName: buildDepKey,
           })
         }
       }
@@ -219,7 +237,7 @@ export class ModuleGraph {
 
       // Test dependencies
       for (const testConfig of module.testConfigs) {
-        const testConfigName = makeTestTaskName(module.name, testConfig.name)
+        const testConfigName = module.name + "." + testConfig.name
 
         this.testConfigs[testConfigName] = { type: "test", moduleKey, config: testConfig }
 
@@ -254,7 +272,12 @@ export class ModuleGraph {
     }
   }
 
-  private addRuntimeRelation(node: DependencyGraphNode, depName: string) {
+  // Convenience method used in the constructor above.
+  keyForModule(module: GardenModule | BuildDependencyConfig) {
+    return module.name
+  }
+
+  private addRuntimeRelation(node: ModuleDependencyGraphNode, depName: string) {
     const dep = this.serviceConfigs[depName] || this.taskConfigs[depName]
     const depType = dep.type === "service" ? "deploy" : "run"
 
@@ -272,7 +295,7 @@ export class ModuleGraph {
   }
 
   /**
-   * Returns the Module with the specified name. Throws error if it doesn't exist.
+   * Returns the Service with the specified name. Throws error if it doesn't exist.
    */
   getModule(name: string, includeDisabled?: boolean): GardenModule {
     return this.getModules({ names: [name], includeDisabled })[0]
@@ -295,15 +318,7 @@ export class ModuleGraph {
   /**
    * Returns the `testName` test from the `moduleName` module. Throws if either is not found.
    */
-  getTest({
-    moduleName,
-    testName,
-    includeDisabled,
-  }: {
-    moduleName: string
-    testName: string
-    includeDisabled?: boolean
-  }): GardenTest {
+  getTest(moduleName: string, testName: string, includeDisabled?: boolean): GardenTest {
     const module = this.getModule(moduleName, includeDisabled)
     return testFromModule(module, testName, this)
   }
@@ -311,7 +326,7 @@ export class ModuleGraph {
   /*
     Returns all modules defined in this configuration graph, or the ones specified.
    */
-  getModules({ names, includeDisabled = false }: { names?: string[]; includeDisabled?: boolean } = {}) {
+  getModules({ names, includeDisabled = false }: GetManyParams = {}) {
     const modules = includeDisabled ? this.modules : pickBy(this.modules, (c) => !c.disabled)
     return Object.values(names ? pickKeys(modules, names, "module") : modules)
   }
@@ -375,7 +390,7 @@ export class ModuleGraph {
    * module itself.
    */
   getDependantsForModule(module: GardenModule, recursive: boolean): DependencyRelations {
-    return this.getDependants({ nodeType: "build", name: module.name, recursive })
+    return this.getDependants({ kind: "build", name: module.name, recursive })
   }
 
   /**
@@ -386,17 +401,17 @@ export class ModuleGraph {
    * If recursive = true, also includes those dependencies' dependencies, etc.
    */
   getDependencies({
-    nodeType,
+    kind,
     name,
     recursive,
     filter,
   }: {
-    nodeType: DependencyGraphNodeType
+    kind: ModuleDependencyGraphNodeType
     name: string
     recursive: boolean
     filter?: DependencyRelationFilterFn
   }): DependencyRelations {
-    return this.toRelations(this.getDependencyNodes({ nodeType, name, recursive, filter }))
+    return this.toRelations(this.getDependencyNodes({ kind, name, recursive, filter }))
   }
 
   /**
@@ -407,55 +422,53 @@ export class ModuleGraph {
    * If recursive = true, also includes those dependants' dependants, etc.
    */
   getDependants({
-    nodeType,
+    kind,
     name,
     recursive,
     filter,
   }: {
-    nodeType: DependencyGraphNodeType
+    kind: ModuleDependencyGraphNodeType
     name: string
     recursive: boolean
     filter?: DependencyRelationFilterFn
   }): DependencyRelations {
-    return this.toRelations(this.getDependantNodes({ nodeType, name, recursive, filter }))
+    return this.toRelations(this.getDependantNodes({ kind, name, recursive, filter }))
   }
 
   /**
    * Same as getDependencies above, but returns the set union of the dependencies of the nodes in the graph
-   * having type = nodeType and name = name (computed recursively or shallowly for all).
+   * having type = kind and name = name (computed recursively or shallowly for all).
    */
   getDependenciesForMany({
-    nodeType,
+    kind,
     names,
     recursive,
     filter,
   }: {
-    nodeType: DependencyGraphNodeType
+    kind: ModuleDependencyGraphNodeType
     names: string[]
     recursive: boolean
     filter?: DependencyRelationFilterFn
   }): DependencyRelations {
-    return this.toRelations(
-      flatten(names.map((name) => this.getDependencyNodes({ nodeType, name, recursive, filter })))
-    )
+    return this.toRelations(flatten(names.map((name) => this.getDependencyNodes({ kind, name, recursive, filter }))))
   }
 
   /**
    * Same as getDependants above, but returns the set union of the dependants of the nodes in the graph
-   * having type = nodeType and name = name (computed recursively or shallowly for all).
+   * having type = kind and name = name (computed recursively or shallowly for all).
    */
   getDependantsForMany({
-    nodeType,
+    kind,
     names,
     recursive,
     filter,
   }: {
-    nodeType: DependencyGraphNodeType
+    kind: ModuleDependencyGraphNodeType
     names: string[]
     recursive: boolean
     filter?: DependencyRelationFilterFn
   }): DependencyRelations {
-    return this.toRelations(flatten(names.map((name) => this.getDependantNodes({ nodeType, name, recursive, filter }))))
+    return this.toRelations(flatten(names.map((name) => this.getDependantNodes({ kind, name, recursive, filter }))))
   }
 
   /**
@@ -495,7 +508,6 @@ export class ModuleGraph {
    * Given the provided lists of build and runtime (service/task) dependencies, return a list of all
    * modules required to satisfy those dependencies.
    */
-  // TODO-G2: likely remove?
   resolveDependencyModules(buildDependencies: BuildDependencyConfig[], runtimeDependencies: string[]): GardenModule[] {
     const moduleNames = buildDependencies.map((d) => d.name)
     const serviceNames = runtimeDependencies.filter(
@@ -503,9 +515,9 @@ export class ModuleGraph {
     )
     const taskNames = runtimeDependencies.filter((d) => this.taskConfigs[d] && !this.isDisabled(this.taskConfigs[d]))
 
-    const buildDeps = this.getDependenciesForMany({ nodeType: "build", names: moduleNames, recursive: true })
-    const serviceDeps = this.getDependenciesForMany({ nodeType: "deploy", names: serviceNames, recursive: true })
-    const taskDeps = this.getDependenciesForMany({ nodeType: "run", names: taskNames, recursive: true })
+    const buildDeps = this.getDependenciesForMany({ kind: "build", names: moduleNames, recursive: true })
+    const serviceDeps = this.getDependenciesForMany({ kind: "deploy", names: serviceNames, recursive: true })
+    const taskDeps = this.getDependenciesForMany({ kind: "run", names: taskNames, recursive: true })
 
     const modules = [
       ...this.getModules({ names: moduleNames, includeDisabled: true }),
@@ -515,7 +527,7 @@ export class ModuleGraph {
     return sortBy(uniqByName(modules), "name")
   }
 
-  private toRelations(nodes: DependencyGraphNode[]): DependencyRelations {
+  private toRelations(nodes: ModuleDependencyGraphNode[]): DependencyRelations {
     return this.relationsFromNames({
       build: this.uniqueNames(nodes, "build"),
       deploy: this.uniqueNames(nodes, "deploy"),
@@ -534,36 +546,36 @@ export class ModuleGraph {
   }
 
   private getDependencyNodes({
-    nodeType,
+    kind,
     name,
     recursive,
     filter,
   }: {
-    nodeType: DependencyGraphNodeType
+    kind: ModuleDependencyGraphNodeType
     name: string
     recursive: boolean
     filter?: DependencyRelationFilterFn
-  }): DependencyGraphNode[] {
-    const node = this.dependencyGraph[nodeKey(nodeType, name)]
+  }): ModuleDependencyGraphNode[] {
+    const node = this.dependencyGraph[nodeKey(kind, name)]
     return node ? node.getDependencies(recursive, filter) : []
   }
 
   private getDependantNodes({
-    nodeType,
+    kind,
     name,
     recursive,
     filter,
   }: {
-    nodeType: DependencyGraphNodeType
+    kind: ModuleDependencyGraphNodeType
     name: string
     recursive: boolean
     filter?: DependencyRelationFilterFn
-  }): DependencyGraphNode[] {
-    const node = this.dependencyGraph[nodeKey(nodeType, name)]
+  }): ModuleDependencyGraphNode[] {
+    const node = this.dependencyGraph[nodeKey(kind, name)]
     return node ? node.getDependants(recursive, filter) : []
   }
 
-  private uniqueNames(nodes: DependencyGraphNode[], type: DependencyGraphNodeType) {
+  private uniqueNames(nodes: ModuleDependencyGraphNode[], type: ModuleDependencyGraphNodeType) {
     return uniq(nodes.filter((n) => n.type === type).map((n) => n.name))
   }
 
@@ -574,8 +586,8 @@ export class ModuleGraph {
     dependencyName,
     dependencyModuleName,
   }: {
-    dependant: DependencyGraphNode
-    dependencyType: DependencyGraphNodeType
+    dependant: ModuleDependencyGraphNode
+    dependencyType: ModuleDependencyGraphNodeType
     dependencyName: string
     dependencyModuleName: string
   }) {
@@ -585,7 +597,7 @@ export class ModuleGraph {
   }
 
   // Idempotent.
-  private getNode(type: DependencyGraphNodeType, name: string, moduleName: string, disabled: boolean) {
+  private getNode(type: ModuleDependencyGraphNodeType, name: string, moduleName: string, disabled: boolean) {
     const key = nodeKey(type, name)
     const existingNode = this.dependencyGraph[key]
     if (existingNode) {
@@ -594,42 +606,9 @@ export class ModuleGraph {
       }
       return existingNode
     } else {
-      const newNode = new DependencyGraphNode(type, name, moduleName, disabled)
+      const newNode = new ModuleDependencyGraphNode(type, name, moduleName, disabled)
       this.dependencyGraph[key] = newNode
       return newNode
-    }
-  }
-
-  render(): RenderedActionGraph {
-    const nodes = Object.values(this.dependencyGraph)
-    let edges: DependencyGraphEdge[] = []
-    let simpleEdges: string[][] = []
-    for (const dependant of nodes) {
-      for (const dependency of dependant.dependencies) {
-        edges.push({ dependant, dependency })
-        simpleEdges.push([nodeKey(dependant.type, dependant.name), nodeKey(dependency.type, dependency.name)])
-      }
-    }
-
-    const sortedNodeKeys = toposort(simpleEdges)
-
-    const edgeSortIndex = (e) => {
-      return sortedNodeKeys.findIndex((k: string) => k === nodeKey(e.dependency.type, e.dependency.name))
-    }
-    edges = edges.sort((e1, e2) => edgeSortIndex(e2) - edgeSortIndex(e1))
-    const renderedEdges = edges.map((e) => ({
-      dependant: e.dependant.render(),
-      dependency: e.dependency.render(),
-    }))
-
-    const nodeSortIndex = (n: DependencyGraphNode) => {
-      return sortedNodeKeys.findIndex((k: string) => k === nodeKey(n.type, n.name))
-    }
-    const renderedNodes = nodes.sort((n1, n2) => nodeSortIndex(n2) - nodeSortIndex(n1)).map((n) => n.render())
-
-    return {
-      relationships: renderedEdges,
-      nodes: renderedNodes,
     }
   }
 }
@@ -641,14 +620,14 @@ const depNodeTaskTypeMap: DepNodeTaskTypeMap = {
   test: "test",
 }
 
-export class DependencyGraphNode {
-  dependencies: DependencyGraphNode[]
-  dependants: DependencyGraphNode[]
+export class ModuleDependencyGraphNode {
+  dependencies: ModuleDependencyGraphNode[]
+  dependants: ModuleDependencyGraphNode[]
 
   constructor(
-    public type: DependencyGraphNodeType,
+    public type: ModuleDependencyGraphNodeType,
     public name: string,
-    public moduleName: string | undefined,
+    public moduleName: string,
     public disabled: boolean
   ) {
     this.dependencies = []
@@ -669,7 +648,7 @@ export class DependencyGraphNode {
   }
 
   // Idempotent.
-  addDependency(node: DependencyGraphNode) {
+  addDependency(node: ModuleDependencyGraphNode) {
     const key = nodeKey(node.type, node.name)
     if (!this.dependencies.find((d) => nodeKey(d.type, d.name) === key)) {
       this.dependencies.push(node)
@@ -677,7 +656,7 @@ export class DependencyGraphNode {
   }
 
   // Idempotent.
-  addDependant(node: DependencyGraphNode) {
+  addDependant(node: ModuleDependencyGraphNode) {
     const key = nodeKey(node.type, node.name)
     if (!this.dependants.find((d) => nodeKey(d.type, d.name) === key)) {
       this.dependants.push(node)
@@ -721,6 +700,14 @@ export class DependencyGraphNode {
       return nodes
     }
   }
+}
+
+/**
+ * Note: If type === "build", name should be a prefix-qualified module name, as
+ * returned by keyForModule or getModuleKey.
+ */
+function nodeKey(type: ModuleDependencyGraphNodeType, name: string) {
+  return `${type}.${name}`
 }
 
 function parseTestKey(key: string) {

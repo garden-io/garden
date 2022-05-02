@@ -7,15 +7,16 @@
  */
 
 import toposort from "toposort"
-import { flatten, uniq, difference } from "lodash"
+import { flatten, uniq, difference, mapValues } from "lodash"
 import { GardenBaseError } from "../exceptions"
 import { naturalList } from "../util/string"
-import { Action, ActionKind, ResolvedAction, ResolvedRuntimeAction } from "../actions/base"
-import { BuildAction, ResolvedBuildAction } from "../actions/build"
-import { DeployAction } from "../actions/deploy"
+import { Action, ActionKind, actionReferenceToString, ResolvedAction, ResolvedRuntimeAction } from "../actions/base"
+import { ResolvedBuildAction } from "../actions/build"
 import { ActionReference } from "../config/common"
-import { RunAction } from "../actions/run"
-import { TestAction } from "../actions/test"
+import { GardenModule, ModuleTypeMap } from "../types/module"
+import { GetManyParams, ModuleGraph } from "./modules"
+import { ActionTypeMap, GenericActionTypeMap } from "../plugin/action-types"
+import { getNames } from "../util/util"
 
 export type DependencyRelationFilterFn = (node: DependencyGraphNode) => boolean
 
@@ -36,17 +37,20 @@ export interface RenderedNode {
 
 export type DependencyGraph = { [key: string]: DependencyGraphNode }
 
-interface ResolvedActionTypeMap {
+interface ResolvedActionTypeMap extends GenericActionTypeMap {
   build: ResolvedBuildAction<any>
   deploy: ResolvedRuntimeAction<any>
   run: ResolvedRuntimeAction<any>
   test: ResolvedRuntimeAction<any>
 }
 
-interface GetActionsParams {
-  names?: string[]
+interface GetActionOpts {
   includeDisabled?: boolean
   ignoreMissing?: boolean
+}
+
+interface GetActionsParams extends GetActionOpts {
+  names?: string[]
 }
 
 export class GraphError extends GardenBaseError {
@@ -60,17 +64,19 @@ export class GraphError extends GardenBaseError {
  * This should be initialized with resolved and validated GardenModules.
  */
 // TODO-G2: re-do for actions
-export class ConfigGraph {
+export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeMap = ActionTypeMap> {
   protected dependencyGraph: DependencyGraph
 
   protected actions: {
-    build: { [key: string]: ResolvedBuildAction<any> }
-    deploy: { [key: string]: ResolvedRuntimeAction<any> }
-    run: { [key: string]: ResolvedRuntimeAction<any> }
-    test: { [key: string]: ResolvedRuntimeAction<any> }
+    build: { [key: string]: M["build"] }
+    deploy: { [key: string]: M["deploy"] }
+    run: { [key: string]: M["run"] }
+    test: { [key: string]: M["test"] }
   }
 
-  constructor() {
+  protected moduleGraph: ModuleGraph
+
+  constructor(modules: GardenModule[], moduleTypes: ModuleTypeMap) {
     this.dependencyGraph = {}
     this.actions = {
       build: {},
@@ -78,24 +84,68 @@ export class ConfigGraph {
       run: {},
       test: {},
     }
+    this.moduleGraph = new ModuleGraph(modules, moduleTypes)
   }
 
   validate() {
     // TODO-G2
   }
 
-  getActionByRef<T extends Action = Action>(ref: ActionReference): ResolvedAction<T> {
+  /////////////////
+  // For compatibility
+  getModule(name: string, includeDisabled?: boolean) {
+    return this.moduleGraph.getModule(name, includeDisabled)
+  }
+  getModules(params: GetManyParams = {}) {
+    return this.moduleGraph.getModules(params)
+  }
+  withDependantModules(modules: GardenModule[]) {
+    return this.moduleGraph.withDependantModules(modules)
+  }
+  // and sanity...
+  //////////////////
+
+  getActions({ refs }: { refs?: ActionReference[] } = {}): A[] {
+    // TODO: maybe we can optimize this one :P
+    const all = flatten(Object.values(this.actions).map((a) => Object.values(a)))
+    if (refs) {
+      const stringRefs = refs.map(actionReferenceToString)
+      return all.filter((a) => stringRefs.includes(a.stringReference()))
+    } else {
+      return all
+    }
+  }
+
+  getActionByRef(ref: ActionReference) {
     return this.getActionByKind(ref.kind, ref.name)
   }
 
-  getActionByKind<K extends ActionKind>(kind: K, name: string): ResolvedActionTypeMap[K] {
-    return <ResolvedActionTypeMap[K]>this.actions[kind][name]
+  getActionByKind<K extends ActionKind>(kind: K, name: string, opts: GetActionOpts = {}): M[K] {
+    const action = this.actions[kind][name]
+
+    if (!action) {
+      throw new GraphError(`Could not find ${kind} action ${name}.`, {
+        available: this.getNamesByKind(),
+      })
+    }
+
+    if (action.isDisabled() && !opts.includeDisabled) {
+      throw new GraphError(`${action.description()} is disabled.`, {
+        config: action.getConfig(),
+      })
+    }
+
+    return action
+  }
+
+  getNamesByKind() {
+    return mapValues(this.actions, (byKind) => getNames(Object.values(byKind)))
   }
 
   getActionsByKind<K extends ActionKind>(
     kind: K,
     { names, includeDisabled = false, ignoreMissing = false }: GetActionsParams = {}
-  ): ResolvedActionTypeMap[K][] {
+  ): M[K][] {
     const foundNames: string[] = []
 
     const found = Object.values(this.actions[kind]).filter((a) => {
@@ -123,35 +173,35 @@ export class ConfigGraph {
     return found
   }
 
-  getBuild<T extends BuildAction = BuildAction>(name: string): ResolvedBuildAction<T> {
-    return this.getActionByKind("build", name)
+  getBuild(name: string, opts?: GetActionOpts) {
+    return this.getActionByKind("build", name, opts)
   }
 
-  getDeploy<T extends DeployAction = DeployAction>(name: string): ResolvedRuntimeAction<T> {
-    return this.getActionByKind("deploy", name)
+  getDeploy(name: string, opts?: GetActionOpts) {
+    return this.getActionByKind("deploy", name, opts)
   }
 
-  getRun<T extends RunAction = RunAction>(name: string): ResolvedRuntimeAction<T> {
-    return this.getActionByKind("run", name)
+  getRun(name: string, opts?: GetActionOpts) {
+    return this.getActionByKind("run", name, opts)
   }
 
-  getTest<T extends TestAction = TestAction>(name: string): ResolvedRuntimeAction<T> {
-    return this.getActionByKind("test", name)
+  getTest(name: string, opts?: GetActionOpts) {
+    return this.getActionByKind("test", name, opts)
   }
 
-  getBuilds<T extends BuildAction = BuildAction>(params: GetActionsParams = {}): ResolvedBuildAction<T>[] {
+  getBuilds(params: GetActionsParams = {}) {
     return this.getActionsByKind("build", params)
   }
 
-  getDeploys<T extends DeployAction = DeployAction>(params: GetActionsParams = {}): ResolvedRuntimeAction<T>[] {
+  getDeploys(params: GetActionsParams = {}) {
     return this.getActionsByKind("deploy", params)
   }
 
-  getRuns<T extends RunAction = RunAction>(params: GetActionsParams = {}): ResolvedRuntimeAction<T>[] {
+  getRuns(params: GetActionsParams = {}) {
     return this.getActionsByKind("run", params)
   }
 
-  getTests<T extends TestAction = TestAction>(params: GetActionsParams = {}): ResolvedRuntimeAction<T>[] {
+  getTests(params: GetActionsParams = {}) {
     return this.getActionsByKind("test", params)
   }
 
@@ -167,17 +217,17 @@ export class ConfigGraph {
    * If recursive = true, also includes those dependencies' dependencies, etc.
    */
   getDependencies({
-    nodeType,
+    kind,
     name,
     recursive,
     filter,
   }: {
-    nodeType: ActionKind
+    kind: ActionKind
     name: string
     recursive: boolean
     filter?: DependencyRelationFilterFn
   }) {
-    return this.nodesToActions(this.getDependencyNodes({ nodeType, name, recursive, filter }))
+    return this.nodesToActions(this.getDependencyNodes({ kind, name, recursive, filter }))
   }
 
   /**
@@ -186,85 +236,83 @@ export class ConfigGraph {
    * If recursive = true, also includes those dependants' dependants, etc.
    */
   getDependants({
-    nodeType,
+    kind,
     name,
     recursive,
     filter,
   }: {
-    nodeType: ActionKind
+    kind: ActionKind
     name: string
     recursive: boolean
     filter?: DependencyRelationFilterFn
   }) {
-    return this.nodesToActions(this.getDependantNodes({ nodeType, name, recursive, filter }))
+    return this.nodesToActions(this.getDependantNodes({ kind, name, recursive, filter }))
   }
 
   /**
    * Same as getDependencies above, but returns the set union of the dependencies of the nodes in the graph
-   * having type = nodeType and name = name (computed recursively or shallowly for all).
+   * having type = kind and name = name (computed recursively or shallowly for all).
    */
   getDependenciesForMany({
-    nodeType,
-    names,
+    refs,
     recursive,
     filter,
   }: {
-    nodeType: ActionKind
-    names: string[]
+    refs: ActionReference[]
     recursive: boolean
     filter?: DependencyRelationFilterFn
   }) {
     return this.nodesToActions(
-      flatten(names.map((name) => this.getDependencyNodes({ nodeType, name, recursive, filter })))
+      flatten(refs.map((ref) => this.getDependencyNodes({ kind: ref.kind, name: ref.name, recursive, filter })))
     )
   }
 
   /**
    * Same as getDependants above, but returns the set union of the dependants of the nodes in the graph
-   * having type = nodeType and name = name (computed recursively or shallowly for all).
+   * having type = kind and name = name (computed recursively or shallowly for all).
    */
   getDependantsForMany({
-    nodeType,
+    kind,
     names,
     recursive,
     filter,
   }: {
-    nodeType: ActionKind
+    kind: ActionKind
     names: string[]
     recursive: boolean
     filter?: DependencyRelationFilterFn
   }) {
-    const nodes = flatten(names.map((name) => this.getDependantNodes({ nodeType, name, recursive, filter })))
+    const nodes = flatten(names.map((name) => this.getDependantNodes({ kind, name, recursive, filter })))
     return this.nodesToActions(nodes)
   }
 
   private getDependencyNodes({
-    nodeType,
+    kind,
     name,
     recursive,
     filter,
   }: {
-    nodeType: ActionKind
+    kind: ActionKind
     name: string
     recursive: boolean
     filter?: DependencyRelationFilterFn
   }): DependencyGraphNode[] {
-    const node = this.dependencyGraph[nodeKey(nodeType, name)]
+    const node = this.dependencyGraph[nodeKey(kind, name)]
     return node ? node.getDependencies(recursive, filter) : []
   }
 
   private getDependantNodes({
-    nodeType,
+    kind,
     name,
     recursive,
     filter,
   }: {
-    nodeType: ActionKind
+    kind: ActionKind
     name: string
     recursive: boolean
     filter?: DependencyRelationFilterFn
   }): DependencyGraphNode[] {
-    const node = this.dependencyGraph[nodeKey(nodeType, name)]
+    const node = this.dependencyGraph[nodeKey(kind, name)]
     return node ? node.getDependants(recursive, filter) : []
   }
 
@@ -345,8 +393,9 @@ export class MutableConfigGraph extends ConfigGraph {
     dependant.addDependency(dependency)
     dependency.addDependant(dependant)
   }
-
 }
+
+export class ResolvedConfigGraph extends ConfigGraph<ResolvedAction<any>, ResolvedActionTypeMap> {}
 
 export interface DependencyGraphEdge {
   dependant: DependencyGraphNode

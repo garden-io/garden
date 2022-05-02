@@ -173,7 +173,7 @@ export async function getEnvironmentStatus({
     log,
     sysGarden,
     namespace: systemNamespace,
-    serviceNames: systemServiceNames,
+    names: systemServiceNames,
   })
 
   if (!secretsUpToDate || systemServiceStatus.state !== "ready") {
@@ -330,7 +330,7 @@ export async function prepareSystem({
     namespace: systemNamespace,
     force,
     ctx: k8sCtx,
-    serviceNames: systemServiceNames,
+    names: systemServiceNames,
   })
 
   sysGarden.log.setSuccess()

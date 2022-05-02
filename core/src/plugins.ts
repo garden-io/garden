@@ -27,6 +27,8 @@ import { DependencyValidationGraph } from "./util/validate-dependencies"
 import { parse, resolve } from "path"
 import Bluebird from "bluebird"
 import { ModuleTypeMap } from "./types/module"
+import { ActionKind, actionKinds } from "./actions/base"
+import { ActionTypeDefinition } from "./plugin/action-types"
 
 export async function loadAndResolvePlugins(
   log: LogEntry,
@@ -368,6 +370,34 @@ export function getPluginDependencies(plugin: GardenPlugin, loadedPlugins: Plugi
       })
     )
   )
+}
+
+export type ActionDefinitionMap = {
+  [K in ActionKind]: {
+    [type: string]: ActionTypeDefinition<any>
+  }
+}
+
+/**
+ * Returns all the action types defined in the given list of plugins.
+ */
+export function getActionTypes(plugins: GardenPlugin[]): ActionDefinitionMap {
+  const map: ActionDefinitionMap = {
+    build: {},
+    deploy: {},
+    run: {},
+    test: {},
+  }
+
+  for (const p of plugins) {
+    for (const k of actionKinds) {
+      for (const d of p.createActionTypes[k]) {
+        map[k][d.name] = d
+      }
+    }
+  }
+
+  return map
 }
 
 /**

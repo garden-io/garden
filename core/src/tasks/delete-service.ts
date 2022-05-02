@@ -7,13 +7,12 @@
  */
 
 import { LogEntry } from "../logger/log-entry"
-import { BaseTask, TaskType } from "./base"
-import { GardenService, ServiceStatus } from "../types/service"
+import { BaseActionTask, TaskType } from "./base"
+import { ServiceStatus } from "../types/service"
 import { Garden } from "../garden"
 import { ConfigGraph } from "../graph/config-graph"
 import { GraphResults, GraphResult } from "../task-graph"
-import { StageBuildTask } from "./stage-build"
-import { DeployAction } from "../actions/deploy"
+import { DeployAction, isDeployAction } from "../actions/deploy"
 
 export interface DeleteServiceTaskParams {
   garden: Garden
@@ -30,17 +29,14 @@ export interface DeleteServiceTaskParams {
   deleteDeployNames?: string[]
 }
 
-export class DeleteDeployTask extends BaseTask {
+export class DeleteDeployTask extends BaseActionTask<DeployAction> {
   type: TaskType = "delete-service"
   concurrencyLimit = 10
-  graph: ConfigGraph
   dependantsFirst: boolean
   deleteDeployNames: string[]
-  action: DeployAction
 
   constructor({ garden, graph, log, action, deleteDeployNames, dependantsFirst = false }: DeleteServiceTaskParams) {
-    super({ garden, log, force: false, action })
-    this.graph = graph
+    super({ garden, log, force: false, action, graph })
     this.dependantsFirst = dependantsFirst
     this.deleteDeployNames = deleteDeployNames || [action.name]
   }
@@ -52,18 +48,18 @@ export class DeleteDeployTask extends BaseTask {
 
     // Note: We delete in _reverse_ dependency order, so we query for dependants
     const deps = this.graph.getDependants({
-      nodeType: "deploy",
+      kind: "deploy",
       name: this.getName(),
       recursive: false,
       filter: (depNode) => depNode.type === "deploy" && this.deleteDeployNames.includes(depNode.name),
     })
 
-    return deps.deploy.map((service) => {
+    return deps.filter(isDeployAction).map((action) => {
       return new DeleteDeployTask({
         garden: this.garden,
         graph: this.graph,
         log: this.log,
-        action: service,
+        action,
         deleteDeployNames: this.deleteDeployNames,
         dependantsFirst: true,
       })
@@ -75,7 +71,7 @@ export class DeleteDeployTask extends BaseTask {
   }
 
   getDescription() {
-    return `deleting service '${this.action.name}' (from module '${this.action.module.name}')`
+    return `deleting service ${this.action.description()})`
   }
 
   async process(): Promise<ServiceStatus> {

@@ -11,7 +11,7 @@ import chalk from "chalk"
 import { CommandError, ParameterError } from "../../exceptions"
 import { printHeader } from "../../logger/util"
 import { TestTask } from "../../tasks/test"
-import { testFromConfig, testResultSchema } from "../../types/test"
+import { testResultSchema } from "../../types/test"
 import { dedent, deline } from "../../util/string"
 import { findByName, getNames } from "../../util/util"
 import {
@@ -27,15 +27,17 @@ import { joi } from "../../config/common"
 import { TestResult } from "../../types/test"
 import { GraphResults } from "../../task-graph"
 import { StringParameter, BooleanParameter } from "../../cli/params"
+import { TestAction } from "../../actions/test"
+import { GardenModule, moduleTestNameToActionName } from "../../types/module"
 
 export const runTestArgs = {
-  module: new StringParameter({
-    help: "The name of the module to run.",
+  name: new StringParameter({
+    help: "The action to run. If using modules, specify the module name here and the test name in the second argument",
     required: true,
   }),
-  test: new StringParameter({
+  moduleTestName: new StringParameter({
     help: "The name of the test to run in the module.",
-    required: true,
+    required: false,
   }),
 }
 
@@ -66,7 +68,7 @@ interface RunTestOutput {
 
 export class RunTestCommand extends Command<Args, Opts> {
   name = "test"
-  help = "Run the specified module test."
+  help = "Run the specified test."
 
   streamEvents = true
 
@@ -75,8 +77,9 @@ export class RunTestCommand extends Command<Args, Opts> {
 
     Examples:
 
-        garden run test my-module integ                      # run the test named 'integ' in my-module
-        garden run test my-module integ --interactive=false  # do not attach to the test run, just output results when completed
+        garden run test my-test                      # run the my-test Test action named
+        garden run test my-test --interactive=false  # do not attach to the test run, just output results when completed
+        garden run test my-module integ              # run the test named 'integ' in module 'my-module'
   `
 
   arguments = runTestArgs
@@ -93,32 +96,51 @@ export class RunTestCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunTestOutput>> {
-    const moduleName = args.module
-    const testName = args.test
+    let action: TestAction
 
     const graph = await garden.getConfigGraph({ log, emit: true })
-    const module = graph.getModule(moduleName, true)
 
-    const testConfig = findByName(module.testConfigs, testName)
+    if (args.moduleTestName) {
+      // We're getting a test from a specific module.
+      let module: GardenModule
+      const moduleName = args.name
+      const testName = args.moduleTestName
 
-    if (!testConfig) {
-      throw new ParameterError(`Could not find test "${testName}" in module ${moduleName}`, {
-        moduleName,
-        testName,
-        availableTests: getNames(module.testConfigs),
-      })
+      try {
+        module = graph.getModule(args.name, true)
+      } catch (err) {
+        throw new ParameterError(
+          `Two arguments were provided, so we looked for a Module named '${moduleName}, but could not find it.`,
+          {
+            moduleName,
+            testName,
+          }
+        )
+      }
+
+      const testConfig = findByName(module.testConfigs, args.moduleTestName)
+
+      if (!testConfig) {
+        throw new ParameterError(`Could not find test "${testName}" in module ${moduleName}`, {
+          moduleName,
+          testName,
+          availableTests: getNames(module.testConfigs),
+        })
+      }
+
+      action = graph.getTest(moduleTestNameToActionName(moduleName, testName))
+    } else {
+      action = graph.getTest(args.name, { includeDisabled: true })
     }
 
-    const test = testFromConfig(module, testConfig, graph)
-
-    if ((module.disabled || test.disabled) && !opts.force) {
+    if (action.isDisabled() && !opts.force) {
       throw new CommandError(
         chalk.red(deline`
-          Test ${chalk.redBright(`${module.name}.${test.name}`)} is disabled for the
-          ${chalk.redBright(garden.environmentName)} environment. If you're sure you want to run it anyway,
+          ${action.description()} is disabled for the ${chalk.redBright(garden.environmentName)} environment.
+          If you're sure you want to run it anyway,
           please run the command again with the ${chalk.redBright("--force")} flag.
         `),
-        { moduleName: module.name, testName: test.name, environmentName: garden.environmentName }
+        { actionName: action.name, moduleName: action.moduleName(), environmentName: garden.environmentName }
       )
     }
 
@@ -133,7 +155,7 @@ export class RunTestCommand extends Command<Args, Opts> {
       garden,
       graph,
       log,
-      test,
+      action,
       devModeServiceNames: [],
       localModeServiceNames: [],
     })

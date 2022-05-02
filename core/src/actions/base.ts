@@ -26,12 +26,13 @@ import { varfileDescription } from "../config/project"
 import { DOCS_BASE_URL } from "../constants"
 import { dedent, naturalList } from "../util/string"
 import { ModuleVersion } from "../vcs/vcs"
-import type { BuildAction, BuildActionConfig } from "./build"
+import type { BuildAction, BuildActionConfig, ResolvedBuildAction } from "./build"
 import type { DeployActionConfig } from "./deploy"
 import type { RunActionConfig } from "./run"
 import type { TestActionConfig } from "./test"
 import { ActionKind } from "../plugin/action-types"
 import { GroupConfig } from "../config/group"
+import pathIsInside from "path-is-inside"
 
 export { ActionKind } from "../plugin/action-types"
 
@@ -251,6 +252,7 @@ interface ActionWrapperParams<C extends BaseActionConfig> {
   config: C
   dependencies: ConfigGraph
   moduleName?: string
+  projectRoot: string
   version: ModuleVersion
 }
 
@@ -271,6 +273,7 @@ export abstract class Action<C extends BaseActionConfig = BaseActionConfig, O ex
 
   protected readonly baseBuildDirectory: string
   protected readonly _moduleName?: string // TODO: remove in 0.14
+  protected readonly projectRoot: string
   protected readonly version: ModuleVersion
 
   constructor(private params: ActionWrapperParams<C>) {
@@ -282,10 +285,19 @@ export abstract class Action<C extends BaseActionConfig = BaseActionConfig, O ex
     this.dependencies = params.dependencies
     this._moduleName = params.moduleName
     this._config = params.config
+    this.projectRoot = params.projectRoot
     this.version = params.version
   }
 
   abstract getBuildPath(): string
+
+  reference(): ActionReference {
+    return { kind: <ActionKind>this.kind, name: this.name }
+  }
+
+  stringReference(): string {
+    return `${this.kind}.${this.name}`
+  }
 
   /**
    * String description of the action. Useful for logging and error messages.
@@ -304,6 +316,15 @@ export abstract class Action<C extends BaseActionConfig = BaseActionConfig, O ex
     return !!this.getConfig("disabled")
   }
 
+  /**
+   * Check if the action is linked, including those within an external project source.
+   * Returns true if module path is not under the project root or alternatively if the module is a Garden module.
+   */
+  // TODO-G2: this is ported from another function but the logic seems a little suspect to me... - JE
+  isLinked(): boolean {
+    return !pathIsInside(this.basePath(), this.projectRoot)
+  }
+
   group() {
     return this.getConfig("group")
   }
@@ -313,6 +334,10 @@ export abstract class Action<C extends BaseActionConfig = BaseActionConfig, O ex
     // TODO: handle repository.url
     // TODO: handle build field
     return this._config.basePath
+  }
+
+  configPath() {
+    return this._config.internal?.configFilePath
   }
 
   moduleName(): string {
@@ -383,8 +408,8 @@ export abstract class RuntimeAction<
   getBuildAction<T extends BuildAction>() {
     const buildName = this.getConfig("build")
     if (buildName) {
-      const buildAction = this.dependencies.getBuild<T>(buildName)
-      return buildAction
+      const buildAction = this.dependencies.getBuild(buildName)
+      return <T>buildAction
     } else {
       return null
     }
@@ -401,18 +426,26 @@ export abstract class RuntimeAction<
 }
 
 // TODO: see if we can avoid the duplication here
-export abstract class ResolvedRuntimeAction<A extends RuntimeAction> extends RuntimeAction<
-  A["_config"],
-  A["_outputs"]
-> {
-  constructor(params: ResolvedActionWrapperParams<A["_config"], A["_outputs"]>) {
+export abstract class ResolvedRuntimeAction<
+  C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
+  O extends {} = any
+> extends RuntimeAction<C, O> {
+  constructor(params: ResolvedActionWrapperParams<C, O>) {
     super(params)
     this._outputs = params.outputs
   }
 
-  getOutput<K extends keyof A["_outputs"]>(key: K) {
+  getOutput<K extends keyof O>(key: K) {
     return this._outputs[key]
   }
 }
 
 export type GetActionOutputType<T> = T extends Action<any, infer O> ? O : any
+
+export function actionReferenceToString(ref: ActionReference) {
+  return `${ref.kind}.${ref.name}`
+}
+
+export type Resolved<T extends Action> = T extends BuildAction
+  ? ResolvedBuildAction<T["_config"], T["_outputs"]>
+  : ResolvedRuntimeAction<T["_config"], T["_outputs"]>

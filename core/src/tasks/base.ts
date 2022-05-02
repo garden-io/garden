@@ -14,7 +14,8 @@ import { pickBy, mapValues, mapKeys } from "lodash"
 import { ServiceStatus } from "../types/service"
 import { splitLast } from "../util/util"
 import { Profile } from "../util/profiling"
-import { Action, actionKinds } from "../actions/base"
+import { Action } from "../actions/base"
+import { ConfigGraph } from "../graph/config-graph"
 
 export type TaskType =
   | "build"
@@ -26,7 +27,6 @@ export type TaskType =
   | "resolve-module-config"
   | "resolve-module"
   | "resolve-provider"
-  | "stage-build"
   | "start-sync"
   | "task"
   | "test"
@@ -45,14 +45,12 @@ interface CommonTaskParams {
 }
 
 export interface TaskParams extends CommonTaskParams {
-  garden: Garden
-  log: LogEntry
-  force?: boolean
   version: string
 }
 
-export interface ActionTaskParams<T extends Action = Action> extends CommonTaskParams {
+export interface BaseActionTaskParams<T extends Action = Action> extends CommonTaskParams {
   action: T
+  graph: ConfigGraph
 }
 
 @Profile()
@@ -109,11 +107,17 @@ export abstract class BaseTask {
 
 export abstract class BaseActionTask<T extends Action> extends BaseTask {
   action: T
+  graph: ConfigGraph
 
-  constructor(initArgs: ActionTaskParams<T>) {
+  constructor(initArgs: BaseActionTaskParams<T>) {
     const { action } = initArgs
     super({ ...initArgs, version: action.versionString() })
     this.action = action
+    this.graph = initArgs.graph
+  }
+
+  getName() {
+    return this.action.name
   }
 }
 

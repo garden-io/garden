@@ -12,7 +12,6 @@ import { getEntityVersion, hashStrings, versionStringPrefix } from "../vcs/vcs"
 import { findByName } from "../util/util"
 import { NotFoundError } from "../exceptions"
 import { joi, joiUserIdentifier, versionStringSchema } from "../config/common"
-import { makeTestTaskName } from "../tasks/helpers"
 import { sortBy } from "lodash"
 import { serializeConfig } from "../config/module"
 import { RunResult, runResultSchema } from "../plugin/base"
@@ -48,8 +47,8 @@ export function testFromConfig<M extends GardenModule = GardenModule>(
   graph: ModuleGraph
 ): GardenTest<M> {
   const deps = graph.getDependencies({
-    nodeType: "test",
-    name: makeTestTaskName(module.name, config.name),
+    kind: "test",
+    name: module.name + "." + config.name,
     recursive: true,
   })
   // We sort the dependencies by type and name to avoid unnecessary cache invalidation due to possible ordering changes.

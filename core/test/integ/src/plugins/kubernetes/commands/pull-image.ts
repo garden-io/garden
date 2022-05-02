@@ -83,7 +83,7 @@ describe("pull-image plugin command", () => {
 
     it("should pull the image", async () => {
       await removeImage(module)
-      await pullBuild(ctx as KubernetesPluginContext, module, garden.log)
+      await pullBuild({ ctx: ctx as KubernetesPluginContext, action: module, log: garden.log })
       await ensureImagePulled(module)
     })
   })
@@ -108,7 +108,7 @@ describe("pull-image plugin command", () => {
 
     it("should pull the image", async () => {
       await removeImage(module)
-      await pullBuild(ctx as KubernetesPluginContext, module, garden.log)
+      await pullBuild({ ctx: ctx as KubernetesPluginContext, action: module, log: garden.log })
       await ensureImagePulled(module)
     })
   })

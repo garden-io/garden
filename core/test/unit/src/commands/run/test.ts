@@ -40,7 +40,7 @@ describe("RunTestCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { test: "unit", module: "module-a" },
+      args: { moduleTestName: "unit", name: "module-a" },
       opts: withDefaultGlobalOpts({ "force": true, "force-build": false, "interactive": false }),
     })
 
@@ -66,17 +66,14 @@ describe("RunTestCommand", () => {
     const garden = await makeTestGardenTasksFails()
     const log = garden.log
 
-    const action = async () =>
-      await cmd.action({
-        garden,
-        log,
-        headerLog: log,
-        footerLog: log,
-        args: { test: "unit", module: "module" },
-        opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": true }),
-      })
-
-    await assertAsyncError(action, "test-error")
+    await assertAsyncError(() => cmd.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: { moduleTestName: "unit", name: "module" },
+      opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": true }),
+    }), "test-error")
   })
 
   it("should throw if the test is disabled", async () => {
@@ -93,7 +90,7 @@ describe("RunTestCommand", () => {
           log,
           headerLog: log,
           footerLog: log,
-          args: { module: "module-a", test: "unit" },
+          args: { name: "module-a", moduleTestName: "unit" },
           opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": false }),
         }),
       (err) =>
@@ -116,7 +113,7 @@ describe("RunTestCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { module: "module-a", test: "unit" },
+      args: { name: "module-a", moduleTestName: "unit" },
       opts: withDefaultGlobalOpts({ "force": true, "force-build": false, "interactive": false }),
     })
 
@@ -132,7 +129,7 @@ describe("RunTestCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { test: "unit", module: "module-a" },
+      args: { moduleTestName: "unit", name: "module-a" },
       opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": false }),
     })
 
@@ -157,7 +154,7 @@ describe("RunTestCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { test: "unit", module: "module-a" },
+      args: { moduleTestName: "unit", name: "module-a" },
       opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": true }),
     })
 
@@ -175,7 +172,7 @@ describe("RunTestCommand", () => {
         log,
         headerLog: log,
         footerLog: log,
-        args: { test: "unit", module: "module" },
+        args: { moduleTestName: "unit", name: "module" },
         opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": false }),
       })
 
@@ -194,17 +191,14 @@ describe("RunTestCommand", () => {
     const garden = await makeTestGardenTasksFails()
     const log = garden.log
 
-    const action = async () =>
-      await cmd.action({
-        garden,
-        log,
-        headerLog: log,
-        footerLog: log,
-        args: { test: "unit", module: "module" },
-        opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": true }),
-      })
-
-    await assertAsyncError(action, "test-error")
+    await assertAsyncError(() => cmd.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: { test: "unit", module: "module" },
+      opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": true }),
+    })), "test-error")
 
     const logOutput = getLogMessages(log, (entry) => entry.level === LogLevel.error).join("\n")
     expect(logOutput).to.not.include("test-error")
