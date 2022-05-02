@@ -39,7 +39,7 @@ In a separate tab, open http://result.vote.local.app.garden. The results there w
 
 ### Try out code synchronization
 
-Tp start up the synchronization:
+To start up the synchronization:
 ```sh
 garden dev
 ```
