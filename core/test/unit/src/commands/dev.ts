@@ -261,9 +261,9 @@ describe("getDevCommandWatchTasks", () => {
       updatedGraph: graph,
       module: graph.getModule("module-b"),
       servicesWatched: graph.getServices().map((s) => s.name),
-      devModeServiceNames: [],
+      devModeDeployNames: [],
 
-      localModeServiceNames: [],
+      localModeDeployNames: [],
       testNames: undefined,
       skipTests: false,
     })

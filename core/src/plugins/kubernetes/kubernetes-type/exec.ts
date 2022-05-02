@@ -25,7 +25,7 @@ export const execInKubernetesDeploy: DeployActionHandler<"exec", KubernetesDeplo
 
   if (!defaultTarget) {
     throw new ConfigurationError(
-      `${action.description()} does not specify a defaultTarget. Please configure this in order to be able to use this command with.`,
+      `${action.longDescription()} does not specify a defaultTarget. Please configure this in order to be able to use this command with.`,
       {
         name: action.name,
       }
@@ -57,7 +57,7 @@ export const execInKubernetesDeploy: DeployActionHandler<"exec", KubernetesDeplo
 
   // TODO: this check should probably live outside of the plugin
   if (!target || !includes(["ready", "outdated"], status.state)) {
-    throw new DeploymentError(`${action.description()} is not running`, {
+    throw new DeploymentError(`${action.longDescription()} is not running`, {
       name: action.name,
       state: status.state,
     })

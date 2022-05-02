@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { RunServiceCommand } from "../../../../../src/commands/run/service"
+import { RunDeployCommand } from "../../../../../src/commands/run/run-deploy"
 import { makeTestGardenA, testNow, withDefaultGlobalOpts, expectError, TestGarden } from "../../../../helpers"
 import { expect } from "chai"
 import { LogEntry } from "../../../../../src/logger/log-entry"
@@ -14,12 +14,12 @@ import stripAnsi from "strip-ansi"
 import { omit } from "lodash"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
 
-describe("RunServiceCommand", () => {
+describe("RunDeployCommand", () => {
   // TODO: test optional flags
   let garden: TestGarden
   let graph: ConfigGraph
   let log: LogEntry
-  const cmd = new RunServiceCommand()
+  const cmd = new RunDeployCommand()
 
   beforeEach(async () => {
     garden = await makeTestGardenA()
@@ -33,7 +33,7 @@ describe("RunServiceCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { service: "service-a" },
+      args: { name: "service-a" },
       opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
     })
 
@@ -64,7 +64,7 @@ describe("RunServiceCommand", () => {
           log,
           headerLog: log,
           footerLog: log,
-          args: { service: "service-a" },
+          args: { name: "service-a" },
           opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
         }),
       (err) =>
@@ -84,7 +84,7 @@ describe("RunServiceCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { service: "service-a" },
+      args: { name: "service-a" },
       opts: withDefaultGlobalOpts({ "force": true, "force-build": false }),
     })
 

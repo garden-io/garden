@@ -77,9 +77,8 @@ describe("dev mode deployments and sync behavior", () => {
       service,
       force: true,
       forceBuild: false,
-      devModeServiceNames: [service.name],
-
-      localModeServiceNames: [],
+      devModeDeployNames: [service.name],
+      localModeDeployNames: [],
     })
 
     await garden.processTasks([deployTask], { throwOnError: true })
@@ -142,9 +141,8 @@ describe("dev mode deployments and sync behavior", () => {
       service,
       force: true,
       forceBuild: false,
-      devModeServiceNames: [service.name],
-
-      localModeServiceNames: [],
+      devModeDeployNames: [service.name],
+      localModeDeployNames: [],
     })
 
     await garden.processTasks([deployTask], { throwOnError: true })

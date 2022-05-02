@@ -26,8 +26,8 @@ export function getMatchingServiceNames(namesFromOpt: string[] | undefined, conf
   }
 }
 
-export function getDevModeModules(devModeServiceNames: string[], graph: ConfigGraph): GardenModule[] {
-  return uniqByName(graph.getServices({ names: devModeServiceNames }).map((s) => s.module))
+export function getDevModeModules(devModeDeployNames: string[], graph: ConfigGraph): GardenModule[] {
+  return uniqByName(graph.getServices({ names: devModeDeployNames }).map((s) => s.module))
 }
 
 export function getModulesByServiceNames(serviceNames: string[], graph: ConfigGraph): GardenModule[] {

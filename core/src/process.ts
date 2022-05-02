@@ -79,7 +79,7 @@ export async function processActions({
   // TODO-G2: feels like this needs revisiting... - JE
   const linkedActionsMsg = actions
     .filter((a) => a.isLinked())
-    .map((a) => `${a.description()} linked to path ${chalk.white(a.basePath())}`)
+    .map((a) => `${a.longDescription()} linked to path ${chalk.white(a.basePath())}`)
     .map((msg) => "  " + msg) // indent list
 
   if (linkedActionsMsg.length > 0) {
@@ -137,7 +137,7 @@ export async function processActions({
     recursive: true,
   })
   const actionsToWatch = uniqByName([...deps, ...actions])
-  const actionsByRef = keyBy(actionsToWatch, (a) => a.stringReference())
+  const actionsByRef = keyBy(actionsToWatch, (a) => a.key())
 
   await garden.startWatcher({ graph, skipActions: skipWatch })
 
@@ -341,7 +341,7 @@ export interface CloudEventHandlerCommonParams {
 }
 
 /*
- * TODO: initialize devModeServiceNames/localModeServiceNames
+ * TODO: initialize devModeDeployNames/localModeDeployNames
  *       depending on the corresponding deployment flags. See class DeployCommand for details.
  */
 export const cloudEventHandlers = {
@@ -370,8 +370,8 @@ export const cloudEventHandlers = {
         forceBuild,
         test: testFromConfig(module, config, graph),
         skipRuntimeDependencies: params.request.skipDependencies,
-        devModeServiceNames: [],
-        localModeServiceNames: [],
+        devModeDeployNames: [],
+        localModeDeployNames: [],
       })
     })
   },
@@ -387,8 +387,8 @@ export const cloudEventHandlers = {
       forceBuild,
       fromWatch: true,
       skipRuntimeDependencies: params.request.skipDependencies,
-      devModeServiceNames: [],
-      localModeServiceNames: [],
+      devModeDeployNames: [],
+      localModeDeployNames: [],
     })
   },
   taskRequested: async (params: CloudEventHandlerCommonParams & { request: Events["taskRequested"] }) => {
@@ -399,8 +399,8 @@ export const cloudEventHandlers = {
       log,
       graph,
       task: graph.getTask(taskName),
-      devModeServiceNames: [],
-      localModeServiceNames: [],
+      devModeDeployNames: [],
+      localModeDeployNames: [],
       force,
       forceBuild,
     })

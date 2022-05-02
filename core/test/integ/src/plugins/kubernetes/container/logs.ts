@@ -53,9 +53,9 @@ describe("kubernetes", () => {
         graph,
         log: garden.log,
         service,
-        devModeServiceNames: [],
+        devModeDeployNames: [],
 
-        localModeServiceNames: [],
+        localModeDeployNames: [],
       })
 
       await garden.processTasks([deployTask], { throwOnError: true })
@@ -98,9 +98,9 @@ describe("kubernetes", () => {
           graph,
           log: garden.log,
           service,
-          devModeServiceNames: [],
+          devModeDeployNames: [],
 
-          localModeServiceNames: [],
+          localModeDeployNames: [],
         })
 
         await garden.processTasks([deployTask], { throwOnError: true })
@@ -165,9 +165,9 @@ describe("kubernetes", () => {
           graph,
           log: garden.log,
           service,
-          devModeServiceNames: [],
+          devModeDeployNames: [],
 
-          localModeServiceNames: [],
+          localModeDeployNames: [],
         })
         const deleteTask = new DeleteDeployTask({
           garden,

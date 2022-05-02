@@ -15,7 +15,7 @@ import execa from "execa"
 import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { joi } from "../../../../src/config/common"
 import { RunTaskParams, RunTaskResult } from "../../../../src/types/plugin/task/runTask"
-import { TaskTask } from "../../../../src/tasks/task"
+import { RunTask } from "../../../../src/tasks/task"
 import { GardenTask } from "../../../../src/types/task"
 import { GetTaskResultParams } from "../../../../src/types/plugin/task/getTaskResult"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
@@ -122,25 +122,25 @@ describe("TaskTask", () => {
       ])
 
       let graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      let taskTask = new TaskTask({
+      let taskTask = new RunTask({
         garden,
         graph,
         task: graph.getTask("test"),
         force: false,
         forceBuild: false,
         log: garden.log,
-        devModeServiceNames: [],
+        devModeDeployNames: [],
 
-        localModeServiceNames: [],
+        localModeDeployNames: [],
       })
 
       let result = await garden.processTasks([taskTask], { throwOnError: true })
-      const logA = result[taskTask.getKey()]!.output.outputs.log
+      const logA = result[taskTask.getKey()]!.result.outputs.log
 
       garden["taskGraph"].clearCache()
 
       result = await garden.processTasks([taskTask], { throwOnError: true })
-      const logB = result[taskTask.getKey()]!.output.outputs.log
+      const logB = result[taskTask.getKey()]!.result.outputs.log
 
       // Expect the same log from the second run
       expect(logA).to.equal(logB)
@@ -175,25 +175,25 @@ describe("TaskTask", () => {
       ])
 
       let graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      let taskTask = new TaskTask({
+      let taskTask = new RunTask({
         garden,
         graph,
         task: graph.getTask("test"),
         force: false,
         forceBuild: false,
         log: garden.log,
-        devModeServiceNames: [],
+        devModeDeployNames: [],
 
-        localModeServiceNames: [],
+        localModeDeployNames: [],
       })
 
       let result = await garden.processTasks([taskTask], { throwOnError: true })
-      const logA = result[taskTask.getKey()]!.output.outputs.log
+      const logA = result[taskTask.getKey()]!.result.outputs.log
 
       garden["taskGraph"].clearCache()
 
       result = await garden.processTasks([taskTask], { throwOnError: true })
-      const logB = result[taskTask.getKey()]!.output.outputs.log
+      const logB = result[taskTask.getKey()]!.result.outputs.log
 
       // Expect a different log from the second run
       expect(logA).to.not.equal(logB)

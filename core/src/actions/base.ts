@@ -295,14 +295,14 @@ export abstract class Action<C extends BaseActionConfig = BaseActionConfig, O ex
     return { kind: <ActionKind>this.kind, name: this.name }
   }
 
-  stringReference(): string {
+  key(): string {
     return `${this.kind}.${this.name}`
   }
 
   /**
-   * String description of the action. Useful for logging and error messages.
+   * Verbose string description of the action. Useful for logging and error messages.
    */
-  description(): string {
+  longDescription(): string {
     let d = `${this.type} ${this.kind} ${chalk.bold.white(this.name)}`
 
     if (this._moduleName) {

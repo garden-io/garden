@@ -140,11 +140,11 @@ export const gardenPlugin = () =>
               outputStream.on("error", () => {})
               outputStream.on("data", (line: Buffer) => {
                 const str = line.toString()
-                statusLine.setState({ section: action.name, msg: str })
+                statusLine.setState({ section: action.key(), msg: str })
                 buildLog += str
               })
 
-              statusLine.setState({ section: action.name, msg: `Using JAVA_HOME=${openJdkPath}` })
+              statusLine.setState({ section: action.key(), msg: `Using JAVA_HOME=${openJdkPath}` })
 
               const { args, tarPath } = getBuildFlags(action, projectType)
 

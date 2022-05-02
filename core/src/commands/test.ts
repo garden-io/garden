@@ -6,8 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
-import { find, flatten } from "lodash"
+import { find } from "lodash"
 import dedent = require("dedent")
 import minimatch from "minimatch"
 
@@ -22,7 +21,7 @@ import {
 } from "./base"
 import { processActions } from "../process"
 import { GardenModule } from "../types/module"
-import { getTestTasksFromModule, TestTask } from "../tasks/test"
+import { TestTask } from "../tasks/test"
 import { printHeader } from "../logger/util"
 import { startServer } from "../server/server"
 import { StringsParameter, BooleanParameter } from "../cli/params"
@@ -56,7 +55,7 @@ export const testOpts = {
     help: "Force re-test of module(s).",
     alias: "f",
   }),
-  "force-build": new BooleanParameter({ help: "Force rebuild of module(s)." }),
+  "force-build": new BooleanParameter({ help: "Force rebuild of any Build dependencies encountered." }),
   "watch": new BooleanParameter({
     help: "Watch for changes in module(s) and auto-test.",
     alias: "w",
@@ -77,10 +76,8 @@ export const testOpts = {
     alias: "no-deps",
   }),
   "skip-dependants": new BooleanParameter({
-    help: deline`
-      When using the modules argument, only run tests for those modules (and skip tests in other modules with
-      dependencies on those modules).
-    `,
+    help: "DEPRECATED: This is a no-op, dependants are not processed by default anymore.",
+    hidden: true,
   }),
 }
 
@@ -180,8 +177,8 @@ export class TestCommand extends Command<Args, Opts> {
           forceBuild,
           fromWatch: false,
           action,
-          devModeServiceNames: [],
-          localModeServiceNames: [],
+          devModeDeployNames: [],
+          localModeDeployNames: [],
           skipRuntimeDependencies,
         })
       )
@@ -199,26 +196,24 @@ export class TestCommand extends Command<Args, Opts> {
       initialTasks,
       watch: opts.watch,
       changeHandler: async (updatedGraph, action) => {
-        if ()
+        if (!isTestAction(action)) {
+          return []
+        }
 
-        const dependants = updatedGraph.getDependants({ kind: action.kind, name: action.name }).filter(isTestAction)
-
-        return flatten(
-          await Bluebird.map([action, ...dependants], (action) =>
-            getTestTasksFromModule({
-              garden,
-              log,
-              graph: updatedGraph,
-              action,
-              filterNames,
-              force,
-              forceBuild,
-              fromWatch: true,
-              devModeServiceNames: [],
-              localModeServiceNames: [],
-            })
-          )
-        )
+        return [
+          new TestTask({
+            garden,
+            graph: updatedGraph,
+            log,
+            force,
+            forceBuild,
+            fromWatch: false,
+            action,
+            devModeDeployNames: [],
+            localModeDeployNames: [],
+            skipRuntimeDependencies,
+          }),
+        ]
       },
     })
 

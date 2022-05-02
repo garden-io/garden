@@ -15,29 +15,31 @@ import { RuntimeContext } from "../../runtime-context"
 import { deline } from "../../util/string"
 import { getModuleTypeUrl } from "../../docs/common"
 import { GardenModule } from "../../types/module"
-import { moduleTemplateKind } from "../module-template"
 import { ConfigContext, schema, ErrorContext } from "./base"
 import { ProjectConfigContext, ProjectConfigContextParams } from "./project"
 import { ProviderConfigContext } from "./provider"
-import { ModuleConfig } from "../module"
 
 const exampleVersion = "v-17ad4cb3fd"
 
-class ModuleThisContext extends ConfigContext {
+class ConfigThisContext extends ConfigContext {
   @schema(
     joi
       .string()
       .required()
-      .description("The build path of the module.")
-      .example("/home/me/code/my-project/.garden/build/my-module")
+      .description("The build path of the action/module.")
+      .example("/home/me/code/my-project/.garden/build/my-build")
   )
   public buildPath: string
 
-  @schema(joiIdentifier().description(`The name of the module.`))
+  @schema(joiIdentifier().description(`The name of the action/module.`))
   public name: string
 
   @schema(
-    joi.string().required().description("The local path of the module.").example("/home/me/code/my-project/my-module")
+    joi
+      .string()
+      .required()
+      .description("The source path of the action/module.")
+      .example("/home/me/code/my-project/my-container")
   )
   public path: string
 
@@ -49,7 +51,7 @@ class ModuleThisContext extends ConfigContext {
   }
 }
 
-export class ModuleReferenceContext extends ModuleThisContext {
+export class ModuleReferenceContext extends ConfigThisContext {
   @schema(
     joiIdentifierMap(
       joiPrimitive().description(
@@ -184,8 +186,8 @@ export class ParentContext extends ConfigContext {
   }
 }
 
-export class ModuleTemplateContext extends ConfigContext {
-  @schema(joiIdentifier().description(`The name of the ${moduleTemplateKind} being resolved.`))
+export class TemplateContext extends ConfigContext {
+  @schema(joiIdentifier().description(`The name of the template.`))
   public name: string
 
   constructor(root: ConfigContext, name: string) {
@@ -195,16 +197,14 @@ export class ModuleTemplateContext extends ConfigContext {
 }
 
 export class ModuleTemplateConfigContext extends ProjectConfigContext {
-  @schema(ParentContext.getSchema().description(`Information about the templated module being resolved.`))
+  @schema(ParentContext.getSchema().description(`Information about the templated config being resolved.`))
   public parent: ParentContext
 
-  @schema(
-    ModuleTemplateContext.getSchema().description(`Information about the template used when generating the module.`)
-  )
-  public template: ModuleTemplateContext
+  @schema(TemplateContext.getSchema().description(`Information about the template used when generating the config.`))
+  public template: TemplateContext
 
   @schema(
-    joiVariables().description(`The inputs provided when resolving the ${moduleTemplateKind}.`).meta({
+    joiVariables().description(`The inputs provided when resolving the template.`).meta({
       keyPlaceholder: "<input-key>",
     })
   )
@@ -215,7 +215,7 @@ export class ModuleTemplateConfigContext extends ProjectConfigContext {
   ) {
     super(params)
     this.parent = new ParentContext(this, params.parentName)
-    this.template = new ModuleTemplateContext(this, params.templateName)
+    this.template = new TemplateContext(this, params.templateName)
     this.inputs = params.inputs
   }
 }
@@ -271,8 +271,15 @@ export class OutputConfigContext extends ProviderConfigContext {
 export interface ModuleConfigContextParams extends OutputConfigContextParams {
   garden: Garden
   resolvedProviders: ProviderMap
-  moduleConfig: ModuleConfig
+  name: string
+  path: string
   buildPath: string
+
+  // Template attributes
+  parentName: string | undefined
+  templateName: string | undefined
+  inputs: DeepPrimitiveMap | undefined
+
   // We only supply this when resolving configuration in dependency order.
   // Otherwise we pass `${runtime.*} template strings through for later resolution.
   runtimeContext?: RuntimeContext
@@ -283,74 +290,57 @@ export interface ModuleConfigContextParams extends OutputConfigContextParams {
  */
 export class ModuleConfigContext extends OutputConfigContext {
   @schema(
-    joiVariables()
-      .description(`The inputs provided to the module through a ${moduleTemplateKind}, if applicable.`)
-      .meta({
-        keyPlaceholder: "<input-key>",
-      })
+    joiVariables().description(`The inputs provided to the config through a template, if applicable.`).meta({
+      keyPlaceholder: "<input-key>",
+    })
   )
   public inputs: DeepPrimitiveMap
 
   @schema(
     ParentContext.getSchema().description(
-      `Information about the parent module (if the module is a submodule, e.g. generated in a templated module).`
+      `Information about the config parent, if any (usually a template, if applicable).`
     )
   )
   public parent?: ParentContext
 
   @schema(
-    ModuleTemplateContext.getSchema().description(
-      `Information about the ${moduleTemplateKind} used when generating the module.`
+    TemplateContext.getSchema().description(
+      `Information about the template used when generating the config, if applicable.`
     )
   )
-  public template?: ModuleTemplateContext
+  public template?: TemplateContext
 
-  @schema(ModuleThisContext.getSchema().description("Information about the module currently being resolved."))
-  public this: ModuleThisContext
+  @schema(ConfigThisContext.getSchema().description("Information about the action/module currently being resolved."))
+  public this: ConfigThisContext
 
-  constructor({
-    garden,
-    resolvedProviders,
-    variables,
-    moduleConfig,
-    buildPath,
-    modules,
-    runtimeContext,
-    partialRuntimeResolution,
-  }: ModuleConfigContextParams) {
-    super({
-      garden,
-      resolvedProviders,
-      variables,
-      modules,
-      runtimeContext,
-      partialRuntimeResolution,
-    })
+  constructor(params: ModuleConfigContextParams) {
+    super(params)
+
+    const { name, path, inputs, parentName, templateName, buildPath } = params
 
     // Throw specific error when attempting to resolve self
-    this.modules.set(
-      moduleConfig.name,
-      new ErrorContext(`Module ${chalk.white.bold(moduleConfig.name)} cannot reference itself.`)
-    )
+    this.modules.set(name, new ErrorContext(`Config ${chalk.white.bold(name)} cannot reference itself.`))
 
-    if (moduleConfig.parentName && moduleConfig.templateName) {
-      this.parent = new ParentContext(this, moduleConfig.parentName)
-      this.template = new ModuleTemplateContext(this, moduleConfig.templateName)
+    if (parentName && templateName) {
+      this.parent = new ParentContext(this, parentName)
+      this.template = new TemplateContext(this, templateName)
     }
-    this.inputs = moduleConfig.inputs || {}
+    this.inputs = inputs || {}
 
-    this.this = new ModuleThisContext(this, buildPath, moduleConfig.name, moduleConfig.path)
+    this.this = new ConfigThisContext(this, buildPath, name, path)
   }
 
-  static fromModule(
-    params: Omit<ModuleConfigContextParams, "moduleConfig" | "variables" | "buildPath"> & { module: GardenModule }
-  ) {
+  static fromModule(params: Omit<ModuleConfigContextParams, "variables" | "buildPath"> & { module: GardenModule }) {
     const { module, garden } = params
 
     return new ModuleConfigContext({
       ...params,
-      moduleConfig: module,
+      name: module.name,
+      path: module.path,
       buildPath: module.buildPath,
+      parentName: module.parentName,
+      templateName: module.templateName,
+      inputs: module.inputs,
       variables: { ...garden.variables, ...module.variables },
     })
   }

@@ -55,7 +55,7 @@ export class BuildStaging {
   async syncFromSrc(action: BuildAction, log: LogEntry) {
     // We don't sync local exec modules to the build dir
     if (action.getConfig("buildAtSource")) {
-      log.silly(`Skipping syncing from source, action ${action.description()} has buildAtSource set to true`)
+      log.silly(`Skipping syncing from source, action ${action.longDescription()} has buildAtSource set to true`)
       return
     }
 

@@ -26,7 +26,7 @@ export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerB
 
   if (identifier) {
     log.debug({
-      section: action.name,
+      section: action.key(),
       msg: `Image ${identifier} already exists`,
       symbol: "info",
     })

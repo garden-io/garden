@@ -13,7 +13,6 @@ import { pathExists, readFile, remove } from "fs-extra"
 
 import { getLogMessages, makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
 import { findByName } from "@garden-io/core/build/src/util/util"
-import { TaskTask } from "@garden-io/core/build/src/tasks/task"
 import { getTerraformCommands } from "../commands"
 import { ConfigGraph, LogLevel } from "@garden-io/sdk/types"
 import { gardenPlugin, TerraformProvider } from ".."
@@ -322,9 +321,9 @@ describe("Terraform module type", () => {
       log: garden.log,
       force: false,
       forceBuild: false,
-      devModeServiceNames: [],
+      devModeDeployNames: [],
 
-      localModeServiceNames: [],
+      localModeDeployNames: [],
     })
 
     return garden.processTasks([deployTask], { throwOnError: true })
@@ -338,16 +337,16 @@ describe("Terraform module type", () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const task = graph.getTask("test-task")
 
-    const taskTask = new TaskTask({
+    const taskTask = new RunTask({
       garden,
       graph,
       task,
       log: garden.log,
       force: false,
       forceBuild: false,
-      devModeServiceNames: [],
+      devModeDeployNames: [],
 
-      localModeServiceNames: [],
+      localModeDeployNames: [],
     })
 
     return garden.processTasks([taskTask], { throwOnError: true })
@@ -511,8 +510,8 @@ describe("Terraform module type", () => {
 
       const result = await runTestTask(false)
 
-      expect(result["task.test-task"]!.output.log).to.equal("workspace: default, input: foo")
-      expect(result["task.test-task"]!.output.outputs.log).to.equal("workspace: default, input: foo")
+      expect(result["task.test-task"]!.result.log).to.equal("workspace: default, input: foo")
+      expect(result["task.test-task"]!.result.outputs.log).to.equal("workspace: default, input: foo")
     })
 
     it("should return outputs with the service status", async () => {
@@ -591,8 +590,8 @@ describe("Terraform module type", () => {
     it("should expose runtime outputs to template contexts", async () => {
       const result = await runTestTask(true)
 
-      expect(result["task.test-task"]!.output.log).to.equal("workspace: default, input: foo")
-      expect(result["task.test-task"]!.output.outputs.log).to.equal("workspace: default, input: foo")
+      expect(result["task.test-task"]!.result.log).to.equal("workspace: default, input: foo")
+      expect(result["task.test-task"]!.result.outputs.log).to.equal("workspace: default, input: foo")
     })
 
     it("sets the workspace before applying", async () => {
@@ -609,20 +608,20 @@ describe("Terraform module type", () => {
       const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
       const task = _graph.getTask("test-task")
 
-      const taskTask = new TaskTask({
+      const taskTask = new RunTask({
         garden: _garden,
         graph: _graph,
         task,
         log: _garden.log,
         force: false,
         forceBuild: false,
-        devModeServiceNames: [],
+        devModeDeployNames: [],
 
-        localModeServiceNames: [],
+        localModeDeployNames: [],
       })
 
       const result = await _garden.processTasks([taskTask], { throwOnError: true })
-      expect(result["task.test-task"]!.output.outputs.log).to.equal("workspace: foo, input: foo")
+      expect(result["task.test-task"]!.result.outputs.log).to.equal("workspace: foo, input: foo")
     })
   })
 

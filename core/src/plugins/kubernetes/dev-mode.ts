@@ -240,7 +240,7 @@ export async function configureDevMode({
 
     if (!target) {
       log.warn(
-        chalk.yellow(`Dev mode sync on ${action.description()} doesn't specify a target, and none is set as a default.`)
+        chalk.yellow(`Dev mode sync on ${action.longDescription()} doesn't specify a target, and none is set as a default.`)
       )
       continue
     }
@@ -459,7 +459,7 @@ export async function startDevModeSyncs({
 
       const description = `${sourceDescription} to ${targetDescription}`
 
-      log.info({ symbol: "info", section: action.name, msg: chalk.gray(`Syncing ${description} (${mode})`) })
+      log.info({ symbol: "info", section: action.key(), msg: chalk.gray(`Syncing ${description} (${mode})`) })
 
       await ensureMutagenSync({
         ctx,

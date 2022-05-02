@@ -130,7 +130,7 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
     }
 
     if (action.isDisabled() && !opts.includeDisabled) {
-      throw new GraphError(`${action.description()} is disabled.`, {
+      throw new GraphError(`${action.longDescription()} is disabled.`, {
         config: action.getConfig(),
       })
     }

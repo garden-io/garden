@@ -32,17 +32,17 @@ class CircularDependenciesError extends GardenBaseError {
   type = "circular-dependencies"
 }
 
-export interface GraphResult {
+export interface GraphResult<R = any> {
   type: TaskType
   description: string
   key: string
   name: string
-  output?: any
-  dependencyResults?: GraphResults
+  result?: R
+  dependencyResults: GraphResults | null
   batchId: string
-  startedAt?: Date
-  completedAt?: Date
-  error?: Error
+  startedAt: Date | null
+  completedAt: Date | null
+  error: Error | null
   version: string
 }
 
@@ -807,7 +807,7 @@ class TaskNode {
       description: this.getDescription(),
       completedAt: new Date(),
       batchId: this.batchId,
-      output,
+      result: output,
       dependencyResults,
       version: this.getVersion(),
     }

@@ -616,7 +616,7 @@ export class ModuleGraph {
 const depNodeTaskTypeMap: DepNodeTaskTypeMap = {
   build: "build",
   deploy: "deploy",
-  run: "task",
+  run: "run",
   test: "test",
 }
 

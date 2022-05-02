@@ -30,7 +30,7 @@ export class GetTaskResultTask extends BaseActionTask<RunAction> {
   }
 
   getDescription() {
-    return `getting result for action ${this.action.description()})`
+    return `getting result for action ${this.action.longDescription()})`
   }
 
   async process() {
