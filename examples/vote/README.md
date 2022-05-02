@@ -44,7 +44,7 @@ Tp start up the synchronization:
 garden dev
 ```
 
-Try making a change to one of the source files in the `vote` service, to see it synchronize into the
+Make a change to one of the source files in the `vote` service to see it synchronize into the
 running container, instead of the normal build+deploy flow. The configuration for the synchronization can be found in
 the garden config for the service.
 
