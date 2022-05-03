@@ -22,8 +22,6 @@ export interface ProcessMessage {
 }
 
 export interface ProcessErrorMessage extends ProcessMessage {
-  pid: number
-  message: string
   maxRetries: number
   minTimeoutMs: number
   retriesLeft: number
