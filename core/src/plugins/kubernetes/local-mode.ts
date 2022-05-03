@@ -34,7 +34,6 @@ export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
 export const localModeGuideLink = "https://docs.garden.io/guides/running-service-in-local-mode.md"
 
-const defaultReverseForwardingPortName = "http"
 const localhost = "127.0.0.1"
 
 interface ConfigureLocalModeParams {
@@ -136,26 +135,27 @@ function cleanupKnownHosts(localPort: number, log: LogEntry): void {
   }
 }
 
-function findPortByName(serviceSpec: ContainerServiceSpec, portName: string): ServicePortSpec | undefined {
-  return serviceSpec.ports.find((portSpec) => portSpec.name === portName)
+// todo: proxy container should expose all ports instead of a single one
+function findFirstForwardablePort(serviceSpec: ContainerServiceSpec): ServicePortSpec {
+  if (serviceSpec.ports.length === 0) {
+    throw new ConfigurationError(
+      `Cannot configure the local mode for service ${serviceSpec.name}: it does not expose any ports.`,
+      serviceSpec
+    )
+  }
+  const firstTcpPort = serviceSpec.ports.find((portSpec) => portSpec.protocol === "TCP")
+  return firstTcpPort || serviceSpec.ports[0]
 }
 
 function prepareLocalModeEnvVars({ service }: ConfigureLocalModeParams, keyPair: KeyPair): PrimitiveMap {
   const originalServiceSpec = service.spec
 
-  // todo: is it a good way to pick up the right port?
-  const httpPortSpec = findPortByName(originalServiceSpec, defaultReverseForwardingPortName)
-  if (!httpPortSpec) {
-    throw new ConfigurationError(
-      `Could not find ${defaultReverseForwardingPortName} port defined for service ${originalServiceSpec.name}`,
-      originalServiceSpec.ports
-    )
-  }
-
+  // todo: expose all original ports in the proxy container
+  const portSpec = findFirstForwardablePort(originalServiceSpec)
   const publicSshKey = keyPair.readPublicSshKey()
 
   return {
-    APP_PORT: httpPortSpec.containerPort,
+    APP_PORT: portSpec.containerPort,
     PUBLIC_KEY: publicSshKey,
     USER_NAME: PROXY_CONTAINER_USER_NAME,
   }
@@ -411,13 +411,8 @@ async function getReversePortForwardCommand(
   localSshPort: number
 ): Promise<OsCommand> {
   const localAppPort = localModeSpec.localAppPort
-  const remoteContainerPortSpec = findPortByName(service.spec, defaultReverseForwardingPortName)
-  if (!remoteContainerPortSpec) {
-    throw new ConfigurationError(
-      `Could not find ${defaultReverseForwardingPortName} port defined for service ${service.name}`,
-      service.spec.ports
-    )
-  }
+  // todo: get all forwardable ports and set up ssh tunnels for all
+  const remoteContainerPortSpec = findFirstForwardablePort(service.spec)
   const remoteContainerPort = remoteContainerPortSpec.containerPort
   const keyPair = await ProxySshKeystore.getKeyPair(service, log)
 
