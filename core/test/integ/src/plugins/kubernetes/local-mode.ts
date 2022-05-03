@@ -18,6 +18,8 @@ import { join } from "path"
 import { pathExists } from "fs-extra"
 import { execSync } from "child_process"
 import { PROXY_CONTAINER_USER_NAME } from "../../../../../src/plugins/kubernetes/constants"
+import { RuntimeError } from "../../../../../src/exceptions"
+import pRetry = require("p-retry")
 
 describe("local mode deployments and ssh tunneling behavior", () => {
   let garden: TestGarden
@@ -87,20 +89,35 @@ describe("local mode deployments and ssh tunneling behavior", () => {
 
     const grepSshTunnelCommand = `ps -ef | grep 'ssh -T -R ${containerPort}:127.0.0.1:${localPort} ${PROXY_CONTAINER_USER_NAME}@127.0.0.1'`
     log.info(`Looking for running ssh reverse port forwarding with command: ${grepSshTunnelCommand}`)
-    const foundSshProcessed = execSync(grepSshTunnelCommand).toString("utf-8").split("\n")
 
-    const expectedSshKeyParam = `-i ${privateSshKeyPath}`
-    const isPortForwardingRunning = foundSshProcessed.some((line) => line.includes(expectedSshKeyParam))
-    if (!isPortForwardingRunning) {
-      log.warn(
-        "Reverse ssh port forwarding has not been found. See the errors above if any, " +
-          `or check if the ssh process grep command was correct: ${grepSshTunnelCommand}`
-      )
-    }
+    // give some time (30 sec) to local mode to start
+    const isPortForwardingRunning = await pRetry(
+      () => {
+        const grepResult = execSync(grepSshTunnelCommand).toString("utf-8").split("\n")
+
+        const expectedSshKeyParam = `-i ${privateSshKeyPath}`
+        const res = grepResult.some((line) => line.includes(expectedSshKeyParam))
+        if (!res) {
+          log.warn(
+            "Reverse ssh port forwarding has not been found. See the errors above if any, " +
+              `or check if the ssh process grep command was correct: ${grepSshTunnelCommand}`
+          )
+        }
+        if (!res) {
+          throw new RuntimeError("Port-forwarding is still not running", {})
+        }
+        return res
+      },
+      {
+        retries: 5,
+        minTimeout: 6000,
+        onFailedAttempt: async (err) => {
+          log.warn(`${err.message}. ${err.retriesLeft} attempts left.`)
+        },
+      }
+    ).catch((_err) => false)
     expect(isPortForwardingRunning).to.be.true
-
-    // This is to make sure that the two-way sync doesn't recreate the local files we're about to delete here.
-    const actions = await garden.getActionRouter()
-    await actions.deleteService({ graph, log: garden.log, service })
+    // no need to delete the running k8s service.
+    // It will cause failing retry process for port-forwarding and eventually will kill the testing job.
   })
 })

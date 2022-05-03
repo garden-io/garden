@@ -14,7 +14,7 @@ services:
       command: []
     healthCheck:
       httpGet:
-        path: /hello-backend
+        path: ${var.ingressPath}
         port: http
     ports:
       - name: http
