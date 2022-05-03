@@ -79,7 +79,16 @@ export interface RetriableProcessConfig {
   log: LogEntry
 }
 
-type RetriableProcessState = "runnable" | "running" | "killed" | "retrying"
+type InitialProcessState = "runnable"
+type ActiveProcessState = "running" | "retrying"
+/**
+ * Process in the state "stopped" can be retried.
+ * This state might be useful if we want to expose a public API to stop/resume the processes explicitly.
+ *
+ * If all retry attempts have failed, then the process reaches the "failed" state which is a final one.
+ */
+type InactiveProcessState = "stopped" | "failed"
+type RetriableProcessState = InitialProcessState | ActiveProcessState | InactiveProcessState
 
 export class RetriableProcess {
   public readonly command: string
@@ -125,7 +134,7 @@ export class RetriableProcess {
     node.descendants.forEach((descendant) => RetriableProcess.recursiveAction(descendant, action))
   }
 
-  private kill(): void {
+  private stop(): void {
     const proc = this.proc
     if (!proc) {
       return
@@ -133,11 +142,11 @@ export class RetriableProcess {
 
     !proc.killed && proc.kill()
     this.proc = undefined
-    this.state = "killed"
+    this.state = "stopped"
   }
 
-  private killRecursively(): void {
-    RetriableProcess.recursiveAction(this, (node) => node.kill())
+  private stopRecursively(): void {
+    RetriableProcess.recursiveAction(this, (node) => node.stop())
   }
 
   private registerListeners(proc: ChildProcess): void {
@@ -237,7 +246,7 @@ export class RetriableProcess {
   private async tryRestart(): Promise<void> {
     // todo: should we lookup to parent nodes to find the parent-most killed/restarting process?
     this.unregisterListenersRecursively()
-    this.killRecursively()
+    this.stopRecursively()
     if (this.retriesLeft > 0) {
       // sleep synchronously to avoid pre-mature retry attempts
       sleepSync(this.minTimeoutMs)
@@ -245,7 +254,7 @@ export class RetriableProcess {
       this.state = "retrying"
       this.start()
     } else {
-      this.state = "killed"
+      this.state = "failed"
       this.log.error("Unable to start local mode, see the error details in the logs. Shutting down...")
       await shutdown(1)
     }
