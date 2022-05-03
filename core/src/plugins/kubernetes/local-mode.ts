@@ -382,7 +382,12 @@ async function getKubectlPortForwardProcess(
         log.error({
           status: "error",
           section: service.name,
-          msg: chalk.red(`Failed to start ssh port-forwarding, ${attemptsLeft(msg.retriesLeft, msg.minTimeoutMs)}`),
+          msg: chalk.red(
+            `Failed to start ssh port-forwarding with PID ${msg.pid}, ${attemptsLeft(
+              msg.retriesLeft,
+              msg.minTimeoutMs
+            )}`
+          ),
         })
       },
       onMessage: (_msg: ProcessMessage) => {},
@@ -470,7 +475,10 @@ async function getReversePortForwardProcess(
             status: "error",
             section: service.name,
             msg: chalk.red(
-              `Failed to start reverse port-forwarding, ${attemptsLeft(msg.retriesLeft, msg.minTimeoutMs)}`
+              `Failed to start reverse port-forwarding with PID ${msg.pid}, ${attemptsLeft(
+                msg.retriesLeft,
+                msg.minTimeoutMs
+              )}`
             ),
           })
         }
