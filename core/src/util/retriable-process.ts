@@ -126,7 +126,7 @@ export class RetriableProcess {
     this.state = "runnable"
   }
 
-  private getCurrentPid(): number | undefined {
+  public getCurrentPid(): number | undefined {
     return this.proc?.pid
   }
 
