@@ -270,7 +270,7 @@ describe("kubernetes container deployment handlers", () => {
       expect(resource.spec.template?.spec?.initContainers).to.eql([
         {
           name: "garden-dev-init",
-          image: "gardendev/k8s-sync:0.1.3",
+          image: "gardendev/k8s-sync:0.1.4",
           command: ["/bin/sh", "-c", "cp /usr/local/bin/mutagen-agent /.garden/mutagen-agent"],
           imagePullPolicy: "IfNotPresent",
           volumeMounts: [
