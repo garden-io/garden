@@ -17,11 +17,11 @@ import { TestGarden, makeTestGardenA, withDefaultGlobalOpts } from "../../../hel
 import { DeployCommand } from "../../../../src/commands/deploy"
 import { parseCliArgs } from "../../../../src/cli/helpers"
 import { LogEntry } from "../../../../src/logger/log-entry"
-import { DeleteServiceCommand } from "../../../../src/commands/delete"
+import { DeleteDeployCommand } from "../../../../src/commands/delete"
 import { GetOutputsCommand } from "../../../../src/commands/get/get-outputs"
 import { TestCommand } from "../../../../src/commands/test"
-import { RunTaskCommand } from "../../../../src/commands/run/task"
-import { RunTestCommand } from "../../../../src/commands/run/test"
+import { RunTaskCommand } from "../../../../src/commands/run/run-task"
+import { RunTestCommand } from "../../../../src/commands/run/run-test"
 import { PublishCommand } from "../../../../src/commands/publish"
 import { BuildCommand } from "../../../../src/commands/build"
 import stripAnsi from "strip-ansi"
@@ -197,7 +197,7 @@ describe("processCliArgs", () => {
     const { args } = parseAndProcess([], cmd)
     expect(args.$all).to.eql([])
     expect(args["--"]).to.eql([])
-    expect(args.modules).to.be.undefined
+    expect(args.names).to.be.undefined
   })
 
   it("populates the $all argument, omitting the command name", () => {
@@ -251,7 +251,7 @@ describe("processCliArgs", () => {
   it("correctly handles positional arguments", () => {
     const cmd = new BuildCommand()
     const { args } = parseAndProcess(["my-module"], cmd)
-    expect(args.modules).to.eql(["my-module"])
+    expect(args.names).to.eql(["my-module"])
   })
 
   it("correctly handles global option flags", () => {
@@ -301,7 +301,7 @@ describe("processCliArgs", () => {
   })
 
   it("throws an error when an unexpected positional argument is given", () => {
-    const cmd = new DeleteServiceCommand()
+    const cmd = new DeleteDeployCommand()
     expectError(
       () => parseAndProcess(["my-service", "bla"], cmd),
       (err) => expect(stripAnsi(err.message)).to.equal(`Unexpected positional argument "bla" (expected only services)`)
@@ -402,7 +402,7 @@ describe("processCliArgs", () => {
   })
 
   it("parses args and opts for a DeleteServiceCommand", async () => {
-    const cmd = new DeleteServiceCommand()
+    const cmd = new DeleteDeployCommand()
     const { args, opts } = parseAndProcess(["service-a"], cmd)
     await cmd.action({
       ...defaultActionParams,

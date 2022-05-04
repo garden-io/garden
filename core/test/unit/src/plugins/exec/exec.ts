@@ -17,7 +17,7 @@ import { GARDEN_BUILD_VERSION_FILENAME, DEFAULT_API_VERSION } from "../../../../
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { keyBy } from "lodash"
 import { getDataDir, makeTestModule, expectError } from "../../../../helpers"
-import { RunTask } from "../../../../../src/tasks/task"
+import { RunTask } from "../../../../../src/tasks/run"
 import { readModuleVersionFile } from "../../../../../src/vcs/vcs"
 import { dataDir, makeTestGarden } from "../../../../helpers"
 import { ModuleConfig } from "../../../../../src/config/module"

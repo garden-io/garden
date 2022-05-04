@@ -177,7 +177,7 @@ export class TestGarden extends Garden {
   /**
    * Override to cache the config graph.
    */
-  async getConfigGraph(params: { log: LogEntry; runtimeContext?: RuntimeContext; emit: boolean; noCache?: boolean }) {
+  async getConfigGraph(params: { log: LogEntry; runtimeContext?: RuntimeContext; emit: boolean; noCache?: boolean }): Promise<ConfigGraph> {
     // We don't try to cache if a runtime context is given (TODO: might revisit that)
     let cacheKey: string | undefined = undefined
 

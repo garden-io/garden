@@ -6,78 +6,40 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import chalk from "chalk"
-import { GardenModule } from "../types/module"
-import { BaseActionTaskParams, BaseActionTask, TaskType } from "../tasks/base"
-import { LogEntry } from "../logger/log-entry"
-import { flatten } from "lodash"
+import { BaseActionTaskParams, BaseActionTask, ActionTaskProcessParams } from "../tasks/base"
 import { Profile } from "../util/profiling"
 import { BuildAction } from "../actions/build"
 import pluralize from "pluralize"
+import { BuildResult } from "../plugin/handlers/build/build"
+import { BuildStatus } from "../plugin/handlers/build/get-status"
 
 export interface BuildTaskParams extends BaseActionTaskParams<BuildAction> {
   force: boolean
 }
 
 @Profile()
-export class BuildTask extends BaseActionTask<BuildAction> {
-  type: TaskType = "build"
+export class BuildTask extends BaseActionTask<BuildAction, BuildResult, BuildStatus> {
+  type = "build"
   concurrencyLimit = 5
-
-  async resolveDependencies() {
-    const deps = this.graph.getDependencies({ kind: "build", name: this.getName(), recursive: false })
-
-    const buildTasks = flatten(
-      await Bluebird.map(deps.build, async (m: GardenModule) => {
-        return new BuildTask({
-          garden: this.garden,
-          graph: this.graph,
-          log: this.log,
-          module: m,
-          force: this.force,
-        })
-      })
-    )
-
-    return buildTasks
-  }
 
   getDescription() {
     return `building ${this.action.longDescription()}`
   }
 
-  async process() {
-    const action = this.action
+  async getStatus({ resolvedAction: action }: ActionTaskProcessParams<BuildAction>) {
+    const router = await this.garden.getActionRouter()
+    return router.build.getStatus({ log: this.log, graph: this.graph, action })
+  }
+
+  async process({ resolvedAction: action }: ActionTaskProcessParams<BuildAction>) {
     const router = await this.garden.getActionRouter()
 
-    let log: LogEntry
-
-    if (this.force) {
-      log = this.log.info({
-        section: this.getName(),
-        msg: `Building version ${this.version}...`,
-        status: "active",
-      })
-    } else {
-      log = this.log.info({
-        section: this.getName(),
-        msg: `Getting build status for ${this.version}...`,
-        status: "active",
-      })
-
-      const status = await router.build.getStatus({ log: this.log, graph: this.graph, action })
-
-      if (status.ready) {
-        log.setSuccess({
-          msg: chalk.green(`Already built`),
-          append: true,
-        })
-        return { fresh: false }
-      }
-
-      log.setState(`Building version ${this.version}...`)
-    }
+    let log = this.log.info({
+      section: this.getName(),
+      msg: `Building version ${this.version}...`,
+      status: "active",
+    })
 
     const files = action.getFullVersion().files
 

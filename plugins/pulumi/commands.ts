@@ -11,7 +11,6 @@ import Bluebird from "bluebird"
 import {
   ConfigGraph,
   Garden,
-  GardenService,
   LogEntry,
   PluginCommand,
   PluginCommandParams,
@@ -19,9 +18,10 @@ import {
   BuildTask,
   PluginTask,
   GraphResults,
+  PluginActionTask,
 } from "@garden-io/sdk/types"
 
-import { PulumiModule, PulumiProvider } from "./config"
+import { PulumiDeploy, PulumiProvider } from "./config"
 import { Profile } from "@garden-io/core/build/src/util/profiling"
 import {
   cancelUpdate,
@@ -44,9 +44,12 @@ import { splitLast } from "@garden-io/core/build/src/util/util"
 import { deletePulumiService } from "./handlers"
 import { join } from "path"
 import { flatten, pickBy } from "lodash"
+import { isDeployAction } from "@garden-io/core/src/actions/deploy"
+import { Resolved } from "@garden-io/core/src/actions/base"
+import { ActionConfigContext } from "@garden-io/core/src/config/template-contexts/actions"
 
 interface PulumiParamsWithService extends PulumiParams {
-  service: GardenService
+  action: Resolved<PulumiDeploy>
 }
 
 type PulumiRunFn = (params: PulumiParamsWithService) => Promise<any>
@@ -87,7 +90,7 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
       await emptyDir(previewDirPath)
     },
     runFn: async (params) => {
-      const { ctx, module, log } = params
+      const { ctx, action, log } = params
       const previewDirPath = getPreviewDirPath(ctx)
       const { affectedResourcesCount, operationCounts, previewUrl, planPath } = await previewStack({
         ...params,
@@ -98,7 +101,7 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
         // We copy the plan to a subdirectory of the preview dir.
         // This is to facilitate copying only those plans that aren't no-ops out of the preview dir for subsequent
         // use in a deployment.
-        const planFileName = getPlanFileName(module, ctx.environmentName)
+        const planFileName = getPlanFileName(action, ctx.environmentName)
         const modifiedPlanPath = join(getModifiedPlansDirPath(ctx), planFileName)
         await copy(planPath, modifiedPlanPath)
         log.debug(`Copied plan to ${modifiedPlanPath}`)
@@ -159,8 +162,8 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
     name: "destroy",
     commandDescription: "pulumi destroy",
     runFn: async (params) => {
-      if (params.module.spec.allowDestroy) {
-        await deletePulumiService(params)
+      if (params.action.getSpec("allowDestroy")) {
+        await deletePulumiDeploy!(params)
       }
     },
   },
@@ -169,15 +172,16 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
 const makePluginContextForService = async (
   params: PulumiParamsWithService & { garden: Garden; graph: ConfigGraph }
 ) => {
-  const { log, garden, graph, service, provider, ctx } = params
+  const { log, garden, action, graph, provider, ctx } = params
   const allProviders = await garden.resolveProviders(log)
-  const allModules = graph.getModules()
-  const templateContext = ModuleConfigContext.fromModule({
+  const modules = graph.getModules()
+  const templateContext = new ActionConfigContext({
     garden,
     resolvedProviders: allProviders,
-    module: service.module,
-    modules: allModules,
     partialRuntimeResolution: false,
+    modules,
+    action,
+    variables: garden.variables,
   })
   const ctxForService = await garden.getPluginContext(provider, templateContext, ctx.events)
   return ctxForService
@@ -187,6 +191,7 @@ interface PulumiPluginCommandTaskParams {
   garden: Garden
   graph: ConfigGraph
   log: LogEntry
+  action: PulumiDeploy
   commandName: string
   commandDescription: string
   skipRuntimeDependencies: boolean
@@ -195,8 +200,7 @@ interface PulumiPluginCommandTaskParams {
 }
 
 @Profile()
-class PulumiPluginCommandTask extends PluginTask {
-  graph: ConfigGraph
+class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy> {
   pulumiParams: PulumiParamsWithService
   commandName: string
   commandDescription: string
@@ -207,14 +211,23 @@ class PulumiPluginCommandTask extends PluginTask {
     garden,
     graph,
     log,
+    action,
     commandName,
     commandDescription,
     skipRuntimeDependencies = false,
     runFn,
     pulumiParams,
   }: PulumiPluginCommandTaskParams) {
-    super({ garden, log, force: false, version: pulumiParams.service.version })
-    this.graph = graph
+    super({
+      garden,
+      log,
+      force: false,
+      action,
+      graph,
+      fromWatch: false,
+      devModeDeployNames: [],
+      localModeDeployNames: [],
+    })
     this.commandName = commandName
     this.commandDescription = commandDescription
     this.skipRuntimeDependencies = skipRuntimeDependencies
@@ -224,61 +237,47 @@ class PulumiPluginCommandTask extends PluginTask {
     this.concurrencyLimit = provider.config.pluginTaskConcurrencyLimit
   }
 
-  getName() {
-    return this.pulumiParams.service.name
+  getDescription() {
+    return `deploying ${this.action.longDescription()})`
   }
 
-  getDescription(): string {
-    return `running ${chalk.white(this.commandName)} for ${this.pulumiParams.service.name}`
-  }
+  resolveDependencies() {
+    const pulumiDeployNames = this.graph
+      .getDeploys()
+      .filter((d) => d.type === "pulumi")
+      .map((d) => d.name)
 
-  async resolveDependencies() {
-    // We process any build dependencies, since by default we don't have a build step for plugin tasks.
-    const buildDeps = flatten(
-      await Bluebird.map(Object.values(this.pulumiParams.service.module.buildDependencies), async (depModule) => {
-        return BuildTask.factory({
-          garden: this.garden,
-          graph: this.graph,
-          log: this.log,
-          module: depModule,
-          force: false,
-        })
-      })
-    )
-
-    if (this.skipRuntimeDependencies) {
-      return [...buildDeps]
-    }
-
-    const pulumiServiceNames = this.graph
-      .getModules()
-      .filter((m) => m.type === "pulumi")
-      .map((m) => m.name) // module names are the same as service names for pulumi modules
-    const deployDeps = this.graph
+    const deps = this.graph
       .getDependencies({
-        nodeType: "deploy",
+        kind: "Deploy",
         name: this.getName(),
         recursive: false,
-        filter: (depNode) => pulumiServiceNames.includes(depNode.name),
+        filter: (depNode) => pulumiDeployNames.includes(depNode.name),
       })
-      .deploy.map((depService) => {
-        return new PulumiPluginCommandTask({
-          garden: this.garden,
-          graph: this.graph,
-          log: this.log,
-          commandName: this.commandName,
-          commandDescription: this.commandDescription,
-          skipRuntimeDependencies: this.skipRuntimeDependencies,
-          runFn: this.runFn,
-          pulumiParams: { ...this.pulumiParams, module: depService.module, service: depService },
-        })
+      .filter(isDeployAction)
+
+    return deps.map((action) => {
+      return new PulumiPluginCommandTask({
+        garden: this.garden,
+        graph: this.graph,
+        log: this.log,
+        action,
+        commandName: this.commandName,
+        commandDescription: this.commandDescription,
+        skipRuntimeDependencies: this.skipRuntimeDependencies,
+        runFn: this.runFn,
+        pulumiParams: this.pulumiParams,
       })
-    return [...buildDeps, ...deployDeps]
+    }
   }
 
-  async process(): Promise<{}> {
+  async getStatus() {
+    return null
+  }
+
+  async process() {
     const log = this.log.info({
-      section: this.getName(),
+      section: this.action.key(),
       msg: chalk.gray(`Running ${chalk.white(this.commandDescription)}`),
       status: "active",
     })
@@ -321,23 +320,19 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
   return {
     name,
     description: dedent`
-      Runs ${pulumiCommand} for the specified pulumi services, in dependency order (or for all pulumi services if no
-      service names are provided).
+      Runs ${pulumiCommand} for the specified pulumi actions, in dependency order (or for all pulumi actions if no
+      names are provided).
 
-      If the --skip-dependencies option is used, ${pulumiCommand} will only be run for the specified services, but not
-      any pulumi services that they depend on (unless they're specified too).
+      If the --skip-dependencies option is used, ${pulumiCommand} will only be run for the specified actions, but not any pulumi actions that they depend on (unless they're specified too).
 
       Note: The --skip-dependencies option has to be put after the -- when invoking pulumi plugin commands.
     `,
-    // We don't want to call `garden.getConfigGraph` twice (we need to do it in the handler anyway)
-    resolveModules: false,
+    resolveGraph: true,
 
     title: ({ args }) =>
-      chalk.bold.magenta(`Running ${chalk.white.bold(pulumiCommand)} for module ${chalk.white.bold(args[0] || "")}`),
+      chalk.bold.magenta(`Running ${chalk.white.bold(pulumiCommand)} for actions ${chalk.white.bold(args[0] || "")}`),
 
-    async handler({ garden, ctx, args, log }: PluginCommandParams) {
-      const graph = await garden.getConfigGraph({ log, emit: false })
-
+    async handler({ garden, ctx, args, log, graph }: PluginCommandParams) {
       const parsed = parsePluginCommandArgs({
         stringArgs: args,
         optionSpec: pulumiCommandOpts,
@@ -345,20 +340,30 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
       })
       const { args: parsedArgs, opts } = parsed
       const skipRuntimeDependencies = opts["skip-dependencies"]
-      const serviceNames = parsedArgs.length === 0 ? undefined : parsedArgs
+      const names = parsedArgs.length === 0 ? undefined : parsedArgs
 
       beforeFn && (await beforeFn({ ctx, log }))
 
+      const allProviders = await garden.resolveProviders(log)
+      const allModules = graph.getModules()
       const provider = ctx.provider as PulumiProvider
-      const services = graph.getServices({ names: serviceNames }).filter((s) => s.module.type === "pulumi")
 
-      const tasks = await Bluebird.map(services, async (service) => {
+      const actions = graph.getDeploys({ names }).filter((a) => a.type === "pulumi")
+
+      const tasks = await Bluebird.map(actions, async (action) => {
+        const templateContext = new ActionConfigContext({
+          garden,
+          resolvedProviders: allProviders,
+          action,
+          partialRuntimeResolution: false,
+          variables: "TODO-G2",
+          modules: allModules,
+        })
         const pulumiParams: PulumiParamsWithService = {
-          ctx,
+          ctx: await garden.getPluginContext(provider, templateContext, ctx.events),
           provider,
           log,
-          module: <PulumiModule>service.module,
-          service,
+          action,
         }
         // TODO: Generate a non-empty runtime context to provide runtime values for template resolution in varfiles.
         // This will require processing deploy & task dependencies (also for non-pulumi modules).
@@ -366,6 +371,7 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
           garden,
           graph,
           log,
+          action,
           commandName: name,
           commandDescription,
           skipRuntimeDependencies,
@@ -374,7 +380,7 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
         })
       })
 
-      const results = await garden.processTasks(tasks)
+      const results = await garden.processTasks({ log, tasks, throwOnError: true })
 
       let commandResult: any = {}
       if (afterFn) {

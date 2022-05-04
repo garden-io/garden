@@ -11,21 +11,22 @@ import chalk from "chalk"
 import { keyBy, flatten } from "lodash"
 
 import { BaseTask } from "./tasks/base"
-import { GraphResults } from "./task-graph"
 import { Garden } from "./garden"
 import { EmojiName, LogEntry } from "./logger/log-entry"
 import { ConfigGraph } from "./graph/config-graph"
-import { dedent } from "./util/string"
+import { dedent, naturalList } from "./util/string"
 import { ConfigurationError } from "./exceptions"
 import { uniqByName } from "./util/util"
 import { renderDivider } from "./logger/util"
 import { Events } from "./events"
 import { BuildTask } from "./tasks/build"
 import { DeployTask } from "./tasks/deploy"
-import { filterTestConfigs, TestTask } from "./tasks/test"
-import { testFromConfig } from "./types/test"
-import { TaskTask } from "./tasks/task"
+import { TestTask } from "./tasks/test"
+import { RunTask } from "./tasks/run"
 import { Action, actionReferenceToString } from "./actions/base"
+import { getTestActions } from "./commands/test"
+import { GraphResults } from "./graph/solver"
+import { GardenModule } from "./types/module"
 
 export type ProcessHandler = (graph: ConfigGraph, action: Action) => Promise<BaseTask[]>
 
@@ -40,9 +41,10 @@ interface ProcessParams {
    */
   overRideWatchStatusLine?: string
   /**
-   * If provided, and if `watch === true`, don't watch files in the module roots of these modules.
+   * If provided, and if `watch === true`, don't watch files in the roots of these actions and modules.
    */
   skipWatch?: Action[]
+  skipWatchModules?: GardenModule[]
   initialTasks: BaseTask[]
   /**
    * Use this if the behavior should be different on watcher changes than on initial processing
@@ -55,7 +57,7 @@ export interface ProcessActionsParams extends ProcessParams {
 }
 
 export interface ProcessResults {
-  taskResults: GraphResults
+  graphResults: GraphResults
   restartRequired?: boolean
 }
 
@@ -69,6 +71,7 @@ export async function processActions({
   actions,
   initialTasks,
   skipWatch,
+  skipWatchModules,
   watch,
   changeHandler,
   overRideWatchStatusLine,
@@ -102,11 +105,11 @@ export async function processActions({
     })
   }
 
-  const results = await garden.processTasks(initialTasks)
+  const results = await garden.processTasks({ tasks: initialTasks, log })
 
   if (!watch && !garden.persistent) {
     return {
-      taskResults: results,
+      graphResults: results.results,
       restartRequired: false,
     }
   }
@@ -127,7 +130,7 @@ export async function processActions({
       })
     })
     return {
-      taskResults: results,
+      graphResults: results.results,
       restartRequired: false,
     }
   }
@@ -139,7 +142,7 @@ export async function processActions({
   const actionsToWatch = uniqByName([...deps, ...actions])
   const actionsByRef = keyBy(actionsToWatch, (a) => a.key())
 
-  await garden.startWatcher({ graph, skipActions: skipWatch })
+  await garden.startWatcher({ graph, skipActions: skipWatch, skipModules: skipWatchModules })
 
   const taskError = () => {
     if (!!statusLine) {
@@ -246,7 +249,7 @@ export async function processActions({
           return changeHandler!(graph, a)
         })
       )
-      await garden.processTasks(tasks)
+      await garden.processTasks({ tasks, log })
     })
 
     garden.events.on("buildRequested", async (event: Events["buildRequested"]) => {
@@ -260,7 +263,7 @@ export async function processActions({
         garden.clearCaches()
         graph = await garden.getConfigGraph({ log, emit: false })
         const tasks = await cloudEventHandlers.buildRequested({ log, request: event, graph, garden })
-        await garden.processTasks(tasks)
+        await garden.processTasks({ tasks, log })
       } catch (err) {
         log.error(err.message)
       }
@@ -285,8 +288,8 @@ export async function processActions({
       try {
         garden.clearCaches()
         graph = await garden.getConfigGraph({ log, emit: false })
-        const deployTask = await cloudEventHandlers.deployRequested({ log, request: event, graph, garden })
-        await garden.processTasks([deployTask])
+        const tasks = await cloudEventHandlers.deployRequested({ log, request: event, graph, garden })
+        await garden.processTasks({ tasks, log })
       } catch (err) {
         log.error(err.message)
       }
@@ -304,8 +307,8 @@ export async function processActions({
       try {
         garden.clearCaches()
         graph = await garden.getConfigGraph({ log, emit: false })
-        const testTasks = await cloudEventHandlers.testRequested({ log, request: event, graph, garden })
-        await garden.processTasks(testTasks)
+        const tasks = await cloudEventHandlers.testRequested({ log, request: event, graph, garden })
+        await garden.processTasks({ tasks, log })
       } catch (err) {
         log.error(err.message)
       }
@@ -318,8 +321,8 @@ export async function processActions({
       try {
         garden.clearCaches()
         graph = await garden.getConfigGraph({ log, emit: false })
-        const taskTask = await cloudEventHandlers.taskRequested({ log, request: event, graph, garden })
-        await garden.processTasks([taskTask])
+        const tasks = await cloudEventHandlers.taskRequested({ log, request: event, graph, garden })
+        await garden.processTasks({ tasks, log })
       } catch (err) {
         log.error(err.message)
       }
@@ -329,7 +332,7 @@ export async function processActions({
   })
 
   return {
-    taskResults: {}, // TODO: Return latest results for each task key processed between restarts?
+    graphResults: {}, // TODO: Return latest results for each task key processed between restarts?
     restartRequired,
   }
 }
@@ -345,65 +348,77 @@ export interface CloudEventHandlerCommonParams {
  *       depending on the corresponding deployment flags. See class DeployCommand for details.
  */
 export const cloudEventHandlers = {
+  // TODO-G2: need to reformulate the request schema
+  // TODO-G2: this logic duplicates some of the command code, we should split those accordingly
   buildRequested: async (params: CloudEventHandlerCommonParams & { request: Events["buildRequested"] }) => {
     const { garden, graph, log } = params
     const { moduleName, force } = params.request
-    const tasks = await BuildTask.factory({
+    const task = new BuildTask({
       garden,
       log,
       graph,
-      module: graph.getModule(moduleName),
+      action: graph.getBuild(moduleName),
       force,
+      forceActions: [],
+      devModeDeployNames: [],
+      localModeDeployNames: [],
+      fromWatch: false,
     })
-    return tasks
+    return [task]
   },
   testRequested: async (params: CloudEventHandlerCommonParams & { request: Events["testRequested"] }) => {
     const { garden, graph, log } = params
     const { moduleName, testNames, force, forceBuild } = params.request
     const module = graph.getModule(moduleName)
-    return filterTestConfigs(module.testConfigs, testNames).map((config) => {
+    const actions = getTestActions({ graph, modules: [module], filterNames: testNames })
+    return actions.map((action) => {
       return new TestTask({
         garden,
         graph,
         log,
         force,
-        forceBuild,
-        test: testFromConfig(module, config, graph),
+        forceActions: forceBuild ? graph.getBuilds() : [],
+        action,
         skipRuntimeDependencies: params.request.skipDependencies,
         devModeDeployNames: [],
         localModeDeployNames: [],
+        fromWatch: false,
       })
     })
   },
   deployRequested: async (params: CloudEventHandlerCommonParams & { request: Events["deployRequested"] }) => {
     const { garden, graph, log } = params
     const { serviceName, force, forceBuild } = params.request
-    return new DeployTask({
+    const task = new DeployTask({
       garden,
       log,
       graph,
-      service: graph.getService(serviceName),
+      action: graph.getDeploy(serviceName),
       force,
-      forceBuild,
-      fromWatch: true,
-      skipRuntimeDependencies: params.request.skipDependencies,
+      forceActions: forceBuild ? graph.getBuilds() : [],
+      fromWatch: false,
+      // TODO-G2
+      // skipRuntimeDependencies: params.request.skipDependencies,
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
+    return [task]
   },
   taskRequested: async (params: CloudEventHandlerCommonParams & { request: Events["taskRequested"] }) => {
     const { garden, graph, log } = params
     const { taskName, force, forceBuild } = params.request
-    return new TaskTask({
+    const task = new RunTask({
       garden,
       log,
       graph,
-      task: graph.getTask(taskName),
+      action: graph.getRun(taskName),
       devModeDeployNames: [],
       localModeDeployNames: [],
       force,
-      forceBuild,
+      forceActions: forceBuild ? graph.getBuilds() : [],
+      fromWatch: false,
     })
+    return [task]
   },
 }
 

@@ -20,6 +20,7 @@ import { FileStatsHelper, syncFileAsync, cloneFile, scanDirectoryForClone, Mappe
 import { difference } from "lodash"
 import { unlink } from "fs"
 import { BuildAction, BuildActionConfig } from "../actions/build"
+import { ModuleConfig } from "../config/module"
 
 const fileSyncConcurrencyLimit = 100
 
@@ -112,10 +113,14 @@ export class BuildStaging {
 
   // TODO-G2: remove
   // TODO-G2: ensure build path elsewhere?
-  getBuildPath(config: BuildActionConfig): string {
+  getBuildPath(config: BuildActionConfig | ModuleConfig): string {
     // We don't stage the build for local exec modules, so the module path is effectively the build path.
-    if (config.buildAtSource) {
-      return config.basePath
+    if (config.kind === "Module" && config.type === "exec" && config["local"] === true) {
+      return config.path
+    }
+
+    if (config["buildAtSource"]) {
+      return config["basePath"]
     }
 
     // This returns the same result for modules and module configs

@@ -19,7 +19,7 @@ import { relative, resolve, posix, dirname } from "path"
 import { Garden } from "./garden"
 import { ConfigurationError, FilesystemError, PluginError } from "./exceptions"
 import { deline, dedent } from "./util/string"
-import { ModuleConfigMap, GardenModule, ModuleMap, moduleFromConfig } from "./types/module"
+import { ModuleConfigMap, GardenModule, ModuleMap, moduleFromConfig, ModuleTypeMap } from "./types/module"
 import { getModuleTypeBases } from "./plugins"
 import { BuildDependencyConfig, ModuleConfig, moduleConfigSchema } from "./config/module"
 import { Profile } from "./util/profiling"
@@ -28,7 +28,7 @@ import { allowUnknown, DeepPrimitiveMap } from "./config/common"
 import { ProviderMap } from "./config/provider"
 import { RuntimeContext } from "./runtime-context"
 import chalk from "chalk"
-import { DependencyValidationGraph } from "./util/validate-dependencies"
+import { DependencyGraph } from "./graph/common"
 import Bluebird from "bluebird"
 import { readFile, mkdirp, writeFile } from "fs-extra"
 import { LogEntry } from "./logger/log-entry"
@@ -90,8 +90,8 @@ export class ModuleResolver {
     // Collect template references for every raw config and work out module references in templates and explicit
     // dependency references. We use two graphs, one will be fully populated as we progress, the other we gradually
     // remove nodes from as we complete the processing.
-    const fullGraph = new DependencyValidationGraph()
-    const processingGraph = new DependencyValidationGraph()
+    const fullGraph = new DependencyGraph()
+    const processingGraph = new DependencyGraph()
 
     for (const key of Object.keys(this.rawConfigsByKey)) {
       for (const graph of [fullGraph, processingGraph]) {
@@ -103,7 +103,7 @@ export class ModuleResolver {
       const deps = this.getModuleDependenciesFromConfig(rawConfig, buildPath)
       for (const graph of [fullGraph, processingGraph]) {
         for (const dep of deps) {
-          const depKey = getModuleKey(dep.name, dep.plugin)
+          const depKey = dep.name
           graph.addNode(depKey)
           graph.addDependency(key, depKey)
         }
@@ -140,7 +140,7 @@ export class ModuleResolver {
 
           // Check if any new build dependencies were added by the configure handler
           for (const dep of resolvedConfig.build.dependencies) {
-            const depKey = getModuleKey(dep.name, dep.plugin)
+            const depKey = dep.name
 
             if (!dependencyNames.includes(depKey)) {
               this.log.silly(`ModuleResolver: Found new dependency ${depKey} when resolving ${moduleKey}`)
@@ -248,8 +248,12 @@ export class ModuleResolver {
       garden: this.garden,
       variables: this.garden.variables,
       resolvedProviders: this.resolvedProviders,
-      moduleConfig: rawConfig,
+      name: rawConfig.name,
+      path: rawConfig.path,
       buildPath,
+      parentName: rawConfig.parentName,
+      templateName: rawConfig.templateName,
+      inputs: rawConfig.inputs,
       modules: [],
       runtimeContext: this.runtimeContext,
       partialRuntimeResolution: true,
@@ -297,8 +301,12 @@ export class ModuleResolver {
       variables: garden.variables,
       resolvedProviders: this.resolvedProviders,
       modules: dependencies,
-      moduleConfig: config,
+      name: config.name,
+      path: config.path,
       buildPath,
+      parentName: config.parentName,
+      templateName: config.templateName,
+      inputs: config.inputs,
       runtimeContext: this.runtimeContext,
       partialRuntimeResolution: true,
     }
@@ -341,7 +349,6 @@ export class ModuleResolver {
     // And finally fully resolve the config
     const configContext = new ModuleConfigContext({
       ...templateContextParams,
-      moduleConfig: config,
       variables: { ...garden.variables, ...resolvedModuleVariables },
     })
 
@@ -465,8 +472,12 @@ export class ModuleResolver {
       garden: this.garden,
       resolvedProviders: this.resolvedProviders,
       variables: { ...this.garden.variables, ...resolvedConfig.variables },
-      moduleConfig: resolvedConfig,
+      name: resolvedConfig.name,
+      path: resolvedConfig.path,
       buildPath,
+      parentName: resolvedConfig.parentName,
+      templateName: resolvedConfig.templateName,
+      inputs: resolvedConfig.inputs,
       modules: dependencies,
       runtimeContext: this.runtimeContext,
       partialRuntimeResolution: true,
@@ -658,6 +669,7 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
         disabled: module.disabled,
         source: module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
       },
+
       convertBuildDependency: (d: string | BuildDependencyConfig) => {
         if (typeof d === "string") {
           return "build:" + d
@@ -665,6 +677,10 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
           return "build:" + d.name
         }
       },
+      convertTestName: (d: string) => {
+        return module.name + "-" + d
+      },
+
       convertRuntimeDependencies,
       prepareRuntimeDependencies(deps: string[], build?: BuildActionConfig) {
         const resolved: string[] = convertRuntimeDependencies(deps)

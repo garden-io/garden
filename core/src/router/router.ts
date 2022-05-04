@@ -7,15 +7,14 @@
  */
 
 import chalk from "chalk"
+import { mapValues } from "lodash"
 
-import { RuntimeError } from "../exceptions"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { GardenPlugin, ModuleTypeDefinition } from "../plugin/plugin"
 import { ServiceStatusMap } from "../types/service"
-import { GetServiceStatusTask } from "../tasks/get-service-status"
 import { getServiceStatuses } from "../tasks/base"
-import { DeleteDeployTask, deletedServiceStatuses } from "../tasks/delete-service"
+import { DeleteDeployTask, deletedDeployStatuses } from "../tasks/delete-service"
 import { DeployTask } from "../tasks/deploy"
 import { Profile } from "../util/profiling"
 import { ConfigGraph } from "../graph/config-graph"
@@ -46,10 +45,10 @@ export interface DeployManyParams {
 export class ActionRouter extends BaseRouter {
   public readonly provider: ProviderRouter
   public readonly module: ModuleRouter
-  public readonly build: WrappedActionRouterHandlers<"build">
-  public readonly deploy: WrappedActionRouterHandlers<"deploy">
-  public readonly run: WrappedActionRouterHandlers<"run">
-  public readonly test: WrappedActionRouterHandlers<"test">
+  public readonly build: WrappedActionRouterHandlers<"Build">
+  public readonly deploy: WrappedActionRouterHandlers<"Deploy">
+  public readonly run: WrappedActionRouterHandlers<"Run">
+  public readonly test: WrappedActionRouterHandlers<"Test">
 
   constructor(
     garden: Garden,
@@ -87,18 +86,21 @@ export class ActionRouter extends BaseRouter {
 
     const tasks = actions.map(
       (action) =>
-        new GetServiceStatusTask({
-          force: true,
+        new DeployTask({
+          force: false,
           garden: this.garden,
           graph,
           log,
           action,
           devModeDeployNames: [],
+          localModeDeployNames: [],
+          forceActions: [],
+          fromWatch: false,
         })
     )
-    const results = await this.garden.processTasks(tasks, { throwOnError: true })
+    const { results } = await this.garden.processTasks({ tasks, log, throwOnError: true, statusOnly: true })
 
-    return getServiceStatuses(results)
+    return mapValues(getServiceStatuses(results), (r) => r.detail!)
   }
 
   async deployMany({ graph, deployNames, force = false, forceBuild = false, log }: DeployManyParams) {
@@ -112,44 +114,51 @@ export class ActionRouter extends BaseRouter {
           graph,
           action,
           force,
-          forceBuild,
+          forceActions: forceBuild ? graph.getBuilds() : [],
           fromWatch: false,
           devModeDeployNames: [],
+          localModeDeployNames: [],
         })
     )
 
-    return this.garden.processTasks(tasks)
+    return this.garden.processTasks({ tasks, log })
   }
 
   /**
    * Deletes all or specified deployments in the environment.
    */
-  async deleteDeploys(graph: ConfigGraph, log: LogEntry, names?: string[]) {
+  async deleteDeploys({
+    graph,
+    log,
+    names,
+    dependantsFirst,
+  }: {
+    graph: ConfigGraph
+    log: LogEntry
+    dependantsFirst?: boolean
+    names?: string[]
+  }) {
     const servicesLog = log.info({ msg: chalk.white("Deleting services..."), status: "active" })
 
     const deploys = graph.getDeploys({ names })
-
-    const deleteResults = await this.garden.processTasks(
-      deploys.map((action) => {
-        return new DeleteDeployTask({
-          garden: this.garden,
-          graph,
-          action,
-          log: servicesLog,
-          includeDependants: true,
-        })
+    const tasks = deploys.map((action) => {
+      return new DeleteDeployTask({
+        garden: this.garden,
+        graph,
+        action,
+        log: servicesLog,
+        dependantsFirst,
+        force: false,
+        forceActions: [],
+        devModeDeployNames: [],
+        localModeDeployNames: [],
+        fromWatch: false,
       })
-    )
+    })
 
-    const failed = Object.values(deleteResults).filter((r) => r && r.error).length
+    const { results } = await this.garden.processTasks({ tasks, log, throwOnError: true })
 
-    if (failed) {
-      throw new RuntimeError(`${failed} delete task(s) failed!`, {
-        results: deleteResults,
-      })
-    }
-
-    const serviceStatuses = deletedServiceStatuses(deleteResults)
+    const serviceStatuses = deletedDeployStatuses(results)
 
     servicesLog.setSuccess()
 

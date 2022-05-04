@@ -12,13 +12,12 @@ import dedent = require("dedent")
 import { CommandError } from "../../exceptions"
 import { printHeader } from "../../logger/util"
 import { prepareRuntimeContext } from "../../runtime-context"
-import { getRunTaskResults, getServiceStatuses } from "../../tasks/base"
 import { DeployTask } from "../../tasks/deploy"
 import { RunResult } from "../../plugin/base"
 import { deline } from "../../util/string"
 import { Command, CommandParams, CommandResult, handleRunResult, ProcessResultMetadata } from "../base"
 import { printRuntimeContext } from "./run"
-import { GraphResults } from "../../task-graph"
+import { GraphResults } from "../../graph/solver"
 import { StringParameter, BooleanParameter } from "../../cli/params"
 
 const runDeployArgs = {
@@ -48,7 +47,7 @@ interface RunDeployOutput {
 export class RunDeployCommand extends Command<Args, Opts> {
   name = "deploy"
   help = "Run an ad-hoc instance of the specified deploy/service."
-  alias = "service"
+  aliases = ["service"]
 
   // Makes no sense to run a deploy (which is expected to stay running) except when attaching in the CLI
   cliOnly = true
@@ -98,23 +97,15 @@ export class RunDeployCommand extends Command<Args, Opts> {
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
-    const dependencyResults = await garden.processTasks(await deployTask.resolveDependencies())
 
-    const dependencies = graph.getDependencies({ kind: "deploy", name: serviceName, recursive: false })
-    const serviceStatuses = getServiceStatuses(dependencyResults)
-    const taskResults = getRunTaskResults(dependencyResults)
+    const tasks = deployTask.resolveDependencies()
+    const { results: dependencyResults } = await garden.processTasks({ tasks, log, throwOnError: true })
     const interactive = true
 
-    const version = action.versionString()
-
     const runtimeContext = await prepareRuntimeContext({
-      garden,
+      action,
       graph,
-      dependencies,
-      version,
-      moduleVersion: version,
-      serviceStatuses,
-      taskResults,
+      graphResults: dependencyResults,
     })
 
     printRuntimeContext(log, runtimeContext)
@@ -134,10 +125,11 @@ export class RunDeployCommand extends Command<Args, Opts> {
 
     return handleRunResult({
       log,
-      actionDescription: "run deploy",
+      description: "run deploy",
       result,
       interactive,
       graphResults: dependencyResults,
+      action,
     })
   }
 }

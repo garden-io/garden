@@ -8,6 +8,7 @@
 
 import chalk from "chalk"
 import { omit } from "lodash"
+import { Action, ActionState } from "../actions/base"
 import { PluginEventBroker } from "../plugin-context"
 import { emptyRuntimeContext } from "../runtime-context"
 import { ServiceState } from "../types/service"
@@ -15,7 +16,7 @@ import { uuidv4 } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
 
 export const deployRouter = (baseParams: BaseRouterParams) =>
-  createActionRouter("deploy", baseParams, {
+  createActionRouter("Deploy", baseParams, {
     deploy: async (params) => {
       const { router, action, garden } = params
 
@@ -57,6 +58,8 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
 
       const result = await router.callHandler({ params, handlerType: "deploy" })
 
+      await router.validateActionOutputs(action, result.outputs)
+
       garden.events.emit("serviceStatus", {
         actionName,
         actionVersion,
@@ -66,13 +69,13 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         serviceVersion,
         actionUid,
         status: {
-          ...omit(result, "detail"),
+          ...omit(result.detail, "detail"),
           deployStartedAt,
           deployCompletedAt: new Date(),
         },
       })
 
-      router.emitNamespaceEvents(result.namespaceStatuses)
+      router.emitNamespaceEvents(result.detail?.namespaceStatuses)
 
       return result
     },
@@ -87,9 +90,9 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       })
 
       const runtimeContext = emptyRuntimeContext
-      const status = await handlers.getStatus({ ...params, runtimeContext, devMode: false })
+      const status = await handlers.getStatus({ ...params, runtimeContext, devMode: false, localMode: false })
 
-      if (status.state === "missing") {
+      if (status.detail?.state === "missing") {
         log.setSuccess({
           section: action.key(),
           msg: "Not found",
@@ -103,11 +106,15 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         defaultHandler: async (p) => {
           const msg = `No delete service handler available for action type ${p.action.type}`
           p.log.setError(msg)
-          return { state: "missing" as ServiceState, detail: {} }
+          return {
+            state: "not-ready" as ActionState,
+            detail: { state: "missing" as ServiceState, detail: {} },
+            outputs: {},
+          }
         },
       })
 
-      router.emitNamespaceEvents(result.namespaceStatuses)
+      router.emitNamespaceEvents(result.detail?.namespaceStatuses)
 
       log.setSuccess({
         msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
@@ -154,12 +161,13 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         moduleVersion: actionVersion,
         moduleName: action.moduleName(),
         serviceVersion: actionVersion,
-        status: omit(result, "detail"),
+        status: omit(result.detail, "detail"),
       })
 
-      router.emitNamespaceEvents(result.namespaceStatuses)
-      // TODO-G2
-      // this.validateServiceOutputs(params.service, result)
+      router.emitNamespaceEvents(result.detail?.namespaceStatuses)
+
+      await router.validateActionOutputs(action, result.outputs)
+
       return result
     },
 
@@ -178,23 +186,3 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       return params.router.callHandler({ params, handlerType: "stopPortForward" })
     },
   })
-
-// private validateServiceOutputs(service: GardenService, result: ServiceStatus) {
-//   const spec = this.moduleTypes[service.module.type]
-
-//   if (spec.serviceOutputsSchema) {
-//     result.outputs = validateSchema(result.outputs, spec.serviceOutputsSchema, {
-//       context: `outputs from service '${service.name}'`,
-//       ErrorClass: PluginError,
-//     })
-//   }
-
-//   for (const base of getModuleTypeBases(spec, this.moduleTypes)) {
-//     if (base.serviceOutputsSchema) {
-//       result.outputs = validateSchema(result.outputs, base.serviceOutputsSchema.unknown(true), {
-//         context: `outputs from service '${service.name}' (base schema from '${base.name}' plugin)`,
-//         ErrorClass: PluginError,
-//       })
-//     }
-//   }
-// }

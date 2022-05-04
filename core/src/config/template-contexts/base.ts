@@ -15,7 +15,7 @@ import {
   TemplateStringMissingKeyException,
   TemplateStringPassthroughException,
 } from "../../template-string/template-string"
-import { isPrimitive, joi } from "../common"
+import { CustomObjectSchema, isPrimitive, joi } from "../common"
 import { KeyedSet } from "../../util/keyed-set"
 import { naturalList } from "../../util/string"
 
@@ -47,6 +47,11 @@ export function schema(joiSchema: Joi.Schema) {
   return (target: any, propName: string) => {
     target.constructor._schemas = { ...(target.constructor._schemas || {}), [propName]: joiSchema }
   }
+}
+
+export interface ConfigContextType {
+  new (...params: any[]): ConfigContext
+  getSchema(): CustomObjectSchema
 }
 
 // Note: we're using classes here to be able to use decorators to describe each context node and key

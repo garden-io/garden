@@ -19,7 +19,7 @@ import { LogEntry } from "../logger/log-entry"
 import { LoggerType } from "../logger/logger"
 import { printFooter, renderMessageWithDivider } from "../logger/util"
 import { ProcessResults } from "../process"
-import { GraphResults, GraphResult } from "../task-graph"
+import { GraphResults, GraphResult } from "../graph/solver"
 import { RunResult } from "../plugin/base"
 import { capitalize } from "lodash"
 import { getDurationMsec, splitFirst, userPrompt } from "../util/util"
@@ -29,6 +29,8 @@ import { renderOptions, renderCommands, renderArguments, getCliStyles } from "..
 import { GlobalOptions, ParameterValues, Parameters } from "../cli/params"
 import { GardenServer } from "../server/server"
 import { GardenCli } from "../cli/cli"
+import { BuildResult, buildResultSchema } from "../plugin/handlers/build/build"
+import { Action } from "../actions/base"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -76,7 +78,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   abstract help: string
 
   description?: string
-  alias?: string
+  aliases?: string[]
 
   allowUndefinedArguments: boolean = false
   arguments?: T
@@ -168,16 +170,16 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
     if (this.parent) {
       const parentPaths = this.parent.getPaths()
 
-      if (this.alias) {
+      if (this.aliases) {
         return parentPaths.flatMap((parentPath) => [
           [...parentPath, this.name],
-          [...parentPath, this.alias!],
+          ...this.aliases!.map((a) => [...parentPath, a]),
         ])
       } else {
         return parentPaths.map((parentPath) => [...parentPath, this.name])
       }
-    } else if (this.alias) {
-      return [[this.name], [this.alias]]
+    } else if (this.aliases) {
+      return [[this.name], ...this.aliases.map((a) => [a])]
     } else {
       return [[this.name]]
     }
@@ -365,16 +367,14 @@ export function printResult({
   log,
   result,
   success,
-  actionDescription,
+  description,
 }: {
   log: LogEntry
   result: string
   success: boolean
-  actionDescription: string
+  description: string
 }) {
-  const prefix = success
-    ? `${capitalize(actionDescription)} output:`
-    : `${capitalize(actionDescription)} failed with error:`
+  const prefix = success ? `${capitalize(description)} output:` : `${capitalize(description)} failed with error:`
   const msg = renderMessageWithDivider(prefix, result, !success)
   success ? log.info(chalk.white(msg)) : log.error(msg)
 }
@@ -385,23 +385,25 @@ export function printResult({
  */
 export async function handleRunResult<T extends RunResult>({
   log,
-  actionDescription,
+  description,
   graphResults,
   result,
   interactive,
+  action,
 }: {
   log: LogEntry
-  actionDescription: string
+  description: string
   graphResults: GraphResults
   result: T
   interactive: boolean
+  action: Action
 }) {
   if (!interactive && result.log) {
-    printResult({ log, result: result.log, success: result.success, actionDescription })
+    printResult({ log, result: result.log, success: result.success, description })
   }
 
   if (!result.success) {
-    const error = new RuntimeError(`${capitalize(actionDescription)} failed!`, {
+    const error = new RuntimeError(`${capitalize(description)} failed!`, {
       result,
     })
     return { errors: [error] }
@@ -415,7 +417,7 @@ export async function handleRunResult<T extends RunResult>({
     ...result,
     aborted: false,
     durationMsec: getDurationMsec(result.startedAt, result.completedAt),
-    version: result.version,
+    version: action.versionString(),
   }
 
   return { result: { result: resultWithMetadata, graphResults } }
@@ -442,7 +444,7 @@ export async function handleTaskResult({
 
   // If there's an error, the task graph prints it
   if (!interactive && !result.error && result.result.log) {
-    printResult({ log, result: result.result.log, success: true, actionDescription })
+    printResult({ log, result: result.result.log, success: true, description: actionDescription })
   }
 
   if (result.error) {
@@ -465,7 +467,8 @@ export type ProcessResultMetadata = {
   version?: string
 }
 
-export interface ProcessCommandResult extends ActionTypeResults {
+// TODO-G2: update
+export interface ProcessCommandResult {
   builds: { [moduleName: string]: BuildResult & ProcessResultMetadata }
   deployments: { [serviceName: string]: ServiceStatus & ProcessResultMetadata }
   tests: { [testName: string]: TestResult & ProcessResultMetadata }
@@ -515,7 +518,7 @@ export async function handleProcessResults(
   taskType: string,
   results: ProcessResults
 ): Promise<CommandResult<ProcessCommandResult>> {
-  const graphResults = results.taskResults
+  const graphResults = results.graphResults
 
   const result = {
     builds: prepareProcessResults("build", graphResults),
@@ -524,7 +527,7 @@ export async function handleProcessResults(
     graphResults,
   }
 
-  const failed = pickBy(results.taskResults, (r) => r && r.error)
+  const failed = pickBy(results.graphResults, (r) => r && r.error)
   const failedCount = size(failed)
 
   if (failedCount > 0) {

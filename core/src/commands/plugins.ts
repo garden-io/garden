@@ -36,7 +36,7 @@ type Args = typeof pluginArgs
 export class PluginsCommand extends Command<Args> {
   name = "plugins"
   help = "Plugin-specific commands."
-  alias = "plugin"
+  aliases = ["plugin"]
 
   description = dedent`
     Execute a command defined by a plugin in your project.
@@ -114,7 +114,7 @@ export class PluginsCommand extends Command<Args> {
     log.info("")
 
     try {
-      const { result, errors = [] } = await command.handler({ ctx, log, args: commandArgs, graph })
+      const { result, errors = [] } = await command.handler({ garden, ctx, log, args: commandArgs, graph })
       return { result, errors: errors.map(toGardenError) }
     } catch (err) {
       return { errors: [toGardenError(err)] }

@@ -27,6 +27,7 @@ import {
   extendActionTypesSchema,
 } from "./action-types"
 import { PluginContext } from "../plugin-context"
+import { join } from "path"
 
 // FIXME: Reduce number of import updates needed
 export * from "./base"
@@ -211,18 +212,18 @@ export function createGardenPlugin(spec: GardenPluginSpec): GardenPlugin {
     createModuleTypes: spec.createModuleTypes || [],
     extendModuleTypes: spec.extendModuleTypes || [],
     createActionTypes: {
-      build: [],
-      deploy: [],
-      run: [],
-      test: [],
-      ...spec.createActionTypes || {}
+      Build: [],
+      Deploy: [],
+      Run: [],
+      Test: [],
+      ...(spec.createActionTypes || {}),
     },
     extendActionTypes: {
-      build: [],
-      deploy: [],
-      run: [],
-      test: [],
-      ...spec.extendActionTypes || {}
+      Build: [],
+      Deploy: [],
+      Run: [],
+      Test: [],
+      ...(spec.extendActionTypes || {}),
     },
     handlers: spec.handlers || {},
     dashboardPages: spec.dashboardPages || [],

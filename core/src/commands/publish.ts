@@ -101,12 +101,22 @@ export class PublishCommand extends Command<Args, Opts> {
     const builds = graph.getBuilds({ names: args.names })
 
     const tasks = builds.map((action) => {
-      return new PublishTask({ garden, graph, log, action, forceBuild: opts["force-build"], tagTemplate: opts.tag })
+      return new PublishTask({
+        garden,
+        graph,
+        log,
+        action,
+        forceBuild: opts["force-build"],
+        tagTemplate: opts.tag,
+        devModeDeployNames: [],
+        localModeDeployNames: [],
+        fromWatch: false,
+        force: false,
+      })
     })
 
-    const results = await garden.processTasks(tasks)
-
-    const output = await handleProcessResults(footerLog, "publish", { taskResults: results })
+    const processed = await garden.processTasks({ tasks, log, throwOnError: true })
+    const output = await handleProcessResults(footerLog, "publish", { graphResults: processed.results })
 
     return {
       ...output,

@@ -10,6 +10,7 @@ import _dedent = require("dedent")
 import _deline = require("deline")
 import _urlJoin = require("proper-url-join")
 import _stableStringify = require("json-stable-stringify")
+import _titleize = require("titleize")
 import CliTable from "cli-table3"
 import cliTruncate from "cli-truncate"
 import { getTerminalWidth } from "../logger/util"
@@ -178,4 +179,8 @@ export function stripQuotes(string: string) {
   } else {
     return string
   }
+}
+
+export function titleize(string: string) {
+  return _titleize(string)
 }

@@ -17,6 +17,7 @@ import { deleteHelmDeploy, helmDeploy } from "./deployment"
 import { execInHelmDeploy } from "./exec"
 import { getHelmDeployLogs } from "./logs"
 import { getHelmDeployStatus } from "./status"
+import { posix } from "path"
 
 export const helmDeployDocs = dedent`
   Specify a Helm chart (either in your repository or remote from a registry) to deploy.
@@ -47,6 +48,23 @@ export const helmDeployDefinition = (): DeployActionDefinition<HelmDeployAction>
         skipCreate: true,
       })
       return getPortForwardHandler({ ...params, namespace })
+    },
+
+    configure: async ({ config }) => {
+      const chartPath = config.spec.chart?.path
+      const containsSources = !!chartPath
+
+      // Automatically set the include if not explicitly set
+      if (chartPath && !(config.include || config.exclude)) {
+        const valueFiles = config.spec.valueFiles
+        config.include = containsSources
+          ? ["*", "charts/**/*", "templates/**/*", ...valueFiles]
+          : ["*.yaml", "*.yml", ...valueFiles]
+
+        config.include = config.include.map((path) => posix.join(chartPath, path))
+      }
+
+      return { config }
     },
   },
 })

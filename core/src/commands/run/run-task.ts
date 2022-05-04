@@ -16,8 +16,8 @@ import {
   resultMetadataKeys,
   graphResultsSchema,
 } from "../base"
-import { RunTask } from "../../tasks/task"
-import { GraphResults } from "../../task-graph"
+import { RunTask } from "../../tasks/run"
+import { GraphResults } from "../../graph/solver"
 import { printHeader } from "../../logger/util"
 import { CommandError } from "../../exceptions"
 import { dedent, deline } from "../../util/string"
@@ -52,7 +52,7 @@ interface RunTaskOutput {
 
 export class RunTaskCommand extends Command<Args, Opts> {
   name = "run"
-  alias = "task"
+  aliases = ["task"]
   help = "Run a task (in the context of its parent module)."
 
   streamEvents = true
@@ -105,8 +105,8 @@ export class RunTaskCommand extends Command<Args, Opts> {
       localModeDeployNames: [],
       fromWatch: false,
     })
-    const graphResults = await garden.processTasks([taskTask], { throwOnError: true })
+    const { results } = await garden.processTasks({ tasks: [taskTask], log, throwOnError: true })
 
-    return handleTaskResult({ log, actionDescription: "task", graphResults, key: taskTask.getKey() })
+    return handleTaskResult({ log, actionDescription: "task", graphResults: results, key: taskTask.getKey() })
   }
 }

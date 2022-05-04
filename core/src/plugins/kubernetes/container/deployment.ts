@@ -62,18 +62,17 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
     await deployContainerServiceRolling({ ...params, devMode: deployWithDevMode, api, imageId })
   }
 
-  // TODO-G2: work out why the any cast is needed here
-  const status = await k8sGetContainerDeployStatus(<any>params)
+  const status = await k8sGetContainerDeployStatus(params)
 
   // Make sure port forwards work after redeployment
-  killPortForwards(action, status.forwardablePorts || [], log)
+  killPortForwards(action, status.detail?.forwardablePorts || [], log)
 
   if (deployWithDevMode) {
     await startContainerDevSync({
       ctx: k8sCtx,
       log,
-      status,
-      service,
+      status: status.detail!,
+      action,
     })
   }
 
@@ -81,7 +80,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
     await startLocalMode({
       ctx: k8sCtx,
       log,
-      status,
+      status: status.detail!,
       action,
     })
   }
@@ -745,11 +744,7 @@ function workloadConfig({
 
 type HealthCheckMode = "dev" | "local" | "normal"
 
-function configureHealthCheck(
-  container: V1Container,
-  spec: ContainerDeploySpec,
-  mode: HealthCheckMode
-): void {
+function configureHealthCheck(container: V1Container, spec: ContainerDeploySpec, mode: HealthCheckMode): void {
   if (mode === "local") {
     // no need to configure liveness and readiness probes for a service running in local mode
     return
@@ -892,5 +887,5 @@ export const deleteContainerDeploy: DeployActionHandler<"delete", ContainerDeplo
     includeUninitialized: false,
   })
 
-  return { state: "missing", detail: { remoteResources: [], workload: null } }
+  return { state: "ready", detail: { state: "missing", detail: {} }, outputs: {} }
 }

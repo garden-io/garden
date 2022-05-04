@@ -9,7 +9,7 @@
 import { Action, BaseRuntimeActionConfig, baseRuntimeActionConfig, RuntimeAction } from "./base"
 
 export interface DeployActionConfig<N extends string = any, S extends object = any>
-  extends BaseRuntimeActionConfig<"deploy", N, S> {
+  extends BaseRuntimeActionConfig<"Deploy", N, S> {
   type: N
 }
 

@@ -26,6 +26,7 @@ import { getEntityVersion } from "../vcs/vcs"
 import { NamespaceStatus, namespaceStatusesSchema } from "../plugin/base"
 import { LogLevel } from "../logger/logger"
 import { ModuleGraph } from "../graph/modules"
+import { ActionState } from "../actions/base"
 
 export interface GardenService<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule> {
   name: string
@@ -80,6 +81,20 @@ export const serviceStates: ServiceState[] = [
   "outdated",
   "missing",
 ]
+
+const serviceStateMap: { [key in ServiceState]: ActionState } = {
+  ready: "ready",
+  deploying: "not-ready",
+  stopped: "not-ready",
+  unhealthy: "failed",
+  unknown: "unknown",
+  outdated: "outdated",
+  missing: "not-ready",
+}
+
+export function serviceStateToActionState(state: ServiceState): ActionState {
+  return serviceStateMap[state]
+}
 
 /**
  * Given a list of states, return a single state representing the list.

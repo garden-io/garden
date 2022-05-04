@@ -9,7 +9,13 @@
 import { ConfigurationError } from "../../../exceptions"
 import { KubernetesProvider } from "../config"
 import { ConfigureModuleParams } from "../../../plugin/handlers/module/configure"
-import { ContainerBuildAction, ContainerBuildOutputs, ContainerModule } from "../../container/moduleConfig"
+import {
+  ContainerBuildAction,
+  ContainerBuildOutputs,
+  ContainerDeploySpec,
+  ContainerModule,
+  ContainerServiceSpec,
+} from "../../container/moduleConfig"
 import { GetModuleOutputsParams } from "../../../plugin/handlers/module/get-outputs"
 import { containerHelpers } from "../../container/helpers"
 import { getContainerModuleOutputs } from "../../container/container"
@@ -53,9 +59,13 @@ export function k8sGetContainerBuildActionOutputs({
   provider: KubernetesProvider
   action: ContainerBuildAction
 }): ContainerBuildOutputs {
-  const outputs = getContainerBuildActionOutputs(action)
-
   const localId = action.getSpec("localId")
+
+  const outputs = getContainerBuildActionOutputs({
+    buildName: action.name,
+    localId,
+    version: action.getFullVersion(),
+  })
 
   outputs.deploymentImageName = containerHelpers.getDeploymentImageName(
     action.name,
@@ -73,30 +83,38 @@ export function k8sGetContainerBuildActionOutputs({
 }
 
 // TODO-G2: handle at action level as well
-async function validateConfig<T extends ContainerModule>(params: ConfigureModuleParams<T>) {
+function validateConfig<T extends ContainerModule>(params: ConfigureModuleParams<T>) {
   // validate ingress specs
   const moduleConfig = params.moduleConfig
   const provider = <KubernetesProvider>params.ctx.provider
 
   for (const serviceConfig of moduleConfig.serviceConfigs) {
-    for (const ingressSpec of serviceConfig.spec.ingresses) {
-      const hostname = ingressSpec.hostname || provider.config.defaultHostname
-
-      if (!hostname) {
-        throw new ConfigurationError(
-          `No hostname configured for one of the ingresses on service ${serviceConfig.name}. ` +
-            `Please configure a default hostname or specify a hostname for the ingress.`,
-          {
-            serviceName: serviceConfig.name,
-            ingressSpec,
-          }
-        )
-      }
-
-      // make sure the hostname is set
-      ingressSpec.hostname = hostname
-    }
+    validateDeploySpec(serviceConfig.name, provider, serviceConfig.spec)
   }
 
   return { moduleConfig }
+}
+
+export function validateDeploySpec(
+  name: string,
+  provider: KubernetesProvider,
+  spec: ContainerServiceSpec | ContainerDeploySpec
+) {
+  for (const ingressSpec of spec.ingresses) {
+    const hostname = ingressSpec.hostname || provider.config.defaultHostname
+
+    if (!hostname) {
+      throw new ConfigurationError(
+        `No hostname configured for one of the ingresses on service/deploy ${name}. ` +
+          `Please configure a default hostname or specify a hostname for the ingress.`,
+        {
+          name,
+          ingressSpec,
+        }
+      )
+    }
+
+    // make sure the hostname is set
+    ingressSpec.hostname = hostname
+  }
 }

@@ -15,7 +15,7 @@ import { RunResult } from "../../plugin/base"
 import { dedent, deline } from "../../util/string"
 import { Command, CommandParams, CommandResult, handleRunResult, ProcessResultMetadata } from "../base"
 import { printRuntimeContext } from "./run"
-import { GraphResults } from "../../task-graph"
+import { GraphResults } from "../../graph/solver"
 import { StringParameter, StringsParameter, BooleanParameter, StringOption } from "../../cli/params"
 
 const runBuildArgs = {
@@ -59,7 +59,7 @@ interface RunBuildOutput {
 export class RunBuildCommand extends Command<Args, Opts> {
   name = "build"
   help = "Run an ad-hoc instance of a build."
-  alias: "module"
+  aliases: ["module"]
 
   description = dedent`
     This is useful for debugging or ad-hoc experimentation with build/modules.
@@ -89,7 +89,7 @@ export class RunBuildCommand extends Command<Args, Opts> {
     const graph = await garden.getConfigGraph({ log, emit: false })
     const action = graph.getBuild(args.name)
 
-    const actions = await garden.getActionRouter()
+    const router = await garden.getActionRouter()
 
     const buildTask = new BuildTask({
       garden,
@@ -99,20 +99,16 @@ export class RunBuildCommand extends Command<Args, Opts> {
       fromWatch: false,
       force: opts["force-build"],
       devModeDeployNames: [],
+      localModeDeployNames: [],
     })
-    const graphResults = await garden.processTasks([buildTask])
 
-    const dependencies = graph.getDependencies({ kind: "build", name: args.name, recursive: false })
+    const { results: graphResults } = await garden.processTasks({ tasks: [buildTask], log, throwOnError: true })
     const interactive = opts.interactive
 
     const runtimeContext = await prepareRuntimeContext({
-      garden,
+      action,
       graph,
-      dependencies,
-      version: action.versionString(),
-      moduleVersion: action.versionString(),
-      serviceStatuses: {},
-      taskResults: {},
+      graphResults,
     })
 
     printRuntimeContext(log, runtimeContext)
@@ -123,7 +119,7 @@ export class RunBuildCommand extends Command<Args, Opts> {
       log.root.stop()
     }
 
-    const result = await actions.build.run({
+    const result = await router.build.run({
       log,
       graph,
       action,
@@ -134,6 +130,6 @@ export class RunBuildCommand extends Command<Args, Opts> {
       timeout: interactive ? 999999 : undefined,
     })
 
-    return handleRunResult({ log, actionDescription: "run build", result, interactive, graphResults })
+    return handleRunResult({ log, description: "run build", result, interactive, graphResults, action })
   }
 }

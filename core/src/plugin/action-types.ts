@@ -24,7 +24,7 @@ import { GetRunActionResult } from "./handlers/run/get-result"
 import { RunRunAction } from "./handlers/run/run"
 import { GetTestActionResult } from "./handlers/test/get-result"
 import { RunTestAction } from "./handlers/test/run"
-import { Action, ResolvedRuntimeAction } from "../actions/base"
+import { Action, ResolvedRuntimeAction, RuntimeAction } from "../actions/base"
 import Joi from "@hapi/joi"
 import { joi, joiArray, joiSchema, joiUserIdentifier } from "../config/common"
 import titleize from "titleize"
@@ -35,10 +35,12 @@ import { TestAction } from "../actions/test"
 import { DoDeployAction } from "./handlers/deploy/deploy"
 import { dedent } from "../util/string"
 import { templateStringLiteral } from "../docs/common"
+import { ValidateAction } from "./handlers/base/validate"
+import { ConfigureActionConfig } from "./handlers/base/configure"
 
 // BASE //
 
-type ActionTypeHandler<
+export type ActionTypeHandler<
   K extends ActionKind,
   N, // Name of handler
   P extends {}, // Params type
@@ -61,16 +63,19 @@ export type WrappedActionTypeHandler<T, N> = GetActionTypeHandler<T, N> & {
   pluginName: string
 }
 
+// TODO-G2: suggest and describe handlers
 const actionTypeClasses = {
-  build: {
-    // validateConfig: new ValidateActionConfig(),
+  Build: {
+    configure: new ConfigureActionConfig(),
+    validate: new ValidateAction(),
     build: new DoBuildAction(),
     getStatus: new GetBuildActionStatus(),
     publish: new PublishBuildAction(),
     run: new RunBuildAction(),
   },
-  deploy: {
-    // validateConfig: new ValidateActionConfig(),
+  Deploy: {
+    configure: new ConfigureActionConfig(),
+    validate: new ValidateAction(),
     delete: new DeleteDeploy(),
     deploy: new DoDeployAction(),
     exec: new ExecInDeploy(),
@@ -80,13 +85,15 @@ const actionTypeClasses = {
     run: new RunDeploy(),
     stopPortForward: new StopDeployPortForward(),
   },
-  run: {
-    // validateConfig: new ValidateActionConfig(),
+  Run: {
+    configure: new ConfigureActionConfig(),
+    validate: new ValidateAction(),
     getResult: new GetRunActionResult(),
     run: new RunRunAction(),
   },
-  test: {
-    // validateConfig: new ValidateActionConfig(),
+  Test: {
+    configure: new ConfigureActionConfig(),
+    validate: new ValidateAction(),
     getResult: new GetTestActionResult(),
     run: new RunTestAction(),
   },
@@ -94,14 +101,14 @@ const actionTypeClasses = {
 
 type _ActionTypeClasses = typeof actionTypeClasses
 
-export type ActionKind = "build" | "deploy" | "run" | "test"
+export type ActionKind = "Build" | "Deploy" | "Run" | "Test"
 export type ActionTypeClasses<K extends ActionKind> = _ActionTypeClasses[K]
 
 export type ActionHandlers = { [name: string]: ActionTypeHandler<any, any, any, any> }
 
-type BaseHandlers<_ extends Action> = {
-  // TODO: see if this is actually needed, consider only allowing validating fully-resolved Actions
-  // validateConfig: ValidateActionConfig<C>
+type BaseHandlers<A extends Action> = {
+  configure: ConfigureActionConfig<A["_config"]>
+  validate: ValidateAction<A>
 }
 
 export type ActionTypeExtension<H> = {
@@ -235,21 +242,21 @@ export type TestActionDefinition<C extends TestAction = TestAction> = ActionType
 // COMBINED //
 
 export interface ActionTypeDescriptions {
-  build: BuildActionDescriptions
-  deploy: DeployActionDescriptions
-  run: RunActionDescriptions
-  test: TestActionDescriptions
+  Build: BuildActionDescriptions
+  Deploy: DeployActionDescriptions
+  Run: RunActionDescriptions
+  Test: TestActionDescriptions
 }
 
 export type GenericActionTypeMap = {
-  [K in ActionKind]: Action
+  [K in ActionKind]: K extends "Build" ? BuildAction : RuntimeAction
 }
 
 export interface ActionTypeMap extends GenericActionTypeMap {
-  build: BuildAction
-  deploy: DeployAction
-  run: RunAction
-  test: TestAction
+  Build: BuildAction
+  Deploy: DeployAction
+  Run: RunAction
+  Test: TestAction
 }
 
 export type ActionTypeParams = {
@@ -265,10 +272,10 @@ export type ActionTypeResults = {
 }
 
 export type ActionTypeHandlers = {
-  build: BuildActionHandlers
-  deploy: DeployActionHandlers
-  run: RunActionHandlers
-  test: TestActionHandlers
+  Build: BuildActionHandlers
+  Deploy: DeployActionHandlers
+  Run: RunActionHandlers
+  Test: TestActionHandlers
 }
 
 export type ActionTypeHandlerNames = {
@@ -313,16 +320,16 @@ export function getActionTypeHandlerDescriptions<K extends ActionKind>(
 }
 
 export type ManyActionTypeExtensions = {
-  build: BuildActionExtension[]
-  deploy: DeployActionExtension[]
-  run: RunActionExtension[]
-  test: TestActionExtension[]
+  Build: BuildActionExtension[]
+  Deploy: DeployActionExtension[]
+  Run: RunActionExtension[]
+  Test: TestActionExtension[]
 }
 export type ActionTypeDefinitions = {
-  build: BuildActionDefinition
-  deploy: DeployActionDefinition
-  run: RunActionDefinition
-  test: TestActionDefinition
+  Build: BuildActionDefinition
+  Deploy: DeployActionDefinition
+  Run: RunActionDefinition
+  Test: TestActionDefinition
 }
 export type ManyActionTypeDefinitions = {
   [K in ActionKind]: ActionTypeDefinitions[K][]

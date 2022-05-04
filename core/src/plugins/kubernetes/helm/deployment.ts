@@ -11,7 +11,6 @@ import { waitForResources } from "../status/status"
 import { helm } from "./helm-cli"
 import {
   filterManifests,
-  getBaseModule,
   getChartPath,
   getReleaseName,
   getValueArgs,
@@ -120,17 +119,17 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   })
   const manifests = await filterManifests(preparedManifests)
 
-  const localModeTargetSpec = spec.localMode.target || spec.defaultTarget
+  const localModeTargetSpec = spec.localMode?.target || spec.defaultTarget
   let localModeTarget: SyncableResource | undefined = undefined
 
-  if (localMode && spec.localMode) {
+  if (localMode && localModeTargetSpec) {
     localModeTarget = await getTargetResource({
       ctx,
       log,
       provider,
       action,
       manifests,
-      resourceSpec: localModeTargetSpec,
+      query: localModeTargetSpec,
     })
   }
 
@@ -198,17 +197,22 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       defaultTarget: spec.defaultTarget,
       basePath: action.basePath(), // TODO-G2: double check if this holds up
       defaultNamespace: namespace,
-      manifests: preparedManifests,
+      manifests,
       syncs: spec.devMode.syncs,
     })
   }
 
   return {
-    forwardablePorts,
     state: "ready",
-    version: action.versionString(),
-    detail: { remoteResources: statuses.map((s) => s.resource) },
-    namespaceStatuses: [namespaceStatus],
+    detail: {
+      forwardablePorts,
+      state: "ready",
+      version: action.versionString(),
+      detail: { remoteResources: statuses.map((s) => s.resource) },
+      namespaceStatuses: [namespaceStatus],
+    },
+    // TODO-G2
+    outputs: {},
   }
 }
 
@@ -235,5 +239,5 @@ export const deleteHelmDeploy: DeployActionHandler<"delete", HelmDeployAction> =
 
   log.setSuccess("Service deleted")
 
-  return { state: "missing", detail: { remoteResources: [] } }
+  return { state: "not-ready", outputs: {}, detail: { state: "missing", detail: { remoteResources: [] } } }
 }

@@ -11,13 +11,16 @@ import { actionParamsSchema, PluginDeployActionParamsBase } from "../../../plugi
 import { dedent } from "../../../util/string"
 import { ServiceStatus, serviceStatusSchema } from "../../../types/service"
 import { ActionTypeHandlerSpec } from "../base/base"
+import { ActionStatus } from "../../../actions/base"
 
 interface DeleteDeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {}
 
+type DeleteDeployStatus<T extends DeployAction = DeployAction> = ActionStatus<T, ServiceStatus, {}>
+
 export class DeleteDeploy<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
-  "deploy",
+  "Deploy",
   DeleteDeployParams<T>,
-  ServiceStatus
+  DeleteDeployStatus<T>
 > {
   description = dedent`
     Terminate a deployed service. This should wait until the service is no longer running.

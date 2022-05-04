@@ -6,19 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogEntry } from "../logger/log-entry"
-import { BaseActionTask, TaskType } from "./base"
+import { BaseActionTask, BaseActionTaskParams } from "./base"
 import { ServiceStatus } from "../types/service"
-import { Garden } from "../garden"
-import { ConfigGraph } from "../graph/config-graph"
-import { GraphResults, GraphResult } from "../task-graph"
+import { GraphResults, GraphResult } from "../graph/solver"
 import { DeployAction, isDeployAction } from "../actions/deploy"
+import { DeployStatus } from "../plugin/handlers/deploy/get-status"
 
-export interface DeleteServiceTaskParams {
-  garden: Garden
-  graph: ConfigGraph
-  action: DeployAction
-  log: LogEntry
+export interface DeleteDeployTaskParams extends BaseActionTaskParams<DeployAction> {
   /**
    * If true, the task will include delete service tasks for its dependants in its list of dependencies.
    */
@@ -29,37 +23,36 @@ export interface DeleteServiceTaskParams {
   deleteDeployNames?: string[]
 }
 
-export class DeleteDeployTask extends BaseActionTask<DeployAction> {
-  type: TaskType = "delete-service"
+export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus> {
+  type = "delete-service"
   concurrencyLimit = 10
   dependantsFirst: boolean
   deleteDeployNames: string[]
 
-  constructor({ garden, graph, log, action, deleteDeployNames, dependantsFirst = false }: DeleteServiceTaskParams) {
-    super({ garden, log, force: false, action, graph })
-    this.dependantsFirst = dependantsFirst
-    this.deleteDeployNames = deleteDeployNames || [action.name]
+  constructor(params: DeleteDeployTaskParams) {
+    super(params)
+    this.dependantsFirst = !!params.dependantsFirst
+    this.deleteDeployNames = params.deleteDeployNames || [params.action.name]
   }
 
-  async resolveDependencies() {
+  resolveDependencies() {
     if (!this.dependantsFirst) {
       return []
     }
 
     // Note: We delete in _reverse_ dependency order, so we query for dependants
     const deps = this.graph.getDependants({
-      kind: "deploy",
+      kind: "Deploy",
       name: this.getName(),
       recursive: false,
-      filter: (depNode) => depNode.type === "deploy" && this.deleteDeployNames.includes(depNode.name),
+      filter: (depNode) => depNode.type === "Deploy" && this.deleteDeployNames.includes(depNode.name),
     })
 
     return deps.filter(isDeployAction).map((action) => {
       return new DeleteDeployTask({
-        garden: this.garden,
-        graph: this.graph,
-        log: this.log,
+        ...this.getBaseDependencyParams(),
         action,
+        force: this.force,
         deleteDeployNames: this.deleteDeployNames,
         dependantsFirst: true,
       })
@@ -74,9 +67,13 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction> {
     return `deleting service ${this.action.longDescription()})`
   }
 
-  async process(): Promise<ServiceStatus> {
+  async getStatus() {
+    return null
+  }
+
+  async process() {
     const actions = await this.garden.getActionRouter()
-    let status: ServiceStatus
+    let status: DeployStatus
 
     try {
       status = await actions.deploy.delete({ log: this.log, action: this.action, graph: this.graph })
@@ -89,7 +86,7 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction> {
   }
 }
 
-export function deletedServiceStatuses(results: GraphResults): { [serviceName: string]: ServiceStatus } {
+export function deletedDeployStatuses(results: GraphResults): { [serviceName: string]: ServiceStatus } {
   const deleted = <GraphResult[]>Object.values(results).filter((r) => r && r.type === "delete-service")
   const statuses = {}
 

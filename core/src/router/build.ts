@@ -12,18 +12,23 @@ import { uuidv4 } from "../util/util"
 import { PluginEventBroker } from "../plugin-context"
 import { BuildState } from "../plugin/handlers/build/build"
 import { BaseRouterParams, createActionRouter } from "./base"
+import { ActionState } from "../actions/base"
+import { PublishActionResult } from "../plugin/handlers/build/publish"
 
 export const buildRouter = (baseParams: BaseRouterParams) =>
-  createActionRouter("build", baseParams, {
+  createActionRouter("Build", baseParams, {
     getStatus: async (params) => {
       const { router, action, garden } = params
 
       const status = await router.callHandler({
         params,
         handlerType: "getStatus",
-        defaultHandler: async () => ({ ready: false }),
+        defaultHandler: async () => ({ state: <ActionState>"unknown", detail: {}, outputs: {} }),
       })
-      if (status.ready) {
+
+      await router.validateActionOutputs(action, status.outputs)
+
+      if (status.state === "ready") {
         // Then an actual build won't take place, so we emit a build status event to that effect.
         const actionVersion = action.versionString()
 
@@ -91,8 +96,11 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
         const result = await router.callHandler({
           params,
           handlerType: "build",
-          defaultHandler: async () => ({}),
+          defaultHandler: async () => ({ outputs: {} }),
         })
+
+        await router.validateActionOutputs(action, result.outputs)
+
         emitBuildStatusEvent("built")
         return result
       } catch (err) {
@@ -113,9 +121,13 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
     },
   })
 
-const dummyPublishHandler = async ({ module }) => {
+const dummyPublishHandler = async ({ action }): Promise<PublishActionResult> => {
   return {
-    message: chalk.yellow(`No publish handler available for module type ${module.type}`),
-    published: false,
+    state: "unknown",
+    detail: {
+      message: chalk.yellow(`No publish handler available for type ${action.type}`),
+      published: false,
+    },
+    outputs: {},
   }
 }

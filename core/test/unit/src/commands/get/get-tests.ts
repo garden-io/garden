@@ -25,7 +25,7 @@ describe("GetTestsCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { tests: undefined },
+      args: { names: undefined },
       opts: withDefaultGlobalOpts({}),
     })
 
@@ -109,7 +109,7 @@ describe("GetTestsCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { tests: ["integration"] },
+      args: { names: ["integration"] },
       opts: withDefaultGlobalOpts({}),
     })
     expect(res).to.eql({
