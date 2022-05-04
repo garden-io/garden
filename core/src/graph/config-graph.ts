@@ -10,15 +10,16 @@ import toposort from "toposort"
 import { flatten, uniq, difference, mapValues } from "lodash"
 import { GardenBaseError } from "../exceptions"
 import { naturalList } from "../util/string"
-import { Action, ActionKind, actionReferenceToString, ResolvedAction, ResolvedRuntimeAction } from "../actions/base"
-import { ResolvedBuildAction } from "../actions/build"
+import { Action, ActionKind, actionReferenceToString, Resolved, RuntimeAction } from "../actions/base"
+import { BuildAction } from "../actions/build"
 import { ActionReference } from "../config/common"
 import { GardenModule, ModuleTypeMap } from "../types/module"
 import { GetManyParams, ModuleGraph } from "./modules"
 import { ActionTypeMap, GenericActionTypeMap } from "../plugin/action-types"
 import { getNames } from "../util/util"
+import { nodeKey } from "./common"
 
-export type DependencyRelationFilterFn = (node: DependencyGraphNode) => boolean
+export type DependencyRelationFilterFn = (node: ConfigGraphNode) => boolean
 
 // Output types for rendering/logging
 export type RenderedActionGraph = {
@@ -35,13 +36,13 @@ export interface RenderedNode {
   disabled: boolean
 }
 
-export type DependencyGraph = { [key: string]: DependencyGraphNode }
+export type GraphNodes = { [key: string]: ConfigGraphNode }
 
 interface ResolvedActionTypeMap extends GenericActionTypeMap {
-  build: ResolvedBuildAction<any>
-  deploy: ResolvedRuntimeAction<any>
-  run: ResolvedRuntimeAction<any>
-  test: ResolvedRuntimeAction<any>
+  build: Resolved<BuildAction>
+  deploy: Resolved<RuntimeAction>
+  run: Resolved<RuntimeAction>
+  test: Resolved<RuntimeAction>
 }
 
 interface GetActionOpts {
@@ -65,13 +66,13 @@ export class GraphError extends GardenBaseError {
  */
 // TODO-G2: re-do for actions
 export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeMap = ActionTypeMap> {
-  protected dependencyGraph: DependencyGraph
+  protected dependencyGraph: GraphNodes
 
   protected actions: {
-    build: { [key: string]: M["build"] }
-    deploy: { [key: string]: M["deploy"] }
-    run: { [key: string]: M["run"] }
-    test: { [key: string]: M["test"] }
+    Build: { [key: string]: M["Build"] }
+    Deploy: { [key: string]: M["Deploy"] }
+    Run: { [key: string]: M["Run"] }
+    Test: { [key: string]: M["Test"] }
   }
 
   protected moduleGraph: ModuleGraph
@@ -79,10 +80,10 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
   constructor(modules: GardenModule[], moduleTypes: ModuleTypeMap) {
     this.dependencyGraph = {}
     this.actions = {
-      build: {},
-      deploy: {},
-      run: {},
-      test: {},
+      Build: {},
+      Deploy: {},
+      Run: {},
+      Test: {},
     }
     this.moduleGraph = new ModuleGraph(modules, moduleTypes)
   }
@@ -121,7 +122,7 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
   }
 
   getActionByKind<K extends ActionKind>(kind: K, name: string, opts: GetActionOpts = {}): M[K] {
-    const action = this.actions[kind][name]
+    const action = <M[K]>this.actions[kind][name]
 
     if (!action) {
       throw new GraphError(`Could not find ${kind} action ${name}.`, {
@@ -174,35 +175,35 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
   }
 
   getBuild(name: string, opts?: GetActionOpts) {
-    return this.getActionByKind("build", name, opts)
+    return this.getActionByKind("Build", name, opts)
   }
 
   getDeploy(name: string, opts?: GetActionOpts) {
-    return this.getActionByKind("deploy", name, opts)
+    return this.getActionByKind("Deploy", name, opts)
   }
 
   getRun(name: string, opts?: GetActionOpts) {
-    return this.getActionByKind("run", name, opts)
+    return this.getActionByKind("Run", name, opts)
   }
 
   getTest(name: string, opts?: GetActionOpts) {
-    return this.getActionByKind("test", name, opts)
+    return this.getActionByKind("Test", name, opts)
   }
 
   getBuilds(params: GetActionsParams = {}) {
-    return this.getActionsByKind("build", params)
+    return this.getActionsByKind("Build", params)
   }
 
   getDeploys(params: GetActionsParams = {}) {
-    return this.getActionsByKind("deploy", params)
+    return this.getActionsByKind("Deploy", params)
   }
 
   getRuns(params: GetActionsParams = {}) {
-    return this.getActionsByKind("run", params)
+    return this.getActionsByKind("Run", params)
   }
 
   getTests(params: GetActionsParams = {}) {
-    return this.getActionsByKind("test", params)
+    return this.getActionsByKind("Test", params)
   }
 
   /*
@@ -296,7 +297,7 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
     name: string
     recursive: boolean
     filter?: DependencyRelationFilterFn
-  }): DependencyGraphNode[] {
+  }): ConfigGraphNode[] {
     const node = this.dependencyGraph[nodeKey(kind, name)]
     return node ? node.getDependencies(recursive, filter) : []
   }
@@ -311,22 +312,22 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
     name: string
     recursive: boolean
     filter?: DependencyRelationFilterFn
-  }): DependencyGraphNode[] {
+  }): ConfigGraphNode[] {
     const node = this.dependencyGraph[nodeKey(kind, name)]
     return node ? node.getDependants(recursive, filter) : []
   }
 
-  private nodesToActions(nodes: DependencyGraphNode[]) {
+  private nodesToActions(nodes: ConfigGraphNode[]) {
     return nodes.map((n) => this.actions[n.type][n.name])
   }
 
-  private uniqueNames(nodes: DependencyGraphNode[], type: ActionKind) {
+  private uniqueNames(nodes: ConfigGraphNode[], type: ActionKind) {
     return uniq(nodes.filter((n) => n.type === type).map((n) => n.name))
   }
 
   render(): RenderedActionGraph {
     const nodes = Object.values(this.dependencyGraph)
-    let edges: DependencyGraphEdge[] = []
+    let edges: ConfigGraphEdge[] = []
     let simpleEdges: string[][] = []
     for (const dependant of nodes) {
       for (const dependency of dependant.dependencies) {
@@ -346,7 +347,7 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
       dependency: e.dependency.render(),
     }))
 
-    const nodeSortIndex = (n: DependencyGraphNode) => {
+    const nodeSortIndex = (n: ConfigGraphNode) => {
       return sortedNodeKeys.findIndex((k: string) => k === nodeKey(n.type, n.name))
     }
     const renderedNodes = nodes.sort((n1, n2) => nodeSortIndex(n2) - nodeSortIndex(n1)).map((n) => n.render())
@@ -359,7 +360,7 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
 }
 
 export class MutableConfigGraph extends ConfigGraph {
-  addAction(action: ResolvedAction<any>) {}
+  addAction(action: Resolved<Action>) {}
 
   // Idempotent.
   private getNode(type: ActionKind, name: string, moduleName: string, disabled: boolean) {
@@ -371,7 +372,7 @@ export class MutableConfigGraph extends ConfigGraph {
       }
       return existingNode
     } else {
-      const newNode = new DependencyGraphNode(type, name, moduleName, disabled)
+      const newNode = new ConfigGraphNode(type, name, moduleName, disabled)
       this.dependencyGraph[key] = newNode
       return newNode
     }
@@ -384,7 +385,7 @@ export class MutableConfigGraph extends ConfigGraph {
     dependencyName,
     dependencyModuleName,
   }: {
-    dependant: DependencyGraphNode
+    dependant: ConfigGraphNode
     dependencyType: ActionKind
     dependencyName: string
     dependencyModuleName: string
@@ -395,16 +396,16 @@ export class MutableConfigGraph extends ConfigGraph {
   }
 }
 
-export class ResolvedConfigGraph extends ConfigGraph<ResolvedAction<any>, ResolvedActionTypeMap> {}
+export class ResolvedConfigGraph extends ConfigGraph<Resolved<Action>, ResolvedActionTypeMap> {}
 
-export interface DependencyGraphEdge {
-  dependant: DependencyGraphNode
-  dependency: DependencyGraphNode
+export interface ConfigGraphEdge {
+  dependant: ConfigGraphNode
+  dependency: ConfigGraphNode
 }
 
-export class DependencyGraphNode {
-  dependencies: DependencyGraphNode[]
-  dependants: DependencyGraphNode[]
+export class ConfigGraphNode {
+  dependencies: ConfigGraphNode[]
+  dependants: ConfigGraphNode[]
 
   constructor(
     public type: ActionKind,
@@ -427,7 +428,7 @@ export class DependencyGraphNode {
   }
 
   // Idempotent.
-  addDependency(node: DependencyGraphNode) {
+  addDependency(node: ConfigGraphNode) {
     const key = nodeKey(node.type, node.name)
     if (!this.dependencies.find((d) => nodeKey(d.type, d.name) === key)) {
       this.dependencies.push(node)
@@ -435,7 +436,7 @@ export class DependencyGraphNode {
   }
 
   // Idempotent.
-  addDependant(node: DependencyGraphNode) {
+  addDependant(node: ConfigGraphNode) {
     const key = nodeKey(node.type, node.name)
     if (!this.dependants.find((d) => nodeKey(d.type, d.name) === key)) {
       this.dependants.push(node)
@@ -464,7 +465,7 @@ export class DependencyGraphNode {
 
   private traverse(type: "dependants" | "dependencies", recursive: boolean, filter?: DependencyRelationFilterFn) {
     const nodes = this[type].filter((n) => {
-      if (n.type !== "build" && n.disabled) {
+      if (n.type !== "Build" && n.disabled) {
         return false
       } else if (filter) {
         return filter(n)
@@ -479,8 +480,4 @@ export class DependencyGraphNode {
       return nodes
     }
   }
-}
-
-export function nodeKey(type: ActionKind, name: string) {
-  return `${type}.${name}`
 }

@@ -8,36 +8,33 @@
 
 import chalk from "chalk"
 import { BuildTask } from "./build"
-import { BaseActionTask, BaseActionTaskParams, TaskType } from "../tasks/base"
+import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams } from "../tasks/base"
 import { emptyRuntimeContext } from "../runtime-context"
 import { resolveTemplateString } from "../template-string/template-string"
 import { joi } from "../config/common"
 import { versionStringPrefix } from "../vcs/vcs"
 import { ConfigContext, schema } from "../config/template-contexts/base"
-import { ModuleConfigContext, ModuleConfigContextParams } from "../config/template-contexts/module"
 import { PublishActionResult } from "../plugin/handlers/build/publish"
 import { BuildAction } from "../actions/build"
 import { ActionConfigContext, ActionConfigContextParams } from "../config/template-contexts/actions"
+import { ActionState } from "../actions/base"
 
 export interface PublishTaskParams extends BaseActionTaskParams<BuildAction> {
-  forceBuild: boolean
   tagTemplate?: string
 }
 
-export class PublishTask extends BaseActionTask<BuildAction> {
-  type: TaskType = "publish"
+export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult> {
+  type = "publish"
   concurrencyLimit = 5
 
-  forceBuild: boolean
   tagTemplate?: string
 
   constructor(params: PublishTaskParams) {
     super(params)
-    this.forceBuild = params.forceBuild
     this.tagTemplate = params.tagTemplate
   }
 
-  async resolveDependencies() {
+  resolveDependencies() {
     if (this.action.getConfig("allowPublish") === false) {
       return []
     }
@@ -45,7 +42,7 @@ export class PublishTask extends BaseActionTask<BuildAction> {
       new BuildTask({
         ...this.getBaseDependencyParams(),
         action: this.action,
-        force: this.forceBuild,
+        force: !!this.forceActions.find((ref) => this.action.matchesRef(ref)),
       }),
     ]
   }
@@ -54,34 +51,34 @@ export class PublishTask extends BaseActionTask<BuildAction> {
     return `publishing ${this.action.longDescription()}`
   }
 
-  async process(_, resolvedAction): Promise<PublishActionResult> {
-    const action = this.action
+  async getStatus() {
+    // TODO-G2
+    return null
+  }
 
-    if (!action.getConfig("allowPublish")) {
+  async process({ resolvedAction: action }: ActionTaskProcessParams<BuildAction>) {
+    if (action.getConfig("allowPublish") === false) {
       this.log.info({
         section: action.key(),
         msg: "Publishing disabled (allowPublish=false set on module)",
         status: "active",
       })
-      return { published: false }
+      return { state: <ActionState>"ready", detail: { published: false, outputs: {} }, outputs: {} }
     }
 
     let tag: string | undefined = undefined
 
     if (this.tagTemplate) {
       const resolvedProviders = await this.garden.resolveProviders(this.log)
-      const dependencies = Object.values(module.buildDependencies)
 
       const templateContext = new BuildTagContext({
         garden: this.garden,
         action,
-        variables: { ...this.garden.variables, ...module.variables },
+        variables: { ...this.garden.variables, ...action.getVariables() },
         resolvedProviders,
-        module,
-        buildPath: module.buildPath,
-        modules: dependencies,
+        modules: this.graph.getModules(),
         runtimeContext: emptyRuntimeContext,
-        partialRuntimeResolution: true,
+        partialRuntimeResolution: false,
       })
 
       // Resolve template string and make sure the result is a string
@@ -106,13 +103,13 @@ export class PublishTask extends BaseActionTask<BuildAction> {
       throw err
     }
 
-    if (result.published) {
+    if (result.detail?.published) {
       log.setSuccess({
-        msg: chalk.green(result.message || `Ready`),
+        msg: chalk.green(result.detail.message || `Ready`),
         append: true,
       })
-    } else {
-      log.setWarn({ msg: result.message, append: true })
+    } else if (result.detail?.message) {
+      log.setWarn({ msg: result.detail.message, append: true })
     }
 
     return result
@@ -144,8 +141,8 @@ class BuildTagContext extends ActionConfigContext {
   @schema(BuildSelfContext.getSchema().description("Alias kept for compatibility."))
   public module: BuildSelfContext
 
-  constructor(params: ActionConfigContextParams & { build: BuildAction }) {
+  constructor(params: ActionConfigContextParams & { action: BuildAction }) {
     super(params)
-    this.build = this.module = new BuildSelfContext(this, params.build)
+    this.build = this.module = new BuildSelfContext(this, params.action)
   }
 }

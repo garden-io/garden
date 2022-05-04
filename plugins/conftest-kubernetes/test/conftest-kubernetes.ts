@@ -16,7 +16,6 @@ import { dedent } from "@garden-io/sdk/util/string"
 import { makeTestGarden } from "@garden-io/sdk/testing"
 
 import { TestTask } from "@garden-io/core/build/src/tasks/test"
-import { testFromConfig } from "@garden-io/core/build/src/types/test"
 
 describe("conftest-kubernetes provider", () => {
   const projectRoot = join(__dirname, "test-project")
@@ -69,23 +68,23 @@ describe("conftest-kubernetes provider", () => {
       })
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const module = graph.getModule("conftest-helm")
+      const action = graph.getTest("conftest-helm")
 
       const testTask = new TestTask({
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0], graph),
+        action,
         force: true,
         forceBuild: true,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
+        fromWatch: false,
       })
 
       const key = testTask.getKey()
-      const res = await garden.processTasks([testTask])
-      const { [key]: result } = res
+      const res = await garden.processTasks({ log: garden.log, tasks: [testTask], throwOnError: true })
+      const result = res.results[key]
 
       expect(result).to.exist
       expect(result!.error).to.exist

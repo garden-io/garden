@@ -21,8 +21,8 @@ import { got, GotResponse } from "../util/http"
 import { StringParameter } from "../cli/params"
 
 const callArgs = {
-  serviceAndPath: new StringParameter({
-    help: "The name of the service to call followed by the ingress path (e.g. my-container/somepath).",
+  nameAndPath: new StringParameter({
+    help: "The name of the deploy/service to call followed by the ingress path (e.g. my-container/somepath).",
     required: true,
   }),
 }
@@ -30,7 +30,7 @@ const callArgs = {
 type Args = typeof callArgs
 
 interface CallResult {
-  serviceName: string
+  deployName: string
   path: string
   url: string
   response: {
@@ -44,12 +44,12 @@ interface CallResult {
 
 export class CallCommand extends Command<Args> {
   name = "call"
-  help = "Call a service ingress endpoint."
+  help = "Call a deployed ingress endpoint."
 
   streamEvents = true
 
   description = dedent`
-    Resolves the deployed ingress endpoint for the given service and path, calls the given endpoint and
+    Resolves the deployed ingress endpoint for the given deploy/service and path, calls the given endpoint and
     outputs the result.
 
     Examples:
@@ -67,16 +67,16 @@ export class CallCommand extends Command<Args> {
   }
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<CallResult>> {
-    let [serviceName, path] = splitFirst(args.serviceAndPath, "/")
+    let [deployName, path] = splitFirst(args.nameAndPath, "/")
 
-    // TODO: better error when service doesn't exist
+    // TODO: better error when deploy doesn't exist
     const graph = await garden.getConfigGraph({ log, emit: true })
-    const service = graph.getService(serviceName)
-    // No need for full context, since we're just checking if the service is running.
+    const action = graph.getDeploy(deployName)
+    // No need for full context, since we're just checking if the deploy is running.
     const runtimeContext = emptyRuntimeContext
-    const actions = await garden.getActionRouter()
-    const status = await actions.getServiceStatus({
-      service,
+    const router = await garden.getActionRouter()
+    const status = await router.deploy.getStatus({
+      action,
       log,
       graph,
       devMode: false,
@@ -85,16 +85,18 @@ export class CallCommand extends Command<Args> {
     })
 
     if (!includes(["ready", "outdated"], status.state)) {
-      throw new RuntimeError(`Service ${service.name} is not running`, {
-        serviceName: service.name,
+      throw new RuntimeError(`Service ${action.name} is not running`, {
+        actionName: action.name,
         status,
       })
     }
 
-    if (!status.ingresses || status.ingresses.length === 0) {
-      throw new ParameterError(`Service ${service.name} has no active ingresses`, {
-        serviceName: service.name,
-        serviceStatus: status,
+    const statusIngresses = status.detail?.ingresses
+
+    if (!statusIngresses || statusIngresses.length === 0) {
+      throw new ParameterError(`Service ${action.name} has no active ingresses`, {
+        actionName: action.name,
+        status,
       })
     }
 
@@ -103,7 +105,7 @@ export class CallCommand extends Command<Args> {
     let matchedPath
 
     // we can't easily support raw TCP or UDP in a command like this
-    const ingresses = status.ingresses.filter((e) => e.protocol === "http" || e.protocol === "https")
+    const ingresses = statusIngresses.filter((e) => e.protocol === "http" || e.protocol === "https")
 
     if (!path) {
       // if no path is specified and there's a root endpoint (path === "/") we use that
@@ -122,7 +124,7 @@ export class CallCommand extends Command<Args> {
     } else {
       path = "/" + path
 
-      for (const ingress of status.ingresses) {
+      for (const ingress of statusIngresses) {
         if (ingress.path) {
           if (path.startsWith(ingress.path) && (!matchedPath || ingress.path.length > matchedPath.length)) {
             matchedIngress = ingress
@@ -135,10 +137,10 @@ export class CallCommand extends Command<Args> {
     }
 
     if (!matchedIngress) {
-      throw new ParameterError(`Service ${service.name} does not have an HTTP/HTTPS ingress at ${path}`, {
-        serviceName: service.name,
+      throw new ParameterError(`${action.longDescription()} does not have an HTTP/HTTPS ingress at ${path}`, {
+        actionName: action.name,
         path,
-        availableIngresses: status.ingresses,
+        availableIngresses: statusIngresses,
       })
     }
 
@@ -217,7 +219,7 @@ export class CallCommand extends Command<Args> {
 
     return {
       result: {
-        serviceName,
+        deployName,
         path,
         url,
         response: {

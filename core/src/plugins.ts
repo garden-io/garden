@@ -23,7 +23,7 @@ import { findByName, pushToKey, getNames, isNotNull } from "./util/util"
 import { deline } from "./util/string"
 import { validateSchema } from "./config/validation"
 import { LogEntry } from "./logger/log-entry"
-import { DependencyValidationGraph } from "./util/validate-dependencies"
+import { DependencyGraph } from "./graph/common"
 import { parse, resolve } from "path"
 import Bluebird from "bluebird"
 import { ModuleTypeMap } from "./types/module"
@@ -170,7 +170,7 @@ export async function loadPlugin(log: LogEntry, projectRoot: string, nameOrPlugi
  * Returns the given provider plugins in dependency order.
  */
 export function getDependencyOrder(loadedPlugins: PluginMap): string[] {
-  const graph = new DependencyValidationGraph()
+  const graph = new DependencyGraph()
 
   for (const plugin of Object.values(loadedPlugins)) {
     graph.addNode(plugin.name)
@@ -329,6 +329,29 @@ export function getPluginBaseNames(name: string, loadedPlugins: PluginMap) {
 }
 
 /**
+ * Recursively resolves all the bases for the given action type, ordered from closest base to last.
+ */
+export function getActionTypeBases(
+  type: ActionTypeDefinition<any>,
+  actionTypes: { [name: string]: ActionTypeDefinition<any> }
+): ActionTypeDefinition<any>[] {
+  if (!type.base) {
+    return []
+  }
+
+  const base = actionTypes[type.base]
+
+  if (!base) {
+    throw new RuntimeError(`Unable to find base action type '${type.base}' for actionTypes type '${type.name}'`, {
+      name: type.name,
+      actionTypes,
+    })
+  }
+
+  return [base, ...getActionTypeBases(base, actionTypes)]
+}
+
+/**
  * Recursively resolves all the bases for the given module type, ordered from closest base to last.
  */
 export function getModuleTypeBases(
@@ -383,10 +406,10 @@ export type ActionDefinitionMap = {
  */
 export function getActionTypes(plugins: GardenPlugin[]): ActionDefinitionMap {
   const map: ActionDefinitionMap = {
-    build: {},
-    deploy: {},
-    run: {},
-    test: {},
+    Build: {},
+    Deploy: {},
+    Run: {},
+    Test: {},
   }
 
   for (const p of plugins) {
@@ -410,7 +433,7 @@ export function getModuleTypes(plugins: GardenPlugin[]): ModuleTypeMap {
   return keyBy(
     definitions.map((definition) => {
       const typeExtensions = extensions.filter((e) => e.name === definition.name)
-      const needsBuild = !!definition.handlers.build || some(typeExtensions, (e) => !!e.handlers.build)
+      const needsBuild = !!definition.needsBuild || some(typeExtensions, (e) => !!e.needsBuild)
       return { ...definition, needsBuild }
     }),
     "name"
@@ -423,7 +446,7 @@ interface ModuleDefinitionMap {
 
 function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: GenericProviderConfig[]): PluginMap {
   // Collect module type declarations
-  const graph = new DependencyValidationGraph()
+  const graph = new DependencyGraph()
   const moduleDefinitionMap: { [moduleType: string]: { plugin: GardenPlugin; spec: ModuleTypeDefinition }[] } = {}
   const moduleExtensionMap: { [moduleType: string]: { plugin: GardenPlugin; spec: ModuleTypeExtension }[] } = {}
 

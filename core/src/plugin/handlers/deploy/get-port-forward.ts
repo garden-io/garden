@@ -21,7 +21,7 @@ export interface GetPortForwardResult {
 }
 
 export class GetDeployPortForward<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
-  "deploy",
+  "Deploy",
   GetPortForwardParams<T>,
   GetPortForwardResult
 > {

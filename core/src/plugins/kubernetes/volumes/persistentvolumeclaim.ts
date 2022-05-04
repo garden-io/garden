@@ -8,7 +8,7 @@
 
 import { joiIdentifier, joi, joiSparseArray } from "../../../config/common"
 import { dedent } from "../../../util/string"
-import { BaseVolumeSpec, baseVolumeSpecKeys } from "../../base-volume"
+import { BaseVolumeSpec, baseVolumeSpecKeys, VolumeAccessMode } from "../../base-volume"
 import { V1PersistentVolumeClaimSpec, V1PersistentVolumeClaim } from "@kubernetes/client-node"
 import { readFileSync } from "fs-extra"
 import { join } from "path"
@@ -69,6 +69,16 @@ export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<
   docs,
   schema: joi.object().keys(commonSpecKeys()),
   handlers: {
+    configure: async ({ config }) => {
+      // No need to scan for files
+      config.include = []
+
+      // Copy the access modes field to match the BaseVolumeSpec schema
+      config.spec.accessModes = <VolumeAccessMode[]>config.spec.spec.accessModes || ["ReadWriteOnce"]
+
+      return { config }
+    },
+
     deploy: async (params) => {
       const result = await kubernetesDeploy({
         ...(<any>params),
@@ -102,6 +112,7 @@ export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
     ),
     ...commonSpecKeys(),
   }),
+  needsBuild: false,
 
   handlers: {
     async configure({ moduleConfig }: ConfigureModuleParams) {

@@ -7,9 +7,27 @@
  */
 
 import { join } from "path"
-import { includeGuideLink, joi, joiSparseArray, joiUserIdentifier } from "../config/common"
+import {
+  ActionReference,
+  DeepPrimitiveMap,
+  includeGuideLink,
+  joi,
+  joiSparseArray,
+  joiUserIdentifier,
+} from "../config/common"
+import { ActionConfigContext } from "../config/template-contexts/actions"
+import { GraphResult, GraphResults } from "../graph/solver"
 import { dedent } from "../util/string"
-import { BaseActionConfig, baseActionConfig, Action, includeExcludeSchema, ResolvedActionWrapperParams } from "./base"
+import {
+  BaseActionConfig,
+  baseActionConfigSchema,
+  BaseAction,
+  includeExcludeSchema,
+  ResolvedActionWrapperParams,
+  Action,
+  ActionStatus,
+  actionReferenceToString,
+} from "./base"
 
 export interface BuildCopyFrom {
   build: string
@@ -18,7 +36,7 @@ export interface BuildCopyFrom {
 }
 
 export interface BuildActionConfig<N extends string = any, S extends object = any>
-  extends BaseActionConfig<"build", N, S> {
+  extends BaseActionConfig<"Build", N, S> {
   type: N
   allowPublish?: boolean
   buildAtSource?: boolean
@@ -44,11 +62,12 @@ export const copyFromSchema = () =>
   })
 
 export const buildActionConfig = () =>
-  baseActionConfig().keys({
+  baseActionConfigSchema().keys({
     allowPublish: joi
       .boolean()
       .default(true)
-      .description("When false, disables publishing this build to remote registries via the publish command."),
+      .description("When false, disables publishing this build to remote registries via the publish command.")
+      .meta({ templateContext: ActionConfigContext }),
 
     buildAtSource: joi
       .boolean()
@@ -65,13 +84,16 @@ export const buildActionConfig = () =>
 
         While there may be good reasons to do this in some situations, please be aware that this increases the potential for side-effects and variability in builds. **You must take extra care**, including making sure that files generated during builds are excluded with e.g. \`.gardenignore\` files or \`exclude\` fields on potentially affected actions. Another potential issue is causing infinite loops when running with file-watching enabled, basically triggering a new build during the build.
         `
-      ),
+      )
+      .meta({ templateContext: ActionConfigContext }),
 
-    copyFrom: joiSparseArray(copyFromSchema()).description(
-      dedent`
+    copyFrom: joiSparseArray(copyFromSchema())
+      .description(
+        dedent`
         Copy files from other builds, ahead of running this build.
       `
-    ),
+      )
+      .meta({ templateContext: ActionConfigContext }),
 
     include: includeExcludeSchema()
       .description(
@@ -82,7 +104,8 @@ export const buildActionConfig = () =>
 
         You can _exclude_ files using the \`exclude\` field or by placing \`.gardenignore\` files in your source tree, which use the same format as \`.gitignore\` files. See the [Configuration Files guide](${includeGuideLink}) for details.`
       )
-      .example(["my-app.js", "some-assets/**/*"]),
+      .example(["my-app.js", "some-assets/**/*"])
+      .meta({ templateContext: ActionConfigContext }),
     exclude: includeExcludeSchema()
       .description(
         dedent`
@@ -93,12 +116,17 @@ export const buildActionConfig = () =>
         Unlike the \`scan.exclude\` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes when watching is enabled. Use the project \`scan.exclude\` field to affect those, if you have large directories that should not be watched for changes.
         `
       )
-      .example(["tmp/**/*", "*.log"]),
+      .example(["tmp/**/*", "*.log"])
+      .meta({ templateContext: ActionConfigContext }),
 
-    timeout: joi.number().integer().description("Set a timeout for the build to complete, in seconds."),
+    timeout: joi
+      .number()
+      .integer()
+      .description("Set a timeout for the build to complete, in seconds.")
+      .meta({ templateContext: ActionConfigContext }),
   })
 
-export class BuildAction<C extends BuildActionConfig = BuildActionConfig, O extends {} = any> extends Action<C, O> {
+export class BuildAction<C extends BuildActionConfig = BuildActionConfig, O extends {} = any> extends BaseAction<C, O> {
   kind: "Build"
 
   /**
@@ -119,21 +147,39 @@ export class BuildAction<C extends BuildActionConfig = BuildActionConfig, O exte
   }
 }
 
-// TODO: see if we can avoid the duplication here
+// TODO: see if we can avoid the duplication here with ResolvedRuntimeAction
 export abstract class ResolvedBuildAction<
   C extends BuildActionConfig = BuildActionConfig,
   O extends {} = any
 > extends BuildAction<C, O> {
+  private variables: DeepPrimitiveMap
+  private status: ActionStatus<this, any, O>
+  private dependencyResults: GraphResults
+
   constructor(params: ResolvedActionWrapperParams<C, O>) {
     super(params)
-    this._outputs = params.outputs
+    this.status = params.status
+    this.variables = params.variables
+    this.dependencyResults = params.dependencyResults
+  }
+
+  getDependencyResult(ref: ActionReference | Action): GraphResult | null {
+    return this.dependencyResults[actionReferenceToString(ref)] || null
   }
 
   getOutput<K extends keyof O>(key: K) {
-    return this._outputs[key]
+    return this.status.outputs[key]
+  }
+
+  getOutputs() {
+    return this.status.outputs
+  }
+
+  getVariables() {
+    return this.variables
   }
 }
 
 export function isBuildAction(action: Action): action is BuildAction {
-  return action.kind === "Build"
+  return action.kind === "build"
 }

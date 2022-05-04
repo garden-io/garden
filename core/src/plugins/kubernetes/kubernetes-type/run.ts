@@ -26,6 +26,7 @@ import type { V1PodSpec } from "@kubernetes/client-node"
 import { readFileSync } from "fs"
 import { join } from "path"
 import { runOrTest } from "./common"
+import { runResultToActionState } from "../../../actions/base"
 
 export interface KubernetesRunOutputs {
   log: string
@@ -100,7 +101,7 @@ export const kubernetesRunDefinition = (): RunActionDefinition<KubernetesRunActi
 
       const res = await runOrTest({ ...params, ctx: k8sCtx, namespace })
 
-      const result = {
+      const detail = {
         ...res,
         namespaceStatus,
         taskName: action.name,
@@ -114,11 +115,11 @@ export const kubernetesRunDefinition = (): RunActionDefinition<KubernetesRunActi
           ctx,
           log,
           action,
-          result,
+          result: detail,
         })
       }
 
-      return { result, outputs: result.outputs }
+      return { state: runResultToActionState(detail), detail, outputs: detail.outputs }
     },
 
     getResult: k8sGetRunResult,

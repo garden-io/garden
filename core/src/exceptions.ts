@@ -8,18 +8,18 @@
 
 import { isString } from "lodash"
 
-export interface GardenError {
+export interface GardenError<D extends object = any> {
   type: string
   message: string
-  detail?: any
+  detail?: D
   stack?: string
 }
 
-export abstract class GardenBaseError extends Error implements GardenError {
+export abstract class GardenBaseError<D extends object = any> extends Error implements GardenError<D> {
   abstract type: string
-  detail: any
+  detail: D
 
-  constructor(message: string, detail: object) {
+  constructor(message: string, detail: D) {
     super(message)
     this.detail = detail
   }

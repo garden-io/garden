@@ -15,6 +15,7 @@ import { TestAction, TestActionConfig } from "../../../actions/test"
 import { TestActionDefinition } from "../../../plugin/action-types"
 import { dedent } from "../../../util/string"
 import { k8sGetTestResult } from "../test-results"
+import { runResultToActionState } from "../../../actions/base"
 
 interface KubernetesTestOutputs extends KubernetesRunOutputs {}
 const kubernetesTestOutputsSchema = () => kubernetesRunOutputsSchema()
@@ -49,7 +50,7 @@ export const kubernetesTestDefinition = (): TestActionDefinition<KubernetesTestA
 
       const res = await runOrTest({ ...params, ctx: k8sCtx, namespace })
 
-      const result = {
+      const detail = {
         testName: action.name,
         namespaceStatus,
         ...res,
@@ -59,10 +60,10 @@ export const kubernetesTestDefinition = (): TestActionDefinition<KubernetesTestA
         ctx: k8sCtx,
         log,
         action,
-        result,
+        result: detail,
       })
 
-      return { result, outputs: { log: res.log } }
+      return { state: runResultToActionState(detail), detail, outputs: { log: res.log } }
     },
 
     getResult: k8sGetTestResult,

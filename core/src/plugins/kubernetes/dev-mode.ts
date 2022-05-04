@@ -116,7 +116,9 @@ const exampleActionRef = templateStringLiteral("build.my-container-image.sourceP
 export const kubernetesDeployDevModeSyncSchema = () =>
   devModeDefaultsSchema()
     .keys({
-      target: targetResourceSpecSchema(),
+      target: targetResourceSpecSchema().description(
+        "The Kubernetes resource to sync to. If specified, this is used instead of `spec.defaultTarget`."
+      ),
       sourcePath: joi
         .string()
         .uri()
@@ -240,7 +242,9 @@ export async function configureDevMode({
 
     if (!target) {
       log.warn(
-        chalk.yellow(`Dev mode sync on ${action.longDescription()} doesn't specify a target, and none is set as a default.`)
+        chalk.yellow(
+          `Dev mode sync on ${action.longDescription()} doesn't specify a target, and none is set as a default.`
+        )
       )
       continue
     }

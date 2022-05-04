@@ -7,7 +7,7 @@
  */
 
 import { flatten, pick, uniq, sortBy, pickBy } from "lodash"
-import { BuildDependencyConfig } from "../config/module"
+import { BuildDependencyConfig, ModuleConfig } from "../config/module"
 import { GardenModule, moduleNeedsBuild, ModuleTypeMap } from "../types/module"
 import { GardenService, serviceFromConfig } from "../types/service"
 import { GardenTask, taskFromConfig } from "../types/task"
@@ -15,11 +15,12 @@ import { TestConfig } from "../config/test"
 import { uniqByName, pickKeys } from "../util/util"
 import { ConfigurationError } from "../exceptions"
 import { deline } from "../util/string"
-import { detectMissingDependencies, DependencyValidationGraph } from "../util/validate-dependencies"
+import { DependencyGraph } from "./common"
 import { ServiceConfig } from "../config/service"
 import { TaskConfig } from "../config/task"
-import { TaskType, makeBaseKey } from "../tasks/base"
+import { makeBaseKey } from "../tasks/base"
 import { testFromModule, GardenTest, testFromConfig } from "../types/test"
+import indentString from "indent-string"
 
 // Each of these types corresponds to a Task class (e.g. BuildTask, DeployTask, ...).
 type ModuleDependencyGraphNodeType = "build" | "deploy" | "run" | "test"
@@ -49,7 +50,7 @@ interface RenderedNode {
   disabled: boolean
 }
 
-type DepNodeTaskTypeMap = { [key in ModuleDependencyGraphNodeType]: TaskType }
+type DepNodeTaskTypeMap = { [key in ModuleDependencyGraphNodeType]: string }
 
 type EntityConfig = ServiceConfig | TaskConfig | TestConfig
 
@@ -64,7 +65,7 @@ export interface GetManyParams {
   includeDisabled?: boolean
 }
 
-export type ModuleDependencyGraph = { [key: string]: ModuleDependencyGraphNode }
+export type ModuleGraphNodes = { [key: string]: ModuleDependencyGraphNode }
 
 /**
  * A graph data structure that facilitates querying (recursive or non-recursive) of the project's dependency and
@@ -73,7 +74,7 @@ export type ModuleDependencyGraph = { [key: string]: ModuleDependencyGraphNode }
  * This should be initialized with resolved and validated GardenModules.
  */
 export class ModuleGraph {
-  private dependencyGraph: ModuleDependencyGraph
+  private dependencyGraph: ModuleGraphNodes
   private modules: { [key: string]: GardenModule }
 
   private serviceConfigs: {
@@ -262,7 +263,7 @@ export class ModuleGraph {
       }
     }
 
-    const validationGraph = DependencyValidationGraph.fromDependencyGraph(this.dependencyGraph)
+    const validationGraph = DependencyGraph.fromGraphNodes(this.dependencyGraph)
     const cycles = validationGraph.detectCircularDependencies()
 
     if (cycles.length > 0) {
@@ -636,7 +637,7 @@ export class ModuleDependencyGraphNode {
 
   render(): RenderedNode {
     const name = this.type === "test" ? parseTestKey(this.name).testName : this.name
-    const taskType = <TaskType>depNodeTaskTypeMap[this.type]
+    const taskType = depNodeTaskTypeMap[this.type]
 
     return {
       name,
@@ -699,6 +700,54 @@ export class ModuleDependencyGraphNode {
     } else {
       return nodes
     }
+  }
+}
+
+/**
+ * Looks for dependencies on non-existent modules, services or tasks, and throws a ConfigurationError
+ * if any were found.
+ */
+export function detectMissingDependencies(moduleConfigs: ModuleConfig[]) {
+  const moduleNames: Set<string> = new Set(moduleConfigs.map((m) => m.name))
+  const serviceNames = moduleConfigs.flatMap((m) => m.serviceConfigs.map((s) => s.name))
+  const taskNames = moduleConfigs.flatMap((m) => m.taskConfigs.map((t) => t.name))
+  const runtimeNames: Set<string> = new Set([...serviceNames, ...taskNames])
+  const missingDepDescriptions: string[] = []
+
+  const runtimeDepTypes = [
+    ["serviceConfigs", "Service"],
+    ["taskConfigs", "Task"],
+    ["testConfigs", "Test"],
+  ]
+
+  for (const m of moduleConfigs) {
+    const buildDepKeys = m.build.dependencies.map((d) => d.name)
+
+    for (const missingModule of buildDepKeys.filter((k) => !moduleNames.has(k))) {
+      missingDepDescriptions.push(
+        `Module '${m.name}': Unknown module '${missingModule}' referenced in build dependencies.`
+      )
+    }
+
+    for (const [configKey, entityName] of runtimeDepTypes) {
+      for (const config of m[configKey]) {
+        for (const missingRuntimeDep of config.dependencies.filter((d: string) => !runtimeNames.has(d))) {
+          missingDepDescriptions.push(deline`
+            ${entityName} '${config.name}' (in module '${m.name}'): Unknown service or task '${missingRuntimeDep}'
+            referenced in dependencies.`)
+        }
+      }
+    }
+  }
+
+  if (missingDepDescriptions.length > 0) {
+    const errMsg = "Unknown dependencies detected.\n\n" + indentString(missingDepDescriptions.join("\n\n"), 2) + "\n"
+
+    throw new ConfigurationError(errMsg, {
+      unknownDependencies: missingDepDescriptions,
+      availableModules: Array.from(moduleNames),
+      availableServicesAndTasks: Array.from(runtimeNames),
+    })
   }
 }
 

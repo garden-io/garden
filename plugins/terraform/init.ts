@@ -10,10 +10,10 @@ import { TerraformProvider } from "."
 import { applyStack, getRoot, getStackStatus, getTfOutputs, prepareVariables, setWorkspace } from "./common"
 import chalk from "chalk"
 import { deline } from "@garden-io/sdk/util/string"
-import { PluginActionHandlers } from "@garden-io/sdk/types"
+import { ProviderHandlers } from "@garden-io/sdk/types"
 import { terraform } from "./cli"
 
-export const getEnvironmentStatus: PluginActionHandlers["getEnvironmentStatus"] = async ({ ctx, log }) => {
+export const getEnvironmentStatus: ProviderHandlers["getEnvironmentStatus"] = async ({ ctx, log }) => {
   const provider = ctx.provider as TerraformProvider
 
   // Return if there is no root stack, or if we're running one of the terraform plugin commands
@@ -51,7 +51,7 @@ export const getEnvironmentStatus: PluginActionHandlers["getEnvironmentStatus"] 
   }
 }
 
-export const prepareEnvironment: PluginActionHandlers["prepareEnvironment"] = async ({ ctx, log }) => {
+export const prepareEnvironment: ProviderHandlers["prepareEnvironment"] = async ({ ctx, log }) => {
   const provider = ctx.provider as TerraformProvider
 
   if (!provider.config.initRoot) {
@@ -77,7 +77,7 @@ export const prepareEnvironment: PluginActionHandlers["prepareEnvironment"] = as
   }
 }
 
-export const cleanupEnvironment: PluginActionHandlers["cleanupEnvironment"] = async ({ ctx, log }) => {
+export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async ({ ctx, log }) => {
   const provider = ctx.provider as TerraformProvider
 
   if (!provider.config.initRoot) {

@@ -171,7 +171,7 @@ export async function runAndCopy({
     runtimeContext,
     envVars,
     resources,
-    description,
+    description: description || "",
     errorMetadata,
     mainContainerName,
     image,
@@ -356,6 +356,7 @@ function getPodResourceAndRunner({
   podData,
 }: {
   ctx: PluginContext
+  timeout?: number
   api: KubeApi
   provider: KubernetesProvider
   podData: PodData
@@ -397,7 +398,7 @@ async function runWithoutArtifacts({
   log: LogEntry
   api: KubeApi
   provider: KubernetesProvider
-  action: ContainerAction
+  action: SupportedRuntimeActions
   version: string
   podData: PodData
   run: BaseRunParams
@@ -413,7 +414,6 @@ async function runWithoutArtifacts({
 
   let result: RunResult
   const startedAt = new Date()
-  const moduleName = action.moduleName()
 
   try {
     const res = await runner.runAndWait({
@@ -425,8 +425,6 @@ async function runWithoutArtifacts({
     })
     result = {
       ...res,
-      moduleName,
-      version,
     }
   } catch (err) {
     const containerLogs = err.detail.logs
@@ -439,7 +437,7 @@ async function runWithoutArtifacts({
       startedAt,
       exitCode,
       version,
-      moduleName,
+      moduleName: action.moduleName(),
     })
   }
 
@@ -565,7 +563,6 @@ async function runWithArtifacts({
 
     // Escape the command, so that we can safely pass it as a single string
     const cmd = [...command!, ...(args || [])].map((s) => JSON.stringify(s))
-    const moduleName = action.moduleName()
 
     try {
       // See https://stackoverflow.com/a/20564208
@@ -592,8 +589,6 @@ ${cmd.join(" ")}
       result = {
         ...res,
         log: (await runner.getMainContainerLogs()).trim() || res.log,
-        moduleName,
-        version,
       }
     } catch (err) {
       const containerLogs = (await runner.getMainContainerLogs()).trim()
@@ -606,7 +601,7 @@ ${cmd.join(" ")}
         startedAt,
         exitCode,
         version,
-        moduleName,
+        moduleName: action.moduleName(),
       })
     }
 

@@ -8,19 +8,20 @@
 
 import { realpath } from "fs-extra"
 import normalizePath from "normalize-path"
-import tmp from "tmp-promise"
+import { ActionState } from "../actions/base"
 import { PluginEventBroker } from "../plugin-context"
 import { runStatus } from "../plugin/base"
 import { copyArtifacts, getArtifactKey } from "../util/artifacts"
+import { makeTempDir } from "../util/fs"
 import { uuidv4 } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
 
 export const testRouter = (baseParams: BaseRouterParams) =>
-  createActionRouter("test", baseParams, {
+  createActionRouter("Test", baseParams, {
     run: async (params) => {
       const { action, garden, router } = params
 
-      const tmpDir = await tmp.dir({ unsafeCleanup: true })
+      const tmpDir = await makeTempDir()
       const artifactsPath = normalizePath(await realpath(tmpDir.path))
       const actionUid = uuidv4()
 
@@ -61,6 +62,8 @@ export const testRouter = (baseParams: BaseRouterParams) =>
 
         const result = await router.callHandler({ params: { ...params, artifactsPath }, handlerType: "run" })
 
+        await router.validateActionOutputs(action, result.outputs)
+
         // Emit status
         garden.events.emit("testStatus", {
           actionName,
@@ -70,9 +73,9 @@ export const testRouter = (baseParams: BaseRouterParams) =>
           moduleVersion,
           testVersion,
           actionUid,
-          status: runStatus(result.result),
+          status: runStatus(result.detail),
         })
-        router.emitNamespaceEvent(result.result?.namespaceStatus)
+        router.emitNamespaceEvent(result.detail?.namespaceStatus)
 
         return result
       } finally {
@@ -82,7 +85,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
             garden,
             log: params.log,
             artifactsPath,
-            key: getArtifactKey("test", action.name, actionVersion)
+            key: getArtifactKey("test", action.name, actionVersion),
           })
         } finally {
           await tmpDir.cleanup()
@@ -96,7 +99,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
       const result = await router.callHandler({
         params,
         handlerType: "getResult",
-        defaultHandler: async () => null,
+        defaultHandler: async () => ({ state: <ActionState>"unknown", detail: null, outputs: null }),
       })
 
       const actionName = action.name
@@ -109,8 +112,12 @@ export const testRouter = (baseParams: BaseRouterParams) =>
         moduleName: action.moduleName(),
         moduleVersion: actionVersion,
         testVersion: actionVersion,
-        status: runStatus(result.result),
+        status: runStatus(result.detail),
       })
+
+      if (result) {
+        await router.validateActionOutputs(action, result.outputs)
+      }
 
       return result
     },

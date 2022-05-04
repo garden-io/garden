@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { BaseTask, BaseTaskParams, TaskType } from "./base"
+import { BaseTask, BaseTaskParams, TaskProcessParams } from "./base"
 import {
   GenericProviderConfig,
   Provider,
@@ -18,13 +18,11 @@ import {
 import { resolveTemplateStrings } from "../template-string/template-string"
 import { ConfigurationError, PluginError } from "../exceptions"
 import { keyBy, omit, flatten, uniq } from "lodash"
-import { GraphResults } from "../task-graph"
 import { ProviderConfigContext } from "../config/template-contexts/provider"
 import { ModuleConfig } from "../config/module"
 import { GardenPlugin } from "../plugin/plugin"
 import { joi } from "../config/common"
 import { validateWithPath, validateSchema } from "../config/validation"
-import Bluebird from "bluebird"
 import { defaultEnvironmentStatus, EnvironmentStatus } from "../plugin/handlers/provider/getEnvironmentStatus"
 import { getPluginBases, getPluginBaseNames } from "../plugins"
 import { Profile } from "../util/profiling"
@@ -38,6 +36,7 @@ import { stableStringify } from "../util/string"
 
 interface Params extends BaseTaskParams {
   plugin: GardenPlugin
+  allPlugins: GardenPlugin[]
   config: GenericProviderConfig
   forceRefresh: boolean
   forceInit: boolean
@@ -59,19 +58,21 @@ const defaultCacheTtl = 3600 // 1 hour
  * Resolves the configuration for the specified provider.
  */
 @Profile()
-export class ResolveProviderTask extends BaseTask {
-  type: TaskType = "resolve-provider"
+export class ResolveProviderTask extends BaseTask<Provider> {
+  type = "resolve-provider"
   concurrencyLimit = 20
 
   private config: GenericProviderConfig
   private plugin: GardenPlugin
   private forceRefresh: boolean
   private forceInit: boolean
+  private allPlugins: GardenPlugin[]
 
   constructor(params: Params) {
     super(params)
     this.config = params.config
     this.plugin = params.plugin
+    this.allPlugins = params.allPlugins
     this.forceRefresh = params.forceRefresh
     this.forceInit = params.forceInit
   }
@@ -84,14 +85,14 @@ export class ResolveProviderTask extends BaseTask {
     return `resolving provider ${this.getName()}`
   }
 
-  async resolveDependencies() {
+  resolveDependencies() {
     const pluginDeps = this.plugin.dependencies
     const explicitDeps = (this.config.dependencies || []).map((name) => ({ name }))
-    const implicitDeps = (await getProviderTemplateReferences(this.config)).map((name) => ({ name }))
+    const implicitDeps = getProviderTemplateReferences(this.config).map((name) => ({ name }))
     const allDeps = uniq([...pluginDeps, ...explicitDeps, ...implicitDeps])
 
     const rawProviderConfigs = this.garden.getRawProviderConfigs()
-    const plugins = keyBy(await this.garden.getAllPlugins(), "name")
+    const plugins = keyBy(this.allPlugins, "name")
 
     const matchDependencies = (depName: string) => {
       // Match against a provider if its name matches directly, or it inherits from a base named `depName`
@@ -101,7 +102,7 @@ export class ResolveProviderTask extends BaseTask {
     }
 
     // Make sure explicit dependencies are configured
-    await Bluebird.map(pluginDeps, async (dep) => {
+    pluginDeps.map((dep) => {
       const matched = matchDependencies(dep.name)
 
       if (matched.length === 0 && !dep.optional) {
@@ -114,25 +115,32 @@ export class ResolveProviderTask extends BaseTask {
     })
 
     return flatten(
-      await Bluebird.map(allDeps, async (dep) => {
+      allDeps.map((dep) => {
         return matchDependencies(dep.name).map((config) => {
           const plugin = plugins[config.name]
 
           return new ResolveProviderTask({
             garden: this.garden,
             plugin,
+            allPlugins: this.allPlugins,
             config,
             log: this.log,
             version: this.version,
+            force: this.force,
             forceRefresh: this.forceRefresh,
             forceInit: this.forceInit,
+            fromWatch: false,
           })
         })
       })
     )
   }
 
-  async process(dependencyResults: GraphResults) {
+  async getStatus() {
+    return null
+  }
+
+  async process({ dependencyResults }: TaskProcessParams) {
     const resolvedProviders: ProviderMap = keyBy(
       Object.values(dependencyResults).map((result) => result && result.result),
       "name"

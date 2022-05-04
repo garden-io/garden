@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import titleize from "titleize"
-import { ConfigGraph } from "../graph/config-graph"
+import type { ConfigGraph } from "../graph/config-graph"
 import {
   ActionReference,
   apiVersionSchema,
@@ -24,19 +24,26 @@ import {
 } from "../config/common"
 import { varfileDescription } from "../config/project"
 import { DOCS_BASE_URL } from "../constants"
-import { dedent, naturalList } from "../util/string"
-import { ModuleVersion } from "../vcs/vcs"
+import { dedent, naturalList, stableStringify } from "../util/string"
+import { hashStrings, ModuleVersion, TreeVersion, versionStringPrefix } from "../vcs/vcs"
 import type { BuildAction, BuildActionConfig, ResolvedBuildAction } from "./build"
 import type { DeployActionConfig } from "./deploy"
 import type { RunActionConfig } from "./run"
 import type { TestActionConfig } from "./test"
-import { ActionKind } from "../plugin/action-types"
-import { GroupConfig } from "../config/group"
+import type { ActionKind } from "../plugin/action-types"
+import type { GroupConfig } from "../config/group"
 import pathIsInside from "path-is-inside"
+import { actionOutputsSchema } from "../plugin/handlers/base/base"
+import { GraphResult, GraphResults } from "../graph/solver"
+import { RunResult } from "../plugin/base"
+import { Memoize } from "typescript-memoize"
+import { fromPairs, isString } from "lodash"
+import { ActionConfigContext } from "../config/template-contexts/actions"
 
 export { ActionKind } from "../plugin/action-types"
 
-export const actionKinds: ActionKind[] = ["build", "deploy", "run", "test"]
+export const actionKinds: ActionKind[] = ["Build", "Deploy", "Run", "Test"]
+export const actionKindsLower = actionKinds.map((k) => k.toLowerCase())
 
 interface SourceRepositorySpec {
   url: string
@@ -80,22 +87,32 @@ const actionSourceSpecSchema = () =>
       `
     )
     .xor("path", "url")
-    .meta({ advanced: true })
+    .meta({ advanced: true, templateContext: ActionConfigContext })
 
-export interface BaseActionConfig<K extends ActionKind = any, N = any, S = any> {
+/**
+ * These are the built-in fields in all action configs.
+ *
+ * See inline comments below for information on what templating is allowed on different fields.
+ */
+export interface BaseActionConfig<K extends ActionKind = ActionKind, N = string, S = any> {
   // Basics
+  // -> No templating is allowed on these.
   apiVersion?: string
-  kind: `${Capitalize<K>}`
+  kind: K
   type: N
   name: string
   description?: string
-  group?: GroupConfig
+  groupName?: string
 
   // Location
+  // -> No templating is allowed on these.
   basePath: string
+  configPath?: string
+  // -> Templating with ActionConfigContext allowed
   source?: ActionSourceSpec
 
   // Internal metadata
+  // -> No templating is allowed on these.
   internal?: {
     configFilePath?: string
     moduleName?: string // For backwards-compatibility, applied on actions returned from module conversion handlers
@@ -106,15 +123,19 @@ export interface BaseActionConfig<K extends ActionKind = any, N = any, S = any> 
   }
 
   // Flow/execution control
+  // -> Templating with ActionConfigContext allowed
   dependencies?: (string | ActionReference)[]
   disabled?: boolean
 
   // Version/file handling
+  // -> Templating with ActionConfigContext allowed
   include?: string[]
   exclude?: string[]
 
   // Variables
+  // -> Templating with ActionConfigContext allowed
   variables?: DeepPrimitiveMap
+  // -> Templating with ActionConfigContext allowed, including in variables defined in the varfiles
   varfiles?: string[]
 
   // Type-specific
@@ -123,26 +144,27 @@ export interface BaseActionConfig<K extends ActionKind = any, N = any, S = any> 
 
 export const includeExcludeSchema = () => joi.array().items(joi.posixPath().allowGlobs().subPathOnly())
 
-export const baseActionConfig = () =>
+export const baseActionConfigSchema = () =>
   joi.object().keys({
     // Basics
-    apiVersion: apiVersionSchema(),
+    apiVersion: apiVersionSchema().meta({ templateContext: null }),
     kind: joi
       .string()
       .required()
       .allow(...actionKinds)
-      .description(`The kind of action you want to define (one of ${naturalList(actionKinds.map(titleize), "or")}).`),
+      .description(`The kind of action you want to define (one of ${naturalList(actionKinds.map(titleize), "or")}).`)
+      .meta({ templateContext: null }),
     type: joiIdentifier()
       .required()
       .description(
         "The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be defined by your configured providers."
-      ),
+      )
+      .meta({ templateContext: null }),
     name: joiUserIdentifier()
       .required()
-      .description(
-        "A valid name for the action. Must be unique across all actions of the same _kind_ in your project."
-      ),
-    description: joi.string().description("A description of the action."),
+      .description("A valid name for the action. Must be unique across all actions of the same _kind_ in your project.")
+      .meta({ templateContext: null }),
+    description: joi.string().description("A description of the action.").meta({ templateContext: null }),
 
     // Location
     source: actionSourceSpecSchema(),
@@ -155,12 +177,13 @@ export const baseActionConfig = () =>
 
         Each dependency should generally be expressed as a \`"<kind>.<name>"\` string, where _<kind>_ is one of \`build\`, \`deploy\`, \`run\` or \`test\`, and _<name>_ is the name of the action to depend on.
 
-        You may also optionally specify a dependency as an object, e.g. \`{ kind: "build", name: "some-image" }\`.
+        You may also optionally specify a dependency as an object, e.g. \`{ kind: "Build", name: "some-image" }\`.
 
         Any empty values (i.e. null or empty strings) are ignored, so that you can conditionally add in a dependency via template expressions.
         `
       )
-      .example(["build.my-image", "deploy.api"]),
+      .example(["build.my-image", "deploy.api"])
+      .meta({ templateContext: ActionConfigContext }),
     disabled: joi
       .boolean()
       .default(false)
@@ -172,7 +195,8 @@ export const baseActionConfig = () =>
 
         For other action kinds, the action is skipped in all scenarios, and dependency declarations to it are ignored. Note however that template strings referencing outputs (i.e. runtime outputs) will fail to resolve when the action is disabled, so you need to make sure to provide alternate values for those if you're using them, using conditional expressions.
       `
-      ),
+      )
+      .meta({ templateContext: ActionConfigContext }),
 
     // Version/file handling (Note: Descriptions and behaviors are different on Build actions!)
     include: includeExcludeSchema()
@@ -186,7 +210,8 @@ export const baseActionConfig = () =>
 
         Note that you can also _exclude_ files using the \`exclude\` field or by placing \`.gardenignore\` files in your source tree, which use the same format as \`.gitignore\` files. See the [Configuration Files guide](${includeGuideLink}) for details.`
       )
-      .example(["my-app.js", "some-assets/**/*"]),
+      .example(["my-app.js", "some-assets/**/*"])
+      .meta({ templateContext: ActionConfigContext }),
     exclude: includeExcludeSchema()
       .description(
         dedent`
@@ -197,12 +222,18 @@ export const baseActionConfig = () =>
         Unlike the \`scan.exclude\` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes when watching is enabled. Use the project \`scan.exclude\` field to affect those, if you have large directories that should not be watched for changes.
         `
       )
-      .example(["tmp/**/*", "*.log"]),
+      .example(["tmp/**/*", "*.log"])
+      .meta({ templateContext: ActionConfigContext }),
 
     // Variables
-    variables: joiVariables().default(() => undefined).description(dedent`
+    variables: joiVariables()
+      .default(() => undefined)
+      .description(
+        dedent`
       A map of variables scoped to this particular action. These are resolved before any other parts of the action configuration and take precedence over group-scoped variables (if applicable) and project-scoped variables, in that order. They may reference group-scoped and project-scoped variables, and generally can use any template strings normally allowed when resolving the action.
-    `),
+    `
+      )
+      .meta({ templateContext: ActionConfigContext }),
     varfiles: joi
       .posixPath()
       .description(
@@ -218,7 +249,14 @@ export const baseActionConfig = () =>
           If a listed varfile cannot be found, it is ignored.
         `
       )
-      .example("my-action.env"),
+      .example("my-action.env")
+      .meta({ templateContext: ActionConfigContext }),
+
+    spec: joi
+      .object()
+      .unknown(true)
+      .description("The spec for the specific action type.")
+      .meta({ templateContext: ActionConfigContext }),
   })
 
 export interface BaseRuntimeActionConfig<K extends ActionKind = any, N = any, S = any>
@@ -227,17 +265,19 @@ export interface BaseRuntimeActionConfig<K extends ActionKind = any, N = any, S 
 }
 
 export const baseRuntimeActionConfig = () =>
-  baseActionConfig().keys({
-    build: joiUserIdentifier().description(
-      dedent(
-        `Specify a _Build_ action, and resolve this action from the context of that Build.
+  baseActionConfigSchema().keys({
+    build: joiUserIdentifier()
+      .description(
+        dedent(
+          `Specify a _Build_ action, and resolve this action from the context of that Build.
 
         For example, you might create an \`exec\` Build which prepares some manifests, and then reference that in a \`kubernetes\` _Deploy_ action, and the resulting manifests from the Build.
 
         This would mean that instead of looking for manifest files relative to this action's location in your project structure, the output directory for the referenced \`exec\` Build would be the source.
         `
+        )
       )
-    ),
+      .meta({ templateContext: ActionConfigContext }),
   })
 
 export interface ActionConfigTypes {
@@ -247,34 +287,84 @@ export interface ActionConfigTypes {
   test: TestActionConfig
 }
 
-interface ActionWrapperParams<C extends BaseActionConfig> {
-  baseBuildDirectory: string // <project>/.garden/build by default
-  config: C
-  dependencies: ConfigGraph
-  moduleName?: string
-  projectRoot: string
-  version: ModuleVersion
-}
+// See https://melvingeorge.me/blog/convert-array-into-string-literal-union-type-typescript
+const actionStateTypes = ["ready", "not-ready", "failed", "outdated", "unknown"] as const
+export type ActionState = typeof actionStateTypes[number]
 
-export interface ResolvedActionWrapperParams<C extends BaseActionConfig, O extends {}> extends ActionWrapperParams<C> {
+export interface ActionStatus<
+  T extends BaseAction = BaseAction,
+  D extends {} = any,
+  O extends {} = GetActionOutputType<T>
+> {
+  state: ActionState
+  detail: D | null
   outputs: O
 }
 
-export abstract class Action<C extends BaseActionConfig = BaseActionConfig, O extends {} = any> {
+export const actionStatusSchema = () =>
+  joi.object().keys({
+    status: joi
+      .string()
+      .allow(...actionStateTypes)
+      .only()
+      .required()
+      .description("The state of the action."),
+    detail: joi.any().description("Optional provider-specific information about the action status or results."),
+    outputs: actionOutputsSchema(),
+  })
+
+/**
+ * Maps a RunResult to the state field on ActionStatus, returned by several action handler types.
+ */
+export function runResultToActionState(result: RunResult) {
+  if (result.success) {
+    return "ready"
+  } else {
+    return "failed"
+  }
+}
+
+type ActionDependencyType = "explicit" | "implicit" | "implicit-executed"
+
+interface ActionDependency {
+  kind: ActionKind
+  name: string
+  type: ActionDependencyType
+}
+
+export interface ActionWrapperParams<C extends BaseActionConfig> {
+  baseBuildDirectory: string // <project>/.garden/build by default
+  config: C
+  dependencies: ActionDependency[]
+  graph: ConfigGraph
+  moduleName?: string
+  moduleVersion?: ModuleVersion
+  projectRoot: string
+  treeVersion: TreeVersion
+}
+
+export interface ResolvedActionWrapperParams<C extends BaseActionConfig, O extends {}> extends ActionWrapperParams<C> {
+  dependencyResults: GraphResults
+  status: ActionStatus<BaseAction<C, O>, any>
+  variables: DeepPrimitiveMap
+}
+
+export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, O extends {} = any> {
   public readonly kind: C["kind"]
   public readonly type: C["type"]
   public readonly name: string
-  public readonly buildMetadataPath: string
-  public readonly dependencies: ConfigGraph
 
   // Note: These need to be public because we need to reference the types (a current TS limitation)
   _config: C
   _outputs: O
 
   protected readonly baseBuildDirectory: string
+  protected readonly dependencies: ActionDependency[]
+  protected readonly graph: ConfigGraph
   protected readonly _moduleName?: string // TODO: remove in 0.14
+  protected readonly _moduleVersion?: ModuleVersion // TODO: remove in 0.14
   protected readonly projectRoot: string
-  protected readonly version: ModuleVersion
+  protected readonly _treeVersion: TreeVersion
 
   constructor(private params: ActionWrapperParams<C>) {
     this.kind = params.config.kind
@@ -283,10 +373,12 @@ export abstract class Action<C extends BaseActionConfig = BaseActionConfig, O ex
 
     this.baseBuildDirectory = params.baseBuildDirectory
     this.dependencies = params.dependencies
+    this.graph = params.graph
     this._moduleName = params.moduleName
+    this._moduleVersion = params.moduleVersion
     this._config = params.config
     this.projectRoot = params.projectRoot
-    this.version = params.version
+    this._treeVersion = params.treeVersion
   }
 
   abstract getBuildPath(): string
@@ -296,7 +388,7 @@ export abstract class Action<C extends BaseActionConfig = BaseActionConfig, O ex
   }
 
   key(): string {
-    return `${this.kind}.${this.name}`
+    return actionReferenceToString(this)
   }
 
   /**
@@ -326,7 +418,7 @@ export abstract class Action<C extends BaseActionConfig = BaseActionConfig, O ex
   }
 
   group() {
-    return this.getConfig("group")
+    return this.getConfig("groupName")
   }
 
   basePath(): string {
@@ -344,17 +436,64 @@ export abstract class Action<C extends BaseActionConfig = BaseActionConfig, O ex
     return this._moduleName || this.name
   }
 
+  moduleVersion(): ModuleVersion {
+    return this._moduleVersion || this.getFullVersion()
+  }
+
   getDependencyReferences(): ActionReference[] {
     return this._config.dependencies?.map(parseActionReference) || []
   }
 
-  // Note: Making this name verbose so that people don't accidentally use this instead of getVersionString()
-  getFullVersion() {
-    return this.version
+  hasDependency(refOrString: string | ActionReference) {
+    const ref = isString(refOrString) ? parseActionReference(refOrString) : refOrString
+
+    for (const dep of this.dependencies) {
+      if (ref.kind === dep.kind && ref.name === dep.name) {
+        return true
+      }
+    }
+
+    return false
+  }
+
+  // Note: Making this name verbose so that people don't accidentally use this instead of versionString()
+  @Memoize()
+  getFullVersion(): ModuleVersion {
+    const dependencyVersions = fromPairs(
+      this.dependencies.map((d) => {
+        const action = this.graph.getActionByRef(d)
+        return [action.key(), action.versionString()]
+      })
+    )
+
+    const versionString = hashStrings([this.configVersion(), this._treeVersion.contentHash])
+
+    return {
+      versionString,
+      dependencyVersions,
+      files: this._treeVersion.files,
+    }
+  }
+
+  treeVersion() {
+    return this._treeVersion
+  }
+
+  @Memoize()
+  private stringifyConfig() {
+    return stableStringify(this._config)
+  }
+
+  /**
+   * The version of this action's config (not including files or dependencies)
+   */
+  @Memoize()
+  configVersion() {
+    return versionStringPrefix + hashStrings([this.stringifyConfig()])
   }
 
   versionString(): string {
-    return this.version.versionString
+    return this.getFullVersion().versionString
   }
 
   getConfig(): C
@@ -375,41 +514,41 @@ export abstract class Action<C extends BaseActionConfig = BaseActionConfig, O ex
     return false
   }
 
+  matchesRef(ref: ActionReference) {
+    return ref.kind === this.kind && ref.name === this.name
+  }
+
+  // TODO-G2: grow this
+  describe() {
+    return {
+      config: this.getConfig(),
+    }
+  }
+
   /**
    * Returns a fully resolved version of this action, including outputs.
    *
    * @param outputs The outputs returned from the resolution of the action
    */
-  resolve(outputs: O): ResolvedAction<this> {
+  resolve(outputs: O): Resolved<BaseAction<C, O>> {
     // TODO-G2: validate outputs here
     const constructor = Object.getPrototypeOf(this).constructor
     return constructor({ ...this.params, outputs })
   }
 }
 
-export abstract class ResolvedAction<A extends Action> extends Action<A["_config"], A["_outputs"]> {
-  constructor(params: ResolvedActionWrapperParams<A["_config"], A["_outputs"]>) {
-    super(params)
-    this._outputs = params.outputs
-  }
-
-  getOutput<K extends keyof A["_outputs"]>(key: K) {
-    return this._outputs[key]
-  }
-}
-
 export abstract class RuntimeAction<
   C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
   O extends {} = any
-> extends Action<C, O> {
+> extends BaseAction<C, O> {
   /**
    * Return the Build action specified on the `build` field if defined, otherwise null
    */
   getBuildAction<T extends BuildAction>() {
     const buildName = this.getConfig("build")
     if (buildName) {
-      const buildAction = this.dependencies.getBuild(buildName)
-      return <T>buildAction
+      const buildAction = this.graph.getBuild(buildName)
+      return <Resolved<T>>buildAction
     } else {
       return null
     }
@@ -425,27 +564,76 @@ export abstract class RuntimeAction<
   }
 }
 
-// TODO: see if we can avoid the duplication here
+// TODO: see if we can avoid the duplication here with ResolvedBuildAction
 export abstract class ResolvedRuntimeAction<
   C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
   O extends {} = any
 > extends RuntimeAction<C, O> {
+  private variables: DeepPrimitiveMap
+  private status: ActionStatus<this, any, O>
+  private dependencyResults: GraphResults
+
   constructor(params: ResolvedActionWrapperParams<C, O>) {
     super(params)
-    this._outputs = params.outputs
+    this.status = params.status
+    this.variables = params.variables
+    this.dependencyResults = params.dependencyResults
+  }
+
+  getDependencyResult(ref: ActionReference | Action): GraphResult | null {
+    return this.dependencyResults[actionReferenceToString(ref)] || null
   }
 
   getOutput<K extends keyof O>(key: K) {
-    return this._outputs[key]
+    return this.status.outputs[key]
+  }
+
+  getOutputs() {
+    return this.status.outputs
+  }
+
+  getVariables() {
+    return this.variables
   }
 }
 
-export type GetActionOutputType<T> = T extends Action<any, infer O> ? O : any
+export type GetActionOutputType<T> = T extends BaseAction<any, infer O> ? O : any
 
 export function actionReferenceToString(ref: ActionReference) {
-  return `${ref.kind}.${ref.name}`
+  return `${ref.kind.toLowerCase()}.${ref.name}`
 }
 
-export type Resolved<T extends Action> = T extends BuildAction
+export type Action = BuildAction | RuntimeAction
+
+export type Resolved<T extends BaseAction> = T extends BuildAction
   ? ResolvedBuildAction<T["_config"], T["_outputs"]>
   : ResolvedRuntimeAction<T["_config"], T["_outputs"]>
+
+export type ActionReferenceMap = {
+  [K in ActionKind]: string[]
+}
+
+export type ActionConfigMap = {
+  [K in ActionKind]: {
+    [name: string]: BaseActionConfig
+  }
+}
+
+export function actionReferencesToMap(refs: ActionReference[]) {
+  const out: ActionReferenceMap = {
+    Build: [],
+    Deploy: [],
+    Run: [],
+    Test: [],
+  }
+
+  for (const ref of refs) {
+    out[ref.kind].push(ref.name)
+  }
+
+  return out
+}
+
+export function isActionConfig(config: any): config is BaseActionConfig {
+  return actionKinds.includes(config)
+}

@@ -111,6 +111,7 @@ export interface ModuleTypeExtension<M extends GardenModule = GardenModule> {
     }
   }
   name: string
+  needsBuild: boolean
 }
 
 export interface ModuleTypeDefinition<T extends GardenModule = GardenModule> extends ModuleTypeExtension<T> {
@@ -132,6 +133,7 @@ export const extendModuleTypeSchema = () =>
   joi.object().keys({
     name: joiIdentifier().required().description("The name of module type."),
     handlers: moduleHandlersSchema(),
+    needsBuild: joi.boolean().required().description("Specify whether this module type needs to be built."),
   })
 
 export const createModuleTypeSchema = () =>

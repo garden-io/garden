@@ -7,4 +7,4 @@
  */
 
 export { CliWrapper } from "@garden-io/core/build/src/util/ext-tools"
-export { PluginToolSpec } from "@garden-io/core/build/src/types/plugin/tools"
+export { PluginToolSpec } from "@garden-io/core/build/src/plugin/tools"

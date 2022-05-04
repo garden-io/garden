@@ -6,7 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ForwardablePort, ServiceIngress, ServiceState, ServiceStatus } from "../../../types/service"
+import {
+  ForwardablePort,
+  ServiceIngress,
+  ServiceState,
+  serviceStateToActionState,
+  ServiceStatus,
+} from "../../../types/service"
 import { LogEntry } from "../../../logger/log-entry"
 import { helm } from "./helm-cli"
 import { getReleaseName, loadTemplate } from "./common"
@@ -78,29 +84,30 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
   if (state !== "missing") {
     const deployedResources = await getRenderedResources({ ctx: k8sCtx, action, releaseName, log })
 
-    forwardablePorts = !!deployedWithLocalMode ? [] : getForwardablePorts(deployedResources, service)
+    forwardablePorts = !!deployedWithLocalMode ? [] : getForwardablePorts(deployedResources, action)
     ingresses = getK8sIngresses(deployedResources)
 
     if (state === "ready") {
       // Local mode always takes precedence over dev mode
       if (localMode && spec.localMode) {
-        const resourceSpec = spec.localMode.target || spec.defaultTarget
+        const query = spec.localMode.target || spec.defaultTarget
 
-        if (resourceSpec) {
+        // If no target is set, a warning is emitted during deployment
+        if (query) {
           const target = await getTargetResource({
             ctx: k8sCtx,
             log,
             provider: k8sCtx.provider,
             action,
             manifests: deployedResources,
-            resourceSpec,
+            query,
           })
 
           if (!isConfiguredForLocalMode(target)) {
             state = "outdated"
           }
         }
-      } else if (devMode && spec.devMode) {
+      } else if (devMode && spec.devMode?.syncs) {
         // Need to start the dev-mode sync here, since the deployment handler won't be called.
 
         // First make sure we don't fail if resources arent't actually properly configured (we don't want to throw in
@@ -111,8 +118,6 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
           log,
           action,
           provider: k8sCtx.provider,
-          manifests: deployedResources,
-          query: resourceSpec,
         })
 
         await startDevModeSyncs({
@@ -131,14 +136,19 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
   }
 
   return {
-    forwardablePorts,
-    state,
-    version: state === "ready" ? action.versionString() : undefined,
-    detail,
-    devMode: deployedWithDevMode,
-    localMode: deployedWithLocalMode,
-    namespaceStatuses: [namespaceStatus],
-    ingresses,
+    state: serviceStateToActionState(state),
+    detail: {
+      forwardablePorts,
+      state,
+      version: state === "ready" ? action.versionString() : undefined,
+      detail,
+      devMode: deployedWithDevMode,
+      localMode: deployedWithLocalMode,
+      namespaceStatuses: [namespaceStatus],
+      ingresses,
+    },
+    // TODO-G2
+    outputs: {},
   }
 }
 

@@ -28,7 +28,8 @@ import {
 
 import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
 import { joi } from "@garden-io/core/build/src/config/common"
-import { DOCS_BASE_URL } from "@garden-io/core/src/constants"
+import { DOCS_BASE_URL } from "@garden-io/core/build/src/constants"
+import { ExecBuildConfig } from "@garden-io/core/build/src/plugins/exec/config"
 
 type TerraformProviderConfig = GenericProviderConfig &
   TerraformBaseSpec & {
@@ -107,7 +108,7 @@ export const gardenPlugin = () =>
     commands: getTerraformCommands(),
 
     createActionTypes: {
-      deploy: [
+      Deploy: [
         {
           name: "terraform",
           docs: dedent`
@@ -115,15 +116,44 @@ export const gardenPlugin = () =>
 
           **Note: It is not recommended to set \`autoApply\` to \`true\` for any production or shared environments, since this may result in accidental or conflicting changes to the stack.** Instead, it is recommended to manually plan and apply using the provided plugin commands. Run \`garden plugins terraform\` for details.
 
-          Stack outputs are made available as service outputs, that can be referenced by other modules under \`${deployOutputsTemplateString}\`. You can template in those values as e.g. command arguments or environment variables for other services.
+          Stack outputs are made available as service outputs, that can be referenced by other actions under \`${deployOutputsTemplateString}\`. You can template in those values as e.g. command arguments or environment variables for other services.
 
-          Note that you can also declare a Terraform root in the \`terraform\` provider configuration by setting the \`initRoot\` parameter. This may be preferable if you need the outputs of the Terraform stack to be available to other provider configurations, e.g. if you spin up an environment with the Terraform provider, and then use outputs from that to configure another provider or other modules via \`${providerOutputsTemplateString}\` template strings.
+          Note that you can also declare a Terraform root in the \`terraform\` provider configuration by setting the \`initRoot\` parameter. This may be preferable if you need the outputs of the Terraform stack to be available to other provider configurations, e.g. if you spin up an environment with the Terraform provider, and then use outputs from that to configure another provider or other actions via \`${providerOutputsTemplateString}\` template strings.
 
           See the [Terraform guide](${DOCS_BASE_URL}/advanced/terraform) for a high-level introduction to the \`terraform\` provider.
           `,
           schema: terraformModuleSchema(),
           outputsSchema: terraformDeployOutputsSchema(),
           handlers: {
+            configure: async ({ ctx, config }) => {
+              const provider = ctx.provider as TerraformProvider
+
+              // Use the provider config if no value is specified for the module
+              if (config.spec.autoApply === null) {
+                config.spec.autoApply = provider.config.autoApply
+              }
+              if (!config.spec.version) {
+                config.spec.version = provider.config.version
+              }
+
+              return { config }
+            },
+
+            validate: async ({ action }) => {
+              const root = action.getSpec("root")
+              if (root) {
+                const absRoot = join(action.basePath(), root)
+                const exists = await pathExists(absRoot)
+
+                if (!exists) {
+                  throw new ConfigurationError(`Terraform: configured root directory '${root}' does not exist`, {
+                    root,
+                  })
+                }
+              }
+              return {}
+            },
+
             deploy: deployTerraform,
             getStatus: getTerraformStatus,
             delete: deleteTerraformModule,
@@ -147,6 +177,7 @@ export const gardenPlugin = () =>
       See the [Terraform guide](${docsBaseUrl}/advanced/terraform) for a high-level introduction to the \`terraform\` provider.
     `,
         schema: terraformModuleSchema(),
+        needsBuild: false,
         handlers: {
           async convert(params) {
             const { module, dummyBuild, prepareRuntimeDependencies } = params

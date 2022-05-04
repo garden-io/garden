@@ -17,11 +17,10 @@ import {
   TestGarden,
   makeTestGarden,
 } from "../../../../helpers"
-import { GetTaskResultCommand } from "../../../../../src/commands/get/get-task-result"
+import { GetRunResultCommand } from "../../../../../src/commands/get/get-run-result"
 import { expect } from "chai"
 import { createGardenPlugin } from "../../../../../src/plugin/plugin"
 import { LogEntry } from "../../../../../src/logger/log-entry"
-import { GetTaskResultParams } from "../../../../../src/types/plugin/task/getTaskResult"
 import { getArtifactKey } from "../../../../../src/util/artifacts"
 import { writeFile } from "fs-extra"
 
@@ -59,11 +58,11 @@ const testPlugin = createGardenPlugin({
   ],
 })
 
-describe("GetTaskResultCommand", () => {
+describe("GetRunResultCommand", () => {
   let garden: TestGarden
   let log: LogEntry
   const projectRootB = join(dataDir, "test-project-b")
-  const command = new GetTaskResultCommand()
+  const command = new GetRunResultCommand()
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRootB, { plugins: [testPlugin], noCache: true })

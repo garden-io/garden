@@ -12,7 +12,6 @@ import getPort = require("get-port")
 const AsyncLock = require("async-lock")
 import { V1ContainerPort, V1Deployment, V1PodTemplate, V1Service } from "@kubernetes/client-node"
 
-import { GetPortForwardResult } from "../../types/plugin/service/getPortForward"
 import { KubernetesProvider, KubernetesPluginContext } from "./config"
 import { getAppNamespace } from "./namespace"
 import { registerCleanupFunction, sleep } from "../../util/util"
@@ -27,6 +26,7 @@ import execa = require("execa")
 import { KubernetesDeployAction } from "./kubernetes-type/config"
 import { HelmDeployAction } from "./helm/config"
 import { DeployAction } from "../../actions/deploy"
+import { GetPortForwardResult } from "../../plugin/handlers/deploy/get-port-forward"
 
 // TODO: implement stopPortForward handler
 

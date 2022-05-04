@@ -90,7 +90,6 @@ export async function prepareTemplates({
   ctx,
   action,
   log,
-  version,
 }: GetChartResourcesParams): Promise<{ namespace: string; releaseName: string; chartPath: string }> {
   const chartPath = await getChartPath(action)
 

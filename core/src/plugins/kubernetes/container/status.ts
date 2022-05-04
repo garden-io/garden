@@ -8,7 +8,7 @@
 
 import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
-import { ServiceStatus, ForwardablePort } from "../../../types/service"
+import { ServiceStatus, ForwardablePort, serviceStateToActionState } from "../../../types/service"
 import { createContainerManifests, startContainerDevSync } from "./deployment"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { DeploymentError } from "../../../exceptions"
@@ -81,7 +81,7 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
           }
         })
 
-  const status = {
+  const detail = {
     forwardablePorts,
     ingresses,
     state,
@@ -100,12 +100,16 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
     await startContainerDevSync({
       ctx: <KubernetesPluginContext>ctx,
       log,
-      status,
+      status: detail,
       action,
     })
   }
 
-  return status
+  return {
+    state: serviceStateToActionState(state),
+    detail,
+    outputs: detail.outputs,
+  }
 }
 
 /**
@@ -140,10 +144,13 @@ export async function waitForContainerService(
     log.silly(`Waiting for service ${action.name}`)
 
     if (new Date().getTime() - startTime > timeout * 1000) {
-      throw new DeploymentError(`Timed out waiting for ${action.longDescription()} to deploy after ${timeout} seconds`, {
-        name: action.name,
-        status,
-      })
+      throw new DeploymentError(
+        `Timed out waiting for ${action.longDescription()} to deploy after ${timeout} seconds`,
+        {
+          name: action.name,
+          status,
+        }
+      )
     }
 
     await sleep(1000)

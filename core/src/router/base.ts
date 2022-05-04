@@ -15,11 +15,12 @@ import {
   PluginActionContextParams,
   PluginActionParamsBase,
   ResolvedActionHandlerDescription,
+  WrappedActionHandler,
 } from "../plugin/base"
-import { GardenPlugin, WrappedActionHandler, ActionHandler, PluginMap } from "../plugin/plugin"
+import { GardenPlugin, ActionHandler, PluginMap } from "../plugin/plugin"
 import { PluginEventBroker } from "../plugin-context"
 import { ConfigContext } from "../config/template-contexts/base"
-import { ActionKind } from "../actions/base"
+import { ActionKind, BaseAction, BaseActionConfig } from "../actions/base"
 import {
   ActionTypeDefinition,
   ActionTypeMap,
@@ -32,10 +33,11 @@ import {
 } from "../plugin/action-types"
 import { InternalError, ParameterError, PluginError } from "../exceptions"
 import { validateSchema } from "../config/validation"
-import { getPluginBases, getPluginDependencies } from "../plugins"
+import { getActionTypeBases, getPluginBases, getPluginDependencies } from "../plugins"
 import { getNames } from "../util/util"
 import { defaultProvider } from "../config/provider"
 import { ConfigGraph } from "../graph/config-graph"
+import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
 
 export type CommonParams = keyof PluginActionContextParams
 export type RequirePluginName<T> = T & { pluginName: string }
@@ -78,9 +80,8 @@ export abstract class BaseRouter {
     }
   }
 
-  // TODO: find a nicer way to do this (like a type-safe wrapper function)
   protected async commonParams(
-    handler: WrappedActionHandler<any, any>,
+    handler: WrappedActionHandler<any, any> | WrappedActionTypeHandler<any, any>,
     log: LogEntry,
     templateContext?: ConfigContext,
     events?: PluginEventBroker
@@ -133,14 +134,14 @@ export abstract class BaseRouter {
 type HandlerMap<K extends ActionKind> = {
   [T in keyof ActionTypeClasses<K>]: {
     [actionType: string]: {
-      [pluginName: string]: WrappedActionTypeHandler<ActionTypeClasses<K>, T>
+      [pluginName: string]: WrappedActionTypeHandler<ActionTypeClasses<K>[T], any>
     }
   }
 }
 
 type HandlerParams<K extends ActionKind, H extends keyof ActionTypeClasses<K>> = Omit<
   GetActionTypeParams<ActionTypeClasses<K>[H]>,
-  CommonParams
+  CommonParams | "artifactsPath"
 > & {
   graph: ConfigGraph
   pluginName?: string
@@ -156,7 +157,7 @@ export type WrappedActionRouterHandlers<K extends ActionKind> = {
 
 type ActionRouterHandler<K extends ActionKind, H extends keyof ActionTypeClasses<K>> = {
   (
-    params: Omit<GetActionTypeParams<ActionTypeClasses<K>[H]>, CommonParams> & {
+    params: Omit<GetActionTypeParams<ActionTypeClasses<K>[H]>, CommonParams | "artifactsPath"> & {
       router: BaseActionRouter<K>
       garden: Garden
       graph: ConfigGraph
@@ -219,6 +220,31 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     }
   }
 
+  async configure({ config, log }: { config: BaseActionConfig; log: LogEntry }) {
+    if (config.kind !== this.kind) {
+      throw new InternalError(`Attempted to call ${this.kind} handler for ${config.kind} action`, {})
+    }
+
+    const handler = await this.getHandler({
+      handlerType: "configure",
+      actionType: config.type,
+    })
+
+    const templateContext = new ActionConfigContext(this.garden, this.garden.variables)
+
+    const commonParams = await this.commonParams(handler, log, templateContext)
+
+    const result = handler({
+      ...commonParams,
+      config,
+    })
+
+    // TODO-G2: resolve template strings on built-in fields
+    // TODO-G2: validate result
+
+    return result
+  }
+
   async callHandler<T extends keyof ActionTypeClasses<K>>({
     params,
     handlerType,
@@ -229,13 +255,17 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       pluginName?: string
       log: LogEntry
       graph: ConfigGraph
-    }
+    } & Omit<GetActionTypeParams<ActionTypeClasses<K>[T]>, keyof PluginActionParamsBase>
     handlerType: T
-    defaultHandler?: GetActionTypeHandler<any, any>
+    defaultHandler?: GetActionTypeHandler<ActionTypeClasses<K>[T], T>
   }): Promise<GetActionTypeResults<ActionTypeClasses<K>[T]>> {
     const { action, pluginName, log, graph } = params
 
-    log.silly(`Getting '${handlerType}' handler for ${action.longDescription()}`)
+    log.silly(`Getting '${String(handlerType)}' handler for ${action.longDescription()}`)
+
+    if (action.kind !== this.kind) {
+      throw new InternalError(`Attempted to call ${this.kind} handler for ${action.kind} action`, {})
+    }
 
     const handler = await this.getHandler({
       actionType: action.type,
@@ -245,25 +275,48 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     })
 
     const providers = await this.garden.resolveProviders(log)
-    const templateContext = ActionConfigContext.fromAction({
+    const templateContext = new ActionSpecContext({
       garden: this.garden,
       resolvedProviders: providers,
       action,
-      graph,
       partialRuntimeResolution: false,
+      modules: graph.getModules(),
+      variables: {}, // TODO-G2
     })
     const handlerParams = {
       ...(await this.commonParams(handler, params.log, templateContext)),
       ...params,
     }
 
-    log.silly(`Calling ${handlerType} handler for action ${action.longDescription()}`)
+    log.silly(`Calling ${String(handlerType)} handler for action ${action.longDescription()}`)
 
     const result: GetActionTypeResults<ActionTypeClasses<K>[T]> = await handler(handlerParams)
 
-    // TODO-G2: validate outputs here
+    // Validate result
+    // TODO-G2
 
     return result
+  }
+
+  async validateActionOutputs<T extends BaseAction>(action: T, outputs: any) {
+    const actionTypes = await this.garden.getActionTypes()
+    const spec: ActionTypeDefinition<any> = actionTypes[action.kind][action.type]
+
+    if (spec.outputsSchema) {
+      outputs = validateSchema(outputs, spec.outputsSchema, {
+        context: `outputs from service '${action.name}'`,
+        ErrorClass: PluginError,
+      })
+    }
+
+    for (const base of getActionTypeBases(spec, actionTypes[action.kind])) {
+      if (base.outputsSchema) {
+        outputs = validateSchema(outputs, base.outputsSchema.unknown(true), {
+          context: `outputs from service '${action.name}' (base schema from '${base.name}' plugin)`,
+          ErrorClass: PluginError,
+        })
+      }
+    }
   }
 
   private addHandler<T extends keyof ActionTypeClasses<K>>(
@@ -281,7 +334,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
         const result = await handler["apply"](plugin, args)
         if (result === undefined) {
           throw new PluginError(
-            `Got empty response from ${actionType}.${handlerType} handler on ${pluginName} provider`,
+            `Got empty response from ${actionType}.${String(handlerType)} handler on ${pluginName} provider`,
             {
               args,
               handlerType,
@@ -290,10 +343,10 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
           )
         }
         return validateSchema(result, schema, {
-          context: `${handlerType} ${actionType} output from provider ${pluginName}`,
+          context: `${String(handlerType)} ${actionType} output from provider ${pluginName}`,
         })
       })),
-      { handlerType, pluginName, moduleType: actionType }
+      { handlerType, pluginName, actionType }
     )
 
     wrapped.base = this.wrapBase(handler.base)
@@ -330,7 +383,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
     if (handlers.length === 0 && spec.base && !pluginName) {
       // No handler found but module type has a base. Check if the base type has the handler we're looking for.
-      this.garden.log.silly(`No ${handlerType} handler found for ${actionType}. Trying ${spec.base} base.`)
+      this.garden.log.silly(`No ${String(handlerType)} handler found for ${actionType}. Trying ${spec.base} base.`)
 
       return this.getHandler({
         handlerType,
@@ -377,7 +430,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
         // This should never happen
         throw new InternalError(
-          `Unable to find any matching configuration when selecting ${actionType}/${handlerType} handler ` +
+          `Unable to find any matching configuration when selecting ${actionType}/${String(handlerType)} handler ` +
             `(please report this as a bug).`,
           { handlers, configs }
         )
@@ -402,12 +455,12 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
       if (pluginName) {
         throw new PluginError(
-          `Plugin '${pluginName}' does not have a '${handlerType}' handler for action type '${actionType}'.`,
+          `Plugin '${pluginName}' does not have a '${String(handlerType)}' handler for action type '${actionType}'.`,
           errorDetails
         )
       } else {
         throw new ParameterError(
-          `No '${handlerType}' handler configured for actionType type '${actionType}' in environment ` +
+          `No '${String(handlerType)}' handler configured for actionType type '${actionType}' in environment ` +
             `'${this.garden.environmentName}'. Are you missing a provider configuration?`,
           errorDetails
         )

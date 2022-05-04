@@ -637,7 +637,7 @@ describe("cli", () => {
     it("correctly parses and passes global options", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "some-alias"
+        aliases = ["some-alias"]
         help = ""
         noProject = true
 
@@ -699,7 +699,7 @@ describe("cli", () => {
     it("allows setting env through GARDEN_ENVIRONMENT env variable", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "some-alias"
+        aliases = ["some-alias"]
         help = ""
         noProject = true
 
@@ -731,7 +731,7 @@ describe("cli", () => {
     it("prefers --env over GARDEN_ENVIRONMENT env variable", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "some-alias"
+        aliases = ["some-alias"]
         help = ""
         noProject = true
 
@@ -763,7 +763,7 @@ describe("cli", () => {
     it("correctly parses and passes arguments and options for a command", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "some-alias"
+        aliases = ["some-alias"]
         help = ""
         noProject = true
 
@@ -822,7 +822,7 @@ describe("cli", () => {
     it("correctly parses and passes arguments and options for a subcommand", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "some-alias"
+        aliases = ["some-alias"]
         help = ""
         noProject = true
 
@@ -906,7 +906,7 @@ describe("cli", () => {
     it("aborts with usage information on missing/invalid command arguments and options", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "some-alias"
+        aliases = ["some-alias"]
         help = ""
         noProject = true
 

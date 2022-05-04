@@ -7,7 +7,15 @@
  */
 
 import { deline } from "../util/string"
-import { joiIdentifier, joiUserIdentifier, joiArray, joi, joiIdentifierMap, joiSparseArray } from "./common"
+import {
+  joiIdentifier,
+  joiUserIdentifier,
+  joiArray,
+  joi,
+  joiIdentifierMap,
+  joiSparseArray,
+  PrimitiveMap,
+} from "./common"
 import { collectTemplateReferences } from "../template-string/template-string"
 import { ConfigurationError } from "../exceptions"
 import { ModuleConfig, moduleConfigSchema } from "./module"
@@ -57,6 +65,7 @@ export interface Provider<T extends BaseProviderConfig = BaseProviderConfig> {
   config: T
   status: EnvironmentStatus
   dashboardPages: DashboardPage[]
+  outputs: PrimitiveMap
 }
 
 export const providerSchema = () =>
@@ -84,6 +93,7 @@ export const defaultProvider: Provider = {
   config: { name: "_default" },
   status: { ready: true, outputs: {} },
   dashboardPages: [],
+  outputs: {},
 }
 
 export function providerFromConfig({
@@ -106,6 +116,7 @@ export function providerFromConfig({
     config,
     status,
     dashboardPages: plugin.dashboardPages,
+    outputs: status.outputs,
   }
 }
 
@@ -117,14 +128,14 @@ export async function getAllProviderDependencyNames(plugin: GardenPlugin, config
   return uniq([
     ...(plugin.dependencies || []).map((d) => d.name),
     ...(config.dependencies || []),
-    ...(await getProviderTemplateReferences(config)),
+    ...getProviderTemplateReferences(config),
   ]).sort()
 }
 
 /**
  * Given a provider config, return implicit dependencies based on template strings.
  */
-export async function getProviderTemplateReferences(config: GenericProviderConfig) {
+export function getProviderTemplateReferences(config: GenericProviderConfig) {
   const references = collectTemplateReferences(config)
   const deps: string[] = []
 

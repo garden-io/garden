@@ -12,6 +12,7 @@ import {
   findProjectConfig,
   prepareModuleResource,
   prepareProjectResource,
+  noTemplateFields,
 } from "../../../../src/config/base"
 import { resolve, join } from "path"
 import { dataDir, expectError, getDataDir } from "../../../helpers"
@@ -154,6 +155,14 @@ describe("loadConfigResources", () => {
         )
       }
     )
+  })
+
+  it("throws if basic fields contain template strings", async () => {
+    for (const field of noTemplateFields) {
+
+    }
+
+    throw "TODO"
   })
 
   // TODO: test more cases

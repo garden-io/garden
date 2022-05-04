@@ -9,27 +9,25 @@
 import { Command, CommandGroup, CommandParams, CommandResult } from "./base"
 import { NotFoundError } from "../exceptions"
 import dedent from "dedent"
-import { ServiceStatus, ServiceStatusMap, serviceStatusSchema } from "../types/service"
+import { ServiceStatusMap, serviceStatusSchema } from "../types/service"
 import { printHeader } from "../logger/util"
 import { DeleteSecretResult } from "../plugin/handlers/provider/deleteSecret"
 import { EnvironmentStatusMap } from "../plugin/handlers/provider/getEnvironmentStatus"
-import { DeleteDeployTask, deletedServiceStatuses } from "../tasks/delete-service"
+import { DeleteDeployTask, deletedDeployStatuses } from "../tasks/delete-service"
 import { joi, joiIdentifierMap } from "../config/common"
 import { environmentStatusSchema } from "../config/status"
 import { BooleanParameter, StringParameter, StringsParameter } from "../cli/params"
 import { deline } from "../util/string"
-import { Garden } from ".."
-import { ConfigGraph } from "../config-graph"
-import { LogEntry } from "../logger/log-entry"
 import { uniqByName } from "../util/util"
+import { isDeployAction } from "../actions/deploy"
 
 // TODO-G2 rename this to CleanupCommand, and do the same for all related classes, constants, variables and functions
 export class DeleteCommand extends CommandGroup {
   name = "cleanup"
-  alias = "delete"
-  help = "Delete/cleanup configuration or objects."
+  aliases = ["del", "delete"]
+  help = "Clean up resources."
 
-  subCommands = [DeleteSecretCommand, DeleteEnvironmentCommand, DeleteServiceCommand]
+  subCommands = [DeleteSecretCommand, DeleteEnvironmentCommand, DeleteDeployCommand]
 }
 
 const deleteSecretArgs = {
@@ -83,9 +81,9 @@ export class DeleteSecretCommand extends Command<typeof deleteSecretArgs> {
 const dependantsFirstOpt = {
   "dependants-first": new BooleanParameter({
     help: deline`
-      Delete services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a
+      Clean up deployments/services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a
       will be deleted before service-b when calling \`garden cleanup namespace service-a,service-b --dependants-first\`.
-      When this flag is not used, all services in the project are deleted simultaneously.
+      When this flag is not used, all services in the project are cleaned up simultaneously.
     `,
   }),
 }
@@ -96,13 +94,12 @@ type DeleteEnvironmentOpts = typeof dependantsFirstOpt
 
 interface DeleteEnvironmentResult {
   providerStatuses: EnvironmentStatusMap
-  serviceStatuses: ServiceStatusMap
+  deployStatuses: ServiceStatusMap
 }
 
 export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts> {
   name = "namespace"
-  // TODO-G2 add `environment` and `env` as aliases here
-  alias = "ns"
+  aliases = ["environment", "env", "ns"]
   help = "Deletes a running namespace."
 
   protected = true
@@ -111,8 +108,8 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
   options = deleteEnvironmentOpts
 
   description = dedent`
-    This will delete all services in the specified namespace, and trigger providers to clear up any other resources
-    and reset it. When you then run \`garden deploy\`, the namespace will be reconfigured.
+    This will clean up everything deployed in the specified environment, and trigger providers to clear up any other resources
+    and reset it. When you then run \`garden deploy\` after, the namespace will be reconfigured.
 
     This can be useful if you find the namespace to be in an inconsistent state, or need/want to free up resources.
   `
@@ -122,8 +119,8 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
       providerStatuses: joiIdentifierMap(environmentStatusSchema()).description(
         "The status of each provider in the namespace."
       ),
-      serviceStatuses: joiIdentifierMap(serviceStatusSchema()).description(
-        "The status of each service in the namespace."
+      deployStatuses: joiIdentifierMap(serviceStatusSchema()).description(
+        "The status of each deployment in the namespace."
       ),
     })
 
@@ -148,34 +145,35 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
 
     const providerStatuses = await actions.provider.cleanupAll(log)
 
-    return { result: { serviceStatuses, providerStatuses } }
+    return { result: { deployStatuses: serviceStatuses, providerStatuses } }
   }
 }
 
-const deleteServiceArgs = {
-  services: new StringsParameter({
-    help: "The name(s) of the service(s) to delete. Use comma as a separator to specify multiple services.",
+const deleteDeployArgs = {
+  names: new StringsParameter({
+    help:
+      "The name(s) of the deploy(s) (or services if using modules) to delete. Use comma as a separator to specify multiple names.",
   }),
 }
-type DeleteServiceArgs = typeof deleteServiceArgs
+type DeleteDeployArgs = typeof deleteDeployArgs
 
-const deleteServiceOpts = {
+const deleteDeployOpts = {
   ...dependantsFirstOpt,
   "with-dependants": new BooleanParameter({
     help: deline`
-      Also delete services that have service dependencies on one of the services specified as CLI arguments
+      Also clean up deployments/services that have dependencies on one of the deployments/services specified as CLI arguments
       (recursively).  When used, this option implies --dependants-first. Note: This option has no effect unless a list
-      of service names is specified as CLI arguments (since then, every service in the project will be deleted).
+      of names is specified as CLI arguments (since then, every deploy/service in the project will be deleted).
     `,
   }),
 }
-type DeleteServiceOpts = typeof deleteServiceOpts
+type DeleteDeployOpts = typeof deleteDeployOpts
 
-export class DeleteServiceCommand extends Command<DeleteServiceArgs, DeleteServiceOpts> {
-  name = "service"
-  alias = "services"
-  help = "Deletes running services."
-  arguments = deleteServiceArgs
+export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployOpts> {
+  name = "deploy"
+  aliases = ["deploys", "service", "services"]
+  help = "Cleans up running deployments (or services if using modules)."
+  arguments = deleteDeployArgs
 
   protected = true
   workflows = true
@@ -184,77 +182,64 @@ export class DeleteServiceCommand extends Command<DeleteServiceArgs, DeleteServi
   options = deleteServiceOpts
 
   description = dedent`
-    Deletes (i.e. un-deploys) the specified services. Deletes all services in the project if no arguments are provided.
-    Note that this command does not take into account any services depending on the deleted service/services, and might
-    therefore leave the project in an unstable state. Running \`garden deploy\` will re-deploy any missing services.
+    Cleans up (i.e. un-deploys) the specified actions. Cleans up all deploys/services in the project if no arguments are provided.
+    Note that this command does not take into account any deploys depending on the cleaned up actions, and might
+    therefore leave the project in an unstable state. Running \`garden deploy\` after will re-deploy anything missing.
 
     Examples:
 
-        garden cleanup service my-service # deletes my-service
-        garden cleanup service            # deletes all deployed services in the project
+        garden cleanup deploy my-service # deletes my-service
+        garden cleanup deploy            # deletes all deployed services in the project
   `
 
   outputsSchema = () =>
-    joiIdentifierMap(serviceStatusSchema()).description("A map of statuses for all the deleted services.")
+    joiIdentifierMap(serviceStatusSchema()).description("A map of statuses for all the deleted deploys.")
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Cleanup service", "skull_and_crossbones")
+    printHeader(headerLog, "Cleaning up deployment(s)", "skull_and_crossbones")
   }
 
-  async action({
-    garden,
-    log,
-    args,
-    opts,
-  }: CommandParams<DeleteServiceArgs, DeleteServiceOpts>): Promise<CommandResult> {
+  async action({ garden, log, args, opts }: CommandParams<DeleteDeployArgs, DeleteDeployOpts>): Promise<CommandResult> {
     const graph = await garden.getConfigGraph({ log, emit: true })
-    let services = graph.getServices({ names: args.services })
+    let actions = graph.getDeploys({ names: args.names })
 
-    if (services.length === 0) {
-      log.warn({ msg: "No services found. Aborting." })
+    if (actions.length === 0) {
+      log.warn({ msg: "No deploys found. Aborting." })
       return { result: {} }
     }
 
     if (opts["with-dependants"]) {
       // Then we include service dependants (recursively) in the list of services to delete
-      services = uniqByName([
-        ...services,
-        ...services.flatMap((s) => graph.getDependants({ nodeType: "deploy", name: s.name, recursive: true }).deploy),
+      actions = uniqByName([
+        ...actions,
+        ...actions.flatMap((s) =>
+          graph.getDependants({ kind: "Deploy", name: s.name, recursive: true }).filter(isDeployAction)
+        ),
       ])
     }
-    const deleteServiceTasks = services.map((service) => {
-      return new DeleteDeployTask({ garden, graph, log, action: service })
+
+    const dependantsFirst = opts["dependants-first"] || opts["with-dependants"]
+    const deleteDeployNames = actions.map((a) => a.name)
+
+    const tasks = actions.map((action) => {
+      return new DeleteDeployTask({
+        garden,
+        graph,
+        log,
+        action,
+        deleteDeployNames,
+        dependantsFirst,
+        force: false,
+        forceActions: [],
+        devModeDeployNames: [],
+        localModeDeployNames: [],
+        fromWatch: false,
+      })
     })
 
-    // --with-dependants implies --dependants-first
-    const dependantsFirst = opts["dependants-first"] || opts["with-dependants"]
-    const serviceNames = services.map((s) => s.name)
-    const result = await deleteServices({ serviceNames, garden, graph, log, dependantsFirst })
+    const processed = await garden.processTasks({ tasks, log })
+    const result = deletedDeployStatuses(processed.results)
 
     return { result }
   }
-}
-
-/**
- * Note: If `serviceNames` is undefined, deletes all services.
- */
-async function deleteServices({
-  serviceNames,
-  garden,
-  graph,
-  log,
-  dependantsFirst,
-}: {
-  serviceNames?: string[]
-  garden: Garden
-  graph: ConfigGraph
-  log: LogEntry
-  dependantsFirst: boolean
-}): Promise<{ [serviceName: string]: ServiceStatus }> {
-  const services = graph.getServices({ names: serviceNames })
-  const deleteDeployNames = services.map((s) => s.name)
-  const deleteServiceTasks = services.map((service) => {
-    return new DeleteServiceTask({ garden, graph, log, service, deleteDeployNames, dependantsFirst })
-  })
-  return deletedServiceStatuses(await garden.processTasks(deleteServiceTasks))
 }

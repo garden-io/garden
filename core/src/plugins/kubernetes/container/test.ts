@@ -15,6 +15,7 @@ import { getAppNamespaceStatus } from "../namespace"
 import { KubernetesPluginContext } from "../config"
 import { TestActionHandler } from "../../../plugin/action-types"
 import { getDeploymentImageId } from "./util"
+import { runResultToActionState } from "../../../actions/base"
 
 export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = async (params) => {
   const { ctx, action, log } = params
@@ -67,5 +68,5 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
     result,
   })
 
-  return { result, outputs: { log: res.log } }
+  return { state: runResultToActionState(result), detail: result, outputs: { log: res.log } }
 }

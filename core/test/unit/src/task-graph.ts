@@ -9,7 +9,7 @@
 import Bluebird from "bluebird"
 import { join } from "path"
 import { expect } from "chai"
-import { BaseTask, TaskType } from "../../../src/tasks/base"
+import { BaseTask } from "../../../src/tasks/base"
 import { TaskGraph, GraphResult, GraphResults } from "../../../src/task-graph"
 import { makeTestGarden, freezeTime, dataDir, expectError, TestGarden } from "../../helpers"
 import { Garden } from "../../../src/garden"
@@ -31,7 +31,7 @@ export interface TestTaskOptions {
 }
 
 export class TestTask extends BaseTask {
-  type: TaskType = "test"
+  type = "test"
   name: string
   callback: TestTaskCallback | null
   uid: string
@@ -58,7 +58,7 @@ export class TestTask extends BaseTask {
     this.dependencies = options.dependencies || []
   }
 
-  async resolveDependencies() {
+  resolveDependencies() {
     return this.dependencies
   }
 
@@ -654,12 +654,12 @@ describe("task-graph", () => {
       const limit = 2
 
       class TaskTypeA extends TestTask {
-        type = <TaskType>"a"
+        type = "a"
         concurrencyLimit = limit
       }
 
       class TaskTypeB extends TestTask {
-        type = <TaskType>"b"
+        type = "b"
         concurrencyLimit = limit
       }
 

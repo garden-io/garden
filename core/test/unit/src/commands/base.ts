@@ -18,7 +18,7 @@ describe("Command", () => {
     it("renders the command help text", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "some-alias"
+        aliases = ["some-alias"]
         help = ""
 
         arguments = {
@@ -79,7 +79,7 @@ describe("Command", () => {
     it("returns the command path and alias if set and not part of a group", () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "some-alias"
+        aliases = ["some-alias"]
         help = ""
 
         printHeader() {}
@@ -123,7 +123,7 @@ describe("Command", () => {
       }
       class TestGroup extends CommandGroup {
         name = "test-group"
-        alias = "group-alias"
+        aliases = ["group-alias"]
         help = ""
 
         subCommands = [TestCommand]
@@ -138,7 +138,7 @@ describe("Command", () => {
     it("returns the full command paths including command alias if part of a group", () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "command-alias"
+        aliases = ["command-alias"]
         help = ""
 
         printHeader() {}
@@ -162,7 +162,7 @@ describe("Command", () => {
     it("returns all permutations with aliases if both command and group have an alias", () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "command-alias"
+        aliases = ["command-alias"]
         help = ""
 
         printHeader() {}
@@ -172,7 +172,7 @@ describe("Command", () => {
       }
       class TestGroup extends CommandGroup {
         name = "test-group"
-        alias = "group-alias"
+        aliases = ["group-alias"]
         help = ""
 
         subCommands = [TestCommand]
@@ -241,7 +241,7 @@ describe("CommandGroup", () => {
     it("renders the command help text", async () => {
       class TestCommand extends Command {
         name = "test-command"
-        alias = "command-alias"
+        aliases = ["command-alias"]
         help = "Some help text."
 
         printHeader() {}

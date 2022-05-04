@@ -8,65 +8,15 @@
 
 import { DepGraph } from "dependency-graph"
 import { flatten, uniq } from "lodash"
-import indentString from "indent-string"
 import { get, isEqual, join, set, uniqWith } from "lodash"
 import { ConfigurationError } from "../exceptions"
-import { ModuleConfig } from "../config/module"
-import { deline } from "./string"
-import { DependencyGraph, DependencyGraphNode, nodeKey as configGraphNodeKey } from "../graph/config-graph"
-import { Profile } from "./profiling"
-import { ModuleDependencyGraph } from "../graph/modules"
-
-/**
- * Looks for dependencies on non-existent modules, services or tasks, and throws a ConfigurationError
- * if any were found.
- */
-export function detectMissingDependencies(moduleConfigs: ModuleConfig[]) {
-  const moduleNames: Set<string> = new Set(moduleConfigs.map((m) => m.name))
-  const serviceNames = moduleConfigs.flatMap((m) => m.serviceConfigs.map((s) => s.name))
-  const taskNames = moduleConfigs.flatMap((m) => m.taskConfigs.map((t) => t.name))
-  const runtimeNames: Set<string> = new Set([...serviceNames, ...taskNames])
-  const missingDepDescriptions: string[] = []
-
-  const runtimeDepTypes = [
-    ["serviceConfigs", "Service"],
-    ["taskConfigs", "Task"],
-    ["testConfigs", "Test"],
-  ]
-
-  for (const m of moduleConfigs) {
-    const buildDepKeys = m.build.dependencies.map((d) => d.name)
-
-    for (const missingModule of buildDepKeys.filter((k) => !moduleNames.has(k))) {
-      missingDepDescriptions.push(
-        `Module '${m.name}': Unknown module '${missingModule}' referenced in build dependencies.`
-      )
-    }
-
-    for (const [configKey, entityName] of runtimeDepTypes) {
-      for (const config of m[configKey]) {
-        for (const missingRuntimeDep of config.dependencies.filter((d: string) => !runtimeNames.has(d))) {
-          missingDepDescriptions.push(deline`
-            ${entityName} '${config.name}' (in module '${m.name}'): Unknown service or task '${missingRuntimeDep}'
-            referenced in dependencies.`)
-        }
-      }
-    }
-  }
-
-  if (missingDepDescriptions.length > 0) {
-    const errMsg = "Unknown dependencies detected.\n\n" + indentString(missingDepDescriptions.join("\n\n"), 2) + "\n"
-
-    throw new ConfigurationError(errMsg, {
-      unknownDependencies: missingDepDescriptions,
-      availableModules: Array.from(moduleNames),
-      availableServicesAndTasks: Array.from(runtimeNames),
-    })
-  }
-}
+import { GraphNodes, ConfigGraphNode } from "./config-graph"
+import { Profile } from "../util/profiling"
+import type { ModuleGraphNodes } from "./modules"
+import { ActionKind } from "../plugin/action-types"
 
 // Shared type used by ConfigGraph and TaskGraph to facilitate circular dependency detection
-export type DependencyValidationGraphNode = {
+export type DependencyGraphNode = {
   key: string // same as a corresponding task's key
   dependencies: string[] // array of keys
   description?: string // used instead of key when rendering node in circular dependency error messages
@@ -76,16 +26,16 @@ export type DependencyValidationGraphNode = {
  * Extends the dependency-graph module to improve circular dependency detection (see below).
  */
 @Profile()
-export class DependencyValidationGraph extends DepGraph<string> {
-  static fromDependencyGraph<G extends DependencyGraph | ModuleDependencyGraph>(dependencyGraph: G) {
-    const withDeps = (node: DependencyGraphNode): DependencyValidationGraphNode => {
+export class DependencyGraph<T> extends DepGraph<T> {
+  static fromGraphNodes<G extends GraphNodes | ModuleGraphNodes>(dependencyGraph: G) {
+    const withDeps = (node: ConfigGraphNode): DependencyGraphNode => {
       return {
-        key: configGraphNodeKey(node.type, node.name),
-        dependencies: node.dependencies.map((d) => configGraphNodeKey(d.type, d.name)),
+        key: nodeKey(node.type, node.name),
+        dependencies: node.dependencies.map((d) => nodeKey(d.type, d.name)),
       }
     }
 
-    const graph = new DependencyValidationGraph()
+    const graph = new DependencyGraph<string>()
     const nodes = Object.values(dependencyGraph).map((n) => withDeps(n))
 
     for (const node of nodes || []) {
@@ -222,4 +172,8 @@ function next(graph: CycleGraph, source: string, destination: string): string | 
 export function cyclesToString(cycles: Cycle[]) {
   const cycleDescriptions = cycles.map((c) => join(c.concat([c[0]]), " <- "))
   return cycleDescriptions.length === 1 ? cycleDescriptions[0] : cycleDescriptions.join("\n\n")
+}
+
+export function nodeKey(type: ActionKind, name: string) {
+  return `${type}.${name}`
 }

@@ -14,6 +14,7 @@ import { makePodName } from "../util"
 import { getAppNamespaceStatus } from "../namespace"
 import { BuildActionHandler, DeployActionHandler, RunActionHandler } from "../../../plugin/action-types"
 import { getDeploymentImageId } from "./util"
+import { runResultToActionState } from "../../../actions/base"
 
 export const k8sRunContainerBuild: BuildActionHandler<"run", ContainerBuildAction> = async (params) => {
   const { action, ctx, log } = params
@@ -116,7 +117,8 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
   }
 
   return {
-    result: { ...runResult, namespaceStatus },
+    state: runResultToActionState(runResult),
+    detail: { ...runResult, namespaceStatus },
     outputs: { log: runResult.log },
   }
 }

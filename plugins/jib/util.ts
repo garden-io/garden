@@ -76,7 +76,7 @@ export function detectProjectType(action: BuildAction): JibPluginType {
 }
 
 export function getBuildFlags(action: JibBuildAction, projectType: JibModuleBuildSpec["projectType"]) {
-  const { tarOnly, tarFormat, dockerBuild, extraFlags } = action.getSpec()
+  const { tarOnly, tarFormat, dockerBuild, extraFlags, buildArgs, localId } = action.getSpec()
 
   let targetDir: string
   let target: string
@@ -108,8 +108,12 @@ export function getBuildFlags(action: JibBuildAction, projectType: JibModuleBuil
   // TODO: don't assume module path is the project root
   const tarPath = resolve(module.path, targetDir, tarFilename)
 
-  const dockerBuildArgs = getDockerBuildArgs(action)
-  const outputs = getContainerBuildActionOutputs(action)
+  const dockerBuildArgs = getDockerBuildArgs(action.versionString(), buildArgs)
+  const outputs = getContainerBuildActionOutputs({
+    buildName: action.name,
+    localId,
+    version: action.getFullVersion(),
+  })
   const imageId = outputs.deploymentImageId
 
   const args = [

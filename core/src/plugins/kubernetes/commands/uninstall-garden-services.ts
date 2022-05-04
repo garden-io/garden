@@ -33,7 +33,7 @@ export const uninstallGardenServices: PluginCommand = {
     log.info("")
 
     const deployNames = deploys.map((s) => s.name)
-    const statuses = await actions.deleteDeploys(graph, log, deployNames)
+    const statuses = await actions.deleteDeploys({ graph, log, names: deployNames })
 
     log.info("")
 

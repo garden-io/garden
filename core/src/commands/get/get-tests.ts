@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { sortBy, uniq } from "lodash"
+import { sortBy } from "lodash"
 import { Command, CommandResult, CommandParams } from "../base"
 import { printHeader } from "../../logger/util"
 import { StringsParameter } from "../../cli/params"
-import { makeGetTestOrTaskLog, makeGetTestOrTaskResult } from "../helpers"
+import { makeGetTestOrTaskLog } from "../helpers"
 
 const getTestsArgs = {
-  tests: new StringsParameter({
+  names: new StringsParameter({
     help: "Specify tests(s) to list. Use comma as a separator to specify multiple tests.",
   }),
 }
@@ -22,7 +22,7 @@ type Args = typeof getTestsArgs
 
 export class GetTestsCommand extends Command<Args> {
   name = "tests"
-  help = "Lists the tests defined in your project's modules."
+  help = "Lists the tests defined in your project."
 
   arguments = getTestsArgs
 
@@ -32,19 +32,15 @@ export class GetTestsCommand extends Command<Args> {
 
   async action({ args, garden, log }: CommandParams<Args>): Promise<CommandResult> {
     const graph = await garden.getConfigGraph({ log, emit: false })
-    const tests = graph.getTests({ names: args.tests })
-    const testModuleNames = uniq(tests.map((t) => t.module.name))
-    const modules = sortBy(graph.getModules({ names: testModuleNames }), (m) => m.name)
+    const actions = sortBy(graph.getTests({ names: args.names }), "name")
 
-    const testListing = makeGetTestOrTaskResult(modules, tests)
-
-    if (testListing.length > 0) {
-      const logStr = makeGetTestOrTaskLog(modules, tests, "tests")
+    if (actions.length > 0) {
+      const logStr = makeGetTestOrTaskLog(actions)
       log.info(logStr.trim())
     } else {
       log.info(`No tests defined for project ${garden.projectName}`)
     }
 
-    return { result: testListing }
+    return { result: actions.map((t) => t.describe()) }
   }
 }

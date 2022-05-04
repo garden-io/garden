@@ -29,7 +29,6 @@ import { ensureFile, remove } from "fs-extra"
 import { Transform } from "stream"
 import { ExecLogsFollower } from "./logs"
 import { PluginContext } from "../../plugin-context"
-import { ServiceStatus } from "../../types/service"
 import { ConvertModuleParams } from "../../plugin/handlers/module/convert"
 import {
   ExecActionConfig,
@@ -53,8 +52,10 @@ import {
   TestActionDefinition,
   TestActionHandler,
 } from "../../plugin/action-types"
-import { Action } from "../../actions/base"
+import { Action, runResultToActionState } from "../../actions/base"
 import { BuildResult } from "../../plugin/handlers/build/build"
+import { ResolvedBuildAction } from "../../actions/build"
+import { DeployStatus } from "../../plugin/handlers/deploy/get-status"
 
 const persistentLocalProcRetryIntervalMs = 2500
 
@@ -70,7 +71,7 @@ export function getLogFilePath({ projectRoot, deployName }: { projectRoot: strin
   return join(projectRoot, localLogsDir, `${deployName}.jsonl`)
 }
 
-function getDefaultEnvVars(action: Action) {
+function getDefaultEnvVars(action: ResolvedBuildAction<ExecBuildConfig> | ExecBuild | Action) {
   return {
     ...process.env,
     GARDEN_MODULE_VERSION: action.versionString(),
@@ -149,8 +150,8 @@ async function run({
   opts = {},
 }: {
   command: string[]
-  action: Action
   ctx: PluginContext
+  action: ResolvedBuildAction<ExecBuildConfig> | ExecBuild | Action
   log: LogEntry
   env?: PrimitiveMap
   opts?: ExecOpts
@@ -193,7 +194,7 @@ export const buildExecModule: BuildActionHandler<"build", ExecBuild> = async ({ 
     log.verbose(renderMessageWithDivider(prefix, output.buildLog, false, chalk.gray))
   }
   // keep track of which version has been built
-  const buildVersionFilePath = join(action.buildMetadataPath, GARDEN_BUILD_VERSION_FILENAME)
+  const buildVersionFilePath = join(action.getBuildMetadataPath(), GARDEN_BUILD_VERSION_FILENAME)
   await writeModuleVersionFile(buildVersionFilePath, action.getFullVersion())
 
   return output
@@ -214,18 +215,21 @@ export const execTestAction: TestActionHandler<"run", ExecTest> = async ({ log, 
     log.verbose(renderMessageWithDivider(prefix, outputLog, false, chalk.gray))
   }
 
+  const detail = {
+    moduleName: action.moduleName(),
+    command,
+    testName: action.name,
+    version: action.versionString(),
+    success: result.exitCode === 0,
+    startedAt,
+    completedAt: new Date(),
+    log: outputLog,
+    outputs: {},
+  }
+
   return {
-    result: {
-      moduleName: action.moduleName(),
-      command,
-      testName: action.name,
-      version: action.versionString(),
-      success: result.exitCode === 0,
-      startedAt,
-      completedAt: new Date(),
-      log: outputLog,
-      outputs: {},
-    },
+    state: runResultToActionState(detail),
+    detail,
     outputs: {},
   }
 }
@@ -256,20 +260,23 @@ export const execRunAction: RunActionHandler<"run", ExecRun> = async ({ artifact
 
   await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
 
-  return {
-    result: {
-      moduleName: action.moduleName(),
-      taskName: action.name,
-      command,
-      version: action.versionString(),
-      success,
+  const detail = {
+    moduleName: action.moduleName(),
+    taskName: action.name,
+    command,
+    version: action.versionString(),
+    success,
+    log: outputLog,
+    outputs: {
       log: outputLog,
-      outputs: {
-        log: outputLog,
-      },
-      startedAt,
-      completedAt,
     },
+    startedAt,
+    completedAt,
+  }
+
+  return {
+    state: runResultToActionState(detail),
+    detail,
     outputs: {},
   }
 }
@@ -330,13 +337,25 @@ const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeploy> = async 
       opts: { reject: false },
     })
 
+    const state = result.exitCode === 0 ? "ready" : "outdated"
+
     return {
-      state: result.exitCode === 0 ? "ready" : "outdated",
-      version: action.versionString(),
-      detail: { statusCommandOutput: result.all },
+      state,
+      detail: {
+        state,
+        version: action.versionString(),
+        detail: { statusCommandOutput: result.all },
+      },
+      outputs: {},
     }
   } else {
-    return { state: "unknown", version: action.versionString(), detail: {} }
+    const state = "unknown"
+
+    return {
+      state,
+      detail: { state, version: action.versionString(), detail: {} },
+      outputs: {},
+    }
   }
 }
 
@@ -371,7 +390,7 @@ const execDeployAction: DeployActionHandler<"deploy", ExecDeploy> = async (param
     return deployPersistentExecService({ action, log, ctx, env, devModeSpec, serviceName: action.name })
   } else if (spec.deployCommand.length === 0) {
     log.info({ msg: "No deploy command found. Skipping.", symbol: "info" })
-    return { state: "ready", detail: { skipped: true } }
+    return { state: "ready", detail: { state: "ready", detail: { skipped: true } }, outputs: {} }
   } else {
     const result = await run({
       command: spec.deployCommand,
@@ -388,7 +407,11 @@ const execDeployAction: DeployActionHandler<"deploy", ExecDeploy> = async (param
       log.verbose(renderMessageWithDivider(prefix, outputLog, false, chalk.gray))
     }
 
-    return { state: "ready", detail: { deployCommandOutput: result.all } }
+    return {
+      state: "ready",
+      detail: { state: "ready", detail: { deployCommandOutput: result.all } },
+      outputs: {},
+    }
   }
 }
 
@@ -406,7 +429,7 @@ async function deployPersistentExecService({
   devModeSpec: ExecDevModeSpec
   action: ExecDeploy
   env: { [key: string]: string }
-}): Promise<ServiceStatus> {
+}): Promise<DeployStatus> {
   ctx.events.on("abort", () => {
     const localProc = localProcs[serviceName]
     if (localProc) {
@@ -469,7 +492,11 @@ async function deployPersistentExecService({
     }
   }
 
-  return { state: "ready", detail: { persistent: true, pid: proc.pid } }
+  return {
+    state: "ready",
+    detail: { state: "ready", detail: { persistent: true, pid: proc.pid } },
+    outputs: {},
+  }
 }
 
 const deleteExecDeploy: DeployActionHandler<"delete", ExecDeploy> = async (params) => {
@@ -486,14 +513,18 @@ const deleteExecDeploy: DeployActionHandler<"delete", ExecDeploy> = async (param
       opts: { reject: true },
     })
 
-    return { state: "missing", detail: { cleanupCommandOutput: result.all } }
+    return {
+      state: "not-ready",
+      detail: { state: "missing", detail: { cleanupCommandOutput: result.all } },
+      outputs: {},
+    }
   } else {
     log.warn({
       section: action.key(),
       symbol: "warning",
       msg: chalk.gray(`Missing cleanupCommand, unable to clean up service`),
     })
-    return { state: "unknown", detail: {} }
+    return { state: "unknown", detail: { state: "unknown", detail: {} }, outputs: {} }
   }
 }
 
@@ -515,7 +546,7 @@ export const execPlugin = () =>
       `),
     }),
     createActionTypes: {
-      build: [
+      Build: [
         {
           name: "exec",
           docs: dedent`
@@ -528,7 +559,7 @@ export const execPlugin = () =>
           },
         },
       ],
-      deploy: [
+      Deploy: [
         {
           name: "exec",
           docs: dedent`
@@ -543,7 +574,7 @@ export const execPlugin = () =>
           },
         },
       ],
-      run: [
+      Run: [
         <RunActionDefinition<ExecRun>>{
           name: "exec",
           docs: dedent`
@@ -555,7 +586,7 @@ export const execPlugin = () =>
           },
         },
       ],
-      test: [
+      Test: [
         <TestActionDefinition<ExecTest>>{
           name: "exec",
           docs: dedent`
@@ -583,6 +614,7 @@ export const execPlugin = () =>
           This means that include/exclude filters and ignore files are not applied to local exec modules, as the
           filtering is done during the sync.
         `,
+        needsBuild: true,
         moduleOutputsSchema: joi.object().keys({}),
         schema: execModuleSpecSchema(),
         handlers: {

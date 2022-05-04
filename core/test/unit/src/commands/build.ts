@@ -36,7 +36,7 @@ describe("BuildCommand", () => {
       log,
       headerLog: log,
       footerLog,
-      args: { modules: undefined },
+      args: { names: undefined },
       opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
     })
 
@@ -48,9 +48,6 @@ describe("BuildCommand", () => {
       "build.module-a": { fresh: true, buildLog: "A" },
       "build.module-b": { fresh: true, buildLog: "B" },
       "build.module-c": {},
-
-
-
     })
 
     for (const build of Object.values(builds)) {
@@ -101,15 +98,13 @@ describe("BuildCommand", () => {
       log,
       headerLog: log,
       footerLog,
-      args: { modules: ["module-b"] },
+      args: { names: ["module-b"] },
       opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
     })
 
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true, buildLog: "A" },
       "build.module-b": { fresh: true, buildLog: "B" },
-
-
     })
   })
 
@@ -132,15 +127,13 @@ describe("BuildCommand", () => {
       log,
       headerLog: log,
       footerLog,
-      args: { modules: undefined },
+      args: { names: undefined },
       opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
     })
 
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true, buildLog: "A" },
       "build.module-b": { fresh: true, buildLog: "B" },
-
-
     })
   })
 
@@ -159,7 +152,7 @@ describe("BuildCommand", () => {
       log,
       headerLog: log,
       footerLog,
-      args: { modules: undefined },
+      args: { names: undefined },
       opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
     })
 
@@ -167,9 +160,6 @@ describe("BuildCommand", () => {
       "build.module-a": { fresh: true, buildLog: "A" },
       "build.module-b": { fresh: true, buildLog: "B" },
       "build.module-c": {},
-
-
-
     })
   })
 
@@ -229,7 +219,7 @@ describe("BuildCommand", () => {
       log,
       headerLog: log,
       footerLog,
-      args: { modules: undefined },
+      args: { names: undefined },
       opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": true }), // <---
     })
 
@@ -238,10 +228,6 @@ describe("BuildCommand", () => {
       "build.module-b": { fresh: true, buildLog: "B" },
       "build.module-c": { fresh: true, buildLog: "C" },
       "build.module-d": { fresh: true, buildLog: "D" },
-
-
-
-
     })
   })
 

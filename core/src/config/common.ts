@@ -9,13 +9,13 @@
 import Joi from "@hapi/joi"
 import Ajv from "ajv"
 import { splitLast } from "../util/util"
-import { deline, dedent, naturalList } from "../util/string"
+import { deline, dedent, naturalList, titleize } from "../util/string"
 import { cloneDeep, isArray, isPlainObject, isString } from "lodash"
 import { joiPathPlaceholder } from "./validation"
 import { DEFAULT_API_VERSION } from "../constants"
 import { ActionKind, actionKinds } from "../actions/base"
 import { ConfigurationError } from "../exceptions"
-import { ConfigContext } from "./template-contexts/base"
+import { ConfigContext, ConfigContextType } from "./template-contexts/base"
 
 export const objectSpreadKey = "$merge"
 export const arrayConcatKey = "$concat"
@@ -63,7 +63,8 @@ interface MetadataKeys {
   // Flag for internal use only, so that the field will not appear in generated docs
   internal?: boolean
   // Advise which template context is available for the field, for documentation purposes
-  templateContext?: ConfigContext
+  // Set to null if no templating is supported for the field.
+  templateContext?: ConfigContextType | null
 }
 
 // Need this to fix the Joi typing
@@ -460,24 +461,26 @@ const actionRefParseError = (reference: any) => {
  * The general format is <kind>.<name>, where kind is one of the defined action types, and name is a valid
  * identifier (same as joiIdentifier).
  *
- * You can also specify a full object, e.g. `{ kind: "build", name: "foo" }`.
+ * You can also specify a full object, e.g. `{ kind: "Build", name: "foo" }`.
  */
 export function parseActionReference(reference: string | object): ActionReference {
   if (isString(reference)) {
     const split = reference.toLowerCase().split(".")
 
-    if (split.length !== 2 || !actionKinds.includes(split[0]) || !split[1]) {
+    if (split.length !== 2 || !actionKinds.includes(<any>split[0]) || !split[1]) {
       throw actionRefParseError(reference)
     }
 
-    const [kind, name] = split
+    let [kind, name] = split
     const nameResult = joiIdentifier().validate(name)
 
-    if (nameResult.error) {
+    kind = titleize(kind)
+
+    if (nameResult.error || !actionKinds.includes(<any>kind)) {
       throw actionRefParseError(reference)
     }
 
-    return { kind: <ActionKind>kind, name }
+    return { kind: <ActionKind>titleize(kind), name }
   } else if (isPlainObject(reference)) {
     let kind = reference["kind"]
 
@@ -485,10 +488,9 @@ export function parseActionReference(reference: string | object): ActionReferenc
       throw actionRefParseError(reference)
     }
 
-    kind = kind.toLowerCase()
     const nameResult = joiIdentifier().validate(reference["name"])
 
-    if (nameResult.error || !actionKinds.includes(kind)) {
+    if (nameResult.error || !actionKinds.includes(<any>kind)) {
       throw actionRefParseError(reference)
     }
 

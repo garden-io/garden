@@ -15,13 +15,18 @@ import split2 from "split2"
 import { BuildActionHandler } from "../../plugin/action-types"
 import { ContainerBuildAction, ContainerBuildOutputs } from "./config"
 import { joinWithPosix } from "../../util/fs"
+import { ModuleVersion } from "../../vcs/vcs"
 
 export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerBuildAction> = async ({
   ctx,
   action,
   log,
 }) => {
-  const outputs = getContainerBuildActionOutputs(action)
+  const outputs = getContainerBuildActionOutputs({
+    buildName: action.name,
+    localId: action.getSpec("localId"),
+    version: action.getFullVersion(),
+  })
   const identifier = await containerHelpers.imageExistsLocally(outputs.localImageId, log, ctx)
 
   if (identifier) {
@@ -32,7 +37,9 @@ export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerB
     })
   }
 
-  return { ready: !!identifier, outputs }
+  const state = !!identifier ? "ready" : "not-ready"
+
+  return { state, detail: {}, outputs }
 }
 
 export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> = async ({ ctx, action, log }) => {
@@ -51,7 +58,11 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
     )
   }
 
-  const outputs = getContainerBuildActionOutputs(action)
+  const outputs = getContainerBuildActionOutputs({
+    buildName: action.name,
+    localId: spec.localId,
+    version: action.getFullVersion(),
+  })
 
   const identifier = outputs.localImageId
 
@@ -85,22 +96,23 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
   return { fresh: true, buildLog: res.all || "", outputs, details: { identifier } }
 }
 
-export function getContainerBuildActionOutputs(action: ContainerBuildAction): ContainerBuildOutputs {
-  const spec = action.getSpec()
-
+export function getContainerBuildActionOutputs({
+  buildName,
+  localId,
+  version,
+}: {
+  buildName: string
+  localId?: string
+  version: ModuleVersion
+}): ContainerBuildOutputs {
   // Note: The deployment image name/ID outputs are overridden by the kubernetes provider, these defaults are
   // generally not used.
-  const deploymentImageName = containerHelpers.getDeploymentImageName(action.name, spec.localId, undefined)
-  const deploymentImageId = containerHelpers.getBuildDeploymentImageId(
-    action.name,
-    spec.localId,
-    action.getFullVersion(),
-    undefined
-  )
+  const deploymentImageName = containerHelpers.getDeploymentImageName(buildName, localId, undefined)
+  const deploymentImageId = containerHelpers.getBuildDeploymentImageId(buildName, localId, version, undefined)
 
   return {
-    localImageName: containerHelpers.getLocalImageName(action.name, spec.localId),
-    localImageId: containerHelpers.getLocalImageId(action.name, spec.localId, action.getFullVersion()),
+    localImageName: containerHelpers.getLocalImageName(buildName, localId),
+    localImageId: containerHelpers.getLocalImageId(buildName, localId, version),
     deploymentImageName,
     deploymentImageId,
   }
@@ -109,11 +121,11 @@ export function getContainerBuildActionOutputs(action: ContainerBuildAction): Co
 export function getDockerBuildFlags(action: ContainerBuildAction) {
   const args: string[] = []
 
-  for (const arg of getDockerBuildArgs(action)) {
+  const { targetStage, extraFlags, buildArgs } = action.getSpec()
+
+  for (const arg of getDockerBuildArgs(action.versionString(), buildArgs)) {
     args.push("--build-arg", arg)
   }
-
-  const { targetStage, extraFlags } = action.getSpec()
 
   if (targetStage) {
     args.push("--target", targetStage)
@@ -124,11 +136,10 @@ export function getDockerBuildFlags(action: ContainerBuildAction) {
   return args
 }
 
-export function getDockerBuildArgs(action: ContainerBuildAction) {
-  const specBuildArgs = action.getSpec("buildArgs")
-
+export function getDockerBuildArgs(version: string, specBuildArgs: PrimitiveMap) {
   const buildArgs: PrimitiveMap = {
-    GARDEN_MODULE_VERSION: action.versionString(),
+    GARDEN_MODULE_VERSION: version,
+    GARDEN_BUILD_VERSION: version,
     ...specBuildArgs,
   }
 

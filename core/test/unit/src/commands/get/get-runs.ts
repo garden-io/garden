@@ -8,22 +8,22 @@
 
 import { resolve } from "path"
 import { makeTestGarden, dataDir, withDefaultGlobalOpts } from "../../../../helpers"
-import { GetTasksCommand } from "../../../../../src/commands/get/get-tasks"
+import { GetRunsCommand } from "../../../../../src/commands/get/get-runs"
 
-describe("GetTasksCommand", () => {
+describe("GetRunsCommand", () => {
   const projectRoot = resolve(dataDir, "test-project-b")
 
   it("should run without errors when called without arguments", async () => {
     const garden = await makeTestGarden(projectRoot)
     const log = garden.log
-    const command = new GetTasksCommand()
+    const command = new GetRunsCommand()
 
     await command.action({
       garden,
       log,
       headerLog: log,
       footerLog: log,
-      args: { tasks: undefined },
+      args: { names: undefined },
       opts: withDefaultGlobalOpts({}),
     })
   })
@@ -31,14 +31,14 @@ describe("GetTasksCommand", () => {
   it("should run without errors when called with a list of task names", async () => {
     const garden = await makeTestGarden(projectRoot)
     const log = garden.log
-    const command = new GetTasksCommand()
+    const command = new GetRunsCommand()
 
     await command.action({
       garden,
       log,
       headerLog: log,
       footerLog: log,
-      args: { tasks: ["task-a"] },
+      args: { names: ["task-a"] },
       opts: withDefaultGlobalOpts({}),
     })
   })
