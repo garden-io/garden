@@ -14,9 +14,8 @@ import { resolveTemplateString } from "../template-string/template-string"
 import { joi } from "../config/common"
 import { versionStringPrefix } from "../vcs/vcs"
 import { ConfigContext, schema } from "../config/template-contexts/base"
-import { ModuleConfigContext, ModuleConfigContextParams } from "../config/template-contexts/module"
 import { PublishActionResult } from "../plugin/handlers/build/publish"
-import { BuildAction } from "../actions/build"
+import { BuildAction, ResolvedBuildAction } from "../actions/build"
 import { ActionConfigContext, ActionConfigContextParams } from "../config/template-contexts/actions"
 
 export interface PublishTaskParams extends BaseActionTaskParams<BuildAction> {
@@ -54,9 +53,7 @@ export class PublishTask extends BaseActionTask<BuildAction> {
     return `publishing ${this.action.longDescription()}`
   }
 
-  async process(_, resolvedAction): Promise<PublishActionResult> {
-    const action = this.action
-
+  async process(_, action: ResolvedBuildAction): Promise<PublishActionResult> {
     if (!action.getConfig("allowPublish")) {
       this.log.info({
         section: action.key(),
@@ -70,18 +67,15 @@ export class PublishTask extends BaseActionTask<BuildAction> {
 
     if (this.tagTemplate) {
       const resolvedProviders = await this.garden.resolveProviders(this.log)
-      const dependencies = Object.values(module.buildDependencies)
 
       const templateContext = new BuildTagContext({
         garden: this.garden,
         action,
-        variables: { ...this.garden.variables, ...module.variables },
+        variables: { ...this.garden.variables, ...action.getVariables() },
         resolvedProviders,
-        module,
-        buildPath: module.buildPath,
-        modules: dependencies,
+        modules: this.graph.getModules(),
         runtimeContext: emptyRuntimeContext,
-        partialRuntimeResolution: true,
+        partialRuntimeResolution: false,
       })
 
       // Resolve template string and make sure the result is a string
@@ -144,8 +138,8 @@ class BuildTagContext extends ActionConfigContext {
   @schema(BuildSelfContext.getSchema().description("Alias kept for compatibility."))
   public module: BuildSelfContext
 
-  constructor(params: ActionConfigContextParams & { build: BuildAction }) {
+  constructor(params: ActionConfigContextParams & { action: BuildAction }) {
     super(params)
-    this.build = this.module = new BuildSelfContext(this, params.build)
+    this.build = this.module = new BuildSelfContext(this, params.action)
   }
 }

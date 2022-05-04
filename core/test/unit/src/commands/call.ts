@@ -128,12 +128,12 @@ describe("commands.call", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { serviceAndPath: "service-a/path-a" },
+      args: { nameAndPath: "service-a/path-a" },
       opts: withDefaultGlobalOpts({}),
     })
 
     expect(result!.url).to.equal("http://service-a.test-project-b.local.app.garden:32000/path-a")
-    expect(result!.serviceName).to.equal("service-a")
+    expect(result!.deployName).to.equal("service-a")
     expect(result!.path).to.equal("/path-a")
     expect(result!.response.status).to.equal(200)
     expect(result!.response.data).to.equal("bla")
@@ -151,12 +151,12 @@ describe("commands.call", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { serviceAndPath: "service-a" },
+      args: { nameAndPath: "service-a" },
       opts: withDefaultGlobalOpts({}),
     })
 
     expect(result!.url).to.equal("http://service-a.test-project-b.local.app.garden:32000/path-a")
-    expect(result!.serviceName).to.equal("service-a")
+    expect(result!.deployName).to.equal("service-a")
     expect(result!.path).to.equal("/path-a")
     expect(result!.response.status).to.equal(200)
     expect(result!.response.data).to.equal("bla")
@@ -174,12 +174,12 @@ describe("commands.call", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { serviceAndPath: "service-b" },
+      args: { nameAndPath: "service-b" },
       opts: withDefaultGlobalOpts({}),
     })
 
     expect(result!.url).to.equal("http://service-b.test-project-b.local.app.garden:32000/")
-    expect(result!.serviceName).to.equal("service-b")
+    expect(result!.deployName).to.equal("service-b")
     expect(result!.path).to.equal("/")
     expect(result!.response.status).to.equal(200)
     expect(result!.response.data).to.equal("bla")
@@ -197,12 +197,12 @@ describe("commands.call", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { serviceAndPath: "service-a" },
+      args: { nameAndPath: "service-a" },
       opts: withDefaultGlobalOpts({}),
     })
 
     expect(result!.url).to.equal("https://www.example.com")
-    expect(result!.serviceName).to.equal("service-a")
+    expect(result!.deployName).to.equal("service-a")
     expect(result!.path).to.equal("/")
     expect(result!.response.status).to.equal(200)
     expect(result!.response.data).to.equal("bla")
@@ -220,12 +220,12 @@ describe("commands.call", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { serviceAndPath: "service-b/path-b" },
+      args: { nameAndPath: "service-b/path-b" },
       opts: withDefaultGlobalOpts({}),
     })
 
     expect(result!.url).to.equal("https://www.example.com/hello")
-    expect(result!.serviceName).to.equal("service-b")
+    expect(result!.deployName).to.equal("service-b")
     expect(result!.path).to.equal("/hello")
     expect(result!.response.status).to.equal(200)
     expect(result!.response.data).to.equal("bla")
@@ -242,7 +242,7 @@ describe("commands.call", () => {
         log,
         headerLog: log,
         footerLog: log,
-        args: { serviceAndPath: "service-d/path-d" },
+        args: { nameAndPath: "service-d/path-d" },
         opts: withDefaultGlobalOpts({}),
       })
     } catch (err) {
@@ -264,7 +264,7 @@ describe("commands.call", () => {
         log,
         headerLog: log,
         footerLog: log,
-        args: { serviceAndPath: "service-c/path-c" },
+        args: { nameAndPath: "service-c/path-c" },
         opts: withDefaultGlobalOpts({}),
       })
     } catch (err) {
@@ -286,7 +286,7 @@ describe("commands.call", () => {
         log,
         headerLog: log,
         footerLog: log,
-        args: { serviceAndPath: "service-a/bla" },
+        args: { nameAndPath: "service-a/bla" },
         opts: withDefaultGlobalOpts({}),
       })
     } catch (err) {

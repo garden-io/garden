@@ -11,7 +11,7 @@ import { Command, CommandResult, CommandParams, PrepareParams } from "./base"
 import chalk from "chalk"
 import { every, some, sortBy } from "lodash"
 import Bluebird = require("bluebird")
-import { GardenService, ServiceLogEntry } from "../types/service"
+import { ServiceLogEntry } from "../types/service"
 import Stream from "ts-stream"
 import { LoggerType, logLevelMap, LogLevel, parseLogLevel } from "../logger/logger"
 import { StringsParameter, BooleanParameter, IntegerParameter, DurationParameter, TagsOption } from "../cli/params"
@@ -23,10 +23,10 @@ import { PluginEventBroker } from "../plugin-context"
 import { ParameterError } from "../exceptions"
 
 const logsArgs = {
-  services: new StringsParameter({
+  names: new StringsParameter({
     help:
-      "The name(s) of the service(s) to log (skip to log all services). " +
-      "Use comma as a separator to specify multiple services.",
+      "The name(s) of the deploy(s) to log (skip to get logs from all deploys in the project). " +
+      "Use comma as a separator to specify multiple names.",
   }),
 }
 
@@ -41,12 +41,12 @@ const logsOpts = {
     `,
   }),
   "follow": new BooleanParameter({
-    help: "Continuously stream new logs from the service(s).",
+    help: "Continuously stream new logs.",
     alias: "f",
   }),
   "tail": new IntegerParameter({
     help: deline`
-      Number of lines to show for each service. Defaults to showing all log lines (up to a certain limit). Takes precedence over
+      Number of lines to show for each deployment. Defaults to showing all log lines (up to a certain limit). Takes precedence over
       the \`--since\` flag if both are set. Note that we don't recommend using a large value here when in follow mode.
     `,
     alias: "t",
@@ -64,8 +64,9 @@ const logsOpts = {
       unless \`--tail\` is set. Note that we don't recommend using a large value here when in follow mode.
     `,
   }),
-  "hide-service": new BooleanParameter({
-    help: "Hide the service name and render the logs directly.",
+  "hide-name": new BooleanParameter({
+    help: "Hide the action name and render the logs directly.",
+    alias: "hide-service",
     defaultValue: false,
   }),
 }
@@ -131,7 +132,7 @@ export class LogsCommand extends Command<Args, Opts> {
     let tail = opts.tail as number | undefined
     let since = opts.since as string | undefined
     const showTags = opts["show-tags"]
-    const hideService = opts["hide-service"]
+    const hideService = opts["hide-name"]
     const logLevel = parseLogLevel(opts["log-level"])
 
     let tagFilters: LogsTagOrFilter | undefined = undefined
@@ -162,8 +163,8 @@ export class LogsCommand extends Command<Args, Opts> {
     }
 
     const graph = await garden.getConfigGraph({ log, emit: false })
-    const allServices = graph.getServices()
-    const services = args.services ? allServices.filter((s) => args.services?.includes(s.name)) : allServices
+    const allDeploys = graph.getDeploys()
+    const actions = args.names ? allDeploys.filter((s) => args.names?.includes(s.name)) : allDeploys
 
     // If the container name should be displayed, we align the output wrt to the longest container name
     let maxServiceName = 1
@@ -183,16 +184,16 @@ export class LogsCommand extends Command<Args, Opts> {
     log.info(chalk.white.bold(renderDivider()))
     log.root.stop()
 
-    // Map all service names in the project to a specific color. This ensures
-    // that in most cases services have the same color (unless any have been added/removed),
+    // Map all deploys names in the project to a specific color. This ensures
+    // that in most cases they have the same color (unless any have been added/removed),
     // regardless of what params you pass to the command.
-    const allServiceNames = allServices
+    const allServiceNames = allDeploys
       .map((s) => s.name)
       .filter(Boolean)
       .sort()
-    const colorMap = allServiceNames.reduce((acc, serviceName, idx) => {
+    const colorMap = allServiceNames.reduce((acc, name, idx) => {
       const color = colors[idx % colors.length]
-      acc[serviceName] = color
+      acc[name] = color
       return acc
     }, {})
 
@@ -275,11 +276,11 @@ export class LogsCommand extends Command<Args, Opts> {
       }
     })
 
-    const actions = await garden.getActionRouter()
+    const router = await garden.getActionRouter()
     this.events = new PluginEventBroker()
 
-    await Bluebird.map(services, async (service: GardenService<any>) => {
-      await actions.deploy.getLogs({ log, graph, service, stream, follow, tail, since, events: this.events })
+    await Bluebird.map(actions, async (action) => {
+      await router.deploy.getLogs({ log, graph, action, stream, follow, tail, since, events: this.events })
     })
 
     const sorted = sortBy(result, "timestamp")

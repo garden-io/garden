@@ -15,8 +15,9 @@ import {
   PluginActionContextParams,
   PluginActionParamsBase,
   ResolvedActionHandlerDescription,
+  WrappedActionHandler,
 } from "../plugin/base"
-import { GardenPlugin, WrappedActionHandler, ActionHandler, PluginMap } from "../plugin/plugin"
+import { GardenPlugin, ActionHandler, PluginMap } from "../plugin/plugin"
 import { PluginEventBroker } from "../plugin-context"
 import { ConfigContext } from "../config/template-contexts/base"
 import { ActionKind } from "../actions/base"
@@ -36,6 +37,7 @@ import { getPluginBases, getPluginDependencies } from "../plugins"
 import { getNames } from "../util/util"
 import { defaultProvider } from "../config/provider"
 import { ConfigGraph } from "../graph/config-graph"
+import { ActionConfigContext } from "../config/template-contexts/actions"
 
 export type CommonParams = keyof PluginActionContextParams
 export type RequirePluginName<T> = T & { pluginName: string }
@@ -80,7 +82,7 @@ export abstract class BaseRouter {
 
   // TODO: find a nicer way to do this (like a type-safe wrapper function)
   protected async commonParams(
-    handler: WrappedActionHandler<any, any>,
+    handler: WrappedActionHandler<any, any> | WrappedActionTypeHandler<any, any>,
     log: LogEntry,
     templateContext?: ConfigContext,
     events?: PluginEventBroker
@@ -133,7 +135,7 @@ export abstract class BaseRouter {
 type HandlerMap<K extends ActionKind> = {
   [T in keyof ActionTypeClasses<K>]: {
     [actionType: string]: {
-      [pluginName: string]: WrappedActionTypeHandler<ActionTypeClasses<K>, T>
+      [pluginName: string]: WrappedActionTypeHandler<ActionTypeClasses<K>[T], any>
     }
   }
 }
@@ -231,7 +233,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       graph: ConfigGraph
     }
     handlerType: T
-    defaultHandler?: GetActionTypeHandler<any, any>
+    defaultHandler?: GetActionTypeHandler<ActionTypeClasses<K>[T], T>
   }): Promise<GetActionTypeResults<ActionTypeClasses<K>[T]>> {
     const { action, pluginName, log, graph } = params
 
@@ -245,12 +247,13 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     })
 
     const providers = await this.garden.resolveProviders(log)
-    const templateContext = ActionConfigContext.fromAction({
+    const templateContext = new ActionConfigContext({
       garden: this.garden,
       resolvedProviders: providers,
       action,
-      graph,
       partialRuntimeResolution: false,
+      modules: graph.getModules(),
+      variables: {}, // TODO-G2
     })
     const handlerParams = {
       ...(await this.commonParams(handler, params.log, templateContext)),
@@ -293,7 +296,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
           context: `${handlerType} ${actionType} output from provider ${pluginName}`,
         })
       })),
-      { handlerType, pluginName, moduleType: actionType }
+      { handlerType, pluginName, actionType }
     )
 
     wrapped.base = this.wrapBase(handler.base)

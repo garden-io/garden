@@ -21,7 +21,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const status = await router.callHandler({
         params,
         handlerType: "getStatus",
-        defaultHandler: async () => ({ ready: false }),
+        defaultHandler: async () => ({ ready: false, outputs: {} }),
       })
       if (status.ready) {
         // Then an actual build won't take place, so we emit a build status event to that effect.
@@ -91,7 +91,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
         const result = await router.callHandler({
           params,
           handlerType: "build",
-          defaultHandler: async () => ({}),
+          defaultHandler: async () => ({ outputs: {} }),
         })
         emitBuildStatusEvent("built")
         return result
@@ -113,9 +113,9 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
     },
   })
 
-const dummyPublishHandler = async ({ module }) => {
+const dummyPublishHandler = async ({ action }) => {
   return {
-    message: chalk.yellow(`No publish handler available for module type ${module.type}`),
+    message: chalk.yellow(`No publish handler available for type ${action.type}`),
     published: false,
   }
 }

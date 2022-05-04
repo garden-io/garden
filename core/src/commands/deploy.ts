@@ -19,11 +19,11 @@ import {
   processCommandResultSchema,
   ProcessCommandResult,
 } from "./base"
-import { getModuleWatchTasks } from "../tasks/helpers"
+import { getActionWatchTasks } from "../tasks/helpers"
 import { processActions } from "../process"
 import { printHeader } from "../logger/util"
 import { BaseTask } from "../tasks/base"
-import { getModulesByServiceNames, getMatchingServiceNames } from "./helpers"
+import { getMatchingServiceNames } from "./helpers"
 import { startServer } from "../server/server"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
@@ -31,25 +31,24 @@ import { StringsParameter, BooleanParameter } from "../cli/params"
 import { Garden } from "../garden"
 
 export const deployArgs = {
-  services: new StringsParameter({
-    help: deline`The name(s) of the service(s) to deploy (skip to deploy all services).
-      Use comma as a separator to specify multiple services.`,
+  names: new StringsParameter({
+    help: deline`The name(s) of the deploy(s) (or services if using modules) to deploy (skip to deploy everything).
+      Use comma as a separator to specify multiple names.`,
   }),
 }
 
 export const deployOpts = {
-  "force": new BooleanParameter({ help: "Force redeploy of service(s)." }),
-  "force-build": new BooleanParameter({ help: "Force rebuild of module(s)." }),
+  "force": new BooleanParameter({ help: "Force re-deploy." }),
+  "force-build": new BooleanParameter({ help: "Force re-build of build dependencies." }),
   "watch": new BooleanParameter({
-    help: "Watch for changes in module(s) and auto-deploy.",
+    help: "Watch for changes and auto-deploy.",
     alias: "w",
     cliOnly: true,
   }),
   "dev-mode": new StringsParameter({
-    help: deline`The name(s) of the service(s) to deploy with dev mode enabled.
-      Use comma as a separator to specify multiple services. Use * to deploy all
-      services with dev mode enabled. When this option is used,
-      the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
+    help: deline`The name(s) of the deploys to deploy with dev mode enabled.
+      Use comma as a separator to specify multiple names. Use * to deploy all
+      with dev mode enabled. Implicitly sets the --watch/-w flag.
     `,
     alias: "dev",
   }),
@@ -65,13 +64,12 @@ export const deployOpts = {
     alias: "local",
   }),
   "skip": new StringsParameter({
-    help: "The name(s) of services you'd like to skip when deploying.",
+    help: "The name(s) of deploys you'd like to skip.",
   }),
   "skip-dependencies": new BooleanParameter({
-    help: deline`Deploy the specified services, but don't deploy any additional services that they depend on or run
-    any tasks that they depend on. This option can only be used when a list of service names is passed as CLI arguments.
-    This can be useful e.g. when your stack has already been deployed, and you want to deploy a subset of services in
-    dev mode without redeploying any service dependencies that may have changed since you last deployed.
+    help: deline`
+    Deploy the specified actions, but don't build, deploy or run any dependencies. This option can only be used when a list of names is passed as CLI arguments.
+    This can be useful e.g. when your stack has already been deployed, and you want to run specific deploys in dev mode without building, deploying or running dependencies that may have changed since you last deployed.
     `,
     alias: "no-deps",
   }),
@@ -86,21 +84,21 @@ type Opts = typeof deployOpts
 
 export class DeployCommand extends Command<Args, Opts> {
   name = "deploy"
-  help = "Deploy service(s) to your environment."
+  help = "Deploy actions to your environment."
 
   protected = true
   streamEvents = true
 
   description = dedent`
-    Deploys all or specified services, taking into account service dependency order.
-    Also builds modules and dependencies if needed.
+    Deploys all or specified Deploy actions , taking into account dependency order.
+    Also performs builds and other dependencies if needed.
 
-    Optionally stays running and automatically re-builds and re-deploys services if their module source
-    (or their dependencies' sources) change.
+    Optionally stays running and automatically re-builds and re-deploys if sources
+    (or dependencies' sources) change.
 
     Examples:
 
-        garden deploy                      # deploy all modules in the project
+        garden deploy                      # deploy everything in the project
         garden deploy my-service           # only deploy my-service
         garden deploy service-a,service-b  # only deploy service-a and service-b
         garden deploy --force              # force re-deploy, even for deploys already deployed and up-to-date
@@ -152,9 +150,9 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const initGraph = await garden.getConfigGraph({ log, emit: true })
-    let services = initGraph.getServices({ names: args.services, includeDisabled: true })
+    let actions = initGraph.getDeploys({ names: args.names, includeDisabled: true })
 
-    const disabled = services.filter((s) => s.disabled).map((s) => s.name)
+    const disabled = actions.filter((s) => s.isDisabled()).map((s) => s.name)
 
     if (disabled.length > 0) {
       const bold = disabled.map((d) => chalk.bold(d))
@@ -164,24 +162,23 @@ export class DeployCommand extends Command<Args, Opts> {
 
     const skipped = opts.skip || []
 
-    services = services.filter((s) => !s.disabled && !skipped.includes(s.name))
+    actions = actions.filter((s) => !s.isDisabled() && !skipped.includes(s.name))
 
-    if (services.length === 0) {
+    if (actions.length === 0) {
       log.error({ msg: "No services to deploy. Aborting." })
       return { result: { builds: {}, deployments: {}, tests: {}, graphResults: {} } }
     }
 
-    const skipRuntimeDependencies = opts["skip-dependencies"]
-    if (skipRuntimeDependencies && (!args.services || args.services.length === 0)) {
+    const skipDependencies = opts["skip-dependencies"]
+    if (skipDependencies && (!args.names || args.names.length === 0)) {
       const errMsg = deline`
-        No service names were provided as CLI arguments, but the --skip-dependencies option was used. Please provide a
-        list of service names when using the --skip-dependencies option.
+        No names were provided as CLI arguments, but the --skip-dependencies option was used. Please provide a
+        list of names when using the --skip-dependencies option.
       `
       log.error({ msg: errMsg })
       return { result: { builds: {}, deployments: {}, tests: {}, graphResults: {} } }
     }
 
-    const modules = Array.from(new Set(services.map((s) => s.module)))
     const localModeDeployNames = getMatchingServiceNames(opts["local-mode"], initGraph)
     const devModeDeployNames = getMatchingServiceNames(opts["dev-mode"], initGraph).filter(
       (name) => !localModeDeployNames.includes(name)
@@ -196,17 +193,17 @@ export class DeployCommand extends Command<Args, Opts> {
     const force = opts.force
     const forceBuild = opts["force-build"]
 
-    const initialTasks = services.map(
-      (service) =>
+    const initialTasks = actions.map(
+      (action) =>
         new DeployTask({
           garden,
           log,
           graph: initGraph,
-          service,
+          action,
           force,
           forceBuild,
           fromWatch: false,
-          skipRuntimeDependencies,
+          skipDependencies,
           localModeDeployNames,
           devModeDeployNames,
         })
@@ -217,22 +214,24 @@ export class DeployCommand extends Command<Args, Opts> {
       graph: initGraph,
       log,
       footerLog,
-      modules,
+      actions,
       initialTasks,
       skipWatch: [
-        ...getModulesByServiceNames(devModeDeployNames, initGraph),
-        ...getModulesByServiceNames(localModeDeployNames, initGraph),
+        // TODO-G2: include skipDependencies here
+        ...initGraph.getDeploys({ names: devModeDeployNames }),
+        ...initGraph.getDeploys({ names: localModeDeployNames }),
       ],
       watch,
-      changeHandler: async (graph, module) => {
-        const tasks: BaseTask[] = await getModuleWatchTasks({
+      changeHandler: async (graph, updatedAction) => {
+        const tasks: BaseTask[] = await getActionWatchTasks({
           garden,
           graph,
           log,
-          module,
-          servicesWatched: services.map((s) => s.name),
+          updatedAction,
+          deploysWatched: actions.map((s) => s.name),
           localModeDeployNames,
           devModeDeployNames,
+          testsWatched: [],
         })
 
         return tasks

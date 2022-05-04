@@ -53,8 +53,9 @@ import {
   TestActionDefinition,
   TestActionHandler,
 } from "../../plugin/action-types"
-import { Action } from "../../actions/base"
+import { Action, Resolved } from "../../actions/base"
 import { BuildResult } from "../../plugin/handlers/build/build"
+import { ResolvedBuildAction } from "../../actions/build"
 
 const persistentLocalProcRetryIntervalMs = 2500
 
@@ -70,7 +71,7 @@ export function getLogFilePath({ projectRoot, deployName }: { projectRoot: strin
   return join(projectRoot, localLogsDir, `${deployName}.jsonl`)
 }
 
-function getDefaultEnvVars(action: Action) {
+function getDefaultEnvVars(action: ResolvedBuildAction<ExecBuildConfig> | ExecBuild | Action) {
   return {
     ...process.env,
     GARDEN_MODULE_VERSION: action.versionString(),
@@ -148,7 +149,7 @@ async function run({
   opts = {},
 }: {
   command: string[]
-  action: Action
+  action: ResolvedBuildAction<ExecBuildConfig> | ExecBuild | Action
   log: LogEntry
   env?: PrimitiveMap
   opts?: ExecOpts
@@ -185,7 +186,7 @@ export const buildExecModule: BuildActionHandler<"build", ExecBuild> = async ({ 
     log.verbose(renderMessageWithDivider(prefix, output.buildLog, false, chalk.gray))
   }
   // keep track of which version has been built
-  const buildVersionFilePath = join(action.buildMetadataPath, GARDEN_BUILD_VERSION_FILENAME)
+  const buildVersionFilePath = join(action.getBuildMetadataPath(), GARDEN_BUILD_VERSION_FILENAME)
   await writeModuleVersionFile(buildVersionFilePath, action.getFullVersion())
 
   return output
@@ -589,7 +590,7 @@ export const execPlugin = () =>
 
             if (needsBuild) {
               buildAction = {
-                kind: "Build",
+                kind: "build",
                 type: "exec",
                 name: module.name,
 
@@ -624,7 +625,7 @@ export const execPlugin = () =>
 
             for (const service of module.serviceConfigs) {
               actions.push({
-                kind: "Deploy",
+                kind: "deploy",
                 type: "exec",
                 name: service.name,
                 ...params.baseFields,
@@ -642,7 +643,7 @@ export const execPlugin = () =>
 
             for (const task of module.taskConfigs) {
               actions.push({
-                kind: "Run",
+                kind: "run",
                 type: "exec",
                 name: task.name,
                 ...params.baseFields,
@@ -661,7 +662,7 @@ export const execPlugin = () =>
 
             for (const test of module.testConfigs) {
               actions.push({
-                kind: "Test",
+                kind: "test",
                 type: "exec",
                 name: module.name + "-" + test.name,
                 ...params.baseFields,

@@ -52,7 +52,7 @@ interface RunTaskOutput {
 
 export class RunTaskCommand extends Command<Args, Opts> {
   name = "run"
-  alias = "task"
+  aliases = ["task"]
   help = "Run a task (in the context of its parent module)."
 
   streamEvents = true

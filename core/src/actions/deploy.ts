@@ -16,9 +16,9 @@ export interface DeployActionConfig<N extends string = any, S extends object = a
 export const deployActionConfig = () => baseRuntimeActionConfig()
 
 export class DeployAction<S extends DeployActionConfig = any, O extends {} = any> extends RuntimeAction<S, O> {
-  kind: "Deploy"
+  kind: "deploy"
 }
 
 export function isDeployAction(action: Action): action is DeployAction {
-  return action.kind === "Deploy"
+  return action.kind === "deploy"
 }

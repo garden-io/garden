@@ -76,13 +76,7 @@ export class DeployTask extends BaseActionTask<DeployAction> {
       localModeDeployNames: this.localModeDeployNames,
     })
 
-    if (this.skipRuntimeDependencies) {
-      // Then we don't deploy any service dependencies or run any task dependencies, but only get existing
-      // statuses and results.
-      return [statusTask, ...buildTasks, ...getServiceStatusDeps(this, deps), ...getTaskResultDeps(this, deps)]
-    } else {
-      return [statusTask, ...buildTasks, ...getDeployDeps(this, deps, false), ...getTaskDeps(this, deps, false)]
-    }
+    return [statusTask, ...getDeployDeps(this, deps, false), ...getTaskDeps(this, deps, false)]
   }
 
   getDescription() {

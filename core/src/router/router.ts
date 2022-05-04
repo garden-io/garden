@@ -15,7 +15,7 @@ import { GardenPlugin, ModuleTypeDefinition } from "../plugin/plugin"
 import { ServiceStatusMap } from "../types/service"
 import { GetServiceStatusTask } from "../tasks/get-service-status"
 import { getServiceStatuses } from "../tasks/base"
-import { DeleteDeployTask, deletedServiceStatuses } from "../tasks/delete-service"
+import { DeleteDeployTask, deletedDeployStatuses } from "../tasks/delete-service"
 import { DeployTask } from "../tasks/deploy"
 import { Profile } from "../util/profiling"
 import { ConfigGraph } from "../graph/config-graph"
@@ -94,6 +94,7 @@ export class ActionRouter extends BaseRouter {
           log,
           action,
           devModeDeployNames: [],
+          fromWatch: false,
         })
     )
     const results = await this.garden.processTasks(tasks, { throwOnError: true })
@@ -149,7 +150,7 @@ export class ActionRouter extends BaseRouter {
       })
     }
 
-    const serviceStatuses = deletedServiceStatuses(deleteResults)
+    const serviceStatuses = deletedDeployStatuses(deleteResults)
 
     servicesLog.setSuccess()
 

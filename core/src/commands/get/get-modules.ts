@@ -45,7 +45,7 @@ type OutputModule = Omit<GardenModule, "_config" | "buildDependencies">
 
 export class GetModulesCommand extends Command {
   name = "modules"
-  alias = "module"
+  aliases = ["module"]
   help = "Outputs all or specified modules."
   description = dedent`
     Outputs all or specified modules. Use with --output=json and jq to extract specific fields.

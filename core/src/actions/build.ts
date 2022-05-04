@@ -7,9 +7,16 @@
  */
 
 import { join } from "path"
-import { includeGuideLink, joi, joiSparseArray, joiUserIdentifier } from "../config/common"
+import { DeepPrimitiveMap, includeGuideLink, joi, joiSparseArray, joiUserIdentifier } from "../config/common"
 import { dedent } from "../util/string"
-import { BaseActionConfig, baseActionConfig, Action, includeExcludeSchema, ResolvedActionWrapperParams } from "./base"
+import {
+  BaseActionConfig,
+  baseActionConfig,
+  BaseAction,
+  includeExcludeSchema,
+  ResolvedActionWrapperParams,
+  Action,
+} from "./base"
 
 export interface BuildCopyFrom {
   build: string
@@ -98,8 +105,8 @@ export const buildActionConfig = () =>
     timeout: joi.number().integer().description("Set a timeout for the build to complete, in seconds."),
   })
 
-export class BuildAction<C extends BuildActionConfig = BuildActionConfig, O extends {} = any> extends Action<C, O> {
-  kind: "Build"
+export class BuildAction<C extends BuildActionConfig = BuildActionConfig, O extends {} = any> extends BaseAction<C, O> {
+  kind: "build"
 
   /**
    * Returns the build path for the action. The path is generally `<project root>/.garden/build/<action name>`.
@@ -124,16 +131,23 @@ export abstract class ResolvedBuildAction<
   C extends BuildActionConfig = BuildActionConfig,
   O extends {} = any
 > extends BuildAction<C, O> {
+  private variables: DeepPrimitiveMap
+
   constructor(params: ResolvedActionWrapperParams<C, O>) {
     super(params)
     this._outputs = params.outputs
+    this.variables = params.variables
   }
 
   getOutput<K extends keyof O>(key: K) {
     return this._outputs[key]
   }
+
+  getVariables() {
+    return this.variables
+  }
 }
 
 export function isBuildAction(action: Action): action is BuildAction {
-  return action.kind === "Build"
+  return action.kind === "build"
 }

@@ -8,4 +8,6 @@
 
 export class GraphSolver {
   async solve() {}
+
+  async getPlan() {}
 }

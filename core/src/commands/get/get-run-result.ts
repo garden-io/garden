@@ -9,35 +9,29 @@
 import { ConfigGraph } from "../../graph/config-graph"
 import { Command, CommandResult, CommandParams } from "../base"
 import { printHeader } from "../../logger/util"
-import { RunTaskResult } from "../../types/plugin/task/runTask"
 import chalk from "chalk"
 import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
 import { taskResultSchema } from "../../types/task"
 import { joiArray, joi } from "../../config/common"
 import { StringParameter } from "../../cli/params"
 
-const getTaskResultArgs = {
+const getRunResultArgs = {
   name: new StringParameter({
-    help: "The name of the task",
+    help: "The name of the run (or task, if using modules)",
     required: true,
   }),
 }
 
-type Args = typeof getTaskResultArgs
+type Args = typeof getRunResultArgs
 
-interface Result extends RunTaskResult {
-  artifacts: string[]
-}
-
-export type GetTaskResultCommandResult = Result | null
-
-export class GetTaskResultCommand extends Command<Args> {
-  name = "task-result"
-  help = "Outputs the latest execution result of a provided task."
+export class GetRunResultCommand extends Command<Args> {
+  name = "run-result"
+  help = "Outputs the latest execution result of a provided run (or task, if using modules)."
+  aliases = ["task-result"]
 
   streamEvents = true
 
-  arguments = getTaskResultArgs
+  arguments = getRunResultArgs
 
   outputsSchema = () =>
     taskResultSchema()
@@ -51,46 +45,40 @@ export class GetTaskResultCommand extends Command<Args> {
     printHeader(headerLog, `Task result for task ${chalk.cyan(taskName)}`, "rocket")
   }
 
-  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<GetTaskResultCommandResult>> {
-    const taskName = args.name
-
+  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
     const graph: ConfigGraph = await garden.getConfigGraph({ log, emit: true })
-    const task = graph.getTask(taskName)
+    const action = graph.getRun(args.name)
 
     const actions = await garden.getActionRouter()
 
-    const taskResult = await actions.run.getResult({
+    const res = await actions.run.getResult({
       log,
-      task,
+      action,
       graph,
     })
 
-    let result: GetTaskResultCommandResult = null
+    let artifacts: string[] = []
 
-    if (taskResult) {
-      const artifacts = await getArtifactFileList({
-        key: getArtifactKey("task", task.name, task.version),
+    if (res.result) {
+      artifacts = await getArtifactFileList({
+        key: getArtifactKey("task", action.name, action.versionString()),
         artifactsPath: garden.artifactsPath,
         log: garden.log,
       })
-      result = {
-        ...taskResult,
-        artifacts,
-      }
     }
 
     log.info("")
 
-    if (taskResult === null) {
-      log.info(`Could not find results for task '${taskName}'`)
+    if (res.result === null) {
+      log.info(`Could not find results for ${action.longDescription()}`)
     } else {
-      if (taskResult === undefined) {
-        log.error(`Module type ${task.module.type} for task ${taskName} does not support storing/getting task results.`)
+      if (res.result === undefined) {
+        log.error(`Type ${action.type} for Run ${args.name} does not support storing/getting task results.`)
       } else {
-        log.info({ data: result })
+        log.info({ data: res })
       }
     }
 
-    return { result }
+    return { result: { ...res, artifacts } }
   }
 }

@@ -52,7 +52,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
     const serviceResource = module.spec.serviceResource
 
     const deployAction: KubernetesDeployActionConfig = {
-      kind: "Deploy",
+      kind: "deploy",
       type: "kubernetes",
       name: module.name,
       ...params.baseFields,
@@ -86,7 +86,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
       }
 
       actions.push({
-        kind: "Run",
+        kind: "run",
         type: "kubernetes",
         name: module.name,
         ...params.baseFields,
@@ -110,7 +110,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
       }
 
       actions.push({
-        kind: "Test",
+        kind: "test",
         type: "kubernetes",
         name: module.name + "-" + test.name,
         ...params.baseFields,

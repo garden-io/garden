@@ -98,11 +98,12 @@ export function getProviderActionDescriptions(): ResolvedActionHandlerDescriptio
     getDebugInfo,
   }
 
-  _providerActionDescriptions = <ResolvedActionHandlerDescriptions>mapValues(descriptions, (f) => {
+  _providerActionDescriptions = <ResolvedActionHandlerDescriptions>mapValues(descriptions, (f, name) => {
     const desc = f()
 
     return {
       ...desc,
+      name,
       paramsSchema: desc.paramsSchema.keys({
         base: baseHandlerSchema(),
       }),

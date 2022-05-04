@@ -6,31 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult, CommandParams } from "../base"
-import { TestResult, testResultSchema } from "../../types/test"
+import { Command, CommandParams } from "../base"
+import { testResultSchema } from "../../types/test"
 import { printHeader } from "../../logger/util"
 import chalk from "chalk"
 import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
 import { joi, joiArray } from "../../config/common"
-import { StringParameter } from "../../cli/params"
-import { testFromModule } from "../../types/test"
+import { getTestActionFromArgs, runTestArgs } from "../run/run-test"
 
-const getTestResultArgs = {
-  module: new StringParameter({
-    help: "Module name of where the test runs.",
-    required: true,
-  }),
-  name: new StringParameter({
-    help: "Test name.",
-    required: true,
-  }),
-}
-
-interface Result extends TestResult {
-  artifacts: string[]
-}
-
-export type GetTestResultCommandResult = Result | null
+const getTestResultArgs = runTestArgs
 
 type Args = typeof getTestResultArgs
 
@@ -60,43 +44,34 @@ export class GetTestResultCommand extends Command<Args> {
     )
   }
 
-  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<GetTestResultCommandResult>> {
-    const testName = args.name
-    const moduleName = args.module
-
+  async action({ garden, log, args }: CommandParams<Args>) {
     const graph = await garden.getConfigGraph({ log, emit: true })
-    const actions = await garden.getActionRouter()
+    const action = getTestActionFromArgs(graph, args)
 
-    const module = graph.getModule(moduleName)
-    const test = testFromModule(module, testName, graph)
+    const router = await garden.getActionRouter()
 
-    const testResult = await actions.test.getResult({
+    const res = await router.test.getResult({
       log,
       graph,
-      test,
-      module,
+      action,
     })
 
-    let result: GetTestResultCommandResult = null
+    let artifacts: string[] = []
 
-    if (testResult) {
-      const artifacts = await getArtifactFileList({
-        key: getArtifactKey("test", testName, test.version),
+    if (res.result) {
+      artifacts = await getArtifactFileList({
+        key: getArtifactKey("test", action.name, action.versionString()),
         artifactsPath: garden.artifactsPath,
         log: garden.log,
       })
-      result = {
-        ...testResult,
-        artifacts,
-      }
     }
 
-    if (result === null) {
-      log.info(`Could not find results for test '${testName}'`)
+    if (res.result === null) {
+      log.info(`Could not find results for test '${action.name}'`)
     } else {
-      log.info({ data: result })
+      log.info({ data: res.result })
     }
 
-    return { result }
+    return { result: { ...res, artifacts } }
   }
 }

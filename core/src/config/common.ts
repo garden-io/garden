@@ -466,7 +466,7 @@ export function parseActionReference(reference: string | object): ActionReferenc
   if (isString(reference)) {
     const split = reference.toLowerCase().split(".")
 
-    if (split.length !== 2 || !actionKinds.includes(split[0]) || !split[1]) {
+    if (split.length !== 2 || !actionKinds.includes(<any>split[0]) || !split[1]) {
       throw actionRefParseError(reference)
     }
 

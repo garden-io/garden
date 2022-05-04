@@ -32,7 +32,7 @@ type Opts = typeof dashboardOpts
 
 export class DashboardCommand extends Command<Args, Opts> {
   name = "dashboard"
-  alias = "serve"
+  aliases = ["serve"]
   help = "Starts the Garden dashboard for the current project and environment."
 
   cliOnly = true

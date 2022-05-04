@@ -29,7 +29,6 @@ import { deline } from "../util/string"
 import { Garden } from "../garden"
 import { ConfigGraph } from "../graph/config-graph"
 import { getNames } from "../util/util"
-import minimatch = require("minimatch")
 import { isTestAction } from "../actions/test"
 
 export const testArgs = {
@@ -162,30 +161,31 @@ export class TestCommand extends Command<Args, Opts> {
     const filterNames = opts.name || []
     const force = opts.force
     const forceBuild = opts["force-build"]
-    const skipRuntimeDependencies = opts["skip-dependencies"]
+    const skipDependencies = opts["skip-dependencies"]
     const skipped = opts.skip || []
 
     const actions = getTestActions({ graph, modules, filterNames })
 
-    const initialTasks = actions.map(
-      (action) =>
-        new TestTask({
-          garden,
-          graph,
-          log,
-          force,
-          forceBuild,
-          fromWatch: false,
-          action,
-          devModeDeployNames: [],
-          localModeDeployNames: [],
-          skipRuntimeDependencies,
-        })
+    const initialTasks = actions
+      .map(
+        (action) =>
+          new TestTask({
+            garden,
+            graph,
+            log,
+            force,
+            forceBuild,
+            fromWatch: false,
+            action,
+            devModeDeployNames: [],
+            localModeDeployNames: [],
+            skipDependencies,
+          })
       )
-    .filter(
-      (testTask) =>
-        skipped.length === 0 || !skipped.some((s) => minimatch(testTask.test.name.toLowerCase(), s.toLowerCase()))
-    )
+      .filter(
+        (testTask) =>
+          skipped.length === 0 || !skipped.some((s) => minimatch(testTask.action.name.toLowerCase(), s.toLowerCase()))
+      )
 
     const results = await processActions({
       garden,
@@ -210,8 +210,8 @@ export class TestCommand extends Command<Args, Opts> {
             fromWatch: false,
             action,
             devModeDeployNames: [],
+            skipRuntimeDependencies: skipDependencies,
             localModeDeployNames: [],
-            skipRuntimeDependencies,
           }),
         ]
       },

@@ -48,7 +48,7 @@ interface RunDeployOutput {
 export class RunDeployCommand extends Command<Args, Opts> {
   name = "deploy"
   help = "Run an ad-hoc instance of the specified deploy/service."
-  alias = "service"
+  aliases = ["service"]
 
   // Makes no sense to run a deploy (which is expected to stay running) except when attaching in the CLI
   cliOnly = true
@@ -134,10 +134,11 @@ export class RunDeployCommand extends Command<Args, Opts> {
 
     return handleRunResult({
       log,
-      actionDescription: "run deploy",
+      description: "run deploy",
       result,
       interactive,
       graphResults: dependencyResults,
+      action,
     })
   }
 }
