@@ -342,8 +342,8 @@ describe("RetriableProcess", () => {
   })
 
   it("entire tree should fail on the root process failure", async () => {
-    const maxRetries = 5
-    const minTimeoutMs = 1000
+    const maxRetries = 3
+    const minTimeoutMs = 500
     const root = failingProcess(maxRetries, minTimeoutMs)
     const left = stableProcess(maxRetries, minTimeoutMs)
     const right = stableProcess(maxRetries, minTimeoutMs)
@@ -356,5 +356,45 @@ describe("RetriableProcess", () => {
     expect(root.getCurrentState()).to.eql("failed")
     expect(left.getCurrentState()).to.eql("stopped")
     expect(right.getCurrentState()).to.eql("stopped")
+  })
+
+  it("entire tree should fail on a node process failure", async () => {
+    const maxRetries = 3
+    const minTimeoutMs = 500
+    const root = stableProcess(maxRetries, minTimeoutMs)
+    const left = stableProcess(maxRetries, minTimeoutMs)
+    const right = failingProcess(maxRetries, minTimeoutMs)
+    const rightChild = stableProcess(maxRetries, minTimeoutMs)
+    root.addDescendantProcesses(left, right)
+    right.addDescendantProcess(rightChild)
+
+    root.startAll()
+
+    await yieldToRetry(maxRetries, minTimeoutMs)
+
+    expect(root.getCurrentState()).to.eql("stopped")
+    expect(left.getCurrentState()).to.eql("stopped")
+    expect(right.getCurrentState()).to.eql("failed")
+    expect(rightChild.getCurrentState()).to.eql("stopped")
+  })
+
+  it("entire tree should fail on a leaf process failure", async () => {
+    const maxRetries = 3
+    const minTimeoutMs = 500
+    const root = stableProcess(maxRetries, minTimeoutMs)
+    const left = stableProcess(maxRetries, minTimeoutMs)
+    const right = stableProcess(maxRetries, minTimeoutMs)
+    const rightChild = failingProcess(maxRetries, minTimeoutMs)
+    root.addDescendantProcesses(left, right)
+    right.addDescendantProcess(rightChild)
+
+    root.startAll()
+
+    await yieldToRetry(maxRetries, minTimeoutMs)
+
+    expect(root.getCurrentState()).to.eql("stopped")
+    expect(left.getCurrentState()).to.eql("stopped")
+    expect(right.getCurrentState()).to.eql("stopped")
+    expect(rightChild.getCurrentState()).to.eql("failed")
   })
 })

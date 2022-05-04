@@ -74,7 +74,6 @@ export interface RetriableProcessConfig {
   executor?: CommandExecutor
   maxRetries: number
   minTimeoutMs: number
-  failureHandler?: FailureHandler
   stderrListener?: IOStreamListener
   stdoutListener?: IOStreamListener
   log: LogEntry
@@ -104,15 +103,15 @@ export type RetriableProcessState = InitialProcessState | ActiveProcessState | I
  * It's a responsibility of an implementer to keep both listeners consistent to each other.
  *
  * If there are no retries left for any process in the tree, then its {@link RetriableProcess.failureHandler} is called.
- * Each node can have its own failure handler,
- * or the entire tree can get the same one with {@link RetriableProcess#setFailureHandlerForAll}.
+ * The failure handler function is shared across all tree nodes and it's getting called from the failed node.
+ * It is a kind of finalizer which is executed after the process tree has failed and cannot be used anymore.
+ * It can be a function to shutdown the application or something else. By default it is a no-op function.
+ * The failure handler can be configured with {@link RetriableProcess#setFailureHandler}.
  *
  * See {@link RetriableProcess#startAll()} and {@link RetriableProcess#stopAll()} to start/stop a process tree.
  *
  * TODO. Ideas on further improvements:
  *  - ability to attach/detach a process tree to/from a running process
- *  - how the final failure is called by a configurable handler,
- *    it might be better ti explicitly stop all processes, mark them as failed and call each one's failure handler
  */
 export class RetriableProcess {
   public readonly command: string
@@ -144,7 +143,7 @@ export class RetriableProcess {
     this.maxRetries = config.maxRetries
     this.minTimeoutMs = config.minTimeoutMs
     this.retriesLeft = config.maxRetries
-    this.failureHandler = config.failureHandler || (async () => {})
+    this.failureHandler = async () => {} // no failure handler by default
     this.stderrListener = config.stderrListener
     this.stdoutListener = config.stdoutListener
     this.log = config.log
@@ -253,7 +252,11 @@ export class RetriableProcess {
   }
 
   private unregisterNodeListeners(): void {
-    const proc = this.proc!
+    const proc = this.proc
+    if (!proc) {
+      return
+    }
+
     proc.removeAllListeners("error")
     proc.removeAllListeners("close")
 
@@ -284,8 +287,9 @@ export class RetriableProcess {
       this.state = "retrying"
       this.startSubTree()
     } else {
-      this.state = "failed"
       this.log.error("Unable to start local mode, see the error details in the logs.")
+      this.stopAll()
+      this.state = "failed"
       await this.failureHandler()
     }
   }
@@ -373,12 +377,8 @@ export class RetriableProcess {
     return root
   }
 
-  private setFailureHandler(failureHandler: FailureHandler): void {
-    this.failureHandler = failureHandler
-  }
-
-  public setFailureHandlerForAll(failureHandler: FailureHandler): void {
+  public setFailureHandler(failureHandler: FailureHandler): void {
     const root = this.findParentMostProcess()
-    RetriableProcess.recursiveAction(root, (node) => node.setFailureHandler(failureHandler))
+    RetriableProcess.recursiveAction(root, (node) => (node.failureHandler = failureHandler))
   }
 }

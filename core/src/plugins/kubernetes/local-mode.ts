@@ -517,7 +517,7 @@ function composeProcessTree(
     root = sshTunnel
   }
 
-  root.setFailureHandlerForAll(async () => {
+  root.setFailureHandler(async () => {
     log.error("Local mode failed, shutting down...")
     await shutdown(1)
   })
