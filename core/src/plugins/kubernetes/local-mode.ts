@@ -547,5 +547,5 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
     section: service.name,
     msg: chalk.gray(`→ Starting local mode process tree:\n` + `${chalk.white(`${processTree.renderProcessTree()}`)}`),
   })
-  processTree.start()
+  processTree.startAll()
 }

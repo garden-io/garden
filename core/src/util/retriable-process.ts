@@ -134,7 +134,7 @@ export class RetriableProcess {
     node.descendants.forEach((descendant) => RetriableProcess.recursiveAction(descendant, action))
   }
 
-  private stop(): void {
+  private stopNode(): void {
     const proc = this.proc
     if (!proc) {
       return
@@ -145,11 +145,11 @@ export class RetriableProcess {
     this.state = "stopped"
   }
 
-  private stopRecursively(): void {
-    RetriableProcess.recursiveAction(this, (node) => node.stop())
+  private stopSubTree(): void {
+    RetriableProcess.recursiveAction(this, (node) => node.stopNode())
   }
 
-  private registerListeners(proc: ChildProcess): void {
+  private registerNodeListeners(proc: ChildProcess): void {
     const processSays = (chunk: any) => `[Process PID=${this.getCurrentPid()}] says "${chunk.toString()}"`
 
     const attemptsLeft = () =>
@@ -176,7 +176,7 @@ export class RetriableProcess {
       logDebugError(message)
       this.stderrListener?.onError(processErrorMessage(message))
 
-      await this.tryRestart()
+      await this.tryRestartSubTree()
     })
 
     proc.on("close", async (code: number, signal: NodeJS.Signals) => {
@@ -184,7 +184,7 @@ export class RetriableProcess {
       logDebugError(message)
       this.stderrListener?.onError(processErrorMessage(message))
 
-      await this.tryRestart()
+      await this.tryRestartSubTree()
     })
 
     proc.stderr!.on("data", async (chunk: any) => {
@@ -194,13 +194,13 @@ export class RetriableProcess {
         logDebugError(message)
         this.stderrListener?.onError(processErrorMessage(message))
 
-        await this.tryRestart()
+        await this.tryRestartSubTree()
       } else {
         const message = chunk.toString()
         logDebugInfo(message)
         this.stderrListener?.onMessage(processMessage(message))
 
-        this.resetRetriesLeftRecursively()
+        this.resetSubTreeRetriesLeft()
       }
     })
 
@@ -211,18 +211,18 @@ export class RetriableProcess {
         logDebugInfo(message)
         this.stdoutListener?.onMessage(processMessage(message))
 
-        this.resetRetriesLeftRecursively()
+        this.resetSubTreeRetriesLeft()
       } else {
         const message = `Command '${this.command}' terminated: ${chunk}. ${attemptsLeft()}`
         logDebugError(message)
         this.stdoutListener?.onError(processErrorMessage(message))
 
-        await this.tryRestart()
+        await this.tryRestartSubTree()
       }
     })
   }
 
-  private unregisterListeners(): void {
+  private unregisterNodeListeners(): void {
     const proc = this.proc!
     proc.removeAllListeners("error")
     proc.removeAllListeners("close")
@@ -231,28 +231,28 @@ export class RetriableProcess {
     proc.stderr!.removeAllListeners("data")
   }
 
-  private unregisterListenersRecursively(): void {
-    RetriableProcess.recursiveAction(this, (node) => node.unregisterListeners())
+  private unregisterSubTreeListeners(): void {
+    RetriableProcess.recursiveAction(this, (node) => node.unregisterNodeListeners())
   }
 
-  private resetRetriesLeft(): void {
+  private resetNodeRetriesLeft(): void {
     this.retriesLeft = this.maxRetries
   }
 
-  private resetRetriesLeftRecursively(): void {
-    RetriableProcess.recursiveAction(this, (node) => node.resetRetriesLeft())
+  private resetSubTreeRetriesLeft(): void {
+    RetriableProcess.recursiveAction(this, (node) => node.resetNodeRetriesLeft())
   }
 
-  private async tryRestart(): Promise<void> {
+  private async tryRestartSubTree(): Promise<void> {
     // todo: should we lookup to parent nodes to find the parent-most killed/restarting process?
-    this.unregisterListenersRecursively()
-    this.stopRecursively()
+    this.unregisterSubTreeListeners()
+    this.stopSubTree()
     if (this.retriesLeft > 0) {
       // sleep synchronously to avoid pre-mature retry attempts
       sleepSync(this.minTimeoutMs)
       this.retriesLeft--
       this.state = "retrying"
-      this.start()
+      this.startSubTree()
     } else {
       this.state = "failed"
       this.log.error("Unable to start local mode, see the error details in the logs. Shutting down...")
@@ -291,7 +291,7 @@ export class RetriableProcess {
     return cur
   }
 
-  public start(): RetriableProcess {
+  private startNode(): RetriableProcess {
     if (this.state === "running") {
       throw new RuntimeError("Process is already running", this)
     }
@@ -299,11 +299,29 @@ export class RetriableProcess {
     const proc = this.executor(this.command)
     this.proc = proc
     this.state = "running"
-    this.registerListeners(proc)
-    for (const descendant of this.descendants) {
-      descendant.start()
-    }
+    this.registerNodeListeners(proc)
     return this
+  }
+
+  private static startFromNode(node: RetriableProcess): RetriableProcess {
+    RetriableProcess.recursiveAction(node, (node) => node.startNode())
+    return node
+  }
+
+  private startSubTree(): RetriableProcess {
+    RetriableProcess.startFromNode(this)
+    return this
+  }
+
+  /**
+   * Starts all processes in the tree starting from the parent-most one.
+   *
+   * @return the reference to the tree root, i.e. to the parent-most retriable process
+   */
+  public startAll(): RetriableProcess {
+    const topParent = this.findParentMostProcess()
+    RetriableProcess.startFromNode(topParent)
+    return topParent
   }
 
   /**
@@ -313,8 +331,8 @@ export class RetriableProcess {
    */
   public stopAll(): RetriableProcess {
     const topParent = this.findParentMostProcess()
-    topParent.unregisterListenersRecursively()
-    topParent.stopRecursively()
+    topParent.unregisterSubTreeListeners()
+    topParent.stopSubTree()
     return topParent
   }
 }
