@@ -195,7 +195,7 @@ export class RetriableProcess {
     proc.stderr!.on("data", async (chunk: any) => {
       const hasErrorsFn = this.stderrListener?.hasErrors
       if (!hasErrorsFn || hasErrorsFn(chunk)) {
-        const message = `Command '${this.command}' terminated: ${chunk}.`
+        const message = `Command '${this.command}' terminated: ${chunk.toString()}.`
         logDebugError(message)
         this.stderrListener?.onError(processErrorMessage(message))
 
@@ -218,7 +218,7 @@ export class RetriableProcess {
 
         this.resetSubTreeRetriesLeft()
       } else {
-        const message = `Command '${this.command}' terminated: ${chunk}. ${attemptsLeft()}`
+        const message = `Command '${this.command}' terminated: ${chunk.toString()}. ${attemptsLeft()}`
         logDebugError(message)
         this.stdoutListener?.onError(processErrorMessage(message))
 
