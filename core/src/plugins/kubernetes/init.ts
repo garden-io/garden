@@ -33,11 +33,13 @@ import { ConfigurationError } from "../../exceptions"
 import Bluebird from "bluebird"
 import { readSecret } from "./secrets"
 import { systemDockerAuthSecretName, dockerAuthSecretKey } from "./constants"
-import { V1Secret, V1Toleration } from "@kubernetes/client-node"
+import { V1IngressClass, V1Secret, V1Toleration } from "@kubernetes/client-node"
 import { KubernetesResource } from "./types"
 import { compareDeployedResources } from "./status/status"
 import { PrimitiveMap } from "../../config/common"
 import { mapValues } from "lodash"
+import { getIngressApiVersion, supportedIngressApiVersions } from "./container/ingress"
+import { LogEntry } from "../../logger/log-entry"
 
 // Note: We need to increment a version number here if we ever make breaking changes to the NFS provisioner StatefulSet
 const nfsStorageClassVersion = 2
@@ -92,6 +94,15 @@ export async function getEnvironmentStatus({
     systemCertManagerReady: true,
     systemManagedCertificatesReady: true,
   }
+
+  const ingressApiVersion = await getIngressApiVersion(log, api, supportedIngressApiVersions)
+  const ingressWarnings = await getIngressMisconfigurationWarnings(
+    provider.config.ingressClass,
+    ingressApiVersion,
+    log,
+    api
+  )
+  ingressWarnings.forEach((w) => log.warn({ symbol: "warning", msg: chalk.yellow(w) }))
 
   const namespaceNames = mapValues(namespaces, (s) => s.namespaceName)
   const result: KubernetesEnvironmentStatus = {
@@ -179,6 +190,37 @@ export async function getEnvironmentStatus({
   sysGarden.log.setSuccess()
 
   return result
+}
+
+export async function getIngressMisconfigurationWarnings(
+  customIngressClassName: string | undefined,
+  ingressApiVersion: string | undefined,
+  log: LogEntry,
+  api: KubeApi
+): Promise<String[]> {
+  if (!customIngressClassName) {
+    return []
+  }
+
+  const warnings: string[] = []
+
+  if (ingressApiVersion === "networking.k8s.io/v1") {
+    // Note: We do not create the IngressClass resource automatically here so add a warning if it's not there!
+    const ingressclasses = await api.listResources<KubernetesResource<V1IngressClass>>({
+      apiVersion: ingressApiVersion,
+      kind: "IngressClass",
+      log,
+      namespace: "all",
+    })
+    const ingressclassWithCorrectName = ingressclasses.items.find((ic) => ic.metadata.name === customIngressClassName)
+    if (!ingressclassWithCorrectName) {
+      warnings.push(deline`An ingressClass “${customIngressClassName}" was set in the provider config for the Kubernetes provider
+        but no matching IngressClass resource was found in the cluster.
+        IngressClass resources are typically created by your Ingress Controller so this may suggest that it has not been properly set up.`)
+    }
+  }
+
+  return warnings
 }
 
 /**
