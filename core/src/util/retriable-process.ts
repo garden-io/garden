@@ -89,6 +89,31 @@ export type ActiveProcessState = "running" | "retrying"
 export type InactiveProcessState = "stopped" | "failed"
 export type RetriableProcessState = InitialProcessState | ActiveProcessState | InactiveProcessState
 
+/**
+ * This class represents a tree of retriable processes.
+ * The tree data structure reflects the parent-child relationships between the processes.
+ *
+ * Each tree node is a wrapper on top of a {@link ChildProcess} object and stores the necessary state
+ * about the current process state and its retries.
+ * Each node's process failure causes a retry for the node's own process and all processes of the whole subtree.
+ *
+ * The retrying mechanism is build on the basis of the event handler of {@link ChildProcess} and its stdio streams.
+ * The process stdio stream handling can be thoroughly customized with {@link IOStreamListener} interface.
+ * It allows to handle process specific output carefully and to process the command-specific errors.
+ * Both `stdout` and `stderr` streams can have own custom listener defined in {@link RetriableProcessConfig}.
+ * It's a responsibility of an implementer to keep both listeners consistent to each other.
+ *
+ * If there are no retries left for any process in the tree, then its {@link RetriableProcess.failureHandler} is called.
+ * Each node can have its own failure handler,
+ * or the entire tree can get the same one with {@link RetriableProcess#setFailureHandlerForAll}.
+ *
+ * See {@link RetriableProcess#startAll()} and {@link RetriableProcess#stopAll()} to start/stop a process tree.
+ *
+ * TODO. Ideas on further improvements:
+ *  - ability to attach/detach a process tree to/from a running process
+ *  - how the final failure is called by a configurable handler,
+ *    it might be better ti explicitly stop all processes, mark them as failed and call each one's failure handler
+ */
 export class RetriableProcess {
   public readonly command: string
   private readonly executor: CommandExecutor
