@@ -218,10 +218,10 @@ export const gardenPlugin = () =>
             const output: ConvertModuleResult = await base!(params)
 
             const actions = output.group!.actions
-            const buildActionIndex = actions.findIndex((a) => a.kind === "Build")
+            const buildActionIndex = actions.findIndex((a) => a.kind === "build")
 
             const buildAction: JibBuildConfig = {
-              kind: "Build",
+              kind: "build",
               type: "jib-container",
               name: module.name,
               ...params.baseFields,

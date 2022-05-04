@@ -6,50 +6,49 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
+import deline = require("deline")
+import dedent = require("dedent")
 import chalk from "chalk"
 import { readFile } from "fs-extra"
-import { flatten } from "lodash"
+import moment = require("moment")
 import { join } from "path"
 
-import { getModuleWatchTasks } from "../tasks/helpers"
-import { Command, CommandParams, CommandResult, handleProcessResults, PrepareParams } from "./base"
+import { getActionWatchTasks } from "../tasks/helpers"
+import { Command, CommandResult, CommandParams, handleProcessResults, PrepareParams } from "./base"
 import { STATIC_DIR } from "../constants"
 import { processActions } from "../process"
-import { GardenModule } from "../types/module"
-import { getTestTasksFromModule } from "../tasks/test"
+import { TestTask } from "../tasks/test"
 import { ConfigGraph } from "../graph/config-graph"
-import { getModulesByServiceNames, getMatchingServiceNames } from "./helpers"
+import { getMatchingServiceNames } from "./helpers"
 import { startServer } from "../server/server"
-import { BuildTask } from "../tasks/build"
 import { DeployTask } from "../tasks/deploy"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { BooleanParameter, StringsParameter } from "../cli/params"
 import { printHeader } from "../logger/util"
-import { GardenService } from "../types/service"
-import deline = require("deline")
-import dedent = require("dedent")
-import moment = require("moment")
+import { DeployAction } from "../actions/deploy"
+import { Action } from "../actions/base"
+import { getNames } from "../util/util"
+
+// NOTE: This is all due to change in 0.13, just getting it to compile for now - JE
 
 const ansiBannerPath = join(STATIC_DIR, "garden-banner-2.txt")
 
 const devArgs = {
-  services: new StringsParameter({
-    help: `Specify which services to develop (defaults to all configured services).`,
+  deploys: new StringsParameter({
+    help: `Specify which deploys to develop (defaults to all configured in project).`,
   }),
 }
 
 const devOpts = {
-  "force": new BooleanParameter({ help: "Force redeploy of service(s)." }),
+  "force": new BooleanParameter({ help: "Force re-deploy of deploy(s)/service(s)." }),
   "local-mode": new StringsParameter({
-    help: deline`[EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled.
-    Use comma as a separator to specify multiple services. Use * to deploy all
-    services with local mode enabled. When this option is used,
-    the command is run in persistent mode.
+    help: deline`
+    [EXPERIMENTAL] The name(s) of deploy action(s) to be started locally with local mode enabled.
 
-    This always takes the precedence over the dev mode if there are any conflicts,
-    i.e. if the same services are passed to both \`--dev\` and \`--local\` options.
+    Use comma as a separator to specify multiple actions. Use * to deploy all compatible actions with local mode enabled. When this option is used, the command is run in persistent mode.
+
+    This always takes the precedence over the dev mode if there are any conflicts, i.e. if the same services are passed to both \`--dev\` and \`--local\` options.
     `,
     alias: "local",
   }),
@@ -80,15 +79,15 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
 
   description = dedent`
     The Garden dev console is a combination of the \`build\`, \`deploy\` and \`test\` commands.
-    It builds, deploys and tests all your modules and services, and re-builds, re-deploys and re-tests
+    It builds, deploys and tests everything in your project, and re-builds, re-deploys and re-tests
     as you modify the code.
 
     Examples:
 
         garden dev
         garden dev --local=service-1,service-2    # enable local mode for service-1 and service-2
-        garden dev --local=*                      # enable local mode for all compatible services
-        garden dev --skip-tests=                  # skip running any tests
+        garden dev --local=*                      # enable local mode for all compatible deploys
+        garden dev --skip-tests                   # skip running any tests
         garden dev --force                        # force redeploy of services when the command starts
         garden dev --name integ                   # run all tests with the name 'integ' in the project
         garden test --name integ*                 # run all tests with the name starting with 'integ' in the project
@@ -135,22 +134,23 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
     this.server?.setGarden(garden)
 
     const graph = await garden.getConfigGraph({ log, emit: true })
-    const modules = graph.getModules()
+    const actions = graph.getActions()
 
     const skipTests = opts["skip-tests"]
+    const testNames = opts["test-names"]
 
-    if (modules.length === 0) {
+    if (actions.length === 0) {
       footerLog && footerLog.setState({ msg: "" })
-      log.info({ msg: "No enabled modules found in project." })
+      log.info({ msg: "No enabled actions found in project." })
       log.info({ msg: "Aborting..." })
       return {}
     }
 
+    const deploys = graph.getDeploys({ names: args.deploys })
+
     const localModeDeployNames = getMatchingServiceNames(opts["local-mode"], graph)
 
-    const services = graph.getServices({ names: args.services })
-
-    const devModeDeployNames = services
+    const devModeDeployNames = deploys
       .map((s) => s.name)
       // Since dev mode is implicit when using this command, we consider explicitly enabling local mode to
       // take precedence over dev mode.
@@ -160,11 +160,11 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       garden,
       log,
       graph,
-      modules,
-      services,
-      localModeDeployNames,
+      deploys,
       devModeDeployNames,
+      localModeDeployNames,
       skipTests,
+      testNames,
       forceDeploy: opts.force,
     })
 
@@ -173,23 +173,19 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       graph,
       log,
       footerLog,
-      modules,
+      actions,
       watch: true,
       initialTasks,
-      skipWatch: [
-        ...getModulesByServiceNames(devModeDeployNames, graph),
-        ...getModulesByServiceNames(localModeDeployNames, graph),
-      ],
-      changeHandler: async (updatedGraph: ConfigGraph, module: GardenModule) => {
+      skipWatch: [], // TODO-G2: need to work out what to ignore, but here we don't know what's actually in dev mode
+      changeHandler: async (updatedGraph: ConfigGraph, action: Action) => {
         return getDevCommandWatchTasks({
           garden,
           log,
           updatedGraph,
-          module,
-          servicesWatched: devModeDeployNames,
+          updatedAction: action,
           devModeDeployNames,
           localModeDeployNames,
-          testNames: opts["test-names"],
+          testNames,
           skipTests,
         })
       },
@@ -203,62 +199,50 @@ export async function getDevCommandInitialTasks({
   garden,
   log,
   graph,
-  modules,
-  services,
+  deploys,
   devModeDeployNames,
   localModeDeployNames,
   skipTests,
+  testNames,
   forceDeploy,
 }: {
   garden: Garden
   log: LogEntry
   graph: ConfigGraph
-  modules: GardenModule[]
-  services: GardenService[]
+  deploys: DeployAction[]
   devModeDeployNames: string[]
   localModeDeployNames: string[]
   skipTests: boolean
+  testNames?: string[]
   forceDeploy: boolean
 }) {
-  const moduleTasks = flatten(
-    await Bluebird.map(modules, async (module) => {
-      // Build the module (in case there are no tests, tasks or services here that need to be run)
-      const buildTasks = await BuildTask.factory({
-        garden,
-        graph,
-        log,
-        module,
-        force: false,
-      })
-
-      // Run all tests in module
-      const testTasks = skipTests
-        ? []
-        : await getTestTasksFromModule({
+  const testTasks = skipTests
+    ? []
+    : graph.getTests({ names: testNames }).map(
+        (action) =>
+          new TestTask({
             garden,
-            graph,
             log,
-            module,
+            graph,
+            action,
+            force: false,
+            forceBuild: false,
+            fromWatch: false,
             devModeDeployNames,
             localModeDeployNames,
-            force: forceDeploy,
-            forceBuild: false,
           })
+      )
 
-      return [...buildTasks, ...testTasks]
-    })
-  )
-
-  const serviceTasks = services
-    .filter((s) => !s.disabled)
+  const deployTasks = deploys
+    .filter((s) => !s.isDisabled())
     .map(
-      (service) =>
+      (action) =>
         new DeployTask({
           garden,
           log,
           graph,
-          service,
-          force: false,
+          action,
+          force: forceDeploy,
           forceBuild: false,
           fromWatch: false,
           devModeDeployNames,
@@ -266,15 +250,14 @@ export async function getDevCommandInitialTasks({
         })
     )
 
-  return [...moduleTasks, ...serviceTasks]
+  return [...testTasks, ...deployTasks]
 }
 
 export async function getDevCommandWatchTasks({
   garden,
   log,
   updatedGraph,
-  module,
-  servicesWatched,
+  updatedAction,
   devModeDeployNames,
   localModeDeployNames,
   testNames,
@@ -283,42 +266,24 @@ export async function getDevCommandWatchTasks({
   garden: Garden
   log: LogEntry
   updatedGraph: ConfigGraph
-  module: GardenModule
-  servicesWatched: string[]
+  updatedAction: Action
   devModeDeployNames: string[]
   localModeDeployNames: string[]
   testNames: string[] | undefined
   skipTests: boolean
 }) {
-  const tasks = await getModuleWatchTasks({
+  const testsWatched = skipTests ? [] : testNames || getNames(updatedGraph.getTests())
+
+  const tasks = await getActionWatchTasks({
     garden,
     log,
     graph: updatedGraph,
-    module,
-    servicesWatched,
+    updatedAction,
+    deploysWatched: devModeDeployNames,
     devModeDeployNames,
     localModeDeployNames,
+    testsWatched,
   })
-
-  if (!skipTests) {
-    const testModules: GardenModule[] = updatedGraph.withDependantModules([module])
-    tasks.push(
-      ...flatten(
-        await Bluebird.map(testModules, (m) =>
-          getTestTasksFromModule({
-            garden,
-            log,
-            module: m,
-            graph: updatedGraph,
-            filterNames: testNames,
-            fromWatch: true,
-            devModeDeployNames,
-            localModeDeployNames,
-          })
-        )
-      )
-    )
-  }
 
   return tasks
 }

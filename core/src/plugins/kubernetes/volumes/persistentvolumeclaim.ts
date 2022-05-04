@@ -133,7 +133,7 @@ export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
           actions: [
             ...(dummyBuild ? [dummyBuild] : []),
             {
-              kind: "Deploy",
+              kind: "deploy",
               type: "persistentvolumeclaim",
               name: module.name,
               ...params.baseFields,
@@ -166,7 +166,7 @@ function getKubernetesAction(action: PersistentVolumeClaimAction) {
   }
 
   const config: KubernetesDeployActionConfig = {
-    kind: "Deploy",
+    kind: "deploy",
     type: "kubernetes",
     name: action.name,
     basePath: action.basePath(),

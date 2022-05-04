@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeleteSecretCommand, DeleteEnvironmentCommand, DeleteServiceCommand } from "../../../../src/commands/delete"
+import { DeleteSecretCommand, DeleteEnvironmentCommand, DeleteDeployCommand } from "../../../../src/commands/delete"
 import {
   expectError,
   makeTestGardenA,
@@ -188,7 +188,7 @@ describe("DeleteEnvironmentCommand", () => {
     expect(command.outputsSchema().validate(result).error).to.be.undefined
 
     expect(result!.providerStatuses["test-plugin"]["ready"]).to.be.false
-    expect(result!.serviceStatuses).to.eql({
+    expect(result!.deployStatuses).to.eql({
       "service-a": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
       "service-b": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
       "service-c": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
@@ -276,7 +276,7 @@ describe("DeleteServiceCommand", () => {
 
   const plugins = [testProvider]
 
-  const command = new DeleteServiceCommand()
+  const command = new DeleteDeployCommand()
   let garden: TestGarden
   let log: LogEntry
 
@@ -293,7 +293,7 @@ describe("DeleteServiceCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { services: ["service-a"] },
+      args: { names: ["service-a"] },
       opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": false }),
     })
 
@@ -310,7 +310,7 @@ describe("DeleteServiceCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { services: ["service-a", "service-b", "service-c"] },
+      args: { names: ["service-a", "service-b", "service-c"] },
       opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": false }),
     })
 
@@ -366,7 +366,7 @@ describe("DeleteServiceCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { services: undefined },
+      args: { names: undefined },
       opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": true }),
     })
     expect(result).to.eql({

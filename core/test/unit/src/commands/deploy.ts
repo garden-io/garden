@@ -115,7 +115,7 @@ describe("DeployCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {
-        services: undefined,
+        names: undefined,
       },
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
@@ -465,7 +465,7 @@ describe("DeployCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {
-        services: ["service-b"],
+        names: ["service-b"],
       },
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
@@ -514,7 +514,7 @@ describe("DeployCommand", () => {
         headerLog: log,
         footerLog: log,
         args: {
-          services: ["service-b", "service-c"],
+          names: ["service-b", "service-c"],
         },
         opts: withDefaultGlobalOpts({
           "dev-mode": undefined,
@@ -573,7 +573,7 @@ describe("DeployCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {
-        services: undefined,
+        names: undefined,
       },
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
@@ -626,7 +626,7 @@ describe("DeployCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {
-        services: undefined,
+        names: undefined,
       },
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
@@ -672,7 +672,7 @@ describe("DeployCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {
-        services: undefined,
+        names: undefined,
       },
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
@@ -703,7 +703,7 @@ describe("DeployCommand", () => {
         headerLog: log,
         footerLog: log,
         args: {
-          services: undefined,
+          names: undefined,
         },
         opts: withDefaultGlobalOpts({
           "dev-mode": undefined,
@@ -728,7 +728,7 @@ describe("DeployCommand", () => {
         headerLog: log,
         footerLog: log,
         args: {
-          services: undefined,
+          names: undefined,
         },
         opts: withDefaultGlobalOpts({
           "dev-mode": [],
@@ -778,7 +778,7 @@ describe("DeployCommand", () => {
         headerLog: log,
         footerLog: log,
         args: {
-          services: undefined,
+          names: undefined,
         },
         opts: withDefaultGlobalOpts({
           "dev-mode": undefined,

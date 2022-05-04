@@ -108,7 +108,7 @@ export const convertModule = () => ({
 
 // TODO-G2: provide these to the handlers, if applicable
 // dummybuild: {
-//   kind: "Build",
+//   kind: "build",
 //   type: "exec",
 //   name: module.name,
 

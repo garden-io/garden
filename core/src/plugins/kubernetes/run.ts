@@ -344,25 +344,21 @@ async function runWithoutArtifacts({
   api,
   provider,
   log,
-  action,
-  args,
-  command,
   timeout,
   podSpec,
   podName,
   namespace,
   interactive,
-  version,
-}: BaseRunParams & {
+}: {
   ctx: PluginContext
   log: LogEntry
-  action: SupportedRuntimeActions
   api: KubeApi
+  interactive: boolean
+  namespace: string
   provider: KubernetesProvider
   podSpec: V1PodSpec
   podName: string
-  namespace: string
-  version: string
+  timeout?: number
 }): Promise<RunResult> {
   const pod: KubernetesResource<V1Pod> = {
     apiVersion: "v1",
@@ -384,7 +380,6 @@ async function runWithoutArtifacts({
 
   let result: RunResult
   const startedAt = new Date()
-  const moduleName = action.moduleName()
 
   try {
     const res = await runner.runAndWait({
@@ -396,8 +391,6 @@ async function runWithoutArtifacts({
     })
     result = {
       ...res,
-      moduleName,
-      version,
     }
   } catch (err) {
     if (err.type === "out-of-memory" || err.type === "timeout") {
@@ -406,23 +399,17 @@ async function runWithoutArtifacts({
         err.type === "out-of-memory" ? makeOutOfMemoryErrorLog(err.detail.logs) : makeTimeOutErrorLog(err.detail.logs)
       result = {
         log: errorLog,
-        moduleName,
-        version,
         success: false,
         startedAt,
         completedAt: new Date(),
-        command: runner.getFullCommand(),
       }
     } else if (err.type === "pod-runner") {
       // Command exited with non-zero code
       result = {
         log: err.detail.logs || err.message,
-        moduleName,
-        version,
         success: false,
         startedAt,
         completedAt: new Date(),
-        command: [...(command || []), ...(args || [])],
       }
     } else {
       throw err
@@ -437,7 +424,6 @@ async function runWithArtifacts({
   api,
   provider,
   log,
-  action,
   args,
   command,
   timeout,
@@ -451,11 +437,9 @@ async function runWithArtifacts({
   stdout,
   stderr,
   namespace,
-  version,
 }: BaseRunParams & {
   ctx: PluginContext
   log: LogEntry
-  action: SupportedRuntimeActions
   podSpec: V1PodSpec
   podName: string
   mainContainerName: string
@@ -468,7 +452,6 @@ async function runWithArtifacts({
   stdout: Writable
   stderr: Writable
   namespace: string
-  version: string
 }): Promise<RunResult> {
   const pod: KubernetesResource<V1Pod> = {
     apiVersion: "v1",
@@ -565,7 +548,6 @@ async function runWithArtifacts({
 
     // Escape the command, so that we can safely pass it as a single string
     const cmd = [...command!, ...(args || [])].map((s) => JSON.stringify(s))
-    const moduleName = action.moduleName()
 
     try {
       // See https://stackoverflow.com/a/20564208
@@ -592,8 +574,6 @@ ${cmd.join(" ")}
       result = {
         ...res,
         log: (await runner.getMainContainerLogs()).trim() || res.log,
-        moduleName,
-        version,
       }
     } catch (err) {
       const res = err.detail.result
@@ -605,23 +585,17 @@ ${cmd.join(" ")}
           err.type === "out-of-memory" ? makeOutOfMemoryErrorLog(containerLogs) : makeTimeOutErrorLog(containerLogs)
         result = {
           log: errorLog,
-          moduleName,
-          version,
           success: false,
           startedAt,
           completedAt: new Date(),
-          command: cmd,
         }
       } else if (err.type === "pod-runner" && res && res.exitCode) {
         // Command exited with non-zero code
         result = {
           log: (await runner.getMainContainerLogs()).trim() || err.message,
-          moduleName,
-          version,
           success: false,
           startedAt,
           completedAt: new Date(),
-          command: cmd,
         }
       } else {
         throw err

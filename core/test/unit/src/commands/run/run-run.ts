@@ -9,7 +9,7 @@
 import stripAnsi from "strip-ansi"
 import { expect } from "chai"
 import { omit } from "lodash"
-import { RunTaskCommand } from "../../../../../src/commands/run/task"
+import { RunTaskCommand } from "../../../../../src/commands/run/run-task"
 import {
   assertAsyncError,
   expectError,

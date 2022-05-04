@@ -14,7 +14,7 @@ import { pickBy, mapValues, mapKeys } from "lodash"
 import { ServiceStatus } from "../types/service"
 import { splitLast } from "../util/util"
 import { Profile } from "../util/profiling"
-import { Action } from "../actions/base"
+import { Action, Resolved } from "../actions/base"
 import { ConfigGraph } from "../graph/config-graph"
 import { isBuildAction } from "../actions/build"
 import { BuildTask } from "./build"
@@ -52,6 +52,7 @@ interface CommonTaskParams {
   log: LogEntry
   force: boolean
   fromWatch: boolean
+  skipDependencies?: boolean
 }
 
 export interface BaseTaskParams extends CommonTaskParams {
@@ -62,10 +63,11 @@ export interface BaseActionTaskParams<T extends Action = Action> extends CommonT
   action: T
   graph: ConfigGraph
   devModeDeployNames: string[]
+  localModeDeployNames: string[]
 }
 
 @Profile()
-export abstract class BaseTask<T extends Action = Action> {
+export abstract class BaseTask<T extends Action = any> {
   abstract type: TaskType
 
   // How many tasks of this exact type are allowed to run concurrently
@@ -77,6 +79,7 @@ export abstract class BaseTask<T extends Action = Action> {
   public readonly force: boolean
   public readonly version: string
   public readonly fromWatch: boolean
+  public readonly skipDependencies: boolean
   interactive = false
 
   _resolvedDependencies?: BaseTask[]
@@ -87,16 +90,21 @@ export abstract class BaseTask<T extends Action = Action> {
     this.force = !!initArgs.force
     this.version = initArgs.version
     this.log = initArgs.log
+    this.skipDependencies = !!initArgs.skipDependencies
   }
 
   abstract resolveDependencies(): Promise<BaseTask[]>
 
   /**
-   * Wrapper around resolveDependencies() that memoizes the results.
+   * Wrapper around resolveDependencies() that memoizes the results and applies generic filters.
    */
   async getDependencies(): Promise<BaseTask[]> {
     if (!this._resolvedDependencies) {
-      this._resolvedDependencies = await this.resolveDependencies()
+      if (this.skipDependencies) {
+        return []
+      } else {
+        this._resolvedDependencies = await this.resolveDependencies()
+      }
     }
 
     return this._resolvedDependencies
@@ -114,13 +122,14 @@ export abstract class BaseTask<T extends Action = Action> {
 
   abstract getDescription(): string
 
-  abstract process(dependencyResults: GraphResults, action: T): Promise<any>
+  abstract process(dependencyResults: GraphResults, action: Resolved<T>): Promise<any>
 }
 
 export abstract class BaseActionTask<T extends Action> extends BaseTask<T> {
   action: T
   graph: ConfigGraph
   devModeDeployNames: string[]
+  localModeDeployNames: string[]
 
   constructor(params: BaseActionTaskParams<T>) {
     const { action } = params
@@ -128,13 +137,12 @@ export abstract class BaseActionTask<T extends Action> extends BaseTask<T> {
     this.action = action
     this.graph = params.graph
     this.devModeDeployNames = params.devModeDeployNames
+    this.localModeDeployNames = params.localModeDeployNames
   }
 
   getName() {
     return this.action.name
   }
-
-  abstract process(dependencyResults: GraphResults, action: T): Promise<any>
 
   // Helpers //
 

@@ -11,9 +11,9 @@ import { highlightYaml, safeDumpYaml } from "../../util/util"
 import { CommandGroup } from "../base"
 import { RunBuildCommand } from "./run-build"
 import { RunDeployCommand } from "./run-deploy"
-import { RunTaskCommand } from "./task"
-import { RunTestCommand } from "./test"
-import { RunWorkflowCommand } from "./workflow"
+import { RunTaskCommand } from "./run-task"
+import { RunTestCommand } from "./run-test"
+import { RunWorkflowCommand } from "./run-workflow"
 import { LogEntry } from "../../logger/log-entry"
 
 export class RunCommand extends CommandGroup {

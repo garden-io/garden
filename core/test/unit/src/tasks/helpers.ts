@@ -11,7 +11,7 @@ import { uniq } from "lodash"
 import { resolve } from "path"
 import { Garden } from "../../../../src/garden"
 import { makeTestGarden, dataDir, makeTestGardenA } from "../../../helpers"
-import { getModuleWatchTasks } from "../../../../src/tasks/helpers"
+import { getActionWatchTasks } from "../../../../src/tasks/helpers"
 import { BaseTask } from "../../../../src/tasks/base"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
@@ -87,12 +87,12 @@ describe("TaskHelpers", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("module-a", true)
 
-      const tasks = await getModuleWatchTasks({
+      const tasks = await getActionWatchTasks({
         garden,
         graph,
         log,
         module,
-        servicesWatched: graph.getServices().map((s) => s.name),
+        deploysWatched: graph.getServices().map((s) => s.name),
         devModeDeployNames: [],
 
         localModeDeployNames: [],
@@ -154,12 +154,12 @@ describe("TaskHelpers", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("module-a", true)
 
-      const tasks = await getModuleWatchTasks({
+      const tasks = await getActionWatchTasks({
         garden,
         graph,
         log,
         module,
-        servicesWatched: graph.getServices().map((s) => s.name),
+        deploysWatched: graph.getServices().map((s) => s.name),
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
@@ -207,12 +207,12 @@ describe("TaskHelpers", () => {
           const graph = await depGarden.getConfigGraph({ log: depGarden.log, emit: false })
           const module = graph.getModule(<string>moduleName)
 
-          const tasks = await getModuleWatchTasks({
+          const tasks = await getActionWatchTasks({
             garden: depGarden,
             graph,
             log,
             module,
-            servicesWatched: graph.getServices().map((s) => s.name),
+            deploysWatched: graph.getServices().map((s) => s.name),
             devModeDeployNames: [],
           })
           expect(sortedBaseKeys(tasks)).to.eql(expectedTasks.sort())
@@ -250,12 +250,12 @@ describe("TaskHelpers", () => {
         const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const module = graph.getModule("module-a", true)
 
-        const tasks = await getModuleWatchTasks({
+        const tasks = await getActionWatchTasks({
           garden,
           graph,
           log,
           module,
-          servicesWatched: graph.getServices().map((s) => s.name),
+          deploysWatched: graph.getServices().map((s) => s.name),
           devModeDeployNames: [],
         })
 
@@ -315,12 +315,12 @@ describe("TaskHelpers", () => {
         const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const module = graph.getModule("module-a", true)
 
-        const tasks = await getModuleWatchTasks({
+        const tasks = await getActionWatchTasks({
           garden,
           graph,
           log,
           module,
-          servicesWatched: graph.getServices().map((s) => s.name),
+          deploysWatched: graph.getServices().map((s) => s.name),
           devModeDeployNames: [],
         })
 

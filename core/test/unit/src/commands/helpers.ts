@@ -11,7 +11,7 @@ import { getMatchingServiceNames } from "../../../../src/commands/helpers"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
 import { makeTestGardenA } from "../../../helpers"
 
-describe("getDevModeServiceNames", () => {
+describe("getMatchingServiceNames", () => {
   let graph: ConfigGraph
 
   before(async () => {

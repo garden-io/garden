@@ -101,7 +101,17 @@ export class PublishCommand extends Command<Args, Opts> {
     const builds = graph.getBuilds({ names: args.names })
 
     const tasks = builds.map((action) => {
-      return new PublishTask({ garden, graph, log, action, forceBuild: opts["force-build"], tagTemplate: opts.tag })
+      return new PublishTask({
+        garden,
+        graph,
+        log,
+        action,
+        forceBuild: opts["force-build"],
+        tagTemplate: opts.tag,
+        devModeDeployNames: [],
+        fromWatch: false,
+        force: false,
+      })
     })
 
     const results = await garden.processTasks(tasks)

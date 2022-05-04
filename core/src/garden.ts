@@ -85,7 +85,14 @@ import {
 import { ResolveProviderTask } from "./tasks/resolve-provider"
 import { ActionRouter } from "./router/router"
 import { RuntimeContext } from "./runtime-context"
-import { loadAndResolvePlugins, getDependencyOrder, getModuleTypes, loadPlugin, getActionTypes, ActionDefinitionMap } from "./plugins"
+import {
+  loadAndResolvePlugins,
+  getDependencyOrder,
+  getModuleTypes,
+  loadPlugin,
+  getActionTypes,
+  ActionDefinitionMap,
+} from "./plugins"
 import { deline, naturalList } from "./util/string"
 import { ensureConnected } from "./db/connection"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
@@ -116,10 +123,6 @@ import { ConfigContext } from "./config/template-contexts/base"
 import { validateSchema, validateWithPath } from "./config/validation"
 import { pMemoizeDecorator } from "./lib/p-memoize"
 import { ModuleGraph } from "./graph/modules"
-import { serviceFromConfig } from "./types/service"
-import { taskFromConfig } from "./types/task"
-import { testFromConfig } from "./types/test"
-import { ActionTypeMap } from "./plugin/action-types"
 import { Action } from "./actions/base"
 
 export interface ActionHandlerMap<T extends keyof ProviderHandlers> {
@@ -390,7 +393,7 @@ export class Garden {
     skipActions?: Action[]
     bufferInterval?: number
   }) {
-    const modules = graph.getModules()
+    const actions = graph.getActions()
     const linkedPaths = (await getLinkedSources(this)).map((s) => s.path)
     const paths = [this.projectRoot, ...linkedPaths]
 
@@ -408,7 +411,7 @@ export class Garden {
       garden: this,
       log: this.log,
       paths,
-      modules,
+      actions,
       skipPaths,
       bufferInterval,
     })
@@ -592,8 +595,10 @@ export class Garden {
           plugin,
           config,
           version: this.version,
+          force: false,
           forceRefresh: this.forceRefresh,
           forceInit,
+          fromWatch: false,
         })
       })
 
@@ -746,7 +751,7 @@ export class Garden {
     log: LogEntry
     runtimeContext?: RuntimeContext
     emit: boolean
-  }) {
+  }): Promise<ConfigGraph> {
     const resolvedProviders = await this.resolveProviders(log)
     const rawConfigs = await this.getRawModuleConfigs()
 
@@ -785,8 +790,6 @@ export class Garden {
     // TODO-G2: convert modules to actions here
     // -> Do the conversion
     // -> Collect module outputs for templating from actions (attach to ConfigGraph?)
-
-
 
     let graph: ConfigGraph | undefined = undefined
 

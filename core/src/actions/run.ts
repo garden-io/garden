@@ -21,9 +21,9 @@ export const runActionConfig = () =>
   })
 
 export class RunAction<C extends RunActionConfig = RunActionConfig, O extends {} = any> extends RuntimeAction<C, O> {
-  kind: "Run"
+  kind: "run"
 }
 
 export function isRunAction(action: Action): action is RunAction {
-  return action.kind === "Run"
+  return action.kind === "run"
 }

@@ -16,6 +16,8 @@ import { GraphResults } from "./task-graph"
 import { getServiceStatuses, getRunTaskResults } from "./tasks/base"
 import { LogEntry } from "./logger/log-entry"
 import { OutputSpec } from "./config/project"
+import { ActionReference } from "./config/common"
+import { ActionKind } from "./plugin/action-types"
 
 /**
  * Resolves all declared project outputs. If necessary, this will resolve providers and modules, and ensure services
@@ -31,6 +33,7 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
   let needModules: string[] = []
   let needServices: string[] = []
   let needTasks: string[] = []
+  let needActions: ActionReference[] = [] // TODO-G2
 
   const templateRefs = collectTemplateReferences(garden.rawOutputs)
 
@@ -53,6 +56,8 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
       } else if (ref[1] === "tasks") {
         needTasks.push(ref[2] as string)
       }
+    } else if (ref[0] === "action" && ref[1] && ref[2]) {
+      needActions.push({ kind: <ActionKind>ref[1], name: ref[2] as string })
     }
   }
 
