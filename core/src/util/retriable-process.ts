@@ -275,6 +275,13 @@ export class RetriableProcess {
     return descendant
   }
 
+  public addDescendantProcesses(...descendants: RetriableProcess[]): RetriableProcess[] {
+    for (const descendant of descendants) {
+      this.addDescendantProcess(descendant)
+    }
+    return descendants
+  }
+
   private renderProcessTreeRecursively(indent: string, output: string): string {
     output += indent + `-> '${this.command}'\n`
     for (const descendant of this.descendants) {
