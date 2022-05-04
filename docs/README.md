@@ -32,7 +32,7 @@
 * [Cloud Provider Set-up](./guides/cloud-provider-setup.md)
 * [Code Synchronization (Dev Mode)](./guides/code-synchronization-dev-mode.md)
 * [Container Modules](./guides/container-modules.md)
-* [Namespaces](./guides/namespaces.md)
+* [Environments and namespaces](./guides/namespaces.md)
 * [Helm Charts](./guides/using-helm-charts.md)
 * [Hot Reload](./guides/hot-reload.md)
 * [In-Cluster Building](./guides/in-cluster-building.md)
