@@ -77,16 +77,14 @@ export interface RetriableProcessConfig {
   log: LogEntry
 }
 
-type InitialProcessState = "runnable"
-type ActiveProcessState = "running" | "retrying"
+export type InitialProcessState = "runnable"
+export type ActiveProcessState = "running" | "retrying"
 /**
  * Process in the state "stopped" can be retried.
- * This state might be useful if we want to expose a public API to stop/resume the processes explicitly.
- *
  * If all retry attempts have failed, then the process reaches the "failed" state which is a final one.
  */
-type InactiveProcessState = "stopped" | "failed"
-type RetriableProcessState = InitialProcessState | ActiveProcessState | InactiveProcessState
+export type InactiveProcessState = "stopped" | "failed"
+export type RetriableProcessState = InitialProcessState | ActiveProcessState | InactiveProcessState
 
 export class RetriableProcess {
   public readonly command: string
@@ -94,7 +92,7 @@ export class RetriableProcess {
   private proc?: ChildProcess
   private state: RetriableProcessState
 
-  //private parent?: RetriableProcess
+  private parent?: RetriableProcess
   private descendants: RetriableProcess[]
 
   private readonly maxRetries: number
@@ -112,7 +110,7 @@ export class RetriableProcess {
       : config.osCommand.command
     this.executor = config.executor || CommandExecutors.spawnExecutor
     this.proc = undefined
-    //this.parent = undefined
+    this.parent = undefined
     this.descendants = []
     this.maxRetries = config.maxRetries
     this.minTimeoutMs = config.minTimeoutMs
@@ -125,6 +123,10 @@ export class RetriableProcess {
 
   private getCurrentPid(): number | undefined {
     return this.proc?.pid
+  }
+
+  public getCurrentState(): RetriableProcessState {
+    return this.state
   }
 
   private static recursiveAction(node: RetriableProcess, action: (node: RetriableProcess) => void): void {
@@ -263,7 +265,7 @@ export class RetriableProcess {
       throw new RuntimeError("Cannot attach a descendant to already running process", this)
     }
 
-    //descendant.parent = this
+    descendant.parent = this
     this.descendants.push(descendant)
     return descendant
   }
@@ -281,6 +283,14 @@ export class RetriableProcess {
     return this.renderProcessTreeRecursively("", output)
   }
 
+  private findParentMostProcess() {
+    let cur: RetriableProcess = this
+    while (!!cur.parent) {
+      cur = cur.parent
+    }
+    return cur
+  }
+
   public start(): RetriableProcess {
     if (this.state === "running") {
       throw new RuntimeError("Process is already running", this)
@@ -294,5 +304,17 @@ export class RetriableProcess {
       descendant.start()
     }
     return this
+  }
+
+  /**
+   * Stops all processes in the tree starting from the parent-most one.
+   *
+   * @return the reference to the tree root, i.e. to the parent-most retriable process
+   */
+  public stopAll(): RetriableProcess {
+    const topParent = this.findParentMostProcess()
+    topParent.unregisterListenersRecursively()
+    topParent.stopRecursively()
+    return topParent
   }
 }
