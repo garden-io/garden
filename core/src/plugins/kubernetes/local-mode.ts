@@ -29,6 +29,7 @@ import { OsCommand, ProcessErrorMessage, ProcessMessage, RetriableProcess } from
 import { isConfiguredForLocalMode } from "./status/status"
 import pRetry = require("p-retry")
 import getPort = require("get-port")
+import { shutdown } from "../../util/util"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -503,16 +504,24 @@ async function getReversePortForwardProcess(
 function composeProcessTree(
   localService: RetriableProcess | undefined,
   sshTunnel: RetriableProcess,
-  reversePortForward: RetriableProcess
+  reversePortForward: RetriableProcess,
+  log: LogEntry
 ): RetriableProcess {
   sshTunnel.addDescendantProcess(reversePortForward)
 
+  let root: RetriableProcess
   if (!!localService) {
     localService.addDescendantProcess(sshTunnel)
-    return localService
+    root = localService
   } else {
-    return sshTunnel
+    root = sshTunnel
   }
+
+  root.setFailureHandlerForAll(async () => {
+    log.error("Local mode failed, shutting down...")
+    await shutdown(1)
+  })
+  return root
 }
 
 /**
@@ -541,7 +550,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   const kubectlPortForward = await getKubectlPortForwardProcess(configParams, localSshPort)
   const reversePortForward = await getReversePortForwardProcess(configParams, localSshPort)
 
-  const processTree: RetriableProcess = composeProcessTree(localService, kubectlPortForward, reversePortForward)
+  const processTree: RetriableProcess = composeProcessTree(localService, kubectlPortForward, reversePortForward, log)
   log.info({
     status: "active",
     section: service.name,

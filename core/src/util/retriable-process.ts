@@ -8,7 +8,7 @@
 
 import { ChildProcess, exec, spawn } from "child_process"
 import { LogEntry } from "../logger/log-entry"
-import { shutdown, sleepSync } from "./util"
+import { sleepSync } from "./util"
 import { RuntimeError } from "../exceptions"
 
 export interface OsCommand {
@@ -67,11 +67,14 @@ export namespace CommandExecutors {
   // no fork executor support yet
 }
 
+export type FailureHandler = () => Promise<void>
+
 export interface RetriableProcessConfig {
   osCommand: OsCommand
   executor?: CommandExecutor
   maxRetries: number
   minTimeoutMs: number
+  failureHandler?: FailureHandler
   stderrListener?: IOStreamListener
   stdoutListener?: IOStreamListener
   log: LogEntry
@@ -98,6 +101,7 @@ export class RetriableProcess {
   private readonly maxRetries: number
   private readonly minTimeoutMs: number
   private retriesLeft: number
+  private failureHandler: FailureHandler
 
   private readonly stderrListener?: IOStreamListener
   private readonly stdoutListener?: IOStreamListener
@@ -115,6 +119,7 @@ export class RetriableProcess {
     this.maxRetries = config.maxRetries
     this.minTimeoutMs = config.minTimeoutMs
     this.retriesLeft = config.maxRetries
+    this.failureHandler = config.failureHandler || (async () => {})
     this.stderrListener = config.stderrListener
     this.stdoutListener = config.stdoutListener
     this.log = config.log
@@ -255,8 +260,8 @@ export class RetriableProcess {
       this.startSubTree()
     } else {
       this.state = "failed"
-      this.log.error("Unable to start local mode, see the error details in the logs. Shutting down...")
-      await shutdown(1)
+      this.log.error("Unable to start local mode, see the error details in the logs.")
+      await this.failureHandler()
     }
   }
 
@@ -303,9 +308,9 @@ export class RetriableProcess {
     return this
   }
 
-  private static startFromNode(node: RetriableProcess): RetriableProcess {
-    RetriableProcess.recursiveAction(node, (node) => node.startNode())
-    return node
+  private static startFromNode(startNode: RetriableProcess): RetriableProcess {
+    RetriableProcess.recursiveAction(startNode, (node) => node.startNode())
+    return startNode
   }
 
   private startSubTree(): RetriableProcess {
@@ -319,9 +324,9 @@ export class RetriableProcess {
    * @return the reference to the tree root, i.e. to the parent-most retriable process
    */
   public startAll(): RetriableProcess {
-    const topParent = this.findParentMostProcess()
-    RetriableProcess.startFromNode(topParent)
-    return topParent
+    const root = this.findParentMostProcess()
+    RetriableProcess.startFromNode(root)
+    return root
   }
 
   /**
@@ -330,9 +335,18 @@ export class RetriableProcess {
    * @return the reference to the tree root, i.e. to the parent-most retriable process
    */
   public stopAll(): RetriableProcess {
-    const topParent = this.findParentMostProcess()
-    topParent.unregisterSubTreeListeners()
-    topParent.stopSubTree()
-    return topParent
+    const root = this.findParentMostProcess()
+    root.unregisterSubTreeListeners()
+    root.stopSubTree()
+    return root
+  }
+
+  private setFailureHandler(failureHandler: FailureHandler): void {
+    this.failureHandler = failureHandler
+  }
+
+  public setFailureHandlerForAll(failureHandler: FailureHandler): void {
+    const root = this.findParentMostProcess()
+    RetriableProcess.recursiveAction(root, (node) => node.setFailureHandler(failureHandler))
   }
 }
