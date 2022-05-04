@@ -8,23 +8,24 @@
 
 import Bluebird from "bluebird"
 import chalk from "chalk"
-import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults, BaseActionTask, BaseActionTaskParams } from "../tasks/base"
-import { Garden } from "../garden"
-import { GardenTask } from "../types/task"
+import {
+  BaseTask,
+  TaskType,
+  getServiceStatuses,
+  getRunTaskResults,
+  BaseActionTask,
+  BaseActionTaskParams,
+} from "../tasks/base"
 import { DeployTask } from "./deploy"
-import { LogEntry } from "../logger/log-entry"
 import { prepareRuntimeContext } from "../runtime-context"
-import { ConfigGraph } from "../graph/config-graph"
 import { BuildTask } from "./build"
 import { GraphResults } from "../task-graph"
 import { GetTaskResultTask } from "./get-task-result"
 import { Profile } from "../util/profiling"
 import { RunAction } from "../actions/run"
 
-export interface TaskTaskParams extends BaseActionTaskParams<RunAction> {
+export interface RunTaskParams extends BaseActionTaskParams<RunAction> {
   forceBuild: boolean
-  devModeDeployNames: string[]
-  localModeDeployNames: string[]
 }
 
 class RunTaskError extends Error {
@@ -38,13 +39,10 @@ export class RunTask extends BaseActionTask<RunAction> {
   type: TaskType = "run"
 
   forceBuild: boolean
-  localModeDeployNames: string[]
 
-  constructor(params: TaskTaskParams) {
+  constructor(params: RunTaskParams) {
     super(params)
     this.forceBuild = params.forceBuild
-    this.devModeDeployNames = params.devModeDeployNames
-    this.localModeDeployNames = params.localModeDeployNames
   }
 
   async resolveDependencies(): Promise<BaseTask[]> {

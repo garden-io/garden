@@ -97,7 +97,7 @@ export const runRouter = (baseParams: BaseRouterParams) =>
       const result = await router.callHandler({
         params,
         handlerType: "getResult",
-        defaultHandler: async () => undefined,
+        defaultHandler: async () => ({ result: null, outputs: null }),
       })
 
       const actionName = action.name

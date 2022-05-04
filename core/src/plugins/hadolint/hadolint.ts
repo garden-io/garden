@@ -289,7 +289,7 @@ export const gardenPlugin = () =>
             return {
               actions: [
                 {
-                  kind: "Test",
+                  kind: "test",
                   type: "hadolint",
                   name: module.name,
 

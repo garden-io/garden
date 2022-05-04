@@ -7,34 +7,48 @@
  */
 
 import { Action } from "../../actions/base"
-import { ModuleConfigContext, ModuleConfigContextParams } from "./module"
+import { Garden } from "../../garden"
+import { RuntimeContext } from "../../runtime-context"
+import { GardenModule } from "../../types/module"
+import { DeepPrimitiveMap } from "../common"
+import { ProviderMap } from "../provider"
+import { ModuleConfigContext } from "./module"
 
-export interface ActionConfigContextParams extends ModuleConfigContextParams {}
+export interface ActionConfigContextParams {
+  garden: Garden
+  resolvedProviders: ProviderMap
+  variables: DeepPrimitiveMap
+  modules: GardenModule[]
+
+  // We only supply this when resolving configuration in dependency order.
+  // Otherwise we pass `${runtime.*} template strings through for later resolution.
+  runtimeContext?: RuntimeContext
+  partialRuntimeResolution: boolean
+
+  action: Action
+}
+
 
 /**
  * Used to resolve action configurations.
  */
 export class ActionConfigContext extends ModuleConfigContext {
   constructor(params: ActionConfigContextParams) {
-    super(params)
-
-    // TODO-G2
-  }
-
-  static fromAction(params: Omit<ActionConfigContextParams, "buildPath"> & { action: Action }) {
     const { action, garden } = params
 
-    const internal = action.getConfig("internal") || {}
+    const { internal } = action.getConfig()
 
-    return new ModuleConfigContext({
+    super({
       ...params,
       name: action.name,
       path: action.basePath(),
       buildPath: action.getBuildPath(),
-      parentName: internal.parentName,
-      templateName: internal.templateName,
-      inputs: internal.inputs,
+      parentName: internal?.parentName,
+      templateName: internal?.templateName,
+      inputs: internal?.inputs,
       variables: { ...garden.variables, ...params.variables },
     })
+
+    // TODO-G2
   }
 }

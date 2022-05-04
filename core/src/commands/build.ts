@@ -24,28 +24,28 @@ import { flatten } from "lodash"
 import { BuildTask } from "../tasks/build"
 import { StringsParameter, BooleanParameter } from "../cli/params"
 import { Garden } from "../garden"
-import { GardenModule } from "../types/module"
 import { uniqByName } from "../util/util"
 import { deline } from "../util/string"
+import { isBuildAction } from "../actions/build"
 
 const buildArgs = {
-  modules: new StringsParameter({
-    help: "Specify module(s) to build. Use comma as a separator to specify multiple modules.",
+  names: new StringsParameter({
+    help: "Specify builds to run. Use comma as a separator to specify multiple names.",
   }),
 }
 
 const buildOpts = {
-  "force": new BooleanParameter({ help: "Force rebuild of module(s).", alias: "f" }),
+  "force": new BooleanParameter({ help: "Force re-build.", alias: "f" }),
   "watch": new BooleanParameter({
-    help: "Watch for changes in module(s) and auto-build.",
+    help: "Watch for changes and auto-build.",
     alias: "w",
     cliOnly: true,
   }),
   "with-dependants": new BooleanParameter({
     help: deline`
-      Also rebuild modules that have build dependencies on one of the modules specified as CLI arguments (recursively).
-      Note: This option has no effect unless a list of module names is specified as CLI arguments (since then, every
-      module in the project will be rebuilt).
+      Also rebuild any builds that depend on one of the builds specified as CLI arguments (recursively).
+      Note: This option has no effect unless a list of build names is specified as CLI arguments (since otherwise, every
+      build in the project will be performed anyway).
   `,
   }),
 }
@@ -55,20 +55,20 @@ type Opts = typeof buildOpts
 
 export class BuildCommand extends Command<Args, Opts> {
   name = "build"
-  help = "Build your modules."
+  help = "Perform your Builds."
 
   protected = true
   streamEvents = true
 
   description = dedent`
-    Builds all or specified modules, taking into account build dependency order.
-    Optionally stays running and automatically builds modules if their source (or their dependencies' sources) change.
+    Runs all or specified Builds, taking into account build dependency order.
+    Optionally stays running and automatically builds when sources (or dependencies' sources) change.
 
     Examples:
 
-        garden build            # build all modules in the project
-        garden build my-module  # only build my-module
-        garden build --force    # force rebuild of modules
+        garden build            # build everything in the project
+        garden build my-image   # only build my-image
+        garden build --force    # force re-builds, even if builds had already been performed at current version
         garden build --watch    # watch for changes to code
   `
 
@@ -113,18 +113,27 @@ export class BuildCommand extends Command<Args, Opts> {
     await garden.clearBuilds()
 
     const graph = await garden.getConfigGraph({ log, emit: true })
-    let modules: GardenModule[] = graph.getModules({ names: args.modules })
+    let actions = graph.getBuilds({ names: args.names })
+
     if (opts["with-dependants"]) {
       // Then we include build dependants (recursively) in the list of modules to build.
-      modules = uniqByName([
-        ...modules,
-        ...flatten(modules.map((m) => graph.getDependants({ kind: "build", name: m.name, recursive: true }).build)),
+      actions = uniqByName([
+        ...actions,
+        ...flatten(
+          actions.map((m) =>
+            graph.getDependants({ kind: "build", name: m.name, recursive: true }).filter(isBuildAction)
+          )
+        ),
       ])
     }
-    const moduleNames = modules.map((m) => m.name)
+    const buildNames = actions.map((m) => m.name)
 
     const initialTasks = flatten(
-      await Bluebird.map(modules, (module) => BuildTask.factory({ garden, graph, log, module, force: opts.force }))
+      await Bluebird.map(
+        actions,
+        (action) =>
+          new BuildTask({ garden, graph, log, action, force: opts.force, devModeDeployNames: [], fromWatch: false })
+      )
     )
 
     const results = await processActions({
@@ -132,15 +141,18 @@ export class BuildCommand extends Command<Args, Opts> {
       graph,
       log,
       footerLog,
-      modules,
+      actions,
       watch: opts.watch,
       initialTasks,
-      changeHandler: async (newGraph, module) => {
-        const deps = newGraph.getDependants({ kind: "build", name: module.name, recursive: true })
-        const tasks = [module]
-          .concat(deps.build)
-          .filter((m) => moduleNames.includes(m.name))
-          .map((m) => BuildTask.factory({ garden, graph, log, module: m, force: true }))
+      changeHandler: async (newGraph, updatedAction) => {
+        const deps = newGraph.getDependants({ kind: "build", name: updatedAction.name, recursive: true })
+        const tasks = deps
+          .filter(isBuildAction)
+          .filter((a) => buildNames.includes(a.name))
+          .map(
+            (action) =>
+              new BuildTask({ garden, graph, log, action, force: true, devModeDeployNames: [], fromWatch: false })
+          )
         return flatten(await Promise.all(tasks))
       },
     })

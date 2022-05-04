@@ -21,9 +21,9 @@ export const testActionConfig = () =>
   })
 
 export class TestAction<C extends TestActionConfig = any, O extends {} = any> extends RuntimeAction<C, O> {
-  kind: "Test"
+  kind: "test"
 }
 
 export function isTestAction(action: Action): action is TestAction {
-  return action.kind === "Test"
+  return action.kind === "test"
 }

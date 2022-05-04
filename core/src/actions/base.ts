@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import titleize from "titleize"
-import { ConfigGraph } from "../graph/config-graph"
+import type { ConfigGraph } from "../graph/config-graph"
 import {
   ActionReference,
   apiVersionSchema,
@@ -25,13 +25,13 @@ import {
 import { varfileDescription } from "../config/project"
 import { DOCS_BASE_URL } from "../constants"
 import { dedent, naturalList } from "../util/string"
-import { ModuleVersion } from "../vcs/vcs"
+import type { ModuleVersion } from "../vcs/vcs"
 import type { BuildAction, BuildActionConfig, ResolvedBuildAction } from "./build"
 import type { DeployActionConfig } from "./deploy"
 import type { RunActionConfig } from "./run"
 import type { TestActionConfig } from "./test"
-import { ActionKind } from "../plugin/action-types"
-import { GroupConfig } from "../config/group"
+import type { ActionKind } from "../plugin/action-types"
+import type { GroupConfig } from "../config/group"
 import pathIsInside from "path-is-inside"
 
 export { ActionKind } from "../plugin/action-types"
@@ -85,7 +85,7 @@ const actionSourceSpecSchema = () =>
 export interface BaseActionConfig<K extends ActionKind = any, N = any, S = any> {
   // Basics
   apiVersion?: string
-  kind: `${Capitalize<K>}`
+  kind: K // Note: This is lowercase, not title-cased like in the raw YAML config!
   type: N
   name: string
   description?: string
@@ -258,13 +258,13 @@ interface ActionWrapperParams<C extends BaseActionConfig> {
 
 export interface ResolvedActionWrapperParams<C extends BaseActionConfig, O extends {}> extends ActionWrapperParams<C> {
   outputs: O
+  variables: DeepPrimitiveMap
 }
 
-export abstract class Action<C extends BaseActionConfig = BaseActionConfig, O extends {} = any> {
+export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, O extends {} = any> {
   public readonly kind: C["kind"]
   public readonly type: C["type"]
   public readonly name: string
-  public readonly buildMetadataPath: string
   public readonly dependencies: ConfigGraph
 
   // Note: These need to be public because we need to reference the types (a current TS limitation)
@@ -375,33 +375,29 @@ export abstract class Action<C extends BaseActionConfig = BaseActionConfig, O ex
     return false
   }
 
+  // TODO: grow this
+  describe() {
+    return {
+      config: this.getConfig(),
+    }
+  }
+
   /**
    * Returns a fully resolved version of this action, including outputs.
    *
    * @param outputs The outputs returned from the resolution of the action
    */
-  resolve(outputs: O): ResolvedAction<this> {
+  resolve(outputs: O): Resolved<BaseAction<C, O>> {
     // TODO-G2: validate outputs here
     const constructor = Object.getPrototypeOf(this).constructor
     return constructor({ ...this.params, outputs })
   }
 }
 
-export abstract class ResolvedAction<A extends Action> extends Action<A["_config"], A["_outputs"]> {
-  constructor(params: ResolvedActionWrapperParams<A["_config"], A["_outputs"]>) {
-    super(params)
-    this._outputs = params.outputs
-  }
-
-  getOutput<K extends keyof A["_outputs"]>(key: K) {
-    return this._outputs[key]
-  }
-}
-
 export abstract class RuntimeAction<
   C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
   O extends {} = any
-> extends Action<C, O> {
+> extends BaseAction<C, O> {
   /**
    * Return the Build action specified on the `build` field if defined, otherwise null
    */
@@ -409,7 +405,7 @@ export abstract class RuntimeAction<
     const buildName = this.getConfig("build")
     if (buildName) {
       const buildAction = this.dependencies.getBuild(buildName)
-      return <T>buildAction
+      return <Resolved<T>>buildAction
     } else {
       return null
     }
@@ -430,22 +426,31 @@ export abstract class ResolvedRuntimeAction<
   C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
   O extends {} = any
 > extends RuntimeAction<C, O> {
+  private variables: DeepPrimitiveMap
+
   constructor(params: ResolvedActionWrapperParams<C, O>) {
     super(params)
     this._outputs = params.outputs
+    this.variables = params.variables
   }
 
   getOutput<K extends keyof O>(key: K) {
     return this._outputs[key]
   }
+
+  getVariables() {
+    return this.variables
+  }
 }
 
-export type GetActionOutputType<T> = T extends Action<any, infer O> ? O : any
+export type GetActionOutputType<T> = T extends BaseAction<any, infer O> ? O : any
 
 export function actionReferenceToString(ref: ActionReference) {
   return `${ref.kind}.${ref.name}`
 }
 
-export type Resolved<T extends Action> = T extends BuildAction
+export type Action = BuildAction | RuntimeAction
+
+export type Resolved<T extends BaseAction> = T extends BuildAction
   ? ResolvedBuildAction<T["_config"], T["_outputs"]>
   : ResolvedRuntimeAction<T["_config"], T["_outputs"]>

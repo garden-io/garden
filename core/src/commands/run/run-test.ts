@@ -26,22 +26,23 @@ import {
 import { joi } from "../../config/common"
 import { TestResult } from "../../types/test"
 import { GraphResults } from "../../task-graph"
-import { StringParameter, BooleanParameter } from "../../cli/params"
-import { TestAction } from "../../actions/test"
+import { StringParameter, BooleanParameter, ParameterValues } from "../../cli/params"
 import { GardenModule, moduleTestNameToActionName } from "../../types/module"
+import { ConfigGraph } from "../../graph/config-graph"
 
 export const runTestArgs = {
   name: new StringParameter({
-    help: "The action to run. If using modules, specify the module name here and the test name in the second argument",
+    help:
+      "The test to run. If using modules, specify the module name here and the test name from the module in the second argument",
     required: true,
   }),
   moduleTestName: new StringParameter({
-    help: "The name of the test to run in the module.",
+    help: "The name of the test to run in a module.",
     required: false,
   }),
 }
 
-export const runTestOpts = {
+const runTestOpts = {
   "interactive": new BooleanParameter({
     help:
       "Set to false to skip interactive mode and just output the command result. Note that Garden won't retrieve artifacts if set to true (the default).",
@@ -96,42 +97,9 @@ export class RunTestCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunTestOutput>> {
-    let action: TestAction
-
     const graph = await garden.getConfigGraph({ log, emit: true })
 
-    if (args.moduleTestName) {
-      // We're getting a test from a specific module.
-      let module: GardenModule
-      const moduleName = args.name
-      const testName = args.moduleTestName
-
-      try {
-        module = graph.getModule(args.name, true)
-      } catch (err) {
-        throw new ParameterError(
-          `Two arguments were provided, so we looked for a Module named '${moduleName}, but could not find it.`,
-          {
-            moduleName,
-            testName,
-          }
-        )
-      }
-
-      const testConfig = findByName(module.testConfigs, args.moduleTestName)
-
-      if (!testConfig) {
-        throw new ParameterError(`Could not find test "${testName}" in module ${moduleName}`, {
-          moduleName,
-          testName,
-          availableTests: getNames(module.testConfigs),
-        })
-      }
-
-      action = graph.getTest(moduleTestNameToActionName(moduleName, testName))
-    } else {
-      action = graph.getTest(args.name, { includeDisabled: true })
-    }
+    const action = getTestActionFromArgs(graph, args)
 
     if (action.isDisabled() && !opts.force) {
       throw new CommandError(
@@ -170,5 +138,40 @@ export class RunTestCommand extends Command<Args, Opts> {
       key: testTask.getKey(),
       interactive,
     })
+  }
+}
+
+export function getTestActionFromArgs(graph: ConfigGraph, args: ParameterValues<Args>) {
+  if (args.moduleTestName) {
+    // We're getting a test from a specific module.
+    let module: GardenModule
+    const moduleName = args.name
+    const testName = args.moduleTestName
+
+    try {
+      module = graph.getModule(args.name, true)
+    } catch (err) {
+      throw new ParameterError(
+        `Two arguments were provided, so we looked for a Module named '${moduleName}, but could not find it.`,
+        {
+          moduleName,
+          testName,
+        }
+      )
+    }
+
+    const testConfig = findByName(module.testConfigs, args.moduleTestName)
+
+    if (!testConfig) {
+      throw new ParameterError(`Could not find test "${testName}" in module ${moduleName}`, {
+        moduleName,
+        testName,
+        availableTests: getNames(module.testConfigs),
+      })
+    }
+
+    return graph.getTest(moduleTestNameToActionName(moduleName, testName))
+  } else {
+    return graph.getTest(args.name, { includeDisabled: true })
   }
 }

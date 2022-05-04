@@ -6,33 +6,33 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { sortBy } from "lodash"
 import { Command, CommandResult, CommandParams } from "../base"
 import { printHeader } from "../../logger/util"
 import { StringsParameter } from "../../cli/params"
 import { makeGetTestOrTaskLog } from "../helpers"
 
-const getTestsArgs = {
+const getRunsArgs = {
   names: new StringsParameter({
-    help: "Specify tests(s) to list. Use comma as a separator to specify multiple tests.",
+    help: "Specify run(s)/task(s) to list. Use comma as a separator to specify multiple names.",
   }),
 }
 
-type Args = typeof getTestsArgs
+type Args = typeof getRunsArgs
 
-export class GetTestsCommand extends Command<Args> {
-  name = "tests"
-  help = "Lists the tests defined in your project."
+export class GetRunsCommand extends Command<Args> {
+  name = "runs"
+  help = "Lists the Runs (or tasks, if using modules) defined in your project."
+  aliases = ["tasks"]
 
-  arguments = getTestsArgs
+  arguments = getRunsArgs
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Tests", "open_book")
+    printHeader(headerLog, "Runs", "open_book")
   }
 
   async action({ args, garden, log }: CommandParams<Args>): Promise<CommandResult> {
     const graph = await garden.getConfigGraph({ log, emit: false })
-    const actions = sortBy(graph.getTests({ names: args.names }), "name")
+    const actions = graph.getRuns({ names: args.names })
 
     if (actions.length > 0) {
       const logStr = makeGetTestOrTaskLog(actions)

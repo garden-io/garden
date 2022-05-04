@@ -157,7 +157,7 @@ export const gardenPlugin = () =>
             }
 
             actions.push({
-              kind: "Deploy",
+              kind: "deploy",
               type: "terraform",
               name: module.name,
               ...params.baseFields,

@@ -10,57 +10,67 @@ import { uniqBy } from "lodash"
 import { DeployTask } from "./deploy"
 import { Garden } from "../garden"
 import { GardenModule } from "../types/module"
-import { ConfigGraph, DependencyRelations } from "../graph/config-graph"
+import { ConfigGraph } from "../graph/config-graph"
 import { LogEntry } from "../logger/log-entry"
-import { BaseTask } from "./base"
+import { BaseActionTask, BaseTask } from "./base"
 import { TestTask } from "./test"
 import { RunTask } from "./task"
 import { GetServiceStatusTask } from "./get-service-status"
 import { GetTaskResultTask } from "./get-task-result"
+import { Action } from "../actions/base"
+import { isDeployAction } from "../actions/deploy"
+import { isTestAction } from "../actions/test"
 
 /**
  * Helper used by the `garden dev` and `garden deploy --watch` commands, to get all the tasks that should be
- * executed for those when a particular module changes.
+ * executed for those when a particular action changes.
  */
-export async function getModuleWatchTasks({
+export async function getActionWatchTasks({
   garden,
   log,
   graph,
-  module,
-  servicesWatched,
+  updatedAction,
+  deploysWatched,
   devModeDeployNames,
   localModeDeployNames,
+  testsWatched,
 }: {
   garden: Garden
   log: LogEntry
   graph: ConfigGraph
-  module: GardenModule
-  servicesWatched: string[]
+  updatedAction: Action
+  deploysWatched: string[]
   devModeDeployNames: string[]
   localModeDeployNames: string[]
+  testsWatched: string[]
 }): Promise<BaseTask[]> {
-  const dependants = graph.getDependantsForModule(module, true)
+  const dependants = graph.getDependants({ kind: updatedAction.kind, name: updatedAction.name, recursive: true })
 
-  const deployTasks = dependants.deploy
-    .filter((s) => !s.disabled && servicesWatched.includes(s.name) && !devModeDeployNames.includes(s.name))
-    .map(
-      (service) =>
-        new DeployTask({
-          garden,
-          log,
-          graph,
-          service,
-          force: true,
-          forceBuild: false,
-          fromWatch: true,
-          devModeDeployNames,
-          localModeDeployNames,
-        })
-    )
+  const outputTasks: BaseTask[] = []
 
-  const outputTasks = [...deployTasks]
+  for (const a of dependants) {
+    if (a.isDisabled()) {
+      continue
+    }
+    const params = {
+      garden,
+      log,
+      graph,
+      force: true,
+      forceBuild: false,
+      fromWatch: true,
+      devModeDeployNames,
+      localModeDeployNames,
+    }
+    if (isTestAction(a) && testsWatched.includes(a.name)) {
+      outputTasks.push(new TestTask({ ...params, action: a }))
+    }
+    if (isDeployAction(a) && deploysWatched.includes(a.name) && !devModeDeployNames.includes(a.name)) {
+      outputTasks.push(new DeployTask({ ...params, action: a }))
+    }
+  }
 
-  log.silly(`getModuleWatchTasks called for module ${module.name}, returning the following tasks:`)
+  log.silly(`getActionWatchTasks called for action ${action.description()}, returning the following tasks:`)
   log.silly(`  ${outputTasks.map((t) => t.getKey()).join(", ")}`)
 
   const deduplicated = uniqBy(outputTasks, (t) => t.getKey())

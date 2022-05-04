@@ -301,7 +301,7 @@ export const gardenPlugin = () =>
 
             if (needsContainerBuild) {
               buildAction = {
-                kind: "Build",
+                kind: "build",
                 type: "container",
                 name: module.name,
                 ...params.baseFields,
@@ -328,7 +328,7 @@ export const gardenPlugin = () =>
 
             for (const service of module.serviceConfigs) {
               actions.push({
-                kind: "Deploy",
+                kind: "deploy",
                 type: "container",
                 name: service.name,
                 ...params.baseFields,
@@ -345,7 +345,7 @@ export const gardenPlugin = () =>
 
             for (const task of module.taskConfigs) {
               actions.push({
-                kind: "Run",
+                kind: "run",
                 type: "container",
                 name: task.name,
                 ...params.baseFields,
@@ -364,7 +364,7 @@ export const gardenPlugin = () =>
 
             for (const test of module.testConfigs) {
               actions.push({
-                kind: "Test",
+                kind: "test",
                 type: "container",
                 name: module.name + "-" + test.name,
                 ...params.baseFields,

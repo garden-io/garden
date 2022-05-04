@@ -121,7 +121,7 @@ export const moduleActionParamsSchema = () =>
  */
 
 export const runBaseParams = () => ({
-  interactive: joi.boolean().description("Whether to run the module interactively (i.e. attach to the terminal)."),
+  interactive: joi.boolean().description("Whether to run interactively (i.e. attach to the terminal)."),
   runtimeContext: runtimeContextSchema(),
   silent: joi.boolean().description("Set to false if the output should not be logged to the console."),
   timeout: joi.number().optional().description("If set, how long to run the command before timing out."),
@@ -180,5 +180,5 @@ export const outputSchemaDocs = dedent`
 
   If no schema is provided, an error may be thrown if a plugin handler attempts to return an output key.
 
-  If the module type has a \`base\`, you must either omit this field to inherit the base's schema, make sure that the specified schema is a _superset_ of the base's schema (i.e. only adds or further constrains existing fields), _or_ override the necessary handlers to make sure their output matches the base's schemas. This is to ensure that plugin handlers made for the base type also work with this type.
+  If the module/action type has a \`base\`, you must either omit this field to inherit the base's schema, make sure that the specified schema is a _superset_ of the base's schema (i.e. only adds or further constrains existing fields), _or_ override the necessary handlers to make sure their output matches the base's schemas. This is to ensure that plugin handlers made for the base type also work with this type.
 `

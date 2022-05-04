@@ -59,7 +59,7 @@ interface RunBuildOutput {
 export class RunBuildCommand extends Command<Args, Opts> {
   name = "build"
   help = "Run an ad-hoc instance of a build."
-  alias: "module"
+  aliases: ["module"]
 
   description = dedent`
     This is useful for debugging or ad-hoc experimentation with build/modules.
@@ -134,6 +134,6 @@ export class RunBuildCommand extends Command<Args, Opts> {
       timeout: interactive ? 999999 : undefined,
     })
 
-    return handleRunResult({ log, actionDescription: "run build", result, interactive, graphResults })
+    return handleRunResult({ log, description: "run build", result, interactive, graphResults, action })
   }
 }

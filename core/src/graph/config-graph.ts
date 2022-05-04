@@ -10,8 +10,8 @@ import toposort from "toposort"
 import { flatten, uniq, difference, mapValues } from "lodash"
 import { GardenBaseError } from "../exceptions"
 import { naturalList } from "../util/string"
-import { Action, ActionKind, actionReferenceToString, ResolvedAction, ResolvedRuntimeAction } from "../actions/base"
-import { ResolvedBuildAction } from "../actions/build"
+import { Action, ActionKind, actionReferenceToString, Resolved, RuntimeAction } from "../actions/base"
+import { BuildAction } from "../actions/build"
 import { ActionReference } from "../config/common"
 import { GardenModule, ModuleTypeMap } from "../types/module"
 import { GetManyParams, ModuleGraph } from "./modules"
@@ -38,10 +38,10 @@ export interface RenderedNode {
 export type DependencyGraph = { [key: string]: DependencyGraphNode }
 
 interface ResolvedActionTypeMap extends GenericActionTypeMap {
-  build: ResolvedBuildAction<any>
-  deploy: ResolvedRuntimeAction<any>
-  run: ResolvedRuntimeAction<any>
-  test: ResolvedRuntimeAction<any>
+  build: Resolved<BuildAction>
+  deploy: Resolved<RuntimeAction>
+  run: Resolved<RuntimeAction>
+  test: Resolved<RuntimeAction>
 }
 
 interface GetActionOpts {
@@ -121,7 +121,7 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
   }
 
   getActionByKind<K extends ActionKind>(kind: K, name: string, opts: GetActionOpts = {}): M[K] {
-    const action = this.actions[kind][name]
+    const action = <M[K]>this.actions[kind][name]
 
     if (!action) {
       throw new GraphError(`Could not find ${kind} action ${name}.`, {
@@ -359,7 +359,7 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
 }
 
 export class MutableConfigGraph extends ConfigGraph {
-  addAction(action: ResolvedAction<any>) {}
+  addAction(action: Resolved<Action>) {}
 
   // Idempotent.
   private getNode(type: ActionKind, name: string, moduleName: string, disabled: boolean) {
@@ -395,7 +395,7 @@ export class MutableConfigGraph extends ConfigGraph {
   }
 }
 
-export class ResolvedConfigGraph extends ConfigGraph<ResolvedAction<any>, ResolvedActionTypeMap> {}
+export class ResolvedConfigGraph extends ConfigGraph<Resolved<Action>, ResolvedActionTypeMap> {}
 
 export interface DependencyGraphEdge {
   dependant: DependencyGraphNode

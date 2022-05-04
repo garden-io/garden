@@ -18,7 +18,7 @@ import {
   makeTestGarden,
 } from "../../../../helpers"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
-import { RunWorkflowCommand, shouldBeDropped } from "../../../../../src/commands/run/workflow"
+import { RunWorkflowCommand, shouldBeDropped } from "../../../../../src/commands/run/run-workflow"
 import { createGardenPlugin } from "../../../../../src/plugin/plugin"
 import { joi } from "../../../../../src/config/common"
 import { RunTaskParams } from "../../../../../src/types/plugin/task/runTask"
