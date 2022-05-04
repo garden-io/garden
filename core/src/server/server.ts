@@ -478,7 +478,7 @@ export class GardenServer {
           })
         } else if (request.type === "abortCommand") {
           const req = this.activePersistentRequests[requestId]
-          req.command.terminate()
+          req && req.command.terminate()
           delete this.activePersistentRequests[requestId]
         } else {
           return send("error", {
