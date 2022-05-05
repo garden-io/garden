@@ -10,9 +10,6 @@ import { expect } from "chai"
 import { RetriableProcess } from "../../../../src/util/retriable-process"
 import { Logger, getLogger } from "../../../../src/logger/logger"
 import { sleep } from "../../../../src/util/util"
-import { execSync } from "child_process"
-
-// todo: beautify and reduce code duplication?
 
 describe("RetriableProcess", () => {
   Logger.initialize({ level: 4, type: "basic" })
@@ -21,11 +18,15 @@ describe("RetriableProcess", () => {
   const doNothingForeverOsCommand = { command: "tail -f /dev/null" }
   const badOsCommand = { command: "bad_os_command_which_does_not_exists_and_must_fail_the_process" }
 
-  function sigKill(pid: number) {
-    execSync(`kill -9 ${pid}`)
+  const longTimeMs = 10000000
+  const longSleepOsCommand = { command: `sleep ${longTimeMs}` }
+
+  function killNode(node: RetriableProcess) {
+    const untypedNode: any = <any>node
+    untypedNode.proc?.kill()
   }
 
-  function stableProcess(maxRetries: number, minTimeoutMs: number): RetriableProcess {
+  function infiniteProcess(maxRetries: number, minTimeoutMs: number): RetriableProcess {
     return new RetriableProcess({ osCommand: doNothingForeverOsCommand, maxRetries, minTimeoutMs, log })
   }
 
@@ -33,12 +34,29 @@ describe("RetriableProcess", () => {
     return new RetriableProcess({ osCommand: badOsCommand, maxRetries, minTimeoutMs, log })
   }
 
-  function stableProcessTree(maxRetries: number, minTimeoutMs: number): RetriableProcess[] {
-    const root = stableProcess(maxRetries, minTimeoutMs)
-    const left = stableProcess(maxRetries, minTimeoutMs)
-    const right = stableProcess(maxRetries, minTimeoutMs)
-    const rightChild1 = stableProcess(maxRetries, minTimeoutMs)
-    const rightChild2 = stableProcess(maxRetries, minTimeoutMs)
+  function longSleepingProcess(maxRetries: number, minTimeoutMs: number): RetriableProcess {
+    return new RetriableProcess({ osCommand: longSleepOsCommand, maxRetries, minTimeoutMs, log })
+  }
+
+  function infiniteProcessTree(maxRetries: number, minTimeoutMs: number): RetriableProcess[] {
+    const root = infiniteProcess(maxRetries, minTimeoutMs)
+    const left = infiniteProcess(maxRetries, minTimeoutMs)
+    const right = infiniteProcess(maxRetries, minTimeoutMs)
+    const rightChild1 = infiniteProcess(maxRetries, minTimeoutMs)
+    const rightChild2 = infiniteProcess(maxRetries, minTimeoutMs)
+
+    root.addDescendantProcesses(left, right)
+    right.addDescendantProcesses(rightChild1, rightChild2)
+
+    return [root, left, right, rightChild1, rightChild2]
+  }
+
+  function longSleepingProcessTree(maxRetries: number, minTimeoutMs: number): RetriableProcess[] {
+    const root = longSleepingProcess(maxRetries, minTimeoutMs)
+    const left = longSleepingProcess(maxRetries, minTimeoutMs)
+    const right = longSleepingProcess(maxRetries, minTimeoutMs)
+    const rightChild1 = longSleepingProcess(maxRetries, minTimeoutMs)
+    const rightChild2 = longSleepingProcess(maxRetries, minTimeoutMs)
 
     root.addDescendantProcesses(left, right)
     right.addDescendantProcesses(rightChild1, rightChild2)
@@ -48,101 +66,93 @@ describe("RetriableProcess", () => {
 
   async function yieldToRetry(maxRetries: number, minTimeoutMs: number): Promise<void> {
     // wait for while background retrying is finished
-    let retryTimeoutMs = (maxRetries + 1) * minTimeoutMs
+    let retryTimeoutMs = maxRetries * minTimeoutMs
     log.info(`Sleep for ${retryTimeoutMs}ms while background retry is in progress`)
     await sleep(retryTimeoutMs)
   }
 
+  function expectRunning(node: RetriableProcess) {
+    expect(node.getCurrentState()).to.eql("running")
+    expect(node.getCurrentPid()).to.be.not.undefined
+  }
+
+  function expectStopped(node: RetriableProcess) {
+    expect(node.getCurrentState()).to.eql("stopped")
+    expect(node.getCurrentPid()).to.be.undefined
+  }
+
+  function expectFailed(node: RetriableProcess) {
+    expect(node.getCurrentState()).to.eql("failed")
+    expect(node.getCurrentPid()).to.be.undefined
+  }
+
   it("errorless single process starts and stops", () => {
-    const p = stableProcess(0, 0)
+    const p = infiniteProcess(0, 0)
     p.startAll()
-    expect(!!p.getCurrentPid()).to.be.true
-    expect(p.getCurrentState()).to.eql("running")
+    expectRunning(p)
 
     p.stopAll()
-    expect(p.getCurrentState()).to.eql("stopped")
+    expectStopped(p)
   })
 
   it("fails to start already running process", () => {
-    const p = stableProcess(0, 0)
+    const p = infiniteProcess(0, 0)
     p.startAll()
 
-    expect(p.getCurrentState()).to.eql("running")
-    expect(!!p.getCurrentPid()).to.be.true
+    expectRunning(p)
     expect(() => p.startAll()).to.throw("Process is already running")
 
     p.stopAll()
-    expect(p.getCurrentState()).to.eql("stopped")
+    expectStopped(p)
   })
 
   it("errorless process tree starts and stops on call from the root node", () => {
-    const [root, left, right, rightChild1, rightChild2] = stableProcessTree(0, 0)
+    const [root, left, right, rightChild1, rightChild2] = infiniteProcessTree(0, 0)
 
     root.startAll()
-    expect(root.getCurrentState()).to.eql("running")
-    expect(left.getCurrentState()).to.eql("running")
-    expect(right.getCurrentState()).to.eql("running")
-    expect(rightChild1.getCurrentState()).to.eql("running")
-    expect(rightChild2.getCurrentState()).to.eql("running")
-
-    expect(!!root.getCurrentPid()).to.be.true
-    expect(!!left.getCurrentPid()).to.be.true
-    expect(!!right.getCurrentPid()).to.be.true
-    expect(!!right.getCurrentPid()).to.be.true
-    expect(!!rightChild1.getCurrentPid()).to.be.true
-    expect(!!rightChild2.getCurrentPid()).to.be.true
+    expectRunning(root)
+    expectRunning(left)
+    expectRunning(right)
+    expectRunning(rightChild1)
+    expectRunning(rightChild2)
 
     root.stopAll()
-    expect(root.getCurrentState()).to.eql("stopped")
-    expect(left.getCurrentState()).to.eql("stopped")
-    expect(right.getCurrentState()).to.eql("stopped")
-    expect(rightChild1.getCurrentState()).to.eql("stopped")
-    expect(rightChild2.getCurrentState()).to.eql("stopped")
+    expectStopped(root)
+    expectStopped(left)
+    expectStopped(right)
+    expectStopped(rightChild1)
+    expectStopped(rightChild2)
   })
 
-  it("errorless process tree starts and stops on call from a child node", () => {
-    const [root, left, right, rightChild1, rightChild2] = stableProcessTree(0, 0)
+  it("errorless process tree starts and stops on call from a leaf node", () => {
+    const [root, left, right, rightChild1, rightChild2] = infiniteProcessTree(0, 0)
 
     rightChild1.startAll()
-    expect(root.getCurrentState()).to.eql("running")
-    expect(left.getCurrentState()).to.eql("running")
-    expect(right.getCurrentState()).to.eql("running")
-    expect(rightChild1.getCurrentState()).to.eql("running")
-    expect(rightChild2.getCurrentState()).to.eql("running")
-
-    expect(!!root.getCurrentPid()).to.be.true
-    expect(!!left.getCurrentPid()).to.be.true
-    expect(!!right.getCurrentPid()).to.be.true
-    expect(!!right.getCurrentPid()).to.be.true
-    expect(!!rightChild1.getCurrentPid()).to.be.true
-    expect(!!rightChild2.getCurrentPid()).to.be.true
+    expectRunning(root)
+    expectRunning(left)
+    expectRunning(right)
+    expectRunning(rightChild1)
+    expectRunning(rightChild2)
 
     left.stopAll()
-    expect(root.getCurrentState()).to.eql("stopped")
-    expect(left.getCurrentState()).to.eql("stopped")
-    expect(right.getCurrentState()).to.eql("stopped")
-    expect(rightChild1.getCurrentState()).to.eql("stopped")
-    expect(rightChild2.getCurrentState()).to.eql("stopped")
+    expectStopped(root)
+    expectStopped(left)
+    expectStopped(right)
+    expectStopped(rightChild1)
+    expectStopped(rightChild2)
   })
 
   it("process subtree restarts on its root failure", async () => {
     const maxRetries = 5
-    const minTimeoutMs = 200
-    const [root, left, right, rightChild1, rightChild2] = stableProcessTree(maxRetries, minTimeoutMs)
+    const minTimeoutMs = 500
+    const [root, left, right, rightChild1, rightChild2] = longSleepingProcessTree(maxRetries, minTimeoutMs)
 
-    rightChild1.startAll()
-    expect(root.getCurrentState()).to.eql("running")
-    expect(left.getCurrentState()).to.eql("running")
-    expect(right.getCurrentState()).to.eql("running")
-    expect(rightChild1.getCurrentState()).to.eql("running")
-    expect(rightChild2.getCurrentState()).to.eql("running")
-
-    expect(!!root.getCurrentPid()).to.be.true
-    expect(!!left.getCurrentPid()).to.be.true
-    expect(!!right.getCurrentPid()).to.be.true
-    expect(!!right.getCurrentPid()).to.be.true
-    expect(!!rightChild1.getCurrentPid()).to.be.true
-    expect(!!rightChild2.getCurrentPid()).to.be.true
+    root.startAll()
+    expectRunning(root)
+    expectRunning(left)
+    expectRunning(right)
+    expectRunning(rightChild1)
+    expectRunning(rightChild2)
 
     const rootPid = root.getCurrentPid()!
     const leftPid = left.getCurrentPid()!
@@ -151,16 +161,16 @@ describe("RetriableProcess", () => {
     const rightChild2Pid = rightChild2.getCurrentPid()!
 
     // kill right subtree's root process with external command
-    sigKill(rightPid)
+    killNode(right)
 
-    await yieldToRetry(maxRetries, minTimeoutMs)
+    await yieldToRetry(maxRetries, minTimeoutMs * 2)
 
     // all processes should be running again
-    expect(root.getCurrentState()).to.eql("running")
-    expect(left.getCurrentState()).to.eql("running")
-    expect(right.getCurrentState()).to.eql("running")
-    expect(rightChild1.getCurrentState()).to.eql("running")
-    expect(rightChild2.getCurrentState()).to.eql("running")
+    expectRunning(root)
+    expectRunning(left)
+    expectRunning(right)
+    expectRunning(rightChild1)
+    expectRunning(rightChild2)
 
     // restarted processes should have different PIDs
     expect(root.getCurrentPid()).to.eql(rootPid)
@@ -170,31 +180,31 @@ describe("RetriableProcess", () => {
     expect(rightChild2.getCurrentPid()).to.not.eql(rightChild2Pid)
 
     root.stopAll()
-    expect(root.getCurrentState()).to.eql("stopped")
-    expect(left.getCurrentState()).to.eql("stopped")
-    expect(right.getCurrentState()).to.eql("stopped")
-    expect(rightChild1.getCurrentState()).to.eql("stopped")
-    expect(rightChild2.getCurrentState()).to.eql("stopped")
+    expectStopped(root)
+    expectStopped(left)
+    expectStopped(right)
+    expectStopped(rightChild1)
+    expectStopped(rightChild2)
   })
 
   it("entire process tree restarts on root process failure", async () => {
     const maxRetries = 5
-    const minTimeoutMs = 200
-    const [root, left, right, rightChild1, rightChild2] = stableProcessTree(maxRetries, minTimeoutMs)
+    const minTimeoutMs = 500
 
-    rightChild1.startAll()
-    expect(root.getCurrentState()).to.eql("running")
-    expect(left.getCurrentState()).to.eql("running")
-    expect(right.getCurrentState()).to.eql("running")
-    expect(rightChild1.getCurrentState()).to.eql("running")
-    expect(rightChild2.getCurrentState()).to.eql("running")
+    const root = longSleepingProcess(maxRetries, minTimeoutMs)
+    const left = infiniteProcess(maxRetries, minTimeoutMs)
+    const right = infiniteProcess(maxRetries, minTimeoutMs)
+    const rightChild1 = infiniteProcess(maxRetries, minTimeoutMs)
+    const rightChild2 = infiniteProcess(maxRetries, minTimeoutMs)
+    root.addDescendantProcesses(left, right)
+    right.addDescendantProcesses(rightChild1, rightChild2)
 
-    expect(!!root.getCurrentPid()).to.be.true
-    expect(!!left.getCurrentPid()).to.be.true
-    expect(!!right.getCurrentPid()).to.be.true
-    expect(!!right.getCurrentPid()).to.be.true
-    expect(!!rightChild1.getCurrentPid()).to.be.true
-    expect(!!rightChild2.getCurrentPid()).to.be.true
+    root.startAll()
+    expectRunning(root)
+    expectRunning(left)
+    expectRunning(right)
+    expectRunning(rightChild1)
+    expectRunning(rightChild2)
 
     const rootPid = root.getCurrentPid()!
     const leftPid = left.getCurrentPid()!
@@ -203,16 +213,16 @@ describe("RetriableProcess", () => {
     const rightChild2Pid = rightChild2.getCurrentPid()!
 
     // kill tree's root process with external command
-    sigKill(rootPid)
+    killNode(root)
 
-    await yieldToRetry(maxRetries, minTimeoutMs)
+    await yieldToRetry(maxRetries, minTimeoutMs * 2)
 
     // all processes should be running again
-    expect(root.getCurrentState()).to.eql("running")
-    expect(left.getCurrentState()).to.eql("running")
-    expect(right.getCurrentState()).to.eql("running")
-    expect(rightChild1.getCurrentState()).to.eql("running")
-    expect(rightChild2.getCurrentState()).to.eql("running")
+    expectRunning(root)
+    expectRunning(left)
+    expectRunning(right)
+    expectRunning(rightChild1)
+    expectRunning(rightChild2)
 
     // restarted processes should have different PIDs
     expect(root.getCurrentPid()).to.not.eql(rootPid)
@@ -222,31 +232,24 @@ describe("RetriableProcess", () => {
     expect(rightChild2.getCurrentPid()).to.not.eql(rightChild2Pid)
 
     root.stopAll()
-    expect(root.getCurrentState()).to.eql("stopped")
-    expect(left.getCurrentState()).to.eql("stopped")
-    expect(right.getCurrentState()).to.eql("stopped")
-    expect(rightChild1.getCurrentState()).to.eql("stopped")
-    expect(rightChild2.getCurrentState()).to.eql("stopped")
+    expectStopped(root)
+    expectStopped(left)
+    expectStopped(right)
+    expectStopped(rightChild1)
+    expectStopped(rightChild2)
   })
 
   it("entire process tree restarts when all processes are killed (root-to-leaf)", async () => {
     const maxRetries = 5
-    const minTimeoutMs = 200
-    const [root, left, right, rightChild1, rightChild2] = stableProcessTree(maxRetries, minTimeoutMs)
+    const minTimeoutMs = 500
+    const [root, left, right, rightChild1, rightChild2] = longSleepingProcessTree(maxRetries, minTimeoutMs)
 
-    rightChild1.startAll()
-    expect(root.getCurrentState()).to.eql("running")
-    expect(left.getCurrentState()).to.eql("running")
-    expect(right.getCurrentState()).to.eql("running")
-    expect(rightChild1.getCurrentState()).to.eql("running")
-    expect(rightChild2.getCurrentState()).to.eql("running")
-
-    expect(!!root.getCurrentPid()).to.be.true
-    expect(!!left.getCurrentPid()).to.be.true
-    expect(!!right.getCurrentPid()).to.be.true
-    expect(!!right.getCurrentPid()).to.be.true
-    expect(!!rightChild1.getCurrentPid()).to.be.true
-    expect(!!rightChild2.getCurrentPid()).to.be.true
+    root.startAll()
+    expectRunning(root)
+    expectRunning(left)
+    expectRunning(right)
+    expectRunning(rightChild1)
+    expectRunning(rightChild2)
 
     const rootPid = root.getCurrentPid()!
     const leftPid = left.getCurrentPid()!
@@ -255,20 +258,20 @@ describe("RetriableProcess", () => {
     const rightChild2Pid = rightChild2.getCurrentPid()!
 
     // kill all processes in the tree starting from the root
-    sigKill(rootPid)
-    sigKill(leftPid)
-    sigKill(rightPid)
-    sigKill(rightChild1Pid)
-    sigKill(rightChild2Pid)
+    killNode(root)
+    killNode(left)
+    killNode(right)
+    killNode(rightChild1)
+    killNode(rightChild2)
 
-    await yieldToRetry(maxRetries, minTimeoutMs)
+    await yieldToRetry(maxRetries, minTimeoutMs * 2)
 
     // all processes should be running again
-    expect(root.getCurrentState()).to.eql("running")
-    expect(left.getCurrentState()).to.eql("running")
-    expect(right.getCurrentState()).to.eql("running")
-    expect(rightChild1.getCurrentState()).to.eql("running")
-    expect(rightChild2.getCurrentState()).to.eql("running")
+    expectRunning(root)
+    expectRunning(left)
+    expectRunning(right)
+    expectRunning(rightChild1)
+    expectRunning(rightChild2)
 
     // restarted processes should have different PIDs
     expect(root.getCurrentPid()).to.not.eql(rootPid)
@@ -278,31 +281,24 @@ describe("RetriableProcess", () => {
     expect(rightChild2.getCurrentPid()).to.not.eql(rightChild2Pid)
 
     root.stopAll()
-    expect(root.getCurrentState()).to.eql("stopped")
-    expect(left.getCurrentState()).to.eql("stopped")
-    expect(right.getCurrentState()).to.eql("stopped")
-    expect(rightChild1.getCurrentState()).to.eql("stopped")
-    expect(rightChild2.getCurrentState()).to.eql("stopped")
+    expectStopped(root)
+    expectStopped(left)
+    expectStopped(right)
+    expectStopped(rightChild1)
+    expectStopped(rightChild2)
   })
 
   it("entire process tree restarts when all processes are killed (leaf-to-root)", async () => {
     const maxRetries = 5
-    const minTimeoutMs = 200
-    const [root, left, right, rightChild1, rightChild2] = stableProcessTree(maxRetries, minTimeoutMs)
+    const minTimeoutMs = 500
+    const [root, left, right, rightChild1, rightChild2] = longSleepingProcessTree(maxRetries, minTimeoutMs)
 
-    rightChild1.startAll()
-    expect(root.getCurrentState()).to.eql("running")
-    expect(left.getCurrentState()).to.eql("running")
-    expect(right.getCurrentState()).to.eql("running")
-    expect(rightChild1.getCurrentState()).to.eql("running")
-    expect(rightChild2.getCurrentState()).to.eql("running")
-
-    expect(!!root.getCurrentPid()).to.be.true
-    expect(!!left.getCurrentPid()).to.be.true
-    expect(!!right.getCurrentPid()).to.be.true
-    expect(!!right.getCurrentPid()).to.be.true
-    expect(!!rightChild1.getCurrentPid()).to.be.true
-    expect(!!rightChild2.getCurrentPid()).to.be.true
+    root.startAll()
+    expectRunning(root)
+    expectRunning(left)
+    expectRunning(right)
+    expectRunning(rightChild1)
+    expectRunning(rightChild2)
 
     const rootPid = root.getCurrentPid()!
     const leftPid = left.getCurrentPid()!
@@ -311,20 +307,20 @@ describe("RetriableProcess", () => {
     const rightChild2Pid = rightChild2.getCurrentPid()!
 
     // kill all processes in the tree starting from the root
-    sigKill(rightChild2Pid)
-    sigKill(rightChild1Pid)
-    sigKill(rightPid)
-    sigKill(leftPid)
-    sigKill(rootPid)
+    killNode(rightChild2)
+    killNode(rightChild1)
+    killNode(right)
+    killNode(left)
+    killNode(root)
 
-    await yieldToRetry(maxRetries, minTimeoutMs)
+    await yieldToRetry(maxRetries, minTimeoutMs * 2)
 
     // all processes should be running again
-    expect(root.getCurrentState()).to.eql("running")
-    expect(left.getCurrentState()).to.eql("running")
-    expect(right.getCurrentState()).to.eql("running")
-    expect(rightChild1.getCurrentState()).to.eql("running")
-    expect(rightChild2.getCurrentState()).to.eql("running")
+    expectRunning(root)
+    expectRunning(left)
+    expectRunning(right)
+    expectRunning(rightChild1)
+    expectRunning(rightChild2)
 
     // restarted processes should have different PIDs
     expect(root.getCurrentPid()).to.not.eql(rootPid)
@@ -334,67 +330,67 @@ describe("RetriableProcess", () => {
     expect(rightChild2.getCurrentPid()).to.not.eql(rightChild2Pid)
 
     root.stopAll()
-    expect(root.getCurrentState()).to.eql("stopped")
-    expect(left.getCurrentState()).to.eql("stopped")
-    expect(right.getCurrentState()).to.eql("stopped")
-    expect(rightChild1.getCurrentState()).to.eql("stopped")
-    expect(rightChild2.getCurrentState()).to.eql("stopped")
+    expectStopped(root)
+    expectStopped(left)
+    expectStopped(right)
+    expectStopped(rightChild1)
+    expectStopped(rightChild2)
   })
 
   it("entire tree should fail on the root process failure", async () => {
     const maxRetries = 3
     const minTimeoutMs = 500
     const root = failingProcess(maxRetries, minTimeoutMs)
-    const left = stableProcess(maxRetries, minTimeoutMs)
-    const right = stableProcess(maxRetries, minTimeoutMs)
+    const left = longSleepingProcess(maxRetries, minTimeoutMs)
+    const right = longSleepingProcess(maxRetries, minTimeoutMs)
     root.addDescendantProcesses(left, right)
 
     root.startAll()
 
-    await yieldToRetry(maxRetries, minTimeoutMs)
+    await yieldToRetry(maxRetries, minTimeoutMs * 2)
 
-    expect(root.getCurrentState()).to.eql("failed")
-    expect(left.getCurrentState()).to.eql("stopped")
-    expect(right.getCurrentState()).to.eql("stopped")
+    expectFailed(root)
+    expectStopped(left)
+    expectStopped(right)
   })
 
   it("entire tree should fail on a node process failure", async () => {
     const maxRetries = 3
     const minTimeoutMs = 500
-    const root = stableProcess(maxRetries, minTimeoutMs)
-    const left = stableProcess(maxRetries, minTimeoutMs)
+    const root = longSleepingProcess(maxRetries, minTimeoutMs)
+    const left = longSleepingProcess(maxRetries, minTimeoutMs)
     const right = failingProcess(maxRetries, minTimeoutMs)
-    const rightChild = stableProcess(maxRetries, minTimeoutMs)
+    const rightChild = longSleepingProcess(maxRetries, minTimeoutMs)
     root.addDescendantProcesses(left, right)
     right.addDescendantProcess(rightChild)
 
     root.startAll()
 
-    await yieldToRetry(maxRetries, minTimeoutMs)
+    await yieldToRetry(maxRetries, minTimeoutMs * 2)
 
-    expect(root.getCurrentState()).to.eql("stopped")
-    expect(left.getCurrentState()).to.eql("stopped")
-    expect(right.getCurrentState()).to.eql("failed")
-    expect(rightChild.getCurrentState()).to.eql("stopped")
+    expectStopped(root)
+    expectStopped(left)
+    expectFailed(right)
+    expectStopped(rightChild)
   })
 
   it("entire tree should fail on a leaf process failure", async () => {
     const maxRetries = 3
     const minTimeoutMs = 500
-    const root = stableProcess(maxRetries, minTimeoutMs)
-    const left = stableProcess(maxRetries, minTimeoutMs)
-    const right = stableProcess(maxRetries, minTimeoutMs)
+    const root = longSleepingProcess(maxRetries, minTimeoutMs)
+    const left = longSleepingProcess(maxRetries, minTimeoutMs)
+    const right = longSleepingProcess(maxRetries, minTimeoutMs)
     const rightChild = failingProcess(maxRetries, minTimeoutMs)
     root.addDescendantProcesses(left, right)
     right.addDescendantProcess(rightChild)
 
     root.startAll()
 
-    await yieldToRetry(maxRetries, minTimeoutMs)
+    await yieldToRetry(maxRetries, minTimeoutMs * 2)
 
-    expect(root.getCurrentState()).to.eql("stopped")
-    expect(left.getCurrentState()).to.eql("stopped")
-    expect(right.getCurrentState()).to.eql("stopped")
-    expect(rightChild.getCurrentState()).to.eql("failed")
+    expectStopped(root)
+    expectStopped(left)
+    expectStopped(right)
+    expectFailed(rightChild)
   })
 })
