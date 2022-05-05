@@ -104,78 +104,65 @@ export class ModuleResolver {
     const resolvedModules: ModuleMap = {}
     const errors: { [moduleName: string]: Error } = {}
 
-    // Iterate through dependency graph, a batch of leaves at a time. While there are items remaining:
-    while (processingGraph.size() > 0) {
-      // Get batch of leaf nodes (ones with no unresolved dependencies). Implicitly checks for circular dependencies.
-      let batch: string[]
+    const inFlight = new Set<string>()
+
+    const processNode = async (moduleName: string) => {
+      this.log.silly(`ModuleResolver: Process node ${moduleName}`)
+      inFlight.add(moduleName)
+
+      // Resolve configuration, unless previously resolved.
+      let resolvedConfig = resolvedConfigs[moduleName]
+      let foundNewDependency = false
+
+      const dependencyNames = fullGraph.dependenciesOf(moduleName)
+      const resolvedDependencies = dependencyNames.map((n) => resolvedModules[n])
 
       try {
-        batch = processingGraph.overallOrder(true)
-      } catch (err) {
-        throw new ConfigurationError(
-          dedent`
-            Detected circular dependencies between module configurations:
+        if (!resolvedConfig) {
+          const rawConfig = this.rawConfigsByName[moduleName]
 
-            ${err.detail?.["circular-dependencies"] || err.message}
-          `,
-          { cycles: err.detail?.cycles }
-        )
-      }
+          this.log.silly(`ModuleResolver: Resolve config ${moduleName}`)
+          resolvedConfig = resolvedConfigs[moduleName] = await this.resolveModuleConfig(rawConfig, resolvedDependencies)
 
-      // Process each of the leaf node module configs.
-      await Bluebird.map(
-        batch,
-        async (moduleName) => {
-          // Resolve configuration, unless previously resolved.
-          let resolvedConfig = resolvedConfigs[moduleName]
-          let foundNewDependency = false
+          // Check if any new build dependencies were added by the configure handler
+          for (const dep of resolvedConfig.build.dependencies) {
+            if (!dependencyNames.includes(dep.name)) {
+              this.log.silly(`ModuleResolver: Found new dependency when resolving ${moduleName}`)
+              foundNewDependency = true
 
-          const dependencyNames = fullGraph.dependenciesOf(moduleName)
-          const resolvedDependencies = dependencyNames.map((n) => resolvedModules[n])
+              // We throw if the build dependency can't be found at all
+              if (!fullGraph.hasNode(dep.name)) {
+                this.missingBuildDependency(moduleName, dep.name)
+              }
+              fullGraph.addDependency(moduleName, dep.name)
 
-          try {
-            if (!resolvedConfig) {
-              const rawConfig = this.rawConfigsByName[moduleName]
-
-              resolvedConfig = resolvedConfigs[moduleName] = await this.resolveModuleConfig(
-                rawConfig,
-                resolvedDependencies
-              )
-
-              // Check if any new build dependencies were added by the configure handler
-              for (const dep of resolvedConfig.build.dependencies) {
-                if (!dependencyNames.includes(dep.name)) {
-                  foundNewDependency = true
-
-                  // We throw if the build dependency can't be found at all
-                  if (!fullGraph.hasNode(dep.name)) {
-                    this.missingBuildDependency(moduleName, dep.name)
-                  }
-                  fullGraph.addDependency(moduleName, dep.name)
-
-                  // The dependency may already have been processed, we don't want to add it to the graph in that case
-                  if (processingGraph.hasNode(dep.name)) {
-                    processingGraph.addDependency(moduleName, dep.name)
-                  }
-                }
+              // The dependency may already have been processed, we don't want to add it to the graph in that case
+              if (processingGraph.hasNode(dep.name)) {
+                processingGraph.addDependency(moduleName, dep.name)
               }
             }
-
-            // If no build dependency was added, fully resolve the module and remove from graph, otherwise keep it
-            // in the graph and move on to make sure we fully resolve the dependencies and don't run into circular
-            // dependencies.
-            if (!foundNewDependency) {
-              const buildPath = await this.garden.buildStaging.buildPath(resolvedConfig)
-              resolvedModules[moduleName] = await this.resolveModule(resolvedConfig, buildPath, resolvedDependencies)
-              processingGraph.removeNode(moduleName)
-            }
-          } catch (err) {
-            errors[moduleName] = err
           }
-        },
-        { concurrency: moduleResolutionConcurrencyLimit }
-      )
+        }
 
+        // If no build dependency was added, fully resolve the module and remove from graph, otherwise keep it
+        // in the graph and move on to make sure we fully resolve the dependencies and don't run into circular
+        // dependencies.
+        if (!foundNewDependency) {
+          const buildPath = await this.garden.buildStaging.buildPath(resolvedConfig)
+          resolvedModules[moduleName] = await this.resolveModule(resolvedConfig, buildPath, resolvedDependencies)
+          this.log.silly(`ModuleResolver: Remove node ${moduleName}`)
+          processingGraph.removeNode(moduleName)
+        }
+      } catch (err) {
+        this.log.silly(`ModuleResolver: Node ${moduleName} failed: ${err.message}`)
+        errors[moduleName] = err
+      }
+
+      inFlight.delete(moduleName)
+      return processLeaves()
+    }
+
+    const processLeaves = async () => {
       if (Object.keys(errors).length > 0) {
         const errorStr = Object.entries(errors)
           .map(([name, err]) => `${chalk.white.bold(name)}: ${err.message}`)
@@ -190,6 +177,45 @@ export class ModuleResolver {
         combined.stack = errorStack
         throw combined
       }
+
+      // Get batch of leaf nodes (ones with no unresolved dependencies). Implicitly checks for circular dependencies.
+      let batch: string[]
+
+      try {
+        batch = processingGraph.overallOrder(true).filter((n) => !inFlight.has(n))
+      } catch (err) {
+        throw new ConfigurationError(
+          dedent`
+            Detected circular dependencies between module configurations:
+
+            ${err.detail?.["circular-dependencies"] || err.message}
+          `,
+          { cycles: err.detail?.cycles }
+        )
+      }
+
+      this.log.silly(`ModuleResolver: Process ${batch.length} leaves`)
+
+      if (batch.length === 0) {
+        return
+      }
+
+      const overLimit = inFlight.size + batch.length - moduleResolutionConcurrencyLimit
+
+      if (overLimit > 0) {
+        batch = batch.slice(batch.length - overLimit)
+      }
+
+      // Process each of the leaf node module configs.
+      await Bluebird.map(batch, processNode)
+    }
+
+    // Iterate through dependency graph, a batch of leaves at a time. While there are items remaining:
+    let i = 0
+
+    while (processingGraph.size() > 0) {
+      this.log.silly(`ModuleResolver: Loop ${++i}`)
+      await processLeaves()
     }
 
     return Object.values(resolvedModules)
