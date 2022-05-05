@@ -53,7 +53,7 @@ import type { GardenProcess } from "../db/entities/garden-process"
 import { DashboardEventStream } from "../server/dashboard-event-stream"
 import { GardenPluginReference } from "../types/plugin/plugin"
 import { renderError } from "../logger/renderers"
-import { CloudApi } from "../cloud/api"
+import { CloudApi, RegisterSessionParams } from "../cloud/api"
 import { findProjectConfig } from "../config/base"
 import { pMemoizeDecorator } from "../lib/p-memoize"
 import { getCustomCommands } from "../commands/custom"
@@ -381,23 +381,31 @@ ${renderCommands(commands)}
           dashboardEventStream.connect({ garden, ignoreHost: commandServerUrl, streamEvents, streamLogEntries })
           const runningServers = await dashboardEventStream.updateTargets()
 
-          if (cloudApi && !cloudApi.sessionRegistered && command.streamEvents) {
+          if (cloudApi && !cloudApi.sessionRegistered) {
             // Note: If a config change during a watch-mode command's execution results in the resolved environment
             // and/or namespace name changing, we don't change the session ID, environment ID or namespace ID used when
             // streaming events.
-            await cloudApi.registerSession({
+            const sessionParams: RegisterSessionParams = {
               sessionId,
               commandInfo,
               localServerPort: command.server?.port,
               environment: garden.environmentName,
               namespace: garden.namespace,
-            })
+              streamEvents: command.streamEvents,
+            }
+
+            await cloudApi.registerSession(sessionParams)
+          }
+
+          let cloudProjectId: string | undefined = cloudApi?.cloudProjectId
+          if (cloudApi && !cloudProjectId) {
+            const project = await cloudApi.getProject()
+            cloudProjectId = project.id.toString()
           }
 
           let namespaceUrl: string | undefined
           if (cloudApi && cloudApi.environmentId && cloudApi.namespaceId) {
-            const project = await cloudApi.getProject()
-            const path = `/projects/${project.id}/environments/${cloudApi.environmentId}/namespaces/${cloudApi.namespaceId}/stack`
+            const path = `/projects/${cloudProjectId}/environments/${cloudApi.environmentId}/namespaces/${cloudApi.namespaceId}/stack`
             const url = new URL(path, cloudApi.domain)
             namespaceUrl = url.href
           }

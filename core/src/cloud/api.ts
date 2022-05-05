@@ -92,6 +92,18 @@ export type ApiFetchResponse<T> = T & {
 export interface RegisterSessionResponse {
   environmentId: number
   namespaceId: number
+  cloudUserId?: string
+  cloudCustomerName?: string
+  cloudProjectId?: string
+}
+
+export interface RegisterSessionParams {
+  sessionId: string
+  commandInfo: CommandInfo
+  environment: string
+  namespace: string
+  localServerPort?: number
+  streamEvents: boolean
 }
 
 /**
@@ -133,6 +145,9 @@ export class CloudApi {
   // Set when/if the Core session is registered with Cloud
   public environmentId?: number
   public namespaceId?: number
+  public cloudUserId?: string
+  public cloudCustomerName?: string
+  public cloudProjectId?: string
   public sessionRegistered = false
 
   constructor(log: LogEntry, enterpriseDomain: string, projectId: string) {
@@ -220,7 +235,7 @@ export class CloudApi {
       const url = new URL(`/projects/${project.id}`, api.domain)
       enterpriseLog?.info({ symbol: "info", msg: `Visit project at ${url.href}` })
     } catch (err) {
-      log.debug(`Getting project from API failed with error: err.message`)
+      log.debug(`Getting project from API failed with error: ${err.message}`)
     }
     return api
   }
@@ -510,19 +525,9 @@ export class CloudApi {
     })
   }
 
-  async registerSession({
-    sessionId,
-    commandInfo,
-    localServerPort,
-    environment,
-    namespace,
-  }: {
-    sessionId: string
-    commandInfo: CommandInfo
-    localServerPort?: number
-    environment: string
-    namespace: string
-  }): Promise<void> {
+  async registerSession(sessionParams: RegisterSessionParams): Promise<void> {
+    const { sessionId, commandInfo, environment, localServerPort, namespace, streamEvents } = sessionParams
+
     try {
       const body = {
         sessionId,
@@ -531,6 +536,7 @@ export class CloudApi {
         projectUid: this.projectId,
         environment,
         namespace,
+        streamEvents,
       }
       this.log.debug("Registering session with Garden Cloud.")
       const res: RegisterSessionResponse = await this.post("sessions", {
@@ -540,7 +546,11 @@ export class CloudApi {
       })
       this.environmentId = res.environmentId
       this.namespaceId = res.namespaceId
-      this.log.debug("Successfully registered session with Garden Cloud.")
+      this.cloudUserId = res.cloudUserId
+      this.cloudCustomerName = res.cloudCustomerName
+      this.cloudProjectId = res.cloudProjectId
+
+      this.log.debug(`Successfully registered session with Garden Cloud for ${this.cloudUserId}.`)
     } catch (err) {
       // We don't want the command to fail when an error occurs during session registration.
       if (isGotError(err, 422)) {
