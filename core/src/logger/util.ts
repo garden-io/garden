@@ -245,11 +245,18 @@ export function renderMessageWithDivider(prefix: string, msg: string, isError: b
   `
 }
 
-// Recursively filters out internal fields (i.e. having names starting with `_`).
+// Recursively filters out internal fields, including keys starting with _ and some specific fields found on Modules.
 export function withoutInternalFields(object: any): any {
   return deepFilter(sanitizeObject(object), (_val, key: string | number) => {
     if (typeof key === "string") {
-      return !key.startsWith("_")
+      return (
+        !key.startsWith("_") &&
+        // FIXME: this a little hacky and should be removable in 0.14 at the latest.
+        // The buildDependencies map on Module objects explodes outputs, as well as the dependencyVersions field on
+        // version objects.
+        key !== "dependencyVersions" &&
+        key !== "buildDependencies"
+      )
     }
     return true
   })
