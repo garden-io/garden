@@ -29,6 +29,7 @@ import { LogLevel } from "@garden-io/core/build/src/logger/logger"
 import { detectProjectType, getBuildFlags, JibContainerModule } from "./util"
 
 export interface JibProviderConfig extends GenericProviderConfig {}
+
 export interface JibProvider extends Provider<JibProviderConfig> {}
 
 export const configSchema = () => providerConfigBaseSchema().unknown(false)
@@ -110,7 +111,7 @@ export const gardenPlugin = () =>
 
             // The base handler will either auto-detect or set include if there's no Dockerfile, so we need to
             // override that behavior.
-            const include = moduleConfig.include || []
+            const include = moduleConfig.include
             moduleConfig.include = []
 
             const configured = await base!({ ...params, moduleConfig: cloneDeep(moduleConfig) })
@@ -121,7 +122,7 @@ export const gardenPlugin = () =>
             moduleConfig.buildConfig!.jdkVersion = moduleConfig.spec.build.jdkVersion
 
             // FIXME: for now we need to set this value because various code paths decide if the module is built (as
-            // opposed to just fetched) by checking if a Dockerfile is found or specified.
+            //        opposed to just fetched) by checking if a Dockerfile is found or specified.
             moduleConfig.buildConfig!.dockerfile = moduleConfig.spec.dockerfile = "_jib"
 
             return { moduleConfig }
