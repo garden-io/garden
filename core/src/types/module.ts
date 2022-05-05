@@ -63,9 +63,9 @@ export const moduleSchema = () =>
       .description("A list of types that this module is compatible with (i.e. the module type itself + all bases)."),
     configPath: joi.string().description("The path to the module config file, if applicable."),
     version: moduleVersionSchema().required(),
-    buildDependencies: joiIdentifierMap(joi.link("..."))
-      .required()
-      .description("A map of all modules referenced under `build.dependencies`."),
+    buildDependencies: joiIdentifierMap(joi.link("...")).description(
+      "A map of all modules referenced under `build.dependencies`."
+    ),
     needsBuild: joi
       .boolean()
       .required()

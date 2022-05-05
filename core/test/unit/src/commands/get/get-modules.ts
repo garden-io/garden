@@ -7,9 +7,10 @@
  */
 
 import { expect } from "chai"
-import { keyBy, omit, mapValues } from "lodash"
+import { keyBy, mapValues } from "lodash"
 import { makeTestGardenA, withDefaultGlobalOpts } from "../../../../helpers"
 import { GetModulesCommand } from "../../../../../src/commands/get/get-modules"
+import { withoutInternalFields } from "../../../../../src/logger/util"
 
 describe("GetModulesCommand", () => {
   const command = new GetModulesCommand()
@@ -29,7 +30,7 @@ describe("GetModulesCommand", () => {
 
     expect(command.outputsSchema().validate(res.result).error).to.be.undefined
 
-    const expected = mapValues(keyBy(await garden.resolveModules({ log }), "name"), (m) => omit(m, ["_config"]))
+    const expected = mapValues(keyBy(await garden.resolveModules({ log }), "name"), withoutInternalFields)
 
     expect(res.result).to.eql({ modules: expected })
   })
@@ -74,6 +75,8 @@ describe("GetModulesCommand", () => {
     const graph = await garden.getConfigGraph({ log, emit: false })
     const moduleA = graph.getModule("module-a")
 
-    expect(res.result).to.eql({ modules: { "module-a": omit(moduleA, ["_config"]) } })
+    expect(res.result).to.eql({ modules: { "module-a": withoutInternalFields(moduleA) } })
+    expect(res.result.modules["module-a"]["buildDependencies"]).to.be.undefined
+    expect(res.result.modules["module-a"].version.dependencyVersions).to.be.undefined
   })
 })
