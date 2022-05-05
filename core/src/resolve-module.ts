@@ -6,12 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { cloneDeep, keyBy } from "lodash"
+import { cloneDeep, isArray, isString, keyBy } from "lodash"
 import { validateWithPath } from "./config/validation"
 import {
   resolveTemplateStrings,
   getModuleTemplateReferences,
   resolveTemplateString,
+  mayContainTemplateString,
 } from "./template-string/template-string"
 import { ContextResolveOpts, GenericContext } from "./config/template-contexts/base"
 import { relative, resolve, posix, dirname } from "path"
@@ -51,8 +52,7 @@ export const moduleResolutionConcurrencyLimit = 50
 export class ModuleResolver {
   private garden: Garden
   private log: LogEntry
-  private rawConfigs: ModuleConfig[]
-  private rawConfigsByName: ModuleConfigMap
+  private rawConfigsByKey: ModuleConfigMap
   private resolvedProviders: ProviderMap
   private runtimeContext?: RuntimeContext
 
@@ -71,8 +71,7 @@ export class ModuleResolver {
   }) {
     this.garden = garden
     this.log = log
-    this.rawConfigs = rawConfigs
-    this.rawConfigsByName = keyBy(rawConfigs, "name")
+    this.rawConfigsByKey = keyBy(rawConfigs, (c) => getModuleKey(c.name, c.plugin))
     this.resolvedProviders = resolvedProviders
     this.runtimeContext = runtimeContext
   }
@@ -84,18 +83,19 @@ export class ModuleResolver {
     const fullGraph = new DependencyValidationGraph()
     const processingGraph = new DependencyValidationGraph()
 
-    for (const rawConfig of this.rawConfigs) {
+    for (const key of Object.keys(this.rawConfigsByKey)) {
       for (const graph of [fullGraph, processingGraph]) {
-        graph.addNode(rawConfig.name)
+        graph.addNode(key)
       }
     }
-    for (const rawConfig of this.rawConfigs) {
+    for (const [key, rawConfig] of Object.entries(this.rawConfigsByKey)) {
       const buildPath = await this.garden.buildStaging.buildPath(rawConfig)
-      const deps = this.getModuleDependenciesFromTemplateStrings(rawConfig, buildPath)
+      const deps = this.getModuleDependenciesFromConfig(rawConfig, buildPath)
       for (const graph of [fullGraph, processingGraph]) {
         for (const dep of deps) {
-          graph.addNode(dep.name)
-          graph.addDependency(rawConfig.name, dep.name)
+          const depKey = getModuleKey(dep.name, dep.plugin)
+          graph.addNode(depKey)
+          graph.addDependency(key, depKey)
         }
       }
     }
@@ -104,78 +104,73 @@ export class ModuleResolver {
     const resolvedModules: ModuleMap = {}
     const errors: { [moduleName: string]: Error } = {}
 
-    // Iterate through dependency graph, a batch of leaves at a time. While there are items remaining:
-    while (processingGraph.size() > 0) {
-      // Get batch of leaf nodes (ones with no unresolved dependencies). Implicitly checks for circular dependencies.
-      let batch: string[]
+    const inFlight = new Set<string>()
 
-      try {
-        batch = processingGraph.overallOrder(true)
-      } catch (err) {
-        throw new ConfigurationError(
-          dedent`
-            Detected circular dependencies between module configurations:
-
-            ${err.detail?.["circular-dependencies"] || err.message}
-          `,
-          { cycles: err.detail?.cycles }
-        )
+    const processNode = async (moduleKey: string) => {
+      if (inFlight.has(moduleKey)) {
+        return
       }
 
-      // Process each of the leaf node module configs.
-      await Bluebird.map(
-        batch,
-        async (moduleName) => {
-          // Resolve configuration, unless previously resolved.
-          let resolvedConfig = resolvedConfigs[moduleName]
-          let foundNewDependency = false
+      this.log.silly(`ModuleResolver: Process node ${moduleKey}`)
+      inFlight.add(moduleKey)
 
-          const dependencyNames = fullGraph.dependenciesOf(moduleName)
-          const resolvedDependencies = dependencyNames.map((n) => resolvedModules[n])
+      // Resolve configuration, unless previously resolved.
+      let resolvedConfig = resolvedConfigs[moduleKey]
+      let foundNewDependency = false
 
-          try {
-            if (!resolvedConfig) {
-              const rawConfig = this.rawConfigsByName[moduleName]
+      const dependencyNames = fullGraph.dependenciesOf(moduleKey)
+      const resolvedDependencies = dependencyNames.map((n) => resolvedModules[n])
 
-              resolvedConfig = resolvedConfigs[moduleName] = await this.resolveModuleConfig(
-                rawConfig,
-                resolvedDependencies
-              )
+      try {
+        if (!resolvedConfig) {
+          const rawConfig = this.rawConfigsByKey[moduleKey]
 
-              // Check if any new build dependencies were added by the configure handler
-              for (const dep of resolvedConfig.build.dependencies) {
-                if (!dependencyNames.includes(dep.name)) {
-                  foundNewDependency = true
+          this.log.silly(`ModuleResolver: Resolve config ${moduleKey}`)
+          resolvedConfig = resolvedConfigs[moduleKey] = await this.resolveModuleConfig(rawConfig, resolvedDependencies)
 
-                  // We throw if the build dependency can't be found at all
-                  if (!fullGraph.hasNode(dep.name)) {
-                    this.missingBuildDependency(moduleName, dep.name)
-                  }
-                  fullGraph.addDependency(moduleName, dep.name)
+          // Check if any new build dependencies were added by the configure handler
+          for (const dep of resolvedConfig.build.dependencies) {
+            const depKey = getModuleKey(dep.name, dep.plugin)
 
-                  // The dependency may already have been processed, we don't want to add it to the graph in that case
-                  if (processingGraph.hasNode(dep.name)) {
-                    processingGraph.addDependency(moduleName, dep.name)
-                  }
-                }
+            if (!dependencyNames.includes(depKey)) {
+              this.log.silly(`ModuleResolver: Found new dependency ${depKey} when resolving ${moduleKey}`)
+
+              // We throw if the build dependency can't be found at all
+              if (!fullGraph.hasNode(depKey)) {
+                throw missingBuildDependency(rawConfig.name, depKey)
+              }
+              fullGraph.addDependency(moduleKey, depKey)
+
+              foundNewDependency = true
+
+              // The dependency may already have been processed, we don't want to add it to the graph in that case
+              if (processingGraph.hasNode(depKey)) {
+                this.log.silly(`ModuleResolver: Need to re-resolve ${moduleKey} after processing new dependencies`)
+                processingGraph.addDependency(moduleKey, depKey)
               }
             }
-
-            // If no build dependency was added, fully resolve the module and remove from graph, otherwise keep it
-            // in the graph and move on to make sure we fully resolve the dependencies and don't run into circular
-            // dependencies.
-            if (!foundNewDependency) {
-              const buildPath = await this.garden.buildStaging.buildPath(resolvedConfig)
-              resolvedModules[moduleName] = await this.resolveModule(resolvedConfig, buildPath, resolvedDependencies)
-              processingGraph.removeNode(moduleName)
-            }
-          } catch (err) {
-            errors[moduleName] = err
           }
-        },
-        { concurrency: moduleResolutionConcurrencyLimit }
-      )
+        }
 
+        // If no unresolved build dependency was added, fully resolve the module and remove from graph, otherwise keep
+        // it in the graph and move on to make sure we fully resolve the dependencies and don't run into circular
+        // dependencies.
+        if (!foundNewDependency) {
+          const buildPath = await this.garden.buildStaging.buildPath(resolvedConfig)
+          resolvedModules[moduleKey] = await this.resolveModule(resolvedConfig, buildPath, resolvedDependencies)
+          this.log.silly(`ModuleResolver: Module ${moduleKey} resolved`)
+          processingGraph.removeNode(moduleKey)
+        }
+      } catch (err) {
+        this.log.silly(`ModuleResolver: Node ${moduleKey} failed: ${err.message}`)
+        errors[moduleKey] = err
+      }
+
+      inFlight.delete(moduleKey)
+      return processLeaves()
+    }
+
+    const processLeaves = async () => {
       if (Object.keys(errors).length > 0) {
         const errorStr = Object.entries(errors)
           .map(([name, err]) => `${chalk.white.bold(name)}: ${err.message}`)
@@ -190,15 +185,55 @@ export class ModuleResolver {
         combined.stack = errorStack
         throw combined
       }
+
+      // Get batch of leaf nodes (ones with no unresolved dependencies). Implicitly checks for circular dependencies.
+      let batch: string[]
+
+      try {
+        batch = processingGraph.overallOrder(true).filter((n) => !inFlight.has(n))
+      } catch (err) {
+        throw new ConfigurationError(
+          dedent`
+            Detected circular dependencies between module configurations:
+
+            ${err.detail?.["circular-dependencies"] || err.message}
+          `,
+          { cycles: err.detail?.cycles }
+        )
+      }
+
+      this.log.silly(`ModuleResolver: Process ${batch.length} leaves`)
+
+      if (batch.length === 0) {
+        return
+      }
+
+      const overLimit = inFlight.size + batch.length - moduleResolutionConcurrencyLimit
+
+      if (overLimit > 0) {
+        batch = batch.slice(batch.length - overLimit)
+      }
+
+      // Process each of the leaf node module configs.
+      await Bluebird.map(batch, processNode)
+    }
+
+    // Iterate through dependency graph, a batch of leaves at a time. While there are items remaining:
+    let i = 0
+
+    while (processingGraph.size() > 0) {
+      this.log.silly(`ModuleResolver: Loop ${++i}`)
+      await processLeaves()
     }
 
     return Object.values(resolvedModules)
   }
 
   /**
-   * Returns module configs for each module that is referenced in a ${modules.*} template string in the raw config.
+   * Returns module configs for each module that is referenced in a ${modules.*} template string in the raw config,
+   * as well as any immediately resolvable declared build dependencies.
    */
-  private getModuleDependenciesFromTemplateStrings(rawConfig: ModuleConfig, buildPath: string) {
+  private getModuleDependenciesFromConfig(rawConfig: ModuleConfig, buildPath: string) {
     const configContext = new ModuleConfigContext({
       garden: this.garden,
       variables: this.garden.variables,
@@ -211,28 +246,31 @@ export class ModuleResolver {
     })
 
     const templateRefs = getModuleTemplateReferences(rawConfig, configContext)
-    const deps = templateRefs.filter((d) => d[1] !== rawConfig.name)
+    const templateDeps = <string[]>templateRefs.filter((d) => d[1] !== rawConfig.name).map((d) => d[1])
 
-    return deps.map((d) => {
-      const name = d[1]
-      const moduleConfig = this.rawConfigsByName[name]
+    // Try resolving template strings if possible
+    let buildDeps: string[] = []
+    const resolvedDeps = resolveTemplateStrings(rawConfig.build.dependencies, configContext, { allowPartial: true })
+
+    // The build.dependencies field may not resolve at all, in which case we can't extract any deps from there
+    if (isArray(resolvedDeps)) {
+      buildDeps = resolvedDeps
+        // We only collect fully-resolved references here
+        .filter((d) => !mayContainTemplateString(d) && (isString(d) || d.name))
+        .map((d) => (isString(d) ? d : getModuleKey(d.name, d.plugin)))
+    }
+
+    const deps = [...templateDeps, ...buildDeps]
+
+    return deps.map((name) => {
+      const moduleConfig = this.rawConfigsByKey[name]
 
       if (!moduleConfig) {
-        this.missingBuildDependency(rawConfig.name, name as string)
+        throw missingBuildDependency(rawConfig.name, name as string)
       }
 
       return moduleConfig
     })
-  }
-
-  private missingBuildDependency(moduleName: string, dependencyName: string) {
-    throw new ConfigurationError(
-      chalk.red(
-        `Could not find build dependency ${chalk.white(dependencyName)}, ` +
-          `configured in module ${chalk.white(moduleName)}`
-      ),
-      { moduleName, dependencyName }
-    )
   }
 
   /**
@@ -562,4 +600,14 @@ export class ModuleResolver {
 
 export interface ModuleConfigResolveOpts extends ContextResolveOpts {
   configContext: ModuleConfigContext
+}
+
+function missingBuildDependency(moduleName: string, dependencyName: string) {
+  return new ConfigurationError(
+    chalk.red(
+      `Could not find build dependency ${chalk.white(dependencyName)}, ` +
+        `configured in module ${chalk.white(moduleName)}`
+    ),
+    { moduleName, dependencyName }
+  )
 }

@@ -28,7 +28,7 @@ import {
 } from "../config/common"
 import { profile } from "../util/profiling"
 import { dedent, deline, naturalList, truncate } from "../util/string"
-import { ObjectWithName } from "../util/util"
+import { deepMap, ObjectWithName } from "../util/util"
 import { LogEntry } from "../logger/log-entry"
 import { ModuleConfigContext } from "../config/template-contexts/module"
 import { callHelperFunction } from "./functions"
@@ -370,6 +370,32 @@ function handleForEachObject(value: any, context: ConfigContext, opts: ContextRe
 
   // Need to resolve once more to handle e.g. $concat expressions
   return resolveTemplateStrings(output, context, opts)
+}
+
+/**
+ * Returns `true` if the given value is a string and looks to contain a template string.
+ */
+export function maybeTemplateString(value: Primitive) {
+  return typeof value === "string" && value.includes("${")
+}
+
+/**
+ * Returns `true` if the given value or any value in a given object or array seems to contain a template string.
+ */
+export function mayContainTemplateString(obj: any): boolean {
+  let out = false
+
+  if (isPrimitive(obj)) {
+    return maybeTemplateString(obj)
+  }
+
+  deepMap(obj, (v) => {
+    if (maybeTemplateString(v)) {
+      out = true
+    }
+  })
+
+  return out
 }
 
 /**

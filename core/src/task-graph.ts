@@ -94,6 +94,8 @@ export class TaskGraph extends EventEmitter2 {
   }
 
   async process(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<GraphResults> {
+    this.log.silly(`TaskGraph: Processing ${tasks.length} tasks: ${tasks.map((t) => t.getKey()).join(",")}`)
+
     let nodes: TaskNode[]
     try {
       nodes = await this.nodesWithDependencies({ tasks, dependencyCache: {}, stack: [] })
@@ -101,12 +103,16 @@ export class TaskGraph extends EventEmitter2 {
       throw circularDepsErr
     }
 
+    this.log.silly(`TaskGraph: Partitioning into batches`)
+
     const batches = this.partition(nodes)
     for (const batch of batches) {
       for (const node of batch.nodes) {
         this.latestNodes[node.key] = node
       }
     }
+
+    this.log.silly(`TaskGraph: Split into ${batches.length} batches`)
 
     this.pendingBatches.push(...batches)
     this.processGraph()
@@ -167,7 +173,13 @@ export class TaskGraph extends EventEmitter2 {
       let depTasks = dependencyCache[key]
 
       if (!depTasks) {
+        this.log.silly(`TaskGraph: Resolving dependencies for task ${task.getKey()}`)
         dependencyCache[key] = depTasks = await task.resolveDependencies()
+        this.log.silly(
+          `TaskGraph: Found ${depTasks.length} dependencies for task ${task.getKey()}: ${depTasks
+            .map((t) => t.getKey())
+            .join(",")}`
+        )
       }
 
       const depNodes = await this.nodesWithDependencies({

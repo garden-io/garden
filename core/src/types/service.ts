@@ -54,7 +54,7 @@ export function serviceFromConfig<M extends GardenModule = GardenModule>(
   module: M,
   config: ServiceConfig
 ): GardenService<M> {
-  const sourceModule = config.sourceModuleName ? graph.getModule(config.sourceModuleName) : module
+  const sourceModule = config.sourceModuleName ? graph.getModule(config.sourceModuleName, true) : module
   const version = getEntityVersion(module, config)
 
   return {
