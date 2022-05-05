@@ -21,7 +21,7 @@ import { EventBus, Events } from "../events"
 import { dedent } from "./string"
 import pathIsInside from "path-is-inside"
 import { resolve } from "path"
-import { GARDEN_CORE_ROOT } from "../constants"
+import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT } from "../constants"
 import { getLogger } from "../logger/logger"
 import { ConfigGraph } from "../config-graph"
 import stripAnsi from "strip-ansi"
@@ -44,6 +44,35 @@ export function getLogMessages(log: LogEntry, filter?: (log: LogEntry) => boolea
     .getChildEntries()
     .filter((entry) => (filter ? filter(entry) : true))
     .flatMap((entry) => entry.getMessages()?.map((state) => stripAnsi(state.msg || "")) || [])
+}
+
+type PartialModuleConfig = Partial<ModuleConfig> & { name: string; path: string }
+
+const moduleConfigDefaults: ModuleConfig = {
+  allowPublish: false,
+  apiVersion: DEFAULT_API_VERSION,
+  build: {
+    dependencies: [],
+  },
+  disabled: false,
+  name: "foo",
+  path: "/tmp/foo",
+  serviceConfigs: [],
+  spec: {},
+  taskConfigs: [],
+  testConfigs: [],
+  type: "test",
+}
+
+export function moduleConfigWithDefaults(partial: PartialModuleConfig) {
+  return {
+    ...moduleConfigDefaults,
+    ...partial,
+    build: {
+      ...moduleConfigDefaults.build,
+      ...(partial.build || {}),
+    },
+  }
 }
 
 /**
@@ -182,9 +211,9 @@ export class TestGarden extends Garden {
     return await super.getRepoRoot()
   }
 
-  setModuleConfigs(moduleConfigs: ModuleConfig[]) {
+  setModuleConfigs(moduleConfigs: PartialModuleConfig[]) {
     this.configsScanned = true
-    this.moduleConfigs = keyBy(moduleConfigs, "name")
+    this.moduleConfigs = keyBy(moduleConfigs.map(moduleConfigWithDefaults), "name")
   }
 
   setWorkflowConfigs(workflowConfigs: WorkflowConfig[]) {

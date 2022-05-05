@@ -123,6 +123,7 @@ export const gardenPlugin = () =>
         handlers: {
           configure: async ({ moduleConfig }) => {
             if (moduleConfig.spec.sourceModule) {
+              // TODO-G2: change this to validation instead, require explicit dependency
               moduleConfig.build.dependencies.push({ name: moduleConfig.spec.sourceModule, copy: [] })
             }
 
@@ -194,6 +195,7 @@ export const gardenPlugin = () =>
         }),
         handlers: {
           configure: async ({ moduleConfig }) => {
+            // TODO-G2: change this to validation instead, require explicit dependency
             moduleConfig.build.dependencies.push({ name: moduleConfig.spec.sourceModule, copy: [] })
             moduleConfig.include = []
             moduleConfig.testConfigs = [
