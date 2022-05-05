@@ -9,9 +9,9 @@
 import { Command, CommandParams } from "../base"
 import { StringsParameter, BooleanParameter } from "../../cli/params"
 import { moduleSchema, GardenModule } from "../../types/module"
-import { keyBy, omit, sortBy } from "lodash"
+import { keyBy, sortBy } from "lodash"
 import { joiIdentifierMap, joi } from "../../config/common"
-import { printHeader } from "../../logger/util"
+import { printHeader, withoutInternalFields } from "../../logger/util"
 import chalk from "chalk"
 import { renderTable, dedent } from "../../util/string"
 import { relative, sep } from "path"
@@ -32,7 +32,7 @@ const getModulesOptions = {
 type Args = typeof getModulesArgs
 type Opts = typeof getModulesOptions
 
-type OutputModule = Omit<GardenModule, "_config">
+type OutputModule = Omit<GardenModule, "_config" | "buildDependencies">
 
 export class GetModulesCommand extends Command {
   name = "modules"
@@ -61,9 +61,7 @@ export class GetModulesCommand extends Command {
     const graph = await garden.getConfigGraph({ log, emit: false })
 
     const modules: OutputModule[] = sortBy(
-      graph
-        .getModules({ names: args.modules, includeDisabled: !opts["exclude-disabled"] })
-        .map((m) => omit(m, "_config")),
+      graph.getModules({ names: args.modules, includeDisabled: !opts["exclude-disabled"] }).map(withoutInternalFields),
       "name"
     )
 

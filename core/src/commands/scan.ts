@@ -24,7 +24,7 @@ export class ScanCommand extends Command {
     const graph = await garden.getConfigGraph({ log, emit: false })
     const modules = graph.getModules().map((m) => {
       return {
-        ...omit(m, ["_config", "cacheContext", "serviceNames", "taskNames"]),
+        ...omit(m, ["_config", "cacheContext", "serviceNames", "taskNames", "buildDepdendencies"]),
         version: omit(m.version, ["dependencyVersions"]),
       }
     })
