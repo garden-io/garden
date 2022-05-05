@@ -63,6 +63,8 @@ interface AnalyticsEventProperties {
   enterpriseDomain?: string
   enterpriseDomainV2?: string
   isLoggedIn: boolean
+  customer: string | undefined
+  cloudProjectId: string | undefined
   ciName: string | null
   system: SystemInfo
   isCI: boolean
@@ -102,7 +104,8 @@ interface AnalyticsEvent {
 }
 
 export interface SegmentEvent {
-  userId: string
+  userId: string | undefined
+  anonymousId: string | undefined
   event: AnalyticsType
   properties: AnalyticsEventProperties
 }
@@ -138,6 +141,9 @@ export class AnalyticsHandler {
   private enterpriseProjectIdV2?: string
   private enterpriseDomainV2?: string
   private isLoggedIn: boolean
+  private cloudUserId: string | undefined
+  private cloudCustomerName: string | undefined
+  private cloudProjectId: string | undefined
   private ciName = ci.name
   private systemConfig: SystemInfo
   private isCI = ci.isCI
@@ -153,6 +159,11 @@ export class AnalyticsHandler {
     this.garden = garden
     this.sessionId = garden.sessionId
     this.isLoggedIn = !!garden.cloudApi
+
+    this.cloudUserId = garden.cloudApi?.cloudUserId
+    this.cloudCustomerName = garden.cloudApi?.cloudCustomerName
+    this.cloudProjectId = garden.cloudApi?.cloudProjectId
+
     this.globalConfigStore = new GlobalConfigStore()
     // Events that are queued or flushed but the network response hasn't returned
     this.pendingEvents = new Map()
@@ -161,6 +172,7 @@ export class AnalyticsHandler {
       firstRun: true,
       optedIn: false,
       showOptInMessage: true,
+      cloudVersion: undefined,
     }
 
     this.systemConfig = {
@@ -236,32 +248,38 @@ export class AnalyticsHandler {
     }
 
     const gitHubUrl = getGitHubUrl("README.md#Analytics")
-    if (this.analyticsConfig.firstRun || this.analyticsConfig.showOptInMessage) {
-      const analyticsEnabled = this.analyticsEnabled()
 
-      if (!this.isCI && analyticsEnabled) {
-        const msg = dedent`
-          Thanks for installing Garden! We work hard to provide you with the best experience we can. We collect some anonymized usage data while you use Garden. If you'd like to know more about what we collect or if you'd like to opt out of telemetry, please read more at ${gitHubUrl}
-        `
-        this.log.info({ symbol: "info", msg })
-      }
+    // Display the firstRun/opt-in message for analytics
+    const analyticsEnabled = this.analyticsEnabled()
+    if (!this.isCI && analyticsEnabled && (this.analyticsConfig.firstRun || this.analyticsConfig.showOptInMessage)) {
+      const msg = dedent`
+        Thanks for installing Garden! We work hard to provide you with the best experience we can. We collect some anonymized usage data while you use Garden. If you'd like to know more about what we collect or if you'd like to opt out of telemetry, please read more at ${gitHubUrl}
+      `
+      this.log.info({ symbol: "info", msg })
+    }
 
+    // Create an anonymous analytics ID or associate a cloud user ID with an existing anonymous ID
+    if (this.analyticsConfig.firstRun || this.analyticsConfig.cloudVersion === undefined) {
       this.analyticsConfig = {
         firstRun: false,
         userId: this.analyticsConfig.userId || uuidv4(),
         optedIn: true,
         showOptInMessage: false,
+        cloudVersion: this.analyticsConfig.cloudVersion || 0,
       }
 
       await this.globalConfigStore.set([globalConfigKeys.analytics], this.analyticsConfig)
 
       if (this.segment && analyticsEnabled) {
-        const userId = getUserId({ analytics: this.analyticsConfig })
-        const userIdV2 = this.hashV2(userId)
+        // note, this is the anonymous user ID
+        const anonymousUserId = getUserId({ analytics: this.analyticsConfig })
+        const userIdV2 = this.hashV2(anonymousUserId)
         this.segment.identify({
-          userId,
+          userId: this.cloudUserId,
+          anonymousId: anonymousUserId,
           traits: {
             userIdV2,
+            customer: this.cloudCustomerName,
             platform: platform(),
             platformVersion: release(),
             gardenVersion: getPackageVersion(),
@@ -343,6 +361,8 @@ export class AnalyticsHandler {
       enterpriseDomain: this.enterpriseDomain,
       enterpriseDomainV2: this.enterpriseDomainV2,
       isLoggedIn: this.isLoggedIn,
+      customer: this.cloudCustomerName,
+      cloudProjectId: this.cloudProjectId,
       ciName: this.ciName,
       system: this.systemConfig,
       isCI: this.isCI,
@@ -374,7 +394,8 @@ export class AnalyticsHandler {
   private track(event: AnalyticsEvent) {
     if (this.segment && this.analyticsEnabled()) {
       const segmentEvent: SegmentEvent = {
-        userId: getUserId({ analytics: this.analyticsConfig }),
+        userId: this.cloudUserId,
+        anonymousId: getUserId({ analytics: this.analyticsConfig }),
         event: event.type,
         properties: {
           ...this.getBasicAnalyticsProperties(),
