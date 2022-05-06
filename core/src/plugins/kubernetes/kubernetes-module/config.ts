@@ -117,8 +117,6 @@ export async function configureKubernetesModule({
   const { serviceResource, kustomize } = moduleConfig.spec
   const sourceModuleName = serviceResource ? serviceResource.containerModule : undefined
 
-  // TODO-G2: validate serviceResource.containerModule to be a build dependency
-
   moduleConfig.serviceConfigs = [
     {
       name: moduleConfig.name,
