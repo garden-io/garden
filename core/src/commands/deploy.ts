@@ -51,7 +51,7 @@ export const deployOpts = {
     cliOnly: true,
   }),
   "dev-mode": new StringsParameter({
-    help: deline`[EXPERIMENTAL] The name(s) of the service(s) to deploy with dev mode enabled.
+    help: deline`The name(s) of the service(s) to deploy with dev mode enabled.
       Use comma as a separator to specify multiple services. Use * to deploy all
       services with dev mode enabled. When this option is used,
       the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
