@@ -98,6 +98,7 @@ async function runModule(params: RunModuleParams): Promise<RunResult> {
 }
 
 export const projectRootA = getDataDir("test-project-a")
+export const projectRootBuildDependants = getDataDir("test-build-dependants")
 export const projectTestFailsRoot = getDataDir("test-project-fails")
 
 const testModuleTestSchema = () => containerTestSchema().keys({ command: joi.sparseArray().items(joi.string()) })
@@ -405,6 +406,13 @@ export const makeTestGardenA = profileAsync(async function _makeTestGardenA(
   opts?: TestGardenOpts
 ) {
   return makeTestGarden(projectRootA, { plugins: extraPlugins, forceRefresh: true, ...opts })
+})
+
+export const makeTestGardenBuildDependants = profileAsync(async function _makeTestGardenBuildDependants(
+  extraPlugins: RegisterPluginParam[] = [],
+  opts?: TestGardenOpts
+) {
+  return makeTestGarden(projectRootBuildDependants, { plugins: extraPlugins, forceRefresh: true, ...opts })
 })
 
 export async function stubAction<T extends keyof PluginActionHandlers>(
