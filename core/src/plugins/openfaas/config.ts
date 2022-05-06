@@ -188,6 +188,7 @@ export async function configureModule({
   ctx,
   moduleConfig,
 }: ConfigureModuleParams<OpenFaasModule>): Promise<ConfigureModuleResult> {
+  // TODO-G2: avoid this somehow
   moduleConfig.build.dependencies.push({
     name: "templates",
     plugin: ctx.provider.name,
