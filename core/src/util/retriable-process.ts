@@ -92,6 +92,11 @@ export type RetriableProcessState = InitialProcessState | ActiveProcessState | I
  * This class represents a tree of retriable processes.
  * The tree data structure reflects the parent-child relationships between the processes.
  *
+ * NOTE! The {@link RetriableProcess.command} should start exactly one OS process.
+ * This means that the command should produce exactly one PID, and it can't contain any piped processes
+ * or other process chains. It can be a shell script or an application that spawn own child processes.
+ * If the command has a process chain then it's not guaranteed to work properly with this utility.
+ *
  * Each tree node is a wrapper on top of a {@link ChildProcess} object and stores the necessary state
  * about the current process state and its retries.
  * Each node's process failure causes a retry for the node's own process and all processes of the whole subtree.
