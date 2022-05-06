@@ -324,7 +324,7 @@ export class RetriableProcess {
     return this.renderProcessTreeRecursively("", output)
   }
 
-  private findParentMostProcess() {
+  private getTreeRoot() {
     let cur: RetriableProcess = this
     while (!!cur.parent) {
       cur = cur.parent
@@ -360,7 +360,7 @@ export class RetriableProcess {
    * @return the reference to the tree root, i.e. to the parent-most retriable process
    */
   public startAll(): RetriableProcess {
-    const root = this.findParentMostProcess()
+    const root = this.getTreeRoot()
     RetriableProcess.startFromNode(root)
     return root
   }
@@ -371,14 +371,14 @@ export class RetriableProcess {
    * @return the reference to the tree root, i.e. to the parent-most retriable process
    */
   public stopAll(): RetriableProcess {
-    const root = this.findParentMostProcess()
+    const root = this.getTreeRoot()
     root.unregisterSubTreeListeners()
     root.stopSubTree()
     return root
   }
 
   public setFailureHandler(failureHandler: FailureHandler): void {
-    const root = this.findParentMostProcess()
+    const root = this.getTreeRoot()
     RetriableProcess.recursiveAction(root, (node) => (node.failureHandler = failureHandler))
   }
 }
