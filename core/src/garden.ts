@@ -373,6 +373,11 @@ export class Garden {
     return this.buildStaging.clear()
   }
 
+  clearCaches() {
+    this.cache.clear()
+    this.taskGraph.clearCache()
+  }
+
   async processTasks(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<GraphResults> {
     return this.taskGraph.process(tasks, opts)
   }
