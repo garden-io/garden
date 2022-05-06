@@ -269,7 +269,6 @@ export async function configureHelmModule({
     }
 
     // We copy the chart on build
-    // TODO-G2: change this to validation instead, require explicit dependency
     moduleConfig.build.dependencies.push({ name: base, copy: [{ source: "*", target: "." }] })
   }
 
@@ -283,7 +282,6 @@ export async function configureHelmModule({
 
   moduleConfig.taskConfigs = tasks.map((spec) => {
     if (spec.resource && spec.resource.containerModule) {
-      // TODO-G2: change this to validation instead, require explicit dependency
       moduleConfig.build.dependencies.push({ name: spec.resource.containerModule, copy: [] })
     }
 
@@ -299,7 +297,6 @@ export async function configureHelmModule({
 
   moduleConfig.testConfigs = tests.map((spec) => {
     if (spec.resource && spec.resource.containerModule) {
-      // TODO-G2: change this to validation instead, require explicit dependency
       moduleConfig.build.dependencies.push({ name: spec.resource.containerModule, copy: [] })
     }
 
