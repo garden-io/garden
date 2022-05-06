@@ -73,6 +73,11 @@ describe("RetriableProcess", () => {
     await sleep(retryTimeoutMs)
   }
 
+  function expectRunnable(node: RetriableProcess) {
+    expect(node.getCurrentState()).to.eql("runnable")
+    expect(node.getCurrentPid()).to.be.undefined
+  }
+
   function expectRunning(node: RetriableProcess) {
     expect(node.getCurrentState()).to.eql("running")
     expect(node.getCurrentPid()).to.be.not.undefined
@@ -86,15 +91,12 @@ describe("RetriableProcess", () => {
   function expectFailed(node: RetriableProcess) {
     expect(node.getCurrentState()).to.eql("failed")
     expect(node.getCurrentPid()).to.be.undefined
+    expect(node.hasFailures()).to.be.true
   }
 
-  it("errorless single process starts and stops", () => {
-    const p = infiniteProcess(0, 0)
-    p.startAll()
-    expectRunning(p)
-
-    p.stopAll()
-    expectStopped(p)
+  it("new instance has state 'runnable'", () => {
+    const p = new RetriableProcess({ osCommand: { command: "pwd" }, maxRetries: 1, minTimeoutMs: 1000, log })
+    expectRunnable(p)
   })
 
   it("fails to start already running process", () => {
@@ -102,7 +104,7 @@ describe("RetriableProcess", () => {
     p.startAll()
 
     expectRunning(p)
-    expect(() => p.startAll()).to.throw("Process is already running")
+    expect(() => p.startAll()).to.throw("Process is already running.")
 
     p.stopAll()
     expectStopped(p)
@@ -354,6 +356,8 @@ describe("RetriableProcess", () => {
     expectFailed(root)
     expectStopped(left)
     expectStopped(right)
+
+    expect(() => root.startAll()).to.throw("Cannot start failed process with no retries left.")
   })
 
   it("entire tree should fail on a node process failure", async () => {
@@ -374,6 +378,8 @@ describe("RetriableProcess", () => {
     expectStopped(left)
     expectFailed(right)
     expectStopped(rightChild)
+
+    expect(() => root.startAll()).to.throw("Cannot start failed process with no retries left.")
   })
 
   it("entire tree should fail on a leaf process failure", async () => {
@@ -394,5 +400,7 @@ describe("RetriableProcess", () => {
     expectStopped(left)
     expectStopped(right)
     expectFailed(rightChild)
+
+    expect(() => root.startAll()).to.throw("Cannot start failed process with no retries left.")
   })
 })

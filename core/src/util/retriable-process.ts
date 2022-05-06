@@ -150,6 +150,19 @@ export class RetriableProcess {
     this.state = "runnable"
   }
 
+  private static hasFailures(node: RetriableProcess): boolean {
+    if (node.state === "failed") {
+      return true
+    }
+    const childrenFailures = node.descendants.map(RetriableProcess.hasFailures)
+    return childrenFailures.some((v) => v)
+  }
+
+  public hasFailures(): boolean {
+    const root = this.getTreeRoot()
+    return RetriableProcess.hasFailures(root)
+  }
+
   public getCurrentPid(): number | undefined {
     return this.proc?.pid
   }
@@ -334,7 +347,11 @@ export class RetriableProcess {
 
   private startNode(): RetriableProcess {
     if (this.state === "running") {
-      throw new RuntimeError("Process is already running", this)
+      throw new RuntimeError("Process is already running.", this)
+    }
+
+    if (this.hasFailures()) {
+      throw new RuntimeError("Cannot start failed process with no retries left.", this)
     }
     // no need to use pRetry here, the failures will be handled by event the process listeners
     const proc = this.executor(this.command)
