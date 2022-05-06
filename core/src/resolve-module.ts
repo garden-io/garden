@@ -51,8 +51,7 @@ export const moduleResolutionConcurrencyLimit = 50
 export class ModuleResolver {
   private garden: Garden
   private log: LogEntry
-  private rawConfigs: ModuleConfig[]
-  private rawConfigsByName: ModuleConfigMap
+  private rawConfigsByKey: ModuleConfigMap
   private resolvedProviders: ProviderMap
   private runtimeContext?: RuntimeContext
 
@@ -71,8 +70,7 @@ export class ModuleResolver {
   }) {
     this.garden = garden
     this.log = log
-    this.rawConfigs = rawConfigs
-    this.rawConfigsByName = keyBy(rawConfigs, "name")
+    this.rawConfigsByKey = keyBy(rawConfigs, (c) => getModuleKey(c.name, c.plugin))
     this.resolvedProviders = resolvedProviders
     this.runtimeContext = runtimeContext
   }
@@ -84,18 +82,19 @@ export class ModuleResolver {
     const fullGraph = new DependencyValidationGraph()
     const processingGraph = new DependencyValidationGraph()
 
-    for (const rawConfig of this.rawConfigs) {
+    for (const key of Object.keys(this.rawConfigsByKey)) {
       for (const graph of [fullGraph, processingGraph]) {
-        graph.addNode(rawConfig.name)
+        graph.addNode(key)
       }
     }
-    for (const rawConfig of this.rawConfigs) {
+    for (const [key, rawConfig] of Object.entries(this.rawConfigsByKey)) {
       const buildPath = await this.garden.buildStaging.buildPath(rawConfig)
-      const deps = this.getModuleDependenciesFromTemplateStrings(rawConfig, buildPath)
+      const deps = this.getModuleDependenciesFromConfig(rawConfig, buildPath)
       for (const graph of [fullGraph, processingGraph]) {
         for (const dep of deps) {
-          graph.addNode(dep.name)
-          graph.addDependency(rawConfig.name, dep.name)
+          const depKey = getModuleKey(dep.name, dep.plugin)
+          graph.addNode(depKey)
+          graph.addDependency(key, depKey)
         }
       }
     }
@@ -106,39 +105,42 @@ export class ModuleResolver {
 
     const inFlight = new Set<string>()
 
-    const processNode = async (moduleName: string) => {
-      this.log.silly(`ModuleResolver: Process node ${moduleName}`)
-      inFlight.add(moduleName)
+    const processNode = async (moduleKey: string) => {
+      this.log.silly(`ModuleResolver: Process node ${moduleKey}`)
+      inFlight.add(moduleKey)
 
       // Resolve configuration, unless previously resolved.
-      let resolvedConfig = resolvedConfigs[moduleName]
+      let resolvedConfig = resolvedConfigs[moduleKey]
       let foundNewDependency = false
 
-      const dependencyNames = fullGraph.dependenciesOf(moduleName)
+      const dependencyNames = fullGraph.dependenciesOf(moduleKey)
       const resolvedDependencies = dependencyNames.map((n) => resolvedModules[n])
 
       try {
         if (!resolvedConfig) {
-          const rawConfig = this.rawConfigsByName[moduleName]
+          const rawConfig = this.rawConfigsByKey[moduleKey]
 
-          this.log.silly(`ModuleResolver: Resolve config ${moduleName}`)
-          resolvedConfig = resolvedConfigs[moduleName] = await this.resolveModuleConfig(rawConfig, resolvedDependencies)
+          this.log.silly(`ModuleResolver: Resolve config ${moduleKey}`)
+          resolvedConfig = resolvedConfigs[moduleKey] = await this.resolveModuleConfig(rawConfig, resolvedDependencies)
 
           // Check if any new build dependencies were added by the configure handler
           for (const dep of resolvedConfig.build.dependencies) {
-            if (!dependencyNames.includes(dep.name)) {
-              this.log.silly(`ModuleResolver: Found new dependency when resolving ${moduleName}`)
+            const depKey = getModuleKey(dep.name, dep.plugin)
+
+            // Note: This will no longer be allowed in Graph V2
+            if (!dependencyNames.includes(depKey)) {
+              this.log.silly(`ModuleResolver: Found new dependency ${depKey} when resolving ${moduleKey}`)
               foundNewDependency = true
 
               // We throw if the build dependency can't be found at all
-              if (!fullGraph.hasNode(dep.name)) {
-                this.missingBuildDependency(moduleName, dep.name)
+              if (!fullGraph.hasNode(depKey)) {
+                this.missingBuildDependency(rawConfig.name, depKey)
               }
-              fullGraph.addDependency(moduleName, dep.name)
+              fullGraph.addDependency(moduleKey, depKey)
 
               // The dependency may already have been processed, we don't want to add it to the graph in that case
-              if (processingGraph.hasNode(dep.name)) {
-                processingGraph.addDependency(moduleName, dep.name)
+              if (processingGraph.hasNode(depKey)) {
+                processingGraph.addDependency(moduleKey, depKey)
               }
             }
           }
@@ -149,16 +151,16 @@ export class ModuleResolver {
         // dependencies.
         if (!foundNewDependency) {
           const buildPath = await this.garden.buildStaging.buildPath(resolvedConfig)
-          resolvedModules[moduleName] = await this.resolveModule(resolvedConfig, buildPath, resolvedDependencies)
-          this.log.silly(`ModuleResolver: Remove node ${moduleName}`)
-          processingGraph.removeNode(moduleName)
+          resolvedModules[moduleKey] = await this.resolveModule(resolvedConfig, buildPath, resolvedDependencies)
+          this.log.silly(`ModuleResolver: Remove node ${moduleKey}`)
+          processingGraph.removeNode(moduleKey)
         }
       } catch (err) {
-        this.log.silly(`ModuleResolver: Node ${moduleName} failed: ${err.message}`)
-        errors[moduleName] = err
+        this.log.silly(`ModuleResolver: Node ${moduleKey} failed: ${err.message}`)
+        errors[moduleKey] = err
       }
 
-      inFlight.delete(moduleName)
+      inFlight.delete(moduleKey)
       return processLeaves()
     }
 
@@ -224,7 +226,7 @@ export class ModuleResolver {
   /**
    * Returns module configs for each module that is referenced in a ${modules.*} template string in the raw config.
    */
-  private getModuleDependenciesFromTemplateStrings(rawConfig: ModuleConfig, buildPath: string) {
+  private getModuleDependenciesFromConfig(rawConfig: ModuleConfig, buildPath: string) {
     const configContext = new ModuleConfigContext({
       garden: this.garden,
       variables: this.garden.variables,
@@ -237,11 +239,13 @@ export class ModuleResolver {
     })
 
     const templateRefs = getModuleTemplateReferences(rawConfig, configContext)
-    const deps = templateRefs.filter((d) => d[1] !== rawConfig.name)
+    const deps = [
+      ...(<string[]>templateRefs.filter((d) => d[1] !== rawConfig.name).map((d) => d[1])),
+      ...rawConfig.build.dependencies.map((d) => getModuleKey(d.name, d.plugin)),
+    ]
 
-    return deps.map((d) => {
-      const name = d[1]
-      const moduleConfig = this.rawConfigsByName[name]
+    return deps.map((name) => {
+      const moduleConfig = this.rawConfigsByKey[name]
 
       if (!moduleConfig) {
         this.missingBuildDependency(rawConfig.name, name as string)
