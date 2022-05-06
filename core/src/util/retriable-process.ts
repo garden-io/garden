@@ -117,6 +117,7 @@ export class RetriableProcess {
   public readonly command: string
   private readonly executor: CommandExecutor
   private proc?: ChildProcess
+  private lastKnownPid?: number
   private state: RetriableProcessState
 
   private parent?: RetriableProcess
@@ -138,6 +139,7 @@ export class RetriableProcess {
       : config.osCommand.command
     this.executor = config.executor || CommandExecutors.spawnExecutor
     this.proc = undefined
+    this.lastKnownPid = undefined
     this.parent = undefined
     this.descendants = []
     this.maxRetries = config.maxRetries
@@ -165,6 +167,10 @@ export class RetriableProcess {
 
   public getCurrentPid(): number | undefined {
     return this.proc?.pid
+  }
+
+  public getLastKnownPid(): number | undefined {
+    return this.lastKnownPid
   }
 
   public getCurrentState(): RetriableProcessState {
@@ -356,6 +362,7 @@ export class RetriableProcess {
     // no need to use pRetry here, the failures will be handled by event the process listeners
     const proc = this.executor(this.command)
     this.proc = proc
+    this.lastKnownPid = proc.pid
     this.state = "running"
     this.registerNodeListeners(proc)
     return this

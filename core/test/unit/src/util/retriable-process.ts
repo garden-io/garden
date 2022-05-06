@@ -76,21 +76,26 @@ describe("RetriableProcess", () => {
   function expectRunnable(node: RetriableProcess) {
     expect(node.getCurrentState()).to.eql("runnable")
     expect(node.getCurrentPid()).to.be.undefined
+    expect(node.getLastKnownPid()).to.be.undefined
   }
 
   function expectRunning(node: RetriableProcess) {
     expect(node.getCurrentState()).to.eql("running")
     expect(node.getCurrentPid()).to.be.not.undefined
+    expect(node.getLastKnownPid()).to.be.not.undefined
+    expect(node.getCurrentPid()).to.be.eql(node.getLastKnownPid())
   }
 
   function expectStopped(node: RetriableProcess) {
     expect(node.getCurrentState()).to.eql("stopped")
     //expect(node.getCurrentPid()).to.be.undefined // fixme: see the comment in the header
+    expect(node.getLastKnownPid()).to.be.not.undefined
   }
 
   function expectFailed(node: RetriableProcess) {
     expect(node.getCurrentState()).to.eql("failed")
     expect(node.getCurrentPid()).to.be.undefined
+    expect(node.getLastKnownPid()).to.be.not.undefined
     expect(node.hasFailures()).to.be.true
   }
 
