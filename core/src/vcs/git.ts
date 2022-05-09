@@ -8,29 +8,28 @@
 
 import { performance } from "perf_hooks"
 import FilterStream from "streamfilter"
-import { join, resolve, relative, isAbsolute, posix } from "path"
+import { isAbsolute, join, posix, relative, resolve } from "path"
 import { flatten, isString } from "lodash"
-import { ensureDir, pathExists, createReadStream, Stats, realpath, readlink, lstat, stat } from "fs-extra"
-import { Transform } from "stream"
-import split2 = require("split2")
-import { VcsHandler, RemoteSourceParams, VcsFile, GetFilesParams, VcsInfo } from "./vcs"
+import { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat, Stats } from "fs-extra"
+import { PassThrough, Transform } from "stream"
+import { GetFilesParams, RemoteSourceParams, VcsFile, VcsHandler, VcsInfo } from "./vcs"
 import { ConfigurationError, RuntimeError } from "../exceptions"
 import Bluebird from "bluebird"
 import { getStatsType, joinWithPosix, matchPath } from "../util/fs"
 import { deline } from "../util/string"
-import { splitLast, exec } from "../util/util"
+import { exec, splitLast } from "../util/util"
 import { LogEntry } from "../logger/log-entry"
 import parseGitConfig from "parse-git-config"
 import { getDefaultProfiler, Profile, Profiler } from "../util/profiling"
 import { SortedStreamIntersection } from "../util/streams"
+import { mapLimit } from "async"
+import { TreeCache } from "../cache"
+import { STATIC_DIR } from "../constants"
+import split2 = require("split2")
 import execa = require("execa")
 import isGlob = require("is-glob")
 import chalk = require("chalk")
-import { mapLimit } from "async"
-import { PassThrough } from "stream"
 import hasha = require("hasha")
-import { TreeCache } from "../cache"
-import { STATIC_DIR } from "../constants"
 
 const submoduleErrorSuggestion = `Perhaps you need to run ${chalk.underline(`git submodule update --recursive`)}?`
 const hashConcurrencyLimit = 50
