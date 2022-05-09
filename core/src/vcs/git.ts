@@ -30,6 +30,7 @@ import { mapLimit } from "async"
 import { PassThrough } from "stream"
 import hasha = require("hasha")
 import { TreeCache } from "../cache"
+import { STATIC_DIR } from "../constants"
 
 const submoduleErrorSuggestion = `Perhaps you need to run ${chalk.underline(`git submodule update --recursive`)}?`
 const hashConcurrencyLimit = 50
@@ -76,10 +77,12 @@ export class GitHandler extends VcsHandler {
   name = "git"
   repoRoots = new Map()
   profiler: Profiler
+  private readonly gitSafeDirs: Record<string, boolean>
 
   constructor(...args: [string, string, string[], TreeCache]) {
     super(...args)
     this.profiler = getDefaultProfiler()
+    this.gitSafeDirs = {}
   }
 
   gitCli(log: LogEntry, cwd: string): GitCli {
@@ -103,10 +106,52 @@ export class GitHandler extends VcsHandler {
     }
   }
 
+  /**
+   * Checks if a given {@code path} is a valid and safe Git repository.
+   * If it is a valid Git repository owned by another user,
+   * then the static dir will be added to the list of safe directories in .gitconfig.
+   *
+   * Git has stricter repository ownerships checks since 2.36.0,
+   * see https://github.blog/2022-04-18-highlights-from-git-2-36/ for more details.
+   */
+  private async ensureSafeDirGitRepo(log: LogEntry, path: string): Promise<void> {
+    if (this.gitSafeDirs[path]) {
+      return
+    }
+
+    const git = this.gitCli(log, path)
+    try {
+      await git("status")
+    } catch (err) {
+      // Git has stricter repo ownerships checks since 2.36.0
+      if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: unsafe repository")) {
+        log.warn(
+          chalk.yellow(
+            "It looks like you're using Git 2.36.0 or newer " +
+              `and the Garden static directory "${path}" is owned by someone else. ` +
+              "It will be added to safe.directory list in the .gitconfig."
+          )
+        )
+        // add the safe directory globally to be able to run git command outside a (trusted) git repo
+        await git("config", "--global", "--add", "safe.directory", path)
+        this.gitSafeDirs[path] = true
+        log.debug(`Configured git to trust repository in ${path}`)
+        return
+      } else {
+        log.error(`Unexpected Git error occurred. Exit code: ${err.exitCode}. Error message: ${err.stderr}`)
+      }
+
+      throw err
+    }
+    this.gitSafeDirs[path] = true
+  }
+
   async getRepoRoot(log: LogEntry, path: string) {
     if (this.repoRoots.has(path)) {
       return this.repoRoots.get(path)
     }
+
+    await this.ensureSafeDirGitRepo(log, STATIC_DIR)
     const git = this.gitCli(log, path)
 
     try {
