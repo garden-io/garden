@@ -28,7 +28,7 @@ async function getCommitMsg(repoPath: string) {
 }
 
 async function commit(msg: string, repoPath: string) {
-  // Ensure master contains changes when commiting
+  // Ensure master contains changes when committing
   const uniqueFilename = `${uuidv4()}.txt`
   const filePath = join(repoPath, uniqueFilename)
   await createFile(filePath)
