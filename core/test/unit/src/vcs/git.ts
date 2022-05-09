@@ -9,11 +9,11 @@
 import execa = require("execa")
 import { expect } from "chai"
 import tmp from "tmp-promise"
-import { createFile, writeFile, realpath, mkdir, remove, symlink, ensureSymlink, lstat } from "fs-extra"
-import { join, resolve, basename, relative } from "path"
+import { createFile, ensureSymlink, lstat, mkdir, realpath, remove, symlink, writeFile } from "fs-extra"
+import { basename, join, relative, resolve } from "path"
 
 import { expectError, makeTestGardenA, TestGarden } from "../../../helpers"
-import { getCommitIdFromRefList, parseGitUrl, GitHandler } from "../../../../src/vcs/git"
+import { getCommitIdFromRefList, GitHandler, parseGitUrl } from "../../../../src/vcs/git"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { hashRepoUrl } from "../../../../src/util/ext-source-util"
 import { deline } from "../../../../src/util/string"
