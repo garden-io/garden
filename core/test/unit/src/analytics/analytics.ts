@@ -65,6 +65,8 @@ describe("AnalyticsHandler", () => {
           enterpriseDomainV2: undefined,
           isLoggedIn: false,
           ciName: analytics["ciName"],
+          cloudProjectId: undefined,
+          customer: undefined,
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
           sessionId: analytics["sessionId"],
@@ -113,6 +115,8 @@ describe("AnalyticsHandler", () => {
           enterpriseDomain: undefined,
           enterpriseDomainV2: undefined,
           isLoggedIn: false,
+          cloudProjectId: undefined,
+          customer: undefined,
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
@@ -151,6 +155,8 @@ describe("AnalyticsHandler", () => {
           enterpriseProjectId: analytics.hash("dummy-id"),
           enterpriseProjectIdV2: analytics.hashV2("dummy-id"),
           isLoggedIn: false,
+          cloudProjectId: analytics["cloudProjectId"],
+          customer: analytics["customer"],
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
@@ -328,7 +334,8 @@ describe("AnalyticsHandler", () => {
       expect(pendingEvents).to.eql([
         {
           event: "Run Command",
-          userId: pendingEvents[0].userId,
+          anonymousId: pendingEvents[0].anonymousId,
+          userId: undefined,
           properties: {
             name: "test-command-A",
             projectId: analytics["projectId"],
@@ -340,6 +347,8 @@ describe("AnalyticsHandler", () => {
             enterpriseDomain: undefined,
             enterpriseDomainV2: undefined,
             isLoggedIn: false,
+            cloudProjectId: undefined,
+            customer: undefined,
             ciName: analytics["ciName"],
             system: analytics["systemConfig"],
             isCI: analytics["isCI"],
@@ -355,6 +364,52 @@ describe("AnalyticsHandler", () => {
         },
       ])
       expect(scope.done()).to.not.throw
+    })
+
+    context("cloudVersion", () => {
+      it("should identify user with cloud version undefined", async () => {
+        scope
+          .post(`/v1/batch`, (body) => {
+            const events = body.batch.map((event) => event.type)
+            // Assert that the event batch contains a single "identify" event
+            return isEqual(events, ["identify"])
+          })
+          .reply(200)
+          .post(`/v1/batch`, (body) => {
+            // Assert that the event batch contains the "track" events
+            return isEqual(getEvents(body), [
+              {
+                event: "Run Command",
+                type: "track",
+                name: "test-command-A",
+              },
+              {
+                event: "Run Command",
+                type: "track",
+                name: "test-command-B",
+              },
+              {
+                event: "Run Command",
+                type: "track",
+                name: "test-command-C",
+              },
+            ])
+          })
+          .reply(200)
+
+        await garden.globalConfigStore.set(["analytics", "firstRun"], false)
+        // ensure the cloud version is not in the config
+        await garden.globalConfigStore.delete(["analytics", "cloudVersion"])
+
+        analytics = await AnalyticsHandler.init(garden, garden.log)
+
+        analytics.trackCommand("test-command-A")
+        analytics.trackCommand("test-command-B")
+        analytics.trackCommand("test-command-C")
+        await analytics.flush()
+
+        expect(scope.done()).to.not.throw
+      })
     })
   })
 })

@@ -63,8 +63,8 @@ interface AnalyticsEventProperties {
   enterpriseDomain?: string
   enterpriseDomainV2?: string
   isLoggedIn: boolean
-  customer: string | undefined
-  cloudProjectId: string | undefined
+  customer?: string
+  cloudProjectId?: string
   ciName: string | null
   system: SystemInfo
   isCI: boolean
@@ -141,9 +141,9 @@ export class AnalyticsHandler {
   private enterpriseProjectIdV2?: string
   private enterpriseDomainV2?: string
   private isLoggedIn: boolean
-  private cloudUserId: string | undefined
-  private cloudCustomerName: string | undefined
-  private cloudProjectId: string | undefined
+  private cloudUserId?: string
+  private cloudCustomerName?: string
+  private cloudProjectId?: string
   private ciName = ci.name
   private systemConfig: SystemInfo
   private isCI = ci.isCI
