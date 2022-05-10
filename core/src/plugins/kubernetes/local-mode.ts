@@ -115,7 +115,7 @@ export class ProxySshKeystore {
     if (!ProxySshKeystore.serviceKeyPairs[serviceDirPath]) {
       await ensureDir(serviceDirPath)
       const keyPair = new KeyPair(serviceDirPath)
-      ProxySshKeystore.serviceKeyPairs[serviceDirPath] = new KeyPair(serviceDirPath)
+      ProxySshKeystore.serviceKeyPairs[serviceDirPath] = keyPair
       await ProxySshKeystore.generateSshKeys(keyPair, service, log)
     }
     return ProxySshKeystore.serviceKeyPairs[serviceDirPath]
