@@ -8,13 +8,14 @@
 
 import { expect } from "chai"
 import { RetriableProcess } from "../../../../src/util/retriable-process"
-import { Logger, getLogger } from "../../../../src/logger/logger"
+import { getLogger } from "../../../../src/logger/logger"
 import { sleep } from "../../../../src/util/util"
+import { initTestLogger } from "../../../helpers"
 
 // FIXME: some tests are skipped because child-processes are not getting killed in CircleCI pipeline for some reason.
 
-describe("RetriableProcess", () => {
-  Logger.initialize({ level: 4, type: "basic" })
+describe("RetriableProcess", async () => {
+  initTestLogger()
   const log = getLogger().placeholder()
 
   const doNothingForeverOsCommand = { command: "tail -f /dev/null" }
