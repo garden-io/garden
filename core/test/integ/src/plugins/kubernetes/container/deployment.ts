@@ -361,7 +361,6 @@ describe("kubernetes container deployment handlers", () => {
       })
     })
 
-    // it("should increase readiness probes when in local mode", async () => { <-- todo?
     it("should remove readiness probes when in local mode", async () => {
       const service = graph.getService("local-mode")
       const namespace = provider.config.namespace!.name!

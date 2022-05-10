@@ -208,8 +208,6 @@ function patchOriginalServiceSpec(
       originalServiceSpec.env[key] = localModeEnvVars[key]
     }
   }
-
-  delete originalServiceSpec.healthCheck
 }
 
 /**
@@ -247,9 +245,6 @@ function patchMainContainer(
       containerPort: port.containerPort,
     })
   }
-
-  // fixme: disabled health checks for proxy container, should those be enabled?
-  delete mainContainer.readinessProbe
 }
 
 /**

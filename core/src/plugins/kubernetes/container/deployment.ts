@@ -735,10 +735,10 @@ function configureHealthCheck(
   // hot reload event.
   container.livenessProbe = {
     initialDelaySeconds: readinessPeriodSeconds * readinessFailureThreshold,
-    periodSeconds: mode === "dev" ? 10 : 5,
+    periodSeconds: mode === "dev" || mode === "local" ? 10 : 5,
     timeoutSeconds: spec.healthCheck?.livenessTimeoutSeconds || 3,
     successThreshold: 1,
-    failureThreshold: mode === "dev" ? 30 : 3,
+    failureThreshold: mode === "dev" || mode === "local" ? 30 : 3,
   }
 
   const portsByName = keyBy(spec.ports, "name")
@@ -760,6 +760,11 @@ function configureHealthCheck(
     container.livenessProbe.tcpSocket = container.readinessProbe.tcpSocket
   } else {
     throw new Error("Must specify type of health check when configuring health check.")
+  }
+
+  // readiness of a local mode service depends on some further steps and can't be verified here
+  if (mode === "local") {
+    delete container.readinessProbe
   }
 }
 
