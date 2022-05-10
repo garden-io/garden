@@ -31,8 +31,6 @@ import pRetry = require("p-retry")
 import getPort = require("get-port")
 import { shutdown } from "../../util/util"
 
-export const builtInExcludes = ["/**/*.git", "**/*.garden"]
-
 export const localModeGuideLink = "https://docs.garden.io/guides/running-service-in-local-mode.md"
 
 const localhost = "127.0.0.1"
