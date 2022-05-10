@@ -96,6 +96,13 @@ export async function startContainerDevSync({
   service: ContainerService
 }) {
   if (!service.spec.devMode) {
+    log.warn({
+      section: service.name,
+      msg: chalk.yellow(
+        `Service "${service.name}" has started in --dev-mode but doesn't have devMode configuration! ` +
+          "Please check its garden.yml config file."
+      ),
+    })
     return
   }
 
@@ -127,6 +134,13 @@ export async function startLocalMode({
   service: ContainerService
 }) {
   if (!service.spec.localMode) {
+    log.warn({
+      section: service.name,
+      msg: chalk.yellow(
+        `Service "${service.name}" has started in --local-mode but doesn't have localMode configuration! ` +
+          "Please check its garden.yml config file."
+      ),
+    })
     return
   }
 
