@@ -105,7 +105,7 @@ export class DeployTask extends BaseTask {
         // statuses and results.
         return [statusTask, ...buildTasks, ...getServiceStatusDeps(this, deps), ...getTaskResultDeps(this, deps)]
       } else {
-        return [statusTask, ...buildTasks, ...getDeployDeps(this, deps, false), ...getTaskDeps(this, deps, false)]
+        return [statusTask, ...buildTasks, ...getDeployDeps(this, deps, this.force), ...getTaskDeps(this, deps, false)]
       }
     }
   }
