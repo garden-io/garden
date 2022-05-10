@@ -6,13 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import env from "env-var"
 import { expect } from "chai"
 import { RetriableProcess } from "../../../../src/util/retriable-process"
 import { getLogger } from "../../../../src/logger/logger"
 import { sleep } from "../../../../src/util/util"
 import { initTestLogger } from "../../../helpers"
-
-// FIXME: some tests are skipped because child-processes are not getting killed in CircleCI pipeline for some reason.
 
 describe("RetriableProcess", async () => {
   initTestLogger()
@@ -23,6 +22,16 @@ describe("RetriableProcess", async () => {
 
   const longTimeMs = 10000000
   const longSleepOsCommand = { command: `sleep ${longTimeMs}` }
+
+  /**
+   * FIXME: some tests are skipped because child-processes are not getting killed in CircleCI pipeline for some reason.
+   * This function is used to skip some tests and modify some expectations in CircleCI pipeline.
+   */
+  function isCiEnv() {
+    const ciEnv = env.get("CI").required(false).asBool()
+    const circleCiEnv = env.get("CIRCLECI").required(false).asBool()
+    return ciEnv || circleCiEnv
+  }
 
   function killNode(node: RetriableProcess) {
     const untypedNode: any = <any>node
@@ -89,7 +98,9 @@ describe("RetriableProcess", async () => {
 
   function expectStopped(node: RetriableProcess) {
     expect(node.getCurrentState()).to.eql("stopped")
-    //expect(node.getCurrentPid()).to.be.undefined // fixme: see the comment in the header
+    if (!isCiEnv()) {
+      expect(node.getCurrentPid()).to.be.undefined
+    }
     expect(node.getLastKnownPid()).to.be.not.undefined
   }
 
@@ -152,7 +163,11 @@ describe("RetriableProcess", async () => {
     expectStopped(rightChild2)
   })
 
-  it.skip("process subtree restarts on its root failure", async () => {
+  it("process subtree restarts on its root failure", async () => {
+    if (isCiEnv()) {
+      return
+    }
+
     const maxRetries = 5
     const minTimeoutMs = 500
     const [root, left, right, rightChild1, rightChild2] = longSleepingProcessTree(maxRetries, minTimeoutMs)
@@ -197,7 +212,11 @@ describe("RetriableProcess", async () => {
     expectStopped(rightChild2)
   })
 
-  it.skip("entire process tree restarts on root process failure", async () => {
+  it("entire process tree restarts on root process failure", async () => {
+    if (isCiEnv()) {
+      return
+    }
+
     const maxRetries = 5
     const minTimeoutMs = 500
 
@@ -249,7 +268,11 @@ describe("RetriableProcess", async () => {
     expectStopped(rightChild2)
   })
 
-  it.skip("entire process tree restarts when all processes are killed (root-to-leaf)", async () => {
+  it("entire process tree restarts when all processes are killed (root-to-leaf)", async () => {
+    if (isCiEnv()) {
+      return
+    }
+
     const maxRetries = 5
     const minTimeoutMs = 500
     const [root, left, right, rightChild1, rightChild2] = longSleepingProcessTree(maxRetries, minTimeoutMs)
@@ -298,7 +321,11 @@ describe("RetriableProcess", async () => {
     expectStopped(rightChild2)
   })
 
-  it.skip("entire process tree restarts when all processes are killed (leaf-to-root)", async () => {
+  it("entire process tree restarts when all processes are killed (leaf-to-root)", async () => {
+    if (isCiEnv()) {
+      return
+    }
+
     const maxRetries = 5
     const minTimeoutMs = 500
     const [root, left, right, rightChild1, rightChild2] = longSleepingProcessTree(maxRetries, minTimeoutMs)
