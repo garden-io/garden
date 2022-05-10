@@ -180,7 +180,7 @@ garden build --force  # or -f for short
 garden build my-module
 ```
 
-### Building a specific module, and wathcing for changes
+### Building a specific module, and watching for changes
 
 ```sh
 garden build my-module -w
