@@ -669,12 +669,12 @@ type: container
 name: my-container
 services:
   - name: my-service
-    dependencies: [task-a]
+    dependencies: [prep-task]
     env:
       PREP_TASK_OUTPUT: ${runtime.tasks.prep-task.outputs.log}  # <- resolves to "my task output"
 ```
 
-Here the output from `prep-task` is copied to an environment variable for `my-service`. _Note that you currently need to explicitly declare `task-a` as a dependency for this to work._
+Here the output from `prep-task` is copied to an environment variable for `my-service`. _Note that you currently need to explicitly declare `prep-task` as a dependency for this to work._
 
 For a practical use case, you might for example make a task that provisions some infrastructure or prepares some data, and then passes information about it to services.
 
