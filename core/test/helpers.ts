@@ -365,6 +365,9 @@ export const testPlugins = () => [testPlugin(), testPluginB(), testPluginC()]
 
 export const testProjectTempDirs: { [root: string]: DirectoryResult } = {}
 
+/**
+ * Create a garden instance for testing and setup a project if it doesn't exist already.
+ */
 export const makeTestGarden = profileAsync(async function _makeTestGarden(
   projectRoot: string,
   opts: TestGardenOpts = {}
