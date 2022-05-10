@@ -49,7 +49,6 @@ describe("local mode deployments and ssh tunneling behavior", () => {
   }
 
   it("should deploy a service in local mode and successfully start a port-forwarding", async () => {
-    await init("local")
     const service = graph.getService("local-mode")
     const module = service.module
     const log = garden.log
