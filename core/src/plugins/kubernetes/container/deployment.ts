@@ -490,7 +490,8 @@ export async function createWorkloadManifest({
   }
 
   if (spec.healthCheck) {
-    configureHealthCheck(container, spec, enableHotReload || enableDevMode || enableLocalMode)
+    const mode = enableHotReload || enableDevMode ? "dev" : enableLocalMode ? "local" : "normal"
+    configureHealthCheck(container, spec, mode)
   }
 
   if (spec.volumes && spec.volumes.length) {
@@ -709,7 +710,13 @@ function workloadConfig({
   }
 }
 
-function configureHealthCheck(container: V1Container, spec: ContainerServiceConfig["spec"], dev: boolean): void {
+type HealthCheckMode = "dev" | "local" | "normal"
+
+function configureHealthCheck(
+  container: V1Container,
+  spec: ContainerServiceConfig["spec"],
+  mode: HealthCheckMode
+): void {
   const readinessPeriodSeconds = 1
   const readinessFailureThreshold = 90
 
@@ -728,10 +735,10 @@ function configureHealthCheck(container: V1Container, spec: ContainerServiceConf
   // hot reload event.
   container.livenessProbe = {
     initialDelaySeconds: readinessPeriodSeconds * readinessFailureThreshold,
-    periodSeconds: dev ? 10 : 5,
+    periodSeconds: mode === "dev" ? 10 : 5,
     timeoutSeconds: spec.healthCheck?.livenessTimeoutSeconds || 3,
     successThreshold: 1,
-    failureThreshold: dev ? 30 : 3,
+    failureThreshold: mode === "dev" ? 30 : 3,
   }
 
   const portsByName = keyBy(spec.ports, "name")
