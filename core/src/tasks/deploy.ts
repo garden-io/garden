@@ -59,6 +59,10 @@ export class DeployTask extends BaseTask {
     hotReloadServiceNames,
   }: DeployTaskParams) {
     super({ garden, log, force, version: service.version })
+    log.info({
+      section: service.name,
+      msg: `new DeployTask(uid=${this.uid}, force=${force}, serviceName=${service.name})`,
+    })
     this.graph = graph
     this.service = service
     this.forceBuild = forceBuild
@@ -159,6 +163,11 @@ export class DeployTask extends BaseTask {
       status: "active",
       section: this.service.name,
       msg: `Deploying version ${version}...`,
+    })
+
+    log.info({
+      section: this.service.name,
+      msg: `DeployTask(uid=${this.uid}, force=${this.force}, serviceName=${this.service.name}).process()`,
     })
 
     if (!this.force && status.state === "ready" && (version === status.version || devModeSkipRedeploy)) {
