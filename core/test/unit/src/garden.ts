@@ -4383,17 +4383,16 @@ describe("Garden", () => {
       expect(result).to.eql(version)
     })
 
-    it("should otherwise return version from VCS handler", async () => {
+    it("should otherwise calculate fresh version using VCS handler", async () => {
       const garden = await makeTestGardenA()
       await garden.scanAndAddConfigs()
 
       garden.cache.delete(garden.log, ["moduleVersions", "module-b"])
 
       const config = await garden.resolveModule("module-b")
-      const resolveStub = td.replace(garden.vcs, "resolveModuleVersion")
-      const version: ModuleVersion = {
-        versionString: "banana",
-        dependencyVersions: {},
+      const resolveStub = td.replace(garden.vcs, "resolveTreeVersion")
+      const version: TreeVersion = {
+        contentHash: "banana",
         files: [],
       }
 
@@ -4401,7 +4400,10 @@ describe("Garden", () => {
 
       const result = await garden.resolveModuleVersion(garden.log, config, [])
 
-      expect(result).to.eql(version)
+      expect(result.versionString).not.to.eql(
+        config.version.versionString,
+        "should be different from first versionstring as svc returned different version"
+      )
     })
 
     it("should ignore cache if force=true", async () => {
