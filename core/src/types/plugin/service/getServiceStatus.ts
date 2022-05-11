@@ -19,6 +19,7 @@ export interface GetServiceStatusParams<M extends GardenModule = GardenModule, S
   extends PluginServiceActionParamsBase<M, S> {
   devMode: boolean
   hotReload: boolean
+  localMode: boolean
   runtimeContext: RuntimeContext
 }
 
@@ -36,6 +37,7 @@ export const getServiceStatus = () => ({
     runtimeContext: runtimeContextSchema(),
     devMode: joi.boolean().default(false).description("Whether the service should be configured in dev mode."),
     hotReload: joi.boolean().default(false).description("Whether the service should be configured for hot-reloading."),
+    localMode: joi.boolean().default(false).description("Whether the service should be configured in local mode."),
   }),
   resultSchema: serviceStatusSchema(),
 })

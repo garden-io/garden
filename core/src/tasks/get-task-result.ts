@@ -34,6 +34,7 @@ export class GetTaskResultTask extends BaseTask {
     super({ ...params, version: params.task.version })
     this.graph = params.graph
     this.task = params.task
+    this.validate()
   }
 
   async resolveDependencies() {

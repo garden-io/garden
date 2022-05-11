@@ -192,6 +192,7 @@ describe("kubernetes container module handlers", () => {
         forceBuild: false,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       garden.events.eventLog = []
@@ -223,6 +224,7 @@ describe("kubernetes container module handlers", () => {
         forceBuild: false,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       await expectError(
@@ -258,6 +260,7 @@ describe("kubernetes container module handlers", () => {
           forceBuild: false,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         await emptyDir(garden.artifactsPath)
@@ -280,6 +283,7 @@ describe("kubernetes container module handlers", () => {
           forceBuild: false,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         await emptyDir(garden.artifactsPath)
@@ -304,6 +308,7 @@ describe("kubernetes container module handlers", () => {
           forceBuild: false,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         await emptyDir(garden.artifactsPath)
@@ -326,6 +331,7 @@ describe("kubernetes container module handlers", () => {
           forceBuild: false,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         const result = await garden.processTasks([testTask])
@@ -352,6 +358,7 @@ describe("kubernetes container module handlers", () => {
           forceBuild: false,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         const result = await garden.processTasks([testTask])

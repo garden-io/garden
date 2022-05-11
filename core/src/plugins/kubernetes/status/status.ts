@@ -277,6 +277,7 @@ interface ComparisonResult {
   remoteResources: KubernetesResource[]
   deployedWithDevMode: boolean
   deployedWithHotReloading: boolean
+  deployedWithLocalMode: boolean
 }
 
 /**
@@ -303,6 +304,7 @@ export async function compareDeployedResources(
     remoteResources: <KubernetesResource[]>deployedResources.filter((o) => o !== null),
     deployedWithDevMode: false,
     deployedWithHotReloading: false,
+    deployedWithLocalMode: false,
   }
 
   const logDescription = (resource: KubernetesResource) => `${resource.kind}/${resource.metadata.name}`
@@ -368,6 +370,9 @@ export async function compareDeployedResources(
       }
       if (isConfiguredForHotReloading(<HotReloadableResource>manifest)) {
         result.deployedWithHotReloading = true
+      }
+      if (isConfiguredForLocalMode(<HotReloadableResource>manifest)) {
+        result.deployedWithLocalMode = true
       }
     }
 
@@ -459,6 +464,10 @@ export function isConfiguredForDevMode(resource: HotReloadableResource): boolean
 
 export function isConfiguredForHotReloading(resource: HotReloadableResource): boolean {
   return resource.metadata.annotations?.[gardenAnnotationKey("hot-reload")] === "true"
+}
+
+export function isConfiguredForLocalMode(resource: HotReloadableResource): boolean {
+  return resource.metadata.annotations?.[gardenAnnotationKey("local-mode")] === "true"
 }
 
 export async function getDeployedResource(

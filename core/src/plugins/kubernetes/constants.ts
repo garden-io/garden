@@ -17,6 +17,9 @@ export const MAX_CONFIGMAP_DATA_SIZE = 1024 * 1024 // max ConfigMap data size is
 // the outputs field, so we cap at 250kB.
 export const MAX_RUN_RESULT_LOG_LENGTH = 250 * 1024
 
+export const PROXY_CONTAINER_USER_NAME = "proxy-user"
+export const PROXY_CONTAINER_SSH_TUNNEL_PORT = 2222
+
 export const systemDockerAuthSecretName = "builder-docker-config"
 export const dockerAuthSecretKey = ".dockerconfigjson"
 export const inClusterRegistryHostname = "127.0.0.1:5000"
@@ -26,6 +29,7 @@ export const dockerDaemonDeploymentName = "garden-docker-daemon"
 
 export const k8sUtilImageName = "gardendev/k8s-util:0.5.3"
 export const k8sSyncUtilImageName = "gardendev/k8s-sync:0.1.4"
+export const reverseProxyImageName = "gardendev/k8s-reverse-proxy:0.0.1-amd64"
 
 export const dockerDaemonContainerName = "docker-daemon"
 export const skopeoDaemonContainerName = "util"

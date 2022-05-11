@@ -27,6 +27,7 @@ export interface GetServiceStatusTaskParams {
   log: LogEntry
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
+  localModeServiceNames: string[]
 }
 
 @Profile()
@@ -37,6 +38,7 @@ export class GetServiceStatusTask extends BaseTask {
   service: GardenService
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
+  localModeServiceNames: string[]
 
   constructor({
     garden,
@@ -46,12 +48,15 @@ export class GetServiceStatusTask extends BaseTask {
     force,
     devModeServiceNames,
     hotReloadServiceNames,
+    localModeServiceNames,
   }: GetServiceStatusTaskParams) {
     super({ garden, log, force, version: service.version })
     this.graph = graph
     this.service = service
     this.devModeServiceNames = devModeServiceNames
     this.hotReloadServiceNames = hotReloadServiceNames
+    this.localModeServiceNames = localModeServiceNames
+    this.validate()
   }
 
   async resolveDependencies() {
@@ -66,6 +71,7 @@ export class GetServiceStatusTask extends BaseTask {
         force: false,
         devModeServiceNames: this.devModeServiceNames,
         hotReloadServiceNames: this.hotReloadServiceNames,
+        localModeServiceNames: this.localModeServiceNames,
       })
     })
 
@@ -95,6 +101,7 @@ export class GetServiceStatusTask extends BaseTask {
 
     const devMode = includes(this.devModeServiceNames, this.service.name)
     const hotReload = !devMode && includes(this.hotReloadServiceNames, this.service.name)
+    const localMode = !devMode && includes(this.localModeServiceNames, this.service.name)
 
     const dependencies = this.graph.getDependencies({
       nodeType: "deploy",
@@ -126,6 +133,7 @@ export class GetServiceStatusTask extends BaseTask {
         log,
         devMode,
         hotReload,
+        localMode,
         runtimeContext,
       })
     } catch (err) {

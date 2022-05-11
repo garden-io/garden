@@ -17,6 +17,7 @@ import { getModuleTypeBases } from "../plugins"
 import { ModuleType } from "./plugin/plugin"
 import { moduleOutputsSchema } from "./plugin/module/getModuleOutputs"
 import { LogEntry } from "../logger/log-entry"
+import { join } from "path"
 
 export interface FileCopySpec {
   source: string
@@ -52,6 +53,8 @@ export interface GardenModule<
 
   compatibleTypes: string[]
   _config: ModuleConfig<M, S, T, W>
+
+  localModeSshKeystorePath: string
 }
 
 export const moduleSchema = () =>
@@ -83,6 +86,9 @@ export const moduleSchema = () =>
     taskDependencyNames: joiArray(joiIdentifier())
       .required()
       .description("The names of all the tasks and services that the tasks in this module depend on."),
+    localModeSshKeystorePath: joi
+      .string()
+      .description("The root directory to store proxy ssh keys for the services which are running in local mode."),
   })
 
 export interface ModuleMap<T extends GardenModule = GardenModule> {
@@ -138,6 +144,8 @@ export async function moduleFromConfig({
 
     compatibleTypes,
     _config: config,
+
+    localModeSshKeystorePath: join(garden.gardenDirPath, "ssh-keys"),
   }
 
   for (const d of module.build.dependencies) {

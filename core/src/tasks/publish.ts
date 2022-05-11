@@ -45,6 +45,7 @@ export class PublishTask extends BaseTask {
     this.module = module
     this.forceBuild = forceBuild
     this.tagTemplate = tagTemplate
+    this.validate()
   }
 
   async resolveDependencies() {

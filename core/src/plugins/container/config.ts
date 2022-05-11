@@ -6,30 +6,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GardenModule, FileCopySpec } from "../../types/module"
+import { FileCopySpec, GardenModule } from "../../types/module"
 import {
-  joiUserIdentifier,
-  PrimitiveMap,
-  joiPrimitive,
-  joi,
   envVarRegex,
-  Primitive,
-  joiModuleIncludeDirective,
+  joi,
   joiIdentifier,
+  joiModuleIncludeDirective,
+  joiPrimitive,
   joiSparseArray,
+  joiStringMap,
+  joiUserIdentifier,
+  Primitive,
+  PrimitiveMap,
 } from "../../config/common"
-import { ArtifactSpec } from "./../../config/validation"
+import { ArtifactSpec } from "../../config/validation"
 import { GardenService, ingressHostnameSchema, linkUrlSchema } from "../../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
-import { ModuleSpec, ModuleConfig, baseBuildSpecSchema, BaseBuildSpec } from "../../config/module"
-import { CommonServiceSpec, ServiceConfig, baseServiceSpecSchema } from "../../config/service"
-import { baseTaskSpecSchema, BaseTaskSpec, cacheResultSchema } from "../../config/task"
-import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
-import { joiStringMap } from "../../config/common"
+import { BaseBuildSpec, baseBuildSpecSchema, ModuleConfig, ModuleSpec } from "../../config/module"
+import { baseServiceSpecSchema, CommonServiceSpec, ServiceConfig } from "../../config/service"
+import { BaseTaskSpec, baseTaskSpecSchema, cacheResultSchema } from "../../config/task"
+import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
 import { dedent, deline } from "../../util/string"
 import { ContainerModuleOutputs } from "./container"
 import { devModeGuideLink } from "../kubernetes/dev-mode"
 import { k8sDeploymentTimeoutSchema } from "../kubernetes/config"
+import { localModeGuideLink } from "../kubernetes/local-mode"
 
 export const defaultContainerLimits: ServiceLimitSpec = {
   cpu: 1000, // = 1000 millicpu = 1 CPU
@@ -116,6 +117,7 @@ export interface ContainerServiceSpec extends CommonServiceSpec {
   args: string[]
   daemon: boolean
   devMode?: ContainerDevModeSpec
+  localMode?: ContainerLocalModeSpec
   ingresses: ContainerIngressSpec[]
   env: PrimitiveMap
   healthCheck?: ServiceHealthCheckSpec
@@ -300,6 +302,35 @@ export const containerDevModeSchema = () =>
     Dev mode is enabled when running the \`garden dev\` command, and by setting the \`--dev\` flag on the \`garden deploy\` command.
 
     See the [Code Synchronization guide](${devModeGuideLink}) for more information.
+  `)
+
+export interface ContainerLocalModeSpec {
+  localAppPort: number
+  command?: string[]
+  containerName?: string
+}
+
+export const containerLocalModeSchema = () =>
+  joi.object().keys({
+    command: joi
+      .sparseArray()
+      .optional()
+      .items(joi.string())
+      .description("The command to run the local application (optional)."),
+    containerName: joi.string().optional().description("The k8s name of the remote container (optional)."),
+    localAppPort: joi.number().description("The working port of the local application."),
+  }).description(dedent`
+    Specifies necessary configuration details of the local application which will replace a target remote service in the k8s cluster.
+
+    The target service in the k8s cluster will be replaced by a proxy container with an ssh server running,
+    and the reverse port forwarding will be automatically configured to route the traffic to the local service and back.
+
+    If the \`command\` is provided then its value must contain a command which is executable from any location.
+    The \`command\` should not depend on the current service or module path.
+
+    Local mode is enabled by setting the \`--local-mode\` option on the \`garden deploy\` command.
+
+    See the [Local Mode guide](${localModeGuideLink}) for more information.
   `)
 
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
@@ -587,6 +618,7 @@ const containerServiceSchema = () =>
         May not be supported by all providers.
       `),
     devMode: containerDevModeSchema(),
+    localMode: containerLocalModeSchema(),
     ingresses: joiSparseArray(ingressSchema())
       .description("List of ingress endpoints that the service exposes.")
       .example([{ path: "/api", port: "http" }]),

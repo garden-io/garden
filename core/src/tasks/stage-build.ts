@@ -40,6 +40,7 @@ export class StageBuildTask extends BaseTask {
     this.graph = graph
     this.module = module
     this.extraDependencies = dependencies || []
+    this.validate()
   }
 
   async resolveDependencies() {

@@ -30,6 +30,7 @@ export async function execInHelmService(params: ExecInServiceParams<HelmModule>)
     },
     devMode: false,
     hotReload: false,
+    localMode: false,
   })
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 

@@ -38,6 +38,7 @@ export class BuildTask extends BaseTask {
     super({ garden, log, force, version: module.version.versionString })
     this.graph = graph
     this.module = module
+    this.validate()
   }
 
   static async factory(params: BuildTaskParams): Promise<BaseTask[]> {

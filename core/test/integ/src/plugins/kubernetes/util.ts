@@ -97,6 +97,7 @@ describe("util", () => {
           service,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         const resource = await createWorkloadManifest({
@@ -107,6 +108,7 @@ describe("util", () => {
           namespace: provider.config.namespace!.name!,
           enableDevMode: false,
           enableHotReload: false,
+          enableLocalMode: false,
           log: garden.log,
           production: false,
           blueGreen: false,
@@ -137,6 +139,7 @@ describe("util", () => {
           service,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
@@ -393,6 +396,7 @@ describe("util", () => {
           service,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         await helmGarden.processTasks([deployTask], { throwOnError: true })

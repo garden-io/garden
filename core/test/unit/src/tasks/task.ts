@@ -130,6 +130,7 @@ describe("TaskTask", () => {
         log: garden.log,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       let result = await garden.processTasks([taskTask], { throwOnError: true })
@@ -182,6 +183,7 @@ describe("TaskTask", () => {
         log: garden.log,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       let result = await garden.processTasks([taskTask], { throwOnError: true })

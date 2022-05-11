@@ -112,6 +112,9 @@ deployments:
     # Whether the service was deployed with dev mode enabled.
     devMode:
 
+    # Whether the service was deployed with local mode enabled.
+    localMode:
+
     namespaceStatuses:
       - pluginName:
 
@@ -449,6 +452,9 @@ serviceStatuses:
     # Whether the service was deployed with dev mode enabled.
     devMode:
 
+    # Whether the service was deployed with local mode enabled.
+    localMode:
+
     namespaceStatuses:
       - pluginName:
 
@@ -558,6 +564,9 @@ Examples:
 
   # Whether the service was deployed with dev mode enabled.
   devMode:
+
+  # Whether the service was deployed with local mode enabled.
+  localMode:
 
   namespaceStatuses:
     - pluginName:
@@ -673,6 +682,7 @@ Examples:
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-deploy.
   | `--dev-mode` | `-dev` | array:string | The name(s) of the service(s) to deploy with dev mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with dev mode enabled. When this option is used, the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
   | `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading). When this option is used, the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
+  | `--local-mode` |  | array:string | [EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with local mode enabled. When this option is used, the command is run in persistent mode.
   | `--skip` |  | array:string | The name(s) of services you&#x27;d like to skip when deploying.
   | `--skip-dependencies` | `-no-deps` | boolean | Deploy the specified services, but don&#x27;t deploy any additional services that they depend on or run any tasks that they depend on. This option can only be used when a list of service names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to deploy a subset of services in dev mode without redeploying any service dependencies that may have changed since you last deployed.
   | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. Ignored if --watch/-w flag is set or when in dev or hot-reload mode.
@@ -721,6 +731,9 @@ deployments:
 
     # Whether the service was deployed with dev mode enabled.
     devMode:
+
+    # Whether the service was deployed with local mode enabled.
+    localMode:
 
     namespaceStatuses:
       - pluginName:
@@ -2291,6 +2304,9 @@ modules:
 
     # The names of all the tasks and services that the tasks in this module depend on.
     taskDependencyNames:
+
+    # The root directory to store proxy ssh keys for the services which are running in local mode.
+    localModeSshKeystorePath:
 ```
 
 ### garden get status
@@ -2343,6 +2359,9 @@ services:
 
     # Whether the service was deployed with dev mode enabled.
     devMode:
+
+    # Whether the service was deployed with local mode enabled.
+    localMode:
 
     namespaceStatuses:
       - pluginName:
@@ -2911,6 +2930,9 @@ deployments:
 
     # Whether the service was deployed with dev mode enabled.
     devMode:
+
+    # Whether the service was deployed with local mode enabled.
+    localMode:
 
     namespaceStatuses:
       - pluginName:
@@ -3487,6 +3509,9 @@ deployments:
 
     # Whether the service was deployed with dev mode enabled.
     devMode:
+
+    # Whether the service was deployed with local mode enabled.
+    localMode:
 
     namespaceStatuses:
       - pluginName:

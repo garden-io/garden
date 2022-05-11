@@ -30,6 +30,7 @@ export interface TaskTaskParams {
   forceBuild: boolean
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
+  localModeServiceNames: string[]
 }
 
 class RunTaskError extends Error {
@@ -47,6 +48,7 @@ export class TaskTask extends BaseTask {
   forceBuild: boolean
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
+  localModeServiceNames: string[]
 
   constructor({
     garden,
@@ -57,6 +59,7 @@ export class TaskTask extends BaseTask {
     forceBuild,
     devModeServiceNames,
     hotReloadServiceNames,
+    localModeServiceNames,
   }: TaskTaskParams) {
     super({ garden, log, force, version: task.version })
     this.graph = graph
@@ -65,6 +68,8 @@ export class TaskTask extends BaseTask {
     this.forceBuild = forceBuild
     this.devModeServiceNames = devModeServiceNames
     this.hotReloadServiceNames = hotReloadServiceNames
+    this.localModeServiceNames = localModeServiceNames
+    this.validate()
   }
 
   async resolveDependencies(): Promise<BaseTask[]> {
@@ -88,6 +93,7 @@ export class TaskTask extends BaseTask {
         forceBuild: false,
         devModeServiceNames: this.devModeServiceNames,
         hotReloadServiceNames: this.hotReloadServiceNames,
+        localModeServiceNames: this.localModeServiceNames,
       })
     })
 
@@ -101,6 +107,7 @@ export class TaskTask extends BaseTask {
         forceBuild: false,
         devModeServiceNames: this.devModeServiceNames,
         hotReloadServiceNames: this.hotReloadServiceNames,
+        localModeServiceNames: this.localModeServiceNames,
       })
     })
 

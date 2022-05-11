@@ -25,7 +25,7 @@ import { printHeader } from "../logger/util"
 import { BaseTask } from "../tasks/base"
 import {
   getDevModeModules,
-  getDevModeServiceNames,
+  getMatchingServiceNames,
   getHotReloadServiceNames,
   validateHotReloadServiceNames,
 } from "./helpers"
@@ -66,6 +66,13 @@ export const deployOpts = {
       the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
     `,
     alias: "hot",
+  }),
+  "local-mode": new StringsParameter({
+    help: deline`[EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled.
+    Use comma as a separator to specify multiple services. Use * to deploy all
+    services with local mode enabled. When this option is used,
+    the command is run in persistent mode.
+    `,
   }),
   "skip": new StringsParameter({
     help: "The name(s) of services you'd like to skip when deploying.",
@@ -122,7 +129,7 @@ export class DeployCommand extends Command<Args, Opts> {
   outputsSchema = () => processCommandResultSchema()
 
   isPersistent({ opts }: PrepareParams<Args, Opts>) {
-    return !!opts.watch || !!opts["hot-reload"] || !!opts["dev-mode"] || !!opts.forward
+    return !!opts.watch || !!opts["hot-reload"] || !!opts["dev-mode"] || !!opts["local-mode"] || !!opts.forward
   }
 
   printHeader({ headerLog }) {
@@ -183,8 +190,9 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const modules = Array.from(new Set(services.map((s) => s.module)))
-    const devModeServiceNames = getDevModeServiceNames(opts["dev-mode"], initGraph)
+    const devModeServiceNames = getMatchingServiceNames(opts["dev-mode"], initGraph)
     const hotReloadServiceNames = getHotReloadServiceNames(opts["hot-reload"], initGraph)
+    const localModeServiceNames = getMatchingServiceNames(opts["local-mode"], initGraph)
 
     let watch = opts.watch
 
@@ -218,6 +226,7 @@ export class DeployCommand extends Command<Args, Opts> {
           skipRuntimeDependencies,
           devModeServiceNames,
           hotReloadServiceNames,
+          localModeServiceNames,
         })
     )
 
@@ -239,6 +248,7 @@ export class DeployCommand extends Command<Args, Opts> {
           servicesWatched: services.map((s) => s.name),
           devModeServiceNames,
           hotReloadServiceNames,
+          localModeServiceNames,
         })
 
         return tasks

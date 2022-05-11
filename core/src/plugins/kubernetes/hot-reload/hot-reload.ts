@@ -128,6 +128,7 @@ export async function hotReloadContainer({
     namespace,
     enableDevMode: false,
     enableHotReload: true,
+    enableLocalMode: false,
     production: k8sCtx.production,
     log,
     blueGreen: provider.config.deploymentStrategy === "blue-green",
