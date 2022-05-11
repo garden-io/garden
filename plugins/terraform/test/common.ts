@@ -9,7 +9,7 @@
 import { join } from "path"
 import { pathExists, remove } from "fs-extra"
 import { gardenPlugin, TerraformProvider } from ".."
-import { TestGarden, makeTestGarden } from "@garden-io/sdk/testing"
+import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
 import { LogEntry, PluginContext } from "@garden-io/sdk/types"
 import { getWorkspaces, setWorkspace } from "../common"
 import { expect } from "chai"
