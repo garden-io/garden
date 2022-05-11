@@ -21,6 +21,8 @@
   },
   "scripts": {
     "clean": "rm -f *.js *.d.ts *.map tsconfig.buildinfo tsconfig.tsbuildinfo",
+    "fix-format": "prettier --write \"**/*.ts\"",
+    "lint": "tslint -p .",
     "test": "mocha"
   },
   "author": "Garden Technologies, Inc. <info@garden.io>",
