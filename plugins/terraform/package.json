@@ -24,6 +24,8 @@
     "strip-ansi": "^6.0.0"
   },
   "scripts": {
+    "fix-format": "prettier --write \"**/*.ts\"",
+    "lint": "tslint -p .",
     "test": "mocha"
   },
   "author": "Garden Technologies, Inc. <info@garden.io>",
