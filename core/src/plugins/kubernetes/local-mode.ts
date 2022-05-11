@@ -19,7 +19,7 @@ import { KubernetesPluginContext } from "./config"
 import { LogEntry } from "../../logger/log-entry"
 import { getTargetResource } from "./port-forward"
 import chalk from "chalk"
-import { existsSync, rmSync } from "fs"
+import { rmSync } from "fs"
 import { execSync } from "child_process"
 import { join, resolve } from "path"
 import { ensureDir, readFileSync } from "fs-extra"
@@ -27,9 +27,9 @@ import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
 import { OsCommand, ProcessErrorMessage, ProcessMessage, RetriableProcess } from "../../util/retriable-process"
 import { isConfiguredForLocalMode } from "./status/status"
+import { shutdown } from "../../util/util"
 import pRetry = require("p-retry")
 import getPort = require("get-port")
-import { shutdown } from "../../util/util"
 
 export const localModeGuideLink = "https://docs.garden.io/guides/running-service-in-local-mode.md"
 
@@ -78,6 +78,7 @@ export class ProxySshKeystore {
    * Thus, there is no need to invalidate this cache. It just memoizes each module specific existing keystore.
    */
   private static readonly serviceKeyPairs: Record<string, KeyPair> = {}
+  private static keysGenerated: boolean = false
 
   private static deleteFileFailSafe(filePath: string, log: LogEntry): void {
     try {
@@ -88,23 +89,31 @@ export class ProxySshKeystore {
   }
 
   private static async generateSshKeys(keyPair: KeyPair, service: ContainerService, log: LogEntry): Promise<KeyPair> {
-    if (!existsSync(keyPair.privateKeyPath)) {
-      await pRetry(() => execSync(`ssh-keygen -N "" -f ${keyPair.privateKeyPath}`), {
-        retries: 5,
-        minTimeout: 2000,
-        onFailedAttempt: async (err) => {
-          log.warn({
-            status: "active",
-            section: service.name,
-            msg: `Failed to create an ssh key pair for reverse proxy container. ${err.retriesLeft} attempts left.`,
-          })
-        },
-      })
+    if (ProxySshKeystore.keysGenerated) {
+      return keyPair
     }
+
+    // Empty pass-phrase, explicit filename,
+    // and auto-overwrite to rewrite old keys if the cleanup exit-hooks failed for some reason.
+    const sshKeyGenCmd = `ssh-keygen -N "" -f ${keyPair.privateKeyPath} <<<y`
+    await pRetry(() => execSync(sshKeyGenCmd), {
+      retries: 5,
+      minTimeout: 2000,
+      onFailedAttempt: async (err) => {
+        log.warn({
+          status: "active",
+          section: service.name,
+          msg: `Failed to create an ssh key pair for reverse proxy container. ${err.retriesLeft} attempts left.`,
+        })
+      },
+    })
+    ProxySshKeystore.keysGenerated = true
+
     process.once("exit", () => {
       ProxySshKeystore.deleteFileFailSafe(keyPair.privateKeyPath, log)
       ProxySshKeystore.deleteFileFailSafe(keyPair.publicKeyPath, log)
     })
+
     return keyPair
   }
 
