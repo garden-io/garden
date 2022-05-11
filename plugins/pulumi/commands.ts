@@ -8,12 +8,27 @@
 
 import chalk from "chalk"
 import Bluebird from "bluebird"
-import { ConfigGraph, Garden, GardenService, LogEntry, PluginTask } from "@garden-io/sdk/types"
-import { PluginCommand, PluginCommandParams } from "@garden-io/sdk/types"
+import {
+  ConfigGraph,
+  Garden,
+  GardenService,
+  LogEntry,
+  PluginCommand,
+  PluginCommandParams,
+  PluginTask,
+} from "@garden-io/sdk/types"
 
 import { PulumiModule, PulumiProvider } from "./config"
 import { Profile } from "@garden-io/core/build/src/util/profiling"
-import { cancelUpdate, getPreviewDirPath, previewStack, PulumiParams, refreshResources, reimportStack, selectStack } from "./helpers"
+import {
+  cancelUpdate,
+  getPreviewDirPath,
+  previewStack,
+  PulumiParams,
+  refreshResources,
+  reimportStack,
+  selectStack,
+} from "./helpers"
 import { dedent } from "@garden-io/sdk/util/string"
 import { emptyDir } from "fs-extra"
 import { ModuleConfigContext } from "@garden-io/core/build/src/config/template-contexts/module"
@@ -46,22 +61,22 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
       const { ctx } = params
       const previewDirPath = getPreviewDirPath(ctx)
       await previewStack({ ...params, logPreview: true, previewDirPath })
-    }
+    },
   },
   {
     name: "cancel",
     commandDescription: "pulumi cancel",
-    runFn: async (params) => await cancelUpdate(params)
+    runFn: async (params) => await cancelUpdate(params),
   },
   {
     name: "refresh",
     commandDescription: "pulumi refresh",
-    runFn: async (params) => await refreshResources(params)
+    runFn: async (params) => await refreshResources(params),
   },
   {
     name: "reimport",
     commandDescription: "pulumi export | pulumi import",
-    runFn: async (params) => await reimportStack(params)
+    runFn: async (params) => await reimportStack(params),
   },
   {
     name: "destroy",
@@ -70,8 +85,8 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
       if (params.module.spec.allowDestroy) {
         await deletePulumiService(params)
       }
-    }
-  }
+    },
+  },
 ]
 
 interface PulumiPluginCommandTaskParams {
@@ -102,7 +117,7 @@ class PulumiPluginCommandTask extends PluginTask {
     commandName,
     commandDescription,
     runFn,
-    pulumiParams
+    pulumiParams,
   }: PulumiPluginCommandTaskParams) {
     super({ garden, log, force: false, version: service.version })
     this.graph = graph
@@ -124,14 +139,15 @@ class PulumiPluginCommandTask extends PluginTask {
   }
 
   async resolveDependencies(): Promise<PluginTask[]> {
-    const pulumiServiceNames = this.graph.getModules()
+    const pulumiServiceNames = this.graph
+      .getModules()
       .filter((m) => m.type === "pulumi")
       .map((m) => m.name) // module names are the same as service names for pulumi modules
     const deps = this.graph.getDependencies({
       nodeType: "deploy",
       name: this.getName(),
       recursive: false,
-      filter: (depNode) => pulumiServiceNames.includes(depNode.name)
+      filter: (depNode) => pulumiServiceNames.includes(depNode.name),
     })
     return deps.deploy.map((depService) => {
       return new PulumiPluginCommandTask({
@@ -169,8 +185,7 @@ class PulumiPluginCommandTask extends PluginTask {
   }
 }
 
-export const getPulumiCommands = (): PluginCommand[] =>
-  pulumiCommandSpecs.map(makePulumiCommand)
+export const getPulumiCommands = (): PluginCommand[] => pulumiCommandSpecs.map(makePulumiCommand)
 
 function makePulumiCommand({ name, commandDescription, beforeFn, runFn }: PulumiCommandSpec) {
   const description = commandDescription || `pulumi ${name}`

@@ -17,12 +17,12 @@ import { PulumiProvider } from "./config"
  * We're using functionality in the pulumi CLI that's experimental as of February 2022, which is enabled by
  * setting the `PULUMI_EXPERIMENTAL` env var to `true` when calling the command.
  */
-export const defaultPulumiEnv = { 
+export const defaultPulumiEnv = {
   PULUMI_EXPERIMENTAL: "true",
   // This suppresses the "warning: A new version of Pulumi is available" output when running pulumi commands.
   PULUMI_SKIP_UPDATE_CHECK: "true",
   // TODO: Make user explicitly pick which (or all) env vars to merge in here?
-  ...process.env
+  ...process.env,
 }
 
 export function pulumi(ctx: PluginContext, provider: PulumiProvider) {
@@ -36,7 +36,7 @@ export function pulumi(ctx: PluginContext, provider: PulumiProvider) {
     if (!cli) {
       throw new ConfigurationError(`Unsupported pulumi version: ${version}`, {
         version,
-        supportedVersions
+        supportedVersions,
       })
     }
 
@@ -95,7 +95,7 @@ export const pulumiCliSPecs: { [version: string]: PluginToolSpec } = {
           targetPath: "pulumi/bin/pulumi.exe",
         },
       },
-    ]
+    ],
   },
   "3.24.1": {
     name: "pulumi-3-24-1",
@@ -133,8 +133,8 @@ export const pulumiCliSPecs: { [version: string]: PluginToolSpec } = {
           targetPath: "pulumi/bin/pulumi.exe",
         },
       },
-    ]
-  }
+    ],
+  },
 }
 
 export const supportedVersions = Object.keys(pulumiCliSPecs)
