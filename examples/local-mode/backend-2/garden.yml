@@ -1,27 +1,30 @@
 kind: Module
-name: backend
+name: backend-2
 description: Backend service container
 type: container
 
 # You can specify variables here at the module level
 variables:
-  ingressPath: /hello-backend
+  ingressPath: /hello-backend-2
 
 services:
-  - name: backend
+  - name: backend-2
+    localMode:
+      localAppPort: 8091
+      command: [] # [ "command-to-start-the-local-service-on-the-localAppPort" ]
     healthCheck:
       httpGet:
-        path: /hello-backend
+        path: ${var.ingressPath}
         port: http
     ports:
       - name: http
-        containerPort: 8080
-        # Maps service:80 -> container:8080
+        containerPort: 8081
+        # Maps service:80 -> container:8081
         servicePort: 80
     ingresses:
       - path: ${var.ingressPath}
         port: http
 
 tasks:
-  - name: test
+  - name: test-2
     command: ["sh", "-c", "echo task output"]

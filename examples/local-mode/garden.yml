@@ -1,0 +1,29 @@
+kind: Project
+name: local-mode
+# defaultEnvironment: "remote" # Uncomment if you'd like the remote environment to be the default for this project.
+environments:
+  - name: local
+  - name: remote
+    defaultNamespace: local-mode-${var.userId}
+  - name: testing
+    defaultNamespace: local-mode-testing-${var.userId}
+providers:
+  - name: local-kubernetes
+    environments: [local]
+  - name: kubernetes
+    environments: [remote]
+    # Replace these values as appropriate
+    context: ${var.remoteContext}
+    namespace: ${environment.namespace}
+    defaultHostname: ${var.userId}-local-mode.dev-1.sys.garden
+    buildMode: kaniko
+  - name: kubernetes
+    environments: [testing]
+    # Replace these values as appropriate
+    context: ${var.remoteContext}
+    namespace: ${environment.namespace}
+    defaultHostname: ${var.userId}-testing-local-mode.dev-1.sys.garden
+    buildMode: kaniko
+variables:
+  userId: ${local.env.CIRCLE_BUILD_NUM || local.username}
+  remoteContext: gke_garden-ci_europe-west1-b_core-ci
