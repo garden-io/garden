@@ -9,23 +9,23 @@
 import { join } from "path"
 import { pathExists } from "fs-extra"
 import { createGardenPlugin } from "@garden-io/sdk"
-import { getEnvironmentStatus, prepareEnvironment, cleanupEnvironment } from "./init"
+import { cleanupEnvironment, getEnvironmentStatus, prepareEnvironment } from "./init"
 import { dedent } from "@garden-io/sdk/util/string"
-import { supportedVersions, defaultTerraformVersion, terraformCliSpecs } from "./cli"
+import { defaultTerraformVersion, supportedVersions, terraformCliSpecs } from "./cli"
 import { ConfigurationError } from "@garden-io/sdk/exceptions"
-import { variablesSchema, TerraformBaseSpec } from "./common"
+import { TerraformBaseSpec, variablesSchema } from "./common"
 import {
-  terraformModuleSchema,
   configureTerraformModule,
-  getTerraformStatus,
-  deployTerraform,
   deleteTerraformModule,
+  deployTerraform,
+  getTerraformStatus,
+  terraformModuleSchema,
 } from "./module"
 import { docsBaseUrl } from "@garden-io/sdk/constants"
 import { listDirectory } from "@garden-io/sdk/util/fs"
 import { getTerraformCommands } from "./commands"
 
-import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider"
+import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
 import { joi, joiVariables } from "@garden-io/core/build/src/config/common"
 
 type TerraformProviderConfig = GenericProviderConfig &
@@ -83,10 +83,7 @@ export const gardenPlugin = () =>
       prepareEnvironment,
       cleanupEnvironment,
 
-      async configureProvider({
-        config,
-        projectRoot,
-      }) {
+      async configureProvider({ config, projectRoot }) {
         // Make sure the configured root path exists, if it is set
         if (config.initRoot) {
           const absRoot = join(projectRoot, config.initRoot)

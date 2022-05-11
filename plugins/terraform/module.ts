@@ -11,22 +11,21 @@ import { pathExists } from "fs-extra"
 import { joi } from "@garden-io/core/build/src/config/common"
 import { dedent, deline } from "@garden-io/sdk/util/string"
 import { supportedVersions, terraform } from "./cli"
-import { GardenModule } from "@garden-io/sdk/types"
+import { GardenModule, ModuleActionHandlers, ServiceActionHandlers } from "@garden-io/sdk/types"
 import { ConfigurationError } from "@garden-io/sdk/exceptions"
 import { dependenciesSchema } from "@garden-io/core/build/src/config/service"
 import {
-  getStackStatus,
   applyStack,
-  variablesSchema,
-  TerraformBaseSpec,
+  getStackStatus,
   getTfOutputs,
   prepareVariables,
   setWorkspace,
+  TerraformBaseSpec,
+  variablesSchema,
 } from "./common"
 import { TerraformProvider } from "."
 import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
 import chalk from "chalk"
-import { ModuleActionHandlers, ServiceActionHandlers } from "@garden-io/sdk/types"
 
 export interface TerraformModuleSpec extends TerraformBaseSpec {
   root: string
@@ -104,12 +103,7 @@ export const configureTerraformModule: ModuleActionHandlers["configure"] = async
   return { moduleConfig }
 }
 
-export const getTerraformStatus: ServiceActionHandlers["getServiceStatus"] = async ({
-  ctx,
-  log,
-  module,
-  service,
-}) => {
+export const getTerraformStatus: ServiceActionHandlers["getServiceStatus"] = async ({ ctx, log, module, service }) => {
   const provider = ctx.provider as TerraformProvider
   const root = getModuleStackRoot(module)
   const variables = module.spec.variables
@@ -132,12 +126,7 @@ export const getTerraformStatus: ServiceActionHandlers["getServiceStatus"] = asy
   }
 }
 
-export const deployTerraform: ServiceActionHandlers["deployService"] = async ({
-  ctx,
-  log,
-  module,
-  service,
-}) => {
+export const deployTerraform: ServiceActionHandlers["deployService"] = async ({ ctx, log, module, service }) => {
   const provider = ctx.provider as TerraformProvider
   const workspace = module.spec.workspace || null
   const root = getModuleStackRoot(module)
@@ -166,12 +155,7 @@ export const deployTerraform: ServiceActionHandlers["deployService"] = async ({
   }
 }
 
-export const deleteTerraformModule: ServiceActionHandlers["deleteService"] = async ({
-  ctx,
-  log,
-  module,
-  service,
-}) => {
+export const deleteTerraformModule: ServiceActionHandlers["deleteService"] = async ({ ctx, log, module, service }) => {
   const provider = ctx.provider as TerraformProvider
 
   if (!module.spec.allowDestroy) {

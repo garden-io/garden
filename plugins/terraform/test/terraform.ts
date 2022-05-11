@@ -9,19 +9,18 @@
 import { join } from "path"
 
 import { expect } from "chai"
-import { readFile, pathExists, remove } from "fs-extra"
+import { pathExists, readFile, remove } from "fs-extra"
 
-import { getLogMessages, makeTestGarden } from "@garden-io/sdk/testing"
+import { getLogMessages, makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
 import { findByName } from "@garden-io/core/build/src/util/util"
 import { TaskTask } from "@garden-io/core/build/src/tasks/task"
-import { getTerraformCommands } from "..//commands"
+import { getTerraformCommands } from "../commands"
 import { LogLevel } from "@garden-io/sdk/types"
 import { ConfigGraph } from "@garden-io/core/build/src/config-graph"
 import { gardenPlugin, TerraformProvider } from ".."
 import { DeployTask } from "@garden-io/core/build/src/tasks/deploy"
 import { emptyRuntimeContext } from "@garden-io/core/build/src/runtime-context"
-import { getWorkspaces, setWorkspace } from "..//common"
-import { TestGarden } from "@garden-io/sdk/testing"
+import { getWorkspaces, setWorkspace } from "../common"
 
 describe("Terraform provider", () => {
   const testRoot = join(__dirname, "test-project")
@@ -45,13 +44,16 @@ describe("Terraform provider", () => {
 
   before(() => {
     // Make sure we can collect log entries for testing
-
   })
 
   context("autoApply=false", () => {
     beforeEach(async () => {
       await reset()
-      garden = await makeTestGarden(testRoot, { plugins: [gardenPlugin()], environmentName: "prod", forceRefresh: true })
+      garden = await makeTestGarden(testRoot, {
+        plugins: [gardenPlugin()],
+        environmentName: "prod",
+        forceRefresh: true,
+      })
       tfRoot = join(garden.projectRoot, "tf")
       stateDirPath = join(tfRoot, "terraform.tfstate")
       stateDirPathWithWorkspaces = join(tfRoot, "terraform.tfstate.d")
@@ -83,7 +85,7 @@ describe("Terraform provider", () => {
         modules: [],
       })
 
-      const _garden = await makeTestGarden(testRoot, { environmentName: "prod", plugins: [gardenPlugin()]})
+      const _garden = await makeTestGarden(testRoot, { environmentName: "prod", plugins: [gardenPlugin()] })
       const _provider = await _garden.resolveProvider(_garden.log, "terraform")
 
       expect(_provider.status.outputs).to.eql({
@@ -224,7 +226,11 @@ describe("Terraform provider", () => {
 
   context("autoApply=true", () => {
     before(async () => {
-      garden = await makeTestGarden(testRoot, { plugins: [gardenPlugin()], environmentName: "local", forceRefresh: true })
+      garden = await makeTestGarden(testRoot, {
+        plugins: [gardenPlugin()],
+        environmentName: "local",
+        forceRefresh: true,
+      })
     })
 
     beforeEach(async () => {
