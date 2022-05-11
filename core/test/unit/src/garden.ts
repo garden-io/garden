@@ -4584,8 +4584,8 @@ describe("Garden", () => {
         const moduleB = graph.getModule("module-b")
         const moduleC = graph.getModule("module-c")
         expect(moduleA.version.versionString).to.not.equal(moduleAVersionString)
-        expect(moduleB.version.versionString).to.equal(moduleBVersionString)
-        expect(moduleC.version.versionString).to.equal(moduleCVersionString)
+        expect(moduleB.version.versionString).to.not.equal(moduleBVersionString) // B depends on A so it changes as well
+        expect(moduleC.version.versionString).to.not.equal(moduleCVersionString) // C depends on B so it changes as well
 
         delete process.env.MODULE_A_TEST_ENV_VAR
       })
