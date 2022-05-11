@@ -7,8 +7,7 @@
  */
 
 import { resolve } from "path"
-import { startCase, mapValues } from "lodash"
-import split2 = require("split2")
+import { mapValues, startCase } from "lodash"
 
 import { ConfigurationError, PluginError, RuntimeError } from "@garden-io/sdk/exceptions"
 import { LogEntry, PluginContext } from "@garden-io/sdk/types"
@@ -18,7 +17,8 @@ import { TerraformProvider } from "."
 import { writeFile } from "fs-extra"
 import chalk from "chalk"
 
-import { joi, PrimitiveMap, joiStringMap } from "@garden-io/core/build/src/config/common"
+import { joi, joiStringMap, PrimitiveMap } from "@garden-io/core/build/src/config/common"
+import split2 = require("split2")
 
 export const variablesSchema = () => joiStringMap(joi.any())
 
