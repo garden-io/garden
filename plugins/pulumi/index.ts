@@ -8,17 +8,11 @@
 
 import { createGardenPlugin } from "@garden-io/sdk"
 import { dedent } from "@garden-io/sdk/util/string"
-import {
-  configurePulumiModule,
-  getPulumiServiceStatus,
-  deployPulumiService,
-  deletePulumiService,
-} from "./handlers"
+import { configurePulumiModule, deletePulumiService, deployPulumiService, getPulumiServiceStatus } from "./handlers"
 import { docsBaseUrl } from "@garden-io/sdk/constants"
 import { getPulumiCommands } from "./commands"
 
 import { joiVariables } from "@garden-io/core/build/src/config/common"
-import { readdir } from "fs-extra"
 import { pulumiCliSPecs } from "./cli"
 import { pulumiModuleSchema, pulumiProviderConfigSchema } from "./config"
 
@@ -56,5 +50,5 @@ export const gardenPlugin = () =>
         },
       },
     ],
-    tools: Object.values(pulumiCliSPecs)
+    tools: Object.values(pulumiCliSPecs),
   })

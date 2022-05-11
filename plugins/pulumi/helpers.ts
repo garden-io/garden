@@ -47,14 +47,14 @@ export interface PulumiPlan {
   config: DeepPrimitiveMap
 
   // Represents the desired state and planned operations to perform (along with other fields).
-  //
+  /* tslint:disable-next-line:max-line-length */
   // See: https://github.com/pulumi/pulumi/blob/c721e8905b0639b3d4aa1d51d0753f6c99b13984/sdk/go/common/apitype/plan.go#L61-L68
   resourcePlans: {
     [resourceUrn: string]: {
       // The goal state for the resource
       goal: DeepPrimitiveMap
       // The steps to be performed on the resource.
-      steps: string[] // When the plan is 
+      steps: string[] // When the plan is
       // The proposed outputs for the resource, if any. Purely advisory.
       outputs: DeepPrimitiveMap
     }
@@ -87,16 +87,18 @@ export const stackVersionKey = "garden.io-service-version"
  *
  * Returns the path to the generated plan.
  */
-export async function previewStack(params: PulumiParams & { logPreview: boolean, previewDirPath?: string }): Promise<string> {
+export async function previewStack(
+  params: PulumiParams & { logPreview: boolean; previewDirPath?: string }
+): Promise<string> {
   const { log, ctx, provider, module, logPreview, previewDirPath } = params
 
   const configPath = await applyConfig({ ...params, previewDirPath })
   const planPath = previewDirPath
-    // Then we're running `garden plugins pulumi preview`, so we write the plan to the preview dir regardless of
-    // whether the module is configured to deploy from a preview or not.
-    ? join(previewDirPath, getPlanFileName(module, ctx.environmentName))
-    // Then we use the cache dir or preview dir, depending on the provider and module configuration.
-    : getPlanPath(ctx, module)
+    ? // Then we're running `garden plugins pulumi preview`, so we write the plan to the preview dir regardless of
+      // whether the module is configured to deploy from a preview or not.
+      join(previewDirPath, getPlanFileName(module, ctx.environmentName))
+    : // Then we use the cache dir or preview dir, depending on the provider and module configuration.
+      getPlanPath(ctx, module)
   const res = await pulumi(ctx, provider).exec({
     log,
     // We write the plan to the `.garden` directory for subsequent use by the deploy handler.
@@ -117,7 +119,7 @@ export async function getStackOutputs({ log, ctx, provider, module }: PulumiPara
     log,
     args: ["stack", "output", "--json"],
     env: defaultPulumiEnv,
-    cwd: getModuleStackRoot(module)
+    cwd: getModuleStackRoot(module),
   })
   log.debug(`stack outputs for ${module.name}: ${JSON.stringify(res, null, 2)}`)
 
@@ -129,7 +131,7 @@ export async function getDeployment({ log, ctx, provider, module }: PulumiParams
     log,
     args: ["stack", "export"],
     env: defaultPulumiEnv,
-    cwd: getModuleStackRoot(module)
+    cwd: getModuleStackRoot(module),
   })
   log.silly(`stack export for ${module.name}: ${JSON.stringify(res, null, 2)}`)
 
@@ -148,20 +150,20 @@ export async function setStackVersionTag({
     log,
     args: ["stack", "tag", "set", stackVersionKey, serviceVersion],
     env: defaultPulumiEnv,
-    cwd: getModuleStackRoot(module)
+    cwd: getModuleStackRoot(module),
   })
   return serviceVersion
 }
 
 // TODO: Use REST API instead of calling the CLI here.
-export async function getStackVersionTag({ log, ctx, provider, module, }: PulumiParams): Promise<string | null> {
+export async function getStackVersionTag({ log, ctx, provider, module }: PulumiParams): Promise<string | null> {
   let res: string
   try {
     res = await pulumi(ctx, provider).stdout({
       log,
       args: ["stack", "tag", "get", stackVersionKey],
       env: defaultPulumiEnv,
-      cwd: getModuleStackRoot(module)
+      cwd: getModuleStackRoot(module),
     })
   } catch (err) {
     log.debug(err.message)
@@ -172,17 +174,12 @@ export async function getStackVersionTag({ log, ctx, provider, module, }: Pulumi
 }
 
 // TODO: Use REST API instead of calling the CLI here.
-export async function clearStackVersionTag({
-  log,
-  ctx,
-  provider,
-  module,
-}: PulumiParams): Promise<void> {
+export async function clearStackVersionTag({ log, ctx, provider, module }: PulumiParams): Promise<void> {
   await pulumi(ctx, provider).stdout({
     log,
     args: ["stack", "tag", "rm", stackVersionKey],
     env: defaultPulumiEnv,
-    cwd: getModuleStackRoot(module)
+    cwd: getModuleStackRoot(module),
   })
 }
 
@@ -197,7 +194,7 @@ export function getModuleStackRoot(module: PulumiModule): string {
 /**
  * Merges the module's `pulumiVariables` with any `pulumiVarfiles` and overwrites the module's stack config with the
  * merged result.
- * 
+ *
  * For convenience, returns the path to the module's stack config file.
  */
 export async function applyConfig(params: PulumiParams & { previewDirPath?: string }): Promise<string> {
@@ -222,12 +219,14 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
     varfileContents = await Bluebird.map(module.spec.pulumiVarfiles, async (varfilePath: string) => {
       return loadPulumiVarfile({ module, ctx, log, varfilePath })
     })
-
   } catch (err) {
-    throw new FilesystemError(`An error occurred while reading pulumi varfiles for module ${module.name}: ${err.message}`, {
-      pulumiVarfiles: module.spec.pulumiVarfiles,
-      moduleName: module.name
-    })
+    throw new FilesystemError(
+      `An error occurred while reading pulumi varfiles for module ${module.name}: ${err.message}`,
+      {
+        pulumiVarfiles: module.spec.pulumiVarfiles,
+        moduleName: module.name,
+      }
+    )
   }
 
   log.debug(`merging config for module ${module.name}`)
@@ -266,7 +265,7 @@ export async function getStackStatusFromTag(params: PulumiParams & { serviceVers
   const currentDeployment = await getDeployment(params)
   const resources = currentDeployment.deployment.resources
   const tagVersion = await getStackVersionTag(params)
-  return (tagVersion === params.serviceVersion && resources && resources.length > 0) ? "up-to-date" : "outdated"
+  return tagVersion === params.serviceVersion && resources && resources.length > 0 ? "up-to-date" : "outdated"
 }
 
 // Keeping this here for now, in case we want to reuse this logic
@@ -298,9 +297,9 @@ export async function cancelUpdate({ module, ctx, provider, log }: PulumiParams)
   const res = await pulumi(ctx, provider).exec({
     log,
     ignoreError: true,
-    args: ["cancel", "--yes",  "--color", "always"],
+    args: ["cancel", "--yes", "--color", "always"],
     env: defaultPulumiEnv,
-    cwd: getModuleStackRoot(module)
+    cwd: getModuleStackRoot(module),
   })
   log.info(res.stdout)
 
@@ -319,9 +318,9 @@ export async function refreshResources(params: PulumiParams): Promise<void> {
   const res = await pulumi(ctx, provider).exec({
     log,
     ignoreError: false,
-    args: ["refresh", "--yes",  "--color", "always", "--config-file", configPath],
+    args: ["refresh", "--yes", "--color", "always", "--config-file", configPath],
     env: defaultPulumiEnv,
-    cwd: getModuleStackRoot(module)
+    cwd: getModuleStackRoot(module),
   })
   log.info(res.stdout)
 }
@@ -339,7 +338,7 @@ export async function reimportStack(params: PulumiParams): Promise<void> {
     ignoreError: false,
     args: ["stack", "export"],
     env: defaultPulumiEnv,
-    cwd, 
+    cwd,
   })
   await cli.exec({
     log,
@@ -347,7 +346,7 @@ export async function reimportStack(params: PulumiParams): Promise<void> {
     args: ["stack", "import"],
     input: exportRes.stdout,
     env: defaultPulumiEnv,
-    cwd, 
+    cwd,
   })
 }
 
@@ -386,9 +385,7 @@ export function getStackConfigPath(module: PulumiModule, environmentName: string
  * TODO: Write unit tests for this
  */
 export function getPlanDirPath(ctx: PluginContext, module: PulumiModule): string {
-  return module.spec.deployFromPreview
-    ? getPreviewDirPath(ctx)
-    : getCachePath(ctx)
+  return module.spec.deployFromPreview ? getPreviewDirPath(ctx) : getCachePath(ctx)
 }
 
 function getCachePath(ctx: PluginContext): string {
@@ -397,9 +394,7 @@ function getCachePath(ctx: PluginContext): string {
 
 export function getPreviewDirPath(ctx: PluginContext) {
   const provider: PulumiProvider = <PulumiProvider>ctx.provider
-  return provider.config.previewDir
-    ? join(ctx.projectRoot, provider.config.previewDir)
-    : getDefaultPreviewDirPath(ctx)
+  return provider.config.previewDir ? join(ctx.projectRoot, provider.config.previewDir) : getDefaultPreviewDirPath(ctx)
 }
 
 function getDefaultPreviewDirPath(ctx: PluginContext): string {
