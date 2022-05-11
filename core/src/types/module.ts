@@ -106,7 +106,7 @@ export async function moduleFromConfig({
   buildDependencies: GardenModule[]
   forceVersion?: boolean
 }): Promise<GardenModule> {
-  const version = await garden.resolveModuleVersion(log, config, config.build.dependencies, forceVersion)
+  const version = await garden.resolveModuleVersion(log, config, buildDependencies, forceVersion)
   const actions = await garden.getActionRouter()
   const { outputs } = await actions.getModuleOutputs({ log, moduleConfig: config, version })
   const moduleTypes = await garden.getModuleTypes()
@@ -152,7 +152,7 @@ export function moduleNeedsBuild(moduleConfig: ModuleConfig, moduleType: ModuleT
   return moduleType.needsBuild || some(moduleConfig.build.dependencies, (d) => d.copy && d.copy.length > 0)
 }
 
-export function getModuleCacheContext(config: ModuleConfig) {
+export function getModuleCacheContext<M extends ModuleConfig>(config: M) {
   return pathToCacheContext(config.path)
 }
 

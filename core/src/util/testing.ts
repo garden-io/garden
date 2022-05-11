@@ -25,6 +25,7 @@ import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT } from "../constants"
 import { getLogger } from "../logger/logger"
 import { ConfigGraph } from "../config-graph"
 import stripAnsi from "strip-ansi"
+import { VcsHandler } from "../vcs/vcs"
 
 export class TestError extends GardenBaseError {
   type = "_test"
@@ -125,6 +126,7 @@ export type TestGardenOpts = Partial<GardenOpts> & { noCache?: boolean; noTempDi
 
 export class TestGarden extends Garden {
   events: TestEventBus
+  public vcs: VcsHandler // Not readonly, to allow overriding with a mocked handler in tests
   public secrets: StringMap // Not readonly, to allow setting secrets in tests
   public variables: DeepPrimitiveMap // Not readonly, to allow setting variables in tests
   private repoRoot: string

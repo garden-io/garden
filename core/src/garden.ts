@@ -12,7 +12,7 @@ import { ensureDir, readdir } from "fs-extra"
 import dedent from "dedent"
 import { platform, arch } from "os"
 import { relative, resolve, join } from "path"
-import { flatten, sortBy, keyBy, mapValues, cloneDeep, groupBy } from "lodash"
+import { flatten, sortBy, keyBy, mapValues, cloneDeep, groupBy, omit } from "lodash"
 const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
@@ -41,7 +41,7 @@ import {
   getCloudDistributionName,
 } from "./util/util"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
-import { VcsHandler, ModuleVersion, VcsInfo } from "./vcs/vcs"
+import { VcsHandler, ModuleVersion, getModuleVersionString, VcsInfo } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
 import { BuildStaging } from "./build-staging/build-staging"
 import { ConfigGraph } from "./config-graph"
@@ -49,11 +49,11 @@ import { TaskGraph, GraphResults, ProcessTasksOpts } from "./task-graph"
 import { getLogger } from "./logger/logger"
 import { PluginActionHandlers, GardenPlugin } from "./types/plugin/plugin"
 import { loadConfigResources, findProjectConfig, prepareModuleResource, GardenResource } from "./config/base"
-import { DeepPrimitiveMap, StringMap, PrimitiveMap, joiSparseArray, joi } from "./config/common"
+import { DeepPrimitiveMap, StringMap, PrimitiveMap, treeVersionSchema, joiSparseArray, joi } from "./config/common"
 import { BaseTask } from "./tasks/base"
 import { LocalConfigStore, ConfigStore, GlobalConfigStore, LinkedSource } from "./config-store"
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
-import { BuildDependencyConfig, ModuleConfig } from "./config/module"
+import { ModuleConfig } from "./config/module"
 import { ModuleResolver } from "./resolve-module"
 import { createPluginContext, CommandInfo, PluginEventBroker } from "./plugin-context"
 import { ModuleAndRuntimeActionHandlers, RegisterPluginParam } from "./types/plugin/plugin"
@@ -875,9 +875,9 @@ export class Garden {
   async resolveModuleVersion(
     log: LogEntry,
     moduleConfig: ModuleConfig,
-    moduleDependencies: (GardenModule | BuildDependencyConfig)[],
+    moduleDependencies: GardenModule[],
     force = false
-  ) {
+  ): Promise<ModuleVersion> {
     const moduleName = moduleConfig.name
     const depModuleNames = moduleDependencies.map((m) => m.name)
     depModuleNames.sort()
@@ -893,11 +893,27 @@ export class Garden {
 
     this.log.silly(`Resolving version for module ${moduleName}`)
 
-    const dependencyKeys = moduleDependencies.map((dep) => getModuleKey(dep.name, dep.plugin))
-    const dependencies = await this.getRawModuleConfigs(dependencyKeys)
-    const cacheContexts = dependencies.concat([moduleConfig]).map((c) => getModuleCacheContext(c))
+    const cacheContexts = [...moduleDependencies, moduleConfig].map((c: ModuleConfig) => getModuleCacheContext(c))
 
-    const version = await this.vcs.resolveModuleVersion(this.log, this.projectName, moduleConfig, dependencies)
+    const treeVersion = await this.vcs.resolveTreeVersion(this.log, this.projectName, moduleConfig)
+
+    validateSchema(treeVersion, treeVersionSchema(), {
+      context: `${this.vcs.name} tree version for module at ${moduleConfig.path}`,
+    })
+
+    const namedDependencyVersions = moduleDependencies.map((m) => ({ ...m.version, name: m.name }))
+
+    const versionString = getModuleVersionString(
+      moduleConfig,
+      { ...treeVersion, name: moduleConfig.name },
+      namedDependencyVersions
+    )
+
+    const version: ModuleVersion = {
+      dependencyVersions: mapValues(keyBy(namedDependencyVersions, "name"), (v) => omit(v, "name")),
+      versionString,
+      files: treeVersion.files,
+    }
 
     this.cache.set(log, cacheKey, version, ...cacheContexts)
     return version
