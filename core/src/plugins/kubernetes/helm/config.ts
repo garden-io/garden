@@ -7,40 +7,41 @@
  */
 
 import {
-  joiPrimitive,
-  joiIdentifier,
-  joiUserIdentifier,
   DeepPrimitiveMap,
   joi,
+  joiIdentifier,
   joiModuleIncludeDirective,
+  joiPrimitive,
   joiSparseArray,
+  joiUserIdentifier,
 } from "../../../config/common"
 import { GardenModule } from "../../../types/module"
 import { containsSource } from "./common"
 import { ConfigurationError } from "../../../exceptions"
-import { deline, dedent } from "../../../util/string"
+import { dedent, deline } from "../../../util/string"
 import { GardenService } from "../../../types/service"
 import { ContainerModule } from "../../container/config"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plugin/module/configure"
 import {
-  serviceResourceSchema,
-  kubernetesTaskSchema,
-  kubernetesTestSchema,
-  ServiceResourceSpec,
-  KubernetesTestSpec,
-  KubernetesTaskSpec,
-  namespaceNameSchema,
   containerModuleSchema,
   hotReloadArgsSchema,
-  serviceResourceDescription,
-  portForwardsSchema,
+  kubernetesDevModeSchema,
+  KubernetesDevModeSpec,
+  kubernetesTaskSchema,
+  KubernetesTaskSpec,
+  kubernetesTestSchema,
+  KubernetesTestSpec,
+  namespaceNameSchema,
   PortForwardSpec,
+  portForwardsSchema,
+  serviceResourceDescription,
+  serviceResourceSchema,
+  ServiceResourceSpec,
 } from "../config"
 import { posix } from "path"
 import { runPodSpecIncludeFields } from "../run"
 import { omit } from "lodash"
-import { kubernetesDevModeSchema, KubernetesDevModeSpec } from "../dev-mode"
 
 export const defaultHelmTimeout = 300
 
@@ -49,6 +50,7 @@ export type HelmModuleSpec = HelmServiceSpec
 
 export interface HelmModule
   extends GardenModule<HelmModuleSpec, HelmServiceSpec, KubernetesTestSpec, KubernetesTaskSpec> {}
+
 export type HelmModuleConfig = HelmModule["_config"]
 
 export interface HelmServiceSpec {

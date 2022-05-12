@@ -6,17 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  containerDevModeSchema,
-  ContainerDevModeSpec,
-  DevModeSyncSpec,
-  syncDefaultDirectoryModeSchema,
-  syncDefaultFileModeSchema,
-  syncDefaultGroupSchema,
-  syncDefaultOwnerSchema,
-  syncExcludeSchema,
-} from "../container/config"
-import { dedent, gardenAnnotationKey } from "../../util/string"
+import { ContainerDevModeSpec, DevModeSyncSpec } from "../container/config"
+import { gardenAnnotationKey } from "../../util/string"
 import { set } from "lodash"
 import { getResourceContainer, getResourcePodSpec } from "./util"
 import { HotReloadableResource } from "./hot-reload/hot-reload"
@@ -32,8 +23,7 @@ import {
   mutagenConfigLock,
   SyncConfig,
 } from "./mutagen"
-import { joi, joiIdentifier } from "../../config/common"
-import { KubernetesPluginContext, KubernetesProvider } from "./config"
+import { KubernetesDevModeDefaults, KubernetesPluginContext, KubernetesProvider } from "./config"
 import { isConfiguredForDevMode } from "./status/status"
 import { k8sSyncUtilImageName } from "./constants"
 
@@ -46,59 +36,6 @@ interface ConfigureDevModeParams {
   spec: ContainerDevModeSpec
   containerName?: string
 }
-
-export interface KubernetesDevModeSpec extends ContainerDevModeSpec {
-  containerName?: string
-}
-
-export interface KubernetesDevModeDefaults {
-  exclude?: string[]
-  fileMode?: number
-  directoryMode?: number
-  owner?: number | string
-  group?: number | string
-}
-
-/**
- * Provider-level dev mode settings for the local and remote k8s providers.
- */
-export const kubernetesDevModeDefaultsSchema = () =>
-  joi.object().keys({
-    exclude: syncExcludeSchema().description(dedent`
-        Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
-
-        Any exclusion patterns defined in individual dev mode sync specs will be applied in addition to these patterns.
-
-        \`.git\` directories and \`.garden\` directories are always ignored.
-      `),
-    fileMode: syncDefaultFileModeSchema(),
-    directoryMode: syncDefaultDirectoryModeSchema(),
-    owner: syncDefaultOwnerSchema(),
-    group: syncDefaultGroupSchema(),
-  }).description(dedent`
-    Specifies default settings for dev mode syncs (e.g. for \`container\`, \`kubernetes\` and \`helm\` services).
-
-    These are overridden/extended by the settings of any individual dev mode sync specs for a given module or service.
-
-    Dev mode is enabled when running the \`garden dev\` command, and by setting the \`--dev\` flag on the \`garden deploy\` command.
-
-    See the [Code Synchronization guide](${devModeGuideLink}) for more information.
-  `)
-
-export const kubernetesDevModeSchema = () =>
-  containerDevModeSchema().keys({
-    containerName: joiIdentifier().description(
-      `Optionally specify the name of a specific container to sync to. If not specified, the first container in the workload is used.`
-    ),
-  }).description(dedent`
-    Specifies which files or directories to sync to which paths inside the running containers of the service when it's in dev mode, and overrides for the container command and/or arguments.
-
-    Note that \`serviceResource\` must also be specified to enable dev mode.
-
-    Dev mode is enabled when running the \`garden dev\` command, and by setting the \`--dev\` flag on the \`garden deploy\` command.
-
-    See the [Code Synchronization guide](${devModeGuideLink}) for more information.
-  `)
 
 /**
  * Configures the specified Deployment, DaemonSet or StatefulSet for dev mode.

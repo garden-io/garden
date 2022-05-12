@@ -13,24 +13,25 @@ import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plu
 import { GardenService } from "../../../types/service"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { KubernetesResource } from "../types"
-import { deline, dedent } from "../../../util/string"
+import { dedent, deline } from "../../../util/string"
 import {
-  serviceResourceSchema,
-  kubernetesTaskSchema,
-  kubernetesTestSchema,
-  ServiceResourceSpec,
-  KubernetesTestSpec,
-  KubernetesTaskSpec,
-  namespaceNameSchema,
   containerModuleSchema,
   hotReloadArgsSchema,
-  serviceResourceDescription,
-  portForwardsSchema,
-  PortForwardSpec,
   k8sDeploymentTimeoutSchema,
+  kubernetesDevModeSchema,
+  KubernetesDevModeSpec,
+  kubernetesTaskSchema,
+  KubernetesTaskSpec,
+  kubernetesTestSchema,
+  KubernetesTestSpec,
+  namespaceNameSchema,
+  PortForwardSpec,
+  portForwardsSchema,
+  serviceResourceDescription,
+  serviceResourceSchema,
+  ServiceResourceSpec,
 } from "../config"
 import { ContainerModule } from "../../container/config"
-import { kubernetesDevModeSchema, KubernetesDevModeSpec } from "../dev-mode"
 import { KubernetesKustomizeSpec, kustomizeSpecSchema } from "./kustomize"
 
 // A Kubernetes Module always maps to a single Service
@@ -38,6 +39,7 @@ export type KubernetesModuleSpec = KubernetesServiceSpec
 
 export interface KubernetesModule
   extends GardenModule<KubernetesModuleSpec, KubernetesServiceSpec, KubernetesTestSpec, KubernetesTaskSpec> {}
+
 export type KubernetesModuleConfig = KubernetesModule["_config"]
 
 export interface KubernetesServiceSpec {
