@@ -12,7 +12,7 @@ import { ensureDir, readdir } from "fs-extra"
 import dedent from "dedent"
 import { platform, arch } from "os"
 import { relative, resolve, join } from "path"
-import { flatten, sortBy, keyBy, mapValues, cloneDeep, groupBy, omit } from "lodash"
+import { flatten, sortBy, keyBy, mapValues, cloneDeep, groupBy } from "lodash"
 const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
@@ -910,7 +910,7 @@ export class Garden {
     )
 
     const version: ModuleVersion = {
-      dependencyVersions: mapValues(keyBy(namedDependencyVersions, "name"), (v) => omit(v, "name")),
+      dependencyVersions: mapValues(keyBy(namedDependencyVersions, "name"), (v) => v.versionString),
       versionString,
       files: treeVersion.files,
     }

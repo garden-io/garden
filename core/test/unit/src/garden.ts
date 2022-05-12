@@ -4476,7 +4476,7 @@ describe("Garden", () => {
         const moduleVersionB: ModuleVersion = {
           versionString: versionStringB,
           files: [],
-          dependencyVersions: { "module-a": moduleVersionA },
+          dependencyVersions: { "module-a": moduleVersionA.versionString },
         }
         moduleB.version = moduleVersionB
         const treeVersionB: TreeVersion = { contentHash: versionStringB, files: [] }
@@ -4493,8 +4493,8 @@ describe("Garden", () => {
             { ...moduleVersionB, name: "module-b" },
           ]),
           dependencyVersions: {
-            "module-a": moduleVersionA,
-            "module-b": moduleVersionB,
+            "module-a": moduleVersionA.versionString,
+            "module-b": moduleVersionB.versionString,
           },
           files: [],
         }

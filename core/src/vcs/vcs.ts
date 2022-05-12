@@ -47,7 +47,7 @@ export interface TreeVersions {
 
 export interface ModuleVersion {
   versionString: string
-  dependencyVersions: ModuleVersions
+  dependencyVersions: DependencyVersions
   files: string[]
 }
 
@@ -55,8 +55,8 @@ export interface NamedModuleVersion extends ModuleVersion {
   name: string
 }
 
-export interface ModuleVersions {
-  [moduleName: string]: ModuleVersion
+export interface DependencyVersions {
+  [moduleName: string]: string
 }
 
 export interface NamedTreeVersion extends TreeVersion {

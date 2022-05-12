@@ -277,14 +277,14 @@ describe("getModuleVersionString", () => {
   const namedVersionB: NamedModuleVersion = {
     name: "module-b",
     versionString: "qwerty",
-    dependencyVersions: { "module-a": { ...namedVersionA } },
+    dependencyVersions: { "module-a": namedVersionA.versionString },
     files: [],
   }
 
   const namedVersionC: NamedModuleVersion = {
     name: "module-c",
     versionString: "qwerty",
-    dependencyVersions: { "module-b": { ...namedVersionB } },
+    dependencyVersions: { "module-b": namedVersionB.versionString },
     files: [],
   }
 

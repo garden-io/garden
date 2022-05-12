@@ -2261,12 +2261,8 @@ modules:
 
       # The version of each of the dependencies of the module.
       dependencyVersions:
+        # A Stack Graph node (i.e. module, service, task or test) version.
         <name>:
-          # The hash of all files belonging to the Garden module.
-          contentHash:
-
-          # List of file paths included in the version.
-          files:
 
       # List of file paths included in the version.
       files:
