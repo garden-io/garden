@@ -28,6 +28,7 @@ import {
   hotReloadArgsSchema,
   kubernetesDevModeSchema,
   KubernetesDevModeSpec,
+  KubernetesLocalModeSpec,
   kubernetesTaskSchema,
   KubernetesTaskSpec,
   kubernetesTestSchema,
@@ -60,6 +61,7 @@ export interface HelmServiceSpec {
   chartPath: string
   dependencies: string[]
   devMode?: KubernetesDevModeSpec
+  localMode?: KubernetesLocalModeSpec
   namespace?: string
   portForwards?: PortForwardSpec[]
   releaseName?: string

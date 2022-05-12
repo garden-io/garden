@@ -20,6 +20,8 @@ import {
   k8sDeploymentTimeoutSchema,
   kubernetesDevModeSchema,
   KubernetesDevModeSpec,
+  kubernetesLocalModeSchema,
+  KubernetesLocalModeSpec,
   kubernetesTaskSchema,
   KubernetesTaskSpec,
   kubernetesTestSchema,
@@ -45,6 +47,7 @@ export type KubernetesModuleConfig = KubernetesModule["_config"]
 export interface KubernetesServiceSpec {
   dependencies: string[]
   devMode?: KubernetesDevModeSpec
+  localMode?: KubernetesLocalModeSpec
   files: string[]
   kustomize?: KubernetesKustomizeSpec
   manifests: KubernetesResource[]
@@ -79,6 +82,7 @@ export const kubernetesModuleSpecSchema = () =>
     build: baseBuildSpecSchema(),
     dependencies: dependenciesSchema(),
     devMode: kubernetesDevModeSchema(),
+    localMode: kubernetesLocalModeSchema(),
     files: joiSparseArray(joi.posixPath().subPathOnly()).description(
       "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests."
     ),

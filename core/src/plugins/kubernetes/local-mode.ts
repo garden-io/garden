@@ -51,6 +51,7 @@ interface ConfigureLocalModeParams {
   spec: ContainerLocalModeSpec
   service: ContainerService
   log: LogEntry
+  containerName?: string
 }
 
 interface StartLocalModeParams extends ConfigureLocalModeParams {

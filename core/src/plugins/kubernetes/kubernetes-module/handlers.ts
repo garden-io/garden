@@ -38,6 +38,7 @@ import { configureKubernetesModule, KubernetesModule, KubernetesService } from "
 import { execInKubernetesService } from "./exec"
 import { runKubernetesTask } from "./run"
 import { testKubernetesModule } from "./test"
+import { configureLocalMode } from "../local-mode"
 
 export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<KubernetesModule>> = {
   configure: configureKubernetesModule,
@@ -67,6 +68,7 @@ export async function getKubernetesServiceStatus({
   service,
   devMode,
   hotReload,
+  localMode,
 }: GetServiceStatusParams<KubernetesModule>): Promise<KubernetesServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespaceStatus = await getModuleNamespaceStatus({
@@ -82,13 +84,14 @@ export async function getKubernetesServiceStatus({
   // because the build may not have been staged.
   // This means that manifests added via the `build.dependencies[].copy` field will not be included.
   const manifests = await getManifests({ ctx, api, log, module, defaultNamespace: namespace, readFromSrcDir: true })
-  const prepareResult = await prepareManifestsForSync({
+  const prepareResult = await configureSpecialModesForManifests({
     ctx: k8sCtx,
     log,
     module,
     service,
     devMode,
     hotReload,
+    localMode,
     manifests,
   })
 
@@ -144,7 +147,7 @@ export async function getKubernetesServiceStatus({
 export async function deployKubernetesService(
   params: DeployServiceParams<KubernetesModule>
 ): Promise<KubernetesServiceStatus> {
-  const { ctx, module, service, log, hotReload, devMode } = params
+  const { ctx, module, service, log, hotReload, devMode, localMode } = params
 
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
@@ -182,13 +185,14 @@ export async function deployKubernetesService(
 
   const pruneLabels = { [gardenAnnotationKey("service")]: service.name }
   if (otherManifests.length > 0) {
-    const prepareResult = await prepareManifestsForSync({
+    const prepareResult = await configureSpecialModesForManifests({
       ctx: k8sCtx,
       log,
       module,
       service,
       devMode,
       hotReload,
+      localMode,
       manifests,
     })
 
@@ -211,17 +215,23 @@ export async function deployKubernetesService(
   // Make sure port forwards work after redeployment
   killPortForwards(service, status.forwardablePorts || [], log)
 
-  if (devMode && service.spec.devMode && target) {
-    await startDevModeSync({
-      ctx,
-      log,
-      moduleRoot: service.sourceModule.path,
-      namespace,
-      target,
-      spec: service.spec.devMode,
-      containerName: service.spec.devMode.containerName,
-      serviceName: service.name,
-    })
+  if (target) {
+    // local mode always takes precedence over dev mode
+    if (localMode && service.spec.localMode) {
+      // todo
+      // configureLocalMode()
+    } else if (devMode && service.spec.devMode) {
+      await startDevModeSync({
+        ctx,
+        log,
+        moduleRoot: service.sourceModule.path,
+        namespace,
+        target,
+        spec: service.spec.devMode,
+        containerName: service.spec.devMode.containerName,
+        serviceName: service.name,
+      })
+    }
   }
 
   const namespaceStatuses = [namespaceStatus]
@@ -322,20 +332,22 @@ async function getServiceLogs(params: GetServiceLogsParams<KubernetesModule>) {
 }
 
 /**
- * Looks for a hot-reload or dev-mode target in a list of manifests. If found, the target is either
- * configured for hot-reloading/dev-mode or annotated with `dev-mode: false` and/or `hot-reload: false`.
+ * Looks for a hot-reload, dev-mode or local-mode target in a list of manifests.
+ * If found, the target is either configured for hot-reloading/dev-mode/local-mode
+ * or annotated with `dev-mode: false`, and/or `hot-reload: false`, and/or `local-mode: false`.
  *
- * Returns the manifests with the original hot reload resource replaced by the modified spec
+ * Returns the manifests with the original hot reload resource replaced by the modified spec.
  *
- * No-op if no target found and neither hot-reloading nor dev-mode is enabled.
+ * No-op if no target found and neither hot-reloading, nor dev-mode, nor local-mode is enabled.
  */
-async function prepareManifestsForSync({
+async function configureSpecialModesForManifests({
   ctx,
   log,
   module,
   service,
   devMode,
   hotReload,
+  localMode,
   manifests,
 }: {
   ctx: KubernetesPluginContext
@@ -344,8 +356,13 @@ async function prepareManifestsForSync({
   module: KubernetesModule
   devMode: boolean
   hotReload: boolean
+  localMode: boolean
   manifests: KubernetesResource<BaseResource>[]
 }) {
+  const devModeSpec = service.spec.devMode
+  const hotReloadSpec = hotReload ? getHotReloadSpec(service) : null
+  const localModeSpec = service.spec.localMode
+
   let target: HotReloadableResource
 
   try {
@@ -362,8 +379,10 @@ async function prepareManifestsForSync({
       })
     )
   } catch (err) {
-    // This is only an error if we're actually trying to hot reload or start dev mode.
-    if ((devMode && service.spec.devMode) || hotReload) {
+    const enableLocalMode = localMode && localModeSpec
+    const enableDevMode = devModeSpec && devMode
+    // This is only an error if we're actually trying to hot reload, or start dev or local mode.
+    if (enableDevMode || hotReload || enableLocalMode) {
       throw err
     } else {
       // Nothing to do, so we return the original manifests
@@ -373,11 +392,21 @@ async function prepareManifestsForSync({
 
   set(target, ["metadata", "annotations", gardenAnnotationKey("dev-mode")], "false")
   set(target, ["metadata", "annotations", gardenAnnotationKey("hot-reload")], "false")
+  set(target, ["metadata", "annotations", gardenAnnotationKey("local-mode")], "false")
 
-  const devModeSpec = service.spec.devMode
-  const hotReloadSpec = hotReload ? getHotReloadSpec(service) : null
-
-  if (devMode && devModeSpec) {
+  // local mode always takes precedence over dev mode
+  if (localMode && localModeSpec) {
+    // The "local-mode" annotation is set in `configureLocalMode`.
+    // todo
+    // await configureLocalMode({
+    //   ctx,
+    //   target,
+    //   spec: localModeSpec,
+    //   service,
+    //   log,
+    //   containerName: localModeSpec.containerName,
+    // })
+  } else if (devMode && devModeSpec) {
     // The "dev-mode" annotation is set in `configureDevMode`.
     configureDevMode({
       target,
