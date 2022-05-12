@@ -274,6 +274,7 @@ jobs:
 
   lint:
     <<: *node-config
+    resource_class: large
     steps:
       - checkout
       - npm_install
