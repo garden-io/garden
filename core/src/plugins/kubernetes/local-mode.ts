@@ -35,6 +35,9 @@ export const localModeGuideLink = "https://docs.garden.io/guides/running-service
 
 const localhost = "127.0.0.1"
 
+const AsyncLock = require("async-lock")
+const sshKeyPairAsyncLock = new AsyncLock()
+
 interface ConfigureLocalModeParams {
   target: HotReloadableResource
   spec: ContainerLocalModeSpec
@@ -78,7 +81,6 @@ export class ProxySshKeystore {
    * Thus, there is no need to invalidate this cache. It just memoizes each module specific existing keystore.
    */
   private static readonly serviceKeyPairs: Record<string, KeyPair> = {}
-  private static keysGenerated: boolean = false
 
   private static deleteFileFailSafe(filePath: string, log: LogEntry): void {
     try {
@@ -89,25 +91,36 @@ export class ProxySshKeystore {
   }
 
   private static async generateSshKeys(keyPair: KeyPair, service: ContainerService, log: LogEntry): Promise<KeyPair> {
-    if (ProxySshKeystore.keysGenerated) {
-      return keyPair
-    }
-
     // Empty pass-phrase, explicit filename,
     // and auto-overwrite to rewrite old keys if the cleanup exit-hooks failed for some reason.
-    const sshKeyGenCmd = `ssh-keygen -N "" -f ${keyPair.privateKeyPath} <<<y`
-    await pRetry(() => execSync(sshKeyGenCmd), {
-      retries: 5,
-      minTimeout: 2000,
+    const sshKeyGenCmd = `yes 'y' | ssh-keygen -N "" -f ${keyPair.privateKeyPath}`
+    const retries = 5
+    const minTimeout = 2000
+    await pRetry(() => execSync(sshKeyGenCmd, { shell: "/bin/sh" }), {
+      retries,
+      minTimeout,
       onFailedAttempt: async (err) => {
+        let errMsg = err.message
+        const stdout = err["stdout"]
+        if (!!stdout) {
+          errMsg += errMsg + `; stdout=${stdout.toString()}`
+        }
+        const stderr = err["stderr"]
+        if (!!stderr) {
+          errMsg += errMsg + `; stderr=${stderr.toString()}`
+        }
+        const msg =
+          err.retriesLeft > 0
+            ? `Failed to create an ssh key pair for reverse proxy container. Error details: ${errMsg}. ` +
+              `${err.retriesLeft} attempts left, next one in ${minTimeout}ms,`
+            : `Failed to create an ssh key pair for reverse proxy container. Error details: ${errMsg}.`
         log.warn({
           status: "active",
           section: service.name,
-          msg: `Failed to create an ssh key pair for reverse proxy container. ${err.retriesLeft} attempts left.`,
+          msg,
         })
       },
     })
-    ProxySshKeystore.keysGenerated = true
 
     process.once("exit", () => {
       ProxySshKeystore.deleteFileFailSafe(keyPair.privateKeyPath, log)
@@ -122,10 +135,14 @@ export class ProxySshKeystore {
     const moduleDirPath = resolve(rootPath, service.module.name)
     const serviceDirPath = resolve(moduleDirPath, service.name)
     if (!ProxySshKeystore.serviceKeyPairs[serviceDirPath]) {
-      await ensureDir(serviceDirPath)
-      const keyPair = new KeyPair(serviceDirPath)
-      ProxySshKeystore.serviceKeyPairs[serviceDirPath] = keyPair
-      await ProxySshKeystore.generateSshKeys(keyPair, service, log)
+      await sshKeyPairAsyncLock.acquire("proxy-ssh-key-pair", async () => {
+        if (!ProxySshKeystore.serviceKeyPairs[serviceDirPath]) {
+          await ensureDir(serviceDirPath)
+          const keyPair = new KeyPair(serviceDirPath)
+          await ProxySshKeystore.generateSshKeys(keyPair, service, log)
+          ProxySshKeystore.serviceKeyPairs[serviceDirPath] = keyPair
+        }
+      })
     }
     return ProxySshKeystore.serviceKeyPairs[serviceDirPath]
   }
@@ -544,6 +561,9 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   }
 
   const localSshPort = await getPort()
+  // ensure the local known_hosts is not "dirty"
+  cleanupKnownHosts(localSshPort, log)
+  // and cleanup it on exit
   process.once("exit", () => {
     cleanupKnownHosts(localSshPort, log)
   })
@@ -552,7 +572,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   const kubectlPortForward = await getKubectlPortForwardProcess(configParams, localSshPort)
   const reversePortForward = await getReversePortForwardProcess(configParams, localSshPort)
 
-  const processTree: RetriableProcess = composeProcessTree(localService, kubectlPortForward, reversePortForward, log)
+  const processTree = composeProcessTree(localService, kubectlPortForward, reversePortForward, log)
   log.info({
     status: "active",
     section: service.name,
