@@ -397,6 +397,7 @@ async function getKubectlPortForwardProcess(
     minTimeoutMs: 5000,
     log,
     stderrListener: {
+      catchCriticalErrors: (_chunk: any) => false,
       hasErrors: (_chunk: any) => true,
       onError: (msg: ProcessErrorMessage) => {
         log.error({
@@ -413,6 +414,7 @@ async function getKubectlPortForwardProcess(
       onMessage: (_msg: ProcessMessage) => {},
     },
     stdoutListener: {
+      catchCriticalErrors: (_chunk) => false,
       hasErrors: (_chunk: any) => false,
       onError: (_msg: ProcessErrorMessage) => {},
       onMessage: (msg: ProcessMessage) => {
@@ -466,6 +468,39 @@ async function getReversePortForwardProcess(
     minTimeoutMs: 5000,
     log,
     stderrListener: {
+      catchCriticalErrors: (chunk: any) => {
+        const output = chunk.toString()
+        const lowercaseOutput = output.toLowerCase()
+        if (lowercaseOutput.includes('unsupported option "accept-new"')) {
+          log.error({
+            status: "error",
+            section: service.name,
+            msg: chalk.red(
+              "It looks like you're using too old SSH version " +
+                "which doesn't support option -oStrictHostKeyChecking=accept-new. " +
+                "Consider upgrading to OpenSSH 7.6 or higher. Local mode will not work."
+            ),
+          })
+          return true
+        }
+        if (lowercaseOutput.includes('permission denied"')) {
+          log.error({
+            status: "error",
+            section: service.name,
+            msg: chalk.red(output),
+          })
+          return true
+        }
+        if (output.includes("REMOTE HOST IDENTIFICATION HAS CHANGED")) {
+          log.error({
+            status: "error",
+            section: service.name,
+            msg: chalk.red(output),
+          })
+          return true
+        }
+        return false
+      },
       hasErrors: (chunk: any) => {
         const output = chunk.toString()
         // A message containing "warning: permanently added" is printed by ssh command
@@ -475,28 +510,16 @@ async function getReversePortForwardProcess(
         return !output.toLowerCase().includes("warning: permanently added")
       },
       onError: (msg: ProcessErrorMessage) => {
-        if (msg.message.toLowerCase().includes('unsupported option "accept-new"')) {
-          log.error({
-            status: "error",
-            section: service.name,
-            msg: chalk.red(
-              "It looks like you're using too old SSH version " +
-                "which doesn't support option -oStrictHostKeyChecking=accept-new. " +
-                "Consider upgrading to OpenSSH 7.6 or higher. Local mode will not work."
-            ), // todo: exit gracefully without retries
-          })
-        } else {
-          log.error({
-            status: "error",
-            section: service.name,
-            msg: chalk.red(
-              `Failed to start reverse port-forwarding with PID ${msg.pid}, ${attemptsLeft(
-                msg.retriesLeft,
-                msg.minTimeoutMs
-              )}`
-            ),
-          })
-        }
+        log.error({
+          status: "error",
+          section: service.name,
+          msg: chalk.red(
+            `Failed to start reverse port-forwarding with PID ${msg.pid}, ${attemptsLeft(
+              msg.retriesLeft,
+              msg.minTimeoutMs
+            )}`
+          ),
+        })
       },
       onMessage: (msg: ProcessMessage) => {
         log.info({
@@ -507,6 +530,7 @@ async function getReversePortForwardProcess(
       },
     },
     stdoutListener: {
+      catchCriticalErrors: (_chunk: any) => false,
       hasErrors: (_chunk: any) => false,
       onError: (_msg: ProcessErrorMessage) => {},
       onMessage: (msg: ProcessMessage) => {

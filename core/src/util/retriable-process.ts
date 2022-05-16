@@ -29,6 +29,14 @@ export interface ProcessErrorMessage extends ProcessMessage {
 
 export interface IOStreamListener {
   /**
+   * Optional function to catch and process the critical (i.e. non-recoverable) errors.
+   *
+   * @param chunk the data chuck from the stdio stream
+   * @return {@code true} if any critical errors have been caught or {@code false} otherwise
+   */
+  catchCriticalErrors?: (chunk: any) => boolean
+
+  /**
    * Some stderr output may not contain any actual errors, it can have just warnings or some debug output.
    * We want to have a way to recognize command specific warnings and do not interpret those as errors,
    * i.e. we want to avoid restarting the process.
@@ -37,7 +45,7 @@ export interface IOStreamListener {
    * Thus, there is also a way to recognize some errors coming from stdout
    * (if there are any utilities which print errors to stdout?) and to trigger the process restart.
    *
-   * @param chunk the data chuck from the stderr stream
+   * @param chunk the data chuck from the stdio stream
    * @return {@code true} if the stderr data has any actual errors or {@code false} otherwise
    */
   hasErrors: (chunk: any) => boolean
@@ -247,6 +255,15 @@ export class RetriableProcess {
     })
 
     proc.stderr!.on("data", async (chunk: any) => {
+      const catchCriticalErrorsFn = this.stdoutListener?.catchCriticalErrors
+      if (!!catchCriticalErrorsFn && catchCriticalErrorsFn(chunk)) {
+        const message =
+          `Failed to start local mode. ` +
+          `Command '${this.command}' terminated with critical error: ${chunk.toString()}.`
+        logDebugError("stderr", message)
+        await this.fail()
+      }
+
       const hasErrorsFn = this.stderrListener?.hasErrors
       if (!hasErrorsFn || hasErrorsFn(chunk)) {
         const message = `Command '${this.command}' terminated: ${chunk.toString()}.`
@@ -264,6 +281,15 @@ export class RetriableProcess {
     })
 
     proc.stdout!.on("data", async (chunk: any) => {
+      const catchCriticalErrorsFn = this.stdoutListener?.catchCriticalErrors
+      if (!!catchCriticalErrorsFn && catchCriticalErrorsFn(chunk)) {
+        const message =
+          `Failed to start local mode. ` +
+          `Command '${this.command}' terminated with critical error: ${chunk.toString()}.`
+        logDebugError("stdout", message)
+        await this.fail()
+      }
+
       const hasErrorsFn = this.stdoutListener?.hasErrors
       if (!hasErrorsFn || !hasErrorsFn(chunk)) {
         const message = chunk.toString()
@@ -306,6 +332,13 @@ export class RetriableProcess {
     RetriableProcess.recursiveAction(this, (node) => node.resetNodeRetriesLeft())
   }
 
+  private async fail(): Promise<void> {
+    this.log.error("Unable to start local mode, see the error details in the logs.")
+    this.stopAll()
+    this.state = "failed"
+    await this.failureHandler()
+  }
+
   private async tryRestartSubTree(): Promise<void> {
     // todo: should we lookup to parent nodes to find the parent-most killed/restarting process?
     this.unregisterSubTreeListeners()
@@ -317,10 +350,7 @@ export class RetriableProcess {
       this.state = "retrying"
       this.startSubTree()
     } else {
-      this.log.error("Unable to start local mode, see the error details in the logs.")
-      this.stopAll()
-      this.state = "failed"
-      await this.failureHandler()
+      await this.fail()
     }
   }
 
