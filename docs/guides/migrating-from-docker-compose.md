@@ -162,7 +162,3 @@ To build and deploy your project, terminate the `garden dev` process and run `ga
 
 This was a simple example, but it should give you what you need to migrate larger projects too. If you have feedback on how we could make migrating from Docker Compose easier, please send us feedback via [GitHub issues](https://github.com/garden-io/garden/issues), or reach out on our Slack channel.
 
-
-
-
-
