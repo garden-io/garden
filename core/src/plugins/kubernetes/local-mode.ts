@@ -12,7 +12,7 @@ import { set } from "lodash"
 import { HotReloadableResource } from "./hot-reload/hot-reload"
 import { PrimitiveMap } from "../../config/common"
 import { PROXY_CONTAINER_SSH_TUNNEL_PORT, PROXY_CONTAINER_USER_NAME, reverseProxyImageName } from "./constants"
-import { ConfigurationError } from "../../exceptions"
+import { ConfigurationError, RuntimeError } from "../../exceptions"
 import { getResourceContainer, prepareEnvVars } from "./util"
 import { V1Container } from "@kubernetes/client-node"
 import { KubernetesPluginContext } from "./config"
@@ -80,7 +80,27 @@ export class ProxySshKeystore {
    * The lifecycle of each ssh key pair for a proxy container is the same as the Garden CLI application's lifecycle.
    * Thus, there is no need to invalidate this cache. It just memoizes each module specific existing keystore.
    */
-  private static readonly serviceKeyPairs: Record<string, KeyPair> = {}
+  private readonly serviceKeyPairs: Map<string, KeyPair>
+
+  private constructor() {
+    if (!!ProxySshKeystore.instance) {
+      throw new RuntimeError("Cannot init singleton twice, use ProxySshKeystore.getInstance()", {})
+    }
+    this.serviceKeyPairs = new Map<string, KeyPair>()
+  }
+
+  private static instance?: ProxySshKeystore = undefined
+
+  public static getInstance(log: LogEntry): ProxySshKeystore {
+    if (!ProxySshKeystore.instance) {
+      const newInstance = new ProxySshKeystore()
+      process.once("exit", () => {
+        newInstance.shutdown(log)
+      })
+      ProxySshKeystore.instance = newInstance
+    }
+    return ProxySshKeystore.instance
+  }
 
   private static deleteFileFailSafe(filePath: string, log: LogEntry): void {
     try {
@@ -122,29 +142,32 @@ export class ProxySshKeystore {
       },
     })
 
-    process.once("exit", () => {
-      ProxySshKeystore.deleteFileFailSafe(keyPair.privateKeyPath, log)
-      ProxySshKeystore.deleteFileFailSafe(keyPair.publicKeyPath, log)
-    })
-
     return keyPair
   }
 
-  public static async getKeyPair(service: ContainerService, log: LogEntry): Promise<KeyPair> {
+  public async getKeyPair(service: ContainerService, log: LogEntry): Promise<KeyPair> {
     const rootPath = service.module.localModeSshKeystorePath
     const moduleDirPath = resolve(rootPath, service.module.name)
     const serviceDirPath = resolve(moduleDirPath, service.name)
-    if (!ProxySshKeystore.serviceKeyPairs[serviceDirPath]) {
+    if (!this.serviceKeyPairs.has(serviceDirPath)) {
       await sshKeyPairAsyncLock.acquire("proxy-ssh-key-pair", async () => {
-        if (!ProxySshKeystore.serviceKeyPairs[serviceDirPath]) {
+        if (!this.serviceKeyPairs.has(serviceDirPath)) {
           await ensureDir(serviceDirPath)
           const keyPair = new KeyPair(serviceDirPath)
           await ProxySshKeystore.generateSshKeys(keyPair, service, log)
-          ProxySshKeystore.serviceKeyPairs[serviceDirPath] = keyPair
+          this.serviceKeyPairs.set(serviceDirPath, keyPair)
         }
       })
     }
-    return ProxySshKeystore.serviceKeyPairs[serviceDirPath]
+    return this.serviceKeyPairs.get(serviceDirPath)!
+  }
+
+  public shutdown(log: LogEntry): void {
+    this.serviceKeyPairs.forEach((value) => {
+      ProxySshKeystore.deleteFileFailSafe(value.privateKeyPath, log)
+      ProxySshKeystore.deleteFileFailSafe(value.publicKeyPath, log)
+    })
+    this.serviceKeyPairs.clear()
   }
 }
 
@@ -298,7 +321,7 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
   }
   const proxyContainerName = !!remoteContainerName ? remoteContainerName : mainContainer.name
 
-  const keyPair = await ProxySshKeystore.getKeyPair(service, log)
+  const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(service, log)
 
   log.debug({
     section: service.name,
@@ -436,7 +459,7 @@ async function getReversePortForwardCommand(
   // todo: get all forwardable ports and set up ssh tunnels for all
   const remoteContainerPortSpec = findFirstForwardablePort(service.spec)
   const remoteContainerPort = remoteContainerPortSpec.containerPort
-  const keyPair = await ProxySshKeystore.getKeyPair(service, log)
+  const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(service, log)
 
   const sshCommandName = "ssh"
   const sshCommandArgs = [
