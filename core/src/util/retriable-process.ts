@@ -384,7 +384,7 @@ export class RetriableProcess {
     return this.renderProcessTreeRecursively("", output)
   }
 
-  private getTreeRoot() {
+  public getTreeRoot() {
     let cur: RetriableProcess = this
     while (!!cur.parent) {
       cur = cur.parent

@@ -183,6 +183,44 @@ function cleanupKnownHosts(localPort: number, log: LogEntry): void {
   }
 }
 
+/*
+ * This can be changed to a "global" registry for all processes,
+ * but now retriable processes are used in local mode only.
+ */
+export class LocalModeProcessRegistry {
+  private readonly retriableProcesses: Map<string, RetriableProcess>
+
+  private constructor() {
+    if (!!LocalModeProcessRegistry.instance) {
+      throw new RuntimeError("Cannot init singleton twice, use LocalModeProcessRegistry.getInstance()", {})
+    }
+    this.retriableProcesses = new Map<string, RetriableProcess>()
+  }
+
+  private static instance?: LocalModeProcessRegistry = undefined
+
+  public static getInstance(): LocalModeProcessRegistry {
+    if (!LocalModeProcessRegistry.instance) {
+      const newInstance = new LocalModeProcessRegistry()
+      process.once("exit", () => {
+        newInstance.shutdown()
+      })
+      LocalModeProcessRegistry.instance = newInstance
+    }
+    return LocalModeProcessRegistry.instance
+  }
+
+  public register(process: RetriableProcess): void {
+    const root = process.getTreeRoot()
+    this.retriableProcesses.set(root.command, root)
+  }
+
+  public shutdown(): void {
+    this.retriableProcesses.forEach((process) => process.stopAll())
+    this.retriableProcesses.clear()
+  }
+}
+
 // todo: proxy container should expose all ports instead of a single one
 function findFirstForwardablePort(serviceSpec: ContainerServiceSpec): ServicePortSpec {
   if (serviceSpec.ports.length === 0) {
@@ -625,5 +663,6 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
     section: service.name,
     msg: chalk.gray(`→ Starting local mode process tree:\n` + `${chalk.white(`${processTree.renderProcessTree()}`)}`),
   })
+  LocalModeProcessRegistry.getInstance().register(processTree)
   processTree.startAll()
 }

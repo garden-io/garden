@@ -19,6 +19,7 @@ import { pathExists } from "fs-extra"
 import { execSync } from "child_process"
 import { PROXY_CONTAINER_USER_NAME } from "../../../../../src/plugins/kubernetes/constants"
 import { RuntimeError } from "../../../../../src/exceptions"
+import { LocalModeProcessRegistry } from "../../../../../src/plugins/kubernetes/local-mode"
 import pRetry = require("p-retry")
 
 describe("local mode deployments and ssh tunneling behavior", () => {
@@ -29,6 +30,10 @@ describe("local mode deployments and ssh tunneling behavior", () => {
 
   before(async () => {
     await init("local")
+  })
+
+  after(() => {
+    LocalModeProcessRegistry.getInstance().shutdown()
   })
 
   beforeEach(async () => {
