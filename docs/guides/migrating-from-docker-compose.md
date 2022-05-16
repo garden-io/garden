@@ -7,7 +7,7 @@ If you already have an application built using Docker Compose and want to migrat
 To follow along, you should have:
 
 * Basic familiarity with Garden.
-* Docker Desktop running locally.
+* [Docker Desktop](https://www.docker.com/products/docker-desktop/) running locally.
 * A local Kubernetes cluster running inside Docker Desktop.
 * A project that currently uses Docker Compose (or follow along using the provided example).
 
