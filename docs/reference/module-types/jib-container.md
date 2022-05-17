@@ -333,6 +333,9 @@ services:
     #
     # Local mode is enabled by setting the `--local-mode` option on the `garden deploy` command.
     #
+    # The liveness probes are enabled by default.
+    # Those can be disabled by setting `services[].localMode.enableLivenessProbe: false`.
+    #
     # See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode.md) for more information.
     localMode:
       # The command to run the local application (optional).
@@ -343,6 +346,10 @@ services:
 
       # The working port of the local application.
       localAppPort:
+
+      # Enable liveness probes for the local service (over the proxy container) if true. True by default. Set it to
+      # false to disable liveness probes.
+      enableLivenessProbe: true
 
     # List of ingress endpoints that the service exposes.
     ingresses:
@@ -1473,6 +1480,9 @@ The `command` should not depend on the current service or module path.
 
 Local mode is enabled by setting the `--local-mode` option on the `garden deploy` command.
 
+The liveness probes are enabled by default.
+Those can be disabled by setting `services[].localMode.enableLivenessProbe: false`.
+
 See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode.md) for more information.
 
 | Type     | Required |
@@ -1508,6 +1518,16 @@ The working port of the local application.
 | Type     | Required |
 | -------- | -------- |
 | `number` | No       |
+
+### `services[].localMode.enableLivenessProbe`
+
+[services](#services) > [localMode](#serviceslocalmode) > enableLivenessProbe
+
+Enable liveness probes for the local service (over the proxy container) if true. True by default. Set it to false to disable liveness probes.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
 
 ### `services[].ingresses[]`
 

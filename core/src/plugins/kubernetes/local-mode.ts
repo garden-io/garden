@@ -334,18 +334,20 @@ function patchOriginalServiceSpec(
 
 /**
  * Patches the main container by adding localMode-specific settings like ports, environment variables,
- * docker image name and readiness probe settings.
+ * docker image name and health-check settings.
  *
  * @param mainContainer the main container object to be patched
  * @param proxyContainerName the target container name
  * @param localModeEnvVars the list of localMode-specific environment variables
  * @param localModePorts the list of localMode-specific ports (e.g. ssh port for tunnel setup)
+ * @param localModeSpec the local mode configuration spec
  */
 function patchMainContainer(
   mainContainer: V1Container,
   proxyContainerName: string,
   localModeEnvVars: PrimitiveMap,
-  localModePorts: ServicePortSpec[]
+  localModePorts: ServicePortSpec[],
+  localModeSpec: ContainerLocalModeSpec
 ) {
   mainContainer.name = proxyContainerName
   mainContainer.image = reverseProxyImageName
@@ -366,6 +368,10 @@ function patchMainContainer(
       protocol: port.protocol,
       containerPort: port.containerPort,
     })
+  }
+
+  if (!localModeSpec.enableLivenessProbe) {
+    delete mainContainer.livenessProbe
   }
 }
 
@@ -405,7 +411,7 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
   const localModePorts = prepareLocalModePorts(configParams)
 
   patchOriginalServiceSpec(service.spec, localModeEnvVars, localModePorts)
-  patchMainContainer(mainContainer, proxyContainerName, localModeEnvVars, localModePorts)
+  patchMainContainer(mainContainer, proxyContainerName, localModeEnvVars, localModePorts, localModeSpec)
 
   // todo: check if anything else should be configured here
 }

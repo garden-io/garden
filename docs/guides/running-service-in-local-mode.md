@@ -73,7 +73,17 @@ inspect the `known_hosts` file and clean it up manually.
 ## Configuration
 
 To configure a service for local mode, add `localMode` to your module/service configuration to specify your target
-services:
+services.
+
+### Health-checks
+
+The readiness probes are disabled for all services running in local mode. This has been done because of some technical
+reasons. The k8s cluster readiness checks are applied to a proxy container which sends the traffic to the local service.
+When a readiness probe happens, the target local service and the relevant port forward are not ready yet.
+
+The _local mode_ supports liveness probes. The liveness probles have intentionally longer initial delays, just to make
+sure that the local services and port forward have enough time to start. The liveness probes are enabled by default, but
+can be disabled if necessary. See the example below.
 
 ### Configuring local mode for `container` modules
 
@@ -86,6 +96,7 @@ services:
     args: [ npm, start ]
     localMode:
       localAppPort: 8090 # The port of the local service, will be used for port-forward setup
+      enableLivenessProbe: false # Optional, `true` is the default value. Set it to `false` if you need to disable liveness probes for the local service.
       command: [ npm, run, serve ] # Starts the local service which will replace the target one in the k8s cluster
       containerName: "node-service" # Optional. The name of the target k8s service. It will be inferred automatically if this option is not defined.
   ...

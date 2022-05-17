@@ -306,6 +306,7 @@ export const containerDevModeSchema = () =>
 
 export interface ContainerLocalModeSpec {
   localAppPort: number
+  enableLivenessProbe: boolean
   command?: string[]
   containerName?: string
 }
@@ -319,6 +320,12 @@ export const containerLocalModeSchema = () =>
       .description("The command to run the local application (optional)."),
     containerName: joi.string().optional().description("The k8s name of the remote container (optional)."),
     localAppPort: joi.number().description("The working port of the local application."),
+    enableLivenessProbe: joi
+      .boolean()
+      .default(true)
+      .description(
+        "Enable liveness probes for the local service (over the proxy container) if true. True by default. Set it to false to disable liveness probes."
+      ),
   }).description(dedent`
     Specifies necessary configuration details of the local application which will replace a target remote service in the k8s cluster.
 
@@ -329,6 +336,9 @@ export const containerLocalModeSchema = () =>
     The \`command\` should not depend on the current service or module path.
 
     Local mode is enabled by setting the \`--local-mode\` option on the \`garden deploy\` command.
+
+    The liveness probes are enabled by default.
+    Those can be disabled by setting \`services[].localMode.enableLivenessProbe: false\`.
 
     See the [Local Mode guide](${localModeGuideLink}) for more information.
   `)
