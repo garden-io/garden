@@ -171,18 +171,6 @@ export class ProxySshKeystore {
   }
 }
 
-function cleanupKnownHosts(localPort: number, log: LogEntry): void {
-  const localhostEscaped = localhost.split(".").join("\\.")
-  const command = `sed -i -r '/^\\[${localhostEscaped}\\]:${localPort}/d' \${HOME}/.ssh/known_hosts`
-  try {
-    log.debug("Cleaning up .ssh/known_hosts file...")
-    execSync(command)
-    log.debug("Cleaned up .ssh/known_hosts successfully!")
-  } catch (err) {
-    log.warn(`Error cleaning up .ssh/known_hosts file: ${err}`)
-  }
-}
-
 /*
  * This can be changed to a "global" registry for all processes,
  * but now retriable processes are used in local mode only.
@@ -218,6 +206,53 @@ export class LocalModeProcessRegistry {
   public shutdown(): void {
     this.retriableProcesses.forEach((process) => process.stopAll())
     this.retriableProcesses.clear()
+  }
+}
+
+export class LocalModeSshPortRegistry {
+  private readonly localsshPorts: Set<number>
+
+  private constructor() {
+    if (!!LocalModeSshPortRegistry.instance) {
+      throw new RuntimeError("Cannot init singleton twice, use LocalModeSshPortRegistry.getInstance()", {})
+    }
+    this.localsshPorts = new Set<number>()
+  }
+
+  private static instance?: LocalModeSshPortRegistry = undefined
+
+  public static getInstance(log: LogEntry): LocalModeSshPortRegistry {
+    if (!LocalModeSshPortRegistry.instance) {
+      const newInstance = new LocalModeSshPortRegistry()
+      process.once("exit", () => {
+        newInstance.shutdown(log)
+      })
+      LocalModeSshPortRegistry.instance = newInstance
+    }
+    return LocalModeSshPortRegistry.instance
+  }
+
+  private static cleanupKnownHosts(localPort: number, log: LogEntry): void {
+    const localhostEscaped = localhost.split(".").join("\\.")
+    const command = `sed -i -r '/^\\[${localhostEscaped}\\]:${localPort}/d' \${HOME}/.ssh/known_hosts`
+    try {
+      log.debug("Cleaning up .ssh/known_hosts file...")
+      execSync(command)
+      log.debug("Cleaned up .ssh/known_hosts successfully!")
+    } catch (err) {
+      log.warn(`Error cleaning up .ssh/known_hosts file: ${err}`)
+    }
+  }
+
+  public register(port: number, log: LogEntry): void {
+    // ensure the local known_hosts is not "dirty"
+    LocalModeSshPortRegistry.cleanupKnownHosts(port, log)
+    this.localsshPorts.add(port)
+  }
+
+  public shutdown(log: LogEntry): void {
+    this.localsshPorts.forEach((port) => LocalModeSshPortRegistry.cleanupKnownHosts(port, log))
+    this.localsshPorts.clear()
   }
 }
 
@@ -646,12 +681,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   }
 
   const localSshPort = await getPort()
-  // ensure the local known_hosts is not "dirty"
-  cleanupKnownHosts(localSshPort, log)
-  // and cleanup it on exit
-  process.once("exit", () => {
-    cleanupKnownHosts(localSshPort, log)
-  })
+  LocalModeSshPortRegistry.getInstance(log).register(localSshPort, log)
 
   const localService = getLocalServiceProcess(configParams)
   const kubectlPortForward = await getKubectlPortForwardProcess(configParams, localSshPort)
