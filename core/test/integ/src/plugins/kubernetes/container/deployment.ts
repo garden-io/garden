@@ -28,6 +28,7 @@ import { ContainerService } from "../../../../../../src/plugins/container/config
 import { apply } from "../../../../../../src/plugins/kubernetes/kubectl"
 import { getAppNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
 import { gardenAnnotationKey } from "../../../../../../src/util/string"
+import { syncUtilImageName } from "../../../../../../src/plugins/kubernetes/dev-mode"
 
 describe("kubernetes container deployment handlers", () => {
   let garden: Garden
@@ -270,7 +271,7 @@ describe("kubernetes container deployment handlers", () => {
       expect(resource.spec.template?.spec?.initContainers).to.eql([
         {
           name: "garden-dev-init",
-          image: "gardendev/k8s-sync:0.1.4",
+          image: syncUtilImageName,
           command: ["/bin/sh", "-c", "cp /usr/local/bin/mutagen-agent /.garden/mutagen-agent"],
           imagePullPolicy: "IfNotPresent",
           volumeMounts: [
