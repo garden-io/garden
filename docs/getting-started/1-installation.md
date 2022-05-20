@@ -89,10 +89,6 @@ The things the script will check for are the following:
 
 * The [Chocolatey](https://chocolatey.org) package manager. The script installs it automatically if necessary.
 * _git_ and _rsync_ . The script will install or upgrade those via Chocolatey.
-* Whether you have Hyper-V available and enabled. This is required for _Docker for Windows_. If it's available, the
-  installer will also ask if you'd like to install _Docker for Windows_. If you do not already have Hyper-V enabled,
-  the script will enable it, but you will need to restart your computer before starting Docker.
-* If applicable, whether Kubernetes is enabled in your _Docker for Windows_ installation.
 
 To later upgrade to the newest version, simply re-run the above script.
 
