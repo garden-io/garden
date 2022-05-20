@@ -25,6 +25,8 @@ export const gardenUtilDaemonDeploymentName = "garden-util-daemon"
 export const dockerDaemonDeploymentName = "garden-docker-daemon"
 
 export const k8sUtilImageName = "gardendev/k8s-util:0.5.2"
+export const k8sSyncUtilImageName = "gardendev/k8s-sync:0.1.4"
+
 export const dockerDaemonContainerName = "docker-daemon"
 export const skopeoDaemonContainerName = "util"
 
