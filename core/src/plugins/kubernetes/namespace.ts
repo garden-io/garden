@@ -116,8 +116,8 @@ export async function ensureNamespace(
 function namespaceNeedsUpdate(resource: KubernetesServerResource<V1Namespace> | undefined, config: NamespaceConfig) {
   return (
     resource &&
-    (!isSubset(resource.metadata?.annotations, config.annotations) ||
-      !isSubset(resource.metadata?.labels, config.labels))
+    (!isSubset(resource.metadata?.annotations || {}, config.annotations || {}) ||
+      !isSubset(resource.metadata?.labels || {}, config.labels || {}))
   )
 }
 
