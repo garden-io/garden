@@ -35,8 +35,7 @@ import {
 import { joi, joiIdentifier } from "../../config/common"
 import { KubernetesPluginContext, KubernetesProvider } from "./config"
 import { isConfiguredForDevMode } from "./status/status"
-
-export const syncUtilImageName = "gardendev/k8s-sync:0.1.4"
+import { k8sSyncUtilImageName } from "./constants"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -144,7 +143,7 @@ export function configureDevMode({ target, spec, containerName }: ConfigureDevMo
 
   const initContainer = {
     name: "garden-dev-init",
-    image: syncUtilImageName,
+    image: k8sSyncUtilImageName,
     command: ["/bin/sh", "-c", "cp /usr/local/bin/mutagen-agent " + mutagenAgentPath],
     imagePullPolicy: "IfNotPresent",
     volumeMounts: [gardenVolumeMount],
