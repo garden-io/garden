@@ -15,7 +15,7 @@ If in doubt, use the following setup for builds:
 
 - [**`kaniko`**](#kaniko) build mode, which works well for most scenarios.
 - Use the project namespace for build pods.
-- [Connect a remote deployment registry](#Configuring-a-deployment-registry) to use for built images. _Note: You can also skip this and use the included in-cluster registry while testing, but be aware that you may hit scaling issues as you go._
+- [Connect a remote deployment registry](#configuring-a-deployment-registry) to use for built images. _Note: You can also skip this and use the included in-cluster registry while testing, but be aware that you may hit scaling issues as you go._
 
 Here's a basic configuration example:
 
@@ -38,7 +38,7 @@ providers:
         namespace: default
 ```
 
-The only tricky bit would be connecting the remote registry, so we suggest reading more about that [below](#Configuring-a-deployment-registry).
+The only tricky bit would be connecting the remote registry, so we suggest reading more about that [below](#configuring-a-deployment-registry).
 
 ## Security considerations
 
