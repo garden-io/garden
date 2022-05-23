@@ -129,6 +129,7 @@ export interface ContainerServiceSpec extends CommonServiceSpec {
   replicas?: number
   volumes: ContainerVolumeSpec[]
   privileged?: boolean
+  tty?: boolean
   addCapabilities?: string[]
   dropCapabilities?: string[]
 }
@@ -625,6 +626,12 @@ const containerServiceSchema = () =>
     `),
     volumes: getContainerVolumesSchema("service"),
     privileged: containerPrivilegedSchema("service"),
+    tty: joi
+      .boolean()
+      .default(false)
+      .description(
+        "Specify if containers in this module have TTY support enabled (which implies having stdin support enabled)."
+      ),
     addCapabilities: containerAddCapabilitiesSchema("service"),
     dropCapabilities: containerDropCapabilitiesSchema("service"),
   })
