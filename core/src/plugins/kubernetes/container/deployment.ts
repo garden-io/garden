@@ -421,6 +421,11 @@ export async function createWorkloadManifest({
     container.args = service.spec.args
   }
 
+  if (spec.tty) {
+    container.tty = true
+    container.stdin = true
+  }
+
   if (spec.healthCheck) {
     configureHealthCheck(container, spec, enableHotReload || enableDevMode)
   }
