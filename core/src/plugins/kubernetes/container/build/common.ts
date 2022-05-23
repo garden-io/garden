@@ -178,10 +178,10 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
     const syncArgs = [...commonSyncArgs, "--relative", "--delete", "--temp-dir", "/tmp", src, destination]
 
     log.debug(`Syncing from ${src} to ${destination}`)
-    // We retry a couple of times, because we may get intermittent connection issues or concurrency issues
+    // We retry a few times, because we may get intermittent connection issues or concurrency issues
     await pRetry(() => exec("rsync", syncArgs), {
-      retries: 3,
-      minTimeout: 500,
+      retries: 5,
+      minTimeout: 1000,
     })
   }
 
