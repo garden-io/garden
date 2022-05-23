@@ -459,6 +459,9 @@ services:
     # equivalent to root on the host. Defaults to false.
     privileged:
 
+    # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+    tty: false
+
     # POSIX capabilities to add to the running service's main container.
     addCapabilities:
 
@@ -1909,6 +1912,16 @@ If true, run the service's main container in privileged mode. Processes in privi
 | Type      | Required |
 | --------- | -------- |
 | `boolean` | No       |
+
+### `services[].tty`
+
+[services](#services) > tty
+
+Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 ### `services[].addCapabilities[]`
 
