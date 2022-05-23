@@ -104,8 +104,8 @@ interface AnalyticsEvent {
 }
 
 export interface SegmentEvent {
-  userId: string | undefined
-  anonymousId: string | undefined
+  userId?: string
+  anonymousId?: string
   event: AnalyticsType
   properties: AnalyticsEventProperties
 }
