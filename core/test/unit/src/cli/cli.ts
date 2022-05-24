@@ -1107,7 +1107,7 @@ describe("cli", () => {
           .reply(200)
         await cli.run({ args: ["test-command"], exitOnError: false })
 
-        expect(scope.done()).to.not.throw
+        expect(scope.isDone()).to.equal(true)
       })
     })
   })
