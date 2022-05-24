@@ -64,6 +64,7 @@ describe("AnalyticsHandler", () => {
           enterpriseDomain: undefined,
           enterpriseDomainV2: undefined,
           isLoggedIn: false,
+          customer: undefined,
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
@@ -113,6 +114,7 @@ describe("AnalyticsHandler", () => {
           enterpriseDomain: undefined,
           enterpriseDomainV2: undefined,
           isLoggedIn: false,
+          customer: undefined,
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
@@ -151,6 +153,7 @@ describe("AnalyticsHandler", () => {
           enterpriseProjectId: analytics.hash("dummy-id"),
           enterpriseProjectIdV2: analytics.hashV2("dummy-id"),
           isLoggedIn: false,
+          customer: undefined,
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
@@ -216,7 +219,7 @@ describe("AnalyticsHandler", () => {
         analytics.trackCommand("test-command-C")
         await analytics.flush()
 
-        expect(scope.done()).to.not.throw
+        expect(scope.isDone()).to.equal(true)
       })
     })
     context("firstRun=true", () => {
@@ -258,7 +261,7 @@ describe("AnalyticsHandler", () => {
         analytics.trackCommand("test-command-C")
         await analytics.flush()
 
-        expect(scope.done()).to.not.throw
+        expect(scope.isDone()).to.equal(true)
       })
     })
     it("should wait for pending events on network delays", async () => {
@@ -283,7 +286,7 @@ describe("AnalyticsHandler", () => {
       await analytics.flush()
 
       expect(analytics["pendingEvents"].size).to.eql(0)
-      expect(scope.done()).to.not.throw
+      expect(scope.isDone()).to.equal(true)
     })
     it("should eventually timeout waiting for pending events on network delays", async () => {
       scope
@@ -328,7 +331,8 @@ describe("AnalyticsHandler", () => {
       expect(pendingEvents).to.eql([
         {
           event: "Run Command",
-          userId: pendingEvents[0].userId,
+          anonymousId: pendingEvents[0].anonymousId,
+          userId: undefined,
           properties: {
             name: "test-command-A",
             projectId: analytics["projectId"],
@@ -340,6 +344,7 @@ describe("AnalyticsHandler", () => {
             enterpriseDomain: undefined,
             enterpriseDomainV2: undefined,
             isLoggedIn: false,
+            customer: undefined,
             ciName: analytics["ciName"],
             system: analytics["systemConfig"],
             isCI: analytics["isCI"],
@@ -354,7 +359,52 @@ describe("AnalyticsHandler", () => {
           },
         },
       ])
-      expect(scope.done()).to.not.throw
-    })
+      expect(scope.isDone()).to.equal(true)
+    }),
+      context("cloudVersion", () => {
+        it("should identify user with cloud version undefined", async () => {
+          scope
+            .post(`/v1/batch`, (body) => {
+              const events = body.batch.map((event) => event.type)
+              // Assert that the event batch contains a single "identify" event
+              return isEqual(events, ["identify"])
+            })
+            .reply(200)
+            .post(`/v1/batch`, (body) => {
+              // Assert that the event batch contains the "track" events
+              return isEqual(getEvents(body), [
+                {
+                  event: "Run Command",
+                  type: "track",
+                  name: "test-command-A",
+                },
+                {
+                  event: "Run Command",
+                  type: "track",
+                  name: "test-command-B",
+                },
+                {
+                  event: "Run Command",
+                  type: "track",
+                  name: "test-command-C",
+                },
+              ])
+            })
+            .reply(200)
+
+          await garden.globalConfigStore.set(["analytics", "firstRun"], false)
+          // ensure the cloud version is not in the config
+          await garden.globalConfigStore.delete(["analytics", "cloudVersion"])
+
+          analytics = await AnalyticsHandler.init(garden, garden.log)
+
+          analytics.trackCommand("test-command-A")
+          analytics.trackCommand("test-command-B")
+          analytics.trackCommand("test-command-C")
+          await analytics.flush()
+
+          expect(scope.isDone()).to.equal(true)
+        })
+      })
   })
 })

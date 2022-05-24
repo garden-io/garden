@@ -18,7 +18,7 @@ import { Cookie } from "tough-cookie"
 import { isObject } from "lodash"
 import { deline } from "../util/string"
 import chalk from "chalk"
-import { GetProjectResponse } from "@garden-io/platform-api-types"
+import { GetProjectResponse, GetUserResponse } from "@garden-io/platform-api-types"
 import { getCloudDistributionName, getPackageVersion } from "../util/util"
 import { CommandInfo } from "../plugin-context"
 
@@ -127,6 +127,7 @@ export class CloudApi {
   private intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
   private apiPrefix = "api"
   private _project?: GetProjectResponse["data"]
+  private _profile?: GetUserResponse["data"]
   public domain: string
   public projectId: string
 
@@ -220,8 +221,17 @@ export class CloudApi {
       const url = new URL(`/projects/${project.id}`, api.domain)
       enterpriseLog?.info({ symbol: "info", msg: `Visit project at ${url.href}` })
     } catch (err) {
-      log.debug(`Getting project from API failed with error: err.message`)
+      log.debug(`Getting project from API failed with error: ${err.message}`)
     }
+
+    try {
+      const profile = await api.getProfile()
+      const cloudUserId = `${profile.organization.name}_${profile.id}`
+      enterpriseLog?.info({ symbol: "info", msg: `Cloud User ${cloudUserId}` })
+    } catch (err) {
+      log.debug(`Getting profile from API failed with error: ${err.message}`)
+    }
+
     return api
   }
 
@@ -566,6 +576,16 @@ export class CloudApi {
     const res = await this.get<GetProjectResponse>(`/projects/uid/${this.projectId}`)
     this._project = res.data
     return this._project
+  }
+
+  async getProfile() {
+    if (this._profile) {
+      return this._profile
+    }
+
+    const res = await this.get<GetUserResponse>(`/profile`)
+    this._profile = res.data
+    return this._profile
   }
 
   /**
