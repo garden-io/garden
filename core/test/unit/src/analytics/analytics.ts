@@ -219,7 +219,7 @@ describe("AnalyticsHandler", () => {
         analytics.trackCommand("test-command-C")
         await analytics.flush()
 
-        expect(scope.done()).to.not.throw
+        expect(scope.isDone()).to.equal(true)
       })
     })
     context("firstRun=true", () => {
@@ -261,7 +261,7 @@ describe("AnalyticsHandler", () => {
         analytics.trackCommand("test-command-C")
         await analytics.flush()
 
-        expect(scope.done()).to.not.throw
+        expect(scope.isDone()).to.equal(true)
       })
     })
     it("should wait for pending events on network delays", async () => {
@@ -286,7 +286,7 @@ describe("AnalyticsHandler", () => {
       await analytics.flush()
 
       expect(analytics["pendingEvents"].size).to.eql(0)
-      expect(scope.done()).to.not.throw
+      expect(scope.isDone()).to.equal(true)
     })
     it("should eventually timeout waiting for pending events on network delays", async () => {
       scope
@@ -359,7 +359,7 @@ describe("AnalyticsHandler", () => {
           },
         },
       ])
-      expect(scope.done()).to.not.throw
+      expect(scope.isDone()).to.equal(true)
     }),
       context("cloudVersion", () => {
         it("should identify user with cloud version undefined", async () => {
@@ -403,7 +403,7 @@ describe("AnalyticsHandler", () => {
           analytics.trackCommand("test-command-C")
           await analytics.flush()
 
-          expect(scope.done()).to.not.throw
+          expect(scope.isDone()).to.equal(true)
         })
       })
   })
