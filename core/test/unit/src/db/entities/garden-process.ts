@@ -98,7 +98,7 @@ describe("GardenProcess", () => {
     })
   })
 
-  describe("getDashboardProcess", () => {
+  describe("getDashboardProcesses", () => {
     const scope = {
       projectRoot: "/tmp",
       projectName: testCommand + "-project",
@@ -147,17 +147,18 @@ describe("GardenProcess", () => {
         GardenProcess.create(spec)
       )
 
-      const result = GardenProcess.getDashboardProcess(commands, scope)
-      expect(result?.pid).to.equal(2)
+      const result = GardenProcess.getDashboardProcesses(commands, scope)
+      expect(result.length).to.equal(1)
+      expect(result[0].pid).to.equal(2)
     })
 
-    it("returns undefined if no running Garden process is found for the project+env", async () => {
+    it("returns empty array if no running Garden process is found for the project+env", async () => {
       const commands = [buildCommand, otherProjectDashboard, otherNamespaceDashboard].map((spec) =>
         GardenProcess.create(spec)
       )
 
-      const result = GardenProcess.getDashboardProcess(commands, scope)
-      expect(result).to.be.undefined
+      const result = GardenProcess.getDashboardProcesses(commands, scope)
+      expect(result).to.eql([])
     })
   })
 })

@@ -8,7 +8,7 @@
 
 import { Entity, Column } from "typeorm-with-better-sqlite3"
 import { GardenEntity } from "../base-entity"
-import { partition, find, isMatch } from "lodash"
+import { partition, filter, isMatch } from "lodash"
 
 /**
  * Each GardenProcess entry maps to a running Garden process. We use this to keep track of active processes,
@@ -87,12 +87,13 @@ export class GardenProcess extends GardenEntity {
   }
 
   /**
-   * Finds a running dashboard process for the given project, environment and namespace, returns undefined otherwise.
+   * Finds all running dashboard processes for the given project, environment and namespace,
+   * or returns an empty array otherwise.
    *
-   * @param runningProcesses - List of running processes, as returned by `getActiveProcesses()`
+   * @param runningProcesses - List of running processes, as returned by {@link getActiveProcesses()}
    * @param scope - Project information to match on
    */
-  static getDashboardProcess(
+  static getDashboardProcesses(
     runningProcesses: GardenProcess[],
     scope: {
       projectRoot: string
@@ -100,8 +101,8 @@ export class GardenProcess extends GardenEntity {
       environmentName: string
       namespace: string
     }
-  ): GardenProcess | undefined {
-    return find(
+  ): GardenProcess[] {
+    return filter(
       runningProcesses,
       (p) => !!p.serverHost && !!p.serverAuthKey && isMatch(p, { ...scope, command: "dashboard", persistent: true })
     )

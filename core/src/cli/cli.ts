@@ -7,7 +7,7 @@
  */
 
 import dotenv = require("dotenv")
-import { intersection, sortBy } from "lodash"
+import { find, intersection, sortBy } from "lodash"
 import { resolve, join } from "path"
 import chalk from "chalk"
 import { pathExists } from "fs-extra"
@@ -436,18 +436,37 @@ ${renderCommands(commands)}
             // Note: Lazy-loading for startup performance
             const { GardenProcess: GP } = require("../db/entities/garden-process")
 
-            const dashboardProcess = GP.getDashboardProcess(runningServers, {
+            // There might be several dashboard processes running on the different ports.
+            // Find all running dashboard processes.
+            const dashboardProcesses = GP.getDashboardProcesses(runningServers, {
               projectRoot: garden.projectRoot,
               projectName: garden.projectName,
               environmentName: garden.environmentName,
               namespace: garden.namespace,
             })
 
-            let url: string | undefined
-            if (dashboardProcess) {
-              url = `${dashboardProcess.serverHost}?key=${dashboardProcess.serverAuthKey}`
+            let dashboardProcess: GardenProcess | undefined
+            if (dashboardProcesses.length === 0) {
+              dashboardProcess = undefined
+            } else if (dashboardProcesses.length === 1) {
+              dashboardProcess = dashboardProcesses[0]
+            } else {
+              // If there are multiple dashboard processes running,
+              // pick up the process associated with the current command's server url and port.
+              const commandServer = command.server
+              if (!!commandServer) {
+                dashboardProcess = find(
+                  dashboardProcesses,
+                  (p) => !!p.serverHost && p.serverHost === commandServer.getBaseUrl()
+                )
+              } else {
+                dashboardProcess = undefined
+              }
             }
 
+            const url: string | undefined = !!dashboardProcess
+              ? `${dashboardProcess.serverHost}?key=${dashboardProcess.serverAuthKey}`
+              : undefined
             command.server.showUrl(url)
           }
         }
