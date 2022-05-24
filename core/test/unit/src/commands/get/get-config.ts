@@ -493,6 +493,7 @@ describe("GetConfigCommand", () => {
             memory: defaultContainerResources.memory,
             ports: [],
             timeout: KUBECTL_DEFAULT_TIMEOUT,
+            tty: false,
             volumes: [],
           },
           hotReloadable: false,
