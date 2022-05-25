@@ -55,7 +55,6 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 
   streamEvents = true
   streamLogEntries = true
-  skipCliErrorSummary = true
 
   description = dedent`
     Runs the commands and/or scripts defined in the workflow's steps, in sequence.
@@ -197,7 +196,17 @@ export class RunWorkflowCommand extends Command<Args, {}> {
     if (size(stepErrors) > 0) {
       printResult({ startedAt, log: outerLog, workflow, success: false })
       garden.events.emit("workflowError", {})
-      return { result, errors: flatten(Object.values(stepErrors)) }
+      const errors = flatten(Object.values(stepErrors))
+      const finalError = opts.output
+        ? errors
+        : [
+            new Error(
+              `workflow failed with ${errors.length} ${
+                errors.length > 1 ? "errors" : "error"
+              }, see logs above for more info`
+            ),
+          ]
+      return { result, errors: finalError }
     }
 
     printResult({ startedAt, log: outerLog, workflow, success: true })
