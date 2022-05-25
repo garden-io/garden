@@ -243,6 +243,7 @@ async function pkgCommon({
     "--target",
     pkgType,
     sourcePath,
+    "--public",
     "--options",
     nodeOptions.join(","),
     "--output",
