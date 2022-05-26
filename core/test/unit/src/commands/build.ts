@@ -246,7 +246,7 @@ describe("BuildCommand", () => {
   })
 
   // adds a third level of dependants and tests rebuild logic after changes to modules
-  describe("tracking changes and rebuilding logic", () => {
+  context("tracking changes and rebuilding logic", () => {
     let log: LogEntry
     let buildCommand: BuildCommand
     let projectPath: string
