@@ -58,7 +58,7 @@ export class TestTask extends BaseTask {
     this.dependencies = options.dependencies || []
   }
 
-  async resolveDependencies() {
+  resolveDependencies() {
     return this.dependencies
   }
 

@@ -34,7 +34,7 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction> {
     this.deleteDeployNames = params.deleteDeployNames || [params.action.name]
   }
 
-  async resolveDependencies() {
+  resolveDependencies() {
     if (!this.dependantsFirst) {
       return []
     }
@@ -49,10 +49,9 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction> {
 
     return deps.filter(isDeployAction).map((action) => {
       return new DeleteDeployTask({
-        garden: this.garden,
-        graph: this.graph,
-        log: this.log,
+        ...this.getBaseDependencyParams(),
         action,
+        force: this.force,
         deleteDeployNames: this.deleteDeployNames,
         dependantsFirst: true,
       })
@@ -65,6 +64,10 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction> {
 
   getDescription() {
     return `deleting service ${this.action.longDescription()})`
+  }
+
+  async getStatus() {
+    return null
   }
 
   async process(): Promise<ServiceStatus> {

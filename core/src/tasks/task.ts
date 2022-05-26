@@ -15,6 +15,7 @@ import {
   getRunTaskResults,
   BaseActionTask,
   BaseActionTaskParams,
+  ActionTaskProcessParams,
 } from "../tasks/base"
 import { DeployTask } from "./deploy"
 import { prepareRuntimeContext } from "../runtime-context"
@@ -24,9 +25,7 @@ import { GetTaskResultTask } from "./get-task-result"
 import { Profile } from "../util/profiling"
 import { RunAction } from "../actions/run"
 
-export interface RunTaskParams extends BaseActionTaskParams<RunAction> {
-  forceBuild: boolean
-}
+export interface RunTaskParams extends BaseActionTaskParams<RunAction> {}
 
 class RunTaskError extends Error {
   toString() {
@@ -38,68 +37,42 @@ class RunTaskError extends Error {
 export class RunTask extends BaseActionTask<RunAction> {
   type: TaskType = "run"
 
-  forceBuild: boolean
-
-  constructor(params: RunTaskParams) {
-    super(params)
-    this.forceBuild = params.forceBuild
-  }
-
-  async resolveDependencies(): Promise<BaseTask[]> {
-    const buildTasks = await BuildTask.factory({
-      garden: this.garden,
-      graph: this.graph,
-      log: this.log,
-      module: this.task.module,
-      force: this.forceBuild,
-    })
-
-    const deps = this.graph.getDependencies({ kind: "run", name: this.getName(), recursive: false })
-
-    const deployTasks = deps.deploy.map((service) => {
-      return new DeployTask({
-        service,
-        log: this.log,
-        garden: this.garden,
-        graph: this.graph,
-        force: false,
-        forceBuild: false,
-        devModeDeployNames: this.devModeDeployNames,
-        localModeDeployNames: this.localModeDeployNames,
-      })
-    })
-
-    const taskTasks = await Bluebird.map(deps.run, (task) => {
-      return new RunTask({
-        task,
-        log: this.log,
-        garden: this.garden,
-        graph: this.graph,
-        force: false,
-        forceBuild: false,
-        devModeDeployNames: this.devModeDeployNames,
-        localModeDeployNames: this.localModeDeployNames,
-      })
-    })
-
-    const resultTask = new GetTaskResultTask({
-      force: this.force,
-      garden: this.garden,
-      graph: this.graph,
-      log: this.log,
-      task: this.task,
-    })
-
-    return [...buildTasks, ...deployTasks, ...taskTasks, resultTask]
-  }
-
   getDescription() {
     return `running ${this.action.longDescription()}`
   }
 
-  async process(dependencyResults: GraphResults) {
-    const action = this.action
+  async getStatus() {
+    const log = this.log.info({
+      section: this.action.name,
+      msg: "Checking result...",
+      status: "active",
+    })
+    const actions = await this.garden.getActionRouter()
 
+    // The default handler (for plugins that don't implement getTaskResult) returns undefined.
+    try {
+      const result = await actions.run.getResult({
+        graph: this.graph,
+        action: this.action,
+        log,
+        devModeDeployNames: this.devModeDeployNames,
+        localModeDeployNames: this.localModeDeployNames,
+      })
+      log.setSuccess({ msg: chalk.green(`Done`), append: true })
+
+      // Should return a null value here if there is no result
+      if (result.result === null) {
+        return null
+      }
+
+      return result
+    } catch (err) {
+      log.setError()
+      throw err
+    }
+  }
+
+  async process({ resolvedAction: action, dependencyResults }: ActionTaskProcessParams<RunAction>) {
     if (!this.force && action.getConfig("cacheResult")) {
       const cachedResult = getRunTaskResults(dependencyResults)[this.task.name]
 

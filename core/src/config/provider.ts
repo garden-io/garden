@@ -117,14 +117,14 @@ export async function getAllProviderDependencyNames(plugin: GardenPlugin, config
   return uniq([
     ...(plugin.dependencies || []).map((d) => d.name),
     ...(config.dependencies || []),
-    ...(await getProviderTemplateReferences(config)),
+    ...(getProviderTemplateReferences(config)),
   ]).sort()
 }
 
 /**
  * Given a provider config, return implicit dependencies based on template strings.
  */
-export async function getProviderTemplateReferences(config: GenericProviderConfig) {
+export function getProviderTemplateReferences(config: GenericProviderConfig) {
   const references = collectTemplateReferences(config)
   const deps: string[] = []
 

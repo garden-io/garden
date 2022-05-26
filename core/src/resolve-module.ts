@@ -28,7 +28,7 @@ import { allowUnknown, DeepPrimitiveMap } from "./config/common"
 import { ProviderMap } from "./config/provider"
 import { RuntimeContext } from "./runtime-context"
 import chalk from "chalk"
-import { DependencyValidationGraph } from "./util/validate-dependencies"
+import { DependencyGraph } from "./graph/common"
 import Bluebird from "bluebird"
 import { readFile, mkdirp, writeFile } from "fs-extra"
 import { LogEntry } from "./logger/log-entry"
@@ -90,8 +90,8 @@ export class ModuleResolver {
     // Collect template references for every raw config and work out module references in templates and explicit
     // dependency references. We use two graphs, one will be fully populated as we progress, the other we gradually
     // remove nodes from as we complete the processing.
-    const fullGraph = new DependencyValidationGraph()
-    const processingGraph = new DependencyValidationGraph()
+    const fullGraph = new DependencyGraph()
+    const processingGraph = new DependencyGraph()
 
     for (const key of Object.keys(this.rawConfigsByKey)) {
       for (const graph of [fullGraph, processingGraph]) {

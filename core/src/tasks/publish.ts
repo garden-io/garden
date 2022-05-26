@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { BuildTask } from "./build"
-import { BaseActionTask, BaseActionTaskParams, TaskType } from "../tasks/base"
+import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams, TaskType } from "../tasks/base"
 import { emptyRuntimeContext } from "../runtime-context"
 import { resolveTemplateString } from "../template-string/template-string"
 import { joi } from "../config/common"
@@ -19,24 +19,21 @@ import { BuildAction, ResolvedBuildAction } from "../actions/build"
 import { ActionConfigContext, ActionConfigContextParams } from "../config/template-contexts/actions"
 
 export interface PublishTaskParams extends BaseActionTaskParams<BuildAction> {
-  forceBuild: boolean
   tagTemplate?: string
 }
 
-export class PublishTask extends BaseActionTask<BuildAction> {
+export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult> {
   type: TaskType = "publish"
   concurrencyLimit = 5
 
-  forceBuild: boolean
   tagTemplate?: string
 
   constructor(params: PublishTaskParams) {
     super(params)
-    this.forceBuild = params.forceBuild
     this.tagTemplate = params.tagTemplate
   }
 
-  async resolveDependencies() {
+  resolveDependencies() {
     if (this.action.getConfig("allowPublish") === false) {
       return []
     }
@@ -44,7 +41,7 @@ export class PublishTask extends BaseActionTask<BuildAction> {
       new BuildTask({
         ...this.getBaseDependencyParams(),
         action: this.action,
-        force: this.forceBuild,
+        force: !!this.forceActions.find((ref) => this.action.matchesRef(ref)),
       }),
     ]
   }
@@ -53,8 +50,13 @@ export class PublishTask extends BaseActionTask<BuildAction> {
     return `publishing ${this.action.longDescription()}`
   }
 
-  async process(_, action: ResolvedBuildAction): Promise<PublishActionResult> {
-    if (!action.getConfig("allowPublish")) {
+  async getStatus() {
+    // TODO-G2
+    return null
+  }
+
+  async process({ resolvedAction: action }: ActionTaskProcessParams<BuildAction>) {
+    if (action.getConfig("allowPublish") === false) {
       this.log.info({
         section: action.key(),
         msg: "Publishing disabled (allowPublish=false set on module)",

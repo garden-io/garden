@@ -6,14 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import chalk from "chalk"
-import { GardenModule } from "../types/module"
-import { BaseActionTaskParams, BaseActionTask, TaskType } from "../tasks/base"
+import { BaseActionTaskParams, BaseActionTask, TaskType, ActionTaskProcessParams } from "../tasks/base"
 import { LogEntry } from "../logger/log-entry"
-import { flatten } from "lodash"
 import { Profile } from "../util/profiling"
-import { BuildAction } from "../actions/build"
+import { BuildAction, ResolvedBuildAction } from "../actions/build"
 import pluralize from "pluralize"
 
 export interface BuildTaskParams extends BaseActionTaskParams<BuildAction> {
@@ -25,30 +22,16 @@ export class BuildTask extends BaseActionTask<BuildAction> {
   type: TaskType = "build"
   concurrencyLimit = 5
 
-  async resolveDependencies() {
-    const deps = this.graph.getDependencies({ kind: "build", name: this.getName(), recursive: false })
-
-    const buildTasks = flatten(
-      await Bluebird.map(deps.build, async (m: GardenModule) => {
-        return new BuildTask({
-          garden: this.garden,
-          graph: this.graph,
-          log: this.log,
-          module: m,
-          force: this.force,
-        })
-      })
-    )
-
-    return buildTasks
-  }
-
   getDescription() {
     return `building ${this.action.longDescription()}`
   }
 
-  async process() {
-    const action = this.action
+  async getStatus({ resolvedAction: action }: ActionTaskProcessParams<BuildAction>) {
+    const router = await this.garden.getActionRouter()
+    return router.build.getStatus({ log: this.log, graph: this.graph, action })
+  }
+
+  async process({ resolvedAction: action }: ActionTaskProcessParams<BuildAction>) {
     const router = await this.garden.getActionRouter()
 
     let log: LogEntry
@@ -68,7 +51,7 @@ export class BuildTask extends BaseActionTask<BuildAction> {
 
       const status = await router.build.getStatus({ log: this.log, graph: this.graph, action })
 
-      if (status.ready) {
+      if (status.status === "ready") {
         log.setSuccess({
           msg: chalk.green(`Already built`),
           append: true,
