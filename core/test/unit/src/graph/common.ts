@@ -8,17 +8,14 @@
 
 import { expect } from "chai"
 import { join } from "path"
-import {
-  detectCycles,
-  detectMissingDependencies,
-  DependencyValidationGraph,
-} from "../../../../src/util/validate-dependencies"
+import { detectCycles, DependencyGraph } from "../../../../src/graph/common"
 import { makeTestGarden, dataDir, expectError } from "../../../helpers"
 import { ModuleConfig } from "../../../../src/config/module"
 import { ConfigurationError } from "../../../../src/exceptions"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
+import { detectMissingDependencies } from "../../../../src/graph/modules"
 
-describe("validate-dependencies", () => {
+describe("graph common", () => {
   describe("detectMissingDependencies", () => {
     it("should return an error when a build dependency is missing", async () => {
       const moduleConfigs: ModuleConfig[] = [
@@ -144,13 +141,13 @@ describe("validate-dependencies", () => {
   describe("DependencyValidationGraph", () => {
     describe("detectCircularDependencies", () => {
       it("should return an empty cycle array when no nodes or dependencies have been added", async () => {
-        const validationGraph = new DependencyValidationGraph()
+        const validationGraph = new DependencyGraph()
         const cycles = validationGraph.detectCircularDependencies()
         expect(cycles).to.be.empty
       })
 
       it("should return a cycle when circular dependencies have been added", async () => {
-        const vg = new DependencyValidationGraph()
+        const vg = new DependencyGraph()
         vg.addNode("a")
         vg.addNode("b")
         vg.addNode("c")
@@ -162,7 +159,7 @@ describe("validate-dependencies", () => {
       })
 
       it("should return null when no circular dependencies have been added", async () => {
-        const vg = new DependencyValidationGraph()
+        const vg = new DependencyGraph()
         vg.addNode("a")
         vg.addNode("b")
         vg.addNode("c")
@@ -177,7 +174,7 @@ describe("validate-dependencies", () => {
         const nonCircularProjectRoot = join(dataDir, "test-project-b")
         const garden = await makeTestGarden(nonCircularProjectRoot)
         const configGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
-        const validationGraph = DependencyValidationGraph.fromDependencyGraph(configGraph["dependencyGraph"])
+        const validationGraph = DependencyGraph.fromGraphNodes(configGraph["dependencyGraph"])
         const cycles = validationGraph.detectCircularDependencies()
         expect(cycles).to.be.empty
       })
@@ -185,7 +182,7 @@ describe("validate-dependencies", () => {
 
     describe("overallOrder", () => {
       it("should return the overall dependency order when circular dependencies are present", async () => {
-        const vg = new DependencyValidationGraph()
+        const vg = new DependencyGraph()
         vg.addNode("a")
         vg.addNode("b")
         vg.addNode("c")
@@ -198,7 +195,7 @@ describe("validate-dependencies", () => {
       })
 
       it("should throw an error when circular dependencies are present", async () => {
-        const vg = new DependencyValidationGraph()
+        const vg = new DependencyGraph()
         vg.addNode("a")
         vg.addNode("b")
         vg.addNode("c")

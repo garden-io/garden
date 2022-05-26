@@ -95,7 +95,7 @@ import {
 } from "./plugins"
 import { deline, naturalList } from "./util/string"
 import { ensureConnected } from "./db/connection"
-import { DependencyValidationGraph } from "./util/validate-dependencies"
+import { DependencyGraph } from "./graph/common"
 import { Profile, profileAsync } from "./util/profiling"
 import username from "username"
 import {
@@ -556,7 +556,7 @@ export class Garden {
       const plugins = keyBy(await this.getAllPlugins(), "name")
 
       // Detect circular dependencies here
-      const validationGraph = new DependencyValidationGraph()
+      const validationGraph = new DependencyGraph()
 
       await Bluebird.map(rawConfigs, async (config) => {
         const plugin = plugins[config.name]

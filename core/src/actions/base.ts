@@ -33,6 +33,7 @@ import type { TestActionConfig } from "./test"
 import type { ActionKind } from "../plugin/action-types"
 import type { GroupConfig } from "../config/group"
 import pathIsInside from "path-is-inside"
+import { actionOutputsSchema } from "../plugin/handlers/base/base"
 
 export { ActionKind } from "../plugin/action-types"
 
@@ -247,6 +248,28 @@ export interface ActionConfigTypes {
   test: TestActionConfig
 }
 
+// See https://melvingeorge.me/blog/convert-array-into-string-literal-union-type-typescript
+const actionStatusTypes = ["ready", "not-ready", "outdated", "unknown"] as const
+export type ActionStatusType = typeof actionStatusTypes[number]
+
+export interface ActionStatus<T extends BaseAction = BaseAction, D = any> {
+  status: ActionStatusType
+  detail?: D
+  outputs: GetActionOutputType<T>
+}
+
+export const actionStatusSchema = () =>
+  joi.object().keys({
+    status: joi
+      .string()
+      .allow(...actionStatusTypes)
+      .only()
+      .required()
+      .description("The state of the action."),
+    detail: joi.any().description("Optional provider-specific information about the action status or results."),
+    outputs: actionOutputsSchema(),
+  })
+
 interface ActionWrapperParams<C extends BaseActionConfig> {
   baseBuildDirectory: string // <project>/.garden/build by default
   config: C
@@ -257,7 +280,7 @@ interface ActionWrapperParams<C extends BaseActionConfig> {
 }
 
 export interface ResolvedActionWrapperParams<C extends BaseActionConfig, O extends {}> extends ActionWrapperParams<C> {
-  outputs: O
+  status: ActionStatus<BaseAction<C, O>, O>
   variables: DeepPrimitiveMap
 }
 
@@ -375,6 +398,10 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     return false
   }
 
+  matchesRef(ref: ActionReference) {
+    return ref.kind === this.kind && ref.name === this.name
+  }
+
   // TODO: grow this
   describe() {
     return {
@@ -427,15 +454,16 @@ export abstract class ResolvedRuntimeAction<
   O extends {} = any
 > extends RuntimeAction<C, O> {
   private variables: DeepPrimitiveMap
+  private status: ActionStatus<this>
 
   constructor(params: ResolvedActionWrapperParams<C, O>) {
     super(params)
-    this._outputs = params.outputs
+    this.status = params.status
     this.variables = params.variables
   }
 
   getOutput<K extends keyof O>(key: K) {
-    return this._outputs[key]
+    return this.status.outputs[key]
   }
 
   getVariables() {
@@ -454,3 +482,22 @@ export type Action = BuildAction | RuntimeAction
 export type Resolved<T extends BaseAction> = T extends BuildAction
   ? ResolvedBuildAction<T["_config"], T["_outputs"]>
   : ResolvedRuntimeAction<T["_config"], T["_outputs"]>
+
+export type ActionReferenceMap = {
+  [K in ActionKind]: string[]
+}
+
+export function actionReferencesToMap(refs: ActionReference[]) {
+  const out: ActionReferenceMap = {
+    build: [],
+    deploy: [],
+    run: [],
+    test: [],
+  }
+
+  for (const ref of refs) {
+    out[ref.kind].push(ref.name)
+  }
+
+  return out
+}

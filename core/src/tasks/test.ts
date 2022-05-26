@@ -13,7 +13,7 @@ import minimatch = require("minimatch")
 
 import { GardenModule } from "../types/module"
 import { TestResult } from "../types/test"
-import { TaskType, getServiceStatuses, getRunTaskResults, BaseActionTask, BaseActionTaskParams } from "../tasks/base"
+import { TaskType, getServiceStatuses, getRunTaskResults, BaseActionTask, BaseActionTaskParams, ActionTaskProcessParams } from "../tasks/base"
 import { prepareRuntimeContext } from "../runtime-context"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
@@ -33,7 +33,6 @@ class TestError extends Error {
 }
 
 export interface TestTaskParams extends BaseActionTaskParams<TestAction> {
-  forceBuild: boolean
   skipRuntimeDependencies?: boolean
   devModeDeployNames: string[]
   localModeDeployNames: string[]
@@ -45,7 +44,6 @@ export interface TestTaskParams extends BaseActionTaskParams<TestAction> {
 export class TestTask extends BaseActionTask<TestAction> {
   type: TaskType = "test"
 
-  forceBuild: boolean
   skipRuntimeDependencies: boolean
   localModeDeployNames: string[]
   silent: boolean
@@ -53,9 +51,8 @@ export class TestTask extends BaseActionTask<TestAction> {
   constructor(params: TestTaskParams) {
     super(params)
 
-    const { forceBuild, skipRuntimeDependencies = false, silent = true, interactive = false } = params
+    const { skipRuntimeDependencies = false, silent = true, interactive = false } = params
 
-    this.forceBuild = forceBuild
     this.skipRuntimeDependencies = skipRuntimeDependencies
     this.devModeDeployNames = params.devModeDeployNames
     this.localModeDeployNames = params.localModeDeployNames
@@ -63,29 +60,7 @@ export class TestTask extends BaseActionTask<TestAction> {
     this.interactive = interactive
   }
 
-  async resolveDependencies() {
-    const testResult = await this.getTestResult()
-
-    if (testResult && testResult.success) {
-      return []
-    }
-
-    const deps = this.graph.getDependencies({
-      kind: "test",
-      name: this.getName(),
-      recursive: false,
-      filter: (depNode) =>
-        !(this.fromWatch && depNode.type === "deploy" && this.devModeDeployNames.includes(depNode.name)),
-    })
-
-    const buildTasks = await BuildTask.factory({
-      garden: this.garden,
-      graph: this.graph,
-      log: this.log,
-      module: this.test.module,
-      force: this.forceBuild,
-    })
-
+  resolveDependencies() {
     if (this.skipRuntimeDependencies) {
       return [...buildTasks, ...getServiceStatusDeps(this, deps), ...getTaskResultDeps(this, deps)]
     } else {
@@ -97,8 +72,27 @@ export class TestTask extends BaseActionTask<TestAction> {
     return `running ${this.action.longDescription()}`
   }
 
-  async process(dependencyResults: GraphResults): Promise<TestResult> {
+  async getStatus({}: ActionTaskProcessParams<TestAction>) {
+    const testResult = await this.getTestResult()
+
+    if (testResult && testResult.success) {
+      const passedEntry = this.log.info({
+        section: this.action.key(),
+        msg: chalk.green("Already passed"),
+      })
+      passedEntry.setSuccess({
+        msg: chalk.green("Already passed"),
+        append: true,
+      })
+      return testResult
+    }
+
+    return null
+  }
+
+  async process({ resolvedAction: action, dependencyResults }: ActionTaskProcessParams<TestAction>) {
     // find out if module has already been tested
+    // TODO-G2: this will be handled outside of this method
     const testResult = await this.getTestResult()
 
     if (testResult && testResult.success) {

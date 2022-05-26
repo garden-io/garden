@@ -23,7 +23,7 @@ import { findByName, pushToKey, getNames, isNotNull } from "./util/util"
 import { deline } from "./util/string"
 import { validateSchema } from "./config/validation"
 import { LogEntry } from "./logger/log-entry"
-import { DependencyValidationGraph } from "./util/validate-dependencies"
+import { DependencyGraph } from "./graph/common"
 import { parse, resolve } from "path"
 import Bluebird from "bluebird"
 import { ModuleTypeMap } from "./types/module"
@@ -170,7 +170,7 @@ export async function loadPlugin(log: LogEntry, projectRoot: string, nameOrPlugi
  * Returns the given provider plugins in dependency order.
  */
 export function getDependencyOrder(loadedPlugins: PluginMap): string[] {
-  const graph = new DependencyValidationGraph()
+  const graph = new DependencyGraph()
 
   for (const plugin of Object.values(loadedPlugins)) {
     graph.addNode(plugin.name)
@@ -423,7 +423,7 @@ interface ModuleDefinitionMap {
 
 function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: GenericProviderConfig[]): PluginMap {
   // Collect module type declarations
-  const graph = new DependencyValidationGraph()
+  const graph = new DependencyGraph()
   const moduleDefinitionMap: { [moduleType: string]: { plugin: GardenPlugin; spec: ModuleTypeDefinition }[] } = {}
   const moduleExtensionMap: { [moduleType: string]: { plugin: GardenPlugin; spec: ModuleTypeExtension }[] } = {}
 

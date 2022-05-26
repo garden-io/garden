@@ -32,7 +32,7 @@ export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerB
     })
   }
 
-  return { ready: !!identifier, outputs }
+  return { status: !!identifier ? "ready" : "not-ready", outputs }
 }
 
 export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> = async ({ ctx, action, log }) => {
