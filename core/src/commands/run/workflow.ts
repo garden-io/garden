@@ -152,6 +152,8 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 
       const stepStartedAt = new Date()
 
+      const initSaveLogState = stepBodyLog.root.storeEntries
+      stepBodyLog.root.storeEntries = true
       try {
         if (step.command) {
           step.command = resolveTemplateStrings(step.command, stepTemplateContext).filter((arg) => !!arg)
@@ -180,6 +182,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
         outputs: stepResult.result || {},
         log: stepLog,
       }
+      stepBodyLog.root.storeEntries = initSaveLogState
 
       if (stepResult.errors) {
         garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
