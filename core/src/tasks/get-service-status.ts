@@ -28,18 +28,12 @@ export interface GetServiceStatusTaskParams extends BaseActionTaskParams<DeployA
 export class GetServiceStatusTask extends BaseActionTask<DeployAction> {
   type: TaskType = "get-service-status"
   concurrencyLimit = 20
-  graph: ConfigGraph
-  devModeDeployNames: string[]
-  localModeDeployNames: string[]
 
-  constructor({ garden, graph, log, action, force, devModeDeployNames, localModeDeployNames }: GetServiceStatusTaskParams) {
-    super({ garden, log, force, action, graph })
-    this.graph = graph
-    this.devModeDeployNames = devModeDeployNames
-    this.localModeDeployNames = localModeDeployNames
+  constructor(params: GetServiceStatusTaskParams) {
+    super(params)
   }
 
-  async resolveDependencies() {
+  resolveDependencies() {
     const deps = this.graph.getDependencies({ kind: "deploy", name: this.getName(), recursive: false })
 
     const statusTasks = deps.filter(isDeployAction).map((action) => {

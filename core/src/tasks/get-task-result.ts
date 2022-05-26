@@ -25,7 +25,7 @@ export class GetTaskResultTask extends BaseActionTask<RunAction> {
     this.graph = params.graph
   }
 
-  async resolveDependencies() {
+  resolveDependencies() {
     return []
   }
 

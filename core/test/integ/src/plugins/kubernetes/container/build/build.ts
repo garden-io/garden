@@ -115,7 +115,7 @@ describe("kubernetes build flow", () => {
         module,
       })
 
-      expect(status.ready).to.be.true
+      expect(status.status).to.equal("ready")
     })
 
     context("publish handler", () => {
@@ -164,7 +164,7 @@ describe("kubernetes build flow", () => {
         module,
       })
 
-      expect(status.ready).to.be.true
+      expect(status.status).to.equal("ready")
     })
   })
 
@@ -186,7 +186,7 @@ describe("kubernetes build flow", () => {
         module,
       })
 
-      expect(status.ready).to.be.true
+      expect(status.status).to.equal("ready")
     })
 
     it("should return ready=false status when image doesn't exist in registry", async () => {
@@ -201,7 +201,7 @@ describe("kubernetes build flow", () => {
         module,
       })
 
-      expect(status.ready).to.be.false
+      expect(status.status).to.equal("not-ready")
     })
 
     grouped("remote-only").it("should support pulling from private registries", async () => {
@@ -282,7 +282,7 @@ describe("kubernetes build flow", () => {
         module,
       })
 
-      expect(status.ready).to.be.true
+      expect(status.status).to.equal("ready")
     })
 
     it("should support pulling from private registries", async () => {
@@ -301,7 +301,7 @@ describe("kubernetes build flow", () => {
         module,
       })
 
-      expect(status.ready).to.be.false
+      expect(status.status).to.equal("not-ready")
     })
 
     it("should throw if attempting to pull from private registry without access", async () => {
@@ -368,7 +368,7 @@ describe("kubernetes build flow", () => {
         module,
       })
 
-      expect(status.ready).to.be.true
+      expect(status.status).to.equal("ready")
     })
 
     grouped("remote-only").it("should support pulling from private registries", async () => {
@@ -387,7 +387,7 @@ describe("kubernetes build flow", () => {
         module,
       })
 
-      expect(status.ready).to.be.false
+      expect(status.status).to.equal("not-ready")
     })
 
     it("should throw if attempting to pull from private registry without access", async () => {

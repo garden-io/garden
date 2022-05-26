@@ -12,6 +12,7 @@ import { uuidv4 } from "../util/util"
 import { PluginEventBroker } from "../plugin-context"
 import { BuildState } from "../plugin/handlers/build/build"
 import { BaseRouterParams, createActionRouter } from "./base"
+import { ActionStatusType } from "../actions/base"
 
 export const buildRouter = (baseParams: BaseRouterParams) =>
   createActionRouter("build", baseParams, {
@@ -21,9 +22,9 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const status = await router.callHandler({
         params,
         handlerType: "getStatus",
-        defaultHandler: async () => ({ ready: false, outputs: {} }),
+        defaultHandler: async () => ({ status: <ActionStatusType>"unknown", outputs: {} }),
       })
-      if (status.ready) {
+      if (status.status === "ready") {
         // Then an actual build won't take place, so we emit a build status event to that effect.
         const actionVersion = action.versionString()
 

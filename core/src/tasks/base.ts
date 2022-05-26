@@ -14,7 +14,7 @@ import { pickBy, mapValues, mapKeys } from "lodash"
 import { ServiceStatus } from "../types/service"
 import { splitLast } from "../util/util"
 import { Profile } from "../util/profiling"
-import { Action, Resolved } from "../actions/base"
+import { Action, ActionReferenceMap, actionReferencesToMap, Resolved } from "../actions/base"
 import { ConfigGraph } from "../graph/config-graph"
 import { isBuildAction } from "../actions/build"
 import { BuildTask } from "./build"
@@ -25,6 +25,7 @@ import { RunTask } from "./task"
 import { InternalError } from "../exceptions"
 import { TestTask } from "./test"
 import { isTestAction } from "../actions/test"
+import { ActionReference } from "../config/common"
 
 export type TaskType =
   | "build"
@@ -64,10 +65,15 @@ export interface BaseActionTaskParams<T extends Action = Action> extends CommonT
   graph: ConfigGraph
   devModeDeployNames: string[]
   localModeDeployNames: string[]
+  forceActions: ActionReference[]
+}
+
+export interface TaskProcessParams {
+  dependencyResults: GraphResults
 }
 
 @Profile()
-export abstract class BaseTask<T extends Action = any> {
+export abstract class BaseTask<T extends Action = any, O = T["_outputs"]> {
   abstract type: TaskType
 
   // How many tasks of this exact type are allowed to run concurrently
@@ -82,6 +88,7 @@ export abstract class BaseTask<T extends Action = any> {
   public readonly skipDependencies: boolean
   interactive = false
 
+  _resultType: O
   _resolvedDependencies?: BaseTask[]
 
   constructor(initArgs: BaseTaskParams) {
@@ -93,24 +100,26 @@ export abstract class BaseTask<T extends Action = any> {
     this.skipDependencies = !!initArgs.skipDependencies
   }
 
-  abstract resolveDependencies(): Promise<BaseTask[]>
+  abstract getName(): string
+  abstract resolveDependencies(): BaseTask[]
+  abstract getDescription(): string
+  abstract getStatus(params: TaskProcessParams): Promise<O | null>
+  abstract process(params: TaskProcessParams): Promise<O>
 
   /**
    * Wrapper around resolveDependencies() that memoizes the results and applies generic filters.
    */
-  async getDependencies(): Promise<BaseTask[]> {
+  getDependencies(): BaseTask[] {
     if (!this._resolvedDependencies) {
       if (this.skipDependencies) {
         return []
       } else {
-        this._resolvedDependencies = await this.resolveDependencies()
+        this._resolvedDependencies = this.resolveDependencies()
       }
     }
 
     return this._resolvedDependencies
   }
-
-  abstract getName(): string
 
   getKey(): string {
     return makeBaseKey(this.type, this.getName())
@@ -119,17 +128,18 @@ export abstract class BaseTask<T extends Action = any> {
   getId(): string {
     return `${this.getKey()}.${this.uid}`
   }
-
-  abstract getDescription(): string
-
-  abstract process(dependencyResults: GraphResults, action: Resolved<T>): Promise<any>
 }
 
-export abstract class BaseActionTask<T extends Action> extends BaseTask<T> {
+export interface ActionTaskProcessParams<T extends Action = any> extends TaskProcessParams {
+  resolvedAction: Resolved<T>
+}
+
+export abstract class BaseActionTask<T extends Action, O = T["_outputs"]> extends BaseTask<T, O> {
   action: T
   graph: ConfigGraph
   devModeDeployNames: string[]
   localModeDeployNames: string[]
+  forceActions: ActionReference[]
 
   constructor(params: BaseActionTaskParams<T>) {
     const { action } = params
@@ -138,10 +148,22 @@ export abstract class BaseActionTask<T extends Action> extends BaseTask<T> {
     this.graph = params.graph
     this.devModeDeployNames = params.devModeDeployNames
     this.localModeDeployNames = params.localModeDeployNames
+    this.forceActions = params.forceActions
   }
+
+  abstract getStatus(params: ActionTaskProcessParams<T>): Promise<O | null>
+  abstract process(params: ActionTaskProcessParams<T>): Promise<O>
 
   getName() {
     return this.action.name
+  }
+
+  // Most tasks can just use this default method.
+  resolveDependencies(): BaseTask[] {
+    return this.action.getDependencyReferences().map((dep) => {
+      const action = this.graph.getActionByRef(dep)
+      return this.getResolveTaskForDependency(action)
+    })
   }
 
   // Helpers //
@@ -153,6 +175,7 @@ export abstract class BaseActionTask<T extends Action> extends BaseTask<T> {
       graph: this.graph,
       fromWatch: this.fromWatch,
       devModeDeployNames: this.devModeDeployNames,
+      forceActions: this.forceActions,
     }
   }
 
@@ -162,36 +185,20 @@ export abstract class BaseActionTask<T extends Action> extends BaseTask<T> {
    * Note that this is not always the correct Task to perform, e.g. for the DeleteDeployTask. This is generally
    * the Task that is necessary to _resolve_ an action.
    */
-  getTaskForDependency(action: Action, commonParams: { force: boolean; forceBuild: boolean }) {
-    const baseParams = this.getBaseDependencyParams()
+  getResolveTaskForDependency(action: Action) {
+    const params = {
+      ...this.getBaseDependencyParams(),
+      force: !!this.forceActions.find((r) => r.kind === action.kind && r.name === action.name),
+    }
 
     if (isBuildAction(action)) {
-      return new BuildTask({
-        ...baseParams,
-        action,
-        force: commonParams.forceBuild,
-      })
+      return new BuildTask({ ...params, action })
     } else if (isDeployAction(action)) {
-      return new DeployTask({
-        ...baseParams,
-        action,
-        force: commonParams.force,
-        forceBuild: commonParams.forceBuild,
-      })
+      return new DeployTask({ ...params, action })
     } else if (isRunAction(action)) {
-      return new RunTask({
-        ...baseParams,
-        action,
-        force: commonParams.force,
-        forceBuild: commonParams.forceBuild,
-      })
+      return new RunTask({ ...params, action })
     } else if (isTestAction(action)) {
-      return new TestTask({
-        ...baseParams,
-        action,
-        force: commonParams.force,
-        forceBuild: commonParams.forceBuild,
-      })
+      return new TestTask({ ...params, action })
     } else {
       // Shouldn't happen
       throw new InternalError(`Unexpected action kind ${action.kind}`, { config: action.getConfig() })

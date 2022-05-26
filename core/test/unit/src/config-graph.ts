@@ -12,7 +12,7 @@ import { ensureDir } from "fs-extra"
 import stripAnsi from "strip-ansi"
 import { makeTestGardenA, makeTestGarden, dataDir, expectError, makeTestModule } from "../../helpers"
 import { getNames } from "../../../src/util/util"
-import { ConfigGraph, DependencyGraphNode } from "../../../src/graph/config-graph"
+import { ConfigGraph, ConfigGraphNode } from "../../../src/graph/config-graph"
 import { Garden } from "../../../src/garden"
 import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT } from "../../../src/constants"
 
@@ -1053,7 +1053,7 @@ describe("ConfigGraph", () => {
 describe("DependencyGraphNode", () => {
   describe("render", () => {
     it("should render a build node", () => {
-      const node = new DependencyGraphNode("build", "module-a", "module-a", false)
+      const node = new ConfigGraphNode("build", "module-a", "module-a", false)
       const res = node.render()
       expect(res).to.eql({
         type: "build",
@@ -1065,7 +1065,7 @@ describe("DependencyGraphNode", () => {
     })
 
     it("should render a deploy node", () => {
-      const node = new DependencyGraphNode("deploy", "service-a", "module-a", false)
+      const node = new ConfigGraphNode("deploy", "service-a", "module-a", false)
       const res = node.render()
       expect(res).to.eql({
         type: "deploy",
@@ -1077,7 +1077,7 @@ describe("DependencyGraphNode", () => {
     })
 
     it("should render a run node", () => {
-      const node = new DependencyGraphNode("run", "task-a", "module-a", false)
+      const node = new ConfigGraphNode("run", "task-a", "module-a", false)
       const res = node.render()
       expect(res).to.eql({
         type: "run",
@@ -1089,7 +1089,7 @@ describe("DependencyGraphNode", () => {
     })
 
     it("should render a test node", () => {
-      const node = new DependencyGraphNode("test", "module-a.test-a", "module-a", false)
+      const node = new ConfigGraphNode("test", "module-a.test-a", "module-a", false)
       const res = node.render()
       expect(res).to.eql({
         type: "test",
@@ -1101,7 +1101,7 @@ describe("DependencyGraphNode", () => {
     })
 
     it("should indicate if the node is disabled", () => {
-      const node = new DependencyGraphNode("test", "module-a.test-a", "module-a", true)
+      const node = new ConfigGraphNode("test", "module-a.test-a", "module-a", true)
       const res = node.render()
       expect(res).to.eql({
         type: "test",
