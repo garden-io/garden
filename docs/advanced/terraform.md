@@ -81,42 +81,6 @@ Each command automatically applies any variables configured on the provider/modu
 ```console
 garden --env=<env-name> plugins terraform apply-root -- -auto-approve
 ```
-# Injecting Environment Variables Into Backend Manifests
-
-[Terraform does not interpolate named values in backend manifests](https://www.terraform.io/language/settings/backends/configuration). One way to inject variables into new terraform manifests is to add an [exec provider](https://docs.garden.io/reference/providers/exec) that calls an [initScript](https://docs.garden.io/reference/providers/exec#providers-.initscript) in the project.garden.yaml file. Exec providers allow us to run scripts while initiating other providers. An initScript runs in the project root when initializing those providers.
-
-In this sample terraform/backend.tf manifest, we need to replace the `key` based on which environment we are building.
-
-```
-terraform {
-  backend "s3" {
-    bucket  = "state-bucket"
-    key     = "projects/my-project/terraform.tfstate"
-    region  = "us-west-2"
-  }
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 3.0"
-    }
-  }
-}
-```
-
-In the `project.garden.yaml` file for this sample, the exec provider calls an initScript that replaces in-place the pre-existing state file with a copy that substitutes the s3 bucket name with the environment name in the backend.tf file.
-
-```yaml
-providers:
-  - name: exec
-    initScript: rm -rf terraform/.terraform* && sed -i .bak 's;key *= *"projects/[a-zA-Z0-9]*/terraform.tfstate";key = "projects/${environment.name}/terraform.tfstate";g' terraform/backend.tf
-  - name: terraform
-    initRoot: "./terraform"
-    variables:
-      project: ${environment.name}
-    dependencies: [exec]
-```
-
-Now when you deploy a new Terraformed environment, the new backend statefile will know where to go.
 
 ## Terraform modules
 
@@ -142,6 +106,89 @@ services:
 Here we imagine a Terraform stack that has a `my-database-uri` output, that we then supply to `my-service` via the `DATABASE_URI` environment variable.
 
 Much like other modules, you can also reference Terraform definitions in other repositories using the `repositoryUrl` key. See the [Remote Sources](./using-remote-sources.md) guide for details.
+
+## Injecting Environment Variables Into Backend Manifests
+
+[Terraform does not interpolate named values in backend manifests](https://www.terraform.io/language/settings/backends/configuration). Below are two solutions (using an `exec` provider and using both an `exec` and a `teraform` module).
+
+### Exec Provider
+
+One way to inject variables into new terraform manifests is to add an [exec provider](https://docs.garden.io/reference/providers/exec) that calls an [initScript](https://docs.garden.io/reference/providers/exec#providers-.initscript) in the project.garden.yaml file. Exec providers allow us to run scripts while initiating other providers. An `initScript` runs in the project root when initializing those providers.
+
+In this sample `terraform/backend.tf` manifest, we need to replace the `key` based on which environment we are building.
+
+```
+terraform {
+  backend "s3" {
+    bucket  = "state-bucket"
+    key     = "projects/my-project/terraform.tfstate"
+    region  = "us-west-2"
+  }
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 3.0"
+    }
+  }
+}
+```
+
+In the `project.garden.yaml` file for this sample, the exec provider calls an initScript that replaces in-place the pre-existing state file with a copy that substitutes the s3 bucket name with the environment name in the `backend.tf` file.
+
+```yaml
+...
+providers:
+  - name: exec
+    initScript: rm -rf terraform/.terraform* && sed -i .bak 's;key *= *"projects/[a-zA-Z0-9]*/terraform.tfstate";key = "projects/${environment.name}/terraform.tfstate";g' terraform/backend.tf
+  - name: terraform
+    initRoot: "./terraform"
+    variables:
+      project: ${environment.name}
+    dependencies: [exec]
+```
+
+Now when you deploy a new Terraformed environment, the new backend statefile will know where to go.
+
+### Exec and Terraform Modules
+
+Another way to inject backend Terrafom variables is by using `terraform` modules. In that scenario you would use an [exec module](https://docs.garden.io/reference/module-types/exec#description) (with `local: true`) and set it as a dependency in your `terraform` module.
+
+Here's a sample `exec` module that uses the same script used in the previous example:
+
+```yaml
+kind: Module
+name: terraform-injection
+type: exec
+local: true
+include: []
+variables:
+  project: ${environment.name}
+tasks:
+  - name: statefile-key
+    command:
+      - rm
+      - -rf
+      - terraform/.terraform*
+      - &&
+      - sed
+      - -i
+      - .bak
+      - 's;key
+      - *=
+      - *"projects/[a-zA-Z0-9]*/terraform.tfstate";key
+      - =
+      - "projects/${environment.name}/terraform.tfstate";g'
+      - terraform/backend.tf
+---
+kind: Module
+type: terraform
+name: tf
+autoApply: true
+build:
+  dependencies:
+      name: terraform-injection
+...
+```
 
 ## Next steps
 
