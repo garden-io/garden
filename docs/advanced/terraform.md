@@ -103,7 +103,7 @@ terraform {
 }
 ```
 
-In the `project.garden.yaml` file for this sample, the exec provider calls an initScript that removes any pre-existing state files so we can have a clean init, then substitutes the s3 bucket name with the environment name in the backend.tf file.
+In the `project.garden.yaml` file for this sample, the exec provider calls an initScript that replaces in-place the pre-existing state file with a copy that substitutes the s3 bucket name with the environment name in the backend.tf file.
 
 ```yaml
 providers:
