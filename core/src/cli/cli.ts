@@ -699,17 +699,15 @@ ${renderCommands(commands)}
 
     let code = 0
     if (gardenErrors.length > 0) {
-      if (!command.skipCliErrorSummary) {
-        for (const error of gardenErrors) {
-          const entry = logger.error({
-            msg: error.message,
-            error,
-          })
-          // Output error details to console when log level is silly
-          logger.silly({
-            msg: renderError(entry),
-          })
-        }
+      for (const error of gardenErrors) {
+        const entry = logger.error({
+          msg: error.message,
+          error,
+        })
+        // Output error details to console when log level is silly
+        logger.silly({
+          msg: renderError(entry),
+        })
       }
 
       if (logger.getWriters().find((w) => w instanceof FileWriter)) {
