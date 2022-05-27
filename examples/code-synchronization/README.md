@@ -1,4 +1,4 @@
-# Hot-reload example project
+# Code-synchronization example project
 
 This example showcases Garden's code synchronization functionality.
 
@@ -8,25 +8,20 @@ You can synchronize your code (and other files) to and from running containers u
 
 This project contains a single service called `node-service`. When running, the service waits for requests on `/hello` and responds with a message.
 
-In the `garden.yml` file of the `node-service` module we configure `devMode` and specify the target and source directories:
+In the `garden.yml` file of the `node-service` module we configure `devMode` and specify its two key settings:
+1. `command` tells the module which command should be run if dev mode is enabled to start the service.
+2. `sync` defines the sync mode, exclusions, target and source directories.
 
 ```yaml
 # ...
 devMode:
+  command: [npm, run, dev]
   sync:
     - source: src
       target: /app/src
       # Make sure to specify any paths that should not be synced!
       exclude: [node_modules]
       mode: one-way
-# ...
-```
-
-We also tell the module which command should be run if dev mode is enabled to start the service:
-
-```yaml
-# ...
-hotReloadArgs: [npm, run, dev]
 # ...
 ```
 
