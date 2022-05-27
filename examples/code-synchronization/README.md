@@ -42,7 +42,7 @@ garden call node-service
 Which will return a friendly greeting (Garden is friendly by default):
 
 ```sh
-✔ Sending HTTP GET request to http://hot-reload.local.app.garden/hello
+✔ Sending HTTP GET request to http://code-synchronization.local.app.garden/hello
 
 200 OK
 
@@ -60,7 +60,7 @@ Now go into [node-service/src/app.js](node-service/src/app.js) and change the me
 And you can verify the change by running `garden call node-service` again:
 
 ```sh
-✔ Sending HTTP GET request to http://hot-reload.local.app.garden/hello
+✔ Sending HTTP GET request to http://code-synchronization.local.app.garden/hello
 
 200 OK
 
