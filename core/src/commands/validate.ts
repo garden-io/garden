@@ -7,9 +7,10 @@
  */
 
 import { Command, CommandParams, CommandResult } from "./base"
-import { printHeader } from "../logger/util"
+import { printEmoji, printHeader } from "../logger/util"
 import dedent = require("dedent")
 import { resolveWorkflowConfig } from "../config/workflow"
+import chalk = require("chalk")
 
 export class ValidateCommand extends Command {
   name = "validate"
@@ -37,6 +38,9 @@ export class ValidateCommand extends Command {
     for (const config of rawWorkflowConfigs) {
       resolveWorkflowConfig(garden, config)
     }
+
+    log.info("")
+    log.info(chalk.green("OK") + " " + printEmoji("heavy_check_mark", log))
 
     return {}
   }
