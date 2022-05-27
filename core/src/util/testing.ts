@@ -65,11 +65,13 @@ const moduleConfigDefaults: ModuleConfig = {
 }
 
 export function moduleConfigWithDefaults(partial: PartialModuleConfig) {
+  const defaults = cloneDeep(moduleConfigDefaults)
+
   return {
-    ...moduleConfigDefaults,
+    ...defaults,
     ...partial,
     build: {
-      ...moduleConfigDefaults.build,
+      ...defaults.build,
       ...(partial.build || {}),
     },
   }

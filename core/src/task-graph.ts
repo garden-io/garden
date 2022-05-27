@@ -99,12 +99,7 @@ export class TaskGraph extends EventEmitter2 {
   async process(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<GraphResults> {
     this.log.silly(`TaskGraph: Processing ${tasks.length} tasks: ${tasks.map((t) => t.getKey()).join(",")}`)
 
-    let nodes: TaskNode[]
-    try {
-      nodes = await this.nodesWithDependencies({ tasks, nodeMap: {}, stack: [] })
-    } catch (circularDepsErr) {
-      throw circularDepsErr
-    }
+    const nodes = await this.nodesWithDependencies({ tasks, nodeMap: {}, stack: [] })
 
     this.log.silly(`TaskGraph: Partitioning into batches`)
 

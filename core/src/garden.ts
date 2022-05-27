@@ -115,6 +115,7 @@ import { ProviderConfigContext } from "./config/template-contexts/provider"
 import { getSecrets } from "./cloud/get-secrets"
 import { ConfigContext } from "./config/template-contexts/base"
 import { validateSchema, validateWithPath } from "./config/validation"
+import { pMemoizeDecorator } from "./lib/p-memoize"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -475,6 +476,7 @@ export class Garden {
   /**
    * Returns a mapping of all configured module types in the project and their definitions.
    */
+  @pMemoizeDecorator()
   async getModuleTypes(): Promise<ModuleTypeMap> {
     const configuredPlugins = await this.getConfiguredPlugins()
     return getModuleTypes(configuredPlugins)
