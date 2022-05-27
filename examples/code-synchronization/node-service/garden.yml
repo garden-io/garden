@@ -2,9 +2,6 @@ kind: Module
 description: Node greeting service
 name: node-service
 type: container
-hotReload:
-  sync:
-    - target: /app/
 services:
   - name: node-service
     args: [npm, start]
