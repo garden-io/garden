@@ -44,6 +44,7 @@ export async function getContainerServiceStatus({
   const api = await KubeApi.factory(log, ctx, provider)
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
   const namespace = namespaceStatus.namespaceName
+  const enableDevMode = devMode && !!service.spec.devMode
 
   // FIXME: [objects, matched] and ingresses can be run in parallel
   const { workload, manifests } = await createContainerManifests({
@@ -52,7 +53,7 @@ export async function getContainerServiceStatus({
     log,
     service,
     runtimeContext,
-    enableDevMode: devMode,
+    enableDevMode,
     enableHotReload: hotReload,
     blueGreen: provider.config.deploymentStrategy === "blue-green",
   })
