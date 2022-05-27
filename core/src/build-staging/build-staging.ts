@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import { isAbsolute, join, resolve, relative, parse, basename } from "path"
-import { emptyDir, ensureDir, pathExists, remove } from "fs-extra"
+import { emptyDir, ensureDir, mkdirp, pathExists, remove } from "fs-extra"
 import { ConfigurationError, InternalError } from "../exceptions"
 import { FileCopySpec, GardenModule, getModuleKey } from "../types/module"
 import { normalizeRelativePath, joinWithPosix } from "../util/fs"
@@ -52,9 +52,12 @@ export class BuildStaging {
   public buildDirPath: string
   public buildMetadataDirPath: string
 
+  private createdPaths: Set<string>
+
   constructor(protected projectRoot: string, gardenDirPath: string) {
     this.buildDirPath = join(gardenDirPath, "build")
     this.buildMetadataDirPath = join(gardenDirPath, "build-metadata")
+    this.createdPaths = new Set()
   }
 
   async syncFromSrc(module: GardenModule, log: LogEntry) {
@@ -67,7 +70,7 @@ export class BuildStaging {
     // Normalize to relative POSIX-style paths
     const files = module.version.files.map((f) => normalizeRelativePath(module.path, f))
 
-    await ensureDir(module.buildPath)
+    await this.ensureDir(module.buildPath)
 
     await this.sync({
       sourceRoot: resolve(this.projectRoot, module.path),
@@ -79,7 +82,7 @@ export class BuildStaging {
   }
 
   async syncDependencyProducts(module: GardenModule, graph: ConfigGraph, log: LogEntry) {
-    const buildPath = await this.buildPath(module)
+    const buildPath = module.buildPath
     const buildDependencies = module.build.dependencies
 
     await Bluebird.map(buildDependencies, async (buildDepConfig) => {
@@ -88,7 +91,7 @@ export class BuildStaging {
       }
 
       const sourceModule = graph.getModule(getModuleKey(buildDepConfig.name, buildDepConfig.plugin), true)
-      const sourceBuildPath = await this.buildPath(sourceModule)
+      const sourceBuildPath = sourceModule.buildPath
 
       await Bluebird.map(buildDepConfig.copy, (copy: FileCopySpec) => {
         if (isAbsolute(copy.source)) {
@@ -119,9 +122,10 @@ export class BuildStaging {
     if (await pathExists(this.buildDirPath)) {
       await emptyDir(this.buildDirPath)
     }
+    this.createdPaths.clear()
   }
 
-  async buildPath(moduleOrConfig: GardenModule | ModuleConfig): Promise<string> {
+  getBuildPath(moduleOrConfig: GardenModule | ModuleConfig) {
     // We don't stage the build for local exec modules, so the module path is effectively the build path.
     if (isLocalExecModule(moduleOrConfig)) {
       return moduleOrConfig.path
@@ -130,10 +134,12 @@ export class BuildStaging {
     // This returns the same result for modules and module configs
     const moduleKey = getModuleKey(moduleOrConfig.name, moduleOrConfig.plugin)
 
-    await ensureDir(this.buildDirPath)
-    const path = resolve(this.buildDirPath, moduleKey)
-    await ensureDir(path)
+    return join(this.buildDirPath, moduleKey)
+  }
 
+  async ensureBuildPath(moduleOrConfig: GardenModule | ModuleConfig): Promise<string> {
+    const path = this.getBuildPath(moduleOrConfig)
+    await this.ensureDir(path)
     return path
   }
 
@@ -141,11 +147,21 @@ export class BuildStaging {
    * This directory can be used to store build-related metadata for a given module, for example the last built
    * version for exec modules.
    */
-  async buildMetadataPath(moduleName: string): Promise<string> {
-    await ensureDir(this.buildMetadataDirPath)
-    const path = resolve(this.buildMetadataDirPath, moduleName)
-    await ensureDir(path)
+  getBuildMetadataPath(moduleName: string) {
+    return join(this.buildMetadataDirPath, moduleName)
+  }
+
+  async ensureBuildMetadataPath(moduleName: string): Promise<string> {
+    const path = this.getBuildMetadataPath(moduleName)
+    await this.ensureDir(path)
     return path
+  }
+
+  protected async ensureDir(path: string) {
+    if (!this.createdPaths.has(path)) {
+      await mkdirp(path)
+      this.createdPaths.add(path)
+    }
   }
 
   /**
