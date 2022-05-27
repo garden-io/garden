@@ -906,7 +906,7 @@ describe("task-graph", () => {
         const tasks = [taskA, taskB, taskC, taskADep1, taskBDep, taskADep2]
         const taskNodes = await graph["nodesWithDependencies"]({
           tasks,
-          dependencyCache: {},
+          nodeMap: {},
           stack: [],
         })
         const batches = graph.partition(taskNodes)
@@ -955,7 +955,7 @@ describe("task-graph", () => {
 
         const taskNodes = await graph["nodesWithDependencies"]({
           tasks,
-          dependencyCache: {},
+          nodeMap: {},
           stack: [],
         })
         const batches = graph.partition(taskNodes)

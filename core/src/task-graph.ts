@@ -22,6 +22,7 @@ import { Profile } from "./util/profiling"
 import { renderMessageWithDivider } from "./logger/util"
 import { EventEmitter2 } from "eventemitter2"
 import { toGraphResultEventPayload } from "./events"
+import AsyncLock from "async-lock"
 
 class TaskGraphError extends GardenBaseError {
   type = "task-graph"
@@ -74,6 +75,7 @@ export class TaskGraph extends EventEmitter2 {
   private latestNodes: { [key: string]: TaskNode }
   private logEntryMap: LogEntryMap
   private resultCache: ResultCache
+  private lock: AsyncLock
 
   constructor(
     private garden: Garden,
@@ -91,6 +93,7 @@ export class TaskGraph extends EventEmitter2 {
     this.latestNodes = {}
     this.resultCache = new ResultCache()
     this.logEntryMap = {}
+    this.lock = new AsyncLock()
   }
 
   async process(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<GraphResults> {
@@ -98,7 +101,7 @@ export class TaskGraph extends EventEmitter2 {
 
     let nodes: TaskNode[]
     try {
-      nodes = await this.nodesWithDependencies({ tasks, dependencyCache: {}, stack: [] })
+      nodes = await this.nodesWithDependencies({ tasks, nodeMap: {}, stack: [] })
     } catch (circularDepsErr) {
       throw circularDepsErr
     }
@@ -151,43 +154,54 @@ export class TaskGraph extends EventEmitter2 {
 
   private async nodesWithDependencies({
     tasks,
-    dependencyCache,
+    nodeMap,
     stack,
   }: {
     tasks: BaseTask[]
-    dependencyCache: { [key: string]: BaseTask[] }
+    nodeMap: { [key: string]: TaskNode }
     stack: string[]
   }): Promise<TaskNode[]> {
     return Bluebird.map(tasks, async (task) => {
       const key = task.getKey()
 
-      // Detect circular dependencies
-      const previousOccurrence = stack.indexOf(key)
-      if (previousOccurrence !== -1) {
-        const cycle = stack.slice(previousOccurrence)
-        const description = cyclesToString([cycle])
-        const msg = `Circular task dependencies detected:\n\n${description}\n`
-        throw new CircularDependenciesError(msg, { description, cycle })
+      if (nodeMap[key]) {
+        return nodeMap[key]
       }
 
-      let depTasks = dependencyCache[key]
+      return this.lock.acquire("node-" + key, async () => {
+        if (nodeMap[key]) {
+          return nodeMap[key]
+        }
 
-      if (!depTasks) {
-        this.log.silly(`TaskGraph: Resolving dependencies for task ${task.getKey()}`)
-        dependencyCache[key] = depTasks = await task.resolveDependencies()
+        const newStack = [...stack, key]
+        this.log.silly(`TaskGraph: Resolving dependencies for node ${task.getKey()}`)
+        const depTasks = await task.getDependencies()
         this.log.silly(
-          `TaskGraph: Found ${depTasks.length} dependencies for task ${task.getKey()}: ${depTasks
+          `TaskGraph: Got ${depTasks.length} dependencies for node ${task.getKey()}: ${depTasks
             .map((t) => t.getKey())
             .join(",")}`
         )
-      }
 
-      const depNodes = await this.nodesWithDependencies({
-        tasks: depTasks,
-        dependencyCache,
-        stack: [...stack, key],
+        // Detect circular dependencies
+        for (const dep of depTasks) {
+          const previousOccurrence = newStack.indexOf(dep.getKey())
+          if (previousOccurrence !== -1) {
+            const cycle = newStack.slice(previousOccurrence)
+            const description = cyclesToString([cycle])
+            const msg = `Circular task dependencies detected:\n\n${description}\n`
+            throw new CircularDependenciesError(msg, { description, cycle })
+          }
+        }
+
+        const depNodes = await this.nodesWithDependencies({
+          tasks: depTasks,
+          nodeMap,
+          stack: newStack,
+        })
+        nodeMap[key] = new TaskNode(task, depNodes)
+
+        return nodeMap[key]
       })
-      return new TaskNode(task, depNodes)
     })
   }
 
@@ -596,7 +610,11 @@ export class TaskGraph extends EventEmitter2 {
         entry.setError({ msg: `Failed task ${idStr}`, metadata })
       }
     }
-    this.logEntryMap.counter.setState(remainingTasksToStr(this.index.length))
+    const currentMsg = this.logEntryMap.counter.getLatestMessage()?.msg
+    const msg = remainingTasksToStr(this.index.length)
+    if (currentMsg && msg !== currentMsg) {
+      this.logEntryMap.counter.setState(msg)
+    }
   }
 
   private initLogging() {
