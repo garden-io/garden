@@ -101,20 +101,32 @@ export class DependencyValidationGraph extends DepGraph<string> {
   }
 
   overallOrder(leavesOnly?: boolean): string[] {
-    const cycles = this.detectCircularDependencies()
-    if (cycles.length > 0) {
+    try {
+      return super.overallOrder(leavesOnly)
+    } catch {
+      const cycles = this.detectMinimalCircularDependencies()
       const description = cyclesToString(cycles)
       const errMsg = `\nCircular dependencies detected: \n\n${description}\n`
       throw new ConfigurationError(errMsg, { "circular-dependencies": description, cycles })
     }
-
-    return super.overallOrder(leavesOnly)
   }
 
   /**
    * Returns an error if cycles were found.
    */
   detectCircularDependencies(): Cycle[] {
+    try {
+      super.overallOrder(true)
+      return []
+    } catch {
+      return this.detectMinimalCircularDependencies()
+    }
+  }
+
+  /**
+   * Computes minimal cycles for the graph. This is more expensive than the above method, so it should be used rarely.
+   */
+  detectMinimalCircularDependencies(): Cycle[] {
     const edges: DependencyEdge[] = []
 
     for (const [node, deps] of Object.entries(this["outgoingEdges"])) {
