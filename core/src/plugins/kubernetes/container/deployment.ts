@@ -47,14 +47,15 @@ export async function deployContainerService(
   params: DeployServiceParams<ContainerModule>
 ): Promise<ContainerServiceStatus> {
   const { ctx, service, log, devMode } = params
+  const deployWithDevMode = devMode && !!service.spec.devMode
   const { deploymentStrategy } = params.ctx.provider.config
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx, k8sCtx.provider)
 
   if (deploymentStrategy === "blue-green") {
-    await deployContainerServiceBlueGreen({ ...params, api })
+    await deployContainerServiceBlueGreen({ ...params, devMode: deployWithDevMode, api })
   } else {
-    await deployContainerServiceRolling({ ...params, api })
+    await deployContainerServiceRolling({ ...params, devMode: deployWithDevMode, api })
   }
 
   const status = await getContainerServiceStatus(params)
