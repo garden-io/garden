@@ -89,7 +89,7 @@ export class ModuleResolver {
       }
     }
     for (const [key, rawConfig] of Object.entries(this.rawConfigsByKey)) {
-      const buildPath = await this.garden.buildStaging.buildPath(rawConfig)
+      const buildPath = this.garden.buildStaging.getBuildPath(rawConfig)
       const deps = this.getModuleDependenciesFromConfig(rawConfig, buildPath)
       for (const graph of [fullGraph, processingGraph]) {
         for (const dep of deps) {
@@ -156,7 +156,7 @@ export class ModuleResolver {
         // it in the graph and move on to make sure we fully resolve the dependencies and don't run into circular
         // dependencies.
         if (!foundNewDependency) {
-          const buildPath = await this.garden.buildStaging.buildPath(resolvedConfig)
+          const buildPath = this.garden.buildStaging.getBuildPath(resolvedConfig)
           resolvedModules[moduleKey] = await this.resolveModule(resolvedConfig, buildPath, resolvedDependencies)
           this.log.silly(`ModuleResolver: Module ${moduleKey} resolved`)
           processingGraph.removeNode(moduleKey)
@@ -280,7 +280,7 @@ export class ModuleResolver {
     const garden = this.garden
     let inputs = {}
 
-    const buildPath = await this.garden.buildStaging.buildPath(config)
+    const buildPath = this.garden.buildStaging.getBuildPath(config)
 
     const templateContextParams: ModuleConfigContextParams = {
       garden,
