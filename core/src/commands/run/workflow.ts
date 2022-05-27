@@ -184,7 +184,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
       }
       stepBodyLog.root.storeEntries = initSaveLogState
 
-      if (stepResult.errors) {
+      if (stepResult.errors && stepResult.errors.length > 0) {
         garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
         logErrors(outerLog, stepResult.errors, index, steps.length, step.description)
         stepErrors[index] = stepResult.errors

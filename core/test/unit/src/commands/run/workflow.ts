@@ -507,7 +507,7 @@ describe("RunWorkflowCommand", () => {
     const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
 
     expect(result).to.exist
-    expect(errors).to.eql([])
+    expect(errors).to.eql(undefined)
     expect(result?.steps["step-1"].outputs.exec?.["command"]).to.eql(["sh", "-c", "echo foo"])
   })
 
@@ -528,7 +528,7 @@ describe("RunWorkflowCommand", () => {
     const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
 
     expect(result).to.exist
-    expect(errors).to.eql([])
+    expect(errors).to.eql(undefined)
     expect(result?.steps["step-1"].outputs.gardenCommand?.["result"].result.log).to.equal("echo other-YEP")
     expect(result?.steps["step-1"].outputs.gardenCommand?.["command"]).to.eql([
       "run",
@@ -758,8 +758,9 @@ describe("RunWorkflowCommand", () => {
 
     const { errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
 
-    expect(errors![0].message).to.equal("Script exited with code 1")
-    expect(errors![0].detail.stdout).to.equal("boo!")
+    expect(errors![0].message).to.equal("workflow failed with 1 error, see logs above for more info")
+    // no details because log is set to human-readable output and details are logged above
+    expect(errors![0].detail).to.equal(undefined)
   })
 
   it("should include outputs from steps in the command output", async () => {
