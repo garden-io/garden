@@ -115,8 +115,8 @@ export async function moduleFromConfig({
   const module: GardenModule = {
     ...cloneDeep(config),
 
-    buildPath: await garden.buildStaging.buildPath(config),
-    buildMetadataPath: await garden.buildStaging.buildMetadataPath(config.name),
+    buildPath: await garden.buildStaging.ensureBuildPath(config),
+    buildMetadataPath: await garden.buildStaging.ensureBuildMetadataPath(config.name),
 
     version,
     needsBuild: moduleNeedsBuild(config, moduleTypes[config.type]),
