@@ -740,7 +740,7 @@ export class Garden {
     const resolvedProviders = await this.resolveProviders(log)
     const rawConfigs = await this.getRawModuleConfigs()
 
-    log.silly(`Resolving module configs`)
+    log = log.info({ status: "active", section: "graph", msg: `Resolving ${rawConfigs.length} modules...` })
 
     // Resolve the project module configs
     const resolver = new ModuleResolver({
@@ -856,6 +856,8 @@ export class Garden {
     if (emit) {
       this.events.emit("stackGraph", graph.render())
     }
+
+    log.setSuccess({ msg: chalk.green("Done"), append: true })
 
     return graph
   }
