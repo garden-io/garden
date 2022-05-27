@@ -763,6 +763,54 @@ describe("RunWorkflowCommand", () => {
     expect(errors![0].detail).to.equal(undefined)
   })
 
+  it("should throw if a script step fails and add log to output with --output flag set", async () => {
+    garden.setWorkflowConfigs([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "workflow-a",
+        kind: "Workflow",
+        path: garden.projectRoot,
+        files: [],
+        envVars: {},
+        resources: defaultWorkflowResources,
+        steps: [{ script: "echo boo!; exit 1" }],
+      },
+    ])
+
+    const { errors } = await cmd.action({
+      ...defaultParams,
+      args: { workflow: "workflow-a" },
+      opts: { output: "json" },
+    })
+
+    expect(errors![0].message).to.equal("Script exited with code 1")
+    expect(errors![0].detail.stdout).to.equal("boo!")
+  })
+
+  it("should return script logs with the --output flag set", async () => {
+    garden.setWorkflowConfigs([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "workflow-a",
+        kind: "Workflow",
+        path: garden.projectRoot,
+        files: [],
+        envVars: {},
+        resources: defaultWorkflowResources,
+        steps: [{ script: "echo boo!;" }],
+      },
+    ])
+
+    const result = await cmd.action({
+      ...defaultParams,
+      args: { workflow: "workflow-a" },
+      opts: { output: "json" },
+    })
+
+    expect(result.errors).to.be.undefined
+    expect(result.result?.steps["step-1"].log).to.be.equal("boo!")
+  })
+
   it("should include outputs from steps in the command output", async () => {
     garden.setWorkflowConfigs([
       {
