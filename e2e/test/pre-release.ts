@@ -209,7 +209,7 @@ describe("PreReleaseTests", () => {
           },
           changeFileStep(resolve(currentProjectPath, "node-service/src/app.js"), "change node-service/src/app.js"),
           {
-            description: "get logs for node-service after hot reload event",
+            description: "get logs for node-service after code-synchronization event",
             condition: async () => {
               const logEntries = await runWithEnv(["logs", "node-service"])
               return searchLog(logEntries, /App started/)

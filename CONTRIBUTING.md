@@ -289,7 +289,7 @@ To make a new release, set your current working directory to the garden root dir
 4. Manual testing (using the pre-release/release binary)
     * On a **Windows** machine, run `garden deploy --dev vote --env remote` in the `vote` example project.
         * If there are any issues with syncing, consider changing the `services[].devMode.sync[].mode` value(s) to `one-way-replica` and restart Garden.
-        * Change a file in the `vote` service and verify that the hot reload was successful.
+        * Change a file in the `vote` service and verify that the code synchronization was successful.
         * Open the dashboard, verify that the initial page loads without errors.
     * On **macOS** or **Linux**, run the `./scripts/test-release.sh <version>` script, where `<version>` should have the format `<major>.<minor>.<patch>-<preReleaseCounter>`, e.g. `0.12.38-0`. The script runs some simple tests to sanity check the release.
 5. Go to our Github [Releases page](https://github.com/garden-io/garden/releases) and click the **Edit** button for the draft just created from CI. Note that for drafts, a new one is always created instead of replacing a previous one.

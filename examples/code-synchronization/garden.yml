@@ -1,5 +1,5 @@
 kind: Project
-name: hot-reload
+name: code-synchronization
 environments:
   - name: local
   - name: testing
