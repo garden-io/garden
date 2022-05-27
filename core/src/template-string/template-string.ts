@@ -82,7 +82,8 @@ function getValue(v: Primitive | undefined | ResolvedClause) {
  * dependencies when resolving context variables.
  */
 export function resolveTemplateString(string: string, context: ConfigContext, opts: ContextResolveOpts = {}): any {
-  if (!string) {
+  // Just return immediately if this is definitely not a template string
+  if (!maybeTemplateString(string)) {
     return string
   }
 
@@ -376,7 +377,7 @@ function handleForEachObject(value: any, context: ConfigContext, opts: ContextRe
  * Returns `true` if the given value is a string and looks to contain a template string.
  */
 export function maybeTemplateString(value: Primitive) {
-  return typeof value === "string" && value.includes("${")
+  return !!value && typeof value === "string" && value.includes("${")
 }
 
 /**

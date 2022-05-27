@@ -37,6 +37,7 @@ import { pathToCacheContext } from "./cache"
 import { loadVarfile } from "./config/base"
 import { merge } from "json-merge-patch"
 import { prepareBuildDependencies } from "./config/base"
+import { ModuleTypeDefinition, ModuleTypeMap } from "./types/plugin/plugin"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 50
@@ -55,6 +56,7 @@ export class ModuleResolver {
   private rawConfigsByKey: ModuleConfigMap
   private resolvedProviders: ProviderMap
   private runtimeContext?: RuntimeContext
+  private bases: { [type: string]: ModuleTypeDefinition[] }
 
   constructor({
     garden,
@@ -74,6 +76,7 @@ export class ModuleResolver {
     this.rawConfigsByKey = keyBy(rawConfigs, (c) => getModuleKey(c.name, c.plugin))
     this.resolvedProviders = resolvedProviders
     this.runtimeContext = runtimeContext
+    this.bases = {}
   }
 
   async resolveAll() {
@@ -414,7 +417,7 @@ export class ModuleResolver {
     config = configureResult.moduleConfig
 
     // Validate the configure handler output against the module type's bases
-    const bases = getModuleTypeBases(moduleTypeDefinitions[config.type], moduleTypeDefinitions)
+    const bases = this.getBases(config.type, moduleTypeDefinitions)
 
     for (const base of bases) {
       if (base.schema) {
@@ -422,7 +425,7 @@ export class ModuleResolver {
 
         config.spec = <ModuleConfig>validateWithPath({
           config: config.spec,
-          schema: allowUnknown(base.schema),
+          schema: base.schema,
           path: garden.projectRoot,
           projectRoot: garden.projectRoot,
           configType: `configuration for module '${config.name}' (base schema from '${base.name}' plugin)`,
@@ -447,6 +450,19 @@ export class ModuleResolver {
     }
 
     return config
+  }
+
+  /**
+   * Get the bases for the given module type, with schemas modified to allow any unknown fields.
+   */
+  private getBases(type: string, definitions: ModuleTypeMap) {
+    if (this.bases[type]) {
+      return this.bases[type]
+    }
+
+    const bases = getModuleTypeBases(definitions[type], definitions)
+    this.bases[type] = bases.map((b) => ({ ...b, schema: b.schema ? allowUnknown(b.schema) : undefined }))
+    return this.bases[type]
   }
 
   private async resolveModule(resolvedConfig: ModuleConfig, buildPath: string, dependencies: GardenModule[]) {
@@ -551,7 +567,7 @@ export class ModuleResolver {
     }
 
     // Validate the module outputs against the module type's bases
-    const bases = getModuleTypeBases(moduleTypeDefinitions[module.type], moduleTypeDefinitions)
+    const bases = this.getBases(module.type, moduleTypeDefinitions)
 
     for (const base of bases) {
       if (base.moduleOutputsSchema) {

@@ -30,6 +30,7 @@ import execa = require("execa")
 import isGlob = require("is-glob")
 import chalk = require("chalk")
 import hasha = require("hasha")
+import { pMemoizeDecorator } from "../lib/p-memoize"
 
 const submoduleErrorSuggestion = `Perhaps you need to run ${chalk.underline(`git submodule update --recursive`)}?`
 const hashConcurrencyLimit = 50
@@ -635,6 +636,7 @@ export class GitHandler extends VcsHandler {
     }
   }
 
+  @pMemoizeDecorator()
   private async getSubmodules(gitModulesConfigPath: string) {
     const submodules: Submodule[] = []
     const gitmodulesPath = join(gitModulesConfigPath, ".gitmodules")
