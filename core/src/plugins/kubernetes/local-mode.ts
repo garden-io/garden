@@ -27,7 +27,7 @@ import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
 import { OsCommand, ProcessErrorMessage, ProcessMessage, RetriableProcess } from "../../util/retriable-process"
 import { isConfiguredForLocalMode } from "./status/status"
-import { shutdown } from "../../util/util"
+import { registerCleanupFunction, shutdown } from "../../util/util"
 import pRetry = require("p-retry")
 import getPort = require("get-port")
 
@@ -94,9 +94,7 @@ export class ProxySshKeystore {
   public static getInstance(log: LogEntry): ProxySshKeystore {
     if (!ProxySshKeystore.instance) {
       const newInstance = new ProxySshKeystore()
-      process.once("exit", () => {
-        newInstance.shutdown(log)
-      })
+      registerCleanupFunction("shutdown-proxy-ssh-keystore", () => newInstance.shutdown(log))
       ProxySshKeystore.instance = newInstance
     }
     return ProxySshKeystore.instance
@@ -190,9 +188,7 @@ export class LocalModeProcessRegistry {
   public static getInstance(): LocalModeProcessRegistry {
     if (!LocalModeProcessRegistry.instance) {
       const newInstance = new LocalModeProcessRegistry()
-      process.once("exit", () => {
-        newInstance.shutdown()
-      })
+      registerCleanupFunction("shutdown-local-mode-process-registry", () => newInstance.shutdown())
       LocalModeProcessRegistry.instance = newInstance
     }
     return LocalModeProcessRegistry.instance
@@ -224,9 +220,7 @@ export class LocalModeSshPortRegistry {
   public static getInstance(log: LogEntry): LocalModeSshPortRegistry {
     if (!LocalModeSshPortRegistry.instance) {
       const newInstance = new LocalModeSshPortRegistry()
-      process.once("exit", () => {
-        newInstance.shutdown(log)
-      })
+      registerCleanupFunction("shutdown-local-mode-ssh-port-registry", () => newInstance.shutdown(log))
       LocalModeSshPortRegistry.instance = newInstance
     }
     return LocalModeSshPortRegistry.instance
