@@ -414,7 +414,7 @@ export async function createWorkloadManifest({
   }
 
   if (enableLocalMode && configuredReplicas > 1) {
-    log.warn({
+    log.verbose({
       msg: chalk.yellow(`Ignoring replicas config on container service ${service.name} while in local mode`),
       symbol: "warning",
     })
