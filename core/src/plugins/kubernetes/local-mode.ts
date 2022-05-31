@@ -230,7 +230,7 @@ export class LocalModeSshPortRegistry {
     const localhostEscaped = localhost.split(".").join("\\.")
     const command = `sed -i -r '/^\\[${localhostEscaped}\\]:${localPort}/d' \${HOME}/.ssh/known_hosts`
     try {
-      log.debug("Cleaning up .ssh/known_hosts file...")
+      log.debug("Cleaning temporary entries from .ssh/known_hosts file...")
       execSync(command)
     } catch (err) {
       log.warn(`Unable to clean temporary entries from .ssh/known_hosts file: ${err}`)
