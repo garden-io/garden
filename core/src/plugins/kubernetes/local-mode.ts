@@ -63,8 +63,7 @@ export class KeyPair {
     try {
       return readFileSync(filePath).toString("utf-8")
     } catch (err) {
-      const message = !!err.message ? err.message.toString() : "unknown"
-      throw new ConfigurationError(`Could not read public key file from path ${filePath}; cause: ${message}`, err)
+      throw new ConfigurationError(`Could not read public key file from path ${filePath}; cause: ${err}`, err)
     }
   }
 
