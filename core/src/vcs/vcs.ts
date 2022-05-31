@@ -7,9 +7,8 @@
  */
 
 import Joi from "@hapi/joi"
-import Bluebird from "bluebird"
 import normalize = require("normalize-path")
-import { mapValues, keyBy, sortBy, omit } from "lodash"
+import { sortBy, omit } from "lodash"
 import { createHash } from "crypto"
 import { validateSchema } from "../config/validation"
 import { join, relative, isAbsolute } from "path"
@@ -48,11 +47,19 @@ export interface TreeVersions {
 
 export interface ModuleVersion {
   versionString: string
-  dependencyVersions: TreeVersions
+  dependencyVersions: DependencyVersions
   files: string[]
 }
 
-interface NamedTreeVersion extends TreeVersion {
+export interface NamedModuleVersion extends ModuleVersion {
+  name: string
+}
+
+export interface DependencyVersions {
+  [moduleName: string]: string
+}
+
+export interface NamedTreeVersion extends TreeVersion {
   name: string
 }
 
@@ -169,37 +176,6 @@ export abstract class VcsHandler {
     return fileVersion || (await this.getTreeVersion(log, projectName, moduleConfig))
   }
 
-  async resolveModuleVersion(
-    log: LogEntry,
-    projectName: string,
-    moduleConfig: ModuleConfig,
-    dependencies: ModuleConfig[]
-  ): Promise<ModuleVersion> {
-    const treeVersion = await this.resolveTreeVersion(log, projectName, moduleConfig)
-
-    validateSchema(treeVersion, treeVersionSchema(), {
-      context: `${this.name} tree version for module at ${moduleConfig.path}`,
-    })
-
-    const namedDependencyVersions = await Bluebird.map(dependencies, async (m: ModuleConfig) => ({
-      name: m.name,
-      ...(await this.resolveTreeVersion(log, projectName, m)),
-    }))
-    const dependencyVersions = mapValues(keyBy(namedDependencyVersions, "name"), (v) => omit(v, "name"))
-
-    const versionString = getModuleVersionString(
-      moduleConfig,
-      { name: moduleConfig.name, ...treeVersion },
-      namedDependencyVersions
-    )
-
-    return {
-      dependencyVersions,
-      versionString,
-      files: treeVersion.files,
-    }
-  }
-
   getRemoteSourcesDirname(type: ExternalSourceType) {
     return getRemoteSourcesDirname(type)
   }
@@ -273,10 +249,10 @@ export async function writeModuleVersionFile(path: string, version: ModuleVersio
 export function getModuleVersionString(
   moduleConfig: ModuleConfig,
   treeVersion: NamedTreeVersion,
-  dependencyTreeVersions: NamedTreeVersion[]
+  dependencyModuleVersions: NamedModuleVersion[]
 ) {
   // TODO: allow overriding the prefix
-  return `${versionStringPrefix}${hashModuleVersion(moduleConfig, treeVersion, dependencyTreeVersions)}`
+  return `${versionStringPrefix}${hashModuleVersion(moduleConfig, treeVersion, dependencyModuleVersions)}`
 }
 
 /**
@@ -286,7 +262,7 @@ export function getModuleVersionString(
 export function hashModuleVersion(
   moduleConfig: ModuleConfig,
   treeVersion: NamedTreeVersion,
-  dependencyTreeVersions: NamedTreeVersion[]
+  dependencyModuleVersions: NamedModuleVersion[]
 ) {
   // If a build config is provided, we use that.
   // Otherwise, we use the full module config, omitting the configPath, path, and outputs fields, as well as individual
@@ -298,9 +274,10 @@ export function hashModuleVersion(
 
   const configString = serializeConfig(configToHash)
 
-  const versionStrings = sortBy([treeVersion, ...dependencyTreeVersions], "name").map(
-    (v) => `${v.name}_${v.contentHash}`
-  )
+  const versionStrings = sortBy(
+    [[treeVersion.name, treeVersion.contentHash], ...dependencyModuleVersions.map((v) => [v.name, v.versionString])],
+    (vs) => vs[0]
+  ).map((vs) => vs[1])
 
   return hashStrings([configString, ...versionStrings])
 }

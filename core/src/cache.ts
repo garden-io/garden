@@ -64,10 +64,14 @@ interface ContextNode {
  *
  */
 export class TreeCache {
-  private readonly cache: CacheEntries
-  private readonly contextTree: ContextNode
+  private cache: CacheEntries
+  private contextTree: ContextNode
 
   constructor() {
+    this.clear()
+  }
+
+  clear() {
     this.cache = new Map<string, CacheEntry>()
     this.contextTree = makeContextNode([])
   }
