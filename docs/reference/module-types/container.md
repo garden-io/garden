@@ -311,7 +311,7 @@ services:
     #
     # Local mode is enabled by setting the `--local-mode` option on the `garden deploy` command.
     #
-    # The health checks are disabled for the services running in local mode.
+    # The health checks are disabled for services running in local mode.
     #
     # See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode.md) for more information.
     localMode:
@@ -1401,7 +1401,7 @@ The `command` should not depend on the current service or module path.
 
 Local mode is enabled by setting the `--local-mode` option on the `garden deploy` command.
 
-The health checks are disabled for the services running in local mode.
+The health checks are disabled for services running in local mode.
 
 See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode.md) for more information.
 

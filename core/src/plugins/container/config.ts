@@ -330,7 +330,7 @@ export const containerLocalModeSchema = () =>
 
     Local mode is enabled by setting the \`--local-mode\` option on the \`garden deploy\` command.
 
-    The health checks are disabled for the services running in local mode.
+    The health checks are disabled for services running in local mode.
 
     See the [Local Mode guide](${localModeGuideLink}) for more information.
   `)
