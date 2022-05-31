@@ -33,7 +33,8 @@ progress. So, there is a number of functional limitations in the first release:
   talk to some data sources like databases, message brokers, etc. then all these services are assumed to be running
   locally.
 * The _local mode_ is supported only by [container module type](./container-modules.md)
-  and [kubernetes provider](../reference/providers/kubernetes.md).
+  and [kubernetes provider](../reference/providers/kubernetes.md). The `kubernetes` and `helm` module types will be
+  supported later.
 * The _local mode_ leaves the proxy container deployed in the target k8s cluster after exit. The affected services must
   be re-deployed manually by using `garden deploy`.
 
@@ -106,10 +107,6 @@ services:
 
 An example can be found in the [demo-project's backend service](../../examples/demo-project/backend/garden.yml).
 
-### Configuring local mode for `kubernetes` and `helm` modules
-
-TODO: not supported yet
-
 ## Deploying with local mode
 
 To deploy your services with local mode enabled, you can use the `deploy` command:
@@ -125,7 +122,3 @@ garden deploy --local-mode
 
 Once you quit/terminate the Garden command, all port-forwards established by the command will be stopped, but the
 services (both local and remote ones) will still be left running.
-
-## Troubleshooting
-
-TODO
