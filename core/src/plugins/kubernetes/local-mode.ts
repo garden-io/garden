@@ -149,8 +149,7 @@ export class ProxySshKeystore {
 
   public async getKeyPair(service: ContainerService, log: LogEntry): Promise<KeyPair> {
     const rootPath = service.module.localModeSshKeystorePath
-    const moduleDirPath = resolve(rootPath, service.module.name)
-    const serviceDirPath = resolve(moduleDirPath, service.name)
+    const serviceDirPath = resolve(rootPath, service.name)
     if (!this.serviceKeyPairs.has(serviceDirPath)) {
       await sshKeyPairAsyncLock.acquire("proxy-ssh-key-pair", async () => {
         if (!this.serviceKeyPairs.has(serviceDirPath)) {
