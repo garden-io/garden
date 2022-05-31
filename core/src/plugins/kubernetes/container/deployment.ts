@@ -97,15 +97,13 @@ export async function startContainerDevSync({
   service: ContainerService
 }) {
   if (!service.spec.devMode) {
-    log.warn({
-      section: service.name,
-      msg: chalk.yellow(
-        `Service "${service.name}" has been started with the --dev-mode flag ` +
-          "but doesn't have a devMode configuration section! Please check its garden.yml config file."
-      ),
-    })
     return
   }
+
+  log.info({
+    section: service.name,
+    msg: chalk.grey(`Starting dev mode syncing for the service "${service.name}"`),
+  })
 
   const namespace = await getAppNamespace(ctx, log, ctx.provider)
   const target = status.detail.remoteResources.find((r) =>
@@ -135,15 +133,13 @@ export async function startLocalMode({
   service: ContainerService
 }) {
   if (!service.spec.localMode) {
-    log.warn({
-      section: service.name,
-      msg: chalk.yellow(
-        `Service "${service.name}" has been started with the --local-mode flag ` +
-          "but doesn't have a localMode configuration section. Deploying the service normally instead."
-      ),
-    })
     return
   }
+
+  log.warn({
+    section: service.name,
+    msg: chalk.grey(`Starting local mode for the service "${service.name}"`),
+  })
 
   const namespace = await getAppNamespace(ctx, log, ctx.provider)
   const target = status.detail.remoteResources.find((r) =>
