@@ -90,7 +90,7 @@ describe("local mode deployments and ssh tunneling behavior", () => {
     expect(await pathExists(publicSshKeyPath)).to.be.true
 
     const containerPort = service.config.spec.ports.find((p) => p.name === "http")!.containerPort
-    const localPort = service.config.spec.localMode.localAppPort
+    const localPort = service.config.spec.localMode.localPort
 
     const grepSshTunnelCommand = `ps -ef | grep 'ssh -T -R ${containerPort}:127.0.0.1:${localPort} ${PROXY_CONTAINER_USER_NAME}@127.0.0.1'`
     log.info(`Looking for running ssh reverse port forwarding with command: ${grepSshTunnelCommand}`)

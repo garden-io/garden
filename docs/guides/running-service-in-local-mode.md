@@ -98,7 +98,7 @@ services:
   - name: node-service
     args: [ npm, start ]
     localMode:
-      localAppPort: 8090 # The port of the local service, will be used for port-forward setup
+      localPort: 8090 # The port of the local service, will be used for port-forward setup
       enableLivenessProbe: false # Optional, `true` is the default value. Set it to `false` if you need to disable liveness probes for the local service.
       command: [ npm, run, serve ] # Starts the local service which will replace the target one in the k8s cluster
       containerName: "node-service" # Optional. The name of the target k8s service. It will be inferred automatically if this option is not defined.

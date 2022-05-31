@@ -10,7 +10,7 @@ variables:
 services:
   - name: local-mode
     localMode:
-      localAppPort: 8090
+      localPort: 8090
       command: []
     healthCheck:
       httpGet:

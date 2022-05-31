@@ -527,7 +527,7 @@ async function getReversePortForwardCommand(
   { service, spec: localModeSpec, log }: StartLocalModeParams,
   localSshPort: number
 ): Promise<OsCommand> {
-  const localAppPort = localModeSpec.localAppPort
+  const localPort = localModeSpec.localPort
   // todo: get all forwardable ports and set up ssh tunnels for all
   const remoteContainerPortSpec = findFirstForwardablePort(service.spec)
   const remoteContainerPort = remoteContainerPortSpec.containerPort
@@ -541,7 +541,7 @@ async function getReversePortForwardCommand(
      */
     "-T",
     "-R",
-    `${remoteContainerPort}:${localhost}:${localAppPort}`,
+    `${remoteContainerPort}:${localhost}:${localPort}`,
     `${PROXY_CONTAINER_USER_NAME}@${localhost}`,
     `-p${localSshPort}`,
     `-i ${keyPair.privateKeyPath}`,

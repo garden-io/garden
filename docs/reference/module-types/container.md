@@ -324,7 +324,7 @@ services:
       containerName:
 
       # The working port of the local application.
-      localAppPort:
+      localPort:
 
       # Enable liveness probes for the local service (over the proxy container) if true. True by default. Set it to
       # false to disable liveness probes.
@@ -1438,9 +1438,9 @@ The k8s name of the remote container (optional).
 | -------- | -------- |
 | `string` | No       |
 
-### `services[].localMode.localAppPort`
+### `services[].localMode.localPort`
 
-[services](#services) > [localMode](#serviceslocalmode) > localAppPort
+[services](#services) > [localMode](#serviceslocalmode) > localPort
 
 The working port of the local application.
 

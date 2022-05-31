@@ -10,8 +10,8 @@ variables:
 services:
   - name: backend-1
     localMode:
-      localAppPort: 8090
-      command: [] # [ "command-to-start-the-local-service-on-the-localAppPort" ]
+      localPort: 8090
+      command: [] # [ "command-to-start-the-local-service-on-the-localPort" ]
     healthCheck:
       httpGet:
         path: ${var.ingressPath}
