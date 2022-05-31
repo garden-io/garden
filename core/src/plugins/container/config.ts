@@ -317,7 +317,9 @@ export const containerLocalModeSchema = () =>
       .sparseArray()
       .optional()
       .items(joi.string())
-      .description("The command to run the local application (optional)."),
+      .description(
+        "The command to run the local application. If not present, then the local application should be started manually."
+      ),
     containerName: joi.string().optional().description("The k8s name of the remote container (optional)."),
     localAppPort: joi.number().description("The working port of the local application."),
     enableLivenessProbe: joi

@@ -337,7 +337,8 @@ services:
     #
     # See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode.md) for more information.
     localMode:
-      # The command to run the local application (optional).
+      # The command to run the local application. If not present, then the local application should be started
+      # manually.
       command:
 
       # The k8s name of the remote container (optional).
@@ -1492,7 +1493,7 @@ See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-loca
 
 [services](#services) > [localMode](#serviceslocalmode) > command
 
-The command to run the local application (optional).
+The command to run the local application. If not present, then the local application should be started manually.
 
 | Type            | Required |
 | --------------- | -------- |
