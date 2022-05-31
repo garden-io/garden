@@ -492,7 +492,14 @@ export async function createWorkloadManifest({
   }
 
   if (spec.healthCheck) {
-    const mode = enableHotReload || enableDevMode ? "dev" : enableLocalMode ? "local" : "normal"
+    let mode: HealthCheckMode
+    if (enableHotReload || enableDevMode) {
+      mode = "dev"
+    } else if (enableLocalMode) {
+      mode = "local"
+    } else {
+      mode = "normal"
+    }
     configureHealthCheck(container, spec, mode)
   }
 
