@@ -234,7 +234,7 @@ export class LocalModeSshPortRegistry {
       execSync(command)
       log.debug("Cleaned up .ssh/known_hosts successfully!")
     } catch (err) {
-      log.warn(`Error cleaning up .ssh/known_hosts file: ${err}`)
+      log.warn(`Unable to clean temporary entries from .ssh/known_hosts file: ${err}`)
     }
   }
 
