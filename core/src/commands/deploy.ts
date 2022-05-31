@@ -73,6 +73,7 @@ export const deployOpts = {
     services with local mode enabled. When this option is used,
     the command is run in persistent mode.
     `,
+    alias: "local",
   }),
   "skip": new StringsParameter({
     help: "The name(s) of services you'd like to skip when deploying.",
