@@ -139,7 +139,7 @@ export async function startLocalMode({
       section: service.name,
       msg: chalk.yellow(
         `Service "${service.name}" has been started with the --local-mode flag ` +
-          "but doesn't have a localMode configuration section! Please check its garden.yml config file."
+          "but doesn't have a localMode configuration section. Deploying the service normally instead."
       ),
     })
     return
