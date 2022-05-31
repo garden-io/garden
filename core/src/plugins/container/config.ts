@@ -327,9 +327,9 @@ export const containerLocalModeSchema = () =>
         "Enable liveness probes for the local service (over the proxy container) if true. True by default. Set it to false to disable liveness probes."
       ),
   }).description(dedent`
-    Specifies necessary configuration details of the local application which will replace a target remote service in the k8s cluster.
+    Specifies necessary configuration details of the local application which will replace a target remote service.
 
-    The target service in the k8s cluster will be replaced by a proxy container with an ssh server running,
+    The target service will be replaced by a proxy container with an SSH server running,
     and the reverse port forwarding will be automatically configured to route the traffic to the local service and back.
 
     If the \`command\` is provided then its value must contain a command which is executable from any location.
