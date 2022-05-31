@@ -102,7 +102,7 @@ export async function startContainerDevSync({
 
   log.info({
     section: service.name,
-    msg: chalk.grey(`Starting dev mode syncing for the service "${service.name}"`),
+    msg: chalk.grey(`Deploying in dev mode`),
   })
 
   const namespace = await getAppNamespace(ctx, log, ctx.provider)
@@ -138,7 +138,7 @@ export async function startLocalMode({
 
   log.warn({
     section: service.name,
-    msg: chalk.grey(`Starting local mode for the service "${service.name}"`),
+    msg: chalk.grey(`Starting in local mode`),
   })
 
   const namespace = await getAppNamespace(ctx, log, ctx.provider)
