@@ -29,7 +29,7 @@ export const dockerDaemonDeploymentName = "garden-docker-daemon"
 
 export const k8sUtilImageName = "gardendev/k8s-util:0.5.3"
 export const k8sSyncUtilImageName = "gardendev/k8s-sync:0.1.4"
-export const reverseProxyImageName = "gardendev/k8s-reverse-proxy:0.0.1-amd64"
+export const reverseProxyImageName = "gardendev/k8s-reverse-proxy:0.0.1"
 
 export const dockerDaemonContainerName = "docker-daemon"
 export const skopeoDaemonContainerName = "util"

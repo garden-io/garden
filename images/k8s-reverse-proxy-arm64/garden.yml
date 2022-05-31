@@ -1,6 +1,0 @@
-kind: Module
-type: container
-name: k8s-reverse-proxy-arm64
-description: Used as a reversed proxy in k8s cluster to replace an aactual service and to route its traffic to a local service. # todo: Used by kubernetes provider?
-image: gardendev/k8s-reverse-proxy:0.0.1-arm64
-dockerfile: Dockerfile
