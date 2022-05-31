@@ -1,4 +1,4 @@
-FROM linuxserver/openssh-server:amd64-8.8_p1-r1-ls77
+FROM linuxserver/openssh-server:arm64v8-8.8_p1-r1-ls77
 
 WORKDIR /app
 
