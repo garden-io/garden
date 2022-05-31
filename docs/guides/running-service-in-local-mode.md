@@ -80,13 +80,19 @@ services.
 
 ### Health-checks
 
-The readiness probes are disabled for all services running in local mode. This has been done because of some technical
-reasons. The k8s cluster readiness checks are applied to a proxy container which sends the traffic to the local service.
-When a readiness probe happens, the target local service and the relevant port forward are not ready yet.
+The readiness and liveness probes are disabled for all services running in local mode. This has been done because of
+some technical reasons.
 
-The _local mode_ supports liveness probes. The liveness probles have intentionally longer initial delays, just to make
-sure that the local services and port forward have enough time to start. The liveness probes are enabled by default, but
-can be disabled if necessary. See the example below.
+The lifecycle of a local service can be completely controlled by a user. Thus, the health checks may be unwanted and
+obstructing.
+
+The k8s cluster readiness checks are applied to a proxy container which sends the traffic to the local service.
+When a readiness probe happens, the target local service and the relevant port forward are not ready yet. Thus, the
+readiness probe can cause the failure of the _local mode_ startup.
+
+The liveness checks can cause unnecessary re-deployment of the proxy container in the target cluster.
+Also, those checks create some extra traffic to the local service. That might be noisy and unnecessary if the local
+service is running in the debugger.
 
 ### Configuring local mode for `container` modules
 
@@ -99,7 +105,6 @@ services:
     args: [ npm, start ]
     localMode:
       localPort: 8090 # The port of the local service, will be used for port-forward setup
-      enableLivenessProbe: false # Optional, `true` is the default value. Set it to `false` if you need to disable liveness probes for the local service.
       command: [ npm, run, serve ] # Starts the local service which will replace the target one in the k8s cluster
       containerName: "node-service" # Optional. The name of the target k8s service. It will be inferred automatically if this option is not defined.
   ...

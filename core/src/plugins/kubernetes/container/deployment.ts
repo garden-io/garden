@@ -764,9 +764,19 @@ function configureHealthCheck(
     throw new Error("Must specify type of health check when configuring health check.")
   }
 
-  // readiness of a local mode service depends on some further steps and can't be verified here
+  /*
+   Both readiness and liveness probes do not make much sense for the services running in local mode.
+   A user can completely control the lifecycle of a local service. Thus, these checks may be unwanted.
+
+   The readiness probe can cause the failure of the local mode startup,
+   because the local service has not been connected to the target cluster yet.
+
+   The liveness probe can cause unnecessary re-deployment of the proxy container in the target cluster.
+   Also, it can create unnecessary noisy traffic to the local service is running in the debugger.
+   */
   if (mode === "local") {
     delete container.readinessProbe
+    delete container.livenessProbe
   }
 }
 

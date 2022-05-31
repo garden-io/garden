@@ -333,14 +333,12 @@ function patchOriginalServiceSpec(
  * @param proxyContainerName the target container name
  * @param localModeEnvVars the list of localMode-specific environment variables
  * @param localModePorts the list of localMode-specific ports (e.g. ssh port for tunnel setup)
- * @param localModeSpec the local mode configuration spec
  */
 function patchMainContainer(
   mainContainer: V1Container,
   proxyContainerName: string,
   localModeEnvVars: PrimitiveMap,
-  localModePorts: ServicePortSpec[],
-  localModeSpec: ContainerLocalModeSpec
+  localModePorts: ServicePortSpec[]
 ) {
   mainContainer.name = proxyContainerName
   mainContainer.image = reverseProxyImageName
@@ -362,17 +360,13 @@ function patchMainContainer(
       containerPort: port.containerPort,
     })
   }
-
-  if (!localModeSpec.enableLivenessProbe) {
-    delete mainContainer.livenessProbe
-  }
 }
 
 /**
  * Configures the specified Deployment, DaemonSet or StatefulSet for local mode.
  */
 export async function configureLocalMode(configParams: ConfigureLocalModeParams): Promise<void> {
-  const { target, service, spec: localModeSpec, log } = configParams
+  const { target, service, log } = configParams
   set(target, ["metadata", "annotations", gardenAnnotationKey("local-mode")], "true")
 
   log.info({
@@ -396,7 +390,7 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
   const localModePorts = prepareLocalModePorts(configParams)
 
   patchOriginalServiceSpec(service.spec, localModeEnvVars, localModePorts)
-  patchMainContainer(mainContainer, proxyContainerName, localModeEnvVars, localModePorts, localModeSpec)
+  patchMainContainer(mainContainer, proxyContainerName, localModeEnvVars, localModePorts)
 
   // todo: check if anything else should be configured here
 }

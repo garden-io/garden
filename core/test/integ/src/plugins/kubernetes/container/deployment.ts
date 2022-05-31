@@ -329,42 +329,8 @@ describe("kubernetes container deployment handlers", () => {
       })
     })
 
-    it("should increase liveness probes when in local mode", async () => {
+    it("should remove liveness probes when in local mode", async () => {
       const service = graph.getService("local-mode")
-      const namespace = provider.config.namespace!.name!
-
-      const resource = await createWorkloadManifest({
-        api,
-        provider,
-        service,
-        runtimeContext: emptyRuntimeContext,
-        namespace,
-        enableDevMode: false,
-        enableHotReload: false,
-        enableLocalMode: true, // <----
-        log: garden.log,
-        production: false,
-        blueGreen: false,
-      })
-
-      const appContainerSpec = resource.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
-      expect(appContainerSpec!.livenessProbe).to.eql({
-        initialDelaySeconds: 90,
-        periodSeconds: 10,
-        timeoutSeconds: 3,
-        successThreshold: 1,
-        failureThreshold: 30,
-        httpGet: {
-          path: "/hello-backend",
-          port: 8080,
-          scheme: "HTTP",
-        },
-      })
-    })
-
-    it("should delete liveness probes in local mode when livenessProbeEnabled=false", async () => {
-      const service = graph.getService("local-mode")
-      service.spec.localMode.enableLivenessProbe = false
       const namespace = provider.config.namespace!.name!
 
       const resource = await createWorkloadManifest({
