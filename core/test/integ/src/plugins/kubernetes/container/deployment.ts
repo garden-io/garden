@@ -30,6 +30,7 @@ import { gardenAnnotationKey } from "../../../../../../src/util/string"
 import {
   k8sSyncUtilImageName,
   PROXY_CONTAINER_SSH_TUNNEL_PORT,
+  PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME,
   PROXY_CONTAINER_USER_NAME,
 } from "../../../../../../src/plugins/kubernetes/constants"
 import stripAnsi = require("strip-ansi")
@@ -392,7 +393,7 @@ describe("kubernetes container deployment handlers", () => {
       })
 
       const appContainerSpec = resource.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
-      const sshPort = appContainerSpec!.ports!.find((p) => p.name === "ssh")
+      const sshPort = appContainerSpec!.ports!.find((p) => p.name === PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME)
       expect(sshPort!.containerPort).to.eql(PROXY_CONTAINER_SSH_TUNNEL_PORT)
     })
 
