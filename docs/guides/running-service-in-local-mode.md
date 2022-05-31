@@ -34,6 +34,8 @@ progress. So, there is a number of functional limitations in the first release:
   locally.
 * The _local mode_ is supported only by [container module type](./container-modules.md)
   and [kubernetes provider](../reference/providers/kubernetes.md).
+* The _local mode_ leaves the proxy container deployed in the target k8s cluster after exit. The affected services must
+  be re-deployed manually by using `garden deploy`.
 
 The next step is to fully integrate local services into remote clusters and to establish connections to all dependent
 data sources and services.
