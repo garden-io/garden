@@ -308,7 +308,6 @@ export interface ContainerLocalModeSpec {
   localPort: number
   enableLivenessProbe: boolean
   command?: string[]
-  containerName?: string
 }
 
 export const containerLocalModeSchema = () =>
@@ -320,7 +319,6 @@ export const containerLocalModeSchema = () =>
       .description(
         "The command to run the local application. If not present, then the local application should be started manually."
       ),
-    containerName: joi.string().optional().description("The k8s name of the remote container (optional)."),
     localPort: joi.number().description("The working port of the local application."),
     enableLivenessProbe: joi
       .boolean()

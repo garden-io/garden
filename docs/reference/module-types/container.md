@@ -320,9 +320,6 @@ services:
       # manually.
       command:
 
-      # The k8s name of the remote container (optional).
-      containerName:
-
       # The working port of the local application.
       localPort:
 
@@ -1427,16 +1424,6 @@ The command to run the local application. If not present, then the local applica
 | Type            | Required |
 | --------------- | -------- |
 | `array[string]` | No       |
-
-### `services[].localMode.containerName`
-
-[services](#services) > [localMode](#serviceslocalmode) > containerName
-
-The k8s name of the remote container (optional).
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
 
 ### `services[].localMode.localPort`
 
