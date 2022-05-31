@@ -680,6 +680,19 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
     })
   }
 
+  registerCleanupFunction(`redeploy-alert-for-local-mode-${service.name}`, () => {
+    log.warn({
+      status: "warn",
+      symbol: "warning",
+      section: service.name,
+      msg: chalk.yellow(
+        `The local mode has been stopped for the service "${service.name}". ` +
+          "Please, re-deploy the original service to restore the original k8s cluster state: " +
+          `${chalk.white(`\`garden deploy ${service.name}\``)}`
+      ),
+    })
+  })
+
   const localSshPort = await getPort()
   LocalModeSshPortRegistry.getInstance(log).register(localSshPort, log)
 
