@@ -83,13 +83,15 @@ describe("local mode deployments and ssh tunneling behavior", () => {
     })
     expect(status.localMode).to.eql(true)
 
-    const serviceSshKeysPath = join(module.localModeSshKeystorePath, module.name, service.name)
+    const serviceSshKeysPath = join(module.localModeSshKeystorePath, service.name)
     const privateSshKeyPath = join(serviceSshKeysPath, "proxy-key")
     const publicSshKeyPath = join(serviceSshKeysPath, "proxy-key.pub")
     expect(await pathExists(privateSshKeyPath)).to.be.true
     expect(await pathExists(publicSshKeyPath)).to.be.true
 
-    const containerPort = service.config.spec.ports.find((p) => p.name === "http")!.containerPort
+    const firstTcpPort = service.config.spec.ports.find((p) => p.protocol === "TCP")
+    const firstForwardablePort = firstTcpPort || service.config.spec.ports[0]
+    const containerPort = firstForwardablePort.containerPort
     const localPort = service.config.spec.localMode.localPort
 
     const grepSshTunnelCommand = `ps -ef | grep 'ssh -T -R ${containerPort}:127.0.0.1:${localPort} ${PROXY_CONTAINER_USER_NAME}@127.0.0.1'`
