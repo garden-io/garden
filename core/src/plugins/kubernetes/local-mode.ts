@@ -232,7 +232,6 @@ export class LocalModeSshPortRegistry {
     try {
       log.debug("Cleaning up .ssh/known_hosts file...")
       execSync(command)
-      log.debug("Cleaned up .ssh/known_hosts successfully!")
     } catch (err) {
       log.warn(`Unable to clean temporary entries from .ssh/known_hosts file: ${err}`)
     }
