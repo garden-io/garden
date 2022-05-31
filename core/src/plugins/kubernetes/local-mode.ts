@@ -11,7 +11,12 @@ import { gardenAnnotationKey } from "../../util/string"
 import { set } from "lodash"
 import { HotReloadableResource } from "./hot-reload/hot-reload"
 import { PrimitiveMap } from "../../config/common"
-import { PROXY_CONTAINER_SSH_TUNNEL_PORT, PROXY_CONTAINER_USER_NAME, reverseProxyImageName } from "./constants"
+import {
+  PROXY_CONTAINER_SSH_TUNNEL_PORT,
+  PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME,
+  PROXY_CONTAINER_USER_NAME,
+  reverseProxyImageName,
+} from "./constants"
 import { ConfigurationError, RuntimeError } from "../../exceptions"
 import { getResourceContainer, prepareEnvVars } from "./util"
 import { V1Container } from "@kubernetes/client-node"
@@ -274,15 +279,10 @@ function prepareLocalModeEnvVars({ service }: ConfigureLocalModeParams, keyPair:
   }
 }
 
-function prepareLocalModePorts({ service }: ConfigureLocalModeParams): ServicePortSpec[] {
-  const hasSshPort = service.spec.ports.some((portSpec) => portSpec.name === "ssh")
-  if (hasSshPort) {
-    return []
-  }
-
+function prepareLocalModePorts(): ServicePortSpec[] {
   return [
     {
-      name: "ssh",
+      name: PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME,
       protocol: "TCP",
       containerPort: PROXY_CONTAINER_SSH_TUNNEL_PORT,
       servicePort: PROXY_CONTAINER_SSH_TUNNEL_PORT,
@@ -291,8 +291,7 @@ function prepareLocalModePorts({ service }: ConfigureLocalModeParams): ServicePo
 }
 
 /**
- * Patches the original service spec by adding localMode-specific settings like ports, environment variables,
- * and readiness probe settings.
+ * Patches the original service spec by adding localMode-specific settings like ports, environment variables, etc.
  * The original service spec which is used to define k8s service
  * in `core/src/plugins/kubernetes/container/deployment.ts`
  *
@@ -312,11 +311,12 @@ function patchOriginalServiceSpec(
   localModeEnvVars: PrimitiveMap,
   localModePorts: ServicePortSpec[]
 ) {
-  const hasSshPort = originalServiceSpec.ports.some((portSpec) => portSpec.name === "ssh")
-  if (!hasSshPort) {
-    originalServiceSpec.ports.push(...localModePorts)
-  }
+  // prevent duplicate port definitions
+  const existingLocalModePortNames = new Set(originalServiceSpec.ports.map((v) => v.name))
+  const newLocalModePorts = localModePorts.filter((v) => !existingLocalModePortNames.has(v.name))
+  originalServiceSpec.ports.push(...newLocalModePorts)
 
+  // write (or overwrite) env variables to prevent duplicates
   for (const key in localModeEnvVars) {
     if (!originalServiceSpec.env[key]) {
       originalServiceSpec.env[key] = localModeEnvVars[key]
@@ -325,8 +325,7 @@ function patchOriginalServiceSpec(
 }
 
 /**
- * Patches the main container by adding localMode-specific settings like ports, environment variables,
- * docker image name and health-check settings.
+ * Patches the main container by adding localMode-specific settings like ports, environment variables, etc.
  *
  * @param mainContainer the main container object to be patched
  * @param proxyContainerName the target container name
@@ -346,13 +345,18 @@ function patchMainContainer(
   if (!mainContainer.env) {
     mainContainer.env = []
   }
+  // prevent duplicate env vars
   const existingEnvVarNames = new Set(mainContainer.env.map((v) => v.name))
-  extraEnvVars.filter((v) => !existingEnvVarNames.has(v.name)).forEach((v) => mainContainer.env!.push(v))
+  const newLocalModeEnvVars = extraEnvVars.filter((v) => !existingEnvVarNames.has(v.name))
+  mainContainer.env.push(...newLocalModeEnvVars)
 
   if (!mainContainer.ports) {
     mainContainer.ports = []
   }
-  for (const port of localModePorts) {
+  // prevent duplicate ports
+  const existingLocalModePortNames = new Set(mainContainer.ports.map((v) => v.name))
+  const newLocalModePorts = localModePorts.filter((v) => !existingLocalModePortNames.has(v.name))
+  for (const port of newLocalModePorts) {
     mainContainer.ports.push({
       name: port.name,
       protocol: port.protocol,
@@ -386,12 +390,10 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
   })
 
   const localModeEnvVars = prepareLocalModeEnvVars(configParams, keyPair)
-  const localModePorts = prepareLocalModePorts(configParams)
+  const localModePorts = prepareLocalModePorts()
 
   patchOriginalServiceSpec(service.spec, localModeEnvVars, localModePorts)
   patchMainContainer(mainContainer, proxyContainerName, localModeEnvVars, localModePorts)
-
-  // todo: check if anything else should be configured here
 }
 
 const attemptsLeft = (retriesLeft: number, timeoutMs: number) =>
