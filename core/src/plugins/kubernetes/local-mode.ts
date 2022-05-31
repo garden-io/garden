@@ -27,7 +27,7 @@ import chalk from "chalk"
 import { rmSync } from "fs"
 import { execSync } from "child_process"
 import { join, resolve } from "path"
-import { ensureDir, readFileSync } from "fs-extra"
+import { ensureDir, readFile } from "fs-extra"
 import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
 import { OsCommand, ProcessErrorMessage, ProcessMessage, RetriableProcess } from "../../util/retriable-process"
@@ -64,16 +64,16 @@ export class KeyPair {
     this.privateKeyPath = join(rootPath, "proxy-key")
   }
 
-  private static readSshKeyFromFile(filePath: string): string {
+  private static async readSshKeyFromFile(filePath: string): Promise<string> {
     try {
-      return readFileSync(filePath).toString("utf-8")
+      return (await readFile(filePath)).toString()
     } catch (err) {
       throw new ConfigurationError(`Could not read public key file from path ${filePath}; cause: ${err}`, err)
     }
   }
 
-  public readPublicSshKey(): string {
-    return KeyPair.readSshKeyFromFile(this.publicKeyPath)
+  public async readPublicSshKey(): Promise<string> {
+    return await KeyPair.readSshKeyFromFile(this.publicKeyPath)
   }
 }
 
@@ -264,12 +264,12 @@ function findFirstForwardablePort(serviceSpec: ContainerServiceSpec): ServicePor
   return firstTcpPort || serviceSpec.ports[0]
 }
 
-function prepareLocalModeEnvVars({ service }: ConfigureLocalModeParams, keyPair: KeyPair): PrimitiveMap {
+async function prepareLocalModeEnvVars({ service }: ConfigureLocalModeParams, keyPair: KeyPair): Promise<PrimitiveMap> {
   const originalServiceSpec = service.spec
 
   // todo: expose all original ports in the proxy container
   const portSpec = findFirstForwardablePort(originalServiceSpec)
-  const publicSshKey = keyPair.readPublicSshKey()
+  const publicSshKey = await keyPair.readPublicSshKey()
 
   return {
     APP_PORT: portSpec.containerPort,
@@ -388,7 +388,7 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
     msg: `Created ssh key pair for proxy container: "${keyPair.publicKeyPath}" and "${keyPair.privateKeyPath}".`,
   })
 
-  const localModeEnvVars = prepareLocalModeEnvVars(configParams, keyPair)
+  const localModeEnvVars = await prepareLocalModeEnvVars(configParams, keyPair)
   const localModePorts = prepareLocalModePorts()
 
   patchOriginalServiceSpec(service.spec, localModeEnvVars, localModePorts)
