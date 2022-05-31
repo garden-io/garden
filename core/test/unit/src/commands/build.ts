@@ -8,10 +8,21 @@
 
 import { BuildCommand } from "../../../../src/commands/build"
 import { expect } from "chai"
-import { makeModuleConfig, makeTestGardenA, withDefaultGlobalOpts } from "../../../helpers"
+import {
+  makeModuleConfig,
+  makeTestGarden,
+  makeTestGardenA,
+  makeTestGardenBuildDependants,
+  projectRootBuildDependants,
+  testProjectTempDirs,
+  withDefaultGlobalOpts,
+} from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
 import { keyBy } from "lodash"
 import { ModuleConfig } from "../../../../src/config/module"
+import { LogEntry } from "../../../../src/logger/log-entry"
+import { writeFile } from "fs-extra"
+import { join } from "path"
 
 describe("BuildCommand", () => {
   it("should build all modules in a project and output the results", async () => {
@@ -231,6 +242,158 @@ describe("BuildCommand", () => {
       "stage-build.module-b": {},
       "stage-build.module-c": {},
       "stage-build.module-d": {},
+    })
+  })
+
+  // adds a third level of dependants and tests rebuild logic after changes to modules
+  context("tracking changes and rebuilding logic", () => {
+    let log: LogEntry
+    let buildCommand: BuildCommand
+    let projectPath: string
+    let defaultOpts: {
+      log: LogEntry
+      headerLog: LogEntry
+      footerLog: LogEntry
+    }
+
+    beforeEach(async () => {
+      const tmpGarden = await makeTestGardenBuildDependants([], { noCache: true })
+      log = tmpGarden.log
+      buildCommand = new BuildCommand()
+      defaultOpts = { log, headerLog: log, footerLog: log }
+      projectPath = join(tmpGarden.gardenDirPath, "../")
+    })
+
+    // The project needs to be deleted for fresh state, otherwise the same one would be reused across the test-cases.
+    afterEach(async () => {
+      await testProjectTempDirs[projectRootBuildDependants].cleanup()
+      delete testProjectTempDirs[projectRootBuildDependants]
+    })
+
+    // Can't reuse same garden as there's caching going on that's way too hacky to disable
+    async function getFreshTestGarden() {
+      return await makeTestGarden(projectPath, { noTempDir: true, noCache: true })
+    }
+
+    // dependencie graph: (A and D depend on B which depends on C)
+    // A->B->C
+    // D->B->C
+
+    it("should optionally build single module and its dependencies", async () => {
+      const { result } = await buildCommand.action({
+        garden: await makeTestGarden(projectPath, { noTempDir: true }),
+        ...defaultOpts,
+        args: { modules: ["aaa-service"] },
+        opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": false }),
+      })
+
+      expect(taskResultOutputs(result!)).to.eql({
+        "stage-build.ccc-service": {},
+        "build.ccc-service": { fresh: true, buildLog: "build ccc module" },
+        "stage-build.bbb-service": {},
+        "build.bbb-service": { fresh: true, buildLog: "build bbb module" },
+        "stage-build.aaa-service": {},
+        "build.aaa-service": { fresh: true, buildLog: "build aaa module" },
+      })
+    })
+
+    it("should rebuild module if a deep dependancy has been modified", async () => {
+      const { result: resultFirst } = await buildCommand.action({
+        garden: await getFreshTestGarden(),
+        ...defaultOpts,
+        args: { modules: ["aaa-service"] },
+        opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": false }),
+      })
+
+      await writeFile(join(projectPath, "C/file.txt"), "module c has been modified")
+
+      const { result: resultSecond } = await buildCommand.action({
+        garden: await getFreshTestGarden(),
+        ...defaultOpts,
+        args: { modules: ["aaa-service"] },
+        opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": false }),
+      })
+
+      expect(Object.keys(resultSecond?.builds!).length).to.be.eq(3)
+      expect(resultSecond?.builds["ccc-service"].version).not.to.be.eq(resultFirst?.builds["ccc-service"].version)
+      expect(resultSecond?.builds["bbb-service"].version).not.to.be.eq(resultFirst?.builds["bbb-service"].version)
+      expect(resultSecond?.builds["aaa-service"].version).not.to.be.eq(resultFirst?.builds["aaa-service"].version)
+    })
+
+    it("should rebuild module and dependants if with-dependants flag has been passed", async () => {
+      const { result: resultFirst } = await buildCommand.action({
+        garden: await getFreshTestGarden(),
+        ...defaultOpts,
+        args: { modules: undefined }, // all
+        opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": false }),
+      })
+
+      await writeFile(join(projectPath, "C/file.txt"), "module c has been modified")
+
+      const { result: resultSecond } = await buildCommand.action({
+        garden: await getFreshTestGarden(),
+        ...defaultOpts,
+        args: { modules: ["bbb-service"] },
+        opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": true }), // <---
+      })
+
+      expect(Object.keys(resultSecond?.builds!).length).to.be.eq(4)
+      expect(resultSecond?.builds["aaa-service"].version).not.to.be.eq(resultFirst?.builds["aaa-service"].version)
+      expect(resultSecond?.builds["bbb-service"].version).not.to.be.eq(resultFirst?.builds["bbb-service"].version)
+      expect(resultSecond?.builds["ccc-service"].version).not.to.be.eq(resultFirst?.builds["ccc-service"].version)
+      expect(resultSecond?.builds["ddd-service"].version).not.to.be.eq(resultFirst?.builds["ddd-service"].version)
+    })
+
+    it("should rebuild only necessary modules after changes even if with-dependants flag has been passed", async () => {
+      const { result: resultFirst } = await buildCommand.action({
+        garden: await getFreshTestGarden(),
+        ...defaultOpts,
+        args: { modules: undefined }, // all
+        opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": false }),
+      })
+
+      await writeFile(join(projectPath, "B/file.txt"), "module b has been modified")
+
+      const { result: resultSecond } = await buildCommand.action({
+        garden: await getFreshTestGarden(),
+        ...defaultOpts,
+        args: { modules: ["bbb-service"] },
+        opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": true }), // <---
+      })
+
+      expect(Object.keys(resultSecond?.builds!).length).to.be.eq(4)
+      expect(resultSecond?.builds["aaa-service"].version).not.to.be.eq(resultFirst?.builds["aaa-service"].version)
+      expect(resultSecond?.builds["bbb-service"].version).not.to.be.eq(resultFirst?.builds["bbb-service"].version)
+      expect(resultSecond?.builds["ddd-service"].version).not.to.be.eq(resultFirst?.builds["ddd-service"].version)
+      expect(resultSecond?.builds["ccc-service"].version, "c should be equal as it has not been changed").to.be.eq(
+        resultFirst?.builds["ccc-service"].version
+      )
+    })
+
+    it("should not rebuild dependency after changes", async () => {
+      const { result: resultFirst } = await buildCommand.action({
+        garden: await getFreshTestGarden(),
+        ...defaultOpts,
+        args: { modules: undefined }, // all
+        opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": false }),
+      })
+
+      await writeFile(join(projectPath, "B/file.txt"), "module b has been modified")
+
+      const { result: resultSecond } = await buildCommand.action({
+        garden: await getFreshTestGarden(),
+        ...defaultOpts,
+        args: { modules: ["bbb-service"] },
+        opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": false }),
+      })
+
+      expect(Object.keys(resultSecond?.builds!).length).to.be.eq(2)
+      expect(resultSecond?.builds["bbb-service"].version, "b should change as it was updated").not.to.be.eq(
+        resultFirst?.builds["bbb-service"].version
+      )
+      expect(resultSecond?.builds["ccc-service"].version, "c should not change as it was not updated").to.be.eq(
+        resultFirst?.builds["ccc-service"].version
+      )
     })
   })
 })

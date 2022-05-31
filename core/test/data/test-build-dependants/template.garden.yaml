@@ -1,0 +1,11 @@
+kind: ModuleTemplate
+name: test-template
+modules:
+  - type: exec
+    name: ${parent.name}-service
+    description: test
+    varfile: dependencies.yaml
+    include: [./**]
+    build:
+      dependencies: ${var.dependencies}?
+      command: [echo, "build ${parent.name} module"]

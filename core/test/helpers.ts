@@ -98,6 +98,7 @@ async function runModule(params: RunModuleParams): Promise<RunResult> {
 }
 
 export const projectRootA = getDataDir("test-project-a")
+export const projectRootBuildDependants = getDataDir("test-build-dependants")
 export const projectTestFailsRoot = getDataDir("test-project-fails")
 
 const testModuleTestSchema = () => containerTestSchema().keys({ command: joi.sparseArray().items(joi.string()) })
@@ -364,6 +365,9 @@ export const testPlugins = () => [testPlugin(), testPluginB(), testPluginC()]
 
 export const testProjectTempDirs: { [root: string]: DirectoryResult } = {}
 
+/**
+ * Create a garden instance for testing and setup a project if it doesn't exist already.
+ */
 export const makeTestGarden = profileAsync(async function _makeTestGarden(
   projectRoot: string,
   opts: TestGardenOpts = {}
@@ -405,6 +409,13 @@ export const makeTestGardenA = profileAsync(async function _makeTestGardenA(
   opts?: TestGardenOpts
 ) {
   return makeTestGarden(projectRootA, { plugins: extraPlugins, forceRefresh: true, ...opts })
+})
+
+export const makeTestGardenBuildDependants = profileAsync(async function _makeTestGardenBuildDependants(
+  extraPlugins: RegisterPluginParam[] = [],
+  opts?: TestGardenOpts
+) {
+  return makeTestGarden(projectRootBuildDependants, { plugins: extraPlugins, forceRefresh: true, ...opts })
 })
 
 export async function stubAction<T extends keyof PluginActionHandlers>(

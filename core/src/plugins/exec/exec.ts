@@ -318,7 +318,8 @@ export async function configureExecModule({
     projectRoot: ctx.projectRoot,
   })
 
-  moduleConfig.buildConfig = omit(moduleConfig.spec, ["tasks", "tests"])
+  // All the config keys that affect the build version
+  moduleConfig.buildConfig = omit(moduleConfig.spec, ["tasks", "tests", "services"])
 
   moduleConfig.serviceConfigs = moduleConfig.spec.services.map((s) => ({
     name: s.name,

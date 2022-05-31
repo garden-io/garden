@@ -557,7 +557,7 @@ export const moduleVersionSchema = () =>
     versionString: versionStringSchema(),
     dependencyVersions: joi
       .object()
-      .pattern(/.+/, treeVersionSchema())
+      .pattern(/.+/, versionStringSchema().description("version hash of the dependency module"))
       .default(() => ({}))
       .description("The version of each of the dependencies of the module."),
     files: fileNamesSchema(),
