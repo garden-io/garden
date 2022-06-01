@@ -33,8 +33,8 @@ import { kubectl } from "./kubectl"
 import { OsCommand, ProcessErrorMessage, ProcessMessage, RetriableProcess } from "../../util/retriable-process"
 import { isConfiguredForLocalMode } from "./status/status"
 import { exec, registerCleanupFunction, shutdown } from "../../util/util"
-import touch from "touch"
 import getPort = require("get-port")
+import touch = require("touch")
 
 export const localModeGuideLink = "https://docs.garden.io/guides/running-service-in-local-mode.md"
 
