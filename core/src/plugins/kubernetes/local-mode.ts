@@ -33,6 +33,7 @@ import { kubectl } from "./kubectl"
 import { OsCommand, ProcessErrorMessage, ProcessMessage, RetriableProcess } from "../../util/retriable-process"
 import { isConfiguredForLocalMode } from "./status/status"
 import { registerCleanupFunction, shutdown } from "../../util/util"
+import touch from "touch"
 import getPort = require("get-port")
 
 export const localModeGuideLink = "https://docs.garden.io/guides/running-service-in-local-mode.md"
@@ -40,7 +41,7 @@ export const localModeGuideLink = "https://docs.garden.io/guides/running-service
 const localhost = "127.0.0.1"
 
 const AsyncLock = require("async-lock")
-const sshKeyPairAsyncLock = new AsyncLock()
+const sshKeystoreAsyncLock = new AsyncLock()
 
 interface ConfigureLocalModeParams {
   target: HotReloadableResource
@@ -84,12 +85,15 @@ export class ProxySshKeystore {
    * Thus, there is no need to invalidate this cache. It just memoizes each module specific existing keystore.
    */
   private readonly serviceKeyPairs: Map<string, KeyPair>
+  private readonly localSshPorts: Set<number>
+  private knownHostsFilePath?: string
 
   private constructor() {
     if (!!ProxySshKeystore.instance) {
       throw new RuntimeError("Cannot init singleton twice, use ProxySshKeystore.getInstance()", {})
     }
     this.serviceKeyPairs = new Map<string, KeyPair>()
+    this.localSshPorts = new Set<number>()
   }
 
   private static instance?: ProxySshKeystore = undefined
@@ -121,11 +125,25 @@ export class ProxySshKeystore {
     return keyPair
   }
 
+  private removePortFromKnownHosts(localPort: number, log: LogEntry): void {
+    if (!this.knownHostsFilePath) {
+      return
+    }
+    const localhostEscaped = localhost.split(".").join("\\.")
+    const command = `sed -i -r '/^\\[${localhostEscaped}\\]:${localPort}/d' ${this.knownHostsFilePath}`
+    try {
+      log.debug(`Cleaning temporary entries from ${this.knownHostsFilePath} file...`)
+      execSync(command)
+    } catch (err) {
+      log.warn(`Unable to clean temporary entries from ${this.knownHostsFilePath} file: ${err}`)
+    }
+  }
+
   public async getKeyPair(service: ContainerService, log: LogEntry): Promise<KeyPair> {
     const sshDirPath = service.module.localModeSshKeystorePath
     const sshKeyName = service.name
     if (!this.serviceKeyPairs.has(sshKeyName)) {
-      await sshKeyPairAsyncLock.acquire(`proxy-ssh-key-pair-${sshKeyName}`, async () => {
+      await sshKeystoreAsyncLock.acquire(`proxy-ssh-key-pair-${sshKeyName}`, async () => {
         if (!this.serviceKeyPairs.has(sshKeyName)) {
           await ensureDir(sshDirPath)
           const keyPair = new KeyPair(sshDirPath, sshKeyName)
@@ -137,12 +155,34 @@ export class ProxySshKeystore {
     return this.serviceKeyPairs.get(sshKeyName)!
   }
 
+  public async getKnownHostsFile(service: ContainerService): Promise<string> {
+    if (!this.knownHostsFilePath) {
+      await sshKeystoreAsyncLock.acquire("ssh_proxy_known_hosts", async () => {
+        if (!this.knownHostsFilePath) {
+          const knownHostsFilePath = join(service.module.localModeSshKeystorePath, "ssh_proxy_known_hosts")
+          this.knownHostsFilePath = knownHostsFilePath
+          await touch(knownHostsFilePath)
+        }
+      })
+    }
+    return this.knownHostsFilePath!
+  }
+
+  public registerLocalPort(port: number, log: LogEntry): void {
+    // ensure the temporary known hosts is not "dirty"
+    this.removePortFromKnownHosts(port, log)
+    this.localSshPorts.add(port)
+  }
+
   public shutdown(log: LogEntry): void {
     this.serviceKeyPairs.forEach((value) => {
       ProxySshKeystore.deleteFileFailSafe(value.privateKeyPath, log)
       ProxySshKeystore.deleteFileFailSafe(value.publicKeyPath, log)
     })
     this.serviceKeyPairs.clear()
+
+    this.localSshPorts.forEach((port) => this.removePortFromKnownHosts(port, log))
+    this.localSshPorts.clear()
   }
 }
 
@@ -179,50 +219,6 @@ export class LocalModeProcessRegistry {
   public shutdown(): void {
     this.retriableProcesses.forEach((process) => process.stopAll())
     this.retriableProcesses.clear()
-  }
-}
-
-export class LocalModeSshPortRegistry {
-  private readonly localsshPorts: Set<number>
-
-  private constructor() {
-    if (!!LocalModeSshPortRegistry.instance) {
-      throw new RuntimeError("Cannot init singleton twice, use LocalModeSshPortRegistry.getInstance()", {})
-    }
-    this.localsshPorts = new Set<number>()
-  }
-
-  private static instance?: LocalModeSshPortRegistry = undefined
-
-  public static getInstance(log: LogEntry): LocalModeSshPortRegistry {
-    if (!LocalModeSshPortRegistry.instance) {
-      const newInstance = new LocalModeSshPortRegistry()
-      registerCleanupFunction("shutdown-local-mode-ssh-port-registry", () => newInstance.shutdown(log))
-      LocalModeSshPortRegistry.instance = newInstance
-    }
-    return LocalModeSshPortRegistry.instance
-  }
-
-  private static cleanupKnownHosts(localPort: number, log: LogEntry): void {
-    const localhostEscaped = localhost.split(".").join("\\.")
-    const command = `sed -i -r '/^\\[${localhostEscaped}\\]:${localPort}/d' \${HOME}/.ssh/known_hosts`
-    try {
-      log.debug("Cleaning temporary entries from .ssh/known_hosts file...")
-      execSync(command)
-    } catch (err) {
-      log.warn(`Unable to clean temporary entries from .ssh/known_hosts file: ${err}`)
-    }
-  }
-
-  public register(port: number, log: LogEntry): void {
-    // ensure the local known_hosts is not "dirty"
-    LocalModeSshPortRegistry.cleanupKnownHosts(port, log)
-    this.localsshPorts.add(port)
-  }
-
-  public shutdown(log: LogEntry): void {
-    this.localsshPorts.forEach((port) => LocalModeSshPortRegistry.cleanupKnownHosts(port, log))
-    this.localsshPorts.clear()
   }
 }
 
@@ -492,6 +488,7 @@ async function getReversePortForwardCommand(
   const remoteContainerPortSpec = findFirstForwardablePort(service.spec)
   const remoteContainerPort = remoteContainerPortSpec.containerPort
   const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(service, log)
+  const knownHostsFilePath = await ProxySshKeystore.getInstance(log).getKnownHostsFile(service)
 
   const sshCommandName = "ssh"
   const sshCommandArgs = [
@@ -506,6 +503,7 @@ async function getReversePortForwardCommand(
     `-p${localSshPort}`,
     `-i ${keyPair.privateKeyPath}`,
     "-oStrictHostKeyChecking=accept-new",
+    `-oUserKnownHostsFile=${knownHostsFilePath}`,
   ]
   return { command: sshCommandName, args: sshCommandArgs }
 }
@@ -559,7 +557,7 @@ async function getReversePortForwardProcess(
       hasErrors: (chunk: any) => {
         const output = chunk.toString()
         // A message containing "warning: permanently added" is printed by ssh command
-        // when the connection is established and the public key is added to the local known_hosts file.
+        // when the connection is established and the public key is added to the temporary known hosts file.
         // This message is printed to stderr, but it should not be considered as an error.
         // It indicates the successful connection.
         return !output.toLowerCase().includes("warning: permanently added")
@@ -653,7 +651,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   })
 
   const localSshPort = await getPort()
-  LocalModeSshPortRegistry.getInstance(log).register(localSshPort, log)
+  ProxySshKeystore.getInstance(log).registerLocalPort(localSshPort, log)
 
   const localService = getLocalServiceProcess(configParams)
   const kubectlPortForward = await getKubectlPortForwardProcess(configParams, localSshPort)
