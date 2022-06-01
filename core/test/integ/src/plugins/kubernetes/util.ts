@@ -101,6 +101,7 @@ describe("util", () => {
         })
 
         const resource = await createWorkloadManifest({
+          ctx,
           api,
           provider,
           service,

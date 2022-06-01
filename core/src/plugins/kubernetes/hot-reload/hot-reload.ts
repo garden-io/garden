@@ -121,6 +121,7 @@ export async function hotReloadContainer({
 
   // Find the currently deployed workload by labels
   const manifest = await createWorkloadManifest({
+    ctx,
     api,
     provider,
     service,

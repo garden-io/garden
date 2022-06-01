@@ -336,6 +336,7 @@ export async function createContainerManifests({
   const namespace = await getAppNamespace(k8sCtx, log, provider)
   const ingresses = await createIngressResources(api, provider, namespace, service, log)
   const workload = await createWorkloadManifest({
+    ctx,
     api,
     provider,
     service,
@@ -363,6 +364,7 @@ export async function createContainerManifests({
 }
 
 interface CreateDeploymentParams {
+  ctx: PluginContext
   api: KubeApi
   provider: KubernetesProvider
   service: ContainerService
@@ -377,6 +379,7 @@ interface CreateDeploymentParams {
 }
 
 export async function createWorkloadManifest({
+  ctx,
   api,
   provider,
   service,
@@ -627,6 +630,7 @@ export async function createWorkloadManifest({
   const localModeSpec = service.spec.localMode
   if (enableLocalMode && localModeSpec) {
     await configureLocalMode({
+      ctx,
       target: workload,
       spec: localModeSpec,
       service,

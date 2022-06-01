@@ -44,6 +44,7 @@ const AsyncLock = require("async-lock")
 const sshKeystoreAsyncLock = new AsyncLock()
 
 interface ConfigureLocalModeParams {
+  ctx: PluginContext
   target: HotReloadableResource
   spec: ContainerLocalModeSpec
   service: ContainerService
@@ -51,7 +52,6 @@ interface ConfigureLocalModeParams {
 }
 
 interface StartLocalModeParams extends ConfigureLocalModeParams {
-  ctx: PluginContext
   namespace: string
 }
 

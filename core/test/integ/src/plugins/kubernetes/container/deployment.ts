@@ -69,6 +69,7 @@ describe("kubernetes container deployment handlers", () => {
       const namespace = provider.config.namespace!.name!
 
       const resource = await createWorkloadManifest({
+        ctx,
         api,
         provider,
         service,
@@ -142,6 +143,7 @@ describe("kubernetes container deployment handlers", () => {
       service.spec.annotations = { "annotation.key": "someValue" }
 
       const resource = await createWorkloadManifest({
+        ctx,
         api,
         provider,
         service,
@@ -170,6 +172,7 @@ describe("kubernetes container deployment handlers", () => {
       service.spec.limits = limits
 
       const resource = await createWorkloadManifest({
+        ctx,
         api,
         provider,
         service,
@@ -197,6 +200,7 @@ describe("kubernetes container deployment handlers", () => {
       service.spec.dropCapabilities = ["NET_ADMIN"]
 
       const resource = await createWorkloadManifest({
+        ctx,
         api,
         provider,
         service,
@@ -225,6 +229,7 @@ describe("kubernetes container deployment handlers", () => {
       const namespace = provider.config.namespace!.name!
 
       const resource = await createWorkloadManifest({
+        ctx,
         api,
         provider,
         service,
@@ -258,6 +263,7 @@ describe("kubernetes container deployment handlers", () => {
       const namespace = provider.config.namespace!.name!
 
       const resource = await createWorkloadManifest({
+        ctx,
         api,
         provider,
         service,
@@ -304,6 +310,7 @@ describe("kubernetes container deployment handlers", () => {
       const namespace = provider.config.namespace!.name!
 
       const resource = await createWorkloadManifest({
+        ctx,
         api,
         provider,
         service,
@@ -335,6 +342,7 @@ describe("kubernetes container deployment handlers", () => {
       const namespace = provider.config.namespace!.name!
 
       const resource = await createWorkloadManifest({
+        ctx,
         api,
         provider,
         service,
@@ -357,6 +365,7 @@ describe("kubernetes container deployment handlers", () => {
       const namespace = provider.config.namespace!.name!
 
       const resource = await createWorkloadManifest({
+        ctx,
         api,
         provider,
         service,
@@ -379,6 +388,7 @@ describe("kubernetes container deployment handlers", () => {
       const namespace = provider.config.namespace!.name!
 
       const resource = await createWorkloadManifest({
+        ctx,
         api,
         provider,
         service,
@@ -402,6 +412,7 @@ describe("kubernetes container deployment handlers", () => {
       const namespace = provider.config.namespace!.name!
 
       const resource = await createWorkloadManifest({
+        ctx,
         api,
         provider,
         service,
@@ -434,6 +445,7 @@ describe("kubernetes container deployment handlers", () => {
       const namespace = provider.config.namespace!.name!
 
       const resource = await createWorkloadManifest({
+        ctx,
         api,
         provider,
         service,
@@ -481,6 +493,7 @@ describe("kubernetes container deployment handlers", () => {
       _provider.config.imagePullSecrets = [{ name: secretName, namespace: "default" }]
 
       const resource = await createWorkloadManifest({
+        ctx,
         api,
         provider: _provider,
         service,
@@ -522,6 +535,7 @@ describe("kubernetes container deployment handlers", () => {
       _provider.config.imagePullSecrets = [{ name: secretName, namespace: "default" }]
 
       const resource = await createWorkloadManifest({
+        ctx,
         api,
         provider: _provider,
         service,
@@ -545,6 +559,7 @@ describe("kubernetes container deployment handlers", () => {
       const namespace = provider.config.namespace!.name!
 
       const resource = await createWorkloadManifest({
+        ctx,
         api,
         provider,
         service,
@@ -569,6 +584,7 @@ describe("kubernetes container deployment handlers", () => {
       const namespace = provider.config.namespace!.name!
 
       const resource = await createWorkloadManifest({
+        ctx,
         api,
         provider,
         service,
@@ -602,6 +618,7 @@ describe("kubernetes container deployment handlers", () => {
       await expectError(
         () =>
           createWorkloadManifest({
+            ctx,
             api,
             provider,
             service,
