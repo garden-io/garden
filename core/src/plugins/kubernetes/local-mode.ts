@@ -33,7 +33,6 @@ import { kubectl } from "./kubectl"
 import { OsCommand, ProcessErrorMessage, ProcessMessage, RetriableProcess } from "../../util/retriable-process"
 import { isConfiguredForLocalMode } from "./status/status"
 import { registerCleanupFunction, shutdown } from "../../util/util"
-import pRetry = require("p-retry")
 import getPort = require("get-port")
 
 export const localModeGuideLink = "https://docs.garden.io/guides/running-service-in-local-mode.md"
@@ -112,38 +111,13 @@ export class ProxySshKeystore {
     }
   }
 
-  private static async generateSshKeys(keyPair: KeyPair, service: ContainerService, log: LogEntry): Promise<KeyPair> {
+  private static async generateSshKeys(keyPair: KeyPair, log: LogEntry): Promise<KeyPair> {
     // Empty pass-phrase, explicit filename,
     // and auto-overwrite to rewrite old keys if the cleanup exit-hooks failed for some reason.
     const sshKeyGenCmd = `yes 'y' | ssh-keygen -N "" -f ${keyPair.privateKeyPath}`
-    const retries = 5
-    const minTimeout = 2000
-    await pRetry(() => execSync(sshKeyGenCmd, { shell: "/bin/sh" }), {
-      retries,
-      minTimeout,
-      onFailedAttempt: async (err) => {
-        let errMsg = err.message
-        const stdout = err["stdout"]
-        if (!!stdout) {
-          errMsg += errMsg + `; stdout=${stdout.toString()}`
-        }
-        const stderr = err["stderr"]
-        if (!!stderr) {
-          errMsg += errMsg + `; stderr=${stderr.toString()}`
-        }
-        const msg =
-          err.retriesLeft > 0
-            ? `Failed to create an ssh key pair for reverse proxy container. Error details: ${errMsg}. ` +
-              `${err.retriesLeft} attempts left, next one in ${minTimeout}ms,`
-            : `Failed to create an ssh key pair for reverse proxy container. Error details: ${errMsg}.`
-        log.warn({
-          status: "active",
-          section: service.name,
-          msg,
-        })
-      },
-    })
-
+    // ensure /bin/sh shell to make the command above work properly
+    const sshKeygenOutput = execSync(sshKeyGenCmd, { shell: "/bin/sh" }).toString()
+    log.debug(`Executed ssh keys generation command "${sshKeyGenCmd}" with output: ${sshKeygenOutput}`)
     return keyPair
   }
 
@@ -155,7 +129,7 @@ export class ProxySshKeystore {
         if (!this.serviceKeyPairs.has(sshKeyName)) {
           await ensureDir(sshDirPath)
           const keyPair = new KeyPair(sshDirPath, sshKeyName)
-          await ProxySshKeystore.generateSshKeys(keyPair, service, log)
+          await ProxySshKeystore.generateSshKeys(keyPair, log)
           this.serviceKeyPairs.set(sshKeyName, keyPair)
         }
       })
