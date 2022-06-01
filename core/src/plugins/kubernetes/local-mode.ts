@@ -32,7 +32,7 @@ import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
 import { OsCommand, ProcessErrorMessage, ProcessMessage, RetriableProcess } from "../../util/retriable-process"
 import { isConfiguredForLocalMode } from "./status/status"
-import { registerCleanupFunction, shutdown } from "../../util/util"
+import { exec, registerCleanupFunction, shutdown } from "../../util/util"
 import touch from "touch"
 import getPort = require("get-port")
 
@@ -120,7 +120,8 @@ export class ProxySshKeystore {
     // and auto-overwrite to rewrite old keys if the cleanup exit-hooks failed for some reason.
     const sshKeyGenCmd = `yes 'y' | ssh-keygen -N "" -f ${keyPair.privateKeyPath}`
     // ensure /bin/sh shell to make the command above work properly
-    const sshKeygenOutput = execSync(sshKeyGenCmd, { shell: "/bin/sh" }).toString()
+    const sshKeyGenProc = exec(sshKeyGenCmd, [], { shell: "/bin/sh" })
+    const sshKeygenOutput = (await sshKeyGenProc).toString()
     log.debug(`Executed ssh keys generation command "${sshKeyGenCmd}" with output: ${sshKeygenOutput}`)
     return keyPair
   }
