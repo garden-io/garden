@@ -78,6 +78,9 @@ export class KeyPair {
 }
 
 export class ProxySshKeystore {
+  private static readonly PROXY_CONTAINER_SSH_DIR = ".ssh"
+  private static readonly TEMP_KNOWN_HOSTS_FILENAME = "ssh_proxy_known_hosts"
+
   /**
    * Stores service specific {@link KeyPair} instances.
    * Each Garden service, which is running in local mode, has its own ssh keys directory.
@@ -86,7 +89,7 @@ export class ProxySshKeystore {
    */
   private readonly serviceKeyPairs: Map<string, KeyPair>
   private readonly localSshPorts: Set<number>
-  private knownHostsFilePath?: string
+  private readonly knownHostsFilePaths: Set<string>
 
   private constructor() {
     if (!!ProxySshKeystore.instance) {
@@ -94,6 +97,11 @@ export class ProxySshKeystore {
     }
     this.serviceKeyPairs = new Map<string, KeyPair>()
     this.localSshPorts = new Set<number>()
+    /*
+     * Effectively, this is a singleton set, because all knows hosts file paths in one garden project
+     * point to the same file in the current project's `.garden` dir.
+     */
+    this.knownHostsFilePaths = new Set<string>()
   }
 
   private static instance?: ProxySshKeystore = undefined
@@ -126,23 +134,27 @@ export class ProxySshKeystore {
     return keyPair
   }
 
+  public static getSshDirPath(gardenDirPath: string): string {
+    return join(gardenDirPath, ProxySshKeystore.PROXY_CONTAINER_SSH_DIR)
+  }
+
   private removePortFromKnownHosts(localPort: number, log: LogEntry): void {
-    if (!this.knownHostsFilePath) {
-      return
-    }
-    const localhostEscaped = localhost.split(".").join("\\.")
-    const command = `sed -i -r '/^\\[${localhostEscaped}\\]:${localPort}/d' ${this.knownHostsFilePath}`
-    try {
-      log.debug(`Cleaning temporary entries from ${this.knownHostsFilePath} file...`)
-      execSync(command)
-    } catch (err) {
-      log.warn(`Unable to clean temporary entries from ${this.knownHostsFilePath} file: ${err}`)
+    for (const knownHostsFilePath of this.knownHostsFilePaths) {
+      const localhostEscaped = localhost.split(".").join("\\.")
+      const command = `sed -i -r '/^\\[${localhostEscaped}\\]:${localPort}/d' ${knownHostsFilePath}`
+      try {
+        log.debug(`Cleaning temporary entries from ${knownHostsFilePath} file...`)
+        execSync(command)
+      } catch (err) {
+        log.warn(`Unable to clean temporary entries from ${knownHostsFilePath} file: ${err}`)
+      }
     }
   }
 
-  public async getKeyPair(service: ContainerService, log: LogEntry): Promise<KeyPair> {
-    const sshDirPath = service.module.localModeSshKeystorePath
+  public async getKeyPair(gardenDirPath: string, service: ContainerService, log: LogEntry): Promise<KeyPair> {
+    const sshDirPath = ProxySshKeystore.getSshDirPath(gardenDirPath)
     const sshKeyName = service.name
+
     if (!this.serviceKeyPairs.has(sshKeyName)) {
       await sshKeystoreAsyncLock.acquire(`proxy-ssh-key-pair-${sshKeyName}`, async () => {
         if (!this.serviceKeyPairs.has(sshKeyName)) {
@@ -156,17 +168,20 @@ export class ProxySshKeystore {
     return this.serviceKeyPairs.get(sshKeyName)!
   }
 
-  public async getKnownHostsFile(service: ContainerService): Promise<string> {
-    if (!this.knownHostsFilePath) {
-      await sshKeystoreAsyncLock.acquire("ssh_proxy_known_hosts", async () => {
-        if (!this.knownHostsFilePath) {
-          const knownHostsFilePath = join(service.module.localModeSshKeystorePath, "ssh_proxy_known_hosts")
-          this.knownHostsFilePath = knownHostsFilePath
+  public async getKnownHostsFile(gardenDirPath: string): Promise<string> {
+    const sshDirPath = ProxySshKeystore.getSshDirPath(gardenDirPath)
+    const knownHostsFilePath = join(sshDirPath, ProxySshKeystore.TEMP_KNOWN_HOSTS_FILENAME)
+
+    if (!this.knownHostsFilePaths.has(knownHostsFilePath)) {
+      await sshKeystoreAsyncLock.acquire(knownHostsFilePath, async () => {
+        if (!this.knownHostsFilePaths.has(knownHostsFilePath)) {
+          await ensureDir(sshDirPath)
+          this.knownHostsFilePaths.add(knownHostsFilePath)
           await touch(knownHostsFilePath)
         }
       })
     }
-    return this.knownHostsFilePath!
+    return knownHostsFilePath
   }
 
   public registerLocalPort(port: number, log: LogEntry): void {
@@ -184,6 +199,8 @@ export class ProxySshKeystore {
 
     this.localSshPorts.forEach((port) => this.removePortFromKnownHosts(port, log))
     this.localSshPorts.clear()
+
+    this.knownHostsFilePaths.clear()
   }
 }
 
@@ -339,7 +356,7 @@ function patchMainContainer(
  * Configures the specified Deployment, DaemonSet or StatefulSet for local mode.
  */
 export async function configureLocalMode(configParams: ConfigureLocalModeParams): Promise<void> {
-  const { target, service, log } = configParams
+  const { ctx, target, service, log } = configParams
   set(target, ["metadata", "annotations", gardenAnnotationKey("local-mode")], "true")
 
   log.info({
@@ -352,7 +369,7 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
   const mainContainer = getResourceContainer(target)
   const proxyContainerName = mainContainer.name
 
-  const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(service, log)
+  const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(ctx.gardenDirPath, service, log)
 
   log.debug({
     section: service.name,
@@ -481,15 +498,15 @@ async function getKubectlPortForwardProcess(
 }
 
 async function getReversePortForwardCommand(
-  { service, spec: localModeSpec, log }: StartLocalModeParams,
+  { ctx, service, spec: localModeSpec, log }: StartLocalModeParams,
   localSshPort: number
 ): Promise<OsCommand> {
   const localPort = localModeSpec.localPort
   // todo: get all forwardable ports and set up ssh tunnels for all
   const remoteContainerPortSpec = findFirstForwardablePort(service.spec)
   const remoteContainerPort = remoteContainerPortSpec.containerPort
-  const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(service, log)
-  const knownHostsFilePath = await ProxySshKeystore.getInstance(log).getKnownHostsFile(service)
+  const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(ctx.gardenDirPath, service, log)
+  const knownHostsFilePath = await ProxySshKeystore.getInstance(log).getKnownHostsFile(ctx.gardenDirPath)
 
   const sshCommandName = "ssh"
   const sshCommandArgs = [

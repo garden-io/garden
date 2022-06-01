@@ -83,7 +83,7 @@ describe("local mode deployments and ssh tunneling behavior", () => {
     })
     expect(status.localMode).to.eql(true)
 
-    const serviceSshKeysPath = module.localModeSshKeystorePath
+    const serviceSshKeysPath = ProxySshKeystore.getSshDirPath(ctx.gardenDirPath)
     const serviceSshKeyName = service.name
     const privateSshKeyPath = join(serviceSshKeysPath, serviceSshKeyName)
     const publicSshKeyPath = join(serviceSshKeysPath, `${serviceSshKeyName}.pub`)

@@ -20,7 +20,6 @@ export const MAX_RUN_RESULT_LOG_LENGTH = 250 * 1024
 export const PROXY_CONTAINER_USER_NAME = "garden-proxy-user"
 export const PROXY_CONTAINER_SSH_TUNNEL_PORT = 2222
 export const PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME = "garden-prx-ssh"
-export const PROXY_CONTAINER_SSH_DIR = ".ssh"
 
 export const systemDockerAuthSecretName = "builder-docker-config"
 export const dockerAuthSecretKey = ".dockerconfigjson"
