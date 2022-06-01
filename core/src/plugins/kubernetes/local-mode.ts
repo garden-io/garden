@@ -578,7 +578,7 @@ async function getReversePortForwardProcess(
         log.info({
           status: "error",
           section: service.name,
-          msg: chalk.white(`Reverse port-forwarding started successfully with PID ${msg.pid}`),
+          msg: chalk.green(`Reverse port-forwarding started successfully with PID ${msg.pid}`),
         })
       },
     },
@@ -590,7 +590,7 @@ async function getReversePortForwardProcess(
         log.info({
           status: "error",
           section: service.name,
-          msg: chalk.white(`Reverse port-forwarding started successfully with PID ${msg.pid}`),
+          msg: chalk.green(`Reverse port-forwarding started successfully with PID ${msg.pid}`),
         })
       },
     },
