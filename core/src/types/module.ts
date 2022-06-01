@@ -18,6 +18,7 @@ import { ModuleType } from "./plugin/plugin"
 import { moduleOutputsSchema } from "./plugin/module/getModuleOutputs"
 import { LogEntry } from "../logger/log-entry"
 import { join } from "path"
+import { PROXY_CONTAINER_SSH_DIR } from "../plugins/kubernetes/constants"
 
 export interface FileCopySpec {
   source: string
@@ -145,7 +146,7 @@ export async function moduleFromConfig({
     compatibleTypes,
     _config: config,
 
-    localModeSshKeystorePath: join(garden.gardenDirPath, "ssh-keys"),
+    localModeSshKeystorePath: join(garden.gardenDirPath, PROXY_CONTAINER_SSH_DIR),
   }
 
   for (const d of module.build.dependencies) {
