@@ -28,6 +28,8 @@ Requirements for the local machine environment:
 This is the initial release of **experimental** feature. The _local mode_ feature design and implementation is still in
 progress. So, there is a number of functional limitations in the first release:
 
+* **Windows compatibility.** The _local mode_ is not supported natively for Windows OS. It should be used with WSL in
+  Windows environments.
 * The _local mode_ creates port-forwarding **only for one service port** of a target Garden service. It picks up the
   first `TCP` port from the list of ports or just the first one if no `TCP` ports defined. Thus, if the service needs to
   talk to some data sources like databases, message brokers, etc. then all these services are assumed to be running
