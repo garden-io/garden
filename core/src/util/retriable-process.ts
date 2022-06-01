@@ -97,8 +97,41 @@ export type InactiveProcessState = "stopped" | "failed"
 export type RetriableProcessState = InitialProcessState | ActiveProcessState | InactiveProcessState
 
 /**
- * This class represents a tree of retriable processes.
- * The tree data structure reflects the parent-child relationships between the processes.
+ * Motivation.
+ *
+ * This class was initially designed to support fault-tolerant 2-layer port-forward in the scope of
+ * "local mode" deployment feature implementation.
+ * The 2-layer term means that one port-forward operates on top of another.
+ * That 2-layer port-forward ensures a connection between a proxy container in a remote cluster
+ * and a locally deployed application.
+ *
+ * That connection must meet 2 requirements:
+ *  - it must run in background
+ *  - it must be fault-tolerant
+ *
+ * Here, fault-tolerance means that the connection should be able to recover automatically
+ * if any of its port-forwards crashes.
+ * Moreover, there is a parent-child relations between port-forwards. So, if the first port-forward crashes,
+ * it will cause failure of the second one (which operates on top of the first one).
+ * Thus, in case of a single port-forward failure, it must recover with all its children.
+ *
+ * Each port-forward is a single OS process.
+ * Let's refer a single background, parent-child aware fault-tolerant process as a "persistent" process.
+ *
+ * In general, the connection from the example above can be considered as a composition of some persistent processes.
+ * That composition connects the processes with parent-child relations. Let's assume that:
+ *  - each single process depends on only 1 process (i.e. it has only parent)
+ *  - each process can have multiple children
+ *
+ * Under these assumptions, the composition of the persistent processes can be represented by a tree data structure.
+ * The tree data structure reflects the parent-child relationships between the persistent processes.
+ *
+ * NOTE! Generally, a single process can have multiple parent processes, but that is a more complex case
+ * which is not required yet. It can be implemented in the future versions.
+ *
+ * This class represents a tree of persistent processes. Fault-tolerance is ensured by retries.
+ *
+ * Technical details.
  *
  * NOTE! The {@link RetriableProcess.command} should start exactly one OS process.
  * This means that the command should produce exactly one PID, and it can't contain any piped processes
@@ -112,7 +145,8 @@ export type RetriableProcessState = InitialProcessState | ActiveProcessState | I
  * The retrying mechanism is build on the basis of the event handler of {@link ChildProcess} and its stdio streams.
  * The process stdio stream handling can be thoroughly customized with {@link IOStreamListener} interface.
  * It allows to handle process specific output carefully and to process the command-specific errors.
- * Both `stdout` and `stderr` streams can have own custom listener defined in {@link RetriableProcessConfig}.
+ * Both {@code stdout} and {@code stderr} streams can have own custom listeners
+ * defined in {@link RetriableProcessConfig}.
  * It's a responsibility of an implementer to keep both listeners consistent to each other.
  *
  * If there are no retries left for any process in the tree, then its {@link RetriableProcess.failureHandler} is called.
@@ -125,6 +159,7 @@ export type RetriableProcessState = InitialProcessState | ActiveProcessState | I
  *
  * TODO. Ideas on further improvements:
  *  - ability to attach/detach a process tree to/from a running process
+ *  - support multiple parents if necessary
  */
 export class RetriableProcess {
   public readonly command: string
