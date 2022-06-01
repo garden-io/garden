@@ -26,7 +26,7 @@ import { getTargetResource } from "./port-forward"
 import chalk from "chalk"
 import { rmSync } from "fs"
 import { execSync } from "child_process"
-import { join, resolve } from "path"
+import { join } from "path"
 import { ensureDir, readFile } from "fs-extra"
 import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
@@ -59,9 +59,9 @@ export class KeyPair {
   public readonly publicKeyPath: string
   public readonly privateKeyPath: string
 
-  constructor(rootPath: string) {
-    this.publicKeyPath = join(rootPath, "proxy-key.pub")
-    this.privateKeyPath = join(rootPath, "proxy-key")
+  constructor(sshDirPath: string, sshKeyName: string) {
+    this.publicKeyPath = join(sshDirPath, `${sshKeyName}.pub`)
+    this.privateKeyPath = join(sshDirPath, sshKeyName)
   }
 
   private static async readSshKeyFromFile(filePath: string): Promise<string> {
@@ -148,19 +148,19 @@ export class ProxySshKeystore {
   }
 
   public async getKeyPair(service: ContainerService, log: LogEntry): Promise<KeyPair> {
-    const rootPath = service.module.localModeSshKeystorePath
-    const serviceDirPath = resolve(rootPath, service.name)
-    if (!this.serviceKeyPairs.has(serviceDirPath)) {
-      await sshKeyPairAsyncLock.acquire("proxy-ssh-key-pair", async () => {
-        if (!this.serviceKeyPairs.has(serviceDirPath)) {
-          await ensureDir(serviceDirPath)
-          const keyPair = new KeyPair(serviceDirPath)
+    const sshDirPath = service.module.localModeSshKeystorePath
+    const sshKeyName = service.name
+    if (!this.serviceKeyPairs.has(sshKeyName)) {
+      await sshKeyPairAsyncLock.acquire(`proxy-ssh-key-pair-${sshKeyName}`, async () => {
+        if (!this.serviceKeyPairs.has(sshKeyName)) {
+          await ensureDir(sshDirPath)
+          const keyPair = new KeyPair(sshDirPath, sshKeyName)
           await ProxySshKeystore.generateSshKeys(keyPair, service, log)
-          this.serviceKeyPairs.set(serviceDirPath, keyPair)
+          this.serviceKeyPairs.set(sshKeyName, keyPair)
         }
       })
     }
-    return this.serviceKeyPairs.get(serviceDirPath)!
+    return this.serviceKeyPairs.get(sshKeyName)!
   }
 
   public shutdown(log: LogEntry): void {

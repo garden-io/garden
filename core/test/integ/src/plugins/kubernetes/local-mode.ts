@@ -83,9 +83,10 @@ describe("local mode deployments and ssh tunneling behavior", () => {
     })
     expect(status.localMode).to.eql(true)
 
-    const serviceSshKeysPath = join(module.localModeSshKeystorePath, service.name)
-    const privateSshKeyPath = join(serviceSshKeysPath, "proxy-key")
-    const publicSshKeyPath = join(serviceSshKeysPath, "proxy-key.pub")
+    const serviceSshKeysPath = module.localModeSshKeystorePath
+    const serviceSshKeyName = service.name
+    const privateSshKeyPath = join(serviceSshKeysPath, serviceSshKeyName)
+    const publicSshKeyPath = join(serviceSshKeysPath, `${serviceSshKeyName}.pub`)
     expect(await pathExists(privateSshKeyPath)).to.be.true
     expect(await pathExists(publicSshKeyPath)).to.be.true
 
