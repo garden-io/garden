@@ -4,7 +4,7 @@ type: helm
 name: helm
 chart: postgresql
 repo: https://charts.bitnami.com/bitnami
-version: "8.10.5"
+version: "10.16.1"
 dependencies: [kubernetes]
 values:
   foo: ${runtime.services.kubernetes.outputs}
