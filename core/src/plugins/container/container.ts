@@ -302,8 +302,8 @@ export const gardenPlugin = () =>
           {
             platform: "darwin",
             architecture: "amd64",
-            url: "https://download.docker.com/mac/static/stable/x86_64/docker-19.03.6.tgz",
-            sha256: "82d279c6a2df05c2bb628607f4c3eacb5a7447be6d5f2a2f65643fbb6ed2f9af",
+            url: "https://download.docker.com/mac/static/stable/x86_64/docker-20.10.9.tgz",
+            sha256: "f045f816579a96a45deef25aaf3fc116257b4fb5782b51265ad863dcae21f879",
             extract: {
               format: "tar",
               targetPath: "docker/docker",
@@ -312,8 +312,8 @@ export const gardenPlugin = () =>
           {
             platform: "linux",
             architecture: "amd64",
-            url: "https://download.docker.com/linux/static/stable/x86_64/docker-19.03.6.tgz",
-            sha256: "34ff89ce917796594cd81149b1777d07786d297ffd0fef37a796b5897052f7cc",
+            url: "https://download.docker.com/linux/static/stable/x86_64/docker-20.10.9.tgz",
+            sha256: "caf74e54b58c0b38bb4d96c8f87665f29b684371c9a325562a3904b8c389995e",
             extract: {
               format: "tar",
               targetPath: "docker/docker",
@@ -323,8 +323,8 @@ export const gardenPlugin = () =>
             platform: "windows",
             architecture: "amd64",
             url:
-              "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v19.03.6/docker-19.03.6.zip",
-            sha256: "b4591baa2b7016af9ff3328a26146e4db3e6ce3fbe0503a7fd87363f29d63f5c",
+              "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v20.10.9/docker-20.10.9.zip",
+            sha256: "360ca42101d453022eea17747ae0328709c7512e71553b497b88b7242b9b0ee4",
             extract: {
               format: "zip",
               targetPath: "docker/docker.exe",
