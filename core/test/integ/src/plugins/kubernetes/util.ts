@@ -367,7 +367,7 @@ describe("util", () => {
         log,
         version: module.version.versionString,
       })
-      module.spec.serviceResource.name = `{{ template "postgresql.master.fullname" . }}`
+      module.spec.serviceResource.name = `{{ template "postgresql.primary.fullname" . }}`
       const result = await getServiceResource({
         ctx,
         log,

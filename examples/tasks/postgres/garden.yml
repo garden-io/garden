@@ -4,7 +4,7 @@ type: helm
 name: postgres
 chart: postgresql
 repo: https://charts.bitnami.com/bitnami
-version: "8.10.5"
+version: "10.16.1"
 serviceResource:
   kind: StatefulSet
   name: postgres
