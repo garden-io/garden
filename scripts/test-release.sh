@@ -106,14 +106,6 @@ test_release() {
   cd disabled-configs
   timeout 1m ${garden_release} serve
 
-  echo ""
-  echo "→ Running 'garden deploy --hot=node-service' in hot-reload project - exits after 1 minute. Use the chance to test if hot-reload works"
-  echo "→ Try e.g. to update this file: ${garden_root}/examples/hot-reload/node-service/app.js"
-  echo ""
-  cd ..
-  cd hot-reload
-  timeout 1m ${garden_release} deploy --hot node-service
-
   # Remove the alias we set above
   if [[ "$OSTYPE" == "darwin"* ]]; then
     unalias timeout
