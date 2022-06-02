@@ -295,12 +295,12 @@ To make a new release, set your current working directory to the garden root dir
 5. Go to our Github [Releases page](https://github.com/garden-io/garden/releases) and click the **Edit** button for the draft just created from CI. Note that for drafts, a new one is always created instead of replacing a previous one.
 6. Write release notes. The notes should give an overview of the release and mention all relevant features. They should also **acknowledge all external contributors** and contain the changelog for that release.
     * To generate a changelog for just that tag, run `git-chglog <previous-release-tag-name>..<tag-name>`
-    * To get a list of all contributors between releases, ordered by count, run: `git log <previous-tag>..<current-tag> --no-merges "$@" | grep ^Author | sort | uniq -c | sort -nr`. Note that authors of squashed commits won't show up, so it might be good to do a quick sanity check on Github as well.
+    * To get a list of all contributors between releases, ordered by count, run: `./scripts/show-contributors.sh <previous-tag> <current-tag>`. Note that authors of squashed commits won't show up, so it might be good to do a quick sanity check on Github as well.
     * Remember to put the list of features on top of the list of bug fixes.
 7. Click the **Publish release** button.
 8. Make a pull request for the branch that was pushed by the script.
 9. Make sure the `latest-release` branch contains the released version, and push it to the remote. **This branch is used for our documentation, so this step is important.**
-10. Check the `update-homebrew` GitHub Action run successfully and the [homebrew repo](https://github.com/garden-io/homebrew-garden) contains the latest version.
+10. Check the `update-homebrew` GitHub Action run successfully and merge the relevant PR in the [homebrew repo](https://github.com/garden-io/homebrew-garden/pulls).
 11. Install the Homebrew package and make sure it works okay:
     * `brew tap garden-io/garden && brew install garden-cli || true && brew update && brew upgrade garden-cli`
     * Run `$(brew --prefix garden-cli)/bin/garden dev` (to make sure you're using the packaged release) in an example project and see if all looks well.
