@@ -290,7 +290,7 @@ export class RetriableProcess {
     })
 
     proc.stderr!.on("data", async (chunk: any) => {
-      const catchCriticalErrorsFn = this.stdoutListener?.catchCriticalErrors
+      const catchCriticalErrorsFn = this.stderrListener?.catchCriticalErrors
       if (!!catchCriticalErrorsFn && catchCriticalErrorsFn(chunk)) {
         const message =
           `Failed to start local mode. ` +
