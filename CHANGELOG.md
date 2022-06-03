@@ -4,22 +4,11 @@
 
 ### Bug Fixes
 
-* move comment above example usage ([ac9e33382](https://github.com/garden-io/garden/commit/ac9e33382))
 * increased num of retries and timeouts for rsync ([b404bb77b](https://github.com/garden-io/garden/commit/b404bb77b))
 * transitive dependency handling ([#2937](https://github.com/garden-io/garden/issues/2937)) ([d94c83b83](https://github.com/garden-io/garden/commit/d94c83b83))
-* update ci config to run code-sync ([834487c39](https://github.com/garden-io/garden/commit/834487c39))
-* update examples/kaniko/README.md ([adb28c023](https://github.com/garden-io/garden/commit/adb28c023))
-* update examples/demo-project/README.md ([2732bca9d](https://github.com/garden-io/garden/commit/2732bca9d))
 * workflows fail silently and --output doesn't work ([eb7f7b29c](https://github.com/garden-io/garden/commit/eb7f7b29c))
-* update examples/deployment-strategies/README.md ([7df9305d1](https://github.com/garden-io/garden/commit/7df9305d1))
-* add large resource class to lint ci job ([b231d3816](https://github.com/garden-io/garden/commit/b231d3816))
-* render docs ([ada7dc4ce](https://github.com/garden-io/garden/commit/ada7dc4ce))
 * git repo ownership issue ([e4219a779](https://github.com/garden-io/garden/commit/e4219a779))
-* update examples/code-synchronization/README.md ([723f4eded](https://github.com/garden-io/garden/commit/723f4eded))
-* update examples/vote/README.md ([353144bcd](https://github.com/garden-io/garden/commit/353144bcd))
-* update examples/vote/README.md ([880f86267](https://github.com/garden-io/garden/commit/880f86267))
 * add nginx ingressClass resource for microk8s ([51df08193](https://github.com/garden-io/garden/commit/51df08193))
-* rename readme file ([969533d6e](https://github.com/garden-io/garden/commit/969533d6e))
 * **cli:** potential OOM error during module and error serialization ([02cacf63e](https://github.com/garden-io/garden/commit/02cacf63e))
 * **cli:** typo in field filtering in scan command ([59e0fcd01](https://github.com/garden-io/garden/commit/59e0fcd01))
 * **cloud:** fix duplicate footer on config change ([9b83e522c](https://github.com/garden-io/garden/commit/9b83e522c))
@@ -37,10 +26,9 @@
 
 ### Features
 
+* pulumi plugin ([9f6393970](https://github.com/garden-io/garden/commit/9f6393970))
 * expose TTY setting on container modules ([5c17c6022](https://github.com/garden-io/garden/commit/5c17c6022))
 * analytics with cloud user metadata ([#2943](https://github.com/garden-io/garden/issues/2943)) ([edd654423](https://github.com/garden-io/garden/commit/edd654423))
-* pulumi plugin ([9f6393970](https://github.com/garden-io/garden/commit/9f6393970))
-* panic in main.go if listenAndServe fails ([f01a621a2](https://github.com/garden-io/garden/commit/f01a621a2))
 * **plugins:** add a warn if suitable ingressclass is not found ([adb00f1f5](https://github.com/garden-io/garden/commit/adb00f1f5))
 
 ### Improvements
@@ -48,8 +36,7 @@
 * **cli:** minor logging additions ([0c04355e2](https://github.com/garden-io/garden/commit/0c04355e2))
 * **cli:** better stack traces for error reports, with source mapping ([615d8d012](https://github.com/garden-io/garden/commit/615d8d012))
 * **core:** reduce unnecessary computation during config resolution ([c500d3b00](https://github.com/garden-io/garden/commit/c500d3b00))
-* **core:** more efficient module resolution ([4b31adced](https://github.com/garden-io/garden/commit/4b31adced))
-* **core:** more efficient module resolution ([61d9b85ed](https://github.com/garden-io/garden/commit/61d9b85ed))
+* **core:** more efficient module resolution ([4b31adced](https://github.com/garden-io/garden/commit/4b31adced)) and ([61d9b85ed](https://github.com/garden-io/garden/commit/61d9b85ed))
 * **core:** add --skip flag to test command ([6c046e8ce](https://github.com/garden-io/garden/commit/6c046e8ce))
 
 ### Performance Improvements
