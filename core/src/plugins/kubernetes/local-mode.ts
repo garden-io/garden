@@ -487,11 +487,13 @@ async function getKubectlPortForwardProcess(
       hasErrors: (_chunk: any) => false,
       onError: (_msg: ProcessErrorMessage) => {},
       onMessage: (msg: ProcessMessage) => {
-        log.info({
-          status: "error",
-          section: service.name,
-          msg: chalk.white(`Ssh port-forwarding started successfully with PID ${msg.pid}`),
-        })
+        if (msg.message.includes("Handling connection for")) {
+          log.info({
+            status: "error",
+            section: service.name,
+            msg: chalk.white(`Ssh port-forwarding started successfully with PID ${msg.pid}`),
+          })
+        }
       },
     },
   })
