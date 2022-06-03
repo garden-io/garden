@@ -555,7 +555,7 @@ async function getReversePortForwardProcess(
           })
           return true
         }
-        if (lowercaseOutput.includes('permission denied"')) {
+        if (lowercaseOutput.includes("permission denied")) {
           log.error({
             status: "error",
             section: service.name,
@@ -564,6 +564,14 @@ async function getReversePortForwardProcess(
           return true
         }
         if (output.includes("REMOTE HOST IDENTIFICATION HAS CHANGED")) {
+          log.error({
+            status: "error",
+            section: service.name,
+            msg: chalk.red(output),
+          })
+          return true
+        }
+        if (output.includes("Bad configuration option")) {
           log.error({
             status: "error",
             section: service.name,
