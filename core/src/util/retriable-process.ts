@@ -375,6 +375,9 @@ export class RetriableProcess {
   }
 
   private async tryRestartSubTree(): Promise<void> {
+    if (this.state === "retrying") {
+      return
+    }
     // todo: should we lookup to parent nodes to find the parent-most killed/restarting process?
     this.unregisterSubTreeListeners()
     this.stopSubTree()
