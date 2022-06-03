@@ -522,6 +522,7 @@ async function getReversePortForwardCommand(
     `-i ${keyPair.privateKeyPath}`,
     "-oStrictHostKeyChecking=accept-new",
     `-oUserKnownHostsFile=${knownHostsFilePath}`,
+    "-oServerAliveInterval=60",
   ]
   return { command: sshCommandName, args: sshCommandArgs }
 }
