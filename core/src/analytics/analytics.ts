@@ -283,7 +283,6 @@ export class AnalyticsHandler {
       }
 
       await this.globalConfigStore.set([globalConfigKeys.analytics], this.analyticsConfig)
-
       this.log.debug(
         `Analytics identify new anonymous user and enables cloud profile - ${this.analyticsConfig.cloudProfileEnabled}`
       )
