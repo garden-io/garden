@@ -231,6 +231,7 @@ export type AnalyticsGlobalConfig = {
   firstRun?: boolean
   showOptInMessage?: boolean
   cloudVersion?: number
+  cloudProfileEnabled?: boolean
 } & {
   [key: string]: any
 }
@@ -253,6 +254,7 @@ const analyticsGlobalConfigSchema = () =>
       firstRun: joi.boolean().optional(),
       showOptInMessage: joi.boolean().optional(),
       cloudVersion: joi.number().optional(),
+      cloudProfileEnabled: joi.boolean().optional(),
     })
     .unknown(true)
     .meta({ internal: true })
