@@ -138,12 +138,13 @@ export class CloudApi {
 
   constructor(log: LogEntry, enterpriseDomain: string, projectId: string) {
     this.log = log
+    // TODO: Replace all instances of "enterpriseDomain" with "cloudDomain".
     this.domain = enterpriseDomain
     this.projectId = projectId
   }
 
   /**
-   * Initialize the Enterprise API.
+   * Initialize the Cloud API.
    *
    * Returns null if the project is not configured for Garden Cloud or if the user is not logged in.
    * Throws if the user is logged in but the token is invalid and can't be refreshed.
