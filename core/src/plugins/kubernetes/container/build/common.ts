@@ -31,6 +31,7 @@ import { InternalError, RuntimeError } from "../../../../exceptions"
 import { LogEntry } from "../../../../logger/log-entry"
 import { getInClusterRegistryHostname } from "../../init"
 import { prepareDockerAuth } from "../../init"
+import { prepareSecrets } from "../../secrets"
 import chalk from "chalk"
 import { gardenEnv } from "../../../../constants"
 import { ensureMutagenSync, flushMutagenSync, getKubectlExecDestination, terminateMutagenSync } from "../../mutagen"
@@ -332,8 +333,10 @@ export async function ensureUtilDeployment({
       namespace,
     })
 
+    const imagePullSecrets = await prepareSecrets({ api, namespace, secrets: provider.config.imagePullSecrets, log })
+
     // Check status of the util deployment
-    const { deployment, service } = getUtilManifests(provider, authSecret.metadata.name)
+    const { deployment, service } = getUtilManifests(provider, authSecret.metadata.name, imagePullSecrets)
     const status = await compareDeployedResources(
       ctx as KubernetesPluginContext,
       api,
@@ -502,7 +505,11 @@ export function getUtilContainer(authSecretName: string): V1Container {
   }
 }
 
-export function getUtilManifests(provider: KubernetesProvider, authSecretName: string) {
+export function getUtilManifests(
+  provider: KubernetesProvider,
+  authSecretName: string,
+  imagePullSecrets: { name: string }[]
+) {
   const kanikoTolerations = [...(provider.config.kaniko?.tolerations || []), builderToleration]
   const deployment: KubernetesDeployment = {
     apiVersion: "apps/v1",
@@ -528,6 +535,7 @@ export function getUtilManifests(provider: KubernetesProvider, authSecretName: s
         },
         spec: {
           containers: [getUtilContainer(authSecretName)],
+          imagePullSecrets,
           volumes: [
             {
               name: authSecretName,

@@ -16,8 +16,7 @@ const logger: Logger = getLogger()
 
 describe("Logger", () => {
   beforeEach(() => {
-    // tslint:disable-next-line: prettier
-    (logger["children"] as any) = []
+    logger["children"] = []
   })
 
   describe("events", () => {
