@@ -242,11 +242,15 @@ export class AnalyticsHandler {
 
     if (this.isLoggedIn) {
       // Initialize the cloud userId and customer for logged in users
-      const profile = await this.garden.cloudApi?.getProfile()
+      try {
+        const profile = await this.garden.cloudApi?.getProfile()
 
-      if (profile) {
-        this.cloudUserId = `${profile.organization.name}_${profile.id}`
-        this.cloudCustomerName = profile.organization.name
+        if (profile) {
+          this.cloudUserId = `${profile.organization.name}_${profile.id}`
+          this.cloudCustomerName = profile.organization.name
+        }
+      } catch (err) {
+        this.log.debug(`Getting profile from API failed with error: ${err.message}`)
       }
     }
 
@@ -261,16 +265,27 @@ export class AnalyticsHandler {
     }
 
     // Create an anonymous analytics ID or associate a cloud user ID with an existing anonymous ID
-    if (this.analyticsConfig.firstRun || this.analyticsConfig.cloudVersion === undefined) {
+    // First run - Always identify the user
+    // No Cloud Version defined - Re-identify using the Anonymous User ID
+    // Cloud Profile is not defined and the cloud user is available - Identify with the cloud user ID
+    if (
+      this.analyticsConfig.firstRun ||
+      this.analyticsConfig.cloudVersion === undefined ||
+      (!this.analyticsConfig.cloudProfileEnabled && this.cloudUserId)
+    ) {
       this.analyticsConfig = {
         firstRun: false,
         userId: this.analyticsConfig.userId || uuidv4(),
         optedIn: true,
         showOptInMessage: false,
         cloudVersion: 0,
+        cloudProfileEnabled: !(this.cloudUserId === undefined),
       }
 
       await this.globalConfigStore.set([globalConfigKeys.analytics], this.analyticsConfig)
+      this.log.debug(
+        `Analytics identify new anonymous user and enables cloud profile - ${this.analyticsConfig.cloudProfileEnabled}`
+      )
 
       if (this.segment && analyticsEnabled) {
         const anonymousUserId = getUserId({ analytics: this.analyticsConfig })

@@ -224,14 +224,6 @@ export class CloudApi {
       log.debug(`Getting project from API failed with error: ${err.message}`)
     }
 
-    try {
-      const profile = await api.getProfile()
-      const cloudUserId = `${profile.organization.name}_${profile.id}`
-      enterpriseLog?.info({ symbol: "info", msg: `Cloud User ${cloudUserId}` })
-    } catch (err) {
-      log.debug(`Getting profile from API failed with error: ${err.message}`)
-    }
-
     return api
   }
 
