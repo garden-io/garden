@@ -106,6 +106,17 @@ export class GitHandler extends VcsHandler {
     }
   }
 
+  private toGitConfigCompatiblePath(path: string): string {
+    // Windows paths require some pre-processing,
+    // see the full list of platform names here: https://nodejs.org/api/process.html#process_process_platform
+    if (process.platform !== "win32") {
+      return path
+    }
+
+    // Replace back-slashes with forward-slashes to make paths compatible with .gitconfig in Windows
+    return path.replace(/\\/g, "/")
+  }
+
   /**
    * Checks if a given {@code path} is a valid and safe Git repository.
    * If it is a valid Git repository owned by another user,
@@ -132,8 +143,10 @@ export class GitHandler extends VcsHandler {
               "It will be added to safe.directory list in the .gitconfig."
           )
         )
-        // add the safe directory globally to be able to run git command outside a (trusted) git repo
-        await git("config", "--global", "--add", "safe.directory", path)
+        const gitConfigCompatiblePath = this.toGitConfigCompatiblePath(path)
+        // Add the safe directory globally to be able to run git command outside a (trusted) git repo
+        // Wrap the path in quotes to pass it as a single argument in case if it contains any whitespaces
+        await git("config", "--global", "--add", "safe.directory", `'${gitConfigCompatiblePath}'`)
         this.gitSafeDirs[path] = true
         log.debug(`Configured git to trust repository in ${path}`)
         return
