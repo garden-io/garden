@@ -138,7 +138,9 @@ export class GitHandler extends VcsHandler {
         log.debug(`Configured git to trust repository in ${path}`)
         return
       } else {
-        log.error(`Unexpected Git error occurred. Exit code: ${err.exitCode}. Error message: ${err.stderr}`)
+        log.error(
+          `Unexpected Git error occurred while running 'git status' from path "${path}". Exit code: ${err.exitCode}. Error message: ${err.stderr}`
+        )
       }
 
       throw err
