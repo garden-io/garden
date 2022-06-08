@@ -10,7 +10,15 @@ import Bluebird from "bluebird"
 import { waitForResources } from "../status/status"
 import { helm } from "./helm-cli"
 import { HelmModule } from "./config"
-import { getChartPath, getReleaseName, getChartResources, getValueArgs, getBaseModule } from "./common"
+import {
+  getChartPath,
+  getReleaseName,
+  getValueArgs,
+  getBaseModule,
+  prepareTemplates,
+  prepareManifests,
+  filterManifests,
+} from "./common"
 import {
   getReleaseStatus,
   HelmServiceStatus,
@@ -56,26 +64,16 @@ export async function deployHelmService({
   })
   const namespace = namespaceStatus.namespaceName
 
-  const manifests = await getChartResources({ ctx: k8sCtx, module, devMode, hotReload, log, version: service.version })
-
-  if ((devMode && module.spec.devMode) || hotReload) {
-    serviceResourceSpec = getServiceResourceSpec(module, getBaseModule(module))
-    serviceResource = await getServiceResource({
-      ctx,
-      log,
-      provider,
-      module,
-      manifests,
-      resourceSpec: serviceResourceSpec,
-    })
-  }
-
-  if (hotReload) {
-    hotReloadSpec = getHotReloadSpec(service)
-  }
+  const preparedTemplates = await prepareTemplates({
+    ctx: k8sCtx,
+    module,
+    devMode,
+    hotReload,
+    log,
+    version: service.version,
+  })
 
   const chartPath = await getChartPath(module)
-
   const releaseName = getReleaseName(module)
   const releaseStatus = await getReleaseStatus({ ctx: k8sCtx, module, service, releaseName, log, devMode, hotReload })
 
@@ -100,6 +98,9 @@ export async function deployHelmService({
     }
     await helm({ ctx: k8sCtx, namespace, log, args: [...installArgs] })
   } else {
+    if (hotReload) {
+      hotReloadSpec = getHotReloadSpec(service)
+    }
     log.silly(`Upgrading Helm release ${releaseName}`)
     const upgradeArgs = ["upgrade", releaseName, chartPath, "--install", ...commonArgs]
     await helm({ ctx: k8sCtx, namespace, log, args: [...upgradeArgs] })
@@ -126,6 +127,31 @@ export async function deployHelmService({
         log.debug(error)
       }
     }
+  }
+
+  const preparedManifests = await prepareManifests({
+    ctx: k8sCtx,
+    log,
+    module,
+    devMode,
+    hotReload,
+    version: service.version,
+    namespace: preparedTemplates.namespace,
+    releaseName: preparedTemplates.releaseName,
+    chartPath: preparedTemplates.chartPath,
+  })
+  const manifests = await filterManifests(preparedManifests)
+
+  if ((devMode && module.spec.devMode) || hotReload) {
+    serviceResourceSpec = getServiceResourceSpec(module, getBaseModule(module))
+    serviceResource = await getServiceResource({
+      ctx,
+      log,
+      provider,
+      module,
+      manifests,
+      resourceSpec: serviceResourceSpec,
+    })
   }
 
   // Because we need to modify the Deployment, and because there is currently no reliable way to do that before
