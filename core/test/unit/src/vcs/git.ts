@@ -77,6 +77,24 @@ describe("GitHandler", () => {
     return (await git("hash-object", path))[0]
   }
 
+  describe("toGitConfigCompatiblePath", () => {
+    it("should return an unmodified path in Linux", async () => {
+      const path = "/home/user/repo"
+      expect(handler.toGitConfigCompatiblePath(path, "linux")).to.equal(path)
+    })
+
+    it("should return an unmodified path in macOS", async () => {
+      const path = "/Users/user/repo"
+      expect(handler.toGitConfigCompatiblePath(path, "darwin")).to.equal(path)
+    })
+
+    it("should return a modified and corrected path in Windows", async () => {
+      const path = "C:\\Users\\user\\repo"
+      const expectedPath = "C:/Users/user/repo"
+      expect(handler.toGitConfigCompatiblePath(path, "win32")).to.equal(expectedPath)
+    })
+  })
+
   describe("getRepoRoot", () => {
     it("should return the repo root if it is the same as the given path", async () => {
       const path = tmpPath
