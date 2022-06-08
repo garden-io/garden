@@ -73,36 +73,47 @@ interface GetChartResourcesParams {
   version: string
 }
 
+type PrepareManifestsParams = GetChartResourcesParams & {
+  namespace: string
+  releaseName: string
+  chartPath: string
+}
+
 /**
  * Render the template in the specified Helm module (locally), and return all the resources in the chart.
  */
 export async function getChartResources(params: GetChartResourcesParams) {
-  const objects = <KubernetesResource[]>loadTemplate(await renderTemplates(params))
-
-  const resources = objects.filter((obj) => {
-    // Don't try to check status of hooks
-    const helmHook = getAnnotation(obj, "helm.sh/hook")
-    if (helmHook) {
-      return false
-    }
-
-    // Ephemeral objects should also not be checked
-    if (obj.kind === "Pod" || obj.kind === "Job") {
-      return false
-    }
-
-    return true
-  })
-
-  return flattenResources(resources)
+  return filterManifests(await renderTemplates(params))
 }
 
 /**
  * Renders the given Helm module and returns a multi-document YAML string.
  */
-export async function renderTemplates({ ctx, module, devMode, hotReload, log, version }: GetChartResourcesParams) {
+export async function renderTemplates(params: GetChartResourcesParams): Promise<string> {
+  const { ctx, module, devMode, hotReload, version, log } = params
+  const { namespace, releaseName, chartPath } = await prepareTemplates(params)
+
   log.debug("Preparing chart...")
 
+  return await prepareManifests({
+    ctx,
+    module,
+    devMode,
+    hotReload,
+    version,
+    log,
+    namespace,
+    releaseName,
+    chartPath,
+  })
+}
+
+export async function prepareTemplates({
+  ctx,
+  module,
+  log,
+  version,
+}: GetChartResourcesParams): Promise<{ namespace: string; releaseName: string; chartPath: string }> {
   const chartPath = await getChartPath(module)
 
   // create the values.yml file (merge the configured parameters into the default values)
@@ -145,7 +156,11 @@ export async function renderTemplates({ ctx, module, devMode, hotReload, log, ve
       await dependencyUpdate(ctx, log, namespace, chartPath)
     }
   }
+  return { namespace, releaseName, chartPath }
+}
 
+export async function prepareManifests(params: PrepareManifestsParams): Promise<string> {
+  const { ctx, module, devMode, hotReload, log, namespace, releaseName, chartPath } = params
   const res = await helm({
     ctx,
     log,
@@ -168,6 +183,27 @@ export async function renderTemplates({ ctx, module, devMode, hotReload, log, ve
 
   const manifest = JSON.parse(res).manifest as string
   return manifest
+}
+
+export async function filterManifests(renderedTemplates: string) {
+  const objects = <KubernetesResource[]>loadTemplate(renderedTemplates)
+
+  const resources = objects.filter((obj) => {
+    // Don't try to check status of hooks
+    const helmHook = getAnnotation(obj, "helm.sh/hook")
+    if (helmHook) {
+      return false
+    }
+
+    // Ephemeral objects should also not be checked
+    if (obj.kind === "Pod" || obj.kind === "Job") {
+      return false
+    }
+
+    return true
+  })
+
+  return flattenResources(resources)
 }
 
 /**
