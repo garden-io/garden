@@ -19,7 +19,7 @@ RUN apk add --no-cache \
 WORKDIR /garden-tmp/pkg
 
 # Pre-fetch the node binary for pkg
-RUN yarn add pkg@5.6.0 && \
+RUN yarn add pkg@5.7.0 && \
   node_modules/.bin/pkg-fetch node14 alpine x64
 
 # Add all the packages
