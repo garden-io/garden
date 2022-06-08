@@ -6,6 +6,8 @@ import socket
 import random
 import json
 
+REDIS_HOST = 'redis-master'
+
 option_a = os.getenv('OPTION_A', "Cats")
 option_b = os.getenv('OPTION_B', "Dogs")
 hostname = socket.gethostname()
@@ -15,7 +17,7 @@ CORS(app)
 
 def get_redis():
     if not hasattr(g, 'redis'):
-        g.redis = Redis(host="redis-master", db=0, socket_timeout=5)
+        g.redis = Redis(host=REDIS_HOST, db=0, socket_timeout=5)
     return g.redis
 
 @app.route("/api", methods=['GET'])
