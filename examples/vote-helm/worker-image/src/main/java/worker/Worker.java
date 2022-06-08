@@ -2,14 +2,19 @@ package worker;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
+
+import java.io.InputStream;
 import java.sql.*;
+import java.util.Properties;
+
 import org.json.JSONObject;
 
 class Worker {
   public static void main(String[] args) {
     try {
-      Jedis redis = connectToRedis("redis-master");
-      Connection dbConn = connectToDB("postgres");
+      Properties props = readEnvProperties();
+      Jedis redis = connectToRedis(props);
+      Connection dbConn = connectToDB(props);
 
       System.err.println("Watching vote queue");
 
@@ -19,6 +24,17 @@ class Worker {
     } catch (SQLException e) {
       e.printStackTrace();
       System.exit(1);
+    }
+  }
+
+  static Properties readEnvProperties() {
+    Properties props = new Properties();
+    try (InputStream stream = Worker.class.getClassLoader().getResourceAsStream("application.properties")) {
+      props.load(stream);
+      return props;
+    } catch (Exception e) {
+      System.err.printf("Error reading application.properties file: " + e);
+      throw new RuntimeException(e);
     }
   }
 
@@ -55,8 +71,8 @@ class Worker {
     }
   }
 
-  static Jedis connectToRedis(String host) {
-    Jedis conn = new Jedis(host);
+  static Jedis connectToRedis(Properties props) {
+    Jedis conn = new Jedis(props.getProperty("redis.host"));
 
     while (true) {
       try {
@@ -72,13 +88,15 @@ class Worker {
     return conn;
   }
 
-  static Connection connectToDB(String host) throws SQLException {
+  static Connection connectToDB(Properties props) throws SQLException {
     Connection conn = null;
 
     try {
       Class.forName("org.postgresql.Driver");
-      String url = "jdbc:postgresql://" + host + "/postgres";
-      conn = DriverManager.getConnection(url, "postgres", "postgres");
+      String url = "jdbc:postgresql://" + props.get("postgres.host") + '/' + props.get("postgres.db");
+      String username = props.getProperty("postgres.username");
+      String password = props.getProperty("postgres.password");
+      conn = DriverManager.getConnection(url, username, password);
     } catch (ClassNotFoundException e) {
       e.printStackTrace();
       System.exit(1);
