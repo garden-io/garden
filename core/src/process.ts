@@ -37,6 +37,10 @@ interface ProcessParams {
   footerLog?: LogEntry
   watch: boolean
   /**
+   * If provided, and if `watch === true`, will log this to the statusline when waiting for changes
+   */
+  overRideWatchStatusLine?: string
+  /**
    * If provided, and if `watch === true`, don't watch files in the module roots of these modules.
    */
   skipWatchModules?: GardenModule[]
@@ -68,6 +72,7 @@ export async function processModules({
   skipWatchModules,
   watch,
   changeHandler,
+  overRideWatchStatusLine,
 }: ProcessModulesParams): Promise<ProcessResults> {
   log.silly("Starting processModules")
 
@@ -148,7 +153,10 @@ export async function processModules({
 
   const waiting = () => {
     if (!!statusLine) {
-      statusLine.setState({ emoji: "clock2", msg: chalk.gray("Waiting for code changes...") })
+      statusLine.setState({
+        emoji: "clock2",
+        msg: chalk.gray(overRideWatchStatusLine || "Waiting for code changes..."),
+      })
     }
 
     garden.events.emit("watchingForChanges", {})

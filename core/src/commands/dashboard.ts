@@ -9,11 +9,12 @@
 import dedent = require("dedent")
 import { PrepareParams } from "./base"
 import { Command, CommandResult, CommandParams } from "./base"
-import { sleep } from "../util/util"
 import { startServer } from "../server/server"
 import { IntegerParameter } from "../cli/params"
 import { printHeader } from "../logger/util"
 import chalk = require("chalk")
+import { Garden } from "../garden"
+import { processModules } from "../process"
 
 export const defaultDashboardPort = 9700
 
@@ -35,6 +36,8 @@ export class DashboardCommand extends Command<Args, Opts> {
   help = "Starts the Garden dashboard for the current project and environment."
 
   cliOnly = true
+  streamEvents = true
+  private garden?: Garden
 
   description = dedent`
     Starts the Garden dashboard for the current project, and your selected environment+namespace. The dashboard can be used to monitor your Garden project, look at logs, provider-specific dashboard pages and more.
@@ -49,6 +52,10 @@ export class DashboardCommand extends Command<Args, Opts> {
 
   printHeader({ headerLog }) {
     printHeader(headerLog, "Dashboard", "bar_chart")
+  }
+
+  terminate() {
+    this.garden?.events.emit("_exit", {})
   }
 
   isPersistent() {
@@ -74,19 +81,29 @@ export class DashboardCommand extends Command<Args, Opts> {
     })
   }
 
-  async action({ garden, log }: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
+  async action({ garden, log, footerLog }: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
     log.info(
       chalk.gray(
         `Connected to environment ${chalk.white.bold(garden.namespace)}.${chalk.white.bold(garden.environmentName)}`
       )
     )
 
+    this.garden = garden
+    const graph = await garden.getConfigGraph({ log, emit: true })
     this.server!.setGarden(garden)
-
-    // The server doesn't block, so we need to loop indefinitely here.
-    while (!this.terminated) {
-      await sleep(1000)
-    }
+    const allModules = graph.getModules()
+    await processModules({
+      garden,
+      graph,
+      log,
+      footerLog,
+      modules: allModules,
+      watch: true,
+      initialTasks: [],
+      skipWatchModules: allModules,
+      changeHandler: async () => [],
+      overRideWatchStatusLine: "Dashboard running...",
+    })
 
     return {}
   }
