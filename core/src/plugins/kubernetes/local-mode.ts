@@ -383,7 +383,7 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
   patchMainContainer(mainContainer, proxyContainerName, localModeEnvVars, localModePorts)
 }
 
-const attemptsLeft = ({ maxRetries, minTimeoutMs, retriesLeft }: RetryInfo) => {
+const attemptsLeft = ({ maxRetries, minTimeoutMs, retriesLeft }: RetryInfo): string => {
   const retryingMsg = `retrying in ${minTimeoutMs}ms`
   if (maxRetries === Number.POSITIVE_INFINITY) {
     return retryingMsg
@@ -391,11 +391,11 @@ const attemptsLeft = ({ maxRetries, minTimeoutMs, retriesLeft }: RetryInfo) => {
   return !!retriesLeft ? `${retryingMsg}, ${retriesLeft} attempts left` : "no retries left"
 }
 
-const composeMessage = (customMessage: string, processMessage: ProcessMessage) => {
+const composeMessage = (customMessage: string, processMessage: ProcessMessage): string => {
   return `${customMessage} [PID=${processMessage.pid}]`
 }
 
-const composeErrorMessage = (customMessage: string, processMessage: ProcessMessage) => {
+const composeErrorMessage = (customMessage: string, processMessage: ProcessMessage): string => {
   const message = composeMessage(customMessage, processMessage)
   return !!processMessage.retryInfo ? `${message}, ${attemptsLeft(processMessage.retryInfo)}` : message
 }
