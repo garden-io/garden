@@ -34,7 +34,6 @@ export class DeleteServiceTask extends BaseTask {
     this.graph = graph
     this.service = service
     this.includeDependants = includeDependants
-    this.validate()
   }
 
   async resolveDependencies() {

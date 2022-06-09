@@ -20,7 +20,6 @@ import { prepareRuntimeContext } from "../runtime-context"
 import { GetServiceStatusTask } from "./get-service-status"
 import { Profile } from "../util/profiling"
 import { getServiceStatusDeps, getTaskResultDeps, getDeployDeps, getTaskDeps } from "./helpers"
-import { ConfigurationError } from "../exceptions"
 
 export interface DeployTaskParams {
   garden: Garden
@@ -71,7 +70,6 @@ export class DeployTask extends BaseTask {
     this.devModeServiceNames = devModeServiceNames
     this.hotReloadServiceNames = hotReloadServiceNames
     this.localModeServiceNames = localModeServiceNames
-    this.validate()
   }
 
   async resolveDependencies() {

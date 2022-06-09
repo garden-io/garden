@@ -37,7 +37,6 @@ export class HotReloadTask extends BaseTask {
     this.graph = params.graph
     // this.hotReloadServiceNames = hotReloadServiceNames || []
     this.service = params.service
-    this.validate()
   }
 
   async resolveDependencies() {

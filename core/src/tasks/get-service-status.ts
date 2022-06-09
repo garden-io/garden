@@ -56,7 +56,6 @@ export class GetServiceStatusTask extends BaseTask {
     this.devModeServiceNames = devModeServiceNames
     this.hotReloadServiceNames = hotReloadServiceNames
     this.localModeServiceNames = localModeServiceNames
-    this.validate()
   }
 
   async resolveDependencies() {

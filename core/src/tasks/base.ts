@@ -95,10 +95,6 @@ export abstract class BaseTask {
 
   abstract getDescription(): string
 
-  validate(): void {
-    // no op by default, to be overridden in each particular task type
-  }
-
   abstract process(dependencyResults: GraphResults): Promise<any>
 }
 
