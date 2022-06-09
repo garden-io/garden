@@ -30,7 +30,7 @@ import { join } from "path"
 import { ensureDir, readFile } from "fs-extra"
 import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
-import { OsCommand, ProcessMessage, RetriableProcess } from "../../util/retriable-process"
+import { OsCommand, ProcessMessage, RetriableProcess, RetryInfo } from "../../util/retriable-process"
 import { isConfiguredForLocalMode } from "./status/status"
 import { exec, registerCleanupFunction, shutdown } from "../../util/util"
 import getPort = require("get-port")
@@ -383,8 +383,13 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
   patchMainContainer(mainContainer, proxyContainerName, localModeEnvVars, localModePorts)
 }
 
-const attemptsLeft = (retriesLeft: number, timeoutMs: number) =>
-  !!retriesLeft ? `${retriesLeft} attempts left, next in ${timeoutMs}ms` : "no attempts left"
+const attemptsLeft = ({ maxRetries, minTimeoutMs, retriesLeft }: RetryInfo) => {
+  const retryingMsg = `retrying in ${minTimeoutMs}ms`
+  if (maxRetries === Number.POSITIVE_INFINITY) {
+    return retryingMsg
+  }
+  return !!retriesLeft ? `${retryingMsg}, ${retriesLeft} attempts left` : "no retries left"
+}
 
 const composeMessage = (customMessage: string, processMessage: ProcessMessage) => {
   return `${customMessage} [PID=${processMessage.pid}]`
@@ -392,9 +397,7 @@ const composeMessage = (customMessage: string, processMessage: ProcessMessage) =
 
 const composeErrorMessage = (customMessage: string, processMessage: ProcessMessage) => {
   const message = composeMessage(customMessage, processMessage)
-  return !!processMessage.retryInfo
-    ? `${message}, ${attemptsLeft(processMessage.retryInfo.retriesLeft, processMessage.retryInfo.minTimeoutMs)}`
-    : message
+  return !!processMessage.retryInfo ? `${message}, ${attemptsLeft(processMessage.retryInfo)}` : message
 }
 
 function getLocalServiceCommand({ spec: localModeSpec }: StartLocalModeParams): OsCommand | undefined {
@@ -412,7 +415,7 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RetriableProces
   return !!localServiceCmd
     ? new RetriableProcess({
         osCommand: localServiceCmd,
-      // todo: make this configurable
+        // todo: make this configurable
         retryConfig: {
           maxRetries: Number.POSITIVE_INFINITY,
           minTimeoutMs: 2000,
@@ -434,9 +437,9 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RetriableProces
           onError: (_msg: ProcessMessage) => {},
           onMessage: (msg: ProcessMessage) => {
             log.info({
-              status: "error",
+              status: "success",
               section: service.name,
-              msg: chalk.white(composeMessage("Local service started successfully", msg)),
+              msg: chalk.white(composeMessage("Local app is starting", msg)),
             })
           },
         },
@@ -690,13 +693,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   const kubectlPortForward = await getKubectlPortForwardProcess(configParams, localSshPort)
   const reversePortForward = await getReversePortForwardProcess(configParams, localSshPort)
   const compositeSshTunnel = composeSshTunnelProcessTree(kubectlPortForward, reversePortForward, log)
-  log.info({
-    status: "active",
-    section: service.name,
-    msg: chalk.gray(
-      `→ Starting local mode ssh tunnels:\n` + `${chalk.white(`${compositeSshTunnel.renderProcessTree()}`)}`
-    ),
-  })
+  log.debug(`Starting local mode ssh tunnels:\n` + `${chalk.white(`${compositeSshTunnel.renderProcessTree()}`)}`)
   LocalModeProcessRegistry.getInstance().register(compositeSshTunnel)
   compositeSshTunnel.startAll()
 }
