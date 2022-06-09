@@ -19,7 +19,12 @@ import { processModules } from "../process"
 import { GardenModule } from "../types/module"
 import { getTestTasks } from "../tasks/test"
 import { ConfigGraph } from "../config-graph"
-import { getDevModeModules, getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
+import {
+  getDevModeModules,
+  getHotReloadServiceNames,
+  getMatchingServiceNames,
+  validateHotReloadServiceNames,
+} from "./helpers"
 import { startServer } from "../server/server"
 import { BuildTask } from "../tasks/build"
 import { DeployTask } from "../tasks/deploy"
@@ -49,6 +54,14 @@ const devOpts = {
       don't support or haven't configured hot reloading).
     `,
     alias: "hot",
+  }),
+  "local-mode": new StringsParameter({
+    help: deline`[EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled.
+    Use comma as a separator to specify multiple services. Use * to deploy all
+    services with local mode enabled. When this option is used,
+    the command is run in persistent mode.
+    `,
+    alias: "local",
   }),
   "skip-tests": new BooleanParameter({
     help: "Disable running the tests.",
@@ -85,6 +98,8 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
         garden dev
         garden dev --hot=foo-service,bar-service  # enable hot reloading for foo-service and bar-service
         garden dev --hot=*                        # enable hot reloading for all compatible services
+        garden dev --local=service-1,service-2    # enable local mode for service-1 and service-2
+        garden dev --local=*                      # enable local mode for all compatible services
         garden dev --skip-tests=                  # skip running any tests
         garden dev --force                        # force redeploy of services when the command starts
         garden dev --name integ                   # run all tests with the name 'integ' in the project
@@ -152,15 +167,15 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       }
     }
 
+    const localModeServiceNames = getMatchingServiceNames(opts["local-mode"], graph)
+
     const services = graph.getServices({ names: args.services })
 
     const devModeServiceNames = services
       .map((s) => s.name)
       // Since dev mode is implicit when using this command, we consider explicitly enabling hot reloading to
       // take precedence over dev mode.
-      .filter((name) => !hotReloadServiceNames.includes(name))
-    // ignore local mode services in dev mode
-    const localModeServiceNames = []
+      .filter((name) => !hotReloadServiceNames.includes(name) && !localModeServiceNames.includes(name))
 
     const initialTasks = await getDevCommandInitialTasks({
       garden,
