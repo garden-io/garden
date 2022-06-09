@@ -266,23 +266,27 @@ export class RetriableProcess {
     const logDebugError = (stdio: StdIo, chunk: any) =>
       this.log.debug(`${processSays(stdio, chunk)}. ${attemptsLeft()}`)
 
-    const processMessage: (message: string) => ProcessMessage = (message: string) => {
+    const composeMessage = (message: string): ProcessMessage => {
       const pid = this.getCurrentPid()!
       return { pid, message }
     }
 
-    const processErrorMessage: (message: string) => ProcessMessage = (message: string) => {
-      const pid = this.getCurrentPid()!
+    const composeRetryInfo = (): RetryInfo => {
       const maxRetries = this.retryConfig?.maxRetries || 0
       const minTimeoutMs = this.retryConfig?.minTimeoutMs || 0
       const retriesLeft = this.retriesLeft || 0
-      return { pid, message, retryInfo: { maxRetries, minTimeoutMs, retriesLeft } }
+      return { maxRetries, minTimeoutMs, retriesLeft }
+    }
+
+    const composeErrorMessage = (message: string, error?: any): ProcessMessage => {
+      const pid = this.getCurrentPid()!
+      return { pid, message, retryInfo: composeRetryInfo() }
     }
 
     proc.on("error", async (error) => {
       const message = `Command '${this.command}' failed with error: ${JSON.stringify(error)}`
       logDebugError("", message)
-      this.stderrListener?.onError(processErrorMessage(message))
+      this.stderrListener?.onError(composeErrorMessage(message))
 
       await this.tryRestartSubTree()
     })
@@ -290,7 +294,7 @@ export class RetriableProcess {
     proc.on("close", async (code: number, signal: NodeJS.Signals) => {
       const message = `Command '${this.command}' exited with code ${code} and signal ${signal}.`
       logDebugError("", message)
-      this.stderrListener?.onError(processErrorMessage(message))
+      this.stderrListener?.onError(composeErrorMessage(message))
 
       await this.tryRestartSubTree()
     })
@@ -309,13 +313,13 @@ export class RetriableProcess {
       if (!hasErrorsFn || hasErrorsFn(chunk)) {
         const message = `Command '${this.command}' terminated: ${chunk.toString()}.`
         logDebugError("stderr", message)
-        this.stderrListener?.onError(processErrorMessage(message))
+        this.stderrListener?.onError(composeErrorMessage(message))
 
         await this.tryRestartSubTree()
       } else {
         const message = chunk.toString()
         logDebugInfo("stderr", message)
-        this.stderrListener?.onMessage(processMessage(message))
+        this.stderrListener?.onMessage(composeMessage(message))
 
         this.resetSubTreeRetriesLeft()
       }
@@ -335,13 +339,13 @@ export class RetriableProcess {
       if (!hasErrorsFn || !hasErrorsFn(chunk)) {
         const message = chunk.toString()
         logDebugInfo("stdout", message)
-        this.stdoutListener?.onMessage(processMessage(message))
+        this.stdoutListener?.onMessage(composeMessage(message))
 
         this.resetSubTreeRetriesLeft()
       } else {
         const message = `Command '${this.command}' terminated: ${chunk.toString()}. ${attemptsLeft()}`
         logDebugError("stdout", message)
-        this.stdoutListener?.onError(processErrorMessage(message))
+        this.stdoutListener?.onError(composeErrorMessage(message))
 
         await this.tryRestartSubTree()
       }
