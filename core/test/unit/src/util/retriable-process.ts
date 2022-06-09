@@ -39,15 +39,36 @@ describe("RetriableProcess", async () => {
   }
 
   function infiniteProcess(maxRetries: number, minTimeoutMs: number): RetriableProcess {
-    return new RetriableProcess({ osCommand: doNothingForeverOsCommand, maxRetries, minTimeoutMs, log })
+    return new RetriableProcess({
+      osCommand: doNothingForeverOsCommand,
+      retryConfig: {
+        maxRetries,
+        minTimeoutMs,
+      },
+      log,
+    })
   }
 
   function failingProcess(maxRetries: number, minTimeoutMs: number): RetriableProcess {
-    return new RetriableProcess({ osCommand: badOsCommand, maxRetries, minTimeoutMs, log })
+    return new RetriableProcess({
+      osCommand: badOsCommand,
+      retryConfig: {
+        maxRetries,
+        minTimeoutMs,
+      },
+      log,
+    })
   }
 
   function longSleepingProcess(maxRetries: number, minTimeoutMs: number): RetriableProcess {
-    return new RetriableProcess({ osCommand: longSleepOsCommand, maxRetries, minTimeoutMs, log })
+    return new RetriableProcess({
+      osCommand: longSleepOsCommand,
+      retryConfig: {
+        maxRetries,
+        minTimeoutMs,
+      },
+      log,
+    })
   }
 
   function infiniteProcessTree(maxRetries: number, minTimeoutMs: number): RetriableProcess[] {
@@ -112,7 +133,11 @@ describe("RetriableProcess", async () => {
   }
 
   it("new instance has state 'runnable'", () => {
-    const p = new RetriableProcess({ osCommand: { command: "pwd" }, maxRetries: 1, minTimeoutMs: 1000, log })
+    const p = new RetriableProcess({
+      osCommand: { command: "pwd" },
+      retryConfig: { maxRetries: 1, minTimeoutMs: 1000 },
+      log,
+    })
     expectRunnable(p)
   })
 

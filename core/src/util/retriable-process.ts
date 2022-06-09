@@ -12,19 +12,20 @@ import { sleepSync } from "./util"
 import { RuntimeError } from "../exceptions"
 
 export interface OsCommand {
-  command: string
-  args?: string[]
+  readonly command: string
+  readonly args?: string[]
 }
 
 export interface ProcessMessage {
-  pid: number
-  message: string
+  readonly pid: number
+  readonly message: string
+  readonly retryInfo?: RetryInfo
 }
 
-export interface ProcessErrorMessage extends ProcessMessage {
-  maxRetries: number
-  minTimeoutMs: number
-  retriesLeft: number
+export interface RetryInfo {
+  readonly maxRetries: number
+  readonly minTimeoutMs: number
+  readonly retriesLeft: number
 }
 
 export interface IOStreamListener {
@@ -34,7 +35,7 @@ export interface IOStreamListener {
    * @param chunk the data chuck from the stdio stream
    * @return {@code true} if any critical errors have been caught or {@code false} otherwise
    */
-  catchCriticalErrors?: (chunk: any) => boolean
+  readonly catchCriticalErrors?: (chunk: any) => boolean
 
   /**
    * Some stderr output may not contain any actual errors, it can have just warnings or some debug output.
@@ -48,7 +49,7 @@ export interface IOStreamListener {
    * @param chunk the data chuck from the stdio stream
    * @return {@code true} if the stderr data has any actual errors or {@code false} otherwise
    */
-  hasErrors: (chunk: any) => boolean
+  readonly hasErrors: (chunk: any) => boolean
 
   /**
    * Allows to define some process specific error handling.
@@ -56,7 +57,7 @@ export interface IOStreamListener {
    *
    * @param msg the details of the error output from the stdio stream
    */
-  onError: (msg: ProcessErrorMessage) => void
+  readonly onError: (msg: ProcessMessage) => void
 
   /**
    * Allows to define some process specific normal output handling.
@@ -64,7 +65,7 @@ export interface IOStreamListener {
    *
    * @param msg the details of the normal output from the stdio stream
    */
-  onMessage: (msg: ProcessMessage) => void
+  readonly onMessage: (msg: ProcessMessage) => void
 }
 
 export type CommandExecutor = (command: string) => ChildProcess
@@ -78,13 +79,17 @@ export namespace CommandExecutors {
 export type FailureHandler = () => Promise<void>
 
 export interface RetriableProcessConfig {
-  osCommand: OsCommand
-  executor?: CommandExecutor
-  maxRetries: number
-  minTimeoutMs: number
-  stderrListener?: IOStreamListener
-  stdoutListener?: IOStreamListener
-  log: LogEntry
+  readonly osCommand: OsCommand
+  readonly executor?: CommandExecutor
+  readonly retryConfig?: RetryConfig
+  readonly stderrListener?: IOStreamListener
+  readonly stdoutListener?: IOStreamListener
+  readonly log: LogEntry
+}
+
+export interface RetryConfig {
+  readonly maxRetries: number
+  readonly minTimeoutMs: number
 }
 
 export type InitialProcessState = "runnable"
@@ -171,8 +176,8 @@ export class RetriableProcess {
   private parent?: RetriableProcess
   private descendants: RetriableProcess[]
 
-  private readonly maxRetries: number
-  private readonly minTimeoutMs: number
+  // todo: test coverage for non-recoverable processes
+  private readonly retryConfig?: RetryConfig
   private retriesLeft: number
   private failureHandler: FailureHandler
 
@@ -190,9 +195,8 @@ export class RetriableProcess {
     this.lastKnownPid = undefined
     this.parent = undefined
     this.descendants = []
-    this.maxRetries = config.maxRetries
-    this.minTimeoutMs = config.minTimeoutMs
-    this.retriesLeft = config.maxRetries
+    this.retryConfig = config.retryConfig
+    this.retriesLeft = config.retryConfig?.maxRetries || 0
     this.failureHandler = async () => {} // no failure handler by default
     this.stderrListener = config.stderrListener
     this.stdoutListener = config.stdoutListener
@@ -254,7 +258,9 @@ export class RetriableProcess {
         : `[Process PID=${this.getCurrentPid()}] says "${chunk.toString()}"`
 
     const attemptsLeft = () =>
-      !!this.retriesLeft ? `${this.retriesLeft} attempts left, next in ${this.minTimeoutMs}ms` : "no attempts left"
+      !!this.retriesLeft
+        ? `${this.retriesLeft} attempts left, next in ${this.retryConfig?.minTimeoutMs}ms`
+        : "no attempts left"
 
     const logDebugInfo = (stdio: StdIo, chunk: any) => this.log.debug(processSays(stdio, chunk))
     const logDebugError = (stdio: StdIo, chunk: any) =>
@@ -265,11 +271,11 @@ export class RetriableProcess {
       return { pid, message }
     }
 
-    const processErrorMessage: (string) => ProcessErrorMessage = (message: string) => {
+    const processErrorMessage: (string) => ProcessMessage = (message: string) => {
       const pid = this.getCurrentPid()!
-      const maxRetries = this.maxRetries
-      const minTimeoutMs = this.minTimeoutMs
-      const retriesLeft = this.retriesLeft
+      const maxRetries = this.retryConfig?.maxRetries || 0
+      const minTimeoutMs = this.retryConfig?.minTimeoutMs || 0
+      const retriesLeft = this.retriesLeft || 0
       return { pid, message, maxRetries, minTimeoutMs, retriesLeft }
     }
 
@@ -360,7 +366,7 @@ export class RetriableProcess {
   }
 
   private resetNodeRetriesLeft(): void {
-    this.retriesLeft = this.maxRetries
+    this.retriesLeft = this.retryConfig?.maxRetries || 0
   }
 
   private resetSubTreeRetriesLeft(): void {
@@ -375,6 +381,9 @@ export class RetriableProcess {
   }
 
   private async tryRestartSubTree(): Promise<void> {
+    if (!this.retryConfig) {
+      return
+    }
     if (this.state === "retrying") {
       return
     }
@@ -383,7 +392,7 @@ export class RetriableProcess {
     this.stopSubTree()
     if (this.retriesLeft > 0) {
       // sleep synchronously to avoid pre-mature retry attempts
-      sleepSync(this.minTimeoutMs)
+      sleepSync(this.retryConfig.minTimeoutMs)
       this.retriesLeft--
       this.state = "retrying"
       this.startSubTree()

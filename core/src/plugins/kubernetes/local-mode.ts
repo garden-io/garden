@@ -30,7 +30,7 @@ import { join } from "path"
 import { ensureDir, readFile } from "fs-extra"
 import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
-import { OsCommand, ProcessErrorMessage, ProcessMessage, RetriableProcess } from "../../util/retriable-process"
+import { OsCommand, ProcessMessage, RetriableProcess } from "../../util/retriable-process"
 import { isConfiguredForLocalMode } from "./status/status"
 import { exec, registerCleanupFunction, shutdown } from "../../util/util"
 import getPort = require("get-port")
@@ -386,6 +386,12 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
 const attemptsLeft = (retriesLeft: number, timeoutMs: number) =>
   !!retriesLeft ? `${retriesLeft} attempts left, next in ${timeoutMs}ms` : "no attempts left"
 
+const processErrorMessage = (customMessage: string, msg: ProcessMessage) => {
+  return !!msg.retryInfo
+    ? `${customMessage} [PID=${msg.pid}], ${attemptsLeft(msg.retryInfo.retriesLeft, msg.retryInfo.minTimeoutMs)}`
+    : `${customMessage} [PID=${msg.pid}]`
+}
+
 function getLocalServiceCommand({ spec: localModeSpec }: StartLocalModeParams): OsCommand | undefined {
   const command = localModeSpec.command
   if (!command || command.length === 0) {
@@ -401,23 +407,25 @@ function getLocalServiceProcess(configParams: StartLocalModeParams): RetriablePr
   return !!localServiceCmd
     ? new RetriableProcess({
         osCommand: localServiceCmd,
-        maxRetries: 6,
-        minTimeoutMs: 5000,
+        retryConfig: {
+          maxRetries: 6,
+          minTimeoutMs: 5000,
+        },
         log,
         stderrListener: {
           hasErrors: (_chunk: any) => true,
-          onError: (msg: ProcessErrorMessage) => {
+          onError: (msg: ProcessMessage) => {
             log.error({
               status: "error",
               section: service.name,
-              msg: chalk.red(`Failed to start local service, ${attemptsLeft(msg.retriesLeft, msg.minTimeoutMs)}`),
+              msg: chalk.red(processErrorMessage("Failed to start local service", msg)),
             })
           },
           onMessage: (_msg: ProcessMessage) => {},
         },
         stdoutListener: {
           hasErrors: (_chunk: any) => false,
-          onError: (_msg: ProcessErrorMessage) => {},
+          onError: (_msg: ProcessMessage) => {},
           onMessage: (msg: ProcessMessage) => {
             log.info({
               status: "error",
@@ -462,22 +470,19 @@ async function getKubectlPortForwardProcess(
 
   return new RetriableProcess({
     osCommand: kubectlPortForwardCmd,
-    maxRetries: 6,
-    minTimeoutMs: 5000,
+    retryConfig: {
+      maxRetries: 6,
+      minTimeoutMs: 5000,
+    },
     log,
     stderrListener: {
       catchCriticalErrors: (_chunk: any) => false,
       hasErrors: (_chunk: any) => true,
-      onError: (msg: ProcessErrorMessage) => {
+      onError: (msg: ProcessMessage) => {
         log.error({
           status: "error",
           section: service.name,
-          msg: chalk.red(
-            `Failed to start ssh port-forwarding with PID ${msg.pid}, ${attemptsLeft(
-              msg.retriesLeft,
-              msg.minTimeoutMs
-            )}`
-          ),
+          msg: chalk.red(processErrorMessage("Failed to start ssh port-forwarding", msg)),
         })
       },
       onMessage: (_msg: ProcessMessage) => {},
@@ -485,7 +490,7 @@ async function getKubectlPortForwardProcess(
     stdoutListener: {
       catchCriticalErrors: (_chunk) => false,
       hasErrors: (_chunk: any) => false,
-      onError: (_msg: ProcessErrorMessage) => {},
+      onError: (_msg: ProcessMessage) => {},
       onMessage: (msg: ProcessMessage) => {
         if (msg.message.includes("Handling connection for")) {
           log.info({
@@ -538,8 +543,10 @@ async function getReversePortForwardProcess(
 
   return new RetriableProcess({
     osCommand: reversePortForwardingCmd,
-    maxRetries: 6,
-    minTimeoutMs: 5000,
+    retryConfig: {
+      maxRetries: 6,
+      minTimeoutMs: 5000,
+    },
     log,
     stderrListener: {
       catchCriticalErrors: (chunk: any) => {
@@ -591,16 +598,11 @@ async function getReversePortForwardProcess(
         // It indicates the successful connection.
         return !output.toLowerCase().includes("warning: permanently added")
       },
-      onError: (msg: ProcessErrorMessage) => {
+      onError: (msg: ProcessMessage) => {
         log.error({
           status: "error",
           section: service.name,
-          msg: chalk.red(
-            `Failed to start reverse port-forwarding with PID ${msg.pid}, ${attemptsLeft(
-              msg.retriesLeft,
-              msg.minTimeoutMs
-            )}`
-          ),
+          msg: chalk.red(processErrorMessage("Failed to start reverse port-forwarding", msg)),
         })
       },
       onMessage: (msg: ProcessMessage) => {
@@ -614,7 +616,7 @@ async function getReversePortForwardProcess(
     stdoutListener: {
       catchCriticalErrors: (_chunk: any) => false,
       hasErrors: (_chunk: any) => false,
-      onError: (_msg: ProcessErrorMessage) => {},
+      onError: (_msg: ProcessMessage) => {},
       onMessage: (msg: ProcessMessage) => {
         log.info({
           status: "error",
