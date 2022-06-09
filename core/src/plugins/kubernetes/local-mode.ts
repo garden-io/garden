@@ -386,10 +386,15 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
 const attemptsLeft = (retriesLeft: number, timeoutMs: number) =>
   !!retriesLeft ? `${retriesLeft} attempts left, next in ${timeoutMs}ms` : "no attempts left"
 
-const processErrorMessage = (customMessage: string, msg: ProcessMessage) => {
-  return !!msg.retryInfo
-    ? `${customMessage} [PID=${msg.pid}], ${attemptsLeft(msg.retryInfo.retriesLeft, msg.retryInfo.minTimeoutMs)}`
-    : `${customMessage} [PID=${msg.pid}]`
+const composeMessage = (customMessage: string, processMessage: ProcessMessage) => {
+  return `${customMessage} [PID=${processMessage.pid}]`
+}
+
+const composeErrorMessage = (customMessage: string, processMessage: ProcessMessage) => {
+  const message = composeMessage(customMessage, processMessage)
+  return !!processMessage.retryInfo
+    ? `${message}, ${attemptsLeft(processMessage.retryInfo.retriesLeft, processMessage.retryInfo.minTimeoutMs)}`
+    : message
 }
 
 function getLocalServiceCommand({ spec: localModeSpec }: StartLocalModeParams): OsCommand | undefined {
@@ -414,7 +419,7 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RetriableProces
             log.error({
               status: "error",
               section: service.name,
-              msg: chalk.red(processErrorMessage("Failed to start local service", msg)),
+              msg: chalk.red(composeErrorMessage("An error occurred in the local app", msg)),
             })
           },
           onMessage: (_msg: ProcessMessage) => {},
@@ -426,7 +431,7 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RetriableProces
             log.info({
               status: "error",
               section: service.name,
-              msg: chalk.white(`Local service started successfully with PID ${msg.pid}`),
+              msg: chalk.white(composeMessage("Local service started successfully", msg)),
             })
           },
         },
@@ -478,7 +483,7 @@ async function getKubectlPortForwardProcess(
         log.error({
           status: "error",
           section: service.name,
-          msg: chalk.red(processErrorMessage("Failed to start ssh port-forwarding", msg)),
+          msg: chalk.red(composeErrorMessage("SSH port-forward failed", msg)),
         })
       },
       onMessage: (_msg: ProcessMessage) => {},
@@ -490,9 +495,9 @@ async function getKubectlPortForwardProcess(
       onMessage: (msg: ProcessMessage) => {
         if (msg.message.includes("Handling connection for")) {
           log.info({
-            status: "error",
+            status: "success",
             section: service.name,
-            msg: chalk.white(`Ssh port-forwarding started successfully with PID ${msg.pid}`),
+            msg: chalk.white(composeMessage("SSH port-forward is up and running", msg)),
           })
         }
       },
@@ -598,14 +603,14 @@ async function getReversePortForwardProcess(
         log.error({
           status: "error",
           section: service.name,
-          msg: chalk.red(processErrorMessage("Failed to start reverse port-forwarding", msg)),
+          msg: chalk.red(composeErrorMessage("Reverse port-forward failed", msg)),
         })
       },
       onMessage: (msg: ProcessMessage) => {
         log.info({
-          status: "error",
+          status: "success",
           section: service.name,
-          msg: chalk.green(`Reverse port-forwarding started successfully with PID ${msg.pid}`),
+          msg: chalk.green(composeMessage("Reverse port-forward is up and running", msg)),
         })
       },
     },
@@ -617,7 +622,7 @@ async function getReversePortForwardProcess(
         log.info({
           status: "error",
           section: service.name,
-          msg: chalk.green(`Reverse port-forwarding started successfully with PID ${msg.pid}`),
+          msg: chalk.green(composeMessage("Reverse port-forwarding started successfully", msg)),
         })
       },
     },
