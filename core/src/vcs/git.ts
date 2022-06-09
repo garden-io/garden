@@ -34,6 +34,7 @@ import { pMemoizeDecorator } from "../lib/p-memoize"
 
 const submoduleErrorSuggestion = `Perhaps you need to run ${chalk.underline(`git submodule update --recursive`)}?`
 const hashConcurrencyLimit = 50
+const currentPlatformName = process.platform
 
 export function getCommitIdFromRefList(refList: string[]): string {
   try {
@@ -106,6 +107,17 @@ export class GitHandler extends VcsHandler {
     }
   }
 
+  toGitConfigCompatiblePath(path: string, platformName: string): string {
+    // Windows paths require some pre-processing,
+    // see the full list of platform names here: https://nodejs.org/api/process.html#process_process_platform
+    if (platformName !== "win32") {
+      return path
+    }
+
+    // Replace back-slashes with forward-slashes to make paths compatible with .gitconfig in Windows
+    return path.replace(/\\/g, "/")
+  }
+
   /**
    * Checks if a given {@code path} is a valid and safe Git repository.
    * If it is a valid Git repository owned by another user,
@@ -132,13 +144,17 @@ export class GitHandler extends VcsHandler {
               "It will be added to safe.directory list in the .gitconfig."
           )
         )
-        // add the safe directory globally to be able to run git command outside a (trusted) git repo
-        await git("config", "--global", "--add", "safe.directory", path)
+        const gitConfigCompatiblePath = this.toGitConfigCompatiblePath(path, currentPlatformName)
+        // Add the safe directory globally to be able to run git command outside a (trusted) git repo
+        // Wrap the path in quotes to pass it as a single argument in case if it contains any whitespaces
+        await git("config", "--global", "--add", "safe.directory", `'${gitConfigCompatiblePath}'`)
         this.gitSafeDirs[path] = true
         log.debug(`Configured git to trust repository in ${path}`)
         return
       } else {
-        log.error(`Unexpected Git error occurred. Exit code: ${err.exitCode}. Error message: ${err.stderr}`)
+        log.error(
+          `Unexpected Git error occurred while running 'git status' from path "${path}". Exit code: ${err.exitCode}. Error message: ${err.stderr}`
+        )
       }
 
       throw err
