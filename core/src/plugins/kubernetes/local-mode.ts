@@ -396,7 +396,13 @@ const composeMessage = (customMessage: string, processMessage: ProcessMessage): 
 }
 
 const composeErrorMessage = (customMessage: string, processMessage: ProcessMessage): string => {
-  const message = composeMessage(customMessage, processMessage)
+  let message = composeMessage(customMessage, processMessage)
+  if (!!processMessage.code) {
+    message = `${message}, exited with code ${processMessage.code}`
+  }
+  if (!!processMessage.signal) {
+    message = `${message}, killed with signal ${processMessage.signal}`
+  }
   return !!processMessage.retryInfo ? `${message}, ${attemptsLeft(processMessage.retryInfo)}` : message
 }
 
@@ -424,10 +430,13 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RetriableProces
         stderrListener: {
           hasErrors: (_chunk: any) => true,
           onError: (msg: ProcessMessage) => {
+            if (!msg.code && !msg.signal) {
+              return
+            }
             log.error({
               status: "error",
               section: service.name,
-              msg: chalk.red(composeErrorMessage("An error occurred in the local app", msg)),
+              msg: chalk.red(composeErrorMessage("Local app stopped", msg)),
             })
           },
           onMessage: (_msg: ProcessMessage) => {},
