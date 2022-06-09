@@ -19,6 +19,9 @@ export interface OsCommand {
 export interface ProcessMessage {
   readonly pid: number
   readonly message: string
+  readonly error?: any
+  readonly code?: number
+  readonly signal?: NodeJS.Signals
   readonly retryInfo?: RetryInfo
 }
 
@@ -280,13 +283,22 @@ export class RetriableProcess {
 
     const composeErrorMessage = (message: string, error?: any): ProcessMessage => {
       const pid = this.getCurrentPid()!
-      return { pid, message, retryInfo: composeRetryInfo() }
+      return { pid, message, retryInfo: composeRetryInfo(), error }
+    }
+
+    const composeTerminationMessage = (
+      message: string,
+      code: number | undefined,
+      signal: NodeJS.Signals | undefined
+    ): ProcessMessage => {
+      const pid = this.getCurrentPid()!
+      return { pid, message, retryInfo: composeRetryInfo(), code, signal }
     }
 
     proc.on("error", async (error) => {
       const message = `Command '${this.command}' failed with error: ${JSON.stringify(error)}`
       logDebugError("", message)
-      this.stderrListener?.onError(composeErrorMessage(message))
+      this.stderrListener?.onError(composeErrorMessage(message, error))
 
       await this.tryRestartSubTree()
     })
@@ -294,7 +306,7 @@ export class RetriableProcess {
     proc.on("close", async (code: number, signal: NodeJS.Signals) => {
       const message = `Command '${this.command}' exited with code ${code} and signal ${signal}.`
       logDebugError("", message)
-      this.stderrListener?.onError(composeErrorMessage(message))
+      this.stderrListener?.onError(composeTerminationMessage(message, code, signal))
 
       await this.tryRestartSubTree()
     })
