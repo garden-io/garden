@@ -60,6 +60,9 @@ const devOpts = {
     Use comma as a separator to specify multiple services. Use * to deploy all
     services with local mode enabled. When this option is used,
     the command is run in persistent mode.
+
+    This always takes the precedence over the dev mode if there are any conflicts,
+    i.e. if the same services are passed to both \`--dev\` and \`--local\` options.
     `,
     alias: "local",
   }),
