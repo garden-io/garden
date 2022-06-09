@@ -660,6 +660,8 @@ Examples:
     garden deploy --watch              # watch for changes to code
     garden deploy --dev=my-service     # deploys all services, with dev mode enabled for my-service
     garden deploy --dev                # deploys all compatible services with dev mode enabled
+    garden deploy --local=my-service   # deploys all services, with local mode enabled for my-service
+    garden deploy --local              # deploys all compatible services with local mode enabled
     garden deploy --env stage          # deploy your services to an environment called stage
     garden deploy --skip service-b     # deploy all services except service-b
 
