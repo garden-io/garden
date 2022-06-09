@@ -81,7 +81,7 @@ export namespace CommandExecutors {
 
 export type FailureHandler = () => Promise<void>
 
-export interface RetriableProcessConfig {
+export interface RecoverableProcessConfig {
   readonly osCommand: OsCommand
   readonly executor?: CommandExecutor
   readonly retryConfig?: RetryConfig
@@ -102,7 +102,7 @@ export type ActiveProcessState = "running" | "retrying"
  * If all retry attempts have failed, then the process reaches the "failed" state which is a final one.
  */
 export type InactiveProcessState = "stopped" | "failed"
-export type RetriableProcessState = InitialProcessState | ActiveProcessState | InactiveProcessState
+export type RecoverableProcessState = InitialProcessState | ActiveProcessState | InactiveProcessState
 
 /**
  * Motivation.
@@ -141,7 +141,7 @@ export type RetriableProcessState = InitialProcessState | ActiveProcessState | I
  *
  * Technical details.
  *
- * NOTE! The {@link RetriableProcess.command} should start exactly one OS process.
+ * NOTE! The {@link RecoverableProcess.command} should start exactly one OS process.
  * This means that the command should produce exactly one PID, and it can't contain any piped processes
  * or other process chains. It can be a shell script or an application that spawn own child processes.
  * If the command has a process chain then it's not guaranteed to work properly with this utility.
@@ -154,30 +154,31 @@ export type RetriableProcessState = InitialProcessState | ActiveProcessState | I
  * The process stdio stream handling can be thoroughly customized with {@link IOStreamListener} interface.
  * It allows to handle process specific output carefully and to process the command-specific errors.
  * Both {@code stdout} and {@code stderr} streams can have own custom listeners
- * defined in {@link RetriableProcessConfig}.
+ * defined in {@link RecoverableProcessConfig}.
  * It's a responsibility of an implementer to keep both listeners consistent to each other.
  *
- * If there are no retries left for any process in the tree, then its {@link RetriableProcess.failureHandler} is called.
+ * If there are no retries left for any process in the tree,
+ * then its {@link RecoverableProcess.failureHandler} is called.
  * The failure handler function is shared across all tree nodes and it's getting called from the failed node.
  * It is a kind of finalizer which is executed after the process tree has failed and cannot be used anymore.
  * It can be a function to shutdown the application or something else. By default it is a no-op function.
- * The failure handler can be configured with {@link RetriableProcess#setFailureHandler}.
+ * The failure handler can be configured with {@link RecoverableProcess#setFailureHandler}.
  *
- * See {@link RetriableProcess#startAll()} and {@link RetriableProcess#stopAll()} to start/stop a process tree.
+ * See {@link RecoverableProcess#startAll()} and {@link RecoverableProcess#stopAll()} to start/stop a process tree.
  *
  * TODO. Ideas on further improvements:
  *  - ability to attach/detach a process tree to/from a running process
  *  - support multiple parents if necessary
  */
-export class RetriableProcess {
+export class RecoverableProcess {
   public readonly command: string
   private readonly executor: CommandExecutor
   private proc?: ChildProcess
   private lastKnownPid?: number
-  private state: RetriableProcessState
+  private state: RecoverableProcessState
 
-  private parent?: RetriableProcess
-  private descendants: RetriableProcess[]
+  private parent?: RecoverableProcess
+  private descendants: RecoverableProcess[]
 
   // todo: test coverage for non-recoverable processes
   private readonly retryConfig?: RetryConfig
@@ -189,7 +190,7 @@ export class RetriableProcess {
 
   private readonly log: LogEntry
 
-  constructor(config: RetriableProcessConfig) {
+  constructor(config: RecoverableProcessConfig) {
     this.command = !!config.osCommand.args
       ? `${config.osCommand.command} ${config.osCommand.args.join(" ")}`
       : config.osCommand.command
@@ -207,17 +208,17 @@ export class RetriableProcess {
     this.state = "runnable"
   }
 
-  private static hasFailures(node: RetriableProcess): boolean {
+  private static hasFailures(node: RecoverableProcess): boolean {
     if (node.state === "failed") {
       return true
     }
-    const childrenFailures = node.descendants.map(RetriableProcess.hasFailures)
+    const childrenFailures = node.descendants.map(RecoverableProcess.hasFailures)
     return childrenFailures.some((v) => v)
   }
 
   public hasFailures(): boolean {
     const root = this.getTreeRoot()
-    return RetriableProcess.hasFailures(root)
+    return RecoverableProcess.hasFailures(root)
   }
 
   public getCurrentPid(): number | undefined {
@@ -228,13 +229,13 @@ export class RetriableProcess {
     return this.lastKnownPid
   }
 
-  public getCurrentState(): RetriableProcessState {
+  public getCurrentState(): RecoverableProcessState {
     return this.state
   }
 
-  private static recursiveAction(node: RetriableProcess, action: (node: RetriableProcess) => void): void {
+  private static recursiveAction(node: RecoverableProcess, action: (node: RecoverableProcess) => void): void {
     action(node)
-    node.descendants.forEach((descendant) => RetriableProcess.recursiveAction(descendant, action))
+    node.descendants.forEach((descendant) => RecoverableProcess.recursiveAction(descendant, action))
   }
 
   private stopNode(): void {
@@ -249,7 +250,7 @@ export class RetriableProcess {
   }
 
   private stopSubTree(): void {
-    RetriableProcess.recursiveAction(this, (node) => node.stopNode())
+    RecoverableProcess.recursiveAction(this, (node) => node.stopNode())
   }
 
   private registerNodeListeners(proc: ChildProcess): void {
@@ -378,7 +379,7 @@ export class RetriableProcess {
   }
 
   private unregisterSubTreeListeners(): void {
-    RetriableProcess.recursiveAction(this, (node) => node.unregisterNodeListeners())
+    RecoverableProcess.recursiveAction(this, (node) => node.unregisterNodeListeners())
   }
 
   private resetNodeRetriesLeft(): void {
@@ -386,7 +387,7 @@ export class RetriableProcess {
   }
 
   private resetSubTreeRetriesLeft(): void {
-    RetriableProcess.recursiveAction(this, (node) => node.resetNodeRetriesLeft())
+    RecoverableProcess.recursiveAction(this, (node) => node.resetNodeRetriesLeft())
   }
 
   private async fail(): Promise<void> {
@@ -417,7 +418,7 @@ export class RetriableProcess {
     }
   }
 
-  public addDescendantProcess(descendant: RetriableProcess): RetriableProcess {
+  public addDescendantProcess(descendant: RecoverableProcess): RecoverableProcess {
     if (this.state === "running") {
       throw new RuntimeError("Cannot attach a descendant to already running process", this)
     }
@@ -427,7 +428,7 @@ export class RetriableProcess {
     return descendant
   }
 
-  public addDescendantProcesses(...descendants: RetriableProcess[]): RetriableProcess[] {
+  public addDescendantProcesses(...descendants: RecoverableProcess[]): RecoverableProcess[] {
     for (const descendant of descendants) {
       this.addDescendantProcess(descendant)
     }
@@ -448,14 +449,14 @@ export class RetriableProcess {
   }
 
   public getTreeRoot() {
-    let cur: RetriableProcess = this
+    let cur: RecoverableProcess = this
     while (!!cur.parent) {
       cur = cur.parent
     }
     return cur
   }
 
-  private startNode(): RetriableProcess {
+  private startNode(): RecoverableProcess {
     if (this.state === "running") {
       throw new RuntimeError("Process is already running.", this)
     }
@@ -472,13 +473,13 @@ export class RetriableProcess {
     return this
   }
 
-  private static startFromNode(startNode: RetriableProcess): RetriableProcess {
-    RetriableProcess.recursiveAction(startNode, (node) => node.startNode())
+  private static startFromNode(startNode: RecoverableProcess): RecoverableProcess {
+    RecoverableProcess.recursiveAction(startNode, (node) => node.startNode())
     return startNode
   }
 
-  private startSubTree(): RetriableProcess {
-    RetriableProcess.startFromNode(this)
+  private startSubTree(): RecoverableProcess {
+    RecoverableProcess.startFromNode(this)
     return this
   }
 
@@ -487,9 +488,9 @@ export class RetriableProcess {
    *
    * @return the reference to the tree root, i.e. to the parent-most retriable process
    */
-  public startAll(): RetriableProcess {
+  public startAll(): RecoverableProcess {
     const root = this.getTreeRoot()
-    RetriableProcess.startFromNode(root)
+    RecoverableProcess.startFromNode(root)
     return root
   }
 
@@ -498,7 +499,7 @@ export class RetriableProcess {
    *
    * @return the reference to the tree root, i.e. to the parent-most retriable process
    */
-  public stopAll(): RetriableProcess {
+  public stopAll(): RecoverableProcess {
     const root = this.getTreeRoot()
     root.unregisterSubTreeListeners()
     root.stopSubTree()
@@ -507,6 +508,6 @@ export class RetriableProcess {
 
   public setFailureHandler(failureHandler: FailureHandler): void {
     const root = this.getTreeRoot()
-    RetriableProcess.recursiveAction(root, (node) => (node.failureHandler = failureHandler))
+    RecoverableProcess.recursiveAction(root, (node) => (node.failureHandler = failureHandler))
   }
 }

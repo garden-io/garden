@@ -8,12 +8,12 @@
 
 import env from "env-var"
 import { expect } from "chai"
-import { RetriableProcess } from "../../../../src/util/retriable-process"
+import { RecoverableProcess } from "../../../../src/util/recoverable-process"
 import { getLogger } from "../../../../src/logger/logger"
 import { sleep } from "../../../../src/util/util"
 import { initTestLogger } from "../../../helpers"
 
-describe("RetriableProcess", async () => {
+describe("RecoverableProcess", async () => {
   initTestLogger()
   const log = getLogger().placeholder()
 
@@ -33,13 +33,13 @@ describe("RetriableProcess", async () => {
     return ciEnv || circleCiEnv
   }
 
-  function killNode(node: RetriableProcess) {
+  function killNode(node: RecoverableProcess) {
     const untypedNode: any = <any>node
     untypedNode.proc?.kill()
   }
 
-  function infiniteProcess(maxRetries: number, minTimeoutMs: number): RetriableProcess {
-    return new RetriableProcess({
+  function infiniteProcess(maxRetries: number, minTimeoutMs: number): RecoverableProcess {
+    return new RecoverableProcess({
       osCommand: doNothingForeverOsCommand,
       retryConfig: {
         maxRetries,
@@ -49,8 +49,8 @@ describe("RetriableProcess", async () => {
     })
   }
 
-  function failingProcess(maxRetries: number, minTimeoutMs: number): RetriableProcess {
-    return new RetriableProcess({
+  function failingProcess(maxRetries: number, minTimeoutMs: number): RecoverableProcess {
+    return new RecoverableProcess({
       osCommand: badOsCommand,
       retryConfig: {
         maxRetries,
@@ -60,8 +60,8 @@ describe("RetriableProcess", async () => {
     })
   }
 
-  function longSleepingProcess(maxRetries: number, minTimeoutMs: number): RetriableProcess {
-    return new RetriableProcess({
+  function longSleepingProcess(maxRetries: number, minTimeoutMs: number): RecoverableProcess {
+    return new RecoverableProcess({
       osCommand: longSleepOsCommand,
       retryConfig: {
         maxRetries,
@@ -71,7 +71,7 @@ describe("RetriableProcess", async () => {
     })
   }
 
-  function infiniteProcessTree(maxRetries: number, minTimeoutMs: number): RetriableProcess[] {
+  function infiniteProcessTree(maxRetries: number, minTimeoutMs: number): RecoverableProcess[] {
     const root = infiniteProcess(maxRetries, minTimeoutMs)
     const left = infiniteProcess(maxRetries, minTimeoutMs)
     const right = infiniteProcess(maxRetries, minTimeoutMs)
@@ -84,7 +84,7 @@ describe("RetriableProcess", async () => {
     return [root, left, right, rightChild1, rightChild2]
   }
 
-  function longSleepingProcessTree(maxRetries: number, minTimeoutMs: number): RetriableProcess[] {
+  function longSleepingProcessTree(maxRetries: number, minTimeoutMs: number): RecoverableProcess[] {
     const root = longSleepingProcess(maxRetries, minTimeoutMs)
     const left = longSleepingProcess(maxRetries, minTimeoutMs)
     const right = longSleepingProcess(maxRetries, minTimeoutMs)
@@ -104,20 +104,20 @@ describe("RetriableProcess", async () => {
     await sleep(retryTimeoutMs)
   }
 
-  function expectRunnable(node: RetriableProcess) {
+  function expectRunnable(node: RecoverableProcess) {
     expect(node.getCurrentState()).to.eql("runnable")
     expect(node.getCurrentPid()).to.be.undefined
     expect(node.getLastKnownPid()).to.be.undefined
   }
 
-  function expectRunning(node: RetriableProcess) {
+  function expectRunning(node: RecoverableProcess) {
     expect(node.getCurrentState()).to.eql("running")
     expect(node.getCurrentPid()).to.be.not.undefined
     expect(node.getLastKnownPid()).to.be.not.undefined
     expect(node.getCurrentPid()).to.be.eql(node.getLastKnownPid())
   }
 
-  function expectStopped(node: RetriableProcess) {
+  function expectStopped(node: RecoverableProcess) {
     expect(node.getCurrentState()).to.eql("stopped")
     if (!isCiEnv()) {
       expect(node.getCurrentPid()).to.be.undefined
@@ -125,7 +125,7 @@ describe("RetriableProcess", async () => {
     expect(node.getLastKnownPid()).to.be.not.undefined
   }
 
-  function expectFailed(node: RetriableProcess) {
+  function expectFailed(node: RecoverableProcess) {
     expect(node.getCurrentState()).to.eql("failed")
     expect(node.getCurrentPid()).to.be.undefined
     expect(node.getLastKnownPid()).to.be.not.undefined
@@ -133,7 +133,7 @@ describe("RetriableProcess", async () => {
   }
 
   it("new instance has state 'runnable'", () => {
-    const p = new RetriableProcess({
+    const p = new RecoverableProcess({
       osCommand: { command: "pwd" },
       retryConfig: { maxRetries: 1, minTimeoutMs: 1000 },
       log,

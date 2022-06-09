@@ -30,7 +30,13 @@ import { join } from "path"
 import { ensureDir, readFile } from "fs-extra"
 import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
-import { OsCommand, ProcessMessage, RetriableProcess, RetryInfo } from "../../util/retriable-process"
+import {
+  OsCommand,
+  ProcessMessage,
+  RecoverableProcess,
+  RecoverableProcessState,
+  RetryInfo
+} from "../../util/recoverable-process"
 import { isConfiguredForLocalMode } from "./status/status"
 import { exec, registerCleanupFunction, shutdown } from "../../util/util"
 import getPort = require("get-port")
@@ -209,13 +215,13 @@ export class ProxySshKeystore {
  * but now retriable processes are used in local mode only.
  */
 export class LocalModeProcessRegistry {
-  private readonly retriableProcesses: Map<string, RetriableProcess>
+  private readonly recoverableProcesses: Map<string, RecoverableProcess>
 
   private constructor() {
     if (!!LocalModeProcessRegistry.instance) {
       throw new RuntimeError("Cannot init singleton twice, use LocalModeProcessRegistry.getInstance()", {})
     }
-    this.retriableProcesses = new Map<string, RetriableProcess>()
+    this.recoverableProcesses = new Map<string, RecoverableProcess>()
   }
 
   private static instance?: LocalModeProcessRegistry = undefined
@@ -229,14 +235,14 @@ export class LocalModeProcessRegistry {
     return LocalModeProcessRegistry.instance
   }
 
-  public register(process: RetriableProcess): void {
+  public register(process: RecoverableProcess): void {
     const root = process.getTreeRoot()
-    this.retriableProcesses.set(root.command, root)
+    this.recoverableProcesses.set(root.command, root)
   }
 
   public shutdown(): void {
-    this.retriableProcesses.forEach((process) => process.stopAll())
-    this.retriableProcesses.clear()
+    this.recoverableProcesses.forEach((process) => process.stopAll())
+    this.recoverableProcesses.clear()
   }
 }
 
@@ -414,12 +420,12 @@ function getLocalServiceCommand({ spec: localModeSpec }: StartLocalModeParams): 
   return { command: command.join(" ") }
 }
 
-function getLocalAppProcess(configParams: StartLocalModeParams): RetriableProcess | undefined {
+function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProcess | undefined {
   const localServiceCmd = getLocalServiceCommand(configParams)
   const { service, log } = configParams
 
   return !!localServiceCmd
-    ? new RetriableProcess({
+    ? new RecoverableProcess({
         osCommand: localServiceCmd,
         // todo: make this configurable
         retryConfig: {
@@ -482,11 +488,11 @@ async function getKubectlPortForwardCommand(
 async function getKubectlPortForwardProcess(
   configParams: StartLocalModeParams,
   localSshPort: number
-): Promise<RetriableProcess> {
+): Promise<RecoverableProcess> {
   const kubectlPortForwardCmd = await getKubectlPortForwardCommand(configParams, localSshPort)
   const { service, log } = configParams
 
-  return new RetriableProcess({
+  return new RecoverableProcess({
     osCommand: kubectlPortForwardCmd,
     retryConfig: {
       maxRetries: 6,
@@ -555,11 +561,11 @@ async function getReversePortForwardCommand(
 async function getReversePortForwardProcess(
   configParams: StartLocalModeParams,
   localSshPort: number
-): Promise<RetriableProcess> {
+): Promise<RecoverableProcess> {
   const reversePortForwardingCmd = await getReversePortForwardCommand(configParams, localSshPort)
   const { service, log } = configParams
 
-  return new RetriableProcess({
+  return new RecoverableProcess({
     osCommand: reversePortForwardingCmd,
     retryConfig: {
       maxRetries: 6,
@@ -647,10 +653,10 @@ async function getReversePortForwardProcess(
 }
 
 function composeSshTunnelProcessTree(
-  sshTunnel: RetriableProcess,
-  reversePortForward: RetriableProcess,
+  sshTunnel: RecoverableProcess,
+  reversePortForward: RecoverableProcess,
   log: LogEntry
-): RetriableProcess {
+): RecoverableProcess {
   const root = sshTunnel
   root.addDescendantProcess(reversePortForward)
   root.setFailureHandler(async () => {
