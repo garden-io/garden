@@ -193,9 +193,11 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const modules = Array.from(new Set(services.map((s) => s.module)))
-    const devModeServiceNames = getMatchingServiceNames(opts["dev-mode"], initGraph)
-    const hotReloadServiceNames = getHotReloadServiceNames(opts["hot-reload"], initGraph)
     const localModeServiceNames = getMatchingServiceNames(opts["local-mode"], initGraph)
+    const devModeServiceNames = getMatchingServiceNames(opts["dev-mode"], initGraph).filter(
+      (name) => !localModeServiceNames.includes(name)
+    )
+    const hotReloadServiceNames = getHotReloadServiceNames(opts["hot-reload"], initGraph)
 
     let watch = opts.watch
 

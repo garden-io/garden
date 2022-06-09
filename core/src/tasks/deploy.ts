@@ -74,18 +74,6 @@ export class DeployTask extends BaseTask {
     this.validate()
   }
 
-  validate(): void {
-    const localModeServiceNames = new Set(this.localModeServiceNames)
-    const devLocalModeIntersection = new Set(this.devModeServiceNames.filter((name) => localModeServiceNames.has(name)))
-    if (devLocalModeIntersection.size > 0) {
-      const devLocalModeConflicts = [...devLocalModeIntersection].join(", ")
-      throw new ConfigurationError(
-        `Got conflicting deployment options --dev-mode and --local-mode for services: ${devLocalModeConflicts}.`,
-        {}
-      )
-    }
-  }
-
   async resolveDependencies() {
     const dg = this.graph
 
