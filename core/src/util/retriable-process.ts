@@ -266,17 +266,17 @@ export class RetriableProcess {
     const logDebugError = (stdio: StdIo, chunk: any) =>
       this.log.debug(`${processSays(stdio, chunk)}. ${attemptsLeft()}`)
 
-    const processMessage: (string) => ProcessMessage = (message: string) => {
+    const processMessage: (message: string) => ProcessMessage = (message: string) => {
       const pid = this.getCurrentPid()!
       return { pid, message }
     }
 
-    const processErrorMessage: (string) => ProcessMessage = (message: string) => {
+    const processErrorMessage: (message: string) => ProcessMessage = (message: string) => {
       const pid = this.getCurrentPid()!
       const maxRetries = this.retryConfig?.maxRetries || 0
       const minTimeoutMs = this.retryConfig?.minTimeoutMs || 0
       const retriesLeft = this.retriesLeft || 0
-      return { pid, message, maxRetries, minTimeoutMs, retriesLeft }
+      return { pid, message, retryInfo: { maxRetries, minTimeoutMs, retriesLeft } }
     }
 
     proc.on("error", async (error) => {
