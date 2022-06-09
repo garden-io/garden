@@ -412,6 +412,11 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RetriableProces
   return !!localServiceCmd
     ? new RetriableProcess({
         osCommand: localServiceCmd,
+      // todo: make this configurable
+        retryConfig: {
+          maxRetries: Number.POSITIVE_INFINITY,
+          minTimeoutMs: 2000,
+        },
         log,
         stderrListener: {
           hasErrors: (_chunk: any) => true,
