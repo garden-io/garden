@@ -400,17 +400,13 @@ function getLocalServiceCommand({ spec: localModeSpec }: StartLocalModeParams): 
   return { command: command.join(" ") }
 }
 
-function getLocalServiceProcess(configParams: StartLocalModeParams): RetriableProcess | undefined {
+function getLocalAppProcess(configParams: StartLocalModeParams): RetriableProcess | undefined {
   const localServiceCmd = getLocalServiceCommand(configParams)
   const { service, log } = configParams
 
   return !!localServiceCmd
     ? new RetriableProcess({
         osCommand: localServiceCmd,
-        retryConfig: {
-          maxRetries: 6,
-          minTimeoutMs: 5000,
-        },
         log,
         stderrListener: {
           hasErrors: (_chunk: any) => true,
@@ -628,22 +624,13 @@ async function getReversePortForwardProcess(
   })
 }
 
-function composeProcessTree(
-  localService: RetriableProcess | undefined,
+function composeSshTunnelProcessTree(
   sshTunnel: RetriableProcess,
   reversePortForward: RetriableProcess,
   log: LogEntry
 ): RetriableProcess {
-  sshTunnel.addDescendantProcess(reversePortForward)
-
-  let root: RetriableProcess
-  if (!!localService) {
-    localService.addDescendantProcess(sshTunnel)
-    root = localService
-  } else {
-    root = sshTunnel
-  }
-
+  const root = sshTunnel
+  root.addDescendantProcess(reversePortForward)
   root.setFailureHandler(async () => {
     log.error("Local mode failed, shutting down...")
     await shutdown(1)
@@ -684,16 +671,22 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   const localSshPort = await getPort()
   ProxySshKeystore.getInstance(log).registerLocalPort(localSshPort, log)
 
-  const localService = getLocalServiceProcess(configParams)
+  const localApp = getLocalAppProcess(configParams)
+  if (!!localApp) {
+    LocalModeProcessRegistry.getInstance().register(localApp)
+    localApp.startAll()
+  }
+
   const kubectlPortForward = await getKubectlPortForwardProcess(configParams, localSshPort)
   const reversePortForward = await getReversePortForwardProcess(configParams, localSshPort)
-
-  const processTree = composeProcessTree(localService, kubectlPortForward, reversePortForward, log)
+  const compositeSshTunnel = composeSshTunnelProcessTree(kubectlPortForward, reversePortForward, log)
   log.info({
     status: "active",
     section: service.name,
-    msg: chalk.gray(`→ Starting local mode process tree:\n` + `${chalk.white(`${processTree.renderProcessTree()}`)}`),
+    msg: chalk.gray(
+      `→ Starting local mode ssh tunnels:\n` + `${chalk.white(`${compositeSshTunnel.renderProcessTree()}`)}`
+    ),
   })
-  LocalModeProcessRegistry.getInstance().register(processTree)
-  processTree.startAll()
+  LocalModeProcessRegistry.getInstance().register(compositeSshTunnel)
+  compositeSshTunnel.startAll()
 }
