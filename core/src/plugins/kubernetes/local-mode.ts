@@ -30,13 +30,7 @@ import { join } from "path"
 import { ensureDir, readFile } from "fs-extra"
 import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
-import {
-  OsCommand,
-  ProcessMessage,
-  RecoverableProcess,
-  RecoverableProcessState,
-  RetryInfo
-} from "../../util/recoverable-process"
+import { OsCommand, ProcessMessage, RecoverableProcess, RetryInfo } from "../../util/recoverable-process"
 import { isConfiguredForLocalMode } from "./status/status"
 import { exec, registerCleanupFunction, shutdown } from "../../util/util"
 import getPort = require("get-port")
@@ -436,27 +430,21 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
         stderrListener: {
           hasErrors: (_chunk: any) => true,
           onError: (msg: ProcessMessage) => {
-            if (!msg.code && !msg.signal) {
-              return
+            if (msg.code || msg.signal) {
+              log.error({
+                status: "error",
+                section: service.name,
+                msg: chalk.red(composeErrorMessage("Local app stopped", msg)),
+              })
+            } else {
+              log.error({
+                status: "error",
+                section: service.name,
+                msg: chalk.red(composeErrorMessage("Error running local app, check the logs", msg)),
+              })
             }
-            log.error({
-              status: "error",
-              section: service.name,
-              msg: chalk.red(composeErrorMessage("Local app stopped", msg)),
-            })
           },
           onMessage: (_msg: ProcessMessage) => {},
-        },
-        stdoutListener: {
-          hasErrors: (_chunk: any) => false,
-          onError: (_msg: ProcessMessage) => {},
-          onMessage: (msg: ProcessMessage) => {
-            log.info({
-              status: "success",
-              section: service.name,
-              msg: chalk.white(composeMessage("Local app is starting", msg)),
-            })
-          },
         },
       })
     : undefined
@@ -633,7 +621,7 @@ async function getReversePortForwardProcess(
         log.info({
           status: "success",
           section: service.name,
-          msg: chalk.green(composeMessage("Reverse port-forward is up and running", msg)),
+          msg: chalk.white(composeMessage("Reverse port-forward is up and running", msg)),
         })
       },
     },
@@ -643,9 +631,9 @@ async function getReversePortForwardProcess(
       onError: (_msg: ProcessMessage) => {},
       onMessage: (msg: ProcessMessage) => {
         log.info({
-          status: "error",
+          status: "success",
           section: service.name,
-          msg: chalk.green(composeMessage("Reverse port-forwarding started successfully", msg)),
+          msg: chalk.white(composeMessage("Reverse port-forward is up and running", msg)),
         })
       },
     },
@@ -702,6 +690,11 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   const localApp = getLocalAppProcess(configParams)
   if (!!localApp) {
     LocalModeProcessRegistry.getInstance().register(localApp)
+    log.info({
+      status: "active",
+      section: service.name,
+      msg: chalk.white("Starting local app..."),
+    })
     localApp.startAll()
   }
 
@@ -709,6 +702,11 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   const reversePortForward = await getReversePortForwardProcess(configParams, localSshPort)
   const compositeSshTunnel = composeSshTunnelProcessTree(kubectlPortForward, reversePortForward, log)
   log.debug(`Starting local mode ssh tunnels:\n` + `${chalk.white(`${compositeSshTunnel.renderProcessTree()}`)}`)
+  log.info({
+    status: "active",
+    section: service.name,
+    msg: chalk.white("Starting local mode ssh tunnels..."),
+  })
   LocalModeProcessRegistry.getInstance().register(compositeSshTunnel)
   compositeSshTunnel.startAll()
 }
