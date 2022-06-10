@@ -306,7 +306,8 @@ services:
     # and the reverse port forwarding will be automatically configured to route the traffic to the local service and
     # back.
     #
-    # Local mode is enabled by setting the `--local-mode` option on the `garden deploy` command.
+    # Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+    # The local mode always takes the precedence over the dev mode if there are any conflicts service names.
     #
     # The health checks are disabled for services running in local mode.
     #
@@ -1402,7 +1403,8 @@ Specifies necessary configuration details of the local application which will re
 The target service will be replaced by a proxy container with an SSH server running,
 and the reverse port forwarding will be automatically configured to route the traffic to the local service and back.
 
-Local mode is enabled by setting the `--local-mode` option on the `garden deploy` command.
+Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+The local mode always takes the precedence over the dev mode if there are any conflicts service names.
 
 The health checks are disabled for services running in local mode.
 

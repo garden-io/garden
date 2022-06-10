@@ -126,11 +126,19 @@ To deploy your services with local mode enabled, you can use the `deploy` comman
 
 ```sh
 # Deploy specific services in local mode:
-garden deploy --local-mode=myservice
-garden deploy --local-mode=myservice,my-other-service
+garden deploy --local=myservice
+garden deploy --local=myservice,my-other-service
 
 # Deploy all applicable services in local mode:
-garden deploy --local-mode
+garden deploy --local
+garden deploy --local=*
+
+# The dev command can deploy specific services in local mode:
+garden dev --local=myservice
+garden dev --local=myservice,my-other-service
+
+# The dev command can deploy all applicable services in local mode:
+garden dev --local
 ```
 
 Once you quit/terminate the Garden command, all port-forwards established by the command will be stopped, but the
