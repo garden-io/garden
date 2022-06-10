@@ -223,8 +223,12 @@ export class RecoverableProcess {
     if (node.state === "failed") {
       return true
     }
-    const childrenFailures = node.descendants.map(RecoverableProcess.hasFailures)
-    return childrenFailures.some((v) => v)
+    for (const descendant of node.descendants) {
+      if (RecoverableProcess.hasFailures(descendant)) {
+        return true
+      }
+    }
+    return false
   }
 
   public hasFailures(): boolean {
