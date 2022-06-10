@@ -43,6 +43,8 @@ const localhost = "127.0.0.1"
 const AsyncLock = require("async-lock")
 const sshKeystoreAsyncLock = new AsyncLock()
 
+const portForwardRetryTimeoutMs = 5000
+
 interface ConfigureLocalModeParams {
   ctx: PluginContext
   target: HotReloadableResource
@@ -483,8 +485,8 @@ async function getKubectlPortForwardProcess(
   return new RecoverableProcess({
     osCommand: kubectlPortForwardCmd,
     retryConfig: {
-      maxRetries: 6,
-      minTimeoutMs: 5000,
+      maxRetries: Number.POSITIVE_INFINITY,
+      minTimeoutMs: portForwardRetryTimeoutMs,
     },
     log,
     stderrListener: {
@@ -556,8 +558,8 @@ async function getReversePortForwardProcess(
   return new RecoverableProcess({
     osCommand: reversePortForwardingCmd,
     retryConfig: {
-      maxRetries: 6,
-      minTimeoutMs: 5000,
+      maxRetries: Number.POSITIVE_INFINITY,
+      minTimeoutMs: portForwardRetryTimeoutMs,
     },
     log,
     stderrListener: {
