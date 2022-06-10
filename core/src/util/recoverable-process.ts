@@ -9,7 +9,7 @@
 import { ChildProcess, exec, spawn } from "child_process"
 import { LogEntry } from "../logger/log-entry"
 import { sleepSync } from "./util"
-import { RuntimeError } from "../exceptions"
+import { ConfigurationError, RuntimeError } from "../exceptions"
 
 export interface OsCommand {
   readonly command: string
@@ -93,6 +93,17 @@ export interface RecoverableProcessConfig {
 export interface RetryConfig {
   readonly maxRetries: number
   readonly minTimeoutMs: number
+}
+
+export function validateRetryConfig(retryConfig: RetryConfig): RetryConfig {
+  const requireNonNegative = (value: number, name: string): void => {
+    if (value < 0) {
+      throw new ConfigurationError(`Value ${name} cannot be negative: ${value}`, { name: value })
+    }
+  }
+  requireNonNegative(retryConfig.maxRetries, "maxRetries")
+  requireNonNegative(retryConfig.minTimeoutMs, "minTimeoutMs")
+  return retryConfig
 }
 
 export type InitialProcessState = "runnable"
@@ -199,7 +210,7 @@ export class RecoverableProcess {
     this.lastKnownPid = undefined
     this.parent = undefined
     this.descendants = []
-    this.retryConfig = config.retryConfig
+    this.retryConfig = !!config.retryConfig ? validateRetryConfig(config.retryConfig) : config.retryConfig
     this.retriesLeft = config.retryConfig?.maxRetries || 0
     this.failureHandler = async () => {} // no failure handler by default
     this.stderrListener = config.stderrListener
