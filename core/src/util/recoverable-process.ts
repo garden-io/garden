@@ -477,10 +477,9 @@ export class RecoverableProcess {
 
   private startNode(): RecoverableProcess {
     if (this.state === "running") {
-      throw new RuntimeError("Process is already running.", this)
+      return this
     }
-
-    if (this.hasFailures()) {
+    if (this.state === "failed") {
       throw new RuntimeError("Cannot start failed process with no retries left.", this)
     }
     // no need to use pRetry here, the failures will be handled by event the process listeners
@@ -504,17 +503,29 @@ export class RecoverableProcess {
 
   /**
    * Starts all processes in the tree starting from the parent-most one.
+   * This action is idempotent.
+   * It means that calling this method multiple times won't spawn any new processes,
+   * the existing running process will be returned.
+   *
+   * Calling this on a failed process tree (i.e. if at least one tree element failed with no retries left)
+   * will cause an error.
    *
    * @return the reference to the tree root, i.e. to the parent-most recoverable process
    */
   public startAll(): RecoverableProcess {
     const root = this.getTreeRoot()
+    if (root.hasFailures()) {
+      throw new RuntimeError("Cannot start the process tree. Some processes failed with no retries left.", this)
+    }
     RecoverableProcess.startFromNode(root)
     return root
   }
 
   /**
    * Stops all processes in the tree starting from the parent-most one.
+   * This action is idempotent.
+   * It means that calling this method multiple times won't have any extra effect,
+   * the existing stopped process will remain stopped.
    *
    * @return the reference to the tree root, i.e. to the parent-most recoverable process
    */

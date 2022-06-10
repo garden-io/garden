@@ -197,12 +197,28 @@ describe("RecoverableProcess", async () => {
     expectRunnable(p)
   })
 
-  it("fails to start already running process", () => {
+  it("startAll call is idempotent on success", () => {
     const p = infiniteProcess(0, 0)
-    p.startAll()
 
+    const running = p.startAll()
     expectRunning(p)
-    expect(() => p.startAll()).to.throw("Process is already running.")
+
+    const runningAgain = p.startAll()
+    expectRunning(p)
+    expect(running).to.equal(runningAgain!)
+
+    p.stopAll()
+    expectStopped(p)
+  })
+
+  it("stopAll call is idempotent", () => {
+    const p = infiniteProcess(0, 0)
+
+    p.startAll()
+    expectRunning(p)
+
+    p.stopAll()
+    expectStopped(p)
 
     p.stopAll()
     expectStopped(p)
@@ -471,7 +487,7 @@ describe("RecoverableProcess", async () => {
     expectStopped(left)
     expectStopped(right)
 
-    expect(() => root.startAll()).to.throw("Cannot start failed process with no retries left.")
+    expect(() => root.startAll()).to.throw("Cannot start the process tree. Some processes failed with no retries left.")
   })
 
   it("entire tree should fail on a node process failure", async () => {
@@ -493,7 +509,7 @@ describe("RecoverableProcess", async () => {
     expectFailed(right)
     expectStopped(rightChild)
 
-    expect(() => root.startAll()).to.throw("Cannot start failed process with no retries left.")
+    expect(() => root.startAll()).to.throw("Cannot start the process tree. Some processes failed with no retries left.")
   })
 
   it("entire tree should fail on a leaf process failure", async () => {
@@ -515,6 +531,6 @@ describe("RecoverableProcess", async () => {
     expectStopped(right)
     expectFailed(rightChild)
 
-    expect(() => root.startAll()).to.throw("Cannot start failed process with no retries left.")
+    expect(() => root.startAll()).to.throw("Cannot start the process tree. Some processes failed with no retries left.")
   })
 })
