@@ -84,7 +84,7 @@ export type FailureHandler = () => Promise<void>
 export interface RecoverableProcessConfig {
   readonly osCommand: OsCommand
   readonly executor?: CommandExecutor
-  readonly retryConfig?: RetryConfig
+  readonly retryConfig: RetryConfig
   readonly stderrListener?: IOStreamListener
   readonly stdoutListener?: IOStreamListener
   readonly log: LogEntry
@@ -197,8 +197,7 @@ export class RecoverableProcess {
   private parent?: RecoverableProcess
   private descendants: RecoverableProcess[]
 
-  // todo: test coverage for non-recoverable processes
-  private readonly retryConfig?: RetryConfig
+  private readonly retryConfig: RetryConfig
   private retriesLeft: number
   private failureHandler: FailureHandler
 
@@ -216,8 +215,8 @@ export class RecoverableProcess {
     this.lastKnownPid = undefined
     this.parent = undefined
     this.descendants = []
-    this.retryConfig = !!config.retryConfig ? validateRetryConfig(config.retryConfig) : config.retryConfig
-    this.retriesLeft = config.retryConfig?.maxRetries || 0
+    this.retryConfig = validateRetryConfig(config.retryConfig)
+    this.retriesLeft = config.retryConfig.maxRetries
     this.failureHandler = async () => {} // no failure handler by default
     this.stderrListener = config.stderrListener
     this.stdoutListener = config.stdoutListener
@@ -284,7 +283,7 @@ export class RecoverableProcess {
 
     const attemptsLeft = () =>
       !!this.retriesLeft
-        ? `${this.retriesLeft} attempts left, next in ${this.retryConfig?.minTimeoutMs}ms`
+        ? `${this.retriesLeft} attempts left, next in ${this.retryConfig.minTimeoutMs}ms`
         : "no attempts left"
 
     const logDebugInfo = (stdio: StdIo, chunk: any) => this.log.debug(processSays(stdio, chunk))
@@ -297,9 +296,9 @@ export class RecoverableProcess {
     }
 
     const composeRetryInfo = (): RetryInfo => {
-      const maxRetries = this.retryConfig?.maxRetries || 0
-      const minTimeoutMs = this.retryConfig?.minTimeoutMs || 0
-      const retriesLeft = this.retriesLeft || 0
+      const maxRetries = this.retryConfig.maxRetries
+      const minTimeoutMs = this.retryConfig.minTimeoutMs
+      const retriesLeft = this.retriesLeft
       return { maxRetries, minTimeoutMs, retriesLeft }
     }
 
@@ -404,7 +403,7 @@ export class RecoverableProcess {
   }
 
   private resetNodeRetriesLeft(): void {
-    this.retriesLeft = this.retryConfig?.maxRetries || 0
+    this.retriesLeft = this.retryConfig.maxRetries
   }
 
   private resetSubTreeRetriesLeft(): void {
@@ -419,9 +418,6 @@ export class RecoverableProcess {
   }
 
   private async tryRestartSubTree(): Promise<void> {
-    if (!this.retryConfig) {
-      return
-    }
     if (this.state === "retrying") {
       return
     }
