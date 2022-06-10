@@ -8,10 +8,66 @@
 
 import env from "env-var"
 import { expect } from "chai"
-import { RecoverableProcess } from "../../../../src/util/recoverable-process"
+import { RecoverableProcess, validateRetryConfig } from "../../../../src/util/recoverable-process"
 import { getLogger } from "../../../../src/logger/logger"
 import { sleep } from "../../../../src/util/util"
 import { initTestLogger } from "../../../helpers"
+
+describe("validateRetryConfig", () => {
+  it("must fail on negative minTimeoutMs", () => {
+    expect(() =>
+      validateRetryConfig({
+        minTimeoutMs: -1,
+        maxRetries: 10,
+      })
+    ).to.throw("Value minTimeoutMs cannot be negative: -1")
+  })
+
+  it("must pass on zero minTimeoutMs", () => {
+    expect(() =>
+      validateRetryConfig({
+        minTimeoutMs: 0,
+        maxRetries: 10,
+      })
+    ).to.not.throw
+  })
+
+  it("must pass on positive minTimeoutMs", () => {
+    expect(() =>
+      validateRetryConfig({
+        minTimeoutMs: 0,
+        maxRetries: 10,
+      })
+    ).to.not.throw
+  })
+
+  it("must fail on negative maxRetries", () => {
+    expect(() =>
+      validateRetryConfig({
+        minTimeoutMs: 1000,
+        maxRetries: -1,
+      })
+    ).to.throw("Value maxRetries cannot be negative: -1")
+  })
+
+  it("must pass on zero maxRetries", () => {
+    expect(() =>
+      validateRetryConfig({
+        minTimeoutMs: 1000,
+        maxRetries: 0,
+      })
+    ).to.not.throw
+  })
+
+  it("must pass on positive maxRetries", () => {
+    expect(() =>
+      validateRetryConfig({
+        minTimeoutMs: 1000,
+        maxRetries: 10,
+      })
+    ).to.not.throw
+  })
+})
 
 describe("RecoverableProcess", async () => {
   initTestLogger()
