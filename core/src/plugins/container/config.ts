@@ -304,13 +304,53 @@ export const containerDevModeSchema = () =>
     See the [Code Synchronization guide](${devModeGuideLink}) for more information.
   `)
 
+const defaultLocalModeRestartDelayMsec = 1000
+const defaultLocalModeMaxRestarts = Number.POSITIVE_INFINITY
+
+export interface LocalModeRestartSpec {
+  delayMsec: number
+  max: number
+}
+
+export const localModeRestartSchema = () =>
+  joi
+    .object()
+    .keys({
+      delayMsec: joi
+        .number()
+        .integer()
+        .greater(-1)
+        .optional()
+        .default(defaultLocalModeRestartDelayMsec)
+        .description(
+          `Delay in milliseconds between the local application restart attempts. The default value is ${defaultLocalModeRestartDelayMsec}ms.`
+        ),
+      max: joi
+        .number()
+        .integer()
+        .greater(-1)
+        .optional()
+        .default(defaultLocalModeMaxRestarts)
+        .description("Max number of the local application restarts. Unlimited by default."),
+    })
+    .optional()
+    .default({
+      delayMsec: defaultLocalModeRestartDelayMsec,
+      max: defaultLocalModeMaxRestarts,
+    })
+    .description(
+      `Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with ${defaultLocalModeRestartDelayMsec}ms between attempts.`
+    )
+
 export interface ContainerLocalModeSpec {
   localPort: number
   command?: string[]
+  restart: LocalModeRestartSpec
 }
 
 export const containerLocalModeSchema = () =>
   joi.object().keys({
+    localPort: joi.number().description("The working port of the local application."),
     command: joi
       .sparseArray()
       .optional()
@@ -318,7 +358,7 @@ export const containerLocalModeSchema = () =>
       .description(
         "The command to run the local application. If not present, then the local application should be started manually."
       ),
-    localPort: joi.number().description("The working port of the local application."),
+    restart: localModeRestartSchema(),
   }).description(dedent`
     Specifies necessary configuration details of the local application which will replace a target remote service.
 

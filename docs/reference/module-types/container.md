@@ -312,12 +312,21 @@ services:
     #
     # See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode.md) for more information.
     localMode:
+      # The working port of the local application.
+      localPort:
+
       # The command to run the local application. If not present, then the local application should be started
       # manually.
       command:
 
-      # The working port of the local application.
-      localPort:
+      # Specifies restarting policy for the local application. By default, the local application will be restarting
+      # infinitely with 1000ms between attempts.
+      restart:
+        # Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
+        delayMsec: 1000
+
+        # Max number of the local application restarts. Unlimited by default.
+        max: .inf
 
     # List of ingress endpoints that the service exposes.
     ingresses:
@@ -1403,6 +1412,16 @@ See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-loca
 | -------- | -------- |
 | `object` | No       |
 
+### `services[].localMode.localPort`
+
+[services](#services) > [localMode](#serviceslocalmode) > localPort
+
+The working port of the local application.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
 ### `services[].localMode.command[]`
 
 [services](#services) > [localMode](#serviceslocalmode) > command
@@ -1413,15 +1432,35 @@ The command to run the local application. If not present, then the local applica
 | --------------- | -------- |
 | `array[string]` | No       |
 
-### `services[].localMode.localPort`
+### `services[].localMode.restart`
 
-[services](#services) > [localMode](#serviceslocalmode) > localPort
+[services](#services) > [localMode](#serviceslocalmode) > restart
 
-The working port of the local application.
+Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with 1000ms between attempts.
 
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
+| Type     | Default                         | Required |
+| -------- | ------------------------------- | -------- |
+| `object` | `{"delayMsec":1000,"max":null}` | No       |
+
+### `services[].localMode.restart.delayMsec`
+
+[services](#services) > [localMode](#serviceslocalmode) > [restart](#serviceslocalmoderestart) > delayMsec
+
+Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `1000`  | No       |
+
+### `services[].localMode.restart.max`
+
+[services](#services) > [localMode](#serviceslocalmode) > [restart](#serviceslocalmoderestart) > max
+
+Max number of the local application restarts. Unlimited by default.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `null`  | No       |
 
 ### `services[].ingresses[]`
 

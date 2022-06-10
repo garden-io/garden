@@ -106,8 +106,15 @@ services:
   - name: node-service
     args: [ npm, start ]
     localMode:
-      localPort: 8090 # The port of the local service, will be used for port-forward setup
-      command: [ npm, run, serve ] # Starts the local service which will replace the target one in the k8s cluster
+      localPort: 8090 # The port of the local app, will be used for port-forward setup.
+      # Starts the local app which will replace the target one in the k8s cluster.
+      # Optional. If not specified, then the local app should be started manually.
+      command: [ npm, run, serve ]
+      # Defines how to restart the local app on failure/exit.
+      # Optional. If not specified, then the default values will be applied.
+      restart:
+        delayMsec: 2000 # 2 sec delay between local app restarts
+        max: 100 # limit restart attempts to 100
   ...
 ```
 

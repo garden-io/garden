@@ -423,10 +423,9 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
   return !!localServiceCmd
     ? new RecoverableProcess({
         osCommand: localServiceCmd,
-        // todo: make this configurable
         retryConfig: {
-          maxRetries: Number.POSITIVE_INFINITY,
-          minTimeoutMs: 2000,
+          maxRetries: configParams.spec.restart.max,
+          minTimeoutMs: configParams.spec.restart.delayMsec,
         },
         log,
         stderrListener: {
