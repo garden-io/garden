@@ -71,9 +71,7 @@ In order to maintain secure connections, Garden generates a new SSH key pair for
 every CLI execution.
 
 **Note!** Garden automates the SSH key acceptance with option `-oStrictHostKeyChecking=accept-new`, this is the reason
-why you need [OpenSSH 7.6](https://www.openssh.com/txt/release-7.6) or higher. **This also produces new entries in the
-local `~/.ssh/known_hosts` file.** Garden attempts to remove these entries on exit. If something goes wrong you can
-inspect the `known_hosts` file and clean it up manually.
+why you need [OpenSSH 7.6](https://www.openssh.com/txt/release-7.6) or higher.
 
 ## Configuration
 
