@@ -505,7 +505,7 @@ export class RecoverableProcess {
   /**
    * Starts all processes in the tree starting from the parent-most one.
    *
-   * @return the reference to the tree root, i.e. to the parent-most retriable process
+   * @return the reference to the tree root, i.e. to the parent-most recoverable process
    */
   public startAll(): RecoverableProcess {
     const root = this.getTreeRoot()
@@ -516,7 +516,7 @@ export class RecoverableProcess {
   /**
    * Stops all processes in the tree starting from the parent-most one.
    *
-   * @return the reference to the tree root, i.e. to the parent-most retriable process
+   * @return the reference to the tree root, i.e. to the parent-most recoverable process
    */
   public stopAll(): RecoverableProcess {
     const root = this.getTreeRoot()

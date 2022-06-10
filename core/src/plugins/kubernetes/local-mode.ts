@@ -208,7 +208,7 @@ export class ProxySshKeystore {
 
 /*
  * This can be changed to a "global" registry for all processes,
- * but now retriable processes are used in local mode only.
+ * but now recoverable processes are used in local mode only.
  */
 export class LocalModeProcessRegistry {
   private readonly recoverableProcesses: Map<string, RecoverableProcess>
