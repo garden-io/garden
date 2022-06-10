@@ -408,6 +408,33 @@ const composeErrorMessage = (customMessage: string, processMessage: ProcessMessa
   return !!processMessage.retryInfo ? `${message}, ${attemptsLeft(processMessage.retryInfo)}` : message
 }
 
+class FailureCounter {
+  public readonly alarmThreshold: number
+  private failures: number
+
+  constructor(alarmThreshold: number) {
+    this.alarmThreshold = alarmThreshold
+    this.failures = 0
+  }
+
+  addFailure(onThreshold: () => void): number {
+    if (this.failures === Number.MAX_VALUE) {
+      return this.failures
+    }
+    this.failures++
+    if (this.failures % this.alarmThreshold === 0) {
+      onThreshold()
+    }
+    return this.failures
+  }
+
+  getFailures(): number {
+    return this.failures
+  }
+}
+
+const localAppFailureCounter = new FailureCounter(10)
+
 function getLocalServiceCommand({ spec: localModeSpec }: StartLocalModeParams): OsCommand | undefined {
   const command = localModeSpec.command
   if (!command || command.length === 0) {
@@ -444,6 +471,16 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
                 msg: chalk.red(composeErrorMessage("Error running local app, check the logs", msg)),
               })
             }
+            localAppFailureCounter.addFailure(() => {
+              log.error({
+                status: "warn",
+                symbol: "warning",
+                section: service.name,
+                msg: chalk.yellow(
+                  `Local app hasn't started after ${localAppFailureCounter.getFailures()} attempts. Please check the logs and consider restarting Garden.`
+                ),
+              })
+            })
           },
           onMessage: (_msg: ProcessMessage) => {},
         },
@@ -474,6 +511,8 @@ async function getKubectlPortForwardCommand(
   return { command: kubectlPath, args: portForwardArgs }
 }
 
+const kubectlPortForwardFailureCounter = new FailureCounter(10)
+
 async function getKubectlPortForwardProcess(
   configParams: StartLocalModeParams,
   localSshPort: number
@@ -495,7 +534,17 @@ async function getKubectlPortForwardProcess(
         log.error({
           status: "error",
           section: service.name,
-          msg: chalk.red(composeErrorMessage("SSH port-forward failed", msg)),
+          msg: chalk.red(composeErrorMessage("Kubectl SSH port-forward failed", msg)),
+        })
+        kubectlPortForwardFailureCounter.addFailure(() => {
+          log.error({
+            status: "warn",
+            symbol: "warning",
+            section: service.name,
+            msg: chalk.yellow(
+              `Kubectl SSH port-forward hasn't started after ${kubectlPortForwardFailureCounter.getFailures()} attempts. Please check the logs and consider restarting Garden.`
+            ),
+          })
         })
       },
       onMessage: (_msg: ProcessMessage) => {},
@@ -509,7 +558,7 @@ async function getKubectlPortForwardProcess(
           log.info({
             status: "success",
             section: service.name,
-            msg: chalk.white(composeMessage("SSH port-forward is up and running", msg)),
+            msg: chalk.white(composeMessage("Kubectl SSH port-forward is up and running", msg)),
           })
         }
       },
@@ -546,6 +595,8 @@ async function getReversePortForwardCommand(
   ]
   return { command: sshCommandName, args: sshCommandArgs }
 }
+
+const reversePortForwardFailureCounter = new FailureCounter(10)
 
 async function getReversePortForwardProcess(
   configParams: StartLocalModeParams,
@@ -615,14 +666,24 @@ async function getReversePortForwardProcess(
         log.error({
           status: "error",
           section: service.name,
-          msg: chalk.red(composeErrorMessage("Reverse port-forward failed", msg)),
+          msg: chalk.red(composeErrorMessage("Reverse SSH port-forward failed", msg)),
+        })
+        reversePortForwardFailureCounter.addFailure(() => {
+          log.error({
+            status: "warn",
+            symbol: "warning",
+            section: service.name,
+            msg: chalk.yellow(
+              `Reverse SSH port-forward hasn't started after ${reversePortForwardFailureCounter.getFailures()} attempts. Please check the logs and consider restarting Garden.`
+            ),
+          })
         })
       },
       onMessage: (msg: ProcessMessage) => {
         log.info({
           status: "success",
           section: service.name,
-          msg: chalk.white(composeMessage("Reverse port-forward is up and running", msg)),
+          msg: chalk.white(composeMessage("Reverse SSH port-forward is up and running", msg)),
         })
       },
     },
@@ -672,6 +733,12 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
     })
   }
 
+  log.info({
+    status: "active",
+    section: service.name,
+    msg: chalk.white("Starting in local mode..."),
+  })
+
   registerCleanupFunction(`redeploy-alert-for-local-mode-${service.name}`, () => {
     log.warn({
       status: "warn",
@@ -694,7 +761,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
     log.info({
       status: "active",
       section: service.name,
-      msg: chalk.white("Starting local app..."),
+      msg: chalk.white("Starting local app, this can take a while"),
     })
     localApp.startAll()
   }
@@ -706,7 +773,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   log.info({
     status: "active",
     section: service.name,
-    msg: chalk.white("Starting local mode ssh tunnels..."),
+    msg: chalk.white("Starting local mode ssh tunnels, some failures and retries are possible"),
   })
   LocalModeProcessRegistry.getInstance().register(compositeSshTunnel)
   compositeSshTunnel.startAll()
