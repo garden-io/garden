@@ -26,7 +26,25 @@ chmod +x main
 Once the necessary local backends are up, you can try the local mode with the following commands:
 
 ```shell
-garden deploy --local-mode=backend-1
-garden deploy --local-mode=backend-2
-garden deploy --local-mode=backend-1,backend-2
+# To start a specific service in local mode
+garden deploy --local=backend-1
+garden deploy --local=backend-2
+
+# To start both services in local mode
+garden deploy --local=backend-1,backend-2
+garden deploy --local
+garden deploy --local=*
+```
+
+Alternatively, you can also run the local mode using the `garden dev` command:
+
+```shell
+# To start a specific service in local mode
+garden dev --local=backend-1
+garden dev --local=backend-2
+
+# To start both services in local mode
+garden dev --local=backend-1,backend-2
+garden dev --local
+garden dev --local=*
 ```
