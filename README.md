@@ -118,7 +118,7 @@ Yes, Garden (the company) offers an enterprise version of the product–and ente
 
 **Why TypeScript?**
 
-We find TypeScript strikes a good balance between power and simplicity, and it handles asynchronous work really well. We also get rid of some of the key weaknesses of Node.js by using Zeit’s [pkg](https://github.com/zeit/pkg) to distribute Garden as a single binary, so users don’t need to think about npm and all that stuff. We plan on splitting Garden into more components, some of which will be written in Go, and to make plugin SDKs for both TypeScript/JavaScript and Go.
+We find TypeScript strikes a good balance between power and simplicity, and it handles asynchronous work really well. We also get rid of some of the key weaknesses of Node.js by using Vercel’s [pkg](https://github.com/vercel/pkg) to distribute Garden as a single binary, so users don’t need to think about npm and all that stuff. We plan on splitting Garden into more components, some of which will be written in Go, and to make plugin SDKs for both TypeScript/JavaScript and Go.
 
 **Why the name "Garden”?**
 
@@ -142,7 +142,7 @@ Garden would not be possible without an amazing ecosystem of open-source project
 
 - [Kubernetes](https://kubernetes.io/)
 - [TypeScript](https://www.typescriptlang.org/)
-- [zeit/pkg](https://github.com/zeit/pkg)
+- [vercel/pkg](https://github.com/vercel/pkg)
 - [Moby](https://github.com/moby/moby)
 - [Helm](https://helm.sh/)
 - [OpenFaaS](https://www.openfaas.com/)
