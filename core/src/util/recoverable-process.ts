@@ -91,7 +91,13 @@ export interface RecoverableProcessConfig {
 }
 
 export interface RetryConfig {
+  /**
+   * Max number of retries. Cannot be negative. Zero means no retries.
+   */
   readonly maxRetries: number
+  /**
+   * Min delay between retries. Cannot be negative. Zero means no delay and immediate retry.
+   */
   readonly minTimeoutMs: number
 }
 
@@ -424,7 +430,9 @@ export class RecoverableProcess {
     this.stopSubTree()
     if (this.retriesLeft > 0) {
       // sleep synchronously to avoid pre-mature retry attempts
-      sleepSync(this.retryConfig.minTimeoutMs)
+      if (this.retryConfig.minTimeoutMs > 0) {
+        sleepSync(this.retryConfig.minTimeoutMs)
+      }
       this.retriesLeft--
       this.state = "retrying"
       this.startSubTree()
