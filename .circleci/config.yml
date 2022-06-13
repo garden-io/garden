@@ -978,7 +978,7 @@ workflows:
       # tested, and that the most recent versions are broadly tested. The kind tests are the cheapest to run so we use many
       # of those, but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
       - test-minikube:
-          name: minikube-1.22
+          name: vm-1.22-minikube
           requires: [build]
           kubernetesVersion: "1.22.2"
           minikubeVersion: "v1.25.2"
@@ -990,7 +990,7 @@ workflows:
           # for most recent k8s versions.
           testOpenfaas: false
       - test-minikube:
-          name: minikube-1.23
+          name: vm-1.23-minikube
           requires: [build]
           kubernetesVersion: "1.23.3"
           minikubeVersion: "v1.25.2"
@@ -998,33 +998,33 @@ workflows:
           # for most recent k8s versions.
           testOpenfaas: false
       - test-minikube:
-          name: minikube-1.19
+          name: vm-1.19-minikube
           requires: [build]
-          kubernetesVersion: "1.22.2"
-          minikubeVersion: "v1.25.2"
+          kubernetesVersion: "1.19.7"
+          minikubeVersion: "v1.16.0"
           testOpenfaas: false
       - test-microk8s:
-          name: microk8s-1.24
+          name: vm-1.24-microk8s
           requires: [build]
           kubernetesVersion: "1.24"
       - test-kind:
-          name: kind-1.19
+          name: vm-1.19-kind
           requires: [build]
           kindNodeImage: kindest/node:v1.19.4
       - test-kind:
-          name: kind-1.20
+          name: vm-1.20-kind
           requires: [build]
           kindNodeImage: kindest/node:v1.20.2
       - test-kind:
-          name: kind-1.21
+          name: vm-1.21-kind
           requires: [build]
           kindNodeImage: kindest/node:v1.21.2
       - test-kind:
-          name: kind-1.22
+          name: vm-1.22-kind
           requires: [build]
           kindNodeImage: kindest/node:v1.22.9@sha256:8135260b959dfe320206eb36b3aeda9cffcb262f4b44cda6b33f7bb73f453105
       - test-kind:
-          name: kind-1.23
+          name: vm-1.23-kind
           requires: [build]
           kindNodeImage: kindest/node:v1.23.6@sha256:b1fa224cc6c7ff32455e0b1fd9cbfd3d3bc87ecaa8fcb06961ed1afb3db0f9ae
 
