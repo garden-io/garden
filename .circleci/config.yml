@@ -981,7 +981,7 @@ workflows:
           name: minikube-1.22
           requires: [build]
           kubernetesVersion: "1.22.2"
-          minikubeVersion: "v1.23.2"
+          minikubeVersion: "v1.25.2"
           # cluster-buildkit works on other minikube versions, but the in-cluster registry has issues on the latest version
           # This is sort of fine, since we don't _really_ support in-cluster building on minikube, just been using it for
           # integration tests.
@@ -990,34 +990,23 @@ workflows:
           # for most recent k8s versions.
           testOpenfaas: false
       - test-minikube:
-          name: minikube-1.20
+          name: minikube-1.23
           requires: [build]
-          kubernetesVersion: "1.20.2"
-          minikubeVersion: "v1.16.0"
+          kubernetesVersion: "1.23.3"
+          minikubeVersion: "v1.25.2"
           # OpenFaaS project fails without ingress, which doesn't work in CircleCI on minikube v1.12+, which is necessary
           # for most recent k8s versions.
           testOpenfaas: false
       - test-minikube:
           name: minikube-1.19
           requires: [build]
-          kubernetesVersion: "1.19.7"
-          minikubeVersion: "v1.16.0"
+          kubernetesVersion: "1.22.2"
+          minikubeVersion: "v1.25.2"
           testOpenfaas: false
       - test-microk8s:
+          name: microk8s-1.24
           requires: [build]
-          kubernetesVersion: "1.19"
-      - test-kind:
-          name: kind-1.15
-          requires: [build]
-          kindNodeImage: kindest/node:v1.15.12
-      - test-kind:
-          name: kind-1.16
-          requires: [build]
-          kindNodeImage: kindest/node:v1.16.15
-      - test-kind:
-          name: kind-1.17
-          requires: [build]
-          kindNodeImage: kindest/node:v1.17.11
+          kubernetesVersion: "1.24"
       - test-kind:
           name: kind-1.19
           requires: [build]
@@ -1030,6 +1019,14 @@ workflows:
           name: kind-1.21
           requires: [build]
           kindNodeImage: kindest/node:v1.21.2
+      - test-kind:
+          name: kind-1.22
+          requires: [build]
+          kindNodeImage: kindest/node:v1.22.9@sha256:8135260b959dfe320206eb36b3aeda9cffcb262f4b44cda6b33f7bb73f453105
+      - test-kind:
+          name: kind-1.23
+          requires: [build]
+          kindNodeImage: kindest/node:v1.23.6@sha256:b1fa224cc6c7ff32455e0b1fd9cbfd3d3bc87ecaa8fcb06961ed1afb3db0f9ae
 
       - test-plugins:
           requires: [build]
