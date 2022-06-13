@@ -627,9 +627,6 @@ jobs:
       - run:
           name: Deploy demo-project
           command: ./bin/garden deploy --root examples/demo-project --logger-type basic
-      - run:
-          name: Deploy openfaas
-          command: ./bin/garden deploy --root examples/openfaas --logger-type basic
 
   test-microk8s:
     machine:
@@ -688,9 +685,6 @@ jobs:
       - run:
           name: Deploy demo-project
           command: sudo -E ./bin/garden deploy --root examples/demo-project --logger-type basic
-      - run:
-          name: Deploy openfaas
-          command: sudo -E ./bin/garden deploy --root examples/openfaas --logger-type basic
 
   test-minikube:
     machine:
@@ -708,10 +702,6 @@ jobs:
         description: Integ test groups to skip
         type: string
         default: "cluster-docker kaniko remote-only"
-      testOpenfaas:
-        description: Whether to test the openfaas project
-        type: boolean
-        default: true
     environment:
       <<: *shared-env-config
       K8S_VERSION: <<parameters.kubernetesVersion>>
@@ -760,12 +750,6 @@ jobs:
       - run:
           name: Deploy demo-project
           command: sudo -E ./bin/garden deploy --root examples/demo-project
-      - when:
-          condition: <<parameters.testOpenfaas>>
-          steps:
-            - run:
-                name: Deploy openfaas
-                command: sudo -E ./bin/garden deploy --root examples/openfaas
       - run:
           name: Run cluster cleanup
           command: |
@@ -937,11 +921,6 @@ workflows:
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
-          name: e2e-openfaas
-          project: openfaas
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
           name: e2e-project-variables
           project: project-variables
           requires: [build]
@@ -986,23 +965,16 @@ workflows:
           # This is sort of fine, since we don't _really_ support in-cluster building on minikube, just been using it for
           # integration tests.
           skipTests: cluster-docker cluster-buildkit kaniko remote-only
-          # OpenFaaS project fails without ingress, which doesn't work in CircleCI on minikube v1.12+, which is necessary
-          # for most recent k8s versions.
-          testOpenfaas: false
       - test-minikube:
           name: vm-1.23-minikube
           requires: [build]
           kubernetesVersion: "1.23.3"
           minikubeVersion: "v1.25.2"
-          # OpenFaaS project fails without ingress, which doesn't work in CircleCI on minikube v1.12+, which is necessary
-          # for most recent k8s versions.
-          testOpenfaas: false
       - test-minikube:
           name: vm-1.19-minikube
           requires: [build]
           kubernetesVersion: "1.19.7"
           minikubeVersion: "v1.16.0"
-          testOpenfaas: false
       - test-microk8s:
           name: vm-1.24-microk8s
           requires: [build]
