@@ -604,8 +604,17 @@ export async function createWorkloadManifest({
   }
 
   const devModeSpec = service.spec.devMode
+  const localModeSpec = service.spec.localMode
 
-  if (enableDevMode && devModeSpec) {
+  if (enableLocalMode && localModeSpec) {
+    await configureLocalMode({
+      ctx,
+      target: workload,
+      spec: localModeSpec,
+      service,
+      log,
+    })
+  } else if (enableDevMode && devModeSpec) {
     log.debug({ section: service.name, msg: chalk.gray(`-> Configuring in dev mode`) })
 
     configureDevMode({
@@ -624,17 +633,6 @@ export async function createWorkloadManifest({
       hotReloadSpec,
       hotReloadCommand: service.spec.hotReloadCommand,
       hotReloadArgs: service.spec.hotReloadArgs,
-    })
-  }
-
-  const localModeSpec = service.spec.localMode
-  if (enableLocalMode && localModeSpec) {
-    await configureLocalMode({
-      ctx,
-      target: workload,
-      spec: localModeSpec,
-      service,
-      log,
     })
   }
 
