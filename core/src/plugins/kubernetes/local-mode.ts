@@ -254,6 +254,12 @@ function findFirstForwardablePort(serviceSpec: ContainerServiceSpec): ServicePor
   return firstTcpPort || serviceSpec.ports[0]
 }
 
+namespace LocalModeEnv {
+  export const APP_PORT = "APP_PORT"
+  export const PUBLIC_KEY = "PUBLIC_KEY"
+  export const USER_NAME = "USER_NAME"
+}
+
 async function prepareLocalModeEnvVars({ service }: ConfigureLocalModeParams, keyPair: KeyPair): Promise<PrimitiveMap> {
   const originalServiceSpec = service.spec
 
@@ -261,11 +267,11 @@ async function prepareLocalModeEnvVars({ service }: ConfigureLocalModeParams, ke
   const portSpec = findFirstForwardablePort(originalServiceSpec)
   const publicSshKey = await keyPair.readPublicSshKey()
 
-  return {
-    APP_PORT: portSpec.containerPort,
-    PUBLIC_KEY: publicSshKey,
-    USER_NAME: PROXY_CONTAINER_USER_NAME,
-  }
+  const env = {}
+  env[LocalModeEnv.APP_PORT] = portSpec.containerPort
+  env[LocalModeEnv.PUBLIC_KEY] = publicSshKey
+  env[LocalModeEnv.USER_NAME] = PROXY_CONTAINER_USER_NAME
+  return env
 }
 
 function prepareLocalModePorts(): ServicePortSpec[] {
@@ -574,8 +580,7 @@ async function getReversePortForwardCommand(
 ): Promise<OsCommand> {
   const localPort = localModeSpec.localPort
   // todo: get all forwardable ports and set up ssh tunnels for all
-  const remoteContainerPortSpec = findFirstForwardablePort(service.spec)
-  const remoteContainerPort = remoteContainerPortSpec.containerPort
+  const remoteContainerPort = service.spec.env[LocalModeEnv.APP_PORT]
   const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(ctx.gardenDirPath, service, log)
   const knownHostsFilePath = await ProxySshKeystore.getInstance(log).getKnownHostsFile(ctx.gardenDirPath)
 
