@@ -635,31 +635,22 @@ async function getReversePortForwardProcess(
           })
           return true
         }
-        if (lowercaseOutput.includes("permission denied")) {
+        const criticalErrorIndicators = [
+          "permission denied",
+          "remote host identification has changed",
+          "bad configuration option",
+        ]
+        const hasCriticalErrors = criticalErrorIndicators.some((indicator) => {
+          lowercaseOutput.includes(indicator)
+        })
+        if (hasCriticalErrors) {
           log.error({
             status: "error",
             section: service.name,
             msg: chalk.red(output),
           })
-          return true
         }
-        if (output.includes("REMOTE HOST IDENTIFICATION HAS CHANGED")) {
-          log.error({
-            status: "error",
-            section: service.name,
-            msg: chalk.red(output),
-          })
-          return true
-        }
-        if (output.includes("Bad configuration option")) {
-          log.error({
-            status: "error",
-            section: service.name,
-            msg: chalk.red(output),
-          })
-          return true
-        }
-        return false
+        return hasCriticalErrors
       },
       hasErrors: (chunk: any) => {
         const output = chunk.toString()
