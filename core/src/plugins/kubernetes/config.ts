@@ -40,7 +40,7 @@ import { runPodSpecIncludeFields } from "./run"
 import { KubernetesDevModeDefaults, kubernetesDevModeDefaultsSchema } from "./dev-mode"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 
-export const DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:v1.6.0-debug"
+export const DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:v1.8.1-debug"
 export interface ProviderSecretRef {
   name: string
   namespace: string
