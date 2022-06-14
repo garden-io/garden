@@ -359,14 +359,16 @@ function patchMainContainer(
  */
 export async function configureLocalMode(configParams: ConfigureLocalModeParams): Promise<void> {
   const { ctx, target, service, log } = configParams
-  set(target, ["metadata", "annotations", gardenAnnotationKey("local-mode")], "true")
 
-  log.info({
+  // Logging this on the debug level because if can be displayed multiple times due to getServiceStatus checks
+  log.debug({
     section: service.name,
     msg: chalk.gray(
       `Configuring in local mode, proxy container ${chalk.underline(reverseProxyImageName)} will be deployed.`
     ),
   })
+
+  set(target, ["metadata", "annotations", gardenAnnotationKey("local-mode")], "true")
 
   const mainContainer = getResourceContainer(target)
   const proxyContainerName = mainContainer.name
