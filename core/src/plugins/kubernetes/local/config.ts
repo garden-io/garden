@@ -23,6 +23,7 @@ import { remove } from "lodash"
 import { getNfsStorageClass } from "../init"
 import chalk from "chalk"
 import { isKindCluster } from "./kind"
+import { getK8sClientServerVersions, K8sClientServerVersions } from "../util"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 // note: this is in order of preference, in case neither is set as the current kubectl context
@@ -107,7 +108,18 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
     if (config.setupIngressController === "nginx") {
       log.debug("Using nginx-kind service for ingress")
       remove(_systemServices, (s) => nginxServices.includes(s))
-      _systemServices.push("nginx-kind")
+      let versions: K8sClientServerVersions | undefined
+      try {
+        versions = await getK8sClientServerVersions(config.context)
+      } catch (err) {
+        log.debug("failed to get k8s version with error: " + err)
+      }
+      // TODO: remove this once we no longer support k8s v1.20
+      if (versions && versions.serverVersion.minor >= 21) {
+        _systemServices.push("nginx-kind-new")
+      } else {
+        _systemServices.push("nginx-kind-old")
+      }
     }
   } else if (config.context === "minikube") {
     await exec("minikube", ["config", "set", "WantUpdateNotification", "false"])

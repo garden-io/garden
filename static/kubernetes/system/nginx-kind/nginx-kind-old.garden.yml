@@ -1,5 +1,5 @@
 kind: Module
-name: nginx-kind
+name: nginx-kind-old
 description: Special manifests for installing nginx on KinD clusters
 type: kubernetes
 manifests:

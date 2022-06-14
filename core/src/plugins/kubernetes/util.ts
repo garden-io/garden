@@ -14,7 +14,7 @@ import chalk from "chalk"
 import hasha from "hasha"
 
 import { KubernetesResource, KubernetesWorkload, KubernetesPod, KubernetesServerResource, isPodResource } from "./types"
-import { splitLast, serializeValues, findByName } from "../../util/util"
+import { splitLast, serializeValues, findByName, exec } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
 import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util/string"
 import { inClusterRegistryHostname, MAX_CONFIGMAP_DATA_SIZE, systemDockerAuthSecretName } from "./constants"
@@ -114,6 +114,33 @@ export function deduplicatePodsByLabel(pods: KubernetesServerResource<V1Pod>[]) 
     .uniqBy((pod) => JSON.stringify(pod.metadata.labels))
     .value()
   return sortBy([...uniqByLabel, ...noLabel], (pod) => pod.metadata.creationTimestamp)
+}
+
+interface K8sVersion {
+  major: number
+  minor: number
+  gitVersion: string
+  gitCommit: string
+  gitTreeState: string
+  buildDate: Date
+  goVersion: string
+  compiler: string
+  platform: string
+}
+
+export interface K8sClientServerVersions {
+  clientVersion: K8sVersion
+  serverVersion: K8sVersion
+}
+
+/**
+ * get objectyfied result of "kubectl version"
+ */
+export async function getK8sClientServerVersions(ctx: string): Promise<K8sClientServerVersions> {
+  const versions: K8sClientServerVersions = JSON.parse(
+    (await exec("kubectl", ["version", "--context", ctx, "--output", "json"])).stdout
+  )
+  return versions
 }
 
 /**
