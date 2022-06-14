@@ -441,8 +441,6 @@ class FailureCounter {
   }
 }
 
-const localAppFailureCounter = new FailureCounter(10)
-
 function getLocalServiceCommand({ spec: localModeSpec }: StartLocalModeParams): OsCommand | undefined {
   const command = localModeSpec.command
   if (!command || command.length === 0) {
@@ -450,6 +448,8 @@ function getLocalServiceCommand({ spec: localModeSpec }: StartLocalModeParams): 
   }
   return { command: command.join(" ") }
 }
+
+const localAppFailureCounter = new FailureCounter(10)
 
 function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProcess | undefined {
   const localServiceCmd = getLocalServiceCommand(configParams)
