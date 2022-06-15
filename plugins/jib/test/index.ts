@@ -14,7 +14,10 @@ import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
 import { defaultApiVersion, defaultNamespace } from "@garden-io/sdk/constants"
 import { gardenPlugin } from ".."
 
-describe("jib-container", () => {
+describe("jib-container", function () {
+  // tslint:disable-next-line: no-invalid-this
+  this.timeout(180 * 1000) // initial jib build can take a long time
+
   const projectRoot = join(__dirname, "test-project")
 
   const projectConfig: ProjectConfig = {
