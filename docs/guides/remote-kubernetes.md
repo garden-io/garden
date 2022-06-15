@@ -92,13 +92,11 @@ images when deploying. This should generally be a _private_ container registry, 
 public registry.
 
 Similarly to the below TLS configuration, you may also need to set up auth for the registry using K8s Secrets, in this
-case via the `kubectl create secret docker-registry` helper.
+case via the `kubectl create secret docker-registry` helper. You can read more about using and setting up private 
+registries [here](https://kubernetes.io/docs/concepts/containers/images/#using-a-private-registry).
 
 _Note that you do not need to configure the authentication and imagePullSecrets when using GKE along with GCR,
 as long as your deployment registry is in the same project as the GKE cluster._
-
-The lovely folks at Heptio have prepared good guides on how to configure private registries
-for Kubernetes, which you can find [here](http://docs.heptio.com/content/private-registries.html).
 
 Once you've created the auth secret in the cluster, you can configure the registry and the secrets in your
 `garden.yml` project config like this:
@@ -131,7 +129,7 @@ to your registry's documentation on how to do that (for Docker Hub you simply ru
 
 ### Ingress, TLS and DNS
 
-By default, Garden will not install an ingress controller for remote environments. This can be toggled by setting the [`setupIngressController` flag](../reference/providers/kubernetes.md#providerssetupingresscontroller) to `nginx`. Alternatively, you can set up your own ingress controller, e.g. using [Traefik](https://traefik.io/), [Ambassador](https://www.getambassador.io/) or [Istio](https://istio.io/). You can find examples for [using Garden with Ambassador](https://github.com/garden-io/garden/tree/0.12.41/examples/ambassador) and [with Istio](https://github.com/garden-io/garden/tree/0.12.41/examples/istio) in our [examples directory](https://github.com/garden-io/garden/tree/0.12.41/examples).
+By default, Garden will not install an ingress controller for remote environments. This can be toggled by setting the [`setupIngressController` flag](../reference/providers/kubernetes.md#providerssetupingresscontroller) to `nginx`. Alternatively, you can set up your own ingress controller, e.g. using [Traefik](https://traefik.io/), [Ambassador](https://www.getambassador.io/) or [Istio](https://istio.io/). You can find an example for [using Garden with Istio](https://github.com/garden-io/garden/tree/0.12.41/examples/istio) in our [examples directory](https://github.com/garden-io/garden/tree/0.12.41/examples).
 
 You'll also need to point one or more DNS entries to your cluster, and configure a TLS certificate for the hostnames
 you will expose for ingress.
