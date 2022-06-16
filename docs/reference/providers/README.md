@@ -16,6 +16,5 @@ title: Providers
 * [`local-kubernetes`](./local-kubernetes.md)
 * [`maven-container`](./maven-container.md)
 * [`octant`](./octant.md)
-* [`openfaas`](./openfaas.md)
 * [`terraform`](./terraform.md)
 * [`pulumi`](./pulumi.md)

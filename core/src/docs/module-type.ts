@@ -28,7 +28,6 @@ export const moduleTypes = [
   { name: "jib-container" },
   { name: "kubernetes", pluginName: "local-kubernetes" },
   { name: "maven-container" },
-  { name: "openfaas" },
   { name: "persistentvolumeclaim", pluginName: "local-kubernetes" },
   { name: "templated" },
   { name: "terraform" },

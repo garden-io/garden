@@ -152,42 +152,8 @@ describe("commands", () => {
           ],
         })
       })
-      it("should convert local-openfaas provider to openfaas", () => {
-        const localOpenfaasProvider = result.updatedConfigs[0].specs[3]
-        expect(localOpenfaasProvider).to.eql({
-          kind: "Project",
-          name: "test-project-v10-config-local-openfaas",
-          environments: [
-            {
-              name: "local",
-            },
-          ],
-          providers: [
-            {
-              name: "openfaas",
-            },
-          ],
-        })
-      })
-      it("should convert local-openfaas provider to openfaas for providers nested under the environment field", () => {
-        const localOpenfaasProviderNested = result.updatedConfigs[0].specs[4]
-        expect(localOpenfaasProviderNested).to.eql({
-          kind: "Project",
-          name: "test-project-v10-config-local-openfaas-nested",
-          environments: [
-            {
-              name: "local",
-              providers: [
-                {
-                  name: "openfaas",
-                },
-              ],
-            },
-          ],
-        })
-      })
       it("should convert nested module configs to the flat style", () => {
-        const moduleNested = result.updatedConfigs[0].specs[5]
+        const moduleNested = result.updatedConfigs[0].specs[3]
         expect(moduleNested).to.eql({
           kind: "Module",
           name: "module-nested",
@@ -195,51 +161,6 @@ describe("commands", () => {
           build: {
             command: ["echo", "project"],
           },
-        })
-      })
-      it("should convert local-openfaas module to openfaas", () => {
-        const moduleOpenfaaas = result.updatedConfigs[0].specs[6]
-        expect(moduleOpenfaaas).to.eql({
-          kind: "Module",
-          name: "module-local-openfaas",
-          type: "openfaas",
-          build: {
-            command: ["echo", "project"],
-          },
-        })
-      })
-      it("should remove local-openfaas provider if openfaas already configured", () => {
-        const openfaasExistingNested = result.updatedConfigs[0].specs[7]
-        const openfaasExisting = result.updatedConfigs[0].specs[8]
-        expect(openfaasExistingNested).to.eql({
-          kind: "Project",
-          name: "test-project-v10-config-existing-openfaas-nested",
-          environments: [
-            {
-              name: "local",
-              providers: [
-                {
-                  name: "openfaas",
-                  gatewayUrl: "foo",
-                },
-              ],
-            },
-          ],
-        })
-        expect(openfaasExisting).to.eql({
-          kind: "Project",
-          name: "test-project-v10-config-existing-openfaas",
-          environments: [
-            {
-              name: "local",
-            },
-          ],
-          providers: [
-            {
-              name: "openfaas",
-              gatewayUrl: "foo",
-            },
-          ],
         })
       })
       it("should convert modules in their own config files", () => {
@@ -251,7 +172,7 @@ describe("commands", () => {
               {
                 kind: "Module",
                 name: "module-a",
-                type: "openfaas",
+                type: "exec",
                 build: {
                   command: ["echo", "project"],
                 },
@@ -264,7 +185,7 @@ describe("commands", () => {
               {
                 kind: "Module",
                 name: "module-b",
-                type: "openfaas",
+                type: "exec",
                 build: {
                   command: ["echo", "project"],
                 },
@@ -277,7 +198,7 @@ describe("commands", () => {
               {
                 kind: "Module",
                 name: "module-c",
-                type: "openfaas",
+                type: "exec",
                 build: {
                   command: ["echo", "project"],
                 },
@@ -312,17 +233,15 @@ describe("commands", () => {
         join(tmpDir.path, "garden.yml"),
         dedent`
           kind: Project
-          name: test-project-v10-config-local-openfaas
+          name: test-exec
           environments:
             - name: local
-          providers:
-            - name: openfaas
           ---
-          kind: Module
-          name: module-a
-          type: local-openfaas
-          build:
-            command: [echo, project]
+          module:
+            name: module-a
+            type: exec
+            build:
+              command: [echo, project]
         `
       )
 
@@ -411,61 +330,13 @@ describe("commands", () => {
 
         ---
 
-        kind: Project
-        name: test-project-v10-config-local-openfaas
-        environments:
-          - name: local
-        providers:
-          - name: openfaas
-
-        ---
-
-        kind: Project
-        name: test-project-v10-config-local-openfaas-nested
-        environments:
-          - name: local
-            providers:
-              - name: openfaas
-
-        ---
-
         kind: Module
         name: module-nested
         type: test
         build:
           command:
             - echo
-            - project
-
-        ---
-
-        kind: Module
-        name: module-local-openfaas
-        type: openfaas
-        build:
-          command:
-            - echo
-            - project
-
-        ---
-
-        kind: Project
-        name: test-project-v10-config-existing-openfaas-nested
-        environments:
-          - name: local
-            providers:
-              - name: openfaas
-                gatewayUrl: foo
-
-        ---
-
-        kind: Project
-        name: test-project-v10-config-existing-openfaas
-        environments:
-          - name: local
-        providers:
-          - name: openfaas
-            gatewayUrl: foo\n
+            - project\n
         `)
       })
     })

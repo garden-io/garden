@@ -105,7 +105,6 @@ export class MigrateCommand extends Command<Args, Opts> {
       const updatedSpecs = specs.map((spec) =>
         [spec]
           .map((s) => applyFlatStyle(s))
-          .map((s) => removeLocalOpenFaas(s))
           .map((s) => removeEnvironmentDefaults(s, configPath))
           .pop()
       )
@@ -216,58 +215,6 @@ function applyFlatStyle(spec: any) {
     }
   }
   return cloneDeep(spec)
-}
-
-/**
- * Returns a spec with `local-openfaas` set to `openfaas` at both the provider and module type level.
- * Remove the `local-openfaas` provider if `openfaas` is already configured.
- */
-function removeLocalOpenFaas(spec: any) {
-  const clone = cloneDeep(spec)
-  const isProject = spec.kind === "Project"
-
-  // Remove local-openfaas from modules
-  if (spec.type === "local-openfaas") {
-    clone.type = "openfaas"
-  }
-
-  // Remove local-openfaas from projects
-  if (isProject) {
-    let hasOpenfaas = false
-
-    // Provider nested under environment
-    if ((spec.environments || []).length > 0) {
-      for (const [envIdx, env] of spec.environments.entries()) {
-        if (!env.providers) {
-          continue
-        }
-
-        for (const [providerIdx, provider] of env.providers.entries()) {
-          hasOpenfaas = !!env.providers.find((p) => p.name === "openfaas")
-          if (provider.name === "local-openfaas" && hasOpenfaas) {
-            // openfaas provider is already configured so we remove the local-openfaas provider
-            clone.environments[envIdx].providers.splice(providerIdx, 1)
-          } else if (provider.name === "local-openfaas") {
-            // otherwise we rename it
-            clone.environments[envIdx].providers[providerIdx].name = "openfaas"
-          }
-        }
-      }
-    }
-
-    // Provider nested under environment
-    if (spec.providers) {
-      hasOpenfaas = !!spec.providers.find((p) => p.name === "openfaas")
-      for (const [providerIdx, provider] of spec.providers.entries()) {
-        if (provider.name === "local-openfaas" && hasOpenfaas) {
-          clone.providers.splice(providerIdx, 1)
-        } else if (provider.name === "local-openfaas") {
-          clone.providers[providerIdx].name = "openfaas"
-        }
-      }
-    }
-  }
-  return clone
 }
 
 /**

@@ -2,7 +2,7 @@
 
 This example project demonstrates how to use build dependencies to include files and directories from outside a module's root with its build context. For example, some .NET and Java projects that are split up into multiple modules need a shared configuration file at build time for each module.
 
-Another common use case is to use build dependencies to include shared libraries with multiple modules. Our [`openfaas` example project](../openfaas) demonstrates this same pattern with an NPM package.
+Another common use case is to use build dependencies to include shared libraries with multiple modules.
 
 To achieve this, we:
 
