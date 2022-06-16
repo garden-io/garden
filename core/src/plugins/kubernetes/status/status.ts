@@ -32,7 +32,7 @@ import { getPods, hashManifest } from "../util"
 import { checkWorkloadStatus } from "./workload"
 import { checkWorkloadPodStatus } from "./pod"
 import { deline, gardenAnnotationKey, stableStringify } from "../../../util/string"
-import { HotReloadableResource } from "../hot-reload/hot-reload"
+import { SyncableResource } from "../types"
 
 export interface ResourceStatus<T = BaseResource> {
   state: ServiceState
@@ -276,7 +276,6 @@ interface ComparisonResult {
   state: ServiceState
   remoteResources: KubernetesResource[]
   deployedWithDevMode: boolean
-  deployedWithHotReloading: boolean
 }
 
 /**
@@ -302,7 +301,6 @@ export async function compareDeployedResources(
     state: "unknown",
     remoteResources: <KubernetesResource[]>deployedResources.filter((o) => o !== null),
     deployedWithDevMode: false,
-    deployedWithHotReloading: false,
   }
 
   const logDescription = (resource: KubernetesResource) => `${resource.kind}/${resource.metadata.name}`
@@ -363,11 +361,8 @@ export async function compareDeployedResources(
     }
 
     if (manifest.kind === "DaemonSet" || manifest.kind === "Deployment" || manifest.kind === "StatefulSet") {
-      if (isConfiguredForDevMode(<HotReloadableResource>manifest)) {
+      if (isConfiguredForDevMode(<SyncableResource>manifest)) {
         result.deployedWithDevMode = true
-      }
-      if (isConfiguredForHotReloading(<HotReloadableResource>manifest)) {
-        result.deployedWithHotReloading = true
       }
     }
 
@@ -453,12 +448,8 @@ export async function compareDeployedResources(
   return result
 }
 
-export function isConfiguredForDevMode(resource: HotReloadableResource): boolean {
+export function isConfiguredForDevMode(resource: SyncableResource): boolean {
   return resource.metadata.annotations?.[gardenAnnotationKey("dev-mode")] === "true"
-}
-
-export function isConfiguredForHotReloading(resource: HotReloadableResource): boolean {
-  return resource.metadata.annotations?.[gardenAnnotationKey("hot-reload")] === "true"
 }
 
 export async function getDeployedResource(

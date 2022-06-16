@@ -63,7 +63,6 @@ export async function configureGcfModule({
       name,
       dependencies: spec.dependencies,
       disabled: spec.disabled,
-      hotReloadable: false,
       spec,
     },
   ]

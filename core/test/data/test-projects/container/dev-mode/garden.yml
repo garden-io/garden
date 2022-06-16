@@ -1,6 +1,6 @@
 kind: Module
 name: dev-mode
-description: Test module for a simple hot reloadable service
+description: Test module for a simple live reloadable service
 type: container
 services:
   - name: dev-mode

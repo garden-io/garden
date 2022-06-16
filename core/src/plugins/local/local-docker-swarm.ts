@@ -115,7 +115,6 @@ export const gardenPlugin = () =>
               runtimeContext,
               log,
               devMode: false,
-              hotReload: false,
             })
             let swarmServiceStatus
             let serviceId
@@ -172,7 +171,7 @@ export const gardenPlugin = () =>
               msg: `Ready`,
             })
 
-            return getServiceStatus({ ctx, module, service, runtimeContext, log, devMode: false, hotReload: false })
+            return getServiceStatus({ ctx, module, service, runtimeContext, log, devMode: false })
           },
 
           async execInService({ ctx, service, command, log }: ExecInServiceParams<ContainerModule>) {
@@ -187,7 +186,6 @@ export const gardenPlugin = () =>
               },
               log,
               devMode: false,
-              hotReload: false,
             })
 
             if (!status.state || (status.state !== "ready" && status.state !== "outdated")) {

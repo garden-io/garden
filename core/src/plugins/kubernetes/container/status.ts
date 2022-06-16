@@ -36,7 +36,6 @@ export async function getContainerServiceStatus({
   runtimeContext,
   log,
   devMode,
-  hotReload,
 }: GetServiceStatusParams<ContainerModule>): Promise<ContainerServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
@@ -54,10 +53,9 @@ export async function getContainerServiceStatus({
     service,
     runtimeContext,
     enableDevMode,
-    enableHotReload: hotReload,
     blueGreen: provider.config.deploymentStrategy === "blue-green",
   })
-  const { state, remoteResources, deployedWithDevMode, deployedWithHotReloading } = await compareDeployedResources(
+  const { state, remoteResources, deployedWithDevMode } = await compareDeployedResources(
     k8sCtx,
     api,
     namespace,
@@ -86,7 +84,7 @@ export async function getContainerServiceStatus({
     namespaceStatuses: [namespaceStatus],
     version: state === "ready" ? service.version : undefined,
     detail: { remoteResources, workload },
-    devMode: deployedWithDevMode || deployedWithHotReloading,
+    devMode: deployedWithDevMode,
   }
 
   if (state === "ready" && devMode) {
@@ -112,7 +110,6 @@ export async function waitForContainerService(
   runtimeContext: RuntimeContext,
   service: GardenService,
   devMode: boolean,
-  hotReload: boolean,
   timeout = KUBECTL_DEFAULT_TIMEOUT
 ) {
   const startTime = new Date().getTime()
@@ -125,7 +122,6 @@ export async function waitForContainerService(
       runtimeContext,
       module: service.module,
       devMode,
-      hotReload,
     })
 
     if (status.state === "ready" || status.state === "outdated") {

@@ -324,7 +324,6 @@ export const defaultModuleConfig: ModuleConfig = {
       name: "test-service",
       dependencies: [],
       disabled: false,
-      hotReloadable: false,
       spec: {},
     },
   ],

@@ -68,7 +68,6 @@ interface GetChartResourcesParams {
   ctx: KubernetesPluginContext
   module: GardenModule
   devMode: boolean
-  hotReload: boolean
   log: LogEntry
   version: string
 }
@@ -90,7 +89,7 @@ export async function getChartResources(params: GetChartResourcesParams) {
  * Renders the given Helm module and returns a multi-document YAML string.
  */
 export async function renderTemplates(params: GetChartResourcesParams): Promise<string> {
-  const { ctx, module, devMode, hotReload, version, log } = params
+  const { ctx, module, devMode, version, log } = params
   const { namespace, releaseName, chartPath } = await prepareTemplates(params)
 
   log.debug("Preparing chart...")
@@ -99,7 +98,6 @@ export async function renderTemplates(params: GetChartResourcesParams): Promise<
     ctx,
     module,
     devMode,
-    hotReload,
     version,
     log,
     namespace,
@@ -160,7 +158,7 @@ export async function prepareTemplates({
 }
 
 export async function prepareManifests(params: PrepareManifestsParams): Promise<string> {
-  const { ctx, module, devMode, hotReload, log, namespace, releaseName, chartPath } = params
+  const { ctx, module, devMode, log, namespace, releaseName, chartPath } = params
   const res = await helm({
     ctx,
     log,
@@ -177,7 +175,7 @@ export async function prepareManifests(params: PrepareManifestsParams): Promise<
       "json",
       "--timeout",
       module.spec.timeout.toString(10) + "s",
-      ...(await getValueArgs(module, devMode, hotReload)),
+      ...(await getValueArgs(module, devMode)),
     ],
   })
 
@@ -264,7 +262,7 @@ export function getGardenValuesPath(chartPath: string) {
 /**
  * Get the value files arguments that should be applied to any helm install/render command.
  */
-export async function getValueArgs(module: HelmModule, devMode: boolean, hotReload: boolean) {
+export async function getValueArgs(module: HelmModule, devMode: boolean) {
   const chartPath = await getChartPath(module)
   const gardenValuesPath = getGardenValuesPath(chartPath)
 
@@ -276,9 +274,6 @@ export async function getValueArgs(module: HelmModule, devMode: boolean, hotRelo
 
   if (devMode) {
     args.push("--set", "\\.garden.devMode=true")
-  }
-  if (hotReload) {
-    args.push("--set", "\\.garden.hotReload=true")
   }
 
   return args
@@ -329,7 +324,7 @@ export async function renderHelmTemplateString(
           "--namespace",
           namespace,
           "--dependency-update",
-          ...(await getValueArgs(module, false, false)),
+          ...(await getValueArgs(module, false)),
           "--show-only",
           relPath,
           chartPath,

@@ -169,7 +169,7 @@ describe("resolveProjectOutputs", () => {
             name: "test",
             dependencies: [],
             disabled: false,
-            hotReloadable: false,
+
             spec: {},
           },
         ],

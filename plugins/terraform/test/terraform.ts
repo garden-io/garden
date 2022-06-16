@@ -324,7 +324,6 @@ describe("Terraform module type", () => {
       force: false,
       forceBuild: false,
       devModeServiceNames: [],
-      hotReloadServiceNames: [],
     })
 
     return garden.processTasks([deployTask], { throwOnError: true })
@@ -346,7 +345,6 @@ describe("Terraform module type", () => {
       force: false,
       forceBuild: false,
       devModeServiceNames: [],
-      hotReloadServiceNames: [],
     })
 
     return garden.processTasks([taskTask], { throwOnError: true })
@@ -530,7 +528,7 @@ describe("Terraform module type", () => {
       const status = await actions.getServiceStatus({
         service: graph.getService("tf"),
         devMode: false,
-        hotReload: false,
+
         log: garden.log,
         graph,
         runtimeContext: emptyRuntimeContext,
@@ -568,7 +566,7 @@ describe("Terraform module type", () => {
       const status = await actions.getServiceStatus({
         service: graph.getService("tf"),
         devMode: false,
-        hotReload: false,
+
         log: _garden.log,
         graph,
         runtimeContext: emptyRuntimeContext,
@@ -614,7 +612,6 @@ describe("Terraform module type", () => {
         force: false,
         forceBuild: false,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
 
       const result = await _garden.processTasks([taskTask], { throwOnError: true })

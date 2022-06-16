@@ -74,7 +74,7 @@ async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPlugin) {
           name: "test-service-a",
           dependencies: [],
           disabled: false,
-          hotReloadable: false,
+
           spec: {},
         },
       ],
@@ -362,28 +362,28 @@ describe("LogsCommand", () => {
                 name: "a-short",
                 dependencies: [],
                 disabled: false,
-                hotReloadable: false,
+
                 spec: {},
               },
               {
                 name: "b-not-short",
                 dependencies: [],
                 disabled: false,
-                hotReloadable: false,
+
                 spec: {},
               },
               {
                 name: "c-by-far-the-longest-of-the-bunch",
                 dependencies: [],
                 disabled: false,
-                hotReloadable: false,
+
                 spec: {},
               },
               {
                 name: "d-very-very-long",
                 dependencies: [],
                 disabled: false,
-                hotReloadable: false,
+
                 spec: {},
               },
             ],
@@ -444,14 +444,14 @@ describe("LogsCommand", () => {
               name: "test-service-a",
               dependencies: [],
               disabled: false,
-              hotReloadable: false,
+
               spec: {},
             },
             {
               name: "test-service-b",
               dependencies: [],
               disabled: false,
-              hotReloadable: false,
+
               spec: {},
             },
           ],
@@ -485,14 +485,14 @@ describe("LogsCommand", () => {
             name: "api",
             dependencies: [],
             disabled: false,
-            hotReloadable: false,
+
             spec: {},
           },
           {
             name: "frontend",
             dependencies: [],
             disabled: false,
-            hotReloadable: false,
+
             spec: {},
           },
         ],

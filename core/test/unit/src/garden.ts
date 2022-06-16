@@ -4065,7 +4065,7 @@ describe("Garden", () => {
                       name: moduleConfig.name,
                       dependencies: [],
                       disabled: false,
-                      hotReloadable: false,
+
                       spec: {},
                     },
                   ]
@@ -4113,7 +4113,7 @@ describe("Garden", () => {
             name: "foo",
             dependencies: ["bar"],
             disabled: false,
-            hotReloadable: false,
+
             spec: {},
           },
         ])
@@ -4136,7 +4136,7 @@ describe("Garden", () => {
                       name: moduleConfig.name,
                       dependencies: [],
                       disabled: false,
-                      hotReloadable: false,
+
                       spec: {},
                     },
                   ]
@@ -4196,7 +4196,7 @@ describe("Garden", () => {
             name: "foo",
             dependencies: ["bar"],
             disabled: false,
-            hotReloadable: false,
+
             spec: {},
           },
         ])
@@ -4217,7 +4217,7 @@ describe("Garden", () => {
                       name: moduleConfig.name,
                       dependencies: [],
                       disabled: false,
-                      hotReloadable: false,
+
                       spec: {},
                     },
                   ]
@@ -4283,7 +4283,7 @@ describe("Garden", () => {
                       name: moduleConfig.name,
                       disabled: false,
                       dependencies: [],
-                      hotReloadable: false,
+
                       spec: {},
                     },
                   ]

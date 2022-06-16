@@ -268,16 +268,6 @@ Garden interfaces with your cluster via `kubectl` and by using the Kubernetes AP
 
 No, you have to use the [`kubernetes`](https://docs.garden.io/reference/module-types/kubernetes) module type for that.
 
-## Helm
-
-### Are there any caveats to using the `helm` module type over `container` in terms of features?
-
-To Garden, a single Helm chart is a single "unit of deployment", which echoes the Garden notion of "service".
-
-Therefore, a Helm chart with multiple deployments will only show up as a single service in Garden. You can, of course, deploy it with Garden, but it doesn't map as naturally to Garden services. This means that service-level functionality such as hot-reloading and getting service logs won't work as expected.
-
-That said, a single Helm module can have multiple container modules as build dependencies and refer to the resulting images. So it should work just fine, but you'll have a coarser granularity when it comes to deploying them.
-
 ## Misc
 
 ### When are you releasing the Plugin SDK?

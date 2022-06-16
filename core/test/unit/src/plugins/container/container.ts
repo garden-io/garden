@@ -407,7 +407,7 @@ describe("plugins.container", () => {
               name: "service-a",
               dependencies: [],
               disabled: false,
-              hotReloadable: false,
+
               spec: {
                 name: "service-a",
                 annotations: {},
@@ -489,40 +489,6 @@ describe("plugins.container", () => {
             },
           ],
         },
-      })
-    })
-
-    context("hot reloading", () => {
-      it("should pass if no target is a subdirectory of another target", async () => {
-        const moduleConfig: ContainerModuleConfig = {
-          ...containerModuleConfig,
-          spec: {
-            ...containerModuleConfig.spec,
-            hotReload: {
-              sync: [
-                { source: "./foo_bar", target: "/home/somedir/foo_bar" },
-                { source: "./bar", target: "/home/somedir/bar" },
-              ],
-            },
-          },
-        }
-        await configure({ ctx, moduleConfig, log })
-      })
-
-      it("should throw if a target is a subdirectory of another target", async () => {
-        const moduleConfig: ContainerModuleConfig = {
-          ...containerModuleConfig,
-          spec: {
-            ...containerModuleConfig.spec,
-            hotReload: {
-              sync: [
-                { source: "foo", target: "/somedir/" },
-                { source: "bar", target: "/somedir/bar" },
-              ],
-            },
-          },
-        }
-        await expectError(() => configure({ ctx, moduleConfig, log }))
       })
     })
 

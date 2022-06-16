@@ -173,7 +173,6 @@ export class TestCommand extends Command<Args, Opts> {
           force,
           forceBuild,
           devModeServiceNames: [],
-          hotReloadServiceNames: [],
           skipRuntimeDependencies,
         })
       )
@@ -204,7 +203,6 @@ export class TestCommand extends Command<Args, Opts> {
               forceBuild,
               fromWatch: true,
               devModeServiceNames: [],
-              hotReloadServiceNames: [],
             })
           )
         )

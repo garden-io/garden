@@ -109,7 +109,7 @@ describe("Helm common functions", () => {
         ctx,
         module,
         devMode: false,
-        hotReload: false,
+
         log,
         version: module.version.versionString,
       })
@@ -235,7 +235,7 @@ ${expectedIngressOutput}
         ctx,
         module,
         devMode: false,
-        hotReload: false,
+
         log,
         version: module.version.versionString,
       })
@@ -257,7 +257,7 @@ ${expectedIngressOutput}
         ctx,
         module,
         devMode: false,
-        hotReload: false,
+
         log,
         version: module.version.versionString,
       })
@@ -426,7 +426,7 @@ ${expectedIngressOutput}
         ctx,
         module,
         devMode: false,
-        hotReload: false,
+
         log,
         version: module.version.versionString,
       })
@@ -446,7 +446,7 @@ ${expectedIngressOutput}
           ctx,
           module,
           devMode: false,
-          hotReload: false,
+
           log,
           version: module.version.versionString,
         })
@@ -459,7 +459,7 @@ ${expectedIngressOutput}
         ctx,
         module,
         devMode: false,
-        hotReload: false,
+
         log,
         version: module.version.versionString,
       })
@@ -569,31 +569,14 @@ ${expectedIngressOutput}
       const module = graph.getModule("api")
       module.spec.valueFiles = []
       const gardenValuesPath = getGardenValuesPath(module.buildPath)
-      expect(await getValueArgs(module, false, false)).to.eql(["--values", gardenValuesPath])
+      expect(await getValueArgs(module, false)).to.eql(["--values", gardenValuesPath])
     })
 
     it("should add a --set flag if devMode=true", async () => {
       const module = graph.getModule("api")
       module.spec.valueFiles = []
       const gardenValuesPath = getGardenValuesPath(module.buildPath)
-      expect(await getValueArgs(module, true, false)).to.eql([
-        "--values",
-        gardenValuesPath,
-        "--set",
-        "\\.garden.devMode=true",
-      ])
-    })
-
-    it("should add a --set flag if hotReload=true", async () => {
-      const module = graph.getModule("api")
-      module.spec.valueFiles = []
-      const gardenValuesPath = getGardenValuesPath(module.buildPath)
-      expect(await getValueArgs(module, false, true)).to.eql([
-        "--values",
-        gardenValuesPath,
-        "--set",
-        "\\.garden.hotReload=true",
-      ])
+      expect(await getValueArgs(module, true)).to.eql(["--values", gardenValuesPath, "--set", "\\.garden.devMode=true"])
     })
 
     it("should return a --values arg for each valueFile configured", async () => {
@@ -601,7 +584,7 @@ ${expectedIngressOutput}
       module.spec.valueFiles = ["foo.yaml", "bar.yaml"]
       const gardenValuesPath = getGardenValuesPath(module.buildPath)
 
-      expect(await getValueArgs(module, false, false)).to.eql([
+      expect(await getValueArgs(module, false)).to.eql([
         "--values",
         resolve(module.buildPath, "foo.yaml"),
         "--values",

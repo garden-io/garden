@@ -46,7 +46,7 @@ describe("serviceFromConfig", () => {
       name: "test",
       dependencies: [],
       disabled: true,
-      hotReloadable: false,
+
       spec: {},
     }
 
@@ -63,7 +63,7 @@ describe("serviceFromConfig", () => {
       name: "test",
       dependencies: [],
       disabled: false,
-      hotReloadable: false,
+
       spec: {},
     }
 

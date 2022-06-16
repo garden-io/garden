@@ -432,7 +432,7 @@ describe("hashModuleVersion", () => {
       const b = hashModuleVersion(
         {
           ...config,
-          serviceConfigs: [{ name: "bla", dependencies: [], disabled: false, hotReloadable: false, spec: {} }],
+          serviceConfigs: [{ name: "bla", dependencies: [], disabled: false, spec: {} }],
           taskConfigs: [{ name: "bla", dependencies: [], disabled: false, spec: {}, timeout: 123, cacheResult: false }],
           testConfigs: [{ name: "bla", dependencies: [], disabled: false, spec: {}, timeout: 123 }],
           spec: { foo: "bar" },
@@ -483,7 +483,7 @@ describe("hashModuleVersion", () => {
       const b = hashModuleVersion(
         {
           ...config,
-          serviceConfigs: [{ name: "bla", dependencies: [], disabled: false, hotReloadable: false, spec: {} }],
+          serviceConfigs: [{ name: "bla", dependencies: [], disabled: false, spec: {} }],
           taskConfigs: [{ name: "bla", dependencies: [], disabled: false, spec: {}, timeout: 123, cacheResult: false }],
           testConfigs: [{ name: "bla", dependencies: [], disabled: false, spec: {}, timeout: 123 }],
         },

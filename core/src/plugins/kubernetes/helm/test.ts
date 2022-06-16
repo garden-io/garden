@@ -32,7 +32,6 @@ export async function testHelmModule(params: TestModuleParams<HelmModule>): Prom
     ctx: k8sCtx,
     module,
     devMode: false,
-    hotReload: false,
     log,
     version: test.version,
   })

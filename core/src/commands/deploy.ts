@@ -23,12 +23,7 @@ import { getModuleWatchTasks } from "../tasks/helpers"
 import { processModules } from "../process"
 import { printHeader } from "../logger/util"
 import { BaseTask } from "../tasks/base"
-import {
-  getDevModeModules,
-  getDevModeServiceNames,
-  getHotReloadServiceNames,
-  validateHotReloadServiceNames,
-} from "./helpers"
+import { getDevModeModules, getDevModeServiceNames } from "./helpers"
 import { startServer } from "../server/server"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
@@ -58,15 +53,6 @@ export const deployOpts = {
     `,
     alias: "dev",
   }),
-  "hot-reload": new StringsParameter({
-    help: deline`The name(s) of the service(s) to deploy with hot reloading enabled.
-      Use comma as a separator to specify multiple services. Use * to deploy all
-      services with hot reloading enabled (ignores services belonging to modules that
-      don't support or haven't configured hot reloading). When this option is used,
-      the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
-    `,
-    alias: "hot",
-  }),
   "skip": new StringsParameter({
     help: "The name(s) of services you'd like to skip when deploying.",
   }),
@@ -80,7 +66,7 @@ export const deployOpts = {
   }),
   "forward": new BooleanParameter({
     help: deline`Create port forwards and leave process running without watching
-    for changes. Ignored if --watch/-w flag is set or when in dev or hot-reload mode.`,
+    for changes. Ignored if --watch/-w flag is set or when in dev mode.`,
   }),
 }
 
@@ -122,7 +108,7 @@ export class DeployCommand extends Command<Args, Opts> {
   outputsSchema = () => processCommandResultSchema()
 
   isPersistent({ opts }: PrepareParams<Args, Opts>) {
-    return !!opts.watch || !!opts["hot-reload"] || !!opts["dev-mode"] || !!opts.forward
+    return !!opts.watch || !!opts["dev-mode"] || !!opts.forward
   }
 
   printHeader({ headerLog }) {
@@ -184,21 +170,10 @@ export class DeployCommand extends Command<Args, Opts> {
 
     const modules = Array.from(new Set(services.map((s) => s.module)))
     const devModeServiceNames = getDevModeServiceNames(opts["dev-mode"], initGraph)
-    const hotReloadServiceNames = getHotReloadServiceNames(opts["hot-reload"], initGraph)
 
     let watch = opts.watch
 
     if (devModeServiceNames.length > 0) {
-      watch = true
-    }
-
-    if (hotReloadServiceNames.length > 0) {
-      initGraph.getServices({ names: hotReloadServiceNames }) // validate the existence of these services
-      const errMsg = validateHotReloadServiceNames(hotReloadServiceNames, initGraph)
-      if (errMsg) {
-        log.error({ msg: errMsg })
-        return { result: { builds: {}, deployments: {}, tests: {}, graphResults: {} } }
-      }
       watch = true
     }
 
@@ -217,7 +192,6 @@ export class DeployCommand extends Command<Args, Opts> {
           fromWatch: false,
           skipRuntimeDependencies,
           devModeServiceNames,
-          hotReloadServiceNames,
         })
     )
 
@@ -238,7 +212,6 @@ export class DeployCommand extends Command<Args, Opts> {
           module,
           servicesWatched: services.map((s) => s.name),
           devModeServiceNames,
-          hotReloadServiceNames,
         })
 
         return tasks

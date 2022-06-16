@@ -325,7 +325,6 @@ export async function configureExecModule({
     name: s.name,
     dependencies: s.dependencies,
     disabled: s.disabled,
-    hotReloadable: false,
     spec: s,
   }))
 
@@ -633,9 +632,10 @@ export const deployExecService: ServiceActionHandlers["deployService"] = async (
 ) => {
   const { module, service, log, ctx } = params
 
-  const devMode = params.devMode || params.hotReload
+  const devMode = params.devMode
   const env = service.spec.env
   const devModeSpec = service.spec.devMode
+
   if (devMode && devModeSpec && devModeSpec.command.length > 0) {
     return deployPersistentExecService({ module, log, ctx, env, devModeSpec, serviceName: service.name })
   } else if (service.spec.deployCommand.length === 0) {

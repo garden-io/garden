@@ -169,7 +169,7 @@ describe("ConfigGraph", () => {
                 name: "test-service",
                 dependencies: ["missing-runtime-dep"],
                 disabled: false,
-                hotReloadable: false,
+
                 spec: {},
               },
             ],
@@ -219,7 +219,7 @@ describe("ConfigGraph", () => {
                 name: "disabled-service",
                 dependencies: [],
                 disabled: true,
-                hotReloadable: false,
+
                 spec: {},
               },
             ],
@@ -254,7 +254,7 @@ describe("ConfigGraph", () => {
                 name: "disabled-service",
                 dependencies: [],
                 disabled: true,
-                hotReloadable: false,
+
                 spec: {},
               },
             ],
@@ -289,7 +289,7 @@ describe("ConfigGraph", () => {
                 name: "service-a",
                 dependencies: [],
                 disabled: true,
-                hotReloadable: false,
+
                 spec: {},
               },
             ],

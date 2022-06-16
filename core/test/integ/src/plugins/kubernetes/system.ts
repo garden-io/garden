@@ -70,7 +70,6 @@ describe("System services", () => {
         force: true,
         forceBuild: true,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
       const key = testTask.getKey()
       const result = await systemGarden.processTasks([testTask])

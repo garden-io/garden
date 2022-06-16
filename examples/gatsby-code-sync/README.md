@@ -6,7 +6,7 @@
 
 # Code synchronization example project with Gatsby.js
 
-This project shows how you can configure Garden to use **code synchronization**. We'll use [Gatsby.js](https://www.gatsbyjs.org/), a static site generator with built-in hot reload support to try out the functionality.
+This project shows how you can configure Garden to use dev mode for code synchronization. We'll use [Gatsby.js](https://www.gatsbyjs.org/), a static site generator with built-in live reload support to try out the functionality.
 
 ## Usage
 
@@ -18,13 +18,14 @@ garden dev
 
 This tells Garden to reload the files into the container, without re-building and re-deploying.
 
-Now, open `http://gatsby-hot-reload.local.app.garden/` in your browser, and then try changing some of the website code. For example, open [src/pages/index.js](src/pages/index.js) and change the text in the `h1` tag. You'll notice the page updates immediately in the browser!
+Now, open `http://gatsby-dev-mode.local.app.garden/` in your browser, and then try changing some of the website code. For example, open [src/pages/index.js](src/pages/index.js) and change the text in the `h1` tag. You'll notice the page updates immediately in the browser!
 
 ## Notes
 
 ### Webpack public path
 
 Older versions of Gatsby.js will need to set the `GATSBY_WEBPACK_PUBLICPATH` environment variable to `/`. For example, in the `garden.yml` config:
+
 ```
 kind: Module
 description: Minimal Gatsby example
@@ -36,11 +37,13 @@ services:
       GATSBY_WEBPACK_PUBLICPATH: /
     ...
 ```
+
 For more details see [this issue](https://github.com/gatsbyjs/gatsby/issues/8348).
 
 ### Listen to `0.0.0.0`
 
 By default, Gatsby.js only listens to `localhost`. Since we're running it inside a container we'll need to explicitly set the host when executing the `gatsby develop` command. For example, in `package.json`:
+
 ```
 "scripts": {
   ...

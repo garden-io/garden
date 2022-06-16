@@ -17,7 +17,6 @@ export interface DeployServiceParams<M extends GardenModule = GardenModule, S ex
   extends PluginServiceActionParamsBase<M, S> {
   devMode: boolean
   force: boolean
-  hotReload: boolean
   runtimeContext: RuntimeContext
 }
 
@@ -32,7 +31,6 @@ export const deployService = () => ({
     devMode: joi.boolean().default(false).description("Whether the service should be configured in dev mode."),
     force: joi.boolean().description("Whether to force a re-deploy, even if the service is already deployed."),
     runtimeContext: runtimeContextSchema(),
-    hotReload: joi.boolean().default(false).description("Whether to configure the service for hot-reloading."),
   }),
   resultSchema: serviceStatusSchema(),
 })

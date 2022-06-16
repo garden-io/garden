@@ -54,7 +54,7 @@ describe("validate-dependencies", () => {
               name: "test",
               dependencies: ["missing"],
               disabled: false,
-              hotReloadable: false,
+
               spec: {},
             },
           ],

@@ -65,13 +65,12 @@ garden deploy service-a,service-b
 garden deploy my-service --watch  # or -w for short
 ```
 
-### Deploying a service in hot-reload mode
+### Deploying a service in dev mode
 
-See the [Hot reload guide](../guides/hot-reload.md) for more information on how to configure and use hot reloading for rapid iteration on services.
-Enabling `--hot-reload` implicitly sets `--watch=true`.
+See the [Code synchronization guide](../guides/code-synchronization-dev-mode.md) for more information on how to configure and use dev mode for rapid iteration on services. Setting the `--dev` flag implicitly sets `--watch=true`.
 
 ```sh
-garden deploy my-service --hot-reload=*  # or --hot for short
+garden deploy my-service --dev=*
 ```
 
 ### Running a single ad-hoc service and attaching
@@ -236,20 +235,6 @@ garden dev
 garden dev --skip-tests
 ```
 
-### Running garden dev with hot reloading enabled for all supported services
-
-See the [Hot reload guide](../guides/hot-reload.md) for more information on how to configure and use hot reloading for rapid iteration on services.
-
-```sh
-garden dev --hot-reload=*
-```
-
-### Running garden dev with hot reloading enabled for a specific service
-
-```sh
-garden dev --hot-reload=my-service
-```
-
 ## The dashboard
 
 The [garden dev](#garden-dev) command, as well as the [build](#building), [deploy](#services) and [test](#tests) commands when run with the `--watch` flag all start a web dashboard that you can open in a browser. See [the dashboard section](#the-dashboard) for more on that.
@@ -264,10 +249,10 @@ The dashboard gives you:
 - A visualization of your Stack Graph, where you can see the status of each node, and click them to get the most recent status or logs.
 - A log viewer, which you can use to fetch the latest logs for your services.
 
-## Hot reloading
+## Dev mode
 
-For rapid iteration on a running service, you can use an advanced feature called _hot reloading_.
-See the [Hot reload guide](../guides/hot-reload.md) for details on how to configure and use that feature.
+For rapid iteration on a running service, you can use a feature called _dev mode_.
+See the [Code synchronization guide](../guides/code-synchronization-dev-mode.md) for details on how to configure and use that feature.
 
 ## Project outputs
 

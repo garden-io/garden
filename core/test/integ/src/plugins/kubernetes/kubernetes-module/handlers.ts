@@ -131,7 +131,7 @@ describe("kubernetes-module handlers", () => {
         service,
         force: false,
         devMode: false,
-        hotReload: false,
+
         runtimeContext: emptyRuntimeContext,
       }
       service.module.spec.manifests = [
@@ -159,7 +159,7 @@ describe("kubernetes-module handlers", () => {
         service,
         force: false,
         devMode: false,
-        hotReload: false,
+
         runtimeContext: emptyRuntimeContext,
       }
       const status = await deployKubernetesService(deployParams)
@@ -171,52 +171,6 @@ describe("kubernetes-module handlers", () => {
           state: "ready",
         },
       ])
-    })
-
-    it("should toggle hot reload", async () => {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const service = graph.getService("with-source-module")
-      const namespace = await getModuleNamespace({
-        ctx,
-        log,
-        module: service.module,
-        provider: ctx.provider,
-        skipCreate: true,
-      })
-      const deployParams = {
-        ctx,
-        log: garden.log,
-        module: service.module,
-        service,
-        force: false,
-        devMode: false,
-        hotReload: false,
-        runtimeContext: emptyRuntimeContext,
-      }
-      const manifests = await getManifests({
-        ctx,
-        api,
-        log,
-        module: service.module,
-        defaultNamespace: namespace,
-        readFromSrcDir: true,
-      })
-
-      // Deploy without hot reload
-      await deployKubernetesService(deployParams)
-      const res1 = await findDeployedResources(manifests, log)
-
-      // Deploy with hot reload
-      await deployKubernetesService({ ...deployParams, hotReload: true })
-      const res2 = await findDeployedResources(manifests, log)
-
-      // // Deploy without hot reload again
-      await deployKubernetesService(deployParams)
-      const res3 = await findDeployedResources(manifests, log)
-
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("hot-reload")]).to.equal("false")
-      expect(res2[0].metadata.annotations![gardenAnnotationKey("hot-reload")]).to.equal("true")
-      expect(res3[0].metadata.annotations![gardenAnnotationKey("hot-reload")]).to.equal("false")
     })
 
     it("should toggle devMode", async () => {
@@ -236,7 +190,7 @@ describe("kubernetes-module handlers", () => {
         service,
         force: false,
         devMode: false,
-        hotReload: false,
+
         runtimeContext: emptyRuntimeContext,
       }
       const manifests = await getManifests({
@@ -281,7 +235,6 @@ describe("kubernetes-module handlers", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
       const results = await garden.processTasks([deployTask], { throwOnError: true })
       const status = getServiceStatuses(results)["namespace-resource"]
@@ -319,7 +272,6 @@ describe("kubernetes-module handlers", () => {
         force: true,
         forceBuild: true,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
       await garden.processTasks([deployTask2], { throwOnError: true })
       ns2Resource = await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log)

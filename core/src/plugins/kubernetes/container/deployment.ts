@@ -8,7 +8,6 @@
 
 import chalk from "chalk"
 import { V1Container, V1Affinity, V1VolumeMount, V1PodSpec, V1Deployment, V1DaemonSet } from "@kubernetes/client-node"
-import { GardenService } from "../../../types/service"
 import { extend, find, keyBy, set, omit } from "lodash"
 import { ContainerModule, ContainerService, ContainerVolumeSpec, ContainerServiceConfig } from "../../container/config"
 import { createIngressResources } from "./ingress"
@@ -23,18 +22,18 @@ import { KubernetesWorkload, KubernetesResource } from "../types"
 import { ConfigurationError } from "../../../exceptions"
 import { getContainerServiceStatus, ContainerServiceStatus } from "./status"
 import { LogEntry } from "../../../logger/log-entry"
-import { DeployServiceParams } from "../../../types/plugin/service/deployService"
-import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 import { prepareEnvVars, workloadTypes } from "../util"
 import { gardenAnnotationKey, deline } from "../../../util/string"
 import { RuntimeContext } from "../../../runtime-context"
 import { resolve } from "path"
 import { killPortForwards } from "../port-forward"
 import { prepareSecrets } from "../secrets"
-import { configureHotReload } from "../hot-reload/helpers"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
-import { hotReloadableKinds, HotReloadableResource } from "../hot-reload/hot-reload"
+import { syncableKinds, SyncableResource } from "../types"
 import { getResourceRequirements, getSecurityContext } from "./util"
+import { DeployServiceParams } from "../../../types/plugin/service/deployService"
+import { GardenService } from "../../../types/service"
+import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters
@@ -91,9 +90,7 @@ export async function startContainerDevSync({
   }
 
   const namespace = await getAppNamespace(ctx, log, ctx.provider)
-  const target = status.detail.remoteResources.find((r) =>
-    hotReloadableKinds.includes(r.kind)
-  )! as HotReloadableResource
+  const target = status.detail.remoteResources.find((r) => syncableKinds.includes(r.kind))! as SyncableResource
 
   await startDevModeSync({
     ctx,
@@ -107,7 +104,7 @@ export async function startContainerDevSync({
 }
 
 export async function deployContainerServiceRolling(params: DeployServiceParams<ContainerModule> & { api: KubeApi }) {
-  const { ctx, api, service, runtimeContext, log, devMode, hotReload } = params
+  const { ctx, api, service, runtimeContext, log, devMode } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
@@ -120,7 +117,6 @@ export async function deployContainerServiceRolling(params: DeployServiceParams<
     service,
     runtimeContext,
     enableDevMode: devMode,
-    enableHotReload: hotReload,
     blueGreen: false,
   })
 
@@ -141,7 +137,7 @@ export async function deployContainerServiceRolling(params: DeployServiceParams<
 }
 
 export async function deployContainerServiceBlueGreen(params: DeployServiceParams<ContainerModule> & { api: KubeApi }) {
-  const { ctx, api, service, runtimeContext, log, devMode, hotReload } = params
+  const { ctx, api, service, runtimeContext, log, devMode } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
   const namespace = namespaceStatus.namespaceName
@@ -154,7 +150,6 @@ export async function deployContainerServiceBlueGreen(params: DeployServiceParam
     service,
     runtimeContext,
     enableDevMode: devMode,
-    enableHotReload: hotReload,
     blueGreen: true,
   })
 
@@ -264,7 +259,6 @@ export async function createContainerManifests({
   service,
   runtimeContext,
   enableDevMode,
-  enableHotReload,
   blueGreen,
 }: {
   ctx: PluginContext
@@ -273,7 +267,6 @@ export async function createContainerManifests({
   service: ContainerService
   runtimeContext: RuntimeContext
   enableDevMode: boolean
-  enableHotReload: boolean
   blueGreen: boolean
 }) {
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -288,7 +281,6 @@ export async function createContainerManifests({
     runtimeContext,
     namespace,
     enableDevMode,
-    enableHotReload,
     log,
     production,
     blueGreen,
@@ -314,7 +306,6 @@ interface CreateDeploymentParams {
   runtimeContext: RuntimeContext
   namespace: string
   enableDevMode: boolean
-  enableHotReload: boolean
   log: LogEntry
   production: boolean
   blueGreen: boolean
@@ -327,7 +318,6 @@ export async function createWorkloadManifest({
   runtimeContext,
   namespace,
   enableDevMode,
-  enableHotReload,
   log,
   production,
   blueGreen,
@@ -343,14 +333,6 @@ export async function createWorkloadManifest({
   if (enableDevMode && configuredReplicas > 1) {
     log.warn({
       msg: chalk.gray(`Ignoring replicas config on container service ${service.name} while in dev mode`),
-      symbol: "warning",
-    })
-    configuredReplicas = 1
-  }
-
-  if (enableHotReload && configuredReplicas > 1) {
-    log.warn({
-      msg: chalk.yellow(`Ignoring replicas config on container service ${service.name} while in hot-reload mode`),
       symbol: "warning",
     })
     configuredReplicas = 1
@@ -427,7 +409,7 @@ export async function createWorkloadManifest({
   }
 
   if (spec.healthCheck) {
-    configureHealthCheck(container, spec, enableHotReload || enableDevMode)
+    configureHealthCheck(container, spec, enableDevMode)
   }
 
   if (spec.volumes && spec.volumes.length) {
@@ -536,19 +518,6 @@ export async function createWorkloadManifest({
       target: workload,
       spec: devModeSpec,
     })
-  } else if (enableHotReload) {
-    const hotReloadSpec = service.module.spec.hotReload
-
-    if (!hotReloadSpec) {
-      throw new ConfigurationError(`Service ${service.name} is not configured for hot reloading.`, {})
-    }
-
-    configureHotReload({
-      target: workload,
-      hotReloadSpec,
-      hotReloadCommand: service.spec.hotReloadCommand,
-      hotReloadArgs: service.spec.hotReloadArgs,
-    })
   }
 
   if (!workload.spec.template.spec?.volumes?.length) {
@@ -650,9 +619,9 @@ function configureHealthCheck(container: V1Container, spec: ContainerServiceConf
 
   // We wait for the effective failure duration (period * threshold) of the readiness probe before starting the
   // liveness probe.
-  // We also increase the periodSeconds and failureThreshold when in hot reload mode. This is to prevent
+  // We also increase the periodSeconds and failureThreshold when in dev mode. This is to prevent
   // K8s from restarting the pod when liveness probes fail during build or server restarts on a
-  // hot reload event.
+  // sync event.
   container.livenessProbe = {
     initialDelaySeconds: readinessPeriodSeconds * readinessFailureThreshold,
     periodSeconds: dev ? 10 : 5,

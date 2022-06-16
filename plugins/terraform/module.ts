@@ -95,7 +95,6 @@ export const configureTerraformModule: ModuleActionHandlers["configure"] = async
       name: moduleConfig.name,
       dependencies: moduleConfig.spec.dependencies,
       disabled: false,
-      hotReloadable: false,
       spec: moduleConfig.spec,
     },
   ]

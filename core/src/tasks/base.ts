@@ -22,7 +22,6 @@ export type TaskType =
   | "deploy"
   | "get-service-status"
   | "get-task-result"
-  | "hot-reload"
   | "publish"
   | "resolve-module-config"
   | "resolve-module"

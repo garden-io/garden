@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GardenModule, FileCopySpec } from "../../types/module"
+import { GardenModule } from "../../types/module"
 import {
   joiUserIdentifier,
   PrimitiveMap,
@@ -27,9 +27,9 @@ import { baseTaskSpecSchema, BaseTaskSpec, cacheResultSchema } from "../../confi
 import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { joiStringMap } from "../../config/common"
 import { dedent, deline } from "../../util/string"
-import { ContainerModuleOutputs } from "./container"
 import { devModeGuideLink } from "../kubernetes/dev-mode"
 import { k8sDeploymentTimeoutSchema } from "../kubernetes/config"
+import { ContainerModuleOutputs } from "./container"
 
 export const defaultContainerLimits: ServiceLimitSpec = {
   cpu: 1000, // = 1000 millicpu = 1 CPU
@@ -119,8 +119,6 @@ export interface ContainerServiceSpec extends CommonServiceSpec {
   ingresses: ContainerIngressSpec[]
   env: PrimitiveMap
   healthCheck?: ServiceHealthCheckSpec
-  hotReloadCommand?: string[]
-  hotReloadArgs?: string[]
   timeout?: number
   limits?: ServiceLimitSpec
   cpu: ContainerResourcesSpec["cpu"]
@@ -135,56 +133,6 @@ export interface ContainerServiceSpec extends CommonServiceSpec {
 }
 
 export const commandExample = ["/bin/sh", "-c"]
-
-const hotReloadSyncSchema = () =>
-  joi.object().keys({
-    source: joi
-      .posixPath()
-      .relativeOnly()
-      .subPathOnly()
-      .allowGlobs()
-      .default(".")
-      .description(
-        deline`
-        POSIX-style path of the directory to sync to the target, relative to the module's top-level directory.
-        Must be a relative path. Defaults to the module's top-level directory if no value is provided.`
-      )
-      .example("src"),
-    target: joi
-      .posixPath()
-      .absoluteOnly()
-      .required()
-      .description(
-        deline`
-        POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is
-        not allowed.`
-      )
-      .example("/app/src"),
-  })
-
-export interface ContainerHotReloadSpec {
-  sync: FileCopySpec[]
-  postSyncCommand?: string[]
-}
-
-const hotReloadConfigSchema = () =>
-  joi.object().keys({
-    sync: joi
-      .sparseArray()
-      .items(hotReloadSyncSchema())
-      .required()
-      .description("Specify one or more source files or directories to automatically sync into the running container."),
-    postSyncCommand: joi
-      .sparseArray()
-      .items(joi.string())
-      .optional()
-      .description(`An optional command to run inside the container after syncing.`)
-      .example(["rebuild-static-assets.sh"]),
-  }).description(deline`
-    Specifies which files or directories to sync to which paths inside the running containers of hot reload-enabled
-    services when those files or directories are modified. Applies to this module's services, and to services
-    with this module as their \`sourceModule\`.
-  `)
 
 export type SyncMode = "one-way" | "one-way-replica" | "one-way-reverse" | "one-way-replica-reverse" | "two-way"
 
@@ -249,7 +197,29 @@ export const syncDefaultGroupSchema = () =>
     .description("Set the default group on files and directories at the target. " + ownerDocs)
 
 const devModeSyncSchema = () =>
-  hotReloadSyncSchema().keys({
+  joi.object().keys({
+    source: joi
+      .posixPath()
+      .relativeOnly()
+      .subPathOnly()
+      .allowGlobs()
+      .default(".")
+      .description(
+        deline`
+        POSIX-style path of the directory to sync to the target, relative to the module's top-level directory.
+        Must be a relative path. Defaults to the module's top-level directory if no value is provided.`
+      )
+      .example("src"),
+    target: joi
+      .posixPath()
+      .absoluteOnly()
+      .required()
+      .description(
+        deline`
+        POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is
+        not allowed.`
+      )
+      .example("/app/src"),
     exclude: syncExcludeSchema(),
     mode: joi
       .string()
@@ -592,24 +562,6 @@ const containerServiceSchema = () =>
       .example([{ path: "/api", port: "http" }]),
     env: containerEnvVarsSchema(),
     healthCheck: healthCheckSchema().description("Specify how the service's health should be checked after deploying."),
-    hotReloadCommand: joi
-      .sparseArray()
-      .items(joi.string())
-      .description(
-        deline`
-        If this module uses the \`hotReload\` field, the container will be run with
-        this command/entrypoint when the service is deployed with hot reloading enabled.`
-      )
-      .example(commandExample),
-    hotReloadArgs: joi
-      .sparseArray()
-      .items(joi.string())
-      .description(
-        deline`
-        If this module uses the \`hotReload\` field, the container will be run with
-        these arguments when the service is deployed with hot reloading enabled.`
-      )
-      .example(["npm", "run", "dev"]),
     timeout: k8sDeploymentTimeoutSchema(),
     limits: limitsSchema()
       .description("Specify resource limits for the service.")
@@ -622,7 +574,7 @@ const containerServiceSchema = () =>
       Defaults to 3 for environments configured with \`production: true\`, otherwise 1.
 
       Note: This setting may be overridden or ignored in some cases. For example, when running with \`daemon: true\`,
-      with hot-reloading enabled, or if the provider doesn't support multiple replicas.
+      with dev-mode enabled, or if the provider doesn't support multiple replicas.
     `),
     volumes: getContainerVolumesSchema("service"),
     privileged: containerPrivilegedSchema("service"),
@@ -789,7 +741,6 @@ export interface ContainerModuleSpec extends ModuleSpec {
   extraFlags: string[]
   image?: string
   dockerfile?: string
-  hotReload?: ContainerHotReloadSpec
   services: ContainerServiceSpec[]
   tests: ContainerTestSpec[]
   tasks: ContainerTaskSpec[]
@@ -838,7 +789,6 @@ export const containerModuleSpecSchema = () =>
         If neither \`include\` nor \`exclude\` is set, and the module
         specifies a remote image, Garden automatically sets \`include\` to \`[]\`.
       `),
-      hotReload: hotReloadConfigSchema(),
       dockerfile: joi
         .posixPath()
         .subPathOnly()

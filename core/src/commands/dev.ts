@@ -7,7 +7,6 @@
  */
 
 import Bluebird from "bluebird"
-import deline = require("deline")
 import dedent = require("dedent")
 import chalk from "chalk"
 import { readFile } from "fs-extra"
@@ -22,7 +21,7 @@ import { processModules } from "../process"
 import { GardenModule } from "../types/module"
 import { getTestTasks } from "../tasks/test"
 import { ConfigGraph } from "../config-graph"
-import { getDevModeModules, getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
+import { getDevModeModules } from "./helpers"
 import { startServer } from "../server/server"
 import { BuildTask } from "../tasks/build"
 import { DeployTask } from "../tasks/deploy"
@@ -42,14 +41,6 @@ const devArgs = {
 
 const devOpts = {
   "force": new BooleanParameter({ help: "Force redeploy of service(s)." }),
-  "hot-reload": new StringsParameter({
-    help: deline`The name(s) of the service(s) to deploy with hot reloading enabled.
-      Use comma as a separator to specify multiple services. Use * to deploy all
-      services with hot reloading enabled (ignores services belonging to modules that
-      don't support or haven't configured hot reloading).
-    `,
-    alias: "hot",
-  }),
   "skip-tests": new BooleanParameter({
     help: "Disable running the tests.",
   }),
@@ -83,8 +74,6 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
     Examples:
 
         garden dev
-        garden dev --hot=foo-service,bar-service  # enable hot reloading for foo-service and bar-service
-        garden dev --hot=*                        # enable hot reloading for all compatible services
         garden dev --skip-tests=                  # skip running any tests
         garden dev --force                        # force redeploy of services when the command starts
         garden dev --name integ                   # run all tests with the name 'integ' in the project
@@ -143,22 +132,9 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       return {}
     }
 
-    const hotReloadServiceNames = getHotReloadServiceNames(opts["hot-reload"], graph)
-    if (hotReloadServiceNames.length > 0) {
-      const errMsg = validateHotReloadServiceNames(hotReloadServiceNames, graph)
-      if (errMsg) {
-        log.error({ msg: errMsg })
-        return { result: {} }
-      }
-    }
-
     const services = graph.getServices({ names: args.services })
 
-    const devModeServiceNames = services
-      .map((s) => s.name)
-      // Since dev mode is implicit when using this command, we consider explicitly enabling hot reloading to
-      // take precedence over dev mode.
-      .filter((name) => !hotReloadServiceNames.includes(name))
+    const devModeServiceNames = services.map((s) => s.name)
 
     const initialTasks = await getDevCommandInitialTasks({
       garden,
@@ -167,7 +143,6 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       modules,
       services,
       devModeServiceNames,
-      hotReloadServiceNames,
       skipTests,
       forceDeploy: opts.force,
     })
@@ -189,7 +164,6 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
           module,
           servicesWatched: devModeServiceNames,
           devModeServiceNames,
-          hotReloadServiceNames,
           testNames: opts["test-names"],
           skipTests,
         })
@@ -207,7 +181,6 @@ export async function getDevCommandInitialTasks({
   modules,
   services,
   devModeServiceNames,
-  hotReloadServiceNames,
   skipTests,
   forceDeploy,
 }: {
@@ -217,7 +190,6 @@ export async function getDevCommandInitialTasks({
   modules: GardenModule[]
   services: GardenService[]
   devModeServiceNames: string[]
-  hotReloadServiceNames: string[]
   skipTests: boolean
   forceDeploy: boolean
 }) {
@@ -241,7 +213,6 @@ export async function getDevCommandInitialTasks({
             log,
             module,
             devModeServiceNames,
-            hotReloadServiceNames,
             force: forceDeploy,
             forceBuild: false,
           })
@@ -263,7 +234,6 @@ export async function getDevCommandInitialTasks({
           forceBuild: false,
           fromWatch: false,
           devModeServiceNames,
-          hotReloadServiceNames,
         })
     )
 
@@ -277,7 +247,6 @@ export async function getDevCommandWatchTasks({
   module,
   servicesWatched,
   devModeServiceNames,
-  hotReloadServiceNames,
   testNames,
   skipTests,
 }: {
@@ -287,7 +256,6 @@ export async function getDevCommandWatchTasks({
   module: GardenModule
   servicesWatched: string[]
   devModeServiceNames: string[]
-  hotReloadServiceNames: string[]
   testNames: string[] | undefined
   skipTests: boolean
 }) {
@@ -298,7 +266,6 @@ export async function getDevCommandWatchTasks({
     module,
     servicesWatched,
     devModeServiceNames,
-    hotReloadServiceNames,
   })
 
   if (!skipTests) {
@@ -314,7 +281,6 @@ export async function getDevCommandWatchTasks({
             filterNames: testNames,
             fromWatch: true,
             devModeServiceNames,
-            hotReloadServiceNames,
           })
         )
       )

@@ -46,7 +46,6 @@ export async function getServiceStatus({
   service,
   log,
   devMode,
-  hotReload,
 }: GetServiceStatusParams<HelmModule>): Promise<HelmServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const releaseName = getReleaseName(module)
@@ -62,12 +61,12 @@ export async function getServiceStatus({
     provider: k8sCtx.provider,
   })
 
-  let deployedWithDevModeOrHotReloading: boolean | undefined
+  let deployedWithDevMode: boolean | undefined
 
   try {
-    helmStatus = await getReleaseStatus({ ctx: k8sCtx, module, service, releaseName, log, devMode, hotReload })
+    helmStatus = await getReleaseStatus({ ctx: k8sCtx, module, service, releaseName, log, devMode })
     state = helmStatus.state
-    deployedWithDevModeOrHotReloading = helmStatus.devMode
+    deployedWithDevMode = helmStatus.devMode
   } catch (err) {
     state = "missing"
   }
@@ -127,7 +126,7 @@ export async function getServiceStatus({
     state,
     version: state === "ready" ? service.version : undefined,
     detail,
-    devMode: deployedWithDevModeOrHotReloading,
+    devMode: deployedWithDevMode,
     namespaceStatuses: [namespaceStatus],
     ingresses,
   }
@@ -168,7 +167,6 @@ export async function getReleaseStatus({
   releaseName,
   log,
   devMode,
-  hotReload,
 }: {
   ctx: KubernetesPluginContext
   module: HelmModule
@@ -176,7 +174,6 @@ export async function getReleaseStatus({
   releaseName: string
   log: LogEntry
   devMode: boolean
-  hotReload: boolean
 }): Promise<ServiceStatus> {
   try {
     log.silly(`Getting the release status for ${releaseName}`)
@@ -193,7 +190,6 @@ export async function getReleaseStatus({
     let values = {}
 
     let devModeEnabled = false
-    let hotReloadEnabled = false
 
     if (state === "ready") {
       // Make sure the right version is deployed
@@ -208,14 +204,8 @@ export async function getReleaseStatus({
 
       const deployedVersion = values[".garden"] && values[".garden"].version
       devModeEnabled = values[".garden"] && values[".garden"].devMode === true
-      hotReloadEnabled = values[".garden"] && values[".garden"].hotReload === true
 
-      if (
-        (devMode && !devModeEnabled) ||
-        (hotReload && !hotReloadEnabled) ||
-        !deployedVersion ||
-        deployedVersion !== service.version
-      ) {
+      if ((devMode && !devModeEnabled) || !deployedVersion || deployedVersion !== service.version) {
         state = "outdated"
       }
 
@@ -230,7 +220,6 @@ export async function getReleaseStatus({
     return {
       state,
       detail: { ...res, values },
-      devMode: devModeEnabled || hotReloadEnabled,
     }
   } catch (err) {
     if (err.message.includes("release: not found")) {

@@ -303,16 +303,10 @@ serviceResource:
   podSelector:
 
   # The Garden module that contains the sources for the container. This needs to be specified under `serviceResource`
-  # in order to enable hot-reloading and dev mode, but is not necessary for tasks and tests.
-  #
-  # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the
-  # container module (not required for dev mode).
+  # in order to enable dev mode, but is not necessary for tasks and tests. Must be a `container` module.
   #
   # _Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`._
   containerModule:
-
-  # If specified, overrides the arguments for the main container when running in hot-reload mode.
-  hotReloadArgs:
 
 tasks:
   - # The name of the task.
@@ -1175,9 +1169,7 @@ A map of string key/value labels to match on any Pods in the namespace. When spe
 
 [serviceResource](#serviceresource) > containerModule
 
-The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading and dev mode, but is not necessary for tasks and tests.
-
-Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module (not required for dev mode).
+The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable dev mode, but is not necessary for tasks and tests. Must be a `container` module.
 
 _Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`._
 
@@ -1191,26 +1183,6 @@ Example:
 serviceResource:
   ...
   containerModule: "my-container-module"
-```
-
-### `serviceResource.hotReloadArgs[]`
-
-[serviceResource](#serviceresource) > hotReloadArgs
-
-If specified, overrides the arguments for the main container when running in hot-reload mode.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-Example:
-
-```yaml
-serviceResource:
-  ...
-  hotReloadArgs:
-    - nodemon
-    - my-server.js
 ```
 
 ### `tasks[]`

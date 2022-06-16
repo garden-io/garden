@@ -1,6 +1,6 @@
 # Helm Charts
 
-The [Helm](https://helm.sh/) package manager is one of the most commonly used tools for managing Kubernetes manifests. Garden supports using your own Helm charts, alongside your container modules, via the `kubernetes` and `local-kubernetes` providers. This guide shows you how to configure and use 3rd-party (or otherwise external) Helm charts, as well as your own charts in your Garden project. We also go through how to set up tests, tasks and hot-reloading for your charts.
+The [Helm](https://helm.sh/) package manager is one of the most commonly used tools for managing Kubernetes manifests. Garden supports using your own Helm charts, alongside your container modules, via the `kubernetes` and `local-kubernetes` providers. This guide shows you how to configure and use 3rd-party (or otherwise external) Helm charts, as well as your own charts in your Garden project. We also go through how to set up tests and tasks for your charts.
 
 In this guide we'll be using the [vote-helm](https://github.com/garden-io/garden/tree/0.12.41/examples/vote-helm) project. If you prefer to just check out a complete example, the project itself is also a good resource.
 
@@ -185,26 +185,6 @@ Here the `worker` module specifies the image as a build dependency, and addition
 
 Notice that this can also work if you have multiple containers in a single chart. You just add them all as build dependencies, and the appropriate reference under `values`.
 
-## Hot reloading
-
-When your project contains the `container` module referenced by a `helm` module, you can even use Garden's [hot-reloading](./hot-reload.md) feature for a Helm chart. Going back to the `vote` module example:
-
-```yaml
-kind: Module
-description: Helm chart for the voting UI
-type: helm
-name: vote
-serviceResource:
-  kind: Deployment
-  containerModule: vote-image       # The name of your container module.
-  hotReloadArgs: [npm, run, serve]  # Arguments to override the default arguments in the resource's container.
-...
-```
-
-For hot-reloading to work you must specify `serviceResource.containerModule`, so that Garden knows which module contains the sources to use for hot-reloading. You can then optionally add `serviceResource.hotReloadArgs` to, for example, start the container with automatic reloading or in development mode.
-
-For the above example, you could then run `garden deploy -w --hot-reload=vote` or `garden dev --hot-reload=vote` to start the `vote` service in hot-reloading mode. When you then change the sources in the _vote-image_ module, Garden syncs the changes to the running container from the Helm chart.
-
 ## Re-using charts
 
 Often you'll want to re-use the same Helm charts for multiple modules. For example, you might have a generic template
@@ -264,7 +244,6 @@ name: result
 base: base-chart
 serviceResource:
   containerModule: result-image
-  hotReloadArgs: [nodemon, server.js]
 dependencies:
   - db-init
 values:

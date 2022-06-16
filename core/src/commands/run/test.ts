@@ -135,7 +135,6 @@ export class RunTestCommand extends Command<Args, Opts> {
       log,
       test,
       devModeServiceNames: [],
-      hotReloadServiceNames: [],
     })
 
     const graphResults = await garden.processTasks([testTask])

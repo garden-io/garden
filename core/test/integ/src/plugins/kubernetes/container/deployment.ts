@@ -70,7 +70,7 @@ describe("kubernetes container deployment handlers", () => {
         runtimeContext: emptyRuntimeContext,
         namespace,
         enableDevMode: false,
-        enableHotReload: false,
+
         log: garden.log,
         production: false,
         blueGreen: false,
@@ -142,7 +142,7 @@ describe("kubernetes container deployment handlers", () => {
         runtimeContext: emptyRuntimeContext,
         namespace,
         enableDevMode: false,
-        enableHotReload: false,
+
         log: garden.log,
         production: false,
         blueGreen: false,
@@ -169,7 +169,7 @@ describe("kubernetes container deployment handlers", () => {
         runtimeContext: emptyRuntimeContext,
         namespace,
         enableDevMode: false,
-        enableHotReload: false,
+
         log: garden.log,
         production: false,
         blueGreen: false,
@@ -195,7 +195,7 @@ describe("kubernetes container deployment handlers", () => {
         runtimeContext: emptyRuntimeContext,
         namespace,
         enableDevMode: false,
-        enableHotReload: false,
+
         log: garden.log,
         production: false,
         blueGreen: false,
@@ -211,38 +211,6 @@ describe("kubernetes container deployment handlers", () => {
       })
     })
 
-    it("should increase liveness probes when in hot-reload mode", async () => {
-      const service = graph.getService("hot-reload")
-      const namespace = provider.config.namespace!.name!
-
-      const resource = await createWorkloadManifest({
-        api,
-        provider,
-        service,
-        runtimeContext: emptyRuntimeContext,
-        namespace,
-        enableDevMode: false,
-        enableHotReload: true,
-        log: garden.log,
-        production: false,
-        blueGreen: false,
-      })
-
-      // Find the spec for the actual app container (as opposed to the rsync container)
-      const containerSpec = resource.spec.template?.spec?.containers.find((c) => c.name === "hot-reload")
-
-      expect(containerSpec!.livenessProbe).to.eql({
-        initialDelaySeconds: 90,
-        periodSeconds: 10,
-        timeoutSeconds: 3,
-        successThreshold: 1,
-        failureThreshold: 30,
-        exec: {
-          command: ["echo", "ok"],
-        },
-      })
-    })
-
     it("should configure the service for sync with dev mode enabled", async () => {
       const service = graph.getService("dev-mode")
       const namespace = provider.config.namespace!.name!
@@ -254,7 +222,7 @@ describe("kubernetes container deployment handlers", () => {
         runtimeContext: emptyRuntimeContext,
         namespace,
         enableDevMode: true, // <----
-        enableHotReload: false,
+
         log: garden.log,
         production: false,
         blueGreen: false,
@@ -299,7 +267,7 @@ describe("kubernetes container deployment handlers", () => {
         runtimeContext: emptyRuntimeContext,
         namespace,
         enableDevMode: true, // <----
-        enableHotReload: false,
+
         log: garden.log,
         production: false,
         blueGreen: false,
@@ -329,7 +297,7 @@ describe("kubernetes container deployment handlers", () => {
         runtimeContext: emptyRuntimeContext,
         namespace,
         enableDevMode: false,
-        enableHotReload: false,
+
         log: garden.log,
         production: false,
         blueGreen: true,
@@ -375,7 +343,7 @@ describe("kubernetes container deployment handlers", () => {
         runtimeContext: emptyRuntimeContext,
         namespace,
         enableDevMode: false,
-        enableHotReload: false,
+
         log: garden.log,
         production: false,
         blueGreen: false,
@@ -415,7 +383,7 @@ describe("kubernetes container deployment handlers", () => {
         runtimeContext: emptyRuntimeContext,
         namespace,
         enableDevMode: false,
-        enableHotReload: false,
+
         log: garden.log,
         production: false,
         blueGreen: false,
@@ -437,7 +405,7 @@ describe("kubernetes container deployment handlers", () => {
         runtimeContext: emptyRuntimeContext,
         namespace,
         enableDevMode: false,
-        enableHotReload: false,
+
         log: garden.log,
         production: false,
         blueGreen: false,
@@ -460,7 +428,7 @@ describe("kubernetes container deployment handlers", () => {
         runtimeContext: emptyRuntimeContext,
         namespace,
         enableDevMode: false,
-        enableHotReload: false,
+
         log: garden.log,
         production: false,
         blueGreen: false,
@@ -492,7 +460,7 @@ describe("kubernetes container deployment handlers", () => {
             runtimeContext: emptyRuntimeContext,
             namespace,
             enableDevMode: false,
-            enableHotReload: false,
+
             log: garden.log,
             production: false,
             blueGreen: false,
@@ -522,7 +490,6 @@ describe("kubernetes container deployment handlers", () => {
           force: true,
           forceBuild: false,
           devModeServiceNames: [],
-          hotReloadServiceNames: [],
         })
 
         const results = await garden.processTasks([deployTask], { throwOnError: true })
@@ -589,7 +556,6 @@ describe("kubernetes container deployment handlers", () => {
           force: true,
           forceBuild: false,
           devModeServiceNames: [],
-          hotReloadServiceNames: [],
         })
 
         await garden.processTasks([deployTask], { throwOnError: true })
@@ -626,7 +592,6 @@ describe("kubernetes container deployment handlers", () => {
           force: true,
           forceBuild: false,
           devModeServiceNames: [],
-          hotReloadServiceNames: [],
         })
 
         const results = await garden.processTasks([deployTask], { throwOnError: true })
@@ -646,7 +611,6 @@ describe("kubernetes container deployment handlers", () => {
           force: true,
           forceBuild: false,
           devModeServiceNames: [],
-          hotReloadServiceNames: [],
         })
 
         const results = await garden.processTasks([deployTask], { throwOnError: true })
@@ -680,7 +644,6 @@ describe("kubernetes container deployment handlers", () => {
           force: true,
           forceBuild: false,
           devModeServiceNames: [],
-          hotReloadServiceNames: [],
         })
 
         const results = await garden.processTasks([deployTask], { throwOnError: true })
@@ -703,7 +666,6 @@ describe("kubernetes container deployment handlers", () => {
           force: true,
           forceBuild: false,
           devModeServiceNames: [],
-          hotReloadServiceNames: [],
         })
 
         const results = await garden.processTasks([deployTask], { throwOnError: true })
@@ -737,7 +699,6 @@ describe("kubernetes container deployment handlers", () => {
           force: true,
           forceBuild: false,
           devModeServiceNames: [],
-          hotReloadServiceNames: [],
         })
 
         const results = await garden.processTasks([deployTask], { throwOnError: true })
@@ -766,7 +727,6 @@ describe("kubernetes container deployment handlers", () => {
           force: true,
           forceBuild: false,
           devModeServiceNames: [],
-          hotReloadServiceNames: [],
         })
 
         const results = await garden.processTasks([deployTask], { throwOnError: true })
@@ -795,7 +755,6 @@ describe("kubernetes container deployment handlers", () => {
           force: true,
           forceBuild: false,
           devModeServiceNames: [],
-          hotReloadServiceNames: [],
         })
 
         const results = await garden.processTasks([deployTask], { throwOnError: true })

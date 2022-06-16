@@ -100,7 +100,7 @@ describe("GetServiceStatusTask", () => {
               name: "test-service",
               dependencies: ["test-task"],
               disabled: false,
-              hotReloadable: false,
+
               spec: {
                 log: "${runtime.tasks.test-task.outputs.log}",
               },
@@ -133,7 +133,6 @@ describe("GetServiceStatusTask", () => {
         force: true,
         log: garden.log,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
 
       const key = statusTask.getKey()
@@ -180,7 +179,7 @@ describe("GetServiceStatusTask", () => {
               name: "test-service",
               dependencies: ["test-task"],
               disabled: false,
-              hotReloadable: false,
+
               spec: {
                 log: "${runtime.tasks.test-task.outputs.log}",
               },
@@ -213,7 +212,6 @@ describe("GetServiceStatusTask", () => {
         force: true,
         log: garden.log,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
 
       const key = statusTask.getKey()

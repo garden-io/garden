@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import chalk from "chalk"
-import { find, includes } from "lodash"
+import { find } from "lodash"
 import minimatch = require("minimatch")
 
 import { GardenModule } from "../types/module"
@@ -40,7 +40,6 @@ export interface TestTaskParams {
   fromWatch?: boolean
   skipRuntimeDependencies?: boolean
   devModeServiceNames: string[]
-  hotReloadServiceNames: string[]
   silent?: boolean
   interactive?: boolean
 }
@@ -54,7 +53,6 @@ export class TestTask extends BaseTask {
   fromWatch: boolean
   skipRuntimeDependencies: boolean
   devModeServiceNames: string[]
-  hotReloadServiceNames: string[]
   silent: boolean
 
   constructor({
@@ -67,7 +65,6 @@ export class TestTask extends BaseTask {
     fromWatch = false,
     skipRuntimeDependencies = false,
     devModeServiceNames,
-    hotReloadServiceNames,
     silent = true,
     interactive = false,
   }: TestTaskParams) {
@@ -79,7 +76,6 @@ export class TestTask extends BaseTask {
     this.fromWatch = fromWatch
     this.skipRuntimeDependencies = skipRuntimeDependencies
     this.devModeServiceNames = devModeServiceNames
-    this.hotReloadServiceNames = hotReloadServiceNames
     this.silent = silent
     this.interactive = interactive
   }
@@ -96,11 +92,7 @@ export class TestTask extends BaseTask {
       name: this.getName(),
       recursive: false,
       filter: (depNode) =>
-        !(
-          this.fromWatch &&
-          depNode.type === "deploy" &&
-          includes([...this.devModeServiceNames, ...this.hotReloadServiceNames], depNode.name)
-        ),
+        !(this.fromWatch && depNode.type === "deploy" && this.devModeServiceNames.includes(depNode.name)),
     })
 
     const buildTasks = await BuildTask.factory({
@@ -222,7 +214,6 @@ export async function getTestTasks({
   module,
   filterNames,
   devModeServiceNames,
-  hotReloadServiceNames,
   force = false,
   forceBuild = false,
   fromWatch = false,
@@ -234,7 +225,6 @@ export async function getTestTasks({
   module: GardenModule
   filterNames?: string[]
   devModeServiceNames: string[]
-  hotReloadServiceNames: string[]
   force?: boolean
   forceBuild?: boolean
   fromWatch?: boolean
@@ -260,7 +250,6 @@ export async function getTestTasks({
         fromWatch,
         test: testFromConfig(module, testConfig, graph),
         devModeServiceNames,
-        hotReloadServiceNames,
         skipRuntimeDependencies,
       })
   )

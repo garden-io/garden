@@ -21,8 +21,6 @@ import { KubeApi } from "../api"
 import { KubernetesPluginContext } from "../config"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { HelmService } from "../helm/config"
-import { configureHotReload, getHotReloadContainerName, getHotReloadSpec } from "../hot-reload/helpers"
-import { HotReloadableResource, hotReloadK8s } from "../hot-reload/hot-reload"
 import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { streamK8sLogs } from "../logs"
 import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
@@ -31,7 +29,7 @@ import { getK8sIngresses } from "../status/ingress"
 import { compareDeployedResources, isConfiguredForDevMode, waitForResources } from "../status/status"
 import { getTaskResult } from "../task-results"
 import { getTestResult } from "../test-results"
-import { BaseResource, KubernetesResource, KubernetesServerResource } from "../types"
+import { BaseResource, KubernetesResource, KubernetesServerResource, SyncableResource } from "../types"
 import { getServiceResource, getServiceResourceSpec } from "../util"
 import { gardenNamespaceAnnotationValue, getManifests } from "./common"
 import { configureKubernetesModule, KubernetesModule, KubernetesService } from "./config"
@@ -47,7 +45,6 @@ export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<Kubernet
   getPortForward: getPortForwardHandler,
   getServiceLogs,
   getServiceStatus: getKubernetesServiceStatus,
-  hotReloadService: hotReloadK8s,
   getTaskResult,
   getTestResult,
   runTask: runKubernetesTask,
@@ -66,7 +63,6 @@ export async function getKubernetesServiceStatus({
   log,
   service,
   devMode,
-  hotReload,
 }: GetServiceStatusParams<KubernetesModule>): Promise<KubernetesServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespaceStatus = await getModuleNamespaceStatus({
@@ -88,11 +84,10 @@ export async function getKubernetesServiceStatus({
     module,
     service,
     devMode,
-    hotReload,
     manifests,
   })
 
-  let { state, remoteResources, deployedWithDevMode, deployedWithHotReloading } = await compareDeployedResources(
+  let { state, remoteResources, deployedWithDevMode } = await compareDeployedResources(
     k8sCtx,
     api,
     namespace,
@@ -135,7 +130,7 @@ export async function getKubernetesServiceStatus({
     state,
     version: state === "ready" ? service.version : undefined,
     detail: { remoteResources },
-    devMode: deployedWithDevMode || deployedWithHotReloading,
+    devMode: deployedWithDevMode,
     namespaceStatuses: [namespaceStatus],
     ingresses: getK8sIngresses(remoteResources),
   }
@@ -144,7 +139,7 @@ export async function getKubernetesServiceStatus({
 export async function deployKubernetesService(
   params: DeployServiceParams<KubernetesModule>
 ): Promise<KubernetesServiceStatus> {
-  const { ctx, module, service, log, hotReload, devMode } = params
+  const { ctx, module, service, log, devMode } = params
 
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
@@ -178,7 +173,7 @@ export async function deployKubernetesService(
     })
   }
 
-  let target: HotReloadableResource | undefined
+  let target: SyncableResource | undefined
 
   const pruneLabels = { [gardenAnnotationKey("service")]: service.name }
   if (otherManifests.length > 0) {
@@ -188,7 +183,6 @@ export async function deployKubernetesService(
       module,
       service,
       devMode,
-      hotReload,
       manifests,
     })
 
@@ -322,12 +316,12 @@ async function getServiceLogs(params: GetServiceLogsParams<KubernetesModule>) {
 }
 
 /**
- * Looks for a hot-reload or dev-mode target in a list of manifests. If found, the target is either
- * configured for hot-reloading/dev-mode or annotated with `dev-mode: false` and/or `hot-reload: false`.
+ * Looks for a dev-mode target in a list of manifests. If found, the target is either
+ * configured for dev-mode or annotated with `dev-mode: false`.
  *
- * Returns the manifests with the original hot reload resource replaced by the modified spec
+ * Returns the manifests with the original resource replaced by the modified spec.
  *
- * No-op if no target found and neither hot-reloading nor dev-mode is enabled.
+ * No-op if no target found and dev-mode is disabled.
  */
 async function prepareManifestsForSync({
   ctx,
@@ -335,7 +329,6 @@ async function prepareManifestsForSync({
   module,
   service,
   devMode,
-  hotReload,
   manifests,
 }: {
   ctx: KubernetesPluginContext
@@ -343,10 +336,9 @@ async function prepareManifestsForSync({
   log: LogEntry
   module: KubernetesModule
   devMode: boolean
-  hotReload: boolean
   manifests: KubernetesResource<BaseResource>[]
 }) {
-  let target: HotReloadableResource
+  let target: SyncableResource
 
   try {
     const resourceSpec = getServiceResourceSpec(module, undefined)
@@ -362,8 +354,8 @@ async function prepareManifestsForSync({
       })
     )
   } catch (err) {
-    // This is only an error if we're actually trying to hot reload or start dev mode.
-    if ((devMode && service.spec.devMode) || hotReload) {
+    // This is only an error if we're actually trying to start dev mode.
+    if (devMode && service.spec.devMode) {
       throw err
     } else {
       // Nothing to do, so we return the original manifests
@@ -372,10 +364,8 @@ async function prepareManifestsForSync({
   }
 
   set(target, ["metadata", "annotations", gardenAnnotationKey("dev-mode")], "false")
-  set(target, ["metadata", "annotations", gardenAnnotationKey("hot-reload")], "false")
 
   const devModeSpec = service.spec.devMode
-  const hotReloadSpec = hotReload ? getHotReloadSpec(service) : null
 
   if (devMode && devModeSpec) {
     // The "dev-mode" annotation is set in `configureDevMode`.
@@ -384,18 +374,9 @@ async function prepareManifestsForSync({
       spec: devModeSpec,
       containerName: devModeSpec.containerName,
     })
-  } else if (hotReload && hotReloadSpec) {
-    const resourceSpec = getServiceResourceSpec(module, undefined)
-    configureHotReload({
-      target,
-      hotReloadSpec,
-      hotReloadArgs: resourceSpec.hotReloadArgs,
-      containerName: getHotReloadContainerName(module),
-    })
-    set(target, ["metadata", "annotations", gardenAnnotationKey("hot-reload")], "true")
   }
 
-  // Replace the original hot reload resource with the modified spec
+  // Replace the original resource with the modified spec
   const preparedManifests = manifests
     .filter((m) => !(m.kind === target!.kind && target?.metadata.name === m.metadata.name))
     .concat(<KubernetesResource<BaseResource>>target)

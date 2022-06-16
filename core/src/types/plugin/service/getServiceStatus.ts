@@ -13,12 +13,9 @@ import { serviceStatusSchema } from "../../service"
 import { RuntimeContext, runtimeContextSchema } from "../../../runtime-context"
 import { joi } from "../../../config/common"
 
-export type hotReloadStatus = "enabled" | "disabled"
-
 export interface GetServiceStatusParams<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule>
   extends PluginServiceActionParamsBase<M, S> {
   devMode: boolean
-  hotReload: boolean
   runtimeContext: RuntimeContext
 }
 
@@ -35,7 +32,6 @@ export const getServiceStatus = () => ({
   paramsSchema: serviceActionParamsSchema().keys({
     runtimeContext: runtimeContextSchema(),
     devMode: joi.boolean().default(false).description("Whether the service should be configured in dev mode."),
-    hotReload: joi.boolean().default(false).description("Whether the service should be configured for hot-reloading."),
   }),
   resultSchema: serviceStatusSchema(),
 })

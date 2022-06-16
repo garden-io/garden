@@ -113,7 +113,6 @@ export const gardenPlugin = () =>
                 name: spec.name,
                 dependencies: spec.dependencies,
                 disabled: parsed.disabled,
-                hotReloadable: false,
                 outputs: spec.outputs,
                 spec,
               }

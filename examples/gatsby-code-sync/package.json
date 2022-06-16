@@ -1,6 +1,6 @@
 {
-  "name": "gatsby-hot-reload",
-  "description": "Gatsby hot reload demo",
+  "name": "gatsby-code-sync",
+  "description": "Gatsby code sync demo",
   "version": "1.0.0",
   "author": "garden.io <info@garden.io>",
   "dependencies": {

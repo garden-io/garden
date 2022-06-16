@@ -28,7 +28,6 @@ export type GardenAnnotationKey =
   | "dev-mode"
   | "generated"
   | "helm-migrated"
-  | "hot-reload"
   | "manifest-hash"
   | "module"
   | "moduleVersion"

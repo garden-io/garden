@@ -2,7 +2,7 @@
 
 You can synchronize your code (and other files) to and from running containers using _dev mode_.
 
-Dev mode works similarly to the older [hot reloading functionality](./hot-reload.md), but is much faster and more reliable. It also supports bidirectional syncing, which enables you to sync new/changed files from your containers to your local machine.
+Dev mode works similarly to the older hot reloading functionality, but is much faster and more reliable. It also supports bidirectional syncing, which enables you to sync new/changed files from your containers to your local machine.
 
 This new sync mode uses [Mutagen](https://mutagen.io/) under the hood. Garden automatically takes care of fetching Mutagen, so you don't need to install any dependencies yourself to make use of dev mode.
 

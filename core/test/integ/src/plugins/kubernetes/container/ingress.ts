@@ -430,7 +430,6 @@ describe("createIngressResources", () => {
         name: spec.name,
         dependencies: [],
         disabled: false,
-        hotReloadable: false,
         spec,
       },
       disabled: false,

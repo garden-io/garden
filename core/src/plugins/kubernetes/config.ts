@@ -31,7 +31,7 @@ import {
 import { PluginContext } from "../../plugin-context"
 import { deline } from "../../util/string"
 import { defaultSystemNamespace } from "./system"
-import { hotReloadableKinds, HotReloadableKind } from "./hot-reload/hot-reload"
+import { syncableKinds, SyncableKind } from "./types"
 import { baseTaskSpecSchema, BaseTaskSpec, cacheResultSchema } from "../../config/task"
 import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { ArtifactSpec } from "../../config/validation"
@@ -753,13 +753,11 @@ export const configSchema = () =>
     .unknown(false)
 
 export interface ServiceResourceSpec {
-  kind?: HotReloadableKind
+  kind?: SyncableKind
   name?: string
   containerName?: string
   podSelector?: { [key: string]: string }
   containerModule?: string
-  hotReloadCommand?: string[]
-  hotReloadArgs?: string[]
 }
 
 export interface KubernetesTaskSpec extends BaseTaskSpec {
@@ -789,7 +787,7 @@ export const serviceResourceSchema = () =>
     .keys({
       kind: joi
         .string()
-        .valid(...hotReloadableKinds)
+        .valid(...syncableKinds)
         .default("Deployment")
         .description("The type of Kubernetes resource to sync files to."),
       name: joi.string().description(
@@ -813,20 +811,11 @@ export const containerModuleSchema = () =>
   joiIdentifier()
     .description(
       dedent`
-        The Garden module that contains the sources for the container. This needs to be specified under \`serviceResource\` in order to enable hot-reloading and dev mode, but is not necessary for tasks and tests.
-
-        Must be a \`container\` module, and for hot-reloading to work you must specify the \`hotReload\` field on the container module (not required for dev mode).
+        The Garden module that contains the sources for the container. This needs to be specified under \`serviceResource\` in order to enable dev mode, but is not necessary for tasks and tests. Must be a \`container\` module.
 
         _Note: If you specify a module here, you don't need to specify it additionally under \`build.dependencies\`._`
     )
     .example("my-container-module")
-
-export const hotReloadArgsSchema = () =>
-  joi
-    .sparseArray()
-    .items(joi.string())
-    .description("If specified, overrides the arguments for the main container when running in hot-reload mode.")
-    .example(["nodemon", "my-server.js"])
 
 export interface PortForwardSpec {
   name?: string

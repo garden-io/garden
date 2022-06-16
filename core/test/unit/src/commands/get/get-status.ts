@@ -87,7 +87,7 @@ describe("GetStatusCommand", () => {
               name: "test-service",
               dependencies: ["test-task"],
               disabled: false,
-              hotReloadable: false,
+
               spec: {
                 log: "${runtime.tasks.test-task.outputs.log}",
               },

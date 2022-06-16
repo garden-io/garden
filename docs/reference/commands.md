@@ -33,7 +33,7 @@ The following option flags can be used with any of the CLI commands:
   | `--var` |  | array:string | Set a specific variable value, using the format &lt;key&gt;&#x3D;&lt;value&gt;, e.g. &#x60;--var some-key&#x3D;custom-value&#x60;. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. &#x60;--var key-a&#x3D;foo,key-b&#x3D;&quot;value with quotes&quot;&#x60;.
   | `--version` | `-v` | boolean | Show the current CLI version.
   | `--help` | `-h` | boolean | Show help
-  | `--disable-port-forwards` |  | boolean | Disable automatic port forwarding when in watch/hot-reload mode. Note that you can also set GARDEN_DISABLE_PORT_FORWARDS&#x3D;true in your environment.
+  | `--disable-port-forwards` |  | boolean | Disable automatic port forwarding when in watch mode. Note that you can also set GARDEN_DISABLE_PORT_FORWARDS&#x3D;true in your environment.
 
 ### garden build
 
@@ -672,10 +672,9 @@ Examples:
   | `--force-build` |  | boolean | Force rebuild of module(s).
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-deploy.
   | `--dev-mode` | `-dev` | array:string | The name(s) of the service(s) to deploy with dev mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with dev mode enabled. When this option is used, the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
-  | `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading). When this option is used, the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
   | `--skip` |  | array:string | The name(s) of services you&#x27;d like to skip when deploying.
   | `--skip-dependencies` | `-no-deps` | boolean | Deploy the specified services, but don&#x27;t deploy any additional services that they depend on or run any tasks that they depend on. This option can only be used when a list of service names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to deploy a subset of services in dev mode without redeploying any service dependencies that may have changed since you last deployed.
-  | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. Ignored if --watch/-w flag is set or when in dev or hot-reload mode.
+  | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. Ignored if --watch/-w flag is set or when in dev mode.
 
 #### Outputs
 
@@ -874,8 +873,6 @@ as you modify the code.
 Examples:
 
     garden dev
-    garden dev --hot=foo-service,bar-service  # enable hot reloading for foo-service and bar-service
-    garden dev --hot=*                        # enable hot reloading for all compatible services
     garden dev --skip-tests=                  # skip running any tests
     garden dev --force                        # force redeploy of services when the command starts
     garden dev --name integ                   # run all tests with the name 'integ' in the project
@@ -896,7 +893,6 @@ Examples:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--force` |  | boolean | Force redeploy of service(s).
-  | `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading).
   | `--skip-tests` |  | boolean | Disable running the tests.
   | `--test-names` | `-tn` | array:string | Filter the tests to run by test name across all modules (leave unset to run all tests). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
 
@@ -1350,9 +1346,6 @@ providers:
             # you're using them, using conditional expressions.
             disabled:
 
-            # Set this to true if the module and service configuration supports hot reloading.
-            hotReloadable:
-
             # The `validate` module action should populate this, if the service's code sources are contained in a
             # separate module from the parent module. For example, when the service belongs to a module that contains
             # manifests (e.g. a Helm chart), but the actual code lives in a different module (e.g. a container
@@ -1647,9 +1640,6 @@ moduleConfigs:
         # resolve when the service is disabled, so you need to make sure to provide alternate values for those if
         # you're using them, using conditional expressions.
         disabled:
-
-        # Set this to true if the module and service configuration supports hot reloading.
-        hotReloadable:
 
         # The `validate` module action should populate this, if the service's code sources are contained in a separate
         # module from the parent module. For example, when the service belongs to a module that contains manifests
@@ -2144,9 +2134,6 @@ modules:
         # resolve when the service is disabled, so you need to make sure to provide alternate values for those if
         # you're using them, using conditional expressions.
         disabled:
-
-        # Set this to true if the module and service configuration supports hot reloading.
-        hotReloadable:
 
         # The `validate` module action should populate this, if the service's code sources are contained in a separate
         # module from the parent module. For example, when the service belongs to a module that contains manifests

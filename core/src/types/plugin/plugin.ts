@@ -23,7 +23,6 @@ import { GetServiceLogsParams, getServiceLogs } from "./service/getServiceLogs"
 import { GetServiceStatusParams, getServiceStatus } from "./service/getServiceStatus"
 import { GetTaskResultParams, getTaskResult } from "./task/getTaskResult"
 import { GetTestResultParams, getTestResult, TestResult } from "./module/getTestResult"
-import { HotReloadServiceParams, HotReloadServiceResult, hotReloadService } from "./service/hotReloadService"
 import { PrepareEnvironmentParams, PrepareEnvironmentResult, prepareEnvironment } from "./provider/prepareEnvironment"
 import { PublishModuleParams, PublishModuleResult, publishModule } from "./module/publishModule"
 import { RunModuleParams, runModule } from "./module/runModule"
@@ -208,7 +207,6 @@ interface _ServiceActionParams<T extends GardenModule = GardenModule> {
   getPortForward: GetPortForwardParams<T>
   getServiceLogs: GetServiceLogsParams<T>
   getServiceStatus: GetServiceStatusParams<T>
-  hotReloadService: HotReloadServiceParams<T>
   runService: RunServiceParams<T>
   stopPortForward: StopPortForwardParams<T>
 }
@@ -227,7 +225,6 @@ export interface ServiceActionOutputs {
   getPortForward: GetPortForwardResult
   getServiceLogs: {}
   getServiceStatus: ServiceStatus
-  hotReloadService: HotReloadServiceResult
   runService: RunResult
   stopPortForward: {}
 }
@@ -239,7 +236,6 @@ const serviceActionDescriptions: { [P in ServiceActionName]: () => PluginActionD
   getPortForward,
   getServiceLogs,
   getServiceStatus,
-  hotReloadService,
   runService,
   stopPortForward,
 }

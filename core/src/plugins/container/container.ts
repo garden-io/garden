@@ -15,14 +15,12 @@ import { containerHelpers } from "./helpers"
 import { ContainerModule, containerModuleSpecSchema } from "./config"
 import { buildContainerModule, getContainerBuildStatus } from "./build"
 import { ConfigureModuleParams } from "../../types/plugin/module/configure"
-import { HotReloadServiceParams } from "../../types/plugin/service/hotReloadService"
 import { joi } from "../../config/common"
 import { publishContainerModule } from "./publish"
 import { SuggestModulesParams, SuggestModulesResult } from "../../types/plugin/module/suggestModules"
 import { listDirectory } from "../../util/fs"
 import { dedent } from "../../util/string"
 import { Provider, GenericProviderConfig, providerConfigBaseSchema } from "../../config/provider"
-import { isSubdir } from "../../util/util"
 import { GetModuleOutputsParams } from "../../types/plugin/module/getModuleOutputs"
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
@@ -73,38 +71,6 @@ const taskOutputsSchema = joi.object().keys({
 })
 
 export async function configureContainerModule({ log, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
-  // validate hot reload configuration
-  // TODO: validate this when validating this action's output
-  const hotReloadConfig = moduleConfig.spec.hotReload
-
-  if (hotReloadConfig) {
-    const invalidPairDescriptions: string[] = []
-    const targets = hotReloadConfig.sync.map((syncSpec) => syncSpec.target)
-
-    // Verify that sync targets are mutually disjoint - i.e. that no target is a subdirectory of
-    // another target. Mounting directories into mounted directories will cause unexpected results
-    for (const t of targets) {
-      for (const t2 of targets) {
-        if (isSubdir(t2, t) && t !== t2) {
-          invalidPairDescriptions.push(`${t} is a subdirectory of ${t2}.`)
-        }
-      }
-    }
-
-    if (invalidPairDescriptions.length > 0) {
-      // TODO: Adapt this message to also handle source errors
-      throw new ConfigurationError(
-        dedent`Invalid hot reload configuration - a target may not be a subdirectory of another target
-        in the same module.
-
-        ${invalidPairDescriptions.join("\n")}`,
-        { invalidPairDescriptions, hotReloadConfig }
-      )
-    }
-  }
-
-  const hotReloadable = !!moduleConfig.spec.hotReload
-
   // validate services
   moduleConfig.serviceConfigs = moduleConfig.spec.services.map((spec) => {
     // make sure ports are correctly configured
@@ -157,7 +123,6 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
       name,
       dependencies: spec.dependencies,
       disabled: spec.disabled,
-      hotReloadable,
       spec,
     }
   })
@@ -259,9 +224,9 @@ export const gardenPlugin = () =>
   createGardenPlugin({
     name: "container",
     docs: dedent`
-    Provides the [container](../module-types/container.md) module type.
-    _Note that this provider is currently automatically included, and you do not need to configure it in your project configuration._
-  `,
+      Provides the [container](../module-types/container.md) module type.
+      _Note that this provider is currently automatically included, and you do not need to configure it in your project configuration._
+    `,
     createModuleTypes: [
       {
         name: "container",
@@ -284,10 +249,6 @@ export const gardenPlugin = () =>
           build: buildContainerModule,
           publish: publishContainerModule,
           getModuleOutputs: getContainerModuleOutputs,
-
-          async hotReloadService(_: HotReloadServiceParams) {
-            return {}
-          },
         },
       },
     ],

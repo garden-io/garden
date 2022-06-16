@@ -31,7 +31,6 @@ export interface DeployTaskParams {
   log: LogEntry
   skipRuntimeDependencies?: boolean
   devModeServiceNames: string[]
-  hotReloadServiceNames: string[]
 }
 
 @Profile()
@@ -44,7 +43,6 @@ export class DeployTask extends BaseTask {
   fromWatch: boolean
   skipRuntimeDependencies: boolean
   devModeServiceNames: string[]
-  hotReloadServiceNames: string[]
 
   constructor({
     garden,
@@ -56,7 +54,6 @@ export class DeployTask extends BaseTask {
     fromWatch = false,
     skipRuntimeDependencies = false,
     devModeServiceNames,
-    hotReloadServiceNames,
   }: DeployTaskParams) {
     super({ garden, log, force, version: service.version })
     this.graph = graph
@@ -65,20 +62,15 @@ export class DeployTask extends BaseTask {
     this.fromWatch = fromWatch
     this.skipRuntimeDependencies = skipRuntimeDependencies
     this.devModeServiceNames = devModeServiceNames
-    this.hotReloadServiceNames = hotReloadServiceNames
   }
 
   async resolveDependencies() {
     const dg = this.graph
 
-    const skippedServiceDepNames = [...this.hotReloadServiceNames]
-
-    // We filter out service dependencies on services configured for hot reloading (if any)
     const deps = dg.getDependencies({
       nodeType: "deploy",
       name: this.getName(),
       recursive: false,
-      filter: (depNode) => !(depNode.type === "deploy" && includes(skippedServiceDepNames, depNode.name)),
     })
 
     const statusTask = new GetServiceStatusTask({
@@ -88,21 +80,15 @@ export class DeployTask extends BaseTask {
       service: this.service,
       force: false,
       devModeServiceNames: this.devModeServiceNames,
-      hotReloadServiceNames: this.hotReloadServiceNames,
     })
 
-    if (this.fromWatch && includes(skippedServiceDepNames, this.service.name)) {
-      // Only need to get existing statuses and results when using hot-reloading
-      return [statusTask, ...getServiceStatusDeps(this, deps), ...getTaskResultDeps(this, deps)]
+    const buildTasks = await this.getBuildTasks()
+    if (this.skipRuntimeDependencies) {
+      // Then we don't deploy any service dependencies or run any task dependencies, but only get existing
+      // statuses and results.
+      return [statusTask, ...buildTasks, ...getServiceStatusDeps(this, deps), ...getTaskResultDeps(this, deps)]
     } else {
-      const buildTasks = await this.getBuildTasks()
-      if (this.skipRuntimeDependencies) {
-        // Then we don't deploy any service dependencies or run any task dependencies, but only get existing
-        // statuses and results.
-        return [statusTask, ...buildTasks, ...getServiceStatusDeps(this, deps), ...getTaskResultDeps(this, deps)]
-      } else {
-        return [statusTask, ...buildTasks, ...getDeployDeps(this, deps, false), ...getTaskDeps(this, deps, false)]
-      }
+      return [statusTask, ...buildTasks, ...getDeployDeps(this, deps, false), ...getTaskDeps(this, deps, false)]
     }
   }
 
@@ -128,7 +114,6 @@ export class DeployTask extends BaseTask {
     const version = this.version
 
     const devMode = includes(this.devModeServiceNames, this.service.name)
-    const hotReload = !devMode && includes(this.hotReloadServiceNames, this.service.name)
 
     const dependencies = this.graph.getDependencies({
       nodeType: "deploy",
@@ -153,7 +138,7 @@ export class DeployTask extends BaseTask {
     const actions = await this.garden.getActionRouter()
 
     let status = serviceStatuses[this.service.name]
-    const devModeSkipRedeploy = status.devMode && (devMode || hotReload)
+    const devModeSkipRedeploy = status.devMode && devMode
 
     const log = this.log.info({
       status: "active",
@@ -176,7 +161,6 @@ export class DeployTask extends BaseTask {
           log,
           force: this.force,
           devMode,
-          hotReload,
         })
       } catch (err) {
         log.setError()

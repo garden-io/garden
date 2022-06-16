@@ -73,7 +73,6 @@ export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
         {
           dependencies: moduleConfig.spec.dependencies,
           disabled: moduleConfig.spec.disabled,
-          hotReloadable: false,
           name: moduleConfig.name,
           spec: moduleConfig.spec,
         },
