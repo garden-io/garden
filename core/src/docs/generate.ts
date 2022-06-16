@@ -54,7 +54,6 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
     { name: "jib" },
     { name: "kubernetes" },
     { name: "local-kubernetes" },
-    { name: "maven-container" },
     { name: "octant" },
     { name: "terraform" },
     { name: "pulumi" },

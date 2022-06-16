@@ -27,7 +27,6 @@
     "@garden-io/garden-conftest-container": "*",
     "@garden-io/garden-conftest-kubernetes": "*",
     "@garden-io/garden-jib": "*",
-    "@garden-io/garden-maven-container": "*",
     "@garden-io/garden-pulumi": "*",
     "@garden-io/garden-terraform": "*",
     "chalk": "^4.1.0"
