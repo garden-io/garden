@@ -11,7 +11,7 @@ import { resolve, relative, join } from "path"
 import Bluebird from "bluebird"
 import { STATIC_DIR, GARDEN_CLI_ROOT, GARDEN_CORE_ROOT } from "@garden-io/core/build/src/constants"
 import { remove, mkdirp, copy, writeFile } from "fs-extra"
-import { exec, getPackageVersion } from "@garden-io/core/build/src/util/util"
+import { exec, getPackageVersion, sleep } from "@garden-io/core/build/src/util/util"
 import { randomString } from "@garden-io/core/build/src/util/string"
 import { pick } from "lodash"
 import minimist from "minimist"
@@ -131,6 +131,7 @@ async function buildBinaries(args: string[]) {
   for (const [targetName, spec] of Object.entries(selected)) {
     await exec(pkgFetchPath, spec.pkgType.split("-"))
     console.log(chalk.green(" ✓ " + targetName))
+    await sleep(5000) // Work around concurrency bug in pkg...
   }
 
   // Run pkg and pack up each platform binary
@@ -138,6 +139,7 @@ async function buildBinaries(args: string[]) {
 
   await Bluebird.map(Object.entries(selected), async ([targetName, spec]) => {
     await spec.handler({ targetName, sourcePath: cliPath, pkgType: spec.pkgType, version })
+    await sleep(5000) // Work around concurrency bug in pkg...
     console.log(chalk.green(" ✓ " + targetName))
   })
 
@@ -240,6 +242,7 @@ async function pkgCommon({
 
   console.log(` - ${targetName} -> pkg`)
   await exec(pkgPath, [
+    "-d", // it seems to fix a concurrency big in pkg if this is added :(
     "--target",
     pkgType,
     sourcePath,
