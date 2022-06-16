@@ -96,7 +96,6 @@ describe("util", () => {
           log: garden.log,
           service,
           devModeServiceNames: [],
-          hotReloadServiceNames: [],
         })
 
         const resource = await createWorkloadManifest({
@@ -106,7 +105,7 @@ describe("util", () => {
           runtimeContext: emptyRuntimeContext,
           namespace: provider.config.namespace!.name!,
           enableDevMode: false,
-          enableHotReload: false,
+
           log: garden.log,
           production: false,
           blueGreen: false,
@@ -136,7 +135,6 @@ describe("util", () => {
           log: garden.log,
           service,
           devModeServiceNames: [],
-          hotReloadServiceNames: [],
         })
 
         const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
@@ -193,7 +191,7 @@ describe("util", () => {
           expect(stripAnsi(err.message)).to.equal(
             deline`helm module api doesn't specify a serviceResource in its configuration.
           You must specify a resource in the module config in order to use certain Garden features,
-          such as hot reloading, tasks and tests.`
+          such as dev mode, tasks and tests.`
           )
       )
     })
@@ -211,7 +209,7 @@ describe("util", () => {
           expect(stripAnsi(err.message)).to.equal(
             deline`helm module api doesn't specify a serviceResource in its configuration.
           You must specify a resource in the module config in order to use certain Garden features,
-          such as hot reloading, tasks and tests.`
+          such as dev mode, tasks and tests.`
           )
       )
     })
@@ -224,7 +222,7 @@ describe("util", () => {
         ctx,
         module,
         devMode: false,
-        hotReload: false,
+
         log,
         version: module.version.versionString,
       })
@@ -246,7 +244,7 @@ describe("util", () => {
         ctx,
         module,
         devMode: false,
-        hotReload: false,
+
         log,
         version: module.version.versionString,
       })
@@ -265,7 +263,7 @@ describe("util", () => {
           expect(stripAnsi(err.message)).to.equal(
             deline`helm module api doesn't specify a serviceResource in its configuration.
           You must specify a resource in the module config in order to use certain Garden features,
-          such as hot reloading, tasks and tests.`
+          such as dev mode, tasks and tests.`
           )
       )
     })
@@ -276,7 +274,7 @@ describe("util", () => {
         ctx,
         module,
         devMode: false,
-        hotReload: false,
+
         log,
         version: module.version.versionString,
       })
@@ -304,7 +302,7 @@ describe("util", () => {
         ctx,
         module,
         devMode: false,
-        hotReload: false,
+
         log,
         version: module.version.versionString,
       })
@@ -332,7 +330,7 @@ describe("util", () => {
         ctx,
         module,
         devMode: false,
-        hotReload: false,
+
         log,
         version: module.version.versionString,
       })
@@ -363,7 +361,7 @@ describe("util", () => {
         ctx,
         module,
         devMode: false,
-        hotReload: false,
+
         log,
         version: module.version.versionString,
       })
@@ -392,7 +390,6 @@ describe("util", () => {
           log: helmGarden.log,
           service,
           devModeServiceNames: [],
-          hotReloadServiceNames: [],
         })
 
         await helmGarden.processTasks([deployTask], { throwOnError: true })
@@ -503,7 +500,7 @@ describe("util", () => {
         ctx,
         module,
         devMode: false,
-        hotReload: false,
+
         log,
         version: module.version.versionString,
       })

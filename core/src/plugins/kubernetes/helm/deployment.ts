@@ -26,16 +26,14 @@ import {
   getPausedResources,
   gardenCloudAECPauseAnnotation,
 } from "./status"
-import { HotReloadableResource } from "../hot-reload/hot-reload"
+import { SyncableResource } from "../types"
 import { apply, deleteResources } from "../kubectl"
 import { KubernetesPluginContext, ServiceResourceSpec } from "../config"
-import { ContainerHotReloadSpec } from "../../container/config"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 import { getForwardablePorts, killPortForwards } from "../port-forward"
 import { getServiceResource, getServiceResourceSpec } from "../util"
 import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
-import { getHotReloadSpec, configureHotReload, getHotReloadContainerName } from "../hot-reload/helpers"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { KubeApi } from "../api"
 
@@ -46,11 +44,9 @@ export async function deployHelmService({
   log,
   force,
   devMode,
-  hotReload,
 }: DeployServiceParams<HelmModule>): Promise<HelmServiceStatus> {
-  let hotReloadSpec: ContainerHotReloadSpec | null = null
   let serviceResourceSpec: ServiceResourceSpec | null = null
-  let serviceResource: HotReloadableResource | null = null
+  let serviceResource: SyncableResource | null = null
 
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
@@ -68,21 +64,20 @@ export async function deployHelmService({
     ctx: k8sCtx,
     module,
     devMode,
-    hotReload,
     log,
     version: service.version,
   })
 
   const chartPath = await getChartPath(module)
   const releaseName = getReleaseName(module)
-  const releaseStatus = await getReleaseStatus({ ctx: k8sCtx, module, service, releaseName, log, devMode, hotReload })
+  const releaseStatus = await getReleaseStatus({ ctx: k8sCtx, module, service, releaseName, log, devMode })
 
   const commonArgs = [
     "--namespace",
     namespace,
     "--timeout",
     module.spec.timeout.toString(10) + "s",
-    ...(await getValueArgs(module, devMode, hotReload)),
+    ...(await getValueArgs(module, devMode)),
   ]
 
   if (module.spec.atomicInstall) {
@@ -98,9 +93,6 @@ export async function deployHelmService({
     }
     await helm({ ctx: k8sCtx, namespace, log, args: [...installArgs] })
   } else {
-    if (hotReload) {
-      hotReloadSpec = getHotReloadSpec(service)
-    }
     log.silly(`Upgrading Helm release ${releaseName}`)
     const upgradeArgs = ["upgrade", releaseName, chartPath, "--install", ...commonArgs]
     await helm({ ctx: k8sCtx, namespace, log, args: [...upgradeArgs] })
@@ -134,7 +126,6 @@ export async function deployHelmService({
     log,
     module,
     devMode,
-    hotReload,
     version: service.version,
     namespace: preparedTemplates.namespace,
     releaseName: preparedTemplates.releaseName,
@@ -142,7 +133,7 @@ export async function deployHelmService({
   })
   const manifests = await filterManifests(preparedManifests)
 
-  if ((devMode && module.spec.devMode) || hotReload) {
+  if (devMode && module.spec.devMode) {
     serviceResourceSpec = getServiceResourceSpec(module, getBaseModule(module))
     serviceResource = await getServiceResource({
       ctx,
@@ -155,20 +146,12 @@ export async function deployHelmService({
   }
 
   // Because we need to modify the Deployment, and because there is currently no reliable way to do that before
-  // installing/upgrading via Helm, we need to separately update the target here for dev-mode/hot-reload.
+  // installing/upgrading via Helm, we need to separately update the target here for dev-mode.
   if (devMode && service.spec.devMode && serviceResourceSpec && serviceResource) {
     configureDevMode({
       target: serviceResource,
       spec: service.spec.devMode,
       containerName: service.spec.devMode?.containerName,
-    })
-    await apply({ log, ctx, api, provider, manifests: [serviceResource], namespace })
-  } else if (hotReload && hotReloadSpec && serviceResourceSpec && serviceResource) {
-    configureHotReload({
-      target: serviceResource,
-      hotReloadSpec,
-      hotReloadArgs: serviceResourceSpec.hotReloadArgs,
-      containerName: getHotReloadContainerName(module),
     })
     await apply({ log, ctx, api, provider, manifests: [serviceResource], namespace })
   }

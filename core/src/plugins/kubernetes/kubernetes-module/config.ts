@@ -23,7 +23,6 @@ import {
   KubernetesTaskSpec,
   namespaceNameSchema,
   containerModuleSchema,
-  hotReloadArgsSchema,
   serviceResourceDescription,
   portForwardsSchema,
   PortForwardSpec,
@@ -104,7 +103,8 @@ export const kubernetesModuleSpecSchema = () =>
       )
       .keys({
         containerModule: containerModuleSchema(),
-        hotReloadArgs: hotReloadArgsSchema(),
+        // TODO: remove in 0.14 (not used, kept for compatibility)
+        hotReloadArgs: joi.any().meta({ internal: true }),
       }),
     tasks: joiSparseArray(kubernetesTaskSchema()),
     tests: joiSparseArray(kubernetesTestSchema()),
@@ -124,9 +124,6 @@ export async function configureKubernetesModule({
       name: moduleConfig.name,
       dependencies: moduleConfig.spec.dependencies,
       disabled: moduleConfig.disabled,
-      // Note: We can't tell here if the source module supports hot-reloading,
-      // so we catch it in the handler if need be.
-      hotReloadable: !!sourceModuleName,
       sourceModuleName,
       spec: moduleConfig.spec,
     },

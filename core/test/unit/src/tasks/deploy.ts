@@ -105,7 +105,7 @@ describe("DeployTask", () => {
             name: "test-service",
             dependencies: ["dep-service", "test-task"],
             disabled: false,
-            hotReloadable: false,
+
             spec: {
               log: "${runtime.tasks.test-task.outputs.log}",
             },
@@ -114,7 +114,7 @@ describe("DeployTask", () => {
             name: "dep-service",
             dependencies: [],
             disabled: false,
-            hotReloadable: false,
+
             spec: {
               log: "apples and pears",
             },
@@ -157,7 +157,6 @@ describe("DeployTask", () => {
         fromWatch: false,
         log: garden.log,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
 
       expect((await forcedDeployTask.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
@@ -171,7 +170,6 @@ describe("DeployTask", () => {
         fromWatch: false,
         log: garden.log,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
 
       expect((await unforcedDeployTask.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
@@ -185,7 +183,6 @@ describe("DeployTask", () => {
         fromWatch: true,
         log: garden.log,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
 
       expect((await deployTaskFromWatch.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
@@ -205,7 +202,6 @@ describe("DeployTask", () => {
           log: garden.log,
           skipRuntimeDependencies: true, // <-----
           devModeServiceNames: [],
-          hotReloadServiceNames: [],
         })
 
         const deps = await deployTask.resolveDependencies()
@@ -226,7 +222,6 @@ describe("DeployTask", () => {
         forceBuild: false,
         log: garden.log,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
 
       const result = await garden.processTasks([deployTask], { throwOnError: true })

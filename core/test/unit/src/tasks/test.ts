@@ -38,7 +38,6 @@ describe("TestTask", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
 
       const deps = await task.resolveDependencies()
@@ -60,7 +59,6 @@ describe("TestTask", () => {
           forceBuild: false,
           skipRuntimeDependencies: true, // <-----
           devModeServiceNames: [],
-          hotReloadServiceNames: [],
         })
 
         const deps = await task.resolveDependencies()

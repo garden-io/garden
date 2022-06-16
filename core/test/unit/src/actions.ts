@@ -315,21 +315,6 @@ describe("ActionRouter", () => {
       })
     })
 
-    describe("hotReloadService", () => {
-      it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.hotReloadService({
-          log,
-          service,
-          graph,
-          runtimeContext: {
-            envVars: { FOO: "bar" },
-            dependencies: [],
-          },
-        })
-        expect(result).to.eql({})
-      })
-    })
-
     describe("runModule", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const command = ["npm", "run"]
@@ -553,14 +538,13 @@ describe("ActionRouter", () => {
           graph,
           runtimeContext,
           devMode: false,
-          hotReload: false,
         })
         expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } })
       })
 
       it("should emit a serviceStatus event", async () => {
         garden.events.eventLog = []
-        await actions.getServiceStatus({ log, service, graph, runtimeContext, devMode: false, hotReload: false })
+        await actions.getServiceStatus({ log, service, graph, runtimeContext, devMode: false })
         const event = garden.events.eventLog[0]
         expect(event).to.exist
         expect(event.name).to.eql("serviceStatus")
@@ -577,7 +561,7 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.getServiceStatus({ log, service, graph, runtimeContext, devMode: false, hotReload: false }),
+          () => actions.getServiceStatus({ log, service, graph, runtimeContext, devMode: false }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from service 'service-a': key .foo must be a string"
@@ -591,7 +575,7 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.getServiceStatus({ log, service, graph, runtimeContext, devMode: false, hotReload: false }),
+          () => actions.getServiceStatus({ log, service, graph, runtimeContext, devMode: false }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from service 'service-a': key .base must be a string"
@@ -609,7 +593,6 @@ describe("ActionRouter", () => {
           runtimeContext,
           force: true,
           devMode: false,
-          hotReload: false,
         })
         expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } })
       })
@@ -623,7 +606,6 @@ describe("ActionRouter", () => {
           runtimeContext,
           force: true,
           devMode: false,
-          hotReload: false,
         })
         const moduleVersion = service.module.version.versionString
         const event1 = garden.events.eventLog[0]
@@ -660,7 +642,6 @@ describe("ActionRouter", () => {
               runtimeContext,
               force: true,
               devMode: false,
-              hotReload: false,
             }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
@@ -683,7 +664,6 @@ describe("ActionRouter", () => {
               runtimeContext,
               force: true,
               devMode: false,
-              hotReload: false,
             }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
@@ -1714,7 +1694,7 @@ describe("ActionRouter", () => {
           runtimeContext,
           log,
           devMode: false,
-          hotReload: false,
+
           force: false,
         },
         defaultHandler: handler,
@@ -1764,7 +1744,7 @@ describe("ActionRouter", () => {
           runtimeContext: _runtimeContext,
           log,
           devMode: false,
-          hotReload: false,
+
           force: false,
         },
         defaultHandler: handler,
@@ -1817,7 +1797,7 @@ describe("ActionRouter", () => {
           runtimeContext: _runtimeContext,
           log,
           devMode: false,
-          hotReload: false,
+
           force: false,
         },
         defaultHandler: async (params) => {
@@ -1867,7 +1847,7 @@ describe("ActionRouter", () => {
               runtimeContext: _runtimeContext,
               log,
               devMode: false,
-              hotReload: false,
+
               force: false,
             },
             defaultHandler: async () => {
@@ -2243,7 +2223,7 @@ const testPlugin = createGardenPlugin({
             name: spec.name,
             dependencies: spec.dependencies || [],
             disabled: false,
-            hotReloadable: false,
+
             spec,
           }))
 
@@ -2293,11 +2273,6 @@ const testPlugin = createGardenPlugin({
         publish: async (params) => {
           validateParams(params, moduleActionDescriptions.publish.paramsSchema)
           return { published: true }
-        },
-
-        hotReloadService: async (params) => {
-          validateParams(params, moduleActionDescriptions.hotReloadService.paramsSchema)
-          return {}
         },
 
         runModule: async (params) => {

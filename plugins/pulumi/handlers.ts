@@ -59,7 +59,6 @@ export const configurePulumiModule: ModuleActionHandlers["configure"] = async ({
       name: moduleConfig.name,
       dependencies: moduleConfig.spec.dependencies,
       disabled: false,
-      hotReloadable: false,
       spec: moduleConfig.spec,
     },
   ]

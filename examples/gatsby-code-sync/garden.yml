@@ -1,5 +1,5 @@
 kind: Project
-name: gatsby-hot-reload
+name: gatsby-dev-mode
 environments:
   - name: local
 providers:
@@ -21,6 +21,11 @@ services:
           exclude: [node_modules]
           mode: one-way
     args: [npm, run, dev]
+    devMode:
+      sync:
+        - target: /app/src
+          source: src
+          exclude: [node_modules]
     env:
       GATSBY_WEBPACK_PUBLICPATH: /
     ports:

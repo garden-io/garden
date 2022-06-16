@@ -32,7 +32,6 @@ import {
   KubernetesTaskSpec,
   namespaceNameSchema,
   containerModuleSchema,
-  hotReloadArgsSchema,
   serviceResourceDescription,
   portForwardsSchema,
   PortForwardSpec,
@@ -100,7 +99,6 @@ const helmServiceResourceSchema = () =>
         the string for the YAML to be parsed correctly.`
     ),
     containerModule: containerModuleSchema(),
-    hotReloadArgs: hotReloadArgsSchema(),
   })
 
 const runPodSpecWhitelistDescription = runPodSpecIncludeFields.map((f) => `* \`${f}\``).join("\n")
@@ -191,7 +189,7 @@ export const helmModuleSpecSchema = () =>
 
       ${serviceResourceDescription}
 
-      Because a Helm chart can contain any number of Kubernetes resources, this needs to be specified for certain Garden features and commands to work, such as hot-reloading.
+      Because a Helm chart can contain any number of Kubernetes resources, this needs to be specified for certain Garden features and commands to work.
       `
     ),
     skipDeploy: joi
@@ -245,9 +243,6 @@ export async function configureHelmModule({
         name: moduleConfig.name,
         dependencies,
         disabled: moduleConfig.disabled,
-        // Note: We can't tell here if the source module supports hot-reloading,
-        // so we catch it in the handler if need be.
-        hotReloadable: !!sourceModuleName,
         sourceModuleName,
         spec: moduleConfig.spec,
       },

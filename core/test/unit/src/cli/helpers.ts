@@ -131,9 +131,9 @@ describe("parseCliArgs", () => {
 
   it("sets empty string value instead of boolean for string options", () => {
     const cmd = new DeployCommand()
-    const argv = parseCliArgs({ stringArgs: ["deploy", "--hot"], command: cmd, cli: true })
+    const argv = parseCliArgs({ stringArgs: ["deploy", "--dev"], command: cmd, cli: true })
 
-    expect(argv["hot-reload"]).to.equal("")
+    expect(argv["dev-mode"]).to.equal("")
   })
 
   it("sets default global option values", () => {
@@ -392,7 +392,7 @@ describe("processCliArgs", () => {
       opts: withDefaultGlobalOpts(opts),
     })
 
-    const { args: args2, opts: opts2 } = parseAndProcess(["service-a", "--hot=service-a"], cmd)
+    const { args: args2, opts: opts2 } = parseAndProcess(["service-a", "--skip-dependencies=true"], cmd)
 
     await cmd.action({
       ...defaultActionParams,

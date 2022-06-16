@@ -26,7 +26,7 @@ import { PluginContext } from "../../plugin-context"
 import { HelmModule } from "./helm/config"
 import { KubernetesModule } from "./kubernetes-module/config"
 import { getChartPath, renderHelmTemplateString } from "./helm/common"
-import { HotReloadableResource } from "./hot-reload/hot-reload"
+import { SyncableResource } from "./types"
 import { ProviderMap } from "../../config/provider"
 import { PodRunner } from "./run"
 import { isSubset } from "../../util/is-subset"
@@ -164,7 +164,7 @@ export async function getWorkloadPods(api: KubeApi, namespace: string, resource:
     return [await api.core.readNamespacedPod(resource.metadata.name, resource.metadata.namespace || namespace)]
   }
 
-  // We don't match on the garden.io/version label because it can fall out of sync during hot reloads
+  // We don't match on the garden.io/version label because it can fall out of sync
   const selector = omit(getSelectorFromResource(resource), gardenAnnotationKey("version"))
   const pods = await getPods(api, resource.metadata?.namespace || namespace, selector)
 
@@ -549,8 +549,7 @@ export function getServiceResourceSpec(
     throw new ConfigurationError(
       chalk.red(
         deline`${module.type} module ${chalk.white(module.name)} doesn't specify a ${chalk.underline("serviceResource")}
-        in its configuration. You must specify a resource in the module config in order to use certain Garden features,
-        such as hot reloading, tasks and tests.`
+        in its configuration. You must specify a resource in the module config in order to use certain Garden features, such as dev mode, tasks and tests.`
       ),
       { resourceSpec }
     )
@@ -570,7 +569,7 @@ interface GetServiceResourceParams {
 
 /**
  * Finds and returns the configured service resource from the specified manifests, that we can use for
- * hot-reloading and other service-specific functionality.
+ * service-specific functionality.
  *
  * Optionally provide a `resourceSpec`, which is then used instead of the default `module.serviceResource` spec.
  * This is used when individual tasks or tests specify a resource.
@@ -584,7 +583,7 @@ export async function getServiceResource({
   manifests,
   module,
   resourceSpec,
-}: GetServiceResourceParams): Promise<HotReloadableResource> {
+}: GetServiceResourceParams): Promise<SyncableResource> {
   const resourceMsgName = resourceSpec ? "resource" : "serviceResource"
 
   if (resourceSpec.podSelector && !isEmpty(resourceSpec.podSelector)) {
@@ -613,7 +612,7 @@ export async function getServiceResource({
   }
 
   let targetName = resourceSpec.name
-  let target: HotReloadableResource
+  let target: SyncableResource
 
   const targetKind = resourceSpec.kind
   const chartResourceNames = manifests.map((o) => `${o.kind}/${o.metadata.name}`)
@@ -627,7 +626,7 @@ export async function getServiceResource({
       targetName = await renderHelmTemplateString(ctx, log, module as HelmModule, chartPath, targetName)
     }
 
-    target = find(<HotReloadableResource[]>manifests, (o) => o.kind === targetKind && o.metadata.name === targetName)!
+    target = find(<SyncableResource[]>manifests, (o) => o.kind === targetKind && o.metadata.name === targetName)!
 
     if (!target) {
       throw new ConfigurationError(
@@ -657,7 +656,7 @@ export async function getServiceResource({
       )
     }
 
-    target = <HotReloadableResource>applicableChartResources[0]
+    target = <SyncableResource>applicableChartResources[0]
   }
 
   return target
@@ -667,7 +666,7 @@ export async function getServiceResource({
  * From the given Deployment, DaemonSet, StatefulSet or Pod resource, get either the first container spec,
  * or if `containerName` is specified, the one matching that name.
  */
-export function getResourceContainer(resource: HotReloadableResource, containerName?: string): V1Container {
+export function getResourceContainer(resource: SyncableResource, containerName?: string): V1Container {
   const kind = resource.kind
   const name = resource.metadata.name
 

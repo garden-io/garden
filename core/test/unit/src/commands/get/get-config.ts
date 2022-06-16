@@ -188,14 +188,14 @@ describe("GetConfigCommand", () => {
               name: "service-disabled",
               dependencies: [],
               disabled: true,
-              hotReloadable: false,
+
               spec: {},
             },
             {
               name: "service-enabled",
               dependencies: [],
               disabled: false,
-              hotReloadable: false,
+
               spec: {},
             },
           ],
@@ -438,14 +438,14 @@ describe("GetConfigCommand", () => {
                 name: "service-disabled",
                 dependencies: [],
                 disabled: true,
-                hotReloadable: false,
+
                 spec: {},
               },
               {
                 name: "service-enabled",
                 dependencies: [],
                 disabled: false,
-                hotReloadable: false,
+
                 spec: {},
               },
             ],
@@ -483,7 +483,7 @@ describe("GetConfigCommand", () => {
             name: "service-enabled",
             dependencies: [],
             disabled: false,
-            hotReloadable: false,
+
             spec: {},
             annotations: {},
             daemon: false,
@@ -496,7 +496,6 @@ describe("GetConfigCommand", () => {
             tty: false,
             volumes: [],
           },
-          hotReloadable: false,
         },
       ]
 

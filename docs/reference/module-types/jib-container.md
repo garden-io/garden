@@ -203,23 +203,6 @@ extraFlags:
 # module does contain a Dockerfile, this identifier is used when pushing the built image.
 image:
 
-# Specifies which files or directories to sync to which paths inside the running containers of hot reload-enabled
-# services when those files or directories are modified. Applies to this module's services, and to services with this
-# module as their `sourceModule`.
-hotReload:
-  # Specify one or more source files or directories to automatically sync into the running container.
-  sync:
-    - # POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be
-      # a relative path. Defaults to the module's top-level directory if no value is provided.
-      source: .
-
-      # POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not
-      # allowed.
-      target:
-
-  # An optional command to run inside the container after syncing.
-  postSyncCommand:
-
 # POSIX-style name of Dockerfile, relative to module root.
 dockerfile:
 
@@ -375,14 +358,6 @@ services:
       # The maximum number of seconds to wait until the liveness check counts as failed.
       livenessTimeoutSeconds: 3
 
-    # If this module uses the `hotReload` field, the container will be run with this command/entrypoint when the
-    # service is deployed with hot reloading enabled.
-    hotReloadCommand:
-
-    # If this module uses the `hotReload` field, the container will be run with these arguments when the service is
-    # deployed with hot reloading enabled.
-    hotReloadArgs:
-
     # The maximum duration (in seconds) to wait for resources to deploy and become healthy.
     timeout: 300
 
@@ -443,7 +418,7 @@ services:
     # The number of instances of the service to deploy. Defaults to 3 for environments configured with `production:
     # true`, otherwise 1.
     # Note: This setting may be overridden or ignored in some cases. For example, when running with `daemon: true`,
-    # with hot-reloading enabled, or if the provider doesn't support multiple replicas.
+    # with dev-mode enabled, or if the provider doesn't support multiple replicas.
     replicas:
 
     # List of volumes that should be mounted when deploying the service.
@@ -1085,81 +1060,6 @@ Specify the image name for the container. Should be a valid Docker image identif
 | -------- | -------- |
 | `string` | No       |
 
-### `hotReload`
-
-Specifies which files or directories to sync to which paths inside the running containers of hot reload-enabled services when those files or directories are modified. Applies to this module's services, and to services with this module as their `sourceModule`.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `hotReload.sync[]`
-
-[hotReload](#hotreload) > sync
-
-Specify one or more source files or directories to automatically sync into the running container.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[object]` | Yes      |
-
-### `hotReload.sync[].source`
-
-[hotReload](#hotreload) > [sync](#hotreloadsync) > source
-
-POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be a relative path. Defaults to the module's top-level directory if no value is provided.
-
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `"."`   | No       |
-
-Example:
-
-```yaml
-hotReload:
-  ...
-  sync:
-    - source: "src"
-```
-
-### `hotReload.sync[].target`
-
-[hotReload](#hotreload) > [sync](#hotreloadsync) > target
-
-POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not allowed.
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | Yes      |
-
-Example:
-
-```yaml
-hotReload:
-  ...
-  sync:
-    - target: "/app/src"
-```
-
-### `hotReload.postSyncCommand[]`
-
-[hotReload](#hotreload) > postSyncCommand
-
-An optional command to run inside the container after syncing.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-Example:
-
-```yaml
-hotReload:
-  ...
-  postSyncCommand:
-    - rebuild-static-assets.sh
-```
-
 ### `dockerfile`
 
 POSIX-style name of Dockerfile, relative to module root.
@@ -1633,45 +1533,6 @@ The maximum number of seconds to wait until the liveness check counts as failed.
 | -------- | ------- | -------- |
 | `number` | `3`     | No       |
 
-### `services[].hotReloadCommand[]`
-
-[services](#services) > hotReloadCommand
-
-If this module uses the `hotReload` field, the container will be run with this command/entrypoint when the service is deployed with hot reloading enabled.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-Example:
-
-```yaml
-services:
-  - hotReloadCommand:
-      - /bin/sh
-      - '-c'
-```
-
-### `services[].hotReloadArgs[]`
-
-[services](#services) > hotReloadArgs
-
-If this module uses the `hotReload` field, the container will be run with these arguments when the service is deployed with hot reloading enabled.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-Example:
-
-```yaml
-services:
-  - hotReloadArgs:
-      - npm
-      - run
-      - dev
-```
-
 ### `services[].timeout`
 
 [services](#services) > timeout
@@ -1900,7 +1761,7 @@ This allows you to call the service from the outside by the node's IP address an
 [services](#services) > replicas
 
 The number of instances of the service to deploy. Defaults to 3 for environments configured with `production: true`, otherwise 1.
-Note: This setting may be overridden or ignored in some cases. For example, when running with `daemon: true`, with hot-reloading enabled, or if the provider doesn't support multiple replicas.
+Note: This setting may be overridden or ignored in some cases. For example, when running with `daemon: true`, with dev-mode enabled, or if the provider doesn't support multiple replicas.
 
 | Type     | Required |
 | -------- | -------- |

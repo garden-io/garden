@@ -25,7 +25,6 @@ import { pathExists } from "fs-extra"
 import chalk = require("chalk")
 import { SuggestModulesParams, SuggestModulesResult } from "../../../types/plugin/module/suggestModules"
 import { getReleaseName } from "./common"
-import { hotReloadK8s } from "../hot-reload/hot-reload"
 import { execInHelmService } from "./exec"
 
 export const helmHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModule>> = {
@@ -58,7 +57,6 @@ export const helmHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModule>> =
   getServiceStatus,
   getTaskResult,
   getTestResult,
-  hotReloadService: hotReloadK8s,
   // TODO: add publishModule handler
   runModule: runHelmModule,
   runTask: runHelmTask,

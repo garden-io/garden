@@ -80,7 +80,6 @@ export class CallCommand extends Command<Args> {
       log,
       graph,
       devMode: false,
-      hotReload: false,
       runtimeContext,
     })
 

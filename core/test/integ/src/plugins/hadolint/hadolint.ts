@@ -191,7 +191,6 @@ describe("hadolint provider", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()
@@ -255,7 +254,6 @@ describe("hadolint provider", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()
@@ -314,7 +312,6 @@ describe("hadolint provider", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()
@@ -367,7 +364,6 @@ describe("hadolint provider", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()
@@ -410,7 +406,6 @@ describe("hadolint provider", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()
@@ -456,7 +451,6 @@ describe("hadolint provider", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()

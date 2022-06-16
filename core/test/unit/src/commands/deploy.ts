@@ -119,7 +119,7 @@ describe("DeployCommand", () => {
       },
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
-        "hot-reload": undefined,
+
         "watch": false,
         "force": false,
         "force-build": true,
@@ -468,7 +468,7 @@ describe("DeployCommand", () => {
       },
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
-        "hot-reload": undefined,
+
         "watch": false,
         "force": false,
         "force-build": true,
@@ -516,7 +516,7 @@ describe("DeployCommand", () => {
         },
         opts: withDefaultGlobalOpts({
           "dev-mode": undefined,
-          "hot-reload": undefined,
+
           "watch": false,
           "force": false,
           "force-build": true,
@@ -574,7 +574,7 @@ describe("DeployCommand", () => {
       },
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
-        "hot-reload": undefined,
+
         "watch": false,
         "force": false,
         "force-build": true,
@@ -626,7 +626,7 @@ describe("DeployCommand", () => {
       },
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
-        "hot-reload": undefined,
+
         "watch": false,
         "force": false,
         "force-build": true,
@@ -671,7 +671,7 @@ describe("DeployCommand", () => {
       },
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
-        "hot-reload": undefined,
+
         "watch": false,
         "force": false,
         "force-build": true,
@@ -701,7 +701,7 @@ describe("DeployCommand", () => {
         },
         opts: withDefaultGlobalOpts({
           "dev-mode": undefined,
-          "hot-reload": undefined,
+
           "watch": true,
           "force": false,
           "force-build": true,
@@ -725,7 +725,7 @@ describe("DeployCommand", () => {
         },
         opts: withDefaultGlobalOpts({
           "dev-mode": [],
-          "hot-reload": undefined,
+
           "watch": false,
           "force": false,
           "force-build": true,
@@ -737,29 +737,6 @@ describe("DeployCommand", () => {
       expect(persistent).to.be.true
     })
 
-    it("should return persistent=true if --hot-reload is set", async () => {
-      const cmd = new DeployCommand()
-      const log = getLogger().placeholder()
-      const persistent = cmd.isPersistent({
-        log,
-        headerLog: log,
-        footerLog: log,
-        args: {
-          services: undefined,
-        },
-        opts: withDefaultGlobalOpts({
-          "dev-mode": undefined,
-          "hot-reload": ["*"],
-          "watch": false,
-          "force": false,
-          "force-build": true,
-          "skip": ["service-b"],
-          "skip-dependencies": false,
-          "forward": false,
-        }),
-      })
-      expect(persistent).to.be.true
-    })
     it("should return persistent=true if --follow is set", async () => {
       const cmd = new DeployCommand()
       const log = getLogger().placeholder()
@@ -772,7 +749,7 @@ describe("DeployCommand", () => {
         },
         opts: withDefaultGlobalOpts({
           "dev-mode": undefined,
-          "hot-reload": undefined,
+
           "watch": false,
           "force": false,
           "force-build": true,

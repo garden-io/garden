@@ -51,7 +51,6 @@ export const baseServiceSpecSchema = () =>
     .description("The required attributes of a service. This is generally further defined by plugins.")
 
 export interface ServiceConfig<T extends {} = {}> extends CommonServiceSpec {
-  hotReloadable: boolean
   sourceModuleName?: string
 
   // Plugins can add custom fields that are kept here
@@ -61,10 +60,6 @@ export interface ServiceConfig<T extends {} = {}> extends CommonServiceSpec {
 export const serviceConfigSchema = () =>
   baseServiceSpecSchema()
     .keys({
-      hotReloadable: joi
-        .boolean()
-        .default(false)
-        .description("Set this to true if the module and service configuration supports hot reloading."),
       sourceModuleName: joiIdentifier().optional().description(deline`
         The \`validate\` module action should populate this, if the service's code sources are contained in a separate module from the parent module. For example, when the service belongs to a module that contains manifests (e.g. a Helm chart), but the actual code lives in a different module (e.g. a container module).
       `),

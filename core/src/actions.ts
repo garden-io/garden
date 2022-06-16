@@ -76,7 +76,6 @@ import { DeployServiceParams } from "./types/plugin/service/deployService"
 import { ExecInServiceParams, ExecInServiceResult } from "./types/plugin/service/execInService"
 import { GetServiceLogsParams, GetServiceLogsResult } from "./types/plugin/service/getServiceLogs"
 import { GetServiceStatusParams } from "./types/plugin/service/getServiceStatus"
-import { HotReloadServiceParams, HotReloadServiceResult } from "./types/plugin/service/hotReloadService"
 import { RunServiceParams } from "./types/plugin/service/runService"
 import { GetTaskResultParams } from "./types/plugin/task/getTaskResult"
 import { RunTaskParams, RunTaskResult } from "./types/plugin/task/runTask"
@@ -602,11 +601,6 @@ export class ActionRouter implements TypeGuard {
     }
   }
 
-  async hotReloadService(params: ServiceActionRouterParams<HotReloadServiceParams>): Promise<HotReloadServiceResult> {
-    const { result } = await this.callServiceHandler({ params, actionType: "hotReloadService" })
-    return result
-  }
-
   async deleteService(params: ServiceActionRouterParams<DeleteServiceParams>): Promise<ServiceStatus> {
     const log = params.log.info({
       section: params.service.name,
@@ -615,7 +609,7 @@ export class ActionRouter implements TypeGuard {
     })
 
     const runtimeContext = emptyRuntimeContext
-    const status = await this.getServiceStatus({ ...params, runtimeContext, devMode: false, hotReload: false })
+    const status = await this.getServiceStatus({ ...params, runtimeContext, devMode: false })
 
     if (status.state === "missing") {
       log.setSuccess({
@@ -803,7 +797,6 @@ export class ActionRouter implements TypeGuard {
           log,
           service,
           devModeServiceNames: [],
-          hotReloadServiceNames: [],
         })
     )
     const results = await this.garden.processTasks(tasks, { throwOnError: true })
@@ -825,7 +818,6 @@ export class ActionRouter implements TypeGuard {
           forceBuild,
           fromWatch: false,
           devModeServiceNames: [],
-          hotReloadServiceNames: [],
         })
     )
 

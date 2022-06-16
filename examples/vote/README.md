@@ -1,27 +1,17 @@
 # Voting example project
 
 An example application, that showcases a variety of Garden features, such as service dependencies, tasks, running
-databases, hot reloading, and ingress configuration.
+databases, dev mode, and ingress configuration.
 
 The app is a simple voting application, where you can vote for either cats or dogs.
 You can vote as many times as you would like, and observe the results live in the `result` service.
 
 ## Usage
 
-Start by running `garden deploy` or `garden dev` in the project's top-level directory, to spin the stack up.
+Start by running `garden deploy` in the project's top-level directory, to spin the stack up.
 
 ```sh
-garden dev
-Good afternoon! Let's get your environment wired up...
-
-✔ local-kubernetes          → Configured
-✔ worker                    → Building worker:8bbc389b3e... → Done (took 0.6 sec)
-✔ postgres                  → Building → Done (took 0.4 sec)
-✔ result                    → Building result:8bbc389b3e... → Done (took 0.5 sec)
-✔ vote                      → Building vote:8bbc389b3e-1543837972... → Done (took 0.5 sec)
-✔ redis                     → Checking status → Version 8bbc389b3e already deployed
-✔ db                        → Checking status → Version 8bbc389b3e already deployed
-✔ result                    → Checking status → Version 8bbc389b3e already deployed
+garden deploy
 ```
 
 **Note:** If you're running _minikube_, you may need to add the appropriate entries to your `/etc/hosts` file.
@@ -40,20 +30,15 @@ In a separate tab, open http://result.vote.local.app.garden. The results there w
 ### Try out code synchronization
 
 To start up the synchronization:
+
 ```sh
 garden dev
+# OR garden deploy --dev=vote
 ```
 
-Make a change to one of the source files in the `vote` service to see it synchronize into the
-running container, instead of the normal build+deploy flow. The configuration for the synchronization can be found in
-the garden config for the service.
-
-### Run the tests
-
-After making some changes you can run the tests to see if they still pass after your modifications:
-```sh
-garden dev
-```
+Then try making a change to one of the source files in the `vote` service, to see it synchronize into the
+running container, instead of the normal build+deploy flow. Note that changing the file will _also_ trigger a
+build and some tests, but the code sync should complete almost instantly while those take longer to complete.
 
 ### Try out Workflows
 

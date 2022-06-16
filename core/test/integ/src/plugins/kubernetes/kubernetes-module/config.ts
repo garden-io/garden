@@ -61,7 +61,6 @@ describe("configureKubernetesModule", () => {
         name: "module-simple",
         dependencies: [],
         disabled: false,
-        hotReloadable: false,
         sourceModuleName: undefined,
         spec: {
           build: {
@@ -155,7 +154,6 @@ describe("configureKubernetesModule", () => {
     const imageModule = graph.getModule("api-image")
     const imageVersion = imageModule.version.versionString
 
-    expect(module.serviceConfigs[0].hotReloadable).to.be.true
     expect(module.serviceConfigs[0].sourceModuleName).to.equal("api-image")
     expect(module.serviceConfigs[0].spec.manifests[0].spec.template.spec.containers[0].image).to.equal(
       `api-image:${imageVersion}`

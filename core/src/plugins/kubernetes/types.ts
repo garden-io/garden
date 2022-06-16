@@ -85,3 +85,8 @@ export type KubernetesIngress = KubernetesResource<V1Ingress | NetworkingV1beta1
 export function isPodResource(resource: KubernetesWorkload | KubernetesPod): resource is KubernetesPod {
   return resource.kind === "Pod"
 }
+
+export type SyncableResource = KubernetesWorkload | KubernetesPod
+export type SyncableKind = "Deployment" | "DaemonSet" | "StatefulSet"
+
+export const syncableKinds: string[] = ["Deployment", "DaemonSet", "StatefulSet"]

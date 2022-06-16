@@ -54,7 +54,6 @@ describe("kubernetes", () => {
         log: garden.log,
         service,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
 
       await garden.processTasks([deployTask], { throwOnError: true })
@@ -98,7 +97,6 @@ describe("kubernetes", () => {
           log: garden.log,
           service,
           devModeServiceNames: [],
-          hotReloadServiceNames: [],
         })
 
         await garden.processTasks([deployTask], { throwOnError: true })
@@ -117,7 +115,7 @@ describe("kubernetes", () => {
             runtimeContext: emptyRuntimeContext,
             namespace,
             enableDevMode: false,
-            enableHotReload: false,
+
             production: ctx.production,
             log,
             blueGreen: provider.config.deploymentStrategy === "blue-green",
@@ -163,7 +161,6 @@ describe("kubernetes", () => {
           log: garden.log,
           service,
           devModeServiceNames: [],
-          hotReloadServiceNames: [],
         })
         const deleteTask = new DeleteServiceTask({
           garden,
@@ -187,7 +184,7 @@ describe("kubernetes", () => {
             runtimeContext: emptyRuntimeContext,
             namespace,
             enableDevMode: false,
-            enableHotReload: false,
+
             production: ctx.production,
             log,
             blueGreen: provider.config.deploymentStrategy === "blue-green",

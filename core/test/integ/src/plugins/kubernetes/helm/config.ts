@@ -110,7 +110,6 @@ describe("configureHelmModule", () => {
           name: "api",
           dependencies: [],
           disabled: false,
-          hotReloadable: true,
           sourceModuleName: "api-image",
           spec,
         },

@@ -11,9 +11,6 @@ tests:
   - name: tasks # Tests for tasks are currently being skipped
     command: [yarn, e2e-project, --, --project=tasks, "--showlog=${var.show-log}", "--env=${environment.name}"]
     timeout: ${var.timeout}
-  - name: hot-reload
-    command: [yarn, e2e-project, --, --project=hot-reload, "--showlog=${var.show-log}", "--env=${environment.name}"]
-    timeout: ${var.timeout}
   - name: project-variables
     command: [yarn, e2e-project, --, --project=project-variables, "--showlog=${var.show-log}", "--env=${environment.name}"]
     timeout: ${var.timeout}

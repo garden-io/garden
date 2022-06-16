@@ -40,7 +40,6 @@ describe("testKubernetesModule", () => {
       force: true,
       forceBuild: false,
       devModeServiceNames: [],
-      hotReloadServiceNames: [],
     })
 
     const key = testTask.getKey()
@@ -64,7 +63,6 @@ describe("testKubernetesModule", () => {
       force: true,
       forceBuild: false,
       devModeServiceNames: [],
-      hotReloadServiceNames: [],
     })
 
     const key = testTask.getKey()
@@ -93,7 +91,6 @@ describe("testKubernetesModule", () => {
       force: true,
       forceBuild: false,
       devModeServiceNames: [],
-      hotReloadServiceNames: [],
     })
 
     await expectError(
@@ -126,7 +123,6 @@ describe("testKubernetesModule", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -148,7 +144,6 @@ describe("testKubernetesModule", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -172,7 +167,6 @@ describe("testKubernetesModule", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)

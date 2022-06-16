@@ -12,7 +12,6 @@ import { sortBy } from "lodash"
 
 import { ConfigGraph } from "../config-graph"
 import { GardenModule } from "../types/module"
-import { GardenService } from "../types/service"
 import { GardenTask } from "../types/task"
 import { GardenTest } from "../types/test"
 import { uniqByName } from "../util/util"
@@ -26,44 +25,8 @@ export function getDevModeServiceNames(namesFromOpt: string[] | undefined, confi
   }
 }
 
-export function getHotReloadServiceNames(namesFromOpt: string[] | undefined, configGraph: ConfigGraph) {
-  const names = namesFromOpt || []
-  if (names.includes("*")) {
-    return configGraph
-      .getServices()
-      .filter((s) => supportsHotReloading(s))
-      .map((s) => s.name)
-  } else {
-    return names
-  }
-}
-
 export function getDevModeModules(devModeServiceNames: string[], graph: ConfigGraph): GardenModule[] {
   return uniqByName(graph.getServices({ names: devModeServiceNames }).map((s) => s.module))
-}
-
-/**
- * Returns an error message string if one or more serviceNames refers to a service that's not configured for
- * hot reloading, or if one or more of serviceNames referes to a non-existent service. Returns null otherwise.
- */
-export function validateHotReloadServiceNames(serviceNames: string[], configGraph: ConfigGraph): string | null {
-  const services = configGraph.getServices({ names: serviceNames, includeDisabled: true })
-
-  const notHotreloadable = services.filter((s) => !supportsHotReloading(s)).map((s) => s.name)
-  if (notHotreloadable.length > 0) {
-    return `The following requested services are not configured for hot reloading: ${notHotreloadable.join(", ")}`
-  }
-
-  const disabled = services.filter((s) => s.config.disabled).map((s) => s.name)
-  if (disabled.length > 0) {
-    return `The following requested services are disabled for the specified environment: ${disabled.join(", ")}`
-  }
-
-  return null
-}
-
-function supportsHotReloading(service: GardenService) {
-  return service.config.hotReloadable
 }
 
 export function makeGetTestOrTaskResult(modules: GardenModule[], testsOrTasks: GardenTest[] | GardenTask[]) {

@@ -7,7 +7,6 @@
  */
 
 import { deployContainerService, deleteService } from "./deployment"
-import { hotReloadContainer } from "../hot-reload/hot-reload"
 import { getServiceLogs } from "./logs"
 import { runContainerModule, runContainerService, runContainerTask } from "./run"
 import { execInService } from "./exec"
@@ -44,7 +43,6 @@ export const containerHandlers = {
   getServiceLogs,
   getServiceStatus: getContainerServiceStatus,
   getTestResult,
-  hotReloadService: hotReloadContainer,
   publish: k8sPublishContainerModule,
   runModule: runContainerModule,
   runService: runContainerService,

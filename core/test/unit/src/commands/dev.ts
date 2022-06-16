@@ -6,20 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
-import { flattenDeep } from "lodash"
 import pEvent from "p-event"
 import { expect } from "chai"
-import {
-  DevCommand,
-  DevCommandArgs,
-  DevCommandOpts,
-  getDevCommandWatchTasks,
-  getDevCommandInitialTasks,
-} from "../../../../src/commands/dev"
+import { DevCommand, DevCommandArgs, DevCommandOpts, getDevCommandWatchTasks } from "../../../../src/commands/dev"
 import { makeTestGardenA, withDefaultGlobalOpts, TestGarden } from "../../../helpers"
 import { GlobalOptions, ParameterValues } from "../../../../src/cli/params"
-import { BaseTask } from "../../../../src/tasks/base"
 
 describe("DevCommand", () => {
   const command = new DevCommand()
@@ -80,7 +71,7 @@ describe("DevCommand", () => {
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
-      "hot-reload": undefined,
+
       "skip-tests": false,
       "test-names": undefined,
     })
@@ -117,41 +108,6 @@ describe("DevCommand", () => {
     return promise
   })
 
-  it("should initially deploy services with hot reloading when requested", async () => {
-    const garden = await makeTestGardenA()
-    const log = garden.log
-    const graph = await garden.getConfigGraph({ log, emit: false })
-    const modules = graph.getModules()
-
-    const initialTasks = await getDevCommandInitialTasks({
-      garden,
-      log,
-      graph,
-      modules,
-      services: graph.getServices(),
-      devModeServiceNames: [],
-      // Note: service-a is a runtime dependency of module-a's integration test spec, so in this test case
-      // we're implicitly verifying that tests with runtime dependencies on services being deployed with
-      // hot reloading don't request non-hot-reload-enabled deploys for those same services.
-      hotReloadServiceNames: ["service-a"],
-      skipTests: false,
-      forceDeploy: false,
-    })
-
-    const withDeps = async (task: BaseTask) => {
-      const deps = await task.resolveDependencies()
-      return [task, await Bluebird.map(deps, async (dep) => await withDeps(dep))]
-    }
-
-    const initialTasksWithDeps: BaseTask[] = flattenDeep(await Bluebird.map(initialTasks, withDeps))
-    const deployTasksForServiceA = initialTasksWithDeps.filter((t) => t.getKey() === "deploy.service-a")
-
-    expect(deployTasksForServiceA.length).to.be.greaterThan(0)
-    for (const deployTask of deployTasksForServiceA) {
-      expect(deployTask!["hotReloadServiceNames"]).to.eql(["service-a"])
-    }
-  })
-
   it("should skip disabled services", async () => {
     const garden = await makeTestGardenA()
 
@@ -162,7 +118,7 @@ describe("DevCommand", () => {
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
-      "hot-reload": undefined,
+
       "skip-tests": false,
       "test-names": undefined,
     })
@@ -184,7 +140,7 @@ describe("DevCommand", () => {
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
-      "hot-reload": undefined,
+
       "skip-tests": false,
       "test-names": undefined,
     })
@@ -206,7 +162,7 @@ describe("DevCommand", () => {
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
-      "hot-reload": undefined,
+
       "skip-tests": false,
       "test-names": undefined,
     })
@@ -228,7 +184,7 @@ describe("DevCommand", () => {
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
-      "hot-reload": undefined,
+
       "skip-tests": false,
       "test-names": undefined,
     })
@@ -250,7 +206,7 @@ describe("DevCommand", () => {
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
-      "hot-reload": undefined,
+
       "skip-tests": false,
       "test-names": undefined,
     })
@@ -272,7 +228,7 @@ describe("DevCommand", () => {
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
-      "hot-reload": undefined,
+
       "skip-tests": false,
       "test-names": undefined,
     })
@@ -299,7 +255,7 @@ describe("getDevCommandWatchTasks", () => {
       module: graph.getModule("module-b"),
       servicesWatched: graph.getServices().map((s) => s.name),
       devModeServiceNames: [],
-      hotReloadServiceNames: [],
+
       testNames: undefined,
       skipTests: false,
     })

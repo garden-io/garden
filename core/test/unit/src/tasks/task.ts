@@ -129,7 +129,6 @@ describe("TaskTask", () => {
         forceBuild: false,
         log: garden.log,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
 
       let result = await garden.processTasks([taskTask], { throwOnError: true })
@@ -181,7 +180,6 @@ describe("TaskTask", () => {
         forceBuild: false,
         log: garden.log,
         devModeServiceNames: [],
-        hotReloadServiceNames: [],
       })
 
       let result = await garden.processTasks([taskTask], { throwOnError: true })

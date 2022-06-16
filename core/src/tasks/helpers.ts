@@ -13,7 +13,6 @@ import { GardenModule } from "../types/module"
 import { ConfigGraph, DependencyRelations } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask } from "./base"
-import { HotReloadTask } from "./hot-reload"
 import { TestTask } from "./test"
 import { TaskTask } from "./task"
 import { GetServiceStatusTask } from "./get-service-status"
@@ -30,7 +29,6 @@ export async function getModuleWatchTasks({
   module,
   servicesWatched,
   devModeServiceNames,
-  hotReloadServiceNames,
 }: {
   garden: Garden
   log: LogEntry
@@ -38,18 +36,11 @@ export async function getModuleWatchTasks({
   module: GardenModule
   servicesWatched: string[]
   devModeServiceNames: string[]
-  hotReloadServiceNames: string[]
 }): Promise<BaseTask[]> {
   const dependants = graph.getDependantsForModule(module, true)
 
   const deployTasks = dependants.deploy
-    .filter(
-      (s) =>
-        !s.disabled &&
-        servicesWatched.includes(s.name) &&
-        !devModeServiceNames.includes(s.name) &&
-        !hotReloadServiceNames.includes(s.name)
-    )
+    .filter((s) => !s.disabled && servicesWatched.includes(s.name) && !devModeServiceNames.includes(s.name))
     .map(
       (service) =>
         new DeployTask({
@@ -61,19 +52,10 @@ export async function getModuleWatchTasks({
           forceBuild: false,
           fromWatch: true,
           devModeServiceNames,
-          hotReloadServiceNames,
         })
     )
 
-  const hotReloadServices = graph.getServices({ names: hotReloadServiceNames, includeDisabled: true })
-  const hotReloadTasks = hotReloadServices
-    .filter(
-      (service) =>
-        !service.disabled && (service.module.name === module.name || service.sourceModule.name === module.name)
-    )
-    .map((service) => new HotReloadTask({ garden, graph, log, service, force: true, hotReloadServiceNames }))
-
-  const outputTasks = [...deployTasks, ...hotReloadTasks]
+  const outputTasks = [...deployTasks]
 
   log.silly(`getModuleWatchTasks called for module ${module.name}, returning the following tasks:`)
   log.silly(`  ${outputTasks.map((t) => t.getKey()).join(", ")}`)
@@ -94,7 +76,6 @@ export function getServiceStatusDeps(task: RuntimeTask, deps: DependencyRelation
       service,
       force: false,
       devModeServiceNames: task.devModeServiceNames,
-      hotReloadServiceNames: task.hotReloadServiceNames,
     })
   })
 }
@@ -121,7 +102,6 @@ export function getTaskDeps(task: RuntimeTask, deps: DependencyRelations, force:
       force,
       forceBuild: task.forceBuild,
       devModeServiceNames: task.devModeServiceNames,
-      hotReloadServiceNames: task.hotReloadServiceNames,
     })
   })
 }
@@ -138,7 +118,6 @@ export function getDeployDeps(task: RuntimeTask, deps: DependencyRelations, forc
         forceBuild: task.forceBuild,
         skipRuntimeDependencies: task.skipRuntimeDependencies,
         devModeServiceNames: task.devModeServiceNames,
-        hotReloadServiceNames: task.hotReloadServiceNames,
       })
   )
 }
