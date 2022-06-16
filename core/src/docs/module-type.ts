@@ -27,7 +27,6 @@ export const moduleTypes = [
   { name: "helm", pluginName: "local-kubernetes" },
   { name: "jib-container" },
   { name: "kubernetes", pluginName: "local-kubernetes" },
-  { name: "maven-container" },
   { name: "persistentvolumeclaim", pluginName: "local-kubernetes" },
   { name: "templated" },
   { name: "terraform" },

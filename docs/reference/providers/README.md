@@ -14,7 +14,6 @@ title: Providers
 * [`jib`](./jib.md)
 * [`kubernetes`](./kubernetes.md)
 * [`local-kubernetes`](./local-kubernetes.md)
-* [`maven-container`](./maven-container.md)
 * [`octant`](./octant.md)
 * [`terraform`](./terraform.md)
 * [`pulumi`](./pulumi.md)
