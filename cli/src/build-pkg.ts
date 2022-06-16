@@ -242,7 +242,6 @@ async function pkgCommon({
 
   console.log(` - ${targetName} -> pkg`)
   await exec(pkgPath, [
-    "-d", // it seems to fix a concurrency big in pkg if this is added :(
     "--target",
     pkgType,
     sourcePath,
