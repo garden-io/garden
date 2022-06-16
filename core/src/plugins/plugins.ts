@@ -18,7 +18,4 @@ export const getSupportedPlugins = () => [
 
 // These plugins are always registered
 export const getBuiltinPlugins = () =>
-  getSupportedPlugins().concat([
-    { name: "npm-package", callback: () => require("./npm-package").gardenPlugin() },
-    { name: "templated", callback: () => require("./templated").gardenPlugin() },
-  ])
+  getSupportedPlugins().concat([{ name: "templated", callback: () => require("./templated").gardenPlugin() }])
