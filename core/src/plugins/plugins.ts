@@ -19,12 +19,6 @@ export const getSupportedPlugins = () => [
 // These plugins are always registered
 export const getBuiltinPlugins = () =>
   getSupportedPlugins().concat([
-    { name: "google-app-engine", callback: () => require("./google/google-app-engine").gardenPlugin() },
-    { name: "google-cloud-functions", callback: () => require("./google/google-cloud-functions").gardenPlugin() },
-    {
-      name: "local-google-cloud-functions",
-      callback: () => require("./local/local-google-cloud-functions").gardenPlugin(),
-    },
     { name: "npm-package", callback: () => require("./npm-package").gardenPlugin() },
     { name: "templated", callback: () => require("./templated").gardenPlugin() },
   ])
