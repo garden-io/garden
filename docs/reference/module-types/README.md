@@ -14,7 +14,6 @@ title: Module Types
 * [`jib-container`](./jib-container.md)
 * [`kubernetes`](./kubernetes.md)
 * [`maven-container`](./maven-container.md)
-* [`openfaas`](./openfaas.md)
 * [`persistentvolumeclaim`](./persistentvolumeclaim.md)
 * [`templated`](./templated.md)
 * [`terraform`](./terraform.md)

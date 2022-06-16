@@ -7,7 +7,7 @@ title: Modules
 
 Modules are the basic **unit of building** in Garden. They are usually the first thing you add after creating the project-level configuration.
 
-A module can correspond to a Dockerfile and its associated code, a remote Docker image, a Helm chart, an OpenFaaS function, and more, all depending on the module type.
+A module can correspond to a Dockerfile and its associated code, a remote Docker image, a Helm chart, Kubernetes manifests, and more, all depending on the module type.
 
 Below is a simple example of a module's `garden.yml` (from the [`demo-project`](https://github.com/garden-io/garden/tree/0.12.41/examples/demo-project) example project):
 

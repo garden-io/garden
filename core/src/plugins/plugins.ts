@@ -14,7 +14,6 @@ export const getSupportedPlugins = () => [
   { name: "kubernetes", callback: () => require("./kubernetes/kubernetes").gardenPlugin() },
   { name: "local-kubernetes", callback: () => require("./kubernetes/local/local").gardenPlugin() },
   { name: "octant", callback: () => require("./octant/octant").gardenPlugin() },
-  { name: "openfaas", callback: () => require("./openfaas/openfaas").gardenPlugin() },
 ]
 
 // These plugins are always registered

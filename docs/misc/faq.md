@@ -278,27 +278,11 @@ Therefore, a Helm chart with multiple deployments will only show up as a single 
 
 That said, a single Helm module can have multiple container modules as build dependencies and refer to the resulting images. So it should work just fine, but you'll have a coarser granularity when it comes to deploying them.
 
-## OpenFaaS
-
-### Can I hot reload OpenFaaS functions?
-
-Unfortunately it's currently not feasible to support hot reloading for OpenFaaS, since it would require quite a lot of upstream work in OpenFaaS itself.
-
 ## Misc
 
 ### When are you releasing the Plugin SDK?
 
 We're exploring how we can release it incrementally. Please let us know if this is something you're interested in.
-
-### What system components does Garden install?
-
-The components installed when using the remote building functionality are discussed in the [In-cluster building docs](https://docs.garden.io/guides/in-cluster-building).
-
-Garden also optionally installs Nginx. The `local-kubernetes` provider defaults to installing Nginx, but the (remote) `kubernetes` provider does not install it by default.
-
-Furthermore, the `openfaas` provider installs some components necessary for OpenFaas to work.
-
-Of course, we use Garden to install these components, and you’ll find the Garden modules for them in [in our source code](https://github.com/garden-io/garden/tree/master/static) under `kubernetes/system` and `openfaas/system`.
 
 ### How does Garden resolve the `*.local.app.garden` domain?
 

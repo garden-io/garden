@@ -56,7 +56,6 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
     { name: "local-kubernetes" },
     { name: "maven-container" },
     { name: "octant" },
-    { name: "openfaas" },
     { name: "terraform" },
     { name: "pulumi" },
   ]
