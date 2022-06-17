@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ChildProcess, exec, spawn } from "child_process"
+import { ChildProcess, execFile, spawn } from "child_process"
 import { LogEntry } from "../logger/log-entry"
 import { sleepSync } from "./util"
 import { ConfigurationError, RuntimeError } from "../exceptions"
@@ -14,6 +14,7 @@ import { ConfigurationError, RuntimeError } from "../exceptions"
 export interface OsCommand {
   readonly command: string
   readonly args?: string[]
+  readonly cwd?: string
 }
 
 export interface ProcessMessage {
@@ -71,11 +72,13 @@ export interface IOStreamListener {
   readonly onMessage: (msg: ProcessMessage) => void
 }
 
-export type CommandExecutor = (command: string) => ChildProcess
+export type CommandExecutor = (command: OsCommand) => ChildProcess
 
 export namespace CommandExecutors {
-  export const spawnExecutor: CommandExecutor = (command: string) => spawn(command, { shell: true })
-  export const execExecutor: CommandExecutor = (command: string) => exec(command)
+  export const spawnExecutor: CommandExecutor = (osCommand: OsCommand) =>
+    spawn(osCommand.command, osCommand.args, { cwd: osCommand.cwd, shell: true })
+  export const execExecutor: CommandExecutor = (osCommand: OsCommand) =>
+    execFile(osCommand.command, osCommand.args, { cwd: osCommand.cwd })
   // no fork executor support yet
 }
 
@@ -188,7 +191,7 @@ export type RecoverableProcessState = InitialProcessState | ActiveProcessState |
  *  - support multiple parents if necessary
  */
 export class RecoverableProcess {
-  public readonly command: string
+  public readonly command: OsCommand
   private readonly executor: CommandExecutor
   private proc?: ChildProcess
   private lastKnownPid?: number
@@ -207,9 +210,7 @@ export class RecoverableProcess {
   private readonly log: LogEntry
 
   constructor(config: RecoverableProcessConfig) {
-    this.command = !!config.osCommand.args
-      ? `${config.osCommand.command} ${config.osCommand.args.join(" ")}`
-      : config.osCommand.command
+    this.command = config.osCommand
     this.executor = config.executor || CommandExecutors.spawnExecutor
     this.proc = undefined
     this.lastKnownPid = undefined

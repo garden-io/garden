@@ -211,13 +211,13 @@ export class ProxySshKeystore {
  * but now recoverable processes are used in local mode only.
  */
 export class LocalModeProcessRegistry {
-  private readonly recoverableProcesses: Map<string, RecoverableProcess>
+  private recoverableProcesses: RecoverableProcess[]
 
   private constructor() {
     if (!!LocalModeProcessRegistry.instance) {
       throw new RuntimeError("Cannot init singleton twice, use LocalModeProcessRegistry.getInstance()", {})
     }
-    this.recoverableProcesses = new Map<string, RecoverableProcess>()
+    this.recoverableProcesses = []
   }
 
   private static instance?: LocalModeProcessRegistry = undefined
@@ -232,13 +232,12 @@ export class LocalModeProcessRegistry {
   }
 
   public register(process: RecoverableProcess): void {
-    const root = process.getTreeRoot()
-    this.recoverableProcesses.set(root.command, root)
+    this.recoverableProcesses.push(process.getTreeRoot())
   }
 
   public shutdown(): void {
     this.recoverableProcesses.forEach((process) => process.stopAll())
-    this.recoverableProcesses.clear()
+    this.recoverableProcesses = []
   }
 }
 
@@ -464,11 +463,10 @@ function getLocalServiceCommand({ spec: localModeSpec, service }: StartLocalMode
   if (!command || command.length === 0) {
     return undefined
   }
-  let commandString = command.join(" ")
-  if (!isAbsolute(commandString)) {
-    commandString = `${service.module.path}/${commandString}`
-  }
-  return { command: commandString }
+  const commandName = command[0]
+  const commandArgs = command.slice(1)
+  const cwd = isAbsolute(commandName) ? undefined : service.module.path
+  return { command: commandName, args: commandArgs, cwd }
 }
 
 const localAppFailureCounter = new FailureCounter(10)
