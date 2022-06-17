@@ -139,9 +139,7 @@ export class GitHandler extends VcsHandler {
       if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: unsafe repository")) {
         log.warn(
           chalk.yellow(
-            "It looks like you're using Git 2.36.0 or newer " +
-              `and the Garden static directory "${path}" is owned by someone else. ` +
-              "It will be added to safe.directory list in the .gitconfig."
+            `It looks like you're using Git 2.36.0 or newer and the Garden static directory "${path}" is owned by someone else. It will be added to safe.directory list in the .gitconfig.`
           )
         )
         const gitConfigCompatiblePath = this.toGitConfigCompatiblePath(path, currentPlatformName)
@@ -151,13 +149,14 @@ export class GitHandler extends VcsHandler {
         this.gitSafeDirs[path] = true
         log.debug(`Configured git to trust repository in ${path}`)
         return
+      } else if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: not a git repository")) {
+        throw new RuntimeError(notInRepoRootErrorMessage(path), { path })
       } else {
         log.error(
           `Unexpected Git error occurred while running 'git status' from path "${path}". Exit code: ${err.exitCode}. Error message: ${err.stderr}`
         )
+        throw err
       }
-
-      throw err
     }
     this.gitSafeDirs[path] = true
   }
@@ -168,6 +167,8 @@ export class GitHandler extends VcsHandler {
     }
 
     await this.ensureSafeDirGitRepo(log, STATIC_DIR)
+    await this.ensureSafeDirGitRepo(log, path)
+
     const git = this.gitCli(log, path)
 
     try {
