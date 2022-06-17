@@ -255,9 +255,23 @@ function findFirstForwardablePort(serviceSpec: ContainerServiceSpec): ServicePor
 }
 
 namespace LocalModeEnv {
-  export const APP_PORT = "APP_PORT"
-  export const PUBLIC_KEY = "PUBLIC_KEY"
-  export const USER_NAME = "USER_NAME"
+  /**
+   * Stores the port of the target container which should be executed in local mode.
+   * The proxy container has to expose the same port.
+   */
+  export const GARDEN_REMOTE_CONTAINER_PORT = "GARDEN_REMOTE_CONTAINER_PORT"
+  /**
+   * Stores the generated SSH public key for the local mode's SSH connection.
+   * This env variable is supported by the openssh-server,
+   * see https://docs.linuxserver.io/images/docker-openssh-server for the details.
+   */
+  export const GARDEN_PROXY_CONTAINER_PUBLIC_KEY = "PUBLIC_KEY"
+  /**
+   * Stores the username for the local mode's SSH connection.
+   * This env variable is supported by the openssh-server,
+   * see https://docs.linuxserver.io/images/docker-openssh-server for the details.
+   */
+  export const GARDEN_PROXY_CONTAINER_USER_NAME = "USER_NAME"
 }
 
 async function prepareLocalModeEnvVars({ service }: ConfigureLocalModeParams, keyPair: KeyPair): Promise<PrimitiveMap> {
@@ -268,9 +282,9 @@ async function prepareLocalModeEnvVars({ service }: ConfigureLocalModeParams, ke
   const publicSshKey = await keyPair.readPublicSshKey()
 
   const env = {}
-  env[LocalModeEnv.APP_PORT] = portSpec.containerPort
-  env[LocalModeEnv.PUBLIC_KEY] = publicSshKey
-  env[LocalModeEnv.USER_NAME] = PROXY_CONTAINER_USER_NAME
+  env[LocalModeEnv.GARDEN_REMOTE_CONTAINER_PORT] = portSpec.containerPort
+  env[LocalModeEnv.GARDEN_PROXY_CONTAINER_PUBLIC_KEY] = publicSshKey
+  env[LocalModeEnv.GARDEN_PROXY_CONTAINER_USER_NAME] = PROXY_CONTAINER_USER_NAME
   return env
 }
 
@@ -580,7 +594,7 @@ async function getReversePortForwardCommand(
 ): Promise<OsCommand> {
   const localPort = localModeSpec.localPort
   // todo: get all forwardable ports and set up ssh tunnels for all
-  const remoteContainerPort = service.spec.env[LocalModeEnv.APP_PORT]
+  const remoteContainerPort = service.spec.env[LocalModeEnv.GARDEN_REMOTE_CONTAINER_PORT]
   const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(ctx.gardenDirPath, service, log)
   const knownHostsFilePath = await ProxySshKeystore.getInstance(log).getKnownHostsFile(ctx.gardenDirPath)
 
