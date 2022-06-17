@@ -455,6 +455,10 @@ class FailureCounter {
   }
 }
 
+function getLogsPath(ctx: PluginContext): string {
+  return join(ctx.gardenDirPath, "logs")
+}
+
 function getLocalServiceCommand({ spec: localModeSpec, service }: StartLocalModeParams): OsCommand | undefined {
   const command = localModeSpec.command
   if (!command || command.length === 0) {
@@ -471,8 +475,7 @@ const localAppFailureCounter = new FailureCounter(10)
 
 function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProcess | undefined {
   const localServiceCmd = getLocalServiceCommand(configParams)
-  const { service, log } = configParams
-  const logsPath = join(service.module.path, ".garden", "logs")
+  const { ctx, service, log } = configParams
 
   return !!localServiceCmd
     ? new RecoverableProcess({
@@ -497,7 +500,7 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
                 section: service.name,
                 msg: chalk.red(
                   composeErrorMessage(
-                    `Error running local app, check the local service logs and the Garden logs in ${logsPath}`,
+                    `Error running local app, check the local service logs and the Garden logs in ${getLogsPath(ctx)}`,
                     msg
                   )
                 ),
@@ -550,8 +553,7 @@ async function getKubectlPortForwardProcess(
   localSshPort: number
 ): Promise<RecoverableProcess> {
   const kubectlPortForwardCmd = await getKubectlPortForwardCommand(configParams, localSshPort)
-  const { service, log } = configParams
-  const logsPath = join(service.module.path, ".garden", "logs")
+  const { ctx, service, log } = configParams
 
   return new RecoverableProcess({
     osCommand: kubectlPortForwardCmd,
@@ -575,7 +577,9 @@ async function getKubectlPortForwardProcess(
             symbol: "warning",
             section: service.name,
             msg: chalk.yellow(
-              `Kubectl SSH port-forward hasn't started after ${kubectlPortForwardFailureCounter.getFailures()} attempts. Please check the logs in ${logsPath} and consider restarting Garden.`
+              `Kubectl SSH port-forward hasn't started after ${kubectlPortForwardFailureCounter.getFailures()} attempts. Please check the logs in ${getLogsPath(
+                ctx
+              )} and consider restarting Garden.`
             ),
           })
         })
@@ -635,8 +639,7 @@ async function getReversePortForwardProcess(
   localSshPort: number
 ): Promise<RecoverableProcess> {
   const reversePortForwardingCmd = await getReversePortForwardCommand(configParams, localSshPort)
-  const { service, log } = configParams
-  const logsPath = join(service.module.path, ".garden", "logs")
+  const { ctx, service, log } = configParams
 
   return new RecoverableProcess({
     osCommand: reversePortForwardingCmd,
@@ -696,7 +699,9 @@ async function getReversePortForwardProcess(
             symbol: "warning",
             section: service.name,
             msg: chalk.yellow(
-              `Reverse SSH port-forward hasn't started after ${reversePortForwardFailureCounter.getFailures()} attempts. Please check the logs in ${logsPath} and consider restarting Garden.`
+              `Reverse SSH port-forward hasn't started after ${reversePortForwardFailureCounter.getFailures()} attempts. Please check the logs in ${getLogsPath(
+                ctx
+              )} and consider restarting Garden.`
             ),
           })
         })
