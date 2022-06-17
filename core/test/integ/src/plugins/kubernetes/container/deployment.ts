@@ -34,6 +34,7 @@ import {
   PROXY_CONTAINER_USER_NAME,
 } from "../../../../../../src/plugins/kubernetes/constants"
 import stripAnsi = require("strip-ansi")
+import { LocalModeEnv } from "../../../../../../src/plugins/kubernetes/local-mode"
 
 describe("kubernetes container deployment handlers", () => {
   let garden: Garden
@@ -430,13 +431,13 @@ describe("kubernetes container deployment handlers", () => {
       const env = appContainerSpec!.env!
 
       const httpPort = appContainerSpec!.ports!.find((p) => p.name === "http")!.containerPort.toString()
-      const appPortEnvVar = env.find((v) => v.name === "APP_PORT")!.value
+      const appPortEnvVar = env.find((v) => v.name === LocalModeEnv.GARDEN_REMOTE_CONTAINER_PORT)!.value
       expect(appPortEnvVar).to.eql(httpPort)
 
-      const proxyUserEnvVar = env.find((v) => v.name === "USER_NAME")!.value
+      const proxyUserEnvVar = env.find((v) => v.name === LocalModeEnv.GARDEN_PROXY_CONTAINER_USER_NAME)!.value
       expect(proxyUserEnvVar).to.eql(PROXY_CONTAINER_USER_NAME)
 
-      const publicKeyEnvVar = env.find((v) => v.name === "PUBLIC_KEY")!.value
+      const publicKeyEnvVar = env.find((v) => v.name === LocalModeEnv.GARDEN_PROXY_CONTAINER_PUBLIC_KEY)!.value
       expect(!!publicKeyEnvVar).to.be.true
     })
 

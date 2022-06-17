@@ -253,7 +253,7 @@ function findFirstForwardablePort(serviceSpec: ContainerServiceSpec): ServicePor
   return firstTcpPort || serviceSpec.ports[0]
 }
 
-namespace LocalModeEnv {
+export namespace LocalModeEnv {
   /**
    * Stores the port of the target container which should be executed in local mode.
    * The proxy container has to expose the same port.
