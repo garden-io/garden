@@ -472,6 +472,7 @@ const localAppFailureCounter = new FailureCounter(10)
 function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProcess | undefined {
   const localServiceCmd = getLocalServiceCommand(configParams)
   const { service, log } = configParams
+  const logsPath = join(service.module.path, ".garden", "logs")
 
   return !!localServiceCmd
     ? new RecoverableProcess({
@@ -494,7 +495,12 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
               log.error({
                 status: "error",
                 section: service.name,
-                msg: chalk.red(composeErrorMessage("Error running local app, check the logs", msg)),
+                msg: chalk.red(
+                  composeErrorMessage(
+                    `Error running local app, check the local service logs and the Garden logs in ${logsPath}`,
+                    msg
+                  )
+                ),
               })
             }
             localAppFailureCounter.addFailure(() => {
@@ -545,6 +551,7 @@ async function getKubectlPortForwardProcess(
 ): Promise<RecoverableProcess> {
   const kubectlPortForwardCmd = await getKubectlPortForwardCommand(configParams, localSshPort)
   const { service, log } = configParams
+  const logsPath = join(service.module.path, ".garden", "logs")
 
   return new RecoverableProcess({
     osCommand: kubectlPortForwardCmd,
@@ -568,7 +575,7 @@ async function getKubectlPortForwardProcess(
             symbol: "warning",
             section: service.name,
             msg: chalk.yellow(
-              `Kubectl SSH port-forward hasn't started after ${kubectlPortForwardFailureCounter.getFailures()} attempts. Please check the logs and consider restarting Garden.`
+              `Kubectl SSH port-forward hasn't started after ${kubectlPortForwardFailureCounter.getFailures()} attempts. Please check the logs in ${logsPath} and consider restarting Garden.`
             ),
           })
         })
@@ -629,6 +636,7 @@ async function getReversePortForwardProcess(
 ): Promise<RecoverableProcess> {
   const reversePortForwardingCmd = await getReversePortForwardCommand(configParams, localSshPort)
   const { service, log } = configParams
+  const logsPath = join(service.module.path, ".garden", "logs")
 
   return new RecoverableProcess({
     osCommand: reversePortForwardingCmd,
@@ -646,9 +654,7 @@ async function getReversePortForwardProcess(
             status: "error",
             section: service.name,
             msg: chalk.red(
-              "It looks like you're using too old SSH version " +
-                "which doesn't support option -oStrictHostKeyChecking=accept-new. " +
-                "Consider upgrading to OpenSSH 7.6 or higher. Local mode will not work."
+              "It looks like you're using too old SSH version which doesn't support option -oStrictHostKeyChecking=accept-new. Consider upgrading to OpenSSH 7.6 or higher. Local mode will not work."
             ),
           })
           return true
@@ -690,7 +696,7 @@ async function getReversePortForwardProcess(
             symbol: "warning",
             section: service.name,
             msg: chalk.yellow(
-              `Reverse SSH port-forward hasn't started after ${reversePortForwardFailureCounter.getFailures()} attempts. Please check the logs and consider restarting Garden.`
+              `Reverse SSH port-forward hasn't started after ${reversePortForwardFailureCounter.getFailures()} attempts. Please check the logs in ${logsPath} and consider restarting Garden.`
             ),
           })
         })
