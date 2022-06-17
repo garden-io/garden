@@ -11,7 +11,7 @@ services:
   - name: backend-1
     localMode:
       localPort: 8090
-      command: [] # [ "command-to-start-the-local-service-on-the-localPort" ]
+      command: ["../backend-local-1/main"] # [ "command-to-start-the-local-service-on-the-localPort" ]
     healthCheck:
       httpGet:
         path: ${var.ingressPath}

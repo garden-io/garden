@@ -26,7 +26,7 @@ import { getTargetResource } from "./port-forward"
 import chalk from "chalk"
 import { rmSync } from "fs"
 import { execSync } from "child_process"
-import { join } from "path"
+import { isAbsolute, join } from "path"
 import { ensureDir, readFile } from "fs-extra"
 import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
@@ -455,12 +455,16 @@ class FailureCounter {
   }
 }
 
-function getLocalServiceCommand({ spec: localModeSpec }: StartLocalModeParams): OsCommand | undefined {
+function getLocalServiceCommand({ spec: localModeSpec, service }: StartLocalModeParams): OsCommand | undefined {
   const command = localModeSpec.command
   if (!command || command.length === 0) {
     return undefined
   }
-  return { command: command.join(" ") }
+  let commandString = command.join(" ")
+  if (!isAbsolute(commandString)) {
+    commandString = `${service.module.path}/${commandString}`
+  }
+  return { command: commandString }
 }
 
 const localAppFailureCounter = new FailureCounter(10)
