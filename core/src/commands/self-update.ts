@@ -76,7 +76,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
   options = selfUpdateOpts
 
   // Overridden during testing
-  _baseReleasesUrl = "https://github.com/garden-io/garden/releases/download/"
+  _baseReleasesUrl = "https://download.garden.io/core/"
 
   printHeader({ headerLog }) {
     printHeader(headerLog, "Update Garden", "rolled_up_newspaper")
