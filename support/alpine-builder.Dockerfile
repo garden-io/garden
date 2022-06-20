@@ -1,5 +1,5 @@
 # Note: This is used by build-pkg.ts, and is not usable as a Garden container
-ARG NODE_VERSION=14.19.0-alpine3.14
+ARG NODE_VERSION=14.19.3-alpine3.16
 FROM node:${NODE_VERSION} as builder
 
 RUN apk add --no-cache \
