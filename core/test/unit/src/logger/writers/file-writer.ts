@@ -17,7 +17,6 @@ import { render } from "../../../../../src/logger/writers/file-writer"
 const logger: Logger = getLogger()
 
 beforeEach(() => {
-  // tslint:disable-next-line: prettier
   logger["children"] = []
 })
 

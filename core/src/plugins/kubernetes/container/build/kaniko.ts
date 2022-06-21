@@ -16,6 +16,7 @@ import { KubernetesProvider, KubernetesPluginContext, DEFAULT_KANIKO_IMAGE } fro
 import { BuildError, ConfigurationError } from "../../../../exceptions"
 import { PodRunner } from "../../run"
 import { ensureNamespace, getNamespaceStatus, getSystemNamespace } from "../../namespace"
+import { prepareSecrets } from "../../secrets"
 import { dedent } from "../../../../util/string"
 import { RunResult } from "../../../../types/plugin/base"
 import { PluginContext } from "../../../../plugin-context"
@@ -263,6 +264,12 @@ async function runKaniko({
   const kanikoTolerations = [...(provider.config.kaniko?.tolerations || []), builderToleration]
   const utilHostname = `${utilDeploymentName}.${utilNamespace}.svc.cluster.local`
   const sourceUrl = `rsync://${utilHostname}:${utilRsyncPort}/volume/${ctx.workingCopyId}/${module.name}/`
+  const imagePullSecrets = await prepareSecrets({
+    api,
+    namespace: kanikoNamespace,
+    secrets: provider.config.imagePullSecrets,
+    log,
+  })
 
   const syncArgs = [...commonSyncArgs, sourceUrl, contextPath]
 
@@ -283,6 +290,7 @@ async function runKaniko({
         emptyDir: {},
       },
     ],
+    imagePullSecrets,
     // Start by rsyncing the build context from the util deployment
     initContainers: [
       {

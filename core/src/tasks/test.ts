@@ -23,6 +23,7 @@ import { BuildTask } from "./build"
 import { GraphResults } from "../task-graph"
 import { Profile } from "../util/profiling"
 import { GardenTest, testFromConfig } from "../types/test"
+import { ModuleConfig } from "../config/module"
 
 class TestError extends Error {
   toString() {
@@ -230,16 +231,8 @@ export async function getTestTasks({
   fromWatch?: boolean
   skipRuntimeDependencies?: boolean
 }) {
-  // If there are no filters we return the test otherwise
-  // we check if the test name matches against the filterNames array
-  const configs = module.testConfigs.filter(
-    (test) =>
-      !test.disabled &&
-      (!filterNames || filterNames.length === 0 || find(filterNames, (n: string) => minimatch(test.name, n)))
-  )
-
   return Bluebird.map(
-    configs,
+    filterTestConfigs(module.testConfigs, filterNames),
     (testConfig) =>
       new TestTask({
         garden,
@@ -252,5 +245,16 @@ export async function getTestTasks({
         devModeServiceNames,
         skipRuntimeDependencies,
       })
+  )
+}
+
+export function filterTestConfigs(
+  configs: ModuleConfig["testConfigs"],
+  filterNames?: string[]
+): ModuleConfig["testConfigs"] {
+  return configs.filter(
+    (test) =>
+      !test.disabled &&
+      (!filterNames || filterNames.length === 0 || find(filterNames, (n: string) => minimatch(test.name, n)))
   )
 }

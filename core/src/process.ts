@@ -15,12 +15,18 @@ import { BaseTask } from "./tasks/base"
 import { GraphResults } from "./task-graph"
 import { isModuleLinked } from "./util/ext-source-util"
 import { Garden } from "./garden"
-import { LogEntry } from "./logger/log-entry"
+import { EmojiName, LogEntry } from "./logger/log-entry"
 import { ConfigGraph } from "./config-graph"
-import { dedent } from "./util/string"
+import { dedent, naturalList } from "./util/string"
 import { ConfigurationError } from "./exceptions"
 import { uniqByName } from "./util/util"
 import { renderDivider } from "./logger/util"
+import { Events } from "./events"
+import { BuildTask } from "./tasks/build"
+import { DeployTask } from "./tasks/deploy"
+import { filterTestConfigs, TestTask } from "./tasks/test"
+import { testFromConfig } from "./types/test"
+import { TaskTask } from "./tasks/task"
 
 export type ProcessHandler = (graph: ConfigGraph, module: GardenModule) => Promise<BaseTask[]>
 
@@ -30,6 +36,10 @@ interface ProcessParams {
   log: LogEntry
   footerLog?: LogEntry
   watch: boolean
+  /**
+   * If provided, and if `watch === true`, will log this to the statusline when waiting for changes
+   */
+  overRideWatchStatusLine?: string
   /**
    * If provided, and if `watch === true`, don't watch files in the module roots of these modules.
    */
@@ -62,6 +72,7 @@ export async function processModules({
   skipWatchModules,
   watch,
   changeHandler,
+  overRideWatchStatusLine,
 }: ProcessModulesParams): Promise<ProcessResults> {
   log.silly("Starting processModules")
 
@@ -142,7 +153,10 @@ export async function processModules({
 
   const waiting = () => {
     if (!!statusLine) {
-      statusLine.setState({ emoji: "clock2", msg: chalk.gray("Waiting for code changes...") })
+      statusLine.setState({
+        emoji: "clock2",
+        msg: chalk.gray(overRideWatchStatusLine || "Waiting for code changes..."),
+      })
     }
 
     garden.events.emit("watchingForChanges", {})
@@ -236,6 +250,79 @@ export async function processModules({
       await garden.processTasks(moduleTasks)
     })
 
+    // Handle Cloud events
+    const params = {
+      garden,
+      graph,
+      log,
+    }
+    garden.events.on("buildRequested", async (event: Events["buildRequested"]) => {
+      try {
+        graph = await garden.getConfigGraph({ log, emit: false })
+        log.info("")
+        log.info({ emoji: "hammer", msg: chalk.yellow(`Build requested for ${chalk.white(event.moduleName)}`) })
+        const tasks = await cloudEventHandlers.buildRequested({ ...params, request: event })
+        await garden.processTasks(tasks)
+      } catch (err) {
+        log.error(err.message)
+      }
+    })
+    garden.events.on("deployRequested", async (event: Events["deployRequested"]) => {
+      try {
+        graph = await garden.getConfigGraph({ log, emit: false })
+        let prefix: string
+        let emoji: EmojiName
+        if (event.hotReload) {
+          emoji = "fire"
+          prefix = `Hot reload-enabled deployment`
+        } else {
+          if (event.devMode) {
+            emoji = "zap"
+            prefix = `Dev-mode deployment`
+          } else {
+            emoji = "rocket"
+            prefix = "Deployment"
+          }
+        }
+        const msg = `${prefix} requested for ${chalk.white(event.serviceName)}`
+        log.info("")
+        log.info({ emoji, msg: chalk.yellow(msg) })
+        const deployTask = await cloudEventHandlers.deployRequested({ ...params, request: event })
+        await garden.processTasks([deployTask])
+      } catch (err) {
+        log.error(err.message)
+      }
+    })
+    garden.events.on("testRequested", async (event: Events["testRequested"]) => {
+      try {
+        graph = await garden.getConfigGraph({ log, emit: false })
+        const testNames = event.testNames
+        let suffix = ""
+        if (testNames) {
+          suffix = ` (only ${chalk.white(naturalList(testNames))})`
+        }
+        const msg = chalk.yellow(`Tests requested for ${chalk.white(event.moduleName)}${suffix}`)
+        log.info("")
+        log.info({ emoji: "thermometer", msg })
+        const testTasks = await cloudEventHandlers.testRequested({ ...params, request: event })
+        await garden.processTasks(testTasks)
+      } catch (err) {
+        log.error(err.message)
+      }
+    })
+    garden.events.on("taskRequested", async (event: Events["taskRequested"]) => {
+      try {
+        graph = await garden.getConfigGraph({ log, emit: false })
+        const msg = chalk.yellow(`Run requested for task ${chalk.white(event.taskName)}`)
+        log.info("")
+        log.info({ emoji: "runner", msg })
+        const taskTask = await cloudEventHandlers.taskRequested({ ...params, request: event })
+        await garden.processTasks([taskTask])
+      } catch (err) {
+        log.error(err.message)
+      }
+    })
+
     waiting()
   })
 
@@ -243,6 +330,74 @@ export async function processModules({
     taskResults: {}, // TODO: Return latest results for each task key processed between restarts?
     restartRequired,
   }
+}
+
+export interface CloudEventHandlerCommonParams {
+  garden: Garden
+  graph: ConfigGraph
+  log: LogEntry
+}
+
+export const cloudEventHandlers = {
+  buildRequested: async (params: CloudEventHandlerCommonParams & { request: Events["buildRequested"] }) => {
+    const { garden, graph, log } = params
+    const { moduleName, force } = params.request
+    const tasks = await BuildTask.factory({
+      garden,
+      log,
+      graph,
+      module: graph.getModule(moduleName),
+      force,
+    })
+    return tasks
+  },
+  testRequested: async (params: CloudEventHandlerCommonParams & { request: Events["testRequested"] }) => {
+    const { garden, graph, log } = params
+    const { moduleName, testNames, force, forceBuild } = params.request
+    const module = graph.getModule(moduleName)
+    return filterTestConfigs(module.testConfigs, testNames).map((config) => {
+      return new TestTask({
+        garden,
+        graph,
+        log,
+        force,
+        forceBuild,
+        test: testFromConfig(module, config, graph),
+        skipRuntimeDependencies: params.request.skipDependencies,
+        devModeServiceNames: [],
+      })
+    })
+  },
+  deployRequested: async (params: CloudEventHandlerCommonParams & { request: Events["deployRequested"] }) => {
+    const { garden, graph, log } = params
+    const { serviceName, force, forceBuild } = params.request
+
+    const deployTask = new DeployTask({
+      garden,
+      log,
+      graph,
+      service: graph.getService(serviceName),
+      force,
+      forceBuild,
+      fromWatch: true,
+      skipRuntimeDependencies: params.request.skipDependencies,
+      devModeServiceNames: [],
+    })
+    return deployTask
+  },
+  taskRequested: async (params: CloudEventHandlerCommonParams & { request: Events["taskRequested"] }) => {
+    const { garden, graph, log } = params
+    const { taskName, force, forceBuild } = params.request
+    return new TaskTask({
+      garden,
+      log,
+      graph,
+      task: graph.getTask(taskName),
+      devModeServiceNames: [],
+      force,
+      forceBuild,
+    })
+  },
 }
 
 /**

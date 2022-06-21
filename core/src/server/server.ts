@@ -24,7 +24,7 @@ import { DASHBOARD_STATIC_DIR, gardenEnv } from "../constants"
 import { LogEntry } from "../logger/log-entry"
 import { Command, CommandResult } from "../commands/base"
 import { toGardenError, GardenError } from "../exceptions"
-import { EventName, Events, EventBus, GardenEventListener } from "../events"
+import { EventName, Events, EventBus, GardenEventListener, cloudRequestEventNames } from "../events"
 import { uuidv4, ValueOf } from "../util/util"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { joi } from "../config/common"
@@ -480,6 +480,8 @@ export class GardenServer {
           const req = this.activePersistentRequests[requestId]
           req && req.command.terminate()
           delete this.activePersistentRequests[requestId]
+        } else if (cloudRequestEventNames.find((e) => e === request.type)) {
+          this.garden?.events.emit(request.type, request)
         } else {
           return send("error", {
             requestId,

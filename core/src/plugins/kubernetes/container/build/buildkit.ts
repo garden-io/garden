@@ -35,6 +35,7 @@ import { ContainerModule } from "../../../container/config"
 import { getDockerBuildArgs } from "../../../container/build"
 import { getRunningDeploymentPod, millicpuToString, megabytesToString, usingInClusterRegistry } from "../../util"
 import { PodRunner } from "../../run"
+import { prepareSecrets } from "../../secrets"
 
 export const buildkitImageName = "gardendev/buildkit:v0.9.3-1"
 export const buildkitDeploymentName = "garden-buildkit"
@@ -200,8 +201,10 @@ export async function ensureBuildkit({
       namespace,
     })
 
+    const imagePullSecrets = await prepareSecrets({ api, namespace, secrets: provider.config.imagePullSecrets, log })
+
     // Check status of the buildkit deployment
-    const manifest = getBuildkitDeployment(provider, authSecret.metadata.name)
+    const manifest = getBuildkitDeployment(provider, authSecret.metadata.name, imagePullSecrets)
     const status = await compareDeployedResources(ctx as KubernetesPluginContext, api, namespace, [manifest], deployLog)
 
     if (status.state === "ready") {
@@ -251,7 +254,11 @@ export function getBuildkitFlags(module: ContainerModule) {
   return args
 }
 
-export function getBuildkitDeployment(provider: KubernetesProvider, authSecretName: string) {
+export function getBuildkitDeployment(
+  provider: KubernetesProvider,
+  authSecretName: string,
+  imagePullSecrets: { name: string }[]
+) {
   const deployment: KubernetesDeployment = {
     apiVersion: "apps/v1",
     kind: "Deployment",
@@ -318,6 +325,7 @@ export function getBuildkitDeployment(provider: KubernetesProvider, authSecretNa
             // Attach a util container for the rsync server and to use skopeo
             getUtilContainer(authSecretName),
           ],
+          imagePullSecrets,
           volumes: [
             {
               name: authSecretName,

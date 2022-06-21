@@ -32,7 +32,6 @@ import { freezeTime } from "../../../helpers"
 const logger: Logger = getLogger()
 
 beforeEach(() => {
-  // tslint:disable-next-line: prettier
   logger["children"] = []
 })
 
