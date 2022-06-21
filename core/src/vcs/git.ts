@@ -162,7 +162,7 @@ export class GitHandler extends VcsHandler {
       if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: unsafe repository")) {
         log.warn(
           chalk.yellow(
-            `It looks like you're using Git 2.36.0 or newer and the Garden static directory "${path}" is owned by someone else. It will be added to safe.directory list in the .gitconfig.`
+            `It looks like you're using Git 2.36.0 or newer and the directory "${path}" is owned by someone else. It will be added to safe.directory list in the .gitconfig.`
           )
         )
 
