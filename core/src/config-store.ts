@@ -51,7 +51,7 @@ export abstract class ConfigStore<T extends object = any> {
     }
 
     for (const { keyPath, value } of entries) {
-      config = this.updateConfig(config, keyPath, value)
+      config = await this.updateConfig(config, keyPath, value)
     }
 
     await this.saveConfig(config)
@@ -99,7 +99,7 @@ export abstract class ConfigStore<T extends object = any> {
       await this.loadConfig()
     }
     // Spreading does not work on generic types, see: https://github.com/Microsoft/TypeScript/issues/13557
-    return Object.assign(this.config, {})
+    return <T>Object.assign(<T>this.config, {})
   }
 
   private updateConfig(config: T, keyPath: string[], value: ConfigValue): T {

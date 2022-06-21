@@ -1253,7 +1253,7 @@ export class ActionRouter implements TypeGuard {
       handlers[actionType][moduleType] = {}
     }
 
-    this.moduleActionHandlers[actionType][moduleType][pluginName] = wrapped
+    this.moduleActionHandlers[actionType][moduleType][pluginName] = <any>wrapped
   }
 
   /**
