@@ -293,15 +293,15 @@ ${renderCommands(commands)}
     const footerLog = logger.placeholder()
 
     command.printHeader({ headerLog, args: parsedArgs, opts: parsedOpts })
+    const sessionId = uuidv4()
 
-    // Init enterprise API
+    // Init Cloud API
     let cloudApi: CloudApi | null = null
     if (!command.noProject) {
       cloudApi = await CloudApi.factory({ log, currentDirectory: workingDir })
     }
 
     // Init event & log streaming.
-    const sessionId = uuidv4()
     this.bufferedEventStream = new BufferedEventStream({
       log,
       cloudApi: cloudApi || undefined,
@@ -345,6 +345,8 @@ ${renderCommands(commands)}
       footerLog,
       args: parsedArgs,
       opts: parsedOpts,
+      // Commands that start a Garden server and want to open a websocket connection to the platform use this param.
+      cloudApi: cloudApi || undefined,
     }
 
     const persistent = command.isPersistent(prepareParams)

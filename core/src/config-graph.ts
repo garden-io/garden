@@ -300,7 +300,7 @@ export class ConfigGraph {
   }
 
   /**
-   * Returns the Service with the specified name. Throws error if it doesn't exist.
+   * Returns the Module with the specified name. Throws error if it doesn't exist.
    */
   getModule(name: string, includeDisabled?: boolean): GardenModule {
     return this.getModules({ names: [name], includeDisabled })[0]

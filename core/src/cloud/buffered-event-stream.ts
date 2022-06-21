@@ -112,8 +112,8 @@ export class BufferedEventStream {
   private workflowRunUid: string | undefined
 
   /**
-   * We maintain this map to facilitate unsubscribing from a previously connected event bus
-   * when a new event bus is connected.
+   * We maintain this map to facilitate unsubscribing from a previous Garden instance's event bus
+   * when a new Garden instance is connected.
    */
   private gardenEventListeners: { [eventName: string]: (payload: any) => void }
 
