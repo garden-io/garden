@@ -231,7 +231,7 @@ services:
     env: {}
 
     devMode:
-      # The commmand to run to deploy the service in dev mode. When in dev mode, Garden assumes that
+      # The command to run to deploy the service in dev mode. When in dev mode, Garden assumes that
       # the command starts a persistent process and does not wait for it return. The logs from the process
       # can be retrieved via the `garden logs` command as usual.
       #
@@ -792,7 +792,7 @@ Environment variables to set when running the deploy and status commands.
 
 [services](#services) > [devMode](#servicesdevmode) > command
 
-The commmand to run to deploy the service in dev mode. When in dev mode, Garden assumes that
+The command to run to deploy the service in dev mode. When in dev mode, Garden assumes that
 the command starts a persistent process and does not wait for it return. The logs from the process
 can be retrieved via the `garden logs` command as usual.
 

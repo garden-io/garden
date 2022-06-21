@@ -276,6 +276,7 @@ export interface Events extends LoggerEvents {
     serviceName: string
     devMode: boolean
     hotReload: boolean
+    localMode: boolean
     force: boolean
     forceBuild: boolean
     skipDependencies: boolean

@@ -37,6 +37,7 @@ export async function getContainerServiceStatus({
   log,
   devMode,
   hotReload,
+  localMode,
 }: GetServiceStatusParams<ContainerModule>): Promise<ContainerServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
@@ -55,29 +56,33 @@ export async function getContainerServiceStatus({
     runtimeContext,
     enableDevMode,
     enableHotReload: hotReload,
+    enableLocalMode: localMode,
     blueGreen: provider.config.deploymentStrategy === "blue-green",
   })
-  const { state, remoteResources, deployedWithDevMode, deployedWithHotReloading } = await compareDeployedResources(
-    k8sCtx,
-    api,
-    namespace,
-    manifests,
-    log
-  )
+  const {
+    state,
+    remoteResources,
+    deployedWithDevMode,
+    deployedWithHotReloading,
+    deployedWithLocalMode,
+  } = await compareDeployedResources(k8sCtx, api, namespace, manifests, log)
   const ingresses = await getIngresses(service, api, provider)
 
-  const forwardablePorts: ForwardablePort[] = service.spec.ports
-    .filter((p) => p.protocol === "TCP")
-    .map((p) => {
-      return {
-        name: p.name,
-        protocol: "TCP",
-        targetPort: p.servicePort,
-        preferredLocalPort: p.localPort,
-        // TODO: this needs to be configurable
-        // urlProtocol: "http",
-      }
-    })
+  // Local mode has its own port-forwarding configuration
+  const forwardablePorts: ForwardablePort[] = localMode
+    ? []
+    : service.spec.ports
+        .filter((p) => p.protocol === "TCP")
+        .map((p) => {
+          return {
+            name: p.name,
+            protocol: "TCP",
+            targetPort: p.servicePort,
+            preferredLocalPort: p.localPort,
+            // TODO: this needs to be configurable
+            // urlProtocol: "http",
+          }
+        })
 
   const status = {
     forwardablePorts,
@@ -87,6 +92,7 @@ export async function getContainerServiceStatus({
     version: state === "ready" ? service.version : undefined,
     detail: { remoteResources, workload },
     devMode: deployedWithDevMode || deployedWithHotReloading,
+    localMode: deployedWithLocalMode,
   }
 
   if (state === "ready" && devMode) {
@@ -113,6 +119,7 @@ export async function waitForContainerService(
   service: GardenService,
   devMode: boolean,
   hotReload: boolean,
+  localMode: boolean,
   timeout = KUBECTL_DEFAULT_TIMEOUT
 ) {
   const startTime = new Date().getTime()
@@ -126,6 +133,7 @@ export async function waitForContainerService(
       module: service.module,
       devMode,
       hotReload,
+      localMode,
     })
 
     if (status.state === "ready" || status.state === "outdated") {

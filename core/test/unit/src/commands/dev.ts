@@ -81,6 +81,7 @@ describe("DevCommand", () => {
       "force-build": false,
       "force": false,
       "hot-reload": undefined,
+      "local-mode": undefined,
       "skip-tests": false,
       "test-names": undefined,
     })
@@ -134,6 +135,7 @@ describe("DevCommand", () => {
       // we're implicitly verifying that tests with runtime dependencies on services being deployed with
       // hot reloading don't request non-hot-reload-enabled deploys for those same services.
       hotReloadServiceNames: ["service-a"],
+      localModeServiceNames: [],
       skipTests: false,
       forceDeploy: false,
     })
@@ -163,6 +165,7 @@ describe("DevCommand", () => {
       "force-build": false,
       "force": false,
       "hot-reload": undefined,
+      "local-mode": undefined,
       "skip-tests": false,
       "test-names": undefined,
     })
@@ -185,6 +188,7 @@ describe("DevCommand", () => {
       "force-build": false,
       "force": false,
       "hot-reload": undefined,
+      "local-mode": undefined,
       "skip-tests": false,
       "test-names": undefined,
     })
@@ -207,6 +211,7 @@ describe("DevCommand", () => {
       "force-build": false,
       "force": false,
       "hot-reload": undefined,
+      "local-mode": undefined,
       "skip-tests": false,
       "test-names": undefined,
     })
@@ -229,6 +234,7 @@ describe("DevCommand", () => {
       "force-build": false,
       "force": false,
       "hot-reload": undefined,
+      "local-mode": undefined,
       "skip-tests": false,
       "test-names": undefined,
     })
@@ -251,6 +257,7 @@ describe("DevCommand", () => {
       "force-build": false,
       "force": false,
       "hot-reload": undefined,
+      "local-mode": undefined,
       "skip-tests": false,
       "test-names": undefined,
     })
@@ -273,6 +280,7 @@ describe("DevCommand", () => {
       "force-build": false,
       "force": false,
       "hot-reload": undefined,
+      "local-mode": undefined,
       "skip-tests": false,
       "test-names": undefined,
     })
@@ -300,6 +308,7 @@ describe("getDevCommandWatchTasks", () => {
       servicesWatched: graph.getServices().map((s) => s.name),
       devModeServiceNames: [],
       hotReloadServiceNames: [],
+      localModeServiceNames: [],
       testNames: undefined,
       skipTests: false,
     })

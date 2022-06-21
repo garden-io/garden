@@ -81,6 +81,7 @@ export class CallCommand extends Command<Args> {
       graph,
       devMode: false,
       hotReload: false,
+      localMode: false,
       runtimeContext,
     })
 

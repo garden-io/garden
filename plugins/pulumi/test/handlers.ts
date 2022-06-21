@@ -75,6 +75,7 @@ describe.skip("pulumi plugin handlers", () => {
         force: false,
         devMode: false,
         hotReload: false,
+        localMode: false,
         runtimeContext: emptyRuntimeContext,
       })
       const versionTag = await getStackVersionTag({ log, ctx, provider, module })
@@ -99,6 +100,7 @@ describe.skip("pulumi plugin handlers", () => {
         service,
         devMode: false,
         hotReload: false,
+        localMode: false,
         runtimeContext: emptyRuntimeContext,
       })
       expect(status.state).to.eql("outdated")
@@ -115,6 +117,7 @@ describe.skip("pulumi plugin handlers", () => {
         service,
         devMode: false,
         hotReload: false,
+        localMode: false,
         runtimeContext: emptyRuntimeContext,
       })
       expect(status.state).to.eql("ready")

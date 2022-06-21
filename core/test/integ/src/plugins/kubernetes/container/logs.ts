@@ -55,6 +55,7 @@ describe("kubernetes", () => {
         service,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       await garden.processTasks([deployTask], { throwOnError: true })
@@ -99,6 +100,7 @@ describe("kubernetes", () => {
           service,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         await garden.processTasks([deployTask], { throwOnError: true })
@@ -110,6 +112,7 @@ describe("kubernetes", () => {
 
         const resources = [
           await createWorkloadManifest({
+            ctx,
             api,
             provider,
             service,
@@ -118,6 +121,7 @@ describe("kubernetes", () => {
             namespace,
             enableDevMode: false,
             enableHotReload: false,
+            enableLocalMode: false,
             production: ctx.production,
             log,
             blueGreen: provider.config.deploymentStrategy === "blue-green",
@@ -164,6 +168,7 @@ describe("kubernetes", () => {
           service,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
         const deleteTask = new DeleteServiceTask({
           garden,
@@ -180,6 +185,7 @@ describe("kubernetes", () => {
 
         const resources = [
           await createWorkloadManifest({
+            ctx,
             api,
             provider,
             service,
@@ -188,6 +194,7 @@ describe("kubernetes", () => {
             namespace,
             enableDevMode: false,
             enableHotReload: false,
+            enableLocalMode: false,
             production: ctx.production,
             log,
             blueGreen: provider.config.deploymentStrategy === "blue-green",

@@ -17,7 +17,7 @@ import { GardenTask } from "../types/task"
 import { GardenTest } from "../types/test"
 import { uniqByName } from "../util/util"
 
-export function getDevModeServiceNames(namesFromOpt: string[] | undefined, configGraph: ConfigGraph) {
+export function getMatchingServiceNames(namesFromOpt: string[] | undefined, configGraph: ConfigGraph) {
   const names = namesFromOpt || []
   if (names.includes("*") || (!!namesFromOpt && namesFromOpt.length === 0)) {
     return configGraph.getServices().map((s) => s.name)

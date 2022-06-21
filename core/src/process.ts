@@ -276,7 +276,11 @@ export async function processModules({
           emoji = "fire"
           prefix = `Hot reload-enabled deployment`
         } else {
-          if (event.devMode) {
+          // local mode always takes precedence over dev mode
+          if (event.localMode) {
+            emoji = "left_right_arrow"
+            prefix = `Local-mode deployment`
+          } else if (event.devMode) {
             emoji = "zap"
             prefix = `Dev-mode deployment`
           } else {
@@ -338,6 +342,10 @@ export interface CloudEventHandlerCommonParams {
   log: LogEntry
 }
 
+/*
+ * TODO: initialize devModeServiceNames/hotReloadServiceNames/localModeServiceNames
+ *       depending on the corresponding deployment flags. See class DeployCommand for details.
+ */
 export const cloudEventHandlers = {
   buildRequested: async (params: CloudEventHandlerCommonParams & { request: Events["buildRequested"] }) => {
     const { garden, graph, log } = params
@@ -366,14 +374,14 @@ export const cloudEventHandlers = {
         skipRuntimeDependencies: params.request.skipDependencies,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
     })
   },
   deployRequested: async (params: CloudEventHandlerCommonParams & { request: Events["deployRequested"] }) => {
     const { garden, graph, log } = params
     const { serviceName, force, forceBuild } = params.request
-
-    const deployTask = new DeployTask({
+    return new DeployTask({
       garden,
       log,
       graph,
@@ -384,8 +392,8 @@ export const cloudEventHandlers = {
       skipRuntimeDependencies: params.request.skipDependencies,
       devModeServiceNames: [],
       hotReloadServiceNames: [],
+      localModeServiceNames: [],
     })
-    return deployTask
   },
   taskRequested: async (params: CloudEventHandlerCommonParams & { request: Events["taskRequested"] }) => {
     const { garden, graph, log } = params
@@ -397,6 +405,7 @@ export const cloudEventHandlers = {
       task: graph.getTask(taskName),
       devModeServiceNames: [],
       hotReloadServiceNames: [],
+      localModeServiceNames: [],
       force,
       forceBuild,
     })

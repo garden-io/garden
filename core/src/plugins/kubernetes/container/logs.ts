@@ -24,6 +24,7 @@ export async function getServiceLogs(params: GetServiceLogsParams<ContainerModul
 
   const resources = [
     await createWorkloadManifest({
+      ctx,
       api,
       provider,
       service,
@@ -32,6 +33,7 @@ export async function getServiceLogs(params: GetServiceLogsParams<ContainerModul
       namespace,
       enableDevMode: false,
       enableHotReload: false,
+      enableLocalMode: false,
       production: ctx.production,
       log,
       blueGreen: provider.config.deploymentStrategy === "blue-green",

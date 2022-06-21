@@ -121,6 +121,7 @@ export async function hotReloadContainer({
 
   // Find the currently deployed workload by labels
   const manifest = await createWorkloadManifest({
+    ctx,
     api,
     provider,
     service,
@@ -128,6 +129,7 @@ export async function hotReloadContainer({
     namespace,
     enableDevMode: false,
     enableHotReload: true,
+    enableLocalMode: false,
     production: k8sCtx.production,
     log,
     blueGreen: provider.config.deploymentStrategy === "blue-green",

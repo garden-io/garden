@@ -300,6 +300,35 @@ services:
           # information.
           defaultGroup:
 
+    # Specifies necessary configuration details of the local application which will replace a target remote service.
+    #
+    # The target service will be replaced by a proxy container with an SSH server running,
+    # and the reverse port forwarding will be automatically configured to route the traffic to the local service and
+    # back.
+    #
+    # Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+    # The local mode always takes the precedence over the dev mode if there are any conflicts service names.
+    #
+    # The health checks are disabled for services running in local mode.
+    #
+    # See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode.md) for more information.
+    localMode:
+      # The working port of the local application.
+      localPort:
+
+      # The command to run the local application. If not present, then the local application should be started
+      # manually.
+      command:
+
+      # Specifies restarting policy for the local application. By default, the local application will be restarting
+      # infinitely with 1000ms between attempts.
+      restart:
+        # Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
+        delayMsec: 1000
+
+        # Max number of the local application restarts. Unlimited by default.
+        max: .inf
+
     # List of ingress endpoints that the service exposes.
     ingresses:
       - # Annotations to attach to the ingress (Note: May not be applicable to all providers)
@@ -1374,6 +1403,76 @@ Set the default group on files and directories at the target. Specify either an 
 | Type              | Required |
 | ----------------- | -------- |
 | `number | string` | No       |
+
+### `services[].localMode`
+
+[services](#services) > localMode
+
+Specifies necessary configuration details of the local application which will replace a target remote service.
+
+The target service will be replaced by a proxy container with an SSH server running,
+and the reverse port forwarding will be automatically configured to route the traffic to the local service and back.
+
+Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+The local mode always takes the precedence over the dev mode if there are any conflicts service names.
+
+The health checks are disabled for services running in local mode.
+
+See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode.md) for more information.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `services[].localMode.localPort`
+
+[services](#services) > [localMode](#serviceslocalmode) > localPort
+
+The working port of the local application.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `services[].localMode.command[]`
+
+[services](#services) > [localMode](#serviceslocalmode) > command
+
+The command to run the local application. If not present, then the local application should be started manually.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `services[].localMode.restart`
+
+[services](#services) > [localMode](#serviceslocalmode) > restart
+
+Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with 1000ms between attempts.
+
+| Type     | Default                         | Required |
+| -------- | ------------------------------- | -------- |
+| `object` | `{"delayMsec":1000,"max":null}` | No       |
+
+### `services[].localMode.restart.delayMsec`
+
+[services](#services) > [localMode](#serviceslocalmode) > [restart](#serviceslocalmoderestart) > delayMsec
+
+Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `1000`  | No       |
+
+### `services[].localMode.restart.max`
+
+[services](#services) > [localMode](#serviceslocalmode) > [restart](#serviceslocalmoderestart) > max
+
+Max number of the local application restarts. Unlimited by default.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `null`  | No       |
 
 ### `services[].ingresses[]`
 

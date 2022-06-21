@@ -132,6 +132,7 @@ describe("kubernetes-module handlers", () => {
         force: false,
         devMode: false,
         hotReload: false,
+        localMode: false,
         runtimeContext: emptyRuntimeContext,
       }
       service.module.spec.manifests = [
@@ -160,6 +161,7 @@ describe("kubernetes-module handlers", () => {
         force: false,
         devMode: false,
         hotReload: false,
+        localMode: false,
         runtimeContext: emptyRuntimeContext,
       }
       const status = await deployKubernetesService(deployParams)
@@ -191,6 +193,7 @@ describe("kubernetes-module handlers", () => {
         force: false,
         devMode: false,
         hotReload: false,
+        localMode: false,
         runtimeContext: emptyRuntimeContext,
       }
       const manifests = await getManifests({
@@ -237,6 +240,7 @@ describe("kubernetes-module handlers", () => {
         force: false,
         devMode: false,
         hotReload: false,
+        localMode: false,
         runtimeContext: emptyRuntimeContext,
       }
       const manifests = await getManifests({
@@ -282,6 +286,7 @@ describe("kubernetes-module handlers", () => {
         forceBuild: false,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
       const results = await garden.processTasks([deployTask], { throwOnError: true })
       const status = getServiceStatuses(results)["namespace-resource"]
@@ -320,6 +325,7 @@ describe("kubernetes-module handlers", () => {
         forceBuild: true,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
       await garden.processTasks([deployTask2], { throwOnError: true })
       ns2Resource = await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log)

@@ -53,6 +53,7 @@ describe("conftest provider", () => {
         forceBuild: false,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       const key = testTask.getKey()
@@ -89,6 +90,7 @@ describe("conftest provider", () => {
         forceBuild: false,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       const key = testTask.getKey()
@@ -116,6 +118,7 @@ describe("conftest provider", () => {
         forceBuild: false,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       const key = testTask.getKey()
@@ -146,6 +149,7 @@ describe("conftest provider", () => {
         forceBuild: false,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       const key = testTask.getKey()

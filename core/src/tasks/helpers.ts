@@ -31,6 +31,7 @@ export async function getModuleWatchTasks({
   servicesWatched,
   devModeServiceNames,
   hotReloadServiceNames,
+  localModeServiceNames,
 }: {
   garden: Garden
   log: LogEntry
@@ -39,6 +40,7 @@ export async function getModuleWatchTasks({
   servicesWatched: string[]
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
+  localModeServiceNames: string[]
 }): Promise<BaseTask[]> {
   const dependants = graph.getDependantsForModule(module, true)
 
@@ -62,6 +64,7 @@ export async function getModuleWatchTasks({
           fromWatch: true,
           devModeServiceNames,
           hotReloadServiceNames,
+          localModeServiceNames,
         })
     )
 
@@ -95,6 +98,7 @@ export function getServiceStatusDeps(task: RuntimeTask, deps: DependencyRelation
       force: false,
       devModeServiceNames: task.devModeServiceNames,
       hotReloadServiceNames: task.hotReloadServiceNames,
+      localModeServiceNames: task.localModeServiceNames,
     })
   })
 }
@@ -122,6 +126,7 @@ export function getTaskDeps(task: RuntimeTask, deps: DependencyRelations, force:
       forceBuild: task.forceBuild,
       devModeServiceNames: task.devModeServiceNames,
       hotReloadServiceNames: task.hotReloadServiceNames,
+      localModeServiceNames: task.localModeServiceNames,
     })
   })
 }
@@ -139,6 +144,7 @@ export function getDeployDeps(task: RuntimeTask, deps: DependencyRelations, forc
         skipRuntimeDependencies: task.skipRuntimeDependencies,
         devModeServiceNames: task.devModeServiceNames,
         hotReloadServiceNames: task.hotReloadServiceNames,
+        localModeServiceNames: task.localModeServiceNames,
       })
   )
 }

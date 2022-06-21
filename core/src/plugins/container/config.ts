@@ -6,30 +6,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GardenModule, FileCopySpec } from "../../types/module"
+import { FileCopySpec, GardenModule } from "../../types/module"
 import {
-  joiUserIdentifier,
-  PrimitiveMap,
-  joiPrimitive,
-  joi,
   envVarRegex,
-  Primitive,
-  joiModuleIncludeDirective,
+  joi,
   joiIdentifier,
+  joiModuleIncludeDirective,
+  joiPrimitive,
   joiSparseArray,
+  joiStringMap,
+  joiUserIdentifier,
+  Primitive,
+  PrimitiveMap,
 } from "../../config/common"
-import { ArtifactSpec } from "./../../config/validation"
+import { ArtifactSpec } from "../../config/validation"
 import { GardenService, ingressHostnameSchema, linkUrlSchema } from "../../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
-import { ModuleSpec, ModuleConfig, baseBuildSpecSchema, BaseBuildSpec } from "../../config/module"
-import { CommonServiceSpec, ServiceConfig, baseServiceSpecSchema } from "../../config/service"
-import { baseTaskSpecSchema, BaseTaskSpec, cacheResultSchema } from "../../config/task"
-import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
-import { joiStringMap } from "../../config/common"
+import { BaseBuildSpec, baseBuildSpecSchema, ModuleConfig, ModuleSpec } from "../../config/module"
+import { baseServiceSpecSchema, CommonServiceSpec, ServiceConfig } from "../../config/service"
+import { BaseTaskSpec, baseTaskSpecSchema, cacheResultSchema } from "../../config/task"
+import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
 import { dedent, deline } from "../../util/string"
 import { ContainerModuleOutputs } from "./container"
 import { devModeGuideLink } from "../kubernetes/dev-mode"
 import { k8sDeploymentTimeoutSchema } from "../kubernetes/config"
+import { localModeGuideLink } from "../kubernetes/local-mode"
 
 export const defaultContainerLimits: ServiceLimitSpec = {
   cpu: 1000, // = 1000 millicpu = 1 CPU
@@ -116,6 +117,7 @@ export interface ContainerServiceSpec extends CommonServiceSpec {
   args: string[]
   daemon: boolean
   devMode?: ContainerDevModeSpec
+  localMode?: ContainerLocalModeSpec
   ingresses: ContainerIngressSpec[]
   env: PrimitiveMap
   healthCheck?: ServiceHealthCheckSpec
@@ -300,6 +302,75 @@ export const containerDevModeSchema = () =>
     Dev mode is enabled when running the \`garden dev\` command, and by setting the \`--dev\` flag on the \`garden deploy\` command.
 
     See the [Code Synchronization guide](${devModeGuideLink}) for more information.
+  `)
+
+const defaultLocalModeRestartDelayMsec = 1000
+const defaultLocalModeMaxRestarts = Number.POSITIVE_INFINITY
+
+export interface LocalModeRestartSpec {
+  delayMsec: number
+  max: number
+}
+
+export const localModeRestartSchema = () =>
+  joi
+    .object()
+    .keys({
+      delayMsec: joi
+        .number()
+        .integer()
+        .greater(-1)
+        .optional()
+        .default(defaultLocalModeRestartDelayMsec)
+        .description(
+          `Delay in milliseconds between the local application restart attempts. The default value is ${defaultLocalModeRestartDelayMsec}ms.`
+        ),
+      max: joi
+        .number()
+        .integer()
+        .greater(-1)
+        .optional()
+        .default(defaultLocalModeMaxRestarts)
+        .description("Max number of the local application restarts. Unlimited by default."),
+    })
+    .optional()
+    .default({
+      delayMsec: defaultLocalModeRestartDelayMsec,
+      max: defaultLocalModeMaxRestarts,
+    })
+    .description(
+      `Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with ${defaultLocalModeRestartDelayMsec}ms between attempts.`
+    )
+
+export interface ContainerLocalModeSpec {
+  localPort: number
+  command?: string[]
+  restart: LocalModeRestartSpec
+}
+
+export const containerLocalModeSchema = () =>
+  joi.object().keys({
+    localPort: joi.number().description("The working port of the local application."),
+    command: joi
+      .sparseArray()
+      .optional()
+      .items(joi.string())
+      .description(
+        "The command to run the local application. If not present, then the local application should be started manually."
+      ),
+    restart: localModeRestartSchema(),
+  }).description(dedent`
+    Specifies necessary configuration details of the local application which will replace a target remote service.
+
+    The target service will be replaced by a proxy container with an SSH server running,
+    and the reverse port forwarding will be automatically configured to route the traffic to the local service and back.
+
+    Local mode is enabled by setting the \`--local\` option on the \`garden deploy\` or \`garden dev\` commands.
+    The local mode always takes the precedence over the dev mode if there are any conflicts service names.
+
+    The health checks are disabled for services running in local mode.
+
+    See the [Local Mode guide](${localModeGuideLink}) for more information.
   `)
 
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
@@ -587,6 +658,7 @@ const containerServiceSchema = () =>
         May not be supported by all providers.
       `),
     devMode: containerDevModeSchema(),
+    localMode: containerLocalModeSchema(),
     ingresses: joiSparseArray(ingressSchema())
       .description("List of ingress endpoints that the service exposes.")
       .example([{ path: "/api", port: "http" }]),

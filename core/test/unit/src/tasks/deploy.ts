@@ -158,6 +158,7 @@ describe("DeployTask", () => {
         log: garden.log,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       expect((await forcedDeployTask.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
@@ -172,6 +173,7 @@ describe("DeployTask", () => {
         log: garden.log,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       expect((await unforcedDeployTask.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
@@ -186,6 +188,7 @@ describe("DeployTask", () => {
         log: garden.log,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       expect((await deployTaskFromWatch.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
@@ -206,6 +209,7 @@ describe("DeployTask", () => {
           skipRuntimeDependencies: true, // <-----
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         const deps = await deployTask.resolveDependencies()
@@ -227,6 +231,7 @@ describe("DeployTask", () => {
         log: garden.log,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       const result = await garden.processTasks([deployTask], { throwOnError: true })

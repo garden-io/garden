@@ -215,7 +215,7 @@ export async function getPortForwardHandler({
   }
 }
 
-function getTargetResource(service: GardenService, targetName?: string) {
+export function getTargetResource(service: GardenService, targetName?: string) {
   return targetName || `Service/${service.name}`
 }
 

@@ -95,6 +95,7 @@ describe("TaskHelpers", () => {
         servicesWatched: graph.getServices().map((s) => s.name),
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       expect(sortedBaseKeys(tasks)).to.eql(["deploy.service-b"])
@@ -161,6 +162,7 @@ describe("TaskHelpers", () => {
         servicesWatched: graph.getServices().map((s) => s.name),
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       expect(sortedBaseKeys(tasks)).to.eql(["deploy.service-a"])
@@ -220,6 +222,7 @@ describe("TaskHelpers", () => {
         servicesWatched: graph.getServices().map((s) => s.name),
         devModeServiceNames: [],
         hotReloadServiceNames: ["service-b"],
+        localModeServiceNames: [],
       })
 
       expect(sortedBaseKeys(tasks)).to.eql(["hot-reload.service-b"])
@@ -273,6 +276,7 @@ describe("TaskHelpers", () => {
             servicesWatched: graph.getServices().map((s) => s.name),
             devModeServiceNames: [],
             hotReloadServiceNames: [],
+            localModeServiceNames: [],
           })
           expect(sortedBaseKeys(tasks)).to.eql(expectedTasks.sort())
         })
@@ -317,6 +321,7 @@ describe("TaskHelpers", () => {
           servicesWatched: graph.getServices().map((s) => s.name),
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         expect(sortedBaseKeys(tasks)).to.eql([])
@@ -383,6 +388,7 @@ describe("TaskHelpers", () => {
           servicesWatched: graph.getServices().map((s) => s.name),
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         expect(sortedBaseKeys(tasks)).to.eql(["deploy.service-a"])
@@ -436,6 +442,7 @@ describe("TaskHelpers", () => {
             servicesWatched: graph.getServices().map((s) => s.name),
             devModeServiceNames: [],
             hotReloadServiceNames: ["good-morning"],
+            localModeServiceNames: [],
           })
           expect(sortedBaseKeys(tasks)).to.eql(expectedTasks.sort())
         })
@@ -480,6 +487,7 @@ describe("TaskHelpers", () => {
           servicesWatched: ["service-a"],
           devModeServiceNames: [],
           hotReloadServiceNames: ["service-a"],
+          localModeServiceNames: [],
         })
 
         expect(sortedBaseKeys(tasks)).to.eql([])
@@ -546,6 +554,7 @@ describe("TaskHelpers", () => {
           servicesWatched: ["service-a", "service-b"],
           devModeServiceNames: [],
           hotReloadServiceNames: ["service-a", "service-b"],
+          localModeServiceNames: [],
         })
 
         expect(sortedBaseKeys(tasks)).to.eql(["hot-reload.service-a"])

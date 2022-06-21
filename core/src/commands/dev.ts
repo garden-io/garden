@@ -7,30 +7,35 @@
  */
 
 import Bluebird from "bluebird"
-import deline = require("deline")
-import dedent = require("dedent")
 import chalk from "chalk"
 import { readFile } from "fs-extra"
 import { flatten } from "lodash"
-import moment = require("moment")
 import { join } from "path"
 
 import { getModuleWatchTasks } from "../tasks/helpers"
-import { Command, CommandResult, CommandParams, handleProcessResults, PrepareParams } from "./base"
+import { Command, CommandParams, CommandResult, handleProcessResults, PrepareParams } from "./base"
 import { STATIC_DIR } from "../constants"
 import { processModules } from "../process"
 import { GardenModule } from "../types/module"
 import { getTestTasks } from "../tasks/test"
 import { ConfigGraph } from "../config-graph"
-import { getDevModeModules, getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
+import {
+  getDevModeModules,
+  getHotReloadServiceNames,
+  getMatchingServiceNames,
+  validateHotReloadServiceNames,
+} from "./helpers"
 import { startServer } from "../server/server"
 import { BuildTask } from "../tasks/build"
 import { DeployTask } from "../tasks/deploy"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
-import { StringsParameter, BooleanParameter } from "../cli/params"
+import { BooleanParameter, StringsParameter } from "../cli/params"
 import { printHeader } from "../logger/util"
 import { GardenService } from "../types/service"
+import deline = require("deline")
+import dedent = require("dedent")
+import moment = require("moment")
 
 const ansiBannerPath = join(STATIC_DIR, "garden-banner-2.txt")
 
@@ -49,6 +54,17 @@ const devOpts = {
       don't support or haven't configured hot reloading).
     `,
     alias: "hot",
+  }),
+  "local-mode": new StringsParameter({
+    help: deline`[EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled.
+    Use comma as a separator to specify multiple services. Use * to deploy all
+    services with local mode enabled. When this option is used,
+    the command is run in persistent mode.
+
+    This always takes the precedence over the dev mode if there are any conflicts,
+    i.e. if the same services are passed to both \`--dev\` and \`--local\` options.
+    `,
+    alias: "local",
   }),
   "skip-tests": new BooleanParameter({
     help: "Disable running the tests.",
@@ -85,6 +101,8 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
         garden dev
         garden dev --hot=foo-service,bar-service  # enable hot reloading for foo-service and bar-service
         garden dev --hot=*                        # enable hot reloading for all compatible services
+        garden dev --local=service-1,service-2    # enable local mode for service-1 and service-2
+        garden dev --local=*                      # enable local mode for all compatible services
         garden dev --skip-tests=                  # skip running any tests
         garden dev --force                        # force redeploy of services when the command starts
         garden dev --name integ                   # run all tests with the name 'integ' in the project
@@ -152,13 +170,15 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       }
     }
 
+    const localModeServiceNames = getMatchingServiceNames(opts["local-mode"], graph)
+
     const services = graph.getServices({ names: args.services })
 
     const devModeServiceNames = services
       .map((s) => s.name)
       // Since dev mode is implicit when using this command, we consider explicitly enabling hot reloading to
       // take precedence over dev mode.
-      .filter((name) => !hotReloadServiceNames.includes(name))
+      .filter((name) => !hotReloadServiceNames.includes(name) && !localModeServiceNames.includes(name))
 
     const initialTasks = await getDevCommandInitialTasks({
       garden,
@@ -168,6 +188,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       services,
       devModeServiceNames,
       hotReloadServiceNames,
+      localModeServiceNames,
       skipTests,
       forceDeploy: opts.force,
     })
@@ -190,6 +211,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
           servicesWatched: devModeServiceNames,
           devModeServiceNames,
           hotReloadServiceNames,
+          localModeServiceNames,
           testNames: opts["test-names"],
           skipTests,
         })
@@ -208,6 +230,7 @@ export async function getDevCommandInitialTasks({
   services,
   devModeServiceNames,
   hotReloadServiceNames,
+  localModeServiceNames,
   skipTests,
   forceDeploy,
 }: {
@@ -218,6 +241,7 @@ export async function getDevCommandInitialTasks({
   services: GardenService[]
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
+  localModeServiceNames: string[]
   skipTests: boolean
   forceDeploy: boolean
 }) {
@@ -242,6 +266,7 @@ export async function getDevCommandInitialTasks({
             module,
             devModeServiceNames,
             hotReloadServiceNames,
+            localModeServiceNames,
             force: forceDeploy,
             forceBuild: false,
           })
@@ -264,6 +289,7 @@ export async function getDevCommandInitialTasks({
           fromWatch: false,
           devModeServiceNames,
           hotReloadServiceNames,
+          localModeServiceNames,
         })
     )
 
@@ -278,6 +304,7 @@ export async function getDevCommandWatchTasks({
   servicesWatched,
   devModeServiceNames,
   hotReloadServiceNames,
+  localModeServiceNames,
   testNames,
   skipTests,
 }: {
@@ -288,6 +315,7 @@ export async function getDevCommandWatchTasks({
   servicesWatched: string[]
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
+  localModeServiceNames: string[]
   testNames: string[] | undefined
   skipTests: boolean
 }) {
@@ -299,6 +327,7 @@ export async function getDevCommandWatchTasks({
     servicesWatched,
     devModeServiceNames,
     hotReloadServiceNames,
+    localModeServiceNames,
   })
 
   if (!skipTests) {
@@ -315,6 +344,7 @@ export async function getDevCommandWatchTasks({
             fromWatch: true,
             devModeServiceNames,
             hotReloadServiceNames,
+            localModeServiceNames,
           })
         )
       )
