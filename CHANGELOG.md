@@ -10,19 +10,19 @@
 * handle unknown cloud profile ([#2994](https://github.com/garden-io/garden/issues/2994)) ([1e5707e18](https://github.com/garden-io/garden/commit/1e5707e18))
 * **core:** corrected git `safe.directory` paths for windows ([99d85951d](https://github.com/garden-io/garden/commit/99d85951d))
 * **k8s:** copy imagePullSecrets to builder pods ([1bcdf7a46](https://github.com/garden-io/garden/commit/1bcdf7a46))
-* **k8s:** change kaniko default image to 1.8.1 ([#3007](https://github.com/garden-io/garden/issues/3007)) ([cdf5695b7](https://github.com/garden-io/garden/commit/cdf5695b7))
 
 ### Features
 
-* core-cloud Interactivity ([232b55793](https://github.com/garden-io/garden/commit/232b55793))
+* core-cloud interactivity ([232b55793](https://github.com/garden-io/garden/commit/232b55793))
 * **cli:** --full option for get modules command ([4a17b0405](https://github.com/garden-io/garden/commit/4a17b0405))
 * **k8s:** local mode for container modules ([#2949](https://github.com/garden-io/garden/issues/2949)) ([f9cad6c40](https://github.com/garden-io/garden/commit/f9cad6c40))
 
 ### Improvements
 
-* optimized safety checks for git repos ([df07657c6](https://github.com/garden-io/garden/commit/df07657c6))
-* read existing safe directories from .gitconfig on startup ([33ab184fa](https://github.com/garden-io/garden/commit/33ab184fa))
+* optimized safety checks for git repos ([33ab184fa](https://github.com/garden-io/garden/commit/33ab184fa)) and ([df07657c6](https://github.com/garden-io/garden/commit/df07657c6))
 * bump alpine, node and gcloud SDK version in support ([#3013](https://github.com/garden-io/garden/issues/3013)) ([baf4d79d8](https://github.com/garden-io/garden/commit/baf4d79d8))
+* update bundled Docker to 20.10.9
+* **k8s:** change kaniko default image to 1.8.1 ([#3007](https://github.com/garden-io/garden/issues/3007)) ([cdf5695b7](https://github.com/garden-io/garden/commit/cdf5695b7))
 
 <a name="0.12.41"></a>
 ## [0.12.41](https://github.com/garden-io/garden/compare/0.12.40...0.12.41) (2022-05-24)
