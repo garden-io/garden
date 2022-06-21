@@ -156,6 +156,7 @@ export class GitHandler extends VcsHandler {
 
     try {
       await git("status")
+      this.gitSafeDirs.add(path)
     } catch (err) {
       // Git has stricter repo ownerships checks since 2.36.0
       if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: unsafe repository")) {
