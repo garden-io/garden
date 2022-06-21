@@ -18,6 +18,8 @@ describe("table of contents", () => {
     expect(output.trim()).to.eql(dedent`
       # Table of Contents
 
+      * [Welcome!](welcome.md)
+
       ## 🌳 Directory 3
 
 
