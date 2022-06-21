@@ -498,7 +498,7 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
                 section: service.name,
                 msg: chalk.red(
                   composeErrorMessage(
-                    `Error running local app, check the local service logs and the Garden logs in ${getLogsPath(ctx)}`,
+                    `Error running local app, check the local app logs and the Garden logs in ${getLogsPath(ctx)}`,
                     msg
                   )
                 ),
@@ -510,7 +510,9 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
                 symbol: "warning",
                 section: service.name,
                 msg: chalk.yellow(
-                  `Local app hasn't started after ${localAppFailureCounter.getFailures()} attempts. Please check the logs and consider restarting Garden.`
+                  `Local app hasn't started after ${localAppFailureCounter.getFailures()} attempts. Please check the logs in ${getLogsPath(
+                    ctx
+                  )} and consider restarting Garden.`
                 ),
               })
             })
