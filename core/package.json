@@ -73,7 +73,7 @@
     "get-port": "^5.1.1",
     "glob": "^7.1.6",
     "global-agent": "^2.1.8",
-    "got": "^11.1.4",
+    "got": "^11.8.5",
     "gray-matter": "^4.0.2",
     "handlebars": "^4.7.6",
     "has-ansi": "^4.0.0",
