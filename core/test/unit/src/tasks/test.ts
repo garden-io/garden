@@ -25,6 +25,30 @@ describe("TestTask", () => {
     log = garden.log
   })
 
+  describe("process", () => {
+    it("should correctly resolve runtime outputs from tasks", async () => {
+      const moduleA = graph.getModule("module-a")
+      const testConfig = moduleA.testConfigs[0]
+
+      const testTask = new TestTask({
+        garden,
+        log,
+        graph,
+        test: testFromConfig(moduleA, testConfig, graph),
+        force: true,
+        forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
+        localModeServiceNames: [],
+      })
+
+      const key = testTask.getKey()
+      const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
+
+      expect(result!.output.log).to.eql("echo task-a-ok")
+    })
+  })
+
   describe("getDependencies", () => {
     it("should include task dependencies", async () => {
       const moduleA = graph.getModule("module-a")

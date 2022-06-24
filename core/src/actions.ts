@@ -62,6 +62,9 @@ import {
   PluginActionDescriptions,
   ModuleActionHandler,
   ActionHandler,
+  TestActionParams,
+  TestActionHandlers,
+  TestActionOutputs,
 } from "./types/plugin/plugin"
 import { CleanupEnvironmentParams, CleanupEnvironmentResult } from "./types/plugin/provider/cleanupEnvironment"
 import { DeleteSecretParams, DeleteSecretResult } from "./types/plugin/provider/deleteSecret"
@@ -470,7 +473,7 @@ export class ActionRouter implements TypeGuard {
         })
       })
 
-      const result = await this.callModuleHandler({ params: { ...params, artifactsPath }, actionType: "testModule" })
+      const result = await this.callTestHandler({ params: { ...params, artifactsPath }, actionType: "testModule" })
 
       // Emit status
       this.garden.events.emit("testStatus", {
@@ -501,7 +504,7 @@ export class ActionRouter implements TypeGuard {
   async getTestResult<T extends GardenModule>(
     params: ModuleActionRouterParams<GetTestResultParams<T>>
   ): Promise<TestResult | null> {
-    const result = await this.callModuleHandler({
+    const result = await this.callTestHandler({
       params,
       actionType: "getTestResult",
       defaultHandler: async () => null,
@@ -1120,6 +1123,71 @@ export class ActionRouter implements TypeGuard {
     }
   }
 
+  /**
+   * This is essentially the same as `callModuleHandler`, with the addition of runtime template string resolution for
+   * the requested test config.
+   */
+  private async callTestHandler<T extends keyof TestActionHandlers>({
+    params,
+    actionType,
+    defaultHandler,
+  }: {
+    params: ModuleActionRouterParams<TestActionParams[T]>
+    actionType: T
+    defaultHandler?: TestActionHandlers[T]
+  }): Promise<TestActionOutputs[T]> {
+    let { module, test, pluginName, log, graph } = params
+    const runtimeContext = params["runtimeContext"] as RuntimeContext | undefined
+
+    log.silly(`Getting '${actionType}' handler for module '${module.name}' (type '${module.type}')`)
+
+    const handler = await this.getModuleActionHandler({
+      moduleType: module.type,
+      actionType,
+      pluginName,
+      defaultHandler: defaultHandler as WrappedModuleAndRuntimeActionHandlers[T],
+    })
+
+    const providers = await this.garden.resolveProviders(log)
+    const templateContext = ModuleConfigContext.fromModule({
+      garden: this.garden,
+      resolvedProviders: providers,
+      module,
+      modules: graph.getModules(),
+      partialRuntimeResolution: false,
+    })
+
+    // Resolve ${runtime.*} template strings if needed.
+    const runtimeContextIsEmpty = runtimeContext
+      ? Object.keys(runtimeContext.envVars).length === 0 && runtimeContext.dependencies.length === 0
+      : true
+
+    if (!runtimeContextIsEmpty && getRuntimeTemplateReferences(module).length > 0) {
+      log.silly(`Resolving runtime template strings for test '${module.name}.${test.name}'`)
+
+      // Resolve the graph again (TODO: avoid this somehow!)
+      graph = await this.garden.getConfigGraph({ log, runtimeContext, emit: false })
+
+      // Resolve the test again
+      test = graph.getTest(module.name, test.name)
+
+      // Set allowPartial=false to ensure all required strings are resolved.
+      test.config = resolveTemplateStrings(test.config, templateContext, { allowPartial: false })
+    }
+
+    const handlerParams = {
+      ...(await this.commonParams(handler, params.log, templateContext, params.events)),
+      ...params,
+      test,
+      module: omit(module, ["_config"]),
+    }
+
+    log.silly(`Calling ${actionType} handler for module ${module.name}`)
+
+    // TODO: figure out why this doesn't compile without the function cast
+    return (<Function>handler)(handlerParams)
+  }
+
   private async callTaskHandler<T extends keyof TaskActionHandlers>({
     params,
     actionType,
@@ -1485,6 +1553,10 @@ type WrappedServiceActionHandlers<T extends GardenModule = GardenModule> = {
   [P in keyof ServiceActionParams<T>]: WrappedModuleActionHandler<ServiceActionParams<T>[P], ServiceActionOutputs[P]>
 }
 
+type WrappedTestActionHandlers<T extends GardenModule = GardenModule> = {
+  [P in keyof TestActionParams<T>]: WrappedModuleActionHandler<TestActionParams<T>[P], TestActionOutputs[P]>
+}
+
 type WrappedTaskActionHandlers<T extends GardenModule = GardenModule> = {
   [P in keyof TaskActionParams<T>]: WrappedModuleActionHandler<TaskActionParams<T>[P], TaskActionOutputs[P]>
 }
@@ -1495,6 +1567,7 @@ type WrappedModuleActionHandlers<T extends GardenModule = GardenModule> = {
 
 type WrappedModuleAndRuntimeActionHandlers<T extends GardenModule = GardenModule> = WrappedModuleActionHandlers<T> &
   WrappedServiceActionHandlers<T> &
+  WrappedTestActionHandlers<T> &
   WrappedTaskActionHandlers<T>
 
 type WrappedPluginActionHandlers = {
