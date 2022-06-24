@@ -142,17 +142,17 @@ export async function startLocalMode({
   })
 
   const namespace = await getAppNamespace(ctx, log, ctx.provider)
-  const target = status.detail.remoteResources.find((r) =>
+  const targetResource = status.detail.remoteResources.find((r) =>
     hotReloadableKinds.includes(r.kind)
   )! as HotReloadableResource
 
   await startServiceInLocalMode({
-    target,
-    service,
-    spec: service.spec.localMode,
-    log,
     ctx,
+    spec: service.spec.localMode,
+    targetResource,
+    gardenService: service,
     namespace,
+    log,
   })
 }
 
@@ -336,7 +336,6 @@ export async function createContainerManifests({
   const namespace = await getAppNamespace(k8sCtx, log, provider)
   const ingresses = await createIngressResources(api, provider, namespace, service, log)
   const workload = await createWorkloadManifest({
-    ctx,
     api,
     provider,
     service,
@@ -349,9 +348,20 @@ export async function createContainerManifests({
     production,
     blueGreen,
   })
-  const kubeservices = await createServiceResources(service, namespace, blueGreen)
+  const kubeServices = await createServiceResources(service, namespace, blueGreen)
 
-  const manifests = [workload, ...kubeservices, ...ingresses]
+  const localModeSpec = service.spec.localMode
+  if (enableLocalMode && localModeSpec) {
+    await configureLocalMode({
+      ctx,
+      spec: localModeSpec,
+      targetResource: workload,
+      gardenService: service,
+      log,
+    })
+  }
+
+  const manifests = [workload, ...kubeServices, ...ingresses]
 
   for (const obj of manifests) {
     set(obj, ["metadata", "labels", gardenAnnotationKey("module")], service.module.name)
@@ -364,7 +374,6 @@ export async function createContainerManifests({
 }
 
 interface CreateDeploymentParams {
-  ctx: PluginContext
   api: KubeApi
   provider: KubernetesProvider
   service: ContainerService
@@ -379,7 +388,6 @@ interface CreateDeploymentParams {
 }
 
 export async function createWorkloadManifest({
-  ctx,
   api,
   provider,
   service,
@@ -606,14 +614,9 @@ export async function createWorkloadManifest({
   const devModeSpec = service.spec.devMode
   const localModeSpec = service.spec.localMode
 
+  // Local mode always takes precedence over dev mode
   if (enableLocalMode && localModeSpec) {
-    await configureLocalMode({
-      ctx,
-      target: workload,
-      spec: localModeSpec,
-      service,
-      log,
-    })
+    // no op here, local mode will be configured later after all manifests are ready
   } else if (enableDevMode && devModeSpec) {
     log.debug({ section: service.name, msg: chalk.gray(`-> Configuring in dev mode`) })
 
@@ -728,6 +731,11 @@ function configureHealthCheck(
   spec: ContainerServiceConfig["spec"],
   mode: HealthCheckMode
 ): void {
+  if (mode === "local") {
+    // no need to configure liveness and readiness for a service running in local mode
+    return
+  }
+
   const readinessPeriodSeconds = 1
   const readinessFailureThreshold = 90
 
@@ -746,10 +754,10 @@ function configureHealthCheck(
   // hot reload event.
   container.livenessProbe = {
     initialDelaySeconds: readinessPeriodSeconds * readinessFailureThreshold,
-    periodSeconds: mode === "dev" || mode === "local" ? 10 : 5,
+    periodSeconds: mode === "dev" ? 10 : 5,
     timeoutSeconds: spec.healthCheck?.livenessTimeoutSeconds || 3,
     successThreshold: 1,
-    failureThreshold: mode === "dev" || mode === "local" ? 30 : 3,
+    failureThreshold: mode === "dev" ? 30 : 3,
   }
 
   const portsByName = keyBy(spec.ports, "name")
@@ -771,21 +779,6 @@ function configureHealthCheck(
     container.livenessProbe.tcpSocket = container.readinessProbe.tcpSocket
   } else {
     throw new Error("Must specify type of health check when configuring health check.")
-  }
-
-  /*
-   Both readiness and liveness probes do not make much sense for the services running in local mode.
-   A user can completely control the lifecycle of a local service. Thus, these checks may be unwanted.
-
-   The readiness probe can cause the failure of the local mode startup,
-   because the local service has not been connected to the target cluster yet.
-
-   The liveness probe can cause unnecessary re-deployment of the proxy container in the target cluster.
-   Also, it can create unnecessary noisy traffic to the local service is running in the debugger.
-   */
-  if (mode === "local") {
-    delete container.readinessProbe
-    delete container.livenessProbe
   }
 }
 

@@ -38,7 +38,6 @@ import { configureKubernetesModule, KubernetesModule, KubernetesService } from "
 import { execInKubernetesService } from "./exec"
 import { runKubernetesTask } from "./run"
 import { testKubernetesModule } from "./test"
-import { configureLocalMode } from "../local-mode"
 
 export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<KubernetesModule>> = {
   configure: configureKubernetesModule,

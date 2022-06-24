@@ -112,7 +112,6 @@ describe("kubernetes", () => {
 
         const resources = [
           await createWorkloadManifest({
-            ctx,
             api,
             provider,
             service,
@@ -185,7 +184,6 @@ describe("kubernetes", () => {
 
         const resources = [
           await createWorkloadManifest({
-            ctx,
             api,
             provider,
             service,

@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerLocalModeSpec, ContainerService, ContainerServiceSpec, ServicePortSpec } from "../container/config"
+import { ContainerLocalModeSpec, ContainerService } from "../container/config"
 import { gardenAnnotationKey } from "../../util/string"
-import { set } from "lodash"
+import { find, remove, set } from "lodash"
 import { HotReloadableResource } from "./hot-reload/hot-reload"
 import { PrimitiveMap } from "../../config/common"
 import {
@@ -19,10 +19,9 @@ import {
 } from "./constants"
 import { ConfigurationError, RuntimeError } from "../../exceptions"
 import { getResourceContainer, prepareEnvVars } from "./util"
-import { V1Container } from "@kubernetes/client-node"
+import { V1Container, V1ContainerPort } from "@kubernetes/client-node"
 import { KubernetesPluginContext } from "./config"
 import { LogEntry } from "../../logger/log-entry"
-import { getTargetResource } from "./port-forward"
 import chalk from "chalk"
 import { rmSync } from "fs"
 import { execSync } from "child_process"
@@ -33,6 +32,8 @@ import { kubectl } from "./kubectl"
 import { OsCommand, ProcessMessage, RecoverableProcess, RetryInfo } from "../../util/recoverable-process"
 import { isConfiguredForLocalMode } from "./status/status"
 import { exec, registerCleanupFunction, shutdown } from "../../util/util"
+import { KubernetesService } from "./kubernetes-module/config"
+import { HelmService } from "./helm/config"
 import getPort = require("get-port")
 import touch = require("touch")
 
@@ -47,15 +48,21 @@ const portForwardRetryTimeoutMs = 5000
 
 interface ConfigureLocalModeParams {
   ctx: PluginContext
-  target: HotReloadableResource
   spec: ContainerLocalModeSpec
-  service: ContainerService
+  targetResource: HotReloadableResource
+  gardenService: ContainerService | KubernetesService | HelmService
   log: LogEntry
   containerName?: string
 }
 
-interface StartLocalModeParams extends ConfigureLocalModeParams {
+interface StartLocalModeParams {
+  ctx: PluginContext
+  spec: ContainerLocalModeSpec
+  targetResource: HotReloadableResource
+  gardenService: ContainerService | KubernetesService | HelmService
   namespace: string
+  log: LogEntry
+  containerName?: string
 }
 
 export class KeyPair {
@@ -154,9 +161,8 @@ export class ProxySshKeystore {
     }
   }
 
-  public async getKeyPair(gardenDirPath: string, service: ContainerService, log: LogEntry): Promise<KeyPair> {
+  public async getKeyPair(gardenDirPath: string, sshKeyName: string, log: LogEntry): Promise<KeyPair> {
     const sshDirPath = ProxySshKeystore.getSshDirPath(gardenDirPath)
-    const sshKeyName = service.name
 
     if (!this.serviceKeyPairs.has(sshKeyName)) {
       await sshKeystoreAsyncLock.acquire(`proxy-ssh-key-pair-${sshKeyName}`, async () => {
@@ -243,15 +249,15 @@ export class LocalModeProcessRegistry {
 }
 
 // todo: proxy container should expose all ports instead of a single one
-function findFirstForwardablePort(serviceSpec: ContainerServiceSpec): ServicePortSpec {
-  if (serviceSpec.ports.length === 0) {
+function findFirstForwardablePort(container: V1Container): V1ContainerPort {
+  if (!container.ports || container.ports.length === 0) {
     throw new ConfigurationError(
-      `Cannot configure the local mode for service ${serviceSpec.name}: it does not expose any ports.`,
-      serviceSpec
+      `Cannot configure the local mode for container ${container.name}: it does not expose any ports.`,
+      { container }
     )
   }
-  const firstTcpPort = serviceSpec.ports.find((portSpec) => portSpec.protocol === "TCP")
-  return firstTcpPort || serviceSpec.ports[0]
+  const firstTcpPort = container.ports.find((portSpec) => portSpec.protocol === "TCP")
+  return firstTcpPort || container.ports[0]
 }
 
 export namespace LocalModeEnv {
@@ -274,11 +280,9 @@ export namespace LocalModeEnv {
   export const GARDEN_PROXY_CONTAINER_USER_NAME = "USER_NAME"
 }
 
-async function prepareLocalModeEnvVars({ service }: ConfigureLocalModeParams, keyPair: KeyPair): Promise<PrimitiveMap> {
-  const originalServiceSpec = service.spec
-
+async function prepareLocalModeEnvVars(targetContainer: V1Container, keyPair: KeyPair): Promise<PrimitiveMap> {
   // todo: expose all original ports in the proxy container
-  const portSpec = findFirstForwardablePort(originalServiceSpec)
+  const portSpec = findFirstForwardablePort(targetContainer)
   const publicSshKey = await keyPair.readPublicSshKey()
 
   const env = {}
@@ -288,123 +292,94 @@ async function prepareLocalModeEnvVars({ service }: ConfigureLocalModeParams, ke
   return env
 }
 
-function prepareLocalModePorts(): ServicePortSpec[] {
+function prepareLocalModePorts(): V1ContainerPort[] {
   return [
     {
       name: PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME,
       protocol: "TCP",
       containerPort: PROXY_CONTAINER_SSH_TUNNEL_PORT,
-      servicePort: PROXY_CONTAINER_SSH_TUNNEL_PORT,
     },
   ]
 }
 
 /**
- * Patches the original service spec by adding localMode-specific settings like ports, environment variables, etc.
- * The original service spec which is used to define k8s service
- * in `core/src/plugins/kubernetes/container/deployment.ts`
+ * Patches the target Kubernetes Workload or Pod manifest by adding localMode-specific settings
+ * like ports, environment variables, probes, etc.
  *
- * TODO: check if it would be possible to use `workload` instead of `service` in the line
- *       const kubeservices = await createServiceResources(service, namespace, blueGreen)
- *       see the impl of createContainerManifests() in core/src/plugins/kubernetes/container/deployment.ts
- *       It would allow to avoid the same changes in 2 places
- *
- * TODO: Consider configuring service specific part in
- *       core/src/plugins/kubernetes/container/service.ts -> createServiceResources()
- * @param originalServiceSpec the original service spec
+ * @param targetManifest the Kubernetes workload manifest to be patched
+ * @param containerName the name of the target container
  * @param localModeEnvVars the list of localMode-specific environment variables
  * @param localModePorts the list of localMode-specific ports (e.g. ssh port for tunnel setup)
  */
-function patchOriginalServiceSpec(
-  originalServiceSpec: ContainerServiceSpec,
+function patchHotReloadableManifest(
+  targetManifest: HotReloadableResource,
+  containerName: string,
   localModeEnvVars: PrimitiveMap,
-  localModePorts: ServicePortSpec[]
-) {
-  // prevent duplicate port definitions
-  const existingLocalModePortNames = new Set(originalServiceSpec.ports.map((v) => v.name))
-  const newLocalModePorts = localModePorts.filter((v) => !existingLocalModePortNames.has(v.name))
-  originalServiceSpec.ports.push(...newLocalModePorts)
+  localModePorts: V1ContainerPort[]
+): void {
+  const targetContainer = getResourceContainer(targetManifest, containerName)
 
-  // write (or overwrite) env variables to prevent duplicates
-  for (const key in localModeEnvVars) {
-    if (!originalServiceSpec.env[key]) {
-      originalServiceSpec.env[key] = localModeEnvVars[key]
-    }
-  }
-}
-
-/**
- * Patches the main container by adding localMode-specific settings like ports, environment variables, etc.
- *
- * @param mainContainer the main container object to be patched
- * @param proxyContainerName the target container name
- * @param localModeEnvVars the list of localMode-specific environment variables
- * @param localModePorts the list of localMode-specific ports (e.g. ssh port for tunnel setup)
- */
-function patchMainContainer(
-  mainContainer: V1Container,
-  proxyContainerName: string,
-  localModeEnvVars: PrimitiveMap,
-  localModePorts: ServicePortSpec[]
-) {
-  mainContainer.name = proxyContainerName
-  mainContainer.image = reverseProxyImageName
+  // use reverse proxy container image
+  targetContainer.image = reverseProxyImageName
 
   const extraEnvVars = prepareEnvVars(localModeEnvVars)
-  if (!mainContainer.env) {
-    mainContainer.env = []
+  if (!targetContainer.env) {
+    targetContainer.env = []
   }
   // prevent duplicate env vars
-  const existingEnvVarNames = new Set(mainContainer.env.map((v) => v.name))
-  const newLocalModeEnvVars = extraEnvVars.filter((v) => !existingEnvVarNames.has(v.name))
-  mainContainer.env.push(...newLocalModeEnvVars)
+  const extraEnvVarNames = new Set(extraEnvVars.map((v) => v.name))
+  remove(targetContainer.env, (v) => extraEnvVarNames.has(v.name))
+  targetContainer.env.push(...extraEnvVars)
 
-  if (!mainContainer.ports) {
-    mainContainer.ports = []
+  if (!targetContainer.ports) {
+    targetContainer.ports = []
   }
   // prevent duplicate ports
-  const existingLocalModePortNames = new Set(mainContainer.ports.map((v) => v.name))
-  const newLocalModePorts = localModePorts.filter((v) => !existingLocalModePortNames.has(v.name))
-  for (const port of newLocalModePorts) {
-    mainContainer.ports.push({
-      name: port.name,
-      protocol: port.protocol,
-      containerPort: port.containerPort,
-    })
-  }
+  const localModePortNames = new Set(localModePorts.map((v) => v.name))
+  remove(targetContainer.ports, (p) => localModePortNames.has(p.name))
+  targetContainer.ports.push(...localModePorts)
+
+  /*
+   Both readiness and liveness probes do not make much sense for the services running in local mode.
+   A user can completely control the lifecycle of a local service. Thus, these checks may be unwanted.
+
+   The readiness probe can cause the failure of the local mode startup,
+   because the local service has not been connected to the target cluster yet.
+
+   The liveness probe can cause unnecessary re-deployment of the proxy container in the target cluster.
+   Also, it can create unnecessary noisy traffic to the local service is running in the debugger.
+   */
+  delete targetContainer.readinessProbe
+  delete targetContainer.livenessProbe
 }
 
 /**
  * Configures the specified Deployment, DaemonSet or StatefulSet for local mode.
  */
 export async function configureLocalMode(configParams: ConfigureLocalModeParams): Promise<void> {
-  const { ctx, target, service, log } = configParams
+  const { ctx, targetResource, gardenService, log, containerName } = configParams
 
-  // Logging this on the debug level because if can be displayed multiple times due to getServiceStatus checks
+  // Logging this on the debug level because it can be displayed multiple times due to getServiceStatus checks
   log.debug({
-    section: service.name,
+    section: gardenService.name,
     msg: chalk.gray(
       `Configuring in local mode, proxy container ${chalk.underline(reverseProxyImageName)} will be deployed.`
     ),
   })
 
-  set(target, ["metadata", "annotations", gardenAnnotationKey("local-mode")], "true")
+  set(targetResource, ["metadata", "annotations", gardenAnnotationKey("local-mode")], "true")
 
-  const mainContainer = getResourceContainer(target)
-  const proxyContainerName = mainContainer.name
-
-  const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(ctx.gardenDirPath, service, log)
-
+  const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(ctx.gardenDirPath, gardenService.name, log)
   log.debug({
-    section: service.name,
+    section: gardenService.name,
     msg: `Created ssh key pair for proxy container: "${keyPair.publicKeyPath}" and "${keyPair.privateKeyPath}".`,
   })
 
-  const localModeEnvVars = await prepareLocalModeEnvVars(configParams, keyPair)
+  const targetContainer = getResourceContainer(targetResource, containerName)
+  const localModeEnvVars = await prepareLocalModeEnvVars(targetContainer, keyPair)
   const localModePorts = prepareLocalModePorts()
 
-  patchOriginalServiceSpec(service.spec, localModeEnvVars, localModePorts)
-  patchMainContainer(mainContainer, proxyContainerName, localModeEnvVars, localModePorts)
+  patchHotReloadableManifest(targetResource, targetContainer.name, localModeEnvVars, localModePorts)
 }
 
 const attemptsLeft = ({ maxRetries, minTimeoutMs, retriesLeft }: RetryInfo): string => {
@@ -459,22 +434,22 @@ function getLogsPath(ctx: PluginContext): string {
   return join(ctx.gardenDirPath, "logs")
 }
 
-function getLocalServiceCommand({ spec: localModeSpec, service }: StartLocalModeParams): OsCommand | undefined {
+function getLocalAppCommand({ spec: localModeSpec, gardenService }: StartLocalModeParams): OsCommand | undefined {
   const command = localModeSpec.command
   if (!command || command.length === 0) {
     return undefined
   }
   const commandName = command[0]
   const commandArgs = command.slice(1)
-  const cwd = isAbsolute(commandName) ? undefined : service.module.path
+  const cwd = isAbsolute(commandName) ? undefined : gardenService.module.path
   return { command: commandName, args: commandArgs, cwd }
 }
 
 const localAppFailureCounter = new FailureCounter(10)
 
 function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProcess | undefined {
-  const localServiceCmd = getLocalServiceCommand(configParams)
-  const { ctx, service, log } = configParams
+  const localServiceCmd = getLocalAppCommand(configParams)
+  const { ctx, gardenService, log } = configParams
 
   return !!localServiceCmd
     ? new RecoverableProcess({
@@ -490,13 +465,13 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
             if (msg.code || msg.signal) {
               log.error({
                 status: "error",
-                section: service.name,
+                section: gardenService.name,
                 msg: chalk.red(composeErrorMessage("Local app stopped", msg)),
               })
             } else {
               log.error({
                 status: "error",
-                section: service.name,
+                section: gardenService.name,
                 msg: chalk.red(
                   composeErrorMessage(
                     `Error running local app, check the local app logs and the Garden logs in ${getLogsPath(ctx)}`,
@@ -509,7 +484,7 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
               log.error({
                 status: "warn",
                 symbol: "warning",
-                section: service.name,
+                section: gardenService.name,
                 msg: chalk.yellow(
                   `Local app hasn't started after ${localAppFailureCounter.getFailures()} attempts. Please check the logs in ${getLogsPath(
                     ctx
@@ -525,17 +500,15 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
 }
 
 async function getKubectlPortForwardCommand(
-  { target, service, log, ctx, namespace }: StartLocalModeParams,
-  localPort: number
+  { ctx, log }: StartLocalModeParams,
+  localPort: number,
+  targetNamespace: string,
+  targetResource: string
 ): Promise<OsCommand> {
-  const k8sCtx = <KubernetesPluginContext>ctx
-
-  const targetNamespace = target.metadata.namespace || namespace
-  const targetResource = getTargetResource(service)
-
   const portMapping = `${localPort}:${PROXY_CONTAINER_SSH_TUNNEL_PORT}`
 
   // TODO: use the API directly instead of kubectl (need to reverse-engineer kubectl quite a bit for that)
+  const k8sCtx = <KubernetesPluginContext>ctx
   const { args: portForwardArgs } = kubectl(k8sCtx, k8sCtx.provider).prepareArgs({
     namespace: targetNamespace,
     args: ["port-forward", targetResource, portMapping],
@@ -543,7 +516,6 @@ async function getKubectlPortForwardCommand(
   })
 
   const kubectlPath = await kubectl(k8sCtx, k8sCtx.provider).getPath(log)
-
   return { command: kubectlPath, args: portForwardArgs }
 }
 
@@ -551,10 +523,17 @@ const kubectlPortForwardFailureCounter = new FailureCounter(10)
 
 async function getKubectlPortForwardProcess(
   configParams: StartLocalModeParams,
-  localSshPort: number
+  localSshPort: number,
+  targetNamespace: string,
+  targetResource: string
 ): Promise<RecoverableProcess> {
-  const kubectlPortForwardCmd = await getKubectlPortForwardCommand(configParams, localSshPort)
-  const { ctx, service, log } = configParams
+  const kubectlPortForwardCmd = await getKubectlPortForwardCommand(
+    configParams,
+    localSshPort,
+    targetNamespace,
+    targetResource
+  )
+  const { ctx, gardenService, log } = configParams
 
   return new RecoverableProcess({
     osCommand: kubectlPortForwardCmd,
@@ -569,14 +548,14 @@ async function getKubectlPortForwardProcess(
       onError: (msg: ProcessMessage) => {
         log.error({
           status: "error",
-          section: service.name,
+          section: gardenService.name,
           msg: chalk.red(composeErrorMessage("Kubectl SSH port-forward failed", msg)),
         })
         kubectlPortForwardFailureCounter.addFailure(() => {
           log.error({
             status: "warn",
             symbol: "warning",
-            section: service.name,
+            section: gardenService.name,
             msg: chalk.yellow(
               `Kubectl SSH port-forward hasn't started after ${kubectlPortForwardFailureCounter.getFailures()} attempts. Please check the logs in ${getLogsPath(
                 ctx
@@ -595,7 +574,7 @@ async function getKubectlPortForwardProcess(
         if (msg.message.includes("Handling connection for")) {
           log.info({
             status: "success",
-            section: service.name,
+            section: gardenService.name,
             msg: chalk.white(composeMessage("Kubectl SSH port-forward is up and running", msg)),
           })
         }
@@ -605,13 +584,27 @@ async function getKubectlPortForwardProcess(
 }
 
 async function getReversePortForwardCommand(
-  { ctx, service, spec: localModeSpec, log }: StartLocalModeParams,
-  localSshPort: number
+  { ctx, spec: localModeSpec, log }: StartLocalModeParams,
+  localSshPort: number,
+  targetContainer: V1Container
 ): Promise<OsCommand> {
   const localPort = localModeSpec.localPort
+  const effectiveContainerName = targetContainer.name
+
   // todo: get all forwardable ports and set up ssh tunnels for all
-  const remoteContainerPort = service.spec.env[LocalModeEnv.GARDEN_REMOTE_CONTAINER_PORT]
-  const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(ctx.gardenDirPath, service, log)
+  const remoteContainerPortEnvVar = find(
+    targetContainer.env,
+    (v) => v.name === LocalModeEnv.GARDEN_REMOTE_CONTAINER_PORT
+  )
+  if (!remoteContainerPortEnvVar || !remoteContainerPortEnvVar.value) {
+    // this should never happen, because the manifests must have been patched properly before calling this
+    throw new RuntimeError(
+      `Container ${effectiveContainerName} does not define a mandatory local mode environment variable ${LocalModeEnv.GARDEN_REMOTE_CONTAINER_PORT}`,
+      { targetContainer }
+    )
+  }
+  const remoteContainerPort = remoteContainerPortEnvVar.value
+  const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(ctx.gardenDirPath, effectiveContainerName, log)
   const knownHostsFilePath = await ProxySshKeystore.getInstance(log).getKnownHostsFile(ctx.gardenDirPath)
 
   const sshCommandName = "ssh"
@@ -637,10 +630,11 @@ const reversePortForwardFailureCounter = new FailureCounter(10)
 
 async function getReversePortForwardProcess(
   configParams: StartLocalModeParams,
-  localSshPort: number
+  localSshPort: number,
+  targetContainer: V1Container
 ): Promise<RecoverableProcess> {
-  const reversePortForwardingCmd = await getReversePortForwardCommand(configParams, localSshPort)
-  const { ctx, service, log } = configParams
+  const reversePortForwardingCmd = await getReversePortForwardCommand(configParams, localSshPort, targetContainer)
+  const { ctx, gardenService, log } = configParams
 
   return new RecoverableProcess({
     osCommand: reversePortForwardingCmd,
@@ -656,7 +650,7 @@ async function getReversePortForwardProcess(
         if (lowercaseOutput.includes('unsupported option "accept-new"')) {
           log.error({
             status: "error",
-            section: service.name,
+            section: gardenService.name,
             msg: chalk.red(
               "It looks like you're using too old SSH version which doesn't support option -oStrictHostKeyChecking=accept-new. Consider upgrading to OpenSSH 7.6 or higher. Local mode will not work."
             ),
@@ -674,7 +668,7 @@ async function getReversePortForwardProcess(
         if (hasCriticalErrors) {
           log.error({
             status: "error",
-            section: service.name,
+            section: gardenService.name,
             msg: chalk.red(output),
           })
         }
@@ -691,14 +685,14 @@ async function getReversePortForwardProcess(
       onError: (msg: ProcessMessage) => {
         log.error({
           status: "error",
-          section: service.name,
+          section: gardenService.name,
           msg: chalk.red(composeErrorMessage("Reverse SSH port-forward failed", msg)),
         })
         reversePortForwardFailureCounter.addFailure(() => {
           log.error({
             status: "warn",
             symbol: "warning",
-            section: service.name,
+            section: gardenService.name,
             msg: chalk.yellow(
               `Reverse SSH port-forward hasn't started after ${reversePortForwardFailureCounter.getFailures()} attempts. Please check the logs in ${getLogsPath(
                 ctx
@@ -710,7 +704,7 @@ async function getReversePortForwardProcess(
       onMessage: (msg: ProcessMessage) => {
         log.info({
           status: "success",
-          section: service.name,
+          section: gardenService.name,
           msg: chalk.white(composeMessage("Reverse SSH port-forward is up and running", msg)),
         })
       },
@@ -722,7 +716,7 @@ async function getReversePortForwardProcess(
       onMessage: (msg: ProcessMessage) => {
         log.info({
           status: "success",
-          section: service.name,
+          section: gardenService.name,
           msg: chalk.white(composeMessage("Reverse port-forward is up and running", msg)),
         })
       },
@@ -751,31 +745,31 @@ function composeSshTunnelProcessTree(
  *   3. Starts reverse port forwarding from the remote proxy's containerPort to the local app port.
  */
 export async function startServiceInLocalMode(configParams: StartLocalModeParams): Promise<void> {
-  const { target, service, log } = configParams
+  const { targetResource, gardenService, namespace, log, containerName } = configParams
+  const targetResourceId = `${targetResource.kind}/${targetResource.metadata.name}`
 
   // Validate the target
-  if (!isConfiguredForLocalMode(target)) {
-    const resourceName = `${target.kind}/${target.metadata.name}`
-    throw new ConfigurationError(`Resource ${resourceName} is not deployed in local mode`, {
-      target,
+  if (!isConfiguredForLocalMode(targetResource)) {
+    throw new ConfigurationError(`Resource ${targetResourceId} is not deployed in local mode`, {
+      targetResource,
     })
   }
 
   log.info({
     status: "active",
-    section: service.name,
+    section: gardenService.name,
     msg: chalk.white("Starting in local mode..."),
   })
 
-  registerCleanupFunction(`redeploy-alert-for-local-mode-${service.name}`, () => {
+  registerCleanupFunction(`redeploy-alert-for-local-mode-${gardenService.name}`, () => {
     log.warn({
       status: "warn",
       symbol: "warning",
-      section: service.name,
+      section: gardenService.name,
       msg: chalk.yellow(
-        `The local mode has been stopped for the service "${service.name}". ` +
+        `The local mode has been stopped for the service "${gardenService.name}". ` +
           "Please, re-deploy the original service to restore the original k8s cluster state: " +
-          `${chalk.white(`\`garden deploy ${service.name}\``)}`
+          `${chalk.white(`\`garden deploy ${gardenService.name}\``)}`
       ),
     })
   })
@@ -788,19 +782,28 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
     LocalModeProcessRegistry.getInstance().register(localApp)
     log.info({
       status: "active",
-      section: service.name,
+      section: gardenService.name,
       msg: chalk.white("Starting local app, this can take a while"),
     })
     localApp.startAll()
   }
 
-  const kubectlPortForward = await getKubectlPortForwardProcess(configParams, localSshPort)
-  const reversePortForward = await getReversePortForwardProcess(configParams, localSshPort)
+  const targetNamespace = targetResource.metadata.namespace || namespace
+  const kubectlPortForward = await getKubectlPortForwardProcess(
+    configParams,
+    localSshPort,
+    targetNamespace,
+    targetResourceId
+  )
+
+  const targetContainer = getResourceContainer(targetResource, containerName)
+  const reversePortForward = await getReversePortForwardProcess(configParams, localSshPort, targetContainer)
+
   const compositeSshTunnel = composeSshTunnelProcessTree(kubectlPortForward, reversePortForward, log)
   log.debug(`Starting local mode ssh tunnels:\n` + `${chalk.white(`${compositeSshTunnel.renderProcessTree()}`)}`)
   log.info({
     status: "active",
-    section: service.name,
+    section: gardenService.name,
     msg: chalk.white("Starting local mode ssh tunnels, some failures and retries are possible"),
   })
   LocalModeProcessRegistry.getInstance().register(compositeSshTunnel)

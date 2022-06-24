@@ -24,7 +24,6 @@ export async function getServiceLogs(params: GetServiceLogsParams<ContainerModul
 
   const resources = [
     await createWorkloadManifest({
-      ctx,
       api,
       provider,
       service,
