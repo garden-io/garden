@@ -94,12 +94,17 @@ export type ServiceActionHandlers<T extends GardenModule = GardenModule> = {
   [P in keyof ServiceActionParams<T>]: ModuleActionHandler<ServiceActionParams<T>[P], ServiceActionOutputs[P]>
 }
 
+export type TestActionHandlers<T extends GardenModule = GardenModule> = {
+  [P in keyof TestActionParams<T>]: ModuleActionHandler<TestActionParams<T>[P], TestActionOutputs[P]>
+}
+
 export type TaskActionHandlers<T extends GardenModule = GardenModule> = {
   [P in keyof TaskActionParams<T>]: ModuleActionHandler<TaskActionParams<T>[P], TaskActionOutputs[P]>
 }
 
 export type ModuleAndRuntimeActionHandlers<T extends GardenModule = GardenModule> = ModuleActionHandlers<T> &
   ServiceActionHandlers<T> &
+  TestActionHandlers<T> &
   TaskActionHandlers<T>
 
 // export type AllActionHandlers<T extends GardenModule = GardenModule> = PluginActionHandlers &
@@ -107,6 +112,7 @@ export type ModuleAndRuntimeActionHandlers<T extends GardenModule = GardenModule
 
 export type PluginActionName = keyof PluginActionHandlers
 export type ServiceActionName = keyof ServiceActionParams
+export type TestActionName = keyof TestActionParams
 export type TaskActionName = keyof TaskActionParams
 export type ModuleActionName = keyof ModuleActionParams
 
@@ -244,9 +250,26 @@ const serviceActionDescriptions: { [P in ServiceActionName]: () => PluginActionD
   stopPortForward,
 }
 
+interface _TestActionParams<T extends GardenModule = GardenModule> {
+  getTestResult: GetTestResultParams<T>
+  testModule: TestModuleParams<T>
+}
+
+// Specify base parameter more precisely than the base schema
+export type TestActionParams<T extends GardenModule = GardenModule> = {
+  [P in keyof _TestActionParams<T>]: _TestActionParams<T>[P] & {
+    base?: WrappedModuleActionHandler<_TestActionParams<T>[P], TestActionOutputs[P]>
+  }
+}
+
 interface _TaskActionParams<T extends GardenModule = GardenModule> {
   getTaskResult: GetTaskResultParams<T>
   runTask: RunTaskParams<T>
+}
+
+export interface TestActionOutputs {
+  testModule: TestResult
+  getTestResult: TestResult | null
 }
 
 // Specify base parameter more precisely than the base schema
@@ -273,8 +296,6 @@ interface _ModuleActionParams<T extends GardenModule = GardenModule> {
   build: BuildModuleParams<T>
   publish: PublishModuleParams<T>
   runModule: RunModuleParams<T>
-  testModule: TestModuleParams<T>
-  getTestResult: GetTestResultParams<T>
   getModuleOutputs: GetModuleOutputsParams<T>
 }
 
@@ -286,10 +307,14 @@ export type ModuleActionParams<T extends GardenModule = GardenModule> = {
 }
 
 export type ModuleAndRuntimeActionParams<T extends GardenModule = GardenModule> = ModuleActionParams<T> &
+  TestActionParams<T> &
   ServiceActionParams<T> &
   TaskActionParams<T>
 
-export type ModuleAndRuntimeActionOutputs = ModuleActionOutputs & ServiceActionOutputs & TaskActionOutputs
+export type ModuleAndRuntimeActionOutputs = ModuleActionOutputs &
+  ServiceActionOutputs &
+  TestActionOutputs &
+  TaskActionOutputs
 
 export interface ModuleActionOutputs extends ServiceActionOutputs {
   configure: ConfigureModuleResult
@@ -298,8 +323,6 @@ export interface ModuleActionOutputs extends ServiceActionOutputs {
   build: BuildResult
   publish: PublishModuleResult
   runModule: RunResult
-  testModule: TestResult
-  getTestResult: TestResult | null
   getModuleOutputs: GetModuleOutputsResult
 }
 
@@ -370,6 +393,7 @@ export interface ModuleTypeDefinition<T extends GardenModule = GardenModule> ext
   moduleOutputsSchema?: Joi.ObjectSchema
   schema?: Joi.ObjectSchema
   serviceOutputsSchema?: Joi.ObjectSchema
+  testOutputsSchema?: Joi.ObjectSchema
   taskOutputsSchema?: Joi.ObjectSchema
   title?: string
 }

@@ -155,7 +155,7 @@ export class TestTask extends BaseTask {
 
     const dependencies = this.graph.getDependencies({
       nodeType: "test",
-      name: this.test.name,
+      name: this.getName(),
       recursive: false,
     })
     const serviceStatuses = getServiceStatuses(dependencyResults)
