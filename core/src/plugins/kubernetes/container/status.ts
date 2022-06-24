@@ -69,7 +69,7 @@ export async function getContainerServiceStatus({
   const ingresses = await getIngresses(service, api, provider)
 
   // Local mode has its own port-forwarding configuration
-  const forwardablePorts: ForwardablePort[] = localMode
+  const forwardablePorts: ForwardablePort[] = deployedWithLocalMode
     ? []
     : service.spec.ports
         .filter((p) => p.protocol === "TCP")
