@@ -252,7 +252,10 @@ export async function processModules({
 
     garden.events.on("buildRequested", async (event: Events["buildRequested"]) => {
       log.info("")
-      log.info({ emoji: "hammer", msg: chalk.yellow(`Build requested for ${chalk.white(event.moduleName)}`) })
+      log.info({
+        emoji: "hammer",
+        msg: chalk.white(`Build requested for ${chalk.italic(chalk.cyan(event.moduleName))}`),
+      })
 
       try {
         garden.clearCaches()
@@ -282,9 +285,9 @@ export async function processModules({
           prefix = "Deployment"
         }
       }
-      const msg = `${prefix} requested for ${chalk.white(event.serviceName)}`
+      const msg = `${prefix} requested for ${chalk.italic(chalk.cyan(event.serviceName))}`
       log.info("")
-      log.info({ emoji, msg: chalk.yellow(msg) })
+      log.info({ emoji, msg: chalk.white(msg) })
 
       try {
         garden.clearCaches()
@@ -299,9 +302,9 @@ export async function processModules({
       const testNames = event.testNames
       let suffix = ""
       if (testNames) {
-        suffix = ` (only ${chalk.white(naturalList(testNames))})`
+        suffix = ` (only ${chalk.italic(chalk.cyan(naturalList(testNames)))})`
       }
-      const msg = chalk.yellow(`Tests requested for ${chalk.white(event.moduleName)}${suffix}`)
+      const msg = chalk.white(`Tests requested for ${chalk.italic(chalk.cyan(event.moduleName))}${suffix}`)
       log.info("")
       log.info({ emoji: "thermometer", msg })
 
@@ -315,7 +318,7 @@ export async function processModules({
       }
     })
     garden.events.on("taskRequested", async (event: Events["taskRequested"]) => {
-      const msg = chalk.yellow(`Run requested for task ${chalk.white(event.taskName)}`)
+      const msg = chalk.white(`Run requested for task ${chalk.italic(chalk.cyan(event.taskName))}`)
       log.info("")
       log.info({ emoji: "runner", msg })
 
