@@ -17,6 +17,8 @@ export interface OsCommand {
   readonly cwd?: string
 }
 
+const renderOsCommand = (cmd: OsCommand): string => JSON.stringify(cmd)
+
 export interface ProcessMessage {
   readonly pid: number
   readonly message: string
@@ -318,7 +320,7 @@ export class RecoverableProcess {
     }
 
     proc.on("error", async (error) => {
-      const message = `Command '${this.command}' failed with error: ${JSON.stringify(error)}`
+      const message = `Command '${renderOsCommand(this.command)}' failed with error: ${JSON.stringify(error)}`
       logDebugError("", message)
       this.stderrListener?.onError(composeErrorMessage(message, error))
 
@@ -326,7 +328,7 @@ export class RecoverableProcess {
     })
 
     proc.on("close", async (code: number, signal: NodeJS.Signals) => {
-      const message = `Command '${this.command}' exited with code ${code} and signal ${signal}.`
+      const message = `Command '${renderOsCommand(this.command)}' exited with code ${code} and signal ${signal}.`
       logDebugError("", message)
       this.stderrListener?.onError(composeTerminationMessage(message, code, signal))
 
@@ -338,14 +340,14 @@ export class RecoverableProcess {
       if (!!catchCriticalErrorsFn && catchCriticalErrorsFn(chunk)) {
         const message =
           `Failed to start local mode. ` +
-          `Command '${this.command}' terminated with critical error: ${chunk.toString()}.`
+          `Command '${renderOsCommand(this.command)}' terminated with critical error: ${chunk.toString()}.`
         logDebugError("stderr", message)
         await this.fail()
       }
 
       const hasErrorsFn = this.stderrListener?.hasErrors
       if (!hasErrorsFn || hasErrorsFn(chunk)) {
-        const message = `Command '${this.command}' terminated: ${chunk.toString()}.`
+        const message = `Command '${renderOsCommand(this.command)}' terminated: ${chunk.toString()}.`
         logDebugError("stderr", message)
         this.stderrListener?.onError(composeErrorMessage(message))
 
@@ -364,7 +366,7 @@ export class RecoverableProcess {
       if (!!catchCriticalErrorsFn && catchCriticalErrorsFn(chunk)) {
         const message =
           `Failed to start local mode. ` +
-          `Command '${this.command}' terminated with critical error: ${chunk.toString()}.`
+          `Command '${renderOsCommand(this.command)}' terminated with critical error: ${chunk.toString()}.`
         logDebugError("stdout", message)
         await this.fail()
       }
@@ -377,7 +379,7 @@ export class RecoverableProcess {
 
         this.resetSubTreeRetriesLeft()
       } else {
-        const message = `Command '${this.command}' terminated: ${chunk.toString()}. ${attemptsLeft()}`
+        const message = `Command '${renderOsCommand(this.command)}' terminated: ${chunk.toString()}. ${attemptsLeft()}`
         logDebugError("stdout", message)
         this.stdoutListener?.onError(composeErrorMessage(message))
 
@@ -456,7 +458,7 @@ export class RecoverableProcess {
   }
 
   private renderProcessTreeRecursively(indent: string, output: string): string {
-    output += indent + `-> '${this.command}'\n`
+    output += indent + `-> '${renderOsCommand(this.command)}'\n`
     for (const descendant of this.descendants) {
       output = descendant.renderProcessTreeRecursively(indent + "..", output)
     }
