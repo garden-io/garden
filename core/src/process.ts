@@ -251,10 +251,12 @@ export async function processModules({
     })
 
     garden.events.on("buildRequested", async (event: Events["buildRequested"]) => {
+      log.info("")
+      log.info({ emoji: "hammer", msg: chalk.yellow(`Build requested for ${chalk.white(event.moduleName)}`) })
+
       try {
+        garden.clearCaches()
         graph = await garden.getConfigGraph({ log, emit: false })
-        log.info("")
-        log.info({ emoji: "hammer", msg: chalk.yellow(`Build requested for ${chalk.white(event.moduleName)}`) })
         const tasks = await cloudEventHandlers.buildRequested({ log, request: event, graph, garden })
         await garden.processTasks(tasks)
       } catch (err) {
@@ -262,29 +264,31 @@ export async function processModules({
       }
     })
     garden.events.on("deployRequested", async (event: Events["deployRequested"]) => {
-      try {
-        graph = await garden.getConfigGraph({ log, emit: false })
-        let prefix: string
-        let emoji: EmojiName
-        if (event.hotReload) {
-          emoji = "fire"
-          prefix = `Hot reload-enabled deployment`
+      let prefix: string
+      let emoji: EmojiName
+      if (event.hotReload) {
+        emoji = "fire"
+        prefix = `Hot reload-enabled deployment`
+      } else {
+        // local mode always takes precedence over dev mode
+        if (event.localMode) {
+          emoji = "left_right_arrow"
+          prefix = `Local-mode deployment`
+        } else if (event.devMode) {
+          emoji = "zap"
+          prefix = `Dev-mode deployment`
         } else {
-          // local mode always takes precedence over dev mode
-          if (event.localMode) {
-            emoji = "left_right_arrow"
-            prefix = `Local-mode deployment`
-          } else if (event.devMode) {
-            emoji = "zap"
-            prefix = `Dev-mode deployment`
-          } else {
-            emoji = "rocket"
-            prefix = "Deployment"
-          }
+          emoji = "rocket"
+          prefix = "Deployment"
         }
-        const msg = `${prefix} requested for ${chalk.white(event.serviceName)}`
-        log.info("")
-        log.info({ emoji, msg: chalk.yellow(msg) })
+      }
+      const msg = `${prefix} requested for ${chalk.white(event.serviceName)}`
+      log.info("")
+      log.info({ emoji, msg: chalk.yellow(msg) })
+
+      try {
+        garden.clearCaches()
+        graph = await garden.getConfigGraph({ log, emit: false })
         const deployTask = await cloudEventHandlers.deployRequested({ log, request: event, graph, garden })
         await garden.processTasks([deployTask])
       } catch (err) {
@@ -292,16 +296,18 @@ export async function processModules({
       }
     })
     garden.events.on("testRequested", async (event: Events["testRequested"]) => {
+      const testNames = event.testNames
+      let suffix = ""
+      if (testNames) {
+        suffix = ` (only ${chalk.white(naturalList(testNames))})`
+      }
+      const msg = chalk.yellow(`Tests requested for ${chalk.white(event.moduleName)}${suffix}`)
+      log.info("")
+      log.info({ emoji: "thermometer", msg })
+
       try {
+        garden.clearCaches()
         graph = await garden.getConfigGraph({ log, emit: false })
-        const testNames = event.testNames
-        let suffix = ""
-        if (testNames) {
-          suffix = ` (only ${chalk.white(naturalList(testNames))})`
-        }
-        const msg = chalk.yellow(`Tests requested for ${chalk.white(event.moduleName)}${suffix}`)
-        log.info("")
-        log.info({ emoji: "thermometer", msg })
         const testTasks = await cloudEventHandlers.testRequested({ log, request: event, graph, garden })
         await garden.processTasks(testTasks)
       } catch (err) {
@@ -309,11 +315,13 @@ export async function processModules({
       }
     })
     garden.events.on("taskRequested", async (event: Events["taskRequested"]) => {
+      const msg = chalk.yellow(`Run requested for task ${chalk.white(event.taskName)}`)
+      log.info("")
+      log.info({ emoji: "runner", msg })
+
       try {
+        garden.clearCaches()
         graph = await garden.getConfigGraph({ log, emit: false })
-        const msg = chalk.yellow(`Run requested for task ${chalk.white(event.taskName)}`)
-        log.info("")
-        log.info({ emoji: "runner", msg })
         const taskTask = await cloudEventHandlers.taskRequested({ log, request: event, graph, garden })
         await garden.processTasks([taskTask])
       } catch (err) {
