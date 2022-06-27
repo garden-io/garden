@@ -250,18 +250,12 @@ export async function processModules({
       await garden.processTasks(moduleTasks)
     })
 
-    // Handle Cloud events
-    const params = {
-      garden,
-      graph,
-      log,
-    }
     garden.events.on("buildRequested", async (event: Events["buildRequested"]) => {
       try {
         graph = await garden.getConfigGraph({ log, emit: false })
         log.info("")
         log.info({ emoji: "hammer", msg: chalk.yellow(`Build requested for ${chalk.white(event.moduleName)}`) })
-        const tasks = await cloudEventHandlers.buildRequested({ ...params, request: event })
+        const tasks = await cloudEventHandlers.buildRequested({ log, request: event, graph, garden })
         await garden.processTasks(tasks)
       } catch (err) {
         log.error(err.message)
@@ -291,7 +285,7 @@ export async function processModules({
         const msg = `${prefix} requested for ${chalk.white(event.serviceName)}`
         log.info("")
         log.info({ emoji, msg: chalk.yellow(msg) })
-        const deployTask = await cloudEventHandlers.deployRequested({ ...params, request: event })
+        const deployTask = await cloudEventHandlers.deployRequested({ log, request: event, graph, garden })
         await garden.processTasks([deployTask])
       } catch (err) {
         log.error(err.message)
@@ -308,7 +302,7 @@ export async function processModules({
         const msg = chalk.yellow(`Tests requested for ${chalk.white(event.moduleName)}${suffix}`)
         log.info("")
         log.info({ emoji: "thermometer", msg })
-        const testTasks = await cloudEventHandlers.testRequested({ ...params, request: event })
+        const testTasks = await cloudEventHandlers.testRequested({ log, request: event, graph, garden })
         await garden.processTasks(testTasks)
       } catch (err) {
         log.error(err.message)
@@ -320,7 +314,7 @@ export async function processModules({
         const msg = chalk.yellow(`Run requested for task ${chalk.white(event.taskName)}`)
         log.info("")
         log.info({ emoji: "runner", msg })
-        const taskTask = await cloudEventHandlers.taskRequested({ ...params, request: event })
+        const taskTask = await cloudEventHandlers.taskRequested({ log, request: event, graph, garden })
         await garden.processTasks([taskTask])
       } catch (err) {
         log.error(err.message)
