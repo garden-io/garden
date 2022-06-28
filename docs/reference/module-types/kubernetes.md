@@ -226,10 +226,21 @@ devMode:
   # workload is used.
   containerName:
 
-# Specifies necessary configuration details of the local application which will replace a target remote service.
+# Specifies necessary configuration details of the local application which will be used instead of a target remote
+# Kubernetes resource,
+# which can be a Workload or a Pod.
 #
-# The target service will be replaced by a proxy container with an SSH server running,
-# and the reverse port forwarding will be automatically configured to route the traffic to the local service and back.
+# Note that `serviceResource` must also be specified to enable local mode.
+# The local mode configuration for `kubernetes` module type relies on the `serviceResource.kind` and
+# `serviceResource.name` fields
+# to identify and find a target Kubernetes resource.
+#
+# The `serviceResource.containerName` field is not used by the local mode configuration.
+# The `localMode` has its own field `containerName` to specify a target container name explicitly.
+#
+# The container of the target Kubernetes resource will be replaced by a proxy container with an SSH server running,
+# and the reverse port forwarding will be automatically configured to route the traffic to the locally deployed
+# application and back.
 #
 # Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
 # The local mode always takes the precedence over the dev mode if there are any conflicts service names.
@@ -253,7 +264,8 @@ localMode:
     # Max number of the local application restarts. Unlimited by default.
     max: .inf
 
-  # The k8s name of the target remote container.
+  # The name of the target remote container in the Kubernetes cluster. The first available container will be used if
+  # this field is not defined.
   containerName:
 
 # POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any
@@ -1013,10 +1025,18 @@ Optionally specify the name of a specific container to sync to. If not specified
 
 ### `localMode`
 
-Specifies necessary configuration details of the local application which will replace a target remote service.
+Specifies necessary configuration details of the local application which will be used instead of a target remote Kubernetes resource,
+which can be a Workload or a Pod.
 
-The target service will be replaced by a proxy container with an SSH server running,
-and the reverse port forwarding will be automatically configured to route the traffic to the local service and back.
+Note that `serviceResource` must also be specified to enable local mode.
+The local mode configuration for `kubernetes` module type relies on the `serviceResource.kind` and `serviceResource.name` fields
+to identify and find a target Kubernetes resource.
+
+The `serviceResource.containerName` field is not used by the local mode configuration.
+The `localMode` has its own field `containerName` to specify a target container name explicitly.
+
+The container of the target Kubernetes resource will be replaced by a proxy container with an SSH server running,
+and the reverse port forwarding will be automatically configured to route the traffic to the locally deployed application and back.
 
 Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
 The local mode always takes the precedence over the dev mode if there are any conflicts service names.
@@ -1083,7 +1103,7 @@ Max number of the local application restarts. Unlimited by default.
 
 [localMode](#localmode) > containerName
 
-The k8s name of the target remote container.
+The name of the target remote container in the Kubernetes cluster. The first available container will be used if this field is not defined.
 
 | Type     | Required |
 | -------- | -------- |
