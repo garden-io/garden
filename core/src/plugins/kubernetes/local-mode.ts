@@ -321,6 +321,8 @@ function patchHotReloadableManifest(
 
   // use reverse proxy container image
   targetContainer.image = reverseProxyImageName
+  // delete the original container arguments, the proxy container won't recognize them
+  delete targetContainer.args
 
   const extraEnvVars = prepareEnvVars(localModeEnvVars)
   if (!targetContainer.env) {
