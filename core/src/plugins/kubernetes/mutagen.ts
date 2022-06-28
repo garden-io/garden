@@ -279,58 +279,78 @@ export async function execMutagenCommand(ctx: PluginContext, log: LogEntry, args
   }
 }
 
-interface ScanProblem {
+interface SyncProblem {
   path: string
   error: string
 }
 
-interface ConflictChange {
+interface SyncEntry {
+  kind: string
+  // TODO: Add contents for directory entries
+  digest?: string
+  executable?: boolean
+  target?: string
+  problem?: string
+}
+
+interface SyncChange {
   path: string
-  new?: {
-    kind: number
-    digest?: string
-    target?: string
-    executable?: boolean
-  }
+  old?: SyncEntry
+  new?: SyncEntry
 }
 
 interface SyncConflict {
   root: string
-  alphaChanges?: ConflictChange[]
-  betaChanges?: ConflictChange[]
+  alphaChanges: SyncChange[]
+  betaChanges: SyncChange[]
+}
+
+interface SyncReceiverStatus {
+  path: string
+  receivedSize: number
+  expectedSize: number
+  receivedFiles: number
+  expectedFiles: number
+  totalReceivedSize: number
 }
 
 interface SyncEndpoint {
-  path: string
-  protocol?: number // Only used for remote endpoints
+  protocol: string // Only used for remote endpoints
+  user?: string // Only used for remote endpoints
   host?: string // Only used for remote endpoints
+  port?: number // Only used for remote endpoints
+  path: string
+  // TODO: Add environment variables
+  // TODO: Add parameter variables
+  // TODO: Add endpoint-specific configuration
+  connected: boolean
+  scanned?: boolean
+  directories?: number
+  files?: number
+  symbolicLinks?: number
+  totalFileSize?: number
+  scanProblems?: SyncProblem[]
+  excludedScanProblems?: number
+  transitionProblems?: SyncProblem[]
+  excludedTransitionProblems?: number
+  stagingProgress?: SyncReceiverStatus
 }
 
-interface SyncListEntry {
-  session: {
-    identifier: string
-    version: number
-    creationTime: {
-      seconds: number
-      nanos: number
-    }
-    creatingVersionMinor: number
-    alpha: SyncEndpoint
-    beta: SyncEndpoint
-    configuration: {
-      synchronizationMode: number
-    }
-    configurationAlpha: any
-    configurationBeta: any
-    name: string
-    paused?: boolean
-  }
-  status?: number
-  alphaConnected?: boolean
-  betaConnected?: boolean
-  alphaScanProblems?: ScanProblem[]
-  betaScanProblems?: ScanProblem[]
-  successfulSynchronizationCycles?: number
+interface SyncSession {
+  identifier: string
+  version: number
+  creationTime: string
+  creatingVersion: string
+  alpha: SyncEndpoint
+  beta: SyncEndpoint
+  mode: string
+  // TODO: Add additional configuration parameters
+  name: string // TODO: This is technically an optional field
+  // TODO: Add labels
+  paused: boolean
+  status?: string
+  lastError?: string
+  successfulCycles?: number
   conflicts?: SyncConflict[]
   excludedConflicts?: number
 }
@@ -340,10 +360,10 @@ let monitorInterval: NodeJS.Timeout
 const syncStatusLines: { [sessionName: string]: LogEntry } = {}
 
 function checkMutagen(ctx: PluginContext, log: LogEntry) {
-  getActiveMutagenSyncs(ctx, log)
-    .then((syncs) => {
-      for (const sync of syncs) {
-        const sessionName = sync.session.name
+  getActiveMutagenSyncSessions(ctx, log)
+    .then((sessions) => {
+      for (const session of sessions) {
+        const sessionName = session.name
         const activeSync = activeSyncs[sessionName]
         if (!activeSync) {
           continue
@@ -352,9 +372,15 @@ function checkMutagen(ctx: PluginContext, log: LogEntry) {
         const { sourceDescription, targetDescription } = activeSync
 
         const problems: string[] = [
-          ...(sync.alphaScanProblems || []).map((p) => `Error scanning sync source, path ${p.path}: ${p.error}`),
-          ...(sync.betaScanProblems || []).map((p) => `Error scanning sync target, path ${p.path}: ${p.error}`),
-          ...(sync.conflicts || []).map((c) => formatSyncConflict(sourceDescription, targetDescription, c)),
+          ...(session.alpha.scanProblems || []).map((p) => `Error scanning sync source, path ${p.path}: ${p.error}`),
+          ...(session.beta.scanProblems || []).map((p) => `Error scanning sync target, path ${p.path}: ${p.error}`),
+          ...(session.alpha.transitionProblems || []).map(
+            (p) => `Error transitioning sync source, path ${p.path}: ${p.error}`
+          ),
+          ...(session.beta.transitionProblems || []).map(
+            (p) => `Error transitioning sync target, path ${p.path}: ${p.error}`
+          ),
+          ...(session.conflicts || []).map((c) => formatSyncConflict(sourceDescription, targetDescription, c)),
         ]
 
         const { logSection: section } = activeSync
@@ -365,7 +391,7 @@ function checkMutagen(ctx: PluginContext, log: LogEntry) {
           }
         }
 
-        if (sync.alphaConnected && !activeSync.sourceConnected) {
+        if (session.alpha.connected && !activeSync.sourceConnected) {
           log.info({
             symbol: "info",
             section,
@@ -374,7 +400,7 @@ function checkMutagen(ctx: PluginContext, log: LogEntry) {
           activeSync.sourceConnected = true
         }
 
-        if (sync.betaConnected && !activeSync.targetConnected) {
+        if (session.beta.connected && !activeSync.targetConnected) {
           log.info({
             symbol: "success",
             section,
@@ -383,7 +409,7 @@ function checkMutagen(ctx: PluginContext, log: LogEntry) {
           activeSync.targetConnected = true
         }
 
-        const syncCount = sync.successfulSynchronizationCycles || 0
+        const syncCount = session.successfulCycles || 0
         const description = `from ${sourceDescription} to ${targetDescription}`
 
         if (syncCount > activeSync.lastSyncCount) {
@@ -428,11 +454,11 @@ export function startMutagenMonitor(ctx: PluginContext, log: LogEntry) {
 /**
  * List the currently active syncs in the mutagen daemon.
  */
-export async function getActiveMutagenSyncs(ctx: PluginContext, log: LogEntry): Promise<SyncListEntry[]> {
-  const res = await execMutagenCommand(ctx, log, ["sync", "list", "--output=json"])
+export async function getActiveMutagenSyncSessions(ctx: PluginContext, log: LogEntry): Promise<SyncSession[]> {
+  const res = await execMutagenCommand(ctx, log, ["sync", "list", "--template={{ json . }}"])
 
   // TODO: validate further
-  let parsed: any = {}
+  let parsed: any = []
 
   try {
     parsed = JSON.parse(res.stdout)
@@ -440,11 +466,11 @@ export async function getActiveMutagenSyncs(ctx: PluginContext, log: LogEntry): 
     throw new MutagenError(`Could not parse response from mutagen sync list: ${res.stdout}`, { res })
   }
 
-  if (!parsed.sessions) {
+  if (!Array.isArray(parsed)) {
     throw new MutagenError(`Unexpected response from mutagen sync list: ${parsed}`, { res, parsed })
   }
 
-  return parsed.sessions
+  return parsed
 }
 
 /**
@@ -473,8 +499,8 @@ export async function ensureMutagenSync({
   }
 
   return mutagenConfigLock.acquire("configure", async () => {
-    const active = await getActiveMutagenSyncs(ctx, log)
-    const existing = active.find((s) => s.session.name === key)
+    const active = await getActiveMutagenSyncSessions(ctx, log)
+    const existing = active.find((s) => s.name === key)
 
     if (!existing) {
       const { alpha, beta, ignore, mode, defaultOwner, defaultGroup, defaultDirectoryMode, defaultFileMode } = config
@@ -552,12 +578,12 @@ export async function flushMutagenSync(ctx: PluginContext, log: LogEntry, key: s
  * Ensure all active syncs are completed.
  */
 export async function flushAllMutagenSyncs(ctx: PluginContext, log: LogEntry) {
-  const active = await getActiveMutagenSyncs(ctx, log)
-  await Bluebird.map(active, async (sync) => {
+  const active = await getActiveMutagenSyncSessions(ctx, log)
+  await Bluebird.map(active, async (session) => {
     try {
-      await flushMutagenSync(ctx, log, sync.session.name)
+      await flushMutagenSync(ctx, log, session.name)
     } catch (err) {
-      log.warn(chalk.yellow(`Failed to flush sync '${sync.session.name}: ${err.message}`))
+      log.warn(chalk.yellow(`Failed to flush sync '${session.name}: ${err.message}`))
     }
   })
 }
