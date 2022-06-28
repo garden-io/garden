@@ -637,8 +637,8 @@ export const mutagenCliSpec: PluginToolSpec = {
       platform: "darwin",
       architecture: "amd64",
       url:
-        "https://github.com/garden-io/mutagen/releases/download/v0.14.0-garden-1/mutagen_darwin_amd64_v0.14.0.tar.gz",
-      sha256: "53abc7dadef14d3cb90b72e2afa79622d72d5aa4c3ff70189da3f29249651d55",
+        "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_darwin_amd64_v0.15.0.tar.gz",
+      sha256: "370bf71e28f94002453921fda83282280162df7192bd07042bf622bf54507e3f",
       extract: {
         format: "tar",
         targetPath: "mutagen",
@@ -648,8 +648,8 @@ export const mutagenCliSpec: PluginToolSpec = {
       platform: "darwin",
       architecture: "arm64",
       url:
-        "https://github.com/mutagen-io/mutagen/releases/download/v0.14.0-garden-1/mutagen_darwin_arm64_v0.14.0.tar.gz",
-      sha256: "684de1c76cdf5893b1973cf57bd09792b66a7c8a3ae8e7e20286d440f875800c",
+        "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_darwin_arm64_v0.15.0.tar.gz",
+      sha256: "a0a7be8bb37266ea184cb580004e1741a17c8165b2032ce4b191f23fead821a0",
       extract: {
         format: "tar",
         targetPath: "mutagen",
@@ -658,8 +658,8 @@ export const mutagenCliSpec: PluginToolSpec = {
     {
       platform: "linux",
       architecture: "amd64",
-      url: "https://github.com/garden-io/mutagen/releases/download/v0.14.0-garden-1/mutagen_linux_amd64_v0.14.0.tar.gz",
-      sha256: "3529ee4b2b836fc8cdf9bd3678d211cadaa916f3e24d6e1337f5ce6f25d46ca6",
+      url: "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_linux_amd64_v0.15.0.tar.gz",
+      sha256: "e8c0708258ddd6d574f1b8f514fb214f9ab5d82aed38dd8db49ec10956e5063a",
       extract: {
         format: "tar",
         targetPath: "mutagen",
@@ -668,8 +668,8 @@ export const mutagenCliSpec: PluginToolSpec = {
     {
       platform: "windows",
       architecture: "amd64",
-      url: "https://github.com/garden-io/mutagen/releases/download/v0.14.0-garden-1/mutagen_windows_amd64_v0.14.0.zip",
-      sha256: "6a09d990e5d74fbfd50edce25182e5786922af74f5f5ad00b33c30fa562fae9a",
+      url: "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_windows_amd64_v0.15.0.zip",
+      sha256: "fdae26b43cc418b2525a937a1613bba36e74ea3dde4dbec3512a9abd004def95",
       extract: {
         format: "zip",
         targetPath: "mutagen.exe",
