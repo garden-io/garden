@@ -895,8 +895,12 @@ async function getContextConfig(log: LogEntry, ctx: PluginContext, provider: Kub
   const kc = new KubeConfig()
 
   // There doesn't appear to be a method to just load the parsed config :/
-  kc.loadFromString(safeDumpYaml(rawConfig))
-  kc.setCurrentContext(context)
+  try {
+    kc.loadFromString(safeDumpYaml(rawConfig))
+    kc.setCurrentContext(context)
+  } catch (err) {
+    throw new Error("Could not parse kubeconfig, " + err)
+  }
 
   cachedConfigs[cacheKey] = kc
 
