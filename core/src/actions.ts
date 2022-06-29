@@ -850,6 +850,7 @@ export class ActionRouter implements TypeGuard {
     const servicesLog = log.info({ msg: chalk.white("Deleting services..."), status: "active" })
 
     const services = graph.getServices({ names })
+    const deleteServiceNames = services.map((s) => s.name)
 
     const deleteResults = await this.garden.processTasks(
       services.map((service) => {
@@ -858,7 +859,7 @@ export class ActionRouter implements TypeGuard {
           graph,
           service,
           log: servicesLog,
-          includeDependants: true,
+          deleteServiceNames,
         })
       })
     )

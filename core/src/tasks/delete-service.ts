@@ -19,7 +19,14 @@ export interface DeleteServiceTaskParams {
   graph: ConfigGraph
   service: GardenService
   log: LogEntry
-  includeDependants?: boolean
+  /**
+   * If true, the task will include delete service tasks for its dependants in its list of dependencies.
+   */
+  dependantsFirst?: boolean
+  /**
+   * If not provided, defaults to just `[service.name]`.
+   */
+  deleteServiceNames?: string[]
 }
 
 export class DeleteServiceTask extends BaseTask {
@@ -27,13 +34,15 @@ export class DeleteServiceTask extends BaseTask {
   concurrencyLimit = 10
   graph: ConfigGraph
   service: GardenService
-  includeDependants: boolean
+  dependantsFirst: boolean
+  deleteServiceNames: string[]
 
-  constructor({ garden, graph, log, service, includeDependants = false }: DeleteServiceTaskParams) {
+  constructor({ garden, graph, log, service, deleteServiceNames, dependantsFirst = false }: DeleteServiceTaskParams) {
     super({ garden, log, force: false, version: service.version })
     this.graph = graph
     this.service = service
-    this.includeDependants = includeDependants
+    this.dependantsFirst = dependantsFirst
+    this.deleteServiceNames = deleteServiceNames || [service.name]
   }
 
   async resolveDependencies() {
@@ -45,12 +54,17 @@ export class DeleteServiceTask extends BaseTask {
       force: this.force,
     })
 
-    if (!this.includeDependants) {
+    if (!this.dependantsFirst) {
       return [stageBuildTask]
     }
 
     // Note: We delete in _reverse_ dependency order, so we query for dependants
-    const deps = this.graph.getDependants({ nodeType: "deploy", name: this.getName(), recursive: false })
+    const deps = this.graph.getDependants({
+      nodeType: "deploy",
+      name: this.getName(),
+      recursive: false,
+      filter: (depNode) => depNode.type === "deploy" && this.deleteServiceNames.includes(depNode.name),
+    })
 
     const dependants = deps.deploy.map((service) => {
       return new DeleteServiceTask({
@@ -58,7 +72,8 @@ export class DeleteServiceTask extends BaseTask {
         graph: this.graph,
         log: this.log,
         service,
-        includeDependants: this.includeDependants,
+        deleteServiceNames: this.deleteServiceNames,
+        dependantsFirst: true,
       })
     })
 
