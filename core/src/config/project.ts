@@ -96,8 +96,8 @@ export const environmentSchema = () =>
         dedent`
       Flag the environment as a production environment.
 
-      Setting this flag to \`true\` will activate the protection on the \`deploy\`, \`test\`, \`task\`, \`build\`,
-      and \`dev\` commands. A protected command will ask for a user confirmation every time is run against
+      Setting this flag to \`true\` will activate the protection on the \`build\`, \`delete\`, \`deploy\`, \`dev\`, and
+      \`test\` commands. A protected command will ask for a user confirmation every time is run against
       an environment marked as production.
       Run the command with the "--yes" flag to skip the check (e.g. when running Garden in CI).
 
