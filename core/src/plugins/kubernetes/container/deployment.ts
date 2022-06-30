@@ -136,11 +136,6 @@ export async function startLocalMode({
     return
   }
 
-  log.warn({
-    section: service.name,
-    msg: chalk.grey(`Starting in local mode`),
-  })
-
   const namespace = await getAppNamespace(ctx, log, ctx.provider)
   const targetResource = status.detail.remoteResources.find((r) =>
     hotReloadableKinds.includes(r.kind)

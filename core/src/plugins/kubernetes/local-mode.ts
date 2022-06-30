@@ -537,6 +537,8 @@ async function getKubectlPortForwardProcess(
   )
   const { ctx, gardenService, log } = configParams
 
+  let lastSeenSuccessMessage = ""
+
   return new RecoverableProcess({
     osCommand: kubectlPortForwardCmd,
     retryConfig: {
@@ -573,12 +575,18 @@ async function getKubectlPortForwardProcess(
       hasErrors: (_chunk: any) => false,
       onError: (_msg: ProcessMessage) => {},
       onMessage: (msg: ProcessMessage) => {
+        const consoleMessage = composeMessage("Kubectl SSH port-forward is up and running", msg)
+        if (consoleMessage === lastSeenSuccessMessage) {
+          return
+        }
+
         if (msg.message.includes("Handling connection for")) {
           log.info({
             status: "success",
             section: gardenService.name,
-            msg: chalk.white(composeMessage("Kubectl SSH port-forward is up and running", msg)),
+            msg: chalk.white(consoleMessage),
           })
+          lastSeenSuccessMessage = consoleMessage
         }
       },
     },
