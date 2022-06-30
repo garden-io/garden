@@ -4,12 +4,13 @@ type: helm
 name: postgres
 chart: postgresql
 repo: https://charts.bitnami.com/bitnami
-version: "10.16.1"
+version: "11.6.12"
 serviceResource:
   kind: StatefulSet
   name: postgres
 values:
   # This is a more digestable name than the default one in the template
   fullnameOverride: postgres
-  # This should of course not be used in production
-  postgresqlPassword: postgres
+  auth:
+    # This should of course not be used in production
+    postgresPassword: postgres
