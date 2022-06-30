@@ -30,7 +30,7 @@ type: helm
 name: redis
 repo: https://charts.bitnami.com/bitnami
 chart: redis
-version: "16.0.0"
+version: "16.13.1"
 values:
   usePassword: false
 ```
