@@ -47,3 +47,6 @@ garden dev --local=backend-1,backend-2
 garden dev --local
 garden dev --local=*
 ```
+
+To verify the result, call the corresponding ingress URLs of the `frontend` and `backend` applications. The local
+backend implementations return different messages in responses.
