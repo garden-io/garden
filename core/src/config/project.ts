@@ -7,37 +7,37 @@
  */
 
 import { apply, merge } from "json-merge-patch"
-import { deline, dedent } from "../util/string"
+import { dedent, deline } from "../util/string"
 import {
+  apiVersionSchema,
+  DeepPrimitiveMap,
+  includeGuideLink,
+  joi,
   joiArray,
   joiIdentifier,
-  joiVariables,
-  Primitive,
-  joiRepositoryUrl,
-  joiUserIdentifier,
-  joi,
-  includeGuideLink,
   joiPrimitive,
-  DeepPrimitiveMap,
-  joiVariablesDescription,
-  apiVersionSchema,
+  joiRepositoryUrl,
   joiSparseArray,
+  joiUserIdentifier,
+  joiVariables,
+  joiVariablesDescription,
+  Primitive,
+  PrimitiveMap,
 } from "./common"
 import { validateWithPath } from "./validation"
 import { resolveTemplateStrings } from "../template-string/template-string"
-import { ProjectConfigContext, EnvironmentConfigContext } from "./template-contexts/project"
+import { EnvironmentConfigContext, ProjectConfigContext } from "./template-contexts/project"
 import { findByName, getNames } from "../util/util"
 import { ConfigurationError, ParameterError, ValidationError } from "../exceptions"
-import { PrimitiveMap } from "./common"
 import { cloneDeep, omit } from "lodash"
-import { providerConfigBaseSchema, GenericProviderConfig } from "./provider"
+import { GenericProviderConfig, providerConfigBaseSchema } from "./provider"
 import { DOCS_BASE_URL } from "../constants"
 import { defaultDotIgnoreFiles } from "../util/fs"
-import chalk = require("chalk")
 import { CommandInfo } from "../plugin-context"
 import { VcsInfo } from "../vcs/vcs"
 import { profileAsync } from "../util/profiling"
 import { loadVarfile } from "./base"
+import chalk = require("chalk")
 
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
