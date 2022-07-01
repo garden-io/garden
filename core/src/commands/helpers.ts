@@ -11,6 +11,7 @@ import indentString from "indent-string"
 import { sortBy } from "lodash"
 
 import { ConfigGraph } from "../config-graph"
+import { WorkflowConfig } from "../config/workflow"
 import { GardenModule } from "../types/module"
 import { GardenService } from "../types/service"
 import { GardenTask } from "../types/task"
@@ -99,6 +100,18 @@ export function makeGetTestOrTaskLog(
     logStr += `${type} in module ${chalk.green(m.name)}` + "\n" + logStrForTasks + "\n"
   }
   return logStr
+}
+
+export function prettyPrintWorkflow(workflow: WorkflowConfig): string {
+  let out = `${chalk.cyan.bold(workflow.name)}`
+
+  if (workflow.description) {
+    out += "\n" + indentString(printField("description", workflow.description), 2)
+  } else {
+    out += "\n"
+  }
+
+  return out
 }
 
 function prettyPrintTestOrTask(testOrTask: GardenTask | GardenTest): string {
