@@ -38,7 +38,7 @@ export class GetWorkflowsCommand extends Command<Args> {
       workflows.forEach((w) => log.info(prettyPrintWorkflow(w)))
       log.info("")
     } else {
-      log.info(`No worflows defined for project ${garden.projectName}`)
+      log.info(`No workflows defined for project ${garden.projectName}`)
     }
 
     return { result: workflows }
