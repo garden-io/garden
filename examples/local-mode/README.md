@@ -1,16 +1,17 @@
 # Local mode
 
-A very basic demo project for Garden [local mode](../../docs/guides/running-service-in-local-mode.md).
+A very basic demo project for Garden [local mode](../../docs/guides/running-service-in-local-mode.md) for `container`
+module type.
 
 This project is based on the [demo-project](../demo-project). The only difference is that this one has 2 backend
 services. Each backend service (or both) can be started in the _local mode_.
 
-There are 2 local service implementations for each backend:
+There are 2 local service implementations available for each backend:
 
 1. [backend-local-1](./backend-local-1)
 2. [backend-local-2](./backend-local-2)
 
-To build and run local backend locate to its directory and run the following commands:
+To build the local backend services, locate to each service's directory and run the following commands:
 
 ```shell
 # optional command to re-generate `main.mod` file
@@ -19,11 +20,9 @@ go mod init main
 go build -o main
 # make the binary executable
 chmod +x main
-# start the app
-./main
 ```
 
-Once the necessary local backends are up, you can try the local mode with the following commands:
+To start the backend(s) in local mode, try the following commands:
 
 ```shell
 # To start a specific service in local mode
@@ -48,3 +47,6 @@ garden dev --local=backend-1,backend-2
 garden dev --local
 garden dev --local=*
 ```
+
+To verify the result, call the corresponding ingress URLs of the `frontend` and `backend` applications. The local
+backend implementations return different messages in responses.

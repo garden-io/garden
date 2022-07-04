@@ -6,41 +6,133 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import dedent = require("dedent")
-
 import {
+  joi,
   joiArray,
   joiIdentifier,
+  joiIdentifierDescription,
   joiProviderName,
-  joi,
+  joiSparseArray,
   joiStringMap,
   StringMap,
-  joiIdentifierDescription,
-  joiSparseArray,
 } from "../../config/common"
-import { Provider, providerConfigBaseSchema, BaseProviderConfig } from "../../config/provider"
+import { BaseProviderConfig, Provider, providerConfigBaseSchema } from "../../config/provider"
 import {
-  containerRegistryConfigSchema,
-  ContainerRegistryConfig,
-  commandExample,
-  containerEnvVarsSchema,
-  containerArtifactSchema,
-  ContainerEnvVars,
   artifactsDescription,
+  commandExample,
+  containerArtifactSchema,
+  containerDevModeSchema,
+  ContainerDevModeSpec,
+  ContainerEnvVars,
+  containerEnvVarsSchema,
+  containerLocalModeSchema,
+  ContainerLocalModeSpec,
+  ContainerRegistryConfig,
+  containerRegistryConfigSchema,
+  syncDefaultDirectoryModeSchema,
+  syncDefaultFileModeSchema,
+  syncDefaultGroupSchema,
+  syncDefaultOwnerSchema,
+  syncExcludeSchema,
 } from "../container/config"
 import { PluginContext } from "../../plugin-context"
-import { deline } from "../../util/string"
+import { dedent, deline } from "../../util/string"
 import { defaultSystemNamespace } from "./system"
-import { hotReloadableKinds, HotReloadableKind } from "./hot-reload/hot-reload"
-import { baseTaskSpecSchema, BaseTaskSpec, cacheResultSchema } from "../../config/task"
-import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
+import { SyncableKind, syncableKinds } from "./hot-reload/hot-reload"
+import { BaseTaskSpec, baseTaskSpecSchema, cacheResultSchema } from "../../config/task"
+import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
 import { ArtifactSpec } from "../../config/validation"
 import { V1Toleration } from "@kubernetes/client-node"
 import { runPodSpecIncludeFields } from "./run"
-import { KubernetesDevModeDefaults, kubernetesDevModeDefaultsSchema } from "./dev-mode"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
+import { devModeGuideLink } from "./dev-mode"
+import { localModeGuideLink } from "./local-mode"
 
 export const DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:v1.8.1-debug"
+
+export interface KubernetesDevModeSpec extends ContainerDevModeSpec {
+  containerName?: string
+}
+
+export interface KubernetesDevModeDefaults {
+  exclude?: string[]
+  fileMode?: number
+  directoryMode?: number
+  owner?: number | string
+  group?: number | string
+}
+
+export const kubernetesDevModeSchema = () =>
+  containerDevModeSchema().keys({
+    containerName: joiIdentifier().description(
+      `Optionally specify the name of a specific container to sync to. If not specified, the first container in the workload is used.`
+    ),
+  }).description(dedent`
+    Specifies which files or directories to sync to which paths inside the running containers of the service when it's in dev mode, and overrides for the container command and/or arguments.
+
+    Note that \`serviceResource\` must also be specified to enable dev mode.
+
+    Dev mode is enabled when running the \`garden dev\` command, and by setting the \`--dev\` flag on the \`garden deploy\` command.
+
+    See the [Code Synchronization guide](${devModeGuideLink}) for more information.
+  `)
+/**
+ * Provider-level dev mode settings for the local and remote k8s providers.
+ */
+export const kubernetesDevModeDefaultsSchema = () =>
+  joi.object().keys({
+    exclude: syncExcludeSchema().description(dedent`
+        Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
+
+        Any exclusion patterns defined in individual dev mode sync specs will be applied in addition to these patterns.
+
+        \`.git\` directories and \`.garden\` directories are always ignored.
+      `),
+    fileMode: syncDefaultFileModeSchema(),
+    directoryMode: syncDefaultDirectoryModeSchema(),
+    owner: syncDefaultOwnerSchema(),
+    group: syncDefaultGroupSchema(),
+  }).description(dedent`
+    Specifies default settings for dev mode syncs (e.g. for \`container\`, \`kubernetes\` and \`helm\` services).
+
+    These are overridden/extended by the settings of any individual dev mode sync specs for a given module or service.
+
+    Dev mode is enabled when running the \`garden dev\` command, and by setting the \`--dev\` flag on the \`garden deploy\` command.
+
+    See the [Code Synchronization guide](${devModeGuideLink}) for more information.
+  `)
+
+export interface KubernetesLocalModeSpec extends ContainerLocalModeSpec {
+  containerName?: string
+}
+
+export const kubernetesLocalModeSchema = () =>
+  containerLocalModeSchema().keys({
+    containerName: joi
+      .string()
+      .optional()
+      .description(
+        "The name of the target container. The first available container will be used if this field is not defined."
+      ),
+  }).description(dedent`
+    Configures the local application which will send and receive network requests instead of the target resource specified by \`serviceResource\`.
+
+    Note that \`serviceResource\` must also be specified to enable local mode. Local mode configuration for the \`kubernetes\` module type relies on the \`serviceResource.kind\` and \`serviceResource.name\` fields to select a target Kubernetes resource.
+
+    The \`serviceResource.containerName\` field is not used by local mode configuration.
+    Note that \`localMode\` uses its own field \`containerName\` to specify a target container name explicitly.
+
+    The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH server to proxy requests.
+    Reverse port-forwarding will be automatically configured to route traffic to the locally deployed application and back.
+
+    Local mode is enabled by setting the \`--local\` option on the \`garden deploy\` or \`garden dev\` commands.
+    Local mode always takes the precedence over dev mode if there are any conflicting service names.
+
+    Health checks are disabled for services running in local mode.
+
+    See the [Local Mode guide](${localModeGuideLink}) for more information.
+  `)
+
 export interface ProviderSecretRef {
   name: string
   namespace: string
@@ -753,7 +845,7 @@ export const configSchema = () =>
     .unknown(false)
 
 export interface ServiceResourceSpec {
-  kind?: HotReloadableKind
+  kind?: SyncableKind
   name?: string
   containerName?: string
   podSelector?: { [key: string]: string }
@@ -789,7 +881,7 @@ export const serviceResourceSchema = () =>
     .keys({
       kind: joi
         .string()
-        .valid(...hotReloadableKinds)
+        .valid(...syncableKinds)
         .default("Deployment")
         .description("The type of Kubernetes resource to sync files to."),
       name: joi.string().description(

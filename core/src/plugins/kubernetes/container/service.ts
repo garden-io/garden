@@ -6,57 +6,59 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { V1ServicePort } from "@kubernetes/client-node"
-import { ContainerService } from "../../container/config"
+import { V1Service, V1ServicePort } from "@kubernetes/client-node"
+import { ContainerService, ServicePortSpec } from "../../container/config"
 import { getDeploymentSelector } from "./deployment"
+import { KubernetesResource } from "../types"
+import { find } from "lodash"
 
-export async function createServiceResources(service: ContainerService, namespace: string, blueGreen: boolean) {
-  const services: any = []
+function toServicePort(portSpec: ServicePortSpec): V1ServicePort {
+  const port: V1ServicePort = {
+    name: portSpec.name,
+    protocol: portSpec.protocol,
+    port: portSpec.servicePort,
+    targetPort: <any>portSpec.containerPort,
+  }
 
-  const addService = (name: string, type: string, servicePorts: V1ServicePort[]) => {
-    services.push({
+  if (portSpec.nodePort && portSpec.nodePort !== true) {
+    port.nodePort = portSpec.nodePort
+  }
+
+  return port
+}
+
+// todo: consider returning Promise<KubernetesResource<V1Service>[]>
+export async function createServiceResources(
+  service: ContainerService,
+  namespace: string,
+  blueGreen: boolean
+): Promise<any> {
+  if (!service.spec.ports.length) {
+    return []
+  }
+
+  const createServiceResource = (containerService: ContainerService): KubernetesResource<V1Service> => {
+    const specPorts = service.spec.ports
+    const serviceType = !!find(specPorts, (portSpec) => !!portSpec.nodePort) ? "NodePort" : "ClusterIP"
+    const servicePorts = specPorts.map(toServicePort)
+
+    return {
       apiVersion: "v1",
       kind: "Service",
       metadata: {
-        name,
-        annotations: service.spec.annotations,
+        name: containerService.name,
+        annotations: containerService.spec.annotations,
         namespace,
       },
       spec: {
         ports: servicePorts,
-        selector: getDeploymentSelector(service, blueGreen),
-        type,
+        selector: getDeploymentSelector(containerService, blueGreen),
+        type: serviceType,
       },
-    })
+    }
   }
 
-  // first add internally exposed (ClusterIP) service
-  const ports = service.spec.ports
-
-  if (ports.length) {
-    const serviceType = ports.filter((portSpec) => !!portSpec.nodePort).length > 0 ? "NodePort" : "ClusterIP"
-
-    addService(
-      service.name,
-      serviceType,
-      ports.map((portSpec) => {
-        const port: V1ServicePort = {
-          name: portSpec.name,
-          protocol: portSpec.protocol,
-          port: portSpec.servicePort,
-          targetPort: <any>portSpec.containerPort,
-        }
-
-        if (portSpec.nodePort && portSpec.nodePort !== true) {
-          port.nodePort = portSpec.nodePort
-        }
-
-        return port
-      })
-    )
-  }
-
-  return services
+  return [createServiceResource(service)]
 }
 
 export function rsyncPortName(serviceName: string) {

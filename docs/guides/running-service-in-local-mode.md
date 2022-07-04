@@ -34,9 +34,14 @@ progress. So, there is a number of functional limitations in the first release:
   first `TCP` port from the list of ports or just the first one if no `TCP` ports defined. Thus, if the service needs to
   talk to some data sources like databases, message brokers, etc. then all these services are assumed to be running
   locally.
-* The _local mode_ is supported only by [container module type](./container-modules.md)
-  and [kubernetes provider](../reference/providers/kubernetes.md). The `kubernetes` and `helm` module types will be
-  supported later.
+* The _local mode_ is supported only by [`container`](./container-modules.md)
+  and [`kubernetes`](../reference/module-types/kubernetes.md) module types.
+  Support for the [`helm`](../reference/module-types/helm.md) module type will be added soon.
+* Only one container can be run in local mode for each [`kubernetes`](../reference/module-types/kubernetes.md) service (
+  the same will be the case for [`helm`](../reference/module-types/helm.md) services when local mode is implemented
+  there).
+* The _local mode_ is supported by [`kubernetes`](../reference/providers/kubernetes.md)
+  and [`local kubernetes`](../reference/providers/local-kubernetes.md) providers.
 * The _local mode_ leaves the proxy container deployed in the target k8s cluster after exit. The affected services must
   be re-deployed manually by using `garden deploy`.
 
@@ -116,7 +121,28 @@ services:
   ...
 ```
 
-An example can be found in the [demo-project's backend service](../../examples/demo-project/backend/garden.yml).
+An example can be found in the [`local-mode project`](../../examples/local-mode).
+
+### Configuring dev mode for `kubernetes` modules
+
+```yaml
+kind: Module
+name: backend
+type: kubernetes
+localMode:
+  localPort: 8090
+  command: [ "../backend-local/main" ]
+  containerName: backend
+
+serviceResource:
+  kind: Deployment
+  name: backend-deployment
+
+...
+# manifests or files
+```
+
+A `kubernetes` module example can be found in the [`local-mode-k8s project`](../../examples/local-mode-k8s).
 
 ## Deploying with local mode
 
