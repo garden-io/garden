@@ -22,7 +22,7 @@ import { KubernetesPluginContext, ServiceResourceSpec } from "../config"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { HelmService } from "../helm/config"
 import { configureHotReload, getHotReloadContainerName, getHotReloadSpec } from "../hot-reload/helpers"
-import { HotReloadableResource, hotReloadK8s } from "../hot-reload/hot-reload"
+import { SyncableResource, hotReloadK8s } from "../hot-reload/hot-reload"
 import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { streamK8sLogs } from "../logs"
 import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
@@ -205,7 +205,7 @@ export async function deployKubernetesService(
     })
   }
 
-  let target: HotReloadableResource | undefined
+  let target: SyncableResource | undefined
 
   const pruneLabels = { [gardenAnnotationKey("service")]: service.name }
   if (otherManifests.length > 0) {
@@ -394,7 +394,7 @@ async function configureSpecialModesForManifests({
   const hotReloadSpec = hotReload ? getHotReloadSpec(service) : null
   const localModeSpec = service.spec.localMode
 
-  let target: HotReloadableResource
+  let target: SyncableResource
   let resourceSpec: ServiceResourceSpec
   try {
     resourceSpec = getServiceResourceSpec(module, undefined)

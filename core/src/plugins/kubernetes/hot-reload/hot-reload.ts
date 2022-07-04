@@ -7,7 +7,7 @@
  */
 
 import { ContainerModule } from "../../container/config"
-import { RuntimeError, ConfigurationError } from "../../../exceptions"
+import { ConfigurationError, RuntimeError } from "../../../exceptions"
 import { gardenAnnotationKey } from "../../../util/string"
 import { sortBy } from "lodash"
 import { LogEntry } from "../../../logger/log-entry"
@@ -27,10 +27,10 @@ import { getHotReloadSpec, syncToService } from "./helpers"
 import { GardenModule } from "../../../types/module"
 import { isConfiguredForHotReloading } from "../status/status"
 
-export type HotReloadableResource = KubernetesWorkload | KubernetesPod
-export type HotReloadableKind = "Deployment" | "DaemonSet" | "StatefulSet"
+export type SyncableResource = KubernetesWorkload | KubernetesPod
+export type SyncableKind = "Deployment" | "DaemonSet" | "StatefulSet"
 
-export const hotReloadableKinds: string[] = ["Deployment", "DaemonSet", "StatefulSet"]
+export const syncableKinds: string[] = ["Deployment", "DaemonSet", "StatefulSet"]
 
 /**
  * The hot reload action handler for helm charts and kubernetes modules.

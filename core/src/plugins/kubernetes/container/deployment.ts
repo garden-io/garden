@@ -33,7 +33,7 @@ import { killPortForwards } from "../port-forward"
 import { prepareSecrets } from "../secrets"
 import { configureHotReload } from "../hot-reload/helpers"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
-import { hotReloadableKinds, HotReloadableResource } from "../hot-reload/hot-reload"
+import { syncableKinds, SyncableResource } from "../hot-reload/hot-reload"
 import { getResourceRequirements, getSecurityContext } from "./util"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 
@@ -106,9 +106,7 @@ export async function startContainerDevSync({
   })
 
   const namespace = await getAppNamespace(ctx, log, ctx.provider)
-  const target = status.detail.remoteResources.find((r) =>
-    hotReloadableKinds.includes(r.kind)
-  )! as HotReloadableResource
+  const target = status.detail.remoteResources.find((r) => syncableKinds.includes(r.kind))! as SyncableResource
 
   await startDevModeSync({
     ctx,
@@ -137,9 +135,7 @@ export async function startLocalMode({
   }
 
   const namespace = await getAppNamespace(ctx, log, ctx.provider)
-  const targetResource = status.detail.remoteResources.find((r) =>
-    hotReloadableKinds.includes(r.kind)
-  )! as HotReloadableResource
+  const targetResource = status.detail.remoteResources.find((r) => syncableKinds.includes(r.kind))! as SyncableResource
 
   await startServiceInLocalMode({
     ctx,

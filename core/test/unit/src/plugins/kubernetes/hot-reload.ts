@@ -9,7 +9,7 @@
 import { platform } from "os"
 import { expect } from "chai"
 import td from "testdouble"
-import { HotReloadableResource } from "../../../../../src/plugins/kubernetes/hot-reload/hot-reload"
+import { SyncableResource } from "../../../../../src/plugins/kubernetes/hot-reload/hot-reload"
 
 import { setPlatform, makeTestGarden, TestGarden, getDataDir } from "../../../../helpers"
 import { ConfigGraph } from "../../../../../src/config-graph"
@@ -46,7 +46,7 @@ describe("configureHotReload", () => {
     }
 
     configureHotReload({
-      target: <HotReloadableResource>target,
+      target: <SyncableResource>target,
       hotReloadSpec: {
         sync: [
           {
@@ -166,7 +166,7 @@ describe("configureHotReload", () => {
     }
 
     configureHotReload({
-      target: <HotReloadableResource>target,
+      target: <SyncableResource>target,
       hotReloadSpec: {
         sync: [
           {

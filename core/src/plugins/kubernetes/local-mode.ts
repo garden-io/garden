@@ -9,7 +9,7 @@
 import { ContainerLocalModeSpec, ContainerService } from "../container/config"
 import { gardenAnnotationKey } from "../../util/string"
 import { find, remove, set } from "lodash"
-import { HotReloadableResource } from "./hot-reload/hot-reload"
+import { SyncableResource } from "./hot-reload/hot-reload"
 import { PrimitiveMap } from "../../config/common"
 import {
   PROXY_CONTAINER_SSH_TUNNEL_PORT,
@@ -49,7 +49,7 @@ const portForwardRetryTimeoutMs = 5000
 interface ConfigureLocalModeParams {
   ctx: PluginContext
   spec: ContainerLocalModeSpec
-  targetResource: HotReloadableResource
+  targetResource: SyncableResource
   gardenService: ContainerService | KubernetesService | HelmService
   log: LogEntry
   containerName?: string
@@ -58,7 +58,7 @@ interface ConfigureLocalModeParams {
 interface StartLocalModeParams {
   ctx: PluginContext
   spec: ContainerLocalModeSpec
-  targetResource: HotReloadableResource
+  targetResource: SyncableResource
   gardenService: ContainerService | KubernetesService | HelmService
   namespace: string
   log: LogEntry
@@ -312,7 +312,7 @@ function prepareLocalModePorts(): V1ContainerPort[] {
  * @param localModePorts the list of localMode-specific ports (e.g. ssh port for tunnel setup)
  */
 function patchHotReloadableManifest(
-  targetManifest: HotReloadableResource,
+  targetManifest: SyncableResource,
   containerName: string,
   localModeEnvVars: PrimitiveMap,
   localModePorts: V1ContainerPort[]

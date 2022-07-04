@@ -10,7 +10,7 @@ import { ContainerDevModeSpec, DevModeSyncSpec } from "../container/config"
 import { gardenAnnotationKey } from "../../util/string"
 import { set } from "lodash"
 import { getResourceContainer, getResourcePodSpec } from "./util"
-import { HotReloadableResource } from "./hot-reload/hot-reload"
+import { SyncableResource } from "./hot-reload/hot-reload"
 import { LogEntry } from "../../logger/log-entry"
 import { joinWithPosix } from "../../util/fs"
 import chalk from "chalk"
@@ -32,7 +32,7 @@ export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 export const devModeGuideLink = "https://docs.garden.io/guides/code-synchronization-dev-mode"
 
 interface ConfigureDevModeParams {
-  target: HotReloadableResource
+  target: SyncableResource
   spec: ContainerDevModeSpec
   containerName?: string
 }

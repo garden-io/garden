@@ -26,7 +26,7 @@ import {
   getPausedResources,
   gardenCloudAECPauseAnnotation,
 } from "./status"
-import { HotReloadableResource } from "../hot-reload/hot-reload"
+import { SyncableResource } from "../hot-reload/hot-reload"
 import { apply, deleteResources } from "../kubectl"
 import { KubernetesPluginContext, ServiceResourceSpec } from "../config"
 import { ContainerHotReloadSpec } from "../../container/config"
@@ -50,7 +50,7 @@ export async function deployHelmService({
 }: DeployServiceParams<HelmModule>): Promise<HelmServiceStatus> {
   let hotReloadSpec: ContainerHotReloadSpec | null = null
   let serviceResourceSpec: ServiceResourceSpec | null = null
-  let serviceResource: HotReloadableResource | null = null
+  let serviceResource: SyncableResource | null = null
 
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider

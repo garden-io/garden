@@ -26,7 +26,7 @@ import { PluginContext } from "../../plugin-context"
 import { HelmModule } from "./helm/config"
 import { KubernetesModule } from "./kubernetes-module/config"
 import { getChartPath, renderHelmTemplateString } from "./helm/common"
-import { HotReloadableResource } from "./hot-reload/hot-reload"
+import { SyncableResource } from "./hot-reload/hot-reload"
 import { ProviderMap } from "../../config/provider"
 import { PodRunner } from "./run"
 import { isSubset } from "../../util/is-subset"
@@ -584,7 +584,7 @@ export async function getServiceResource({
   manifests,
   module,
   resourceSpec,
-}: GetServiceResourceParams): Promise<HotReloadableResource> {
+}: GetServiceResourceParams): Promise<SyncableResource> {
   const resourceMsgName = resourceSpec ? "resource" : "serviceResource"
 
   if (resourceSpec.podSelector && !isEmpty(resourceSpec.podSelector)) {
@@ -613,7 +613,7 @@ export async function getServiceResource({
   }
 
   let targetName = resourceSpec.name
-  let target: HotReloadableResource
+  let target: SyncableResource
 
   const targetKind = resourceSpec.kind
   const chartResourceNames = manifests.map((o) => `${o.kind}/${o.metadata.name}`)
@@ -627,7 +627,7 @@ export async function getServiceResource({
       targetName = await renderHelmTemplateString(ctx, log, module as HelmModule, chartPath, targetName)
     }
 
-    target = find(<HotReloadableResource[]>manifests, (o) => o.kind === targetKind && o.metadata.name === targetName)!
+    target = find(<SyncableResource[]>manifests, (o) => o.kind === targetKind && o.metadata.name === targetName)!
 
     if (!target) {
       throw new ConfigurationError(
@@ -657,7 +657,7 @@ export async function getServiceResource({
       )
     }
 
-    target = <HotReloadableResource>applicableChartResources[0]
+    target = <SyncableResource>applicableChartResources[0]
   }
 
   return target
@@ -667,7 +667,7 @@ export async function getServiceResource({
  * From the given Deployment, DaemonSet, StatefulSet or Pod resource, get either the first container spec,
  * or if `containerName` is specified, the one matching that name.
  */
-export function getResourceContainer(resource: HotReloadableResource, containerName?: string): V1Container {
+export function getResourceContainer(resource: SyncableResource, containerName?: string): V1Container {
   const kind = resource.kind
   const name = resource.metadata.name
 

@@ -38,7 +38,7 @@ import {
 import { PluginContext } from "../../plugin-context"
 import { dedent, deline } from "../../util/string"
 import { defaultSystemNamespace } from "./system"
-import { HotReloadableKind, hotReloadableKinds } from "./hot-reload/hot-reload"
+import { SyncableKind, syncableKinds } from "./hot-reload/hot-reload"
 import { BaseTaskSpec, baseTaskSpecSchema, cacheResultSchema } from "../../config/task"
 import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
 import { ArtifactSpec } from "../../config/validation"
@@ -845,7 +845,7 @@ export const configSchema = () =>
     .unknown(false)
 
 export interface ServiceResourceSpec {
-  kind?: HotReloadableKind
+  kind?: SyncableKind
   name?: string
   containerName?: string
   podSelector?: { [key: string]: string }
@@ -881,7 +881,7 @@ export const serviceResourceSchema = () =>
     .keys({
       kind: joi
         .string()
-        .valid(...hotReloadableKinds)
+        .valid(...syncableKinds)
         .default("Deployment")
         .description("The type of Kubernetes resource to sync files to."),
       name: joi.string().description(
