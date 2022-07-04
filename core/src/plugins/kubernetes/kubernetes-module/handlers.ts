@@ -365,11 +365,11 @@ async function getServiceLogs(params: GetServiceLogsParams<KubernetesModule>) {
 /**
  * Looks for a hot-reload, dev-mode or local-mode target in a list of manifests.
  * If found, the target is either configured for hot-reloading/dev-mode/local-mode
- * or annotated with `dev-mode: false`, and/or `hot-reload: false`, and/or `local-mode: false`.
+ * or annotated with `dev-mode: false`, or `hot-reload: false`, or `local-mode: false`.
  *
  * Returns the manifests with the original hot reload resource replaced by the modified spec.
  *
- * No-op if no target found and neither hot-reloading, nor dev-mode, nor local-mode is enabled.
+ * No-op if no target is found and neither hot-reloading, nor dev-mode, nor local-mode is enabled.
  */
 async function configureSpecialModesForManifests({
   ctx,

@@ -36,9 +36,10 @@ progress. So, there is a number of functional limitations in the first release:
   locally.
 * The _local mode_ is supported only by [`container`](./container-modules.md)
   and [`kubernetes`](../reference/module-types/kubernetes.md) module types.
-  The [`helm`](../reference/module-types/helm.md) module type will be supported later.
-* Only one service can be executed in _local mode_ with [`kubernetes`](../reference/module-types/kubernetes.md)
-  and [`helm`](../reference/module-types/helm.md) module types.
+  Support for the [`helm`](../reference/module-types/helm.md) module type will be added soon.
+* Only one container can be run in local mode for each [`kubernetes`](../reference/module-types/kubernetes.md) service (
+  the same will be the case for [`helm`](../reference/module-types/helm.md) services when local mode is implemented
+  there).
 * The _local mode_ is supported by [`kubernetes`](../reference/providers/kubernetes.md)
   and [`local kubernetes`](../reference/providers/local-kubernetes.md) providers.
 * The _local mode_ leaves the proxy container deployed in the target k8s cluster after exit. The affected services must
@@ -122,12 +123,12 @@ services:
 
 An example can be found in the [`local-mode project`](../../examples/local-mode).
 
-### Configuring dev mode for `kubernetes` and `helm` modules
+### Configuring dev mode for `kubernetes` modules
 
 ```yaml
 kind: Module
 name: backend
-type: kubernetes # this example looks the same for helm modules (i.e. with `type: helm`)
+type: kubernetes
 localMode:
   localPort: 8090
   command: [ "../backend-local/main" ]

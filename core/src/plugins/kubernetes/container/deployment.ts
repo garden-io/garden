@@ -727,7 +727,7 @@ function configureHealthCheck(
   mode: HealthCheckMode
 ): void {
   if (mode === "local") {
-    // no need to configure liveness and readiness for a service running in local mode
+    // no need to configure liveness and readiness probes for a service running in local mode
     return
   }
 

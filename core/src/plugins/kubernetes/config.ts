@@ -112,26 +112,23 @@ export const kubernetesLocalModeSchema = () =>
       .string()
       .optional()
       .description(
-        "The name of the target remote container in the Kubernetes cluster. The first available container will be used if this field is not defined."
+        "The name of the target container. The first available container will be used if this field is not defined."
       ),
   }).description(dedent`
-    Specifies necessary configuration details of the local application which will be used instead of a target remote Kubernetes resource,
-    which can be a Workload or a Pod.
+    Configures the local application which will send and receive network requests instead of the target resource specified by \`serviceResource\`.
 
-    Note that \`serviceResource\` must also be specified to enable local mode.
-    The local mode configuration for \`kubernetes\` module type relies on the \`serviceResource.kind\` and \`serviceResource.name\` fields
-    to identify and find a target Kubernetes resource.
+    Note that \`serviceResource\` must also be specified to enable local mode. Local mode configuration for the \`kubernetes\` module type relies on the \`serviceResource.kind\` and \`serviceResource.name\` fields to select a target Kubernetes resource.
 
-    The \`serviceResource.containerName\` field is not used by the local mode configuration.
-    The \`localMode\` has its own field \`containerName\` to specify a target container name explicitly.
+    The \`serviceResource.containerName\` field is not used by local mode configuration.
+    Note that \`localMode\` uses its own field \`containerName\` to specify a target container name explicitly.
 
-    The container of the target Kubernetes resource will be replaced by a proxy container with an SSH server running,
-    and the reverse port forwarding will be automatically configured to route the traffic to the locally deployed application and back.
+    The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH server to proxy requests.
+    Reverse port-forwarding will be automatically configured to route traffic to the locally deployed application and back.
 
     Local mode is enabled by setting the \`--local\` option on the \`garden deploy\` or \`garden dev\` commands.
-    The local mode always takes the precedence over the dev mode if there are any conflicts service names.
+    Local mode always takes the precedence over dev mode if there are any conflicting service names.
 
-    The health checks are disabled for services running in local mode.
+    Health checks are disabled for services running in local mode.
 
     See the [Local Mode guide](${localModeGuideLink}) for more information.
   `)

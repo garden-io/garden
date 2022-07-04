@@ -5,6 +5,7 @@ type: kubernetes
 
 localMode:
   localPort: 8090
+  # starts the local application
   command: [ "../backend-local/main" ]
   containerName: backend
 

@@ -345,7 +345,7 @@ function patchHotReloadableManifest(
    Both readiness and liveness probes do not make much sense for the services running in local mode.
    A user can completely control the lifecycle of a local service. Thus, these checks may be unwanted.
 
-   The readiness probe can cause the failure of the local mode startup,
+   The readiness probe can cause the failure of local mode startup,
    because the local service has not been connected to the target cluster yet.
 
    The liveness probe can cause unnecessary re-deployment of the proxy container in the target cluster.
@@ -749,10 +749,10 @@ function composeSshTunnelProcessTree(
 }
 
 /**
- * Configures the necessary port forwarding to replace remote k8s service by a local one:
- *   1. Starts a local service if a corresponding command is provided in the local mode config.
- *   2. Opens SSH tunnel between the local machine and the remote k8s service.
- *   3. Starts reverse port forwarding from the remote proxy's containerPort to the local app port.
+ * Configures the necessary port forwarding to replace a k8s service by a local one:
+ *   1. Starts a local service if a corresponding command is provided in local mode config.
+ *   2. Opens SSH tunnel between the local machine and the k8s resource.
+ *   3. Starts reverse port forwarding from the proxy's containerPort to the local app port.
  */
 export async function startServiceInLocalMode(configParams: StartLocalModeParams): Promise<void> {
   const { targetResource, gardenService, namespace, log, containerName } = configParams
@@ -777,7 +777,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
       symbol: "warning",
       section: gardenService.name,
       msg: chalk.yellow(
-        `The local mode has been stopped for the service "${gardenService.name}". ` +
+        `Local mode has been stopped for the service "${gardenService.name}". ` +
           "Please, re-deploy the original service to restore the original k8s cluster state: " +
           `${chalk.white(`\`garden deploy ${gardenService.name}\``)}`
       ),

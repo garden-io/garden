@@ -14,5 +14,8 @@ func main() {
 	http.HandleFunc("/hello-backend", handler)
 	fmt.Println("Server running at port 8090...")
 
-	http.ListenAndServe(":8090", nil)
+	err := http.ListenAndServe(":8090", nil)
+	if err != nil {
+		panic(err)
+	}
 }
