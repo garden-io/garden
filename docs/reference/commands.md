@@ -2660,6 +2660,23 @@ with links to book an appointment.
 
 
 
+### garden get workflows
+
+**Lists the workflows defined in your project.**
+
+
+#### Usage
+
+    garden get workflows [workflows] 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `workflows` | No | Specify workflow(s) to list. Use comma as a separator to specify multiple worflows.
+
+
+
 ### garden link source
 
 **Link a remote source to a local directory.**
