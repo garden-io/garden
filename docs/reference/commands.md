@@ -2673,7 +2673,7 @@ with links to book an appointment.
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `workflows` | No | Specify workflow(s) to list. Use comma as a separator to specify multiple worflows.
+  | `workflows` | No | Specify workflow(s) to list. Use comma as a separator to specify multiple workflows.
 
 
 
