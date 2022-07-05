@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { isEmpty } from "lodash"
+import { isEmpty, uniq } from "lodash"
 import { safeLoad } from "js-yaml"
 import { merge } from "json-merge-patch"
 import { extname, join, resolve } from "path"
@@ -80,16 +80,19 @@ type StackStatus = "up-to-date" | "outdated" | "error"
 export const stackVersionKey = "garden.io-service-version"
 
 /**
+ * Used by the `garden plugins pulumi preview` command.
+ *
  * Merges any values in the module's `pulumiVars` and `pulumiVariables`, then uses `pulumi preview` to generate
  * a plan (using the merged config).
  *
  * If `logPreview = true`, logs the output of `pulumi preview`.
  *
- * Returns the path to the generated plan.
+ * Returns the path to the generated plan, and the number of resources affected by the plan (zero resources means the
+ * plan is a no-op).
  */
 export async function previewStack(
   params: PulumiParams & { logPreview: boolean; previewDirPath?: string }
-): Promise<string> {
+): Promise<{ planPath: string; affectedResourcesCount: number }> {
   const { log, ctx, provider, module, logPreview, previewDirPath } = params
 
   const configPath = await applyConfig({ ...params, previewDirPath })
@@ -106,12 +109,17 @@ export async function previewStack(
     cwd: getModuleStackRoot(module),
     env: defaultPulumiEnv,
   })
+  const affectedResourcesCount = await countAffectedResources(module, planPath)
   if (logPreview) {
-    log.info(res.stdout)
+    if (affectedResourcesCount > 0) {
+      log.info(res.stdout)
+    } else {
+      log.info(`No resources were changed in the generated plan for ${chalk.cyan(module.name)}.`)
+    }
   } else {
     log.verbose(res.stdout)
   }
-  return planPath
+  return { planPath, affectedResourcesCount }
 }
 
 export async function getStackOutputs({ log, ctx, provider, module }: PulumiParams): Promise<any> {
@@ -268,25 +276,31 @@ export async function getStackStatusFromTag(params: PulumiParams & { serviceVers
   return tagVersion === params.serviceVersion && resources && resources.length > 0 ? "up-to-date" : "outdated"
 }
 
-// Keeping this here for now, in case we want to reuse this logic
-// export async function getStackStatusFromPlanPath(module: PulumiModule, planPath: string): Promise<StackStatus> {
-//   let plan: PulumiPlan
-//   try {
-//     plan = JSON.parse((await readFile(planPath)).toString()) as PulumiPlan
-//   } catch (err) {
-//     const errMsg = `An error occurred while reading a pulumi plan file at ${planPath}: ${err.message}`
-//     throw new FilesystemError(errMsg, {
-//       planPath,
-//       moduleName: module.name,
-//     })
-//   }
+/**
+ * Reads the plan at `planPath` and counts the number of resources in it that have one or more steps that aren't of
+ * the `"same"` type (i.e. that aren't no-ops).
+ */
+export async function countAffectedResources(module: PulumiModule, planPath: string): Promise<number> {
+  let plan: PulumiPlan
+  try {
+    plan = JSON.parse((await readFile(planPath)).toString()) as PulumiPlan
+  } catch (err) {
+    const errMsg = `An error occurred while reading a pulumi plan file at ${planPath}: ${err.message}`
+    throw new FilesystemError(errMsg, {
+      planPath,
+      moduleName: module.name,
+    })
+  }
 
-//   // If all steps across all resource plans are of the "same" type, then the plan indicates that the
-//   // stack doesn't need to be updated (so we don't need to redeploy).
-//   const stepTypes = uniq(flatten(Object.values(plan.resourcePlans).map((p) => p.steps)))
+  const affectedResourcesCount = Object.values(plan.resourcePlans)
+    .map((p) => p.steps)
+    .filter((steps: string[]) => {
+      const stepTypes = uniq(steps)
+      return stepTypes.length > 1 || stepTypes[0] !== "same"
+    }).length
 
-//   return stepTypes.length === 1 && stepTypes[0] === "same" ? "up-to-date" : "outdated"
-// }
+  return affectedResourcesCount
+}
 
 // Helpers for plugin commands
 
@@ -399,6 +413,10 @@ export function getPreviewDirPath(ctx: PluginContext) {
 
 function getDefaultPreviewDirPath(ctx: PluginContext): string {
   return join(getPluginOutputsPath(ctx, "pulumi"), "last-preview")
+}
+
+export function getModifiedPlansDirPath(ctx: PluginContext): string {
+  return join(getPreviewDirPath(ctx), "modified")
 }
 
 export function getPlanFileName(module: PulumiModule, environmentName: string): string {
