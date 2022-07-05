@@ -6,24 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { TestGarden, makeTestGarden, dataDir, expectError } from "../../../../../helpers"
+import { dataDir, expectError, makeTestGarden, TestGarden } from "../../../../../helpers"
 import { resolve } from "path"
 import { expect } from "chai"
 import { first, uniq } from "lodash"
-
 import {
   containsSource,
-  getChartResources,
-  getChartPath,
-  getReleaseName,
-  getGardenValuesPath,
   getBaseModule,
+  getChartPath,
+  getChartResources,
+  getGardenValuesPath,
+  getReleaseName,
   getValueArgs,
   renderTemplates,
 } from "../../../../../../src/plugins/kubernetes/helm/common"
 import { LogEntry } from "../../../../../../src/logger/log-entry"
 import { BuildTask } from "../../../../../../src/tasks/build"
-import { deline, dedent } from "../../../../../../src/util/string"
+import { dedent, deline } from "../../../../../../src/util/string"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config"
 import { safeLoadAll } from "js-yaml"

@@ -11,20 +11,20 @@ import { waitForResources } from "../status/status"
 import { helm } from "./helm-cli"
 import { HelmModule } from "./config"
 import {
+  filterManifests,
+  getBaseModule,
   getChartPath,
   getReleaseName,
   getValueArgs,
-  getBaseModule,
-  prepareTemplates,
   prepareManifests,
-  filterManifests,
+  prepareTemplates,
 } from "./common"
 import {
-  getReleaseStatus,
-  HelmServiceStatus,
-  getRenderedResources,
-  getPausedResources,
   gardenCloudAECPauseAnnotation,
+  getPausedResources,
+  getReleaseStatus,
+  getRenderedResources,
+  HelmServiceStatus,
 } from "./status"
 import { SyncableResource } from "../hot-reload/hot-reload"
 import { apply, deleteResources } from "../kubectl"
@@ -35,7 +35,7 @@ import { DeleteServiceParams } from "../../../types/plugin/service/deleteService
 import { getForwardablePorts, killPortForwards } from "../port-forward"
 import { getServiceResource, getServiceResourceSpec } from "../util"
 import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
-import { getHotReloadSpec, configureHotReload, getHotReloadContainerName } from "../hot-reload/helpers"
+import { configureHotReload, getHotReloadContainerName, getHotReloadSpec } from "../hot-reload/helpers"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { KubeApi } from "../api"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"

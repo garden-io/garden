@@ -6,10 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isPlainObject, flatten, cloneDeep } from "lodash"
+import { cloneDeep, flatten, isPlainObject } from "lodash"
 import { join, resolve } from "path"
-import { pathExists, writeFile, remove, readFile } from "fs-extra"
-import cryptoRandomString = require("crypto-random-string")
+import { pathExists, readFile, remove, writeFile } from "fs-extra"
 import { apply as jsonMerge } from "json-merge-patch"
 
 import { PluginContext } from "../../../plugin-context"
@@ -22,11 +21,12 @@ import { HelmModule, HelmModuleConfig } from "./config"
 import { ConfigurationError, PluginError } from "../../../exceptions"
 import { GardenModule } from "../../../types/module"
 import { deline, tailString } from "../../../util/string"
-import { getAnnotation, flattenResources } from "../util"
+import { flattenResources, getAnnotation } from "../util"
 import { KubernetesPluginContext } from "../config"
 import { RunResult } from "../../../types/plugin/base"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants"
 import { dumpYaml } from "../../../util/util"
+import cryptoRandomString = require("crypto-random-string")
 
 const gardenValuesFilename = "garden-values.yml"
 

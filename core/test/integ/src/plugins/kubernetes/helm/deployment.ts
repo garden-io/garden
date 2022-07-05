@@ -19,7 +19,7 @@ import {
 } from "../../../../../../src/plugins/kubernetes/helm/status"
 import { getReleaseName } from "../../../../../../src/plugins/kubernetes/helm/common"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
-import { getHelmTestGarden, buildHelmModules } from "./common"
+import { buildHelmModules, getHelmTestGarden } from "./common"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { isWorkload } from "../../../../../../src/plugins/kubernetes/util"
 import Bluebird from "bluebird"
