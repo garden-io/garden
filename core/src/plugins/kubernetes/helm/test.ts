@@ -33,6 +33,7 @@ export async function testHelmModule(params: TestModuleParams<HelmModule>): Prom
     module,
     devMode: false,
     hotReload: false,
+    localMode: false,
     log,
     version: test.version,
   })

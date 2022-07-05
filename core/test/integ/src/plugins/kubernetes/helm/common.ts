@@ -110,6 +110,7 @@ describe("Helm common functions", () => {
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
@@ -236,6 +237,7 @@ ${expectedIngressOutput}
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
@@ -258,6 +260,7 @@ ${expectedIngressOutput}
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
@@ -427,6 +430,7 @@ ${expectedIngressOutput}
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
@@ -447,6 +451,7 @@ ${expectedIngressOutput}
           module,
           devMode: false,
           hotReload: false,
+          localMode: false,
           log,
           version: module.version.versionString,
         })
@@ -460,6 +465,7 @@ ${expectedIngressOutput}
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
@@ -569,14 +575,14 @@ ${expectedIngressOutput}
       const module = graph.getModule("api")
       module.spec.valueFiles = []
       const gardenValuesPath = getGardenValuesPath(module.buildPath)
-      expect(await getValueArgs(module, false, false)).to.eql(["--values", gardenValuesPath])
+      expect(await getValueArgs(module, false, false, false)).to.eql(["--values", gardenValuesPath])
     })
 
     it("should add a --set flag if devMode=true", async () => {
       const module = graph.getModule("api")
       module.spec.valueFiles = []
       const gardenValuesPath = getGardenValuesPath(module.buildPath)
-      expect(await getValueArgs(module, true, false)).to.eql([
+      expect(await getValueArgs(module, true, false, false)).to.eql([
         "--values",
         gardenValuesPath,
         "--set",
@@ -588,11 +594,35 @@ ${expectedIngressOutput}
       const module = graph.getModule("api")
       module.spec.valueFiles = []
       const gardenValuesPath = getGardenValuesPath(module.buildPath)
-      expect(await getValueArgs(module, false, true)).to.eql([
+      expect(await getValueArgs(module, false, true, false)).to.eql([
         "--values",
         gardenValuesPath,
         "--set",
         "\\.garden.hotReload=true",
+      ])
+    })
+
+    it("should add a --set flag if localMode=true", async () => {
+      const module = graph.getModule("api")
+      module.spec.valueFiles = []
+      const gardenValuesPath = getGardenValuesPath(module.buildPath)
+      expect(await getValueArgs(module, false, false, true)).to.eql([
+        "--values",
+        gardenValuesPath,
+        "--set",
+        "\\.garden.localMode=true",
+      ])
+    })
+
+    it("localMode should always take precedence over devMode when add a --set flag", async () => {
+      const module = graph.getModule("api")
+      module.spec.valueFiles = []
+      const gardenValuesPath = getGardenValuesPath(module.buildPath)
+      expect(await getValueArgs(module, true, false, true)).to.eql([
+        "--values",
+        gardenValuesPath,
+        "--set",
+        "\\.garden.localMode=true",
       ])
     })
 
@@ -601,7 +631,7 @@ ${expectedIngressOutput}
       module.spec.valueFiles = ["foo.yaml", "bar.yaml"]
       const gardenValuesPath = getGardenValuesPath(module.buildPath)
 
-      expect(await getValueArgs(module, false, false)).to.eql([
+      expect(await getValueArgs(module, false, false, false)).to.eql([
         "--values",
         resolve(module.buildPath, "foo.yaml"),
         "--values",

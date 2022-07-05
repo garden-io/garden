@@ -118,6 +118,7 @@ describe("configureHotReload", () => {
       module,
       devMode: false,
       hotReload: true,
+      localMode: false,
       log,
       version: service.version,
     })

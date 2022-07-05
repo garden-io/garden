@@ -240,6 +240,46 @@ devMode:
   # workload is used.
   containerName:
 
+# Configures the local application which will send and receive network requests instead of the target resource
+# specified by `serviceResource`.
+#
+# Note that `serviceResource` must also be specified to enable local mode. Local mode configuration for the
+# `kubernetes` module type relies on the `serviceResource.kind` and `serviceResource.name` fields to select a target
+# Kubernetes resource.
+#
+# The `serviceResource.containerName` field is not used by local mode configuration.
+# Note that `localMode` uses its own field `containerName` to specify a target container name explicitly.
+#
+# The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH
+# server to proxy requests.
+# Reverse port-forwarding will be automatically configured to route traffic to the locally deployed application and
+# back.
+#
+# Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+# Local mode always takes the precedence over dev mode if there are any conflicting service names.
+#
+# Health checks are disabled for services running in local mode.
+#
+# See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode.md) for more information.
+localMode:
+  # The working port of the local application.
+  localPort:
+
+  # The command to run the local application. If not present, then the local application should be started manually.
+  command:
+
+  # Specifies restarting policy for the local application. By default, the local application will be restarting
+  # infinitely with 1000ms between attempts.
+  restart:
+    # Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
+    delayMsec: 1000
+
+    # Max number of the local application restarts. Unlimited by default.
+    max: .inf
+
+  # The name of the target container. The first available container will be used if this field is not defined.
+  containerName:
+
 # A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
 # numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
 namespace:
@@ -1081,6 +1121,89 @@ Set the default group on files and directories at the target. Specify either an 
 [devMode](#devmode) > containerName
 
 Optionally specify the name of a specific container to sync to. If not specified, the first container in the workload is used.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `localMode`
+
+Configures the local application which will send and receive network requests instead of the target resource specified by `serviceResource`.
+
+Note that `serviceResource` must also be specified to enable local mode. Local mode configuration for the `kubernetes` module type relies on the `serviceResource.kind` and `serviceResource.name` fields to select a target Kubernetes resource.
+
+The `serviceResource.containerName` field is not used by local mode configuration.
+Note that `localMode` uses its own field `containerName` to specify a target container name explicitly.
+
+The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH server to proxy requests.
+Reverse port-forwarding will be automatically configured to route traffic to the locally deployed application and back.
+
+Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+Local mode always takes the precedence over dev mode if there are any conflicting service names.
+
+Health checks are disabled for services running in local mode.
+
+See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode.md) for more information.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `localMode.localPort`
+
+[localMode](#localmode) > localPort
+
+The working port of the local application.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `localMode.command[]`
+
+[localMode](#localmode) > command
+
+The command to run the local application. If not present, then the local application should be started manually.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `localMode.restart`
+
+[localMode](#localmode) > restart
+
+Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with 1000ms between attempts.
+
+| Type     | Default                         | Required |
+| -------- | ------------------------------- | -------- |
+| `object` | `{"delayMsec":1000,"max":null}` | No       |
+
+### `localMode.restart.delayMsec`
+
+[localMode](#localmode) > [restart](#localmoderestart) > delayMsec
+
+Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `1000`  | No       |
+
+### `localMode.restart.max`
+
+[localMode](#localmode) > [restart](#localmoderestart) > max
+
+Max number of the local application restarts. Unlimited by default.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `null`  | No       |
+
+### `localMode.containerName`
+
+[localMode](#localmode) > containerName
+
+The name of the target container. The first available container will be used if this field is not defined.
 
 | Type     | Required |
 | -------- | -------- |

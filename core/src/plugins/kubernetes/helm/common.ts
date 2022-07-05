@@ -69,6 +69,7 @@ interface GetChartResourcesParams {
   module: GardenModule
   devMode: boolean
   hotReload: boolean
+  localMode: boolean
   log: LogEntry
   version: string
 }
@@ -90,7 +91,7 @@ export async function getChartResources(params: GetChartResourcesParams) {
  * Renders the given Helm module and returns a multi-document YAML string.
  */
 export async function renderTemplates(params: GetChartResourcesParams): Promise<string> {
-  const { ctx, module, devMode, hotReload, version, log } = params
+  const { ctx, module, devMode, hotReload, localMode, version, log } = params
   const { namespace, releaseName, chartPath } = await prepareTemplates(params)
 
   log.debug("Preparing chart...")
@@ -100,6 +101,7 @@ export async function renderTemplates(params: GetChartResourcesParams): Promise<
     module,
     devMode,
     hotReload,
+    localMode,
     version,
     log,
     namespace,
@@ -160,7 +162,7 @@ export async function prepareTemplates({
 }
 
 export async function prepareManifests(params: PrepareManifestsParams): Promise<string> {
-  const { ctx, module, devMode, hotReload, log, namespace, releaseName, chartPath } = params
+  const { ctx, module, devMode, hotReload, localMode, log, namespace, releaseName, chartPath } = params
   const res = await helm({
     ctx,
     log,
@@ -177,7 +179,7 @@ export async function prepareManifests(params: PrepareManifestsParams): Promise<
       "json",
       "--timeout",
       module.spec.timeout.toString(10) + "s",
-      ...(await getValueArgs(module, devMode, hotReload)),
+      ...(await getValueArgs(module, devMode, hotReload, localMode)),
     ],
   })
 
@@ -264,7 +266,7 @@ export function getGardenValuesPath(chartPath: string) {
 /**
  * Get the value files arguments that should be applied to any helm install/render command.
  */
-export async function getValueArgs(module: HelmModule, devMode: boolean, hotReload: boolean) {
+export async function getValueArgs(module: HelmModule, devMode: boolean, hotReload: boolean, localMode: boolean) {
   const chartPath = await getChartPath(module)
   const gardenValuesPath = getGardenValuesPath(chartPath)
 
@@ -274,11 +276,16 @@ export async function getValueArgs(module: HelmModule, devMode: boolean, hotRelo
 
   const args = flatten(valueFiles.map((f) => ["--values", f]))
 
-  if (devMode) {
-    args.push("--set", "\\.garden.devMode=true")
-  }
-  if (hotReload) {
-    args.push("--set", "\\.garden.hotReload=true")
+  // Local mode always takes precedence over dev mode
+  if (localMode) {
+    args.push("--set", "\\.garden.localMode=true")
+  } else {
+    if (devMode) {
+      args.push("--set", "\\.garden.devMode=true")
+    }
+    if (hotReload) {
+      args.push("--set", "\\.garden.hotReload=true")
+    }
   }
 
   return args
@@ -329,7 +336,7 @@ export async function renderHelmTemplateString(
           "--namespace",
           namespace,
           "--dependency-update",
-          ...(await getValueArgs(module, false, false)),
+          ...(await getValueArgs(module, false, false, false)),
           "--show-only",
           relPath,
           chartPath,

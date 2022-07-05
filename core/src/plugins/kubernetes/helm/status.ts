@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ServiceStatus, ServiceState, ForwardablePort, GardenService, ServiceIngress } from "../../../types/service"
+import { ForwardablePort, GardenService, ServiceIngress, ServiceState, ServiceStatus } from "../../../types/service"
 import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
 import { LogEntry } from "../../../logger/log-entry"
 import { helm } from "./helm-cli"
@@ -18,7 +18,7 @@ import { KubernetesServerResource } from "../types"
 import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
 import { getServiceResource, getServiceResourceSpec, isWorkload } from "../util"
 import { startDevModeSync } from "../dev-mode"
-import { isConfiguredForDevMode } from "../status/status"
+import { isConfiguredForDevMode, isConfiguredForLocalMode } from "../status/status"
 import { KubeApi } from "../api"
 import Bluebird from "bluebird"
 import { getK8sIngresses } from "../status/ingress"
@@ -47,6 +47,7 @@ export async function getServiceStatus({
   log,
   devMode,
   hotReload,
+  localMode,
 }: GetServiceStatusParams<HelmModule>): Promise<HelmServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const releaseName = getReleaseName(module)
@@ -63,11 +64,22 @@ export async function getServiceStatus({
   })
 
   let deployedWithDevModeOrHotReloading: boolean | undefined
+  let deployedWithLocalMode: boolean | undefined
 
   try {
-    helmStatus = await getReleaseStatus({ ctx: k8sCtx, module, service, releaseName, log, devMode, hotReload })
+    helmStatus = await getReleaseStatus({
+      ctx: k8sCtx,
+      module,
+      service,
+      releaseName,
+      log,
+      devMode,
+      hotReload,
+      localMode,
+    })
     state = helmStatus.state
     deployedWithDevModeOrHotReloading = helmStatus.devMode
+    deployedWithLocalMode = helmStatus.localMode
   } catch (err) {
     state = "missing"
   }
@@ -78,46 +90,64 @@ export async function getServiceStatus({
   if (state !== "missing") {
     const deployedResources = await getRenderedResources({ ctx: k8sCtx, module, releaseName, log })
 
-    forwardablePorts = getForwardablePorts(deployedResources, service)
+    forwardablePorts = !!deployedWithLocalMode ? [] : getForwardablePorts(deployedResources, service)
     ingresses = getK8sIngresses(deployedResources)
 
-    if (state === "ready" && devMode && service.spec.devMode) {
-      // Need to start the dev-mode sync here, since the deployment handler won't be called.
-      const baseModule = getBaseModule(module)
-      const serviceResourceSpec = getServiceResourceSpec(module, baseModule)
-      const target = await getServiceResource({
-        ctx: k8sCtx,
-        log,
-        provider: k8sCtx.provider,
-        module,
-        manifests: deployedResources,
-        resourceSpec: serviceResourceSpec,
-      })
-
-      // Make sure we don't fail if the service isn't actually properly configured (we don't want to throw in the
-      // status handler, generally)
-      if (isConfiguredForDevMode(target)) {
-        const namespace =
-          target.metadata.namespace ||
-          (await getModuleNamespace({
-            ctx: k8sCtx,
-            log,
-            module,
-            provider: k8sCtx.provider,
-          }))
-
-        await startDevModeSync({
-          ctx,
+    if (state === "ready") {
+      // Local mode always takes precedence over dev mode
+      if (localMode && service.spec.localMode) {
+        const baseModule = getBaseModule(module)
+        const serviceResourceSpec = getServiceResourceSpec(module, baseModule)
+        const target = await getServiceResource({
+          ctx: k8sCtx,
           log,
-          moduleRoot: service.sourceModule.path,
-          namespace,
-          target,
-          spec: service.spec.devMode,
-          containerName: service.spec.devMode.containerName,
-          serviceName: service.name,
+          provider: k8sCtx.provider,
+          module,
+          manifests: deployedResources,
+          resourceSpec: serviceResourceSpec,
         })
-      } else {
-        state = "outdated"
+
+        if (!isConfiguredForLocalMode(target)) {
+          state = "outdated"
+        }
+      } else if (devMode && service.spec.devMode) {
+        // Need to start the dev-mode sync here, since the deployment handler won't be called.
+        const baseModule = getBaseModule(module)
+        const serviceResourceSpec = getServiceResourceSpec(module, baseModule)
+        const target = await getServiceResource({
+          ctx: k8sCtx,
+          log,
+          provider: k8sCtx.provider,
+          module,
+          manifests: deployedResources,
+          resourceSpec: serviceResourceSpec,
+        })
+
+        // Make sure we don't fail if the service isn't actually properly configured (we don't want to throw in the
+        // status handler, generally)
+        if (isConfiguredForDevMode(target)) {
+          const namespace =
+            target.metadata.namespace ||
+            (await getModuleNamespace({
+              ctx: k8sCtx,
+              log,
+              module,
+              provider: k8sCtx.provider,
+            }))
+
+          await startDevModeSync({
+            ctx,
+            log,
+            moduleRoot: service.sourceModule.path,
+            namespace,
+            target,
+            spec: service.spec.devMode,
+            containerName: service.spec.devMode.containerName,
+            serviceName: service.name,
+          })
+        } else {
+          state = "outdated"
+        }
       }
     }
   }
@@ -128,6 +158,7 @@ export async function getServiceStatus({
     version: state === "ready" ? service.version : undefined,
     detail,
     devMode: deployedWithDevModeOrHotReloading,
+    localMode: deployedWithLocalMode,
     namespaceStatuses: [namespaceStatus],
     ingresses,
   }
@@ -169,6 +200,7 @@ export async function getReleaseStatus({
   log,
   devMode,
   hotReload,
+  localMode,
 }: {
   ctx: KubernetesPluginContext
   module: HelmModule
@@ -177,6 +209,7 @@ export async function getReleaseStatus({
   log: LogEntry
   devMode: boolean
   hotReload: boolean
+  localMode: boolean
 }): Promise<ServiceStatus> {
   try {
     log.silly(`Getting the release status for ${releaseName}`)
@@ -194,6 +227,7 @@ export async function getReleaseStatus({
 
     let devModeEnabled = false
     let hotReloadEnabled = false
+    let localModeEnabled = false
 
     if (state === "ready") {
       // Make sure the right version is deployed
@@ -209,10 +243,12 @@ export async function getReleaseStatus({
       const deployedVersion = values[".garden"] && values[".garden"].version
       devModeEnabled = values[".garden"] && values[".garden"].devMode === true
       hotReloadEnabled = values[".garden"] && values[".garden"].hotReload === true
+      localModeEnabled = values[".garden"] && values[".garden"].localMode === true
 
       if (
         (devMode && !devModeEnabled) ||
         (hotReload && !hotReloadEnabled) ||
+        (localMode && !localModeEnabled) ||
         !deployedVersion ||
         deployedVersion !== service.version
       ) {
@@ -231,6 +267,7 @@ export async function getReleaseStatus({
       state,
       detail: { ...res, values },
       devMode: devModeEnabled || hotReloadEnabled,
+      localMode: localModeEnabled,
     }
   } catch (err) {
     if (err.message.includes("release: not found")) {

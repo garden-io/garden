@@ -74,6 +74,7 @@ describe("deployHelmService", () => {
       log: garden.log,
       devMode: false,
       hotReload: false,
+      localMode: false,
     })
 
     expect(releaseStatus.state).to.equal("ready")
@@ -116,6 +117,7 @@ describe("deployHelmService", () => {
       log: garden.log,
       devMode: false,
       hotReload: true, // <----
+      localMode: false,
     })
 
     expect(status.state).to.equal("ready")
@@ -152,6 +154,7 @@ describe("deployHelmService", () => {
       log: garden.log,
       devMode: true, // <-----
       hotReload: false,
+      localMode: false,
     })
 
     expect(status.state).to.equal("ready")
@@ -191,6 +194,7 @@ describe("deployHelmService", () => {
       log: garden.log,
       devMode: false,
       hotReload: false,
+      localMode: false,
     })
 
     expect(status.state).to.equal("ready")
@@ -236,6 +240,7 @@ describe("deployHelmService", () => {
       log: gardenWithCloudApi.log,
       devMode: false,
       hotReload: false,
+      localMode: false,
     })
 
     expect(releaseStatus.state).to.equal("ready")
@@ -285,6 +290,7 @@ describe("deployHelmService", () => {
       log: gardenWithCloudApi.log,
       devMode: false,
       hotReload: false,
+      localMode: false,
     })
     expect(releaseStatusAfterScaleDown.state).to.equal("outdated")
   })
