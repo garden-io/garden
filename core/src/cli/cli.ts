@@ -374,8 +374,9 @@ ${renderCommands(commands)}
               symbol: "warning",
               msg: `You are not logged in into Garden Cloud. Please log in via the ${chalk.green(
                 "garden login"
-              )} command.\n`,
+              )} command.`,
             })
+            log.info("")
           }
 
           if (processRecord) {
