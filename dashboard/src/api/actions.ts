@@ -16,29 +16,30 @@ import { ConfigDump } from "@garden-io/core/build/src/garden"
 import { GetTestResultCommandResult } from "@garden-io/core/build/src/commands/get/get-test-result"
 import { GraphOutput } from "@garden-io/core/build/src/commands/get/get-graph"
 import {
+  ApiDispatch,
+  defaultRunStatus,
+  defaultServiceStatus,
+  defaultTaskState,
   Entities,
   ModuleEntity,
   ServiceEntity,
   TaskEntity,
   TestEntity,
-  ApiDispatch,
-  defaultTaskState,
-  defaultServiceStatus,
-  defaultRunStatus,
 } from "../contexts/api"
 import {
+  fetchConfig,
+  fetchGraph,
   fetchLogs,
   fetchStatus,
   fetchTaskResult,
-  fetchConfig,
-  fetchTestResult,
-  fetchGraph,
   FetchTaskResultParams,
+  fetchTestResult,
   FetchTestResultParams,
 } from "./api"
 import { getAuthKey, getTestKey } from "../util/helpers"
 import { ProviderMap } from "@garden-io/core/build/src/config/provider"
 import { DashboardPage } from "@garden-io/core/build/src/types/plugin/provider/getDashboardPage"
+import { AxiosError } from "axios"
 
 // This file contains the API action functions.
 // The actions are responsible for dispatching the appropriate action types and normalising the
@@ -87,7 +88,7 @@ async function loadConfig(dispatch: ApiDispatch) {
   try {
     res = await fetchConfig()
   } catch (error) {
-    dispatch({ requestKey, type: "fetchFailure", error })
+    dispatch({ requestKey, type: "fetchFailure", error: error as AxiosError })
     return
   }
 
@@ -182,7 +183,7 @@ export async function loadStatus(dispatch: ApiDispatch) {
   try {
     res = await fetchStatus()
   } catch (error) {
-    dispatch({ requestKey, type: "fetchFailure", error })
+    dispatch({ requestKey, type: "fetchFailure", error: error as AxiosError })
     return
   }
 
@@ -227,7 +228,7 @@ export async function loadLogs(dispatch: ApiDispatch, serviceNames: string[]) {
   try {
     res = await fetchLogs({ serviceNames })
   } catch (error) {
-    dispatch({ requestKey, type: "fetchFailure", error })
+    dispatch({ requestKey, type: "fetchFailure", error: error as AxiosError })
     return
   }
 
@@ -255,7 +256,7 @@ export async function loadTaskResult({ dispatch, ...fetchParams }: LoadTaskResul
   try {
     res = await fetchTaskResult(fetchParams)
   } catch (error) {
-    dispatch({ requestKey, type: "fetchFailure", error })
+    dispatch({ requestKey, type: "fetchFailure", error: error as AxiosError })
     return
   }
 
@@ -285,7 +286,7 @@ export async function loadTestResult({ dispatch, ...fetchParams }: LoadTestResul
   try {
     res = await fetchTestResult(fetchParams)
   } catch (error) {
-    dispatch({ requestKey, type: "fetchFailure", error })
+    dispatch({ requestKey, type: "fetchFailure", error: error as AxiosError })
     return
   }
 
@@ -313,7 +314,7 @@ export async function loadGraph(dispatch: ApiDispatch) {
   try {
     res = await fetchGraph()
   } catch (error) {
-    dispatch({ requestKey, type: "fetchFailure", error })
+    dispatch({ requestKey, type: "fetchFailure", error: error as AxiosError })
     return
   }
 
