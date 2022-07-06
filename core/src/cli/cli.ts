@@ -369,6 +369,15 @@ ${renderCommands(commands)}
 
           nsLog.setState(renderHeader({ namespaceName: garden.namespace, environmentName: garden.environmentName }))
 
+          if (!cloudApi && garden.projectId) {
+            log.warn({
+              symbol: "warning",
+              msg: `You are not logged in into Garden Cloud. Please log in via the ${chalk.green(
+                "garden login"
+              )} command.\n`,
+            })
+          }
+
           if (processRecord) {
             // Update the db record for the process
             await processRecord.setCommand({
