@@ -249,6 +249,7 @@ export async function getReleaseStatus({
         (devMode && !devModeEnabled) ||
         (hotReload && !hotReloadEnabled) ||
         (localMode && !localModeEnabled) ||
+        (!localMode && localModeEnabled) || // this is still a valid case for local-mode
         !deployedVersion ||
         deployedVersion !== service.version
       ) {
