@@ -303,7 +303,7 @@ function prepareLocalModePorts(): V1ContainerPort[] {
 }
 
 /**
- * Patches the target Kubernetes Workload or Pod manifest by adding localMode-specific settings
+ * Patches the target Kubernetes Workload or Pod manifest by changing localMode-specific settings
  * like ports, environment variables, probes, etc.
  *
  * @param targetManifest the Kubernetes workload manifest to be patched
@@ -311,7 +311,7 @@ function prepareLocalModePorts(): V1ContainerPort[] {
  * @param localModeEnvVars the list of localMode-specific environment variables
  * @param localModePorts the list of localMode-specific ports (e.g. ssh port for tunnel setup)
  */
-function patchHotReloadableManifest(
+function patchSyncableManifest(
   targetManifest: SyncableResource,
   containerName: string,
   localModeEnvVars: PrimitiveMap,
@@ -381,7 +381,7 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
   const localModeEnvVars = await prepareLocalModeEnvVars(targetContainer, keyPair)
   const localModePorts = prepareLocalModePorts()
 
-  patchHotReloadableManifest(targetResource, targetContainer.name, localModeEnvVars, localModePorts)
+  patchSyncableManifest(targetResource, targetContainer.name, localModeEnvVars, localModePorts)
 }
 
 const attemptsLeft = ({ maxRetries, minTimeoutMs, retriesLeft }: RetryInfo): string => {
