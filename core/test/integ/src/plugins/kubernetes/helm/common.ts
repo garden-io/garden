@@ -45,6 +45,21 @@ export async function getHelmTestGarden() {
   return garden
 }
 
+let helmLocalModeTestGarden: TestGarden
+
+export async function getHelmLocalModeTestGarden() {
+  if (helmLocalModeTestGarden) {
+    return helmLocalModeTestGarden
+  }
+
+  const projectRoot = resolve(dataDir, "test-projects", "helm-local-mode")
+  const garden = await makeTestGarden(projectRoot)
+
+  helmLocalModeTestGarden = garden
+
+  return garden
+}
+
 export async function buildHelmModules(garden: Garden | TestGarden, graph: ConfigGraph) {
   const modules = graph.getModules()
   const tasks = modules.map(
