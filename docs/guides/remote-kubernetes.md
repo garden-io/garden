@@ -92,7 +92,7 @@ images when deploying. This should generally be a _private_ container registry, 
 public registry.
 
 Similarly to the below TLS configuration, you may also need to set up auth for the registry using K8s Secrets, in this
-case via the `kubectl create secret docker-registry` helper. You can read more about using and setting up private 
+case via the `kubectl create secret docker-registry` helper. You can read more about using and setting up private
 registries [here](https://kubernetes.io/docs/concepts/containers/images/#using-a-private-registry).
 
 _Note that you do not need to configure the authentication and imagePullSecrets when using GKE along with GCR,
@@ -133,8 +133,32 @@ By default, Garden will not install an ingress controller for remote environment
 
 You'll also need to point one or more DNS entries to your cluster, and configure a TLS certificate for the hostnames
 you will expose for ingress.
-_How you configure DNS and prepare the certificates will depend on how you manage DNS and certificates in general,
-so we won't cover that in detail here._
+
+Templating the ingress to the application enables you to have DNS entries for every developer's namespace.  
+
+First, you will make DNS CNAME entry that points to the load balancer in front of your cluster. We recommend setting a wildcard in front of the proper record, e.g. *.<environment>.<your company>.com.
+
+In your project.garden.yaml file, templatize the namespaces to reference the username like so:
+
+```yml
+kind: Project
+name: my-app
+defaultEnvironment: remote
+variables:
+  username: ${local.username}
+  hostname: ${local.username}-my-app.dev.my-company
+environments:
+  - name: remote
+    defaultNamespace: ${var.username}-my-app
+providers:
+  - name: kubernetes
+    environments: ["remote"]
+    namespace: ${environment.namespace}
+    buildMode: cluster-buildkit
+    defaultHostname: ${var.hostname}
+```
+
+If you would like to manage TLS for development environments, we recommend using an application load balancer and your cloud provider's certificate management service. You can find the documentation for (AWS here)[https://aws.amazon.com/premiumsupport/knowledge-center/associate-acm-certificate-alb-nlb/] and for (GCP here)[https://cloud.google.com/load-balancing/docs/ssl-certificates/google-managed-certs].
 
 If you are using [cert-manager](https://github.com/jetstack/cert-manager) (or would like to use it) to manage your TLS certificates, you may want to check out the [cert-manager integration](../advanced/cert-manager-integration.md), which helps to automate some of the otherwise manual work involved in managing certificates.
 
