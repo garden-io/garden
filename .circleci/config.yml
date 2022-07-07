@@ -219,6 +219,10 @@ commands:
       - npm_install
       - *attach-workspace
       - run:
+          environment:
+            # pkg doesn't use a normal cache directory by default
+            # see https://github.com/vercel/pkg/issues/1225
+            PKG_CACHE_PATH: tmp/pkg/
           name: Run dist command with the appropriate argument
           command: yarn run dist --version "<<parameters.version>>"
       - persist_to_workspace:
