@@ -17,7 +17,7 @@ import {
 } from "../../../../../../src/plugins/kubernetes/container/deployment"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { V1ConfigMap, V1Secret } from "@kubernetes/client-node"
-import { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
+import { KubernetesResource, KubernetesWorkload } from "../../../../../../src/plugins/kubernetes/types"
 import { cloneDeep, keyBy } from "lodash"
 import { getContainerTestGarden } from "./container"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
@@ -36,8 +36,8 @@ import {
   PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME,
   PROXY_CONTAINER_USER_NAME,
 } from "../../../../../../src/plugins/kubernetes/constants"
-import stripAnsi = require("strip-ansi")
 import { LocalModeEnv } from "../../../../../../src/plugins/kubernetes/local-mode"
+import stripAnsi = require("strip-ansi")
 
 describe("kubernetes container deployment handlers", () => {
   let garden: Garden
@@ -68,41 +68,18 @@ describe("kubernetes container deployment handlers", () => {
       await init("local")
     })
 
-    it("Workflow should have ssh container port when in local mode", async () => {
-      const service = graph.getService("local-mode")
-
-      const { workload } = await createContainerManifests({
-        ctx,
-        api,
-        service,
-        log: garden.log,
-        runtimeContext: emptyRuntimeContext,
-        enableDevMode: false,
-        enableHotReload: false,
-        enableLocalMode: true, // <----
-        blueGreen: false,
-      })
-
+    function expectSshContainerPort(workload: KubernetesWorkload) {
       const appContainerSpec = workload.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
       const workloadSshPort = appContainerSpec!.ports!.find((p) => p.name === PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME)
       expect(workloadSshPort!.containerPort).to.eql(PROXY_CONTAINER_SSH_TUNNEL_PORT)
-    })
+    }
 
-    it("Workflow should have extra env vars for proxy container when in local mode", async () => {
-      const service = graph.getService("local-mode")
+    function expectEmptyContainerArgs(workload: KubernetesWorkload) {
+      const appContainerSpec = workload.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
+      expect(appContainerSpec!.args).to.eql([])
+    }
 
-      const { workload } = await createContainerManifests({
-        ctx,
-        api,
-        service,
-        log: garden.log,
-        runtimeContext: emptyRuntimeContext,
-        enableDevMode: false,
-        enableHotReload: false,
-        enableLocalMode: true, // <----
-        blueGreen: false,
-      })
-
+    function expectContainerEnvVars(workload: KubernetesWorkload) {
       const appContainerSpec = workload.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
       const env = appContainerSpec!.env!
 
@@ -115,44 +92,160 @@ describe("kubernetes container deployment handlers", () => {
 
       const publicKeyEnvVar = env.find((v) => v.name === LocalModeEnv.GARDEN_PROXY_CONTAINER_PUBLIC_KEY)!.value
       expect(!!publicKeyEnvVar).to.be.true
-    })
+    }
 
-    it("should remove liveness probes when in local mode", async () => {
-      const service = graph.getService("local-mode")
-
-      const { workload } = await createContainerManifests({
-        ctx,
-        api,
-        service,
-        log: garden.log,
-        runtimeContext: emptyRuntimeContext,
-        enableDevMode: false,
-        enableHotReload: false,
-        enableLocalMode: true, // <----
-        blueGreen: false,
-      })
-
+    function expectNoProbes(workload: KubernetesWorkload) {
       const appContainerSpec = workload.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
       expect(appContainerSpec!.livenessProbe).to.be.undefined
-    })
+      expect(appContainerSpec!.readinessProbe).to.be.undefined
+    }
 
-    it("should remove readiness probes when in local mode", async () => {
-      const service = graph.getService("local-mode")
+    context("with localMode only", () => {
+      it("Workflow should have ssh container port when in local mode", async () => {
+        const service = graph.getService("local-mode")
 
-      const { workload } = await createContainerManifests({
-        ctx,
-        api,
-        service,
-        log: garden.log,
-        runtimeContext: emptyRuntimeContext,
-        enableDevMode: false,
-        enableHotReload: false,
-        enableLocalMode: true, // <----
-        blueGreen: false,
+        const { workload } = await createContainerManifests({
+          ctx,
+          api,
+          service,
+          log: garden.log,
+          runtimeContext: emptyRuntimeContext,
+          enableDevMode: false,
+          enableHotReload: false,
+          enableLocalMode: true, // <----
+          blueGreen: false,
+        })
+
+        expectSshContainerPort(workload)
       })
 
-      const appContainerSpec = workload.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
-      expect(appContainerSpec!.readinessProbe).to.be.undefined
+      it("Workflow should have empty container args when in local mode", async () => {
+        const service = graph.getService("local-mode")
+
+        const { workload } = await createContainerManifests({
+          ctx,
+          api,
+          service,
+          log: garden.log,
+          runtimeContext: emptyRuntimeContext,
+          enableDevMode: false,
+          enableHotReload: false,
+          enableLocalMode: true, // <----
+          blueGreen: false,
+        })
+
+        expectEmptyContainerArgs(workload)
+      })
+
+      it("Workflow should have extra env vars for proxy container when in local mode", async () => {
+        const service = graph.getService("local-mode")
+
+        const { workload } = await createContainerManifests({
+          ctx,
+          api,
+          service,
+          log: garden.log,
+          runtimeContext: emptyRuntimeContext,
+          enableDevMode: false,
+          enableHotReload: false,
+          enableLocalMode: true, // <----
+          blueGreen: false,
+        })
+
+        expectContainerEnvVars(workload)
+      })
+
+      it("Workflow should not have liveness and readiness probes when in local mode", async () => {
+        const service = graph.getService("local-mode")
+
+        const { workload } = await createContainerManifests({
+          ctx,
+          api,
+          service,
+          log: garden.log,
+          runtimeContext: emptyRuntimeContext,
+          enableDevMode: false,
+          enableHotReload: false,
+          enableLocalMode: true, // <----
+          blueGreen: false,
+        })
+
+        expectNoProbes(workload)
+      })
+    })
+
+    context("localMode always takes precedence over devMode", () => {
+      it("Workflow should have ssh container port when in local mode", async () => {
+        const service = graph.getService("local-mode")
+
+        const { workload } = await createContainerManifests({
+          ctx,
+          api,
+          service,
+          log: garden.log,
+          runtimeContext: emptyRuntimeContext,
+          enableDevMode: true, // <----
+          enableHotReload: false,
+          enableLocalMode: true, // <----
+          blueGreen: false,
+        })
+
+        expectSshContainerPort(workload)
+      })
+
+      it("Workflow should have empty container args when in local mode", async () => {
+        const service = graph.getService("local-mode")
+
+        const { workload } = await createContainerManifests({
+          ctx,
+          api,
+          service,
+          log: garden.log,
+          runtimeContext: emptyRuntimeContext,
+          enableDevMode: true, // <----
+          enableHotReload: false,
+          enableLocalMode: true, // <----
+          blueGreen: false,
+        })
+
+        expectEmptyContainerArgs(workload)
+      })
+
+      it("Workflow should have extra env vars for proxy container when in local mode", async () => {
+        const service = graph.getService("local-mode")
+
+        const { workload } = await createContainerManifests({
+          ctx,
+          api,
+          service,
+          log: garden.log,
+          runtimeContext: emptyRuntimeContext,
+          enableDevMode: true, // <----
+          enableHotReload: false,
+          enableLocalMode: true, // <----
+          blueGreen: false,
+        })
+
+        expectContainerEnvVars(workload)
+      })
+
+      it("Workflow should not have liveness and readiness probes when in local mode", async () => {
+        const service = graph.getService("local-mode")
+
+        const { workload } = await createContainerManifests({
+          ctx,
+          api,
+          service,
+          log: garden.log,
+          runtimeContext: emptyRuntimeContext,
+          enableDevMode: true, // <----
+          enableHotReload: false,
+          enableLocalMode: true, // <----
+          blueGreen: false,
+        })
+
+        expectNoProbes(workload)
+      })
     })
   })
 
