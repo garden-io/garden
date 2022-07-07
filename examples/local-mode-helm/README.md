@@ -1,4 +1,4 @@
-# Local mode
+# Local mode for `helm` modules
 
 A very basic demo project for Garden [local mode](../../docs/guides/running-service-in-local-mode.md) for `helm`
 module type.
