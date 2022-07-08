@@ -24,7 +24,7 @@ type Args = typeof secretsDeleteArgs
 
 export class SecretsDeleteCommand extends Command<Args> {
   name = "delete"
-  help = "[EXPERIMENTAL] Delete secrets."
+  help = "Delete secrets."
   description = dedent`
     Delete secrets in Garden Cloud. You will nee the IDs of the secrets you want to delete,
     which you which you can get from the \`garden cloud secrets list\` command.

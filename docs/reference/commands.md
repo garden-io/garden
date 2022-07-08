@@ -969,7 +969,7 @@ stderr:
 
 ### garden cloud secrets list
 
-**[EXPERIMENTAL] List secrets.**
+**List secrets.**
 
 List all secrets from Garden Cloud. Optionally filter on environment, user IDs, or secret names.
 
@@ -993,7 +993,7 @@ Examples:
 
 ### garden cloud secrets create
 
-**[EXPERIMENTAL] Create secrets**
+**Create secrets**
 
 Create secrets in Garden Cloud. You can create project wide secrets or optionally scope
 them to an environment, or an environment and a user.
@@ -1030,7 +1030,7 @@ Examples:
 
 ### garden cloud secrets delete
 
-**[EXPERIMENTAL] Delete secrets.**
+**Delete secrets.**
 
 Delete secrets in Garden Cloud. You will nee the IDs of the secrets you want to delete,
 which you which you can get from the `garden cloud secrets list` command.
@@ -1052,7 +1052,7 @@ Examples:
 
 ### garden cloud users list
 
-**[EXPERIMENTAL] List users.**
+**List users.**
 
 List all users from Garden Cloud. Optionally filter on group names or user names.
 
@@ -1075,7 +1075,7 @@ Examples:
 
 ### garden cloud users create
 
-**[EXPERIMENTAL] Create users**
+**Create users**
 
 Create users in Garden Cloud and optionally add the users to specific groups.
 You can get the group IDs from the `garden cloud users list` command.
@@ -1114,7 +1114,7 @@ Examples:
 
 ### garden cloud users delete
 
-**[EXPERIMENTAL] Delete users.**
+**Delete users.**
 
 Delete users in Garden Cloud. You will nee the IDs of the users you want to delete,
 which you which you can get from the `garden cloud users list` command.
@@ -1136,7 +1136,7 @@ Examples:
 
 ### garden cloud groups list
 
-**[EXPERIMENTAL] List groups.**
+**List groups.**
 
 List all groups from Garden Cloud. This is useful for getting the group IDs when creating
 users via the `garden cloud users create` command.

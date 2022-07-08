@@ -26,7 +26,7 @@ interface Groups {
 
 export class GroupsCommand extends CommandGroup {
   name = "groups"
-  help = "[EXPERIMENTAL] List groups."
+  help = "List groups."
 
   subCommands = [GroupsListCommand]
 }
@@ -41,7 +41,7 @@ type Opts = typeof groupsListOpts
 
 export class GroupsListCommand extends Command<{}, Opts> {
   name = "list"
-  help = "[EXPERIMENTAL] List groups."
+  help = "List groups."
   description = dedent`
     List all groups from Garden Cloud. This is useful for getting the group IDs when creating
     users via the \`garden cloud users create\` command.
