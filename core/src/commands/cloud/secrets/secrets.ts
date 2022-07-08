@@ -13,7 +13,7 @@ import { SecretsListCommand } from "./secrets-list"
 
 export class SecretsCommand extends CommandGroup {
   name = "secrets"
-  help = "[EXPERIMENTAL] List, create, and delete secrets."
+  help = "List, create, and delete secrets."
 
   subCommands = [SecretsListCommand, SecretsCreateCommand, SecretsDeleteCommand]
 }
