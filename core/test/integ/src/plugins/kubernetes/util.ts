@@ -228,6 +228,7 @@ describe("util", () => {
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
@@ -250,6 +251,7 @@ describe("util", () => {
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
@@ -280,6 +282,7 @@ describe("util", () => {
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
@@ -308,6 +311,7 @@ describe("util", () => {
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
@@ -336,6 +340,7 @@ describe("util", () => {
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
@@ -367,6 +372,7 @@ describe("util", () => {
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
@@ -508,6 +514,7 @@ describe("util", () => {
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })

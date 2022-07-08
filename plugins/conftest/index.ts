@@ -231,6 +231,7 @@ export const gardenPlugin = () =>
               module: sourceModule,
               devMode: false,
               hotReload: false,
+              localMode: false,
               log,
               version: sourceModule.version.versionString,
             })

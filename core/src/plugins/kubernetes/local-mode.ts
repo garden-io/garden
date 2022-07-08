@@ -37,7 +37,9 @@ import { HelmService } from "./helm/config"
 import getPort = require("get-port")
 import touch = require("touch")
 
-export const localModeGuideLink = "https://docs.garden.io/guides/running-service-in-local-mode.md"
+// export const localModeGuideLink = "https://docs.garden.io/guides/running-service-in-local-mode.md"
+export const localModeGuideLink =
+  "https://github.com/garden-io/garden/blob/master/docs/guides/running-service-in-local-mode.md"
 
 const localhost = "127.0.0.1"
 
@@ -303,7 +305,7 @@ function prepareLocalModePorts(): V1ContainerPort[] {
 }
 
 /**
- * Patches the target Kubernetes Workload or Pod manifest by adding localMode-specific settings
+ * Patches the target Kubernetes Workload or Pod manifest by changing localMode-specific settings
  * like ports, environment variables, probes, etc.
  *
  * @param targetManifest the Kubernetes workload manifest to be patched
@@ -311,7 +313,7 @@ function prepareLocalModePorts(): V1ContainerPort[] {
  * @param localModeEnvVars the list of localMode-specific environment variables
  * @param localModePorts the list of localMode-specific ports (e.g. ssh port for tunnel setup)
  */
-function patchHotReloadableManifest(
+function patchSyncableManifest(
   targetManifest: SyncableResource,
   containerName: string,
   localModeEnvVars: PrimitiveMap,
@@ -321,8 +323,8 @@ function patchHotReloadableManifest(
 
   // use reverse proxy container image
   targetContainer.image = reverseProxyImageName
-  // delete the original container arguments, the proxy container won't recognize them
-  delete targetContainer.args
+  // erase the original container arguments, the proxy container won't recognize them
+  targetContainer.args = []
 
   const extraEnvVars = prepareEnvVars(localModeEnvVars)
   if (!targetContainer.env) {
@@ -381,7 +383,7 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
   const localModeEnvVars = await prepareLocalModeEnvVars(targetContainer, keyPair)
   const localModePorts = prepareLocalModePorts()
 
-  patchHotReloadableManifest(targetResource, targetContainer.name, localModeEnvVars, localModePorts)
+  patchSyncableManifest(targetResource, targetContainer.name, localModeEnvVars, localModePorts)
 }
 
 const attemptsLeft = ({ maxRetries, minTimeoutMs, retriesLeft }: RetryInfo): string => {

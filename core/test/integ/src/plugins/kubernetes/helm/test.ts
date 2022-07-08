@@ -8,14 +8,14 @@
 
 import { expect } from "chai"
 
-import { TestGarden, expectError } from "../../../../../helpers"
+import { expectError, TestGarden } from "../../../../../helpers"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { getHelmTestGarden } from "./common"
 import { TestTask } from "../../../../../../src/tasks/test"
 import { findByName } from "../../../../../../src/util/util"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
-import { testFromModule, testFromConfig } from "../../../../../../src/types/test"
+import { testFromConfig, testFromModule } from "../../../../../../src/types/test"
 
 describe("testHelmModule", () => {
   let garden: TestGarden
