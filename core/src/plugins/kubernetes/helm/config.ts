@@ -8,6 +8,8 @@
 
 import { DeepPrimitiveMap, joi, joiIdentifier, joiPrimitive, joiSparseArray } from "../../../config/common"
 import {
+  kubernetesLocalModeSchema,
+  KubernetesLocalModeSpec,
   KubernetesTargetResourceSpec,
   namespaceNameSchema,
   PortForwardSpec,
@@ -33,6 +35,7 @@ interface HelmDeployActionSpec {
   }
   defaultTarget?: KubernetesTargetResourceSpec
   devMode?: KubernetesDeployDevModeSpec
+  localMode?: KubernetesLocalModeSpec
   namespace?: string
   portForwards?: PortForwardSpec[]
   releaseName?: string
@@ -146,6 +149,7 @@ export const helmDeploySchema = () =>
       ),
     defaultTarget: defaultTargetSchema(),
     devMode: kubernetesDeployDevModeSchema(),
+    localMode: kubernetesLocalModeSchema(),
   })
 
 export type HelmDeployConfig = DeployActionConfig<"helm", HelmDeployActionSpec>
