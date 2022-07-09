@@ -27,6 +27,7 @@ import {
   containerModuleSchema,
   kubernetesDevModeSchema,
   KubernetesDevModeSpec,
+  kubernetesLocalModeSchema,
   KubernetesLocalModeSpec,
   kubernetesTaskSchema,
   KubernetesTaskSpec,
@@ -174,6 +175,7 @@ export const helmModuleSpecSchema = () =>
       "List of names of services that should be deployed before this chart."
     ),
     devMode: kubernetesDevModeSchema(),
+    localMode: kubernetesLocalModeSchema(),
     include: joiModuleIncludeDirective(dedent`
       If neither \`include\` nor \`exclude\` is set, and the module has local chart sources, Garden
       automatically sets \`include\` to: \`["*", "charts/**/*", "templates/**/*"]\`.

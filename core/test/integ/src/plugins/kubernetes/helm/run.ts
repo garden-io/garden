@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 
-import { TestGarden, expectError } from "../../../../../helpers"
+import { expectError, TestGarden } from "../../../../../helpers"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { getHelmTestGarden } from "./common"
 import { TaskTask } from "../../../../../../src/tasks/task"

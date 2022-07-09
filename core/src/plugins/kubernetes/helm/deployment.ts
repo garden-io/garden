@@ -11,20 +11,20 @@ import { waitForResources } from "../status/status"
 import { helm } from "./helm-cli"
 import { HelmModule } from "./config"
 import {
+  filterManifests,
+  getBaseModule,
   getChartPath,
   getReleaseName,
   getValueArgs,
-  getBaseModule,
-  prepareTemplates,
   prepareManifests,
-  filterManifests,
+  prepareTemplates,
 } from "./common"
 import {
-  getReleaseStatus,
-  HelmServiceStatus,
-  getRenderedResources,
-  getPausedResources,
   gardenCloudAECPauseAnnotation,
+  getPausedResources,
+  getReleaseStatus,
+  getRenderedResources,
+  HelmServiceStatus,
 } from "./status"
 import { SyncableResource } from "../types"
 import { apply, deleteResources } from "../kubectl"
@@ -36,6 +36,7 @@ import { getServiceResource, getServiceResourceSpec } from "../util"
 import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { KubeApi } from "../api"
+import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 
 export async function deployHelmService({
   ctx,
@@ -44,6 +45,7 @@ export async function deployHelmService({
   log,
   force,
   devMode,
+  localMode,
 }: DeployServiceParams<HelmModule>): Promise<HelmServiceStatus> {
   let serviceResourceSpec: ServiceResourceSpec | null = null
   let serviceResource: SyncableResource | null = null
@@ -64,20 +66,29 @@ export async function deployHelmService({
     ctx: k8sCtx,
     module,
     devMode,
+    localMode,
     log,
     version: service.version,
   })
 
   const chartPath = await getChartPath(module)
   const releaseName = getReleaseName(module)
-  const releaseStatus = await getReleaseStatus({ ctx: k8sCtx, module, service, releaseName, log, devMode })
+  const releaseStatus = await getReleaseStatus({
+    ctx: k8sCtx,
+    module,
+    service,
+    releaseName,
+    log,
+    devMode,
+    localMode,
+  })
 
   const commonArgs = [
     "--namespace",
     namespace,
     "--timeout",
     module.spec.timeout.toString(10) + "s",
-    ...(await getValueArgs(module, devMode)),
+    ...(await getValueArgs(module, devMode, localMode)),
   ]
 
   if (module.spec.atomicInstall) {
@@ -126,6 +137,7 @@ export async function deployHelmService({
     log,
     module,
     devMode,
+    localMode,
     version: service.version,
     namespace: preparedTemplates.namespace,
     releaseName: preparedTemplates.releaseName,
@@ -133,7 +145,7 @@ export async function deployHelmService({
   })
   const manifests = await filterManifests(preparedManifests)
 
-  if (devMode && module.spec.devMode) {
+  if ((devMode && module.spec.devMode) || (localMode && module.spec.localMode)) {
     serviceResourceSpec = getServiceResourceSpec(module, getBaseModule(module))
     serviceResource = await getServiceResource({
       ctx,
@@ -146,12 +158,23 @@ export async function deployHelmService({
   }
 
   // Because we need to modify the Deployment, and because there is currently no reliable way to do that before
-  // installing/upgrading via Helm, we need to separately update the target here for dev-mode.
-  if (devMode && service.spec.devMode && serviceResourceSpec && serviceResource) {
+  // installing/upgrading via Helm, we need to separately update the target here for dev-mode/local-mode.
+  // Local mode always takes precedence over dev mode.
+  if (localMode && service.spec.localMode && serviceResourceSpec && serviceResource) {
+    await configureLocalMode({
+      ctx,
+      spec: service.spec.localMode,
+      targetResource: serviceResource,
+      gardenService: service,
+      log,
+      containerName: service.spec.localMode.containerName,
+    })
+    await apply({ log, ctx, api, provider, manifests: [serviceResource], namespace })
+  } else if (devMode && service.spec.devMode && serviceResourceSpec && serviceResource) {
     configureDevMode({
       target: serviceResource,
       spec: service.spec.devMode,
-      containerName: service.spec.devMode?.containerName,
+      containerName: service.spec.devMode.containerName,
     })
     await apply({ log, ctx, api, provider, manifests: [serviceResource], namespace })
   }
@@ -168,12 +191,24 @@ export async function deployHelmService({
     timeoutSec: module.spec.timeout,
   })
 
-  const forwardablePorts = getForwardablePorts(manifests, service)
+  // Local mode has its own port-forwarding configuration
+  const forwardablePorts = localMode && service.spec.localMode ? [] : getForwardablePorts(manifests, service)
 
   // Make sure port forwards work after redeployment
   killPortForwards(service, forwardablePorts || [], log)
 
-  if (devMode && service.spec.devMode && serviceResource && serviceResourceSpec) {
+  // Local mode always takes precedence over dev mode.
+  if (localMode && service.spec.localMode && serviceResource && serviceResourceSpec) {
+    await startServiceInLocalMode({
+      ctx,
+      spec: service.spec.localMode,
+      targetResource: serviceResource,
+      gardenService: service,
+      namespace,
+      log,
+      containerName: service.spec.localMode.containerName,
+    })
+  } else if (devMode && service.spec.devMode && serviceResource && serviceResourceSpec) {
     await startDevModeSync({
       ctx,
       log,

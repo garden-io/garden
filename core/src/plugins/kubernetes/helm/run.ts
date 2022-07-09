@@ -8,13 +8,14 @@
 
 import { HelmModule } from "./config"
 import { PodRunner, runAndCopy } from "../run"
-import { getChartResources, getBaseModule } from "./common"
+import { getBaseModule, getChartResources } from "./common"
 import {
-  getServiceResource,
   getResourceContainer,
   getResourcePodSpec,
+  getServiceResource,
   getServiceResourceSpec,
   makePodName,
+  prepareEnvVars,
 } from "../util"
 import { ConfigurationError } from "../../../exceptions"
 import { KubernetesPluginContext } from "../config"
@@ -23,7 +24,6 @@ import { RunModuleParams } from "../../../types/plugin/module/runModule"
 import { RunResult } from "../../../types/plugin/base"
 import { RunTaskParams, RunTaskResult } from "../../../types/plugin/task/runTask"
 import { uniqByName } from "../../../util/util"
-import { prepareEnvVars } from "../util"
 import { KubeApi } from "../api"
 import { getModuleNamespaceStatus } from "../namespace"
 import { DEFAULT_TASK_TIMEOUT } from "../../../constants"
@@ -60,7 +60,14 @@ export async function runHelmModule({
     )
   }
 
-  const manifests = await getChartResources({ ctx: k8sCtx, module, devMode: false, log, version })
+  const manifests = await getChartResources({
+    ctx: k8sCtx,
+    module,
+    devMode: false,
+    localMode: false,
+    log,
+    version,
+  })
   const target = await getServiceResource({
     ctx: k8sCtx,
     log,
@@ -129,6 +136,7 @@ export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<Ru
     ctx: k8sCtx,
     module,
     devMode: false,
+    localMode: false,
     log,
     version: module.version.versionString,
   })

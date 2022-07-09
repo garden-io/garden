@@ -560,7 +560,7 @@ async function runWithArtifacts({
       const res = await runner.exec({
         // Pipe the output from the command to the /tmp/output pipe, including stderr. Some shell voodoo happening
         // here, but this was the only working approach I could find after a lot of trial and error.
-        command: ["sh", "-c", `exec >/tmp/output; ${cmd.join(" ")}`],
+        command: ["sh", "-c", `exec &>/tmp/output; ${cmd.join(" ")}`],
         containerName: mainContainerName,
         log,
         stdout,

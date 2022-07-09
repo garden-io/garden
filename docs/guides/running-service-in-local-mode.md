@@ -14,6 +14,19 @@
 By configuring a Garden service in _local mode_, one can replace a target Kubernetes service in a k8s cluster with a
 local service (i.e. an application running on your local machine).
 
+_Local mode_ feature is only supported by certain module types and providers.
+
+### Supported module types
+
+* [`container`](./container-modules.md)
+* [`kubernetes`](../reference/module-types/kubernetes.md)
+* [`helm`](../reference/module-types/helm.md)
+
+### Supported providers
+
+* [`kubernetes`](../reference/providers/kubernetes.md)
+* [`local kubernetes`](../reference/providers/local-kubernetes.md)
+
 ## Pre-requisites
 
 Local mode uses `kubectl` port-forwarding and plain SSH port forwarding under the hood.
@@ -25,8 +38,9 @@ Requirements for the local machine environment:
 
 ## Current limitations
 
-This is the initial release of **experimental** feature. The _local mode_ feature design and implementation is still in
-progress. So, there is a number of functional limitations in the first release:
+This is the first release of _local mode_ feature which supports [`container`](./container-modules.md),
+[`kubernetes`](../reference/module-types/kubernetes.md) and [`helm`](../reference/module-types/helm.md) module types.
+There is a number of functional limitations in this release:
 
 * **Windows compatibility.** The _local mode_ is not supported natively for Windows OS. It should be used with WSL in
   Windows environments.
@@ -34,14 +48,8 @@ progress. So, there is a number of functional limitations in the first release:
   first `TCP` port from the list of ports or just the first one if no `TCP` ports defined. Thus, if the service needs to
   talk to some data sources like databases, message brokers, etc. then all these services are assumed to be running
   locally.
-* The _local mode_ is supported only by [`container`](./container-modules.md)
-  and [`kubernetes`](../reference/module-types/kubernetes.md) module types.
-  Support for the [`helm`](../reference/module-types/helm.md) module type will be added soon.
-* Only one container can be run in local mode for each [`kubernetes`](../reference/module-types/kubernetes.md) service (
-  the same will be the case for [`helm`](../reference/module-types/helm.md) services when local mode is implemented
-  there).
-* The _local mode_ is supported by [`kubernetes`](../reference/providers/kubernetes.md)
-  and [`local kubernetes`](../reference/providers/local-kubernetes.md) providers.
+* Only one container can be run in local mode for each [`kubernetes`](../reference/module-types/kubernetes.md) or
+  [`helm`](../reference/module-types/helm.md) service.
 * The _local mode_ leaves the proxy container deployed in the target k8s cluster after exit. The affected services must
   be re-deployed manually by using `garden deploy`.
 
@@ -128,7 +136,7 @@ An example can be found in the [`local-mode project`](../../examples/local-mode)
 ```yaml
 kind: Module
 name: backend
-type: kubernetes
+type: kubernetes # this example looks the same for helm modules (i.e. with `type: helm`)
 localMode:
   localPort: 8090
   command: [ "../backend-local/main" ]
@@ -143,10 +151,11 @@ serviceResource:
 ```
 
 A `kubernetes` module example can be found in the [`local-mode-k8s project`](../../examples/local-mode-k8s).
+A `helm` module example can be found in the [`local-mode-helm project`](../../examples/local-mode-helm).
 
 ## Deploying with local mode
 
-To deploy your services with local mode enabled, you can use the `deploy` command:
+To deploy your services with _local mode_ enabled, you can use `deploy` or `dev` commands:
 
 ```sh
 # Deploy specific services in local mode:
@@ -165,5 +174,7 @@ garden dev --local=myservice,my-other-service
 garden dev --local
 ```
 
-Once you quit/terminate the Garden command, all port-forwards established by the command will be stopped, but the
-services (both local and remote ones) will still be left running.
+_Local mode_ always runs in persistent mode, it means that the Garden process won't exit until it's terminated
+explicitly. All port-forwards established by _local mode_ will be stopped on the process exit. The local application
+will be stopped if it was started via the `localMode.command` configuration option. Otherwise, if the local application
+was started manually, it will continue running.

@@ -12,6 +12,11 @@ services:
     localMode:
       localPort: 8090
       command: []
+    # this is here to test that local mode always take precedence over dev mode
+    devMode:
+      sync:
+        - target: /
+          mode: one-way
     healthCheck:
       httpGet:
         path: ${var.ingressPath}

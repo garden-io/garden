@@ -279,58 +279,78 @@ export async function execMutagenCommand(ctx: PluginContext, log: LogEntry, args
   }
 }
 
-interface ScanProblem {
+interface SyncProblem {
   path: string
   error: string
 }
 
-interface ConflictChange {
+interface SyncEntry {
+  kind: string
+  // TODO: Add contents for directory entries
+  digest?: string
+  executable?: boolean
+  target?: string
+  problem?: string
+}
+
+interface SyncChange {
   path: string
-  new?: {
-    kind: number
-    digest?: string
-    target?: string
-    executable?: boolean
-  }
+  old?: SyncEntry
+  new?: SyncEntry
 }
 
 interface SyncConflict {
   root: string
-  alphaChanges?: ConflictChange[]
-  betaChanges?: ConflictChange[]
+  alphaChanges: SyncChange[]
+  betaChanges: SyncChange[]
+}
+
+interface SyncReceiverStatus {
+  path: string
+  receivedSize: number
+  expectedSize: number
+  receivedFiles: number
+  expectedFiles: number
+  totalReceivedSize: number
 }
 
 interface SyncEndpoint {
-  path: string
-  protocol?: number // Only used for remote endpoints
+  protocol: string // Only used for remote endpoints
+  user?: string // Only used for remote endpoints
   host?: string // Only used for remote endpoints
+  port?: number // Only used for remote endpoints
+  path: string
+  // TODO: Add environment variables
+  // TODO: Add parameter variables
+  // TODO: Add endpoint-specific configuration
+  connected: boolean
+  scanned?: boolean
+  directories?: number
+  files?: number
+  symbolicLinks?: number
+  totalFileSize?: number
+  scanProblems?: SyncProblem[]
+  excludedScanProblems?: number
+  transitionProblems?: SyncProblem[]
+  excludedTransitionProblems?: number
+  stagingProgress?: SyncReceiverStatus
 }
 
-interface SyncListEntry {
-  session: {
-    identifier: string
-    version: number
-    creationTime: {
-      seconds: number
-      nanos: number
-    }
-    creatingVersionMinor: number
-    alpha: SyncEndpoint
-    beta: SyncEndpoint
-    configuration: {
-      synchronizationMode: number
-    }
-    configurationAlpha: any
-    configurationBeta: any
-    name: string
-    paused?: boolean
-  }
-  status?: number
-  alphaConnected?: boolean
-  betaConnected?: boolean
-  alphaScanProblems?: ScanProblem[]
-  betaScanProblems?: ScanProblem[]
-  successfulSynchronizationCycles?: number
+interface SyncSession {
+  identifier: string
+  version: number
+  creationTime: string
+  creatingVersion: string
+  alpha: SyncEndpoint
+  beta: SyncEndpoint
+  mode: string
+  // TODO: Add additional configuration parameters
+  name: string // TODO: This is technically an optional field
+  // TODO: Add labels
+  paused: boolean
+  status?: string
+  lastError?: string
+  successfulCycles?: number
   conflicts?: SyncConflict[]
   excludedConflicts?: number
 }
@@ -340,10 +360,10 @@ let monitorInterval: NodeJS.Timeout
 const syncStatusLines: { [sessionName: string]: LogEntry } = {}
 
 function checkMutagen(ctx: PluginContext, log: LogEntry) {
-  getActiveMutagenSyncs(ctx, log)
-    .then((syncs) => {
-      for (const sync of syncs) {
-        const sessionName = sync.session.name
+  getActiveMutagenSyncSessions(ctx, log)
+    .then((sessions) => {
+      for (const session of sessions) {
+        const sessionName = session.name
         const activeSync = activeSyncs[sessionName]
         if (!activeSync) {
           continue
@@ -352,9 +372,15 @@ function checkMutagen(ctx: PluginContext, log: LogEntry) {
         const { sourceDescription, targetDescription } = activeSync
 
         const problems: string[] = [
-          ...(sync.alphaScanProblems || []).map((p) => `Error scanning sync source, path ${p.path}: ${p.error}`),
-          ...(sync.betaScanProblems || []).map((p) => `Error scanning sync target, path ${p.path}: ${p.error}`),
-          ...(sync.conflicts || []).map((c) => formatSyncConflict(sourceDescription, targetDescription, c)),
+          ...(session.alpha.scanProblems || []).map((p) => `Error scanning sync source, path ${p.path}: ${p.error}`),
+          ...(session.beta.scanProblems || []).map((p) => `Error scanning sync target, path ${p.path}: ${p.error}`),
+          ...(session.alpha.transitionProblems || []).map(
+            (p) => `Error transitioning sync source, path ${p.path}: ${p.error}`
+          ),
+          ...(session.beta.transitionProblems || []).map(
+            (p) => `Error transitioning sync target, path ${p.path}: ${p.error}`
+          ),
+          ...(session.conflicts || []).map((c) => formatSyncConflict(sourceDescription, targetDescription, c)),
         ]
 
         const { logSection: section } = activeSync
@@ -365,7 +391,7 @@ function checkMutagen(ctx: PluginContext, log: LogEntry) {
           }
         }
 
-        if (sync.alphaConnected && !activeSync.sourceConnected) {
+        if (session.alpha.connected && !activeSync.sourceConnected) {
           log.info({
             symbol: "info",
             section,
@@ -374,7 +400,7 @@ function checkMutagen(ctx: PluginContext, log: LogEntry) {
           activeSync.sourceConnected = true
         }
 
-        if (sync.betaConnected && !activeSync.targetConnected) {
+        if (session.beta.connected && !activeSync.targetConnected) {
           log.info({
             symbol: "success",
             section,
@@ -383,7 +409,7 @@ function checkMutagen(ctx: PluginContext, log: LogEntry) {
           activeSync.targetConnected = true
         }
 
-        const syncCount = sync.successfulSynchronizationCycles || 0
+        const syncCount = session.successfulCycles || 0
         const description = `from ${sourceDescription} to ${targetDescription}`
 
         if (syncCount > activeSync.lastSyncCount) {
@@ -428,11 +454,11 @@ export function startMutagenMonitor(ctx: PluginContext, log: LogEntry) {
 /**
  * List the currently active syncs in the mutagen daemon.
  */
-export async function getActiveMutagenSyncs(ctx: PluginContext, log: LogEntry): Promise<SyncListEntry[]> {
-  const res = await execMutagenCommand(ctx, log, ["sync", "list", "--output=json"])
+export async function getActiveMutagenSyncSessions(ctx: PluginContext, log: LogEntry): Promise<SyncSession[]> {
+  const res = await execMutagenCommand(ctx, log, ["sync", "list", "--template={{ json . }}"])
 
   // TODO: validate further
-  let parsed: any = {}
+  let parsed: any = []
 
   try {
     parsed = JSON.parse(res.stdout)
@@ -440,11 +466,11 @@ export async function getActiveMutagenSyncs(ctx: PluginContext, log: LogEntry): 
     throw new MutagenError(`Could not parse response from mutagen sync list: ${res.stdout}`, { res })
   }
 
-  if (!parsed.sessions) {
+  if (!Array.isArray(parsed)) {
     throw new MutagenError(`Unexpected response from mutagen sync list: ${parsed}`, { res, parsed })
   }
 
-  return parsed.sessions
+  return parsed
 }
 
 /**
@@ -473,8 +499,8 @@ export async function ensureMutagenSync({
   }
 
   return mutagenConfigLock.acquire("configure", async () => {
-    const active = await getActiveMutagenSyncs(ctx, log)
-    const existing = active.find((s) => s.session.name === key)
+    const active = await getActiveMutagenSyncSessions(ctx, log)
+    const existing = active.find((s) => s.name === key)
 
     if (!existing) {
       const { alpha, beta, ignore, mode, defaultOwner, defaultGroup, defaultDirectoryMode, defaultFileMode } = config
@@ -552,12 +578,12 @@ export async function flushMutagenSync(ctx: PluginContext, log: LogEntry, key: s
  * Ensure all active syncs are completed.
  */
 export async function flushAllMutagenSyncs(ctx: PluginContext, log: LogEntry) {
-  const active = await getActiveMutagenSyncs(ctx, log)
-  await Bluebird.map(active, async (sync) => {
+  const active = await getActiveMutagenSyncSessions(ctx, log)
+  await Bluebird.map(active, async (session) => {
     try {
-      await flushMutagenSync(ctx, log, sync.session.name)
+      await flushMutagenSync(ctx, log, session.name)
     } catch (err) {
-      log.warn(chalk.yellow(`Failed to flush sync '${sync.session.name}: ${err.message}`))
+      log.warn(chalk.yellow(`Failed to flush sync '${session.name}: ${err.message}`))
     }
   })
 }
@@ -611,8 +637,8 @@ export const mutagenCliSpec: PluginToolSpec = {
       platform: "darwin",
       architecture: "amd64",
       url:
-        "https://github.com/garden-io/mutagen/releases/download/v0.14.0-garden-1/mutagen_darwin_amd64_v0.14.0.tar.gz",
-      sha256: "53abc7dadef14d3cb90b72e2afa79622d72d5aa4c3ff70189da3f29249651d55",
+        "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_darwin_amd64_v0.15.0.tar.gz",
+      sha256: "370bf71e28f94002453921fda83282280162df7192bd07042bf622bf54507e3f",
       extract: {
         format: "tar",
         targetPath: "mutagen",
@@ -622,8 +648,8 @@ export const mutagenCliSpec: PluginToolSpec = {
       platform: "darwin",
       architecture: "arm64",
       url:
-        "https://github.com/mutagen-io/mutagen/releases/download/v0.14.0-garden-1/mutagen_darwin_arm64_v0.14.0.tar.gz",
-      sha256: "684de1c76cdf5893b1973cf57bd09792b66a7c8a3ae8e7e20286d440f875800c",
+        "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_darwin_arm64_v0.15.0.tar.gz",
+      sha256: "a0a7be8bb37266ea184cb580004e1741a17c8165b2032ce4b191f23fead821a0",
       extract: {
         format: "tar",
         targetPath: "mutagen",
@@ -632,8 +658,8 @@ export const mutagenCliSpec: PluginToolSpec = {
     {
       platform: "linux",
       architecture: "amd64",
-      url: "https://github.com/garden-io/mutagen/releases/download/v0.14.0-garden-1/mutagen_linux_amd64_v0.14.0.tar.gz",
-      sha256: "3529ee4b2b836fc8cdf9bd3678d211cadaa916f3e24d6e1337f5ce6f25d46ca6",
+      url: "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_linux_amd64_v0.15.0.tar.gz",
+      sha256: "e8c0708258ddd6d574f1b8f514fb214f9ab5d82aed38dd8db49ec10956e5063a",
       extract: {
         format: "tar",
         targetPath: "mutagen",
@@ -642,8 +668,8 @@ export const mutagenCliSpec: PluginToolSpec = {
     {
       platform: "windows",
       architecture: "amd64",
-      url: "https://github.com/garden-io/mutagen/releases/download/v0.14.0-garden-1/mutagen_windows_amd64_v0.14.0.zip",
-      sha256: "6a09d990e5d74fbfd50edce25182e5786922af74f5f5ad00b33c30fa562fae9a",
+      url: "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_windows_amd64_v0.15.0.zip",
+      sha256: "fdae26b43cc418b2525a937a1613bba36e74ea3dde4dbec3512a9abd004def95",
       extract: {
         format: "zip",
         targetPath: "mutagen.exe",

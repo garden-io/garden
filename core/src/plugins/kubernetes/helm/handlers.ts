@@ -7,12 +7,12 @@
  */
 
 import { ModuleAndRuntimeActionHandlers } from "../../../types/plugin/plugin"
-import { HelmModule, configureHelmModule } from "./config"
+import { configureHelmModule, HelmModule } from "./config"
 import { buildHelmModule } from "./build"
 import { getServiceStatus } from "./status"
-import { deployHelmService, deleteService } from "./deployment"
+import { deleteService, deployHelmService } from "./deployment"
 import { getTestResult } from "../test-results"
-import { runHelmTask, runHelmModule } from "./run"
+import { runHelmModule, runHelmTask } from "./run"
 import { getServiceLogs } from "./logs"
 import { testHelmModule } from "./test"
 import { getPortForwardHandler } from "../port-forward"
@@ -22,10 +22,10 @@ import { KubernetesPluginContext } from "../config"
 import { getModuleNamespace } from "../namespace"
 import { join } from "path"
 import { pathExists } from "fs-extra"
-import chalk = require("chalk")
 import { SuggestModulesParams, SuggestModulesResult } from "../../../types/plugin/module/suggestModules"
 import { getReleaseName } from "./common"
 import { execInHelmService } from "./exec"
+import chalk = require("chalk")
 
 export const helmHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModule>> = {
   build: buildHelmModule,

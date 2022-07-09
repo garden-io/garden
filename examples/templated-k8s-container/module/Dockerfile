@@ -1,4 +1,4 @@
-FROM golang:1.8.3-alpine
+FROM golang:1.18.3-alpine3.16
 
 ENV PORT=8080
 EXPOSE ${PORT}
@@ -6,6 +6,6 @@ WORKDIR /app
 
 COPY main.go .
 
-RUN go build -o main .
+RUN go mod init main && go build -o main .
 
 ENTRYPOINT ["./main"]

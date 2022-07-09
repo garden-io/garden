@@ -1,0 +1,36 @@
+kind: Module
+name: backend
+description: Helm chart for the backend service
+type: helm
+
+localMode:
+  localPort: 8090
+  # starts the local application
+  command: [ ]
+  containerName: backend
+
+# this is here to test that local mode always take precedence over dev mode
+devMode:
+  sync:
+    - target: /app
+      mode: one-way
+
+serviceResource:
+  kind: Deployment
+  containerModule: backend-image
+
+build:
+  dependencies: [ "backend-image" ]
+
+values:
+  image:
+    repository: ${modules.backend-image.outputs.deployment-image-name}
+    tag: ${modules.backend-image.version}
+  ingress:
+    enabled: true
+    paths: [ "/hello-backend" ]
+    hosts: [ "backend.${var.baseHostname}" ]
+
+tasks:
+  - name: test
+    command: [ "sh", "-c", "echo task output" ]

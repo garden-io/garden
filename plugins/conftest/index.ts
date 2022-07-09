@@ -230,6 +230,7 @@ export const gardenPlugin = () =>
               ctx: k8sCtx,
               module: sourceModule,
               devMode: false,
+              localMode: false,
               log,
               version: sourceModule.version.versionString,
             })

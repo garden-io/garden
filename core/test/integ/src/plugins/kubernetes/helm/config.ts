@@ -10,7 +10,7 @@ import { resolve } from "path"
 import { expect } from "chai"
 import { cloneDeep, omit } from "lodash"
 
-import { TestGarden, expectError } from "../../../../../helpers"
+import { expectError, TestGarden } from "../../../../../helpers"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { dedent } from "../../../../../../src/util/string"
 import { defaultBuildTimeout, ModuleConfig } from "../../../../../../src/config/module"

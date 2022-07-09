@@ -27,7 +27,7 @@ orbs:
   # Configuration for our node jobs
   node-config: &node-config
     docker:
-      - image: gardendev/circleci-runner:14.19.0-1
+      - image: gardendev/circleci-runner:14.19.3-1
         environment:
           <<: *shared-env-config
     resource_class: medium
@@ -219,6 +219,10 @@ commands:
       - npm_install
       - *attach-workspace
       - run:
+          environment:
+            # pkg doesn't use a normal cache directory by default
+            # see https://github.com/vercel/pkg/issues/1225
+            PKG_CACHE_PATH: tmp/pkg/
           name: Run dist command with the appropriate argument
           command: yarn run dist --version "<<parameters.version>>"
       - persist_to_workspace:
@@ -757,7 +761,7 @@ jobs:
 
   test-macos:
     macos:
-      xcode: "12.5.1"
+      xcode: "13.4.1"
     steps:
       - checkout
       - *attach-workspace
@@ -771,8 +775,8 @@ jobs:
           name: Install gcloud SDK
           command: |
             cd $HOME
-            curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-373.0.0-darwin-x86_64.tar.gz
-            tar xzf google-cloud-sdk-373.0.0-darwin-x86_64.tar.gz
+            curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-390.0.0-darwin-x86_64.tar.gz
+            tar xzf google-cloud-sdk-390.0.0-darwin-x86_64.tar.gz
             echo 'export PATH=$HOME/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
       - docker_login
       - configure_kubectl_context

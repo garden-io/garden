@@ -253,23 +253,75 @@ describe("kubernetes-module handlers", () => {
         readFromSrcDir: true,
       })
 
-      // Deploy without dev mode
+      // Deploy without local mode
       await deployKubernetesService(deployParams)
       const res1 = await findDeployedResources(manifests, log)
 
-      // Deploy with dev mode
+      // Deploy with local mode
       await deployKubernetesService({ ...deployParams, localMode: true })
       const res2 = await findDeployedResources(manifests, log)
       // shut down local app and tunnels to avoid retrying after redeploy
       LocalModeProcessRegistry.getInstance().shutdown()
 
-      // Deploy without dev mode again
+      // Deploy without local mode again
       await deployKubernetesService(deployParams)
       const res3 = await findDeployedResources(manifests, log)
 
       expect(res1[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("false")
       expect(res2[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("true")
       expect(res3[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("false")
+    })
+
+    it("localMode should always take precedence over devMode", async () => {
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const service = graph.getService("with-source-module")
+      const namespace = await getModuleNamespace({
+        ctx,
+        log,
+        module: service.module,
+        provider: ctx.provider,
+        skipCreate: true,
+      })
+      const deployParams = {
+        ctx,
+        log: garden.log,
+        module: service.module,
+        service,
+        force: false,
+        devMode: false,
+        localMode: false,
+        runtimeContext: emptyRuntimeContext,
+      }
+      const manifests = await getManifests({
+        ctx,
+        api,
+        log,
+        module: service.module,
+        defaultNamespace: namespace,
+        readFromSrcDir: true,
+      })
+
+      // Deploy without local mode
+      await deployKubernetesService(deployParams)
+      const res1 = await findDeployedResources(manifests, log)
+
+      // Deploy with local mode
+      await deployKubernetesService({ ...deployParams, localMode: true, devMode: true })
+      const res2 = await findDeployedResources(manifests, log)
+      // shut down local app and tunnels to avoid retrying after redeploy
+      LocalModeProcessRegistry.getInstance().shutdown()
+
+      // Deploy without local mode again
+      await deployKubernetesService(deployParams)
+      const res3 = await findDeployedResources(manifests, log)
+
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("false")
+      expect(res2[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("true")
+      expect(res3[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("false")
+
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("false")
+      expect(res2[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("false")
+      expect(res3[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("false")
     })
 
     it("should not delete previously deployed namespace resources", async () => {

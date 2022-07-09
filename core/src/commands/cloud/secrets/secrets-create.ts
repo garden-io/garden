@@ -8,15 +8,15 @@
 
 import { CommandError, ConfigurationError, EnterpriseApiError } from "../../../exceptions"
 import { CreateSecretResponse } from "@garden-io/platform-api-types"
-import dotenv = require("dotenv")
 import { readFile } from "fs-extra"
 
 import { printHeader } from "../../../logger/util"
 import { Command, CommandParams, CommandResult } from "../../base"
 import { ApiCommandError, handleBulkOperationResult, makeSecretFromResponse, noApiMsg, SecretResult } from "../helpers"
 import { dedent, deline } from "../../../util/string"
-import { StringsParameter, PathParameter, IntegerParameter, StringParameter } from "../../../cli/params"
+import { IntegerParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params"
 import { StringMap } from "../../../config/common"
+import dotenv = require("dotenv")
 
 export const secretsCreateArgs = {
   secrets: new StringsParameter({
@@ -100,9 +100,16 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       }
     } else if (args.secrets) {
       secrets = args.secrets.reduce((acc, keyValPair) => {
-        const parts = keyValPair.split("=")
-        acc[parts[0]] = parts[1]
-        return acc
+        try {
+          const secret = dotenv.parse(keyValPair)
+          Object.assign(acc, secret)
+          return acc
+        } catch (err) {
+          throw new CommandError(`Unable to read secret from argument ${keyValPair}: ${err.message}`, {
+            args,
+            opts,
+          })
+        }
       }, {})
     } else {
       throw new CommandError(

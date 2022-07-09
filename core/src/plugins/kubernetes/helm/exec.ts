@@ -39,6 +39,7 @@ export async function execInHelmService(params: ExecInServiceParams<HelmModule>)
     ctx: k8sCtx,
     module,
     devMode: false,
+    localMode: false,
     log,
     version: service.version,
   })
