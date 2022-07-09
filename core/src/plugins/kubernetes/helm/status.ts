@@ -78,29 +78,30 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
   if (state !== "missing") {
     const deployedResources = await getRenderedResources({ ctx: k8sCtx, action, releaseName, log })
 
-    forwardablePorts = !!deployedWithLocalMode ? [] : getForwardablePorts(deployedResources, service)
+    forwardablePorts = !!deployedWithLocalMode ? [] : getForwardablePorts(deployedResources, action)
     ingresses = getK8sIngresses(deployedResources)
 
     if (state === "ready") {
       // Local mode always takes precedence over dev mode
       if (localMode && spec.localMode) {
-        const resourceSpec = spec.localMode.target || spec.defaultTarget
+        const query = spec.localMode.target || spec.defaultTarget
 
-        if (resourceSpec) {
+        // If no target is set, a warning is emitted during deployment
+        if (query) {
           const target = await getTargetResource({
             ctx: k8sCtx,
             log,
             provider: k8sCtx.provider,
             action,
             manifests: deployedResources,
-            resourceSpec,
+            query,
           })
 
           if (!isConfiguredForLocalMode(target)) {
             state = "outdated"
           }
         }
-      } else if (devMode && spec.devMode) {
+      } else if (devMode && spec.devMode?.syncs) {
         // Need to start the dev-mode sync here, since the deployment handler won't be called.
 
         // First make sure we don't fail if resources arent't actually properly configured (we don't want to throw in
@@ -111,8 +112,6 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
           log,
           action,
           provider: k8sCtx.provider,
-          manifests: deployedResources,
-          query: resourceSpec,
         })
 
         await startDevModeSyncs({

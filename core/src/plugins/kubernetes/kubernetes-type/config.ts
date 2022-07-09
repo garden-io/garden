@@ -7,7 +7,7 @@
  */
 
 import { joi, joiSparseArray } from "../../../config/common"
-import { portForwardsSchema, PortForwardSpec, KubernetesTargetResourceSpec } from "../config"
+import { portForwardsSchema, PortForwardSpec, KubernetesTargetResourceSpec, KubernetesLocalModeSpec } from "../config"
 import { kubernetesDeployDevModeSchema, KubernetesDeployDevModeSpec } from "../dev-mode"
 import { KubernetesKustomizeSpec, kustomizeSpecSchema } from "./kustomize"
 import type { KubernetesResource } from "../types"
@@ -30,6 +30,7 @@ export interface KubernetesTypeCommonDeploySpec {
 interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySpec {
   defaultTarget?: KubernetesTargetResourceSpec
   devMode?: KubernetesDeployDevModeSpec
+  localMode?: KubernetesLocalModeSpec
 }
 export type KubernetesDeployActionConfig = DeployActionConfig<"kubernetes", KubernetesDeployActionSpec>
 export type KubernetesDeployAction = DeployAction<KubernetesDeployActionConfig>

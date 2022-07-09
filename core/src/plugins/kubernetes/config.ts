@@ -105,6 +105,7 @@ export const kubernetesDevModeDefaultsSchema = () =>
 
 export interface KubernetesLocalModeSpec extends ContainerLocalModeSpec {
   containerName?: string
+  target?: KubernetesTargetResourceSpec
 }
 
 export const kubernetesLocalModeSchema = () =>
@@ -113,18 +114,16 @@ export const kubernetesLocalModeSchema = () =>
       .string()
       .optional()
       .description(
-        "The name of the target container. The first available container will be used if this field is not defined."
+        "When using the `defaultTarget` and not specifying `localMode.target`, this field can be used to override the default container name to proxy traffic from."
       ),
+    target: targetResourceSpecSchema().description(
+      "The remote Kubernetes resource to proxy traffic from. If specified, this is used instead of `defaultTarget`."
+    ),
   }).description(dedent`
-    Configures the local application which will send and receive network requests instead of the target resource specified by \`serviceResource\`.
-
-    Note that \`serviceResource\` must also be specified to enable local mode. Local mode configuration for the \`kubernetes\` module type relies on the \`serviceResource.kind\` and \`serviceResource.name\` fields to select a target Kubernetes resource.
-
-    The \`serviceResource.containerName\` field is not used by local mode configuration.
-    Note that \`localMode\` uses its own field \`containerName\` to specify a target container name explicitly.
+    Configures the local application which will send and receive network requests instead of the target resource specified by \`localMode.target\` or \`defaultTarget\`. One of those fields must be specified to enable local mode for the action.
 
     The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH server to proxy requests.
-    Reverse port-forwarding will be automatically configured to route traffic to the locally deployed application and back.
+    Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
 
     Local mode is enabled by setting the \`--local\` option on the \`garden deploy\` or \`garden dev\` commands.
     Local mode always takes the precedence over dev mode if there are any conflicting service names.
