@@ -16,6 +16,7 @@ import { joi } from "../../../config/common"
 export interface GetServiceStatusParams<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule>
   extends PluginServiceActionParamsBase<M, S> {
   devMode: boolean
+  localMode: boolean
   runtimeContext: RuntimeContext
 }
 
@@ -32,6 +33,7 @@ export const getServiceStatus = () => ({
   paramsSchema: serviceActionParamsSchema().keys({
     runtimeContext: runtimeContextSchema(),
     devMode: joi.boolean().default(false).description("Whether the service should be configured in dev mode."),
+    localMode: joi.boolean().default(false).description("Whether the service should be configured in local mode."),
   }),
   resultSchema: serviceStatusSchema(),
 })

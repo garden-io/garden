@@ -1240,7 +1240,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   const vcsInfo = await gitHandler.getPathInfo(log, projectRoot)
 
   // Since we iterate/traverse them before fully validating them (which we do after resolving template strings), we
-  // validdate that `config.environments` and `config.providers` are both arrays.
+  // validate that `config.environments` and `config.providers` are both arrays.
   // This prevents cryptic type errors when the user mistakely writes down e.g. a map instead of an array.
   validateWithPath({
     config: config.environments,

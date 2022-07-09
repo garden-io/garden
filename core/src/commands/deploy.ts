@@ -23,7 +23,7 @@ import { getModuleWatchTasks } from "../tasks/helpers"
 import { processModules } from "../process"
 import { printHeader } from "../logger/util"
 import { BaseTask } from "../tasks/base"
-import { getDevModeModules, getDevModeServiceNames } from "./helpers"
+import { getDevModeModules, getMatchingServiceNames } from "./helpers"
 import { startServer } from "../server/server"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
@@ -52,6 +52,17 @@ export const deployOpts = {
       the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
     `,
     alias: "dev",
+  }),
+  "local-mode": new StringsParameter({
+    help: deline`[EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled.
+    Use comma as a separator to specify multiple services. Use * to deploy all
+    services with local mode enabled. When this option is used,
+    the command is run in persistent mode.
+
+    This always takes the precedence over the dev mode if there are any conflicts,
+    i.e. if the same services are passed to both \`--dev\` and \`--local\` options.
+    `,
+    alias: "local",
   }),
   "skip": new StringsParameter({
     help: "The name(s) of services you'd like to skip when deploying.",
@@ -96,6 +107,8 @@ export class DeployCommand extends Command<Args, Opts> {
         garden deploy --watch              # watch for changes to code
         garden deploy --dev=my-service     # deploys all services, with dev mode enabled for my-service
         garden deploy --dev                # deploys all compatible services with dev mode enabled
+        garden deploy --local=my-service   # deploys all services, with local mode enabled for my-service
+        garden deploy --local              # deploys all compatible services with local mode enabled
         garden deploy --env stage          # deploy your services to an environment called stage
         garden deploy --skip service-b     # deploy all services except service-b
   `
@@ -108,7 +121,7 @@ export class DeployCommand extends Command<Args, Opts> {
   outputsSchema = () => processCommandResultSchema()
 
   isPersistent({ opts }: PrepareParams<Args, Opts>) {
-    return !!opts.watch || !!opts["dev-mode"] || !!opts.forward
+    return !!opts.watch || !!opts["dev-mode"] || !!opts["local-mode"] || !!opts.forward
   }
 
   printHeader({ headerLog }) {
@@ -169,7 +182,10 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const modules = Array.from(new Set(services.map((s) => s.module)))
-    const devModeServiceNames = getDevModeServiceNames(opts["dev-mode"], initGraph)
+    const localModeServiceNames = getMatchingServiceNames(opts["local-mode"], initGraph)
+    const devModeServiceNames = getMatchingServiceNames(opts["dev-mode"], initGraph).filter(
+      (name) => !localModeServiceNames.includes(name)
+    )
 
     let watch = opts.watch
 
@@ -192,6 +208,7 @@ export class DeployCommand extends Command<Args, Opts> {
           fromWatch: false,
           skipRuntimeDependencies,
           devModeServiceNames,
+          localModeServiceNames,
         })
     )
 
@@ -212,6 +229,7 @@ export class DeployCommand extends Command<Args, Opts> {
           module,
           servicesWatched: services.map((s) => s.name),
           devModeServiceNames,
+          localModeServiceNames,
         })
 
         return tasks

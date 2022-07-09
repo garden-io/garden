@@ -275,7 +275,7 @@ export interface Events extends LoggerEvents {
   deployRequested: {
     serviceName: string
     devMode: boolean
-    hotReload: boolean
+    localMode: boolean
     force: boolean
     forceBuild: boolean
     skipDependencies: boolean

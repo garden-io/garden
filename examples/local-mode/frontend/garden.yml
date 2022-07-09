@@ -1,0 +1,30 @@
+kind: Module
+name: frontend
+description: Frontend service container
+type: container
+services:
+  - name: frontend
+    ports:
+      - name: http
+        containerPort: 8080
+    healthCheck:
+      httpGet:
+        path: /hello-frontend
+        port: http
+    ingresses:
+      - path: /hello-frontend
+        port: http
+      - path: /call-backend-1
+        port: http
+      - path: /call-backend-2
+        port: http
+    dependencies:
+      - backend-1
+      - backend-2
+tests:
+  - name: unit
+    args: [npm, test]
+  - name: integ
+    args: [npm, run, integ]
+    dependencies:
+      - frontend

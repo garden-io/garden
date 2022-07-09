@@ -21,7 +21,7 @@ import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../s
 import { getModuleNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
 import { getDeployedResource } from "../../../../../../src/plugins/kubernetes/status/status"
 import { ModuleConfig } from "../../../../../../src/config/module"
-import { KubernetesResource, BaseResource } from "../../../../../../src/plugins/kubernetes/types"
+import { BaseResource, KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
 import { DeleteServiceTask } from "../../../../../../src/tasks/delete-service"
 import {
   deployKubernetesService,
@@ -32,6 +32,7 @@ import Bluebird from "bluebird"
 import { buildHelmModules } from "../helm/common"
 import { gardenAnnotationKey } from "../../../../../../src/util/string"
 import { getServiceStatuses } from "../../../../../../src/tasks/base"
+import { LocalModeProcessRegistry } from "../../../../../../src/plugins/kubernetes/local-mode"
 
 describe("kubernetes-module handlers", () => {
   let tmpDir: tmp.DirectoryResult
@@ -132,6 +133,7 @@ describe("kubernetes-module handlers", () => {
         force: false,
         devMode: false,
 
+        localMode: false,
         runtimeContext: emptyRuntimeContext,
       }
       service.module.spec.manifests = [
@@ -160,6 +162,7 @@ describe("kubernetes-module handlers", () => {
         force: false,
         devMode: false,
 
+        localMode: false,
         runtimeContext: emptyRuntimeContext,
       }
       const status = await deployKubernetesService(deployParams)
@@ -191,6 +194,7 @@ describe("kubernetes-module handlers", () => {
         force: false,
         devMode: false,
 
+        localMode: false,
         runtimeContext: emptyRuntimeContext,
       }
       const manifests = await getManifests({
@@ -219,6 +223,55 @@ describe("kubernetes-module handlers", () => {
       expect(res3[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("false")
     })
 
+    it("should toggle localMode", async () => {
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const service = graph.getService("with-source-module")
+      const namespace = await getModuleNamespace({
+        ctx,
+        log,
+        module: service.module,
+        provider: ctx.provider,
+        skipCreate: true,
+      })
+      const deployParams = {
+        ctx,
+        log: garden.log,
+        module: service.module,
+        service,
+        force: false,
+        devMode: false,
+
+        localMode: false,
+        runtimeContext: emptyRuntimeContext,
+      }
+      const manifests = await getManifests({
+        ctx,
+        api,
+        log,
+        module: service.module,
+        defaultNamespace: namespace,
+        readFromSrcDir: true,
+      })
+
+      // Deploy without dev mode
+      await deployKubernetesService(deployParams)
+      const res1 = await findDeployedResources(manifests, log)
+
+      // Deploy with dev mode
+      await deployKubernetesService({ ...deployParams, localMode: true })
+      const res2 = await findDeployedResources(manifests, log)
+      // shut down local app and tunnels to avoid retrying after redeploy
+      LocalModeProcessRegistry.getInstance().shutdown()
+
+      // Deploy without dev mode again
+      await deployKubernetesService(deployParams)
+      const res3 = await findDeployedResources(manifests, log)
+
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("false")
+      expect(res2[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("true")
+      expect(res3[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("false")
+    })
+
     it("should not delete previously deployed namespace resources", async () => {
       garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-module-ns-1")])
       let graph = await garden.getConfigGraph({ log, emit: false })
@@ -235,6 +288,8 @@ describe("kubernetes-module handlers", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
+
+        localModeServiceNames: [],
       })
       const results = await garden.processTasks([deployTask], { throwOnError: true })
       const status = getServiceStatuses(results)["namespace-resource"]
@@ -272,6 +327,8 @@ describe("kubernetes-module handlers", () => {
         force: true,
         forceBuild: true,
         devModeServiceNames: [],
+
+        localModeServiceNames: [],
       })
       await garden.processTasks([deployTask2], { throwOnError: true })
       ns2Resource = await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log)

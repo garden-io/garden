@@ -60,11 +60,13 @@ describe("cloudEventHandlers", () => {
           force: false,
           forceBuild: false,
           devMode: false,
-          hotReload: false,
+
+          localMode: false,
           skipDependencies: true,
         },
       })
-      expect(deployTask["hotReloadServiceNames"]).to.eql([])
+      expect(deployTask["devModeServiceNames"]).to.eql([])
+      expect(deployTask["localModeServiceNames"]).to.eql([])
       expect(deployTask.service.name).to.eql("service-a")
     })
 
@@ -76,11 +78,30 @@ describe("cloudEventHandlers", () => {
           force: false,
           forceBuild: false,
           devMode: true,
-          hotReload: false,
+          localMode: false,
           skipDependencies: true,
         },
       })
       expect(deployTask["service"].name).to.eql("service-a")
+      // todo
+      // expect(deployTask["devModeServiceNames"]).to.eql(["service-a"])
+    })
+
+    it("should return a local-mode deploy task for the requested service", async () => {
+      const deployTask = await cloudEventHandlers.deployRequested({
+        ...params,
+        request: {
+          serviceName: "service-a",
+          force: false,
+          forceBuild: false,
+          devMode: false,
+          localMode: true,
+          skipDependencies: true,
+        },
+      })
+      expect(deployTask["service"].name).to.eql("service-a")
+      // todo
+      // expect(deployTask["localModeServiceNames"]).to.eql(["service-a"])
     })
   })
 

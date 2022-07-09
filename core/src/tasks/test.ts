@@ -41,6 +41,7 @@ export interface TestTaskParams {
   fromWatch?: boolean
   skipRuntimeDependencies?: boolean
   devModeServiceNames: string[]
+  localModeServiceNames: string[]
   silent?: boolean
   interactive?: boolean
 }
@@ -54,6 +55,7 @@ export class TestTask extends BaseTask {
   fromWatch: boolean
   skipRuntimeDependencies: boolean
   devModeServiceNames: string[]
+  localModeServiceNames: string[]
   silent: boolean
 
   constructor({
@@ -66,6 +68,7 @@ export class TestTask extends BaseTask {
     fromWatch = false,
     skipRuntimeDependencies = false,
     devModeServiceNames,
+    localModeServiceNames,
     silent = true,
     interactive = false,
   }: TestTaskParams) {
@@ -77,6 +80,7 @@ export class TestTask extends BaseTask {
     this.fromWatch = fromWatch
     this.skipRuntimeDependencies = skipRuntimeDependencies
     this.devModeServiceNames = devModeServiceNames
+    this.localModeServiceNames = localModeServiceNames
     this.silent = silent
     this.interactive = interactive
   }
@@ -143,7 +147,7 @@ export class TestTask extends BaseTask {
 
     const dependencies = this.graph.getDependencies({
       nodeType: "test",
-      name: this.test.name,
+      name: this.getName(),
       recursive: false,
     })
     const serviceStatuses = getServiceStatuses(dependencyResults)
@@ -215,6 +219,7 @@ export async function getTestTasks({
   module,
   filterNames,
   devModeServiceNames,
+  localModeServiceNames,
   force = false,
   forceBuild = false,
   fromWatch = false,
@@ -226,6 +231,7 @@ export async function getTestTasks({
   module: GardenModule
   filterNames?: string[]
   devModeServiceNames: string[]
+  localModeServiceNames: string[]
   force?: boolean
   forceBuild?: boolean
   fromWatch?: boolean
@@ -243,6 +249,7 @@ export async function getTestTasks({
         fromWatch,
         test: testFromConfig(module, testConfig, graph),
         devModeServiceNames,
+        localModeServiceNames,
         skipRuntimeDependencies,
       })
   )

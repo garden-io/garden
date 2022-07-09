@@ -96,6 +96,8 @@ describe("util", () => {
           log: garden.log,
           service,
           devModeServiceNames: [],
+
+          localModeServiceNames: [],
         })
 
         const resource = await createWorkloadManifest({
@@ -106,6 +108,7 @@ describe("util", () => {
           namespace: provider.config.namespace!.name!,
           enableDevMode: false,
 
+          enableLocalMode: false,
           log: garden.log,
           production: false,
           blueGreen: false,
@@ -135,6 +138,8 @@ describe("util", () => {
           log: garden.log,
           service,
           devModeServiceNames: [],
+
+          localModeServiceNames: [],
         })
 
         const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
@@ -190,8 +195,8 @@ describe("util", () => {
         (err) =>
           expect(stripAnsi(err.message)).to.equal(
             deline`helm module api doesn't specify a serviceResource in its configuration.
-          You must specify a resource in the module config in order to use certain Garden features,
-          such as dev mode, tasks and tests.`
+          You must specify a resource in the module config in order to use certain Garden features,
+          such as tasks and tests.`
           )
       )
     })
@@ -209,7 +214,7 @@ describe("util", () => {
           expect(stripAnsi(err.message)).to.equal(
             deline`helm module api doesn't specify a serviceResource in its configuration.
           You must specify a resource in the module config in order to use certain Garden features,
-          such as dev mode, tasks and tests.`
+          such as tasks and tests.`
           )
       )
     })
@@ -263,7 +268,7 @@ describe("util", () => {
           expect(stripAnsi(err.message)).to.equal(
             deline`helm module api doesn't specify a serviceResource in its configuration.
           You must specify a resource in the module config in order to use certain Garden features,
-          such as dev mode, tasks and tests.`
+          such as tasks and tests.`
           )
       )
     })
@@ -390,6 +395,8 @@ describe("util", () => {
           log: helmGarden.log,
           service,
           devModeServiceNames: [],
+
+          localModeServiceNames: [],
         })
 
         await helmGarden.processTasks([deployTask], { throwOnError: true })

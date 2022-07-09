@@ -26,6 +26,7 @@ export interface GetServiceStatusTaskParams {
   force: boolean
   log: LogEntry
   devModeServiceNames: string[]
+  localModeServiceNames: string[]
 }
 
 @Profile()
@@ -35,12 +36,22 @@ export class GetServiceStatusTask extends BaseTask {
   graph: ConfigGraph
   service: GardenService
   devModeServiceNames: string[]
+  localModeServiceNames: string[]
 
-  constructor({ garden, graph, log, service, force, devModeServiceNames }: GetServiceStatusTaskParams) {
+  constructor({
+    garden,
+    graph,
+    log,
+    service,
+    force,
+    devModeServiceNames,
+    localModeServiceNames,
+  }: GetServiceStatusTaskParams) {
     super({ garden, log, force, version: service.version })
     this.graph = graph
     this.service = service
     this.devModeServiceNames = devModeServiceNames
+    this.localModeServiceNames = localModeServiceNames
   }
 
   async resolveDependencies() {
@@ -54,6 +65,7 @@ export class GetServiceStatusTask extends BaseTask {
         service,
         force: false,
         devModeServiceNames: this.devModeServiceNames,
+        localModeServiceNames: this.localModeServiceNames,
       })
     })
 
@@ -82,6 +94,7 @@ export class GetServiceStatusTask extends BaseTask {
     const log = this.log.placeholder()
 
     const devMode = includes(this.devModeServiceNames, this.service.name)
+    const localMode = !devMode && includes(this.localModeServiceNames, this.service.name)
 
     const dependencies = this.graph.getDependencies({
       nodeType: "deploy",
@@ -112,6 +125,7 @@ export class GetServiceStatusTask extends BaseTask {
         service: this.service,
         log,
         devMode,
+        localMode,
         runtimeContext,
       })
     } catch (err) {

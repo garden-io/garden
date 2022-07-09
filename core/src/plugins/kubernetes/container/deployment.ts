@@ -7,32 +7,33 @@
  */
 
 import chalk from "chalk"
-import { V1Container, V1Affinity, V1VolumeMount, V1PodSpec, V1Deployment, V1DaemonSet } from "@kubernetes/client-node"
-import { extend, find, keyBy, set, omit } from "lodash"
-import { ContainerModule, ContainerService, ContainerVolumeSpec, ContainerServiceConfig } from "../../container/config"
+import { V1Affinity, V1Container, V1DaemonSet, V1Deployment, V1PodSpec, V1VolumeMount } from "@kubernetes/client-node"
+import { GardenService } from "../../../types/service"
+import { extend, find, keyBy, omit, set } from "lodash"
+import { ContainerModule, ContainerService, ContainerServiceConfig, ContainerVolumeSpec } from "../../container/config"
 import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
-import { waitForResources, compareDeployedResources } from "../status/status"
+import { compareDeployedResources, waitForResources } from "../status/status"
 import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { getAppNamespace, getAppNamespaceStatus } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
-import { KubernetesProvider, KubernetesPluginContext } from "../config"
-import { KubernetesWorkload, KubernetesResource } from "../types"
+import { KubernetesPluginContext, KubernetesProvider } from "../config"
+import { KubernetesResource, KubernetesWorkload } from "../types"
 import { ConfigurationError } from "../../../exceptions"
-import { getContainerServiceStatus, ContainerServiceStatus } from "./status"
+import { ContainerServiceStatus, getContainerServiceStatus } from "./status"
 import { LogEntry } from "../../../logger/log-entry"
 import { prepareEnvVars, workloadTypes } from "../util"
-import { gardenAnnotationKey, deline } from "../../../util/string"
+import { deline, gardenAnnotationKey } from "../../../util/string"
 import { RuntimeContext } from "../../../runtime-context"
 import { resolve } from "path"
 import { killPortForwards } from "../port-forward"
 import { prepareSecrets } from "../secrets"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { syncableKinds, SyncableResource } from "../types"
-import { getResourceRequirements, getSecurityContext } from "./util"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
-import { GardenService } from "../../../types/service"
+import { getResourceRequirements, getSecurityContext } from "./util"
+import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 
 export const DEFAULT_CPU_REQUEST = "10m"
@@ -45,7 +46,7 @@ export const PRODUCTION_MINIMUM_REPLICAS = 3
 export async function deployContainerService(
   params: DeployServiceParams<ContainerModule>
 ): Promise<ContainerServiceStatus> {
-  const { ctx, service, log, devMode } = params
+  const { ctx, service, log, devMode, localMode } = params
   const deployWithDevMode = devMode && !!service.spec.devMode
   const { deploymentStrategy } = params.ctx.provider.config
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -64,7 +65,16 @@ export async function deployContainerService(
 
   if (devMode) {
     await startContainerDevSync({
-      ctx: <KubernetesPluginContext>ctx,
+      ctx: k8sCtx,
+      log,
+      status,
+      service,
+    })
+  }
+
+  if (localMode) {
+    await startLocalMode({
+      ctx: k8sCtx,
       log,
       status,
       service,
@@ -89,6 +99,11 @@ export async function startContainerDevSync({
     return
   }
 
+  log.info({
+    section: service.name,
+    msg: chalk.grey(`Deploying in dev mode`),
+  })
+
   const namespace = await getAppNamespace(ctx, log, ctx.provider)
   const target = status.detail.remoteResources.find((r) => syncableKinds.includes(r.kind))! as SyncableResource
 
@@ -103,8 +118,36 @@ export async function startContainerDevSync({
   })
 }
 
+export async function startLocalMode({
+  ctx,
+  log,
+  status,
+  service,
+}: {
+  ctx: KubernetesPluginContext
+  status: ContainerServiceStatus
+  log: LogEntry
+  service: ContainerService
+}) {
+  if (!service.spec.localMode) {
+    return
+  }
+
+  const namespace = await getAppNamespace(ctx, log, ctx.provider)
+  const targetResource = status.detail.remoteResources.find((r) => syncableKinds.includes(r.kind))! as SyncableResource
+
+  await startServiceInLocalMode({
+    ctx,
+    spec: service.spec.localMode,
+    targetResource,
+    gardenService: service,
+    namespace,
+    log,
+  })
+}
+
 export async function deployContainerServiceRolling(params: DeployServiceParams<ContainerModule> & { api: KubeApi }) {
-  const { ctx, api, service, runtimeContext, log, devMode } = params
+  const { ctx, api, service, runtimeContext, log, devMode, localMode } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
@@ -117,6 +160,7 @@ export async function deployContainerServiceRolling(params: DeployServiceParams<
     service,
     runtimeContext,
     enableDevMode: devMode,
+    enableLocalMode: localMode,
     blueGreen: false,
   })
 
@@ -137,7 +181,7 @@ export async function deployContainerServiceRolling(params: DeployServiceParams<
 }
 
 export async function deployContainerServiceBlueGreen(params: DeployServiceParams<ContainerModule> & { api: KubeApi }) {
-  const { ctx, api, service, runtimeContext, log, devMode } = params
+  const { ctx, api, service, runtimeContext, log, devMode, localMode } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
   const namespace = namespaceStatus.namespaceName
@@ -150,6 +194,7 @@ export async function deployContainerServiceBlueGreen(params: DeployServiceParam
     service,
     runtimeContext,
     enableDevMode: devMode,
+    enableLocalMode: localMode,
     blueGreen: true,
   })
 
@@ -259,6 +304,7 @@ export async function createContainerManifests({
   service,
   runtimeContext,
   enableDevMode,
+  enableLocalMode,
   blueGreen,
 }: {
   ctx: PluginContext
@@ -267,6 +313,7 @@ export async function createContainerManifests({
   service: ContainerService
   runtimeContext: RuntimeContext
   enableDevMode: boolean
+  enableLocalMode: boolean
   blueGreen: boolean
 }) {
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -281,13 +328,25 @@ export async function createContainerManifests({
     runtimeContext,
     namespace,
     enableDevMode,
+    enableLocalMode,
     log,
     production,
     blueGreen,
   })
-  const kubeservices = await createServiceResources(service, namespace, blueGreen)
+  const kubeServices = await createServiceResources(service, namespace, blueGreen)
 
-  const manifests = [workload, ...kubeservices, ...ingresses]
+  const localModeSpec = service.spec.localMode
+  if (enableLocalMode && localModeSpec) {
+    await configureLocalMode({
+      ctx,
+      spec: localModeSpec,
+      targetResource: workload,
+      gardenService: service,
+      log,
+    })
+  }
+
+  const manifests = [workload, ...kubeServices, ...ingresses]
 
   for (const obj of manifests) {
     set(obj, ["metadata", "labels", gardenAnnotationKey("module")], service.module.name)
@@ -306,6 +365,7 @@ interface CreateDeploymentParams {
   runtimeContext: RuntimeContext
   namespace: string
   enableDevMode: boolean
+  enableLocalMode: boolean
   log: LogEntry
   production: boolean
   blueGreen: boolean
@@ -318,6 +378,7 @@ export async function createWorkloadManifest({
   runtimeContext,
   namespace,
   enableDevMode,
+  enableLocalMode,
   log,
   production,
   blueGreen,
@@ -333,6 +394,14 @@ export async function createWorkloadManifest({
   if (enableDevMode && configuredReplicas > 1) {
     log.warn({
       msg: chalk.gray(`Ignoring replicas config on container service ${service.name} while in dev mode`),
+      symbol: "warning",
+    })
+    configuredReplicas = 1
+  }
+
+  if (enableLocalMode && configuredReplicas > 1) {
+    log.verbose({
+      msg: chalk.yellow(`Ignoring replicas config on container service ${service.name} while in local mode`),
       symbol: "warning",
     })
     configuredReplicas = 1
@@ -409,7 +478,15 @@ export async function createWorkloadManifest({
   }
 
   if (spec.healthCheck) {
-    configureHealthCheck(container, spec, enableDevMode)
+    let mode: HealthCheckMode
+    if (enableDevMode) {
+      mode = "dev"
+    } else if (enableLocalMode) {
+      mode = "local"
+    } else {
+      mode = "normal"
+    }
+    configureHealthCheck(container, spec, mode)
   }
 
   if (spec.volumes && spec.volumes.length) {
@@ -510,8 +587,12 @@ export async function createWorkloadManifest({
   }
 
   const devModeSpec = service.spec.devMode
+  const localModeSpec = service.spec.localMode
 
-  if (enableDevMode && devModeSpec) {
+  // Local mode always takes precedence over dev mode
+  if (enableLocalMode && localModeSpec) {
+    // no op here, local mode will be configured later after all manifests are ready
+  } else if (enableDevMode && devModeSpec) {
     log.debug({ section: service.name, msg: chalk.gray(`-> Configuring in dev mode`) })
 
     configureDevMode({
@@ -605,7 +686,18 @@ function workloadConfig({
   }
 }
 
-function configureHealthCheck(container: V1Container, spec: ContainerServiceConfig["spec"], dev: boolean): void {
+type HealthCheckMode = "dev" | "local" | "normal"
+
+function configureHealthCheck(
+  container: V1Container,
+  spec: ContainerServiceConfig["spec"],
+  mode: HealthCheckMode
+): void {
+  if (mode === "local") {
+    // no need to configure liveness and readiness probes for a service running in local mode
+    return
+  }
+
   const readinessPeriodSeconds = 1
   const readinessFailureThreshold = 90
 
@@ -624,10 +716,10 @@ function configureHealthCheck(container: V1Container, spec: ContainerServiceConf
   // sync event.
   container.livenessProbe = {
     initialDelaySeconds: readinessPeriodSeconds * readinessFailureThreshold,
-    periodSeconds: dev ? 10 : 5,
+    periodSeconds: mode === "dev" ? 10 : 5,
     timeoutSeconds: spec.healthCheck?.livenessTimeoutSeconds || 3,
     successThreshold: 1,
-    failureThreshold: dev ? 30 : 3,
+    failureThreshold: mode === "dev" ? 30 : 3,
   }
 
   const portsByName = keyBy(spec.ports, "name")

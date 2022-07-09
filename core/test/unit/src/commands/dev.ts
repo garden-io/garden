@@ -72,6 +72,7 @@ describe("DevCommand", () => {
       "force-build": false,
       "force": false,
 
+      "local-mode": undefined,
       "skip-tests": false,
       "test-names": undefined,
     })
@@ -119,6 +120,7 @@ describe("DevCommand", () => {
       "force-build": false,
       "force": false,
 
+      "local-mode": undefined,
       "skip-tests": false,
       "test-names": undefined,
     })
@@ -141,6 +143,7 @@ describe("DevCommand", () => {
       "force-build": false,
       "force": false,
 
+      "local-mode": undefined,
       "skip-tests": false,
       "test-names": undefined,
     })
@@ -163,6 +166,7 @@ describe("DevCommand", () => {
       "force-build": false,
       "force": false,
 
+      "local-mode": undefined,
       "skip-tests": false,
       "test-names": undefined,
     })
@@ -185,6 +189,7 @@ describe("DevCommand", () => {
       "force-build": false,
       "force": false,
 
+      "local-mode": undefined,
       "skip-tests": false,
       "test-names": undefined,
     })
@@ -207,6 +212,7 @@ describe("DevCommand", () => {
       "force-build": false,
       "force": false,
 
+      "local-mode": undefined,
       "skip-tests": false,
       "test-names": undefined,
     })
@@ -229,6 +235,7 @@ describe("DevCommand", () => {
       "force-build": false,
       "force": false,
 
+      "local-mode": undefined,
       "skip-tests": false,
       "test-names": undefined,
     })
@@ -256,6 +263,7 @@ describe("getDevCommandWatchTasks", () => {
       servicesWatched: graph.getServices().map((s) => s.name),
       devModeServiceNames: [],
 
+      localModeServiceNames: [],
       testNames: undefined,
       skipTests: false,
     })

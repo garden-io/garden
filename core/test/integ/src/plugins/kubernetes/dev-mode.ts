@@ -78,6 +78,8 @@ describe("dev mode deployments and sync behavior", () => {
       force: true,
       forceBuild: false,
       devModeServiceNames: [service.name],
+
+      localModeServiceNames: [],
     })
 
     await garden.processTasks([deployTask], { throwOnError: true })
@@ -88,6 +90,8 @@ describe("dev mode deployments and sync behavior", () => {
       runtimeContext: emptyRuntimeContext,
       log,
       devMode: true,
+
+      localMode: false,
     })
     expect(status.devMode).to.eql(true)
 
@@ -139,6 +143,8 @@ describe("dev mode deployments and sync behavior", () => {
       force: true,
       forceBuild: false,
       devModeServiceNames: [service.name],
+
+      localModeServiceNames: [],
     })
 
     await garden.processTasks([deployTask], { throwOnError: true })
@@ -149,6 +155,8 @@ describe("dev mode deployments and sync behavior", () => {
       runtimeContext: emptyRuntimeContext,
       log,
       devMode: true,
+
+      localMode: false,
     })
 
     const workload = status.detail.workload!

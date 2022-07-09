@@ -31,6 +31,7 @@ export interface DeployTaskParams {
   log: LogEntry
   skipRuntimeDependencies?: boolean
   devModeServiceNames: string[]
+  localModeServiceNames: string[]
 }
 
 @Profile()
@@ -43,6 +44,7 @@ export class DeployTask extends BaseTask {
   fromWatch: boolean
   skipRuntimeDependencies: boolean
   devModeServiceNames: string[]
+  localModeServiceNames: string[]
 
   constructor({
     garden,
@@ -54,6 +56,7 @@ export class DeployTask extends BaseTask {
     fromWatch = false,
     skipRuntimeDependencies = false,
     devModeServiceNames,
+    localModeServiceNames,
   }: DeployTaskParams) {
     super({ garden, log, force, version: service.version })
     this.graph = graph
@@ -62,6 +65,7 @@ export class DeployTask extends BaseTask {
     this.fromWatch = fromWatch
     this.skipRuntimeDependencies = skipRuntimeDependencies
     this.devModeServiceNames = devModeServiceNames
+    this.localModeServiceNames = localModeServiceNames
   }
 
   async resolveDependencies() {
@@ -80,6 +84,7 @@ export class DeployTask extends BaseTask {
       service: this.service,
       force: false,
       devModeServiceNames: this.devModeServiceNames,
+      localModeServiceNames: this.localModeServiceNames,
     })
 
     const buildTasks = await this.getBuildTasks()
@@ -114,6 +119,7 @@ export class DeployTask extends BaseTask {
     const version = this.version
 
     const devMode = includes(this.devModeServiceNames, this.service.name)
+    const localMode = includes(this.localModeServiceNames, this.service.name)
 
     const dependencies = this.graph.getDependencies({
       nodeType: "deploy",
@@ -139,6 +145,7 @@ export class DeployTask extends BaseTask {
 
     let status = serviceStatuses[this.service.name]
     const devModeSkipRedeploy = status.devMode && devMode
+    const localModeSkipRedeploy = status.localMode && localMode
 
     const log = this.log.info({
       status: "active",
@@ -146,7 +153,11 @@ export class DeployTask extends BaseTask {
       msg: `Deploying version ${version}...`,
     })
 
-    if (!this.force && status.state === "ready" && (version === status.version || devModeSkipRedeploy)) {
+    if (
+      !this.force &&
+      status.state === "ready" &&
+      (version === status.version || devModeSkipRedeploy || localModeSkipRedeploy)
+    ) {
       // already deployed and ready
       log.setSuccess({
         msg: chalk.green("Already deployed"),
@@ -161,6 +172,7 @@ export class DeployTask extends BaseTask {
           log,
           force: this.force,
           devMode,
+          localMode,
         })
       } catch (err) {
         log.setError()

@@ -39,6 +39,8 @@ describe("runKubernetesTask", () => {
       force: true,
       forceBuild: false,
       devModeServiceNames: [],
+
+      localModeServiceNames: [],
     })
 
     // Clear any existing task result
@@ -79,6 +81,8 @@ describe("runKubernetesTask", () => {
       force: true,
       forceBuild: false,
       devModeServiceNames: [],
+
+      localModeServiceNames: [],
     })
 
     // Clear any existing task result
@@ -110,6 +114,8 @@ describe("runKubernetesTask", () => {
       force: true,
       forceBuild: false,
       devModeServiceNames: [],
+
+      localModeServiceNames: [],
     })
 
     const key = testTask.getKey()
@@ -134,6 +140,8 @@ describe("runKubernetesTask", () => {
       force: true,
       forceBuild: false,
       devModeServiceNames: [],
+
+      localModeServiceNames: [],
     })
 
     await expectError(
@@ -165,6 +173,8 @@ describe("runKubernetesTask", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
+
+        localModeServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -186,6 +196,8 @@ describe("runKubernetesTask", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
+
+        localModeServiceNames: [],
       })
       await emptyDir(garden.artifactsPath)
 
@@ -208,6 +220,8 @@ describe("runKubernetesTask", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
+
+        localModeServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)

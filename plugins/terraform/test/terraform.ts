@@ -324,6 +324,8 @@ describe("Terraform module type", () => {
       force: false,
       forceBuild: false,
       devModeServiceNames: [],
+
+      localModeServiceNames: [],
     })
 
     return garden.processTasks([deployTask], { throwOnError: true })
@@ -345,6 +347,8 @@ describe("Terraform module type", () => {
       force: false,
       forceBuild: false,
       devModeServiceNames: [],
+
+      localModeServiceNames: [],
     })
 
     return garden.processTasks([taskTask], { throwOnError: true })
@@ -529,6 +533,7 @@ describe("Terraform module type", () => {
         service: graph.getService("tf"),
         devMode: false,
 
+        localMode: false,
         log: garden.log,
         graph,
         runtimeContext: emptyRuntimeContext,
@@ -567,6 +572,7 @@ describe("Terraform module type", () => {
         service: graph.getService("tf"),
         devMode: false,
 
+        localMode: false,
         log: _garden.log,
         graph,
         runtimeContext: emptyRuntimeContext,
@@ -612,6 +618,8 @@ describe("Terraform module type", () => {
         force: false,
         forceBuild: false,
         devModeServiceNames: [],
+
+        localModeServiceNames: [],
       })
 
       const result = await _garden.processTasks([taskTask], { throwOnError: true })

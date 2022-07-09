@@ -210,7 +210,7 @@ class CommandContext extends ConfigContext {
         Option values can be referenced by the option's default name (e.g. \`dev-mode\`) or its alias (e.g. \`dev\`) if one is defined for that option.
         `
       )
-      .example({ force: true, hot: ["my-service"] })
+      .example({ force: true, dev: ["my-service"] })
   )
   public params: DeepPrimitiveMap
 

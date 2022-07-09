@@ -102,6 +102,7 @@ export class RunTaskCommand extends Command<Args, Opts> {
       force: true,
       forceBuild: opts["force-build"],
       devModeServiceNames: [],
+      localModeServiceNames: [],
     })
     const graphResults = await garden.processTasks([taskTask])
 

@@ -7,29 +7,30 @@
  */
 
 import Bluebird from "bluebird"
-import dedent = require("dedent")
 import chalk from "chalk"
 import { readFile } from "fs-extra"
 import { flatten } from "lodash"
-import moment = require("moment")
 import { join } from "path"
 
 import { getModuleWatchTasks } from "../tasks/helpers"
-import { Command, CommandResult, CommandParams, handleProcessResults, PrepareParams } from "./base"
+import { Command, CommandParams, CommandResult, handleProcessResults, PrepareParams } from "./base"
 import { STATIC_DIR } from "../constants"
 import { processModules } from "../process"
 import { GardenModule } from "../types/module"
 import { getTestTasks } from "../tasks/test"
 import { ConfigGraph } from "../config-graph"
-import { getDevModeModules } from "./helpers"
+import { getDevModeModules, getMatchingServiceNames } from "./helpers"
 import { startServer } from "../server/server"
 import { BuildTask } from "../tasks/build"
 import { DeployTask } from "../tasks/deploy"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
-import { StringsParameter, BooleanParameter } from "../cli/params"
+import { BooleanParameter, StringsParameter } from "../cli/params"
 import { printHeader } from "../logger/util"
 import { GardenService } from "../types/service"
+import deline = require("deline")
+import dedent = require("dedent")
+import moment = require("moment")
 
 const ansiBannerPath = join(STATIC_DIR, "garden-banner-2.txt")
 
@@ -41,6 +42,17 @@ const devArgs = {
 
 const devOpts = {
   "force": new BooleanParameter({ help: "Force redeploy of service(s)." }),
+  "local-mode": new StringsParameter({
+    help: deline`[EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled.
+    Use comma as a separator to specify multiple services. Use * to deploy all
+    services with local mode enabled. When this option is used,
+    the command is run in persistent mode.
+
+    This always takes the precedence over the dev mode if there are any conflicts,
+    i.e. if the same services are passed to both \`--dev\` and \`--local\` options.
+    `,
+    alias: "local",
+  }),
   "skip-tests": new BooleanParameter({
     help: "Disable running the tests.",
   }),
@@ -74,6 +86,8 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
     Examples:
 
         garden dev
+        garden dev --local=service-1,service-2    # enable local mode for service-1 and service-2
+        garden dev --local=*                      # enable local mode for all compatible services
         garden dev --skip-tests=                  # skip running any tests
         garden dev --force                        # force redeploy of services when the command starts
         garden dev --name integ                   # run all tests with the name 'integ' in the project
@@ -132,9 +146,15 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       return {}
     }
 
+    const localModeServiceNames = getMatchingServiceNames(opts["local-mode"], graph)
+
     const services = graph.getServices({ names: args.services })
 
-    const devModeServiceNames = services.map((s) => s.name)
+    const devModeServiceNames = services
+      .map((s) => s.name)
+      // Since dev mode is implicit when using this command, we consider explicitly enabling local mode to
+      // take precedence over dev mode.
+      .filter((name) => !localModeServiceNames.includes(name))
 
     const initialTasks = await getDevCommandInitialTasks({
       garden,
@@ -143,6 +163,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       modules,
       services,
       devModeServiceNames,
+      localModeServiceNames,
       skipTests,
       forceDeploy: opts.force,
     })
@@ -164,6 +185,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
           module,
           servicesWatched: devModeServiceNames,
           devModeServiceNames,
+          localModeServiceNames,
           testNames: opts["test-names"],
           skipTests,
         })
@@ -181,6 +203,7 @@ export async function getDevCommandInitialTasks({
   modules,
   services,
   devModeServiceNames,
+  localModeServiceNames,
   skipTests,
   forceDeploy,
 }: {
@@ -190,6 +213,7 @@ export async function getDevCommandInitialTasks({
   modules: GardenModule[]
   services: GardenService[]
   devModeServiceNames: string[]
+  localModeServiceNames: string[]
   skipTests: boolean
   forceDeploy: boolean
 }) {
@@ -213,6 +237,7 @@ export async function getDevCommandInitialTasks({
             log,
             module,
             devModeServiceNames,
+            localModeServiceNames,
             force: forceDeploy,
             forceBuild: false,
           })
@@ -234,6 +259,7 @@ export async function getDevCommandInitialTasks({
           forceBuild: false,
           fromWatch: false,
           devModeServiceNames,
+          localModeServiceNames,
         })
     )
 
@@ -247,6 +273,7 @@ export async function getDevCommandWatchTasks({
   module,
   servicesWatched,
   devModeServiceNames,
+  localModeServiceNames,
   testNames,
   skipTests,
 }: {
@@ -256,6 +283,7 @@ export async function getDevCommandWatchTasks({
   module: GardenModule
   servicesWatched: string[]
   devModeServiceNames: string[]
+  localModeServiceNames: string[]
   testNames: string[] | undefined
   skipTests: boolean
 }) {
@@ -266,6 +294,7 @@ export async function getDevCommandWatchTasks({
     module,
     servicesWatched,
     devModeServiceNames,
+    localModeServiceNames,
   })
 
   if (!skipTests) {
@@ -281,6 +310,7 @@ export async function getDevCommandWatchTasks({
             filterNames: testNames,
             fromWatch: true,
             devModeServiceNames,
+            localModeServiceNames,
           })
         )
       )

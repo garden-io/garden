@@ -36,6 +36,7 @@ export async function getContainerServiceStatus({
   runtimeContext,
   log,
   devMode,
+  localMode,
 }: GetServiceStatusParams<ContainerModule>): Promise<ContainerServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
@@ -53,9 +54,10 @@ export async function getContainerServiceStatus({
     service,
     runtimeContext,
     enableDevMode,
+    enableLocalMode: localMode,
     blueGreen: provider.config.deploymentStrategy === "blue-green",
   })
-  const { state, remoteResources, deployedWithDevMode } = await compareDeployedResources(
+  const { state, remoteResources, deployedWithDevMode, deployedWithLocalMode } = await compareDeployedResources(
     k8sCtx,
     api,
     namespace,
@@ -64,18 +66,21 @@ export async function getContainerServiceStatus({
   )
   const ingresses = await getIngresses(service, api, provider)
 
-  const forwardablePorts: ForwardablePort[] = service.spec.ports
-    .filter((p) => p.protocol === "TCP")
-    .map((p) => {
-      return {
-        name: p.name,
-        protocol: "TCP",
-        targetPort: p.servicePort,
-        preferredLocalPort: p.localPort,
-        // TODO: this needs to be configurable
-        // urlProtocol: "http",
-      }
-    })
+  // Local mode has its own port-forwarding configuration
+  const forwardablePorts: ForwardablePort[] = deployedWithLocalMode
+    ? []
+    : service.spec.ports
+        .filter((p) => p.protocol === "TCP")
+        .map((p) => {
+          return {
+            name: p.name,
+            protocol: "TCP",
+            targetPort: p.servicePort,
+            preferredLocalPort: p.localPort,
+            // TODO: this needs to be configurable
+            // urlProtocol: "http",
+          }
+        })
 
   const status = {
     forwardablePorts,
@@ -85,6 +90,7 @@ export async function getContainerServiceStatus({
     version: state === "ready" ? service.version : undefined,
     detail: { remoteResources, workload },
     devMode: deployedWithDevMode,
+    localMode: deployedWithLocalMode,
   }
 
   if (state === "ready" && devMode) {
@@ -110,6 +116,7 @@ export async function waitForContainerService(
   runtimeContext: RuntimeContext,
   service: GardenService,
   devMode: boolean,
+  localMode: boolean,
   timeout = KUBECTL_DEFAULT_TIMEOUT
 ) {
   const startTime = new Date().getTime()
@@ -122,6 +129,7 @@ export async function waitForContainerService(
       runtimeContext,
       module: service.module,
       devMode,
+      localMode,
     })
 
     if (status.state === "ready" || status.state === "outdated") {

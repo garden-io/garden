@@ -90,6 +90,7 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
           log,
           service,
           devModeServiceNames: [],
+          localModeServiceNames: [],
         })
     ),
     ...tasks.map(
@@ -102,6 +103,7 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
           log,
           task,
           devModeServiceNames: [],
+          localModeServiceNames: [],
         })
     ),
   ]

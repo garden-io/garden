@@ -30,6 +30,7 @@ import { resolve } from "path"
 import { cloneDeep, repeat } from "lodash"
 import titleize = require("titleize")
 import humanizeString = require("humanize-string")
+import { dedent } from "../util/string"
 
 interface Metadata {
   order: number
@@ -162,7 +163,15 @@ export function generateTableOfContents(docsRoot: string): string {
   rawTree.topLevel = true
   const treeWithMetadata = createNewTree(rawTree, attachMetadata)
   const preparedTree = createNewTree(treeWithMetadata, sortTree)
-  return "# Table of Contents\n" + generateMarkdown(preparedTree, docsRoot, 0, new Set(emojiList))
+  return (
+    dedent`
+    # Table of Contents
+
+    * [Welcome!](welcome.md)
+    ` +
+    "\n" +
+    generateMarkdown(preparedTree, docsRoot, 0, new Set(emojiList))
+  )
 }
 
 export async function writeTableOfContents(docsRoot: string, outputFileName: string) {

@@ -120,6 +120,7 @@ describe("DeployCommand", () => {
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
 
+        "local-mode": undefined,
         "watch": false,
         "force": false,
         "force-build": true,
@@ -469,6 +470,7 @@ describe("DeployCommand", () => {
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
 
+        "local-mode": undefined,
         "watch": false,
         "force": false,
         "force-build": true,
@@ -517,6 +519,7 @@ describe("DeployCommand", () => {
         opts: withDefaultGlobalOpts({
           "dev-mode": undefined,
 
+          "local-mode": undefined,
           "watch": false,
           "force": false,
           "force-build": true,
@@ -575,6 +578,7 @@ describe("DeployCommand", () => {
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
 
+        "local-mode": undefined,
         "watch": false,
         "force": false,
         "force-build": true,
@@ -627,6 +631,7 @@ describe("DeployCommand", () => {
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
 
+        "local-mode": undefined,
         "watch": false,
         "force": false,
         "force-build": true,
@@ -672,6 +677,7 @@ describe("DeployCommand", () => {
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
 
+        "local-mode": undefined,
         "watch": false,
         "force": false,
         "force-build": true,
@@ -702,6 +708,7 @@ describe("DeployCommand", () => {
         opts: withDefaultGlobalOpts({
           "dev-mode": undefined,
 
+          "local-mode": undefined,
           "watch": true,
           "force": false,
           "force-build": true,
@@ -726,6 +733,32 @@ describe("DeployCommand", () => {
         opts: withDefaultGlobalOpts({
           "dev-mode": [],
 
+          "local-mode": undefined,
+          "watch": false,
+          "force": false,
+          "force-build": true,
+          "skip": ["service-b"],
+          "skip-dependencies": false,
+          "forward": false,
+        }),
+      })
+      expect(persistent).to.be.true
+    })
+
+    it("should return persistent=true if --local-mode is set", async () => {
+      const cmd = new DeployCommand()
+      const log = getLogger().placeholder()
+      const persistent = cmd.isPersistent({
+        log,
+        headerLog: log,
+        footerLog: log,
+        args: {
+          services: undefined,
+        },
+        opts: withDefaultGlobalOpts({
+          "dev-mode": undefined,
+
+          "local-mode": [],
           "watch": false,
           "force": false,
           "force-build": true,
@@ -750,6 +783,7 @@ describe("DeployCommand", () => {
         opts: withDefaultGlobalOpts({
           "dev-mode": undefined,
 
+          "local-mode": undefined,
           "watch": false,
           "force": false,
           "force-build": true,

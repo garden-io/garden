@@ -18,7 +18,7 @@ import { GetServiceStatusParams } from "../../../types/plugin/service/getService
 import { ServiceStatus } from "../../../types/service"
 import { gardenAnnotationKey } from "../../../util/string"
 import { KubeApi } from "../api"
-import { KubernetesPluginContext } from "../config"
+import { KubernetesPluginContext, ServiceResourceSpec } from "../config"
 import { configureDevMode, startDevModeSync } from "../dev-mode"
 import { HelmService } from "../helm/config"
 import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
@@ -26,7 +26,12 @@ import { streamK8sLogs } from "../logs"
 import { getModuleNamespace, getModuleNamespaceStatus } from "../namespace"
 import { getForwardablePorts, getPortForwardHandler, killPortForwards } from "../port-forward"
 import { getK8sIngresses } from "../status/ingress"
-import { compareDeployedResources, isConfiguredForDevMode, waitForResources } from "../status/status"
+import {
+  compareDeployedResources,
+  isConfiguredForDevMode,
+  isConfiguredForLocalMode,
+  waitForResources,
+} from "../status/status"
 import { getTaskResult } from "../task-results"
 import { getTestResult } from "../test-results"
 import { BaseResource, KubernetesResource, KubernetesServerResource, SyncableResource } from "../types"
@@ -36,6 +41,7 @@ import { configureKubernetesModule, KubernetesModule, KubernetesService } from "
 import { execInKubernetesService } from "./exec"
 import { runKubernetesTask } from "./run"
 import { testKubernetesModule } from "./test"
+import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 
 export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<KubernetesModule>> = {
   configure: configureKubernetesModule,
@@ -63,6 +69,7 @@ export async function getKubernetesServiceStatus({
   log,
   service,
   devMode,
+  localMode,
 }: GetServiceStatusParams<KubernetesModule>): Promise<KubernetesServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespaceStatus = await getModuleNamespaceStatus({
@@ -78,16 +85,17 @@ export async function getKubernetesServiceStatus({
   // because the build may not have been staged.
   // This means that manifests added via the `build.dependencies[].copy` field will not be included.
   const manifests = await getManifests({ ctx, api, log, module, defaultNamespace: namespace, readFromSrcDir: true })
-  const prepareResult = await prepareManifestsForSync({
+  const prepareResult = await configureSpecialModesForManifests({
     ctx: k8sCtx,
     log,
     module,
     service,
     devMode,
+    localMode,
     manifests,
   })
 
-  let { state, remoteResources, deployedWithDevMode } = await compareDeployedResources(
+  let { state, remoteResources, deployedWithDevMode, deployedWithLocalMode } = await compareDeployedResources(
     k8sCtx,
     api,
     namespace,
@@ -95,33 +103,51 @@ export async function getKubernetesServiceStatus({
     log
   )
 
-  const forwardablePorts = getForwardablePorts(remoteResources, service)
+  // Local mode has its own port-forwarding configuration
+  const forwardablePorts = deployedWithLocalMode ? [] : getForwardablePorts(remoteResources, service)
 
-  if (state === "ready" && devMode && service.spec.devMode) {
-    // Need to start the dev-mode sync here, since the deployment handler won't be called.
-    const serviceResourceSpec = getServiceResourceSpec(module, undefined)
-    const target = await getServiceResource({
-      ctx: k8sCtx,
-      log,
-      provider: k8sCtx.provider,
-      module,
-      manifests: remoteResources,
-      resourceSpec: serviceResourceSpec,
-    })
-
-    if (isConfiguredForDevMode(target)) {
-      await startDevModeSync({
-        ctx,
+  if (state === "ready") {
+    // Local mode always takes precedence over dev mode
+    if (localMode && service.spec.localMode) {
+      const serviceResourceSpec = getServiceResourceSpec(module, undefined)
+      const target = await getServiceResource({
+        ctx: k8sCtx,
         log,
-        moduleRoot: service.sourceModule.path,
-        namespace,
-        target,
-        spec: service.spec.devMode,
-        containerName: service.spec.devMode.containerName,
-        serviceName: service.name,
+        provider: k8sCtx.provider,
+        module,
+        manifests: remoteResources,
+        resourceSpec: serviceResourceSpec,
       })
-    } else {
-      state = "outdated"
+
+      if (!isConfiguredForLocalMode(target)) {
+        state = "outdated"
+      }
+    } else if (devMode && service.spec.devMode) {
+      // Need to start the dev-mode sync here, since the deployment handler won't be called.
+      const serviceResourceSpec = getServiceResourceSpec(module, undefined)
+      const target = await getServiceResource({
+        ctx: k8sCtx,
+        log,
+        provider: k8sCtx.provider,
+        module,
+        manifests: remoteResources,
+        resourceSpec: serviceResourceSpec,
+      })
+
+      if (isConfiguredForDevMode(target)) {
+        await startDevModeSync({
+          ctx,
+          log,
+          moduleRoot: service.sourceModule.path,
+          namespace,
+          target,
+          spec: service.spec.devMode,
+          containerName: service.spec.devMode.containerName,
+          serviceName: service.name,
+        })
+      } else {
+        state = "outdated"
+      }
     }
   }
 
@@ -131,6 +157,7 @@ export async function getKubernetesServiceStatus({
     version: state === "ready" ? service.version : undefined,
     detail: { remoteResources },
     devMode: deployedWithDevMode,
+    localMode: deployedWithLocalMode,
     namespaceStatuses: [namespaceStatus],
     ingresses: getK8sIngresses(remoteResources),
   }
@@ -139,7 +166,7 @@ export async function getKubernetesServiceStatus({
 export async function deployKubernetesService(
   params: DeployServiceParams<KubernetesModule>
 ): Promise<KubernetesServiceStatus> {
-  const { ctx, module, service, log, devMode } = params
+  const { ctx, module, service, log, devMode, localMode } = params
 
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
@@ -177,12 +204,13 @@ export async function deployKubernetesService(
 
   const pruneLabels = { [gardenAnnotationKey("service")]: service.name }
   if (otherManifests.length > 0) {
-    const prepareResult = await prepareManifestsForSync({
+    const prepareResult = await configureSpecialModesForManifests({
       ctx: k8sCtx,
       log,
       module,
       service,
       devMode,
+      localMode,
       manifests,
     })
 
@@ -205,17 +233,30 @@ export async function deployKubernetesService(
   // Make sure port forwards work after redeployment
   killPortForwards(service, status.forwardablePorts || [], log)
 
-  if (devMode && service.spec.devMode && target) {
-    await startDevModeSync({
-      ctx,
-      log,
-      moduleRoot: service.sourceModule.path,
-      namespace,
-      target,
-      spec: service.spec.devMode,
-      containerName: service.spec.devMode.containerName,
-      serviceName: service.name,
-    })
+  if (target) {
+    // Local mode always takes precedence over dev mode
+    if (localMode && service.spec.localMode) {
+      await startServiceInLocalMode({
+        ctx,
+        spec: service.spec.localMode,
+        targetResource: target,
+        gardenService: service,
+        namespace,
+        log,
+        containerName: service.spec.localMode.containerName,
+      })
+    } else if (devMode && service.spec.devMode) {
+      await startDevModeSync({
+        ctx,
+        log,
+        moduleRoot: service.sourceModule.path,
+        namespace,
+        target,
+        spec: service.spec.devMode,
+        containerName: service.spec.devMode.containerName,
+        serviceName: service.name,
+      })
+    }
   }
 
   const namespaceStatuses = [namespaceStatus]
@@ -316,19 +357,21 @@ async function getServiceLogs(params: GetServiceLogsParams<KubernetesModule>) {
 }
 
 /**
- * Looks for a dev-mode target in a list of manifests. If found, the target is either
- * configured for dev-mode or annotated with `dev-mode: false`.
+ * Looks for a dev-mode or local-mode target in a list of manifests.
+ * If found, the target is either configured for dev-mode/local-mode
+ * or annotated with `dev-mode: false`, or `local-mode: false`.
  *
  * Returns the manifests with the original resource replaced by the modified spec.
  *
- * No-op if no target found and dev-mode is disabled.
+ * No-op if no target is found and neither dev-mode nor local-mode is enabled.
  */
-async function prepareManifestsForSync({
+async function configureSpecialModesForManifests({
   ctx,
   log,
   module,
   service,
   devMode,
+  localMode,
   manifests,
 }: {
   ctx: KubernetesPluginContext
@@ -336,12 +379,16 @@ async function prepareManifestsForSync({
   log: LogEntry
   module: KubernetesModule
   devMode: boolean
+  localMode: boolean
   manifests: KubernetesResource<BaseResource>[]
 }) {
-  let target: SyncableResource
+  const devModeSpec = service.spec.devMode
+  const localModeSpec = service.spec.localMode
 
+  let target: SyncableResource
+  let resourceSpec: ServiceResourceSpec
   try {
-    const resourceSpec = getServiceResourceSpec(module, undefined)
+    resourceSpec = getServiceResourceSpec(module, undefined)
 
     target = cloneDeep(
       await getServiceResource({
@@ -354,8 +401,10 @@ async function prepareManifestsForSync({
       })
     )
   } catch (err) {
-    // This is only an error if we're actually trying to start dev mode.
-    if (devMode && service.spec.devMode) {
+    const enableLocalMode = localMode && localModeSpec
+    const enableDevMode = devMode && devModeSpec
+    // This is only an error if we're actually trying to start dev or local mode.
+    if (enableDevMode || enableLocalMode) {
       throw err
     } else {
       // Nothing to do, so we return the original manifests
@@ -364,10 +413,20 @@ async function prepareManifestsForSync({
   }
 
   set(target, ["metadata", "annotations", gardenAnnotationKey("dev-mode")], "false")
+  set(target, ["metadata", "annotations", gardenAnnotationKey("local-mode")], "false")
 
-  const devModeSpec = service.spec.devMode
-
-  if (devMode && devModeSpec) {
+  // Local mode always takes precedence over dev mode
+  if (localMode && localModeSpec) {
+    // The "local-mode" annotation is set in `configureLocalMode`.
+    await configureLocalMode({
+      ctx,
+      spec: localModeSpec,
+      targetResource: target,
+      gardenService: service,
+      log,
+      containerName: localModeSpec.containerName,
+    })
+  } else if (devMode && devModeSpec) {
     // The "dev-mode" annotation is set in `configureDevMode`.
     configureDevMode({
       target,

@@ -11,12 +11,13 @@ import indentString from "indent-string"
 import { sortBy } from "lodash"
 
 import { ConfigGraph } from "../config-graph"
+import { WorkflowConfig } from "../config/workflow"
 import { GardenModule } from "../types/module"
 import { GardenTask } from "../types/task"
 import { GardenTest } from "../types/test"
 import { uniqByName } from "../util/util"
 
-export function getDevModeServiceNames(namesFromOpt: string[] | undefined, configGraph: ConfigGraph) {
+export function getMatchingServiceNames(namesFromOpt: string[] | undefined, configGraph: ConfigGraph) {
   const names = namesFromOpt || []
   if (names.includes("*") || (!!namesFromOpt && namesFromOpt.length === 0)) {
     return configGraph.getServices().map((s) => s.name)
@@ -62,6 +63,18 @@ export function makeGetTestOrTaskLog(
     logStr += `${type} in module ${chalk.green(m.name)}` + "\n" + logStrForTasks + "\n"
   }
   return logStr
+}
+
+export function prettyPrintWorkflow(workflow: WorkflowConfig): string {
+  let out = `${chalk.cyan.bold(workflow.name)}`
+
+  if (workflow.description) {
+    out += "\n" + indentString(printField("description", workflow.description), 2)
+  } else {
+    out += "\n"
+  }
+
+  return out
 }
 
 function prettyPrintTestOrTask(testOrTask: GardenTask | GardenTest): string {

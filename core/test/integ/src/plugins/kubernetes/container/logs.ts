@@ -54,6 +54,8 @@ describe("kubernetes", () => {
         log: garden.log,
         service,
         devModeServiceNames: [],
+
+        localModeServiceNames: [],
       })
 
       await garden.processTasks([deployTask], { throwOnError: true })
@@ -97,6 +99,8 @@ describe("kubernetes", () => {
           log: garden.log,
           service,
           devModeServiceNames: [],
+
+          localModeServiceNames: [],
         })
 
         await garden.processTasks([deployTask], { throwOnError: true })
@@ -116,6 +120,7 @@ describe("kubernetes", () => {
             namespace,
             enableDevMode: false,
 
+            enableLocalMode: false,
             production: ctx.production,
             log,
             blueGreen: provider.config.deploymentStrategy === "blue-green",
@@ -161,6 +166,8 @@ describe("kubernetes", () => {
           log: garden.log,
           service,
           devModeServiceNames: [],
+
+          localModeServiceNames: [],
         })
         const deleteTask = new DeleteServiceTask({
           garden,
@@ -185,6 +192,7 @@ describe("kubernetes", () => {
             namespace,
             enableDevMode: false,
 
+            enableLocalMode: false,
             production: ctx.production,
             log,
             blueGreen: provider.config.deploymentStrategy === "blue-green",

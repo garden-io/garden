@@ -39,6 +39,8 @@ describe("runHelmTask", () => {
       force: true,
       forceBuild: false,
       devModeServiceNames: [],
+
+      localModeServiceNames: [],
     })
 
     const key = testTask.getKey()
@@ -80,6 +82,8 @@ describe("runHelmTask", () => {
       force: true,
       forceBuild: false,
       devModeServiceNames: [],
+
+      localModeServiceNames: [],
     })
 
     // Clear any existing task result
@@ -111,6 +115,8 @@ describe("runHelmTask", () => {
       force: true,
       forceBuild: false,
       devModeServiceNames: [],
+
+      localModeServiceNames: [],
     })
 
     const key = testTask.getKey()
@@ -135,6 +141,8 @@ describe("runHelmTask", () => {
       force: true,
       forceBuild: false,
       devModeServiceNames: [],
+
+      localModeServiceNames: [],
     })
 
     await expectError(
@@ -166,6 +174,8 @@ describe("runHelmTask", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
+
+        localModeServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -187,6 +197,8 @@ describe("runHelmTask", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
+
+        localModeServiceNames: [],
       })
       await emptyDir(garden.artifactsPath)
 
@@ -209,6 +221,8 @@ describe("runHelmTask", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
+
+        localModeServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)

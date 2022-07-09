@@ -31,6 +31,7 @@ export async function getServiceLogs(params: GetServiceLogsParams<ContainerModul
       runtimeContext: emptyRuntimeContext,
       namespace,
       enableDevMode: false,
+      enableLocalMode: false,
       production: ctx.production,
       log,
       blueGreen: provider.config.deploymentStrategy === "blue-green",

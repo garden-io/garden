@@ -147,7 +147,7 @@ export const execServiceSchema = () =>
           .items(joi.string().allow(""))
           .description(
             dedent`
-              The commmand to run to deploy the service in dev mode. When in dev mode, Garden assumes that
+              The command to run to deploy the service in dev mode. When in dev mode, Garden assumes that
               the command starts a persistent process and does not wait for it return. The logs from the process
               can be retrieved via the \`garden logs\` command as usual.
 

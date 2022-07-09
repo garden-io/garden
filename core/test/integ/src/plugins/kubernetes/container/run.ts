@@ -47,6 +47,8 @@ describe("runContainerTask", () => {
       force: true,
       forceBuild: false,
       devModeServiceNames: [],
+
+      localModeServiceNames: [],
     })
 
     garden.events.eventLog = []
@@ -88,6 +90,8 @@ describe("runContainerTask", () => {
       force: true,
       forceBuild: false,
       devModeServiceNames: [],
+
+      localModeServiceNames: [],
     })
 
     const ctx = await garden.getPluginContext(provider)
@@ -118,6 +122,8 @@ describe("runContainerTask", () => {
       force: true,
       forceBuild: false,
       devModeServiceNames: [],
+
+      localModeServiceNames: [],
     })
 
     const ctx = await garden.getPluginContext(provider)
@@ -151,6 +157,8 @@ describe("runContainerTask", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
+
+        localModeServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -172,6 +180,8 @@ describe("runContainerTask", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
+
+        localModeServiceNames: [],
       })
       await emptyDir(garden.artifactsPath)
 
@@ -194,6 +204,8 @@ describe("runContainerTask", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
+
+        localModeServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -215,6 +227,8 @@ describe("runContainerTask", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
+
+        localModeServiceNames: [],
       })
 
       const result = await garden.processTasks([testTask])
@@ -241,6 +255,8 @@ describe("runContainerTask", () => {
         force: true,
         forceBuild: false,
         devModeServiceNames: [],
+
+        localModeServiceNames: [],
       })
 
       const result = await garden.processTasks([testTask])

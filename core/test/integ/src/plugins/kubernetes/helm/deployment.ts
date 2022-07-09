@@ -61,6 +61,7 @@ describe("deployHelmService", () => {
       force: false,
       devMode: false,
 
+      localMode: false,
       runtimeContext: emptyRuntimeContext,
     })
 
@@ -102,6 +103,7 @@ describe("deployHelmService", () => {
       force: false,
       devMode: true, // <-----
 
+      localMode: false,
       runtimeContext: emptyRuntimeContext,
     })
 
@@ -138,6 +140,7 @@ describe("deployHelmService", () => {
       force: false,
       devMode: false,
 
+      localMode: false,
       runtimeContext: emptyRuntimeContext,
     })
 
@@ -181,6 +184,7 @@ describe("deployHelmService", () => {
       force: false,
       devMode: false,
 
+      localMode: false,
       runtimeContext: emptyRuntimeContext,
     })
 

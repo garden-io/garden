@@ -307,6 +307,8 @@ describe("exec plugin", () => {
       force: false,
       forceBuild: false,
       devModeServiceNames: [],
+
+      localModeServiceNames: [],
     })
     const results = await _garden.processTasks([taskTask])
 
@@ -331,6 +333,8 @@ describe("exec plugin", () => {
       force: false,
       forceBuild: false,
       devModeServiceNames: [],
+
+      localModeServiceNames: [],
     })
 
     await emptyDir(_garden.artifactsPath)
@@ -353,6 +357,8 @@ describe("exec plugin", () => {
       force: false,
       forceBuild: false,
       devModeServiceNames: [],
+
+      localModeServiceNames: [],
     })
 
     await emptyDir(_garden.artifactsPath)
@@ -556,6 +562,7 @@ describe("exec plugin", () => {
           devMode: false,
           force: false,
 
+          localMode: false,
           log,
           service,
           graph,
@@ -574,6 +581,7 @@ describe("exec plugin", () => {
           devMode: false,
           force: false,
 
+          localMode: false,
           log,
           service,
           graph,
@@ -594,6 +602,7 @@ describe("exec plugin", () => {
               devMode: false,
               force: false,
 
+              localMode: false,
               log,
               service,
               graph,
@@ -642,6 +651,7 @@ describe("exec plugin", () => {
             devMode: true,
             force: false,
 
+            localMode: false,
             log,
             service,
             graph,
@@ -663,6 +673,7 @@ describe("exec plugin", () => {
             devMode: true,
             force: false,
 
+            localMode: false,
             log,
             service,
             graph,
@@ -730,6 +741,7 @@ describe("exec plugin", () => {
             devMode: true,
             force: false,
 
+            localMode: false,
             log,
             service,
             graph,
@@ -801,6 +813,7 @@ describe("exec plugin", () => {
               devMode: true,
               force: false,
 
+              localMode: false,
               log,
               service,
               graph,
@@ -831,6 +844,7 @@ describe("exec plugin", () => {
         const res = await actions.getServiceStatus({
           devMode: false,
 
+          localMode: false,
           log,
           service,
           graph,
@@ -848,6 +862,7 @@ describe("exec plugin", () => {
         await actions.deployService({
           devMode: false,
 
+          localMode: false,
           force: false,
           log,
           service,
@@ -860,6 +875,7 @@ describe("exec plugin", () => {
         const res = await actions.getServiceStatus({
           devMode: false,
 
+          localMode: false,
           log,
           service,
           graph,
@@ -879,6 +895,7 @@ describe("exec plugin", () => {
         const res = await actions.getServiceStatus({
           devMode: false,
 
+          localMode: false,
           log,
           service,
           graph,
@@ -899,6 +916,7 @@ describe("exec plugin", () => {
         await actions.deployService({
           devMode: false,
 
+          localMode: false,
           force: false,
           log,
           service,
