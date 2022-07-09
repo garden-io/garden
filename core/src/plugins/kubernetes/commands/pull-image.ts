@@ -22,11 +22,9 @@ import { RuntimeError } from "../../../exceptions"
 import { PodRunner } from "../run"
 import { dockerAuthSecretKey, systemDockerAuthSecretName, k8sUtilImageName } from "../constants"
 import { getAppNamespace, getSystemNamespace } from "../namespace"
-import { getRegistryPortForward } from "../container/util"
 import { randomString } from "../../../util/string"
 import { PluginContext } from "../../../plugin-context"
 import { ensureBuilderSecret } from "../container/build/common"
-import { usingInClusterRegistry } from "../util"
 
 const tmpTarPath = "/tmp/image.tar"
 const imagePullTimeoutSeconds = 60 * 20
@@ -104,37 +102,7 @@ async function pullModules(ctx: KubernetesPluginContext, modules: GardenModule[]
 
 export async function pullModule(ctx: KubernetesPluginContext, module: GardenModule, log: LogEntry) {
   const localId = module.outputs["local-image-id"]
-
-  if (usingInClusterRegistry(ctx.provider)) {
-    await pullFromInClusterRegistry(ctx, module, log, localId)
-  } else {
-    await pullFromExternalRegistry(ctx, module, log, localId)
-  }
-}
-
-async function pullFromInClusterRegistry(
-  ctx: KubernetesPluginContext,
-  module: GardenModule,
-  log: LogEntry,
-  localId: string
-) {
-  const fwd = await getRegistryPortForward(ctx, log)
-  const imageId = module.outputs["deployment-image-id"]
-  const pullImageId = containerHelpers.unparseImageId({
-    ...containerHelpers.parseImageId(imageId),
-    // Note: using localhost directly here has issues with Docker for Mac.
-    // https://github.com/docker/for-mac/issues/3611
-    host: `local.app.garden:${fwd.localPort}`,
-  })
-
-  await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["pull", pullImageId], log, ctx })
-  await containerHelpers.dockerCli({
-    cwd: module.buildPath,
-    args: ["tag", pullImageId, localId],
-    log,
-    ctx,
-  })
-  await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["rmi", pullImageId], log, ctx })
+  await pullFromExternalRegistry(ctx, module, log, localId)
 }
 
 async function pullFromExternalRegistry(

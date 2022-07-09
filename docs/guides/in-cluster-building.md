@@ -13,9 +13,9 @@ This guide assumes you've already read through the [Remote Kubernetes](./remote-
 
 If in doubt, use the following setup for builds:
 
-- [**`kaniko`**](#kaniko) build mode, which works well for most scenarios.
+- [**`cluster-buildkit`**](#cluster-buildkit) build mode, which works well for most scenarios.
 - Use the project namespace for build pods.
-- [Connect a remote deployment registry](#configuring-a-deployment-registry) to use for built images. _Note: You can also skip this and use the included in-cluster registry while testing, but be aware that you may hit scaling issues as you go._
+- [Connect a remote deployment registry](#configuring-a-deployment-registry) to use for built images.
 
 Here's a basic configuration example:
 
@@ -54,14 +54,12 @@ The specific requirements vary by the [_build mode_](#build-modes) used, and whe
 
 In all cases you'll need at least 2GB of RAM _on top of your own service requirements_. More RAM is strongly recommended if you have many concurrent developers or CI builds.
 
-For the [`cluster-docker`](#cluster-docker) mode, and the (optional) in-cluster image registry, support for `PersistentVolumeClaim`s is required, with enough disk space for layer caches and built images. The in-cluster registry also requires support for `hostPort`, and for reaching `hostPort`s from the node/Kubelet. This should work out-of-the-box in most standard setups, but clusters using Cilium for networking may need to configure this specifically, for example.
-
 You can—_and should_—adjust the allocated resources and storage in the provider configuration, under
 [resources](../reference/providers/kubernetes.md#providersresources) and
 [storage](../reference/providers/kubernetes.md#providersstorage). See the individual modes below as well for more
 information on how to allocate resources appropriately.
 
-We also strongly recommend a separate image registry to use for built images. Garden can also—and does by default—deploy an in-cluster registry. The latter is convenient to test things out and may be fine for individual users or small teams. However, we generally recommend using managed container registries (such as ECR, GCR etc.) since they tend to perform better, they scale more easily, and don't need to be operated by your team. See the [Configuring a deployment registry](#configuring-a-deployment-registry) section for more details.
+You also need to configure a Docker registry. See the [Configuring a deployment registry](#configuring-a-deployment-registry) section for more details.
 
 ## Build modes
 
@@ -69,8 +67,11 @@ Garden supports multiple methods for building images and making them available t
 
 1. [**`kaniko`**](#kaniko) — Individual [Kaniko](https://github.com/GoogleContainerTools/kaniko) pods created for each build.
 2. [**`cluster-buildkit`**](#cluster-buildkit) — A [BuildKit](https://github.com/moby/buildkit) deployment created for each project namespace.
-3. [**`cluster-docker`**](#cluster-docker) — (**Deprecated**) A single Docker daemon installed in the `garden-system` namespace and shared between users/deployments. It is **no longer recommended** and we will remove it in future releases.
-4. `local-docker` — Build using the local Docker daemon on the developer/CI machine before pushing to the cluster/registry.
+3. `local-docker` — Build using the local Docker daemon on the developer/CI machine before pushing to the cluster/registry.
+
+{% hint style="warning" %}
+The previously available `cluster-docker` build mode has been removed as of version 0.13!
+{% endhint %}
 
 The `local-docker` mode is set by default. You should definitely use that when using _Docker for Desktop_, _Minikube_ and most other local development clusters.
 
@@ -136,7 +137,7 @@ This allows you to set corresponding [Taints](https://kubernetes.io/docs/concept
 
 With this mode, a [BuildKit](https://github.com/moby/buildkit) Deployment is dynamically created in each project namespace to perform in-cluster builds.
 
-Much like [`kaniko`](#kaniko) (and unlike [`cluster-docker`](#cluster-docker)), this mode requires no cluster-wide services or permissions to be managed, and thus no permissions outside of a single namespace for each user/project.
+Much like [`kaniko`](#kaniko), this mode requires no cluster-wide services or permissions to be managed, and thus no permissions outside of a single namespace for each user/project.
 
 In this mode, builds are executed as follows:
 
@@ -170,39 +171,6 @@ effect: "NoSchedule"
 
 This allows you to set corresponding [Taints](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) on cluster nodes to control which nodes builder deployments are deployed to. You can also configure a [`nodeSelector`](../reference/providers/kubernetes.md#providersclusterbuildkitnodeselector) to serve the same purpose.
 
-### cluster-docker
-
-{% hint style="warning" %}
-The `cluster-docker` build mode has been **deprecated** and will be removed in an upcoming release. Please use `kaniko` or `cluster-buildkit` instead.
-{% endhint %}
-
-The `cluster-docker` mode installs a standalone Docker daemon into your cluster, that is then used for builds across all users of the clusters, along with a handful of other supporting services.
-
-In this mode, builds are executed as follows:
-
-1. Your code (build context) is synchronized to a sync service in the cluster, making it available to the Docker daemon.
-2. A build is triggered in the Docker daemon.
-3. The built image is pushed to the [deployment registry](#configuring-a-deployment-registry), which makes it available to the cluster.
-
-#### Configuration and requirements
-
-Enable this mode by setting `buildMode: cluster-docker` in your `kubernetes` provider configuration.
-
-After enabling this mode, you will need to run `garden plugins kubernetes cluster-init --env=<env-name>` for each applicable environment, in order to install the required cluster-wide services. Those services include the Docker daemon itself, as well as an image registry, a sync service for receiving build contexts, two persistent volumes, an NFS volume provisioner for one of those volumes, and a couple of small utility services.
-
-By default, Garden will install an NFS volume provisioner into `garden-system` in order to be able to efficiently synchronize build sources to the cluster and then attaching those to the Kaniko pods. You can also [specify a storageClass](../reference/providers/kubernetes.md#providersstoragesyncstorageclass) to provide another _ReadWriteMany_ capable storage class to use instead of NFS. This may be advisable if your cloud provider provides a good alternative, or if you already have such a provisioner installed.
-
-Optionally, you can also enable [BuildKit](https://github.com/moby/buildkit) to be used by the Docker daemon. _This is not to be confused with the [`cluster-buildkit`](#cluster-buildkit) build mode, which doesn't use Docker at all._ In most cases, this should work well and offer a bit of added performance, but it remains optional for now. If you have `cluster-docker` set as your `buildMode` you can enable BuildKit for an environment by adding the following to your `kubernetes` provider configuration:
-
-```yaml
-clusterDocker:
-  enableBuildKit: true
-```
-
-Make sure your cluster has enough resources and storage to support the required services, and keep in mind that these
-services are shared across all users of the cluster. Please look at the [resources](../reference/providers/kubernetes.md#providersresources) and [storage](../reference/providers/kubernetes.md#providersstorage) sections in the provider reference for
-details.
-
 ### Local Docker
 
 This is the default mode. It is the least efficient one for remote clusters, but requires no additional configuration or services to be deployed to the cluster. For remote clusters, you do however need to explicitly configure a [deployment registry](#configuring-a-deployment-registry), and obviously you'll need to have Docker running locally.
@@ -211,14 +179,7 @@ See the [Local Docker builds](./remote-kubernetes.md) section in the Remote Clus
 
 ## Configuring a deployment registry
 
-To deploy a built image to a remote Kubernetes cluster, the image first needs to be pushed to a container registry that is accessible to the cluster. We refer to this as a _deployment registry_. Garden offers two options to handle this process:
-
-1. An in-cluster registry.
-2. An external registry, e.g. a cloud provider managed registry like ECR or GCR. **(recommended)**
-
-The in-cluster registry is a simple way to get started with Garden that requires no configuration. To set it up, leave the `deploymentRegistry` field on the `kubernetes` provider config undefined, and run `garden plugins kubernetes cluster-init --env=<env-name>` to install the registry. This is nice and convenient, but is _not a particularly good approach for clusters with many users or lots of builds_. When using the in-cluster registry you need to take care of [cleaning it up routinely](#cleaning-up-cached-images), and it may become a performance and redundancy bottleneck with many users and frequent (or heavy) builds.
-
-So, **for any scenario with a non-trivial amount of users and builds, we strongly suggest configuring a separate registry outside of your cluster.** If your cloud provider offers a managed option, that's usually a good choice.
+To deploy a built image to a remote Kubernetes cluster, the image first needs to be pushed to a container registry that is accessible to the cluster. We refer to this as a _deployment registry_. This is an external Docker registry, e.g. a cloud provider managed registry like ECR or GCR.
 
 To configure a deployment registry, you need to specify at least the `deploymentRegistry` field on your `kubernetes` provider, and in many cases you also need to provide a Secret in order to authenticate with the registry via the `imagePullSecrets` field:
 
@@ -242,10 +203,6 @@ Now say, if you specify `hostname: my-registry.com` and `namespace: my-project-i
 For this to work, you in most cases also need to provide the authentication necessary for both the cluster to read the image and for the builder to push to the registry. We use the same format and mechanisms as Kubernetes _imagePullSecrets_ for this. See [this guide](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/) for how to create the secret, **but keep in mind that for this context, the authentication provided must have write privileges to the configured registry and namespace.**
 
 See below for specific instructions for working with ECR.
-
-{% hint style="warning" %}
-Note: If you're using the [`kaniko`](#kaniko) or [`cluster-docker`](#cluster-docker) build mode, you need to re-run `garden plugins kubernetes cluster-init` any time you add or modify imagePullSecrets, for them to work.
-{% endhint %}
 
 ### Using in-cluster building with ECR
 
@@ -419,27 +376,6 @@ You can publish images that have been built in your cluster, using the `garden p
 Note that you currently need to have Docker running locally even when using remote building, and you need to have authenticated with the target registry. When publishing, we pull the image from the remote registry to the local Docker daemon, and then go on to push it from there. We do this to avoid having to (re-)implement all the various authentication methods (and by extension key management) involved in pushing directly from the cluster, and because it's often not desired to give clusters access to directly push to production registries.
 {% endhint %}
 
-## Cleaning up cached images
-
-In order to avoid disk-space issues in the cluster when using the in-cluster registry and/or either of the [`kaniko`](#kaniko) or [`cluster-docker`](#cluster-docker) build modes, the `kubernetes` provider exposes a utility command:
-
-```sh
-garden --env=<your-environment> plugins kubernetes cleanup-cluster-registry
-```
-
-The command does the following:
-
-1. Looks through all Pods in the cluster to see which images/tags are in use, and flags all other images as deleted in the in-cluster registry and.
-2. Restarts the registry in read-only mode.
-3. Runs the registry garbage collection.
-4. Restarts the registry again without the read-only mode.
-5. When using the [`cluster-docker`](#cluster-docker) build mode, we additionally untag in the Docker daemon all images that are no longer in the registry, and then clean up the dangling image layers by running `docker image prune`.
-
-There are plans to do this automatically when disk-space runs low, but for now you can run this manually or set up
-your own cron jobs.
-
-**You can avoid this entirely by using a remote [deployment registry](#configuring-a-deployment-registry) and the [`cluster-buildkit`](#cluster-buildkit) build mode.**
-
 ## Pulling base images from private registries
 
 The in-cluster builder may need to be able to pull base images from a private registry, e.g. if your Dockerfile starts with something like this:
@@ -467,7 +403,3 @@ providers:
 ```
 
 This registry auth secret will then be copied and passed to the in-cluster builder. You can specify as many as you like, and they will be merged together.
-
-{% hint style="warning" %}
-Note: If you're using the [`kaniko`](#kaniko) or [`cluster-docker`](#cluster-docker) build mode, you need to re-run `garden plugins kubernetes cluster-init` any time you add or modify imagePullSecrets, for them to work when pulling base images!
-{% endhint %}

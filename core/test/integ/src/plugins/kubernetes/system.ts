@@ -41,16 +41,7 @@ describe("System services", () => {
     const conftestModuleNames = (await graph.getModules())
       .filter((module) => module.name.startsWith("conftest-"))
       .map((m) => m.name)
-    expect(conftestModuleNames.sort()).to.eql([
-      "conftest-build-sync",
-      "conftest-docker-daemon",
-      "conftest-docker-registry",
-      "conftest-ingress-controller",
-      "conftest-nfs-provisioner",
-      "conftest-nginx-kind",
-      "conftest-registry-proxy",
-      "conftest-util",
-    ])
+    expect(conftestModuleNames.sort()).to.eql(["conftest-ingress-controller", "conftest-nginx-kind", "conftest-util"])
   })
 
   it.skip("should check whether system modules pass the conftest test", async () => {

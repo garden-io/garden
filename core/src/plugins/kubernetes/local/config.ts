@@ -20,7 +20,6 @@ import { configureMicrok8sAddons } from "./microk8s"
 import { setMinikubeDockerEnv } from "./minikube"
 import { exec } from "../../../util/util"
 import { remove } from "lodash"
-import { getNfsStorageClass } from "../init"
 import chalk from "chalk"
 import { isKindCluster } from "./kind"
 import { getK8sClientServerVersions, K8sClientServerVersions } from "../util"
@@ -156,12 +155,6 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
     }
 
     await configureMicrok8sAddons(log, addons)
-  }
-
-  // Docker Desktop, minikube and others are unable to run docker-in-docker overlayfs
-  // on top of their default storage class, so we override the default here to use the NFS storage class.
-  if (config.buildMode !== "local-docker" && !config.storage.builder.storageClass) {
-    config.storage.builder.storageClass = getNfsStorageClass(config)
   }
 
   if (!config.defaultHostname) {

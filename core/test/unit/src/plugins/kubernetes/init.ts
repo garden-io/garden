@@ -13,12 +13,7 @@ import { Garden } from "../../../../../src/garden"
 import { prepareDockerAuth, getIngressMisconfigurationWarnings } from "../../../../../src/plugins/kubernetes/init"
 import { dockerAuthSecretKey } from "../../../../../src/plugins/kubernetes/constants"
 import { ConfigurationError } from "../../../../../src/exceptions"
-import {
-  KubernetesProvider,
-  KubernetesConfig,
-  defaultResources,
-  defaultStorage,
-} from "../../../../../src/plugins/kubernetes/config"
+import { KubernetesProvider, KubernetesConfig, defaultResources } from "../../../../../src/plugins/kubernetes/config"
 import { gardenPlugin } from "../../../../../src/plugins/container/container"
 import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/system"
 import { KubeApi } from "../../../../../src/plugins/kubernetes/api"
@@ -61,10 +56,8 @@ const basicConfig: KubernetesConfig = {
   ingressHttpPort: 80,
   ingressHttpsPort: 443,
   resources: defaultResources,
-  storage: defaultStorage,
   setupIngressController: null,
   systemNodeSelector: {},
-  registryProxyTolerations: [],
   tlsCertificates: [],
   _systemServices: [],
 }

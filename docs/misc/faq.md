@@ -134,12 +134,6 @@ See also the [base image example project](https://github.com/garden-io/garden/tr
 
 ## Remote Building
 
-### Can I run multiple `docker-daemon` instances for more build concurrency?
-
-Not currently. Besides, multiple Docker daemons would not be able to share image layer caches.
-
-You can, however, run multiple [Kaniko pods](https://docs.garden.io/guides/in-cluster-building#kaniko) in parallel. In some scenarios, that may scale better.
-
 ### How do I delete the services in the `garden-system` namespace?
 
 Please **do not** delete the `garden-system` namespace directly, because Kubernetes may fail to remove persistent volumes. Instead, use this command:
@@ -157,16 +151,6 @@ See [this section](https://docs.garden.io/guides/in-cluster-building#pulling-bas
 ### How do I use my own private registry in in-cluster build mode?
 
 See [this section](https://docs.garden.io/guides/in-cluster-building#configuring-a-deployment-registry) of our docs.
-
-### How do I clean up the in-cluster registry and build sync volumes?
-
-Use this command:
-
-```console
-garden plugins kubernetes cleanup-cluster-registry --env <env-name>
-```
-
-It's on our roadmap to automate this.
 
 ## Tasks and Tests
 

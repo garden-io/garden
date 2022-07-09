@@ -41,9 +41,6 @@ import { mapValues } from "lodash"
 import { getIngressApiVersion, supportedIngressApiVersions } from "./container/ingress"
 import { LogEntry } from "../../logger/log-entry"
 
-// Note: We need to increment a version number here if we ever make breaking changes to the NFS provisioner StatefulSet
-const nfsStorageClassVersion = 2
-
 const dockerAuthSecretType = "kubernetes.io/dockerconfigjson"
 const dockerAuthDocsLink = `
 See https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/ for how to create
@@ -326,19 +323,6 @@ export async function prepareSystem({
     await sysApi.upsert({ kind: "Secret", namespace: systemNamespace, obj: authSecret, log })
   }
 
-  // We need to install the NFS provisioner separately, so that we can optionally install it
-  // FIXME: when we've added an `enabled` field, we should get rid of this special case
-  if (systemServiceNames.includes("nfs-provisioner")) {
-    await prepareSystemServices({
-      log,
-      sysGarden,
-      namespace: systemNamespace,
-      force,
-      ctx: k8sCtx,
-      serviceNames: ["nfs-provisioner"],
-    })
-  }
-
   // Install system services
   await prepareSystemServices({
     log,
@@ -346,7 +330,7 @@ export async function prepareSystem({
     namespace: systemNamespace,
     force,
     ctx: k8sCtx,
-    serviceNames: systemServiceNames.filter((name) => name !== "nfs-provisioner"),
+    serviceNames: systemServiceNames,
   })
 
   sysGarden.log.setSuccess()
@@ -398,13 +382,7 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
   return { namespaceStatuses: [{ namespaceName: namespace, state: "missing", pluginName: provider.name }] }
 }
 
-export function getNfsStorageClass(config: KubernetesConfig) {
-  return `${config.gardenSystemNamespace}-nfs-v${nfsStorageClassVersion}`
-}
-
 export function getKubernetesSystemVariables(config: KubernetesConfig) {
-  const nfsStorageClass = getNfsStorageClass(config)
-  const syncStorageClass = config.storage.sync.storageClass || nfsStorageClass
   const systemNamespace = config.gardenSystemNamespace
   const systemTolerations: V1Toleration[] = [
     {
@@ -414,64 +392,23 @@ export function getKubernetesSystemVariables(config: KubernetesConfig) {
       effect: "NoSchedule",
     },
   ]
-  const registryProxyTolerations = config.registryProxyTolerations || systemTolerations
 
   return {
     "namespace": systemNamespace,
 
-    "registry-hostname": getInClusterRegistryHostname(config),
     "builder-mode": config.buildMode,
 
     "builder-limits-cpu": millicpuToString(config.resources.builder.limits.cpu),
     "builder-limits-memory": megabytesToString(config.resources.builder.limits.memory),
     "builder-requests-cpu": millicpuToString(config.resources.builder.requests.cpu),
     "builder-requests-memory": megabytesToString(config.resources.builder.requests.memory),
-    "builder-storage-size": megabytesToString(config.storage.builder.size!),
-    "builder-storage-class": config.storage.builder.storageClass,
 
     "ingress-http-port": config.ingressHttpPort,
     "ingress-https-port": config.ingressHttpsPort,
 
-    // We only use NFS for the build-sync volume, so we allocate the space we need for that plus 1GB for margin.
-    "nfs-storage-size": megabytesToString(config.storage.sync.size! + 1024),
-    "nfs-storage-class": config.storage.nfs.storageClass,
-
-    "registry-limits-cpu": millicpuToString(config.resources.registry.limits.cpu),
-    "registry-limits-memory": megabytesToString(config.resources.registry.limits.memory),
-    ...(config.resources.registry.limits.ephemeralStorage
-      ? { "registry-limits-ephemeralStorage": megabytesToString(config.resources.registry.limits.ephemeralStorage) }
-      : {}),
-    "registry-requests-cpu": millicpuToString(config.resources.registry.requests.cpu),
-    "registry-requests-memory": megabytesToString(config.resources.registry.requests.memory),
-    ...(config.resources.registry.requests.ephemeralStorage
-      ? { "registry-requests-ephemeralStorage": megabytesToString(config.resources.registry.requests.ephemeralStorage) }
-      : {}),
-    "registry-storage-size": megabytesToString(config.storage.registry.size!),
-    "registry-storage-class": config.storage.registry.storageClass,
-
-    "sync-limits-cpu": millicpuToString(config.resources.sync.limits.cpu),
-    "sync-limits-memory": megabytesToString(config.resources.sync.limits.memory),
-    ...(config.resources.sync.limits.ephemeralStorage
-      ? { "sync-limits-ephemeralStorage": megabytesToString(config.resources.sync.limits.ephemeralStorage) }
-      : {}),
-    "sync-requests-cpu": millicpuToString(config.resources.sync.requests.cpu),
-    "sync-requests-memory": megabytesToString(config.resources.sync.requests.memory),
-    ...(config.resources.sync.requests.ephemeralStorage
-      ? { "sync-requests-ephemeralStorage": megabytesToString(config.resources.sync.requests.ephemeralStorage) }
-      : {}),
-    "sync-storage-size": megabytesToString(config.storage.sync.size!),
-    "sync-storage-class": syncStorageClass,
-    "sync-volume-name": `garden-sync-${syncStorageClass}`,
-
-    "registry-proxy-tolerations": <PrimitiveMap[]>registryProxyTolerations,
     "system-tolerations": <PrimitiveMap[]>systemTolerations,
     "system-node-selector": config.systemNodeSelector,
   }
-}
-
-export function getInClusterRegistryHostname(config: KubernetesConfig) {
-  const systemNamespace = config.gardenSystemNamespace
-  return `garden-docker-registry.${systemNamespace}.svc.cluster.local`
 }
 
 interface DockerConfigJson {

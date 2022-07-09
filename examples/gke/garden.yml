@@ -4,19 +4,7 @@ environments:
   - name: gke-kaniko
     variables:
       buildMode: kaniko
-      # Use an in-cluster registry instead of GCR
-      deploymentRegistry: null
-      imagePullSecrets: []
-  - name: gke-kaniko-gcr
-    variables:
-      buildMode: kaniko
   - name: gke-buildkit
-    variables:
-      buildMode: cluster-buildkit
-      # Use an in-cluster registry instead of GCR
-      deploymentRegistry: null
-      imagePullSecrets: []
-  - name: gke-buildkit-gcr
     variables:
       buildMode: cluster-buildkit
 providers:

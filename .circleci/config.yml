@@ -685,7 +685,7 @@ jobs:
             # - Need to run with sudo to work with microk8s, because CircleCI doesn't allow us to log out
             #   and back in to add the circleci user to the microk8s group.
             # - We currently don't support in-cluster building on microk8s.
-            sudo -E GARDEN_SKIP_TESTS="cluster-docker kaniko remote-only" npm run _integ
+            sudo -E GARDEN_SKIP_TESTS="kaniko remote-only" npm run _integ
       - run:
           name: Deploy demo-project
           command: sudo -E ./bin/garden deploy --root examples/demo-project --logger-type basic
@@ -705,7 +705,7 @@ jobs:
       skipTests:
         description: Integ test groups to skip
         type: string
-        default: "cluster-docker kaniko remote-only"
+        default: "kaniko remote-only"
     environment:
       <<: *shared-env-config
       K8S_VERSION: <<parameters.kubernetesVersion>>
@@ -754,10 +754,6 @@ jobs:
       - run:
           name: Deploy demo-project
           command: sudo -E ./bin/garden deploy --root examples/demo-project
-      - run:
-          name: Run cluster cleanup
-          command: |
-            sudo -E ./bin/garden plugins local-kubernetes cleanup-cluster-registry --root core/test/data/test-projects/container --env cluster-docker
 
   test-macos:
     macos:
@@ -897,15 +893,15 @@ workflows:
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
-          name: e2e-gke-kaniko-gcr
+          name: e2e-gke-kaniko
           project: gke
-          environment: gke-kaniko-gcr
+          environment: gke-kaniko
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
-          name: e2e-gke-buildkit-gcr
+          name: e2e-gke-buildkit
           project: gke
-          environment: gke-buildkit-gcr
+          environment: gke-buildkit
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
@@ -968,7 +964,7 @@ workflows:
           # cluster-buildkit works on other minikube versions, but the in-cluster registry has issues on the latest version
           # This is sort of fine, since we don't _really_ support in-cluster building on minikube, just been using it for
           # integration tests.
-          skipTests: cluster-docker cluster-buildkit kaniko remote-only
+          skipTests: cluster-buildkit kaniko remote-only
       - test-minikube:
           name: vm-1.23-minikube
           requires: [build]

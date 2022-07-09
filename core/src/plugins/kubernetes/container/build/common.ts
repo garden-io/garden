@@ -11,7 +11,7 @@ import pRetry from "p-retry"
 import { ContainerModule, ContainerRegistryConfig } from "../../../container/config"
 import { GetBuildStatusParams, BuildStatus } from "../../../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams, BuildResult } from "../../../../types/plugin/module/build"
-import { getRunningDeploymentPod, usingInClusterRegistry } from "../../util"
+import { getRunningDeploymentPod } from "../../util"
 import {
   buildSyncVolumeName,
   dockerAuthSecretKey,
@@ -29,7 +29,6 @@ import { normalizeLocalRsyncPath } from "../../../../util/fs"
 import { exec, hashString, sleep } from "../../../../util/util"
 import { InternalError, RuntimeError } from "../../../../exceptions"
 import { LogEntry } from "../../../../logger/log-entry"
-import { getInClusterRegistryHostname } from "../../init"
 import { prepareDockerAuth } from "../../init"
 import { prepareSecrets } from "../../secrets"
 import chalk from "chalk"
@@ -41,9 +40,6 @@ import { cloneDeep, isEmpty } from "lodash"
 import { compareDeployedResources, waitForResources } from "../../status/status"
 import { KubernetesDeployment, KubernetesResource } from "../../types"
 
-const inClusterRegistryPort = 5000
-
-export const sharedBuildSyncDeploymentName = "garden-build-sync"
 export const utilContainerName = "util"
 export const utilRsyncPort = 8730
 export const utilDeploymentName = "garden-util"
@@ -222,11 +218,6 @@ export async function skopeoBuildStatus({
   const remoteId = module.outputs["deployment-image-id"]
   const skopeoCommand = ["skopeo", "--command-timeout=30s", "inspect", "--raw", "--authfile", "/.docker/config.json"]
 
-  if (usingInClusterRegistry(provider)) {
-    // The in-cluster registry is not exposed, so we don't configure TLS on it.
-    skopeoCommand.push("--tls-verify=false")
-  }
-
   skopeoCommand.push(`docker://${remoteId}`)
 
   const podCommand = ["sh", "-c", skopeoCommand.join(" ")]
@@ -375,26 +366,6 @@ export async function ensureUtilDeployment({
 
     return { authSecret, updated: true }
   })
-}
-
-export function getSocatContainer(provider: KubernetesProvider) {
-  const registryHostname = getInClusterRegistryHostname(provider.config)
-
-  return {
-    name: "proxy",
-    image: "gardendev/socat:0.1.0",
-    command: ["/bin/sh", "-c", `socat TCP-LISTEN:5000,fork TCP:${registryHostname}:${inClusterRegistryPort} || exit 0`],
-    ports: [
-      {
-        name: "proxy",
-        containerPort: inClusterRegistryPort,
-        protocol: "TCP",
-      },
-    ],
-    readinessProbe: {
-      tcpSocket: { port: <any>inClusterRegistryPort },
-    },
-  }
 }
 
 export async function getManifestInspectArgs(module: ContainerModule, deploymentRegistry: ContainerRegistryConfig) {
@@ -561,11 +532,6 @@ export function getUtilManifests(
   }
 
   const service = cloneDeep(baseUtilService)
-
-  if (usingInClusterRegistry(provider)) {
-    // We need a proxy sidecar to be able to reach the in-cluster registry from the Pod
-    deployment.spec!.template.spec!.containers.push(getSocatContainer(provider))
-  }
 
   // Set the configured nodeSelector, if any
   if (!isEmpty(provider.config.kaniko?.nodeSelector)) {

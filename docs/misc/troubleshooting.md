@@ -78,16 +78,6 @@ For example:
         repository: ${modules.my-module-image.outputs.deployment-image-name}
 ```
 
-### `garden-build-sync` and `garden-docker-daemon` pods stuck in `ContainerCreating` on EKS or AKS.
-
-This may be due the the NFS provisioner not playing well with EKS and AKS.
-
-On EKS, you can use `efs` instead, which may be more stable and scalable than the default NFS storage
-
-On AKS, you can use `azurefile`.
-
-You'll need to install the provisioners yourself and override the [`storage.sync.storageClass`](https://docs.garden.io/reference/providers/kubernetes#providers-storage-sync) field in the `kubernetes` provider config.
-
 ### Release `garden-nginx` times out when using the `local-kubernetes` provider.
 
 This can occur if nginx is not able to bind to its default port which is port `80`. Stopping the process that occupies the port should solve the issue.

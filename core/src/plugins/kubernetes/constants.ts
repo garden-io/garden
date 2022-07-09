@@ -23,16 +23,13 @@ export const PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME = "garden-prx-ssh"
 
 export const systemDockerAuthSecretName = "builder-docker-config"
 export const dockerAuthSecretKey = ".dockerconfigjson"
-export const inClusterRegistryHostname = "127.0.0.1:5000"
 
 export const gardenUtilDaemonDeploymentName = "garden-util-daemon"
-export const dockerDaemonDeploymentName = "garden-docker-daemon"
 
 export const k8sUtilImageName = "gardendev/k8s-util:0.5.4"
 export const k8sSyncUtilImageName = "gardendev/k8s-sync:0.1.5"
 export const k8sReverseProxyImageName = "gardendev/k8s-reverse-proxy:0.0.1"
 
-export const dockerDaemonContainerName = "docker-daemon"
 export const skopeoDaemonContainerName = "util"
 
 export const defaultIngressClass = "nginx"

@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { mkdirp } from "fs-extra"
 import { resolve } from "path"
 import tar from "tar"
@@ -30,27 +29,17 @@ import { loadToLocalK8s } from "./container/build/local"
 import { containerHandlers } from "./container/handlers"
 import { getNamespaceStatus } from "./namespace"
 import { PodRunner } from "./run"
-import { getRunningDeploymentPod, usingInClusterRegistry } from "./util"
+import { getRunningDeploymentPod } from "./util"
 
 export const jibContainerHandlers: Partial<ModuleActionHandlers> = {
   ...containerHandlers,
 
   // Note: Can't import the JibContainerModule type until we move the kubernetes plugin out of the core package
   async build(params: BuildModuleParams<GardenModule>) {
-    const { ctx, log, module, base } = params
+    const { ctx, module, base } = params
     const k8sCtx = ctx as KubernetesPluginContext
 
     const provider = <KubernetesProvider>ctx.provider
-    let buildMode = provider.config.buildMode
-
-    if (buildMode === "cluster-docker") {
-      log.warn(
-        chalk.yellow(
-          `The jib-container module type doesn't support the cluster-docker build mode, which has been deprecated. Falling back to local-docker.`
-        )
-      )
-      buildMode = "local-docker"
-    }
 
     if (provider.name === "local-kubernetes") {
       const result = await base!(params)
@@ -144,10 +133,6 @@ async function buildAndPushViaRemote(params: BuildModuleParams<GardenModule>) {
     const pushTimeout = module.build.timeout || defaultBuildTimeout
 
     const syncCommand = ["skopeo", `--command-timeout=${pushTimeout}s`, "copy", "--authfile", "/.docker/config.json"]
-
-    if (usingInClusterRegistry(provider)) {
-      syncCommand.push("--dest-tls-verify=false")
-    }
 
     syncCommand.push("oci:" + dataPath, "docker://" + module.outputs["deployment-image-id"])
 
