@@ -191,7 +191,6 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const force = opts.force
-    const forceBuild = opts["force-build"]
 
     const initialTasks = actions.map(
       (action) =>
@@ -201,7 +200,7 @@ export class DeployCommand extends Command<Args, Opts> {
           graph: initGraph,
           action,
           force,
-          forceBuild,
+          forceBuild: opts["force-build"],
           fromWatch: false,
           skipDependencies,
           localModeDeployNames,

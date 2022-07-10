@@ -14,7 +14,6 @@ import { IntegerParameter } from "../cli/params"
 import { printHeader } from "../logger/util"
 import chalk = require("chalk")
 import { Garden } from "../garden"
-import { processModules } from "../process"
 
 export const defaultDashboardPort = 9700
 

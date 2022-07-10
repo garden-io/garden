@@ -73,7 +73,7 @@ export class RunTask extends BaseActionTask<RunAction> {
   }
 
   async process({ resolvedAction: action, dependencyResults }: ActionTaskProcessParams<RunAction>) {
-    if (!this.force && action.getConfig("cacheResult")) {
+    if (!this.force && action.getSpec("cacheResult")) {
       const cachedResult = getRunTaskResults(dependencyResults)[this.task.name]
 
       if (cachedResult && cachedResult.success) {

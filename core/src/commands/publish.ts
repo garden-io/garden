@@ -109,6 +109,7 @@ export class PublishCommand extends Command<Args, Opts> {
         forceBuild: opts["force-build"],
         tagTemplate: opts.tag,
         devModeDeployNames: [],
+        localModeDeployNames: [],
         fromWatch: false,
         force: false,
       })

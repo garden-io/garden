@@ -90,6 +90,7 @@ export const configMapModuleDefinition = (): ModuleTypeDefinition => ({
     ),
     ...commonSpecKeys(),
   }),
+  needsBuild: false,
 
   handlers: {
     async configure({ moduleConfig }: ConfigureModuleParams) {

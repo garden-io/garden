@@ -9,14 +9,10 @@
 import { uniqBy } from "lodash"
 import { DeployTask } from "./deploy"
 import { Garden } from "../garden"
-import { GardenModule } from "../types/module"
 import { ConfigGraph } from "../graph/config-graph"
 import { LogEntry } from "../logger/log-entry"
-import { BaseActionTask, BaseTask } from "./base"
+import { BaseTask } from "./base"
 import { TestTask } from "./test"
-import { RunTask } from "./task"
-import { GetServiceStatusTask } from "./get-service-status"
-import { GetTaskResultTask } from "./get-task-result"
 import { Action } from "../actions/base"
 import { isDeployAction } from "../actions/deploy"
 import { isTestAction } from "../actions/test"
@@ -70,70 +66,10 @@ export async function getActionWatchTasks({
     }
   }
 
-  log.silly(`getActionWatchTasks called for action ${action.description()}, returning the following tasks:`)
+  log.silly(`getActionWatchTasks called for ${updatedAction.longDescription()}, returning the following tasks:`)
   log.silly(`  ${outputTasks.map((t) => t.getKey()).join(", ")}`)
 
   const deduplicated = uniqBy(outputTasks, (t) => t.getKey())
 
   return deduplicated
-}
-
-type RuntimeTask = DeployTask | TestTask
-
-export function getServiceStatusDeps(task: RuntimeTask, deps: DependencyRelations): GetServiceStatusTask[] {
-  return deps.deploy.map((service) => {
-    return new GetServiceStatusTask({
-      garden: task.garden,
-      graph: task.graph,
-      log: task.log,
-      service,
-      force: false,
-      devModeDeployNames: task.devModeDeployNames,
-      localModeDeployNames: task.localModeDeployNames,
-    })
-  })
-}
-
-export function getTaskResultDeps(task: RuntimeTask, deps: DependencyRelations): GetTaskResultTask[] {
-  return deps.run.map((dep) => {
-    return new GetTaskResultTask({
-      garden: task.garden,
-      graph: task.graph,
-      log: task.log,
-      task: dep,
-      force: false,
-    })
-  })
-}
-
-export function getTaskDeps(task: RuntimeTask, deps: DependencyRelations, force: boolean): RunTask[] {
-  return deps.run.map((dep) => {
-    return new RunTask({
-      task: dep,
-      garden: task.garden,
-      log: task.log,
-      graph: task.graph,
-      force,
-      forceBuild: task.forceBuild,
-      devModeDeployNames: task.devModeDeployNames,
-      localModeDeployNames: task.localModeDeployNames,
-    })
-  })
-}
-
-export function getDeployDeps(task: RuntimeTask, deps: DependencyRelations, force: boolean): DeployTask[] {
-  return deps.deploy.map(
-    (service) =>
-      new DeployTask({
-        garden: task.garden,
-        graph: task.graph,
-        log: task.log,
-        service,
-        force,
-        forceBuild: task.forceBuild,
-        skipRuntimeDependencies: task.skipRuntimeDependencies,
-        devModeDeployNames: task.devModeDeployNames,
-        localModeDeployNames: task.localModeDeployNames,
-      })
-  )
 }

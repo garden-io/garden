@@ -222,7 +222,19 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
     const deleteDeployNames = actions.map((a) => a.name)
 
     const tasks = actions.map((action) => {
-      return new DeleteDeployTask({ garden, graph, log, action, deleteDeployNames, dependantsFirst })
+      return new DeleteDeployTask({
+        garden,
+        graph,
+        log,
+        action,
+        deleteDeployNames,
+        dependantsFirst,
+        force: false,
+        forceActions: [],
+        devModeDeployNames: [],
+        localModeDeployNames: [],
+        fromWatch: false,
+      })
     })
 
     const result = deletedDeployStatuses(await garden.processTasks(tasks))

@@ -188,6 +188,7 @@ export const gardenPlugin = () =>
         moduleOutputsSchema: helmModuleOutputsSchema(),
         schema: helmModuleSpecSchema(),
         handlers: helmModuleHandlers,
+        needsBuild: false,
       },
       {
         name: "kubernetes",
@@ -195,6 +196,7 @@ export const gardenPlugin = () =>
         moduleOutputsSchema: joi.object().keys({}),
         schema: kubernetesModuleSpecSchema(),
         handlers: kubernetesHandlers,
+        needsBuild: false,
       },
       pvcModuleDefinition(),
       configMapModuleDefinition(),
@@ -204,11 +206,13 @@ export const gardenPlugin = () =>
       {
         name: "container",
         handlers: containerHandlers,
+        needsBuild: true,
       },
       // For now we need to explicitly support descendant module types
       {
         name: "jib-container",
         handlers: jibContainerHandlers,
+        needsBuild: true,
       },
     ],
     tools: [kubectlSpec, kustomizeSpec, helm3Spec, mutagenCliSpec],

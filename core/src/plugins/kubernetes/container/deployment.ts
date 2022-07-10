@@ -73,7 +73,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
       ctx: k8sCtx,
       log,
       status,
-      service,
+      action,
     })
   }
 
@@ -734,11 +734,7 @@ function workloadConfig({
 
 type HealthCheckMode = "dev" | "local" | "normal"
 
-function configureHealthCheck(
-  container: V1Container,
-  spec: ContainerDeploySpec,
-  mode: HealthCheckMode
-): void {
+function configureHealthCheck(container: V1Container, spec: ContainerDeploySpec, mode: HealthCheckMode): void {
   if (mode === "local") {
     // no need to configure liveness and readiness probes for a service running in local mode
     return
