@@ -23,7 +23,6 @@ import { getPortForwardHandler } from "../port-forward"
 import { k8sGetRunResult } from "../run-results"
 import { k8sGetTestResult } from "../test-results"
 import { getBuildkitBuildStatus, buildkitBuildHandler } from "./build/buildkit"
-import { getClusterDockerBuildStatus, clusterDockerBuild } from "./build/cluster-docker"
 import { BuildStatusHandler, BuildHandler } from "./build/common"
 import { getKanikoBuildStatus, kanikoBuild } from "./build/kaniko"
 import { getLocalBuildStatus, localBuild } from "./build/local"
@@ -93,13 +92,11 @@ export const k8sContainerTestExtension = (): TestActionExtension<ContainerTestAc
 const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } = {
   "local-docker": getLocalBuildStatus,
   "cluster-buildkit": getBuildkitBuildStatus,
-  "cluster-docker": getClusterDockerBuildStatus,
   "kaniko": getKanikoBuildStatus,
 }
 
 const buildHandlers: { [mode in ContainerBuildMode]: BuildHandler } = {
   "local-docker": localBuild,
   "cluster-buildkit": buildkitBuildHandler,
-  "cluster-docker": clusterDockerBuild,
   "kaniko": kanikoBuild,
 }

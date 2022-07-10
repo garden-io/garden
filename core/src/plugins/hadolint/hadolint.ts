@@ -268,6 +268,7 @@ export const gardenPlugin = () =>
 
         See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it.
       `,
+        needsBuild: false,
         schema: joi.object().keys({
           build: baseBuildSpecSchema(),
           dockerfilePath: joi

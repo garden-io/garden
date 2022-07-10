@@ -211,7 +211,7 @@ export async function skopeoBuildStatus({
   ctx: PluginContext
   provider: KubernetesProvider
   action: ContainerBuildAction
-}) {
+}): Promise<BuildStatusResult> {
   const deploymentRegistry = provider.config.deploymentRegistry
 
   if (!deploymentRegistry) {
@@ -254,7 +254,7 @@ export async function skopeoBuildStatus({
       containerName,
       buffer: true,
     })
-    return { ready: true, outputs }
+    return { status: "ready", outputs }
   } catch (err) {
     const res = err.detail?.result || {}
 
@@ -267,7 +267,7 @@ export async function skopeoBuildStatus({
         output,
       })
     }
-    return { ready: false, outputs }
+    return { status: "unknown", outputs }
   }
 }
 

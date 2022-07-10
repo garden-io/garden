@@ -132,7 +132,17 @@ export class BuildCommand extends Command<Args, Opts> {
       await Bluebird.map(
         actions,
         (action) =>
-          new BuildTask({ garden, graph, log, action, force: opts.force, devModeDeployNames: [], fromWatch: false })
+          new BuildTask({
+            garden,
+            graph,
+            log,
+            action,
+            force: opts.force,
+            forceActions: [],
+            devModeDeployNames: [],
+            localModeDeployNames: [],
+            fromWatch: false,
+          })
       )
     )
 
@@ -151,7 +161,17 @@ export class BuildCommand extends Command<Args, Opts> {
           .filter((a) => buildNames.includes(a.name))
           .map(
             (action) =>
-              new BuildTask({ garden, graph, log, action, force: true, devModeDeployNames: [], fromWatch: false })
+              new BuildTask({
+                garden,
+                graph,
+                log,
+                action,
+                force: true,
+                forceActions: [],
+                devModeDeployNames: [],
+                localModeDeployNames: [],
+                fromWatch: true,
+              })
           )
         return flatten(await Promise.all(tasks))
       },

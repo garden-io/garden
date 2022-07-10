@@ -8,10 +8,10 @@
 
 import { realpath } from "fs-extra"
 import normalizePath from "normalize-path"
-import tmp from "tmp-promise"
 import { PluginEventBroker } from "../plugin-context"
 import { runStatus } from "../plugin/base"
 import { copyArtifacts, getArtifactKey } from "../util/artifacts"
+import { makeTempDir } from "../util/fs"
 import { uuidv4 } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
 
@@ -20,7 +20,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
     run: async (params) => {
       const { action, garden, router } = params
 
-      const tmpDir = await tmp.dir({ unsafeCleanup: true })
+      const tmpDir = await makeTempDir()
       const artifactsPath = normalizePath(await realpath(tmpDir.path))
       const actionUid = uuidv4()
 
@@ -82,7 +82,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
             garden,
             log: params.log,
             artifactsPath,
-            key: getArtifactKey("test", action.name, actionVersion)
+            key: getArtifactKey("test", action.name, actionVersion),
           })
         } finally {
           await tmpDir.cleanup()

@@ -160,7 +160,6 @@ export class TestCommand extends Command<Args, Opts> {
 
     const filterNames = opts.name || []
     const force = opts.force
-    const forceBuild = opts["force-build"]
     const skipDependencies = opts["skip-dependencies"]
     const skipped = opts.skip || []
 
@@ -174,7 +173,7 @@ export class TestCommand extends Command<Args, Opts> {
             graph,
             log,
             force,
-            forceBuild,
+            forceBuild: opts["force-build"],
             fromWatch: false,
             action,
             devModeDeployNames: [],
@@ -206,7 +205,7 @@ export class TestCommand extends Command<Args, Opts> {
             graph: updatedGraph,
             log,
             force,
-            forceBuild,
+            forceActions: [],
             fromWatch: false,
             action,
             devModeDeployNames: [],
@@ -221,7 +220,7 @@ export class TestCommand extends Command<Args, Opts> {
   }
 }
 
-function getTestActions({
+export function getTestActions({
   graph,
   modules,
   filterNames,

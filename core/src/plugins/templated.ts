@@ -55,6 +55,7 @@ export const gardenPlugin = () => {
           Note that the following common Module configuration fields are disallowed for this module type:
           ${naturalList(disallowedKeys.map((k) => "`" + k + "`"))}
         `,
+        needsBuild: false,
         schema: templatedModuleSpecSchema().keys({
           build: baseBuildSpecSchema(),
         }),

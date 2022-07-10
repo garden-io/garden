@@ -380,6 +380,10 @@ export class Garden {
     return this.taskGraph.process(tasks, opts)
   }
 
+  async getTaskStatuses(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<GraphResults> {
+    return this.taskGraph.getStatuses(tasks, opts)
+  }
+
   /**
    * Enables the file watcher for the project.
    * Make sure to stop it using `.close()` when cleaning up or when watching is no longer needed.
@@ -599,6 +603,7 @@ export class Garden {
           forceRefresh: this.forceRefresh,
           forceInit,
           fromWatch: false,
+          allPlugins: Object.values(plugins),
         })
       })
 
@@ -785,10 +790,10 @@ export class Garden {
       throw new ConfigurationError(message, detail)
     }
 
-    const { groups, actions } = await convertModules(this, log, resolvedModules, moduleGraph)
-
     // TODO-G2: convert modules to actions here
     // -> Do the conversion
+    const { groups, actions } = await convertModules(this, log, resolvedModules, moduleGraph)
+
     // -> Collect module outputs for templating from actions (attach to ConfigGraph?)
 
     let graph: ConfigGraph | undefined = undefined

@@ -173,7 +173,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   }
 
   start() {
-    this.emit("start", {})
+    this.emit("start", "?")
   }
 
   private loop() {

@@ -10,7 +10,6 @@ import { PrimitiveMap, joiEnvVars, joiPrimitive, joi, joiIdentifier, moduleVersi
 import { Garden } from "./garden"
 import { ConfigGraph, DependencyRelations } from "./graph/config-graph"
 import { ServiceStatus } from "./types/service"
-import { RunTaskResult } from "./types/plugin/task/runTask"
 import { joiArray } from "./config/common"
 
 interface RuntimeDependency {
@@ -68,6 +67,7 @@ interface PrepareRuntimeContextParams {
   moduleVersion: string
 }
 
+// TODO-G2: this needs a re-visit
 /**
  * This function prepares the "runtime context" that's used to inform services and tasks about any dependency outputs
  * and other runtime values. It includes environment variables, that can be directly passed by provider handlers to
