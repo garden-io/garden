@@ -237,7 +237,8 @@ export const gardenPlugin = () =>
               }
 
               return {
-                result: {
+                state: "ready",
+                detail: {
                   testName: action.name,
                   moduleName: action.moduleName(),
                   command: ["hadolint", ...args],

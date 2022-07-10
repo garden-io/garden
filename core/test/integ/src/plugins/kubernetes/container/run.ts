@@ -10,7 +10,7 @@ import { expect } from "chai"
 
 import { expectError, TestGarden } from "../../../../../helpers"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
-import { RunTask } from "../../../../../../src/tasks/task"
+import { RunTask } from "../../../../../../src/tasks/run"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
 import { getContainerTestGarden } from "./container"

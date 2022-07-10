@@ -6,24 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
-import chalk from "chalk"
-import { every, flatten, intersection, union, uniqWith, without, groupBy } from "lodash"
-import { BaseTask, TaskDefinitionError, TaskType } from "../tasks/base"
-import { gardenEnv } from "../constants"
-import { LogEntry, LogEntryMetadata, TaskLogStatus } from "../logger/log-entry"
-import { toGardenError, GardenBaseError } from "../exceptions"
-import { Garden } from "../garden"
-import { dedent } from "../util/string"
-import { defer, relationshipClasses, uuidv4, safeDumpYaml, isDisjoint } from "../util/util"
-import { renderError } from "../logger/renderers"
-import { cyclesToString, DependencyGraph } from "./common"
+import { BaseTask, TaskType } from "../tasks/base"
+import { LogEntry } from "../logger/log-entry"
+import { GardenBaseError } from "../exceptions"
+import { uuidv4 } from "../util/util"
+import { DependencyGraph } from "./common"
 import { Profile } from "../util/profiling"
-import { renderMessageWithDivider } from "../logger/util"
-import { EventEmitter2 } from "eventemitter2"
-import { toGraphResultEventPayload } from "../events"
-import { EventEmitter } from "eventemitter3"
 import { TypedEventEmitter } from "../util/events"
+import { BaseAction } from "../actions/base"
+import { GetActionTypeResults } from "../plugin/action-types"
+import { ActionTypeHandlerSpec } from "../plugin/handlers/base/base"
 
 interface TaskEventBase {
   type: TaskType
@@ -38,26 +30,33 @@ interface TaskStartEvent extends TaskEventBase {
   startedAt: Date
 }
 
-export interface GraphResult<R = any> extends TaskEventBase {
-  result: R | null
+export interface GraphResult<A extends BaseAction = BaseAction, H extends ActionTypeHandlerSpec<any, any, any> = any>
+  extends TaskEventBase {
+  result: GetActionTypeResults<H> | null
   dependencyResults: GraphResults | null
   startedAt: Date | null
   completedAt: Date | null
   error: Error | null
+  outputs: A["_outputs"]
 }
 
 export interface GraphResults {
   [key: string]: GraphResult | null
 }
 
-interface SolveParams {
-  // garden: Garden
+export interface SolveOpts {
   log: LogEntry
-  tasks: BaseTask[]
+  statusOnly?: boolean
   throwOnError?: boolean
 }
 
-interface SolveResult {
+export interface SolveParams extends SolveOpts {
+  // garden: Garden
+  log: LogEntry
+  tasks: BaseTask[]
+}
+
+export interface SolveResult {
   error: GraphError | null
   results: GraphResults
 }
@@ -72,13 +71,23 @@ interface SolverEvents {
   start: {}
   taskComplete: GraphResult
   taskStart: TaskStartEvent
+  statusComplete: GraphResult
+  statusStart: TaskStartEvent
 }
+
+interface WrappedTasks {
+  [key: string]: TaskWrapper
+}
+
+type CompleteHandler = (result: GraphResult) => void
 
 @Profile()
 export class GraphSolver extends TypedEventEmitter<SolverEvents> {
-  requestedTasks: {
-    [key: string]: TaskWrapper
-  }
+  // Explicitly requested tasks
+  requestedTasks: WrappedTasks
+
+  // All pending tasks, including implicit from dependencies
+  pendingTasks: WrappedTasks
 
   private inLoop: boolean
 
@@ -92,21 +101,21 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   }
 
   async solve(params: SolveParams): Promise<SolveResult> {
-    const { tasks, throwOnError } = params
+    const { statusOnly, tasks, throwOnError } = params
 
     // const plan = await this.getPlan(params)
 
     const _this = this
     const batchId = uuidv4()
     const results: GraphResults = {}
+    let aborted = false
 
     return new Promise((resolve, reject) => {
-      const wrappers = tasks.map((t) => {
-        results[t.getKey()] = null
-        return this.requestTask(t, batchId)
-      })
+      function completeHandler(result: GraphResult) {
+        if (aborted) {
+          return
+        }
 
-      function handleTaskComplete(result: GraphResult) {
         // We only collect the requests tasks at the top level of the result object.
         // The solver cascades errors in dependencies. So if a dependency fails, we should still always get a
         // taskComplete event for each requested task, even if an error occurs before getting to it.
@@ -117,12 +126,16 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         results[result.key] = result
 
         if (throwOnError && result.error) {
+          // TODO: abort remaining tasks?
+          aborted = true
           cleanup()
-          reject(new GraphError())
+          reject(new GraphTaskError(`Failed ${result.description}: ${result.error}`, result))
+          return
         }
 
         for (const r of Object.values(results)) {
           if (r === null) {
+            // Keep going if any of the expected results are pending
             return
           }
         }
@@ -130,22 +143,32 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         // All requested results have been filled (i.e. none are null) so we're done.
         let error: GraphError | null = null
 
-        // TODO-G2: prepare error more nicely
-        for (const r of Object.values(results)) {
-          if (r?.error) {
-            error = r.error
-            break
+        const failed = Object.values(results).filter((r) => !!r?.error)
+
+        if (failed.length > 0) {
+          // TODO-G2: better aggregate error output
+          let msg = `Failed to complete ${failed.length} tasks:\n`
+
+          for (const r of failed) {
+            msg += `- ${r?.description}: ${r?.error}`
           }
+
+          error = new GraphError(msg, { results })
         }
 
         resolve({ error, results })
       }
 
       function cleanup() {
-        _this.off("taskComplete", handleTaskComplete)
+        _this.off("taskComplete", completeHandler)
       }
 
-      this.on("taskComplete", handleTaskComplete)
+      const wrappers = tasks.map((t) => {
+        results[t.getKey()] = null
+        return this.requestTask({ task: t, batchId, statusOnly: !!statusOnly, completeHandler })
+      })
+
+      this.on("taskComplete", completeHandler)
 
       this.start()
     })
@@ -173,7 +196,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   }
 
   start() {
-    this.emit("start", "?")
+    this.emit("start", {})
   }
 
   private loop() {
@@ -184,37 +207,60 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     this.loop()
   }
 
-  requestTask(task: BaseTask, batchId: string) {
+  requestTask({
+    task,
+    batchId,
+    statusOnly,
+    completeHandler,
+  }: {
+    task: BaseTask
+    batchId: string
+    statusOnly: boolean
+    completeHandler: CompleteHandler
+  }) {
     const key = task.getKey()
+    const existing = this.pendingTasks[key]
 
-    if (this.requestedTasks[key]) {
-      return this.requestedTasks[key]
+    if (existing) {
+      if (existing.result?.completedAt) {
+        completeHandler(existing.result)
+      }
+
+      if (!statusOnly && existing.statusOnly) {
+        existing.statusOnly = false
+      }
+
+      return existing
     } else {
-      const wrapper = new TaskWrapper(task, batchId)
-      this.requestedTasks[key] = wrapper
+      const wrapper = new TaskWrapper(task, batchId, statusOnly)
+      this.pendingTasks[key] = wrapper
       return wrapper
     }
   }
 
-  completeTask(params: PrepareResultParams & { task: TaskWrapper }) {
-    this.emit("taskComplete", params.task.prepareResult(params))
+  completeTask(params: CompleteTaskParams & { task: TaskWrapper }) {
+    this.emit("taskComplete", params.task.complete(params))
   }
 }
 
 class TaskWrapper<T extends BaseTask = BaseTask> {
-  startedAt: Date
-  completedAt: Date
+  requestedAt: Date
+  startedAt?: Date
+  dependencyResults: GraphResults
+  result?: GraphResult<any>
 
-  constructor(public readonly task: T, public readonly batchId: string) {}
+  constructor(public readonly task: T, public readonly batchId: string, public statusOnly: boolean) {
+    this.requestedAt = new Date()
+  }
 
-  prepareResult({
-    error,
-    result,
-    dependencyResults,
-  }: PrepareResultParams<T["_resultType"]>): GraphResult<T["_resultType"]> {
+  setDependencyResult(result: GraphResult) {
+    this.dependencyResults[result.key] = result
+  }
+
+  complete({ error, result, dependencyResults, outputs }: CompleteTaskParams<T["_resultType"]>): GraphResult<any> {
     const task = this.task
 
-    return {
+    this.result = {
       type: task.type,
       description: task.getDescription(),
       key: task.getKey(),
@@ -222,26 +268,35 @@ class TaskWrapper<T extends BaseTask = BaseTask> {
       result,
       dependencyResults,
       batchId: this.batchId,
-      startedAt: this.startedAt,
-      completedAt: this.completedAt,
+      startedAt: this.startedAt || null,
+      completedAt: new Date(),
       error,
       version: this.task.version,
+      outputs,
     }
+
+    return this.result
   }
 }
 
-interface PrepareResultParams<R = any> {
+interface CompleteTaskParams<R = any> {
   error: Error | null
   result: R | null
   dependencyResults: GraphResults
+  outputs: {}
 }
 
 interface GraphErrorDetail {
-  errors: Error[]
   results: GraphResults
 }
 
 class GraphError extends GardenBaseError<GraphErrorDetail> {
+  type = "graph"
+}
+
+interface GraphTaskErrorDetail extends GraphResult {}
+
+class GraphTaskError extends GardenBaseError<GraphTaskErrorDetail> {
   type = "graph"
 }
 

@@ -44,12 +44,10 @@ import { VcsHandler, ModuleVersion, getModuleVersionString, VcsInfo } from "./vc
 import { GitHandler } from "./vcs/git"
 import { BuildStaging } from "./build-staging/build-staging"
 import { ConfigGraph } from "./graph/config-graph"
-import { TaskGraph, GraphResults, ProcessTasksOpts } from "./task-graph"
 import { getLogger } from "./logger/logger"
 import { ProviderHandlers, GardenPlugin } from "./plugin/plugin"
 import { loadConfigResources, findProjectConfig, prepareModuleResource, GardenResource } from "./config/base"
 import { DeepPrimitiveMap, StringMap, PrimitiveMap, treeVersionSchema, joi } from "./config/common"
-import { BaseTask } from "./tasks/base"
 import { LocalConfigStore, ConfigStore, GlobalConfigStore, LinkedSource } from "./config-store"
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { ModuleConfig } from "./config/module"
@@ -124,6 +122,7 @@ import { validateSchema, validateWithPath } from "./config/validation"
 import { pMemoizeDecorator } from "./lib/p-memoize"
 import { ModuleGraph } from "./graph/modules"
 import { Action } from "./actions/base"
+import { GraphSolver, SolveParams, SolveResult } from "./graph/solver"
 
 export interface ActionHandlerMap<T extends keyof ProviderHandlers> {
   [actionName: string]: ProviderHandlers[T]
@@ -198,7 +197,7 @@ export class Garden {
   private resolvedProviders: { [key: string]: Provider }
   protected configsScanned: boolean
   protected registeredPlugins: RegisterPluginParam[]
-  private readonly taskGraph: TaskGraph
+  private readonly solver: GraphSolver
   private watcher: Watcher
   private asyncLock: any
   public readonly projectId?: string
@@ -313,7 +312,7 @@ export class Garden {
     this.registeredPlugins = [...getBuiltinPlugins(), ...params.plugins]
     this.resolvedProviders = {}
 
-    this.taskGraph = new TaskGraph(this, this.log)
+    this.solver = new GraphSolver()
     this.events = new EventBus()
 
     // TODO: actually resolve version, based on the VCS version of the plugin and its dependencies
@@ -373,15 +372,11 @@ export class Garden {
 
   clearCaches() {
     this.cache.clear()
-    this.taskGraph.clearCache()
+    this.solver.clearCache()
   }
 
-  async processTasks(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<GraphResults> {
-    return this.taskGraph.process(tasks, opts)
-  }
-
-  async getTaskStatuses(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<GraphResults> {
-    return this.taskGraph.getStatuses(tasks, opts)
+  async processTasks(params: SolveParams): Promise<SolveResult> {
+    return this.solver.solve(params)
   }
 
   /**
@@ -608,7 +603,7 @@ export class Garden {
       })
 
       // Process as many providers in parallel as possible
-      const taskResults = await this.processTasks(tasks)
+      const taskResults = await this.processTasks({ tasks, log })
 
       const failed = Object.values(taskResults).filter((r) => r && r.error)
 

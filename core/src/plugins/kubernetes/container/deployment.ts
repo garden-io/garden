@@ -62,17 +62,16 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
     await deployContainerServiceRolling({ ...params, devMode: deployWithDevMode, api, imageId })
   }
 
-  // TODO-G2: work out why the any cast is needed here
-  const status = await k8sGetContainerDeployStatus(<any>params)
+  const status = await k8sGetContainerDeployStatus(params)
 
   // Make sure port forwards work after redeployment
-  killPortForwards(action, status.forwardablePorts || [], log)
+  killPortForwards(action, status.detail?.forwardablePorts || [], log)
 
   if (deployWithDevMode) {
     await startContainerDevSync({
       ctx: k8sCtx,
       log,
-      status,
+      status: status.detail!,
       action,
     })
   }
@@ -81,7 +80,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
     await startLocalMode({
       ctx: k8sCtx,
       log,
-      status,
+      status: status.detail!,
       action,
     })
   }
@@ -888,5 +887,5 @@ export const deleteContainerDeploy: DeployActionHandler<"delete", ContainerDeplo
     includeUninitialized: false,
   })
 
-  return { state: "missing", detail: { remoteResources: [], workload: null } }
+  return { state: "ready", detail: { state: "missing", detail: {} }, outputs: {} }
 }

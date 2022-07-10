@@ -23,7 +23,7 @@ import { Events } from "./events"
 import { BuildTask } from "./tasks/build"
 import { DeployTask } from "./tasks/deploy"
 import { TestTask } from "./tasks/test"
-import { RunTask } from "./tasks/task"
+import { RunTask } from "./tasks/run"
 import { Action, actionReferenceToString } from "./actions/base"
 import { getTestActions } from "./commands/test"
 
@@ -102,11 +102,11 @@ export async function processActions({
     })
   }
 
-  const results = await garden.processTasks(initialTasks)
+  const results = await garden.processTasks({ tasks: initialTasks, log })
 
   if (!watch && !garden.persistent) {
     return {
-      taskResults: results,
+      taskResults: results.results,
       restartRequired: false,
     }
   }
@@ -127,7 +127,7 @@ export async function processActions({
       })
     })
     return {
-      taskResults: results,
+      taskResults: results.results,
       restartRequired: false,
     }
   }
@@ -246,7 +246,7 @@ export async function processActions({
           return changeHandler!(graph, a)
         })
       )
-      await garden.processTasks(tasks)
+      await garden.processTasks({ tasks, log })
     })
 
     garden.events.on("buildRequested", async (event: Events["buildRequested"]) => {
@@ -260,7 +260,7 @@ export async function processActions({
         garden.clearCaches()
         graph = await garden.getConfigGraph({ log, emit: false })
         const tasks = await cloudEventHandlers.buildRequested({ log, request: event, graph, garden })
-        await garden.processTasks(tasks)
+        await garden.processTasks({ tasks, log })
       } catch (err) {
         log.error(err.message)
       }
@@ -286,7 +286,7 @@ export async function processActions({
         garden.clearCaches()
         graph = await garden.getConfigGraph({ log, emit: false })
         const tasks = await cloudEventHandlers.deployRequested({ log, request: event, graph, garden })
-        await garden.processTasks(tasks)
+        await garden.processTasks({ tasks, log })
       } catch (err) {
         log.error(err.message)
       }
@@ -304,8 +304,8 @@ export async function processActions({
       try {
         garden.clearCaches()
         graph = await garden.getConfigGraph({ log, emit: false })
-        const testTasks = await cloudEventHandlers.testRequested({ log, request: event, graph, garden })
-        await garden.processTasks(testTasks)
+        const tasks = await cloudEventHandlers.testRequested({ log, request: event, graph, garden })
+        await garden.processTasks({ tasks, log })
       } catch (err) {
         log.error(err.message)
       }
@@ -319,7 +319,7 @@ export async function processActions({
         garden.clearCaches()
         graph = await garden.getConfigGraph({ log, emit: false })
         const tasks = await cloudEventHandlers.taskRequested({ log, request: event, graph, garden })
-        await garden.processTasks(tasks)
+        await garden.processTasks({ tasks, log })
       } catch (err) {
         log.error(err.message)
       }

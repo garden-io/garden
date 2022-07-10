@@ -13,7 +13,7 @@ import { RuntimeContext, runtimeContextSchema } from "../../../runtime-context"
 import { joi } from "../../../config/common"
 import { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { GetActionOutputType } from "../../../actions/base"
+import { ActionStatus, GetActionOutputType } from "../../../actions/base"
 
 interface GetDeployStatusParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   devMode: boolean
@@ -21,10 +21,15 @@ interface GetDeployStatusParams<T extends DeployAction> extends PluginDeployActi
   runtimeContext: RuntimeContext
 }
 
+export type DeployStatus<T extends DeployAction = DeployAction> = ActionStatus<
+  T,
+  ServiceStatus<any, GetActionOutputType<T>>
+>
+
 export class GetDeployStatus<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "deploy",
   GetDeployStatusParams<T>,
-  ServiceStatus<any, GetActionOutputType<T>>
+  DeployStatus<T>
 > {
   description = dedent`
     Check and return the current runtime status of a deployment.

@@ -34,6 +34,8 @@ import type { ActionKind } from "../plugin/action-types"
 import type { GroupConfig } from "../config/group"
 import pathIsInside from "path-is-inside"
 import { actionOutputsSchema } from "../plugin/handlers/base/base"
+import { GraphResults } from "../graph/solver"
+import { RunResult } from "../plugin/base"
 
 export { ActionKind } from "../plugin/action-types"
 
@@ -249,26 +251,41 @@ export interface ActionConfigTypes {
 }
 
 // See https://melvingeorge.me/blog/convert-array-into-string-literal-union-type-typescript
-const actionStatusTypes = ["ready", "not-ready", "outdated", "unknown"] as const
-export type ActionStatusType = typeof actionStatusTypes[number]
+const actionStateTypes = ["ready", "not-ready", "failed", "outdated", "unknown"] as const
+export type ActionState = typeof actionStateTypes[number]
 
-export interface ActionStatus<T extends BaseAction = BaseAction, D = any> {
-  status: ActionStatusType
-  detail?: D
-  outputs: GetActionOutputType<T>
+export interface ActionStatus<
+  T extends BaseAction = BaseAction,
+  D extends {} = any,
+  O extends {} = GetActionOutputType<T>
+> {
+  state: ActionState
+  detail: D | null
+  outputs: O
 }
 
 export const actionStatusSchema = () =>
   joi.object().keys({
     status: joi
       .string()
-      .allow(...actionStatusTypes)
+      .allow(...actionStateTypes)
       .only()
       .required()
       .description("The state of the action."),
     detail: joi.any().description("Optional provider-specific information about the action status or results."),
     outputs: actionOutputsSchema(),
   })
+
+/**
+ * Maps a RunResult to the state field on ActionStatus, returned by several action handler types.
+ */
+export function runResultToActionState(result: RunResult) {
+  if (result.success) {
+    return "ready"
+  } else {
+    return "failed"
+  }
+}
 
 interface ActionWrapperParams<C extends BaseActionConfig> {
   baseBuildDirectory: string // <project>/.garden/build by default
@@ -281,6 +298,7 @@ interface ActionWrapperParams<C extends BaseActionConfig> {
 }
 
 export interface ResolvedActionWrapperParams<C extends BaseActionConfig, O extends {}> extends ActionWrapperParams<C> {
+  dependencyResults: GraphResults
   status: ActionStatus<BaseAction<C, O>, O>
   variables: DeepPrimitiveMap
 }
@@ -462,6 +480,7 @@ export abstract class ResolvedRuntimeAction<
 > extends RuntimeAction<C, O> {
   private variables: DeepPrimitiveMap
   private status: ActionStatus<this>
+  private dependencyResults: GraphResults
 
   constructor(params: ResolvedActionWrapperParams<C, O>) {
     super(params)
@@ -469,8 +488,12 @@ export abstract class ResolvedRuntimeAction<
     this.variables = params.variables
   }
 
-  getOutput<K extends keyof O>(key: K) {
+  getOutput<K extends keyof ActionStatus<this>["outputs"]>(key: K) {
     return this.status.outputs[key]
+  }
+
+  getOutputs() {
+    return this.status.outputs
   }
 
   getVariables() {

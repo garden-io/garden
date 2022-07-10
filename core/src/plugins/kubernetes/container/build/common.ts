@@ -254,7 +254,7 @@ export async function skopeoBuildStatus({
       containerName,
       buffer: true,
     })
-    return { status: "ready", outputs }
+    return { state: "ready", outputs, detail: {} }
   } catch (err) {
     const res = err.detail?.result || {}
 
@@ -267,7 +267,7 @@ export async function skopeoBuildStatus({
         output,
       })
     }
-    return { status: "unknown", outputs }
+    return { state: "unknown", outputs, detail: {} }
   }
 }
 

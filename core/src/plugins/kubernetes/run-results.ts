@@ -18,7 +18,7 @@ import hasha from "hasha"
 import { upsertConfigMap } from "./util"
 import { trimRunOutput } from "./helm/common"
 import chalk from "chalk"
-import { Action, RuntimeAction } from "../../actions/base"
+import { Action, runResultToActionState, RuntimeAction } from "../../actions/base"
 import { RunResult } from "../../plugin/base"
 import { RunActionHandler } from "../../plugin/action-types"
 import { KubernetesRunAction } from "./kubernetes-type/run"
@@ -49,10 +49,10 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
       result.version = result.version.versionString
     }
 
-    return { result, outputs: { log: result.log } }
+    return { state: runResultToActionState(result), detail: result, outputs: { log: result.log } }
   } catch (err) {
     if (err.statusCode === 404) {
-      return { result: null, outputs: null }
+      return { state: "not-ready", detail: null, outputs: null }
     } else {
       throw err
     }

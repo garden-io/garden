@@ -58,7 +58,7 @@ const defaultCacheTtl = 3600 // 1 hour
  * Resolves the configuration for the specified provider.
  */
 @Profile()
-export class ResolveProviderTask extends BaseTask {
+export class ResolveProviderTask extends BaseTask<Provider> {
   type: TaskType = "resolve-provider"
   concurrencyLimit = 20
 

@@ -51,7 +51,7 @@ export const execInKubernetesDeploy: DeployActionHandler<"exec", KubernetesDeplo
     log,
     provider,
     action,
-    manifests: status.detail.remoteResources,
+    manifests: status.detail?.detail.remoteResources || [],
     query: defaultTarget,
   })
 

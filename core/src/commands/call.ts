@@ -91,7 +91,9 @@ export class CallCommand extends Command<Args> {
       })
     }
 
-    if (!status.ingresses || status.ingresses.length === 0) {
+    const statusIngresses = status.detail?.ingresses
+
+    if (!statusIngresses || statusIngresses.length === 0) {
       throw new ParameterError(`Service ${action.name} has no active ingresses`, {
         actionName: action.name,
         status,
@@ -103,7 +105,7 @@ export class CallCommand extends Command<Args> {
     let matchedPath
 
     // we can't easily support raw TCP or UDP in a command like this
-    const ingresses = status.ingresses.filter((e) => e.protocol === "http" || e.protocol === "https")
+    const ingresses = statusIngresses.filter((e) => e.protocol === "http" || e.protocol === "https")
 
     if (!path) {
       // if no path is specified and there's a root endpoint (path === "/") we use that
@@ -122,7 +124,7 @@ export class CallCommand extends Command<Args> {
     } else {
       path = "/" + path
 
-      for (const ingress of status.ingresses) {
+      for (const ingress of statusIngresses) {
         if (ingress.path) {
           if (path.startsWith(ingress.path) && (!matchedPath || ingress.path.length > matchedPath.length)) {
             matchedIngress = ingress
@@ -138,7 +140,7 @@ export class CallCommand extends Command<Args> {
       throw new ParameterError(`${action.longDescription()} does not have an HTTP/HTTPS ingress at ${path}`, {
         actionName: action.name,
         path,
-        availableIngresses: status.ingresses,
+        availableIngresses: statusIngresses,
       })
     }
 

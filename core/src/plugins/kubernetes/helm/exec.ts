@@ -69,7 +69,7 @@ export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = a
   if (!serviceResource || !includes(["ready", "outdated"], status.state)) {
     throw new DeploymentError(`${action.longDescription()} is not running`, {
       name: action.name,
-      state: status.state,
+      state: status.detail?.state || status.state,
     })
   }
 

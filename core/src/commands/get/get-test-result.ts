@@ -58,7 +58,7 @@ export class GetTestResultCommand extends Command<Args> {
 
     let artifacts: string[] = []
 
-    if (res.result) {
+    if (res.detail) {
       artifacts = await getArtifactFileList({
         key: getArtifactKey("test", action.name, action.versionString()),
         artifactsPath: garden.artifactsPath,
@@ -66,10 +66,10 @@ export class GetTestResultCommand extends Command<Args> {
       })
     }
 
-    if (res.result === null) {
+    if (res.detail === null) {
       log.info(`Could not find results for test '${action.name}'`)
     } else {
-      log.info({ data: res.result })
+      log.info({ data: res.detail })
     }
 
     return { result: { ...res, artifacts } }

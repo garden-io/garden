@@ -10,14 +10,7 @@ import chalk from "chalk"
 import { find } from "lodash"
 import minimatch = require("minimatch")
 
-import {
-  TaskType,
-  getServiceStatuses,
-  getRunTaskResults,
-  BaseActionTask,
-  BaseActionTaskParams,
-  ActionTaskProcessParams,
-} from "../tasks/base"
+import { TaskType, BaseActionTask, BaseActionTaskParams, ActionTaskProcessParams } from "../tasks/base"
 import { prepareRuntimeContext } from "../runtime-context"
 import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
@@ -39,7 +32,7 @@ export interface TestTaskParams extends BaseActionTaskParams<TestAction> {
 }
 
 @Profile()
-export class TestTask extends BaseActionTask<TestAction> {
+export class TestTask extends BaseActionTask<TestAction, GetTestResult> {
   type: TaskType = "test"
 
   skipRuntimeDependencies: boolean
@@ -69,7 +62,7 @@ export class TestTask extends BaseActionTask<TestAction> {
 
   async getStatus({}: ActionTaskProcessParams<TestAction>) {
     const result = await this.getTestResult()
-    const testResult = result?.result
+    const testResult = result?.detail
 
     if (testResult && testResult.success) {
       const passedEntry = this.log.info({
@@ -80,7 +73,7 @@ export class TestTask extends BaseActionTask<TestAction> {
         msg: chalk.green("Already passed"),
         append: true,
       })
-      return testResult
+      return result
     }
 
     return null
@@ -93,22 +86,10 @@ export class TestTask extends BaseActionTask<TestAction> {
       status: "active",
     })
 
-    const dependencies = this.graph.getDependencies({
-      kind: "test",
-      name: action.name,
-      recursive: false,
-    })
-    const serviceStatuses = getServiceStatuses(dependencyResults)
-    const taskResults = getRunTaskResults(dependencyResults)
-
     const runtimeContext = await prepareRuntimeContext({
-      garden: this.garden,
+      action,
       graph: this.graph,
-      dependencies,
-      version: this.version,
-      moduleVersion: action.moduleVersion().versionString,
-      serviceStatuses,
-      taskResults,
+      graphResults: dependencyResults,
     })
 
     const actions = await this.garden.getActionRouter()
@@ -127,7 +108,7 @@ export class TestTask extends BaseActionTask<TestAction> {
       log.setError()
       throw err
     }
-    if (result.result?.success) {
+    if (result.detail?.success) {
       log.setSuccess({
         msg: chalk.green(`Success (took ${log.getDuration(1)} sec)`),
         append: true,
@@ -138,7 +119,7 @@ export class TestTask extends BaseActionTask<TestAction> {
         msg: `${failedMsg} (took ${log.getDuration(1)} sec)`,
         append: true,
       })
-      throw new TestError(result.result?.log)
+      throw new TestError(result.detail?.log)
     }
 
     return result
