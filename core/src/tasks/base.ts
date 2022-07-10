@@ -14,7 +14,7 @@ import { pickBy, mapValues, mapKeys } from "lodash"
 import { ServiceStatus } from "../types/service"
 import { splitLast } from "../util/util"
 import { Profile } from "../util/profiling"
-import { Action, ActionReferenceMap, actionReferencesToMap, Resolved } from "../actions/base"
+import { Action, Resolved } from "../actions/base"
 import { ConfigGraph } from "../graph/config-graph"
 import { isBuildAction } from "../actions/build"
 import { BuildTask } from "./build"
@@ -65,7 +65,8 @@ export interface BaseActionTaskParams<T extends Action = Action> extends CommonT
   graph: ConfigGraph
   devModeDeployNames: string[]
   localModeDeployNames: string[]
-  forceActions: ActionReference[]
+  forceActions?: ActionReference[]
+  forceBuild?: boolean // Shorthand for placing all builds in forceActions
 }
 
 export interface TaskProcessParams {
@@ -148,7 +149,11 @@ export abstract class BaseActionTask<T extends Action, O = T["_outputs"]> extend
     this.graph = params.graph
     this.devModeDeployNames = params.devModeDeployNames
     this.localModeDeployNames = params.localModeDeployNames
-    this.forceActions = params.forceActions
+    this.forceActions = params.forceActions || []
+
+    if (params.forceBuild) {
+      this.forceActions.push(...this.graph.getBuilds())
+    }
   }
 
   abstract getStatus(params: ActionTaskProcessParams<T>): Promise<O | null>
@@ -175,6 +180,7 @@ export abstract class BaseActionTask<T extends Action, O = T["_outputs"]> extend
       graph: this.graph,
       fromWatch: this.fromWatch,
       devModeDeployNames: this.devModeDeployNames,
+      localModeDeployNames: this.localModeDeployNames,
       forceActions: this.forceActions,
     }
   }

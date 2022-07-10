@@ -87,7 +87,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       })
 
       const runtimeContext = emptyRuntimeContext
-      const status = await handlers.getStatus({ ...params, runtimeContext, devMode: false })
+      const status = await handlers.getStatus({ ...params, runtimeContext, devMode: false, localMode: false })
 
       if (status.state === "missing") {
         log.setSuccess({

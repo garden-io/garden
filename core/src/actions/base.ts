@@ -275,6 +275,7 @@ interface ActionWrapperParams<C extends BaseActionConfig> {
   config: C
   dependencies: ConfigGraph
   moduleName?: string
+  moduleVersion?: ModuleVersion
   projectRoot: string
   version: ModuleVersion
 }
@@ -296,6 +297,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
 
   protected readonly baseBuildDirectory: string
   protected readonly _moduleName?: string // TODO: remove in 0.14
+  protected readonly _moduleVersion?: ModuleVersion // TODO: remove in 0.14
   protected readonly projectRoot: string
   protected readonly version: ModuleVersion
 
@@ -307,6 +309,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     this.baseBuildDirectory = params.baseBuildDirectory
     this.dependencies = params.dependencies
     this._moduleName = params.moduleName
+    this._moduleVersion = params.moduleVersion
     this._config = params.config
     this.projectRoot = params.projectRoot
     this.version = params.version
@@ -365,6 +368,10 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
 
   moduleName(): string {
     return this._moduleName || this.name
+  }
+
+  moduleVersion(): ModuleVersion {
+    return this._moduleVersion || this.version
   }
 
   getDependencyReferences(): ActionReference[] {

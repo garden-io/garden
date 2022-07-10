@@ -13,7 +13,6 @@ import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { GardenPlugin, ModuleTypeDefinition } from "../plugin/plugin"
 import { ServiceStatusMap } from "../types/service"
-import { GetServiceStatusTask } from "../tasks/get-service-status"
 import { getServiceStatuses } from "../tasks/base"
 import { DeleteDeployTask, deletedDeployStatuses } from "../tasks/delete-service"
 import { DeployTask } from "../tasks/deploy"
@@ -87,17 +86,19 @@ export class ActionRouter extends BaseRouter {
 
     const tasks = actions.map(
       (action) =>
-        new GetServiceStatusTask({
-          force: true,
+        new DeployTask({
+          force: false,
           garden: this.garden,
           graph,
           log,
           action,
           devModeDeployNames: [],
+          localModeDeployNames: [],
+          forceActions: [],
           fromWatch: false,
         })
     )
-    const results = await this.garden.processTasks(tasks, { throwOnError: true })
+    const results = await this.garden.getTaskStatuses(tasks, { throwOnError: true })
 
     return getServiceStatuses(results)
   }
@@ -113,9 +114,10 @@ export class ActionRouter extends BaseRouter {
           graph,
           action,
           force,
-          forceBuild,
+          forceActions: forceBuild ? graph.getBuilds() : [],
           fromWatch: false,
           devModeDeployNames: [],
+          localModeDeployNames: [],
         })
     )
 
@@ -138,6 +140,11 @@ export class ActionRouter extends BaseRouter {
           action,
           log: servicesLog,
           includeDependants: true,
+          force: false,
+          forceActions: [],
+          devModeDeployNames: [],
+          localModeDeployNames: [],
+          fromWatch: false,
         })
       })
     )

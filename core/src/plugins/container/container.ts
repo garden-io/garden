@@ -282,6 +282,7 @@ export const gardenPlugin = () =>
         `,
         moduleOutputsSchema: containerModuleOutputsSchema(),
         schema: containerModuleSpecSchema(),
+        needsBuild: true,
         handlers: {
           configure: configureContainerModule,
           suggestModules,

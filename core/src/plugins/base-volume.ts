@@ -49,6 +49,7 @@ export const gardenPlugin = () =>
         Internal abstraction used for specifying and referencing (usually persistent) volumes by other module types.
       `,
         schema: baseVolumeSpecSchema(),
+        needsBuild: false,
         handlers: {},
       },
     ],

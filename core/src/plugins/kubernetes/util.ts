@@ -13,7 +13,14 @@ import { apply as jsonMerge } from "json-merge-patch"
 import chalk from "chalk"
 import hasha from "hasha"
 
-import { KubernetesResource, KubernetesWorkload, KubernetesPod, KubernetesServerResource, isPodResource } from "./types"
+import {
+  KubernetesResource,
+  KubernetesWorkload,
+  KubernetesPod,
+  KubernetesServerResource,
+  isPodResource,
+  SupportedRuntimeActions,
+} from "./types"
 import { splitLast, serializeValues, findByName, exec } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
 import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util/string"

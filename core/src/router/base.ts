@@ -142,7 +142,7 @@ type HandlerMap<K extends ActionKind> = {
 
 type HandlerParams<K extends ActionKind, H extends keyof ActionTypeClasses<K>> = Omit<
   GetActionTypeParams<ActionTypeClasses<K>[H]>,
-  CommonParams
+  CommonParams | "artifactsPath"
 > & {
   graph: ConfigGraph
   pluginName?: string
@@ -158,7 +158,7 @@ export type WrappedActionRouterHandlers<K extends ActionKind> = {
 
 type ActionRouterHandler<K extends ActionKind, H extends keyof ActionTypeClasses<K>> = {
   (
-    params: Omit<GetActionTypeParams<ActionTypeClasses<K>[H]>, CommonParams> & {
+    params: Omit<GetActionTypeParams<ActionTypeClasses<K>[H]>, CommonParams | "artifactsPath"> & {
       router: BaseActionRouter<K>
       garden: Garden
       graph: ConfigGraph
@@ -231,13 +231,13 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       pluginName?: string
       log: LogEntry
       graph: ConfigGraph
-    }
+    } & Omit<GetActionTypeParams<ActionTypeClasses<K>[T]>, keyof PluginActionParamsBase>
     handlerType: T
     defaultHandler?: GetActionTypeHandler<ActionTypeClasses<K>[T], T>
   }): Promise<GetActionTypeResults<ActionTypeClasses<K>[T]>> {
     const { action, pluginName, log, graph } = params
 
-    log.silly(`Getting '${handlerType}' handler for ${action.longDescription()}`)
+    log.silly(`Getting '${String(handlerType)}' handler for ${action.longDescription()}`)
 
     const handler = await this.getHandler({
       actionType: action.type,
@@ -260,7 +260,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       ...params,
     }
 
-    log.silly(`Calling ${handlerType} handler for action ${action.longDescription()}`)
+    log.silly(`Calling ${String(handlerType)} handler for action ${action.longDescription()}`)
 
     const result: GetActionTypeResults<ActionTypeClasses<K>[T]> = await handler(handlerParams)
 
@@ -284,7 +284,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
         const result = await handler["apply"](plugin, args)
         if (result === undefined) {
           throw new PluginError(
-            `Got empty response from ${actionType}.${handlerType} handler on ${pluginName} provider`,
+            `Got empty response from ${actionType}.${String(handlerType)} handler on ${pluginName} provider`,
             {
               args,
               handlerType,
@@ -293,7 +293,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
           )
         }
         return validateSchema(result, schema, {
-          context: `${handlerType} ${actionType} output from provider ${pluginName}`,
+          context: `${String(handlerType)} ${actionType} output from provider ${pluginName}`,
         })
       })),
       { handlerType, pluginName, actionType }
@@ -333,7 +333,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
     if (handlers.length === 0 && spec.base && !pluginName) {
       // No handler found but module type has a base. Check if the base type has the handler we're looking for.
-      this.garden.log.silly(`No ${handlerType} handler found for ${actionType}. Trying ${spec.base} base.`)
+      this.garden.log.silly(`No ${String(handlerType)} handler found for ${actionType}. Trying ${spec.base} base.`)
 
       return this.getHandler({
         handlerType,
@@ -380,7 +380,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
         // This should never happen
         throw new InternalError(
-          `Unable to find any matching configuration when selecting ${actionType}/${handlerType} handler ` +
+          `Unable to find any matching configuration when selecting ${actionType}/${String(handlerType)} handler ` +
             `(please report this as a bug).`,
           { handlers, configs }
         )
@@ -405,12 +405,12 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
       if (pluginName) {
         throw new PluginError(
-          `Plugin '${pluginName}' does not have a '${handlerType}' handler for action type '${actionType}'.`,
+          `Plugin '${pluginName}' does not have a '${String(handlerType)}' handler for action type '${actionType}'.`,
           errorDetails
         )
       } else {
         throw new ParameterError(
-          `No '${handlerType}' handler configured for actionType type '${actionType}' in environment ` +
+          `No '${String(handlerType)}' handler configured for actionType type '${actionType}' in environment ` +
             `'${this.garden.environmentName}'. Are you missing a provider configuration?`,
           errorDetails
         )

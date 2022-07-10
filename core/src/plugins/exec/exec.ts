@@ -571,6 +571,7 @@ export const execPlugin = () =>
           This means that include/exclude filters and ignore files are not applied to local exec modules, as the
           filtering is done during the sync.
         `,
+        needsBuild: true,
         moduleOutputsSchema: joi.object().keys({}),
         schema: execModuleSpecSchema(),
         handlers: {

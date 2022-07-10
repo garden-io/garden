@@ -89,7 +89,7 @@ export class RunBuildCommand extends Command<Args, Opts> {
     const graph = await garden.getConfigGraph({ log, emit: false })
     const action = graph.getBuild(args.name)
 
-    const actions = await garden.getActionRouter()
+    const router = await garden.getActionRouter()
 
     const buildTask = new BuildTask({
       garden,
@@ -99,6 +99,7 @@ export class RunBuildCommand extends Command<Args, Opts> {
       fromWatch: false,
       force: opts["force-build"],
       devModeDeployNames: [],
+      localModeDeployNames: [],
     })
     const graphResults = await garden.processTasks([buildTask])
 
@@ -123,7 +124,7 @@ export class RunBuildCommand extends Command<Args, Opts> {
       log.root.stop()
     }
 
-    const result = await actions.build.run({
+    const result = await router.build.run({
       log,
       graph,
       action,

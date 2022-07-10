@@ -37,6 +37,7 @@ export class DeployTask extends BaseActionTask<DeployAction, ServiceStatus> {
     const log = this.log.placeholder()
 
     const devMode = includes(this.devModeDeployNames, action.name)
+    const localMode = includes(this.localModeDeployNames, action.name)
 
     const dependencies = this.graph.getDependencies({
       kind: "deploy",
@@ -67,6 +68,7 @@ export class DeployTask extends BaseActionTask<DeployAction, ServiceStatus> {
         action,
         log,
         devMode,
+        localMode,
         runtimeContext,
       })
     } catch (err) {

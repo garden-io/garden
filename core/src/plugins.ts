@@ -410,7 +410,7 @@ export function getModuleTypes(plugins: GardenPlugin[]): ModuleTypeMap {
   return keyBy(
     definitions.map((definition) => {
       const typeExtensions = extensions.filter((e) => e.name === definition.name)
-      const needsBuild = !!definition.handlers.build || some(typeExtensions, (e) => !!e.handlers.build)
+      const needsBuild = !!definition.needsBuild || some(typeExtensions, (e) => !!e.needsBuild)
       return { ...definition, needsBuild }
     }),
     "name"
