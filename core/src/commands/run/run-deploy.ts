@@ -12,7 +12,6 @@ import dedent = require("dedent")
 import { CommandError } from "../../exceptions"
 import { printHeader } from "../../logger/util"
 import { prepareRuntimeContext } from "../../runtime-context"
-import { getRunTaskResults, getServiceStatuses } from "../../tasks/base"
 import { DeployTask } from "../../tasks/deploy"
 import { RunResult } from "../../plugin/base"
 import { deline } from "../../util/string"
@@ -98,23 +97,15 @@ export class RunDeployCommand extends Command<Args, Opts> {
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
-    const dependencyResults = await garden.processTasks(await deployTask.resolveDependencies())
 
-    const dependencies = graph.getDependencies({ kind: "deploy", name: serviceName, recursive: false })
-    const serviceStatuses = getServiceStatuses(dependencyResults)
-    const taskResults = getRunTaskResults(dependencyResults)
+    const tasks = deployTask.resolveDependencies()
+    const { results: dependencyResults } = await garden.processTasks({ tasks, log, throwOnError: true })
     const interactive = true
 
-    const version = action.versionString()
-
     const runtimeContext = await prepareRuntimeContext({
-      garden,
+      action,
       graph,
-      dependencies,
-      version,
-      moduleVersion: version,
-      serviceStatuses,
-      taskResults,
+      graphResults: dependencyResults,
     })
 
     printRuntimeContext(log, runtimeContext)

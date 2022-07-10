@@ -19,7 +19,7 @@ import { ConfigContext, schema, ErrorContext } from "./base"
 import { ProjectConfigContext, ProjectConfigContextParams } from "./project"
 import { ProviderConfigContext } from "./provider"
 
-const exampleVersion = "v-17ad4cb3fd"
+export const exampleVersion = "v-17ad4cb3fd"
 
 class ConfigThisContext extends ConfigContext {
   @schema(
@@ -162,9 +162,9 @@ class RuntimeConfigContext extends ConfigContext {
 
     if (runtimeContext) {
       for (const dep of runtimeContext.dependencies) {
-        if (dep.type === "service") {
+        if (dep.kind === "deploy") {
           this.services.set(dep.name, new ServiceRuntimeContext(this, dep.outputs, dep.version))
-        } else if (dep.type === "task") {
+        } else if (dep.kind === "run") {
           this.tasks.set(dep.name, new TaskRuntimeContext(this, dep.outputs, dep.version))
         }
       }

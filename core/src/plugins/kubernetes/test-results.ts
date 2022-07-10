@@ -21,6 +21,7 @@ import { getSystemNamespace } from "./namespace"
 import chalk from "chalk"
 import { TestActionHandler } from "../../plugin/action-types"
 import { KubernetesTestAction } from "./kubernetes-type/test"
+import { runResultToActionState } from "../../actions/base"
 
 // TODO-G2: figure out how to get rid of the any case
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
@@ -41,10 +42,10 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
       result.version = result.version.versionString
     }
 
-    return { result: <TestResult>result, outputs: { log: result.log || "" } }
+    return { state: runResultToActionState(result), detail: <TestResult>result, outputs: { log: result.log || "" } }
   } catch (err) {
     if (err.statusCode === 404) {
-      return { result: null, outputs: null }
+      return { state: "not-ready", detail: null, outputs: null }
     } else {
       throw err
     }

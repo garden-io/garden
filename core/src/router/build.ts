@@ -12,7 +12,8 @@ import { uuidv4 } from "../util/util"
 import { PluginEventBroker } from "../plugin-context"
 import { BuildState } from "../plugin/handlers/build/build"
 import { BaseRouterParams, createActionRouter } from "./base"
-import { ActionStatusType } from "../actions/base"
+import { ActionState } from "../actions/base"
+import { PublishActionResult } from "../plugin/handlers/build/publish"
 
 export const buildRouter = (baseParams: BaseRouterParams) =>
   createActionRouter("build", baseParams, {
@@ -22,9 +23,9 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const status = await router.callHandler({
         params,
         handlerType: "getStatus",
-        defaultHandler: async () => ({ status: <ActionStatusType>"unknown", outputs: {} }),
+        defaultHandler: async () => ({ state: <ActionState>"unknown", detail: {}, outputs: {} }),
       })
-      if (status.status === "ready") {
+      if (status.state === "ready") {
         // Then an actual build won't take place, so we emit a build status event to that effect.
         const actionVersion = action.versionString()
 
@@ -114,9 +115,13 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
     },
   })
 
-const dummyPublishHandler = async ({ action }) => {
+const dummyPublishHandler = async ({ action }): Promise<PublishActionResult> => {
   return {
-    message: chalk.yellow(`No publish handler available for type ${action.type}`),
-    published: false,
+    state: "unknown",
+    detail: {
+      message: chalk.yellow(`No publish handler available for type ${action.type}`),
+      published: false,
+    },
+    outputs: {},
   }
 }

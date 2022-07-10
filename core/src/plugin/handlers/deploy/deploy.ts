@@ -9,11 +9,11 @@
 import { actionParamsSchema, PluginDeployActionParamsBase } from "../../base"
 import { dedent } from "../../../util/string"
 import { RuntimeContext, runtimeContextSchema } from "../../../runtime-context"
-import { ServiceStatus, serviceStatusSchema } from "../../../types/service"
+import { serviceStatusSchema } from "../../../types/service"
 import { joi } from "../../../config/common"
 import { ActionTypeHandlerSpec } from "../base/base"
 import { DeployAction } from "../../../actions/deploy"
-import { GetActionOutputType } from "../../../actions/base"
+import { DeployStatus } from "./get-status"
 
 interface DeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   devMode: boolean
@@ -25,7 +25,7 @@ interface DeployParams<T extends DeployAction> extends PluginDeployActionParamsB
 export class DoDeployAction<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "deploy",
   DeployParams<T>,
-  ServiceStatus<any, GetActionOutputType<T>>
+  DeployStatus<T>
 > {
   description = dedent`
     Deploy the specified service. This should wait until the service is ready and accessible,

@@ -11,16 +11,19 @@ import { actionParamsSchema, PluginBuildActionParamsBase } from "../../../plugin
 import { joi } from "../../../config/common"
 import { BuildAction } from "../../../actions/build"
 import { ActionTypeHandlerSpec } from "../base/base"
+import { ActionStatus } from "../../../actions/base"
 
 interface PublishActionParams<T extends BuildAction = BuildAction> extends PluginBuildActionParamsBase<T> {
   tag?: string
 }
 
-export interface PublishActionResult {
+interface PublishActionDetail {
   published: boolean
   message?: string
   identifier?: string
 }
+
+export type PublishActionResult = ActionStatus<BuildAction, PublishActionDetail>
 
 export const publishResultSchema = () =>
   joi.object().keys({

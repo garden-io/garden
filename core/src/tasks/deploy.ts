@@ -8,24 +8,18 @@
 
 import chalk from "chalk"
 import { includes } from "lodash"
-import {
-  TaskType,
-  getServiceStatuses,
-  getRunTaskResults,
-  BaseActionTask,
-  BaseActionTaskParams,
-  ActionTaskProcessParams,
-} from "./base"
-import { ServiceStatus, getLinkUrl } from "../types/service"
+import { TaskType, BaseActionTask, BaseActionTaskParams, ActionTaskProcessParams } from "./base"
+import { getLinkUrl } from "../types/service"
 import { startPortProxies } from "../proxy"
 import { prepareRuntimeContext } from "../runtime-context"
 import { Profile } from "../util/profiling"
 import { DeployAction } from "../actions/deploy"
+import { DeployStatus } from "../plugin/handlers/deploy/get-status"
 
 export interface DeployTaskParams extends BaseActionTaskParams<DeployAction> {}
 
 @Profile()
-export class DeployTask extends BaseActionTask<DeployAction, ServiceStatus> {
+export class DeployTask extends BaseActionTask<DeployAction, DeployStatus> {
   type: TaskType = "deploy"
   concurrencyLimit = 10
 
@@ -39,28 +33,15 @@ export class DeployTask extends BaseActionTask<DeployAction, ServiceStatus> {
     const devMode = includes(this.devModeDeployNames, action.name)
     const localMode = includes(this.localModeDeployNames, action.name)
 
-    const dependencies = this.graph.getDependencies({
-      kind: "deploy",
-      name: this.getName(),
-      recursive: false,
-    })
-
-    const serviceStatuses = getServiceStatuses(dependencyResults)
-    const taskResults = getRunTaskResults(dependencyResults)
-
     const runtimeContext = await prepareRuntimeContext({
-      garden: this.garden,
+      action,
       graph: this.graph,
-      dependencies,
-      version: this.version,
-      moduleVersion: this.version,
-      serviceStatuses,
-      taskResults,
+      graphResults: dependencyResults,
     })
 
     const actions = await this.garden.getActionRouter()
 
-    let status: ServiceStatus = { state: "unknown", detail: {} }
+    let status: DeployStatus = { state: "unknown", detail: { state: "unknown", detail: {} }, outputs: {} }
 
     try {
       status = await actions.deploy.getStatus({
@@ -83,35 +64,21 @@ export class DeployTask extends BaseActionTask<DeployAction, ServiceStatus> {
     return status
   }
 
-  async process({ resolvedAction: action, dependencyResults }: ActionTaskProcessParams<DeployAction>) {
+  async process({ resolvedAction: action, dependencyResults, status }: ActionTaskProcessParams<DeployAction>) {
     const version = this.version
 
     const devMode = includes(this.devModeDeployNames, action.name)
     const localMode = includes(this.localModeDeployNames, action.name)
 
-    const dependencies = this.graph.getDependencies({
-      kind: "deploy",
-      name: this.getName(),
-      recursive: false,
-    })
-
-    const serviceStatuses = getServiceStatuses(dependencyResults)
-    const taskResults = getRunTaskResults(dependencyResults)
-
     // TODO: attach runtimeContext to GetServiceStatusTask output
     const runtimeContext = await prepareRuntimeContext({
-      garden: this.garden,
+      action,
       graph: this.graph,
-      dependencies,
-      version,
-      moduleVersion: this.version,
-      serviceStatuses,
-      taskResults,
+      graphResults: dependencyResults,
     })
 
     const actions = await this.garden.getActionRouter()
 
-    let status = serviceStatuses[action.name]
     const devModeSkipRedeploy = status.devMode && devMode
     const localModeSkipRedeploy = status.localMode && localMode
 
@@ -133,7 +100,7 @@ export class DeployTask extends BaseActionTask<DeployAction, ServiceStatus> {
       })
     } else {
       try {
-        status = await actions.deploy.deploy({
+        const res = await actions.deploy.deploy({
           graph: this.graph,
           action,
           runtimeContext,
@@ -142,6 +109,7 @@ export class DeployTask extends BaseActionTask<DeployAction, ServiceStatus> {
           devMode,
           localMode,
         })
+        status = res.detail
       } catch (err) {
         log.setError()
         throw err

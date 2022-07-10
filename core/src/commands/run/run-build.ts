@@ -101,19 +101,14 @@ export class RunBuildCommand extends Command<Args, Opts> {
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
-    const graphResults = await garden.processTasks([buildTask])
 
-    const dependencies = graph.getDependencies({ kind: "build", name: args.name, recursive: false })
+    const { results: graphResults } = await garden.processTasks({ tasks: [buildTask], log, throwOnError: true })
     const interactive = opts.interactive
 
     const runtimeContext = await prepareRuntimeContext({
-      garden,
+      action,
       graph,
-      dependencies,
-      version: action.versionString(),
-      moduleVersion: action.versionString(),
-      serviceStatuses: {},
-      taskResults: {},
+      graphResults,
     })
 
     printRuntimeContext(log, runtimeContext)

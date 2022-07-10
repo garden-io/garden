@@ -8,6 +8,7 @@
 
 import chalk from "chalk"
 import { omit } from "lodash"
+import { ActionState } from "../actions/base"
 import { PluginEventBroker } from "../plugin-context"
 import { emptyRuntimeContext } from "../runtime-context"
 import { ServiceState } from "../types/service"
@@ -66,13 +67,13 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         serviceVersion,
         actionUid,
         status: {
-          ...omit(result, "detail"),
+          ...omit(result.detail, "detail"),
           deployStartedAt,
           deployCompletedAt: new Date(),
         },
       })
 
-      router.emitNamespaceEvents(result.namespaceStatuses)
+      router.emitNamespaceEvents(result.detail?.namespaceStatuses)
 
       return result
     },
@@ -89,7 +90,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       const runtimeContext = emptyRuntimeContext
       const status = await handlers.getStatus({ ...params, runtimeContext, devMode: false, localMode: false })
 
-      if (status.state === "missing") {
+      if (status.detail?.state === "missing") {
         log.setSuccess({
           section: action.key(),
           msg: "Not found",
@@ -103,11 +104,15 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         defaultHandler: async (p) => {
           const msg = `No delete service handler available for action type ${p.action.type}`
           p.log.setError(msg)
-          return { state: "missing" as ServiceState, detail: {} }
+          return {
+            state: "not-ready" as ActionState,
+            detail: { state: "missing" as ServiceState, detail: {} },
+            outputs: {},
+          }
         },
       })
 
-      router.emitNamespaceEvents(result.namespaceStatuses)
+      router.emitNamespaceEvents(result.detail?.namespaceStatuses)
 
       log.setSuccess({
         msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
@@ -154,10 +159,10 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         moduleVersion: actionVersion,
         moduleName: action.moduleName(),
         serviceVersion: actionVersion,
-        status: omit(result, "detail"),
+        status: omit(result.detail, "detail"),
       })
 
-      router.emitNamespaceEvents(result.namespaceStatuses)
+      router.emitNamespaceEvents(result.detail?.namespaceStatuses)
       // TODO-G2
       // this.validateServiceOutputs(params.service, result)
       return result

@@ -6,12 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GraphResults } from "../task-graph"
+import { GraphResults } from "../graph/solver"
 import { v1 as uuidv1 } from "uuid"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { pickBy, mapValues, mapKeys } from "lodash"
-import { ServiceStatus } from "../types/service"
 import { splitLast } from "../util/util"
 import { Profile } from "../util/profiling"
 import { Action, Resolved } from "../actions/base"
@@ -21,11 +20,13 @@ import { BuildTask } from "./build"
 import { isDeployAction } from "../actions/deploy"
 import { DeployTask } from "./deploy"
 import { isRunAction } from "../actions/run"
-import { RunTask } from "./task"
+import { RunTask } from "./run"
 import { InternalError } from "../exceptions"
 import { TestTask } from "./test"
 import { isTestAction } from "../actions/test"
 import { ActionReference } from "../config/common"
+import { DeployStatus } from "../plugin/handlers/deploy/get-status"
+import { GetRunResult } from "../plugin/handlers/run/get-result"
 
 export type TaskType =
   | "build"
@@ -73,8 +74,12 @@ export interface TaskProcessParams {
   dependencyResults: GraphResults
 }
 
+export interface ValidResultType {
+  outputs: {}
+}
+
 @Profile()
-export abstract class BaseTask<T extends Action = any, O = T["_outputs"]> {
+export abstract class BaseTask<O extends ValidResultType = ValidResultType, S extends ValidResultType = O> {
   abstract type: TaskType
 
   // How many tasks of this exact type are allowed to run concurrently
@@ -90,6 +95,7 @@ export abstract class BaseTask<T extends Action = any, O = T["_outputs"]> {
   interactive = false
 
   _resultType: O
+  _statusType: S
   _resolvedDependencies?: BaseTask[]
 
   constructor(initArgs: BaseTaskParams) {
@@ -104,7 +110,7 @@ export abstract class BaseTask<T extends Action = any, O = T["_outputs"]> {
   abstract getName(): string
   abstract resolveDependencies(): BaseTask[]
   abstract getDescription(): string
-  abstract getStatus(params: TaskProcessParams): Promise<O | null>
+  abstract getStatus(params: TaskProcessParams): Promise<S | null>
   abstract process(params: TaskProcessParams): Promise<O>
 
   /**
@@ -131,11 +137,16 @@ export abstract class BaseTask<T extends Action = any, O = T["_outputs"]> {
   }
 }
 
-export interface ActionTaskProcessParams<T extends Action = any> extends TaskProcessParams {
+export interface ActionTaskProcessParams<T extends Action = any, S = any> extends TaskProcessParams {
   resolvedAction: Resolved<T>
+  status: S
 }
 
-export abstract class BaseActionTask<T extends Action, O = T["_outputs"]> extends BaseTask<T, O> {
+export abstract class BaseActionTask<
+  T extends Action,
+  O extends ValidResultType = { outputs: T["_outputs"] },
+  S extends ValidResultType = O
+> extends BaseTask<O, S> {
   action: T
   graph: ConfigGraph
   devModeDeployNames: string[]
@@ -156,7 +167,7 @@ export abstract class BaseActionTask<T extends Action, O = T["_outputs"]> extend
     }
   }
 
-  abstract getStatus(params: ActionTaskProcessParams<T>): Promise<O | null>
+  abstract getStatus(params: ActionTaskProcessParams<T>): Promise<S | null>
   abstract process(params: ActionTaskProcessParams<T>): Promise<O>
 
   getName() {
@@ -212,21 +223,14 @@ export abstract class BaseActionTask<T extends Action, O = T["_outputs"]> extend
   }
 }
 
-// TODO-G2
-export function getServiceStatuses(dependencyResults: GraphResults): { [name: string]: ServiceStatus } {
-  const getServiceStatusResults = pickBy(dependencyResults, (r) => r && r.type === "get-service-status")
+export function getServiceStatuses(dependencyResults: GraphResults): { [name: string]: DeployStatus } {
   const deployResults = pickBy(dependencyResults, (r) => r && r.type === "deploy")
-  // DeployTask results take precedence over GetServiceStatusTask results, because status changes after deployment
-  const combined = { ...getServiceStatusResults, ...deployResults }
-  const statuses = mapValues(combined, (r) => r!.result as ServiceStatus)
+  const statuses = mapValues(deployResults, (r) => r!.result as DeployStatus)
   return mapKeys(statuses, (_, key) => splitLast(key, ".")[1])
 }
 
-export function getRunTaskResults(dependencyResults: GraphResults): { [name: string]: RunTaskResult } {
-  const storedResults = pickBy(dependencyResults, (r) => r && r.type === "get-task-result")
-  const runResults = pickBy(dependencyResults, (r) => r && r.type === "task")
-  // TaskTask results take precedence over GetTaskResultTask results
-  const combined = { ...storedResults, ...runResults }
-  const results = mapValues(combined, (r) => r!.result as RunTaskResult)
+export function getRunResults(dependencyResults: GraphResults): { [name: string]: GetRunResult } {
+  const runResults = pickBy(dependencyResults, (r) => r && r.type === "run")
+  const results = mapValues(runResults, (r) => r!.result as GetRunResult)
   return mapKeys(results, (_, key) => splitLast(key, ".")[1])
 }

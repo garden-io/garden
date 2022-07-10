@@ -203,11 +203,16 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   }
 
   return {
-    forwardablePorts,
     state: "ready",
-    version: action.versionString(),
-    detail: { remoteResources: statuses.map((s) => s.resource) },
-    namespaceStatuses: [namespaceStatus],
+    detail: {
+      forwardablePorts,
+      state: "ready",
+      version: action.versionString(),
+      detail: { remoteResources: statuses.map((s) => s.resource) },
+      namespaceStatuses: [namespaceStatus],
+    },
+    // TODO-G2
+    outputs: {},
   }
 }
 
@@ -234,5 +239,5 @@ export const deleteHelmDeploy: DeployActionHandler<"delete", HelmDeployAction> =
 
   log.setSuccess("Service deleted")
 
-  return { state: "missing", detail: { remoteResources: [] } }
+  return { state: "not-ready", outputs: {}, detail: { state: "missing", detail: { remoteResources: [] } } }
 }

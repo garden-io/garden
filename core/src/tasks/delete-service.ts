@@ -10,6 +10,7 @@ import { BaseActionTask, BaseActionTaskParams, TaskType } from "./base"
 import { ServiceStatus } from "../types/service"
 import { GraphResults, GraphResult } from "../task-graph"
 import { DeployAction, isDeployAction } from "../actions/deploy"
+import { DeployStatus } from "../plugin/handlers/deploy/get-status"
 
 export interface DeleteDeployTaskParams extends BaseActionTaskParams<DeployAction> {
   /**
@@ -22,7 +23,7 @@ export interface DeleteDeployTaskParams extends BaseActionTaskParams<DeployActio
   deleteDeployNames?: string[]
 }
 
-export class DeleteDeployTask extends BaseActionTask<DeployAction> {
+export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus> {
   type: TaskType = "delete-service"
   concurrencyLimit = 10
   dependantsFirst: boolean
@@ -70,9 +71,9 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction> {
     return null
   }
 
-  async process(): Promise<ServiceStatus> {
+  async process() {
     const actions = await this.garden.getActionRouter()
-    let status: ServiceStatus
+    let status: DeployStatus
 
     try {
       status = await actions.deploy.delete({ log: this.log, action: this.action, graph: this.graph })

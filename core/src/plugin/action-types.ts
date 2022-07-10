@@ -38,7 +38,7 @@ import { templateStringLiteral } from "../docs/common"
 
 // BASE //
 
-type ActionTypeHandler<
+export type ActionTypeHandler<
   K extends ActionKind,
   N, // Name of handler
   P extends {}, // Params type

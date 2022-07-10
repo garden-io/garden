@@ -16,7 +16,7 @@ import {
   resultMetadataKeys,
   graphResultsSchema,
 } from "../base"
-import { RunTask } from "../../tasks/task"
+import { RunTask } from "../../tasks/run"
 import { GraphResults } from "../../task-graph"
 import { printHeader } from "../../logger/util"
 import { CommandError } from "../../exceptions"
@@ -105,8 +105,8 @@ export class RunTaskCommand extends Command<Args, Opts> {
       localModeDeployNames: [],
       fromWatch: false,
     })
-    const graphResults = await garden.processTasks([taskTask], { throwOnError: true })
+    const { results } = await garden.processTasks({ tasks: [taskTask], log, throwOnError: true })
 
-    return handleTaskResult({ log, actionDescription: "task", graphResults, key: taskTask.getKey() })
+    return handleTaskResult({ log, actionDescription: "task", graphResults: results, key: taskTask.getKey() })
   }
 }
