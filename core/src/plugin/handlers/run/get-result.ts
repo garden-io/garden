@@ -11,15 +11,12 @@ import { dedent } from "../../../util/string"
 import { taskResultSchema } from "../../../types/task"
 import { RunAction } from "../../../actions/run"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { GetActionOutputType } from "../../../actions/base"
+import { ActionStatus } from "../../../actions/base"
 import { joi } from "../../../config/common"
 
 interface GetRunResultParams<T extends RunAction> extends PluginRunActionParamsBase<T> {}
 
-export interface GetRunResult<T extends RunAction = RunAction> {
-  result: RunResult | null
-  outputs: GetActionOutputType<T> | null
-}
+export type GetRunResult<T extends RunAction = RunAction> = ActionStatus<T, RunResult>
 
 export class GetRunActionResult<T extends RunAction> extends ActionTypeHandlerSpec<
   "run",

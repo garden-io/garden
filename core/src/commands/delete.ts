@@ -237,7 +237,8 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
       })
     })
 
-    const result = deletedDeployStatuses(await garden.processTasks(tasks))
+    const processed = await garden.processTasks({ tasks, log })
+    const result = deletedDeployStatuses(processed.results)
 
     return { result }
   }

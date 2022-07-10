@@ -11,15 +11,12 @@ import { PluginTestActionParamsBase, actionParamsSchema } from "../../base"
 import { TestAction } from "../../../actions/test"
 import { TestResult, testResultSchema } from "../../../types/test"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { GetActionOutputType } from "../../../actions/base"
+import { ActionStatus } from "../../../actions/base"
 import { joi } from "../../../config/common"
 
 interface GetTestResultParams<T extends TestAction> extends PluginTestActionParamsBase<T> {}
 
-export interface GetTestResult<T extends TestAction> {
-  result: TestResult | null
-  outputs: GetActionOutputType<T> | null
-}
+export type GetTestResult<T extends TestAction = TestAction> = ActionStatus<T, TestResult>
 
 export class GetTestActionResult<T extends TestAction = TestAction> extends ActionTypeHandlerSpec<
   "test",

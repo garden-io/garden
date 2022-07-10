@@ -6,17 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PrimitiveMap, joiEnvVars, joiPrimitive, joi, joiIdentifier, moduleVersionSchema } from "./config/common"
-import { Garden } from "./garden"
-import { ConfigGraph, DependencyRelations } from "./graph/config-graph"
-import { ServiceStatus } from "./types/service"
+import { PrimitiveMap, joiEnvVars, joiPrimitive, joi, joiIdentifier } from "./config/common"
+import { ConfigGraph } from "./graph/config-graph"
 import { joiArray } from "./config/common"
+import { GraphResults } from "./graph/solver"
+import { ActionKind, actionKinds, BaseAction } from "./actions/base"
 
 interface RuntimeDependency {
   moduleName: string
   name: string
   outputs: PrimitiveMap
-  type: "build" | "service" | "task"
+  kind: ActionKind
   version: string
 }
 
@@ -32,10 +32,16 @@ export const emptyRuntimeContext = {
 
 const runtimeDependencySchema = () =>
   joi.object().keys({
-    name: joiIdentifier().description("The name of the service or task."),
-    outputs: joiEnvVars().description("The outputs provided by the service (e.g. ingress URLs etc.)."),
-    type: joi.string().valid("service", "task").description("The type of the dependency."),
-    version: moduleVersionSchema(),
+    name: joiIdentifier().required().description("The name of the dependency."),
+    moduleName: joiIdentifier()
+      .required()
+      .description("The module name of the dependency. Defaults to the action name if it's not part of a module."),
+    outputs: joiEnvVars().description("The outputs provided by the action (e.g. ingress URLs etc.)."),
+    kind: joi
+      .string()
+      .valid(...actionKinds)
+      .description("The kind of the dependency."),
+    version: joi.string().required().description("The version of the dependency."),
   })
 
 export const runtimeContextSchema = () =>
@@ -58,82 +64,47 @@ export const runtimeContextSchema = () =>
     })
 
 interface PrepareRuntimeContextParams {
-  garden: Garden
+  action: BaseAction
   graph: ConfigGraph
-  dependencies: DependencyRelations
-  serviceStatuses: { [name: string]: ServiceStatus }
-  taskResults: { [name: string]: RunTaskResult }
-  version: string
-  moduleVersion: string
+  graphResults: GraphResults
 }
 
 // TODO-G2: this needs a re-visit
 /**
- * This function prepares the "runtime context" that's used to inform services and tasks about any dependency outputs
- * and other runtime values. It includes environment variables, that can be directly passed by provider handlers to
- * the underlying platform (e.g. container environments), as well as a more detailed list of all runtime
- * and module dependencies and the outputs for each of them.
+ * This function prepares the "runtime context" that's used to inform action about any dependency outputs.
+ * It includes environment variables, that can be directly passed by provider handlers  to the underlying platform
+ * (e.g. container environments), as well as a more detailed list of all  dependencies and the outputs for each of them.
  *
- * This should be called just ahead of calling relevant service, task and test action handlers.
+ * This should be called just ahead of calling relevant action handlers.
  */
 export async function prepareRuntimeContext({
-  dependencies,
-  serviceStatuses,
-  taskResults,
-  version,
-  moduleVersion,
+  action,
+  graph,
+  graphResults,
 }: PrepareRuntimeContextParams): Promise<RuntimeContext> {
   const envVars = {
-    GARDEN_VERSION: version,
-    GARDEN_MODULE_VERSION: moduleVersion,
+    GARDEN_VERSION: action.versionString(),
+    GARDEN_MODULE_VERSION: action.moduleVersion().versionString,
   }
 
-  const result: RuntimeContext = {
-    envVars,
-    dependencies: [],
-  }
+  const dependencies: RuntimeDependency[] = []
 
-  for (const m of dependencies.build) {
-    result.dependencies.push({
-      moduleName: m.name,
-      name: m.name,
-      outputs: m.outputs,
-      type: "build",
-      version: m.version.versionString,
+  for (const ref of action.getDependencyReferences()) {
+    const dep = graph.getActionByRef(ref)
+
+    const result = graphResults[dep.key()]
+    if (!result) {
+      continue
+    }
+
+    dependencies.push({
+      name: dep.name,
+      kind: dep.kind,
+      outputs: result.outputs || {},
+      version: result.version,
+      moduleName: dep.moduleName(),
     })
   }
 
-  for (const service of dependencies.deploy) {
-    // If a service status is not available, we tolerate that here. That may impact dependant service status reports,
-    // but that is expected behavior. If a service becomes available or changes its outputs, the context changes.
-    // We leave it to providers to indicate what the impact of that difference is.
-    const status = serviceStatuses[service.name] || {}
-    const outputs = status.outputs || {}
-
-    result.dependencies.push({
-      moduleName: service.module.name,
-      name: service.name,
-      outputs,
-      type: "service",
-      version: service.version,
-    })
-  }
-
-  for (const task of dependencies.run) {
-    // If a task result is not available, we tolerate that here. That may impact dependant service status reports,
-    // but that is expected behavior. If a task is later run for the first time or its output changes, the context
-    // changes. We leave it to providers to indicate what the impact of that difference is.
-    const taskResult = taskResults[task.name] || {}
-    const outputs = taskResult.outputs || {}
-
-    result.dependencies.push({
-      moduleName: task.module.name,
-      name: task.name,
-      outputs,
-      type: "task",
-      version: task.version,
-    })
-  }
-
-  return result
+  return { envVars, dependencies }
 }

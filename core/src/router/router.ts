@@ -7,8 +7,8 @@
  */
 
 import chalk from "chalk"
+import { mapValues } from "lodash"
 
-import { RuntimeError } from "../exceptions"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { GardenPlugin, ModuleTypeDefinition } from "../plugin/plugin"
@@ -98,9 +98,9 @@ export class ActionRouter extends BaseRouter {
           fromWatch: false,
         })
     )
-    const results = await this.garden.getTaskStatuses(tasks, { throwOnError: true })
+    const { results } = await this.garden.processTasks({ tasks, log, throwOnError: true, statusOnly: true })
 
-    return getServiceStatuses(results)
+    return mapValues(getServiceStatuses(results), (r) => r.detail!)
   }
 
   async deployMany({ graph, deployNames, force = false, forceBuild = false, log }: DeployManyParams) {
@@ -121,7 +121,7 @@ export class ActionRouter extends BaseRouter {
         })
     )
 
-    return this.garden.processTasks(tasks)
+    return this.garden.processTasks({ tasks, log })
   }
 
   /**
@@ -131,33 +131,24 @@ export class ActionRouter extends BaseRouter {
     const servicesLog = log.info({ msg: chalk.white("Deleting services..."), status: "active" })
 
     const deploys = graph.getDeploys({ names })
-
-    const deleteResults = await this.garden.processTasks(
-      deploys.map((action) => {
-        return new DeleteDeployTask({
-          garden: this.garden,
-          graph,
-          action,
-          log: servicesLog,
-          includeDependants: true,
-          force: false,
-          forceActions: [],
-          devModeDeployNames: [],
-          localModeDeployNames: [],
-          fromWatch: false,
-        })
+    const tasks = deploys.map((action) => {
+      return new DeleteDeployTask({
+        garden: this.garden,
+        graph,
+        action,
+        log: servicesLog,
+        includeDependants: true,
+        force: false,
+        forceActions: [],
+        devModeDeployNames: [],
+        localModeDeployNames: [],
+        fromWatch: false,
       })
-    )
+    })
 
-    const failed = Object.values(deleteResults).filter((r) => r && r.error).length
+    const { results } = await this.garden.processTasks({ tasks, log, throwOnError: true })
 
-    if (failed) {
-      throw new RuntimeError(`${failed} delete task(s) failed!`, {
-        results: deleteResults,
-      })
-    }
-
-    const serviceStatuses = deletedDeployStatuses(deleteResults)
+    const serviceStatuses = deletedDeployStatuses(results)
 
     servicesLog.setSuccess()
 

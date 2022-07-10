@@ -8,17 +8,18 @@
 
 import chalk from "chalk"
 import { BaseActionTaskParams, BaseActionTask, TaskType, ActionTaskProcessParams } from "../tasks/base"
-import { LogEntry } from "../logger/log-entry"
 import { Profile } from "../util/profiling"
-import { BuildAction, ResolvedBuildAction } from "../actions/build"
+import { BuildAction } from "../actions/build"
 import pluralize from "pluralize"
+import { BuildResult } from "../plugin/handlers/build/build"
+import { BuildStatus } from "../plugin/handlers/build/get-status"
 
 export interface BuildTaskParams extends BaseActionTaskParams<BuildAction> {
   force: boolean
 }
 
 @Profile()
-export class BuildTask extends BaseActionTask<BuildAction> {
+export class BuildTask extends BaseActionTask<BuildAction, BuildResult, BuildStatus> {
   type: TaskType = "build"
   concurrencyLimit = 5
 
@@ -34,33 +35,11 @@ export class BuildTask extends BaseActionTask<BuildAction> {
   async process({ resolvedAction: action }: ActionTaskProcessParams<BuildAction>) {
     const router = await this.garden.getActionRouter()
 
-    let log: LogEntry
-
-    if (this.force) {
-      log = this.log.info({
-        section: this.getName(),
-        msg: `Building version ${this.version}...`,
-        status: "active",
-      })
-    } else {
-      log = this.log.info({
-        section: this.getName(),
-        msg: `Getting build status for ${this.version}...`,
-        status: "active",
-      })
-
-      const status = await router.build.getStatus({ log: this.log, graph: this.graph, action })
-
-      if (status.status === "ready") {
-        log.setSuccess({
-          msg: chalk.green(`Already built`),
-          append: true,
-        })
-        return { fresh: false }
-      }
-
-      log.setState(`Building version ${this.version}...`)
-    }
+    let log = this.log.info({
+      section: this.getName(),
+      msg: `Building version ${this.version}...`,
+      status: "active",
+    })
 
     const files = action.getFullVersion().files
 

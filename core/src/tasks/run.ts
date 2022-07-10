@@ -6,24 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import chalk from "chalk"
-import {
-  BaseTask,
-  TaskType,
-  getServiceStatuses,
-  getRunTaskResults,
-  BaseActionTask,
-  BaseActionTaskParams,
-  ActionTaskProcessParams,
-} from "../tasks/base"
-import { DeployTask } from "./deploy"
+import { TaskType, BaseActionTask, BaseActionTaskParams, ActionTaskProcessParams } from "./base"
 import { prepareRuntimeContext } from "../runtime-context"
-import { BuildTask } from "./build"
-import { GraphResults } from "../task-graph"
-import { GetTaskResultTask } from "./get-task-result"
 import { Profile } from "../util/profiling"
 import { RunAction } from "../actions/run"
+import { GetRunResult } from "../plugin/handlers/run/get-result"
 
 export interface RunTaskParams extends BaseActionTaskParams<RunAction> {}
 
@@ -34,7 +22,7 @@ class RunTaskError extends Error {
 }
 
 @Profile()
-export class RunTask extends BaseActionTask<RunAction> {
+export class RunTask extends BaseActionTask<RunAction, GetRunResult> {
   type: TaskType = "run"
 
   getDescription() {
@@ -55,13 +43,11 @@ export class RunTask extends BaseActionTask<RunAction> {
         graph: this.graph,
         action: this.action,
         log,
-        devModeDeployNames: this.devModeDeployNames,
-        localModeDeployNames: this.localModeDeployNames,
       })
       log.setSuccess({ msg: chalk.green(`Done`), append: true })
 
       // Should return a null value here if there is no result
-      if (result.result === null) {
+      if (result.detail === null) {
         return null
       }
 
@@ -73,48 +59,26 @@ export class RunTask extends BaseActionTask<RunAction> {
   }
 
   async process({ resolvedAction: action, dependencyResults }: ActionTaskProcessParams<RunAction>) {
-    if (!this.force && action.getSpec("cacheResult")) {
-      const cachedResult = getRunTaskResults(dependencyResults)[this.task.name]
-
-      if (cachedResult && cachedResult.success) {
-        this.log
-          .info({
-            section: task.name,
-          })
-          .setSuccess({ msg: chalk.green("Already run") })
-
-        return cachedResult
-      }
-    }
-
     const log = this.log.info({
-      section: task.name,
+      section: action.key(),
       msg: "Running...",
       status: "active",
     })
 
-    const dependencies = this.graph.getDependencies({ kind: "run", name: this.getName(), recursive: false })
-
-    const serviceStatuses = getServiceStatuses(dependencyResults)
-    const taskResults = getRunTaskResults(dependencyResults)
-
     const runtimeContext = await prepareRuntimeContext({
-      garden: this.garden,
+      action,
       graph: this.graph,
-      dependencies,
-      version: this.task.version,
-      moduleVersion: this.task.module.version.versionString,
-      serviceStatuses,
-      taskResults,
+      graphResults: dependencyResults,
     })
 
     const actions = await this.garden.getActionRouter()
 
-    let result: RunTaskResult
+    let result: GetRunResult
+
     try {
       result = await actions.run.run({
         graph: this.graph,
-        task,
+        action,
         log,
         runtimeContext,
         interactive: false,
@@ -123,14 +87,14 @@ export class RunTask extends BaseActionTask<RunAction> {
       log.setError()
       throw err
     }
-    if (result.success) {
+    if (result.detail?.success) {
       log.setSuccess({
         msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
         append: true,
       })
     } else {
       log.setError(`Failed!`)
-      throw new RunTaskError(result.log)
+      throw new RunTaskError(result.detail?.log)
     }
 
     return result

@@ -15,8 +15,9 @@ import { joi } from "../config/common"
 import { versionStringPrefix } from "../vcs/vcs"
 import { ConfigContext, schema } from "../config/template-contexts/base"
 import { PublishActionResult } from "../plugin/handlers/build/publish"
-import { BuildAction, ResolvedBuildAction } from "../actions/build"
+import { BuildAction } from "../actions/build"
 import { ActionConfigContext, ActionConfigContextParams } from "../config/template-contexts/actions"
+import { ActionState } from "../actions/base"
 
 export interface PublishTaskParams extends BaseActionTaskParams<BuildAction> {
   tagTemplate?: string
@@ -62,7 +63,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
         msg: "Publishing disabled (allowPublish=false set on module)",
         status: "active",
       })
-      return { published: false }
+      return { state: <ActionState>"ready", detail: { published: false, outputs: {} }, outputs: {} }
     }
 
     let tag: string | undefined = undefined
@@ -102,13 +103,13 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
       throw err
     }
 
-    if (result.published) {
+    if (result.detail?.published) {
       log.setSuccess({
-        msg: chalk.green(result.message || `Ready`),
+        msg: chalk.green(result.detail.message || `Ready`),
         append: true,
       })
-    } else {
-      log.setWarn({ msg: result.message, append: true })
+    } else if (result.detail?.message) {
+      log.setWarn({ msg: result.detail.message, append: true })
     }
 
     return result

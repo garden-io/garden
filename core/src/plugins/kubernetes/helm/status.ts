@@ -6,7 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ForwardablePort, ServiceIngress, ServiceState, ServiceStatus } from "../../../types/service"
+import {
+  ForwardablePort,
+  ServiceIngress,
+  ServiceState,
+  serviceStateToActionState,
+  ServiceStatus,
+} from "../../../types/service"
 import { LogEntry } from "../../../logger/log-entry"
 import { helm } from "./helm-cli"
 import { getReleaseName, loadTemplate } from "./common"
@@ -130,14 +136,19 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
   }
 
   return {
-    forwardablePorts,
-    state,
-    version: state === "ready" ? action.versionString() : undefined,
-    detail,
-    devMode: deployedWithDevMode,
-    localMode: deployedWithLocalMode,
-    namespaceStatuses: [namespaceStatus],
-    ingresses,
+    state: serviceStateToActionState(state),
+    detail: {
+      forwardablePorts,
+      state,
+      version: state === "ready" ? action.versionString() : undefined,
+      detail,
+      devMode: deployedWithDevMode,
+      localMode: deployedWithLocalMode,
+      namespaceStatuses: [namespaceStatus],
+      ingresses,
+    },
+    // TODO-G2
+    outputs: {},
   }
 }
 

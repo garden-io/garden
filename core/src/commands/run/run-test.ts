@@ -129,12 +129,12 @@ export class RunTestCommand extends Command<Args, Opts> {
       fromWatch: false,
     })
 
-    const graphResults = await garden.processTasks([testTask], { throwOnError: true })
+    const { results } = await garden.processTasks({ tasks: [testTask], log, throwOnError: true })
 
     return handleTaskResult({
       log,
       actionDescription: "test",
-      graphResults,
+      graphResults: results,
       key: testTask.getKey(),
       interactive,
     })

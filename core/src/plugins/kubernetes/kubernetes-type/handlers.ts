@@ -10,7 +10,7 @@ import Bluebird from "bluebird"
 import { cloneDeep, isEmpty, partition, uniq } from "lodash"
 import { NamespaceStatus } from "../../../plugin/base"
 import { ModuleActionHandlers } from "../../../plugin/plugin"
-import { ServiceStatus } from "../../../types/service"
+import { serviceStateToActionState, ServiceStatus } from "../../../types/service"
 import { gardenAnnotationKey } from "../../../util/string"
 import { KubeApi } from "../api"
 import { KubernetesPluginContext } from "../config"
@@ -216,14 +216,19 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
   }
 
   return {
-    forwardablePorts,
-    state,
-    version: state === "ready" ? action.versionString() : undefined,
-    detail: { remoteResources },
-    devMode: deployedWithDevMode,
-    localMode: deployedWithLocalMode,
-    namespaceStatuses: [namespaceStatus],
-    ingresses: getK8sIngresses(remoteResources),
+    state: serviceStateToActionState(state),
+    detail: {
+      forwardablePorts,
+      state,
+      version: state === "ready" ? action.versionString() : undefined,
+      detail: { remoteResources },
+      devMode: deployedWithDevMode,
+      localMode: deployedWithLocalMode,
+      namespaceStatuses: [namespaceStatus],
+      ingresses: getK8sIngresses(remoteResources),
+    },
+    // TODO-G2
+    outputs: {},
   }
 }
 
@@ -298,7 +303,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
   const status = await getKubernetesDeployStatus(<any>params)
 
   // Make sure port forwards work after redeployment
-  killPortForwards(action, status.forwardablePorts || [], log)
+  killPortForwards(action, status.detail?.forwardablePorts || [], log)
 
   if (modifiedResources.length > 0) {
     // Local mode always takes precedence over dev mode
@@ -345,7 +350,10 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
 
   return {
     ...status,
-    namespaceStatuses,
+    detail: {
+      ...status.detail!,
+      namespaceStatuses,
+    },
   }
 }
 
@@ -406,7 +414,11 @@ export const deleteKubernetesDeploy: DeployActionHandler<"delete", KubernetesDep
     }))
   }
 
-  return status
+  return {
+    state: "ready",
+    detail: status,
+    outputs: {},
+  }
 }
 
 export const getKubernetesDeployLogs: DeployActionHandler<"getLogs", KubernetesDeployAction> = async (params) => {

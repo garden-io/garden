@@ -8,6 +8,7 @@
 
 import { realpath } from "fs-extra"
 import normalizePath from "normalize-path"
+import { ActionState } from "../actions/base"
 import { PluginEventBroker } from "../plugin-context"
 import { runStatus } from "../plugin/base"
 import { copyArtifacts, getArtifactKey } from "../util/artifacts"
@@ -70,9 +71,9 @@ export const testRouter = (baseParams: BaseRouterParams) =>
           moduleVersion,
           testVersion,
           actionUid,
-          status: runStatus(result.result),
+          status: runStatus(result.detail),
         })
-        router.emitNamespaceEvent(result.result?.namespaceStatus)
+        router.emitNamespaceEvent(result.detail?.namespaceStatus)
 
         return result
       } finally {
@@ -96,7 +97,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
       const result = await router.callHandler({
         params,
         handlerType: "getResult",
-        defaultHandler: async () => ({ result: null, outputs: null }),
+        defaultHandler: async () => ({ state: <ActionState>"unknown", detail: null, outputs: null }),
       })
 
       const actionName = action.name
@@ -109,7 +110,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
         moduleName: action.moduleName(),
         moduleVersion: actionVersion,
         testVersion: actionVersion,
-        status: runStatus(result.result),
+        status: runStatus(result.detail),
       })
 
       return result

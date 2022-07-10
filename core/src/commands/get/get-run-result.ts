@@ -59,7 +59,7 @@ export class GetRunResultCommand extends Command<Args> {
 
     let artifacts: string[] = []
 
-    if (res.result) {
+    if (res.state === "ready") {
       artifacts = await getArtifactFileList({
         key: getArtifactKey("task", action.name, action.versionString()),
         artifactsPath: garden.artifactsPath,
@@ -69,10 +69,10 @@ export class GetRunResultCommand extends Command<Args> {
 
     log.info("")
 
-    if (res.result === null) {
+    if (res.detail === null) {
       log.info(`Could not find results for ${action.longDescription()}`)
     } else {
-      if (res.result === undefined) {
+      if (res.detail === undefined) {
         log.error(`Type ${action.type} for Run ${args.name} does not support storing/getting task results.`)
       } else {
         log.info({ data: res })

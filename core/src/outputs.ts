@@ -9,11 +9,9 @@
 import { Garden } from "./garden"
 import { collectTemplateReferences, resolveTemplateStrings } from "./template-string/template-string"
 import { OutputConfigContext } from "./config/template-contexts/module"
-import { emptyRuntimeContext, prepareRuntimeContext } from "./runtime-context"
+import { emptyRuntimeContext, RuntimeContext } from "./runtime-context"
 import { DeployTask } from "./tasks/deploy"
-import { RunTask } from "./tasks/task"
-import { GraphResults } from "./task-graph"
-import { getServiceStatuses, getRunTaskResults } from "./tasks/base"
+import { RunTask } from "./tasks/run"
 import { LogEntry } from "./logger/log-entry"
 import { OutputSpec } from "./config/project"
 import { ActionReference } from "./config/common"
@@ -113,25 +111,12 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
     ),
   ]
 
-  const dependencyResults: GraphResults = graphTasks.length > 0 ? await garden.processTasks(graphTasks) : {}
+  const { results } = graphTasks.length > 0 ? await garden.processTasks({ tasks: graphTasks, log }) : { results: {} }
 
-  const serviceStatuses = getServiceStatuses(dependencyResults)
-  const taskResults = getRunTaskResults(dependencyResults)
-
-  const runtimeContext = await prepareRuntimeContext({
-    garden,
-    graph,
-    dependencies: {
-      build: [],
-      deploy: services,
-      run: tasks,
-      test: [],
-    },
-    version: garden.version,
-    moduleVersion: garden.version,
-    serviceStatuses,
-    taskResults,
-  })
+  const runtimeContext: RuntimeContext = {
+    envVars: {},
+    dependencies: [], // TODO-G2: get all dependencies in here
+  }
 
   const configContext = await garden.getOutputConfigContext(log, modules, runtimeContext)
 

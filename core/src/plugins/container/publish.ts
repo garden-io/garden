@@ -33,5 +33,10 @@ export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuild
   // TODO: stream output to log if at debug log level
   await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["push", remoteId], log, ctx })
 
-  return { published: true, message: `Published ${remoteId}` }
+  return {
+    state: "ready",
+    detail: { published: true, message: `Published ${remoteId}` },
+    // TODO-G2
+    outputs: {},
+  }
 }

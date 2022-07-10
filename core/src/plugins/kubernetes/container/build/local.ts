@@ -26,7 +26,7 @@ export const getLocalBuildStatus: BuildStatusHandler = async (params) => {
 
   const outputs = k8sGetContainerBuildActionOutputs({ provider: k8sCtx.provider, action })
 
-  const result: BuildStatusResult = { status: "not-ready", outputs }
+  const result: BuildStatusResult = { state: "not-ready", detail: {}, outputs }
 
   if (deploymentRegistry) {
     const args = await getManifestInspectArgs(outputs.deploymentImageId, deploymentRegistry)
@@ -45,20 +45,20 @@ export const getLocalBuildStatus: BuildStatusHandler = async (params) => {
     }
 
     if (res.code === 0) {
-      result.status = "ready"
+      result.state = "ready"
     }
   } else if (config.clusterType === "kind") {
     const ready = await getKindImageStatus(config, outputs.localImageId, log)
-    result.status = ready ? "ready" : "not-ready"
+    result.state = ready ? "ready" : "not-ready"
   } else if (k8sCtx.provider.config.clusterType === "microk8s") {
     const ready = await getMicrok8sImageStatus(outputs.localImageId)
-    result.status = ready ? "ready" : "not-ready"
+    result.state = ready ? "ready" : "not-ready"
   } else {
     const res = await getContainerBuildStatus({
       ...params,
       ctx: { ...ctx, provider: ctx.provider.dependencies.container },
     })
-    result.status = res.status
+    result.state = res.state
   }
 
   return result
