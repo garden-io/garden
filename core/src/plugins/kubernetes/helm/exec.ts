@@ -41,6 +41,7 @@ export async function execInHelmService(params: ExecInServiceParams<HelmModule>)
     module,
     devMode: false,
     hotReload: false,
+    localMode: false,
     log,
     version: service.version,
   })

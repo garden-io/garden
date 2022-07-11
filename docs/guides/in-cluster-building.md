@@ -285,7 +285,7 @@ providers:
 
 #### Configuring Access
 
-To grant your service account the right permission to push to EKS, add this policy to each of the repositories in the container registry that you want to use with in-cluster building:
+To grant your service account the right permission to push to ECS, add this policy to each of the repositories in the container registry that you want to use with in-cluster building:
 
 ```json
 {
@@ -296,7 +296,7 @@ To grant your service account the right permission to push to EKS, add this poli
             "Effect": "Allow",
             "Principal": {
                 "AWS": [
-                    "arn:aws:iam::account-id:role/<k8s_worker_iam_role>"                ]
+                    "arn:aws:iam::<account-id>:role/<k8s_worker_iam_role>"                ]
             },
             "Action": [
                 "ecr:BatchGetImage",
@@ -312,7 +312,7 @@ To grant your service account the right permission to push to EKS, add this poli
 }
 ```
 
-To grant developers permission to push & pull directly from a repository, see [the AWS documetnation](https://docs.aws.amazon.com/AmazonECR/latest/userguide/security_iam_id-based-policy-examples.html).
+To grant developers permission to push and pull directly from a repository, see [the AWS documentation](https://docs.aws.amazon.com/AmazonECR/latest/userguide/security_iam_id-based-policy-examples.html).
 
 ### Using in-cluster building with GCR
 

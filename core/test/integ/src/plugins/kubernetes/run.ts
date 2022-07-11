@@ -559,6 +559,7 @@ describe("kubernetes Pod runner functions", () => {
         module: helmModule,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log: helmLog,
         version: helmModule.version.versionString,
       })

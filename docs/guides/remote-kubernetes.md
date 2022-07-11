@@ -138,21 +138,24 @@ Templating the ingress to the application enables you to have DNS entries for ev
 
 First, you will make DNS CNAME entry that points to the load balancer in front of your cluster. We recommend setting a wildcard in front of the proper record, e.g. *.<environment>.<your company>.com.
 
-In your project.garden.yaml file, templatize the namespaces to reference the username like so:
+In your project.garden.yaml file, templatize the hostnames for each environment. You can use some of the built-in templating functions garden provides such as the local username.
 
 ```yml
 kind: Project
-name: my-app
-defaultEnvironment: remote
-variables:
-  username: ${local.username}
-  hostname: ${local.username}-my-app.dev.my-company
+name: my-project
+defaultEnvironment: dev
 environments:
-  - name: remote
-    defaultNamespace: ${var.username}-my-app
+  - name: dev
+    defaultNamespace: ${var.username}-my-project
+    variables:
+        hostname: ${local.username}-my-project.dev.mydomain.com
+ - name: preview
+    defaultNamespace: preview-${local.env.PR_NUMBER}
+    variables:
+        hostname: ${local.env.PR_NUMBER}-my-project.preview.mydomain.com
 providers:
   - name: kubernetes
-    environments: ["remote"]
+    environments: [dev, preview]
     namespace: ${environment.namespace}
     buildMode: cluster-buildkit
     defaultHostname: ${var.hostname}

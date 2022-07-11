@@ -63,6 +63,7 @@ export async function hotReloadK8s({
       module: service.module,
       devMode: false,
       hotReload: true,
+      localMode: false,
       log,
       version: service.version,
     })

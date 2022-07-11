@@ -37,7 +37,7 @@ type Opts = typeof secretsListOpts
 
 export class SecretsListCommand extends Command<{}, Opts> {
   name = "list"
-  help = "[EXPERIMENTAL] List secrets."
+  help = "List secrets."
   description = dedent`
     List all secrets from Garden Cloud. Optionally filter on environment, user IDs, or secret names.
 

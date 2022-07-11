@@ -8,16 +8,16 @@
 
 import { CommandError, ConfigurationError } from "../../../exceptions"
 import { CreateUserBulkRequest, CreateUserBulkResponse, UserResponse } from "@garden-io/platform-api-types"
-import dotenv = require("dotenv")
 import { readFile } from "fs-extra"
 
 import { printHeader } from "../../../logger/util"
 import { Command, CommandParams, CommandResult } from "../../base"
 import { ApiCommandError, handleBulkOperationResult, makeUserFromResponse, noApiMsg, UserResult } from "../helpers"
 import { dedent, deline } from "../../../util/string"
-import { StringsParameter, PathParameter } from "../../../cli/params"
+import { PathParameter, StringsParameter } from "../../../cli/params"
 import { StringMap } from "../../../config/common"
 import { chunk } from "lodash"
+import dotenv = require("dotenv")
 import Bluebird = require("bluebird")
 
 // This is the limit set by the API.
@@ -47,7 +47,7 @@ type Opts = typeof secretsCreateOpts
 
 export class UsersCreateCommand extends Command<Args, Opts> {
   name = "create"
-  help = "[EXPERIMENTAL] Create users"
+  help = "Create users"
   description = dedent`
     Create users in Garden Cloud and optionally add the users to specific groups.
     You can get the group IDs from the \`garden cloud users list\` command.
@@ -90,9 +90,16 @@ export class UsersCreateCommand extends Command<Args, Opts> {
       }
     } else if (args.users) {
       users = args.users.reduce((acc, keyValPair) => {
-        const parts = keyValPair.split("=")
-        acc[parts[0]] = parts[1]
-        return acc
+        try {
+          const user = dotenv.parse(keyValPair)
+          Object.assign(acc, user)
+          return acc
+        } catch (err) {
+          throw new CommandError(`Unable to read user from argument ${keyValPair}: ${err.message}`, {
+            args,
+            opts,
+          })
+        }
       }, {})
     } else {
       throw new CommandError(

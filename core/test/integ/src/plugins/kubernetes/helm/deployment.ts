@@ -19,13 +19,117 @@ import {
 } from "../../../../../../src/plugins/kubernetes/helm/status"
 import { getReleaseName } from "../../../../../../src/plugins/kubernetes/helm/common"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
-import { getHelmTestGarden, buildHelmModules } from "./common"
+import { buildHelmModules, getHelmLocalModeTestGarden, getHelmTestGarden } from "./common"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { isWorkload } from "../../../../../../src/plugins/kubernetes/util"
 import Bluebird from "bluebird"
 import { CloudApi } from "../../../../../../src/cloud/api"
 import { resolve } from "path"
 import { getLogger } from "../../../../../../src/logger/logger"
+import { LocalModeProcessRegistry } from "../../../../../../src/plugins/kubernetes/local-mode"
+
+describe("deployHelmService in local-mode", () => {
+  let garden: TestGarden
+  let provider: KubernetesProvider
+  let ctx: KubernetesPluginContext
+  let graph: ConfigGraph
+
+  before(async () => {
+    garden = await getHelmLocalModeTestGarden()
+    provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
+    ctx = <KubernetesPluginContext>await garden.getPluginContext(provider)
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    await buildHelmModules(garden, graph)
+  })
+
+  after(async () => {
+    // shut down local app and tunnels to avoid retrying after redeploy
+    LocalModeProcessRegistry.getInstance().shutdown()
+    const actions = await garden.getActionRouter()
+    await actions.deleteServices(graph, garden.log)
+    if (garden) {
+      await garden.close()
+    }
+  })
+
+  it("should deploy a chart with localMode enabled", async () => {
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    const service = graph.getService("backend")
+
+    const releaseName = getReleaseName(service.module)
+    await deployHelmService({
+      ctx,
+      log: garden.log,
+      module: service.module,
+      service,
+      force: false,
+      devMode: false,
+      hotReload: false,
+      localMode: true, // <-----
+      runtimeContext: emptyRuntimeContext,
+    })
+
+    const status = await getReleaseStatus({
+      ctx,
+      module: service.module,
+      service,
+      releaseName,
+      log: garden.log,
+      devMode: false,
+      hotReload: false,
+      localMode: true, // <-----
+    })
+
+    expect(status.state).to.equal("ready")
+    expect(status.localMode).to.be.true
+    expect(status.devMode).to.be.false
+    expect(status.detail["values"][".garden"]).to.eql({
+      moduleName: "backend",
+      projectName: garden.projectName,
+      version: service.version,
+      localMode: true,
+    })
+  })
+
+  it("localMode should always take precedence over devMode", async () => {
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    const service = graph.getService("backend")
+
+    const releaseName = getReleaseName(service.module)
+    await deployHelmService({
+      ctx,
+      log: garden.log,
+      module: service.module,
+      service,
+      force: false,
+      devMode: true, // <-----
+      hotReload: false,
+      localMode: true, // <-----
+      runtimeContext: emptyRuntimeContext,
+    })
+
+    const status = await getReleaseStatus({
+      ctx,
+      module: service.module,
+      service,
+      releaseName,
+      log: garden.log,
+      devMode: false,
+      hotReload: false,
+      localMode: true, // <-----
+    })
+
+    expect(status.state).to.equal("ready")
+    expect(status.localMode).to.be.true
+    expect(status.devMode).to.be.false
+    expect(status.detail["values"][".garden"]).to.eql({
+      moduleName: "backend",
+      projectName: garden.projectName,
+      version: service.version,
+      localMode: true,
+    })
+  })
+})
 
 describe("deployHelmService", () => {
   let garden: TestGarden
@@ -74,6 +178,7 @@ describe("deployHelmService", () => {
       log: garden.log,
       devMode: false,
       hotReload: false,
+      localMode: false,
     })
 
     expect(releaseStatus.state).to.equal("ready")
@@ -116,6 +221,7 @@ describe("deployHelmService", () => {
       log: garden.log,
       devMode: false,
       hotReload: true, // <----
+      localMode: false,
     })
 
     expect(status.state).to.equal("ready")
@@ -152,6 +258,7 @@ describe("deployHelmService", () => {
       log: garden.log,
       devMode: true, // <-----
       hotReload: false,
+      localMode: false,
     })
 
     expect(status.state).to.equal("ready")
@@ -191,6 +298,7 @@ describe("deployHelmService", () => {
       log: garden.log,
       devMode: false,
       hotReload: false,
+      localMode: false,
     })
 
     expect(status.state).to.equal("ready")
@@ -236,6 +344,7 @@ describe("deployHelmService", () => {
       log: gardenWithCloudApi.log,
       devMode: false,
       hotReload: false,
+      localMode: false,
     })
 
     expect(releaseStatus.state).to.equal("ready")
@@ -285,6 +394,7 @@ describe("deployHelmService", () => {
       log: gardenWithCloudApi.log,
       devMode: false,
       hotReload: false,
+      localMode: false,
     })
     expect(releaseStatusAfterScaleDown.state).to.equal("outdated")
   })
