@@ -10,11 +10,12 @@ import stripAnsi from "strip-ansi"
 import { expect } from "chai"
 import { omit } from "lodash"
 import {
-  makeTestGardenA,
-  withDefaultGlobalOpts,
+  assertAsyncError,
   expectError,
   makeTestGarden,
+  makeTestGardenA,
   projectTestFailsRoot,
+  withDefaultGlobalOpts,
 } from "../../../../helpers"
 import { RunTestCommand } from "../../../../../src/commands/run/test"
 import { LogLevel } from "../../../../../src/logger/logger"
@@ -61,20 +62,21 @@ describe("RunTestCommand", () => {
     })
   })
 
-  it("should return an error if the test fails", async () => {
+  it("should raise an error if the test fails", async () => {
     const garden = await makeTestGardenTasksFails()
     const log = garden.log
 
-    const result = await cmd.action({
-      garden,
-      log,
-      headerLog: log,
-      footerLog: log,
-      args: { test: "unit", module: "module" },
-      opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": true }),
-    })
+    const action = async () =>
+      await cmd.action({
+        garden,
+        log,
+        headerLog: log,
+        footerLog: log,
+        args: { test: "unit", module: "module" },
+        opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": true }),
+      })
 
-    expect(result.errors).to.have.lengthOf(1)
+    await assertAsyncError(action, "test-error")
   })
 
   it("should throw if the test is disabled", async () => {
@@ -163,18 +165,21 @@ describe("RunTestCommand", () => {
     expect(logOutput).to.not.include("Run test result:")
   })
 
-  it("should log the error if interactive=false", async () => {
+  it("should raise and log the error if interactive=false", async () => {
     const garden = await makeTestGardenTasksFails()
     const log = garden.log
 
-    await cmd.action({
-      garden,
-      log,
-      headerLog: log,
-      footerLog: log,
-      args: { test: "unit", module: "module" },
-      opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": false }),
-    })
+    const action = async () =>
+      await cmd.action({
+        garden,
+        log,
+        headerLog: log,
+        footerLog: log,
+        args: { test: "unit", module: "module" },
+        opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": false }),
+      })
+
+    await assertAsyncError(action, "test-error")
 
     const logOutput = getLogMessages(log, (entry) => entry.level === LogLevel.error).join("\n")
     expect(logOutput).to.include(dedent`
@@ -185,18 +190,21 @@ describe("RunTestCommand", () => {
     `)
   })
 
-  it("should not log the error if interactive=true", async () => {
+  it("should raise and not log the error if interactive=true", async () => {
     const garden = await makeTestGardenTasksFails()
     const log = garden.log
 
-    await cmd.action({
-      garden,
-      log,
-      headerLog: log,
-      footerLog: log,
-      args: { test: "unit", module: "module" },
-      opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": true }),
-    })
+    const action = async () =>
+      await cmd.action({
+        garden,
+        log,
+        headerLog: log,
+        footerLog: log,
+        args: { test: "unit", module: "module" },
+        opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": true }),
+      })
+
+    await assertAsyncError(action, "test-error")
 
     const logOutput = getLogMessages(log, (entry) => entry.level === LogLevel.error).join("\n")
     expect(logOutput).to.not.include("test-error")
