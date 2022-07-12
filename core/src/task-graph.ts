@@ -136,7 +136,7 @@ export class TaskGraph extends EventEmitter2 {
       if (failed.length > 0) {
         throw new TaskGraphError(
           dedent`
-            ${failed.length} task(s) failed:
+            ${failed.length} action(s) failed:
             ${failed.map(([key, result]) => `- ${key}: ${result?.error?.stack || result?.error?.message}`).join("\n")}
           `,
           { results }

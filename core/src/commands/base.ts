@@ -529,7 +529,7 @@ export async function handleProcessResults(
   const failedCount = size(failed)
 
   if (failedCount > 0) {
-    const error = new RuntimeError(`${failedCount} ${taskType} task(s) failed!`, { results: failed })
+    const error = new RuntimeError(`${failedCount} ${taskType} action(s) failed!`, { results: failed })
     return { result, errors: [error], restartRequired: false }
   }
 
