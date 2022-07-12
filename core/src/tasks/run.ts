@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { TaskType, BaseActionTask, BaseActionTaskParams, ActionTaskProcessParams } from "./base"
+import { BaseActionTask, BaseActionTaskParams, ActionTaskProcessParams } from "./base"
 import { prepareRuntimeContext } from "../runtime-context"
 import { Profile } from "../util/profiling"
 import { RunAction } from "../actions/run"
@@ -23,7 +23,7 @@ class RunTaskError extends Error {
 
 @Profile()
 export class RunTask extends BaseActionTask<RunAction, GetRunResult> {
-  type: TaskType = "run"
+  type = "run"
 
   getDescription() {
     return `running ${this.action.longDescription()}`

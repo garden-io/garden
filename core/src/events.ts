@@ -8,7 +8,6 @@
 
 import { omit } from "lodash"
 import { EventEmitter2 } from "eventemitter2"
-import { GraphResult } from "./task-graph"
 import { LogEntryEventPayload } from "./cloud/buffered-event-stream"
 import { ServiceStatus } from "./types/service"
 import { NamespaceStatus, RunStatus } from "./plugin/base"
@@ -19,6 +18,7 @@ import { CommandInfo } from "./plugin-context"
 import { sanitizeObject } from "./logger/util"
 import { BuildState } from "./plugin/handlers/build/build"
 import { ActionReference } from "./config/common"
+import { GraphResult } from "./graph/solver"
 
 export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
 

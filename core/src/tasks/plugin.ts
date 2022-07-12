@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BaseTask, TaskType } from "../tasks/base"
+import { BaseTask } from "../tasks/base"
 import { Profile } from "../util/profiling"
 
 @Profile()
 export abstract class PluginTask extends BaseTask {
-  type: TaskType = "plugin"
+  type = "plugin"
 }

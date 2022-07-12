@@ -14,6 +14,7 @@ import { IntegerParameter } from "../cli/params"
 import { printHeader } from "../logger/util"
 import chalk = require("chalk")
 import { Garden } from "../garden"
+import { processActions } from "../process"
 
 export const defaultDashboardPort = 9700
 
@@ -90,15 +91,19 @@ export class DashboardCommand extends Command<Args, Opts> {
     this.garden = garden
     const graph = await garden.getConfigGraph({ log, emit: true })
     this.server!.setGarden(garden)
+
     const allModules = graph.getModules()
-    await processModules({
+    const allActions = graph.getActions()
+
+    await processActions({
       garden,
       graph,
       log,
       footerLog,
-      modules: allModules,
       watch: true,
+      actions: [],
       initialTasks: [],
+      skipWatch: allActions,
       skipWatchModules: allModules,
       changeHandler: async () => [],
       overRideWatchStatusLine: "Dashboard running...",

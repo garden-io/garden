@@ -28,24 +28,9 @@ import { ActionReference } from "../config/common"
 import { DeployStatus } from "../plugin/handlers/deploy/get-status"
 import { GetRunResult } from "../plugin/handlers/run/get-result"
 
-export type TaskType =
-  | "build"
-  | "delete-service"
-  | "deploy"
-  | "get-service-status"
-  | "get-task-result"
-  | "publish"
-  | "resolve-module-config"
-  | "resolve-module"
-  | "resolve-provider"
-  | "start-sync"
-  | "run"
-  | "test"
-  | "plugin"
-
 export class TaskDefinitionError extends Error {}
 
-export function makeBaseKey(type: TaskType, name: string) {
+export function makeBaseKey(type: string, name: string) {
   return `${type}.${name}`
 }
 
@@ -80,7 +65,7 @@ export interface ValidResultType {
 
 @Profile()
 export abstract class BaseTask<O extends ValidResultType = ValidResultType, S extends ValidResultType = O> {
-  abstract type: TaskType
+  abstract type: string
 
   // How many tasks of this exact type are allowed to run concurrently
   concurrencyLimit = 10
@@ -203,23 +188,8 @@ export abstract class BaseActionTask<
    * the Task that is necessary to _resolve_ an action.
    */
   getResolveTaskForDependency(action: Action) {
-    const params = {
-      ...this.getBaseDependencyParams(),
-      force: !!this.forceActions.find((r) => r.kind === action.kind && r.name === action.name),
-    }
-
-    if (isBuildAction(action)) {
-      return new BuildTask({ ...params, action })
-    } else if (isDeployAction(action)) {
-      return new DeployTask({ ...params, action })
-    } else if (isRunAction(action)) {
-      return new RunTask({ ...params, action })
-    } else if (isTestAction(action)) {
-      return new TestTask({ ...params, action })
-    } else {
-      // Shouldn't happen
-      throw new InternalError(`Unexpected action kind ${action.kind}`, { config: action.getConfig() })
-    }
+    const force = !!this.forceActions.find((r) => r.kind === action.kind && r.name === action.name)
+    return getResolveTaskForAction(action, { ...this.getBaseDependencyParams(), force })
   }
 }
 
@@ -233,4 +203,19 @@ export function getRunResults(dependencyResults: GraphResults): { [name: string]
   const runResults = pickBy(dependencyResults, (r) => r && r.type === "run")
   const results = mapValues(runResults, (r) => r!.result as GetRunResult)
   return mapKeys(results, (_, key) => splitLast(key, ".")[1])
+}
+
+export function getResolveTaskForAction(action: Action, baseParams: Omit<BaseActionTaskParams, "action">) {
+  if (isBuildAction(action)) {
+    return new BuildTask({ ...baseParams, action })
+  } else if (isDeployAction(action)) {
+    return new DeployTask({ ...baseParams, action })
+  } else if (isRunAction(action)) {
+    return new RunTask({ ...baseParams, action })
+  } else if (isTestAction(action)) {
+    return new TestTask({ ...baseParams, action })
+  } else {
+    // Shouldn't happen
+    throw new InternalError(`Unexpected action kind ${action.kind}`, { config: action.getConfig() })
+  }
 }

@@ -17,7 +17,7 @@ import {
   graphResultsSchema,
 } from "../base"
 import { RunTask } from "../../tasks/run"
-import { GraphResults } from "../../task-graph"
+import { GraphResults } from "../../graph/solver"
 import { printHeader } from "../../logger/util"
 import { CommandError } from "../../exceptions"
 import { dedent, deline } from "../../util/string"
