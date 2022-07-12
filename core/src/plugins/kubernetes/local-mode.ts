@@ -12,10 +12,10 @@ import { find, remove, set } from "lodash"
 import { SyncableResource } from "./hot-reload/hot-reload"
 import { PrimitiveMap } from "../../config/common"
 import {
+  k8sReverseProxyImageName,
   PROXY_CONTAINER_SSH_TUNNEL_PORT,
   PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME,
   PROXY_CONTAINER_USER_NAME,
-  reverseProxyImageName,
 } from "./constants"
 import { ConfigurationError, RuntimeError } from "../../exceptions"
 import { getResourceContainer, prepareEnvVars } from "./util"
@@ -322,7 +322,7 @@ function patchSyncableManifest(
   const targetContainer = getResourceContainer(targetManifest, containerName)
 
   // use reverse proxy container image
-  targetContainer.image = reverseProxyImageName
+  targetContainer.image = k8sReverseProxyImageName
   // erase the original container arguments, the proxy container won't recognize them
   targetContainer.args = []
 
@@ -367,7 +367,7 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
   log.debug({
     section: gardenService.name,
     msg: chalk.gray(
-      `Configuring in local mode, proxy container ${chalk.underline(reverseProxyImageName)} will be deployed.`
+      `Configuring in local mode, proxy container ${chalk.underline(k8sReverseProxyImageName)} will be deployed.`
     ),
   })
 
