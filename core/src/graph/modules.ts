@@ -18,7 +18,7 @@ import { deline } from "../util/string"
 import { DependencyGraph } from "./common"
 import { ServiceConfig } from "../config/service"
 import { TaskConfig } from "../config/task"
-import { TaskType, makeBaseKey } from "../tasks/base"
+import { makeBaseKey } from "../tasks/base"
 import { testFromModule, GardenTest, testFromConfig } from "../types/test"
 import indentString from "indent-string"
 
@@ -50,7 +50,7 @@ interface RenderedNode {
   disabled: boolean
 }
 
-type DepNodeTaskTypeMap = { [key in ModuleDependencyGraphNodeType]: TaskType }
+type DepNodeTaskTypeMap = { [key in ModuleDependencyGraphNodeType]: string }
 
 type EntityConfig = ServiceConfig | TaskConfig | TestConfig
 
@@ -637,7 +637,7 @@ export class ModuleDependencyGraphNode {
 
   render(): RenderedNode {
     const name = this.type === "test" ? parseTestKey(this.name).testName : this.name
-    const taskType = <TaskType>depNodeTaskTypeMap[this.type]
+    const taskType = depNodeTaskTypeMap[this.type]
 
     return {
       name,

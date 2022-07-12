@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { BuildTask } from "./build"
-import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams, TaskType } from "../tasks/base"
+import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams } from "../tasks/base"
 import { emptyRuntimeContext } from "../runtime-context"
 import { resolveTemplateString } from "../template-string/template-string"
 import { joi } from "../config/common"
@@ -24,7 +24,7 @@ export interface PublishTaskParams extends BaseActionTaskParams<BuildAction> {
 }
 
 export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult> {
-  type: TaskType = "publish"
+  type = "publish"
   concurrencyLimit = 5
 
   tagTemplate?: string

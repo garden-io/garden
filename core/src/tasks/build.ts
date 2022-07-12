@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { BaseActionTaskParams, BaseActionTask, TaskType, ActionTaskProcessParams } from "../tasks/base"
+import { BaseActionTaskParams, BaseActionTask, ActionTaskProcessParams } from "../tasks/base"
 import { Profile } from "../util/profiling"
 import { BuildAction } from "../actions/build"
 import pluralize from "pluralize"
@@ -20,7 +20,7 @@ export interface BuildTaskParams extends BaseActionTaskParams<BuildAction> {
 
 @Profile()
 export class BuildTask extends BaseActionTask<BuildAction, BuildResult, BuildStatus> {
-  type: TaskType = "build"
+  type = "build"
   concurrencyLimit = 5
 
   getDescription() {

@@ -17,7 +17,7 @@ import { RunResult } from "../../plugin/base"
 import { deline } from "../../util/string"
 import { Command, CommandParams, CommandResult, handleRunResult, ProcessResultMetadata } from "../base"
 import { printRuntimeContext } from "./run"
-import { GraphResults } from "../../task-graph"
+import { GraphResults } from "../../graph/solver"
 import { StringParameter, BooleanParameter } from "../../cli/params"
 
 const runDeployArgs = {

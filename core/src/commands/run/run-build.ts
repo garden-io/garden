@@ -15,7 +15,7 @@ import { RunResult } from "../../plugin/base"
 import { dedent, deline } from "../../util/string"
 import { Command, CommandParams, CommandResult, handleRunResult, ProcessResultMetadata } from "../base"
 import { printRuntimeContext } from "./run"
-import { GraphResults } from "../../task-graph"
+import { GraphResults } from "../../graph/solver"
 import { StringParameter, StringsParameter, BooleanParameter, StringOption } from "../../cli/params"
 
 const runBuildArgs = {

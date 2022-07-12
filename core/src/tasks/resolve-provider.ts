@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { BaseTask, BaseTaskParams, TaskProcessParams, TaskType } from "./base"
+import { BaseTask, BaseTaskParams, TaskProcessParams } from "./base"
 import {
   GenericProviderConfig,
   Provider,
@@ -59,7 +59,7 @@ const defaultCacheTtl = 3600 // 1 hour
  */
 @Profile()
 export class ResolveProviderTask extends BaseTask<Provider> {
-  type: TaskType = "resolve-provider"
+  type = "resolve-provider"
   concurrencyLimit = 20
 
   private config: GenericProviderConfig

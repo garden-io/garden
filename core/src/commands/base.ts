@@ -19,7 +19,7 @@ import { LogEntry } from "../logger/log-entry"
 import { LoggerType } from "../logger/logger"
 import { printFooter, renderMessageWithDivider } from "../logger/util"
 import { ProcessResults } from "../process"
-import { GraphResults, GraphResult } from "../task-graph"
+import { GraphResults, GraphResult } from "../graph/solver"
 import { RunResult } from "../plugin/base"
 import { capitalize } from "lodash"
 import { getDurationMsec, splitFirst, userPrompt } from "../util/util"
@@ -518,7 +518,7 @@ export async function handleProcessResults(
   taskType: string,
   results: ProcessResults
 ): Promise<CommandResult<ProcessCommandResult>> {
-  const graphResults = results.taskResults
+  const graphResults = results.graphResults
 
   const result = {
     builds: prepareProcessResults("build", graphResults),
@@ -527,7 +527,7 @@ export async function handleProcessResults(
     graphResults,
   }
 
-  const failed = pickBy(results.taskResults, (r) => r && r.error)
+  const failed = pickBy(results.graphResults, (r) => r && r.error)
   const failedCount = size(failed)
 
   if (failedCount > 0) {

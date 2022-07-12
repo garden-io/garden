@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BaseActionTask, BaseActionTaskParams, TaskType } from "./base"
+import { BaseActionTask, BaseActionTaskParams } from "./base"
 import { ServiceStatus } from "../types/service"
-import { GraphResults, GraphResult } from "../task-graph"
+import { GraphResults, GraphResult } from "../graph/solver"
 import { DeployAction, isDeployAction } from "../actions/deploy"
 import { DeployStatus } from "../plugin/handlers/deploy/get-status"
 
@@ -24,7 +24,7 @@ export interface DeleteDeployTaskParams extends BaseActionTaskParams<DeployActio
 }
 
 export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus> {
-  type: TaskType = "delete-service"
+  type = "delete-service"
   concurrencyLimit = 10
   dependantsFirst: boolean
   deleteDeployNames: string[]

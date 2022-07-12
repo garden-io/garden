@@ -25,7 +25,7 @@ import {
 } from "../base"
 import { joi } from "../../config/common"
 import { TestResult } from "../../types/test"
-import { GraphResults } from "../../task-graph"
+import { GraphResults } from "../../graph/solver"
 import { StringParameter, BooleanParameter, ParameterValues } from "../../cli/params"
 import { GardenModule, moduleTestNameToActionName } from "../../types/module"
 import { ConfigGraph } from "../../graph/config-graph"
