@@ -11,7 +11,6 @@ import chalk from "chalk"
 import { keyBy, flatten } from "lodash"
 
 import { BaseTask } from "./tasks/base"
-import { GraphResults } from "./task-graph"
 import { Garden } from "./garden"
 import { EmojiName, LogEntry } from "./logger/log-entry"
 import { ConfigGraph } from "./graph/config-graph"
@@ -26,6 +25,8 @@ import { TestTask } from "./tasks/test"
 import { RunTask } from "./tasks/run"
 import { Action, actionReferenceToString } from "./actions/base"
 import { getTestActions } from "./commands/test"
+import { GraphResults } from "./graph/solver"
+import { GardenModule } from "./types/module"
 
 export type ProcessHandler = (graph: ConfigGraph, action: Action) => Promise<BaseTask[]>
 
@@ -40,9 +41,10 @@ interface ProcessParams {
    */
   overRideWatchStatusLine?: string
   /**
-   * If provided, and if `watch === true`, don't watch files in the module roots of these modules.
+   * If provided, and if `watch === true`, don't watch files in the roots of these actions and modules.
    */
   skipWatch?: Action[]
+  skipWatchModules?: GardenModule[]
   initialTasks: BaseTask[]
   /**
    * Use this if the behavior should be different on watcher changes than on initial processing
@@ -55,7 +57,7 @@ export interface ProcessActionsParams extends ProcessParams {
 }
 
 export interface ProcessResults {
-  taskResults: GraphResults
+  graphResults: GraphResults
   restartRequired?: boolean
 }
 
@@ -69,6 +71,7 @@ export async function processActions({
   actions,
   initialTasks,
   skipWatch,
+  skipWatchModules,
   watch,
   changeHandler,
   overRideWatchStatusLine,
@@ -106,7 +109,7 @@ export async function processActions({
 
   if (!watch && !garden.persistent) {
     return {
-      taskResults: results.results,
+      graphResults: results.results,
       restartRequired: false,
     }
   }
@@ -127,7 +130,7 @@ export async function processActions({
       })
     })
     return {
-      taskResults: results.results,
+      graphResults: results.results,
       restartRequired: false,
     }
   }
@@ -139,7 +142,7 @@ export async function processActions({
   const actionsToWatch = uniqByName([...deps, ...actions])
   const actionsByRef = keyBy(actionsToWatch, (a) => a.key())
 
-  await garden.startWatcher({ graph, skipActions: skipWatch })
+  await garden.startWatcher({ graph, skipActions: skipWatch, skipModules: skipWatchModules })
 
   const taskError = () => {
     if (!!statusLine) {
@@ -329,7 +332,7 @@ export async function processActions({
   })
 
   return {
-    taskResults: {}, // TODO: Return latest results for each task key processed between restarts?
+    graphResults: {}, // TODO: Return latest results for each task key processed between restarts?
     restartRequired,
   }
 }

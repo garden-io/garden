@@ -7,7 +7,8 @@
  */
 
 import { join } from "path"
-import { DeepPrimitiveMap, includeGuideLink, joi, joiSparseArray, joiUserIdentifier } from "../config/common"
+import { ActionReference, DeepPrimitiveMap, includeGuideLink, joi, joiSparseArray, joiUserIdentifier } from "../config/common"
+import { GraphResult, GraphResults } from "../graph/solver"
 import { dedent } from "../util/string"
 import {
   BaseActionConfig,
@@ -16,6 +17,8 @@ import {
   includeExcludeSchema,
   ResolvedActionWrapperParams,
   Action,
+  ActionStatus,
+  actionReferenceToString,
 } from "./base"
 
 export interface BuildCopyFrom {
@@ -126,21 +129,32 @@ export class BuildAction<C extends BuildActionConfig = BuildActionConfig, O exte
   }
 }
 
-// TODO: see if we can avoid the duplication here
+// TODO: see if we can avoid the duplication here with ResolvedRuntimeAction
 export abstract class ResolvedBuildAction<
   C extends BuildActionConfig = BuildActionConfig,
   O extends {} = any
 > extends BuildAction<C, O> {
   private variables: DeepPrimitiveMap
+  private status: ActionStatus<this, any, O>
+  private dependencyResults: GraphResults
 
   constructor(params: ResolvedActionWrapperParams<C, O>) {
     super(params)
-    this._outputs = params.outputs
+    this.status = params.status
     this.variables = params.variables
+    this.dependencyResults = params.dependencyResults
+  }
+
+  getDependencyResult(ref: ActionReference | Action): GraphResult | null {
+    return this.dependencyResults[actionReferenceToString(ref)] || null
   }
 
   getOutput<K extends keyof O>(key: K) {
-    return this._outputs[key]
+    return this.status.outputs[key]
+  }
+
+  getOutputs() {
+    return this.status.outputs
   }
 
   getVariables() {

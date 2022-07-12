@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BaseTask, TaskType } from "../tasks/base"
+import { BaseTask } from "../tasks/base"
 import { LogEntry } from "../logger/log-entry"
 import { GardenBaseError } from "../exceptions"
 import { uuidv4 } from "../util/util"
@@ -18,7 +18,7 @@ import { GetActionTypeResults } from "../plugin/action-types"
 import { ActionTypeHandlerSpec } from "../plugin/handlers/base/base"
 
 interface TaskEventBase {
-  type: TaskType
+  type: string
   description: string
   key: string
   name: string
@@ -197,6 +197,11 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
   start() {
     this.emit("start", {})
+  }
+
+  clearCache() {
+    // TODO-G2
+    throw "TODO"
   }
 
   private loop() {

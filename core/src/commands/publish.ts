@@ -116,7 +116,7 @@ export class PublishCommand extends Command<Args, Opts> {
     })
 
     const processed = await garden.processTasks({ tasks, log, throwOnError: true })
-    const output = await handleProcessResults(footerLog, "publish", { taskResults: processed.results })
+    const output = await handleProcessResults(footerLog, "publish", { graphResults: processed.results })
 
     return {
       ...output,

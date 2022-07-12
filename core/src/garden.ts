@@ -12,7 +12,7 @@ import { ensureDir, readdir } from "fs-extra"
 import dedent from "dedent"
 import { platform, arch } from "os"
 import { relative, resolve, join } from "path"
-import { flatten, sortBy, keyBy, mapValues, cloneDeep, groupBy } from "lodash"
+import { flatten, sortBy, keyBy, mapValues, cloneDeep, groupBy, uniq } from "lodash"
 const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
@@ -385,10 +385,12 @@ export class Garden {
    */
   async startWatcher({
     graph,
-    skipActions,
+    skipModules = [],
+    skipActions = [],
     bufferInterval,
   }: {
     graph: ConfigGraph
+    skipModules?: GardenModule[]
     skipActions?: Action[]
     bufferInterval?: number
   }) {
@@ -396,14 +398,18 @@ export class Garden {
     const linkedPaths = (await getLinkedSources(this)).map((s) => s.path)
     const paths = [this.projectRoot, ...linkedPaths]
 
-    // For skipped modules (e.g. those with services in dev mode), we skip watching all files and folders in the
-    // module root except for the module's config path. This way, we can still react to changes in the module's
-    // configuration.
+    // For skipped modules/actions (e.g. those with services in dev mode), we skip watching all files and folders in the
+    // module/action root except for the config path. This way, we can still react to changes in config files.
+    const skipDirectories = uniq([...skipModules.map((m) => m.path), ...skipActions.map((a) => a.basePath())])
+    const configPaths = new Set(
+      [...skipModules.map((m) => m.configPath), ...skipActions.map((a) => a.configPath())].filter(Boolean)
+    )
+
     const skipPaths = flatten(
-      await Bluebird.map(skipActions || [], async (skipped: Action) => {
-        return (await readdir(skipped.basePath()))
-          .map((relPath) => resolve(skipped.basePath(), relPath))
-          .filter((absPath) => absPath !== skipped.configPath())
+      await Bluebird.map(skipDirectories, async (path: string) => {
+        return (await readdir(path))
+          .map((relPath) => resolve(path, relPath))
+          .filter((absPath) => configPaths.has(absPath))
       })
     )
     this.watcher = new Watcher({

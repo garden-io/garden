@@ -34,7 +34,7 @@ import type { ActionKind } from "../plugin/action-types"
 import type { GroupConfig } from "../config/group"
 import pathIsInside from "path-is-inside"
 import { actionOutputsSchema } from "../plugin/handlers/base/base"
-import { GraphResults } from "../graph/solver"
+import { GraphResult, GraphResults } from "../graph/solver"
 import { RunResult } from "../plugin/base"
 
 export { ActionKind } from "../plugin/action-types"
@@ -299,7 +299,7 @@ interface ActionWrapperParams<C extends BaseActionConfig> {
 
 export interface ResolvedActionWrapperParams<C extends BaseActionConfig, O extends {}> extends ActionWrapperParams<C> {
   dependencyResults: GraphResults
-  status: ActionStatus<BaseAction<C, O>, O>
+  status: ActionStatus<BaseAction<C, O>, any>
   variables: DeepPrimitiveMap
 }
 
@@ -427,7 +427,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     return ref.kind === this.kind && ref.name === this.name
   }
 
-  // TODO: grow this
+  // TODO-G2: grow this
   describe() {
     return {
       config: this.getConfig(),
@@ -473,22 +473,27 @@ export abstract class RuntimeAction<
   }
 }
 
-// TODO: see if we can avoid the duplication here
+// TODO: see if we can avoid the duplication here with ResolvedBuildAction
 export abstract class ResolvedRuntimeAction<
   C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
   O extends {} = any
 > extends RuntimeAction<C, O> {
   private variables: DeepPrimitiveMap
-  private status: ActionStatus<this>
+  private status: ActionStatus<this, any, O>
   private dependencyResults: GraphResults
 
   constructor(params: ResolvedActionWrapperParams<C, O>) {
     super(params)
     this.status = params.status
     this.variables = params.variables
+    this.dependencyResults = params.dependencyResults
   }
 
-  getOutput<K extends keyof ActionStatus<this>["outputs"]>(key: K) {
+  getDependencyResult(ref: ActionReference | Action): GraphResult | null {
+    return this.dependencyResults[actionReferenceToString(ref)] || null
+  }
+
+  getOutput<K extends keyof O>(key: K) {
     return this.status.outputs[key]
   }
 

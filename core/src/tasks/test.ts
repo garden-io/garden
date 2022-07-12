@@ -10,7 +10,7 @@ import chalk from "chalk"
 import { find } from "lodash"
 import minimatch = require("minimatch")
 
-import { TaskType, BaseActionTask, BaseActionTaskParams, ActionTaskProcessParams } from "../tasks/base"
+import { BaseActionTask, BaseActionTaskParams, ActionTaskProcessParams } from "../tasks/base"
 import { prepareRuntimeContext } from "../runtime-context"
 import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
@@ -33,7 +33,7 @@ export interface TestTaskParams extends BaseActionTaskParams<TestAction> {
 
 @Profile()
 export class TestTask extends BaseActionTask<TestAction, GetTestResult> {
-  type: TaskType = "test"
+  type = "test"
 
   skipRuntimeDependencies: boolean
   silent: boolean

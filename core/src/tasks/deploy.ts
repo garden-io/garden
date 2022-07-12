@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { includes } from "lodash"
-import { TaskType, BaseActionTask, BaseActionTaskParams, ActionTaskProcessParams } from "./base"
+import { BaseActionTask, BaseActionTaskParams, ActionTaskProcessParams } from "./base"
 import { getLinkUrl } from "../types/service"
 import { startPortProxies } from "../proxy"
 import { prepareRuntimeContext } from "../runtime-context"
@@ -20,7 +20,7 @@ export interface DeployTaskParams extends BaseActionTaskParams<DeployAction> {}
 
 @Profile()
 export class DeployTask extends BaseActionTask<DeployAction, DeployStatus> {
-  type: TaskType = "deploy"
+  type = "deploy"
   concurrencyLimit = 10
 
   getDescription() {
