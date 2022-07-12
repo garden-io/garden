@@ -178,3 +178,16 @@ _Local mode_ always runs in persistent mode, it means that the Garden process wo
 explicitly. All port-forwards established by _local mode_ will be stopped on the process exit. The local application
 will be stopped if it was started via the `localMode.command` configuration option. Otherwise, if the local application
 was started manually, it will continue running.
+
+## Watching the local application's logs
+
+If you run your local application with the `localMode.command` configuration option, then you can easily watch the local
+application's logs in real-time by running a `garden` command with `verbose` log level:
+
+```shell
+garden deploy --local -l 3
+# or
+garden dev --local -l 3
+```
+
+Otherwise, you can find the logs in `.garden/deploy.debug.*.log` files.

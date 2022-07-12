@@ -395,7 +395,7 @@ const attemptsLeft = ({ maxRetries, minTimeoutMs, retriesLeft }: RetryInfo): str
 }
 
 const composeMessage = (customMessage: string, processMessage: ProcessMessage): string => {
-  return `${customMessage} [PID=${processMessage.pid}]`
+  return `[PID=${processMessage.pid}] ${customMessage}`
 }
 
 const composeErrorMessage = (customMessage: string, processMessage: ProcessMessage): string => {
@@ -455,6 +455,10 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
   const localServiceCmd = getLocalAppCommand(configParams)
   const { ctx, gardenService, log } = configParams
 
+  // This covers Win \r\n, Linux \n, and MacOS \r line separators.
+  const eolRegex = /\r?\n?$/
+  const stripEol = (message: string) => message.replace(eolRegex, "")
+
   return !!localServiceCmd
     ? new RecoverableProcess({
         osCommand: localServiceCmd,
@@ -498,6 +502,17 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
             })
           },
           onMessage: (_msg: ProcessMessage) => {},
+        },
+        stdoutListener: {
+          hasErrors: (_chunk: any) => false,
+          onError: (_msg: ProcessMessage) => {},
+          onMessage: (msg: ProcessMessage) => {
+            log.verbose({
+              symbol: "info",
+              section: gardenService.name,
+              msg: chalk.grey(composeMessage(stripEol(msg.message), msg)),
+            })
+          },
         },
       })
     : undefined
