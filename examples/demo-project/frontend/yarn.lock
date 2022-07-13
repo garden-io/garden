@@ -734,6 +734,13 @@ aws4@^1.8.0:
   resolved "https://registry.yarnpkg.com/aws4/-/aws4-1.11.0.tgz#d61f46d83b2519250e2784daf5b09479a8b41c59"
   integrity sha512-xh1Rl34h6Fi1DC2WWKfxUTVqRsNnr6LsKz2+hfwDxQJWmrx8+c7ylaqBMcHfl1U1r2dsifOvKX3LQuLNZ+XSvA==
 
+axios@^0.26.1:
+  version "0.26.1"
+  resolved "https://registry.yarnpkg.com/axios/-/axios-0.26.1.tgz#1ede41c51fcf51bbbd6fd43669caaa4f0495aaa9"
+  integrity sha512-fPwcX4EvnSHuInCMItEhAGnaSEXRBjtzh9fOtsE6E1G6p7vl7edEeZe11QHf18+6+9gR5PbKV/sGKNaD8YaMeA==
+  dependencies:
+    follow-redirects "^1.14.8"
+
 babel-jest@^28.1.2:
   version "28.1.2"
   resolved "https://registry.yarnpkg.com/babel-jest/-/babel-jest-28.1.2.tgz#2b37fb81439f14d34d8b2cc4a4bd7efabf9acbfe"
@@ -870,6 +877,14 @@ buffer-from@^1.0.0:
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/buffer-from/-/buffer-from-1.1.2.tgz#2b146a6fd72e80b4f55d255f35ed59a3a9a41bd5"
   integrity sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==
+
+buildkite-test-collector@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/buildkite-test-collector/-/buildkite-test-collector-1.1.0.tgz#3cf49249c0c60c3667ff6d99571ae6780e8c932b"
+  integrity sha512-OtgiAzOLCOTOjuRacC4mPFvD1mIoIMuhvDv4PHEdjLXiSCAJGw39b6fMuAzfOIW2+uPTp8BncGNu4YKcs63AyQ==
+  dependencies:
+    axios "^0.26.1"
+    uuid "^8.3.2"
 
 bytes@3.1.2:
   version "3.1.2"
@@ -1331,6 +1346,11 @@ find-up@^4.0.0, find-up@^4.1.0:
   dependencies:
     locate-path "^5.0.0"
     path-exists "^4.0.0"
+
+follow-redirects@^1.14.8:
+  version "1.15.1"
+  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.15.1.tgz#0ca6a452306c9b276e4d3127483e29575e207ad5"
+  integrity sha512-yLAMQs+k0b2m7cVxpS1VKJVvoz7SS9Td1zss3XRwXj+ZDH00RJgnuLx7E44wx02kQLrdM3aOOy+FpzS7+8OizA==
 
 forever-agent@~0.6.1:
   version "0.6.1"
@@ -2931,6 +2951,11 @@ uuid@^3.3.2:
   version "3.4.0"
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-3.4.0.tgz#b23e4358afa8a202fe7a100af1f5f883f02007ee"
   integrity sha512-HjSDRw6gZE5JMggctHBcjVak08+KEVhSIiDzFnT9S9aegmp85S/bReBVTb4QTFaRNptJ9kuYaNhnbNEOkbKb/A==
+
+uuid@^8.3.2:
+  version "8.3.2"
+  resolved "https://registry.yarnpkg.com/uuid/-/uuid-8.3.2.tgz#80d5b5ced271bb9af6c445f21a1a04c606cefbe2"
+  integrity sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==
 
 v8-to-istanbul@^9.0.1:
   version "9.0.1"

@@ -21,9 +21,10 @@ services:
 tests:
   - name: unit
     args: [npm, test]
-    # artifacts:
-    # - source: /app/main.js
-    #   target: foo
+    artifacts:
+    - source: /app/main.js
+      target: foo
+    command: []
   - name: integ
     args: [npm, run, integ]
     dependencies:
