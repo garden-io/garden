@@ -6,17 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult, CommandParams, CommandGroup } from "./base"
+import { Command, CommandGroup, CommandParams, CommandResult } from "./base"
 import { NotFoundError } from "../exceptions"
 import dedent from "dedent"
-import { ServiceStatusMap, serviceStatusSchema } from "../types/service"
+import { ServiceStatus, ServiceStatusMap, serviceStatusSchema } from "../types/service"
 import { printHeader } from "../logger/util"
 import { DeleteSecretResult } from "../types/plugin/provider/deleteSecret"
 import { EnvironmentStatusMap } from "../types/plugin/provider/getEnvironmentStatus"
-import { DeleteServiceTask, deletedServiceStatuses } from "../tasks/delete-service"
+import { deletedServiceStatuses, DeleteServiceTask } from "../tasks/delete-service"
 import { joi, joiIdentifierMap } from "../config/common"
 import { environmentStatusSchema } from "../config/status"
-import { StringParameter, StringsParameter } from "../cli/params"
+import { BooleanParameter, StringParameter, StringsParameter } from "../cli/params"
+import { deline } from "../util/string"
+import { Garden } from ".."
+import { ConfigGraph } from "../config-graph"
+import { LogEntry } from "../logger/log-entry"
+import { uniqByName } from "../util/util"
 
 export class DeleteCommand extends CommandGroup {
   name = "delete"
@@ -74,18 +79,34 @@ export class DeleteSecretCommand extends Command<typeof deleteSecretArgs> {
   }
 }
 
+const dependantsFirstOpt = {
+  "dependants-first": new BooleanParameter({
+    help: deline`
+      Delete services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a
+      will be deleted before service-b when calling garden delete environment service-a,service-b --dependants-first.
+      When this flag is not used, all services in the project are deleted simultaneously.
+    `,
+  }),
+}
+
+const deleteEnvironmentOpts = dependantsFirstOpt
+
+type DeleteEnvironmentOpts = typeof dependantsFirstOpt
+
 interface DeleteEnvironmentResult {
   providerStatuses: EnvironmentStatusMap
   serviceStatuses: ServiceStatusMap
 }
 
-export class DeleteEnvironmentCommand extends Command {
+export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts> {
   name = "environment"
   alias = "env"
   help = "Deletes a running environment."
 
   protected = true
   streamEvents = true
+
+  options = deleteEnvironmentOpts
 
   description = dedent`
     This will delete all services in the specified environment, and trigger providers to clear up any other resources
@@ -109,11 +130,19 @@ export class DeleteEnvironmentCommand extends Command {
     printHeader(headerLog, `Deleting environment`, "skull_and_crossbones")
   }
 
-  async action({ garden, log }: CommandParams): Promise<CommandResult<DeleteEnvironmentResult>> {
+  async action({
+    garden,
+    log,
+    opts,
+  }: CommandParams<{}, DeleteEnvironmentOpts>): Promise<CommandResult<DeleteEnvironmentResult>> {
     const actions = await garden.getActionRouter()
-
     const graph = await garden.getConfigGraph({ log, emit: true })
-    const serviceStatuses = await actions.deleteServices(graph, log)
+    const serviceStatuses = await deleteServices({
+      garden,
+      graph,
+      log,
+      dependantsFirst: opts["dependants-first"],
+    })
 
     log.info("")
 
@@ -123,14 +152,26 @@ export class DeleteEnvironmentCommand extends Command {
   }
 }
 
-export const deleteServiceArgs = {
+const deleteServiceArgs = {
   services: new StringsParameter({
     help: "The name(s) of the service(s) to delete. Use comma as a separator to specify multiple services.",
   }),
 }
 type DeleteServiceArgs = typeof deleteServiceArgs
 
-export class DeleteServiceCommand extends Command {
+const deleteServiceOpts = {
+  ...dependantsFirstOpt,
+  "with-dependants": new BooleanParameter({
+    help: deline`
+      Also delete services that have service dependencies on one of the services specified as CLI arguments
+      (recursively).  When used, this option implies --dependants-first. Note: This option has no effect unless a list
+      of service names is specified as CLI arguments (since then, every service in the project will be deleted).
+    `,
+  }),
+}
+type DeleteServiceOpts = typeof deleteServiceOpts
+
+export class DeleteServiceCommand extends Command<DeleteServiceArgs, DeleteServiceOpts> {
   name = "service"
   alias = "services"
   help = "Deletes running services."
@@ -158,21 +199,57 @@ export class DeleteServiceCommand extends Command {
     printHeader(headerLog, "Delete service", "skull_and_crossbones")
   }
 
-  async action({ garden, log, args }: CommandParams<DeleteServiceArgs>): Promise<CommandResult> {
+  async action({
+    garden,
+    log,
+    args,
+    opts,
+  }: CommandParams<DeleteServiceArgs, DeleteServiceOpts>): Promise<CommandResult> {
     const graph = await garden.getConfigGraph({ log, emit: true })
-    const services = graph.getServices({ names: args.services })
+    let services = graph.getServices({ names: args.services })
 
     if (services.length === 0) {
       log.warn({ msg: "No services found. Aborting." })
       return { result: {} }
     }
 
-    const deleteServiceTasks = services.map((service) => {
-      return new DeleteServiceTask({ garden, graph, log, service })
-    })
+    if (opts["with-dependants"]) {
+      // Then we include service dependants (recursively) in the list of services to delete
+      services = uniqByName([
+        ...services,
+        ...services.flatMap((s) => graph.getDependants({ nodeType: "deploy", name: s.name, recursive: true }).deploy),
+      ])
+    }
 
-    const result = deletedServiceStatuses(await garden.processTasks(deleteServiceTasks))
+    // --with-dependants implies --dependants-first
+    const dependantsFirst = opts["dependants-first"] || opts["with-dependants"]
+    const serviceNames = services.map((s) => s.name)
+    const result = await deleteServices({ serviceNames, garden, graph, log, dependantsFirst })
 
     return { result }
   }
+}
+
+/**
+ * Note: If `serviceNames` is undefined, deletes all services.
+ */
+async function deleteServices({
+  serviceNames,
+  garden,
+  graph,
+  log,
+  dependantsFirst,
+}: {
+  serviceNames?: string[]
+  garden: Garden
+  graph: ConfigGraph
+  log: LogEntry
+  dependantsFirst: boolean
+}): Promise<{ [serviceName: string]: ServiceStatus }> {
+  const services = graph.getServices({ names: serviceNames })
+  const deleteServiceNames = services.map((s) => s.name)
+  const deleteServiceTasks = services.map((service) => {
+    return new DeleteServiceTask({ garden, graph, log, service, deleteServiceNames, dependantsFirst })
+  })
+  return deletedServiceStatuses(await garden.processTasks(deleteServiceTasks))
 }
