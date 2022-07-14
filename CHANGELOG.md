@@ -1,4 +1,28 @@
 
+<a name="0.12.43"></a>
+## [0.12.43](https://github.com/garden-io/garden/compare/0.12.42...0.12.43) (2022-07-14)
+
+### Bug Fixes
+
+* include stderr for outputs from commands returning an artifact ([#3043](https://github.com/garden-io/garden/issues/3043)) ([f04a5624b](https://github.com/garden-io/garden/commit/f04a5624b))
+* **cli:** bad error message when dependency fails in run task/test cmd ([894d7f765](https://github.com/garden-io/garden/commit/894d7f765))
+* **cloud:** handle "=" separator in named vars passed as command args ([7ff078a58](https://github.com/garden-io/garden/commit/7ff078a58))
+* **core:** resolve runtime values in test configs ([4da5b03e5](https://github.com/garden-io/garden/commit/4da5b03e5))
+
+### Features
+
+* add get workflows command ([#3030](https://github.com/garden-io/garden/issues/3030)) ([0f42478b4](https://github.com/garden-io/garden/commit/0f42478b4))
+* **core:** opt for deleting services in dep order ([267eac9fb](https://github.com/garden-io/garden/commit/267eac9fb))
+* **k8s:** local mode for helm modules ([#3033](https://github.com/garden-io/garden/issues/3033)) ([a7722b58e](https://github.com/garden-io/garden/commit/a7722b58e))
+* **k8s:** local mode for kubernetes modules ([f44ff3979](https://github.com/garden-io/garden/commit/f44ff3979))
+
+### Improvements
+
+* add warning if project id but not logged in to cloud ([9d431cb8f](https://github.com/garden-io/garden/commit/9d431cb8f))
+* add more context for kubeconfig err ([#3022](https://github.com/garden-io/garden/issues/3022)) ([1efa7429b](https://github.com/garden-io/garden/commit/1efa7429b))
+* minor improvements in core/cloud interactivity ([7cedc25d2](https://github.com/garden-io/garden/commit/7cedc25d2))
+* **k8s:** verbose logging of the local app output in local mode ([6450936f8](https://github.com/garden-io/garden/commit/6450936f8))
+
 <a name="0.12.42"></a>
 ## [0.12.42](https://github.com/garden-io/garden/compare/0.12.41...0.12.42) (2022-06-21)
 
