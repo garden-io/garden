@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult, CommandParams, CommandGroup } from "./base"
+import { Command, CommandGroup, CommandParams, CommandResult } from "./base"
 import { NotFoundError } from "../exceptions"
 import dedent from "dedent"
 import { ServiceStatus, ServiceStatusMap, serviceStatusSchema } from "../types/service"
 import { printHeader } from "../logger/util"
 import { DeleteSecretResult } from "../types/plugin/provider/deleteSecret"
 import { EnvironmentStatusMap } from "../types/plugin/provider/getEnvironmentStatus"
-import { DeleteServiceTask, deletedServiceStatuses } from "../tasks/delete-service"
+import { deletedServiceStatuses, DeleteServiceTask } from "../tasks/delete-service"
 import { joi, joiIdentifierMap } from "../config/common"
 import { environmentStatusSchema } from "../config/status"
 import { BooleanParameter, StringParameter, StringsParameter } from "../cli/params"
@@ -22,7 +22,6 @@ import { Garden } from ".."
 import { ConfigGraph } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
 import { uniqByName } from "../util/util"
-import { flatten } from "lodash"
 
 export class DeleteCommand extends CommandGroup {
   name = "delete"
@@ -218,9 +217,7 @@ export class DeleteServiceCommand extends Command<DeleteServiceArgs, DeleteServi
       // Then we include service dependants (recursively) in the list of services to delete
       services = uniqByName([
         ...services,
-        ...flatten(
-          services.map((s) => graph.getDependants({ nodeType: "deploy", name: s.name, recursive: true }).deploy)
-        ),
+        ...services.flatMap((s) => graph.getDependants({ nodeType: "deploy", name: s.name, recursive: true }).deploy),
       ])
     }
 
