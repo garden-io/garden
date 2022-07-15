@@ -32,16 +32,13 @@ describe("local mode deployments and ssh tunneling behavior", () => {
     await init("local")
   })
 
-  after(() => {
-    LocalModeProcessRegistry.getInstance().shutdown()
-    ProxySshKeystore.getInstance(garden.log).shutdown(garden.log)
-  })
-
   beforeEach(async () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
   afterEach(async () => {
+    LocalModeProcessRegistry.getInstance().shutdown()
+    ProxySshKeystore.getInstance(garden.log).shutdown(garden.log)
     if (garden) {
       await garden.close()
     }
