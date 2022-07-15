@@ -17,7 +17,7 @@ export interface OsCommand {
   readonly cwd?: string
 }
 
-const renderOsCommand = (cmd: OsCommand): string => JSON.stringify(cmd)
+export const renderOsCommand = (cmd: OsCommand): string => JSON.stringify(cmd)
 
 export interface ProcessMessage {
   readonly pid: number
@@ -456,17 +456,21 @@ export class RecoverableProcess {
     return descendants
   }
 
-  private renderProcessTreeRecursively(indent: string, output: string): string {
-    output += indent + `-> '${renderOsCommand(this.command)}'\n`
+  private renderProcessTreeRecursively(
+    indent: string,
+    output: string,
+    renderer: (command: OsCommand) => string
+  ): string {
+    output += indent + `-> '${renderer(this.command)}'\n`
     for (const descendant of this.descendants) {
-      output = descendant.renderProcessTreeRecursively(indent + "..", output)
+      output = descendant.renderProcessTreeRecursively(indent + "..", output, renderer)
     }
     return output
   }
 
-  public renderProcessTree(): string {
+  public renderProcessTree(renderer: (command: OsCommand) => string = renderOsCommand): string {
     const output = ""
-    return this.renderProcessTreeRecursively("", output)
+    return this.renderProcessTreeRecursively("", output, renderer)
   }
 
   public getTreeRoot() {
