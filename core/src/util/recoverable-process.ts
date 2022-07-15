@@ -8,7 +8,7 @@
 
 import { ChildProcess, execFile, spawn } from "child_process"
 import { LogEntry } from "../logger/log-entry"
-import { sleepSync } from "./util"
+import { sleep } from "./util"
 import { ConfigurationError, RuntimeError } from "../exceptions"
 
 export interface OsCommand {
@@ -428,9 +428,8 @@ export class RecoverableProcess {
     this.unregisterSubTreeListeners()
     this.stopSubTree()
     if (this.retriesLeft > 0) {
-      // sleep synchronously to avoid pre-mature retry attempts
       if (this.retryConfig.minTimeoutMs > 0) {
-        sleepSync(this.retryConfig.minTimeoutMs)
+        await sleep(this.retryConfig.minTimeoutMs)
       }
       this.retriesLeft--
       this.state = "retrying"
