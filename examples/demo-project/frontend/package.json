@@ -5,7 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "node main.js",
-    "test": "echo OK",
+    "test": "jest --coverage",
     "integ": "node_modules/mocha/bin/mocha test/integ.js"
   },
   "author": "garden.io <info@garden.io>",
@@ -16,6 +16,7 @@
     "request-promise": "^4.2.2"
   },
   "devDependencies": {
+    "jest": "26.6.3",
     "mocha": "^5.1.1",
     "supertest": "^3.0.0"
   }

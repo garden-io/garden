@@ -19,9 +19,10 @@ services:
     dependencies:
       - backend
 tests:
-  - name: unit
-    args: [npm, test]
-  - name: integ
-    args: [npm, run, integ]
-    dependencies:
-      - frontend
+  - name: with-artifacts
+    command: [npm, run, test]
+    artifacts:
+    - source: /app/main.js
+      target: foo
+  - name: no-artifacts
+    command: [npm, run, test]
