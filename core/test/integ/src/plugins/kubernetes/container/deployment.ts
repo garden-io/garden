@@ -31,6 +31,7 @@ import { apply } from "../../../../../../src/plugins/kubernetes/kubectl"
 import { getAppNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
 import { gardenAnnotationKey } from "../../../../../../src/util/string"
 import {
+  k8sReverseProxyImageName,
   k8sSyncUtilImageName,
   PROXY_CONTAINER_SSH_TUNNEL_PORT,
   PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME,
@@ -77,6 +78,11 @@ describe("kubernetes container deployment handlers", () => {
     function expectEmptyContainerArgs(workload: KubernetesWorkload) {
       const appContainerSpec = workload.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
       expect(appContainerSpec!.args).to.eql([])
+    }
+
+    function expectProxyContainerImage(workload: KubernetesWorkload) {
+      const appContainerSpec = workload.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
+      expect(appContainerSpec!.image).to.eql(k8sReverseProxyImageName)
     }
 
     function expectContainerEnvVars(workload: KubernetesWorkload) {
@@ -188,7 +194,7 @@ describe("kubernetes container deployment handlers", () => {
         expectSshContainerPort(workload)
       })
 
-      it("Workflow should have empty container args when in local mode", async () => {
+      it("Workflow should have proxy container image and empty container args when in local mode", async () => {
         const service = graph.getService("local-mode")
 
         const { workload } = await createContainerManifests({
@@ -202,6 +208,7 @@ describe("kubernetes container deployment handlers", () => {
           blueGreen: false,
         })
 
+        expectProxyContainerImage(workload)
         expectEmptyContainerArgs(workload)
       })
 

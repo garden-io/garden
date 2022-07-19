@@ -13,7 +13,7 @@ import { UsersListCommand } from "./users-list"
 
 export class UsersCommand extends CommandGroup {
   name = "users"
-  help = "[EXPERIMENTAL] List, create, and delete users."
+  help = "List, create, and delete users."
 
   subCommands = [UsersListCommand, UsersCreateCommand, UsersDeleteCommand]
 }

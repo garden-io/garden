@@ -104,7 +104,7 @@ export class RunTaskCommand extends Command<Args, Opts> {
       devModeServiceNames: [],
       localModeServiceNames: [],
     })
-    const graphResults = await garden.processTasks([taskTask])
+    const graphResults = await garden.processTasks([taskTask], { throwOnError: true })
 
     return handleTaskResult({ log, actionDescription: "task", graphResults, key: taskTask.getKey() })
   }

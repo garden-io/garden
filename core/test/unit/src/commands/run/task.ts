@@ -11,13 +11,14 @@ import { expect } from "chai"
 import { omit } from "lodash"
 import { RunTaskCommand } from "../../../../../src/commands/run/task"
 import {
-  withDefaultGlobalOpts,
+  assertAsyncError,
   expectError,
-  projectRootA,
-  testPlugin,
-  projectTestFailsRoot,
-  testPluginB,
   makeTestGarden,
+  projectRootA,
+  projectTestFailsRoot,
+  testPlugin,
+  testPluginB,
+  withDefaultGlobalOpts,
 } from "../../../../helpers"
 import { LogLevel } from "../../../../../src/logger/logger"
 import { renderDivider } from "../../../../../src/logger/util"
@@ -99,20 +100,21 @@ describe("RunTaskCommand", () => {
     expect(omit(result!.result, omittedKeys)).to.eql(expected)
   })
 
-  it("should return an error if the task fails", async () => {
+  it("should raise an error if the task fails", async () => {
     const garden = await makeExecTestGarden(projectTestFailsRoot)
     const log = garden.log
 
-    const result = await cmd.action({
-      garden,
-      log,
-      headerLog: log,
-      footerLog: log,
-      args: { task: "task" },
-      opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
-    })
+    const action = async () =>
+      await cmd.action({
+        garden,
+        log,
+        headerLog: log,
+        footerLog: log,
+        args: { task: "task" },
+        opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
+      })
 
-    expect(result.errors).to.have.lengthOf(1)
+    await assertAsyncError(action, "task-error")
   })
 
   it("should throw if the task is disabled", async () => {
@@ -184,18 +186,21 @@ describe("RunTaskCommand", () => {
     `)
   })
 
-  it("should not log the result if error", async () => {
-    const garden = await makeExecTestGarden()
+  it("should raise the error and not log the result on failure", async () => {
+    const garden = await makeExecTestGarden(projectTestFailsRoot)
     const log = garden.log
 
-    await cmd.action({
-      garden,
-      log,
-      headerLog: log,
-      footerLog: log,
-      args: { task: "task-a" },
-      opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
-    })
+    const action = async () =>
+      await cmd.action({
+        garden,
+        log,
+        headerLog: log,
+        footerLog: log,
+        args: { task: "task" },
+        opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
+      })
+
+    await assertAsyncError(action, "task-error")
 
     const logOutput = getLogMessages(log, (entry) => entry.level === LogLevel.error).join("\n")
 

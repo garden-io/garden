@@ -12,10 +12,10 @@ import { find, remove, set } from "lodash"
 import { SyncableResource } from "./types"
 import { PrimitiveMap } from "../../config/common"
 import {
+  k8sReverseProxyImageName,
   PROXY_CONTAINER_SSH_TUNNEL_PORT,
   PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME,
   PROXY_CONTAINER_USER_NAME,
-  reverseProxyImageName,
 } from "./constants"
 import { ConfigurationError, RuntimeError } from "../../exceptions"
 import { getResourceContainer, prepareEnvVars } from "./util"
@@ -322,7 +322,7 @@ function patchSyncableManifest(
   const targetContainer = getResourceContainer(targetManifest, containerName)
 
   // use reverse proxy container image
-  targetContainer.image = reverseProxyImageName
+  targetContainer.image = k8sReverseProxyImageName
   // erase the original container arguments, the proxy container won't recognize them
   targetContainer.args = []
 
@@ -367,7 +367,7 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
   log.debug({
     section: gardenService.name,
     msg: chalk.gray(
-      `Configuring in local mode, proxy container ${chalk.underline(reverseProxyImageName)} will be deployed.`
+      `Configuring in local mode, proxy container ${chalk.underline(k8sReverseProxyImageName)} will be deployed.`
     ),
   })
 
@@ -395,7 +395,7 @@ const attemptsLeft = ({ maxRetries, minTimeoutMs, retriesLeft }: RetryInfo): str
 }
 
 const composeMessage = (customMessage: string, processMessage: ProcessMessage): string => {
-  return `${customMessage} [PID=${processMessage.pid}]`
+  return `[PID=${processMessage.pid}] ${customMessage}`
 }
 
 const composeErrorMessage = (customMessage: string, processMessage: ProcessMessage): string => {
@@ -455,6 +455,10 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
   const localServiceCmd = getLocalAppCommand(configParams)
   const { ctx, gardenService, log } = configParams
 
+  // This covers Win \r\n, Linux \n, and MacOS \r line separators.
+  const eolRegex = /\r?\n?$/
+  const stripEol = (message: string) => message.replace(eolRegex, "")
+
   return !!localServiceCmd
     ? new RecoverableProcess({
         osCommand: localServiceCmd,
@@ -498,6 +502,17 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
             })
           },
           onMessage: (_msg: ProcessMessage) => {},
+        },
+        stdoutListener: {
+          hasErrors: (_chunk: any) => false,
+          onError: (_msg: ProcessMessage) => {},
+          onMessage: (msg: ProcessMessage) => {
+            log.verbose({
+              symbol: "info",
+              section: gardenService.name,
+              msg: chalk.grey(composeMessage(stripEol(msg.message), msg)),
+            })
+          },
         },
       })
     : undefined

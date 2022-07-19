@@ -7,28 +7,24 @@
  */
 
 import td from "testdouble"
-import Bluebird = require("bluebird")
-import { resolve, join, relative } from "path"
-import { extend, intersection, pick } from "lodash"
-import { remove, copy, mkdirp, pathExists, truncate, ensureDir } from "fs-extra"
-import execa = require("execa")
+import { join, relative, resolve } from "path"
+import { extend, intersection, mapValues, pick } from "lodash"
+import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
-import { containerModuleSpecSchema, containerTestSchema, containerTaskSchema } from "../src/plugins/container/config"
-import { testExecModule, buildExecModule, execBuildSpecSchema } from "../src/plugins/exec/exec"
-import { joiArray, joi } from "../src/config/common"
+import { containerModuleSpecSchema, containerTaskSchema, containerTestSchema } from "../src/plugins/container/config"
+import { buildExecModule, execBuildSpecSchema, testExecModule } from "../src/plugins/exec/exec"
+import { joi, joiArray } from "../src/config/common"
 import {
-  PluginActionHandlers,
   createGardenPlugin,
-  RegisterPluginParam,
   ModuleAndRuntimeActionHandlers,
+  PluginActionHandlers,
+  RegisterPluginParam,
 } from "../src/types/plugin/plugin"
 import { Garden, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
-import { mapValues } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
-import { GARDEN_CORE_ROOT, LOCAL_CONFIG_FILENAME, DEFAULT_API_VERSION, gardenEnv } from "../src/constants"
-import timekeeper = require("timekeeper")
-import { ParameterValues, globalOptions, GlobalOptions, Parameters } from "../src/cli/params"
+import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT, gardenEnv, LOCAL_CONFIG_FILENAME } from "../src/constants"
+import { globalOptions, GlobalOptions, Parameters, ParameterValues } from "../src/cli/params"
 import { RunModuleParams } from "../src/types/plugin/module/runModule"
 import { ConfigureModuleParams } from "../src/types/plugin/module/configure"
 import { RunServiceParams } from "../src/types/plugin/service/runService"
@@ -39,7 +35,7 @@ import { CommandParams, ProcessCommandResult } from "../src/commands/base"
 import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
 import { SuiteFunction, TestFunction } from "mocha"
 import { AnalyticsGlobalConfig } from "../src/config-store"
-import { TestGarden, EventLogEntry, TestGardenOpts } from "../src/util/testing"
+import { EventLogEntry, TestGarden, TestGardenOpts } from "../src/util/testing"
 import { Logger, LogLevel } from "../src/logger/logger"
 import { ExecInServiceParams, ExecInServiceResult } from "../src/types/plugin/service/execInService"
 import { ClientAuthToken } from "../src/db/entities/client-auth-token"
@@ -48,6 +44,10 @@ import { profileAsync } from "../src/util/profiling"
 import { makeTempDir } from "../src/util/fs"
 import { DirectoryResult } from "tmp-promise"
 import { ConfigurationError } from "../src/exceptions"
+import { assert, expect } from "chai"
+import Bluebird = require("bluebird")
+import execa = require("execa")
+import timekeeper = require("timekeeper")
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError } from "../src/util/testing"
@@ -670,5 +670,15 @@ export function makeCommandParams<T extends Parameters = {}, U extends Parameter
     footerLog: log,
     args,
     opts: withDefaultGlobalOpts(opts),
+  }
+}
+
+export async function assertAsyncError(action: () => Promise<any>, ...expectedErrorMessages: string[]) {
+  try {
+    await action()
+    assert.fail("Illegal test state. The action must have failed with error.")
+  } catch (err) {
+    const errorString = !!err.message ? err.message : err.toString()
+    expectedErrorMessages.forEach((msg) => expect(errorString).to.contain(msg))
   }
 }

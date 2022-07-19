@@ -47,7 +47,7 @@ type Opts = typeof secretsCreateOpts
 
 export class UsersCreateCommand extends Command<Args, Opts> {
   name = "create"
-  help = "[EXPERIMENTAL] Create users"
+  help = "Create users"
   description = dedent`
     Create users in Garden Cloud and optionally add the users to specific groups.
     You can get the group IDs from the \`garden cloud users list\` command.
