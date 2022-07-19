@@ -127,7 +127,17 @@ export class ActionRouter extends BaseRouter {
   /**
    * Deletes all or specified deployments in the environment.
    */
-  async deleteDeploys(graph: ConfigGraph, log: LogEntry, names?: string[]) {
+  async deleteDeploys({
+    graph,
+    log,
+    names,
+    dependantsFirst,
+  }: {
+    graph: ConfigGraph
+    log: LogEntry
+    dependantsFirst?: boolean
+    names?: string[]
+  }) {
     const servicesLog = log.info({ msg: chalk.white("Deleting services..."), status: "active" })
 
     const deploys = graph.getDeploys({ names })
@@ -137,7 +147,7 @@ export class ActionRouter extends BaseRouter {
         graph,
         action,
         log: servicesLog,
-        includeDependants: true,
+        dependantsFirst,
         force: false,
         forceActions: [],
         devModeDeployNames: [],

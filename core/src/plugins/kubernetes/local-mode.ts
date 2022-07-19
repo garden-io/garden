@@ -522,7 +522,7 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
           onMessage: (msg: ProcessMessage) => {
             log.verbose({
               symbol: "info",
-              section: gardenService.name,
+              section: action.key(),
               msg: chalk.grey(composeMessage(stripEol(msg.message), msg)),
             })
           },
