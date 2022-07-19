@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { omit } from "lodash"
-import { ActionState } from "../actions/base"
+import { Action, ActionState } from "../actions/base"
 import { PluginEventBroker } from "../plugin-context"
 import { emptyRuntimeContext } from "../runtime-context"
 import { ServiceState } from "../types/service"
@@ -57,6 +57,8 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       })
 
       const result = await router.callHandler({ params, handlerType: "deploy" })
+
+      await router.validateActionOutputs(action, result.outputs)
 
       garden.events.emit("serviceStatus", {
         actionName,
@@ -163,8 +165,9 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       })
 
       router.emitNamespaceEvents(result.detail?.namespaceStatuses)
-      // TODO-G2
-      // this.validateServiceOutputs(params.service, result)
+
+      await router.validateActionOutputs(action, result.outputs)
+
       return result
     },
 
@@ -183,23 +186,3 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       return params.router.callHandler({ params, handlerType: "stopPortForward" })
     },
   })
-
-// private validateServiceOutputs(service: GardenService, result: ServiceStatus) {
-//   const spec = this.moduleTypes[service.module.type]
-
-//   if (spec.serviceOutputsSchema) {
-//     result.outputs = validateSchema(result.outputs, spec.serviceOutputsSchema, {
-//       context: `outputs from service '${service.name}'`,
-//       ErrorClass: PluginError,
-//     })
-//   }
-
-//   for (const base of getModuleTypeBases(spec, this.moduleTypes)) {
-//     if (base.serviceOutputsSchema) {
-//       result.outputs = validateSchema(result.outputs, base.serviceOutputsSchema.unknown(true), {
-//         context: `outputs from service '${service.name}' (base schema from '${base.name}' plugin)`,
-//         ErrorClass: PluginError,
-//       })
-//     }
-//   }
-// }

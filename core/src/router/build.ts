@@ -25,6 +25,9 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
         handlerType: "getStatus",
         defaultHandler: async () => ({ state: <ActionState>"unknown", detail: {}, outputs: {} }),
       })
+
+      await router.validateActionOutputs(action, status.outputs)
+
       if (status.state === "ready") {
         // Then an actual build won't take place, so we emit a build status event to that effect.
         const actionVersion = action.versionString()
@@ -95,6 +98,9 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
           handlerType: "build",
           defaultHandler: async () => ({ outputs: {} }),
         })
+
+        await router.validateActionOutputs(action, result.outputs)
+
         emitBuildStatusEvent("built")
         return result
       } catch (err) {

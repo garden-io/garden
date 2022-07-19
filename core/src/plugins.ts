@@ -329,6 +329,29 @@ export function getPluginBaseNames(name: string, loadedPlugins: PluginMap) {
 }
 
 /**
+ * Recursively resolves all the bases for the given action type, ordered from closest base to last.
+ */
+export function getActionTypeBases(
+  type: ActionTypeDefinition<any>,
+  actionTypes: { [name: string]: ActionTypeDefinition<any> }
+): ActionTypeDefinition<any>[] {
+  if (!type.base) {
+    return []
+  }
+
+  const base = actionTypes[type.base]
+
+  if (!base) {
+    throw new RuntimeError(`Unable to find base action type '${type.base}' for actionTypes type '${type.name}'`, {
+      name: type.name,
+      actionTypes,
+    })
+  }
+
+  return [base, ...getActionTypeBases(base, actionTypes)]
+}
+
+/**
  * Recursively resolves all the bases for the given module type, ordered from closest base to last.
  */
 export function getModuleTypeBases(
