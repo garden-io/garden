@@ -190,28 +190,17 @@ describe("RunTaskCommand", () => {
     const garden = await makeExecTestGarden(projectTestFailsRoot)
     const log = garden.log
 
-<<<<<<< HEAD:core/test/unit/src/commands/run/task.ts
     const action = async () =>
       await cmd.action({
         garden,
         log,
         headerLog: log,
         footerLog: log,
-        args: { task: "task" },
+        args: { name: "task" },
         opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
       })
 
     await assertAsyncError(action, "task-error")
-=======
-    await cmd.action({
-      garden,
-      log,
-      headerLog: log,
-      footerLog: log,
-      args: { name: "task-a" },
-      opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
-    })
->>>>>>> a64ce6987 (chore: weaving down the error graph...):core/test/unit/src/commands/run/run-run.ts
 
     const logOutput = getLogMessages(log, (entry) => entry.level === LogLevel.error).join("\n")
 
