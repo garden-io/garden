@@ -120,8 +120,9 @@ export function validateRetryConfig(retryConfig: RetryConfig): RetryConfig {
 export type InitialProcessState = "runnable"
 export type ActiveProcessState = "running" | "retrying"
 /**
- * Process in the state "stopped" can be retried.
- * If all retry attempts have failed, then the process reaches the "failed" state which is a final one.
+ * Process in the state "stopped" can not be retried or restarted.
+ * If all retry attempts have failed, then the process reaches the "failed" state.
+ * Both "stopped" and ""failed" are final states.
  */
 export type InactiveProcessState = "stopped" | "failed"
 export type RecoverableProcessState = InitialProcessState | ActiveProcessState | InactiveProcessState
@@ -261,7 +262,8 @@ export class RecoverableProcess {
     node.descendants.forEach((descendant) => RecoverableProcess.recursiveAction(descendant, action))
   }
 
-  private stopNode(): void {
+  private stopNode(state: RecoverableProcessState): void {
+    this.state = state
     const proc = this.proc
     if (!proc) {
       return
@@ -269,11 +271,10 @@ export class RecoverableProcess {
 
     !proc.killed && proc.kill()
     this.proc = undefined
-    this.state = "stopped"
   }
 
-  private stopSubTree(): void {
-    RecoverableProcess.recursiveAction(this, (node) => node.stopNode())
+  private stopSubTree(state: RecoverableProcessState): void {
+    RecoverableProcess.recursiveAction(this, (node) => node.stopNode(state))
   }
 
   private registerNodeListeners(proc: ChildProcess): void {
@@ -421,18 +422,18 @@ export class RecoverableProcess {
   }
 
   private async tryRestartSubTree(): Promise<void> {
-    if (this.state === "retrying") {
+    if (this.state === "retrying" || this.state === "stopped") {
       return
     }
+    this.state = "retrying"
     // todo: should we lookup to parent nodes to find the parent-most killed/restarting process?
     this.unregisterSubTreeListeners()
-    this.stopSubTree()
+    this.stopSubTree("retrying")
     if (this.retriesLeft > 0) {
       if (this.retryConfig.minTimeoutMs > 0) {
         await sleep(this.retryConfig.minTimeoutMs)
       }
       this.retriesLeft--
-      this.state = "retrying"
       this.startSubTree()
     } else {
       await this.fail()
@@ -440,7 +441,7 @@ export class RecoverableProcess {
   }
 
   public addDescendantProcess(descendant: RecoverableProcess): RecoverableProcess {
-    if (this.state === "running") {
+    if (this.state !== "runnable") {
       throw new RuntimeError("Cannot attach a descendant to already running process", this)
     }
 
@@ -488,7 +489,10 @@ export class RecoverableProcess {
     if (this.state === "failed") {
       throw new RuntimeError("Cannot start failed process with no retries left.", this)
     }
-    // no need to use pRetry here, the failures will be handled by event the process listeners
+    if (this.state === "stopped") {
+      throw new RuntimeError("Cannot start already stopped process.", this)
+    }
+    // no need to use pRetry here, the failures will be handled by the event process listeners
     const proc = this.executor(this.command)
     this.proc = proc
     this.lastKnownPid = proc.pid
@@ -538,7 +542,7 @@ export class RecoverableProcess {
   public stopAll(): RecoverableProcess {
     const root = this.getTreeRoot()
     root.unregisterSubTreeListeners()
-    root.stopSubTree()
+    root.stopSubTree("stopped")
     return root
   }
 

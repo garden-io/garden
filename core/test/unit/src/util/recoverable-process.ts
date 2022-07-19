@@ -533,4 +533,15 @@ describe("RecoverableProcess", async () => {
 
     expect(() => root.startAll()).to.throw("Cannot start the process tree. Some processes failed with no retries left.")
   })
+
+  it("failed process cannot be started", async () => {
+    const maxRetries = 0
+    const minTimeoutMs = 500
+    const root = infiniteProcess(maxRetries, minTimeoutMs)
+
+    root.startAll()
+    root.stopAll()
+
+    expect(() => root.startAll()).to.throw("Cannot start already stopped process.")
+  })
 })
