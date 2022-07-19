@@ -20,7 +20,7 @@ import {
 import { GardenPlugin, ActionHandler, PluginMap } from "../plugin/plugin"
 import { PluginEventBroker } from "../plugin-context"
 import { ConfigContext } from "../config/template-contexts/base"
-import { ActionKind } from "../actions/base"
+import { ActionKind, BaseAction } from "../actions/base"
 import {
   ActionTypeDefinition,
   ActionTypeMap,
@@ -33,7 +33,7 @@ import {
 } from "../plugin/action-types"
 import { InternalError, ParameterError, PluginError } from "../exceptions"
 import { validateSchema } from "../config/validation"
-import { getPluginBases, getPluginDependencies } from "../plugins"
+import { getActionTypeBases, getPluginBases, getPluginDependencies } from "../plugins"
 import { getNames } from "../util/util"
 import { defaultProvider } from "../config/provider"
 import { ConfigGraph } from "../graph/config-graph"
@@ -80,7 +80,6 @@ export abstract class BaseRouter {
     }
   }
 
-  // TODO: find a nicer way to do this (like a type-safe wrapper function)
   protected async commonParams(
     handler: WrappedActionHandler<any, any> | WrappedActionTypeHandler<any, any>,
     log: LogEntry,
@@ -264,9 +263,31 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
     const result: GetActionTypeResults<ActionTypeClasses<K>[T]> = await handler(handlerParams)
 
-    // TODO-G2: validate outputs here
+    // Validate result
+
 
     return result
+  }
+
+  async validateActionOutputs<T extends BaseAction>(action: T, outputs: any) {
+    const actionTypes = await this.garden.getActionTypes()
+    const spec: ActionTypeDefinition<any> = actionTypes[action.kind][action.type]
+
+    if (spec.outputsSchema) {
+      outputs = validateSchema(outputs, spec.outputsSchema, {
+        context: `outputs from service '${action.name}'`,
+        ErrorClass: PluginError,
+      })
+    }
+
+    for (const base of getActionTypeBases(spec, actionTypes[action.kind])) {
+      if (base.outputsSchema) {
+        outputs = validateSchema(outputs, base.outputsSchema.unknown(true), {
+          context: `outputs from service '${action.name}' (base schema from '${base.name}' plugin)`,
+          ErrorClass: PluginError,
+        })
+      }
+    }
   }
 
   private addHandler<T extends keyof ActionTypeClasses<K>>(
