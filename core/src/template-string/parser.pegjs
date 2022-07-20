@@ -39,6 +39,15 @@
   function optionalList(value) {
     return value !== null ? value : [];
   }
+
+  function resolveList(items) {
+    for (const part of items) {
+      if (part._error) {
+        return part
+      }
+    }
+    return items.map((part) => part.resolved || part)
+  }
 }
 
 TemplateString
@@ -158,7 +167,7 @@ Suffix
 MemberExpression
   = head:Identifier
     tail:(
-        "[" __ e:PrimaryExpression __ "]" {
+        "[" __ e:Expression __ "]" {
           if (e.resolved && !isPrimitive(e.resolved)) {
             const _error = new TemplateStringError(
               `Expression in bracket must resolve to a primitive (got ${typeof e}).`,
@@ -191,9 +200,36 @@ Arguments
     }
 
 ArgumentList
-  = head:PrimaryExpression tail:(__ "," __ PrimaryExpression)* {
+  = head:Expression tail:(__ "," __ Expression)* {
       return buildList(head, tail, 3);
     }
+
+ArrayLiteral
+  = "[" __ elision:(Elision __)? "]" {
+      return resolveList(optionalList(extractOptional(elision, 0)));
+    }
+  / "[" __ elements:ElementList __ "]" {
+      return resolveList(elements);
+    }
+  / "[" __ elements:ElementList __ "," __ elision:(Elision __)? "]" {
+      return resolveList(elements.concat(optionalList(extractOptional(elision, 0))));
+    }
+
+ElementList
+  = head:(
+      elision:(Elision __)? element:Expression {
+        return optionalList(extractOptional(elision, 0)).concat(element);
+      }
+    )
+    tail:(
+      __ "," __ elision:(Elision __)? element:Expression {
+        return optionalList(extractOptional(elision, 0)).concat(element);
+      }
+    )*
+    { return Array.prototype.concat.apply(head, tail); }
+
+Elision
+  = "," commas:(__ ",")* { return filledArray(commas.length + 1, null); }
 
 PrimaryExpression
   = v:NonStringLiteral {
@@ -203,14 +239,13 @@ PrimaryExpression
     // Allow nested template strings in literals
     return resolveNested(v)
   }
+  / ArrayLiteral
   / CallExpression
   / key:MemberExpression {
-    for (const part of key) {
-      if (part._error) {
-        return part
-      }
+    key = resolveList(key)
+    if (key._error) {
+      return key
     }
-    key = key.map((part) => part.resolved || part)
     try {
       return getKey(key, { allowPartial: options.allowPartial })
     } catch (err) {

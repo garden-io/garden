@@ -11,7 +11,7 @@ This guide introduces the templating capabilities available in Garden configurat
 
 String configuration values in `garden.yml` can be templated to inject variables, information about the user's environment, references to other modules/services and more.
 
-The basic syntax for templated strings is `${some.key}`. The key is looked up from the context available when resolving the string. The context depends on which top-level key the configuration value belongs to (`project` or `module`).
+The basic syntax for templated strings is `${some.key}`. The key is looked up from the _template context_ available when resolving the string. The available context depends on what is being resolved, i.e. a _project_, _module_, _provider_ etc.
 
 For example, for one service you might want to reference something from another module and expose it as an environment variable:
 
@@ -35,6 +35,18 @@ version as part of a URI:
 ```
 
 Note that while this syntax looks similar to template strings in Javascript, we don't allow arbitrary JS expressions. See the next section for the available expression syntax.
+
+### Literals
+
+In addition to referencing variables from template contexts, you can include a variety of _literals_ in template strings:
+
+* _Strings_ enclosed with either double or single quotes: `${"foo"}`, `${'bar'}`.
+* _Numbers_: `${123}`
+* _Booleans_: `${true}`, `${false}`
+* _Null_: `${null}`
+* _Arrays_: `${[1, 2, 3]}`, `${["foo", "bar"]}`, `${[var.someKey, var.someOtherKey]}`
+
+These can be used with [operators](#operators), as [helper function arguments](#helper-functions) and more.
 
 ### Operators
 
@@ -497,6 +509,7 @@ This can be very useful when you need to provide secrets and other contextual va
 By default, Garden will look for a `garden.env` file in your project root for project-wide variables, and a `garden.<env-name>.env` file for environment-specific variables. You can override the filename for each as well.
 
 To use a module-level varfile, simply configure the `module.varfile` field to be the relative path (from module root) to the varfile you want to use for that module. For example:
+
 ```yaml
 # my-service/garden.yml
 kind: Module
@@ -529,6 +542,7 @@ tests:
     # Re-using the envVar module variable
     env: ${var.envVars}
 ```
+
 Module varfiles must be located inside the module root directory. That is, they must be in the same directory as the module configuration, or in a subdirectory of that directory.
 
 Note that variables defined in module varfiles override variables defined in project-level variables and varfiles (see the section on variable precedence order below).
@@ -553,7 +567,6 @@ garden run task my-task --var my-task-arg=foo,some-numeric-var=123
 ```
 
 Multiple variables are separated with a comma, and each part is parsed using [dotenv](https://github.com/motdotla/dotenv#rules) syntax.
-
 
 ## Variable precedence order
 
