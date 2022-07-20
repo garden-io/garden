@@ -549,7 +549,7 @@ export function getServiceResourceSpec(
     throw new ConfigurationError(
       chalk.red(
         deline`${module.type} module ${chalk.white(module.name)} doesn't specify a ${chalk.underline("serviceResource")}
-        in its configuration. You must specify a resource in the module config in order to use certain Garden features, such as dev mode, tasks and tests.`
+        in its configuration. You must specify a resource in the module config in order to use certain Garden features, such as dev mode, local mode, tasks and tests.`
       ),
       { resourceSpec }
     )

@@ -196,7 +196,7 @@ describe("util", () => {
           expect(stripAnsi(err.message)).to.equal(
             deline`helm module api doesn't specify a serviceResource in its configuration.
           You must specify a resource in the module config in order to use certain Garden features,
-          such as tasks and tests.`
+          such as dev mode, local mode, tasks and tests.`
           )
       )
     })
@@ -213,8 +213,8 @@ describe("util", () => {
         (err) =>
           expect(stripAnsi(err.message)).to.equal(
             deline`helm module api doesn't specify a serviceResource in its configuration.
-          You must specify a resource in the module config in order to use certain Garden features,
-          such as tasks and tests.`
+          You must specify a resource in the module config in order to use certain Garden features,
+          such as dev mode, local mode, tasks and tests.`
           )
       )
     })
@@ -267,8 +267,8 @@ describe("util", () => {
         (err) =>
           expect(stripAnsi(err.message)).to.equal(
             deline`helm module api doesn't specify a serviceResource in its configuration.
-          You must specify a resource in the module config in order to use certain Garden features,
-          such as tasks and tests.`
+          You must specify a resource in the module config in order to use certain Garden features,
+          such as dev mode, local mode, tasks and tests.`
           )
       )
     })
