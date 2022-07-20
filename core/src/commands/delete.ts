@@ -45,7 +45,7 @@ type DeleteSecretArgs = typeof deleteSecretArgs
 
 export class DeleteSecretCommand extends Command<typeof deleteSecretArgs> {
   name = "secret"
-  help = "Delete a secret from the environment."
+  help = "Delete a secret from the namespace."
   protected = true
 
   description = dedent`
@@ -82,7 +82,7 @@ const dependantsFirstOpt = {
   "dependants-first": new BooleanParameter({
     help: deline`
       Delete services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a
-      will be deleted before service-b when calling \`garden cleanup environment service-a,service-b --dependants-first\`.
+      will be deleted before service-b when calling \`garden cleanup namespace service-a,service-b --dependants-first\`.
       When this flag is not used, all services in the project are deleted simultaneously.
     `,
   }),
@@ -98,9 +98,9 @@ interface DeleteEnvironmentResult {
 }
 
 export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts> {
-  name = "environment"
-  alias = "env"
-  help = "Deletes a running environment."
+  name = "namespace"
+  alias = "ns"
+  help = "Deletes a running namespace."
 
   protected = true
   streamEvents = true
@@ -108,25 +108,24 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
   options = deleteEnvironmentOpts
 
   description = dedent`
-    This will delete all services in the specified environment, and trigger providers to clear up any other resources
-    and reset it. When you then run \`garden deploy\`, the environment will be reconfigured.
+    This will delete all services in the specified namespace, and trigger providers to clear up any other resources
+    and reset it. When you then run \`garden deploy\`, the namespace will be reconfigured.
 
-    This can be useful if you find the environment to be in an inconsistent state, or need/want to free up
-    resources.
+    This can be useful if you find the namespace to be in an inconsistent state, or need/want to free up resources.
   `
 
   outputsSchema = () =>
     joi.object().keys({
       providerStatuses: joiIdentifierMap(environmentStatusSchema()).description(
-        "The status of each provider in the environment."
+        "The status of each provider in the namespace."
       ),
       serviceStatuses: joiIdentifierMap(serviceStatusSchema()).description(
-        "The status of each service in the environment."
+        "The status of each service in the namespace."
       ),
     })
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, `Cleanup environment`, "skull_and_crossbones")
+    printHeader(headerLog, `Cleanup namespace`, "skull_and_crossbones")
   }
 
   async action({
