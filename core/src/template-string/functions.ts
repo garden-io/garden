@@ -69,6 +69,32 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
     fn: (str: string) => camelCase(str),
   },
   {
+    name: "concat",
+    description: "Concatenates two arrays.",
+    arguments: {
+      array1: joi.array().required().description("The array to append to."),
+      array2: joi.array().required().description("The array to append."),
+    },
+    outputSchema: joi.string(),
+    exampleArguments: [
+      {
+        input: [
+          ["first", "two"],
+          ["second", "list"],
+        ],
+        output: ["first", "two", "second", "list"],
+      },
+      {
+        input: [
+          [1, 2, 3],
+          [4, 5],
+        ],
+        output: [1, 2, 3, 4, 5],
+      },
+    ],
+    fn: (array1: any[], array2: any[]) => [...array1, ...array2],
+  },
+  {
     name: "indent",
     description: "Indents each line in the given string with the specified number of spaces.",
     arguments: {
