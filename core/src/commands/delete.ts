@@ -24,9 +24,8 @@ import { LogEntry } from "../logger/log-entry"
 import { uniqByName } from "../util/util"
 
 export class DeleteCommand extends CommandGroup {
-  name = "delete"
-  alias = "del"
-  help = "Delete configuration or objects."
+  name = "cleanup"
+  help = "Delete/cleanup configuration or objects."
 
   subCommands = [DeleteSecretCommand, DeleteEnvironmentCommand, DeleteServiceCommand]
 }
@@ -54,14 +53,14 @@ export class DeleteSecretCommand extends Command<typeof deleteSecretArgs> {
 
     Examples:
 
-        garden delete secret kubernetes somekey
-        garden del secret local-kubernetes some-other-key
+        garden cleanup secret kubernetes somekey
+        garden cleanup secret local-kubernetes some-other-key
   `
 
   arguments = deleteSecretArgs
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Delete secrete", "skull_and_crossbones")
+    printHeader(headerLog, "Cleanup secret", "skull_and_crossbones")
   }
 
   async action({ garden, log, args }: CommandParams<DeleteSecretArgs>): Promise<CommandResult<DeleteSecretResult>> {
@@ -83,7 +82,7 @@ const dependantsFirstOpt = {
   "dependants-first": new BooleanParameter({
     help: deline`
       Delete services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a
-      will be deleted before service-b when calling garden delete environment service-a,service-b --dependants-first.
+      will be deleted before service-b when calling \`garden cleanup environment service-a,service-b --dependants-first\`.
       When this flag is not used, all services in the project are deleted simultaneously.
     `,
   }),
@@ -127,7 +126,7 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
     })
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, `Deleting environment`, "skull_and_crossbones")
+    printHeader(headerLog, `Cleanup environment`, "skull_and_crossbones")
   }
 
   async action({
@@ -188,15 +187,15 @@ export class DeleteServiceCommand extends Command<DeleteServiceArgs, DeleteServi
 
     Examples:
 
-        garden delete service my-service # deletes my-service
-        garden delete service            # deletes all deployed services in the project
+        garden cleanup service my-service # deletes my-service
+        garden cleanup service            # deletes all deployed services in the project
   `
 
   outputsSchema = () =>
     joiIdentifierMap(serviceStatusSchema()).description("A map of statuses for all the deleted services.")
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Delete service", "skull_and_crossbones")
+    printHeader(headerLog, "Cleanup service", "skull_and_crossbones")
   }
 
   async action({

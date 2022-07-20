@@ -372,7 +372,7 @@ Examples:
   | `--type` |  | string | The module type to create. Required if --interactive&#x3D;false.
 
 
-### garden delete secret
+### garden cleanup secret
 
 **Delete a secret from the environment.**
 
@@ -380,12 +380,12 @@ Returns with an error if the provided key could not be found by the provider.
 
 Examples:
 
-    garden delete secret kubernetes somekey
-    garden del secret local-kubernetes some-other-key
+    garden cleanup secret kubernetes somekey
+    garden cleanup secret local-kubernetes some-other-key
 
 #### Usage
 
-    garden delete secret <provider> <key> 
+    garden cleanup secret <provider> <key> 
 
 #### Arguments
 
@@ -396,7 +396,7 @@ Examples:
 
 
 
-### garden delete environment
+### garden cleanup environment
 
 **Deletes a running environment.**
 
@@ -408,13 +408,13 @@ resources.
 
 #### Usage
 
-    garden delete environment [options]
+    garden cleanup environment [options]
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--dependants-first` |  | boolean | Delete services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling garden delete environment service-a,service-b --dependants-first. When this flag is not used, all services in the project are deleted simultaneously.
+  | `--dependants-first` |  | boolean | Delete services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling &#x60;garden cleanup environment service-a,service-b --dependants-first&#x60;. When this flag is not used, all services in the project are deleted simultaneously.
 
 #### Outputs
 
@@ -533,7 +533,7 @@ serviceStatuses:
     version:
 ```
 
-### garden delete service
+### garden cleanup service
 
 **Deletes running services.**
 
@@ -543,12 +543,12 @@ therefore leave the project in an unstable state. Running `garden deploy` will r
 
 Examples:
 
-    garden delete service my-service # deletes my-service
-    garden delete service            # deletes all deployed services in the project
+    garden cleanup service my-service # deletes my-service
+    garden cleanup service            # deletes all deployed services in the project
 
 #### Usage
 
-    garden delete service [services] 
+    garden cleanup service [services] 
 
 #### Arguments
 
