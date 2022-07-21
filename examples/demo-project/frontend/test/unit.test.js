@@ -48,48 +48,48 @@ describe("all my lovely tests", async () => {
       throw new Error("stuff is broken bro")
     })
 
-    test('fail test case', () => {
-      printToConsoleInDifferentWays()
-      expect(sum(1, 2)).toBe(4);
-    });
+    // test('fail test case', () => {
+    //   printToConsoleInDifferentWays()
+    //   expect(sum(1, 2)).toBe(4);
+    // });
   })
 
-  describe("success", () => {
-    test('only log', () => {
-      printToConsoleInDifferentWays()
-      throw new Error("stuff is broken bro")
-    })
+  // describe("success", () => {
+  //   test('only log', () => {
+  //     printToConsoleInDifferentWays()
+  //     throw new Error("stuff is broken bro")
+  //   })
 
-    test('success test case', () => {
-      printToConsoleInDifferentWays()
-      expect(sum(1, 2)).toBe(3);
-    });
-  })
+  //   test('success test case', () => {
+  //     printToConsoleInDifferentWays()
+  //     expect(sum(1, 2)).toBe(3);
+  //   });
+  // })
 
 
-  describe("async", async () => {
-    async function asyncLog() {
-      return new Promise(resolve => {
-        setTimeout(() => {
-          printToConsoleInDifferentWays()
-          resolve('resolved');
-        }, 200);
-      });
-    }
-    test('only log throw', async () => {
-      await asyncLog()
-      throw new Error("stuff is broken bro")
-    })
+  // describe("async", async () => {
+  //   async function asyncLog() {
+  //     return new Promise(resolve => {
+  //       setTimeout(() => {
+  //         printToConsoleInDifferentWays()
+  //         resolve('resolved');
+  //       }, 200);
+  //     });
+  //   }
+  //   test('only log throw', async () => {
+  //     await asyncLog()
+  //     throw new Error("stuff is broken bro")
+  //   })
 
-    test('only log throw, but no await', async () => {
-      asyncLog()
-      throw new Error("stuff is broken bro")
-    })
+  //   test('only log throw, but no await', async () => {
+  //     asyncLog()
+  //     throw new Error("stuff is broken bro")
+  //   })
 
-    test('success test case', async () => {
-      await asyncLog()
-      expect(sum(1, 2)).toBe(3);
-      await asyncLog()
-    });
-  })
+  //   test('success test case', async () => {
+  //     await asyncLog()
+  //     expect(sum(1, 2)).toBe(3);
+  //     await asyncLog()
+  //   });
+  // })
 })
