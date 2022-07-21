@@ -48,11 +48,10 @@ describe("CreateModuleCommand", () => {
       args: {},
       opts: withDefaultGlobalOpts({
         dir,
-        "interactive": false,
-        "name": undefined,
-        "type": "exec",
-        "filename": defaultConfigFilename,
-        "skip-comments": false,
+        interactive: false,
+        name: undefined,
+        type: "exec",
+        filename: defaultConfigFilename,
       }),
     })
     const { name, configPath } = result!
@@ -80,12 +79,11 @@ describe("CreateModuleCommand", () => {
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
-        "dir": tmp.path,
-        "interactive": false,
-        "name": "test",
-        "type": "exec",
-        "filename": "custom.garden.yml",
-        "skip-comments": false,
+        dir: tmp.path,
+        interactive: false,
+        name: "test",
+        type: "exec",
+        filename: "custom.garden.yml",
       }),
     })
     const { configPath } = result!
@@ -102,12 +100,11 @@ describe("CreateModuleCommand", () => {
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
-        "dir": tmp.path,
-        "interactive": false,
-        "name": "test",
-        "type": "exec",
-        "filename": defaultConfigFilename,
-        "skip-comments": false,
+        dir: tmp.path,
+        interactive: false,
+        name: "test",
+        type: "exec",
+        filename: defaultConfigFilename,
       }),
     })
     const { name, configPath } = result!
@@ -138,12 +135,11 @@ describe("CreateModuleCommand", () => {
       log: garden.log,
       args: {},
       opts: withDefaultGlobalOpts({
-        "dir": tmp.path,
-        "interactive": false,
-        "name": "test",
-        "type": "exec",
-        "filename": defaultConfigFilename,
-        "skip-comments": false,
+        dir: tmp.path,
+        interactive: false,
+        name: "test",
+        type: "exec",
+        filename: defaultConfigFilename,
       }),
     })
     const { name, configPath } = result!
@@ -177,12 +173,11 @@ describe("CreateModuleCommand", () => {
           log: garden.log,
           args: {},
           opts: withDefaultGlobalOpts({
-            "dir": tmp.path,
-            "interactive": false,
-            "name": "test",
-            "type": "exec",
-            "filename": defaultConfigFilename,
-            "skip-comments": false,
+            dir: tmp.path,
+            interactive: false,
+            name: "test",
+            type: "exec",
+            filename: defaultConfigFilename,
           }),
         }),
       (err) => expect(stripAnsi(err.message)).to.equal("A Garden module named test already exists in " + configPath)
@@ -201,11 +196,10 @@ describe("CreateModuleCommand", () => {
           args: {},
           opts: withDefaultGlobalOpts({
             dir,
-            "interactive": false,
-            "name": "test",
-            "type": "exec",
-            "filename": defaultConfigFilename,
-            "skip-comments": false,
+            interactive: false,
+            name: "test",
+            type: "exec",
+            filename: defaultConfigFilename,
           }),
         }),
       (err) => expect(err.message).to.equal(`Path ${dir} does not exist`)
@@ -222,12 +216,11 @@ describe("CreateModuleCommand", () => {
           log: garden.log,
           args: {},
           opts: withDefaultGlobalOpts({
-            "dir": tmp.path,
-            "interactive": false,
-            "name": undefined,
-            "type": "foo",
-            "filename": defaultConfigFilename,
-            "skip-comments": false,
+            dir: tmp.path,
+            interactive: false,
+            name: undefined,
+            type: "foo",
+            filename: defaultConfigFilename,
           }),
         }),
       (err) => expect(stripAnsi(err.message)).to.equal("Could not find module type foo")

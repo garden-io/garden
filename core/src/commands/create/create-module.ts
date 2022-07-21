@@ -16,7 +16,7 @@ import { loadConfigResources, findProjectConfig } from "../../config/base"
 import { resolve, basename, relative, join } from "path"
 import { GardenBaseError, ParameterError } from "../../exceptions"
 import { getModuleTypes, getPluginBaseNames } from "../../plugins"
-import { addConfig, createBaseOpts } from "./helpers"
+import { addConfig } from "./helpers"
 import { getSupportedPlugins } from "../../plugins/plugins"
 import { baseModuleSpecSchema } from "../../config/module"
 import { renderConfigReference } from "../../docs/config"
@@ -35,7 +35,6 @@ import { userPrompt } from "../../util/util"
 
 const createModuleArgs = {}
 const createModuleOpts = {
-  ...createBaseOpts,
   dir: new PathParameter({
     help: "Directory to place the module in (defaults to current directory).",
     defaultValue: ".",
@@ -196,9 +195,9 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
       }
     )
 
-    const { yaml } = renderConfigReference(schema, {
+    let { yaml } = renderConfigReference(schema, {
       yamlOpts: {
-        onEmptyValue: opts["skip-comments"] ? "remove" : "comment out",
+        onEmptyValue: "remove",
         filterMarkdown: true,
         renderBasicDescription: !opts["skip-comments"],
         renderFullDescription: false,
@@ -207,6 +206,8 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
       },
     })
 
+    const moduleTypeUrl = getModuleTypeUrl(type)
+    yaml = `# Documentation about ${type} modules at ${moduleTypeUrl}\n\n${yaml}`
     await addConfig(configPath, yaml)
 
     log.info(chalk.green(`-> Created new module config in ${chalk.bold.white(relative(process.cwd(), configPath))}`))
@@ -257,7 +258,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
     }
 
     // This is to avoid `prettier` messing with the string formatting...
-    const moduleTypeUrl = chalk.cyan.underline(getModuleTypeUrl(type))
+    const moduleTypeUrlFormatted = chalk.cyan.underline(moduleTypeUrl)
     const providerUrl = chalk.cyan.underline(getProviderUrl(pluginName))
     const configFilesUrl = chalk.cyan.underline(`${DOCS_BASE_URL}/using-garden/configuration-overview`)
     const formattedType = chalk.bold(type)
@@ -267,9 +268,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
       symbol: "info",
       msg: wordWrap(
         dedent`
-        We recommend reviewing the generated config, uncommenting fields that you'd like to configure, and cleaning up any commented fields that you don't need to use.
-
-        For more information about ${formattedType} modules, please check out ${moduleTypeUrl}, and the ${formattedPluginName} provider docs at ${providerUrl}. For general information about Garden configuration files, take a look at ${configFilesUrl}.
+        For more information about ${formattedType} modules, please check out ${moduleTypeUrlFormatted}, and the ${formattedPluginName} provider docs at ${providerUrl}. For general information about Garden configuration files, take a look at ${configFilesUrl}.
         `,
         120
       ),
