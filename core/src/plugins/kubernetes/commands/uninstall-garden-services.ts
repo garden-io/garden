@@ -11,8 +11,6 @@ import { PluginCommand } from "../../../types/plugin/command"
 import { getKubernetesSystemVariables } from "../init"
 import { KubernetesPluginContext } from "../config"
 import { getSystemGarden } from "../system"
-import { getSystemNamespace } from "../namespace"
-import { helm } from "../helm/helm-cli"
 
 export const uninstallGardenServices: PluginCommand = {
   name: "uninstall-garden-services",
@@ -34,27 +32,8 @@ export const uninstallGardenServices: PluginCommand = {
 
     log.info("")
 
-    // We have to delete all services except nfs-provisioner first to avoid volumes getting stuck
-    const serviceNames = services.map((s) => s.name).filter((name) => name !== "nfs-provisioner")
+    const serviceNames = services.map((s) => s.name)
     const serviceStatuses = await actions.deleteServices(graph, log, serviceNames)
-
-    const systemNamespace = await getSystemNamespace(ctx, k8sCtx.provider, log)
-    try {
-      await helm({
-        ctx: k8sCtx,
-        log,
-        namespace: systemNamespace,
-        args: ["uninstall", "garden-nfs-provisioner"],
-      })
-    } catch (_) {}
-    try {
-      await helm({
-        ctx: k8sCtx,
-        log,
-        namespace: systemNamespace,
-        args: ["uninstall", "garden-nfs-provisioner-v2"],
-      })
-    } catch (_) {}
 
     log.info("")
 

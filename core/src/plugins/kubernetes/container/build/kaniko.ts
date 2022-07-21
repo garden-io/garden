@@ -8,7 +8,7 @@
 
 import { V1PodSpec } from "@kubernetes/client-node"
 import { ContainerModule } from "../../../container/config"
-import { millicpuToString, megabytesToString, makePodName, usingInClusterRegistry } from "../../util"
+import { millicpuToString, megabytesToString, makePodName } from "../../util"
 import { skopeoDaemonContainerName, dockerAuthSecretKey, k8sUtilImageName } from "../../constants"
 import { KubeApi } from "../../api"
 import { LogEntry } from "../../../../logger/log-entry"
@@ -24,7 +24,6 @@ import { KubernetesPod } from "../../types"
 import {
   BuildStatusHandler,
   skopeoBuildStatus,
-  getSocatContainer,
   BuildHandler,
   utilRsyncPort,
   syncToBuildSync,
@@ -150,11 +149,6 @@ export const kanikoBuild: BuildHandler = async (params) => {
     ...getKanikoFlags(module.spec.extraFlags, provider.config.kaniko?.extraFlags),
   ]
 
-  if (usingInClusterRegistry(provider)) {
-    // The in-cluster registry is not exposed, so we don't configure TLS on it.
-    args.push("--insecure")
-  }
-
   args.push(...getDockerBuildFlags(module))
 
   const buildRes = await runKaniko({
@@ -244,21 +238,6 @@ async function runKaniko({
     touch ${sharedMountPath}/done;
     exit $exitcode;
   `
-
-  if (usingInClusterRegistry(provider)) {
-    // This may seem kind of insane but we have to wait until the socat proxy is up (because Kaniko immediately tries to
-    // reach the registry we plan on pushing to). See the support container in the Pod spec below for more on this
-    // hackery.
-    commandStr = dedent`
-      while true; do
-        if ls ${sharedMountPath}/socatStarted 2> /dev/null; then
-          ${commandStr}
-        else
-          sleep 0.3;
-        fi
-      done
-    `
-  }
 
   const kanikoImage = provider.config.kaniko?.image || DEFAULT_KANIKO_IMAGE
   const kanikoTolerations = [...(provider.config.kaniko?.tolerations || []), builderToleration]
@@ -356,46 +335,6 @@ async function runKaniko({
       },
     ],
     tolerations: kanikoTolerations,
-  }
-
-  if (usingInClusterRegistry(provider)) {
-    spec.containers = spec.containers.concat([
-      getSocatContainer(provider),
-      // This is a workaround so that the kaniko executor can wait until socat starts, and so that the socat proxy
-      // doesn't just keep running after the build finishes. Doing this in the kaniko Pod is currently not possible
-      // because of https://github.com/GoogleContainerTools/distroless/issues/225
-      {
-        name: "support",
-        image: "busybox:1.31.1",
-        command: [
-          "sh",
-          "-c",
-          dedent`
-              while true; do
-                if pidof socat 2> /dev/null; then
-                  touch ${sharedMountPath}/socatStarted;
-                  break;
-                else
-                  sleep 0.3;
-                fi
-              done
-              while true; do
-                if ls ${sharedMountPath}/done 2> /dev/null; then
-                  killall socat; exit 0;
-                else
-                  sleep 0.3;
-                fi
-              done
-            `,
-        ],
-        volumeMounts: [
-          {
-            name: sharedVolumeName,
-            mountPath: sharedMountPath,
-          },
-        ],
-      },
-    ])
   }
 
   const pod: KubernetesPod = {

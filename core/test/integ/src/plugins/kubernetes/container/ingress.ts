@@ -10,12 +10,7 @@ import { expect } from "chai"
 import td from "testdouble"
 
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
-import {
-  KubernetesProvider,
-  KubernetesConfig,
-  defaultResources,
-  defaultStorage,
-} from "../../../../../../src/plugins/kubernetes/config"
+import { KubernetesProvider, KubernetesConfig, defaultResources } from "../../../../../../src/plugins/kubernetes/config"
 import { gardenPlugin } from "../../../../../../src/plugins/container/container"
 import { expectError } from "../../../../../helpers"
 import { Garden } from "../../../../../../src/garden"
@@ -69,9 +64,7 @@ const basicConfig: PartialConfig = {
   ingressHttpsPort: 443,
   resources: defaultResources,
   setupIngressController: null,
-  storage: defaultStorage,
   systemNodeSelector: {},
-  registryProxyTolerations: [],
   tlsCertificates: [],
   _systemServices: [],
 }

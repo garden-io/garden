@@ -36,22 +36,6 @@ spec:
               mountPath: /root/.docker
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-        - name: proxy
-          image: "gardendev/socat:0.1.0"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args:
-            - TCP-LISTEN:5000,fork
-            - TCP:{{ .Values.registry.hostname }}:5000
-          ports:
-            - name: proxy
-              containerPort: 5000
-              protocol: TCP
-          livenessProbe:
-            tcpSocket:
-              port: 5000
-          readinessProbe:
-            tcpSocket:
-              port: 5000
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

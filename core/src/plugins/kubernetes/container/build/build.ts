@@ -12,7 +12,6 @@ import { GetBuildStatusParams, BuildStatus } from "../../../../types/plugin/modu
 import { BuildModuleParams, BuildResult } from "../../../../types/plugin/module/build"
 import { KubernetesProvider, ContainerBuildMode } from "../../config"
 import { getKanikoBuildStatus, kanikoBuild } from "./kaniko"
-import { clusterDockerBuild, getClusterDockerBuildStatus } from "./cluster-docker"
 import { getLocalBuildStatus, localBuild } from "./local"
 import { BuildStatusHandler, BuildHandler } from "./common"
 import { buildkitBuildHandler, getBuildkitBuildStatus } from "./buildkit"
@@ -48,13 +47,11 @@ export async function k8sBuildContainer(params: BuildModuleParams<ContainerModul
 const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } = {
   "local-docker": getLocalBuildStatus,
   "cluster-buildkit": getBuildkitBuildStatus,
-  "cluster-docker": getClusterDockerBuildStatus,
   "kaniko": getKanikoBuildStatus,
 }
 
 const buildHandlers: { [mode in ContainerBuildMode]: BuildHandler } = {
   "local-docker": localBuild,
   "cluster-buildkit": buildkitBuildHandler,
-  "cluster-docker": clusterDockerBuild,
   "kaniko": kanikoBuild,
 }

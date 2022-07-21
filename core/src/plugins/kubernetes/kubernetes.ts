@@ -30,12 +30,11 @@ import { resolve } from "path"
 import { dedent } from "../../util/string"
 import { kubernetesModuleSpecSchema } from "./kubernetes-module/config"
 import { helmModuleSpecSchema, helmModuleOutputsSchema } from "./helm/config"
-import { isNumber } from "util"
 import chalk from "chalk"
 import pluralize from "pluralize"
 import { getSystemMetadataNamespaceName } from "./system"
 import { DOCS_BASE_URL } from "../../constants"
-import { defaultIngressClass, inClusterRegistryHostname } from "./constants"
+import { defaultIngressClass } from "./constants"
 import { pvcModuleDefinition } from "./volumes/persistentvolumeclaim"
 import { helm3Spec } from "./helm/helm-cli"
 import { sternSpec } from "./logs"
@@ -43,11 +42,9 @@ import { isString } from "lodash"
 import { mutagenCliSpec } from "./mutagen"
 import { configMapModuleDefinition } from "./volumes/configmap"
 import { jibContainerHandlers } from "./jib-container"
-import { emitWarning } from "../../warnings"
 import { kustomizeSpec } from "./kubernetes-module/kustomize"
 
 export async function configureProvider({
-  log,
   namespace,
   projectName,
   projectRoot,
@@ -72,72 +69,14 @@ export async function configureProvider({
     }
   }
 
-  const buildMode = config.buildMode
-
-  // TODO: clean this up, this is getting confusing here
-  if (buildMode !== "local-docker") {
-    const usingInClusterRegistry =
-      !config.deploymentRegistry || config.deploymentRegistry.hostname === inClusterRegistryHostname
-
-    if (usingInClusterRegistry) {
-      // Deploy an in-cluster registry, unless otherwise specified.
-      // This is a special configuration, used in combination with the registry-proxy service,
-      // to make sure every node in the cluster can resolve the image from the registry we deploy in-cluster.
-      config.deploymentRegistry = {
-        hostname: inClusterRegistryHostname,
-        // Default to use the project name as the namespace in the in-cluster registry, if none is explicitly
-        // configured. This allows users to share builds for a project.
-        namespace: config.deploymentRegistry?.namespace || projectName,
-      }
-      config._systemServices.push("docker-registry", "registry-proxy")
-    }
-
-    if (buildMode === "cluster-docker") {
-      await emitWarning({
-        key: "cluster-docker-deprecated",
-        log,
-        message:
-          "The cluster-docker build mode has been deprecated. Please see the docs for details: https://docs.garden.io/guides/in-cluster-building",
-      })
-
-      config._systemServices.push("build-sync", "util", "docker-daemon")
-
-      // Set up an NFS provisioner if the user doesn't explicitly set a storage class for the shared sync volume
-      if (!config.storage.sync.storageClass) {
-        config._systemServices.push("nfs-provisioner")
-      }
-    }
-  } else if (config.name !== "local-kubernetes" && !config.deploymentRegistry) {
-    throw new ConfigurationError(`kubernetes: must specify deploymentRegistry in config if using local build mode`, {
+  if (config.name !== "local-kubernetes" && !config.deploymentRegistry) {
+    throw new ConfigurationError(`kubernetes: must specify deploymentRegistry in config`, {
       config,
     })
   }
 
   if (config.kubeconfig) {
     config.kubeconfig = resolve(projectRoot, config.kubeconfig)
-  }
-
-  for (const { effect, key, operator, tolerationSeconds, value } of config.registryProxyTolerations) {
-    if (!key && operator !== "Exists") {
-      throw new ConfigurationError(`kubernetes: tolerations operator must be 'Exists' if tolerations key is empty`, {
-        key,
-        operator,
-        config,
-      })
-    }
-    if (isNumber(tolerationSeconds) && effect !== "NoExecute") {
-      throw new ConfigurationError(`kubernetes: tolerations effect must be 'NoExecute' if toleration seconds is set`, {
-        tolerationSeconds,
-        effect,
-        config,
-      })
-    }
-    if (!!value && operator === "Exists") {
-      throw new ConfigurationError(
-        `kubernetes: tolerations value should be empty if tolerations operator is 'Exists'`,
-        { value, operator, config }
-      )
-    }
   }
 
   const managedCertificates = config.tlsCertificates.filter((cert) => cert.managedBy === "cert-manager")

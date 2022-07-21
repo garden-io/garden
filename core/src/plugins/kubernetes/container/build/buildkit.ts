@@ -22,7 +22,6 @@ import {
   skopeoBuildStatus,
   BuildHandler,
   syncToBuildSync,
-  getSocatContainer,
   getUtilContainer,
   utilRsyncPort,
   ensureBuilderSecret,
@@ -33,7 +32,7 @@ import { LogLevel } from "../../../../logger/logger"
 import { renderOutputStream, sleep } from "../../../../util/util"
 import { ContainerModule } from "../../../container/config"
 import { getDockerBuildArgs } from "../../../container/build"
-import { getRunningDeploymentPod, millicpuToString, megabytesToString, usingInClusterRegistry } from "../../util"
+import { getRunningDeploymentPod, millicpuToString, megabytesToString } from "../../util"
 import { PodRunner } from "../../run"
 import { prepareSecrets } from "../../secrets"
 
@@ -117,11 +116,6 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
   // Prepare the build command (this thing, while an otherwise excellent piece of software, is clearly is not meant for
   // everyday human usage)
   let outputSpec = `type=image,"name=${deploymentImageId},${deploymentImageName}:${cacheTag}",push=true`
-
-  if (usingInClusterRegistry(provider)) {
-    // The in-cluster registry is not exposed, so we don't configure TLS on it.
-    outputSpec += ",registry.insecure=true"
-  }
 
   const command = [
     "buildctl",
@@ -385,11 +379,6 @@ export function getBuildkitDeployment(
         ? { "ephemeral-storage": megabytesToString(provider.config.resources.builder.requests.ephemeralStorage) }
         : {}),
     },
-  }
-
-  if (usingInClusterRegistry(provider)) {
-    // We need a proxy sidecar to be able to reach the in-cluster registry from the Pod
-    deployment.spec!.template.spec!.containers.push(getSocatContainer(provider))
   }
 
   // Set the configured nodeSelector, if any

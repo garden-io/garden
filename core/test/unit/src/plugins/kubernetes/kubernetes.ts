@@ -7,7 +7,7 @@
  */
 
 import { configureProvider, gardenPlugin } from "../../../../../src/plugins/kubernetes/kubernetes"
-import { KubernetesConfig, defaultResources, defaultStorage } from "../../../../../src/plugins/kubernetes/config"
+import { KubernetesConfig, defaultResources } from "../../../../../src/plugins/kubernetes/config"
 import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/system"
 import { expect } from "chai"
 import { TempDirectory, makeTempDir } from "../../../../helpers"
@@ -21,6 +21,10 @@ describe("kubernetes configureProvider", () => {
     buildMode: "local-docker",
     context: "my-cluster",
     defaultHostname: "my.domain.com",
+    deploymentRegistry: {
+      hostname: "eu.gcr.io",
+      namespace: "garden-ci",
+    },
     forceSsl: false,
     gardenSystemNamespace: defaultSystemNamespace,
     imagePullSecrets: [],
@@ -29,10 +33,8 @@ describe("kubernetes configureProvider", () => {
     ingressHttpPort: 80,
     ingressHttpsPort: 443,
     resources: defaultResources,
-    storage: defaultStorage,
     setupIngressController: null,
     systemNodeSelector: {},
-    registryProxyTolerations: [],
     tlsCertificates: [],
     _systemServices: [],
   }
@@ -110,34 +112,6 @@ describe("kubernetes configureProvider", () => {
       name: "foo",
       annotations: { bla: "ble" },
       labels: { fla: "fle" },
-    })
-  })
-
-  it("should set a default deploymentRegistry with projectName as namespace", async () => {
-    const result = await configure({
-      ...basicConfig,
-      buildMode: "kaniko",
-    })
-
-    expect(result.config.deploymentRegistry).to.eql({
-      hostname: "127.0.0.1:5000",
-      namespace: garden.projectName,
-    })
-  })
-
-  it("should allow overriding the deploymentRegistry namespace for the in-cluster registry", async () => {
-    const result = await configure({
-      ...basicConfig,
-      buildMode: "kaniko",
-      deploymentRegistry: {
-        hostname: "127.0.0.1:5000",
-        namespace: "my-namespace",
-      },
-    })
-
-    expect(result.config.deploymentRegistry).to.eql({
-      hostname: "127.0.0.1:5000",
-      namespace: "my-namespace",
     })
   })
 })

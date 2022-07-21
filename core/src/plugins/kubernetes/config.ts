@@ -173,8 +173,6 @@ interface KubernetesResourceSpec {
 
 interface KubernetesResources {
   builder: KubernetesResourceSpec
-  registry: KubernetesResourceSpec
-  sync: KubernetesResourceSpec
 }
 
 interface KubernetesStorageSpec {
@@ -184,12 +182,9 @@ interface KubernetesStorageSpec {
 
 interface KubernetesStorage {
   builder: KubernetesStorageSpec
-  nfs: KubernetesStorageSpec
-  registry: KubernetesStorageSpec
-  sync: KubernetesStorageSpec
 }
 
-export type ContainerBuildMode = "local-docker" | "cluster-docker" | "kaniko" | "cluster-buildkit"
+export type ContainerBuildMode = "local-docker" | "kaniko" | "cluster-buildkit"
 
 export type DefaultDeploymentStrategy = "rolling"
 export type DeploymentStrategy = DefaultDeploymentStrategy | "blue-green"
@@ -205,9 +200,6 @@ export interface KubernetesConfig extends BaseProviderConfig {
   clusterBuildkit?: {
     rootless?: boolean
     nodeSelector?: StringMap
-  }
-  clusterDocker?: {
-    enableBuildKit?: boolean
   }
   jib?: {
     pushViaCluster?: boolean
@@ -235,11 +227,9 @@ export interface KubernetesConfig extends BaseProviderConfig {
   kubeconfig?: string
   kubectlPath?: string
   namespace?: NamespaceConfig
-  registryProxyTolerations: V1Toleration[]
   setupIngressController: string | null
   systemNodeSelector: { [key: string]: string }
   resources: KubernetesResources
-  storage: KubernetesStorage
   gardenSystemNamespace: string
   tlsCertificates: IngressTlsCertificate[]
   certManager?: CertManagerConfig
@@ -262,42 +252,11 @@ export const defaultResources: KubernetesResources = {
       memory: 512,
     },
   },
-  registry: {
-    limits: {
-      cpu: 2000,
-      memory: 4096,
-    },
-    requests: {
-      cpu: 200,
-      memory: 512,
-    },
-  },
-  sync: {
-    limits: {
-      cpu: 500,
-      memory: 512,
-    },
-    requests: {
-      cpu: 100,
-      memory: 90,
-    },
-  },
 }
 
 export const defaultStorage: KubernetesStorage = {
   builder: {
     size: 20 * 1024,
-    storageClass: null,
-  },
-  nfs: {
-    storageClass: null,
-  },
-  registry: {
-    size: 20 * 1024,
-    storageClass: null,
-  },
-  sync: {
-    size: 10 * 1024,
     storageClass: null,
   },
 }
@@ -359,20 +318,6 @@ const resourceSchema = (defaults: KubernetesResourceSpec, deprecated: boolean) =
             .meta({ deprecated }),
         })
         .default(defaults.requests)
-        .meta({ deprecated }),
-    })
-    .default(defaults)
-
-const storageSchema = (defaults: KubernetesStorageSpec, deprecated: boolean) =>
-  joi
-    .object()
-    .keys({
-      size: joi.number().integer().default(defaults.size).description("Volume size in megabytes.").meta({ deprecated }),
-      storageClass: joi
-        .string()
-        .allow(null)
-        .default(defaults.storageClass)
-        .description("Storage class to use for the volume.")
         .meta({ deprecated }),
     })
     .default(defaults)
@@ -451,15 +396,13 @@ export const kubernetesConfigBase = () =>
   providerConfigBaseSchema().keys({
     buildMode: joi
       .string()
-      .allow("local-docker", "cluster-docker", "kaniko", "cluster-buildkit")
+      .allow("local-docker", "kaniko", "cluster-buildkit")
       .default("local-docker")
       .description(
         dedent`
         Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to \`cluster-buildkit\` or \`kaniko\` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
 
         For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/guides/in-cluster-building).
-
-        **Note:** The \`cluster-docker\` mode has been deprecated and will be removed in a future release!
         `
       ),
     clusterBuildkit: joi
@@ -487,23 +430,6 @@ export const kubernetesConfigBase = () =>
       })
       .default(() => {})
       .description("Configuration options for the `cluster-buildkit` build mode."),
-    clusterDocker: joi
-      .object()
-      .keys({
-        enableBuildKit: joi
-          .boolean()
-          .default(false)
-          .description(
-            deline`
-            Enable [BuildKit](https://github.com/moby/buildkit) support. This should in most cases work well and be
-            more performant, but we're opting to keep it optional until it's enabled by default in Docker.
-          `
-          )
-          .meta({ deprecated: true }),
-      })
-      .default(() => {})
-      .description("Configuration options for the `cluster-docker` build mode.")
-      .meta({ deprecated: "The cluster-docker build mode has been deprecated." }),
     jib: joi
       .object()
       .keys({
@@ -607,98 +533,10 @@ export const kubernetesConfigBase = () =>
             When \`buildMode\` is \`kaniko\`, this refers to _each Kaniko pod_, i.e. each individual build, so you'll want to consider the requirements for your individual image builds, with your most expensive/heavy images in mind.
 
             When \`buildMode\` is \`cluster-buildkit\`, this applies to the BuildKit deployment created in _each project namespace_. So think of this as the resource spec for each individual user or project namespace.
-
-            When \`buildMode\` is \`cluster-docker\`, this applies to the single Docker Daemon that is installed and run cluster-wide. This is shared across all users and builds in the cluster, so it should be resourced accordingly, factoring in how many concurrent builds you expect and how heavy your builds tend to be. **Note that the cluster-docker build mode has been deprecated!**
           `),
-        registry: resourceSchema(defaultResources.registry, false).description(dedent`
-            Resource requests and limits for the in-cluster image registry. Built images are pushed to this registry,
-            so that they are available to all the nodes in your cluster.
-
-            This is shared across all users and builds, so it should be resourced accordingly, factoring
-            in how many concurrent builds you expect and how large your images tend to be.
-          `),
-        sync: resourceSchema(defaultResources.sync, true)
-          .description(
-            dedent`
-            Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster
-            ahead of building images. This generally is not resource intensive, but you might want to adjust the
-            defaults if you have many concurrent users.
-          `
-          )
-          .meta({
-            deprecated: "The sync service is only used for the cluster-docker build mode, which is being deprecated.",
-          }),
       })
       .default(defaultResources).description(deline`
-        Resource requests and limits for the in-cluster builder, container registry and code sync service.
-        (which are automatically installed and used when \`buildMode\` is \`cluster-docker\` or \`kaniko\`).
-      `),
-    storage: joi
-      .object()
-      .keys({
-        builder: storageSchema(defaultStorage.builder, true)
-          .description(
-            dedent`
-            Storage parameters for the data volume for the in-cluster Docker Daemon.
-
-            Only applies when \`buildMode\` is set to \`cluster-docker\`, ignored otherwise.
-          `
-          )
-          .meta({
-            deprecated: "This volume is only used for the `cluster-docker` build mode, which has been deprecated.",
-          }),
-        nfs: joi
-          .object()
-          .keys({
-            storageClass: joi
-              .string()
-              .allow(null)
-              .default(null)
-              .description("Storage class to use as backing storage for NFS .")
-              .meta({ deprecated: true }),
-          })
-          .default({ storageClass: null })
-          .description(
-            dedent`
-            Storage parameters for the NFS provisioner, which we automatically create for the sync volume, _unless_
-            you specify a \`storageClass\` for the sync volume. See the below \`sync\` parameter for more.
-
-            Only applies when \`buildMode\` is set to \`cluster-docker\` or \`kaniko\`, ignored otherwise.
-          `
-          )
-          .meta({
-            deprecated:
-              "The NFS provisioner is only used for the `cluster-docker` build mode, which has been deprecated.",
-          }),
-        registry: storageSchema(defaultStorage.registry, false).description(dedent`
-            Storage parameters for the in-cluster Docker registry volume. Built images are stored here, so that they
-            are available to all the nodes in your cluster.
-
-            Only applies when \`buildMode\` is set to \`cluster-docker\` or \`kaniko\`, ignored otherwise.
-          `),
-        sync: storageSchema(defaultStorage.sync, true)
-          .description(
-            dedent`
-            Storage parameters for the code sync volume, which build contexts are synced to ahead of running
-            in-cluster builds.
-
-            Important: The storage class configured here has to support _ReadWriteMany_ access.
-            If you don't specify a storage class, Garden creates an NFS provisioner and provisions an
-            NFS volume for the sync data volume.
-
-            Only applies when \`buildMode\` is set to \`cluster-docker\`, ignored otherwise.
-          `
-          )
-          .meta({
-            deprecated: "The sync volume is only used for the `cluster-docker` build mode, which has been deprecated.",
-          }),
-      })
-      .default(defaultStorage).description(dedent`
-        Storage parameters to set for the in-cluster builder, container registry and code sync persistent volumes
-        (which are automatically installed and used when \`buildMode\` is \`cluster-docker\` or \`kaniko\`).
-
-        These are all shared cluster-wide across all users and builds, so they should be resourced accordingly,
-        factoring in how many concurrent builds you expect and how large your images and build contexts tend to be.
+        Resource requests and limits for the in-cluster builder..
       `),
     tlsCertificates: joiSparseArray(tlsCertificateSchema())
       .unique("name")
@@ -753,13 +591,6 @@ export const kubernetesConfigBase = () =>
       )
       .example({ disktype: "ssd" })
       .default(() => ({})),
-    registryProxyTolerations: joiSparseArray(tolerationSchema()).description(dedent`
-        For setting tolerations on the registry-proxy when using in-cluster building.
-        The registry-proxy is a DaemonSet that proxies connections to the docker registry service on each node.
-
-        Use this only if you're doing in-cluster building and the nodes in your cluster
-        have [taints](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/).
-      `),
   })
 
 export const tolerationSchema = () =>
@@ -814,7 +645,7 @@ export const configSchema = () =>
     .keys({
       name: joiProviderName("kubernetes"),
       context: k8sContextSchema().required(),
-      deploymentRegistry: containerRegistryConfigSchema().allow(null),
+      deploymentRegistry: containerRegistryConfigSchema(),
       ingressClass: joi.string().description(dedent`
         The ingress class to use on configured Ingresses (via the \`kubernetes.io/ingress.class\` annotation)
         when deploying \`container\` services. Use this if you have multiple ingress controllers in your cluster.
