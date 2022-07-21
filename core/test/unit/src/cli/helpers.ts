@@ -81,7 +81,7 @@ describe("pickCommand", () => {
   })
 
   it("picks a command with an alias", () => {
-    const { command, rest } = pickCommand(commands, ["cleanup", "ns", "foo", "--force"])
+    const { command, rest } = pickCommand(commands, ["delete", "ns", "foo", "--force"])
     expect(command?.getPath()).to.eql(["cleanup", "namespace"])
     expect(rest).to.eql(["foo", "--force"])
   })

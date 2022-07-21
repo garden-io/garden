@@ -25,6 +25,7 @@ import { uniqByName } from "../util/util"
 
 export class DeleteCommand extends CommandGroup {
   name = "cleanup"
+  alias = "delete"
   help = "Delete/cleanup configuration or objects."
 
   subCommands = [DeleteSecretCommand, DeleteEnvironmentCommand, DeleteServiceCommand]
