@@ -1132,6 +1132,38 @@ describe("resolveTemplateString", async () => {
       )
     })
   })
+
+  context("array literals", () => {
+    it("returns an empty array literal back", () => {
+      const res = resolveTemplateString("${[]}", new TestContext({}))
+      expect(res).to.eql([])
+    })
+
+    it("returns an array literal of literals back", () => {
+      const res = resolveTemplateString("${['foo', \"bar\", 123, true, false]}", new TestContext({}))
+      expect(res).to.eql(["foo", "bar", 123, true, false])
+    })
+
+    it("resolves a key in an array literal", () => {
+      const res = resolveTemplateString("${[foo]}", new TestContext({ foo: "bar" }))
+      expect(res).to.eql(["bar"])
+    })
+
+    it("resolves a nested key in an array literal", () => {
+      const res = resolveTemplateString("${[foo.bar]}", new TestContext({ foo: { bar: "baz" } }))
+      expect(res).to.eql(["baz"])
+    })
+
+    it("calls a helper in an array literal", () => {
+      const res = resolveTemplateString("${[foo, base64Encode('foo')]}", new TestContext({ foo: "bar" }))
+      expect(res).to.eql(["bar", "Zm9v"])
+    })
+
+    it("calls a helper with an array literal argument", () => {
+      const res = resolveTemplateString("${join(['foo', 'bar'], ',')}", new TestContext({}))
+      expect(res).to.eql("foo,bar")
+    })
+  })
 })
 
 describe("resolveTemplateStrings", () => {
