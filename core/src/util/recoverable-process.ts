@@ -125,6 +125,12 @@ export type ActiveProcessState = "running" | "retrying"
  * Both "stopped" and ""failed" are final states.
  */
 export type InactiveProcessState = "stopped" | "failed"
+/**
+ * Special set of states to be used with {@link RecoverableProcess#stopNode()}.
+ * State "retrying" is used to stop the process temporarily while doing a retry.
+ * State "stopped" is used to stop the process permanently.
+ */
+export type InterruptedProcessState = "retrying" | "stopped"
 export type RecoverableProcessState = InitialProcessState | ActiveProcessState | InactiveProcessState
 
 /**
@@ -262,7 +268,7 @@ export class RecoverableProcess {
     node.descendants.forEach((descendant) => RecoverableProcess.recursiveAction(descendant, action))
   }
 
-  private stopNode(state: RecoverableProcessState): void {
+  private stopNode(state: InterruptedProcessState): void {
     this.state = state
     const proc = this.proc
     if (!proc) {
@@ -273,7 +279,7 @@ export class RecoverableProcess {
     this.proc = undefined
   }
 
-  private stopSubTree(state: RecoverableProcessState): void {
+  private stopSubTree(state: InterruptedProcessState): void {
     RecoverableProcess.recursiveAction(this, (node) => node.stopNode(state))
   }
 
