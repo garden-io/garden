@@ -23,6 +23,7 @@ import { ConfigGraph } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
 import { uniqByName } from "../util/util"
 
+// TODO-G2 rename this to CleanupCommand, and do the same for all related classes, constants, variables and functions
 export class DeleteCommand extends CommandGroup {
   name = "cleanup"
   alias = "delete"
@@ -100,6 +101,7 @@ interface DeleteEnvironmentResult {
 
 export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts> {
   name = "namespace"
+  // TODO-G2 add `environment` and `env` as aliases here
   alias = "ns"
   help = "Deletes a running namespace."
 
