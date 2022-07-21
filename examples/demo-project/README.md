@@ -1,4 +1,4 @@
-# artifacts logging issue repor
+# artifacts logging issue repro
 
 This example tries to reproduce issue where garden misses most logs when running tests with artifacts enabled
 
