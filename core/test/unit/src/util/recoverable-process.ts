@@ -8,7 +8,11 @@
 
 import env from "env-var"
 import { expect } from "chai"
-import { RecoverableProcess, validateRetryConfig } from "../../../../src/util/recoverable-process"
+import {
+  RecoverableProcess,
+  RecoverableProcessState,
+  validateRetryConfig,
+} from "../../../../src/util/recoverable-process"
 import { getLogger } from "../../../../src/logger/logger"
 import { sleep } from "../../../../src/util/util"
 import { initTestLogger } from "../../../helpers"
@@ -195,6 +199,57 @@ describe("RecoverableProcess", async () => {
       log,
     })
     expectRunnable(p)
+  })
+
+  context("addDescendantProcesses", async () => {
+    const maxRetries = 0
+    const minTimeoutMs = 0
+
+    let parent: RecoverableProcess = longSleepingProcess(maxRetries, minTimeoutMs)
+    let child: RecoverableProcess = longSleepingProcess(maxRetries, minTimeoutMs)
+
+    beforeEach(() => {
+      parent = longSleepingProcess(maxRetries, minTimeoutMs)
+      child = longSleepingProcess(maxRetries, minTimeoutMs)
+    })
+
+    function expectDescendantRejection(parentProc: RecoverableProcess, childProc: RecoverableProcess) {
+      expect(() => parentProc.addDescendantProcesses(childProc)).to.throw(
+        "Cannot attach a descendant to already running, stopped or failed process."
+      )
+      expectRunnable(childProc)
+    }
+
+    function setState(process: RecoverableProcess, state: RecoverableProcessState) {
+      process["state"] = state
+    }
+
+    it('child processes can be added to a "runnable" parent', () => {
+      expect(() => parent.addDescendantProcesses(child)).to.not.throw()
+
+      expectRunnable(parent)
+      expectRunnable(child)
+    })
+
+    it('child processes can not be added to a "running" parent', async () => {
+      setState(parent, "running")
+      expectDescendantRejection(parent, child)
+    })
+
+    it('child processes can not be added to a "retrying" parent', async () => {
+      setState(parent, "retrying")
+      expectDescendantRejection(parent, child)
+    })
+
+    it('child processes can not be added to a "stopped" parent', async () => {
+      setState(parent, "stopped")
+      expectDescendantRejection(parent, child)
+    })
+
+    it('child processes can not be added to a "failed" parent', async () => {
+      setState(parent, "failed")
+      expectDescendantRejection(parent, child)
+    })
   })
 
   it("startAll call is idempotent on success", () => {
@@ -534,7 +589,7 @@ describe("RecoverableProcess", async () => {
     expect(() => root.startAll()).to.throw("Cannot start the process tree. Some processes failed with no retries left.")
   })
 
-  it("failed process cannot be started", async () => {
+  it("stopped process cannot be started", async () => {
     const maxRetries = 0
     const minTimeoutMs = 500
     const root = infiniteProcess(maxRetries, minTimeoutMs)
@@ -543,5 +598,16 @@ describe("RecoverableProcess", async () => {
     root.stopAll()
 
     expect(() => root.startAll()).to.throw("Cannot start already stopped process.")
+  })
+
+  it("failed process cannot be started", async () => {
+    const maxRetries = 0
+    const minTimeoutMs = 500
+    const root = infiniteProcess(maxRetries, minTimeoutMs)
+
+    const unsafeRoot = <any>root
+    unsafeRoot.fail()
+
+    expect(() => unsafeRoot.startNode()).to.throw("Cannot start failed process with no retries left.")
   })
 })
