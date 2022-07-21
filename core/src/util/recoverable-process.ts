@@ -8,7 +8,7 @@
 
 import { ChildProcess, execFile, spawn } from "child_process"
 import { LogEntry } from "../logger/log-entry"
-import { sleepSync } from "./util"
+import { sleep } from "./util"
 import { ConfigurationError, RuntimeError } from "../exceptions"
 
 export interface OsCommand {
@@ -17,7 +17,7 @@ export interface OsCommand {
   readonly cwd?: string
 }
 
-const renderOsCommand = (cmd: OsCommand): string => JSON.stringify(cmd)
+export const renderOsCommand = (cmd: OsCommand): string => JSON.stringify(cmd)
 
 export interface ProcessMessage {
   readonly pid: number
@@ -120,10 +120,17 @@ export function validateRetryConfig(retryConfig: RetryConfig): RetryConfig {
 export type InitialProcessState = "runnable"
 export type ActiveProcessState = "running" | "retrying"
 /**
- * Process in the state "stopped" can be retried.
- * If all retry attempts have failed, then the process reaches the "failed" state which is a final one.
+ * Process in the state "stopped" can not be retried or restarted.
+ * If all retry attempts have failed, then the process reaches the "failed" state.
+ * Both "stopped" and ""failed" are final states.
  */
 export type InactiveProcessState = "stopped" | "failed"
+/**
+ * Special set of states to be used with {@link RecoverableProcess#stopNode()}.
+ * State "retrying" is used to stop the process temporarily while doing a retry.
+ * State "stopped" is used to stop the process permanently.
+ */
+export type InterruptedProcessState = "retrying" | "stopped"
 export type RecoverableProcessState = InitialProcessState | ActiveProcessState | InactiveProcessState
 
 /**
@@ -261,7 +268,8 @@ export class RecoverableProcess {
     node.descendants.forEach((descendant) => RecoverableProcess.recursiveAction(descendant, action))
   }
 
-  private stopNode(): void {
+  private stopNode(state: InterruptedProcessState): void {
+    this.state = state
     const proc = this.proc
     if (!proc) {
       return
@@ -269,11 +277,10 @@ export class RecoverableProcess {
 
     !proc.killed && proc.kill()
     this.proc = undefined
-    this.state = "stopped"
   }
 
-  private stopSubTree(): void {
-    RecoverableProcess.recursiveAction(this, (node) => node.stopNode())
+  private stopSubTree(state: InterruptedProcessState): void {
+    RecoverableProcess.recursiveAction(this, (node) => node.stopNode(state))
   }
 
   private registerNodeListeners(proc: ChildProcess): void {
@@ -421,28 +428,27 @@ export class RecoverableProcess {
   }
 
   private async tryRestartSubTree(): Promise<void> {
-    if (this.state === "retrying") {
+    if (this.state === "retrying" || this.state === "stopped") {
       return
     }
+    this.state = "retrying"
     // todo: should we lookup to parent nodes to find the parent-most killed/restarting process?
     this.unregisterSubTreeListeners()
-    this.stopSubTree()
+    this.stopSubTree("retrying")
     if (this.retriesLeft > 0) {
-      // sleep synchronously to avoid pre-mature retry attempts
       if (this.retryConfig.minTimeoutMs > 0) {
-        sleepSync(this.retryConfig.minTimeoutMs)
+        await sleep(this.retryConfig.minTimeoutMs)
       }
       this.retriesLeft--
-      this.state = "retrying"
       this.startSubTree()
     } else {
       await this.fail()
     }
   }
 
-  public addDescendantProcess(descendant: RecoverableProcess): RecoverableProcess {
-    if (this.state === "running") {
-      throw new RuntimeError("Cannot attach a descendant to already running process", this)
+  private addDescendant(descendant: RecoverableProcess): RecoverableProcess {
+    if (this.state !== "runnable") {
+      throw new RuntimeError("Cannot attach a descendant to already running, stopped or failed process.", this)
     }
 
     descendant.parent = this
@@ -450,24 +456,28 @@ export class RecoverableProcess {
     return descendant
   }
 
-  public addDescendantProcesses(...descendants: RecoverableProcess[]): RecoverableProcess[] {
+  public addDescendants(...descendants: RecoverableProcess[]): RecoverableProcess[] {
     for (const descendant of descendants) {
-      this.addDescendantProcess(descendant)
+      this.addDescendant(descendant)
     }
     return descendants
   }
 
-  private renderProcessTreeRecursively(indent: string, output: string): string {
-    output += indent + `-> '${renderOsCommand(this.command)}'\n`
+  private renderProcessTreeRecursively(
+    indent: string,
+    output: string,
+    renderer: (command: OsCommand) => string
+  ): string {
+    output += indent + `-> '${renderer(this.command)}'\n`
     for (const descendant of this.descendants) {
-      output = descendant.renderProcessTreeRecursively(indent + "..", output)
+      output = descendant.renderProcessTreeRecursively(indent + "..", output, renderer)
     }
     return output
   }
 
-  public renderProcessTree(): string {
+  public renderProcessTree(renderer: (command: OsCommand) => string = renderOsCommand): string {
     const output = ""
-    return this.renderProcessTreeRecursively("", output)
+    return this.renderProcessTreeRecursively("", output, renderer)
   }
 
   public getTreeRoot() {
@@ -485,7 +495,10 @@ export class RecoverableProcess {
     if (this.state === "failed") {
       throw new RuntimeError("Cannot start failed process with no retries left.", this)
     }
-    // no need to use pRetry here, the failures will be handled by event the process listeners
+    if (this.state === "stopped") {
+      throw new RuntimeError("Cannot start already stopped process.", this)
+    }
+    // no need to use pRetry here, the failures will be handled by the event process listeners
     const proc = this.executor(this.command)
     this.proc = proc
     this.lastKnownPid = proc.pid
@@ -535,7 +548,7 @@ export class RecoverableProcess {
   public stopAll(): RecoverableProcess {
     const root = this.getTreeRoot()
     root.unregisterSubTreeListeners()
-    root.stopSubTree()
+    root.stopSubTree("stopped")
     return root
   }
 

@@ -215,18 +215,22 @@ export class ProxySshKeystore {
   }
 }
 
+export type LocalModeProcessRegistryState = "ready" | "running" | "closed"
+
 /*
  * This can be changed to a "global" registry for all processes,
  * but now recoverable processes are used in local mode only.
  */
 export class LocalModeProcessRegistry {
   private recoverableProcesses: RecoverableProcess[]
+  private state: LocalModeProcessRegistryState
 
   private constructor() {
     if (!!LocalModeProcessRegistry.instance) {
       throw new RuntimeError("Cannot init singleton twice, use LocalModeProcessRegistry.getInstance()", {})
     }
     this.recoverableProcesses = []
+    this.state = "ready"
   }
 
   private static instance?: LocalModeProcessRegistry = undefined
@@ -240,8 +244,22 @@ export class LocalModeProcessRegistry {
     return LocalModeProcessRegistry.instance
   }
 
-  public register(process: RecoverableProcess): void {
+  /**
+   * Attempts to register and start a recoverable process.
+   * If the registry is closed, then it can not accept any processes.
+   *
+   * @return {@code true} if the process has been registered or {@code false} otherwise
+   */
+  public submit(process: RecoverableProcess): boolean {
+    if (this.state === "closed") {
+      return false
+    }
+    if (this.state !== "running") {
+      this.state = "running"
+    }
     this.recoverableProcesses.push(process.getTreeRoot())
+    process.startAll()
+    return true
   }
 
   public shutdown(): void {
@@ -757,7 +775,7 @@ function composeSshTunnelProcessTree(
   log: LogEntry
 ): RecoverableProcess {
   const root = sshTunnel
-  root.addDescendantProcess(reversePortForward)
+  root.addDescendants(reversePortForward)
   root.setFailureHandler(async () => {
     log.error("Local mode failed, shutting down...")
     await shutdown(1)
@@ -804,15 +822,24 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   const localSshPort = await getPort()
   ProxySshKeystore.getInstance(log).registerLocalPort(localSshPort, log)
 
+  const localModeProcessRegistry = LocalModeProcessRegistry.getInstance()
+
   const localApp = getLocalAppProcess(configParams)
   if (!!localApp) {
-    LocalModeProcessRegistry.getInstance().register(localApp)
     log.info({
       status: "active",
       section: gardenService.name,
       msg: chalk.white("Starting local app, this can take a while"),
     })
-    localApp.startAll()
+    const localAppStatus = localModeProcessRegistry.submit(localApp)
+    if (!localAppStatus) {
+      log.warn({
+        status: "warn",
+        symbol: "warning",
+        section: gardenService.name,
+        msg: chalk.yellow("Unable to start local app. Reason: rejected by the registry"),
+      })
+    }
   }
 
   const targetNamespace = targetResource.metadata.namespace || namespace
@@ -827,12 +854,27 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   const reversePortForward = await getReversePortForwardProcess(configParams, localSshPort, targetContainer)
 
   const compositeSshTunnel = composeSshTunnelProcessTree(kubectlPortForward, reversePortForward, log)
-  log.debug(`Starting local mode ssh tunnels:\n` + `${chalk.white(`${compositeSshTunnel.renderProcessTree()}`)}`)
   log.info({
     status: "active",
     section: gardenService.name,
     msg: chalk.white("Starting local mode ssh tunnels, some failures and retries are possible"),
   })
-  LocalModeProcessRegistry.getInstance().register(compositeSshTunnel)
-  compositeSshTunnel.startAll()
+  const sshTunnelCmdRenderer = (command: OsCommand) => `${command.command} ${command.args?.join(" ")}`
+  log.verbose({
+    status: "active",
+    section: gardenService.name,
+    msg: chalk.grey(
+      `Starting the process tree for the local mode ssh tunnels:\n` +
+        `${compositeSshTunnel.renderProcessTree(sshTunnelCmdRenderer)}`
+    ),
+  })
+  const localTunnelsStatus = localModeProcessRegistry.submit(compositeSshTunnel)
+  if (!localTunnelsStatus) {
+    log.warn({
+      status: "warn",
+      symbol: "warning",
+      section: gardenService.name,
+      msg: chalk.yellow("Unable to local mode ssh tunnels. Reason: rejected by the registry"),
+    })
+  }
 }

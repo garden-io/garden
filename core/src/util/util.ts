@@ -40,7 +40,6 @@ import { PrimitiveMap } from "../config/common"
 import { isAbsolute, relative } from "path"
 import { getDefaultProfiler } from "./profiling"
 import { gardenEnv } from "../constants"
-import { spawnSync } from "child_process"
 import split2 = require("split2")
 import Bluebird = require("bluebird")
 import execa = require("execa")
@@ -119,11 +118,6 @@ export function getCloudDistributionName(domain: string) {
 
 export async function sleep(msec: number) {
   return new Promise((resolve) => setTimeout(resolve, msec))
-}
-
-export function sleepSync(msec: number) {
-  // it seems to be the best available solution to sleep synchronously, see https://stackoverflow.com/a/50098685/2753863
-  spawnSync(process.argv[0], ["-e", "setTimeout(function(){}," + msec + ")"])
 }
 
 /**
