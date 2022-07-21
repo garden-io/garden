@@ -16,7 +16,7 @@ import { loadConfigResources } from "../../config/base"
 import { resolve, basename, relative, join } from "path"
 import { GardenBaseError, ParameterError } from "../../exceptions"
 import { renderProjectConfigReference } from "../../docs/config"
-import { addConfig, createBaseOpts } from "./helpers"
+import { addConfig } from "./helpers"
 import { wordWrap } from "../../util/string"
 import { LoggerType } from "../../logger/logger"
 import { PathParameter, StringParameter, BooleanParameter, StringOption } from "../../cli/params"
@@ -33,7 +33,6 @@ export const defaultProjectConfigFilename = "project.garden.yml"
 
 const createProjectArgs = {}
 const createProjectOpts = {
-  ...createBaseOpts,
   dir: new PathParameter({
     help: "Directory to place the project in (defaults to current directory).",
     defaultValue: ".",
@@ -139,9 +138,9 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
       log.info("")
     }
 
-    const { yaml } = renderProjectConfigReference({
+    let { yaml } = renderProjectConfigReference({
       yamlOpts: {
-        onEmptyValue: opts["skip-comments"] ? "remove" : "comment out",
+        onEmptyValue: "remove",
         filterMarkdown: true,
         renderBasicDescription: !opts["skip-comments"],
         renderFullDescription: false,
@@ -154,6 +153,9 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
         },
       },
     })
+
+    const projectDocURL = "https://docs.garden.io/using-garden/projects"
+    yaml = `# More info and documentation at ${projectDocURL}\n\n${yaml}`
 
     await addConfig(configPath, yaml)
 
@@ -189,7 +191,6 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     log.info("")
 
     // This is to avoid `prettier` messing with the string formatting...
-    const formattedIgnoreName = chalk.bold.white(".gardenignore")
     const configFilesUrl = chalk.cyan.underline("https://docs.garden.io/using-garden/configuration-overview")
     const referenceUrl = chalk.cyan.underline("https://docs.garden.io/reference/config")
 
@@ -197,8 +198,6 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
       symbol: "info",
       msg: wordWrap(
         dedent`
-        We recommend reviewing the generated config, uncommenting fields that you'd like to configure, and cleaning up any commented fields that you don't need to use. Also make sure to update the ${formattedIgnoreName} file with any files you'd like to exclude from the Garden project.
-
         For more information about Garden configuration files, please check out ${configFilesUrl}, and for a detailed reference, take a look at ${referenceUrl}.
         `,
         120
