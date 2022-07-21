@@ -553,7 +553,7 @@ describe("RecoverableProcess", async () => {
     const right = failingProcess(maxRetries, minTimeoutMs)
     const rightChild = longSleepingProcess(maxRetries, minTimeoutMs)
     root.addDescendantProcesses(left, right)
-    right.addDescendantProcess(rightChild)
+    right.addDescendantProcesses(rightChild)
 
     root.startAll()
 
@@ -575,7 +575,7 @@ describe("RecoverableProcess", async () => {
     const right = longSleepingProcess(maxRetries, minTimeoutMs)
     const rightChild = failingProcess(maxRetries, minTimeoutMs)
     root.addDescendantProcesses(left, right)
-    right.addDescendantProcess(rightChild)
+    right.addDescendantProcesses(rightChild)
 
     root.startAll()
 
