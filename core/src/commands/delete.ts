@@ -23,10 +23,11 @@ import { ConfigGraph } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
 import { uniqByName } from "../util/util"
 
+// TODO-G2 rename this to CleanupCommand, and do the same for all related classes, constants, variables and functions
 export class DeleteCommand extends CommandGroup {
-  name = "delete"
-  alias = "del"
-  help = "Delete configuration or objects."
+  name = "cleanup"
+  alias = "delete"
+  help = "Delete/cleanup configuration or objects."
 
   subCommands = [DeleteSecretCommand, DeleteEnvironmentCommand, DeleteServiceCommand]
 }
@@ -46,7 +47,7 @@ type DeleteSecretArgs = typeof deleteSecretArgs
 
 export class DeleteSecretCommand extends Command<typeof deleteSecretArgs> {
   name = "secret"
-  help = "Delete a secret from the environment."
+  help = "Delete a secret from the namespace."
   protected = true
 
   description = dedent`
@@ -54,14 +55,14 @@ export class DeleteSecretCommand extends Command<typeof deleteSecretArgs> {
 
     Examples:
 
-        garden delete secret kubernetes somekey
-        garden del secret local-kubernetes some-other-key
+        garden cleanup secret kubernetes somekey
+        garden cleanup secret local-kubernetes some-other-key
   `
 
   arguments = deleteSecretArgs
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Delete secrete", "skull_and_crossbones")
+    printHeader(headerLog, "Cleanup secret", "skull_and_crossbones")
   }
 
   async action({ garden, log, args }: CommandParams<DeleteSecretArgs>): Promise<CommandResult<DeleteSecretResult>> {
@@ -83,7 +84,7 @@ const dependantsFirstOpt = {
   "dependants-first": new BooleanParameter({
     help: deline`
       Delete services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a
-      will be deleted before service-b when calling garden delete environment service-a,service-b --dependants-first.
+      will be deleted before service-b when calling \`garden cleanup namespace service-a,service-b --dependants-first\`.
       When this flag is not used, all services in the project are deleted simultaneously.
     `,
   }),
@@ -99,9 +100,10 @@ interface DeleteEnvironmentResult {
 }
 
 export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts> {
-  name = "environment"
-  alias = "env"
-  help = "Deletes a running environment."
+  name = "namespace"
+  // TODO-G2 add `environment` and `env` as aliases here
+  alias = "ns"
+  help = "Deletes a running namespace."
 
   protected = true
   streamEvents = true
@@ -109,25 +111,24 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
   options = deleteEnvironmentOpts
 
   description = dedent`
-    This will delete all services in the specified environment, and trigger providers to clear up any other resources
-    and reset it. When you then run \`garden deploy\`, the environment will be reconfigured.
+    This will delete all services in the specified namespace, and trigger providers to clear up any other resources
+    and reset it. When you then run \`garden deploy\`, the namespace will be reconfigured.
 
-    This can be useful if you find the environment to be in an inconsistent state, or need/want to free up
-    resources.
+    This can be useful if you find the namespace to be in an inconsistent state, or need/want to free up resources.
   `
 
   outputsSchema = () =>
     joi.object().keys({
       providerStatuses: joiIdentifierMap(environmentStatusSchema()).description(
-        "The status of each provider in the environment."
+        "The status of each provider in the namespace."
       ),
       serviceStatuses: joiIdentifierMap(serviceStatusSchema()).description(
-        "The status of each service in the environment."
+        "The status of each service in the namespace."
       ),
     })
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, `Deleting environment`, "skull_and_crossbones")
+    printHeader(headerLog, `Cleanup namespace`, "skull_and_crossbones")
   }
 
   async action({
@@ -188,15 +189,15 @@ export class DeleteServiceCommand extends Command<DeleteServiceArgs, DeleteServi
 
     Examples:
 
-        garden delete service my-service # deletes my-service
-        garden delete service            # deletes all deployed services in the project
+        garden cleanup service my-service # deletes my-service
+        garden cleanup service            # deletes all deployed services in the project
   `
 
   outputsSchema = () =>
     joiIdentifierMap(serviceStatusSchema()).description("A map of statuses for all the deleted services.")
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Delete service", "skull_and_crossbones")
+    printHeader(headerLog, "Cleanup service", "skull_and_crossbones")
   }
 
   async action({

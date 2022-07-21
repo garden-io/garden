@@ -65,8 +65,8 @@ describe("RunWorkflowCommand", () => {
           { command: ["deploy", "${var.foo}"] }, // <-- the second (null) element should get filtered out
           { command: ["run", "test", "module-a", "unit"] },
           { command: ["run", "task", "task-a"] },
-          { command: ["delete", "service", "service-a"] },
-          { command: ["delete", "environment"] },
+          { command: ["cleanup", "service", "service-a"] },
+          { command: ["cleanup", "namespace"] },
           { command: ["publish"] },
         ],
       },
