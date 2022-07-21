@@ -1,7 +1,18 @@
-# Demo project
+# artifacts logging issue repor
 
-A very basic demo project for Garden.
+This example tries to reproduce issue where garden misses most logs when running tests with artifacts enabled
 
-Take a look at the [getting started](https://docs.garden.io/getting-started/) guide to see how this project is set up.
+[garden test definitions](/frontend/garden.yml)
+[js test definitions](/frontend/test/unit.test.js)
 
-For a more advanced project check out the [vote](../vote) example project.
+how to run:
+```sh
+# with artifacts
+GARDEN_LOGGER_TYPE=basic gdev run test frontend with-artifacts
+
+# no artifacts
+GARDEN_LOGGER_TYPE=basic gdev run test frontend no-artifacts
+
+# both together
+GARDEN_LOGGER_TYPE=basic gdev test frontend
+```
