@@ -7,10 +7,19 @@ providers:
     # You can either uncomment and replace these with your own values, or provide the values in a
     # terraform.tfvars file in the project root.
     # variables:
-    #   gcp_project_id: garden-gke-tf-${local.username}
+    #   gcp_project_id: garden-gke-tf-${var.userId}
     #   gcp_region: europe-west1
   - name: kubernetes
     kubeconfig: ${providers.terraform.outputs.kubeconfig_path}
     context: gke
-    defaultHostname: terraform-gke-${local.username}.dev-2.sys.garden
+    defaultHostname: terraform-gke-${var.userId}.dev-2.sys.garden
     buildMode: kaniko
+    # Replace the below values as appropriate
+    deploymentRegistry:
+      hostname: eu.gcr.io    # <- set this according to the region your cluster runs in
+      namespace: garden-ci   # <- set this to the project ID of the target cluster
+    imagePullSecrets:
+      # Make sure this matches the name and namespace of the imagePullSecret you've created
+      # to authenticate with your registry (if needed)
+      - name: gcr-config
+        namespace: default

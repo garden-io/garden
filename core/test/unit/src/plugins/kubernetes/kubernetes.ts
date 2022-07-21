@@ -21,6 +21,10 @@ describe("kubernetes configureProvider", () => {
     buildMode: "local-docker",
     context: "my-cluster",
     defaultHostname: "my.domain.com",
+    deploymentRegistry: {
+      hostname: "eu.gcr.io",
+      namespace: "garden-ci",
+    },
     forceSsl: false,
     gardenSystemNamespace: defaultSystemNamespace,
     imagePullSecrets: [],

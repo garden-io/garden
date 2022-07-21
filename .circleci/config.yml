@@ -883,8 +883,14 @@ workflows:
 
       - e2e-project:
           <<: *only-internal-prs
+          name: e2e-code-synchronization
+          project: code-synchronization
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
           name: e2e-demo-project
           project: demo-project
+          environment: remote
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
@@ -905,8 +911,8 @@ workflows:
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
-          name: e2e-code-synchronization
-          project: code-synchronization
+          name: e2e-hadolint
+          project: hadolint
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
@@ -918,11 +924,6 @@ workflows:
           <<: *only-internal-prs
           name: e2e-kustomize
           project: kustomize
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-project-variables
-          project: project-variables
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
@@ -943,6 +944,7 @@ workflows:
           <<: *only-internal-prs
           name: e2e-vote
           project: vote
+          environment: remote
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
