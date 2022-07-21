@@ -775,7 +775,7 @@ function composeSshTunnelProcessTree(
   log: LogEntry
 ): RecoverableProcess {
   const root = sshTunnel
-  root.addDescendantProcesses(reversePortForward)
+  root.addDescendants(reversePortForward)
   root.setFailureHandler(async () => {
     log.error("Local mode failed, shutting down...")
     await shutdown(1)

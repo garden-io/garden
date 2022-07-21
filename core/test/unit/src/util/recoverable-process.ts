@@ -138,8 +138,8 @@ describe("RecoverableProcess", async () => {
     const rightChild1 = infiniteProcess(maxRetries, minTimeoutMs)
     const rightChild2 = infiniteProcess(maxRetries, minTimeoutMs)
 
-    root.addDescendantProcesses(left, right)
-    right.addDescendantProcesses(rightChild1, rightChild2)
+    root.addDescendants(left, right)
+    right.addDescendants(rightChild1, rightChild2)
 
     return [root, left, right, rightChild1, rightChild2]
   }
@@ -151,8 +151,8 @@ describe("RecoverableProcess", async () => {
     const rightChild1 = longSleepingProcess(maxRetries, minTimeoutMs)
     const rightChild2 = longSleepingProcess(maxRetries, minTimeoutMs)
 
-    root.addDescendantProcesses(left, right)
-    right.addDescendantProcesses(rightChild1, rightChild2)
+    root.addDescendants(left, right)
+    right.addDescendants(rightChild1, rightChild2)
 
     return [root, left, right, rightChild1, rightChild2]
   }
@@ -214,7 +214,7 @@ describe("RecoverableProcess", async () => {
     })
 
     function expectDescendantRejection(parentProc: RecoverableProcess, childProc: RecoverableProcess) {
-      expect(() => parentProc.addDescendantProcesses(childProc)).to.throw(
+      expect(() => parentProc.addDescendants(childProc)).to.throw(
         "Cannot attach a descendant to already running, stopped or failed process."
       )
       expectRunnable(childProc)
@@ -225,7 +225,7 @@ describe("RecoverableProcess", async () => {
     }
 
     it('child processes can be added to a "runnable" parent', () => {
-      expect(() => parent.addDescendantProcesses(child)).to.not.throw()
+      expect(() => parent.addDescendants(child)).to.not.throw()
 
       expectRunnable(parent)
       expectRunnable(child)
@@ -377,8 +377,8 @@ describe("RecoverableProcess", async () => {
     const right = infiniteProcess(maxRetries, minTimeoutMs)
     const rightChild1 = infiniteProcess(maxRetries, minTimeoutMs)
     const rightChild2 = infiniteProcess(maxRetries, minTimeoutMs)
-    root.addDescendantProcesses(left, right)
-    right.addDescendantProcesses(rightChild1, rightChild2)
+    root.addDescendants(left, right)
+    right.addDescendants(rightChild1, rightChild2)
 
     root.startAll()
     expectRunning(root)
@@ -532,7 +532,7 @@ describe("RecoverableProcess", async () => {
     const root = failingProcess(maxRetries, minTimeoutMs)
     const left = longSleepingProcess(maxRetries, minTimeoutMs)
     const right = longSleepingProcess(maxRetries, minTimeoutMs)
-    root.addDescendantProcesses(left, right)
+    root.addDescendants(left, right)
 
     root.startAll()
 
@@ -552,8 +552,8 @@ describe("RecoverableProcess", async () => {
     const left = longSleepingProcess(maxRetries, minTimeoutMs)
     const right = failingProcess(maxRetries, minTimeoutMs)
     const rightChild = longSleepingProcess(maxRetries, minTimeoutMs)
-    root.addDescendantProcesses(left, right)
-    right.addDescendantProcesses(rightChild)
+    root.addDescendants(left, right)
+    right.addDescendants(rightChild)
 
     root.startAll()
 
@@ -574,8 +574,8 @@ describe("RecoverableProcess", async () => {
     const left = longSleepingProcess(maxRetries, minTimeoutMs)
     const right = longSleepingProcess(maxRetries, minTimeoutMs)
     const rightChild = failingProcess(maxRetries, minTimeoutMs)
-    root.addDescendantProcesses(left, right)
-    right.addDescendantProcesses(rightChild)
+    root.addDescendants(left, right)
+    right.addDescendants(rightChild)
 
     root.startAll()
 

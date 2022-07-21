@@ -446,7 +446,7 @@ export class RecoverableProcess {
     }
   }
 
-  private addDescendantProcess(descendant: RecoverableProcess): RecoverableProcess {
+  private addDescendant(descendant: RecoverableProcess): RecoverableProcess {
     if (this.state !== "runnable") {
       throw new RuntimeError("Cannot attach a descendant to already running, stopped or failed process.", this)
     }
@@ -456,9 +456,9 @@ export class RecoverableProcess {
     return descendant
   }
 
-  public addDescendantProcesses(...descendants: RecoverableProcess[]): RecoverableProcess[] {
+  public addDescendants(...descendants: RecoverableProcess[]): RecoverableProcess[] {
     for (const descendant of descendants) {
-      this.addDescendantProcess(descendant)
+      this.addDescendant(descendant)
     }
     return descendants
   }
