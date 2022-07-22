@@ -13,6 +13,7 @@ import { expect } from "chai"
 import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
 import { defaultApiVersion, defaultNamespace } from "@garden-io/sdk/constants"
 import { gardenPlugin } from ".."
+import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
 
 describe("jib-container", function () {
   // tslint:disable-next-line: no-invalid-this
@@ -26,7 +27,7 @@ describe("jib-container", function () {
     name: "test",
     path: projectRoot,
     defaultEnvironment: "default",
-    dotIgnoreFile: [],
+    dotIgnoreFile: defaultDotIgnoreFile,
     environments: [{ name: "default", defaultNamespace, variables: {} }],
     providers: [{ name: "jib" }],
     variables: {},

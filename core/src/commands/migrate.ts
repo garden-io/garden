@@ -12,7 +12,7 @@ import { readFile, writeFile } from "fs-extra"
 import { cloneDeep, isEqual } from "lodash"
 import { ConfigurationError, RuntimeError } from "../exceptions"
 import { resolve } from "path"
-import { findConfigPathsInPath } from "../util/fs"
+import { defaultDotIgnoreFile, findConfigPathsInPath } from "../util/fs"
 import { GitHandler } from "../vcs/git"
 import { DEFAULT_GARDEN_DIR_NAME } from "../constants"
 import { exec, safeDumpYaml } from "../util/util"
@@ -91,7 +91,7 @@ export class MigrateCommand extends Command<Args, Opts> {
     if (args.configPaths && args.configPaths.length > 0) {
       configPaths = args.configPaths.map((path) => resolve(root, path))
     } else {
-      const vcs = new GitHandler(root, resolve(root, DEFAULT_GARDEN_DIR_NAME), [], new TreeCache())
+      const vcs = new GitHandler(root, resolve(root, DEFAULT_GARDEN_DIR_NAME), defaultDotIgnoreFile, new TreeCache())
       configPaths = await findConfigPathsInPath({
         dir: root,
         vcs,

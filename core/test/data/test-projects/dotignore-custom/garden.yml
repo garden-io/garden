@@ -1,8 +1,6 @@
 kind: Project
 name: include-exclude
-dotIgnoreFile:
-  - .gardenignore
-  - .customignore
+dotIgnoreFile: .customignore
 environments:
   - name: local
 providers:

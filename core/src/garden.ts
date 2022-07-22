@@ -163,7 +163,7 @@ export interface GardenParams {
   enterpriseDomain?: string
   cache: TreeCache
   disablePortForwards?: boolean
-  dotIgnoreFile: string[]
+  dotIgnoreFile: string
   environmentName: string
   environmentConfigs: EnvironmentConfig[]
   namespace: string
@@ -233,7 +233,7 @@ export class Garden {
   public readonly opts: GardenOpts
   private readonly providerConfigs: GenericProviderConfig[]
   public readonly workingCopyId: string
-  public readonly dotIgnoreFile: string[]
+  public readonly dotIgnoreFile: string
   public readonly moduleIncludePatterns?: string[]
   public readonly moduleExcludePatterns: string[]
   public readonly persistent: boolean
@@ -1236,7 +1236,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   const treeCache = new TreeCache()
 
   // Note: another VcsHandler is created later, this one is temporary
-  const gitHandler = new GitHandler(projectRoot, gardenDirPath, [], treeCache)
+  const gitHandler = new GitHandler(projectRoot, gardenDirPath, defaultConfigFilename, treeCache)
   const vcsInfo = await gitHandler.getPathInfo(log, projectRoot)
 
   // Since we iterate/traverse them before fully validating them (which we do after resolving template strings), we

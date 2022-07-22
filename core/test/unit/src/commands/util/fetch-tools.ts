@@ -14,6 +14,7 @@ import { DEFAULT_API_VERSION, GARDEN_GLOBAL_PATH } from "../../../../../src/cons
 import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
 import { join } from "path"
 import { defaultNamespace } from "../../../../../src/config/project"
+import { defaultDotIgnoreFile } from "../../../../../src/util/fs"
 
 describe("FetchToolsCommand", () => {
   let tmpDir: TempDirectory
@@ -70,7 +71,7 @@ describe("FetchToolsCommand", () => {
         name: "test",
         path: tmpDir.path,
         defaultEnvironment: "default",
-        dotIgnoreFile: [],
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test" }],
         variables: {},
@@ -117,7 +118,7 @@ describe("FetchToolsCommand", () => {
         name: "test",
         path: tmpDir.path,
         defaultEnvironment: "default",
-        dotIgnoreFile: [],
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test" }],
         variables: {},
@@ -155,7 +156,7 @@ describe("FetchToolsCommand", () => {
         name: "test",
         path: tmpDir.path,
         defaultEnvironment: "default",
-        dotIgnoreFile: [],
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [],
         variables: {},
@@ -202,7 +203,7 @@ describe("FetchToolsCommand", () => {
         name: "test",
         path: tmpDir.path,
         defaultEnvironment: "default",
-        dotIgnoreFile: [],
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [],
         variables: {},

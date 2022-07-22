@@ -29,6 +29,7 @@ import { readFile, remove } from "fs-extra"
 import { testFromConfig } from "../../../../../src/types/test"
 import { dedent } from "../../../../../src/util/string"
 import { sleep } from "../../../../../src/util/util"
+import { defaultDotIgnoreFile } from "../../../../../src/util/fs"
 
 describe("exec plugin", () => {
   const moduleName = "module-a"
@@ -55,7 +56,7 @@ describe("exec plugin", () => {
         name: "test",
         path: garden.projectRoot,
         defaultEnvironment: "default",
-        dotIgnoreFile: [],
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "exec", initScript: "echo hello! > .garden/test.txt" }],
         variables: {},
@@ -79,7 +80,7 @@ describe("exec plugin", () => {
         name: "test",
         path: testProjectRoot,
         defaultEnvironment: "default",
-        dotIgnoreFile: [],
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "exec", initScript: "echo oh no!; exit 1" }],
         variables: {},

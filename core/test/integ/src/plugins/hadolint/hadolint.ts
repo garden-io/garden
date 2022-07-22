@@ -20,6 +20,7 @@ import { join } from "path"
 import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
 import { testFromConfig } from "../../../../../src/types/test"
 import { defaultBuildTimeout } from "../../../../../src/config/module"
+import { defaultDotIgnoreFile } from "../../../../../src/util/fs"
 
 describe("hadolint provider", () => {
   let tmpDir: tmp.DirectoryResult
@@ -39,7 +40,7 @@ describe("hadolint provider", () => {
       name: "test",
       path: tmpPath,
       defaultEnvironment: "default",
-      dotIgnoreFile: [],
+      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "hadolint" }],
       variables: {},

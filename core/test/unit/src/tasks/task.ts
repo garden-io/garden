@@ -18,6 +18,7 @@ import { RunTaskParams, RunTaskResult } from "../../../../src/types/plugin/task/
 import { TaskTask } from "../../../../src/tasks/task"
 import { GardenTask } from "../../../../src/types/task"
 import { GetTaskResultParams } from "../../../../src/types/plugin/task/getTaskResult"
+import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 
 describe("TaskTask", () => {
   let tmpDir: tmp.DirectoryResult
@@ -34,7 +35,7 @@ describe("TaskTask", () => {
       name: "test",
       path: tmpDir.path,
       defaultEnvironment: "default",
-      dotIgnoreFile: [],
+      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
       variables: {},

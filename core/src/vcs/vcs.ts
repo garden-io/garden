@@ -94,7 +94,7 @@ export abstract class VcsHandler {
   constructor(
     protected projectRoot: string,
     protected gardenDirPath: string,
-    protected ignoreFile: string[],
+    protected ignoreFile: string,
     private cache: TreeCache
   ) {}
 

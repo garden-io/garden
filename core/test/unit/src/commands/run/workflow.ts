@@ -262,7 +262,7 @@ describe("RunWorkflowCommand", () => {
       name: "test",
       path: tmpDir.path,
       defaultEnvironment: "default",
-      dotIgnoreFile: [],
+      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
       variables: {},

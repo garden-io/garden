@@ -15,6 +15,7 @@ import { TestGarden, makeTempDir } from "../../../../../helpers"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
 import { emptyRuntimeContext } from "../../../../../../src/runtime-context"
 import { isSubset } from "../../../../../../src/util/is-subset"
+import { defaultDotIgnoreFile } from "../../../../../../src/util/fs"
 
 describe("persistentvolumeclaim", () => {
   let tmpDir: tmp.DirectoryResult
@@ -31,7 +32,7 @@ describe("persistentvolumeclaim", () => {
       name: "test",
       path: tmpDir.path,
       defaultEnvironment: "default",
-      dotIgnoreFile: [],
+      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "local-kubernetes", namespace: "default" }],
       variables: {},

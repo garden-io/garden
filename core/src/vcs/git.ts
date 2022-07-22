@@ -7,11 +7,10 @@
  */
 
 import { performance } from "perf_hooks"
-import FilterStream from "streamfilter"
 import { isAbsolute, join, posix, relative, resolve } from "path"
-import { flatten, isString } from "lodash"
+import { isString } from "lodash"
 import { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat, Stats } from "fs-extra"
-import { PassThrough, Transform } from "stream"
+import { PassThrough } from "stream"
 import { GetFilesParams, RemoteSourceParams, VcsFile, VcsHandler, VcsInfo } from "./vcs"
 import { ConfigurationError, RuntimeError } from "../exceptions"
 import Bluebird from "bluebird"
@@ -21,7 +20,6 @@ import { exec, splitLast } from "../util/util"
 import { LogEntry } from "../logger/log-entry"
 import parseGitConfig from "parse-git-config"
 import { getDefaultProfiler, Profile, Profiler } from "../util/profiling"
-import { SortedStreamIntersection } from "../util/streams"
 import { mapLimit } from "async"
 import { TreeCache } from "../cache"
 import { STATIC_DIR } from "../constants"
@@ -84,7 +82,7 @@ export class GitHandler extends VcsHandler {
   private readonly gitSafeDirs: Set<string>
   private gitSafeDirsRead: boolean
 
-  constructor(...args: [string, string, string[], TreeCache]) {
+  constructor(...args: [string, string, string, TreeCache]) {
     super(...args)
     this.profiler = getDefaultProfiler()
     this.gitSafeDirs = new Set<string>()
@@ -281,15 +279,9 @@ export class GitHandler extends VcsHandler {
     // List tracked but ignored files (we currently exclude those as well, so we need to query that specially)
     // TODO: change in 0.13 to no longer exclude these
     const trackedButIgnored = new Set(
-      this.ignoreFile.length === 0
+      !this.ignoreFile
         ? []
-        : flatten(
-            await Promise.all(
-              this.ignoreFile.map((f) =>
-                git("ls-files", "--ignored", ...lsFilesCommonArgs, "--exclude-per-directory", f)
-              )
-            )
-          )
+        : await git("ls-files", "--ignored", ...lsFilesCommonArgs, "--exclude-per-directory", this.ignoreFile)
     )
 
     // List all submodule paths in the current path
@@ -362,74 +354,19 @@ export class GitHandler extends VcsHandler {
       return execa("git", args, { cwd: path, buffer: false })
     }
 
-    if (this.ignoreFile.length > 1) {
-      // We run ls-files for each ignore file and do a streaming set-intersection (i.e. every ls-files call
-      // needs to "agree" that a file should be included). Then `handleLine()` is called for each resulting entry.
-      const streams = this.ignoreFile.map(() => {
-        const input = split2()
-        const output = input.pipe(
-          new FilterStream((line: Buffer, _, cb) => {
-            cb(!!line)
-          }).pipe(
-            new Transform({
-              objectMode: true,
-              transform(line: Buffer, _, cb: Function) {
-                this.push(parseLine(line))
-                cb()
-              },
-            })
-          )
-        )
-        return { input, output }
-      })
+    const splitStream = split2()
+    splitStream.on("data", (line) => handleEntry(parseLine(line)))
 
-      await new Promise<void>((_resolve, _reject) => {
-        // Note: The comparison function needs to account for git first returning untracked files, so we prefix with
-        // a zero or one to indicate whether it's a tracked file or not, and then do a simple string comparison
-        const intersection = new SortedStreamIntersection(
-          streams.map(({ output }) => output),
-          (a: VcsFile, b: VcsFile) => {
-            const cmpA = (a.hash ? "1" : "0") + a.path
-            const cmpB = (b.hash ? "1" : "0") + b.path
-            return <any>(cmpA > cmpB) - <any>(cmpA < cmpB)
-          }
-        )
-
-        this.ignoreFile.map((ignoreFile, i) => {
-          const proc = lsFiles(ignoreFile)
-
-          proc.on("error", (err) => {
-            if (err["exitCode"] !== 128) {
-              _reject(err)
-            }
-          })
-
-          proc.stdout!.pipe(streams[i].input)
-        })
-
-        intersection.on("data", handleEntry)
-        intersection.on("error", (err) => {
+    await new Promise<void>((_resolve, _reject) => {
+      const proc = lsFiles(this.ignoreFile)
+      proc.on("error", (err: execa.ExecaError) => {
+        if (err.exitCode !== 128) {
           _reject(err)
-        })
-        intersection.on("end", () => {
-          _resolve()
-        })
+        }
       })
-    } else {
-      const splitStream = split2()
-      splitStream.on("data", (line) => handleEntry(parseLine(line)))
-
-      await new Promise<void>((_resolve, _reject) => {
-        const proc = lsFiles(this.ignoreFile[0])
-        proc.on("error", (err: execa.ExecaError) => {
-          if (err.exitCode !== 128) {
-            _reject(err)
-          }
-        })
-        proc.stdout?.pipe(splitStream)
-        splitStream.on("end", () => _resolve())
-      })
-    }
+      proc.stdout?.pipe(splitStream)
+      splitStream.on("end", () => _resolve())
+    })
 
     if (submodulePaths.length > 0) {
       // Need to automatically add `**/*` to directory paths, to match git behavior when filtering.

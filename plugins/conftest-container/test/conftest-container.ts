@@ -16,6 +16,7 @@ import { gardenPlugin } from ".."
 import { gardenPlugin as conftestPlugin } from "@garden-io/garden-conftest"
 
 import { ProjectConfig, defaultNamespace } from "@garden-io/core/build/src/config/project"
+import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
 
 describe("conftest-container provider", () => {
   const projectRoot = join(__dirname, "test-project")
@@ -26,7 +27,7 @@ describe("conftest-container provider", () => {
     name: "test",
     path: projectRoot,
     defaultEnvironment: "default",
-    dotIgnoreFile: [],
+    dotIgnoreFile: defaultDotIgnoreFile,
     environments: [{ name: "default", defaultNamespace, variables: {} }],
     providers: [{ name: "conftest-container", policyPath: "dockerfile.rego" }],
     variables: {},

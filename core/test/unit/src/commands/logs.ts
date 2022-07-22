@@ -23,6 +23,7 @@ import chalk from "chalk"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { LogLevel } from "../../../../src/logger/logger"
 import { ModuleConfig } from "../../../../src/config/module"
+import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 
 function makeCommandParams({
   garden,
@@ -53,7 +54,7 @@ async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPlugin) {
     name: "test",
     path: tmpDir.path,
     defaultEnvironment: "default",
-    dotIgnoreFile: [],
+    dotIgnoreFile: defaultDotIgnoreFile,
     environments: [{ name: "default", defaultNamespace, variables: {} }],
     providers: [{ name: "test" }],
     variables: {},

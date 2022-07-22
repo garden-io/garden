@@ -11,6 +11,7 @@ import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { makeTestGarden, projectRootA } from "../../../../helpers"
 import { expect } from "chai"
 import { got } from "../../../../../src/util/http"
+import { defaultDotIgnoreFile } from "../../../../../src/util/fs"
 
 describe("octant provider", () => {
   describe("getDashboardPage", () => {
@@ -22,7 +23,7 @@ describe("octant provider", () => {
           name: "test",
           path: projectRootA,
           defaultEnvironment: "default",
-          dotIgnoreFile: [],
+          dotIgnoreFile: defaultDotIgnoreFile,
           environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "local-kubernetes", namespace: "default" }, { name: "octant" }],
           variables: {},

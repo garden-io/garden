@@ -19,6 +19,7 @@ import { join } from "path"
 import { serialize } from "v8"
 import moment from "moment"
 import { defaultNamespace } from "../../../../src/config/project"
+import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 
 describe("ResolveProviderTask", () => {
   let tmpDir: TempDirectory
@@ -46,7 +47,7 @@ describe("ResolveProviderTask", () => {
         name: "test",
         path: tmpDir.path,
         defaultEnvironment: "default",
-        dotIgnoreFile: [],
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-plugin" }],
         variables: {},

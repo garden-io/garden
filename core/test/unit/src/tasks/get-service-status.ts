@@ -19,6 +19,7 @@ import { GetServiceStatusTask } from "../../../../src/tasks/get-service-status"
 import { GetServiceStatusParams } from "../../../../src/types/plugin/service/getServiceStatus"
 import { GetTaskResultParams } from "../../../../src/types/plugin/task/getTaskResult"
 import { TestGarden } from "../../../helpers"
+import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 
 describe("GetServiceStatusTask", () => {
   let tmpDir: tmp.DirectoryResult
@@ -35,7 +36,7 @@ describe("GetServiceStatusTask", () => {
       name: "test",
       path: tmpDir.path,
       defaultEnvironment: "default",
-      dotIgnoreFile: [],
+      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
       variables: {},
