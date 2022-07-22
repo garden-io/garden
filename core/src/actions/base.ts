@@ -85,7 +85,7 @@ const actionSourceSpecSchema = () =>
     .xor("path", "url")
     .meta({ advanced: true })
 
-export interface BaseActionConfig<K extends ActionKind = any, N = any, S = any> {
+export interface BaseActionConfig<K extends ActionKind = ActionKind, N = string, S = any> {
   // Basics
   apiVersion?: string
   kind: K // Note: This is lowercase, not title-cased like in the raw YAML config!
@@ -222,6 +222,8 @@ export const baseActionConfig = () =>
         `
       )
       .example("my-action.env"),
+
+    spec: joi.object().unknown(true).description("The spec for the specific action type."),
   })
 
 export interface BaseRuntimeActionConfig<K extends ActionKind = any, N = any, S = any>

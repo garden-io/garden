@@ -242,11 +242,11 @@ export async function ensureBuildkit({
 export function getBuildkitFlags(action: ContainerBuildAction) {
   const args: string[] = []
 
-  for (const arg of getDockerBuildArgs(action)) {
+  const spec = action.getSpec()
+
+  for (const arg of getDockerBuildArgs(action.versionString(), spec.buildArgs)) {
     args.push("--opt", "build-arg:" + arg)
   }
-
-  const spec = action.getSpec()
 
   if (spec.targetStage) {
     args.push("--opt", "target=" + spec.targetStage)

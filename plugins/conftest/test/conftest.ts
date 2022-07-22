@@ -17,7 +17,6 @@ import { ProjectConfig } from "@garden-io/sdk/types"
 import { makeTestGarden } from "@garden-io/sdk/testing"
 
 import { TestTask } from "@garden-io/core/build/src/tasks/test"
-import { testFromConfig } from "@garden-io/core/build/src/types/test"
 import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
 
 describe("conftest provider", () => {
@@ -43,22 +42,23 @@ describe("conftest provider", () => {
       })
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const module = graph.getModule("warn-and-fail")
+      const action = graph.getTest("warn-and-fail")
 
       const testTask = new TestTask({
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0], graph),
+        action,
         force: true,
         forceBuild: false,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
+        fromWatch: false,
       })
 
       const key = testTask.getKey()
-      const { [key]: result } = await garden.processTasks([testTask])
+      const res = await garden.processTasks({ log: garden.log, tasks: [testTask], throwOnError: true })
+      const result = res.results[key]
 
       expect(result).to.exist
       expect(result!.error).to.exist
@@ -80,22 +80,23 @@ describe("conftest provider", () => {
       })
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const module = graph.getModule("warn")
+      const action = graph.getTest("warn")
 
       const testTask = new TestTask({
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0], graph),
+        action,
         force: true,
         forceBuild: false,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
+        fromWatch: false,
       })
 
       const key = testTask.getKey()
-      const { [key]: result } = await garden.processTasks([testTask])
+      const res = await garden.processTasks({ log: garden.log, tasks: [testTask], throwOnError: true })
+      const result = res.results[key]
 
       expect(result).to.exist
       expect(result!.error).to.exist
@@ -108,22 +109,23 @@ describe("conftest provider", () => {
       })
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const module = graph.getModule("warn")
+      const action = graph.getTest("warn")
 
       const testTask = new TestTask({
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0], graph),
+        action,
         force: true,
         forceBuild: false,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
+        fromWatch: false,
       })
 
       const key = testTask.getKey()
-      const { [key]: result } = await garden.processTasks([testTask])
+      const res = await garden.processTasks({ log: garden.log, tasks: [testTask], throwOnError: true })
+      const result = res.results[key]
 
       expect(result).to.exist
       expect(result!.error).to.not.exist
@@ -139,22 +141,23 @@ describe("conftest provider", () => {
       })
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const module = graph.getModule("warn-and-fail")
+      const action = graph.getTest("warn-and-fail")
 
       const testTask = new TestTask({
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0], graph),
+        action,
         force: true,
         forceBuild: false,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
+        fromWatch: false,
       })
 
       const key = testTask.getKey()
-      const { [key]: result } = await garden.processTasks([testTask])
+      const res = await garden.processTasks({ log: garden.log, tasks: [testTask], throwOnError: true })
+      const result = res.results[key]
 
       expect(result).to.exist
       expect(result!.error).to.not.exist

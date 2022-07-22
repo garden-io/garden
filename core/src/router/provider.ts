@@ -107,7 +107,7 @@ export class ProviderRouter extends BaseRouter {
       handlerType: "augmentGraph",
       pluginName,
       params: omit(params, ["pluginName"]),
-      defaultHandler: async () => ({ addRuntimeDependencies: [], addModules: [] }),
+      defaultHandler: async () => ({ addDependencies: [], addActions: [] }),
     })
   }
 

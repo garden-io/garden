@@ -7,9 +7,6 @@
  */
 
 import { TerraformProvider } from "."
-import { ConfigurationError, RuntimeError } from "../../exceptions"
-import { PluginToolSpec } from "../../plugin/tools"
-import { PluginContext } from "../../plugin-context"
 import which from "which"
 import { ConfigurationError, RuntimeError } from "@garden-io/sdk/exceptions"
 import { CliWrapper, PluginToolSpec } from "@garden-io/sdk/util/ext-tools"

@@ -16,18 +16,14 @@ import { TypedEventEmitter } from "../util/events"
 import { BaseAction } from "../actions/base"
 import { GetActionTypeResults } from "../plugin/action-types"
 import { ActionTypeHandlerSpec } from "../plugin/handlers/base/base"
+import { keyBy } from "lodash"
 
 interface TaskEventBase {
   type: string
   description: string
   key: string
   name: string
-  batchId: string
   version: string
-}
-
-interface TaskStartEvent extends TaskEventBase {
-  startedAt: Date
 }
 
 export interface GraphResult<A extends BaseAction = BaseAction, H extends ActionTypeHandlerSpec<any, any, any> = any>
@@ -61,39 +57,22 @@ export interface SolveResult {
   results: GraphResults
 }
 
-interface SolverEvents {
-  solveComplete: {
-    error: Error | null
-    results: {
-      [taskKey: string]: GraphResult
-    }
-  }
-  start: {}
-  taskComplete: GraphResult
-  taskStart: TaskStartEvent
-  statusComplete: GraphResult
-  statusStart: TaskStartEvent
-}
-
-interface WrappedTasks {
-  [key: string]: TaskWrapper
-}
-
-type CompleteHandler = (result: GraphResult) => void
-
 @Profile()
 export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   // Explicitly requested tasks
-  requestedTasks: WrappedTasks
+  private readonly requestedTasks: { [key: string]: TaskRequest }
 
   // All pending tasks, including implicit from dependencies
-  pendingTasks: WrappedTasks
+  private readonly pendingTasks: WrappedTasks
 
   private inLoop: boolean
 
   constructor() {
     super()
+
     this.inLoop = false
+    this.requestedTasks = {}
+    this.pendingTasks = {}
 
     this.on("start", () => {
       this.loop()
@@ -111,6 +90,14 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     let aborted = false
 
     return new Promise((resolve, reject) => {
+      const requests = keyBy(
+        tasks.map((t) => {
+          results[t.getKey()] = null
+          return this.requestTask({ task: t, batchId, statusOnly: !!statusOnly, completeHandler })
+        }),
+        (r) => r.task.getKey()
+      )
+
       function completeHandler(result: GraphResult) {
         if (aborted) {
           return
@@ -119,7 +106,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         // We only collect the requests tasks at the top level of the result object.
         // The solver cascades errors in dependencies. So if a dependency fails, we should still always get a
         // taskComplete event for each requested task, even if an error occurs before getting to it.
-        if (results[result.key] === undefined) {
+        if (requests[result.key] === undefined) {
           return
         }
 
@@ -134,7 +121,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         }
 
         for (const r of Object.values(results)) {
-          if (r === null) {
+          if (!r) {
             // Keep going if any of the expected results are pending
             return
           }
@@ -162,11 +149,6 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
       function cleanup() {
         _this.off("taskComplete", completeHandler)
       }
-
-      const wrappers = tasks.map((t) => {
-        results[t.getKey()] = null
-        return this.requestTask({ task: t, batchId, statusOnly: !!statusOnly, completeHandler })
-      })
 
       this.on("taskComplete", completeHandler)
 
@@ -209,7 +191,13 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
       return
     }
 
-    this.loop()
+    this.inLoop = true
+
+    try {
+      // this.loop()
+    } finally {
+      this.inLoop = false
+    }
   }
 
   requestTask({
@@ -223,6 +211,9 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     statusOnly: boolean
     completeHandler: CompleteHandler
   }) {
+    const request = new TaskRequest({ task, batchId, statusOnly })
+    this.requestedTasks[request.key()] = request
+
     const key = task.getKey()
     const existing = this.pendingTasks[key]
 
@@ -234,13 +225,12 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
       if (!statusOnly && existing.statusOnly) {
         existing.statusOnly = false
       }
-
-      return existing
     } else {
-      const wrapper = new TaskWrapper(task, batchId, statusOnly)
+      const wrapper = new TaskWrapper(task, statusOnly)
       this.pendingTasks[key] = wrapper
-      return wrapper
     }
+
+    return request
   }
 
   completeTask(params: CompleteTaskParams & { task: TaskWrapper }) {
@@ -248,15 +238,36 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   }
 }
 
+interface TaskRequestParams<T extends BaseTask = BaseTask> {
+  task: T
+  batchId: string
+  statusOnly: boolean
+}
+
+class TaskRequest<T extends BaseTask = BaseTask> {
+  public readonly requestedAt: Date
+  public readonly task: T
+  public readonly batchId: string
+  public readonly statusOnly: boolean
+
+  constructor(params: TaskRequestParams<T>) {
+    this.requestedAt = new Date()
+    this.task = params.task
+    this.batchId = params.batchId
+    this.statusOnly = params.statusOnly
+  }
+
+  key() {
+    return `${this.task.getKey()}.${this.batchId}`
+  }
+}
+
 class TaskWrapper<T extends BaseTask = BaseTask> {
-  requestedAt: Date
   startedAt?: Date
   dependencyResults: GraphResults
   result?: GraphResult<any>
 
-  constructor(public readonly task: T, public readonly batchId: string, public statusOnly: boolean) {
-    this.requestedAt = new Date()
-  }
+  constructor(public readonly task: T, public statusOnly: boolean) {}
 
   setDependencyResult(result: GraphResult) {
     this.dependencyResults[result.key] = result
@@ -272,7 +283,7 @@ class TaskWrapper<T extends BaseTask = BaseTask> {
       name: task.getName(),
       result,
       dependencyResults,
-      batchId: this.batchId,
+      // batchId: this.batchId,
       startedAt: this.startedAt || null,
       completedAt: new Date(),
       error,
@@ -283,6 +294,30 @@ class TaskWrapper<T extends BaseTask = BaseTask> {
     return this.result
   }
 }
+
+interface TaskStartEvent extends TaskEventBase {
+  startedAt: Date
+}
+
+interface SolverEvents {
+  solveComplete: {
+    error: Error | null
+    results: {
+      [taskKey: string]: GraphResult
+    }
+  }
+  start: {}
+  taskComplete: GraphResult
+  taskStart: TaskStartEvent
+  statusComplete: GraphResult
+  statusStart: TaskStartEvent
+}
+
+interface WrappedTasks {
+  [key: string]: TaskWrapper
+}
+
+type CompleteHandler = (result: GraphResult) => void
 
 interface CompleteTaskParams<R = any> {
   error: Error | null

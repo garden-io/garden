@@ -159,46 +159,6 @@ describe("containerHelpers", () => {
     })
   })
 
-  describe("getDockerfileBuildPath", () => {
-    it("should return the absolute default Dockerfile path", async () => {
-      td.replace(helpers, "hasDockerfile", () => true)
-
-      const module = await getTestModule(baseConfig)
-
-      const path = helpers.getDockerfileBuildPath(module)
-      expect(path).to.equal(join(module.buildPath, defaultDockerfileName))
-    })
-
-    it("should return the absolute user specified Dockerfile path", async () => {
-      const config = cloneDeep(baseConfig)
-      config.spec.dockerfile = relDockerfilePath
-      const module = await getTestModule(config)
-
-      const path = helpers.getDockerfileBuildPath(module)
-      expect(path).to.equal(join(module.buildPath, relDockerfilePath))
-    })
-  })
-
-  describe("getDockerfileSourcePath", () => {
-    it("should return the absolute default Dockerfile path", async () => {
-      td.replace(helpers, "hasDockerfile", () => true)
-
-      const module = await getTestModule(baseConfig)
-
-      const path = helpers.getDockerfileSourcePath(module)
-      expect(path).to.equal(join(module.path, defaultDockerfileName))
-    })
-
-    it("should return the absolute user specified Dockerfile path", async () => {
-      const config = cloneDeep(baseConfig)
-      config.spec.dockerfile = relDockerfilePath
-      const module = await getTestModule(config)
-
-      const path = helpers.getDockerfileSourcePath(module)
-      expect(path).to.equal(join(module.path, relDockerfilePath))
-    })
-  })
-
   describe("getPublicImageId", () => {
     it("should use image name including version if specified", async () => {
       const config = cloneDeep(baseConfig)

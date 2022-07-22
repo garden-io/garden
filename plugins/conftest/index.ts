@@ -23,7 +23,7 @@ import { PluginError, ConfigurationError } from "@garden-io/core/build/src/excep
 import { getGitHubUrl } from "@garden-io/core/build/src/docs/common"
 import { renderTemplates } from "@garden-io/core/build/src/plugins/kubernetes/helm/common"
 import { getK8sProvider } from "@garden-io/core/build/src/plugins/kubernetes/util"
-import { TestActionConfig } from "@garden-io/core/build/src/actions/test"
+import { TestAction, TestActionConfig } from "@garden-io/core/build/src/actions/test"
 import { TestActionHandlers } from "../../core/build/src/plugin/action-types"
 
 export interface ConftestProviderConfig extends GenericProviderConfig {
@@ -68,8 +68,8 @@ interface ConftestHelmTestSpec extends ConftestTestSpec {
   helmDeploy: string
 }
 
-type ConftestTestConfig = TestActionConfig<ConftestTestSpec>
-type ConftestHelmTestConfig = TestActionConfig<ConftestHelmTestSpec>
+type ConftestTestConfig = TestActionConfig<"conftest", ConftestTestSpec>
+type ConftestHelmTestConfig = TestActionConfig<"conftest", ConftestHelmTestSpec>
 
 const gitHubUrl = getGitHubUrl("examples/conftest")
 
@@ -127,7 +127,7 @@ export const gardenPlugin = () =>
           See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
           `,
           schema: testActionSchema(),
-          handlers: <TestActionHandlers<ConftestTestConfig>>{
+          handlers: <TestActionHandlers<TestAction<ConftestTestConfig>>>{
             run: async ({ ctx, action, log }) => {
               const startedAt = new Date()
               const provider = ctx.provider as ConftestProvider
@@ -142,18 +142,22 @@ export const gardenPlugin = () =>
 
               if (files.length === 0) {
                 return {
-                  testName: action.name,
-                  moduleName: action.moduleName || action.name,
-                  command: [],
-                  version: action.getVersionString(),
-                  success: true,
-                  startedAt,
-                  completedAt: new Date(),
-                  log: "No files to test",
+                  state: "ready",
+                  detail: {
+                    testName: action.name,
+                    moduleName: action.moduleName(),
+                    command: [],
+                    version: action.versionString(),
+                    success: true,
+                    startedAt,
+                    completedAt: new Date(),
+                    log: "No files to test",
+                  },
+                  outputs: {},
                 }
               }
 
-              const args = prepareArgs(ctx, provider, action.getBasePath(), spec)
+              const args = prepareArgs(ctx, provider, action.basePath(), spec)
               args.push(...files)
 
               const result = await ctx.tools["conftest.conftest"].exec({ log, args, ignoreError: true, cwd: buildPath })
@@ -161,14 +165,18 @@ export const gardenPlugin = () =>
               const { success, formattedResult } = parseConftestResult(provider, log, result)
 
               return {
-                testName: action.name,
-                moduleName: action.moduleName || action.name,
-                command: ["conftest", ...args],
-                version: action.getVersionString(),
-                success,
-                startedAt,
-                completedAt: new Date(),
-                log: formattedResult,
+                state: success ? "ready" : "not-ready",
+                detail: {
+                  testName: action.name,
+                  moduleName: action.moduleName(),
+                  command: ["conftest", ...args],
+                  version: action.versionString(),
+                  success,
+                  startedAt,
+                  completedAt: new Date(),
+                  log: formattedResult,
+                },
+                outputs: {},
               }
             },
           },
@@ -194,7 +202,7 @@ export const gardenPlugin = () =>
               .required()
               .description("The Helm Deploy action to validate."),
           }),
-          handlers: <TestActionHandlers<ConftestHelmTestConfig>>{
+          handlers: <TestActionHandlers<TestAction<ConftestHelmTestConfig>>>{
             run: async ({ ctx, log, action }) => {
               const startedAt = new Date()
               const provider = ctx.provider as ConftestProvider
@@ -227,22 +235,21 @@ export const gardenPlugin = () =>
 
               const templates = await renderTemplates({
                 ctx: k8sCtx,
-                module: sourceModule,
+                action: sourceAction,
                 devMode: false,
                 localMode: false,
                 log,
-                version: sourceModule.version.versionString,
               })
 
               // Run conftest, piping the rendered chart to stdin
-              const args = prepareArgs(ctx, provider, module.path, module.spec)
+              const args = prepareArgs(ctx, provider, action.basePath(), spec)
               args.push("-")
 
               const result = await ctx.tools["conftest.conftest"].exec({
                 log,
                 args,
                 ignoreError: true,
-                cwd: sourceModule.buildPath,
+                cwd: sourceAction.getBuildPath(),
                 input: templates,
               })
 
@@ -250,14 +257,18 @@ export const gardenPlugin = () =>
               const { success, formattedResult } = parseConftestResult(provider, log, result)
 
               return {
-                testName: test.name,
-                moduleName: module.name,
-                command: ["conftest", ...args],
-                version: test.version,
-                success,
-                startedAt,
-                completedAt: new Date(),
-                log: formattedResult,
+                state: success ? "ready" : "not-ready",
+                detail: {
+                  testName: test.name,
+                  moduleName: action.moduleName(),
+                  command: ["conftest", ...args],
+                  version: action.versionString(),
+                  success,
+                  startedAt,
+                  completedAt: new Date(),
+                  log: formattedResult,
+                },
+                outputs: {},
               }
             },
           },
@@ -287,6 +298,7 @@ export const gardenPlugin = () =>
             `
             ),
         }),
+        needsBuild: false,
         handlers: {
           configure: async ({ moduleConfig }) => {
             if (moduleConfig.spec.sourceModule) {
@@ -306,7 +318,7 @@ export const gardenPlugin = () =>
               actions: [
                 ...(dummyBuild ? [dummyBuild] : []),
                 {
-                  kind: "Test",
+                  kind: "test",
                   type: "conftest",
                   name: module.name + "-conftest",
                   ...params.baseFields,
@@ -341,6 +353,7 @@ export const gardenPlugin = () =>
             "A list of runtime dependencies that need to be resolved before rendering the Helm chart."
           ),
         }),
+        needsBuild: false,
         handlers: {
           configure: async ({ moduleConfig }) => {
             // TODO-G2: change this to validation instead, require explicit dependency
