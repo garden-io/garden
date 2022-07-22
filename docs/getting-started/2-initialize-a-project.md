@@ -14,7 +14,7 @@ This directory contains two directories, with one container service each, `backe
 To initialize the project, we can use a helper command:
 
 ```sh
-garden create project --skip-comments
+garden create project
 ```
 
 This will create a basic boilerplate project configuration in the current directory, making it our project root.
@@ -30,11 +30,11 @@ providers:
 
 We have one environment (`default`) and a single provider. We'll get back to this later.
 
-Next, let's create module configs for each of our two modules, starting with `backend`. You can omit the `--skip-comments` flag to create a module with commented-out fields, which reveal all the options available.
+Next, let's create module configs for each of our two modules, starting with `backend`.
 
 ```sh
 cd backend
-garden create module --skip-comments
+garden create module
 cd ..
 ```
 
@@ -42,7 +42,7 @@ You'll get a suggestion to make it a `container` module. Pick that, and give it 
 
 ```sh
 cd frontend
-garden create module --skip-comments
+garden create module
 cd ..
 ```
 
