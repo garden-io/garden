@@ -2532,11 +2532,15 @@ describe("Garden", () => {
     })
 
     it("should respect custom dotignore files", async () => {
-      const projectRoot = getDataDir("test-projects", "dotignore")
+      // In this project we have custom dotIgnoreFile: .customignore which overrides the default .gardenignore.
+      // Thus, all exclusions from .gardenignore will be skipped.
+      const projectRoot = getDataDir("test-projects", "dotignore-custom")
       const garden = await makeTestGarden(projectRoot)
       const modules = await garden.resolveModules({ log: garden.log })
 
-      expect(getNames(modules).sort()).to.eql(["module-a"])
+      // Root-level .customignore excludes "module-b",
+      // and .customignore from "module-c" retains garden.yml file, so the "module-c" is still active.
+      expect(getNames(modules).sort()).to.eql(["module-a", "module-c"])
     })
 
     it("should throw a nice error if module paths overlap", async () => {
