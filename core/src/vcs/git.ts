@@ -277,7 +277,6 @@ export class GitHandler extends VcsHandler {
     const lsFilesCommonArgs = ["--cached", "--exclude", this.gardenDirPath]
 
     // List tracked but ignored files (we currently exclude those as well, so we need to query that specially)
-    // TODO: change in 0.13 to no longer exclude these
     const trackedButIgnored = new Set(
       !this.ignoreFile
         ? []
