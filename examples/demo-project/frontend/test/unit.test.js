@@ -20,51 +20,49 @@ function printToConsoleInDifferentWays() {
   console.time("my timer")
   console.timeLog("my timer", "time things")
   console.timeEnd("my timer")
-  
+
   process.stdout.write("This line should NOT be visible");
   process.stdout.clearLine(0);
   process.stdout.cursorTo(0);
   process.stdout.write("\n"); // end the line
   process.stdout.write("This line SHOULD be visible\n");
-  
+
   console.log('\x1b[36m%s\x1b[0m', 'I am cyan');  //cyan
   console.log('\x1b[33m%s\x1b[0m', "stringToMakeYellow");  //yellow  
 
-  console.log(genereateLongText())
+  // console.log(genereateLongText())
 }
 
-function genereateLongText() {
-  let text = "long boyy"
-  for (let i = 0; i < 100; i++) {
-    text += "\n longer boyy" + i
-  }
-  return text
-}
+// function genereateLongText() {
+//   let text = "long boyy"
+//   for (let i = 0; i < 100; i++) {
+//     text += "\n longer boyy" + i
+//   }
+//   return text
+// }
 
-describe("all my lovely tests", async () => {
-  describe("fails", () => {
-    test('throw exception fail test case', () => {
-      printToConsoleInDifferentWays()
-      throw new Error("stuff is broken bro")
-    })
-
-    // test('fail test case', () => {
-    //   printToConsoleInDifferentWays()
-    //   expect(sum(1, 2)).toBe(4);
-    // });
-  })
-
-  // describe("success", () => {
-  //   test('only log', () => {
-  //     printToConsoleInDifferentWays()
-  //     throw new Error("stuff is broken bro")
-  //   })
-
-  //   test('success test case', () => {
-  //     printToConsoleInDifferentWays()
-  //     expect(sum(1, 2)).toBe(3);
-  //   });
+describe("all my lovely tests", () => {
+  // test('throw exception fail test case', () => {
+  //   console.error("Error to console")
+  //   console.log("Log to console")
+  //   throw new Error("stuff is broken bro")
   // })
+
+  // test('fail test case', () => {
+  //   printToConsoleInDifferentWays()
+  //   expect(sum(1, 2)).toBe(4);
+  // });
+
+  // test('only log', () => {
+  //   console.error("Error to console")
+  //   console.log("Log to console")
+  //   throw new Error("stuff is broken bro")
+  // })
+
+  test('fail test case', () => {
+    printToConsoleInDifferentWays()
+    expect(3).toBe(4);
+  });
 
 
   // describe("async", async () => {
