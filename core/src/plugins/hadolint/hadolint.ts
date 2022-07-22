@@ -22,7 +22,7 @@ import { getGitHubUrl } from "../../docs/common"
 import { createGardenPlugin } from "../../plugin/plugin"
 import { TestAction, TestActionConfig } from "../../actions/test"
 import { TestActionDefinition } from "../../plugin/action-types"
-import { ContainerModule } from "../container/moduleConfig"
+import { ContainerBuildAction } from "../container/moduleConfig"
 
 const defaultConfigPath = join(STATIC_DIR, "hadolint", "default.hadolint.yaml")
 const configFilename = ".hadolint.yaml"
@@ -80,51 +80,54 @@ export const gardenPlugin = () =>
   `,
     configSchema,
     handlers: {
-      augmentGraph: async ({ ctx, modules }) => {
+      augmentGraph: async ({ ctx, actions }) => {
         const provider = ctx.provider as HadolintProvider
 
         if (!provider.config.autoInject) {
           return {}
         }
 
-        const allModuleNames = new Set(modules.map((m) => m.name))
+        const allTestNames = new Set(actions.filter((a) => a.kind === "test").map((m) => m.name))
 
-        const existingHadolintModuleDockerfiles = modules
-          .filter((m) => m.compatibleTypes.includes("hadolint"))
-          .map((m) => resolve(m.path, m.spec.dockerfilePath))
+        const existingHadolintDockerfiles = actions
+          .filter((a) => a.isCompatible("hadolint"))
+          .map((a) => resolve(a.basePath(), a.getSpec("dockerfile")))
 
         return {
-          addModules: await Bluebird.filter(modules, async (module) => {
+          addActions: await Bluebird.filter(actions, async (action) => {
             return (
               // Pick all container or container-based modules
-              module.compatibleTypes.includes("container") &&
+              action.kind === "build" &&
+              action.isCompatible("container") &&
               // Make sure we don't step on an existing custom hadolint module
-              !existingHadolintModuleDockerfiles.includes(resolve(module.path, module.spec.dockerfile)) &&
+              !existingHadolintDockerfiles.includes(resolve(action.basePath(), action.getSpec("dockerfile"))) &&
               // Only create for modules with Dockerfiles
-              containerHelpers.moduleHasDockerfile(module, module.version)
+              containerHelpers.actionHasDockerfile(<ContainerBuildAction>action)
             )
-          }).map((module: ContainerModule) => {
-            const baseName = "hadolint-" + module.name
+          }).map((action) => {
+            const baseName = "hadolint-" + action.name
 
             let name = baseName
             let i = 2
 
-            while (allModuleNames.has(name)) {
+            while (allTestNames.has(name)) {
               name = `${baseName}-${i++}`
             }
 
-            allModuleNames.add(name)
+            allTestNames.add(name)
 
             return {
-              kind: "Module",
+              kind: "test",
               type: "hadolint",
               name,
-              description: `hadolint test for module '${module.name}' (auto-generated)`,
-              path: module.path,
-              dockerfilePath: relative(
-                module.path,
-                resolve(module.path, module.spec.dockerfile || defaultDockerfileName)
-              ),
+              description: `hadolint test for '${action.longDescription}' (auto-generated)`,
+              basePath: action.basePath(),
+              spec: {
+                dockerfilePath: relative(
+                  action.basePath(),
+                  resolve(action.basePath(), action.getSpec("dockerfile") || defaultDockerfileName)
+                ),
+              },
             }
           }),
         }

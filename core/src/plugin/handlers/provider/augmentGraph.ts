@@ -9,12 +9,12 @@
 import { PluginActionParamsBase, actionParamsSchema } from "../../base"
 import { dedent } from "../../../util/string"
 import { joi, joiArray, joiIdentifier, joiIdentifierMap } from "../../../config/common"
-import { baseModuleSpecSchema, AddModuleSpec } from "../../../config/module"
+import { baseModuleSpecSchema } from "../../../config/module"
 import { providerSchema, ProviderMap } from "../../../config/provider"
-import { GardenModule, moduleSchema } from "../../../types/module"
+import { BaseAction, baseActionConfig, BaseActionConfig } from "../../../actions/base"
 
 export interface AugmentGraphParams extends PluginActionParamsBase {
-  modules: GardenModule[]
+  actions: BaseAction[]
   providers: ProviderMap
 }
 
@@ -24,69 +24,63 @@ interface AddDependency {
 }
 
 export interface AugmentGraphResult {
-  addRuntimeDependencies?: AddDependency[]
-  addModules?: AddModuleSpec[]
+  addDependencies?: AddDependency[]
+  addActions?: BaseActionConfig[]
 }
 
 export const addModuleSchema = () => baseModuleSpecSchema()
 
 export const augmentGraph = () => ({
   description: dedent`
-    Add modules and/or dependency relationships to the project stack graph. See the individual output fields for
+    Add actions and/or dependency relationships to the project stack graph. See the individual output fields for
     details.
 
-    The handler receives all configured providers and their configs, as well as all previously defined modules
-    in the project, including all modules added by any \`augmentGraph\` handlers defined by other providers
+    The handler receives all configured providers and their configs, as well as all previously defined actions
+    in the project, including all actions added by any \`augmentGraph\` handlers defined by other providers
     that this provider depends on. Which is to say, all the \`augmentGraph\` handlers are called and their outputs
     applied in dependency order.
 
-    Note that this handler is called frequently when resolving module configuration, so it should return quickly
+    Note that this handler is called frequently when resolving action configuration, so it should return quickly
     and avoid any external I/O.
   `,
   paramsSchema: actionParamsSchema().keys({
-    modules: joiArray(moduleSchema()).description(
+    actions: joiArray(baseActionConfig()).description(
       dedent`
-          A list of all previously defined modules in the project, including all modules added by any \`augmentGraph\`
+          A list of all previously defined actions in the project, including all actions added by any \`augmentGraph\`
           handlers defined by other providers that this provider depends on.
         `
     ),
     providers: joiIdentifierMap(providerSchema()).description("Map of all configured providers in the project."),
   }),
   resultSchema: joi.object().keys({
-    addRuntimeDependencies: joi
+    addDependencies: joi
       .array()
       .items(
         joi
           .object()
           .optional()
           .keys({
-            by: joiIdentifier().description(
-              "The _dependant_, i.e. the service or task that should have a runtime dependency on `on`."
-            ),
-            on: joiIdentifier().description("The _dependency, i.e. the service or task that `by` should depend on."),
+            by: joiIdentifier().description("The _dependant_, i.e. the action that should have a dependency on `on`."),
+            on: joiIdentifier().description("The _dependency, i.e. the action that `by` should depend on."),
           })
       )
       .description(
         dedent`
-        Add runtime dependencies between two services or tasks, where \`by\` depends on \`on\`.
+        Add dependencies between different actions, where \`by\` depends on \`on\`.
 
-        Both services/tasks must be previously defined in the project, added by one of the providers that this provider
-        depends on, _or_ it can be defined in one of the modules specified in \`addModules\`.
+        Both actions must be previously defined in the project, added by one of the providers that this provider depends on, _or_ it can be defined in one of the actions specified in \`addActions\`.
 
-        The most common use case for this field is to make an existing service or task depend on one of the
-        services/tasks specified under \`addModules\`.
+        The most common use case for this field is to make an existing action depend on one of the actions specified under \`addActions\`.
       `
       ),
-    addModules: joi
+    addActions: joi
       .array()
-      .items(addModuleSchema().optional())
+      .items(baseActionConfig().optional())
       .description(
         dedent`
-          Add modules (of any defined kind) to the stack graph. Each should be a module spec in the same format as
-          a normal module specified in a \`garden.yml\` config file (which will later be passed to the appropriate
-          \`configure\` handler(s) for the module type).
+          Add actions (of any defined kind) to the stack graph. Each should be an action spec in the same format as a normal action specified in a \`garden.yml\` config file (which will later be passed to the appropriate \`configure\` handler(s) for the action type).
 
-          Added services/tasks can be referenced in \`addRuntimeDependencies\`.
+          Added actions can be referenced in \`addDependencies\`.
         `
       ),
   }),

@@ -121,7 +121,7 @@ import { ConfigContext } from "./config/template-contexts/base"
 import { validateSchema, validateWithPath } from "./config/validation"
 import { pMemoizeDecorator } from "./lib/p-memoize"
 import { ModuleGraph } from "./graph/modules"
-import { Action } from "./actions/base"
+import { Action, BaseAction } from "./actions/base"
 import { GraphSolver, SolveParams, SolveResult } from "./graph/solver"
 
 export interface ActionHandlerMap<T extends keyof ProviderHandlers> {
@@ -793,9 +793,12 @@ export class Garden {
 
     // TODO-G2: convert modules to actions here
     // -> Do the conversion
-    const { groups, actions } = await convertModules(this, log, resolvedModules, moduleGraph)
+    const { groups, actions: actionConfigs } = await convertModules(this, log, resolvedModules, moduleGraph)
 
-    // -> Collect module outputs for templating from actions (attach to ConfigGraph?)
+    // -> TODO-G2 Collect module outputs for templating from actions (attach to ConfigGraph?)
+
+    // TODO-G2: Resolve action versions
+    const actions: BaseAction[] = []
 
     let graph: ConfigGraph | undefined = undefined
 
@@ -826,58 +829,60 @@ export class Garden {
         graph = new ConfigGraph(resolvedModules, moduleTypes)
       }
 
-      const { addRuntimeDependencies, addModules } = await router.provider.augmentGraph({
+      const { addDependencies, addActions } = await router.provider.augmentGraph({
         pluginName,
         log,
         providers: resolvedProviders,
-        modules: resolvedModules,
+        actions,
       })
 
+      // TODO-G2
       // Resolve modules from specs and add to the list
-      await Bluebird.map(addModules || [], async (spec) => {
-        const path = spec.path || this.projectRoot
-        const moduleConfig = prepareModuleResource(spec, join(path, defaultConfigFilename), this.projectRoot)
+      // await Bluebird.map(addActions || [], async (config) => {
+      //   // There is no actual config file for plugin modules (which the prepare function assumes)
+      //   delete config.configPath
 
-        // There is no actual config file for plugin modules (which the prepare function assumes)
-        delete moduleConfig.configPath
+      //   const resolvedConfig = await resolver.resolveModuleConfig(moduleConfig, resolvedModules)
+      //   resolvedModules.push(
+      //     await moduleFromConfig({ garden: this, log, config: resolvedConfig, buildDependencies: resolvedModules })
+      //   )
+      //   graph = undefined
+      // })
 
-        const resolvedConfig = await resolver.resolveModuleConfig(moduleConfig, resolvedModules)
-        resolvedModules.push(
-          await moduleFromConfig({ garden: this, log, config: resolvedConfig, buildDependencies: resolvedModules })
-        )
-        graph = undefined
-      })
+      // for (const dependency of addDependencies || []) {
+      //   let found = false
 
-      for (const dependency of addRuntimeDependencies || []) {
-        let found = false
+      //   for (const action of actions) {
+      //     if (action.name === dependency.by) {
+      //       action.dependencies.push(dependency.on)
+      //       found = true
+      //       break
+      //     }
+      //   }
 
-        for (const moduleConfig of resolvedModules) {
-          for (const serviceConfig of moduleConfig.serviceConfigs) {
-            if (serviceConfig.name === dependency.by) {
-              serviceConfig.dependencies.push(dependency.on)
-              found = true
-            }
-          }
-          for (const taskConfig of moduleConfig.taskConfigs) {
-            if (taskConfig.name === dependency.by) {
-              taskConfig.dependencies.push(dependency.on)
-              found = true
-            }
-          }
-        }
+      //   for (const moduleConfig of resolvedModules) {
+      //     for (const serviceConfig of moduleConfig.serviceConfigs) {
+      //     }
+      //     for (const taskConfig of moduleConfig.taskConfigs) {
+      //       if (taskConfig.name === dependency.by) {
+      //         taskConfig.dependencies.push(dependency.on)
+      //         found = true
+      //       }
+      //     }
+      //   }
 
-        if (!found) {
-          throw new PluginError(
-            deline`
-              Provider '${provider.name}' added a runtime dependency by '${dependency.by}' on '${dependency.on}'
-              but service or task '${dependency.by}' could not be found.
-            `,
-            { provider, dependency }
-          )
-        }
+      //   if (!found) {
+      //     throw new PluginError(
+      //       deline`
+      //         Provider '${provider.name}' added a runtime dependency by '${dependency.by}' on '${dependency.on}'
+      //         but action '${dependency.by}' could not be found.
+      //       `,
+      //       { provider, dependency }
+      //     )
+      //   }
 
-        graph = undefined
-      }
+      //   graph = undefined
+      // }
     }
 
     // Ensure dependency structure is alright
@@ -893,7 +898,7 @@ export class Garden {
   }
 
   /**
-   * Resolves the module version (i.e. build version) for the given configuration and its build dependencies.
+   * Resolves the module version (i.e. build version) for the given module configuration and its build dependencies.
    */
   async resolveModuleVersion(
     log: LogEntry,
