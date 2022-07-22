@@ -309,7 +309,7 @@ export const projectSchema = () =>
         See the [Configuration Files guide](${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
       `
         )
-        .example(".gardenignore"),
+        .example(".gitignore"),
       modules: projectModulesSchema().description("Control where to scan for modules in the project."),
       outputs: joiSparseArray(projectOutputSchema())
         .unique("name")

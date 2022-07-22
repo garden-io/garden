@@ -488,7 +488,7 @@ See the [Configuration Files guide](https://docs.garden.io/using-garden/configur
 Example:
 
 ```yaml
-dotIgnoreFile: ".gardenignore"
+dotIgnoreFile: ".gitignore"
 ```
 
 ### `modules`
