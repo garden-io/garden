@@ -16,7 +16,7 @@ import { getSystemNamespace } from "./namespace"
 import { PluginError } from "../../exceptions"
 import { DeepPrimitiveMap } from "../../config/common"
 import { combineStates } from "../../types/service"
-import { defaultDotIgnoreFiles } from "../../util/fs"
+import { defaultDotIgnoreFile } from "../../util/fs"
 import { LogLevel } from "../../logger/logger"
 import { defaultNamespace } from "../../config/project"
 
@@ -69,7 +69,7 @@ export async function getSystemGarden(
       kind: "Project",
       name: systemNamespace,
       defaultEnvironment: "default",
-      dotIgnoreFiles: defaultDotIgnoreFiles,
+      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [sysProvider],
       variables,

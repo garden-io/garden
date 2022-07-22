@@ -30,7 +30,7 @@ describe("GetOutputsCommand", () => {
       name: "test",
       path: tmpDir.path,
       defaultEnvironment: "default",
-      dotIgnoreFiles: [],
+      dotIgnoreFile: [],
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
       variables: {},

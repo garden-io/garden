@@ -281,11 +281,11 @@ export class GitHandler extends VcsHandler {
     // List tracked but ignored files (we currently exclude those as well, so we need to query that specially)
     // TODO: change in 0.13 to no longer exclude these
     const trackedButIgnored = new Set(
-      this.ignoreFiles.length === 0
+      this.ignoreFile.length === 0
         ? []
         : flatten(
             await Promise.all(
-              this.ignoreFiles.map((f) =>
+              this.ignoreFile.map((f) =>
                 git("ls-files", "--ignored", ...lsFilesCommonArgs, "--exclude-per-directory", f)
               )
             )
@@ -362,10 +362,10 @@ export class GitHandler extends VcsHandler {
       return execa("git", args, { cwd: path, buffer: false })
     }
 
-    if (this.ignoreFiles.length > 1) {
+    if (this.ignoreFile.length > 1) {
       // We run ls-files for each ignore file and do a streaming set-intersection (i.e. every ls-files call
       // needs to "agree" that a file should be included). Then `handleLine()` is called for each resulting entry.
-      const streams = this.ignoreFiles.map(() => {
+      const streams = this.ignoreFile.map(() => {
         const input = split2()
         const output = input.pipe(
           new FilterStream((line: Buffer, _, cb) => {
@@ -395,7 +395,7 @@ export class GitHandler extends VcsHandler {
           }
         )
 
-        this.ignoreFiles.map((ignoreFile, i) => {
+        this.ignoreFile.map((ignoreFile, i) => {
           const proc = lsFiles(ignoreFile)
 
           proc.on("error", (err) => {
@@ -420,7 +420,7 @@ export class GitHandler extends VcsHandler {
       splitStream.on("data", (line) => handleEntry(parseLine(line)))
 
       await new Promise<void>((_resolve, _reject) => {
-        const proc = lsFiles(this.ignoreFiles[0])
+        const proc = lsFiles(this.ignoreFile[0])
         proc.on("error", (err: execa.ExecaError) => {
           if (err.exitCode !== 128) {
             _reject(err)

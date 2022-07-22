@@ -1,6 +1,6 @@
 kind: Project
 name: include-exclude
-dotIgnoreFiles:
+dotIgnoreFile:
   - .gardenignore
   - .customignore
 environments:

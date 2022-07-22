@@ -32,7 +32,7 @@ import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../src/constants"
 import { defaultProvider, providerFromConfig } from "../../../src/config/provider"
 import { RunTaskResult } from "../../../src/types/plugin/task/runTask"
-import { defaultDotIgnoreFiles } from "../../../src/util/fs"
+import { defaultDotIgnoreFile } from "../../../src/util/fs"
 import stripAnsi from "strip-ansi"
 import { emptyDir, pathExists, ensureFile, readFile } from "fs-extra"
 import { join } from "path"
@@ -58,7 +58,7 @@ describe("ActionRouter", () => {
     name: "test",
     path: projectRootA,
     defaultEnvironment: "default",
-    dotIgnoreFiles: defaultDotIgnoreFiles,
+    dotIgnoreFile: defaultDotIgnoreFile,
     environments: [{ name: "default", defaultNamespace, variables: {} }],
     providers: [{ name: "base" }, { name: "test-plugin" }, { name: "test-plugin-b" }],
     variables: {},
@@ -1078,7 +1078,7 @@ describe("ActionRouter", () => {
             name: "test",
             path,
             defaultEnvironment: "default",
-            dotIgnoreFiles: [],
+            dotIgnoreFile: [],
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "foo" }],
             variables: {},
@@ -1131,7 +1131,7 @@ describe("ActionRouter", () => {
             name: "test",
             path,
             defaultEnvironment: "default",
-            dotIgnoreFiles: [],
+            dotIgnoreFile: [],
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "base" }, { name: "foo" }],
             variables: {},
@@ -1196,7 +1196,7 @@ describe("ActionRouter", () => {
             name: "test",
             path,
             defaultEnvironment: "default",
-            dotIgnoreFiles: [],
+            dotIgnoreFile: [],
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [
               { name: "base" },
@@ -1265,7 +1265,7 @@ describe("ActionRouter", () => {
               name: "test",
               path,
               defaultEnvironment: "default",
-              dotIgnoreFiles: [],
+              dotIgnoreFile: [],
               environments: [{ name: "default", defaultNamespace, variables: {} }],
               providers: [
                 { name: "base" },
@@ -1322,7 +1322,7 @@ describe("ActionRouter", () => {
             name: "test",
             path,
             defaultEnvironment: "default",
-            dotIgnoreFiles: [],
+            dotIgnoreFile: [],
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "base" }, { name: "foo" }],
             variables: {},
@@ -1346,7 +1346,7 @@ describe("ActionRouter", () => {
         name: "test",
         path,
         defaultEnvironment: "default",
-        dotIgnoreFiles: [],
+        dotIgnoreFile: [],
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "base" }, { name: "foo" }],
         variables: {},
@@ -1488,7 +1488,7 @@ describe("ActionRouter", () => {
             name: "test",
             path,
             defaultEnvironment: "default",
-            dotIgnoreFiles: [],
+            dotIgnoreFile: [],
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "base-a" }, { name: "base-b" }, { name: "foo" }],
             variables: {},
@@ -1580,7 +1580,7 @@ describe("ActionRouter", () => {
           name: "test",
           path,
           defaultEnvironment: "default",
-          dotIgnoreFiles: [],
+          dotIgnoreFile: [],
           environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "foo" }],
           variables: {},

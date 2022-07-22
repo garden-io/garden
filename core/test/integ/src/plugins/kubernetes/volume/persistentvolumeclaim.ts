@@ -31,7 +31,7 @@ describe("persistentvolumeclaim", () => {
       name: "test",
       path: tmpDir.path,
       defaultEnvironment: "default",
-      dotIgnoreFiles: [],
+      dotIgnoreFile: [],
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "local-kubernetes", namespace: "default" }],
       variables: {},

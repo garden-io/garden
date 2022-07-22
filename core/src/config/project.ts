@@ -32,7 +32,7 @@ import { ConfigurationError, ParameterError, ValidationError } from "../exceptio
 import { cloneDeep, omit } from "lodash"
 import { GenericProviderConfig, providerConfigBaseSchema } from "./provider"
 import { DOCS_BASE_URL } from "../constants"
-import { defaultDotIgnoreFiles } from "../util/fs"
+import { defaultDotIgnoreFile } from "../util/fs"
 import { CommandInfo } from "../plugin-context"
 import { VcsInfo } from "../vcs/vcs"
 import { profileAsync } from "../util/profiling"
@@ -180,7 +180,7 @@ export interface ProjectConfig {
   domain?: string
   configPath?: string
   defaultEnvironment: string
-  dotIgnoreFiles: string[]
+  dotIgnoreFile: string[]
   environments: EnvironmentConfig[]
   modules?: {
     include?: string[]
@@ -294,8 +294,8 @@ export const projectSchema = () =>
           `
         )
         .example("dev"),
-      dotIgnoreFiles: joiSparseArray(joi.posixPath().filenameOnly())
-        .default(defaultDotIgnoreFiles)
+      dotIgnoreFile: joiSparseArray(joi.posixPath().filenameOnly())
+        .default(defaultDotIgnoreFile)
         .description(
           deline`
         Specify a list of filenames that should be used as ".ignore" files across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for modules and module sources (Note: prior to version 0.12.0, \`.gitignore\` files were also used by default).

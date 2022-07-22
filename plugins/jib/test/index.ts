@@ -26,7 +26,7 @@ describe("jib-container", function () {
     name: "test",
     path: projectRoot,
     defaultEnvironment: "default",
-    dotIgnoreFiles: [],
+    dotIgnoreFile: [],
     environments: [{ name: "default", defaultNamespace, variables: {} }],
     providers: [{ name: "jib" }],
     variables: {},

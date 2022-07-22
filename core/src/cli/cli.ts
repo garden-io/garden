@@ -48,7 +48,7 @@ import { ERROR_LOG_FILENAME, DEFAULT_API_VERSION, DEFAULT_GARDEN_DIR_NAME, LOGS_
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { BufferedEventStream, ConnectBufferedEventStreamParams } from "../cloud/buffered-event-stream"
-import { defaultDotIgnoreFiles } from "../util/fs"
+import { defaultDotIgnoreFile } from "../util/fs"
 import type { GardenProcess } from "../db/entities/garden-process"
 import { DashboardEventStream } from "../server/dashboard-event-stream"
 import { GardenPluginReference } from "../types/plugin/plugin"
@@ -76,7 +76,7 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
     kind: "Project",
     name: "no-project",
     defaultEnvironment: "",
-    dotIgnoreFiles: defaultDotIgnoreFiles,
+    dotIgnoreFile: defaultDotIgnoreFile,
     environments,
     providers: [],
     variables: {},

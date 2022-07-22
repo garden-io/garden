@@ -39,7 +39,7 @@ describe("hadolint provider", () => {
       name: "test",
       path: tmpPath,
       defaultEnvironment: "default",
-      dotIgnoreFiles: [],
+      dotIgnoreFile: [],
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "hadolint" }],
       variables: {},

@@ -1,6 +1,6 @@
 kind: Project
 name: huge-project
-dotIgnoreFiles: [.gardenignore]
+dotIgnoreFile: [.gardenignore]
 environments:
   - name: local
 modules:

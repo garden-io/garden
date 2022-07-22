@@ -75,12 +75,12 @@ This would cause Garden to ignore `node_modules` and `public` directories across
 
 Note that _these take precedence over both `modules.include` fields in your project config, and `include` fields in your module configs_. If a path is matched by one of the ignore files, the path will not be included in your project or modules.
 
-You can override which filenames to use as ".ignore" files using the `dotIgnoreFiles` field in your project configuration. For example, you might choose to also respect `.gitignore` files (this was the default behavior prior to Garden 0.12.0):
+You can override which filenames to use as ".ignore" files using the `dotIgnoreFile` field in your project configuration. For example, you might choose to also respect `.gitignore` files (this was the default behavior prior to Garden 0.12.0):
 
 ```yaml
 kind: Project
 name: my-project
-dotIgnoreFiles: [.gardenignore, .gitignore]
+dotIgnoreFile: [.gardenignore, .gitignore]
 ```
 
 ## Git submodules

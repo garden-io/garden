@@ -26,7 +26,7 @@ describe("conftest-container provider", () => {
     name: "test",
     path: projectRoot,
     defaultEnvironment: "default",
-    dotIgnoreFiles: [],
+    dotIgnoreFile: [],
     environments: [{ name: "default", defaultNamespace, variables: {} }],
     providers: [{ name: "conftest-container", policyPath: "dockerfile.rego" }],
     variables: {},
