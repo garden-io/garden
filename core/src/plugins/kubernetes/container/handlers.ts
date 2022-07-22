@@ -53,9 +53,13 @@ export function k8sGetContainerBuildActionOutputs({
   provider: KubernetesProvider
   action: ContainerBuildAction
 }): ContainerBuildOutputs {
-  const outputs = getContainerBuildActionOutputs(action)
-
   const localId = action.getSpec("localId")
+
+  const outputs = getContainerBuildActionOutputs({
+    buildName: action.name,
+    localId,
+    version: action.getFullVersion(),
+  })
 
   outputs.deploymentImageName = containerHelpers.getDeploymentImageName(
     action.name,

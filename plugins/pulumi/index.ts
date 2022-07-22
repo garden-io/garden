@@ -8,17 +8,22 @@
 
 import { createGardenPlugin } from "@garden-io/sdk"
 import { dedent } from "@garden-io/sdk/util/string"
-import { configurePulumiModule, deletePulumiService, deployPulumiService, getPulumiServiceStatus } from "./handlers"
+import { configurePulumiModule, deletePulumiDeploy, deployPulumi, getPulumiDeployStatus } from "./handlers"
 import { docsBaseUrl } from "@garden-io/sdk/constants"
 import { getPulumiCommands } from "./commands"
 
 import { joiVariables } from "@garden-io/core/build/src/config/common"
 import { pulumiCliSPecs } from "./cli"
-import { pulumiModuleSchema, pulumiProviderConfigSchema } from "./config"
+import { PulumiDeployConfig, pulumiDeploySpecSchema, pulumiProviderConfigSchema } from "./config"
+import { ExecBuildConfig } from "@garden-io/core/src/plugins/exec/config"
 
 // Need to make these variables to avoid escaping issues
-const serviceOutputsTemplateString = "${runtime.services.<module-name>.outputs.<key>}"
-const moduleReferenceUrl = `${docsBaseUrl}/reference/module-types/pulumi`
+const moduleOutputsTemplateString = "${runtime.services.<module-name>.outputs.<key>}"
+const actionOutputsTemplateString = "${actions.<name>.outputs.<key>}"
+// const moduleReferenceUrl = `${docsBaseUrl}/reference/module-types/pulumi`
+const deployReferenceUrl = `${docsBaseUrl}/reference/action-types/deploy/pulumi`
+
+const outputsSchema = () => joiVariables().description("A map of all the outputs returned by the Pulumi stack.")
 
 export const gardenPlugin = () =>
   createGardenPlugin({
@@ -26,27 +31,79 @@ export const gardenPlugin = () =>
     docs: dedent`
       **EXPERIMENTAL**
 
-      This provider allows you to integrate [Pulumi](https://pulumi.com) stacks into your Garden project, via [\`pulumi\` modules](${moduleReferenceUrl}).
+      This provider allows you to integrate [Pulumi](https://pulumi.com) stacks into your Garden project, via [\`pulumi\` Deploy actions](${deployReferenceUrl}).
     `,
     configSchema: pulumiProviderConfigSchema,
+
     commands: getPulumiCommands(),
+
+    createActionTypes: {
+      deploy: [
+        {
+          name: "terraform",
+          docs: dedent`
+          Deploys a Pulumi stack and either creates/updates it automatically (if \`autoApply: true\`) or warns when the stack resources are not up-to-date, or errors if it's missing entirely.
+
+          **Note: It is not recommended to set \`autoApply\` to \`true\` for production or shared environments, since this may result in accidental or conflicting changes to the stack.** Instead, it is recommended to manually preview and update using the provided plugin commands. Run \`garden plugins pulumi\` for details. Note that not all Pulumi CLI commands are wrapped by the plugin, only the ones where it's important to apply any variables defined in the action. For others, simply run the Pulumi CLI as usual from the project root.
+
+          Stack outputs are made available as action outputs. These can then be referenced by other actions under \`${actionOutputsTemplateString}\`. You can template in those values as e.g. command arguments or environment variables for other services.
+          `,
+          schema: pulumiDeploySpecSchema(),
+          outputsSchema: outputsSchema(),
+          handlers: {
+            deploy: deployPulumi,
+            getStatus: getPulumiDeployStatus,
+            delete: deletePulumiDeploy,
+          },
+        },
+      ],
+    },
+
     createModuleTypes: [
       {
         name: "pulumi",
         docs: dedent`
-          Deploys a Pulumi stack and either creates/updates it automatically (if \`autoApply: true\`) or warns when the stack resources are not up-to-date, or errors if it's missing entirely.
+        Deploys a Pulumi stack and either creates/updates it automatically (if \`autoApply: true\`) or warns when the stack resources are not up-to-date, or errors if it's missing entirely.
 
-          **Note: It is not recommended to set \`autoApply\` to \`true\` for production or shared environments, since this may result in accidental or conflicting changes to the stack.** Instead, it is recommended to manually preview and update using the provided plugin commands. Run \`garden plugins pulumi\` for details. Note that not all Pulumi CLI commands are wrapped by the plugin, only the ones where it's important to apply any variables defined in the module. For others, simply run the Pulumi CLI as usual from the project root.
+        **Note: It is not recommended to set \`autoApply\` to \`true\` for production or shared environments, since this may result in accidental or conflicting changes to the stack.** Instead, it is recommended to manually preview and update using the provided plugin commands. Run \`garden plugins pulumi\` for details. Note that not all Pulumi CLI commands are wrapped by the plugin, only the ones where it's important to apply any variables defined in the action. For others, simply run the Pulumi CLI as usual from the project root.
 
-          Stack outputs are made available as service outputs. These can then be referenced by other modules under \`${serviceOutputsTemplateString}\`. You can template in those values as e.g. command arguments or environment variables for other services.
+        Stack outputs are made available as service outputs. These can then be referenced by other actions under \`${moduleOutputsTemplateString}\`. You can template in those values as e.g. command arguments or environment variables for other services.
         `,
-        serviceOutputsSchema: joiVariables().description("A map of all the outputs returned by the Pulumi stack."),
-        schema: pulumiModuleSchema(),
+        schema: pulumiDeploySpecSchema(),
+        needsBuild: false,
         handlers: {
           configure: configurePulumiModule,
-          getServiceStatus: getPulumiServiceStatus,
-          deployService: deployPulumiService,
-          deleteService: deletePulumiService,
+
+          async convert(params) {
+            const { module, dummyBuild, prepareRuntimeDependencies } = params
+            const actions: (ExecBuildConfig | PulumiDeployConfig)[] = []
+
+            if (dummyBuild) {
+              actions.push(dummyBuild)
+            }
+
+            actions.push({
+              kind: "deploy",
+              type: "pulumi",
+              name: module.name,
+              ...params.baseFields,
+
+              build: dummyBuild?.name,
+              dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
+
+              spec: {
+                ...module.spec,
+              },
+            })
+
+            return {
+              group: {
+                kind: "Group",
+                name: module.name,
+                actions,
+              },
+            }
+          },
         },
       },
     ],

@@ -6,10 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BaseTask } from "../tasks/base"
+import { Action } from "../actions/base"
+import { BaseActionTask, BaseTask, ValidResultType } from "../tasks/base"
 import { Profile } from "../util/profiling"
 
 @Profile()
 export abstract class PluginTask extends BaseTask {
+  type = "plugin"
+}
+
+@Profile()
+export abstract class PluginActionTask<
+  T extends Action,
+  O extends ValidResultType = ValidResultType,
+  S extends ValidResultType = O
+> extends BaseActionTask<T, O, S> {
   type = "plugin"
 }

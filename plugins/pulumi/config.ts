@@ -10,6 +10,7 @@ import { DeepPrimitiveMap, joi, joiSparseArray, joiVariables } from "@garden-io/
 import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
 import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
 import { dependenciesSchema } from "@garden-io/core/build/src/config/service"
+import { DeployAction, DeployActionConfig } from "@garden-io/core/build/src/actions/deploy"
 import { GardenModule } from "@garden-io/sdk/types"
 import { dedent } from "@garden-io/sdk/util/string"
 import { defaultPulumiVersion, supportedVersions } from "./cli"
@@ -58,7 +59,7 @@ export const pulumiProviderConfigSchema = providerConfigBaseSchema()
   })
   .unknown(false)
 
-export interface PulumiModuleSpec {
+export interface PulumiDeploySpec {
   allowDestroy: boolean
   autoApply: boolean
   createStack: boolean
@@ -73,12 +74,15 @@ export interface PulumiModuleSpec {
   stack?: string
 }
 
-export interface PulumiModule extends GardenModule<PulumiModuleSpec> {}
+export type PulumiDeployConfig = DeployActionConfig<"pulumi", PulumiDeploySpec>
+export type PulumiDeploy = DeployAction<PulumiDeployConfig, {}>
+
+export interface PulumiModule extends GardenModule<PulumiDeploySpec> {}
 
 // Validate that the path ends in .yaml or .yml
 const yamlFileRegex = /(\.yaml)|(\.yml)$/
 
-export const pulumiModuleSchema = () =>
+export const pulumiDeploySpecSchema = () =>
   joi.object().keys({
     build: baseBuildSpecSchema(),
     allowDestroy: joi.boolean().default(true).description(dedent`

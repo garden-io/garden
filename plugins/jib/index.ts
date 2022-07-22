@@ -24,13 +24,13 @@ import {
 import { joi } from "@garden-io/core/build/src/config/common"
 import { renderOutputStream } from "@garden-io/core/build/src/util/util"
 import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
-import { ConfigureModuleParams } from "@garden-io/core/build/src/types/plugin/module/configure"
+import { ConfigureModuleParams } from "@garden-io/core/build/src/plugin/handlers/module/configure"
 import { containerHelpers } from "@garden-io/core/build/src/plugins/container/helpers"
 import { cloneDeep, pick } from "lodash"
 import { LogLevel } from "@garden-io/core/build/src/logger/logger"
 import { detectProjectType, getBuildFlags, JibBuildConfig, JibContainerModule } from "./util"
 import { ConvertModuleParams, ConvertModuleResult } from "@garden-io/core/build/src/plugin/handlers/module/convert"
-import { getContainerBuildActionOutputs } from "@garden-io/core/src/plugins/container/build"
+import { getContainerBuildActionOutputs } from "@garden-io/core/build/src/plugins/container/build"
 
 export interface JibProviderConfig extends GenericProviderConfig {}
 
@@ -168,7 +168,11 @@ export const gardenPlugin = () =>
                 })
               }
 
-              const outputs = getContainerBuildActionOutputs(action)
+              const outputs = getContainerBuildActionOutputs({
+                buildName: action.name,
+                localId: spec.localId,
+                version: action.getFullVersion(),
+              })
 
               return {
                 fetched: false,
@@ -190,6 +194,7 @@ export const gardenPlugin = () =>
         base: "container",
         docs,
         schema: jibModuleSchema(),
+        needsBuild: true,
         handlers: {
           async configure(params: ConfigureModuleParams<JibContainerModule>) {
             let { base, moduleConfig } = params
