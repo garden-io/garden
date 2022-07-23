@@ -31,7 +31,6 @@ const execPathDoc = dedent`
 const localProcDefaultTimeoutSec = 10
 
 export async function configureExecModule({
-  ctx,
   moduleConfig,
 }: ConfigureModuleParams<ExecModule>): Promise<ConfigureModuleResult> {
   const buildDeps = moduleConfig.build.dependencies
@@ -52,15 +51,6 @@ export async function configureExecModule({
       }
     )
   }
-
-  moduleConfig.spec = validateWithPath({
-    config: moduleConfig.spec,
-    configType: "Module",
-    schema: execModuleSpecSchema(),
-    name: moduleConfig.name,
-    path: moduleConfig.path,
-    projectRoot: ctx.projectRoot,
-  })
 
   // All the config keys that affect the build version
   moduleConfig.buildConfig = omit(moduleConfig.spec, ["tasks", "tests", "services"])

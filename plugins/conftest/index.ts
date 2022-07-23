@@ -25,6 +25,7 @@ import { renderTemplates } from "@garden-io/core/build/src/plugins/kubernetes/he
 import { getK8sProvider } from "@garden-io/core/build/src/plugins/kubernetes/util"
 import { TestAction, TestActionConfig } from "@garden-io/core/build/src/actions/test"
 import { TestActionHandlers } from "../../core/build/src/plugin/action-types"
+import { uniq } from "lodash"
 
 export interface ConftestProviderConfig extends GenericProviderConfig {
   policyPath: string
@@ -203,6 +204,28 @@ export const gardenPlugin = () =>
               .description("The Helm Deploy action to validate."),
           }),
           handlers: <TestActionHandlers<TestAction<ConftestHelmTestConfig>>>{
+            configure: async ({ ctx, config }) => {
+              let files = config.spec.files
+
+              if (files.length > 0) {
+                if (!config.include) {
+                  config.include = []
+                }
+
+                try {
+                  files = ctx.resolveTemplateStrings(files)
+                } catch (error) {
+                  throw new ConfigurationError(
+                    `The spec.files field contains a template string which could not be resolved. Note that some template variables are not available for the field. Error: ${error}`,
+                    { config, error }
+                  )
+                }
+                config.include = uniq([...config.include, ...files])
+              }
+
+              return { config }
+            },
+
             run: async ({ ctx, log, action }) => {
               const startedAt = new Date()
               const provider = ctx.provider as ConftestProvider

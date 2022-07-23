@@ -35,6 +35,8 @@ import { TestAction } from "../actions/test"
 import { DoDeployAction } from "./handlers/deploy/deploy"
 import { dedent } from "../util/string"
 import { templateStringLiteral } from "../docs/common"
+import { ValidateAction } from "./handlers/base/validate"
+import { ConfigureActionConfig } from "./handlers/base/configure"
 
 // BASE //
 
@@ -61,16 +63,19 @@ export type WrappedActionTypeHandler<T, N> = GetActionTypeHandler<T, N> & {
   pluginName: string
 }
 
+// TODO-G2: suggest and describe handlers
 const actionTypeClasses = {
   Build: {
-    // validateConfig: new ValidateActionConfig(),
+    configure: new ConfigureActionConfig(),
+    validate: new ValidateAction(),
     build: new DoBuildAction(),
     getStatus: new GetBuildActionStatus(),
     publish: new PublishBuildAction(),
     run: new RunBuildAction(),
   },
   Deploy: {
-    // validateConfig: new ValidateActionConfig(),
+    configure: new ConfigureActionConfig(),
+    validate: new ValidateAction(),
     delete: new DeleteDeploy(),
     deploy: new DoDeployAction(),
     exec: new ExecInDeploy(),
@@ -81,12 +86,14 @@ const actionTypeClasses = {
     stopPortForward: new StopDeployPortForward(),
   },
   Run: {
-    // validateConfig: new ValidateActionConfig(),
+    configure: new ConfigureActionConfig(),
+    validate: new ValidateAction(),
     getResult: new GetRunActionResult(),
     run: new RunRunAction(),
   },
   Test: {
-    // validateConfig: new ValidateActionConfig(),
+    configure: new ConfigureActionConfig(),
+    validate: new ValidateAction(),
     getResult: new GetTestActionResult(),
     run: new RunTestAction(),
   },
@@ -99,9 +106,9 @@ export type ActionTypeClasses<K extends ActionKind> = _ActionTypeClasses[K]
 
 export type ActionHandlers = { [name: string]: ActionTypeHandler<any, any, any, any> }
 
-type BaseHandlers<_ extends Action> = {
-  // TODO: see if this is actually needed, consider only allowing validating fully-resolved Actions
-  // validateConfig: ValidateActionConfig<C>
+type BaseHandlers<A extends Action> = {
+  configure: ConfigureActionConfig<A["_config"]>
+  validate: ValidateAction<A>
 }
 
 export type ActionTypeExtension<H> = {

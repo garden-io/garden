@@ -23,6 +23,7 @@ import { createGardenPlugin } from "../../plugin/plugin"
 import { TestAction, TestActionConfig } from "../../actions/test"
 import { TestActionDefinition } from "../../plugin/action-types"
 import { ContainerBuildAction } from "../container/moduleConfig"
+import { resolveTemplateString } from "../../template-string/template-string"
 
 const defaultConfigPath = join(STATIC_DIR, "hadolint", "default.hadolint.yaml")
 const configFilename = ".hadolint.yaml"
@@ -155,6 +156,28 @@ export const gardenPlugin = () =>
               .description("POSIX-style path to a Dockerfile that you want to lint with `hadolint`."),
           }),
           handlers: {
+            configure: async ({ ctx, config }) => {
+              let dockerfilePath = config.spec.dockerfilePath
+
+              if (!config.include) {
+                config.include = []
+              }
+
+              if (!config.include.includes(dockerfilePath)) {
+                try {
+                  dockerfilePath = ctx.resolveTemplateStrings(dockerfilePath)
+                } catch (error) {
+                  throw new ConfigurationError(
+                    `The spec.dockerfilePath field contains a template string which could not be resolved. Note that some template variables are not available for the field. Error: ${error}`,
+                    { config, error }
+                  )
+                }
+                config.include.push(dockerfilePath)
+              }
+
+              return { config }
+            },
+
             run: async ({ ctx, log, action }) => {
               const spec = action.getSpec()
               const dockerfilePath = join(module.path, spec.dockerfilePath)

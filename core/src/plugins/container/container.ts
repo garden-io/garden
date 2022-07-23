@@ -36,12 +36,15 @@ import {
   containerDeployOutputsSchema,
   containerTestOutputSchema,
   containerRunOutputSchema,
+  ContainerDeployAction,
 } from "./config"
 import { publishContainerBuild } from "./publish"
+import { DeployActionDefinition } from "../../plugin/action-types"
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
 export type ContainerProvider = Provider<ContainerProviderConfig>
 
+// TODO: remove in 0.14. validation should be in the action validation handler.
 export async function configureContainerModule({ log, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
   // validate services
   moduleConfig.serviceConfigs = moduleConfig.spec.services.map((spec) => {
@@ -222,7 +225,7 @@ export const gardenPlugin = () =>
         },
       ],
       Deploy: [
-        {
+        <DeployActionDefinition<ContainerDeployAction>>{
           name: "container",
           docs: dedent`
             Deploy a container image, e.g. in a Kubernetes namespace (when used with the \`kubernetes\` provider).
@@ -232,7 +235,63 @@ export const gardenPlugin = () =>
           schema: containerDeploySchema(),
           outputsSchema: containerDeployOutputsSchema(),
           handlers: {
-            // Implemented by other providers (e.g. kubernetes)
+            // Other handlers are implemented by other providers (e.g. kubernetes)
+
+            async validate({ action }) {
+              // make sure ports are correctly configured
+              const spec = action.getSpec()
+              const definedPorts = spec.ports
+              const portsByName = keyBy(spec.ports, "name")
+
+              for (const ingress of spec.ingresses) {
+                const ingressPort = ingress.port
+
+                if (!portsByName[ingressPort]) {
+                  throw new ConfigurationError(
+                    `${action.longDescription()} does not define port ${ingressPort} defined in ingress`,
+                    {
+                      definedPorts,
+                      ingressPort,
+                    }
+                  )
+                }
+              }
+
+              if (spec.healthCheck && spec.healthCheck.httpGet) {
+                const healthCheckHttpPort = spec.healthCheck.httpGet.port
+
+                if (!portsByName[healthCheckHttpPort]) {
+                  throw new ConfigurationError(
+                    `${action.longDescription()} does not define port ${healthCheckHttpPort} defined in httpGet health check`,
+                    { definedPorts, healthCheckHttpPort }
+                  )
+                }
+              }
+
+              if (spec.healthCheck && spec.healthCheck.tcpPort) {
+                const healthCheckTcpPort = spec.healthCheck.tcpPort
+
+                if (!portsByName[healthCheckTcpPort]) {
+                  throw new ConfigurationError(
+                    `${action.longDescription()} does not define port ${healthCheckTcpPort} defined in tcpPort health check`,
+                    { definedPorts, healthCheckTcpPort }
+                  )
+                }
+              }
+
+              for (const volume of spec.volumes) {
+                if (volume.action && !action.hasDependency(volume.action)) {
+                  throw new ConfigurationError(
+                    `${action.longDescription()} references action ${
+                      volume.action
+                    } under \`spec.volumes\` but does not declare a dependency on it. Please add an explicit dependency on the volume action.`,
+                    { spec }
+                  )
+                }
+              }
+
+              return {}
+            },
           },
         },
       ],

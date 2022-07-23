@@ -31,7 +31,6 @@ export interface ConfigmapDeploySpec extends BaseVolumeSpec {
 }
 
 const commonSpecKeys = () => ({
-  ...baseVolumeSpecKeys(),
   namespace: joiIdentifier().description(
     "The namespace to deploy the ConfigMap in. Note that any module referencing the ConfigMap must be in the same namespace, so in most cases you should leave this unset."
   ),
@@ -57,6 +56,12 @@ export const configmapDeployDefinition = (): DeployActionDefinition<ConfigmapAct
   docs,
   schema: joi.object().keys(commonSpecKeys()),
   handlers: {
+    configure: async ({ config }) => {
+      config.include = []
+      config.spec.accessModes = ["ReadOnlyMany"]
+      return { config }
+    },
+
     deploy: async (params) => {
       const result = await kubernetesDeploy({
         ...(<any>params),
