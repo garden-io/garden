@@ -15,11 +15,12 @@ import {
   joiSparseArray,
   joiUserIdentifier,
 } from "../config/common"
+import { ActionConfigContext } from "../config/template-contexts/actions"
 import { GraphResult, GraphResults } from "../graph/solver"
 import { dedent } from "../util/string"
 import {
   BaseActionConfig,
-  baseActionConfig,
+  baseActionConfigSchema,
   BaseAction,
   includeExcludeSchema,
   ResolvedActionWrapperParams,
@@ -61,11 +62,12 @@ export const copyFromSchema = () =>
   })
 
 export const buildActionConfig = () =>
-  baseActionConfig().keys({
+  baseActionConfigSchema().keys({
     allowPublish: joi
       .boolean()
       .default(true)
-      .description("When false, disables publishing this build to remote registries via the publish command."),
+      .description("When false, disables publishing this build to remote registries via the publish command.")
+      .meta({ templateContext: ActionConfigContext }),
 
     buildAtSource: joi
       .boolean()
@@ -82,13 +84,16 @@ export const buildActionConfig = () =>
 
         While there may be good reasons to do this in some situations, please be aware that this increases the potential for side-effects and variability in builds. **You must take extra care**, including making sure that files generated during builds are excluded with e.g. \`.gardenignore\` files or \`exclude\` fields on potentially affected actions. Another potential issue is causing infinite loops when running with file-watching enabled, basically triggering a new build during the build.
         `
-      ),
+      )
+      .meta({ templateContext: ActionConfigContext }),
 
-    copyFrom: joiSparseArray(copyFromSchema()).description(
-      dedent`
+    copyFrom: joiSparseArray(copyFromSchema())
+      .description(
+        dedent`
         Copy files from other builds, ahead of running this build.
       `
-    ),
+      )
+      .meta({ templateContext: ActionConfigContext }),
 
     include: includeExcludeSchema()
       .description(
@@ -99,7 +104,8 @@ export const buildActionConfig = () =>
 
         You can _exclude_ files using the \`exclude\` field or by placing \`.gardenignore\` files in your source tree, which use the same format as \`.gitignore\` files. See the [Configuration Files guide](${includeGuideLink}) for details.`
       )
-      .example(["my-app.js", "some-assets/**/*"]),
+      .example(["my-app.js", "some-assets/**/*"])
+      .meta({ templateContext: ActionConfigContext }),
     exclude: includeExcludeSchema()
       .description(
         dedent`
@@ -110,9 +116,14 @@ export const buildActionConfig = () =>
         Unlike the \`scan.exclude\` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes when watching is enabled. Use the project \`scan.exclude\` field to affect those, if you have large directories that should not be watched for changes.
         `
       )
-      .example(["tmp/**/*", "*.log"]),
+      .example(["tmp/**/*", "*.log"])
+      .meta({ templateContext: ActionConfigContext }),
 
-    timeout: joi.number().integer().description("Set a timeout for the build to complete, in seconds."),
+    timeout: joi
+      .number()
+      .integer()
+      .description("Set a timeout for the build to complete, in seconds.")
+      .meta({ templateContext: ActionConfigContext }),
   })
 
 export class BuildAction<C extends BuildActionConfig = BuildActionConfig, O extends {} = any> extends BaseAction<C, O> {

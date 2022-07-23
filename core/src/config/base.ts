@@ -23,7 +23,10 @@ import { ModuleTemplateKind, moduleTemplateKind } from "./module-template"
 import { isTruthy } from "../util/util"
 import { PrimitiveMap } from "./common"
 import { emitNonRepeatableWarning } from "../warnings"
-import { actionKinds } from "../actions/base"
+import { ActionKind, actionKinds } from "../actions/base"
+import { mayContainTemplateString } from "../template-string/template-string"
+
+export const noTemplateFields = ["apiVersion", "kind", "type", "name", "description"]
 
 export interface GardenResource {
   apiVersion: string
@@ -33,7 +36,7 @@ export interface GardenResource {
   configPath?: string
 }
 
-export type ConfigKind = "Module" | "Workflow" | "Project" | ModuleTemplateKind
+export type ConfigKind = "Module" | "Workflow" | "Project" | ModuleTemplateKind | ActionKind
 
 /**
  * Attempts to parse content as YAML, and applies a linter to produce more informative error messages when
@@ -99,15 +102,19 @@ function prepareResource({
   projectRoot: string
   allowInvalid?: boolean
 }): GardenResource | null {
+  const relPath = relative(projectRoot, configPath)
+
   if (!isPlainObject(spec)) {
-    throw new ConfigurationError(`Invalid configuration found in ${configPath}`, {
-      spec,
-      configPath,
-    })
+    throw new ConfigurationError(
+      `Invalid configuration found in ${relPath}. Expected mapping object but got ${typeof spec}.`,
+      {
+        spec,
+        configPath,
+      }
+    )
   }
 
   const kind = spec.kind
-  const relPath = relative(projectRoot, configPath)
 
   if (!spec.apiVersion) {
     spec.apiVersion = DEFAULT_API_VERSION
@@ -115,6 +122,17 @@ function prepareResource({
 
   spec.path = dirname(configPath)
   spec.configPath = configPath
+
+  if (!allowInvalid) {
+    for (const field of noTemplateFields) {
+      if (spec[field] && mayContainTemplateString(spec[field])) {
+        throw new ConfigurationError(
+          `Resource in ${relPath} has a template string in field '${field}', which does not allow templating.`,
+          { spec, configPath }
+        )
+      }
+    }
+  }
 
   if (kind === "Project") {
     return prepareProjectResource(spec)

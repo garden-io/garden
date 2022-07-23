@@ -10,7 +10,7 @@ import { dedent } from "../../../util/string"
 import { joi, joiArray } from "../../../config/common"
 import { LogEntry } from "../../../logger/log-entry"
 import { ActionHandlerParamsBase } from "../../../plugin/plugin"
-import { BaseActionConfig, baseActionConfig } from "../../../actions/base"
+import { BaseActionConfig, baseActionConfigSchema } from "../../../actions/base"
 import { ActionTypeHandlerSpec } from "./base"
 
 export const maxDescriptionLength = 48
@@ -37,7 +37,7 @@ const suggestionSchema = () =>
       A short description (anything longer than ${maxDescriptionLength} chars will be truncated) of the action being suggested. If specified, this is shown in the list of suggested actions in the \`garden create action\` command, to help distinguish between multiple candidates and explain why the suggestion was made.
       `
     ),
-    action: baseActionConfig()
+    action: baseActionConfigSchema()
       .required()
       .description(
         dedent`

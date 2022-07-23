@@ -15,7 +15,7 @@ import {
   readTreeVersionFile,
   GetFilesParams,
   VcsFile,
-  getModuleTreeCacheKey,
+  getResourceTreeCacheKey,
   hashModuleVersion,
   NamedModuleVersion,
   NamedTreeVersion,
@@ -216,7 +216,7 @@ describe("VcsHandler", () => {
 
     it("should get a cached tree version if available", async () => {
       const moduleConfig = await gardenA.resolveModule("module-a")
-      const cacheKey = getModuleTreeCacheKey(moduleConfig)
+      const cacheKey = getResourceTreeCacheKey(moduleConfig)
 
       const cachedResult = { contentHash: "abcdef", files: ["foo"] }
       handlerA["cache"].set(gardenA.log, cacheKey, cachedResult, ["foo", "bar"])
@@ -227,7 +227,7 @@ describe("VcsHandler", () => {
 
     it("should cache the resolved version", async () => {
       const moduleConfig = await gardenA.resolveModule("module-a")
-      const cacheKey = getModuleTreeCacheKey(moduleConfig)
+      const cacheKey = getResourceTreeCacheKey(moduleConfig)
 
       const result = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
       const cachedResult = handlerA["cache"].get(gardenA.log, cacheKey)

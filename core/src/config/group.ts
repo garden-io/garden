@@ -7,7 +7,7 @@
  */
 
 import dedent from "dedent"
-import { baseActionConfig, BaseActionConfig } from "../actions/base"
+import { baseActionConfigSchema, BaseActionConfig } from "../actions/base"
 import { templateStringLiteral } from "../docs/common"
 import { apiVersionSchema, DeepPrimitiveMap, joi, joiSparseArray, joiUserIdentifier, joiVariables } from "./common"
 import { varfileDescription } from "./project"
@@ -59,7 +59,7 @@ export const groupConfig = () =>
       .example("my-action.env"),
 
     // Actions
-    actions: joiSparseArray(baseActionConfig()).description(
+    actions: joiSparseArray(baseActionConfigSchema()).description(
       dedent`
         A list of actions to include in this group.
 

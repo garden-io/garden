@@ -2,13 +2,13 @@
   "extends": "../tsconfig.base.json",
   "include": [
     "src/**/*.ts",
-    // "test/*.ts",
-    // "test/e2e/*.ts",
-    // "test/e2e/**/*.ts",
-    // "test/integ/*.ts",
-    // "test/integ/src/**/*.ts",
-    // "test/unit/*.ts",
-    // "test/unit/src/**/*.ts"
+    "test/*.ts",
+    "test/e2e/*.ts",
+    "test/e2e/**/*.ts",
+    "test/integ/*.ts",
+    "test/integ/src/**/*.ts",
+    "test/unit/*.ts",
+    "test/unit/src/**/*.ts"
   ],
   "compilerOptions": {
     "composite": true,

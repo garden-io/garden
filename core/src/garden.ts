@@ -113,7 +113,7 @@ import {
 import { TemplatedModuleConfig } from "./plugins/templated"
 import { BuildDirRsync } from "./build-staging/rsync"
 import { CloudApi } from "./cloud/api"
-import { DefaultEnvironmentContext, RemoteSourceConfigContext } from "./config/template-contexts/project"
+import { DefaultEnvironmentContext, ProjectConfigContext, RemoteSourceConfigContext } from "./config/template-contexts/project"
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { ProviderConfigContext } from "./config/template-contexts/provider"
 import { getSecrets } from "./cloud/get-secrets"
@@ -121,7 +121,7 @@ import { ConfigContext } from "./config/template-contexts/base"
 import { validateSchema, validateWithPath } from "./config/validation"
 import { pMemoizeDecorator } from "./lib/p-memoize"
 import { ModuleGraph } from "./graph/modules"
-import { Action, BaseAction } from "./actions/base"
+import { Action, ActionConfigMap, actionKinds, BaseAction, BaseActionConfig } from "./actions/base"
 import { GraphSolver, SolveParams, SolveResult } from "./graph/solver"
 
 export interface ActionHandlerMap<T extends keyof ProviderHandlers> {
@@ -192,6 +192,7 @@ export interface GardenParams {
 export class Garden {
   public log: LogEntry
   private loadedPlugins: GardenPlugin[]
+  protected actionConfigs: ActionConfigMap
   protected moduleConfigs: ModuleConfigMap
   protected workflowConfigs: WorkflowConfigMap
   private resolvedProviders: { [key: string]: Provider }
@@ -207,7 +208,7 @@ export class Garden {
   public readonly globalConfigStore: GlobalConfigStore
   public readonly vcs: VcsHandler
   public readonly cache: TreeCache
-  private actionHelper: ActionRouter
+  private actionRouter: ActionRouter
   public readonly events: EventBus
   private tools: { [key: string]: PluginTool }
   public moduleTemplates: { [name: string]: ModuleTemplateConfig }
@@ -307,6 +308,12 @@ export class Garden {
     this.configStore = new LocalConfigStore(this.gardenDirPath)
     this.globalConfigStore = new GlobalConfigStore()
 
+    this.actionConfigs = {
+      Build: {},
+      Deploy: {},
+      Run: {},
+      Test: {},
+    }
     this.moduleConfigs = {}
     this.workflowConfigs = {}
     this.registeredPlugins = [...getBuiltinPlugins(), ...params.plugins]
@@ -364,6 +371,12 @@ export class Garden {
       templateContext || new ProviderConfigContext(this, provider.dependencies, this.variables),
       events
     )
+  }
+
+  getProjectConfigContext() {
+    const loggedIn = !!this.cloudApi
+    const enterpriseDomain = this.cloudApi?.domain
+    return new ProjectConfigContext({ ...this, loggedIn, enterpriseDomain })
   }
 
   async clearBuilds() {
@@ -702,7 +715,7 @@ export class Garden {
   }
 
   async getActionRouter() {
-    if (!this.actionHelper) {
+    if (!this.actionRouter) {
       const loadedPlugins = await this.getAllPlugins()
       const moduleTypes = await this.getModuleTypes()
       const plugins = keyBy(loadedPlugins, "name")
@@ -710,10 +723,10 @@ export class Garden {
       // We only pass configured plugins to the router (others won't have the required configuration to call handlers)
       const configuredPlugins = this.getRawProviderConfigs().map((c) => plugins[c.name])
 
-      this.actionHelper = new ActionRouter(this, configuredPlugins, loadedPlugins, moduleTypes)
+      this.actionRouter = new ActionRouter(this, configuredPlugins, loadedPlugins, moduleTypes)
     }
 
-    return this.actionHelper
+    return this.actionRouter
   }
 
   /**
@@ -1028,13 +1041,24 @@ export class Garden {
 
       rawModuleConfigs.push(...resolvedTemplated.flatMap((c) => c.modules))
 
-      // Add all the module and workflow configs
-      await Bluebird.all([
-        Bluebird.map(rawModuleConfigs, async (config) => this.addModuleConfig(config)),
-        Bluebird.map(rawWorkflowConfigs, async (config) => this.addWorkflow(config)),
-      ])
+      // TODO-G2: GroupTemplates
 
-      this.log.silly(`Scanned and found ${rawModuleConfigs.length} modules and ${rawWorkflowConfigs.length} workflows`)
+      // Add all the configs
+      rawModuleConfigs.map((c) => this.addModuleConfig(c))
+      rawWorkflowConfigs.map((c) => this.addWorkflow(c))
+
+      let actionsCount = 0
+
+      for (const kind of actionKinds) {
+        for (const config of allResources[kind] || []) {
+          this.addActionConfig(config)
+          actionsCount++
+        }
+      }
+
+      this.log.debug(
+        `Scanned and found ${actionsCount} actions, ${rawWorkflowConfigs.length} workflows and ${rawModuleConfigs.length} modules`
+      )
 
       this.configsScanned = true
       this.moduleTemplates = keyBy(moduleTemplates, "name")
@@ -1042,16 +1066,32 @@ export class Garden {
   }
 
   /**
-   * Returns true if a module has been configured in this project with the specified name.
+   * Add an action config to the context, after validating and calling the appropriate configure plugin handler.
    */
-  hasModule(name: string) {
-    return !!this.moduleConfigs[name]
+  private addActionConfig(config: BaseActionConfig) {
+    this.log.silly(`Adding ${config.kind} action ${config.name}`)
+    const existing = this.actionConfigs[config.kind][config.name]
+
+    if (existing) {
+      const paths = [existing.configPath || existing.basePath, config.configPath || config.basePath]
+      const [pathA, pathB] = paths.map((path) => relative(this.projectRoot, path)).sort()
+
+      throw new ConfigurationError(
+        `${config.kind} action ${config.name} is declared multiple times (in '${pathA}' and '${pathB}')`,
+        {
+          pathA,
+          pathB,
+        }
+      )
+    }
+
+    this.actionConfigs[config.kind][config.name] = config
   }
 
   /**
    * Add a module config to the context, after validating and calling the appropriate configure plugin handler.
    */
-  private async addModuleConfig(config: ModuleConfig) {
+  private addModuleConfig(config: ModuleConfig) {
     const key = config.name
     this.log.silly(`Adding module ${key}`)
     const existing = this.moduleConfigs[key]
@@ -1074,7 +1114,7 @@ export class Garden {
    * added workflows, and partially resolving it (i.e. without fully resolving step configs, which
    * is done just-in-time before a given step is run).
    */
-  private async addWorkflow(config: WorkflowConfig) {
+  private addWorkflow(config: WorkflowConfig) {
     const key = config.name
     this.log.silly(`Adding workflow ${key}`)
 

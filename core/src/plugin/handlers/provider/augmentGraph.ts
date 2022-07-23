@@ -11,7 +11,7 @@ import { dedent } from "../../../util/string"
 import { joi, joiArray, joiIdentifier, joiIdentifierMap } from "../../../config/common"
 import { baseModuleSpecSchema } from "../../../config/module"
 import { providerSchema, ProviderMap } from "../../../config/provider"
-import { BaseAction, baseActionConfig, BaseActionConfig } from "../../../actions/base"
+import { BaseAction, baseActionConfigSchema, BaseActionConfig } from "../../../actions/base"
 
 export interface AugmentGraphParams extends PluginActionParamsBase {
   actions: BaseAction[]
@@ -44,7 +44,7 @@ export const augmentGraph = () => ({
     and avoid any external I/O.
   `,
   paramsSchema: actionParamsSchema().keys({
-    actions: joiArray(baseActionConfig()).description(
+    actions: joiArray(baseActionConfigSchema()).description(
       dedent`
           A list of all previously defined actions in the project, including all actions added by any \`augmentGraph\`
           handlers defined by other providers that this provider depends on.
@@ -75,7 +75,7 @@ export const augmentGraph = () => ({
       ),
     addActions: joi
       .array()
-      .items(baseActionConfig().optional())
+      .items(baseActionConfigSchema().optional())
       .description(
         dedent`
           Add actions (of any defined kind) to the stack graph. Each should be an action spec in the same format as a normal action specified in a \`garden.yml\` config file (which will later be passed to the appropriate \`configure\` handler(s) for the action type).
