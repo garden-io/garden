@@ -11,7 +11,7 @@ import { joi } from "../config/common"
 import { dedent } from "../util/string"
 import { createGardenPlugin } from "../plugin/plugin"
 
-type VolumeAccessMode = "ReadOnlyMany" | "ReadWriteOnce" | "ReadWriteMany"
+export type VolumeAccessMode = "ReadOnlyMany" | "ReadWriteOnce" | "ReadWriteMany"
 
 export interface BaseVolumeSpec extends ModuleSpec {
   accessModes: VolumeAccessMode[]
@@ -21,7 +21,6 @@ export const baseVolumeSpecKeys = () => ({
   accessModes: joi
     .sparseArray()
     .items(joi.string().allow("ReadOnlyMany", "ReadWriteOnce", "ReadWriteMany"))
-    .required()
     .unique()
     .min(1).description(dedent`
       A list of access modes supported by the volume when mounting. At least one must be specified. The available modes are as follows:

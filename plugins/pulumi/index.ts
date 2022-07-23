@@ -14,8 +14,11 @@ import { getPulumiCommands } from "./commands"
 
 import { joiVariables } from "@garden-io/core/build/src/config/common"
 import { pulumiCliSPecs } from "./cli"
-import { PulumiDeployConfig, pulumiDeploySpecSchema, pulumiProviderConfigSchema } from "./config"
+import { PulumiDeployConfig, pulumiDeploySpecSchema, PulumiProvider, pulumiProviderConfigSchema } from "./config"
 import { ExecBuildConfig } from "@garden-io/core/src/plugins/exec/config"
+import { join } from "path"
+import { pathExists } from "fs-extra"
+import { ConfigurationError } from "@garden-io/sdk/exceptions"
 
 // Need to make these variables to avoid escaping issues
 const moduleOutputsTemplateString = "${runtime.services.<module-name>.outputs.<key>}"
@@ -51,6 +54,31 @@ export const gardenPlugin = () =>
           schema: pulumiDeploySpecSchema(),
           outputsSchema: outputsSchema(),
           handlers: {
+            configure: async ({ ctx, config }) => {
+              const provider = ctx.provider as PulumiProvider
+
+              if (!config.spec.version) {
+                config.spec.version = provider.config.version
+              }
+
+              return { config }
+            },
+
+            validate: async ({ action }) => {
+              const root = action.getSpec("root")
+              if (root) {
+                const absRoot = join(action.basePath(), root)
+                const exists = await pathExists(absRoot)
+
+                if (!exists) {
+                  throw new ConfigurationError(`Pulumi: configured working directory '${root}' does not exist`, {
+                    root,
+                  })
+                }
+              }
+              return {}
+            },
+
             deploy: deployPulumi,
             getStatus: getPulumiDeployStatus,
             delete: deletePulumiDeploy,

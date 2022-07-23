@@ -124,6 +124,35 @@ export const gardenPlugin = () =>
           schema: terraformModuleSchema(),
           outputsSchema: terraformDeployOutputsSchema(),
           handlers: {
+            configure: async ({ ctx, config }) => {
+              const provider = ctx.provider as TerraformProvider
+
+              // Use the provider config if no value is specified for the module
+              if (config.spec.autoApply === null) {
+                config.spec.autoApply = provider.config.autoApply
+              }
+              if (!config.spec.version) {
+                config.spec.version = provider.config.version
+              }
+
+              return { config }
+            },
+
+            validate: async ({ action }) => {
+              const root = action.getSpec("root")
+              if (root) {
+                const absRoot = join(action.basePath(), root)
+                const exists = await pathExists(absRoot)
+
+                if (!exists) {
+                  throw new ConfigurationError(`Terraform: configured root directory '${root}' does not exist`, {
+                    root,
+                  })
+                }
+              }
+              return {}
+            },
+
             deploy: deployTerraform,
             getStatus: getTerraformStatus,
             delete: deleteTerraformModule,

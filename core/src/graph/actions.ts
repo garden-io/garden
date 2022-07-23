@@ -117,6 +117,8 @@ export async function actionConfigsToGraph({
     })
   )
 
+  // Call configure handlers
+
   // Extract implicit dependencies from template references
 }
 

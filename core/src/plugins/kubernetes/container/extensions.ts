@@ -28,6 +28,7 @@ import { getKanikoBuildStatus, kanikoBuild } from "./build/kaniko"
 import { getLocalBuildStatus, localBuild } from "./build/local"
 import { k8sContainerDeploy } from "./deployment"
 import { execInContainer } from "./exec"
+import { validateDeploySpec } from "./handlers"
 import { k8sGetContainerDeployLogs } from "./logs"
 import { k8sPublishContainerBuild } from "./publish"
 import { k8sContainerRun, k8sRunContainerBuild, k8sRunContainerDeploy } from "./run"
@@ -70,6 +71,10 @@ export const k8sContainerDeployExtension = (): DeployActionExtension<ContainerDe
     },
     getStatus: k8sGetContainerDeployStatus,
     run: k8sRunContainerDeploy,
+    validate: async ({ ctx, action }) => {
+      validateDeploySpec(action.name, <KubernetesProvider>ctx.provider, action.getSpec())
+      return {}
+    }
   },
 })
 
