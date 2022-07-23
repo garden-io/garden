@@ -20,7 +20,7 @@ import {
 import { GardenPlugin, ActionHandler, PluginMap } from "../plugin/plugin"
 import { PluginEventBroker } from "../plugin-context"
 import { ConfigContext } from "../config/template-contexts/base"
-import { ActionKind, BaseAction } from "../actions/base"
+import { ActionKind, BaseAction, BaseActionConfig } from "../actions/base"
 import {
   ActionTypeDefinition,
   ActionTypeMap,
@@ -37,7 +37,7 @@ import { getActionTypeBases, getPluginBases, getPluginDependencies } from "../pl
 import { getNames } from "../util/util"
 import { defaultProvider } from "../config/provider"
 import { ConfigGraph } from "../graph/config-graph"
-import { ActionConfigContext } from "../config/template-contexts/actions"
+import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
 
 export type CommonParams = keyof PluginActionContextParams
 export type RequirePluginName<T> = T & { pluginName: string }
@@ -220,6 +220,31 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     }
   }
 
+  async configure({ config, log }: { config: BaseActionConfig; log: LogEntry }) {
+    if (config.kind !== this.kind) {
+      throw new InternalError(`Attempted to call ${this.kind} handler for ${config.kind} action`, {})
+    }
+
+    const handler = await this.getHandler({
+      handlerType: "configure",
+      actionType: config.type,
+    })
+
+    const templateContext = new ActionConfigContext(this.garden, this.garden.variables)
+
+    const commonParams = await this.commonParams(handler, log, templateContext)
+
+    const result = handler({
+      ...commonParams,
+      config,
+    })
+
+    // TODO-G2: resolve template strings on built-in fields
+    // TODO-G2: validate result
+
+    return result
+  }
+
   async callHandler<T extends keyof ActionTypeClasses<K>>({
     params,
     handlerType,
@@ -238,6 +263,10 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
     log.silly(`Getting '${String(handlerType)}' handler for ${action.longDescription()}`)
 
+    if (action.kind !== this.kind) {
+      throw new InternalError(`Attempted to call ${this.kind} handler for ${action.kind} action`, {})
+    }
+
     const handler = await this.getHandler({
       actionType: action.type,
       handlerType,
@@ -246,7 +275,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     })
 
     const providers = await this.garden.resolveProviders(log)
-    const templateContext = new ActionConfigContext({
+    const templateContext = new ActionSpecContext({
       garden: this.garden,
       resolvedProviders: providers,
       action,
@@ -264,7 +293,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     const result: GetActionTypeResults<ActionTypeClasses<K>[T]> = await handler(handlerParams)
 
     // Validate result
-
+    // TODO-G2
 
     return result
   }

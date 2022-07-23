@@ -37,7 +37,7 @@ import { actionOutputsSchema } from "../plugin/handlers/base/base"
 import { GraphResult, GraphResults } from "../graph/solver"
 import { RunResult } from "../plugin/base"
 import { Memoize } from "typescript-memoize"
-import { fromPairs } from "lodash"
+import { fromPairs, isString } from "lodash"
 import { ActionConfigContext } from "../config/template-contexts/actions"
 
 export { ActionKind } from "../plugin/action-types"
@@ -442,6 +442,18 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
 
   getDependencyReferences(): ActionReference[] {
     return this._config.dependencies?.map(parseActionReference) || []
+  }
+
+  hasDependency(refOrString: string | ActionReference) {
+    const ref = isString(refOrString) ? parseActionReference(refOrString) : refOrString
+
+    for (const dep of this.dependencies) {
+      if (ref.kind === dep.kind && ref.name === dep.name) {
+        return true
+      }
+    }
+
+    return false
   }
 
   // Note: Making this name verbose so that people don't accidentally use this instead of versionString()

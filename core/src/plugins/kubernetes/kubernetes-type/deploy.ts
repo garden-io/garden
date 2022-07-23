@@ -19,6 +19,8 @@ import {
   getKubernetesDeployStatus,
   kubernetesDeploy,
 } from "./handlers"
+import { ConfigurationError } from "../../../exceptions"
+import { uniq } from "lodash"
 
 export const kubernetesDeployDocs = dedent`
   Specify one or more Kubernetes manifests to deploy.
@@ -38,6 +40,28 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
   schema: kubernetesDeploySchema(),
   // outputsSchema: kubernetesDeployOutputsSchema(),
   handlers: {
+    configure: async ({ ctx, config }) => {
+      let files = config.spec.files
+
+      if (files.length > 0 && !config.spec.kustomize) {
+        if (!config.include) {
+          config.include = []
+        }
+
+        try {
+          files = ctx.resolveTemplateStrings(files)
+        } catch (error) {
+          throw new ConfigurationError(
+            `The spec.files field contains a template string which could not be resolved. Note that some template variables are not available for the field. Error: ${error}`,
+            { config, error }
+          )
+        }
+        config.include = uniq([...config.include, ...files])
+      }
+
+      return { config }
+    },
+
     deploy: kubernetesDeploy,
     delete: deleteKubernetesDeploy,
     exec: execInKubernetesDeploy,
