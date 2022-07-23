@@ -11,12 +11,44 @@ import { Garden } from "../../garden"
 import { RuntimeContext } from "../../runtime-context"
 import { GardenModule } from "../../types/module"
 import { deline } from "../../util/string"
-import { DeepPrimitiveMap, joi, joiIdentifierMap, joiPrimitive, PrimitiveMap } from "../common"
+import { DeepPrimitiveMap, joi, joiIdentifierMap, joiPrimitive, joiVariables, PrimitiveMap } from "../common"
 import { ProviderMap } from "../provider"
 import { ConfigContext, schema } from "./base"
 import { exampleVersion, ModuleConfigContext } from "./module"
+import { RemoteSourceConfigContext } from "./project"
 
-export class ActionResultContext extends ConfigContext {
+/**
+ * This is available to built-in fields on action configs. See ActionSpecContext below for the context available
+ * for action spec and variables.
+ */
+export class ActionConfigContext extends RemoteSourceConfigContext {}
+
+interface ActionReferenceContextParams {
+  root: ConfigContext
+  disabled: boolean
+  variables: DeepPrimitiveMap
+}
+
+class ActionReferenceContext extends ConfigContext {
+  @schema(joi.boolean().required().description("Whether the action is disabled.").example(true))
+  public disabled: boolean
+
+  @schema(joiVariables().required().description("The variables configured on the action.").example({ foo: "bar" }))
+  public var: DeepPrimitiveMap
+
+  constructor({ root, disabled, variables }: ActionReferenceContextParams) {
+    super(root)
+    this.disabled = disabled
+    this.var = variables
+  }
+}
+
+interface ActionResultContextParams extends ActionReferenceContextParams {
+  outputs: PrimitiveMap
+  version: string
+}
+
+class ActionResultContext extends ActionReferenceContext {
   @schema(
     joiIdentifierMap(
       joiPrimitive().description(
@@ -37,10 +69,10 @@ export class ActionResultContext extends ConfigContext {
   @schema(joi.string().required().description("The current version of the action.").example(exampleVersion))
   public version: string
 
-  constructor(root: ConfigContext, outputs: PrimitiveMap, version: string) {
-    super(root)
-    this.outputs = outputs
-    this.version = version
+  constructor(params: ActionResultContextParams) {
+    super(params)
+    this.outputs = params.outputs
+    this.version = params.version
   }
 }
 
@@ -51,7 +83,7 @@ const _actionResultContextSchema = joiIdentifierMap(ActionResultContext.getSchem
 const actionResultContextSchema = (kind: string) =>
   _actionResultContextSchema.description(`Information about a ${kind} action dependency, including its outputs.`)
 
-class ActionReferenceContext extends ConfigContext {
+class ActionReferencesContext extends ConfigContext {
   @schema(actionResultContextSchema("Build"))
   public build: Map<string, ActionResultContext>
 
@@ -83,7 +115,10 @@ class ActionReferenceContext extends ConfigContext {
 
     if (runtimeContext) {
       for (const dep of runtimeContext.dependencies) {
-        this[dep.kind].set(dep.name, new ActionResultContext(this, dep.outputs, dep.version))
+        this[dep.kind].set(
+          dep.name,
+          new ActionResultContext({ root: this, outputs: dep.outputs, version: dep.version })
+        )
       }
     }
 
@@ -107,18 +142,18 @@ export interface ActionConfigContextParams {
 }
 
 /**
- * Used to resolve action configurations.
+ * Used to resolve action spec and variables.
  */
-export class ActionConfigContext extends ModuleConfigContext {
+export class ActionSpecContext extends ModuleConfigContext {
   @schema(
-    ActionReferenceContext.getSchema().description(
+    ActionReferencesContext.getSchema().description(
       "Runtime outputs and information from other actions (only resolved at runtime when executing actions)."
     )
   )
-  public action: ActionReferenceContext
+  public action: ActionReferencesContext
 
-  @schema(ActionReferenceContext.getSchema().description("Alias for `action`."))
-  public runtime: ActionReferenceContext
+  @schema(ActionReferencesContext.getSchema().description("Alias for `action`."))
+  public runtime: ActionReferencesContext
 
   constructor(params: ActionConfigContextParams) {
     const { action, garden, partialRuntimeResolution, runtimeContext } = params
@@ -136,7 +171,7 @@ export class ActionConfigContext extends ModuleConfigContext {
       variables: { ...garden.variables, ...params.variables },
     })
 
-    this.action = new ActionReferenceContext(this, partialRuntimeResolution, runtimeContext)
+    this.action = new ActionReferencesContext(this, partialRuntimeResolution, runtimeContext)
     this.runtime = this.action
 
     // TODO-G2
