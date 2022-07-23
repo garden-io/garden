@@ -69,10 +69,10 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
   protected dependencyGraph: GraphNodes
 
   protected actions: {
-    build: { [key: string]: M["build"] }
-    deploy: { [key: string]: M["deploy"] }
-    run: { [key: string]: M["run"] }
-    test: { [key: string]: M["test"] }
+    Build: { [key: string]: M["Build"] }
+    Deploy: { [key: string]: M["Deploy"] }
+    Run: { [key: string]: M["Run"] }
+    Test: { [key: string]: M["Test"] }
   }
 
   protected moduleGraph: ModuleGraph
@@ -80,10 +80,10 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
   constructor(modules: GardenModule[], moduleTypes: ModuleTypeMap) {
     this.dependencyGraph = {}
     this.actions = {
-      build: {},
-      deploy: {},
-      run: {},
-      test: {},
+      Build: {},
+      Deploy: {},
+      Run: {},
+      Test: {},
     }
     this.moduleGraph = new ModuleGraph(modules, moduleTypes)
   }
@@ -175,35 +175,35 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
   }
 
   getBuild(name: string, opts?: GetActionOpts) {
-    return this.getActionByKind("build", name, opts)
+    return this.getActionByKind("Build", name, opts)
   }
 
   getDeploy(name: string, opts?: GetActionOpts) {
-    return this.getActionByKind("deploy", name, opts)
+    return this.getActionByKind("Deploy", name, opts)
   }
 
   getRun(name: string, opts?: GetActionOpts) {
-    return this.getActionByKind("run", name, opts)
+    return this.getActionByKind("Run", name, opts)
   }
 
   getTest(name: string, opts?: GetActionOpts) {
-    return this.getActionByKind("test", name, opts)
+    return this.getActionByKind("Test", name, opts)
   }
 
   getBuilds(params: GetActionsParams = {}) {
-    return this.getActionsByKind("build", params)
+    return this.getActionsByKind("Build", params)
   }
 
   getDeploys(params: GetActionsParams = {}) {
-    return this.getActionsByKind("deploy", params)
+    return this.getActionsByKind("Deploy", params)
   }
 
   getRuns(params: GetActionsParams = {}) {
-    return this.getActionsByKind("run", params)
+    return this.getActionsByKind("Run", params)
   }
 
   getTests(params: GetActionsParams = {}) {
-    return this.getActionsByKind("test", params)
+    return this.getActionsByKind("Test", params)
   }
 
   /*
@@ -465,7 +465,7 @@ export class ConfigGraphNode {
 
   private traverse(type: "dependants" | "dependencies", recursive: boolean, filter?: DependencyRelationFilterFn) {
     const nodes = this[type].filter((n) => {
-      if (n.type !== "build" && n.disabled) {
+      if (n.type !== "Build" && n.disabled) {
         return false
       } else if (filter) {
         return filter(n)

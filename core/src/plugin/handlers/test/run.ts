@@ -22,7 +22,7 @@ type TestActionParams<T extends TestAction> = PluginTestActionParamsBase<T> &
   }
 
 export class RunTestAction<T extends TestAction = TestAction> extends ActionTypeHandlerSpec<
-  "test",
+  "Test",
   TestActionParams<T>,
   GetTestResult<T>
 > {

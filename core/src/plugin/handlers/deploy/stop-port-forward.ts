@@ -16,7 +16,7 @@ import { ActionTypeHandlerSpec } from "../base/base"
 type StopPortForwardParams<T extends DeployAction> = PluginDeployActionParamsBase<T> & ForwardablePort
 
 export class StopDeployPortForward<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
-  "deploy",
+  "Deploy",
   StopPortForwardParams<T>,
   {}
 > {

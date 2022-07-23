@@ -121,7 +121,7 @@ export class BuildCommand extends Command<Args, Opts> {
         ...actions,
         ...flatten(
           actions.map((m) =>
-            graph.getDependants({ kind: "build", name: m.name, recursive: true }).filter(isBuildAction)
+            graph.getDependants({ kind: "Build", name: m.name, recursive: true }).filter(isBuildAction)
           )
         ),
       ])
@@ -155,7 +155,7 @@ export class BuildCommand extends Command<Args, Opts> {
       watch: opts.watch,
       initialTasks,
       changeHandler: async (newGraph, updatedAction) => {
-        const deps = newGraph.getDependants({ kind: "build", name: updatedAction.name, recursive: true })
+        const deps = newGraph.getDependants({ kind: "Build", name: updatedAction.name, recursive: true })
         const tasks = deps
           .filter(isBuildAction)
           .filter((a) => buildNames.includes(a.name))

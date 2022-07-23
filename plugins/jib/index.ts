@@ -122,7 +122,7 @@ export const gardenPlugin = () =>
     tools: [mavenSpec, gradleSpec, ...openJdkSpecs],
 
     createActionTypes: {
-      build: [
+      Build: [
         {
           name: "jib-container",
           base: "container",
@@ -243,10 +243,10 @@ export const gardenPlugin = () =>
             const output: ConvertModuleResult = await base!(params)
 
             const actions = output.group!.actions
-            const buildActionIndex = actions.findIndex((a) => a.kind === "build")
+            const buildActionIndex = actions.findIndex((a) => a.kind === "Build")
 
             const buildAction: JibBuildConfig = {
-              kind: "build",
+              kind: "Build",
               type: "jib-container",
               name: module.name,
               ...params.baseFields,

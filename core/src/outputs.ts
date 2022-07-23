@@ -47,9 +47,9 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
       needModules.push(ref[1] as string)
     } else if (ref[0] === "runtime" && ref[2]) {
       if (ref[1] === "services") {
-        needActions.push({ kind: "deploy", name: ref[2] as string })
+        needActions.push({ kind: "Deploy", name: ref[2] as string })
       } else if (ref[1] === "tasks") {
-        needActions.push({ kind: "run", name: ref[2] as string })
+        needActions.push({ kind: "Run", name: ref[2] as string })
       }
     } else if (ref[0] === "action" && ref[1] && ref[2]) {
       needActions.push({ kind: <ActionKind>ref[1], name: ref[2] as string })

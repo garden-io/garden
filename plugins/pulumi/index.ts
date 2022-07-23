@@ -38,7 +38,7 @@ export const gardenPlugin = () =>
     commands: getPulumiCommands(),
 
     createActionTypes: {
-      deploy: [
+      Deploy: [
         {
           name: "terraform",
           docs: dedent`
@@ -83,7 +83,7 @@ export const gardenPlugin = () =>
             }
 
             actions.push({
-              kind: "deploy",
+              kind: "Deploy",
               type: "pulumi",
               name: module.name,
               ...params.baseFields,

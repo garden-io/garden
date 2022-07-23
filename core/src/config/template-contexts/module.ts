@@ -162,9 +162,9 @@ class RuntimeConfigContext extends ConfigContext {
 
     if (runtimeContext) {
       for (const dep of runtimeContext.dependencies) {
-        if (dep.kind === "deploy") {
+        if (dep.kind === "Deploy") {
           this.services.set(dep.name, new ServiceRuntimeContext(this, dep.outputs, dep.version))
-        } else if (dep.kind === "run") {
+        } else if (dep.kind === "Run") {
           this.tasks.set(dep.name, new TaskRuntimeContext(this, dep.outputs, dep.version))
         }
       }

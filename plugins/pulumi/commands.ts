@@ -249,7 +249,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy> {
 
     const deps = this.graph
       .getDependencies({
-        kind: "deploy",
+        kind: "Deploy",
         name: this.getName(),
         recursive: false,
         filter: (depNode) => pulumiDeployNames.includes(depNode.name),

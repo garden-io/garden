@@ -45,10 +45,10 @@ export interface DeployManyParams {
 export class ActionRouter extends BaseRouter {
   public readonly provider: ProviderRouter
   public readonly module: ModuleRouter
-  public readonly build: WrappedActionRouterHandlers<"build">
-  public readonly deploy: WrappedActionRouterHandlers<"deploy">
-  public readonly run: WrappedActionRouterHandlers<"run">
-  public readonly test: WrappedActionRouterHandlers<"test">
+  public readonly build: WrappedActionRouterHandlers<"Build">
+  public readonly deploy: WrappedActionRouterHandlers<"Deploy">
+  public readonly run: WrappedActionRouterHandlers<"Run">
+  public readonly test: WrappedActionRouterHandlers<"Test">
 
   constructor(
     garden: Garden,

@@ -46,7 +46,7 @@ export const buildResultSchema = () =>
   })
 
 export class DoBuildAction<T extends BuildAction = BuildAction> extends ActionTypeHandlerSpec<
-  "build",
+  "Build",
   DoBuildActionParams<T>,
   BuildResult<T>
 > {

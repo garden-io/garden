@@ -87,7 +87,7 @@ export const gardenPlugin = () =>
           return {}
         }
 
-        const allTestNames = new Set(actions.filter((a) => a.kind === "test").map((m) => m.name))
+        const allTestNames = new Set(actions.filter((a) => a.kind === "Test").map((m) => m.name))
 
         const existingHadolintDockerfiles = actions
           .filter((a) => a.isCompatible("hadolint"))
@@ -97,7 +97,7 @@ export const gardenPlugin = () =>
           addActions: await Bluebird.filter(actions, async (action) => {
             return (
               // Pick all container or container-based modules
-              action.kind === "build" &&
+              action.kind === "Build" &&
               action.isCompatible("container") &&
               // Make sure we don't step on an existing custom hadolint module
               !existingHadolintDockerfiles.includes(resolve(action.basePath(), action.getSpec("dockerfile"))) &&
@@ -117,7 +117,7 @@ export const gardenPlugin = () =>
             allTestNames.add(name)
 
             return {
-              kind: "test",
+              kind: "Test",
               type: "hadolint",
               name,
               description: `hadolint test for '${action.longDescription}' (auto-generated)`,
@@ -134,7 +134,7 @@ export const gardenPlugin = () =>
       },
     },
     createActionTypes: {
-      test: [
+      Test: [
         <TestActionDefinition<HadolintTest>>{
           name: "hadolint",
           docs: dedent`
@@ -294,7 +294,7 @@ export const gardenPlugin = () =>
             return {
               actions: [
                 {
-                  kind: "test",
+                  kind: "Test",
                   type: "hadolint",
                   name: module.name,
 

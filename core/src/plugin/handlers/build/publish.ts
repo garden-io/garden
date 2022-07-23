@@ -33,7 +33,7 @@ export const publishResultSchema = () =>
   })
 
 export class PublishBuildAction<T extends BuildAction = BuildAction> extends ActionTypeHandlerSpec<
-  "build",
+  "Build",
   PublishActionParams<T>,
   PublishActionResult
 > {

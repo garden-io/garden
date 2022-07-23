@@ -19,7 +19,7 @@ interface GetRunResultParams<T extends RunAction> extends PluginRunActionParamsB
 export type GetRunResult<T extends RunAction = RunAction> = ActionStatus<T, RunResult>
 
 export class GetRunActionResult<T extends RunAction> extends ActionTypeHandlerSpec<
-  "run",
+  "Run",
   GetRunResultParams<T>,
   GetRunResult<T>
 > {

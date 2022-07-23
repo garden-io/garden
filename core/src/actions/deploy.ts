@@ -9,16 +9,16 @@
 import { Action, BaseRuntimeActionConfig, baseRuntimeActionConfig, RuntimeAction } from "./base"
 
 export interface DeployActionConfig<N extends string = any, S extends object = any>
-  extends BaseRuntimeActionConfig<"deploy", N, S> {
+  extends BaseRuntimeActionConfig<"Deploy", N, S> {
   type: N
 }
 
 export const deployActionConfig = () => baseRuntimeActionConfig()
 
 export class DeployAction<S extends DeployActionConfig = any, O extends {} = any> extends RuntimeAction<S, O> {
-  kind: "deploy"
+  kind: "Deploy"
 }
 
 export function isDeployAction(action: Action): action is DeployAction {
-  return action.kind === "deploy"
+  return action.kind === "Deploy"
 }

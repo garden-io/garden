@@ -24,7 +24,7 @@ interface GetDeployLogsParams<T extends DeployAction> extends PluginDeployAction
 }
 
 export class GetDeployLogs<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
-  "deploy",
+  "Deploy",
   GetDeployLogsParams<T>,
   {}
 > {

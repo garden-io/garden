@@ -171,14 +171,14 @@ export const gardenPlugin = () =>
     },
 
     createActionTypes: {
-      deploy: [kubernetesDeployDefinition(), helmDeployDefinition()],
-      run: [kubernetesRunDefinition()],
-      test: [kubernetesTestDefinition()],
+      Deploy: [kubernetesDeployDefinition(), helmDeployDefinition()],
+      Run: [kubernetesRunDefinition()],
+      Test: [kubernetesTestDefinition()],
     },
 
     extendActionTypes: {
-      build: [k8sContainerBuildExtension(), k8sJibContainerBuildExtension()],
-      deploy: [k8sContainerDeployExtension()],
+      Build: [k8sContainerBuildExtension(), k8sJibContainerBuildExtension()],
+      Deploy: [k8sContainerDeployExtension()],
     },
 
     createModuleTypes: [
