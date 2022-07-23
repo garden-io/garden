@@ -12,6 +12,7 @@ import {
   resolveTemplateStrings,
   collectTemplateReferences,
   throwOnMissingSecretKeys,
+  getActionTemplateReferences,
 } from "../../../src/template-string/template-string"
 import { ConfigContext } from "../../../src/config/template-contexts/base"
 import { expectError } from "../../helpers"
@@ -1560,6 +1561,62 @@ describe("collectTemplateReferences", () => {
     }
 
     expect(collectTemplateReferences(obj)).to.eql([["banana", "rama", "llama"], ["moo"], ["my", "reference"]])
+  })
+})
+
+describe("getActionTemplateReferences", () => {
+  it("returns valid action references", () => {
+    throw "TODO"
+  })
+
+  it("returns valid runtime references", () => {
+    throw "TODO"
+  })
+
+  it("throws if action ref has invalid kind", () => {
+    throw "TODO"
+  })
+
+  it("throws if action ref has no name", () => {
+    throw "TODO"
+  })
+
+  it("throws if action kind is not a string", () => {
+    throw "TODO"
+  })
+
+  it("throws if action name is not a string", () => {
+    throw "TODO"
+  })
+
+  it("throws if runtime ref has invalid kind", () => {
+    throw "TODO"
+  })
+
+  it("throws if runtime ref has no name", () => {
+    throw "TODO"
+  })
+
+  it("throws if runtime ref name is not a string", () => {
+    throw "TODO"
+  })
+
+  it("throws if action kind is not resolvable", () => {
+    const config = {
+      foo: "${action[foo.bar].some-name}",
+    }
+    expectError(
+      () => getActionTemplateReferences(config),
+      (err) => expect(err.message).to.equal("TODO")
+    )
+  })
+
+  it("throws if action name is not resolvable", () => {
+    throw "TODO"
+  })
+
+  it("throws if runtime dep name is not resolvable", () => {
+    throw "TODO"
   })
 })
 

@@ -15,7 +15,7 @@ import {
   ContextKeySegment,
   GenericContext,
 } from "../config/template-contexts/base"
-import { difference, uniq, isPlainObject, isNumber, cloneDeep } from "lodash"
+import { difference, uniq, isPlainObject, isNumber, cloneDeep, isString } from "lodash"
 import {
   Primitive,
   StringMap,
@@ -27,11 +27,12 @@ import {
   arrayForEachFilterKey,
 } from "../config/common"
 import { profile } from "../util/profiling"
-import { dedent, deline, naturalList, truncate } from "../util/string"
+import { dedent, deline, naturalList, titleize, truncate } from "../util/string"
 import { deepMap, ObjectWithName } from "../util/util"
 import { LogEntry } from "../logger/log-entry"
 import { ModuleConfigContext } from "../config/template-contexts/module"
 import { callHelperFunction } from "./functions"
+import { ActionKind, actionKinds, actionKindsLower } from "../actions/base"
 
 export type StringOrStringPromise = Promise<string> | string
 
@@ -411,6 +412,80 @@ export function collectTemplateReferences<T extends object>(obj: T): ContextKeyS
 export function getRuntimeTemplateReferences<T extends object>(obj: T) {
   const refs = collectTemplateReferences(obj)
   return refs.filter((ref) => ref[0] === "runtime")
+}
+
+interface ActionTemplateReference {
+  actionKind: ActionKind
+  actionName: string
+  fullRef: ContextKeySegment[]
+}
+
+/**
+ * Collects every reference to another action in the given config object, including translated runtime.* references.
+ * An error is thrown if a reference is not resolvable, i.e. if a nested template is used as a reference.
+ *
+ * TODO-G2: Allow such nested references in certain cases, e.g. if resolvable with a ProjectConfigContext.
+ */
+export function getActionTemplateReferences<T extends object>(config: T): ActionTemplateReference[] {
+  const rawRefs = collectTemplateReferences(config)
+
+  const refs: ActionTemplateReference[] = rawRefs
+    .filter((ref) => ref[0] === "action")
+    .map((ref) => {
+      if (!ref[1]) {
+        throw new ConfigurationError("Found invalid action reference (missing kind)", { config, ref })
+      }
+      if (!isString(ref[1])) {
+        throw new ConfigurationError("Found invalid action reference (kind is not a string)", { config, ref })
+      }
+      if (!actionKindsLower.includes(<any>ref[1])) {
+        throw new ConfigurationError(`Found invalid action reference (invalid kind '${ref[1]}')`, { config, ref })
+      }
+
+      if (!ref[2]) {
+        throw new ConfigurationError("Found invalid action reference (missing name)", { config, ref })
+      }
+      if (!isString(ref[2])) {
+        throw new ConfigurationError("Found invalid action reference (name is not a string)", { config, ref })
+      }
+
+      return {
+        actionKind: <ActionKind>titleize(ref[1]),
+        actionName: ref[2],
+        fullRef: ref,
+      }
+    })
+
+  for (const ref of rawRefs) {
+    if (ref[0] !== "runtime") {
+      continue
+    }
+
+    let actionKind: ActionKind
+
+    if (ref[1] === "service") {
+      actionKind = "Deploy"
+    } else if (ref[1] === "task") {
+      actionKind = "Run"
+    } else {
+      throw new ConfigurationError(`Found invalid runtime reference (invalid kind '${ref[1]}')`, { config, ref })
+    }
+
+    if (!ref[2]) {
+      throw new ConfigurationError(`Found invalid runtime reference (missing name)`, { config, ref })
+    }
+    if (!isString(ref[2])) {
+      throw new ConfigurationError("Found invalid runtime reference (name is not a string)", { config, ref })
+    }
+
+    refs.push({
+      actionKind,
+      actionName: ref[2],
+      fullRef: ref,
+    })
+  }
+
+  return refs
 }
 
 export function getModuleTemplateReferences<T extends object>(obj: T, context: ModuleConfigContext) {
