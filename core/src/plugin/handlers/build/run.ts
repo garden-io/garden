@@ -38,7 +38,7 @@ const runBuildParamsSchema = () =>
   })
 
 export class RunBuildAction<T extends BuildAction = BuildAction> extends ActionTypeHandlerSpec<
-  "build",
+  "Build",
   RunBuildParams<T>,
   RunResult
 > {

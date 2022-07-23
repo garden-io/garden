@@ -35,7 +35,7 @@ export interface BuildCopyFrom {
 }
 
 export interface BuildActionConfig<N extends string = any, S extends object = any>
-  extends BaseActionConfig<"build", N, S> {
+  extends BaseActionConfig<"Build", N, S> {
   type: N
   allowPublish?: boolean
   buildAtSource?: boolean
@@ -116,7 +116,7 @@ export const buildActionConfig = () =>
   })
 
 export class BuildAction<C extends BuildActionConfig = BuildActionConfig, O extends {} = any> extends BaseAction<C, O> {
-  kind: "build"
+  kind: "Build"
 
   /**
    * Returns the build path for the action. The path is generally `<project root>/.garden/build/<action name>`.

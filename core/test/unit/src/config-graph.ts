@@ -519,7 +519,7 @@ describe("ConfigGraph", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       const deps = graph.getDependencies({
-        kind: "build",
+        kind: "Build",
         name: "module-b",
         recursive: false,
       })
@@ -562,7 +562,7 @@ describe("ConfigGraph", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       const deps = graph.getDependencies({
-        kind: "deploy",
+        kind: "Deploy",
         name: "enabled-service",
         recursive: false,
       })
@@ -607,7 +607,7 @@ describe("ConfigGraph", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       const deps = graph.getDependencies({
-        kind: "deploy",
+        kind: "Deploy",
         name: "enabled-service",
         recursive: false,
       })
@@ -668,7 +668,7 @@ describe("ConfigGraph", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       const deps = graph.getDependencies({
-        kind: "deploy",
+        kind: "Deploy",
         name: "enabled-service",
         recursive: false,
       })
@@ -713,7 +713,7 @@ describe("ConfigGraph", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       const deps = graph.getDependencies({
-        kind: "deploy",
+        kind: "Deploy",
         name: "enabled-task",
         recursive: false,
       })
@@ -758,7 +758,7 @@ describe("ConfigGraph", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       const deps = graph.getDependencies({
-        kind: "deploy",
+        kind: "Deploy",
         name: "enabled-test",
         recursive: false,
       })
@@ -861,7 +861,7 @@ describe("ConfigGraph", () => {
       ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const deps = graph.getDependants({ kind: "build", name: "module-a", recursive: true })
+      const deps = graph.getDependants({ kind: "Build", name: "module-a", recursive: true })
 
       expect(deps.deploy.map((m) => m.name)).to.eql([])
     })

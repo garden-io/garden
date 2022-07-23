@@ -564,7 +564,7 @@ const volumeSchema = () =>
       // TODO-0.13: remove when kubernetes-container type is ready, better to swap out with raw k8s references
       action: joi
         .actionReference()
-        .kind("deploy")
+        .kind("Deploy")
         .actionType("base-volume")
         .description(
           dedent`

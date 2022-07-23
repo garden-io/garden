@@ -19,7 +19,7 @@ interface GetTestResultParams<T extends TestAction> extends PluginTestActionPara
 export type GetTestResult<T extends TestAction = TestAction> = ActionStatus<T, TestResult>
 
 export class GetTestActionResult<T extends TestAction = TestAction> extends ActionTypeHandlerSpec<
-  "test",
+  "Test",
   GetTestResultParams<T>,
   GetTestResult<T>
 > {

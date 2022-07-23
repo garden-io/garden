@@ -23,7 +23,7 @@ interface DeployParams<T extends DeployAction> extends PluginDeployActionParamsB
 }
 
 export class DoDeployAction<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
-  "deploy",
+  "Deploy",
   DeployParams<T>,
   DeployStatus<T>
 > {

@@ -116,7 +116,7 @@ export const gardenPlugin = () =>
     configSchema: configSchema(),
 
     createActionTypes: {
-      test: [
+      Test: [
         {
           name: "conftest",
           docs: dedent`
@@ -197,7 +197,7 @@ export const gardenPlugin = () =>
           schema: testActionSchema().keys({
             helmDeploy: joi
               .actionReference()
-              .kind("deploy")
+              .kind("Deploy")
               .actionType("helm")
               .required()
               .description("The Helm Deploy action to validate."),
@@ -318,7 +318,7 @@ export const gardenPlugin = () =>
               actions: [
                 ...(dummyBuild ? [dummyBuild] : []),
                 {
-                  kind: "test",
+                  kind: "Test",
                   type: "conftest",
                   name: module.name + "-conftest",
                   ...params.baseFields,

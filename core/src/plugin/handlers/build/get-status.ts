@@ -17,7 +17,7 @@ interface GetBuildStatusParams<T extends BuildAction = BuildAction> extends Plug
 export type BuildStatus<T extends BuildAction = BuildAction, D = any> = ActionStatus<T, D>
 
 export class GetBuildActionStatus<T extends BuildAction = BuildAction> extends ActionTypeHandlerSpec<
-  "build",
+  "Build",
   GetBuildStatusParams<T>,
   BuildStatus<T>
 > {

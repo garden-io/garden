@@ -48,7 +48,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
     const serviceResource = getServiceResourceSpec(module, baseModule)
 
     const deployAction: HelmDeployConfig = {
-      kind: "deploy",
+      kind: "Deploy",
       type: "helm",
       name: module.name,
       ...params.baseFields,
@@ -101,7 +101,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
 
       // We create a kubernetes Run action here, no need for a specific helm Run type.
       actions.push({
-        kind: "run",
+        kind: "Run",
         type: "kubernetes",
         name: module.name,
         ...params.baseFields,
@@ -126,7 +126,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
 
       // We create a kubernetes Test action here, no need for a specific helm Test type.
       actions.push({
-        kind: "test",
+        kind: "Test",
         type: "kubernetes",
         name: module.name + "-" + test.name,
         ...params.baseFields,

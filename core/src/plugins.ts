@@ -406,10 +406,10 @@ export type ActionDefinitionMap = {
  */
 export function getActionTypes(plugins: GardenPlugin[]): ActionDefinitionMap {
   const map: ActionDefinitionMap = {
-    build: {},
-    deploy: {},
-    run: {},
-    test: {},
+    Build: {},
+    Deploy: {},
+    Run: {},
+    Test: {},
   }
 
   for (const p of plugins) {

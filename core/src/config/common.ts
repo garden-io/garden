@@ -460,7 +460,7 @@ const actionRefParseError = (reference: any) => {
  * The general format is <kind>.<name>, where kind is one of the defined action types, and name is a valid
  * identifier (same as joiIdentifier).
  *
- * You can also specify a full object, e.g. `{ kind: "build", name: "foo" }`.
+ * You can also specify a full object, e.g. `{ kind: "Build", name: "foo" }`.
  */
 export function parseActionReference(reference: string | object): ActionReference {
   if (isString(reference)) {

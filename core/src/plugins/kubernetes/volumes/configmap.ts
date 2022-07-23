@@ -121,7 +121,7 @@ export const configMapModuleDefinition = (): ModuleTypeDefinition => ({
           actions: [
             ...(dummyBuild ? [dummyBuild] : []),
             {
-              kind: "deploy",
+              kind: "Deploy",
               type: "configmap",
               name: module.name,
               ...params.baseFields,
@@ -154,7 +154,7 @@ function getKubernetesAction(action: ConfigmapAction) {
   }
 
   const config: KubernetesDeployActionConfig = {
-    kind: "deploy",
+    kind: "Deploy",
     type: "kubernetes",
     name: action.name,
     basePath: action.basePath(),
