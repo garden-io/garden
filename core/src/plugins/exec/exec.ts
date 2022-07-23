@@ -533,7 +533,7 @@ export const execPlugin = () =>
       `),
     }),
     createActionTypes: {
-      build: [
+      Build: [
         {
           name: "exec",
           docs: dedent`
@@ -546,7 +546,7 @@ export const execPlugin = () =>
           },
         },
       ],
-      deploy: [
+      Deploy: [
         {
           name: "exec",
           docs: dedent`
@@ -561,7 +561,7 @@ export const execPlugin = () =>
           },
         },
       ],
-      run: [
+      Run: [
         <RunActionDefinition<ExecRun>>{
           name: "exec",
           docs: dedent`
@@ -573,7 +573,7 @@ export const execPlugin = () =>
           },
         },
       ],
-      test: [
+      Test: [
         <TestActionDefinition<ExecTest>>{
           name: "exec",
           docs: dedent`
@@ -621,7 +621,7 @@ export const execPlugin = () =>
 
             if (needsBuild) {
               buildAction = {
-                kind: "build",
+                kind: "Build",
                 type: "exec",
                 name: module.name,
 
@@ -656,7 +656,7 @@ export const execPlugin = () =>
 
             for (const service of module.serviceConfigs) {
               actions.push({
-                kind: "deploy",
+                kind: "Deploy",
                 type: "exec",
                 name: service.name,
                 ...params.baseFields,
@@ -674,7 +674,7 @@ export const execPlugin = () =>
 
             for (const task of module.taskConfigs) {
               actions.push({
-                kind: "run",
+                kind: "Run",
                 type: "exec",
                 name: task.name,
                 ...params.baseFields,
@@ -693,7 +693,7 @@ export const execPlugin = () =>
 
             for (const test of module.testConfigs) {
               actions.push({
-                kind: "test",
+                kind: "Test",
                 type: "exec",
                 name: module.name + "-" + test.name,
                 ...params.baseFields,

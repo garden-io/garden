@@ -10,7 +10,7 @@ import { joi } from "../config/common"
 import { Action, BaseRuntimeActionConfig, baseRuntimeActionConfig, RuntimeAction } from "./base"
 
 export interface RunActionConfig<N extends string = any, S extends object = any>
-  extends BaseRuntimeActionConfig<"run", N, S> {
+  extends BaseRuntimeActionConfig<"Run", N, S> {
   type: N
   timeout?: number
 }
@@ -21,9 +21,9 @@ export const runActionConfig = () =>
   })
 
 export class RunAction<C extends RunActionConfig = RunActionConfig, O extends {} = any> extends RuntimeAction<C, O> {
-  kind: "run"
+  kind: "Run"
 }
 
 export function isRunAction(action: Action): action is RunAction {
-  return action.kind === "run"
+  return action.kind === "Run"
 }

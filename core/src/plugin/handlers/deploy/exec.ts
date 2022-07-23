@@ -33,7 +33,7 @@ export const execInDeployResultSchema = () =>
   })
 
 export class ExecInDeploy<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
-  "deploy",
+  "Deploy",
   ExecInDeployParams<T>,
   ExecInDeployResult
 > {

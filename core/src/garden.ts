@@ -741,7 +741,7 @@ export class Garden {
   }
 
   /**
-   * Resolve the raw module configs and return a new instance of ConfigGraph.
+   * Resolve the raw module and action configs and return a new instance of ConfigGraph.
    * The graph instance is immutable and represents the configuration at the point of calling this method.
    * For long-running processes, you need to call this again when any module or configuration has been updated.
    *

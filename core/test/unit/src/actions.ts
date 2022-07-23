@@ -7,7 +7,6 @@
  */
 
 import {
-  ModuleActionHandlers,
   ProviderHandlers,
   getModuleHandlerDescriptions,
   getProviderActionDescriptions,
@@ -31,7 +30,6 @@ import { validateSchema } from "../../../src/config/validation"
 import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../src/constants"
 import { defaultProvider, providerFromConfig } from "../../../src/config/provider"
-import { RunTaskResult } from "../../../src/types/plugin/task/runTask"
 import { defaultDotIgnoreFile } from "../../../src/util/fs"
 import stripAnsi from "strip-ansi"
 import { emptyDir, pathExists, ensureFile, readFile } from "fs-extra"

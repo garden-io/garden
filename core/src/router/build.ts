@@ -16,7 +16,7 @@ import { ActionState } from "../actions/base"
 import { PublishActionResult } from "../plugin/handlers/build/publish"
 
 export const buildRouter = (baseParams: BaseRouterParams) =>
-  createActionRouter("build", baseParams, {
+  createActionRouter("Build", baseParams, {
     getStatus: async (params) => {
       const { router, action, garden } = params
 

@@ -213,7 +213,7 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
       actions = uniqByName([
         ...actions,
         ...actions.flatMap((s) =>
-          graph.getDependants({ kind: "deploy", name: s.name, recursive: true }).filter(isDeployAction)
+          graph.getDependants({ kind: "Deploy", name: s.name, recursive: true }).filter(isDeployAction)
         ),
       ])
     }

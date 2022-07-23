@@ -27,7 +27,7 @@ export type DeployStatus<T extends DeployAction = DeployAction> = ActionStatus<
 >
 
 export class GetDeployStatus<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
-  "deploy",
+  "Deploy",
   GetDeployStatusParams<T>,
   DeployStatus<T>
 > {

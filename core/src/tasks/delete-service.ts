@@ -42,10 +42,10 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
 
     // Note: We delete in _reverse_ dependency order, so we query for dependants
     const deps = this.graph.getDependants({
-      kind: "deploy",
+      kind: "Deploy",
       name: this.getName(),
       recursive: false,
-      filter: (depNode) => depNode.type === "deploy" && this.deleteDeployNames.includes(depNode.name),
+      filter: (depNode) => depNode.type === "Deploy" && this.deleteDeployNames.includes(depNode.name),
     })
 
     return deps.filter(isDeployAction).map((action) => {

@@ -39,7 +39,7 @@ import { RunResult } from "../plugin/base"
 
 export { ActionKind } from "../plugin/action-types"
 
-export const actionKinds: ActionKind[] = ["build", "deploy", "run", "test"]
+export const actionKinds: ActionKind[] = ["Build", "Deploy", "Run", "Test"]
 
 interface SourceRepositorySpec {
   url: string
@@ -158,7 +158,7 @@ export const baseActionConfig = () =>
 
         Each dependency should generally be expressed as a \`"<kind>.<name>"\` string, where _<kind>_ is one of \`build\`, \`deploy\`, \`run\` or \`test\`, and _<name>_ is the name of the action to depend on.
 
-        You may also optionally specify a dependency as an object, e.g. \`{ kind: "build", name: "some-image" }\`.
+        You may also optionally specify a dependency as an object, e.g. \`{ kind: "Build", name: "some-image" }\`.
 
         Any empty values (i.e. null or empty strings) are ignored, so that you can conditionally add in a dependency via template expressions.
         `
@@ -526,10 +526,10 @@ export type ActionReferenceMap = {
 
 export function actionReferencesToMap(refs: ActionReference[]) {
   const out: ActionReferenceMap = {
-    build: [],
-    deploy: [],
-    run: [],
-    test: [],
+    Build: [],
+    Deploy: [],
+    Run: [],
+    Test: [],
   }
 
   for (const ref of refs) {

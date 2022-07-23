@@ -16,7 +16,7 @@ import { uuidv4 } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
 
 export const deployRouter = (baseParams: BaseRouterParams) =>
-  createActionRouter("deploy", baseParams, {
+  createActionRouter("Deploy", baseParams, {
     deploy: async (params) => {
       const { router, action, garden } = params
 

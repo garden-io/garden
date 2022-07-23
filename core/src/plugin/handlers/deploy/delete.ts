@@ -18,7 +18,7 @@ interface DeleteDeployParams<T extends DeployAction> extends PluginDeployActionP
 type DeleteDeployStatus<T extends DeployAction = DeployAction> = ActionStatus<T, ServiceStatus, {}>
 
 export class DeleteDeploy<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
-  "deploy",
+  "Deploy",
   DeleteDeployParams<T>,
   DeleteDeployStatus<T>
 > {

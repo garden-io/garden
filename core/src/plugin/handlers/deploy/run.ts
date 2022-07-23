@@ -25,7 +25,7 @@ interface RunDeployParams<T extends DeployAction> extends PluginDeployActionPara
 }
 
 export class RunDeploy<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
-  "run",
+  "Run",
   RunDeployParams<T>,
   RunResult
 > {

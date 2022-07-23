@@ -23,7 +23,7 @@ export interface CommonRunParams {
 type RunActionParams<T extends RunAction> = PluginRunActionParamsBase<T> & CommonRunParams
 
 export class RunRunAction<T extends RunAction = RunAction> extends ActionTypeHandlerSpec<
-  "run",
+  "Run",
   RunActionParams<T>,
   GetRunResult<T>
 > {

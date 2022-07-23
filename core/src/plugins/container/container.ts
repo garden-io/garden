@@ -206,7 +206,7 @@ export const gardenPlugin = () =>
     configSchema: providerConfigBaseSchema(),
 
     createActionTypes: {
-      build: [
+      Build: [
         {
           name: "container",
           docs: dedent`
@@ -221,7 +221,7 @@ export const gardenPlugin = () =>
           },
         },
       ],
-      deploy: [
+      Deploy: [
         {
           name: "container",
           docs: dedent`
@@ -236,7 +236,7 @@ export const gardenPlugin = () =>
           },
         },
       ],
-      run: [
+      Run: [
         {
           name: "container",
           docs: dedent`
@@ -251,7 +251,7 @@ export const gardenPlugin = () =>
           },
         },
       ],
-      test: [
+      Test: [
         {
           name: "container",
           docs: dedent`
@@ -302,7 +302,7 @@ export const gardenPlugin = () =>
 
             if (needsContainerBuild) {
               buildAction = {
-                kind: "build",
+                kind: "Build",
                 type: "container",
                 name: module.name,
                 ...params.baseFields,
@@ -329,7 +329,7 @@ export const gardenPlugin = () =>
 
             for (const service of module.serviceConfigs) {
               actions.push({
-                kind: "deploy",
+                kind: "Deploy",
                 type: "container",
                 name: service.name,
                 ...params.baseFields,
@@ -346,7 +346,7 @@ export const gardenPlugin = () =>
 
             for (const task of module.taskConfigs) {
               actions.push({
-                kind: "run",
+                kind: "Run",
                 type: "container",
                 name: task.name,
                 ...params.baseFields,
@@ -365,7 +365,7 @@ export const gardenPlugin = () =>
 
             for (const test of module.testConfigs) {
               actions.push({
-                kind: "test",
+                kind: "Test",
                 type: "container",
                 name: module.name + "-" + test.name,
                 ...params.baseFields,
