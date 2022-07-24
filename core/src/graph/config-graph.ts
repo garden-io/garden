@@ -7,7 +7,7 @@
  */
 
 import toposort from "toposort"
-import { flatten, uniq, difference, mapValues } from "lodash"
+import { flatten, uniq, difference, mapValues, cloneDeep } from "lodash"
 import { GardenBaseError } from "../exceptions"
 import { naturalList } from "../util/string"
 import { Action, ActionKind, actionReferenceToString, Resolved, RuntimeAction } from "../actions/base"
@@ -64,7 +64,6 @@ export class GraphError extends GardenBaseError {
  *
  * This should be initialized with resolved and validated GardenModules.
  */
-// TODO-G2: re-do for actions
 export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeMap = ActionTypeMap> {
   protected dependencyGraph: GraphNodes
 
@@ -77,7 +76,7 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
 
   protected moduleGraph: ModuleGraph
 
-  constructor(modules: GardenModule[], moduleTypes: ModuleTypeMap) {
+  constructor({ actions, moduleGraph }: { actions: Action[]; moduleGraph: ModuleGraph }) {
     this.dependencyGraph = {}
     this.actions = {
       Build: {},
@@ -85,11 +84,25 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
       Run: {},
       Test: {},
     }
-    this.moduleGraph = new ModuleGraph(modules, moduleTypes)
+    this.moduleGraph = moduleGraph
+
+    for (const action of actions) {
+      this.addActionInternal(action)
+    }
+
+    this.validate()
   }
 
   validate() {
     // TODO-G2
+  }
+
+  clone() {
+    const clone = new ConfigGraph({ actions: [], moduleGraph: this.moduleGraph })
+    for (const key of Object.getOwnPropertyNames(this)) {
+      clone[key] = cloneDeep(this[key])
+    }
+    return clone
   }
 
   /////////////////
@@ -321,9 +334,9 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
     return nodes.map((n) => this.actions[n.type][n.name])
   }
 
-  private uniqueNames(nodes: ConfigGraphNode[], type: ActionKind) {
-    return uniq(nodes.filter((n) => n.type === type).map((n) => n.name))
-  }
+  // private uniqueNames(nodes: ConfigGraphNode[], type: ActionKind) {
+  //   return uniq(nodes.filter((n) => n.type === type).map((n) => n.name))
+  // }
 
   render(): RenderedActionGraph {
     const nodes = Object.values(this.dependencyGraph)
@@ -357,14 +370,22 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
       nodes: renderedNodes,
     }
   }
-}
 
-export class MutableConfigGraph extends ConfigGraph {
-  addAction(action: Resolved<Action>) {}
+  protected addActionInternal(action: Action) {
+    const node = this.getNode(action.kind, action.name, action.isDisabled())
+
+    for (const dep of action.getDependencyReferences()) {
+      this.addRelation({
+        dependant: node,
+        dependencyKind: dep.kind,
+        dependencyName: dep.name,
+      })
+    }
+  }
 
   // Idempotent.
-  private getNode(type: ActionKind, name: string, moduleName: string, disabled: boolean) {
-    const key = nodeKey(type, name)
+  private getNode(kind: ActionKind, name: string, disabled: boolean) {
+    const key = nodeKey(kind, name)
     const existingNode = this.dependencyGraph[key]
     if (existingNode) {
       if (disabled) {
@@ -372,7 +393,7 @@ export class MutableConfigGraph extends ConfigGraph {
       }
       return existingNode
     } else {
-      const newNode = new ConfigGraphNode(type, name, moduleName, disabled)
+      const newNode = new ConfigGraphNode(kind, name, disabled)
       this.dependencyGraph[key] = newNode
       return newNode
     }
@@ -381,18 +402,26 @@ export class MutableConfigGraph extends ConfigGraph {
   // Idempotent.
   private addRelation({
     dependant,
-    dependencyType,
+    dependencyKind,
     dependencyName,
-    dependencyModuleName,
   }: {
     dependant: ConfigGraphNode
-    dependencyType: ActionKind
+    dependencyKind: ActionKind
     dependencyName: string
-    dependencyModuleName: string
   }) {
-    const dependency = this.getNode(dependencyType, dependencyName, dependencyModuleName, false)
+    const dependency = this.getNode(dependencyKind, dependencyName, false)
     dependant.addDependency(dependency)
     dependency.addDependant(dependant)
+  }
+}
+
+export class MutableConfigGraph extends ConfigGraph {
+  addAction(action: Action) {
+    this.addActionInternal(action)
+  }
+
+  toConfigGraph() {
+    return this.clone()
   }
 }
 
@@ -407,12 +436,7 @@ export class ConfigGraphNode {
   dependencies: ConfigGraphNode[]
   dependants: ConfigGraphNode[]
 
-  constructor(
-    public type: ActionKind,
-    public name: string,
-    public moduleName: string | undefined,
-    public disabled: boolean
-  ) {
+  constructor(public type: ActionKind, public name: string, public disabled: boolean) {
     this.dependencies = []
     this.dependants = []
   }
@@ -421,7 +445,6 @@ export class ConfigGraphNode {
     return {
       name: this.name,
       type: this.type,
-      moduleName: this.moduleName,
       key: this.name,
       disabled: this.disabled,
     }

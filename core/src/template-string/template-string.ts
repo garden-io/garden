@@ -25,6 +25,7 @@ import {
   arrayForEachKey,
   arrayForEachReturnKey,
   arrayForEachFilterKey,
+  ActionReference,
 } from "../config/common"
 import { profile } from "../util/profiling"
 import { dedent, deline, naturalList, titleize, truncate } from "../util/string"
@@ -414,9 +415,7 @@ export function getRuntimeTemplateReferences<T extends object>(obj: T) {
   return refs.filter((ref) => ref[0] === "runtime")
 }
 
-interface ActionTemplateReference {
-  actionKind: ActionKind
-  actionName: string
+interface ActionTemplateReference extends ActionReference {
   fullRef: ContextKeySegment[]
 }
 
@@ -450,8 +449,8 @@ export function getActionTemplateReferences<T extends object>(config: T): Action
       }
 
       return {
-        actionKind: <ActionKind>titleize(ref[1]),
-        actionName: ref[2],
+        kind: <ActionKind>titleize(ref[1]),
+        name: ref[2],
         fullRef: ref,
       }
     })
@@ -461,12 +460,12 @@ export function getActionTemplateReferences<T extends object>(config: T): Action
       continue
     }
 
-    let actionKind: ActionKind
+    let kind: ActionKind
 
     if (ref[1] === "service") {
-      actionKind = "Deploy"
+      kind = "Deploy"
     } else if (ref[1] === "task") {
-      actionKind = "Run"
+      kind = "Run"
     } else {
       throw new ConfigurationError(`Found invalid runtime reference (invalid kind '${ref[1]}')`, { config, ref })
     }
@@ -479,8 +478,8 @@ export function getActionTemplateReferences<T extends object>(config: T): Action
     }
 
     refs.push({
-      actionKind,
-      actionName: ref[2],
+      kind,
+      name: ref[2],
       fullRef: ref,
     })
   }

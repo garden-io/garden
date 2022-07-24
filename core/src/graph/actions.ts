@@ -7,89 +7,147 @@
  */
 
 import Bluebird from "bluebird"
-import chalk from "chalk"
-import dedent from "dedent"
-import { cloneDeep, isArray, isString, keyBy, mapValues, memoize, merge, omit, pick } from "lodash"
-import { relative } from "path"
-import { actionReferenceToString, ActionWrapperParams, BaseAction, BaseActionConfig, RuntimeAction } from "../actions/base"
+import { isString, keyBy, mapValues, memoize, merge, omit, pick } from "lodash"
+import {
+  Action,
+  ActionConfig,
+  ActionDependency,
+  actionReferenceToString,
+  actionRefMatches,
+  ActionWrapperParams,
+  baseActionConfigSchema,
+  describeActionConfig,
+} from "../actions/base"
 import { BuildAction, buildActionConfig } from "../actions/build"
 import { DeployAction } from "../actions/deploy"
 import { RunAction } from "../actions/run"
 import { TestAction } from "../actions/test"
-import { prepareBuildDependencies, loadVarfile } from "../config/base"
-import { allowUnknown, DeepPrimitiveMap } from "../config/common"
+import { loadVarfile, noTemplateFields } from "../config/base"
+import { ActionReference, DeepPrimitiveMap, parseActionReference } from "../config/common"
 import { GroupConfig } from "../config/group"
-import { moduleConfigSchema } from "../config/module"
-import { ProviderMap } from "../config/provider"
 import { ActionConfigContext } from "../config/template-contexts/actions"
-import { GenericContext } from "../config/template-contexts/base"
 import { ProjectConfigContext } from "../config/template-contexts/project"
 import { validateWithPath } from "../config/validation"
 import { ConfigurationError, InternalError, PluginError } from "../exceptions"
 import type { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
-import { ModuleTypeDefinition } from "../plugin/module-types"
-import { getModuleTypeBases } from "../plugins"
-import { moduleResolutionConcurrencyLimit } from "../resolve-module"
-import { RuntimeContext } from "../runtime-context"
-import {
-  getModuleTemplateReferences,
-  resolveTemplateStrings,
-  mayContainTemplateString,
-  resolveTemplateString,
-} from "../template-string/template-string"
-import { ModuleMap, ModuleTypeMap, moduleFromConfig } from "../types/module"
-import { getLinkedSources } from "../util/ext-source-util"
-import { Profile } from "../util/profiling"
-import { deline } from "../util/string"
-import { jsonMerge } from "../util/util"
-import { DependencyGraph } from "./common"
-import { ConfigGraph } from "./config-graph"
+import { BaseActionRouter } from "../router/base"
+import { resolveTemplateStrings, getActionTemplateReferences } from "../template-string/template-string"
+import { ConfigGraph, MutableConfigGraph } from "./config-graph"
+import { ModuleGraph } from "./modules"
 
+// TODO-G2: split this up
 export async function actionConfigsToGraph({
   garden,
   log,
   groupConfigs,
   configs,
+  moduleGraph,
 }: {
   garden: Garden
   log: LogEntry
   groupConfigs: GroupConfig[]
-  configs: BaseActionConfig[]
-}): Promise<ConfigGraph> {
+  configs: ActionConfig[]
+  moduleGraph: ModuleGraph
+}): Promise<MutableConfigGraph> {
+  const actionTypeDefinitions = await garden.getActionTypes()
+
   const fromGroups = groupConfigs.flatMap((group) => {
     return group.actions.map((a) => ({ ...a, group }))
   })
 
-  const allConfigs = [...fromGroups, ...configs]
-  const byKey = keyBy(allConfigs, (a) => actionReferenceToString(a))
+  // TODO-G2: validate for naming conflicts between grouped and individual actions
+
+  const configsByKey = keyBy([...fromGroups, ...configs], (a) => actionReferenceToString(a))
 
   // Fully resolve built-in fields that only support ProjectConfigContext
   const projectContextKeys = getActionConfigContextKeys()
   const builtinFieldContext = new ActionConfigContext(garden, garden.variables)
 
-  for (const [key, config] of Object.entries(byKey)) {
+  function resolveTemplates(key: string) {
+    let config = configsByKey[key]
+
     // TODO-G2: better error messages when something goes wrong here
-    const resolved = resolveTemplateStrings(pick(config, projectContextKeys), builtinFieldContext, {
+    const resolvedBuiltin = resolveTemplateStrings(pick(config, projectContextKeys), builtinFieldContext, {
       allowPartial: false,
     })
-    byKey[key] = { ...config, ...resolved }
-  }
+    config = { ...config, ...resolvedBuiltin }
 
-  // Validate fully resolved keys (the above + those that don't allow any templating)
+    // Validate fully resolved keys (the above + those that don't allow any templating)
+    config = validateWithPath({
+      config: {
+        ...config,
+        variables: {},
+        spec: {},
+      },
+      schema: baseActionConfigSchema(),
+      configType: `${describeActionConfig(config)}`,
+      name: config.name,
+      path: config.basePath,
+      projectRoot: garden.projectRoot,
+    })
 
-  // Partially resolve other fields
-  for (const [key, config] of Object.entries(byKey)) {
+    // TODO-G2: handle this
+    // if (config.repositoryUrl) {
+    //   const linkedSources = await getLinkedSources(garden, "module")
+    //   config.path = await garden.loadExtSourcePath({
+    //     name: config.name,
+    //     linkedSources,
+    //     repositoryUrl: config.repositoryUrl,
+    //     sourceType: "module",
+    //   })
+    // }
+
     // TODO-G2: better error messages when something goes wrong here
-    const resolved = resolveTemplateStrings(omit(config, projectContextKeys), builtinFieldContext, {
+    const resolvedOther = resolveTemplateStrings(omit(config, projectContextKeys), builtinFieldContext, {
       allowPartial: true,
     })
-    byKey[key] = { ...config, ...resolved }
+    config = { ...config, ...resolvedOther }
+
+    configsByKey[key] = config
   }
+
+  // Initial template resolution pass
+  for (const key of Object.keys(configsByKey)) {
+    resolveTemplates(key)
+  }
+
+  // Call configure handlers
+  const router = await garden.getActionRouter()
+
+  await Bluebird.map(Object.keys(configsByKey), async (key) => {
+    const config = configsByKey[key]
+    const description = describeActionConfig(config)
+    const kindRouter: BaseActionRouter<any> = router[config.kind]
+
+    const { config: updated } = await kindRouter.configure({ config, log })
+
+    // -> Throw if trying to modify no-template fields
+    for (const field of noTemplateFields) {
+      if (config[field] !== updated[field]) {
+        throw new PluginError(
+          `Configure handler for ${description} attempted to modify the ${field} field, which is not allowed. Please report this as a bug.`,
+          { config, field }
+        )
+      }
+    }
+
+    configsByKey[key] = updated
+
+    // -> Resolve templates again, as above
+    try {
+      resolveTemplates(key)
+    } catch (error) {
+      throw new ConfigurationError(
+        `Configure handler for ${config.type} ${config.kind} set a templated value on a config field which could not be resolved. This may be a bug in the plugin, please report this. Error: ${error}`,
+        { config, error }
+      )
+    }
+  })
 
   // Load varfiles
   const varfileVars = await Bluebird.props(
-    mapValues(byKey, async (config) => {
+    mapValues(configsByKey, async (config) => {
       const varsByFile = await Bluebird.map(config.varfiles || [], (path) => {
         return loadVarfile({
           configRoot: config.basePath,
@@ -102,7 +160,7 @@ export async function actionConfigsToGraph({
 
       // Merge different varfiles, later files taking precedence over prior files in the list.
       for (const vars of varsByFile) {
-        jsonMerge(output, vars)
+        merge(output, vars)
       }
 
       return output
@@ -112,488 +170,113 @@ export async function actionConfigsToGraph({
   // Resolve tree versions
   // TODO-G2: Maybe we could optimize this, avoid parallel scanning of the same directory/context etc.
   const treeVersions = await Bluebird.props(
-    mapValues(byKey, async (config) => {
+    mapValues(configsByKey, async (config) => {
       return garden.vcs.getTreeVersion(log, garden.projectName, config)
     })
   )
 
-  // Call configure handlers
+  // Extract all dependencies, including implicit dependencies
+  const dependencies: { [key: string]: ActionDependency[] } = {}
 
-  // Extract implicit dependencies from template references
-}
+  for (const config of Object.values(configsByKey)) {
+    const description = describeActionConfig(config)
 
-// This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
-const resolutionConcurrencyLimit = 50
-
-/**
- * Resolves a set of module configurations in dependency order.
- *
- * This operates differently than the TaskGraph in that it can add dependency links as it proceeds through the modules,
- * which is important because dependencies can be discovered mid-stream, and the TaskGraph currently needs to
- * statically resolve all dependencies before processing tasks.
- */
-@Profile()
-class ActionConfigResolver {
-  private garden: Garden
-  private log: LogEntry
-  private rawConfigsByKey: BaseActionConfigMap
-  private resolvedProviders: ProviderMap
-  private runtimeContext?: RuntimeContext
-  private bases: { [type: string]: ModuleTypeDefinition[] }
-
-  constructor({
-    garden,
-    log,
-    rawConfigs,
-    resolvedProviders,
-    runtimeContext,
-  }: {
-    garden: Garden
-    log: LogEntry
-    rawConfigs: BaseActionConfig[]
-    resolvedProviders: ProviderMap
-    runtimeContext?: RuntimeContext
-  }) {
-    this.garden = garden
-    this.log = log
-    this.rawConfigsByKey = keyBy(rawConfigs, (c) => c.name)
-    this.resolvedProviders = resolvedProviders
-    this.runtimeContext = runtimeContext
-    this.bases = {}
-  }
-
-  async resolveAll() {
-    // Collect template references for every raw config and work out module references in templates and explicit
-    // dependency references. We use two graphs, one will be fully populated as we progress, the other we gradually
-    // remove nodes from as we complete the processing.
-    const fullGraph = new DependencyGraph()
-    const processingGraph = new DependencyGraph()
-
-    for (const key of Object.keys(this.rawConfigsByKey)) {
-      for (const graph of [fullGraph, processingGraph]) {
-        graph.addNode(key)
-      }
-    }
-    for (const [key, rawConfig] of Object.entries(this.rawConfigsByKey)) {
-      const buildPath = this.garden.buildStaging.getBuildPath(rawConfig)
-      const deps = this.getDependenciesFromConfig(rawConfig, buildPath)
-      for (const graph of [fullGraph, processingGraph]) {
-        for (const dep of deps) {
-          const depKey = dep.name
-          graph.addNode(depKey)
-          graph.addDependency(key, depKey)
-        }
-      }
+    if (!config.dependencies) {
+      config.dependencies = []
     }
 
-    const resolvedConfigs: BaseActionConfigMap = {}
-    const resolvedModules: ModuleMap = {}
-    const errors: { [moduleName: string]: Error } = {}
+    const deps: ActionDependency[] = config.dependencies.map((d) => {
+      const { kind, name } = parseActionReference(d)
+      return { kind, name, type: "explicit" }
+    })
 
-    const inFlight = new Set<string>()
-
-    const processNode = async (moduleKey: string) => {
-      if (inFlight.has(moduleKey)) {
-        return
-      }
-
-      this.log.silly(`ActionConfigResolver: Process node ${moduleKey}`)
-      inFlight.add(moduleKey)
-
-      // Resolve configuration, unless previously resolved.
-      let resolvedConfig = resolvedConfigs[moduleKey]
-      let foundNewDependency = false
-
-      const dependencyNames = fullGraph.dependenciesOf(moduleKey)
-      const resolvedDependencies = dependencyNames.map((n) => resolvedModules[n])
-
-      try {
-        if (!resolvedConfig) {
-          const rawConfig = this.rawConfigsByKey[moduleKey]
-
-          this.log.silly(`ActionConfigResolver: Resolve config ${moduleKey}`)
-          resolvedConfig = resolvedConfigs[moduleKey] = await this.resolveConfig(rawConfig, resolvedDependencies)
-
-          // Check if any new dependencies were added by the configure handler
-          for (const dep of resolvedConfig.dependencies) {
-            const depKey = dep.name
-
-            if (!dependencyNames.includes(depKey)) {
-              this.log.silly(`ActionConfigResolver: Found new dependency ${depKey} when resolving ${moduleKey}`)
-
-              // We throw if the build dependency can't be found at all
-              if (!fullGraph.hasNode(depKey)) {
-                throw missingDependency(rawConfig.name, depKey)
-              }
-              fullGraph.addDependency(moduleKey, depKey)
-
-              foundNewDependency = true
-
-              // The dependency may already have been processed, we don't want to add it to the graph in that case
-              if (processingGraph.hasNode(depKey)) {
-                this.log.silly(
-                  `ActionConfigResolver: Need to re-resolve ${moduleKey} after processing new dependencies`
-                )
-                processingGraph.addDependency(moduleKey, depKey)
-              }
-            }
-          }
+    function addImplicitDep(ref: ActionReference) {
+      for (const dep of deps) {
+        if (actionRefMatches(ref, dep)) {
+          return
         }
-
-        // If no unresolved build dependency was added, fully resolve the module and remove from graph, otherwise keep
-        // it in the graph and move on to make sure we fully resolve the dependencies and don't run into circular
-        // dependencies.
-        if (!foundNewDependency) {
-          resolvedModules[moduleKey] = this.resolve({ resolvedConfig, dependencies: resolvedDependencies })
-          this.log.silly(`ActionConfigResolver: Module ${moduleKey} resolved`)
-          processingGraph.removeNode(moduleKey)
-        }
-      } catch (err) {
-        this.log.silly(`ActionConfigResolver: Node ${moduleKey} failed: ${err.message}`)
-        errors[moduleKey] = err
       }
-
-      inFlight.delete(moduleKey)
-      return processLeaves()
+      deps.push({ ...ref, type: "implicit" })
     }
 
-    const processLeaves = async () => {
-      if (Object.keys(errors).length > 0) {
-        const errorStr = Object.entries(errors)
-          .map(([name, err]) => `${chalk.white.bold(name)}: ${err.message}`)
-          .join("\n")
-        const errorStack = Object.entries(errors)
-          .map(([name, err]) => `${chalk.white.bold(name)}: ${err.stack || err.message}`)
-          .join("\n\n")
+    if (config.kind === "Build") {
+      // -> Build copyFrom field
+      for (const copyFrom of config.copyFrom || []) {
+        // TODO-G2: need to update this for parameterized actions
+        const ref: ActionReference = { kind: "Build", name: copyFrom.build }
+        const buildKey = actionReferenceToString(ref)
 
-        const msg = `Failed resolving one or more modules:\n\n${errorStr}`
+        if (!configsByKey[buildKey]) {
+          throw new ConfigurationError(
+            `${description} references Build ${copyFrom.build} in the \`copyFrom\` field, but no such Build action could be found`,
+            { config, buildName: copyFrom.build }
+          )
+        }
 
-        const combined = new ConfigurationError(chalk.red(msg), { ...errors })
-        combined.stack = errorStack
-        throw combined
+        addImplicitDep(ref)
       }
+    } else if (config.build) {
+      // -> build field on runtime actions
+      const ref: ActionReference = { kind: "Build", name: config.build }
+      const buildKey = actionReferenceToString(ref)
 
-      // Get batch of leaf nodes (ones with no unresolved dependencies). Implicitly checks for circular dependencies.
-      let batch: string[]
-
-      try {
-        batch = processingGraph.overallOrder(true).filter((n) => !inFlight.has(n))
-      } catch (err) {
+      if (!configsByKey[buildKey]) {
         throw new ConfigurationError(
-          dedent`
-            Detected circular dependencies between module configurations:
-
-            ${err.detail?.["circular-dependencies"] || err.message}
-          `,
-          { cycles: err.detail?.cycles }
+          `${description} references Build ${config.build} in the \`build\` field, but no such Build action could be found`,
+          { config, buildName: config.build }
         )
       }
 
-      this.log.silly(`ActionConfigResolver: Process ${batch.length} leaves`)
-
-      if (batch.length === 0) {
-        return
-      }
-
-      const overLimit = inFlight.size + batch.length - moduleResolutionConcurrencyLimit
-
-      if (overLimit > 0) {
-        batch = batch.slice(batch.length - overLimit)
-      }
-
-      // Process each of the leaf node module configs.
-      await Bluebird.map(batch, processNode)
+      addImplicitDep(ref)
     }
 
-    // Iterate through dependency graph, a batch of leaves at a time. While there are items remaining:
-    let i = 0
-
-    while (processingGraph.size() > 0) {
-      this.log.silly(`ActionConfigResolver: Loop ${++i}`)
-      await processLeaves()
+    // -> Action template references in spec/variables
+    for (const ref of getActionTemplateReferences(config)) {
+      addImplicitDep(ref)
     }
-
-    return Object.values(resolvedModules)
   }
 
-  /**
-   * Returns module configs for each module that is referenced in a ${modules.*} template string in the raw config,
-   * as well as any immediately resolvable declared build dependencies.
-   */
-  private getDependenciesFromConfig(rawConfig: BaseActionConfig, buildPath: string) {
-    const configContext = new ActionConfigContext({
-      garden: this.garden,
-      variables: this.garden.variables,
-      resolvedProviders: this.resolvedProviders,
-      name: rawConfig.name,
-      path: rawConfig.path,
-      buildPath,
-      parentName: rawConfig.parentName,
-      templateName: rawConfig.templateName,
-      inputs: rawConfig.inputs,
-      modules: [],
-      runtimeContext: this.runtimeContext,
-      partialRuntimeResolution: true,
-    })
+  const graph = new MutableConfigGraph({ actions: [], moduleGraph })
 
-    const templateRefs = getModuleTemplateReferences(rawConfig, configContext)
-    const templateDeps = <string[]>templateRefs.filter((d) => d[1] !== rawConfig.name).map((d) => d[1])
+  for (const [key, config] of Object.entries(configsByKey)) {
+    let action: Action
 
-    // Try resolving template strings if possible
-    let buildDeps: string[] = []
-    const resolvedDeps = resolveTemplateStrings(rawConfig.build.dependencies, configContext, { allowPartial: true })
-
-    // The build.dependencies field may not resolve at all, in which case we can't extract any deps from there
-    if (isArray(resolvedDeps)) {
-      buildDeps = resolvedDeps
-        // We only collect fully-resolved references here
-        .filter((d) => !mayContainTemplateString(d) && (isString(d) || d.name))
-        .map((d) => (isString(d) ? d : d.name))
-    }
-
-    const deps = [...templateDeps, ...buildDeps]
-
-    return deps.map((name) => {
-      const moduleConfig = this.rawConfigsByKey[name]
-
-      if (!moduleConfig) {
-        throw missingBuildDependency(rawConfig.name, name as string)
-      }
-
-      return moduleConfig
-    })
-  }
-
-  /**
-   * Resolves and validates a single module configuration.
-   */
-  resolveConfig(config: BaseActionConfig, dependencies: BaseAction[]): Promise<BaseAction> {
-    const garden = this.garden
-    let inputs = {}
-
-    const buildPath = this.garden.buildStaging.getBuildPath(config)
-
-    const templateContextParams: BaseActionConfigContextParams = {
-      garden,
-      variables: garden.variables,
-      resolvedProviders: this.resolvedProviders,
-      modules: dependencies,
-      name: config.name,
-      path: config.path,
-      buildPath,
-      parentName: config.parentName,
-      templateName: config.templateName,
-      inputs: config.inputs,
-      runtimeContext: this.runtimeContext,
-      partialRuntimeResolution: true,
-    }
-
-    // TODO-G2: GroupTemplate
-    // Resolve and validate the inputs field, because template module inputs may not be fully resolved at this
-    // time.
-    // const templateName = config.templateName
-
-    // if (templateName) {
-    //   const template = this.garden.moduleTemplates[templateName]
-
-    //   inputs = resolveTemplateStrings(
-    //     inputs,
-    //     new BaseActionConfigContext(templateContextParams),
-    //     // Not all inputs may need to be resolvable
-    //     { allowPartial: true }
-    //   )
-
-    //   inputs = validateWithPath({
-    //     config: cloneDeep(config.inputs || {}),
-    //     configType: `inputs for module ${config.name}`,
-    //     path: config.configPath || config.path,
-    //     schema: template.inputsSchema,
-    //     projectRoot: garden.projectRoot,
-    //   })
-
-    //   config.inputs = inputs
-    // }
-
-    // Resolve the variables field before resolving everything else (overriding with module varfiles if present)
-    const resolvedModuleVariables = this.resolveVariables(config, templateContextParams)
-
-    // Now resolve just references to inputs on the config
-    config = resolveTemplateStrings(cloneDeep(config), new GenericContext({ inputs }), {
-      allowPartial: true,
-    })
-
-    // And finally fully resolve the config
-    const configContext = new BaseActionConfigContext({
-      ...templateContextParams,
-      variables: { ...garden.variables, ...resolvedModuleVariables },
-    })
-
-    config = resolveTemplateStrings({ ...config, inputs: {}, variables: {} }, configContext, {
-      allowPartial: false,
-    })
-
-    config.variables = resolvedModuleVariables
-    // config.inputs = inputs
-
-    const moduleTypeDefinitions = await garden.getModuleTypes()
-    const description = moduleTypeDefinitions[config.type]
-
-    if (!description) {
-      const configPath = relative(garden.projectRoot, config.configPath || config.path)
-
-      throw new ConfigurationError(
-        deline`
-        Unrecognized action type '${config.type}' (defined at ${configPath}).
-        Are you missing a provider configuration?
-        `,
-        { config, configuredModuleTypes: Object.keys(moduleTypeDefinitions) }
-      )
-    }
-
-    // We allow specifying modules by name only as a shorthand:
-    //
-    // dependencies:
-    //   - foo-module
-    //   - name: foo-module // same as the above
-    //
-    // Empty strings and nulls are omitted from the array.
-    if (config.build && config.build.dependencies) {
-      config.build.dependencies = prepareBuildDependencies(config.build.dependencies).filter((dep) => dep.name)
-    }
-
-    // We need to refilter the build dependencies on the spec in case one or more dependency names resolved to null.
-    if (config.spec.build && config.spec.build.dependencies) {
-      config.spec.build.dependencies = prepareBuildDependencies(config.spec.build.dependencies)
-    }
-
-    // Validate the module-type specific spec
-    if (description.schema) {
-      config.spec = validateWithPath({
-        config: config.spec,
-        configType: "Module",
-        schema: description.schema,
-        name: config.name,
-        path: config.path,
-        projectRoot: garden.projectRoot,
-      })
-    }
-
-    // Validate the base config schema
-    config = validateWithPath({
-      config,
-      schema: moduleConfigSchema(),
-      configType: "module",
-      name: config.name,
-      path: config.path,
-      projectRoot: garden.projectRoot,
-    })
-
-    if (config.repositoryUrl) {
-      const linkedSources = await getLinkedSources(garden, "module")
-      config.path = await garden.loadExtSourcePath({
-        name: config.name,
-        linkedSources,
-        repositoryUrl: config.repositoryUrl,
-        sourceType: "module",
-      })
-    }
-
-    const actions = await garden.getActionRouter()
-    const configureResult = await actions.module.configureModule({
-      moduleConfig: config,
-      log: garden.log,
-    })
-
-    config = configureResult.moduleConfig
-
-    // Validate the configure handler output against the module type's bases
-    const bases = this.getBases(config.type, moduleTypeDefinitions)
-
-    for (const base of bases) {
-      if (base.schema) {
-        garden.log.silly(`Validating '${config.name}' config against '${base.name}' schema`)
-
-        config.spec = <BaseActionConfig>validateWithPath({
-          config: config.spec,
-          schema: base.schema,
-          path: garden.projectRoot,
-          projectRoot: garden.projectRoot,
-          configType: `configuration for module '${config.name}' (base schema from '${base.name}' plugin)`,
-          ErrorClass: ConfigurationError,
-        })
-      }
-    }
-
-    return config
-  }
-
-  /**
-   * Get the bases for the given module type, with schemas modified to allow any unknown fields.
-   */
-  private getBases(type: string, definitions: ModuleTypeMap) {
-    if (this.bases[type]) {
-      return this.bases[type]
-    }
-
-    const bases = getModuleTypeBases(definitions[type], definitions)
-    this.bases[type] = bases.map((b) => ({ ...b, schema: b.schema ? allowUnknown(b.schema) : undefined }))
-    return this.bases[type]
-  }
-
-  private resolve({ resolvedConfig, buildPath, dependencies, graph }: { resolvedConfig: BaseActionConfig; buildPath: string; dependencies: BaseAction[]; graph: ConfigGraph }) {
-    this.log.silly(`Resolving module ${resolvedConfig.name}`)
-
-    const key = actionReferenceToString(resolvedConfig)
+    const variables: DeepPrimitiveMap = {}
+    // TODO-G2: should we change the precedence order here?
+    merge(variables, varfileVars[key])
+    merge(variables, garden.cliVariables)
 
     const params: ActionWrapperParams<any> = {
-      baseBuildDirectory: this.garden.buildStaging.buildDirPath,
-      config: resolvedConfig,
-      dependencies: this.dependencies[key],
+      baseBuildDirectory: garden.buildStaging.buildDirPath,
+      config,
+      dependencies: dependencies[key],
       graph,
-      projectRoot: this.garden.projectRoot,
-      treeVersion: this.treeVersions[key],
+      projectRoot: garden.projectRoot,
+      treeVersion: treeVersions[key],
+      variables,
     }
 
-    if (resolvedConfig.kind === "Build") {
-      return new BuildAction(params)
-    } else if (resolvedConfig.kind === "Deploy") {
-      return new DeployAction(params)
-    } else if (resolvedConfig.kind === "Run") {
-      return new RunAction(params)
-    } else if (resolvedConfig.kind === "Test") {
-      return new TestAction(params)
+    if (config.kind === "Build") {
+      action = new BuildAction(params)
+    } else if (config.kind === "Deploy") {
+      action = new DeployAction(params)
+    } else if (config.kind === "Run") {
+      action = new RunAction(params)
+    } else if (config.kind === "Test") {
+      action = new TestAction(params)
     } else {
       // This will be caught earlier
-      throw new InternalError(`Invalid kind '${resolvedConfig.kind}' encountered when resolving actions.`, { resolvedConfig })
-    }
-  }
-
-  /**
-   * Resolves module variables with the following precedence order:
-   *
-   *   garden.cliVariables > module varfile > config.variables
-   */
-  private resolveVariables(
-    config: BaseActionConfig,
-    templateContextParams: BaseActionConfigContextParams
-  ) {
-    const moduleConfigContext = new BaseActionConfigContext(templateContextParams)
-    const resolveOpts = { allowPartial: false }
-    let varfileVars: DeepPrimitiveMap = {}
-    if (config.varfile) {
-      const varfilePath = resolveTemplateString(config.varfile, moduleConfigContext, resolveOpts)
-      varfileVars = await loadVarfile({
-        configRoot: config.path,
-        path: varfilePath,
-        defaultPath: undefined,
+      throw new InternalError(`Invalid kind '${config["kind"]}' encountered when resolving actions.`, {
+        config,
       })
     }
 
-    const rawVariables = config.variables
-    const moduleVariables = resolveTemplateStrings(cloneDeep(rawVariables || {}), moduleConfigContext, resolveOpts)
-    const mergedVariables: DeepPrimitiveMap = <any>merge(moduleVariables, merge(varfileVars, this.garden.cliVariables))
-    return mergedVariables
+    graph.addAction(action)
   }
+
+  graph.validate()
+
+  return graph
 }
 
 const getActionConfigContextKeys = memoize(() => {

@@ -8,6 +8,7 @@
 
 import chalk from "chalk"
 import titleize from "titleize"
+import type { ValuesType } from "utility-types"
 import type { ConfigGraph } from "../graph/config-graph"
 import {
   ActionReference,
@@ -31,7 +32,6 @@ import type { DeployActionConfig } from "./deploy"
 import type { RunActionConfig } from "./run"
 import type { TestActionConfig } from "./test"
 import type { ActionKind } from "../plugin/action-types"
-import type { GroupConfig } from "../config/group"
 import pathIsInside from "path-is-inside"
 import { actionOutputsSchema } from "../plugin/handlers/base/base"
 import { GraphResult, GraphResults } from "../graph/solver"
@@ -281,10 +281,10 @@ export const baseRuntimeActionConfig = () =>
   })
 
 export interface ActionConfigTypes {
-  build: BuildActionConfig
-  deploy: DeployActionConfig
-  run: RunActionConfig
-  test: TestActionConfig
+  Build: BuildActionConfig
+  Deploy: DeployActionConfig
+  Run: RunActionConfig
+  Test: TestActionConfig
 }
 
 // See https://melvingeorge.me/blog/convert-array-into-string-literal-union-type-typescript
@@ -326,7 +326,7 @@ export function runResultToActionState(result: RunResult) {
 
 type ActionDependencyType = "explicit" | "implicit" | "implicit-executed"
 
-interface ActionDependency {
+export interface ActionDependency {
   kind: ActionKind
   name: string
   type: ActionDependencyType
@@ -341,12 +341,12 @@ export interface ActionWrapperParams<C extends BaseActionConfig> {
   moduleVersion?: ModuleVersion
   projectRoot: string
   treeVersion: TreeVersion
+  variables: DeepPrimitiveMap
 }
 
 export interface ResolvedActionWrapperParams<C extends BaseActionConfig, O extends {}> extends ActionWrapperParams<C> {
   dependencyResults: GraphResults
   status: ActionStatus<BaseAction<C, O>, any>
-  variables: DeepPrimitiveMap
 }
 
 export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, O extends {} = any> {
@@ -515,7 +515,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   }
 
   matchesRef(ref: ActionReference) {
-    return ref.kind === this.kind && ref.name === this.name
+    return actionRefMatches(ref, this)
   }
 
   // TODO-G2: grow this
@@ -603,6 +603,7 @@ export function actionReferenceToString(ref: ActionReference) {
   return `${ref.kind.toLowerCase()}.${ref.name}`
 }
 
+export type ActionConfig = ValuesType<ActionConfigTypes>
 export type Action = BuildAction | RuntimeAction
 
 export type Resolved<T extends BaseAction> = T extends BuildAction
@@ -615,7 +616,7 @@ export type ActionReferenceMap = {
 
 export type ActionConfigMap = {
   [K in ActionKind]: {
-    [name: string]: BaseActionConfig
+    [name: string]: BaseActionConfig<K>
   }
 }
 
@@ -636,4 +637,12 @@ export function actionReferencesToMap(refs: ActionReference[]) {
 
 export function isActionConfig(config: any): config is BaseActionConfig {
   return actionKinds.includes(config)
+}
+
+export function actionRefMatches(a: ActionReference, b: ActionReference) {
+  return a.kind === b.kind && a.name === b.name
+}
+
+export function describeActionConfig(config: ActionConfig) {
+  return `${config.type} ${config.kind} ${config.name}`
 }
