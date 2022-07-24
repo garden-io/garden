@@ -7,7 +7,7 @@
  */
 
 import dedent from "dedent"
-import { baseActionConfigSchema, BaseActionConfig } from "../actions/base"
+import { baseActionConfigSchema, ActionConfig } from "../actions/base"
 import { templateStringLiteral } from "../docs/common"
 import { apiVersionSchema, DeepPrimitiveMap, joi, joiSparseArray, joiUserIdentifier, joiVariables } from "./common"
 import { varfileDescription } from "./project"
@@ -27,7 +27,7 @@ export interface GroupConfig {
   varfiles?: string[]
 
   // Actions
-  actions: BaseActionConfig[]
+  actions: ActionConfig[]
 }
 
 export const groupConfig = () =>
