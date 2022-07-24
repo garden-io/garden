@@ -279,7 +279,9 @@ export class LogsCommand extends Command<Args, Opts> {
     const router = await garden.getActionRouter()
     this.events = new PluginEventBroker()
 
-    await Bluebird.map(actions, async (action) => {
+    const resolvedActions = await garden.resolveActions({ actions, graph, log })
+
+    await Bluebird.map(Object.values(resolvedActions), async (action) => {
       await router.deploy.getLogs({ log, graph, action, stream, follow, tail, since, events: this.events })
     })
 

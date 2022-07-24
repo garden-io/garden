@@ -20,6 +20,7 @@ import { GetModuleOutputsParams } from "../../../plugin/handlers/module/get-outp
 import { containerHelpers } from "../../container/helpers"
 import { getContainerModuleOutputs } from "../../container/container"
 import { getContainerBuildActionOutputs } from "../../container/build"
+import { Resolved } from "../../../actions/base"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
   let { moduleConfig } = await params.base!(params)
@@ -57,15 +58,10 @@ export function k8sGetContainerBuildActionOutputs({
   action,
 }: {
   provider: KubernetesProvider
-  action: ContainerBuildAction
+  action: Resolved<ContainerBuildAction>
 }): ContainerBuildOutputs {
   const localId = action.getSpec("localId")
-
-  const outputs = getContainerBuildActionOutputs({
-    buildName: action.name,
-    localId,
-    version: action.getFullVersion(),
-  })
+  const outputs = getContainerBuildActionOutputs(action)
 
   outputs.deploymentImageName = containerHelpers.getDeploymentImageName(
     action.name,

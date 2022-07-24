@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { includes } from "lodash"
-import { BaseActionTask, BaseActionTaskParams, ActionTaskProcessParams } from "./base"
+import { BaseActionTaskParams, ActionTaskProcessParams, ExecuteActionTask } from "./base"
 import { getLinkUrl } from "../types/service"
 import { startPortProxies } from "../proxy"
 import { prepareRuntimeContext } from "../runtime-context"
@@ -19,7 +19,7 @@ import { DeployStatus } from "../plugin/handlers/deploy/get-status"
 export interface DeployTaskParams extends BaseActionTaskParams<DeployAction> {}
 
 @Profile()
-export class DeployTask extends BaseActionTask<DeployAction, DeployStatus> {
+export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
   type = "deploy"
   concurrencyLimit = 10
 
@@ -27,8 +27,9 @@ export class DeployTask extends BaseActionTask<DeployAction, DeployStatus> {
     return `deploying ${this.action.longDescription()})`
   }
 
-  async getStatus({ resolvedAction: action, dependencyResults }: ActionTaskProcessParams<DeployAction>) {
+  async getStatus({ dependencyResults }: ActionTaskProcessParams<DeployAction, DeployStatus>) {
     const log = this.log.placeholder()
+    const action = this.getResolvedAction(this.action, dependencyResults)
 
     const devMode = includes(this.devModeDeployNames, action.name)
     const localMode = includes(this.localModeDeployNames, action.name)
@@ -39,12 +40,12 @@ export class DeployTask extends BaseActionTask<DeployAction, DeployStatus> {
       graphResults: dependencyResults,
     })
 
-    const actions = await this.garden.getActionRouter()
+    const router = await this.garden.getActionRouter()
 
     let status: DeployStatus = { state: "unknown", detail: { state: "unknown", detail: {} }, outputs: {} }
 
     try {
-      status = await actions.deploy.getStatus({
+      status = await router.deploy.getStatus({
         graph: this.graph,
         action,
         log,
@@ -61,11 +62,12 @@ export class DeployTask extends BaseActionTask<DeployAction, DeployStatus> {
       }
     }
 
-    return status
+    return { ...status, executedAction: action.execute({ status }) }
   }
 
-  async process({ resolvedAction: action, dependencyResults, status }: ActionTaskProcessParams<DeployAction>) {
+  async process({ dependencyResults, status }: ActionTaskProcessParams<DeployAction, DeployStatus>) {
     const version = this.version
+    const action = this.getResolvedAction(this.action, dependencyResults)
 
     const devMode = includes(this.devModeDeployNames, action.name)
     const localMode = includes(this.localModeDeployNames, action.name)
@@ -77,10 +79,10 @@ export class DeployTask extends BaseActionTask<DeployAction, DeployStatus> {
       graphResults: dependencyResults,
     })
 
-    const actions = await this.garden.getActionRouter()
+    const router = await this.garden.getActionRouter()
 
-    const devModeSkipRedeploy = status.devMode && devMode
-    const localModeSkipRedeploy = status.localMode && localMode
+    const devModeSkipRedeploy = status.detail?.devMode && devMode
+    const localModeSkipRedeploy = status.detail?.localMode && localMode
 
     const log = this.log.info({
       status: "active",
@@ -91,7 +93,7 @@ export class DeployTask extends BaseActionTask<DeployAction, DeployStatus> {
     if (
       !this.force &&
       status.state === "ready" &&
-      (version === status.version || devModeSkipRedeploy || localModeSkipRedeploy)
+      (version === status.detail?.version || devModeSkipRedeploy || localModeSkipRedeploy)
     ) {
       // already deployed and ready
       log.setSuccess({
@@ -100,7 +102,7 @@ export class DeployTask extends BaseActionTask<DeployAction, DeployStatus> {
       })
     } else {
       try {
-        const res = await actions.deploy.deploy({
+        status = await router.deploy.deploy({
           graph: this.graph,
           action,
           runtimeContext,
@@ -109,7 +111,6 @@ export class DeployTask extends BaseActionTask<DeployAction, DeployStatus> {
           devMode,
           localMode,
         })
-        status = res.detail
       } catch (err) {
         log.setError()
         throw err
@@ -121,7 +122,9 @@ export class DeployTask extends BaseActionTask<DeployAction, DeployStatus> {
       })
     }
 
-    for (const ingress of status.ingresses || []) {
+    const executedAction = action.execute({ status })
+
+    for (const ingress of status.detail?.ingresses || []) {
       log.info(chalk.gray("→ Ingress: ") + chalk.underline.gray(getLinkUrl(ingress)))
     }
 
@@ -130,8 +133,8 @@ export class DeployTask extends BaseActionTask<DeployAction, DeployStatus> {
         garden: this.garden,
         graph: this.graph,
         log,
-        action,
-        status,
+        action: executedAction,
+        status: status.detail!,
       })
 
       for (const proxy of proxies) {
@@ -148,6 +151,6 @@ export class DeployTask extends BaseActionTask<DeployAction, DeployStatus> {
       }
     }
 
-    return status
+    return { ...status, executedAction }
   }
 }

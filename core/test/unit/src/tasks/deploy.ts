@@ -162,7 +162,7 @@ describe("DeployTask", () => {
         localModeDeployNames: [],
       })
 
-      expect((await forcedDeployTask.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
+      expect((await forcedDeployTask.resolveProcessDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
 
       const unforcedDeployTask = new DeployTask({
         garden,
@@ -177,7 +177,7 @@ describe("DeployTask", () => {
         localModeDeployNames: [],
       })
 
-      expect((await unforcedDeployTask.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
+      expect((await unforcedDeployTask.resolveProcessDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
 
       const deployTaskFromWatch = new DeployTask({
         garden,
@@ -192,7 +192,7 @@ describe("DeployTask", () => {
         localModeDeployNames: [],
       })
 
-      expect((await deployTaskFromWatch.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
+      expect((await deployTaskFromWatch.resolveProcessDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
     })
 
     context("when skipRuntimeDependencies = true", () => {
@@ -213,7 +213,7 @@ describe("DeployTask", () => {
           localModeDeployNames: [],
         })
 
-        const deps = await deployTask.resolveDependencies()
+        const deps = await deployTask.resolveProcessDependencies()
         expect(deps.find((dep) => dep.type === "deploy" || dep.type === "task")).to.be.undefined
       })
     })
@@ -237,7 +237,7 @@ describe("DeployTask", () => {
 
       const result = await garden.processTasks([deployTask], { throwOnError: true })
 
-      expect(result[deployTask.getKey()]!.result.outputs).to.eql({ log: "test output" })
+      expect(result[deployTask.getBaseKey()]!.result.outputs).to.eql({ log: "test output" })
     })
   })
 })

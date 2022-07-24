@@ -12,6 +12,7 @@ import { ForwardablePort, forwardablePortKeys } from "../../../types/service"
 import { joi } from "../../../config/common"
 import { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
+import { Executed } from "../../../actions/base"
 
 type GetPortForwardParams<T extends DeployAction> = PluginDeployActionParamsBase<T> & ForwardablePort
 
@@ -22,7 +23,7 @@ export interface GetPortForwardResult {
 
 export class GetDeployPortForward<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "Deploy",
-  GetPortForwardParams<T>,
+  GetPortForwardParams<Executed<T>>,
   GetPortForwardResult
 > {
   description = dedent`

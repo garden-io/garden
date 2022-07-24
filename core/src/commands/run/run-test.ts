@@ -18,17 +18,16 @@ import {
   Command,
   CommandParams,
   CommandResult,
-  resultMetadataKeys,
+  processCommandResultKeys,
   graphResultsSchema,
-  ProcessResultMetadata,
   handleTaskResult,
 } from "../base"
 import { joi } from "../../config/common"
-import { TestResult } from "../../types/test"
-import { GraphResults } from "../../graph/solver"
 import { StringParameter, BooleanParameter, ParameterValues } from "../../cli/params"
 import { GardenModule, moduleTestNameToActionName } from "../../types/module"
 import { ConfigGraph } from "../../graph/config-graph"
+import { GraphResult, GraphResultMap, GraphResults } from "../../graph/results"
+import { GetTestResult } from "../../plugin/handlers/test/get-result"
 
 export const runTestArgs = {
   name: new StringParameter({
@@ -63,8 +62,9 @@ type Args = typeof runTestArgs
 type Opts = typeof runTestOpts
 
 interface RunTestOutput {
-  result: TestResult & ProcessResultMetadata
-  graphResults: GraphResults
+  error: Error | null
+  result: GraphResult<GetTestResult> | null
+  graphResults: GraphResultMap
 }
 
 export class RunTestCommand extends Command<Args, Opts> {
@@ -88,7 +88,7 @@ export class RunTestCommand extends Command<Args, Opts> {
 
   outputsSchema = () =>
     joi.object().keys({
-      result: testResultSchema().keys(resultMetadataKeys()).description("The result of the test."),
+      result: testResultSchema().keys(processCommandResultKeys()).description("The result of the test."),
       graphResults: graphResultsSchema(),
     })
 
@@ -134,8 +134,8 @@ export class RunTestCommand extends Command<Args, Opts> {
     return handleTaskResult({
       log,
       actionDescription: "test",
-      graphResults: results,
-      key: testTask.getKey(),
+      graphResults: <GraphResults<TestTask>>results,
+      task: testTask,
       interactive,
     })
   }

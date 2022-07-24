@@ -11,7 +11,7 @@ import { actionParamsSchema, PluginBuildActionParamsBase } from "../../../plugin
 import { joi } from "../../../config/common"
 import { BuildAction } from "../../../actions/build"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { ActionStatus } from "../../../actions/base"
+import { ActionStatus, Executed } from "../../../actions/base"
 
 interface PublishActionParams<T extends BuildAction = BuildAction> extends PluginBuildActionParamsBase<T> {
   tag?: string
@@ -34,7 +34,7 @@ export const publishResultSchema = () =>
 
 export class PublishBuildAction<T extends BuildAction = BuildAction> extends ActionTypeHandlerSpec<
   "Build",
-  PublishActionParams<T>,
+  PublishActionParams<Executed<T>>,
   PublishActionResult
 > {
   description = dedent`

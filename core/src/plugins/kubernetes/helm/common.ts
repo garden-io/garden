@@ -26,6 +26,7 @@ import { RunResult } from "../../../plugin/base"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants"
 import { dumpYaml } from "../../../util/util"
 import { HelmDeployAction } from "./config"
+import { Resolved } from "../../../actions/base"
 
 const gardenValuesFilename = "garden-values.yml"
 export const helmChartYamlFilename = "Chart.yaml"
@@ -46,7 +47,7 @@ async function dependencyUpdate(ctx: KubernetesPluginContext, log: LogEntry, nam
 
 interface GetChartResourcesParams {
   ctx: KubernetesPluginContext
-  action: HelmDeployAction
+  action: Resolved<HelmDeployAction>
   devMode: boolean
   localMode: boolean
   log: LogEntry
@@ -212,7 +213,7 @@ export function getBaseModule(module: HelmModule): HelmModule | undefined {
 /**
  * Get the full absolute path to the chart, within the action build path.
  */
-export async function getChartPath(action: HelmDeployAction) {
+export async function getChartPath(action: Resolved<HelmDeployAction>) {
   const chartSpec = action.getSpec("chart") || {}
   const chartPath = chartSpec.path || "."
   const chartDir = resolve(action.getBuildPath(), chartPath)
@@ -253,7 +254,7 @@ export function getGardenValuesPath(chartPath: string) {
 /**
  * Get the value files arguments that should be applied to any helm install/render command.
  */
-export async function getValueArgs(action: HelmDeployAction, devMode: boolean, localMode: boolean) {
+export async function getValueArgs(action: Resolved<HelmDeployAction>, devMode: boolean, localMode: boolean) {
   const chartPath = await getChartPath(action)
   const gardenValuesPath = getGardenValuesPath(chartPath)
 
@@ -279,7 +280,7 @@ export async function getValueArgs(action: HelmDeployAction, devMode: boolean, l
 /**
  * Get the release name to use for the module/chart (the module name, unless overridden in config).
  */
-export function getReleaseName(action: HelmDeployAction) {
+export function getReleaseName(action: Resolved<HelmDeployAction>) {
   return action.getSpec("releaseName") || action.name
 }
 
@@ -290,7 +291,7 @@ export function getReleaseName(action: HelmDeployAction) {
 export async function renderHelmTemplateString(
   ctx: PluginContext,
   log: LogEntry,
-  action: HelmDeployAction,
+  action: Resolved<HelmDeployAction>,
   chartPath: string,
   value: string
 ): Promise<string> {

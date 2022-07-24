@@ -36,9 +36,10 @@ import { resolve } from "path"
 import { killPortForwards } from "../port-forward"
 import { prepareSecrets } from "../secrets"
 import { configureDevMode, startDevModeSyncs } from "../dev-mode"
-import { getDeploymentImageId, getResourceRequirements, getSecurityContext } from "./util"
+import { getDeployedImageId, getResourceRequirements, getSecurityContext } from "./util"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import { DeployActionHandler, DeployActionParams } from "../../../plugin/action-types"
+import { Resolved } from "../../../actions/base"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters
@@ -54,7 +55,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx, k8sCtx.provider)
 
-  const imageId = getDeploymentImageId(action)
+  const imageId = getDeployedImageId(action, k8sCtx.provider)
 
   if (deploymentStrategy === "blue-green") {
     await deployContainerServiceBlueGreen({ ...params, devMode: deployWithDevMode, api, imageId })
@@ -97,7 +98,7 @@ export async function startContainerDevSync({
   ctx: KubernetesPluginContext
   status: ContainerServiceStatus
   log: LogEntry
-  action: ContainerDeployAction
+  action: Resolved<ContainerDeployAction>
 }) {
   const devMode = action.getSpec("devMode")
   const workload = status.detail.workload
@@ -145,7 +146,7 @@ export async function startLocalMode({
   ctx: KubernetesPluginContext
   status: ContainerServiceStatus
   log: LogEntry
-  action: ContainerDeployAction
+  action: Resolved<ContainerDeployAction>
 }) {
   const localModeSpec = action.getSpec("localMode")
 
@@ -337,7 +338,7 @@ export async function createContainerManifests({
   ctx: PluginContext
   api: KubeApi
   log: LogEntry
-  action: ContainerDeployAction
+  action: Resolved<ContainerDeployAction>
   imageId: string
   runtimeContext: RuntimeContext
   enableDevMode: boolean
@@ -392,7 +393,7 @@ interface CreateDeploymentParams {
   ctx: PluginContext
   api: KubeApi
   provider: KubernetesProvider
-  action: ContainerDeployAction
+  action: Resolved<ContainerDeployAction>
   runtimeContext: RuntimeContext
   namespace: string
   imageId: string
@@ -694,7 +695,7 @@ function workloadConfig({
   namespace,
   blueGreen,
 }: {
-  action: ContainerDeployAction
+  action: Resolved<ContainerDeployAction>
   configuredReplicas: number
   namespace: string
   blueGreen: boolean
@@ -825,7 +826,16 @@ export function configureVolumes(
       })
     } else if (volume.action) {
       // Make sure the action is a supported type
-      const volumeAction = action.dependencies.getBuild(volume.action)
+      const volumeAction = action.getDependency({ kind: "Deploy", name: volume.action })
+
+      if (!volumeAction) {
+        throw new ConfigurationError(
+          `${action.longDescription()} specifies action '${
+            volume.action
+          }' on volume '${volumeName}' but the Deploy action could not be found. Please make sure it is specified as a dependency on the action.`,
+          { volume }
+        )
+      }
 
       if (volumeAction.isCompatible("persistentvolumeclaim")) {
         volumes.push({

@@ -9,14 +9,13 @@
 import chalk from "chalk"
 import { BuildTask } from "./build"
 import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams } from "../tasks/base"
-import { emptyRuntimeContext } from "../runtime-context"
 import { resolveTemplateString } from "../template-string/template-string"
 import { joi } from "../config/common"
 import { versionStringPrefix } from "../vcs/vcs"
 import { ConfigContext, schema } from "../config/template-contexts/base"
 import { PublishActionResult } from "../plugin/handlers/build/publish"
 import { BuildAction } from "../actions/build"
-import { ActionConfigContext, ActionConfigContextParams } from "../config/template-contexts/actions"
+import { ActionSpecContext, ActionSpecContextParams } from "../config/template-contexts/actions"
 import { ActionState } from "../actions/base"
 
 export interface PublishTaskParams extends BaseActionTaskParams<BuildAction> {
@@ -34,7 +33,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
     this.tagTemplate = params.tagTemplate
   }
 
-  resolveDependencies() {
+  resolveProcessDependencies() {
     if (this.action.getConfig("allowPublish") === false) {
       return []
     }
@@ -56,15 +55,17 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
     return null
   }
 
-  async process({ resolvedAction: action }: ActionTaskProcessParams<BuildAction>) {
-    if (action.getConfig("allowPublish") === false) {
+  async process({ dependencyResults }: ActionTaskProcessParams<BuildAction, PublishActionResult>) {
+    if (this.action.getConfig("allowPublish") === false) {
       this.log.info({
-        section: action.key(),
+        section: this.action.key(),
         msg: "Publishing disabled (allowPublish=false set on module)",
         status: "active",
       })
       return { state: <ActionState>"ready", detail: { published: false, outputs: {} }, outputs: {} }
     }
+
+    const action = this.getExecutedAction(this.action, dependencyResults)
 
     let tag: string | undefined = undefined
 
@@ -74,11 +75,11 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
       const templateContext = new BuildTagContext({
         garden: this.garden,
         action,
-        variables: { ...this.garden.variables, ...action.getVariables() },
         resolvedProviders,
         modules: this.graph.getModules(),
-        runtimeContext: emptyRuntimeContext,
         partialRuntimeResolution: false,
+        executedDependencies: action.getExecutedDependencies(),
+        variables: action.getVariables(),
       })
 
       // Resolve template string and make sure the result is a string
@@ -134,14 +135,14 @@ class BuildSelfContext extends ConfigContext {
   }
 }
 
-class BuildTagContext extends ActionConfigContext {
+class BuildTagContext extends ActionSpecContext {
   @schema(BuildSelfContext.getSchema().description("Extended information about the build being tagged."))
   public build: BuildSelfContext
 
   @schema(BuildSelfContext.getSchema().description("Alias kept for compatibility."))
   public module: BuildSelfContext
 
-  constructor(params: ActionConfigContextParams & { action: BuildAction }) {
+  constructor(params: ActionSpecContextParams & { action: BuildAction }) {
     super(params)
     this.build = this.module = new BuildSelfContext(this, params.action)
   }

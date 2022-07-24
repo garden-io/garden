@@ -24,6 +24,7 @@ import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
 import { KubernetesDeployActionConfig } from "../kubernetes-type/config"
 import { DeployActionDefinition } from "../../../plugin/action-types"
 import { getKubernetesDeployStatus, kubernetesDeploy } from "../kubernetes-type/handlers"
+import { Resolved } from "../../../actions/base"
 
 export interface PersistentVolumeClaimDeploySpec extends BaseVolumeSpec {
   namespace?: string
@@ -166,7 +167,7 @@ export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
 /**
  * Maps a `persistentvolumeclaim` action to a `kubernetes` action (so we can re-use those handlers).
  */
-function getKubernetesAction(action: PersistentVolumeClaimAction) {
+function getKubernetesAction(action: Resolved<PersistentVolumeClaimAction>) {
   const pvcManifest: KubernetesResource<V1PersistentVolumeClaim> = {
     apiVersion: "v1",
     kind: "PersistentVolumeClaim",

@@ -12,7 +12,8 @@ import { joi } from "../../../config/common"
 import { BuildAction } from "../../../actions/build"
 import { actionOutputsSchema, ActionTypeHandlerSpec } from "../base/base"
 import _ from "lodash"
-import { GetActionOutputType } from "../../../actions/base"
+import { GetActionOutputType, Resolved } from "../../../actions/base"
+import { BuildStatus } from "./get-status"
 
 interface DoBuildActionParams<T extends BuildAction> extends PluginBuildActionParamsBase<T> {}
 
@@ -24,11 +25,11 @@ interface DoBuildActionParams<T extends BuildAction> extends PluginBuildActionPa
  */
 export type BuildState = "fetched" | "building" | "built" | "failed"
 
+// TODO-G2: use BuildStatus and combine as needed
 export interface BuildResult<T extends BuildAction = BuildAction> {
   buildLog?: string
   fetched?: boolean
   fresh?: boolean
-  version?: string
   details?: any
   outputs: GetActionOutputType<T>
 }
@@ -47,8 +48,8 @@ export const buildResultSchema = () =>
 
 export class DoBuildAction<T extends BuildAction = BuildAction> extends ActionTypeHandlerSpec<
   "Build",
-  DoBuildActionParams<T>,
-  BuildResult<T>
+  DoBuildActionParams<Resolved<T>>,
+  BuildStatus<T>
 > {
   description = dedent`
     Build the current version of a Build action. This must wait until the build is complete before returning.

@@ -19,6 +19,7 @@ import { printHeader, getTerminalWidth } from "../logger/util"
 import { LoggerType } from "../logger/logger"
 import { StringOption } from "../cli/params"
 import { ConfigGraph } from "../graph/config-graph"
+import { ModuleGraph } from "../graph/modules"
 
 const pluginArgs = {
   plugin: new StringOption({
@@ -104,7 +105,7 @@ export class PluginsCommand extends Command<Args> {
     const provider = await garden.resolveProvider(log, args.plugin)
     const ctx = await garden.getPluginContext(provider)
 
-    let graph = new ConfigGraph([], {})
+    let graph = new ConfigGraph({ actions: [], moduleGraph: new ModuleGraph([], {}) })
 
     // Commands can optionally ask for all the modules in the project/environment
     if (command.resolveGraph) {

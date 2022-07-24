@@ -22,7 +22,8 @@ import { KubernetesPluginContext } from "../config"
 import { RuntimeContext } from "../../../runtime-context"
 import { KubernetesServerResource, KubernetesWorkload } from "../types"
 import { DeployActionHandler } from "../../../plugin/action-types"
-import { getDeploymentImageId } from "./util"
+import { getDeployedImageId } from "./util"
+import { Resolved } from "../../../actions/base"
 
 interface ContainerStatusDetail {
   remoteResources: KubernetesServerResource[]
@@ -41,7 +42,7 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
   const namespace = namespaceStatus.namespaceName
   const enableDevMode = devMode && !!action.getSpec("devMode")
-  const imageId = getDeploymentImageId(action)
+  const imageId = getDeployedImageId(action, provider)
 
   // FIXME: [objects, matched] and ingresses can be run in parallel
   const { workload, manifests } = await createContainerManifests({
@@ -120,7 +121,7 @@ export async function waitForContainerService(
   ctx: PluginContext,
   log: LogEntry,
   runtimeContext: RuntimeContext,
-  action: ContainerDeployAction,
+  action: Resolved<ContainerDeployAction>,
   devMode: boolean,
   localMode: boolean,
   timeout = KUBECTL_DEFAULT_TIMEOUT

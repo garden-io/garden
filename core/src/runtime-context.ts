@@ -9,7 +9,7 @@
 import { PrimitiveMap, joiEnvVars, joiPrimitive, joi, joiIdentifier } from "./config/common"
 import { ConfigGraph } from "./graph/config-graph"
 import { joiArray } from "./config/common"
-import { GraphResults } from "./graph/solver"
+import { GraphResults } from "./graph/results"
 import { ActionKind, actionKinds, BaseAction } from "./actions/base"
 
 interface RuntimeDependency {

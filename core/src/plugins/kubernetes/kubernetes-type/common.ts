@@ -28,6 +28,7 @@ import { runAndCopy } from "../run"
 import { getTargetResource, getResourcePodSpec, getResourceContainer, makePodName } from "../util"
 import { KubernetesRunAction } from "./run"
 import { KubernetesTestAction } from "./test"
+import { Resolved } from "../../../actions/base"
 
 /**
  * Reads the manifests and makes sure each has a namespace set (when applicable) and adds annotations.
@@ -44,7 +45,7 @@ export async function getManifests({
   ctx: PluginContext
   api: KubeApi
   log: LogEntry
-  action: KubernetesDeployAction
+  action: Resolved<KubernetesDeployAction>
   defaultNamespace: string
   readFromSrcDir?: boolean
 }): Promise<KubernetesResource[]> {
@@ -98,7 +99,7 @@ const disallowedKustomizeArgs = ["-o", "--output", "-h", "--help"]
  */
 export async function readManifests(
   ctx: PluginContext,
-  action: KubernetesDeployAction,
+  action: Resolved<KubernetesDeployAction>,
   log: LogEntry,
   readFromSrcDir = false
 ) {
@@ -182,7 +183,7 @@ export function convertServiceResource(
 export async function runOrTest(
   params: CommonRunParams & {
     ctx: KubernetesPluginContext
-    action: KubernetesRunAction | KubernetesTestAction
+    action: Resolved<KubernetesRunAction | KubernetesTestAction>
     log: LogEntry
     namespace: string
   }

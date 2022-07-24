@@ -78,8 +78,16 @@ export class BuildStaging {
     const buildPath = action.getBuildPath()
 
     await Bluebird.map(action.getConfig("copyFrom") || [], async (copy) => {
-      const sourceBuild = action.dependencies.getBuild(copy.build)
-      const sourceBuildPath = await this.getBuildPath(sourceBuild.getConfig())
+      const sourceBuild = action.getDependency({ kind: "Build", name: copy.build })
+
+      if (!sourceBuild) {
+        throw new ConfigurationError(
+          `${action.longDescription()} specifies build '${copy.build}' in \`copyFrom\` which could not be found.`,
+          { actionKey: action.key(), copy }
+        )
+      }
+
+      const sourceBuildPath = sourceBuild.getBuildPath()
 
       if (isAbsolute(copy.sourcePath)) {
         throw new ConfigurationError(`Source path in build dependency copy spec must be a relative path`, {
@@ -113,7 +121,7 @@ export class BuildStaging {
 
   // TODO-G2: remove
   // TODO-G2: ensure build path elsewhere?
-  getBuildPath(config: BuildActionConfig | ModuleConfig): string {
+  getBuildPath(config: BuildActionConfig<string, any> | ModuleConfig): string {
     // We don't stage the build for local exec modules, so the module path is effectively the build path.
     if (config.kind === "Module" && config.type === "exec" && config["local"] === true) {
       return config.path
@@ -127,7 +135,7 @@ export class BuildStaging {
     return join(this.buildDirPath, config.name)
   }
 
-  async ensureBuildPath(config: BuildActionConfig): Promise<string> {
+  async ensureBuildPath(config: BuildActionConfig<string, any>): Promise<string> {
     const path = this.getBuildPath(config)
     await this.ensureDir(path)
     return path

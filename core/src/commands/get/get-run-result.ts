@@ -7,13 +7,14 @@
  */
 
 import { ConfigGraph } from "../../graph/config-graph"
-import { Command, CommandResult, CommandParams } from "../base"
+import { Command, CommandParams } from "../base"
 import { printHeader } from "../../logger/util"
 import chalk from "chalk"
 import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
 import { taskResultSchema } from "../../types/task"
 import { joiArray, joi } from "../../config/common"
 import { StringParameter } from "../../cli/params"
+import { GetRunResult } from "../../plugin/handlers/run/get-result"
 
 const getRunResultArgs = {
   name: new StringParameter({
@@ -24,7 +25,13 @@ const getRunResultArgs = {
 
 type Args = typeof getRunResultArgs
 
-export class GetRunResultCommand extends Command<Args> {
+interface Result extends GetRunResult {
+  artifacts: string[]
+}
+
+export type GetRunResultCommandResult = Result | null
+
+export class GetRunResultCommand extends Command<Args, {}, GetRunResultCommandResult> {
   name = "run-result"
   help = "Outputs the latest execution result of a provided run (or task, if using modules)."
   aliases = ["task-result"]
@@ -45,15 +52,17 @@ export class GetRunResultCommand extends Command<Args> {
     printHeader(headerLog, `Task result for task ${chalk.cyan(taskName)}`, "rocket")
   }
 
-  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
+  async action({ garden, log, args }: CommandParams<Args>) {
     const graph: ConfigGraph = await garden.getConfigGraph({ log, emit: true })
     const action = graph.getRun(args.name)
 
-    const actions = await garden.getActionRouter()
+    const router = await garden.getActionRouter()
 
-    const res = await actions.run.getResult({
+    const resolved = await garden.resolveAction({ action, graph, log })
+
+    const res = await router.run.getResult({
       log,
-      action,
+      action: resolved,
       graph,
     })
 
