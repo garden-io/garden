@@ -17,6 +17,7 @@ import { dedent } from "../../../util/string"
 import { RuntimeContext } from "../../../runtime-context"
 import { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
+import { Resolved } from "../../../actions/base"
 
 interface RunDeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   interactive: boolean
@@ -26,7 +27,7 @@ interface RunDeployParams<T extends DeployAction> extends PluginDeployActionPara
 
 export class RunDeploy<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "Run",
-  RunDeployParams<T>,
+  RunDeployParams<Resolved<T>>,
   RunResult
 > {
   description = dedent`

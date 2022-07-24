@@ -7,16 +7,9 @@
  */
 
 import { join } from "path"
-import {
-  ActionReference,
-  DeepPrimitiveMap,
-  includeGuideLink,
-  joi,
-  joiSparseArray,
-  joiUserIdentifier,
-} from "../config/common"
+import { ActionReference, includeGuideLink, joi, joiSparseArray, joiUserIdentifier } from "../config/common"
 import { ActionConfigContext } from "../config/template-contexts/actions"
-import { GraphResult, GraphResults } from "../graph/solver"
+import { GraphResult, GraphResults } from "../graph/results"
 import { dedent } from "../util/string"
 import {
   BaseActionConfig,
@@ -27,6 +20,15 @@ import {
   Action,
   ActionStatus,
   actionReferenceToString,
+  ResolvedActionExtension,
+  ExecutedActionExtension,
+  ExecutedActionWrapperParams,
+  ResolveActionParams,
+  ExecuteActionParams,
+  Executed,
+  ExecutedActionConstructor,
+  ExecutedAction,
+  ResolvedAction,
 } from "./base"
 
 export interface BuildCopyFrom {
@@ -35,9 +37,9 @@ export interface BuildCopyFrom {
   targetPath: string
 }
 
-export interface BuildActionConfig<N extends string = any, S extends object = any>
-  extends BaseActionConfig<"Build", N, S> {
-  type: N
+export interface BuildActionConfig<T extends string, S extends object>
+  extends BaseActionConfig<"Build", T, S> {
+  type: T
   allowPublish?: boolean
   buildAtSource?: boolean
   copyFrom?: BuildCopyFrom[]
@@ -126,7 +128,7 @@ export const buildActionConfig = () =>
       .meta({ templateContext: ActionConfigContext }),
   })
 
-export class BuildAction<C extends BuildActionConfig = BuildActionConfig, O extends {} = any> extends BaseAction<C, O> {
+export class BuildAction<C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>, O extends {} = any> extends BaseAction<C, O> {
   kind: "Build"
 
   /**
@@ -145,26 +147,77 @@ export class BuildAction<C extends BuildActionConfig = BuildActionConfig, O exte
   getBuildMetadataPath() {
     return join(this.baseBuildDirectory, this.name + ".metadata")
   }
+
+  /**
+   * Returns a resolved version of this action.
+   */
+  resolve(params: ResolveActionParams<C>): ResolvedBuildAction<C, O> {
+    // TODO-G2: validate static outputs here
+    const constructor = Object.getPrototypeOf(this).constructor
+    return constructor({ ...this.params, ...params })
+  }
 }
 
 // TODO: see if we can avoid the duplication here with ResolvedRuntimeAction
-export abstract class ResolvedBuildAction<
-  C extends BuildActionConfig = BuildActionConfig,
-  O extends {} = any
-> extends BuildAction<C, O> {
-  private variables: DeepPrimitiveMap
-  private status: ActionStatus<this, any, O>
-  private dependencyResults: GraphResults
+export abstract class ResolvedBuildAction<C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>, O extends {} = any>
+  extends BuildAction<C, O>
+  implements ResolvedActionExtension<C> {
+  protected readonly params: ResolvedActionWrapperParams<C>
+  protected readonly resolved: true
+  private readonly dependencyResults: GraphResults
+  private readonly executedDependencies: ExecutedAction[]
+  private readonly resolvedDependencies: ResolvedAction[]
 
-  constructor(params: ResolvedActionWrapperParams<C, O>) {
+  constructor(params: ResolvedActionWrapperParams<C>) {
     super(params)
-    this.status = params.status
-    this.variables = params.variables
     this.dependencyResults = params.dependencyResults
+    this.executedDependencies = params.executedDependencies
+    this.resolvedDependencies = params.resolvedDependencies
+    this.resolved = true
+  }
+  getExecutedDependencies() {
+    return this.executedDependencies
+  }
+
+  getResolvedDependencies(): ResolvedAction[] {
+    return [...this.resolvedDependencies, ...this.executedDependencies]
   }
 
   getDependencyResult(ref: ActionReference | Action): GraphResult | null {
     return this.dependencyResults[actionReferenceToString(ref)] || null
+  }
+
+  // TODO: allow nested key lookups here
+  getSpec(): C["spec"]
+  getSpec<K extends keyof C["spec"]>(key: K): C["spec"][K]
+  getSpec(key?: keyof C["spec"]) {
+    return key ? this._config.spec[key] : this._config.spec
+  }
+
+  getVariables() {
+    return this.variables
+  }
+
+  /**
+   * Returns an executed version of this action.
+   */
+  execute(params: ExecuteActionParams<C, O>): Executed<this> {
+    // TODO-G2: validate static outputs here
+    const constructor: ExecutedActionConstructor<this> = Object.getPrototypeOf(this).constructor
+    return constructor({ ...this.params, ...params })
+  }
+}
+
+export class ExecutedBuildAction<C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>, O extends {} = any>
+  extends ResolvedBuildAction<C, O>
+  implements ExecutedActionExtension<C, O> {
+  protected readonly executed: true
+  private readonly status: ActionStatus<this, any, O>
+
+  constructor(params: ExecutedActionWrapperParams<C, O>) {
+    super(params)
+    this.status = params.status
+    this.executed = true
   }
 
   getOutput<K extends keyof O>(key: K) {
@@ -174,12 +227,8 @@ export abstract class ResolvedBuildAction<
   getOutputs() {
     return this.status.outputs
   }
-
-  getVariables() {
-    return this.variables
-  }
 }
 
 export function isBuildAction(action: Action): action is BuildAction {
-  return action.kind === "build"
+  return action.kind === "Build"
 }

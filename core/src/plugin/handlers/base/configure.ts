@@ -8,7 +8,7 @@
 
 import { dedent } from "../../../util/string"
 import { logEntrySchema, PluginActionContextParams } from "../../../plugin/base"
-import { identifierRegex, joi } from "../../../config/common"
+import { joi } from "../../../config/common"
 import { LogEntry } from "../../../logger/log-entry"
 import { baseActionConfigSchema, BaseActionConfig } from "../../../actions/base"
 import { ActionTypeHandlerSpec } from "./base"

@@ -135,12 +135,12 @@ describe("TaskTask", () => {
       })
 
       let result = await garden.processTasks([taskTask], { throwOnError: true })
-      const logA = result[taskTask.getKey()]!.result.outputs.log
+      const logA = result[taskTask.getBaseKey()]!.result.outputs.log
 
       garden["taskGraph"].clearCache()
 
       result = await garden.processTasks([taskTask], { throwOnError: true })
-      const logB = result[taskTask.getKey()]!.result.outputs.log
+      const logB = result[taskTask.getBaseKey()]!.result.outputs.log
 
       // Expect the same log from the second run
       expect(logA).to.equal(logB)
@@ -188,12 +188,12 @@ describe("TaskTask", () => {
       })
 
       let result = await garden.processTasks([taskTask], { throwOnError: true })
-      const logA = result[taskTask.getKey()]!.result.outputs.log
+      const logA = result[taskTask.getBaseKey()]!.result.outputs.log
 
       garden["taskGraph"].clearCache()
 
       result = await garden.processTasks([taskTask], { throwOnError: true })
-      const logB = result[taskTask.getKey()]!.result.outputs.log
+      const logB = result[taskTask.getBaseKey()]!.result.outputs.log
 
       // Expect a different log from the second run
       expect(logA).to.not.equal(logB)

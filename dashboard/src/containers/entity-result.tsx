@@ -44,7 +44,7 @@ function prepareData(data?: GetTaskResultCommandResult | GetTestResultCommandRes
 interface Props {
   type: EntityResultSupportedTypes
   name: string
-  moduleName: string
+  moduleName?: string
   cardProps?: any
   onClose: () => void
 }
@@ -57,7 +57,7 @@ function isEntityDisabled({
 }: {
   name: string
   type: EntityResultSupportedTypes
-  moduleName: string
+  moduleName?: string
   entities: Entities
 }) {
   if (type === "test") {

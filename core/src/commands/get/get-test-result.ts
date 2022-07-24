@@ -13,12 +13,19 @@ import chalk from "chalk"
 import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
 import { joi, joiArray } from "../../config/common"
 import { getTestActionFromArgs, runTestArgs } from "../run/run-test"
+import { GetTestResult } from "../../plugin/handlers/test/get-result"
 
 const getTestResultArgs = runTestArgs
 
 type Args = typeof getTestResultArgs
 
-export class GetTestResultCommand extends Command<Args> {
+interface Result extends GetTestResult {
+  artifacts: string[]
+}
+
+export type GetTestResultCommandResult = Result | null
+
+export class GetTestResultCommand extends Command<Args, {}, GetTestResultCommandResult> {
   name = "test-result"
   help = "Outputs the latest execution result of a provided test."
 
@@ -50,10 +57,12 @@ export class GetTestResultCommand extends Command<Args> {
 
     const router = await garden.getActionRouter()
 
+    const resolved = await garden.resolveAction({ action, graph, log })
+
     const res = await router.test.getResult({
       log,
       graph,
-      action,
+      action: resolved,
     })
 
     let artifacts: string[] = []

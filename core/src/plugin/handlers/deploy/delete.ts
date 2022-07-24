@@ -11,7 +11,7 @@ import { actionParamsSchema, PluginDeployActionParamsBase } from "../../../plugi
 import { dedent } from "../../../util/string"
 import { ServiceStatus, serviceStatusSchema } from "../../../types/service"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { ActionStatus } from "../../../actions/base"
+import { ActionStatus, Resolved } from "../../../actions/base"
 
 interface DeleteDeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {}
 
@@ -19,7 +19,7 @@ type DeleteDeployStatus<T extends DeployAction = DeployAction> = ActionStatus<T,
 
 export class DeleteDeploy<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "Deploy",
-  DeleteDeployParams<T>,
+  DeleteDeployParams<Resolved<T>>,
   DeleteDeployStatus<T>
 > {
   description = dedent`

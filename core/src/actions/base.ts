@@ -8,6 +8,7 @@
 
 import chalk from "chalk"
 import titleize from "titleize"
+import type { ValuesType } from "utility-types"
 import type { ConfigGraph } from "../graph/config-graph"
 import {
   ActionReference,
@@ -26,19 +27,22 @@ import { varfileDescription } from "../config/project"
 import { DOCS_BASE_URL } from "../constants"
 import { dedent, naturalList, stableStringify } from "../util/string"
 import { hashStrings, ModuleVersion, TreeVersion, versionStringPrefix } from "../vcs/vcs"
-import type { BuildAction, BuildActionConfig, ResolvedBuildAction } from "./build"
+import type { BuildAction, BuildActionConfig, ExecutedBuildAction, ResolvedBuildAction } from "./build"
 import type { DeployActionConfig } from "./deploy"
 import type { RunActionConfig } from "./run"
 import type { TestActionConfig } from "./test"
 import type { ActionKind } from "../plugin/action-types"
-import type { GroupConfig } from "../config/group"
 import pathIsInside from "path-is-inside"
 import { actionOutputsSchema } from "../plugin/handlers/base/base"
-import { GraphResult, GraphResults } from "../graph/solver"
+import { GraphResult, GraphResults } from "../graph/results"
 import { RunResult } from "../plugin/base"
 import { Memoize } from "typescript-memoize"
 import { fromPairs, isString } from "lodash"
 import { ActionConfigContext } from "../config/template-contexts/actions"
+import { relative } from "path"
+import { InternalError } from "../exceptions"
+
+// TODO-G2: split this file
 
 export { ActionKind } from "../plugin/action-types"
 
@@ -94,20 +98,18 @@ const actionSourceSpecSchema = () =>
  *
  * See inline comments below for information on what templating is allowed on different fields.
  */
-export interface BaseActionConfig<K extends ActionKind = ActionKind, N = string, S = any> {
+export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string, Spec = any> {
   // Basics
   // -> No templating is allowed on these.
   apiVersion?: string
   kind: K
-  type: N
+  type: T
   name: string
   description?: string
-  groupName?: string
 
   // Location
   // -> No templating is allowed on these.
   basePath: string
-  configPath?: string
   // -> Templating with ActionConfigContext allowed
   source?: ActionSourceSpec
 
@@ -115,6 +117,7 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, N = string,
   // -> No templating is allowed on these.
   internal?: {
     configFilePath?: string
+    groupName?: string
     moduleName?: string // For backwards-compatibility, applied on actions returned from module conversion handlers
     // -> set by templates
     parentName?: string
@@ -139,7 +142,7 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, N = string,
   varfiles?: string[]
 
   // Type-specific
-  spec: S
+  spec: Spec
 }
 
 export const includeExcludeSchema = () => joi.array().items(joi.posixPath().allowGlobs().subPathOnly())
@@ -259,7 +262,7 @@ export const baseActionConfigSchema = () =>
       .meta({ templateContext: ActionConfigContext }),
   })
 
-export interface BaseRuntimeActionConfig<K extends ActionKind = any, N = any, S = any>
+export interface BaseRuntimeActionConfig<K extends ActionKind = ActionKind, N = string, S = any>
   extends BaseActionConfig<K, N, S> {
   build?: string
 }
@@ -281,10 +284,10 @@ export const baseRuntimeActionConfig = () =>
   })
 
 export interface ActionConfigTypes {
-  build: BuildActionConfig
-  deploy: DeployActionConfig
-  run: RunActionConfig
-  test: TestActionConfig
+  Build: BuildActionConfig<string, any>
+  Deploy: DeployActionConfig<string, any>
+  Run: RunActionConfig<string, any>
+  Test: TestActionConfig<string, any>
 }
 
 // See https://melvingeorge.me/blog/convert-array-into-string-literal-union-type-typescript
@@ -324,16 +327,15 @@ export function runResultToActionState(result: RunResult) {
   }
 }
 
-type ActionDependencyType = "explicit" | "implicit" | "implicit-executed"
+export type ActionDependencyType = "explicit" | "implicit" | "implicit-executed"
 
-interface ActionDependency {
-  kind: ActionKind
-  name: string
+export interface ActionDependency extends ActionReference {
   type: ActionDependencyType
 }
 
 export interface ActionWrapperParams<C extends BaseActionConfig> {
   baseBuildDirectory: string // <project>/.garden/build by default
+  compatibleTypes: string[]
   config: C
   dependencies: ActionDependency[]
   graph: ConfigGraph
@@ -341,36 +343,53 @@ export interface ActionWrapperParams<C extends BaseActionConfig> {
   moduleVersion?: ModuleVersion
   projectRoot: string
   treeVersion: TreeVersion
-}
-
-export interface ResolvedActionWrapperParams<C extends BaseActionConfig, O extends {}> extends ActionWrapperParams<C> {
-  dependencyResults: GraphResults
-  status: ActionStatus<BaseAction<C, O>, any>
   variables: DeepPrimitiveMap
 }
 
+export interface ResolveActionParams<C extends BaseActionConfig> {
+  dependencyResults: GraphResults
+  executedDependencies: ExecutedAction[]
+  resolvedDependencies: ResolvedAction[]
+  spec: C["spec"]
+  variables: DeepPrimitiveMap
+}
+
+export type ResolvedActionWrapperParams<C extends BaseActionConfig> = ActionWrapperParams<C> & ResolveActionParams<C>
+
+export interface ExecuteActionParams<C extends BaseActionConfig = BaseActionConfig, O extends {} = any> {
+  status: ActionStatus<BaseAction<C, O>, any>
+}
+
+export type ExecutedActionWrapperParams<C extends BaseActionConfig, O extends {}> = ResolvedActionWrapperParams<C> &
+  ExecuteActionParams<C, O>
+
 export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, O extends {} = any> {
+  // TODO-G2: figure out why kind and type come out as any types on Action type
   public readonly kind: C["kind"]
   public readonly type: C["type"]
   public readonly name: string
+
+  protected resolved: boolean
+  protected executed: boolean
 
   // Note: These need to be public because we need to reference the types (a current TS limitation)
   _config: C
   _outputs: O
 
   protected readonly baseBuildDirectory: string
+  protected readonly compatibleTypes: string[]
   protected readonly dependencies: ActionDependency[]
   protected readonly graph: ConfigGraph
   protected readonly _moduleName?: string // TODO: remove in 0.14
   protected readonly _moduleVersion?: ModuleVersion // TODO: remove in 0.14
   protected readonly projectRoot: string
   protected readonly _treeVersion: TreeVersion
+  protected readonly variables: DeepPrimitiveMap
 
-  constructor(private params: ActionWrapperParams<C>) {
+  constructor(protected readonly params: ActionWrapperParams<C>) {
     this.kind = params.config.kind
     this.type = params.config.type
     this.name = params.config.name
-
     this.baseBuildDirectory = params.baseBuildDirectory
     this.dependencies = params.dependencies
     this.graph = params.graph
@@ -379,9 +398,20 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     this._config = params.config
     this.projectRoot = params.projectRoot
     this._treeVersion = params.treeVersion
+    this.variables = params.variables
+    this.resolved = false
+    this.executed = false
   }
 
   abstract getBuildPath(): string
+
+  isResolved(): this is ResolvedAction {
+    return this.resolved
+  }
+
+  isExecuted(): this is ExecutedAction {
+    return this.executed
+  }
 
   reference(): ActionReference {
     return { kind: <ActionKind>this.kind, name: this.name }
@@ -418,7 +448,8 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   }
 
   group() {
-    return this.getConfig("groupName")
+    const internal = this.getConfig("internal")
+    return internal?.groupName
   }
 
   basePath(): string {
@@ -440,20 +471,48 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     return this._moduleVersion || this.getFullVersion()
   }
 
-  getDependencyReferences(): ActionReference[] {
-    return this._config.dependencies?.map(parseActionReference) || []
+  getDependencyReferences(): ActionDependency[] {
+    return this.dependencies
+  }
+
+  getDependencies(): Action[] {
+    return this.dependencies.map((d) => this.graph.getActionByRef(d))
   }
 
   hasDependency(refOrString: string | ActionReference) {
     const ref = isString(refOrString) ? parseActionReference(refOrString) : refOrString
 
     for (const dep of this.dependencies) {
-      if (ref.kind === dep.kind && ref.name === dep.name) {
+      if (actionRefMatches(dep, ref)) {
         return true
       }
     }
 
     return false
+  }
+
+  getDependency(refOrString: string | ActionReference) {
+    const ref = isString(refOrString) ? parseActionReference(refOrString) : refOrString
+
+    for (const dep of this.dependencies) {
+      if (actionRefMatches(dep, ref)) {
+        return this.graph.getActionByRef(ref)
+      }
+    }
+
+    return null
+  }
+
+  addDependency(dep: ActionDependency) {
+    for (const d of this.dependencies) {
+      if (actionRefMatches(d, dep)) {
+        if (dep.type === "explicit") {
+          d.type = "explicit"
+        }
+        return
+      }
+    }
+    this.dependencies.push(dep)
   }
 
   // Note: Making this name verbose so that people don't accidentally use this instead of versionString()
@@ -502,38 +561,28 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     return key ? this._config[key] : this._config
   }
 
-  // TODO: allow nested key lookups here
-  getSpec(): C["spec"]
-  getSpec<K extends keyof C["spec"]>(key: K): C["spec"][K]
-  getSpec(key?: keyof C["spec"]) {
-    return key ? this._config.spec[key] : this._config.spec
-  }
-
   isCompatible(type: string) {
-    // TODO-G2
-    return false
+    return this.compatibleTypes.includes(type)
   }
 
   matchesRef(ref: ActionReference) {
-    return ref.kind === this.kind && ref.name === this.name
+    return actionRefMatches(ref, this)
   }
 
-  // TODO-G2: grow this
   describe() {
     return {
+      compatibleTypes: this.compatibleTypes,
       config: this.getConfig(),
+      configVersion: this.configVersion(),
+      group: this.group(),
+      isLinked: this.isLinked(),
+      key: this.key(),
+      longDescription: this.longDescription(),
+      moduleName: this.moduleName(),
+      reference: this.reference(),
+      treeVersion: this.treeVersion(),
+      version: this.getFullVersion(),
     }
-  }
-
-  /**
-   * Returns a fully resolved version of this action, including outputs.
-   *
-   * @param outputs The outputs returned from the resolution of the action
-   */
-  resolve(outputs: O): Resolved<BaseAction<C, O>> {
-    // TODO-G2: validate outputs here
-    const constructor = Object.getPrototypeOf(this).constructor
-    return constructor({ ...this.params, outputs })
   }
 }
 
@@ -548,7 +597,7 @@ export abstract class RuntimeAction<
     const buildName = this.getConfig("build")
     if (buildName) {
       const buildAction = this.graph.getBuild(buildName)
-      return <Resolved<T>>buildAction
+      return <T>buildAction
     } else {
       return null
     }
@@ -562,26 +611,131 @@ export abstract class RuntimeAction<
     const buildAction = this.getBuildAction()
     return buildAction?.getBuildPath() || this.basePath()
   }
+
+  /**
+   * Returns a resolved version of this action.
+   */
+  resolve(params: ResolveActionParams<C>): Resolved<this> {
+    // TODO-G2: validate static outputs here
+    const constructor: ResolvedActionConstructor<this> = Object.getPrototypeOf(this).constructor
+    return constructor({ ...this.params, ...params })
+  }
+}
+
+export interface ResolvedActionConstructor<A extends BaseAction> {
+  (params: ResolvedActionWrapperParams<A["_config"]>): Resolved<A>
+}
+
+export interface ExecutedActionConstructor<A extends BaseAction> {
+  (params: ExecutedActionWrapperParams<A["_config"], A["_outputs"]>): Executed<A>
+}
+
+// Used to ensure compatibility between ResolvedBuildAction and ResolvedRuntimeAction
+// FIXME: Might be possible to remove in a later TypeScript version or through some hacks.
+export interface ResolvedActionExtension<C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig> {
+  getDependencyResult(ref: ActionReference | Action): GraphResult | null
+  getExecutedDependencies(): ExecutedAction[]
+  getResolvedDependencies(): ResolvedAction[]
+  getSpec(): C["spec"]
+  getSpec<K extends keyof C["spec"]>(key: K): C["spec"][K]
+  getVariables(): DeepPrimitiveMap
 }
 
 // TODO: see if we can avoid the duplication here with ResolvedBuildAction
 export abstract class ResolvedRuntimeAction<
-  C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
-  O extends {} = any
-> extends RuntimeAction<C, O> {
-  private variables: DeepPrimitiveMap
-  private status: ActionStatus<this, any, O>
-  private dependencyResults: GraphResults
+    Config extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
+    Outputs extends {} = any
+  >
+  extends RuntimeAction<Config, Outputs>
+  implements ResolvedActionExtension<Config> {
+  protected readonly params: ResolvedActionWrapperParams<Config>
+  protected readonly resolved: true
+  private readonly dependencyResults: GraphResults
+  private readonly executedDependencies: ExecutedAction[]
+  private readonly resolvedDependencies: ResolvedAction[]
 
-  constructor(params: ResolvedActionWrapperParams<C, O>) {
+  constructor(params: ResolvedActionWrapperParams<Config>) {
     super(params)
-    this.status = params.status
-    this.variables = params.variables
     this.dependencyResults = params.dependencyResults
+    this.executedDependencies = params.executedDependencies
+    this.resolvedDependencies = params.resolvedDependencies
+    this.resolved = true
+  }
+
+  /**
+   * Return the resolved Build action specified on the `build` field if defined, otherwise null
+   */
+  getResolvedBuildAction<T extends ResolvedBuildAction>() {
+    const buildName = this.getConfig("build")
+    if (buildName) {
+      const buildAction = this.getResolvedDependencies().find((a) => a.kind === "Build" && a.name === buildName)
+
+      if (!buildAction) {
+        throw new InternalError(
+          `Could not find build dependency '${buildName}' specified on the build field on ${this.longDescription()}.`,
+          { action: this.key(), buildName }
+        )
+      }
+
+      return <T>buildAction
+    } else {
+      return null
+    }
+  }
+
+  getExecutedDependencies() {
+    return this.executedDependencies
+  }
+
+  getResolvedDependencies(): ResolvedAction[] {
+    return [...this.resolvedDependencies, ...this.executedDependencies]
   }
 
   getDependencyResult(ref: ActionReference | Action): GraphResult | null {
     return this.dependencyResults[actionReferenceToString(ref)] || null
+  }
+
+  // TODO: allow nested key lookups here
+  getSpec(): Config["spec"]
+  getSpec<K extends keyof Config["spec"]>(key: K): Config["spec"][K]
+  getSpec(key?: keyof Config["spec"]) {
+    return key ? this._config.spec[key] : this._config.spec
+  }
+
+  getVariables() {
+    return this.variables
+  }
+
+  /**
+   * Returns an executed version of this action.
+   */
+  execute(params: ExecuteActionParams<Config, Outputs>): Executed<this> {
+    // TODO-G2: validate static outputs here
+    const constructor: ExecutedActionConstructor<this> = Object.getPrototypeOf(this).constructor
+    return constructor({ ...this.params, ...params })
+  }
+}
+
+export interface ExecutedActionExtension<
+  _ extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
+  Outputs extends {} = any
+> {
+  getOutput<K extends keyof Outputs>(key: K): Outputs[K]
+  getOutputs(): Outputs
+}
+
+// TODO: see if we can avoid the duplication here with ResolvedBuildAction
+export abstract class ExecutedRuntimeAction<
+    C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
+    O extends {} = any
+  >
+  extends ResolvedRuntimeAction<C, O>
+  implements ExecutedActionExtension<C, O> {
+  private readonly status: ActionStatus<this, any, O>
+
+  constructor(params: ExecutedActionWrapperParams<C, O>) {
+    super(params)
+    this.status = params.status
   }
 
   getOutput<K extends keyof O>(key: K) {
@@ -591,10 +745,6 @@ export abstract class ResolvedRuntimeAction<
   getOutputs() {
     return this.status.outputs
   }
-
-  getVariables() {
-    return this.variables
-  }
 }
 
 export type GetActionOutputType<T> = T extends BaseAction<any, infer O> ? O : any
@@ -603,11 +753,22 @@ export function actionReferenceToString(ref: ActionReference) {
   return `${ref.kind.toLowerCase()}.${ref.name}`
 }
 
+export type ActionConfig = ValuesType<ActionConfigTypes>
 export type Action = BuildAction | RuntimeAction
+export type ResolvedAction = ResolvedBuildAction | ResolvedRuntimeAction
+export type ExecutedAction = ExecutedBuildAction | ExecutedRuntimeAction
 
-export type Resolved<T extends BaseAction> = T extends BuildAction
+export type Resolved<T extends BaseAction> = T extends ResolvedAction
+  ? T
+  : T extends BuildAction
   ? ResolvedBuildAction<T["_config"], T["_outputs"]>
   : ResolvedRuntimeAction<T["_config"], T["_outputs"]>
+
+export type Executed<T extends BaseAction> = T extends ExecutedAction
+  ? T
+  : T extends BuildAction
+  ? ExecutedBuildAction<T["_config"], T["_outputs"]>
+  : ExecutedRuntimeAction<T["_config"], T["_outputs"]>
 
 export type ActionReferenceMap = {
   [K in ActionKind]: string[]
@@ -615,8 +776,12 @@ export type ActionReferenceMap = {
 
 export type ActionConfigMap = {
   [K in ActionKind]: {
-    [name: string]: BaseActionConfig
+    [name: string]: BaseActionConfig<K>
   }
+}
+
+export interface ActionConfigsByKey {
+  [key: string]: ActionConfig
 }
 
 export function actionReferencesToMap(refs: ActionReference[]) {
@@ -636,4 +801,24 @@ export function actionReferencesToMap(refs: ActionReference[]) {
 
 export function isActionConfig(config: any): config is BaseActionConfig {
   return actionKinds.includes(config)
+}
+
+export function actionRefMatches(a: ActionReference, b: ActionReference) {
+  return a.kind === b.kind && a.name === b.name
+}
+
+export function describeActionConfig(config: ActionConfig) {
+  const d = `${config.type} ${config.kind} ${config.name}`
+  if (config.internal?.moduleName) {
+    return d + ` (from module ${config.internal?.moduleName})`
+  } else if (config.internal?.groupName) {
+    return d + ` (from group ${config.internal?.groupName})`
+  } else {
+    return d
+  }
+}
+
+export function describeActionConfigWithPath(config: ActionConfig, rootPath: string) {
+  const path = relative(rootPath, config.internal?.configFilePath || config.basePath)
+  return `${describeActionConfig(config)} in ${path}`
 }

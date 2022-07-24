@@ -37,9 +37,13 @@ import {
   containerTestOutputSchema,
   containerRunOutputSchema,
   ContainerDeployAction,
+  ContainerRunAction,
+  ContainerTestAction,
+  ContainerRuntimeAction,
 } from "./config"
 import { publishContainerBuild } from "./publish"
-import { DeployActionDefinition } from "../../plugin/action-types"
+import { DeployActionDefinition, RunActionDefinition, TestActionDefinition } from "../../plugin/action-types"
+import { Resolved } from "../../actions/base"
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
 export type ContainerProvider = Provider<ContainerProviderConfig>
@@ -296,7 +300,7 @@ export const gardenPlugin = () =>
         },
       ],
       Run: [
-        {
+        <RunActionDefinition<ContainerRunAction>>{
           name: "container",
           docs: dedent`
             Run a command in a container image, e.g. in a Kubernetes namespace (when used with the \`kubernetes\` provider).
@@ -307,11 +311,15 @@ export const gardenPlugin = () =>
           outputsSchema: containerRunOutputSchema(),
           handlers: {
             // Implemented by other providers (e.g. kubernetes)
+            async validate({ action }) {
+              validateCommon(action)
+              return {}
+            },
           },
         },
       ],
       Test: [
-        {
+        <TestActionDefinition<ContainerTestAction>>{
           name: "container",
           docs: dedent`
             Define a Test which runs a command in a container image, e.g. in a Kubernetes namespace (when used with the \`kubernetes\` provider).
@@ -505,3 +513,32 @@ export const gardenPlugin = () =>
       },
     ],
   })
+
+function validateCommon(action: Resolved<ContainerRuntimeAction>) {
+  const { build } = action.getConfig()
+  const { image } = action.getSpec()
+
+  if (!build && !image) {
+    throw new ConfigurationError(`${action.longDescription()} must specify one of \`build\` or \`spec.image\``, {
+      actionKey: action.key(),
+    })
+  } else if (build && image) {
+    throw new ConfigurationError(
+      `${action.longDescription()} specifies both \`build\` and \`spec.image\`. Only one may be specified.`,
+      {
+        actionKey: action.key(),
+      }
+    )
+  } else if (build) {
+    const buildAction = action.getDependency({ kind: "Build", name: build })
+    if (buildAction && !buildAction?.isCompatible("container")) {
+      throw new ConfigurationError(
+        `${action.longDescription()} build field must specify a container Build, or a compatible type.`,
+        {
+          actionKey: action.key(),
+          buildActionName: build,
+        }
+      )
+    }
+  }
+}

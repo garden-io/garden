@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { BaseActionTask, BaseActionTaskParams, ActionTaskProcessParams } from "./base"
+import { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams, ExecuteActionTask } from "./base"
 import { prepareRuntimeContext } from "../runtime-context"
 import { Profile } from "../util/profiling"
 import { RunAction } from "../actions/run"
@@ -22,43 +22,46 @@ class RunTaskError extends Error {
 }
 
 @Profile()
-export class RunTask extends BaseActionTask<RunAction, GetRunResult> {
+export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
   type = "run"
 
   getDescription() {
     return `running ${this.action.longDescription()}`
   }
 
-  async getStatus() {
+  async getStatus({ dependencyResults }: ActionTaskStatusParams<RunAction>) {
     const log = this.log.info({
       section: this.action.name,
       msg: "Checking result...",
       status: "active",
     })
-    const actions = await this.garden.getActionRouter()
+    const router = await this.garden.getActionRouter()
+    const action = this.getResolvedAction(this.action, dependencyResults)
 
     // The default handler (for plugins that don't implement getTaskResult) returns undefined.
     try {
-      const result = await actions.run.getResult({
+      const status = await router.run.getResult({
         graph: this.graph,
-        action: this.action,
+        action,
         log,
       })
       log.setSuccess({ msg: chalk.green(`Done`), append: true })
 
       // Should return a null value here if there is no result
-      if (result.detail === null) {
+      if (status.detail === null) {
         return null
       }
 
-      return result
+      return { ...status, executedAction: action.execute({ status }) }
     } catch (err) {
       log.setError()
       throw err
     }
   }
 
-  async process({ resolvedAction: action, dependencyResults }: ActionTaskProcessParams<RunAction>) {
+  async process({ dependencyResults }: ActionTaskProcessParams<RunAction, GetRunResult>) {
+    const action = this.getResolvedAction(this.action, dependencyResults)
+
     const log = this.log.info({
       section: action.key(),
       msg: "Running...",
@@ -73,10 +76,10 @@ export class RunTask extends BaseActionTask<RunAction, GetRunResult> {
 
     const actions = await this.garden.getActionRouter()
 
-    let result: GetRunResult
+    let status: GetRunResult
 
     try {
-      result = await actions.run.run({
+      status = await actions.run.run({
         graph: this.graph,
         action,
         log,
@@ -87,16 +90,16 @@ export class RunTask extends BaseActionTask<RunAction, GetRunResult> {
       log.setError()
       throw err
     }
-    if (result.detail?.success) {
+    if (status.state !== "ready") {
       log.setSuccess({
         msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
         append: true,
       })
     } else {
       log.setError(`Failed!`)
-      throw new RunTaskError(result.detail?.log)
+      throw new RunTaskError(status.detail?.log)
     }
 
-    return result
+    return { ...status, executedAction: action.execute({ status }) }
   }
 }

@@ -25,7 +25,7 @@ import { TestTask } from "./tasks/test"
 import { RunTask } from "./tasks/run"
 import { Action, actionReferenceToString } from "./actions/base"
 import { getTestActions } from "./commands/test"
-import { GraphResults } from "./graph/solver"
+import { GraphResults } from "./graph/results"
 import { GardenModule } from "./types/module"
 
 export type ProcessHandler = (graph: ConfigGraph, action: Action) => Promise<BaseTask[]>
@@ -332,7 +332,7 @@ export async function processActions({
   })
 
   return {
-    graphResults: {}, // TODO: Return latest results for each task key processed between restarts?
+    graphResults: new GraphResults([]), // TODO: Return latest results for each task key processed between restarts?
     restartRequired,
   }
 }

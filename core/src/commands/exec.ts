@@ -13,6 +13,7 @@ import { Command, CommandResult, CommandParams } from "./base"
 import dedent = require("dedent")
 import { StringParameter, BooleanParameter, ParameterValues } from "../cli/params"
 import { ExecInDeployResult, execInDeployResultSchema } from "../plugin/handlers/deploy/exec"
+import { executeAction } from "../graph/actions"
 
 const execArgs = {
   service: new StringParameter({
@@ -78,11 +79,14 @@ export class ExecCommand extends Command<Args> {
 
     const graph = await garden.getConfigGraph({ log, emit: false })
     const action = graph.getDeploy(serviceName)
+
+    const executed = await executeAction({ garden, graph, action, log })
+
     const router = await garden.getActionRouter()
     const result = await router.deploy.exec({
       log,
       graph,
-      action,
+      action: executed,
       command,
       interactive: opts.interactive,
     })

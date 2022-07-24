@@ -24,7 +24,7 @@ import {
 } from "./helpers"
 import { PulumiDeploy, PulumiProvider } from "./config"
 import chalk from "chalk"
-import { DeployActionHandlers } from "@garden-io/core/src/plugin/action-types"
+import { DeployActionHandlers } from "@garden-io/core/build/src/plugin/action-types"
 
 export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async (_params) => {
   // To properly implement this handler, we'd need access to the config graph (or at least the list of pulumi services

@@ -166,7 +166,7 @@ export class DeployCommand extends Command<Args, Opts> {
 
     if (actions.length === 0) {
       log.error({ msg: "No services to deploy. Aborting." })
-      return { result: { builds: {}, deployments: {}, tests: {}, graphResults: {} } }
+      return { result: { aborted: true, success: true, graphResults: {} } }
     }
 
     const skipDependencies = opts["skip-dependencies"]
@@ -176,7 +176,7 @@ export class DeployCommand extends Command<Args, Opts> {
         list of names when using the --skip-dependencies option.
       `
       log.error({ msg: errMsg })
-      return { result: { builds: {}, deployments: {}, tests: {}, graphResults: {} } }
+      return { result: { aborted: true, success: false, graphResults: {} } }
     }
 
     const localModeDeployNames = getMatchingServiceNames(opts["local-mode"], initGraph)

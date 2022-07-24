@@ -11,7 +11,7 @@ import { dedent } from "../../../util/string"
 import { taskResultSchema } from "../../../types/task"
 import { RunAction } from "../../../actions/run"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { ActionStatus } from "../../../actions/base"
+import { ActionStatus, Resolved } from "../../../actions/base"
 import { joi } from "../../../config/common"
 
 interface GetRunResultParams<T extends RunAction> extends PluginRunActionParamsBase<T> {}
@@ -20,7 +20,7 @@ export type GetRunResult<T extends RunAction = RunAction> = ActionStatus<T, RunR
 
 export class GetRunActionResult<T extends RunAction> extends ActionTypeHandlerSpec<
   "Run",
-  GetRunResultParams<T>,
+  GetRunResultParams<Resolved<T>>,
   GetRunResult<T>
 > {
   description = dedent`

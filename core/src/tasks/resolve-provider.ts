@@ -85,7 +85,11 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     return `resolving provider ${this.getName()}`
   }
 
-  resolveDependencies() {
+  resolveStatusDependencies() {
+    return []
+  }
+
+  resolveProcessDependencies() {
     const pluginDeps = this.plugin.dependencies
     const explicitDeps = (this.config.dependencies || []).map((name) => ({ name }))
     const implicitDeps = getProviderTemplateReferences(this.config).map((name) => ({ name }))

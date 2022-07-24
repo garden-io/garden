@@ -10,7 +10,7 @@ import { resolve } from "url"
 import { getPortForward } from "../port-forward"
 import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, CLUSTER_REGISTRY_PORT } from "../constants"
 import { LogEntry } from "../../../logger/log-entry"
-import { KubernetesPluginContext } from "../config"
+import { KubernetesPluginContext, KubernetesProvider } from "../config"
 import { getSystemNamespace } from "../namespace"
 import { got, GotTextOptions } from "../../../util/http"
 import {
@@ -22,15 +22,23 @@ import {
 import { V1ResourceRequirements, V1SecurityContext } from "@kubernetes/client-node"
 import { kilobytesToString, millicpuToString } from "../util"
 import { ConfigurationError } from "../../../exceptions"
+import { Resolved } from "../../../actions/base"
+import { containerHelpers } from "../../container/helpers"
 
-export function getDeploymentImageId(action: ContainerRuntimeAction): string {
+export function getDeployedImageId(action: Resolved<ContainerRuntimeAction>, provider: KubernetesProvider): string {
   const explicitImage = action.getSpec().image
-  const build = action.getBuildAction<ContainerBuildAction>()
+  const build = action.getResolvedBuildAction<Resolved<ContainerBuildAction>>()
 
   if (explicitImage) {
     return explicitImage
   } else if (build) {
-    return build.getOutput("deploymentImageId")
+    // TODO-G2: we can get this off the BuildAction when static outputs are implemented
+    return containerHelpers.getBuildDeploymentImageId(
+      build.name,
+      undefined,
+      build.getFullVersion(),
+      provider.config.deploymentRegistry
+    )
   } else {
     throw new ConfigurationError(`${action.longDescription()} specifies neither a \`build\` nor \`spec.image\``, {
       config: action.getConfig(),

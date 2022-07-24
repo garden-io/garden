@@ -15,18 +15,14 @@ import split2 from "split2"
 import { BuildActionHandler } from "../../plugin/action-types"
 import { ContainerBuildAction, ContainerBuildOutputs } from "./config"
 import { joinWithPosix } from "../../util/fs"
-import { ModuleVersion } from "../../vcs/vcs"
+import { Resolved } from "../../actions/base"
 
 export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerBuildAction> = async ({
   ctx,
   action,
   log,
 }) => {
-  const outputs = getContainerBuildActionOutputs({
-    buildName: action.name,
-    localId: action.getSpec("localId"),
-    version: action.getFullVersion(),
-  })
+  const outputs = getContainerBuildActionOutputs(action)
   const identifier = await containerHelpers.imageExistsLocally(outputs.localImageId, log, ctx)
 
   if (identifier) {
@@ -58,11 +54,7 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
     )
   }
 
-  const outputs = getContainerBuildActionOutputs({
-    buildName: action.name,
-    localId: spec.localId,
-    version: action.getFullVersion(),
-  })
+  const outputs = getContainerBuildActionOutputs(action)
 
   const identifier = outputs.localImageId
 
@@ -93,18 +85,18 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
     ctx,
   })
 
-  return { fresh: true, buildLog: res.all || "", outputs, details: { identifier } }
+  return {
+    state: "ready",
+    outputs,
+    detail: { fresh: true, buildLog: res.all || "", outputs, details: { identifier } },
+  }
 }
 
-export function getContainerBuildActionOutputs({
-  buildName,
-  localId,
-  version,
-}: {
-  buildName: string
-  localId?: string
-  version: ModuleVersion
-}): ContainerBuildOutputs {
+export function getContainerBuildActionOutputs(action: Resolved<ContainerBuildAction>): ContainerBuildOutputs {
+  const buildName = action.name
+  const localId = action.getSpec("localId")
+  const version = action.getFullVersion()
+
   // Note: The deployment image name/ID outputs are overridden by the kubernetes provider, these defaults are
   // generally not used.
   const deploymentImageName = containerHelpers.getDeploymentImageName(buildName, localId, undefined)
@@ -118,7 +110,7 @@ export function getContainerBuildActionOutputs({
   }
 }
 
-export function getDockerBuildFlags(action: ContainerBuildAction) {
+export function getDockerBuildFlags(action: Resolved<ContainerBuildAction>) {
   const args: string[] = []
 
   const { targetStage, extraFlags, buildArgs } = action.getSpec()

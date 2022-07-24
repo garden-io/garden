@@ -15,9 +15,9 @@ import { prepareRuntimeContext } from "../../runtime-context"
 import { DeployTask } from "../../tasks/deploy"
 import { RunResult } from "../../plugin/base"
 import { deline } from "../../util/string"
-import { Command, CommandParams, CommandResult, handleRunResult, ProcessResultMetadata } from "../base"
+import { Command, CommandParams, CommandResult, handleRunResult } from "../base"
 import { printRuntimeContext } from "./run"
-import { GraphResults } from "../../graph/solver"
+import { GraphResultMap } from "../../graph/results"
 import { StringParameter, BooleanParameter } from "../../cli/params"
 
 const runDeployArgs = {
@@ -40,8 +40,9 @@ type Args = typeof runDeployArgs
 type Opts = typeof runDeployOpts
 
 interface RunDeployOutput {
-  result: RunResult & ProcessResultMetadata
-  graphResults: GraphResults
+  error: Error | null
+  result: RunResult | null
+  graphResults: GraphResultMap
 }
 
 export class RunDeployCommand extends Command<Args, Opts> {
@@ -83,7 +84,7 @@ export class RunDeployCommand extends Command<Args, Opts> {
       )
     }
 
-    const actions = await garden.getActionRouter()
+    const router = await garden.getActionRouter()
 
     // Make sure all dependencies are ready and collect their outputs for the runtime context
     const deployTask = new DeployTask({
@@ -98,7 +99,7 @@ export class RunDeployCommand extends Command<Args, Opts> {
       localModeDeployNames: [],
     })
 
-    const tasks = deployTask.resolveDependencies()
+    const tasks = deployTask.resolveProcessDependencies()
     const { results: dependencyResults } = await garden.processTasks({ tasks, log, throwOnError: true })
     const interactive = true
 
@@ -114,10 +115,12 @@ export class RunDeployCommand extends Command<Args, Opts> {
       log.root.stop()
     }
 
-    const result = await actions.deploy.run({
+    const resolved = await garden.resolveAction({ action, graph, log })
+
+    const result = await router.deploy.run({
       log,
       graph,
-      action,
+      action: resolved,
       runtimeContext,
       interactive,
       timeout: 999999,
@@ -129,7 +132,6 @@ export class RunDeployCommand extends Command<Args, Opts> {
       result,
       interactive,
       graphResults: dependencyResults,
-      action,
     })
   }
 }

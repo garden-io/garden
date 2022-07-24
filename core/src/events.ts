@@ -18,7 +18,7 @@ import { CommandInfo } from "./plugin-context"
 import { sanitizeObject } from "./logger/util"
 import { BuildState } from "./plugin/handlers/build/build"
 import { ActionReference } from "./config/common"
-import { GraphResult } from "./graph/solver"
+import { GraphResult } from "./graph/results"
 
 export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
 
@@ -66,7 +66,7 @@ export interface LoggerEvents {
 
 export type LoggerEventName = keyof LoggerEvents
 
-export type GraphResultEventPayload = Omit<GraphResult, "dependencyResults">
+export type GraphResultEventPayload = Omit<GraphResult, "task"> // | "dependencyResults"
 
 export interface ServiceStatusPayload extends Omit<ServiceStatus, "detail"> {
   deployStartedAt?: Date
@@ -92,8 +92,8 @@ export function toGraphResultEventPayload(result: GraphResult): GraphResultEvent
   if (result.result) {
     // TODO: Use a combined blacklist of fields from all task types instead of hardcoding here.
     payload.output = omit(result.result, "dependencyResults", "log", "buildLog", "detail")
-    if (result.result.version) {
-      payload.output.version = result.result.version.versionString || null
+    if (result.version) {
+      payload.output.version = result.version || null
     }
   }
   return payload
@@ -153,14 +153,12 @@ export interface Events extends LoggerEvents {
   // TaskGraph events
   taskPending: {
     addedAt: Date
-    batchId: string
     key: string
     type: string
     name: string
   }
   taskProcessing: {
     startedAt: Date
-    batchId: string
     key: string
     type: string
     name: string
@@ -170,7 +168,6 @@ export interface Events extends LoggerEvents {
   taskError: GraphResultEventPayload
   taskCancelled: {
     cancelledAt: Date
-    batchId: string
     type: string
     key: string
     name: string

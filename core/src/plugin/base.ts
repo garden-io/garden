@@ -16,6 +16,7 @@ import { BuildAction } from "../actions/build"
 import { DeployAction } from "../actions/deploy"
 import { RunAction } from "../actions/run"
 import { TestAction } from "../actions/test"
+import { Resolved } from "../actions/base"
 
 export interface ActionHandlerParamsBase<O = any> {
   base?: ActionHandler<any, O>

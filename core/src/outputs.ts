@@ -14,7 +14,7 @@ import { LogEntry } from "./logger/log-entry"
 import { OutputSpec } from "./config/project"
 import { ActionReference, parseActionReference } from "./config/common"
 import { ActionKind } from "./plugin/action-types"
-import { getResolveTaskForAction } from "./tasks/base"
+import { getExecuteTaskForAction } from "./graph/actions"
 
 /**
  * Resolves all declared project outputs. If necessary, this will resolve providers and modules, and ensure services
@@ -89,8 +89,9 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
   }
 
   const graphTasks = needActions.map((ref) => {
+    // TODO-G2: we may not need full execution for all these actions
     const action = graph.getActionByRef(ref)
-    return getResolveTaskForAction(action, baseParams)
+    return getExecuteTaskForAction(action, baseParams)
   })
 
   const { results } =

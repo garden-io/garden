@@ -31,6 +31,7 @@ import { DeployActionHandler } from "../../../plugin/action-types"
 import { convertKubernetesDevModeSpec } from "../helm/handlers"
 import { getTargetResource } from "../util"
 import { LogEntry } from "../../../logger/log-entry"
+import { Resolved } from "../../../actions/base"
 
 export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>> = {
   configure: configureKubernetesModule,
@@ -462,7 +463,7 @@ async function configureSpecialModesForManifests({
 }: {
   ctx: KubernetesPluginContext
   log: LogEntry
-  action: KubernetesDeployAction
+  action: Resolved<KubernetesDeployAction>
   devMode: boolean
   localMode: boolean
   manifests: KubernetesResource<BaseResource>[]

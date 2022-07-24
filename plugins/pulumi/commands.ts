@@ -39,17 +39,14 @@ import {
 import { dedent, deline } from "@garden-io/sdk/util/string"
 import { BooleanParameter, parsePluginCommandArgs } from "@garden-io/sdk/util/cli"
 import { copy, writeJSON, emptyDir } from "fs-extra"
-import { ModuleConfigContext } from "@garden-io/core/build/src/config/template-contexts/module"
 import { splitLast } from "@garden-io/core/build/src/util/util"
-import { deletePulumiService } from "./handlers"
 import { join } from "path"
-import { flatten, pickBy } from "lodash"
+import { pickBy } from "lodash"
 import { isDeployAction } from "@garden-io/core/src/actions/deploy"
-import { Resolved } from "@garden-io/core/src/actions/base"
 import { ActionConfigContext } from "@garden-io/core/src/config/template-contexts/actions"
 
 interface PulumiParamsWithService extends PulumiParams {
-  action: Resolved<PulumiDeploy>
+  action: PulumiDeploy
 }
 
 type PulumiRunFn = (params: PulumiParamsWithService) => Promise<any>
@@ -172,17 +169,8 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
 const makePluginContextForService = async (
   params: PulumiParamsWithService & { garden: Garden; graph: ConfigGraph }
 ) => {
-  const { log, garden, action, graph, provider, ctx } = params
-  const allProviders = await garden.resolveProviders(log)
-  const modules = graph.getModules()
-  const templateContext = new ActionConfigContext({
-    garden,
-    resolvedProviders: allProviders,
-    partialRuntimeResolution: false,
-    modules,
-    action,
-    variables: garden.variables,
-  })
+  const { garden, provider, ctx } = params
+  const templateContext = new ActionConfigContext(garden)
   const ctxForService = await garden.getPluginContext(provider, templateContext, ctx.events)
   return ctxForService
 }
@@ -344,21 +332,12 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
 
       beforeFn && (await beforeFn({ ctx, log }))
 
-      const allProviders = await garden.resolveProviders(log)
-      const allModules = graph.getModules()
       const provider = ctx.provider as PulumiProvider
 
       const actions = graph.getDeploys({ names }).filter((a) => a.type === "pulumi")
 
       const tasks = await Bluebird.map(actions, async (action) => {
-        const templateContext = new ActionConfigContext({
-          garden,
-          resolvedProviders: allProviders,
-          action,
-          partialRuntimeResolution: false,
-          variables: "TODO-G2",
-          modules: allModules,
-        })
+        const templateContext = new ActionConfigContext(garden)
         const pulumiParams: PulumiParamsWithService = {
           ctx: await garden.getPluginContext(provider, templateContext, ctx.events),
           provider,

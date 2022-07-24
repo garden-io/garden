@@ -42,7 +42,7 @@ describe("TestTask", () => {
         localModeDeployNames: [],
       })
 
-      const key = testTask.getKey()
+      const key = testTask.getBaseKey()
       const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
 
       expect(result!.output.log).to.eql("echo task-a-ok")
@@ -66,9 +66,9 @@ describe("TestTask", () => {
         localModeDeployNames: [],
       })
 
-      const deps = await task.resolveDependencies()
+      const deps = await task.resolveProcessDependencies()
 
-      expect(deps.map((d) => d.getKey())).to.eql(["build.module-a", "deploy.service-b", "task.task-a"])
+      expect(deps.map((d) => d.getBaseKey())).to.eql(["build.module-a", "deploy.service-b", "task.task-a"])
     })
 
     context("when skipRuntimeDependencies = true", () => {
@@ -89,7 +89,7 @@ describe("TestTask", () => {
           localModeDeployNames: [],
         })
 
-        const deps = await task.resolveDependencies()
+        const deps = await task.resolveProcessDependencies()
         expect(deps.find((dep) => dep.type === "deploy" || dep.type === "task")).to.be.undefined
       })
     })

@@ -9,7 +9,7 @@
 import { dedent } from "../../../util/string"
 import { actionParamsSchema, PluginActionParamsBase } from "../../../plugin/base"
 import { joi } from "../../../config/common"
-import { BaseAction } from "../../../actions/base"
+import { BaseAction, Resolved } from "../../../actions/base"
 import { ActionTypeHandlerSpec } from "./base"
 
 interface ValidateActionParams<T extends BaseAction> extends PluginActionParamsBase {
@@ -21,7 +21,7 @@ interface ValidateActionResult {}
 
 export class ValidateAction<T extends BaseAction = BaseAction> extends ActionTypeHandlerSpec<
   any,
-  ValidateActionParams<T>,
+  ValidateActionParams<Resolved<T>>,
   ValidateActionResult
 > {
   description = dedent`

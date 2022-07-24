@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BaseActionTask, BaseActionTaskParams } from "./base"
+import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams } from "./base"
 import { ServiceStatus } from "../types/service"
-import { GraphResults, GraphResult } from "../graph/solver"
+import { GraphResults, GraphResult } from "../graph/results"
 import { DeployAction, isDeployAction } from "../actions/deploy"
 import { DeployStatus } from "../plugin/handlers/deploy/get-status"
 
@@ -35,7 +35,7 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
     this.deleteDeployNames = params.deleteDeployNames || [params.action.name]
   }
 
-  resolveDependencies() {
+  resolveProcessDependencies() {
     if (!this.dependantsFirst) {
       return []
     }
@@ -71,12 +71,13 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
     return null
   }
 
-  async process() {
-    const actions = await this.garden.getActionRouter()
+  async process({ dependencyResults }: ActionTaskProcessParams<DeployAction, DeployStatus>) {
+    const action = this.getResolvedAction(this.action, dependencyResults)
+    const router = await this.garden.getActionRouter()
     let status: DeployStatus
 
     try {
-      status = await actions.deploy.delete({ log: this.log, action: this.action, graph: this.graph })
+      status = await router.deploy.delete({ log: this.log, action, graph: this.graph })
     } catch (err) {
       this.log.setError()
       throw err

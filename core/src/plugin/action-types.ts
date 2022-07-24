@@ -24,11 +24,11 @@ import { GetRunActionResult } from "./handlers/run/get-result"
 import { RunRunAction } from "./handlers/run/run"
 import { GetTestActionResult } from "./handlers/test/get-result"
 import { RunTestAction } from "./handlers/test/run"
-import { Action, ResolvedRuntimeAction, RuntimeAction } from "../actions/base"
+import { Action, RuntimeAction } from "../actions/base"
 import Joi from "@hapi/joi"
 import { joi, joiArray, joiSchema, joiUserIdentifier } from "../config/common"
 import titleize from "titleize"
-import { BuildAction, ResolvedBuildAction } from "../actions/build"
+import { BuildAction } from "../actions/build"
 import { DeployAction } from "../actions/deploy"
 import { RunAction } from "../actions/run"
 import { TestAction } from "../actions/test"
@@ -111,12 +111,12 @@ type BaseHandlers<A extends Action> = {
   validate: ValidateAction<A>
 }
 
-export type ActionTypeExtension<H> = {
+export type ActionTypeExtension<H extends ActionHandlers> = {
   name: string
   handlers: Partial<H>
 }
 
-export type ActionTypeDefinition<H> = ActionTypeExtension<H> & {
+export type ActionTypeDefinition<H extends ActionHandlers> = ActionTypeExtension<H> & {
   base?: string
   docs: string
   // TODO: specify the schemas using primitives (e.g. JSONSchema/OpenAPI) and not Joi objects
@@ -126,9 +126,6 @@ export type ActionTypeDefinition<H> = ActionTypeExtension<H> & {
 }
 
 // BUILD //
-
-// These handlers receive an unresolved Action (i.e. without outputs)
-type UnresolvedBuildHandlers = "build" | "getStatus"
 
 export type BuildActionDescriptions<C extends BuildAction = BuildAction> = BaseHandlers<C> & {
   build: DoBuildAction<C>
@@ -140,23 +137,17 @@ export type BuildActionDescriptions<C extends BuildAction = BuildAction> = BaseH
 export type BuildActionHandler<
   N extends keyof BuildActionDescriptions,
   T extends BuildAction = BuildAction
-> = N extends UnresolvedBuildHandlers
-  ? GetActionTypeHandler<BuildActionDescriptions<T>[N], N>
-  : GetActionTypeHandler<BuildActionDescriptions<ResolvedBuildAction<T["_config"], T["_outputs"]>>[N], N>
+> = GetActionTypeHandler<BuildActionDescriptions<T>[N], N>
 
 export type BuildActionParams<
   N extends keyof BuildActionDescriptions,
   T extends BuildAction = BuildAction
-> = N extends UnresolvedBuildHandlers
-  ? GetActionTypeParams<BuildActionDescriptions<T>[N]>
-  : GetActionTypeParams<BuildActionDescriptions<ResolvedBuildAction<T["_config"], T["_outputs"]>>[N]>
+> = GetActionTypeParams<BuildActionDescriptions<T>[N]>
 
 export type BuildActionResults<
   N extends keyof BuildActionDescriptions,
   T extends BuildAction = BuildAction
-> = N extends UnresolvedBuildHandlers
-  ? GetActionTypeResults<BuildActionDescriptions<T>[N]>
-  : GetActionTypeResults<BuildActionDescriptions<ResolvedBuildAction<T["_config"], T["_outputs"]>>[N]>
+> = GetActionTypeResults<BuildActionDescriptions<T>[N]>
 
 export type BuildActionHandlers<C extends BuildAction = BuildAction> = {
   [N in keyof BuildActionDescriptions]?: BuildActionHandler<N, C>
@@ -178,14 +169,10 @@ type DeployActionDescriptions<C extends DeployAction = DeployAction> = BaseHandl
   stopPortForward: StopDeployPortForward<C>
 }
 
-type UnresolvedDeployHandlers = "deploy" | "getStatus"
-
 export type DeployActionHandler<
   N extends keyof DeployActionDescriptions,
   T extends DeployAction = DeployAction
-> = N extends UnresolvedDeployHandlers
-  ? GetActionTypeHandler<DeployActionDescriptions<T>[N], N>
-  : GetActionTypeHandler<DeployActionDescriptions<ResolvedRuntimeAction<T["_config"], T["_outputs"]>>[N], N>
+> = GetActionTypeHandler<DeployActionDescriptions<T>[N], N>
 
 export type DeployActionParams<
   N extends keyof DeployActionDescriptions,
@@ -248,11 +235,11 @@ export interface ActionTypeDescriptions {
   Test: TestActionDescriptions
 }
 
-export type GenericActionTypeMap = {
+export type GenericActionClassMap = {
   [K in ActionKind]: K extends "Build" ? BuildAction : RuntimeAction
 }
 
-export interface ActionTypeMap extends GenericActionTypeMap {
+export interface ActionClassMap extends GenericActionClassMap {
   Build: BuildAction
   Deploy: DeployAction
   Run: RunAction
