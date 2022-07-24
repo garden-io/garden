@@ -113,7 +113,11 @@ import {
 import { TemplatedModuleConfig } from "./plugins/templated"
 import { BuildDirRsync } from "./build-staging/rsync"
 import { CloudApi } from "./cloud/api"
-import { DefaultEnvironmentContext, ProjectConfigContext, RemoteSourceConfigContext } from "./config/template-contexts/project"
+import {
+  DefaultEnvironmentContext,
+  ProjectConfigContext,
+  RemoteSourceConfigContext,
+} from "./config/template-contexts/project"
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { ProviderConfigContext } from "./config/template-contexts/provider"
 import { getSecrets } from "./cloud/get-secrets"
@@ -123,6 +127,7 @@ import { pMemoizeDecorator } from "./lib/p-memoize"
 import { ModuleGraph } from "./graph/modules"
 import { Action, ActionConfigMap, actionKinds, BaseAction, BaseActionConfig } from "./actions/base"
 import { GraphSolver, SolveParams, SolveResult } from "./graph/solver"
+import { actionConfigsToGraph } from "./graph/actions"
 
 export interface ActionHandlerMap<T extends keyof ProviderHandlers> {
   [actionName: string]: ProviderHandlers[T]
@@ -804,16 +809,26 @@ export class Garden {
       throw new ConfigurationError(message, detail)
     }
 
-    // TODO-G2: convert modules to actions here
-    // -> Do the conversion
-    const { groups, actions: actionConfigs } = await convertModules(this, log, resolvedModules, moduleGraph)
+    // Convert modules to actions
+    const { groups: groupConfigs, actions: actionConfigs } = await convertModules(
+      this,
+      log,
+      resolvedModules,
+      moduleGraph
+    )
 
     // -> TODO-G2 Collect module outputs for templating from actions (attach to ConfigGraph?)
 
-    // TODO-G2: Resolve action versions
+    // Resolve configs to Actions
     const actions: BaseAction[] = []
 
-    let graph: ConfigGraph | undefined = undefined
+    const graph = await actionConfigsToGraph({
+      garden: this,
+      configs: actionConfigs,
+      groupConfigs,
+      log,
+      moduleGraph,
+    })
 
     // Walk through all plugins in dependency order, and allow them to augment the graph
     const plugins = keyBy(await this.getAllPlugins(), "name")
@@ -836,12 +851,6 @@ export class Garden {
         continue
       }
 
-      // We clear the graph below whenever an augmentGraph handler adds/modifies modules, and re-init here, in order
-      // to ensure the dependency structure is alright.
-      if (!graph) {
-        graph = new ConfigGraph(resolvedModules, moduleTypes)
-      }
-
       const { addDependencies, addActions } = await router.provider.augmentGraph({
         pluginName,
         log,
@@ -849,57 +858,63 @@ export class Garden {
         actions,
       })
 
+      let updated = false
+
       // TODO-G2
       // Resolve modules from specs and add to the list
-      // await Bluebird.map(addActions || [], async (config) => {
-      //   // There is no actual config file for plugin modules (which the prepare function assumes)
-      //   delete config.configPath
+      await Bluebird.map(addActions || [], async (config) => {
+        // There is no actual config file for plugin modules (which the prepare function assumes)
+        delete config.configPath
 
-      //   const resolvedConfig = await resolver.resolveModuleConfig(moduleConfig, resolvedModules)
-      //   resolvedModules.push(
-      //     await moduleFromConfig({ garden: this, log, config: resolvedConfig, buildDependencies: resolvedModules })
-      //   )
-      //   graph = undefined
-      // })
+        const resolvedConfig = await resolver.resolveModuleConfig(moduleConfig, resolvedModules)
+        resolvedModules.push(
+          await moduleFromConfig({ garden: this, log, config: resolvedConfig, buildDependencies: resolvedModules })
+        )
+        updated = true
+      })
 
-      // for (const dependency of addDependencies || []) {
-      //   let found = false
+      for (const dependency of addDependencies || []) {
+        let found = false
 
-      //   for (const action of actions) {
-      //     if (action.name === dependency.by) {
-      //       action.dependencies.push(dependency.on)
-      //       found = true
-      //       break
-      //     }
-      //   }
+        for (const action of actions) {
+          if (action.name === dependency.by) {
+            action.dependencies.push(dependency.on)
+            found = true
+            break
+          }
+        }
 
-      //   for (const moduleConfig of resolvedModules) {
-      //     for (const serviceConfig of moduleConfig.serviceConfigs) {
-      //     }
-      //     for (const taskConfig of moduleConfig.taskConfigs) {
-      //       if (taskConfig.name === dependency.by) {
-      //         taskConfig.dependencies.push(dependency.on)
-      //         found = true
-      //       }
-      //     }
-      //   }
+        for (const moduleConfig of resolvedModules) {
+          for (const serviceConfig of moduleConfig.serviceConfigs) {
+          }
+          for (const taskConfig of moduleConfig.taskConfigs) {
+            if (taskConfig.name === dependency.by) {
+              taskConfig.dependencies.push(dependency.on)
+              found = true
+            }
+          }
+        }
 
-      //   if (!found) {
-      //     throw new PluginError(
-      //       deline`
-      //         Provider '${provider.name}' added a runtime dependency by '${dependency.by}' on '${dependency.on}'
-      //         but action '${dependency.by}' could not be found.
-      //       `,
-      //       { provider, dependency }
-      //     )
-      //   }
+        if (!found) {
+          throw new PluginError(
+            deline`
+              Provider '${provider.name}' added a dependency by '${dependency.by}' on '${dependency.on}'
+              but action '${dependency.by}' could not be found.
+            `,
+            { provider, dependency }
+          )
+        }
 
-      //   graph = undefined
-      // }
+        updated = true
+      }
+
+      if (updated) {
+        graph.validate()
+      }
     }
 
     // Ensure dependency structure is alright
-    graph = new ConfigGraph(resolvedModules, moduleTypes)
+    graph.validate()
 
     if (emit) {
       this.events.emit("stackGraph", graph.render())
