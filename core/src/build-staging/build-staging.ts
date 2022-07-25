@@ -78,8 +78,16 @@ export class BuildStaging {
     const buildPath = action.getBuildPath()
 
     await Bluebird.map(action.getConfig("copyFrom") || [], async (copy) => {
-      const sourceBuild = action.dependencies.getBuild(copy.build)
-      const sourceBuildPath = await this.getBuildPath(sourceBuild.getConfig())
+      const sourceBuild = action.getDependency({ kind: "Build", name: copy.build })
+
+      if (!sourceBuild) {
+        throw new ConfigurationError(
+          `${action.longDescription()} specifies build '${copy.build}' in \`copyFrom\` which could not be found.`,
+          { actionKey: action.key(), copy }
+        )
+      }
+
+      const sourceBuildPath = sourceBuild.getBuildPath()
 
       if (isAbsolute(copy.sourcePath)) {
         throw new ConfigurationError(`Source path in build dependency copy spec must be a relative path`, {

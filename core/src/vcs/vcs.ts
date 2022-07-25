@@ -128,7 +128,7 @@ export abstract class VcsHandler {
     config: ModuleConfig | BaseActionConfig,
     force = false
   ): Promise<TreeVersion> {
-    const configPath = config.configPath
+    const configPath = getConfigFilePath(config)
     const path = getConfigBasePath(config)
 
     // Apply project root excludes if the module config is in the project root and `include` isn't set
@@ -332,6 +332,10 @@ export function getResourceTreeCacheKey(config: ModuleConfig | BaseActionConfig)
   }
 
   return cacheKey
+}
+
+function getConfigFilePath(config: ModuleConfig | BaseActionConfig) {
+  return isActionConfig(config) ? config.internal?.configFilePath : config.configPath
 }
 
 function getConfigBasePath(config: ModuleConfig | BaseActionConfig) {
