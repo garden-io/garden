@@ -336,6 +336,7 @@ export interface ActionDependency {
 
 export interface ActionWrapperParams<C extends BaseActionConfig> {
   baseBuildDirectory: string // <project>/.garden/build by default
+  compatibleTypes: string[]
   config: C
   dependencies: ActionDependency[]
   graph: ConfigGraph
@@ -362,6 +363,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   _outputs: O
 
   protected readonly baseBuildDirectory: string
+  protected readonly compatibleTypes: string[]
   protected readonly dependencies: ActionDependency[]
   protected readonly graph: ConfigGraph
   protected readonly _moduleName?: string // TODO: remove in 0.14
@@ -543,8 +545,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   }
 
   isCompatible(type: string) {
-    // TODO-G2
-    return false
+    return this.compatibleTypes.includes(type)
   }
 
   matchesRef(ref: ActionReference) {

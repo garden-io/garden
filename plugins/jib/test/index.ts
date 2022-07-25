@@ -14,6 +14,7 @@ import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
 import { defaultApiVersion, defaultNamespace } from "@garden-io/sdk/constants"
 import { gardenPlugin } from ".."
 import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
+import { JibBuildAction } from "../util"
 
 describe("jib-container", function () {
   // tslint:disable-next-line: no-invalid-this
@@ -35,8 +36,9 @@ describe("jib-container", function () {
 
   let garden: TestGarden
   let graph: ConfigGraph
-  let actions: TestGarden["actionHelper"]
+  let router: TestGarden["actionRouter"]
   let module: GardenModule
+  let action: JibBuildAction
 
   before(async () => {
     garden = await makeTestGarden(projectRoot, {
@@ -44,12 +46,13 @@ describe("jib-container", function () {
       config: projectConfig,
     })
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    actions = await garden.getActionRouter()
+    router = await garden.getActionRouter()
   })
 
   beforeEach(async () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     module = graph.getModule("module")
+    action = graph.getBuild("module")
   })
 
   describe("configure", () => {
@@ -77,11 +80,11 @@ describe("jib-container", function () {
   describe("build", () => {
     context("tarOnly=true", () => {
       it("builds a maven project", async () => {
-        module.spec.build.projectType = "maven"
-        module.spec.build.tarOnly = true
+        action["spec"].projectType = "maven"
+        action["spec"].tarOnly = true
 
-        const res = await actions.build.build({
-          module,
+        const res = await router.build.build({
+          action,
           log: garden.log,
           graph,
         })
@@ -92,11 +95,11 @@ describe("jib-container", function () {
       })
 
       it("builds a gradle project", async () => {
-        module.spec.build.projectType = "gradle"
-        module.spec.build.tarOnly = true
+        action["spec"].projectType = "gradle"
+        action["spec"].tarOnly = true
 
-        const res = await actions.build.build({
-          module,
+        const res = await router.build.build({
+          action,
           log: garden.log,
           graph,
         })
@@ -111,22 +114,22 @@ describe("jib-container", function () {
     // This however is covered by the jib-container e2e test project
     context("tarOnly=false", () => {
       it.skip("builds a maven project and pushed to a registry", async () => {
-        module.spec.build.projectType = "maven"
-        module.spec.build.tarOnly = false
+        action["spec"].projectType = "maven"
+        action["spec"].tarOnly = false
 
-        await actions.build.build({
-          module,
+        await router.build.build({
+          action,
           log: garden.log,
           graph,
         })
       })
 
       it.skip("builds a gradle project and pushes to a registry", async () => {
-        module.spec.build.projectType = "gradle"
-        module.spec.build.tarOnly = false
+        action["spec"].projectType = "gradle"
+        action["spec"].tarOnly = false
 
-        await actions.build.build({
-          module,
+        await router.build.build({
+          action,
           log: garden.log,
           graph,
         })
@@ -135,24 +138,24 @@ describe("jib-container", function () {
 
     context("dockerBuild=true", () => {
       it("builds a maven project", async () => {
-        module.spec.build.projectType = "maven"
-        module.spec.build.tarOnly = false
-        module.spec.build.dockerBuild = true
+        action["spec"].projectType = "maven"
+        action["spec"].tarOnly = false
+        action["spec"].dockerBuild = true
 
-        await actions.build.build({
-          module,
+        await router.build.build({
+          action,
           log: garden.log,
           graph,
         })
       })
 
       it("builds a gradle project", async () => {
-        module.spec.build.projectType = "gradle"
-        module.spec.build.tarOnly = false
-        module.spec.build.dockerBuild = true
+        action["spec"].projectType = "gradle"
+        action["spec"].tarOnly = false
+        action["spec"].dockerBuild = true
 
-        await actions.build.build({
-          module,
+        await router.build.build({
+          action,
           log: garden.log,
           graph,
         })

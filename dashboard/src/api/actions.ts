@@ -9,12 +9,12 @@
 import produce from "immer"
 import { groupBy, keyBy } from "lodash"
 
-import { ServiceLogEntry } from "@garden-io/core/build/src/types/plugin/service/getServiceLogs"
-import { StatusCommandResult } from "@garden-io/core/build/src/commands/get/get-status"
-import { GetTaskResultCommandResult } from "@garden-io/core/build/src/commands/get/get-task-result"
-import { ConfigDump } from "@garden-io/core/build/src/garden"
-import { GetTestResultCommandResult } from "@garden-io/core/build/src/commands/get/get-test-result"
-import { GraphOutput } from "@garden-io/core/build/src/commands/get/get-graph"
+import type { ServiceLogEntry } from "@garden-io/core/build/src/types/service"
+import type { StatusCommandResult } from "@garden-io/core/build/src/commands/get/get-status"
+import type { GetRunResultCommandResult } from "@garden-io/core/build/src/commands/get/get-run-result"
+import type { ConfigDump } from "@garden-io/core/build/src/garden"
+import type { GetTestResultCommandResult } from "@garden-io/core/build/src/commands/get/get-test-result"
+import type { GraphOutput } from "@garden-io/core/build/src/commands/get/get-graph"
 import {
   ApiDispatch,
   defaultRunStatus,
@@ -37,8 +37,8 @@ import {
   FetchTestResultParams,
 } from "./api"
 import { getAuthKey, getTestKey } from "../util/helpers"
-import { ProviderMap } from "@garden-io/core/build/src/config/provider"
-import { DashboardPage } from "@garden-io/core/build/src/plugin/handlers/provider/getDashboardPage"
+import type { ProviderMap } from "@garden-io/core/build/src/config/provider"
+import type { DashboardPage } from "@garden-io/core/build/src/plugin/handlers/provider/getDashboardPage"
 import { AxiosError } from "axios"
 
 // This file contains the API action functions.
@@ -201,15 +201,15 @@ export async function loadStatus(dispatch: ApiDispatch) {
  */
 function processStatusInitResult(entities: Entities, status: StatusCommandResult) {
   return produce(entities, (draft) => {
-    for (const serviceName of Object.keys(status.services)) {
+    for (const serviceName of Object.keys(status.actions.deploy)) {
       draft.services[serviceName] = entities.services[serviceName] || {}
-      draft.services[serviceName].status = status.services[serviceName]
+      draft.services[serviceName].status = status.actions.deploy[serviceName]
     }
-    for (const [taskName, taskStatus] of Object.entries(status.tasks || {})) {
+    for (const [taskName, taskStatus] of Object.entries(status.actions.run || {})) {
       draft.tasks[taskName] = entities.tasks[taskName] || {}
       draft.tasks[taskName].status = taskStatus
     }
-    for (const [testName, testStatus] of Object.entries(status.tests || {})) {
+    for (const [testName, testStatus] of Object.entries(status.actions.run || {})) {
       draft.tests[testName] = entities.tests[testName] || {}
       draft.tests[testName].status = testStatus
     }
@@ -252,7 +252,7 @@ export async function loadTaskResult({ dispatch, ...fetchParams }: LoadTaskResul
 
   dispatch({ requestKey, type: "fetchStart" })
 
-  let res: GetTaskResultCommandResult
+  let res: GetRunResultCommandResult
   try {
     res = await fetchTaskResult(fetchParams)
   } catch (error) {
@@ -260,15 +260,15 @@ export async function loadTaskResult({ dispatch, ...fetchParams }: LoadTaskResul
     return
   }
 
-  const processResults = (entities: Entities) => processTaskResult(entities, res)
+  const processResults = (entities: Entities) => processTaskResult(entities, fetchParams.name, res)
 
   dispatch({ type: "fetchSuccess", requestKey, processResults })
 }
 
-function processTaskResult(entities: Entities, result: GetTaskResultCommandResult) {
+function processTaskResult(entities: Entities, name: string, result: GetRunResultCommandResult) {
   return produce(entities, (draft) => {
     if (result) {
-      draft.tasks[result.taskName].result = result
+      draft.tasks[name].result = result
     }
   })
 }
@@ -290,16 +290,16 @@ export async function loadTestResult({ dispatch, ...fetchParams }: LoadTestResul
     return
   }
 
-  const processResults = (entities: Entities) => processTestResult(entities, res)
+  const processResults = (entities: Entities) => processTestResult(entities, fetchParams, res)
 
   dispatch({ type: "fetchSuccess", requestKey, processResults })
 }
 
-function processTestResult(entities: Entities, result: GetTestResultCommandResult) {
+function processTestResult(entities: Entities, params: FetchTestResultParams, result: GetTestResultCommandResult) {
   return produce(entities, (draft) => {
     if (result) {
       // Test names are not unique so we store the data under a unique test key
-      const testKey = getTestKey({ testName: result.testName, moduleName: result.moduleName })
+      const testKey = getTestKey({ testName: params.name, moduleName: params.moduleName })
       draft.tests[testKey].result = result
     }
   })
