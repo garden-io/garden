@@ -155,7 +155,11 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     })
 
     const projectDocURL = "https://docs.garden.io/using-garden/projects"
-    yaml = `# More info and documentation at ${projectDocURL}\n\n${yaml}`
+    const projectReferenceURL = "https://docs.garden.io/reference/project-config"
+    yaml =
+      dedent`
+    # Documentation about Garden projects can be found at ${projectDocURL}
+    # Reference for Garden projects can be found at ${projectReferenceURL}` + `\n\n${yaml}`
 
     await addConfig(configPath, yaml)
 
@@ -192,7 +196,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
 
     // This is to avoid `prettier` messing with the string formatting...
     const configFilesUrl = chalk.cyan.underline("https://docs.garden.io/using-garden/configuration-overview")
-    const referenceUrl = chalk.cyan.underline("https://docs.garden.io/reference/config")
+    const referenceUrl = chalk.cyan.underline(projectReferenceURL)
 
     log.info({
       symbol: "info",
