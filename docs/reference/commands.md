@@ -548,7 +548,7 @@ Examples:
 
 #### Usage
 
-    garden delete service [services] 
+    garden delete service [services] [options]
 
 #### Arguments
 
@@ -556,6 +556,12 @@ Examples:
 | -------- | -------- | ----------- |
   | `services` | No | The name(s) of the service(s) to delete. Use comma as a separator to specify multiple services.
 
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--dependants-first` |  | boolean | Delete services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling garden delete environment service-a,service-b --dependants-first. When this flag is not used, all services in the project are deleted simultaneously.
+  | `--with-dependants` |  | boolean | Also delete services that have service dependencies on one of the services specified as CLI arguments (recursively).  When used, this option implies --dependants-first. Note: This option has no effect unless a list of service names is specified as CLI arguments (since then, every service in the project will be deleted).
 
 #### Outputs
 
