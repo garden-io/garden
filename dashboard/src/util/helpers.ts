@@ -71,13 +71,6 @@ export function getLinkUrl(ingress: ServiceIngress) {
   )
 }
 
-/**
- * Test names are not unique so we construct a unique key from the module name and the test name.
- */
-export function getTestKey({ testName, moduleName }: { testName: string; moduleName: string }) {
-  return `${moduleName}.${testName}`
-}
-
 let _canvas: HTMLCanvasElement
 
 /**

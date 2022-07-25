@@ -49,8 +49,8 @@ export type OverviewSupportedFilterKeys =
   | "tasksInfo"
   | "tests"
   | "testsInfo"
-export type StackGraphSupportedFilterKeys = PickFromUnion<DependencyGraphNodeType, "test" | "deploy" | "build" | "run">
-export type EntityResultSupportedTypes = StackGraphSupportedFilterKeys | "task"
+export type StackGraphSupportedFilterKeys = PickFromUnion<DependencyGraphNodeType, "Test" | "Deploy" | "Build" | "Run">
+export type EntityResultSupportedTypes = StackGraphSupportedFilterKeys | "Run"
 export type SelectedEntity = {
   type: EntityResultSupportedTypes
   name: string

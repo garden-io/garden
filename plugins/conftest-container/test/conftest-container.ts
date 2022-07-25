@@ -17,7 +17,7 @@ import { gardenPlugin as conftestPlugin } from "@garden-io/garden-conftest"
 
 import { ProjectConfig, defaultNamespace } from "@garden-io/core/build/src/config/project"
 import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
-import { defaultDockerfileName } from "@garden-io/core/src/plugins/container/helpers"
+import { defaultDockerfileName } from "@garden-io/core/build/src/plugins/container/helpers"
 
 describe("conftest-container provider", () => {
   const projectRoot = join(__dirname, "test-project")

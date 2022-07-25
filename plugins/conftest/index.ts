@@ -26,6 +26,7 @@ import { getK8sProvider } from "@garden-io/core/build/src/plugins/kubernetes/uti
 import { TestAction, TestActionConfig } from "@garden-io/core/build/src/actions/test"
 import { TestActionHandlers } from "../../core/build/src/plugin/action-types"
 import { uniq } from "lodash"
+import { HelmDeployAction } from "@garden-io/core/build/src/plugins/kubernetes/helm/config"
 
 export interface ConftestProviderConfig extends GenericProviderConfig {
   policyPath: string
@@ -236,7 +237,9 @@ export const gardenPlugin = () =>
               const k8sProvider = getK8sProvider(ctx.provider.dependencies)
               const k8sCtx = { ...ctx, provider: k8sProvider }
 
-              const sourceAction = action.dependencies.getDeploy(spec.helmDeploy)
+              const sourceAction = <HelmDeployAction | null>(
+                action.getDependency({ kind: "Deploy", name: spec.helmDeploy })
+              )
 
               if (!sourceAction) {
                 throw new ConfigurationError(
