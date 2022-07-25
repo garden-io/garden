@@ -9,9 +9,9 @@
 import axios from "axios"
 
 import { GraphOutput } from "@garden-io/core/build/src/commands/get/get-graph"
-import { GetTaskResultCommandResult } from "@garden-io/core/build/src/commands/get/get-task-result"
+import { GetRunResultCommandResult } from "@garden-io/core/build/src/commands/get/get-run-result"
 import { GetTestResultCommandResult } from "@garden-io/core/build/src/commands/get/get-test-result"
-import { ServiceLogEntry } from "@garden-io/core/build/src/types/plugin/service/getServiceLogs"
+import { ServiceLogEntry } from "@garden-io/core/build/src/types/service"
 import { CommandResult } from "@garden-io/core/build/src/commands/base"
 import { ConfigDump } from "@garden-io/core/build/src/garden"
 import { StatusCommandResult } from "@garden-io/core/build/src/commands/get/get-status"
@@ -50,7 +50,7 @@ export interface FetchTaskResultParams {
 }
 
 export async function fetchTaskResult(params: FetchTaskResultParams) {
-  return apiCommand<GetTaskResultCommandResult>("get.task-result", params)
+  return apiCommand<GetRunResultCommandResult>("get.run-result", params)
 }
 
 export interface FetchTestResultParams {

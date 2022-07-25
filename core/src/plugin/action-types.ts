@@ -178,7 +178,7 @@ type DeployActionDescriptions<C extends DeployAction = DeployAction> = BaseHandl
   stopPortForward: StopDeployPortForward<C>
 }
 
-type UnresolvedDeployHandlers = "deploy" | "getStatus"
+type UnresolvedDeployHandlers = "deploy" | "getStatus" | "delete"
 
 export type DeployActionHandler<
   N extends keyof DeployActionDescriptions,

@@ -19,7 +19,6 @@ import { capitalize } from "lodash"
 import { RenderedNode } from "../../../core/build/src/graph/config-graph"
 import { GraphOutput } from "@garden-io/core/build/src/commands/get/get-graph"
 import { loadGraph } from "../api/actions"
-import { getTestKey } from "../util/helpers"
 import { useApi, useUiState } from "../hooks"
 import { colors } from "../styles/variables"
 
@@ -83,21 +82,21 @@ export default () => {
     let taskState: TaskState = "taskComplete"
     let disabled = modules[node.name]?.disabled
     switch (node.type) {
-      case "deploy":
+      case "Deploy":
         const service = services[node.name]
         disabled = service.config.disabled || service.config.moduleDisabled
         taskState = service.taskState
         break
-      case "build":
+      case "Build":
         taskState = modules[node.name].taskState
         break
-      case "run":
+      case "Run":
         const task = tasks[node.name]
         disabled = task.config.disabled || task.config.moduleDisabled
         taskState = task.taskState
         break
-      case "test":
-        const test = tests[getTestKey({ testName: node.name, moduleName: node.moduleName })]
+      case "Test":
+        const test = tests[node.name]
         disabled = test.config.disabled || test.config.moduleDisabled
         taskState = test.taskState
         break

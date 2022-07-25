@@ -31,12 +31,11 @@ import {
 import { dedent } from "@garden-io/sdk/util/string"
 import { emptyDir } from "fs-extra"
 import { deletePulumiDeploy } from "./handlers"
-import { isDeployAction } from "@garden-io/core/src/actions/deploy"
-import { Resolved } from "@garden-io/core/src/actions/base"
-import { ActionConfigContext } from "@garden-io/core/src/config/template-contexts/actions"
+import { isDeployAction } from "@garden-io/core/build/src/actions/deploy"
+import { ActionConfigContext } from "@garden-io/core/build/src/config/template-contexts/actions"
 
 interface PulumiParamsWithService extends PulumiParams {
-  action: Resolved<PulumiDeploy>
+  action: PulumiDeploy
 }
 
 type PulumiRunFn = (params: PulumiParamsWithService) => Promise<void>
@@ -220,21 +219,12 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn }: Pulumi
         await beforeFn({ ctx, log })
       }
 
-      const allProviders = await garden.resolveProviders(log)
-      const allModules = graph.getModules()
       const provider = ctx.provider as PulumiProvider
 
       const actions = graph.getDeploys({ names }).filter((a) => a.type === "pulumi")
 
       const tasks = await Bluebird.map(actions, async (action) => {
-        const templateContext = new ActionConfigContext({
-          garden,
-          resolvedProviders: allProviders,
-          action,
-          partialRuntimeResolution: false,
-          variables: "TODO-G2",
-          modules: allModules,
-        })
+        const templateContext = new ActionConfigContext(garden)
         const ctxForModule = await garden.getPluginContext(provider, templateContext, ctx.events)
         const pulumiParams: PulumiParamsWithService = {
           ctx: ctxForModule,

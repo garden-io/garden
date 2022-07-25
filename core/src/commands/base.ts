@@ -73,7 +73,7 @@ export interface CommandParams<T extends Parameters = {}, U extends Parameters =
 
 type DataCallback = (data: string) => void
 
-export abstract class Command<T extends Parameters = {}, U extends Parameters = {}> {
+export abstract class Command<T extends Parameters = {}, U extends Parameters = {}, R = any> {
   abstract name: string
   abstract help: string
 
@@ -251,7 +251,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   // subclass implementations need to explicitly set the types in the implemented function signature. So for now we
   // can't enforce the types of `args` and `opts` automatically at the abstract class level and have to specify
   // the types explicitly on the subclassed methods.
-  abstract action(params: CommandParams<T, U>): Promise<CommandResult>
+  abstract action(params: CommandParams<T, U>): Promise<CommandResult<R>>
 
   /**
    * Called on all commands and checks if the command is protected.

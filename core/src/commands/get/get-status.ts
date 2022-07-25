@@ -40,7 +40,7 @@ const runStatusSchema = () =>
 export interface StatusCommandResult {
   providers: EnvironmentStatusMap
   actions: {
-    // build: { [key: string]: BuildStatus } // TODO
+    // build: { [key: string]: BuildStatus } // TODO-G2
     deploy: { [name: string]: ServiceStatus }
     run: RunStatuses
     test: TestStatuses

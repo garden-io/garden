@@ -33,6 +33,7 @@ import { validateWithPath } from "../config/validation"
 import { ConfigurationError, InternalError, PluginError } from "../exceptions"
 import type { Garden } from "../garden"
 import type { LogEntry } from "../logger/log-entry"
+import { getActionTypeBases } from "../plugins"
 import type { BaseActionRouter } from "../router/base"
 import type { ActionRouter } from "../router/router"
 import { resolveTemplateStrings, getActionTemplateReferences } from "../template-string/template-string"
@@ -115,8 +116,15 @@ export async function actionFromConfig({
   merge(variables, await resolveActionVarfiles(config))
   merge(variables, garden.cliVariables)
 
+  const actionTypes = await garden.getActionTypes()
+  const compatibleTypes = [
+    config.type,
+    ...getActionTypeBases(actionTypes[config.type], actionTypes[config.kind]).map((t) => t.name),
+  ]
+
   const params: ActionWrapperParams<any> = {
     baseBuildDirectory: garden.buildStaging.buildDirPath,
+    compatibleTypes,
     config,
     dependencies,
     graph,
