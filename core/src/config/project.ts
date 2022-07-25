@@ -181,6 +181,7 @@ export interface ProjectConfig {
   configPath?: string
   defaultEnvironment: string
   dotIgnoreFile: string
+  dotIgnoreFiles?: string[]
   environments: EnvironmentConfig[]
   modules?: {
     include?: string[]
@@ -294,6 +295,20 @@ export const projectSchema = () =>
           `
         )
         .example("dev"),
+      dotIgnoreFiles: joiSparseArray(joi.posixPath().filenameOnly())
+        .default([])
+        .description(
+          deline`
+        Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for modules and module sources.
+
+        Note! Since 0.13 it can contain at most 1 filename, that will be automatically remapped to \`dotIgnoreFile\`.
+        Otherwise, an error will be thrown.
+      `
+        )
+        .meta({
+          deprecated: "Please use `dotIgnoreFile` instead.",
+        })
+        .example([".gitignore"]),
       dotIgnoreFile: joi
         .posixPath()
         .filenameOnly()
@@ -304,7 +319,7 @@ export const projectSchema = () =>
 
         Note: prior to Garden 0.13.0, it was possible to specify _multiple_ ".ignore" files using the \`dotIgnoreFiles\` field in the project configuration.
 
-        Note that these take precedence over the project \`module.include\` field, and module \`include\` fields, so any paths matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
+        Note that this take precedence over the project \`module.include\` field, and module \`include\` fields, so any paths matched by the .ignore file will be ignored even if they are explicitly specified in those fields.
 
         See the [Configuration Files guide](${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
       `
