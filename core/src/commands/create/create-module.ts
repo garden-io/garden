@@ -207,7 +207,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
     })
 
     const moduleTypeUrl = getModuleTypeUrl(type)
-    yaml = `# Documentation about ${type} modules at ${moduleTypeUrl}\n\n${yaml}`
+    yaml = `# See the documentation and reference for ${type} modules at ${moduleTypeUrl}\n\n${yaml}`
     await addConfig(configPath, yaml)
 
     log.info(chalk.green(`-> Created new module config in ${chalk.bold.white(relative(process.cwd(), configPath))}`))
