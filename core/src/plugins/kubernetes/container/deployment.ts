@@ -825,7 +825,16 @@ export function configureVolumes(
       })
     } else if (volume.action) {
       // Make sure the action is a supported type
-      const volumeAction = action.dependencies.getBuild(volume.action)
+      const volumeAction = action.getDependency({ kind: "Deploy", name: volume.action })
+
+      if (!volumeAction) {
+        throw new ConfigurationError(
+          `${action.longDescription()} specifies action '${
+            volume.action
+          }' on volume '${volumeName}' but the Deploy action could not be found. Please make sure it is specified as a dependency on the action.`,
+          { volume }
+        )
+      }
 
       if (volumeAction.isCompatible("persistentvolumeclaim")) {
         volumes.push({

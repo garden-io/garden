@@ -7,15 +7,9 @@
  */
 
 import { join } from "path"
-import {
-  ActionReference,
-  DeepPrimitiveMap,
-  includeGuideLink,
-  joi,
-  joiSparseArray,
-  joiUserIdentifier,
-} from "../config/common"
+import { ActionReference, includeGuideLink, joi, joiSparseArray, joiUserIdentifier } from "../config/common"
 import { ActionConfigContext } from "../config/template-contexts/actions"
+import { ResolvedConfigGraph } from "../graph/config-graph"
 import { GraphResult, GraphResults } from "../graph/solver"
 import { dedent } from "../util/string"
 import {
@@ -27,6 +21,7 @@ import {
   Action,
   ActionStatus,
   actionReferenceToString,
+  ResolvedActionExtension,
 } from "./base"
 
 export interface BuildCopyFrom {
@@ -148,19 +143,22 @@ export class BuildAction<C extends BuildActionConfig = BuildActionConfig, O exte
 }
 
 // TODO: see if we can avoid the duplication here with ResolvedRuntimeAction
-export abstract class ResolvedBuildAction<
-  C extends BuildActionConfig = BuildActionConfig,
-  O extends {} = any
-> extends BuildAction<C, O> {
-  private variables: DeepPrimitiveMap
-  private status: ActionStatus<this, any, O>
-  private dependencyResults: GraphResults
+export abstract class ResolvedBuildAction<C extends BuildActionConfig = BuildActionConfig, O extends {} = any>
+  extends BuildAction<C, O>
+  implements ResolvedActionExtension<C, O> {
+  private readonly dependencyResults: GraphResults
+  private readonly resolvedGraph: ResolvedConfigGraph
+  private readonly status: ActionStatus<this, any, O>
 
   constructor(params: ResolvedActionWrapperParams<C, O>) {
     super(params)
-    this.status = params.status
-    this.variables = params.variables
     this.dependencyResults = params.dependencyResults
+    this.resolvedGraph = params.resolvedGraph
+    this.status = params.status
+  }
+
+  getResolvedDependencies() {
+    return this.dependencies.map((d) => this.resolvedGraph.getActionByRef(d))
   }
 
   getDependencyResult(ref: ActionReference | Action): GraphResult | null {

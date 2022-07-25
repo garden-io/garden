@@ -6,9 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Action } from "../../actions/base"
+import { Action, ResolvedAction } from "../../actions/base"
 import { Garden } from "../../garden"
-import { RuntimeContext } from "../../runtime-context"
 import { GardenModule } from "../../types/module"
 import { deline } from "../../util/string"
 import { DeepPrimitiveMap, joi, joiIdentifierMap, joiPrimitive, joiVariables, PrimitiveMap } from "../common"
@@ -21,7 +20,11 @@ import { RemoteSourceConfigContext } from "./project"
  * This is available to built-in fields on action configs. See ActionSpecContext below for the context available
  * for action spec and variables.
  */
-export class ActionConfigContext extends RemoteSourceConfigContext {}
+export class ActionConfigContext extends RemoteSourceConfigContext {
+  constructor(garden: Garden) {
+    super(garden, garden.variables)
+  }
+}
 
 interface ActionReferenceContextParams {
   root: ConfigContext
@@ -102,7 +105,7 @@ class ActionReferencesContext extends ConfigContext {
   @schema(_actionResultContextSchema.description("Alias for `run`."))
   public tasks: Map<string, ActionResultContext>
 
-  constructor(root: ConfigContext, allowPartial: boolean, runtimeContext?: RuntimeContext) {
+  constructor(root: ConfigContext, allowPartial: boolean, resolvedDependencies: ResolvedAction[]) {
     super(root)
 
     this.build = new Map()
@@ -113,13 +116,17 @@ class ActionReferencesContext extends ConfigContext {
     this.services = this.deploy
     this.tasks = this.run
 
-    if (runtimeContext) {
-      for (const dep of runtimeContext.dependencies) {
-        this[dep.kind].set(
-          dep.name,
-          new ActionResultContext({ root: this, outputs: dep.outputs, version: dep.version })
-        )
-      }
+    for (const dep of resolvedDependencies) {
+      this[dep.kind].set(
+        dep.name,
+        new ActionResultContext({
+          root: this,
+          outputs: dep.getOutputs(),
+          version: dep.versionString(),
+          disabled: dep.isDisabled(),
+          variables: dep.getVariables(),
+        })
+      )
     }
 
     // This ensures that any template string containing runtime.* references is returned unchanged when
@@ -127,18 +134,13 @@ class ActionReferencesContext extends ConfigContext {
     this._alwaysAllowPartial = allowPartial
   }
 }
-export interface ActionConfigContextParams {
+export interface ActionSpecContextParams {
   garden: Garden
   resolvedProviders: ProviderMap
-  variables: DeepPrimitiveMap
   modules: GardenModule[]
-
-  // We only supply this when resolving configuration in dependency order.
-  // Otherwise we pass `${runtime.*} template strings through for later resolution.
-  runtimeContext?: RuntimeContext
   partialRuntimeResolution: boolean
-
   action: Action
+  resolvedDependencies: ResolvedAction[]
 }
 
 /**
@@ -155,8 +157,8 @@ export class ActionSpecContext extends ModuleConfigContext {
   @schema(ActionReferencesContext.getSchema().description("Alias for `action`."))
   public runtime: ActionReferencesContext
 
-  constructor(params: ActionConfigContextParams) {
-    const { action, garden, partialRuntimeResolution, runtimeContext } = params
+  constructor(params: ActionSpecContextParams) {
+    const { action, garden, partialRuntimeResolution, resolvedDependencies } = params
 
     const { internal } = action.getConfig()
 
@@ -168,10 +170,10 @@ export class ActionSpecContext extends ModuleConfigContext {
       parentName: internal?.parentName,
       templateName: internal?.templateName,
       inputs: internal?.inputs,
-      variables: { ...garden.variables, ...params.variables },
+      variables: { ...garden.variables, ...action.getVariables(), ...garden.cliVariables },
     })
 
-    this.action = new ActionReferencesContext(this, partialRuntimeResolution, runtimeContext)
+    this.action = new ActionReferencesContext(this, partialRuntimeResolution, resolvedDependencies)
     this.runtime = this.action
 
     // TODO-G2

@@ -16,7 +16,7 @@ import { versionStringPrefix } from "../vcs/vcs"
 import { ConfigContext, schema } from "../config/template-contexts/base"
 import { PublishActionResult } from "../plugin/handlers/build/publish"
 import { BuildAction } from "../actions/build"
-import { ActionConfigContext, ActionConfigContextParams } from "../config/template-contexts/actions"
+import { ActionSpecContext, ActionSpecContextParams } from "../config/template-contexts/actions"
 import { ActionState } from "../actions/base"
 
 export interface PublishTaskParams extends BaseActionTaskParams<BuildAction> {
@@ -74,11 +74,10 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
       const templateContext = new BuildTagContext({
         garden: this.garden,
         action,
-        variables: { ...this.garden.variables, ...action.getVariables() },
         resolvedProviders,
         modules: this.graph.getModules(),
-        runtimeContext: emptyRuntimeContext,
         partialRuntimeResolution: false,
+        resolvedDependencies: action.getResolvedDependencies(),
       })
 
       // Resolve template string and make sure the result is a string
@@ -134,14 +133,14 @@ class BuildSelfContext extends ConfigContext {
   }
 }
 
-class BuildTagContext extends ActionConfigContext {
+class BuildTagContext extends ActionSpecContext {
   @schema(BuildSelfContext.getSchema().description("Extended information about the build being tagged."))
   public build: BuildSelfContext
 
   @schema(BuildSelfContext.getSchema().description("Alias kept for compatibility."))
   public module: BuildSelfContext
 
-  constructor(params: ActionConfigContextParams & { action: BuildAction }) {
+  constructor(params: ActionSpecContextParams & { action: BuildAction }) {
     super(params)
     this.build = this.module = new BuildSelfContext(this, params.action)
   }

@@ -21,6 +21,9 @@ export interface GroupConfig {
 
   // Location / internal metadata
   path?: string
+  internal?: {
+    configFilePath?: string
+  }
 
   // Variables
   variables?: DeepPrimitiveMap
