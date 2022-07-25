@@ -10,9 +10,9 @@ import toposort from "toposort"
 import { flatten, uniq, difference, mapValues, cloneDeep } from "lodash"
 import { GardenBaseError } from "../exceptions"
 import { naturalList } from "../util/string"
-import { Action, ActionKind, actionReferenceToString, Resolved, RuntimeAction } from "../actions/base"
+import { Action, ActionKind, actionReferenceToString, Resolved, ResolvedAction, RuntimeAction } from "../actions/base"
 import { BuildAction } from "../actions/build"
-import { ActionReference } from "../config/common"
+import { ActionReference, parseActionReference } from "../config/common"
 import { GardenModule, ModuleTypeMap } from "../types/module"
 import { GetManyParams, ModuleGraph } from "./modules"
 import { ActionTypeMap, GenericActionTypeMap } from "../plugin/action-types"
@@ -130,8 +130,9 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
     }
   }
 
-  getActionByRef(ref: ActionReference) {
-    return this.getActionByKind(ref.kind, ref.name)
+  getActionByRef(refOrString: ActionReference | string): A {
+    const ref = parseActionReference(refOrString)
+    return <A>this.getActionByKind(ref.kind, ref.name)
   }
 
   getActionByKind<K extends ActionKind>(kind: K, name: string, opts: GetActionOpts = {}): M[K] {
@@ -384,7 +385,7 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
   }
 
   // Idempotent.
-  private getNode(kind: ActionKind, name: string, disabled: boolean) {
+  protected getNode(kind: ActionKind, name: string, disabled: boolean) {
     const key = nodeKey(kind, name)
     const existingNode = this.dependencyGraph[key]
     if (existingNode) {
@@ -400,7 +401,7 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
   }
 
   // Idempotent.
-  private addRelation({
+  protected addRelation({
     dependant,
     dependencyKind,
     dependencyName,
@@ -420,12 +421,25 @@ export class MutableConfigGraph extends ConfigGraph {
     this.addActionInternal(action)
   }
 
+  addDependency(by: ActionReference | string, on: ActionReference | string) {
+    const dependant = this.getActionByRef(by)
+    const dependency = this.getActionByRef(on)
+
+    dependant.addDependency(dependency)
+
+    this.addRelation({
+      dependant: this.getNode(dependant.kind, dependant.name, dependant.isDisabled()),
+      dependencyKind: dependency.kind,
+      dependencyName: dependency.name,
+    })
+  }
+
   toConfigGraph() {
     return this.clone()
   }
 }
 
-export class ResolvedConfigGraph extends ConfigGraph<Resolved<Action>, ResolvedActionTypeMap> {}
+export class ResolvedConfigGraph extends ConfigGraph<ResolvedAction, ResolvedActionTypeMap> {}
 
 export interface ConfigGraphEdge {
   dependant: ConfigGraphNode
