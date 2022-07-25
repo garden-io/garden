@@ -26,6 +26,7 @@ import {
   testGitUrlHash,
   resetLocalConfig,
   testGitUrl,
+  assertAsyncError,
 } from "../../helpers"
 import { getNames, findByName, omitUndefined, exec } from "../../../src/util/util"
 import { LinkedSource } from "../../../src/config-store"
@@ -2534,6 +2535,7 @@ describe("Garden", () => {
     it("should respect custom dotignore files", async () => {
       // In this project we have custom dotIgnoreFile: .customignore which overrides the default .gardenignore.
       // Thus, all exclusions from .gardenignore will be skipped.
+      // TODO: amend the config core/test/data/test-projects/dotignore-custom/garden.yml in 0.14
       const projectRoot = getDataDir("test-projects", "dotignore-custom")
       const garden = await makeTestGarden(projectRoot)
       const modules = await garden.resolveModules({ log: garden.log })
@@ -2541,6 +2543,32 @@ describe("Garden", () => {
       // Root-level .customignore excludes "module-b",
       // and .customignore from "module-c" retains garden.yml file, so the "module-c" is still active.
       expect(getNames(modules).sort()).to.eql(["module-a", "module-c"])
+    })
+
+    // TODO: Delete this context AND core/test/data/test-projects/dotignore-custom-legacy directory oin 0.14
+    context("dotignore files migration to 0.13", async () => {
+      it("should remap singleton array `dotIgnoreFiles` to scalar `dotIgnoreFile`", async () => {
+        // In this project we have custom dotIgnoreFile: .customignore which overrides the default .gardenignore.
+        // Thus, all exclusions from .gardenignore will be skipped.
+        const projectRoot = getDataDir("test-projects", "dotignore-custom-legacy", "with-supported-legacy-config")
+        const garden = await makeTestGarden(projectRoot)
+        const modules = await garden.resolveModules({ log: garden.log })
+
+        // Root-level .customignore excludes "module-b",
+        // and .customignore from "module-c" retains garden.yml file, so the "module-c" is still active.
+        expect(getNames(modules).sort()).to.eql(["module-a", "module-c"])
+      })
+
+      it("should throw and error if multi-valued `dotIgnoreFiles` is defined in the config", async () => {
+        // In this project we have custom dotIgnoreFile: .customignore which overrides the default .gardenignore.
+        // Thus, all exclusions from .gardenignore will be skipped.
+        const projectRoot = getDataDir("test-projects", "dotignore-custom-legacy", "with-unsupported-legacy-config")
+        const createGarden = async () => makeTestGarden(projectRoot)
+        await assertAsyncError(
+          createGarden,
+          "Cannot auto-convert array-field `dotIgnoreFiles` to scalar `dotIgnoreFile`: multiple values found in the array [.customignore, .gitignore]"
+        )
+      })
     })
 
     it("should throw a nice error if module paths overlap", async () => {
