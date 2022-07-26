@@ -22,6 +22,8 @@ import { isConfigFilename } from "../util/fs"
 import { TemplateKind, templateKind } from "./module-template"
 import { isTruthy } from "../util/util"
 import { PrimitiveMap } from "./common"
+import { getLogger } from "../logger/logger"
+import chalk from "chalk"
 
 export interface GardenResource {
   apiVersion: string
@@ -155,6 +157,13 @@ export function prepareProjectResource(spec: any): ProjectResource {
   }
 
   if (dotIgnoreFiles.length === 1) {
+    const log = getLogger()
+    log.warn({
+      symbol: "warning",
+      msg: chalk.yellow(
+        "Multi-valued project configuration field `dotIgnoreFiles` is deprecated in 0.13. Please use single-valued `dotIgnoreFile` instead."
+      ),
+    })
     return { ...projectSpec, dotIgnoreFile: dotIgnoreFiles[0] }
   }
 

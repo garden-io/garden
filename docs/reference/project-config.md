@@ -481,7 +481,7 @@ defaultEnvironment: "dev"
 {% endhint %}
 
 Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the project, are ignored when scanning for modules and module sources.
-Note! Since 0.13 it can contain at most 1 filename, that will be automatically remapped to `dotIgnoreFile`. Otherwise, an error will be thrown.
+Note! Since 0.13 it can contain at most 1 filename, that will be automatically remapped to `dotIgnoreFile` and a deprecation warning will be printed out. Otherwise, an error will be thrown.
 
 | Type               | Default | Required |
 | ------------------ | ------- | -------- |
