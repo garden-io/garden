@@ -22,7 +22,7 @@ import { isConfigFilename } from "../util/fs"
 import { TemplateKind, templateKind } from "./module-template"
 import { isTruthy } from "../util/util"
 import { PrimitiveMap } from "./common"
-import { getLogger } from "../logger/logger"
+import { getLogger, Logger } from "../logger/logger"
 import chalk from "chalk"
 
 export interface GardenResource {
@@ -135,7 +135,17 @@ function prepareResource({
   }
 }
 
-// TODO: remove in 0.14
+// TODO: remove the block below in 0.14
+interface LoggerContext {
+  readonly history: Set<string>
+  logger: Logger | undefined
+}
+
+const loggerContext: LoggerContext = {
+  history: new Set<string>(),
+  logger: undefined,
+}
+
 export function prepareProjectResource(spec: any): ProjectResource {
   const projectSpec = <ProjectResource>spec
 
@@ -157,13 +167,18 @@ export function prepareProjectResource(spec: any): ProjectResource {
   }
 
   if (dotIgnoreFiles.length === 1) {
-    const log = getLogger()
-    log.warn({
-      symbol: "warning",
-      msg: chalk.yellow(
-        "Multi-valued project configuration field `dotIgnoreFiles` is deprecated in 0.13. Please use single-valued `dotIgnoreFile` instead."
-      ),
-    })
+    const msg =
+      "Multi-valued project configuration field `dotIgnoreFiles` is deprecated in 0.13 and will be removed in 0.14. Please use single-valued `dotIgnoreFile` instead."
+    if (!loggerContext.history.has(msg)) {
+      if (!loggerContext.logger) {
+        loggerContext.logger = getLogger()
+      }
+      loggerContext.logger.warn({
+        symbol: "warning",
+        msg: chalk.yellow(msg),
+      })
+      loggerContext.history.add(msg)
+    }
     return { ...projectSpec, dotIgnoreFile: dotIgnoreFiles[0] }
   }
 
@@ -176,6 +191,8 @@ export function prepareProjectResource(spec: any): ProjectResource {
     }
   )
 }
+
+// TODO: end of the block to be removed
 
 export function prepareModuleResource(spec: any, configPath: string, projectRoot: string): ModuleResource {
   // We allow specifying modules by name only as a shorthand:
