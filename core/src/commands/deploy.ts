@@ -24,7 +24,7 @@ import { processModules } from "../process"
 import { printHeader } from "../logger/util"
 import { BaseTask } from "../tasks/base"
 import {
-  getDevModeModules,
+  getModulesByServiceNames,
   getMatchingServiceNames,
   getHotReloadServiceNames,
   validateHotReloadServiceNames,
@@ -245,7 +245,10 @@ export class DeployCommand extends Command<Args, Opts> {
       footerLog,
       modules,
       initialTasks,
-      skipWatchModules: getDevModeModules(devModeServiceNames, initGraph),
+      skipWatchModules: [
+        ...getModulesByServiceNames(devModeServiceNames, initGraph),
+        ...getModulesByServiceNames(localModeServiceNames, initGraph),
+      ],
       watch,
       changeHandler: async (graph, module) => {
         const tasks: BaseTask[] = await getModuleWatchTasks({

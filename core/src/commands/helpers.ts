@@ -39,8 +39,8 @@ export function getHotReloadServiceNames(namesFromOpt: string[] | undefined, con
   }
 }
 
-export function getDevModeModules(devModeServiceNames: string[], graph: ConfigGraph): GardenModule[] {
-  return uniqByName(graph.getServices({ names: devModeServiceNames }).map((s) => s.module))
+export function getModulesByServiceNames(serviceNames: string[], graph: ConfigGraph): GardenModule[] {
+  return uniqByName(graph.getServices({ names: serviceNames }).map((s) => s.module))
 }
 
 /**
