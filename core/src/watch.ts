@@ -39,12 +39,12 @@ let watcher: FSWatcher | undefined
  * This needs to be enabled by calling the `.start()` method, and stopped with the `.stop()` method.
  */
 export class Watcher extends EventEmitter {
-  private garden: Garden
-  private log: LogEntry
-  private paths: string[]
-  private skipPaths: string[]
+  private readonly garden: Garden
+  private readonly log: LogEntry
+  private readonly paths: string[]
+  private readonly skipPaths: string[]
+  private readonly bufferInterval: number = DEFAULT_BUFFER_INTERVAL
   private modules: GardenModule[]
-  private bufferInterval: number = DEFAULT_BUFFER_INTERVAL
   private watcher?: FSWatcher
   private buffer: { [path: string]: ChangedPath }
   private running: boolean
