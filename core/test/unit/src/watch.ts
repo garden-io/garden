@@ -65,7 +65,7 @@ describe("Watcher", () => {
   })
 
   async function waitUntilReady(_garden: Garden) {
-    if (_garden["watcher"].ready) {
+    if (_garden["watcher"].isReady) {
       return
     }
     return pEvent(_garden["watcher"], "ready", { timeout: 5000 })
@@ -76,7 +76,7 @@ describe("Watcher", () => {
   }
 
   async function waitForProcessing() {
-    while (garden["watcher"].processing) {
+    while (garden["watcher"].isProcessing) {
       await sleep(100)
     }
   }

@@ -48,8 +48,8 @@ export class Watcher extends EventEmitter {
   private watcher?: FSWatcher
   private buffer: { [path: string]: ChangedPath }
   private running: boolean
-  public ready: boolean
-  public processing: boolean
+  private ready: boolean
+  private processing: boolean
 
   constructor({
     garden,
@@ -78,6 +78,14 @@ export class Watcher extends EventEmitter {
     this.ready = false
     this.processing = false
     this.start()
+  }
+
+  public get isReady() {
+    return this.ready
+  }
+
+  public get isProcessing() {
+    return this.processing
   }
 
   async stop() {
