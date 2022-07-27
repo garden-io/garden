@@ -294,9 +294,14 @@ To make a new release, set your current working directory to the garden root dir
     * Run `./scripts/release.ts minor | patch`. This way, the version bump commits and changelog entries created by the pre-releases are omitted from the final history.
 7. Go to our Github [Releases page](https://github.com/garden-io/garden/releases) and click the **Edit** button for the draft just created from CI. Note that for drafts, a new one is always created instead of replacing a previous one.
 8. Write release notes. The notes should give an overview of the release and mention all relevant features. They should also **acknowledge all external contributors** and contain the changelog for that release.
-    * To generate a changelog for just that tag, run `git-chglog <previous-release-tag-name>..<tag-name>`
-    * To get a list of all contributors between releases, ordered by count, run: `./scripts/show-contributors.sh <previous-tag> <current-tag>`. Note that authors of squashed commits won't show up, so it might be good to do a quick sanity check on Github as well.
-    * Remember to put the list of features on top of the list of bug fixes.
+    * Automated release notes generation:
+      * Run `./scripts/show-contributors.sh <previous-tag> <current-tag>`, the filename with the draft notes will be printed in the console
+      * Open the draft file (it's named `release-notes-${version}-draft.txt`, e.g. `release-notes-0.12.38-draft.txt`) and resolve all suggested TODO items
+    * Old way of release notes generation (if the automated way fails for some reason):
+      * To generate a changelog for just that tag, run `git-chglog <previous-release-tag-name>..<tag-name>`
+      * To get a list of all contributors between releases, ordered by count, run: `./scripts/show-contributors.sh <previous-tag> <current-tag>`. Note that authors of squashed commits won't show up, so it might be good to do a quick sanity check on Github as well.
+      * Take the previous release notes for GitHub as a template and apply the necessary updates.
+      * Remember to put the list of features on top of the list of bug fixes in the changelog.
 9. Click the **Publish release** button.
 10. Make a pull request for the branch that was pushed by the script and make sure it's merged as soon as possible.
 11. Make sure the `latest-release` branch contains the released version, and push it to the remote. **This branch is used for our documentation, so this step is important.**
