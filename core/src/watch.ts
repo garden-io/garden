@@ -36,7 +36,7 @@ let watcher: FSWatcher | undefined
 
 /**
  * Wrapper around the Chokidar file watcher. Emits events on `garden.events` when project files are changed.
- * This needs to be enabled by calling the `.start()` method, and stopped with the `.stop()` method.
+ * This needs to be enabled by calling the {@link .start()} method, and stopped with the {@link .stop()} method.
  */
 export class Watcher extends EventEmitter {
   private readonly garden: Garden
@@ -111,7 +111,7 @@ export class Watcher extends EventEmitter {
       // Collect all the configured excludes and pass to the watcher.
       // This allows chokidar to optimize polling based on the exclusions.
       // See https://github.com/garden-io/garden/issues/1269.
-      // TODO: see if we can extract paths from dotignore files as well (we'd have to deal with negations etc. somehow).
+      // TODO: see if we can extract paths from dotignore file as well (we'd have to deal with negations etc. somehow).
       const projectExcludes = this.garden.moduleExcludePatterns.map((p) => resolve(this.garden.projectRoot, p))
       const ignored = [...projectExcludes, ...this.skipPaths]
       // TODO: filter paths based on module excludes as well

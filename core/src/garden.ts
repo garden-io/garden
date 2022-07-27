@@ -399,8 +399,8 @@ export class Garden {
     const linkedPaths = (await getLinkedSources(this)).map((s) => s.path)
     const paths = [this.projectRoot, ...linkedPaths]
 
-    // For skipped modules (e.g. those with services in dev mode), we skip watching all files and folders in the
-    // module root except for the module's config path. This way, we can still react to changes in the module's
+    // For skipped modules (e.g. those with services in dev or local mode), we skip watching all files and folders
+    // in the module root except for the module's config path. This way, we can still react to changes in the module's
     // configuration.
     const skipPaths = flatten(
       await Bluebird.map(skipModules || [], async (skipped: GardenModule) => {
