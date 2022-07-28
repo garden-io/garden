@@ -54,6 +54,7 @@ import execa from "execa"
 import { getLinkedSources, addLinkedSources } from "../../../src/util/ext-source-util"
 import { safeDump } from "js-yaml"
 import { TestVcsHandler } from "./vcs/vcs"
+import { findProjectConfigPath } from "../../../src/config/base"
 
 describe("Garden", () => {
   let tmpDir: tmp.DirectoryResult
@@ -4746,6 +4747,32 @@ describe("Garden", () => {
         })
 
         expect(path).to.equal(linkedModulePath)
+      })
+    })
+  })
+
+  describe("getWatchablePaths", async () => {
+    context("with nested modules", async () => {
+      it("should return root project config and module directories", async () => {
+        const garden = await makeTestGarden(resolve(dataDir, "test-project-watch"))
+        await garden.scanAndAddConfigs()
+
+        const modules = await garden.resolveModules({ log: garden.log })
+        const watchablePaths = await garden.getWatchablePaths(modules)
+        const modulePaths = modules.map((m) => m.path)
+        const projectConfigPath = await findProjectConfigPath(garden.projectRoot)
+        expect(watchablePaths).to.eql([projectConfigPath!, ...modulePaths])
+      })
+    })
+
+    context("with flat module", async () => {
+      it("should return root project directory", async () => {
+        const garden = await makeTestGarden(resolve(dataDir, "test-project-watch-flat"))
+        await garden.scanAndAddConfigs()
+
+        const modules = await garden.resolveModules({ log: garden.log })
+        const watchablePaths = await garden.getWatchablePaths(modules)
+        expect(watchablePaths).to.eql([garden.projectRoot])
       })
     })
   })
