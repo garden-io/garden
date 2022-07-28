@@ -12,7 +12,7 @@ import { ensureDir, readdir } from "fs-extra"
 import dedent from "dedent"
 import { platform, arch } from "os"
 import { relative, resolve, join } from "path"
-import { flatten, sortBy, keyBy, mapValues, cloneDeep, groupBy } from "lodash"
+import { flatten, sortBy, keyBy, mapValues, cloneDeep, groupBy, partition } from "lodash"
 const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
@@ -48,7 +48,13 @@ import { ConfigGraph } from "./config-graph"
 import { TaskGraph, GraphResults, ProcessTasksOpts } from "./task-graph"
 import { getLogger } from "./logger/logger"
 import { PluginActionHandlers, GardenPlugin } from "./types/plugin/plugin"
-import { loadConfigResources, findProjectConfig, prepareModuleResource, GardenResource } from "./config/base"
+import {
+  loadConfigResources,
+  findProjectConfig,
+  prepareModuleResource,
+  GardenResource,
+  findProjectConfigPath,
+} from "./config/base"
 import { DeepPrimitiveMap, StringMap, PrimitiveMap, treeVersionSchema, joi } from "./config/common"
 import { BaseTask } from "./tasks/base"
 import { LocalConfigStore, ConfigStore, GlobalConfigStore, LinkedSource } from "./config-store"
@@ -397,7 +403,15 @@ export class Garden {
   }) {
     const modules = graph.getModules()
     const linkedPaths = (await getLinkedSources(this)).map((s) => s.path)
-    const paths = [this.projectRoot, ...linkedPaths]
+
+    // Here we already have Garden project config parsed, so its path can't be undefined
+    const projectConfigPath = (await findProjectConfigPath(this.projectRoot))!
+    const [flatModules, nestedModules] = partition(modules, (module) => module.path === this.projectRoot)
+    const nestedModulesPaths = nestedModules.map((module) => module.path)
+    const projectRootLevelPath = flatModules.length === 0 ? projectConfigPath : this.projectRoot
+
+    // TODO: add unit tests
+    const paths = [projectRootLevelPath, ...nestedModulesPaths, ...linkedPaths]
 
     // For skipped modules (e.g. those with services in dev or local mode), we skip watching all files and folders
     // in the module root except for the module's config path. This way, we can still react to changes in the module's
