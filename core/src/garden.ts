@@ -388,6 +388,32 @@ export class Garden {
     return this.taskGraph.process(tasks, opts)
   }
 
+  // TODO: add unit tests
+  async getWatchablePaths(modules: GardenModule[]) {
+    const linkedPaths = (await getLinkedSources(this)).map((s) => s.path)
+
+    // Here we already have Garden project config parsed, so its path can't be undefined
+    const projectConfigPath = (await findProjectConfigPath(this.projectRoot))!
+    const [flatModules, nestedModules] = partition(modules, (module) => module.path === this.projectRoot)
+    const nestedModulesPaths = nestedModules.map((module) => module.path)
+    const projectRootLevelPath = flatModules.length === 0 ? projectConfigPath : this.projectRoot
+
+    return [projectRootLevelPath, ...nestedModulesPaths, ...linkedPaths]
+  }
+
+  async getSkipPaths(skipModules?: GardenModule[]) {
+    // For skipped modules (e.g. those with services in dev or local mode), we skip watching all files and folders
+    // in the module root except for the module's config path. This way, we can still react to changes in the module's
+    // configuration.
+    return flatten(
+      await Bluebird.map(skipModules || [], async (skipped: GardenModule) => {
+        return (await readdir(skipped.path))
+          .map((relPath) => resolve(skipped.path, relPath))
+          .filter((absPath) => absPath !== skipped.configPath)
+      })
+    )
+  }
+
   /**
    * Enables the file watcher for the project.
    * Make sure to stop it using `.close()` when cleaning up or when watching is no longer needed.
@@ -402,27 +428,9 @@ export class Garden {
     bufferInterval?: number
   }) {
     const modules = graph.getModules()
-    const linkedPaths = (await getLinkedSources(this)).map((s) => s.path)
+    const paths = await this.getWatchablePaths(modules)
+    const skipPaths = await this.getSkipPaths(skipModules)
 
-    // Here we already have Garden project config parsed, so its path can't be undefined
-    const projectConfigPath = (await findProjectConfigPath(this.projectRoot))!
-    const [flatModules, nestedModules] = partition(modules, (module) => module.path === this.projectRoot)
-    const nestedModulesPaths = nestedModules.map((module) => module.path)
-    const projectRootLevelPath = flatModules.length === 0 ? projectConfigPath : this.projectRoot
-
-    // TODO: add unit tests
-    const paths = [projectRootLevelPath, ...nestedModulesPaths, ...linkedPaths]
-
-    // For skipped modules (e.g. those with services in dev or local mode), we skip watching all files and folders
-    // in the module root except for the module's config path. This way, we can still react to changes in the module's
-    // configuration.
-    const skipPaths = flatten(
-      await Bluebird.map(skipModules || [], async (skipped: GardenModule) => {
-        return (await readdir(skipped.path))
-          .map((relPath) => resolve(skipped.path, relPath))
-          .filter((absPath) => absPath !== skipped.configPath)
-      })
-    )
     this.watcher = new Watcher({
       garden: this,
       log: this.log,
