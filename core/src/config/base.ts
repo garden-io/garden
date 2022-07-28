@@ -253,14 +253,23 @@ export function prepareBuildDependencies(buildDependencies: any[]): BuildDepende
     .filter(isTruthy)
 }
 
-export async function findProjectConfig(path: string, allowInvalid = false): Promise<ProjectResource | undefined> {
+type ProjectConfigDetails = {
+  resource: ProjectResource
+  path: string
+}
+
+async function findProjectConfigurationDetails(
+  path: string,
+  allowInvalid: boolean
+): Promise<ProjectConfigDetails | undefined> {
   let sepCount = path.split(sep).length - 1
 
   for (let i = 0; i < sepCount; i++) {
     const configFiles = (await listDirectory(path, { recursive: false })).filter(isConfigFilename)
 
     for (const configFile of configFiles) {
-      const resources = await loadConfigResources(path, join(path, configFile), allowInvalid)
+      const configPath = join(path, configFile)
+      const resources = await loadConfigResources(path, configPath, allowInvalid)
 
       const projectSpecs = resources.filter((s) => s.kind === "Project")
 
@@ -269,7 +278,7 @@ export async function findProjectConfig(path: string, allowInvalid = false): Pro
           projectSpecs,
         })
       } else if (projectSpecs.length > 0) {
-        return <ProjectResource>projectSpecs[0]
+        return { resource: <ProjectResource>projectSpecs[0], path: configPath }
       }
     }
 
@@ -277,6 +286,14 @@ export async function findProjectConfig(path: string, allowInvalid = false): Pro
   }
 
   return
+}
+
+export async function findProjectConfig(path: string, allowInvalid = false): Promise<ProjectResource | undefined> {
+  return (await findProjectConfigurationDetails(path, allowInvalid))?.resource
+}
+
+export async function findProjectConfigPath(path: string, allowInvalid = false): Promise<string | undefined> {
+  return (await findProjectConfigurationDetails(path, allowInvalid))?.path
 }
 
 export async function loadVarfile({
