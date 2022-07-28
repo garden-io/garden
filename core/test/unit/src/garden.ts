@@ -47,7 +47,7 @@ import { keyBy, set, mapValues, omit } from "lodash"
 import stripAnsi from "strip-ansi"
 import { joi } from "../../../src/config/common"
 import { defaultDotIgnoreFile, makeTempDir } from "../../../src/util/fs"
-import { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } from "fs-extra"
+import { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy, readdir } from "fs-extra"
 import { dedent, deline, randomString } from "../../../src/util/string"
 import { ServiceState } from "../../../src/types/service"
 import execa from "execa"
@@ -4774,6 +4774,24 @@ describe("Garden", () => {
         const watchablePaths = await garden.getWatchablePaths(modules)
         expect(watchablePaths).to.eql([garden.projectRoot])
       })
+    })
+  })
+
+  describe("getSkipPaths", async () => {
+    it("should return skipped paths", async () => {
+      const garden = await makeTestGarden(resolve(dataDir, "test-project-watch"))
+      await garden.scanAndAddConfigs()
+
+      const modules = await garden.resolveModules({ log: garden.log })
+      const moduleA = modules.find((m) => m.name === "module-a")!
+
+      const skipPaths = await garden.getSkipPaths([moduleA])
+
+      const configPathA = moduleA.configPath!
+      const pathsInModuleA = (await readdir(moduleA.path)).map((relPath) => resolve(moduleA.path, relPath))
+
+      const pathsInModuleANoConfig = pathsInModuleA.filter((p) => p !== configPathA)
+      expect(skipPaths).to.eql(pathsInModuleANoConfig)
     })
   })
 })
