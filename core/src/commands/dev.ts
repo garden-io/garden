@@ -20,7 +20,7 @@ import { GardenModule } from "../types/module"
 import { getTestTasks } from "../tasks/test"
 import { ConfigGraph } from "../config-graph"
 import {
-  getDevModeModules,
+  getModulesByServiceNames,
   getHotReloadServiceNames,
   getMatchingServiceNames,
   validateHotReloadServiceNames,
@@ -201,7 +201,10 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       modules,
       watch: true,
       initialTasks,
-      skipWatchModules: getDevModeModules(devModeServiceNames, graph),
+      skipWatchModules: [
+        ...getModulesByServiceNames(devModeServiceNames, graph),
+        ...getModulesByServiceNames(localModeServiceNames, graph),
+      ],
       changeHandler: async (updatedGraph: ConfigGraph, module: GardenModule) => {
         return getDevCommandWatchTasks({
           garden,
