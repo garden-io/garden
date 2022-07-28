@@ -389,7 +389,7 @@ export class Garden {
   }
 
   // TODO: add unit tests
-  async getWatchablePaths(modules: GardenModule[]) {
+  async getWatchablePaths(modules: GardenModule[]): Promise<string[]> {
     const linkedPaths = (await getLinkedSources(this)).map((s) => s.path)
 
     // Here we already have Garden project config parsed, so its path can't be undefined
@@ -401,7 +401,7 @@ export class Garden {
     return [projectRootLevelPath, ...nestedModulesPaths, ...linkedPaths]
   }
 
-  async getSkipPaths(skipModules?: GardenModule[]) {
+  async getSkipPaths(skipModules?: GardenModule[]): Promise<string[]> {
     // For skipped modules (e.g. those with services in dev or local mode), we skip watching all files and folders
     // in the module root except for the module's config path. This way, we can still react to changes in the module's
     // configuration.
