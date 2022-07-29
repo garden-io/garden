@@ -19,7 +19,6 @@ import Stream from "ts-stream"
 import { LogEntry } from "../../logger/log-entry"
 import Bluebird from "bluebird"
 import { KubernetesProvider } from "./config"
-import { PluginToolSpec } from "../../types/plugin/tools"
 import { PluginContext } from "../../plugin-context"
 import { getPodLogs } from "./status/pod"
 import { splitFirst } from "../../util/util"
@@ -516,32 +515,4 @@ export const makeServiceLogEntry: (serviceName: string) => PodLogEntryConverter<
       container: containerName || "",
     },
   })
-}
-
-// DEPRECATED: Remove stern in v0.13
-export const sternSpec: PluginToolSpec = {
-  name: "stern",
-  description: "Utility CLI for streaming logs from Kubernetes.",
-  type: "binary",
-  _includeInGardenImage: true,
-  builds: [
-    {
-      platform: "darwin",
-      architecture: "amd64",
-      url: "https://github.com/wercker/stern/releases/download/1.11.0/stern_darwin_amd64",
-      sha256: "7aea3b6691d47b3fb844dfc402905790665747c1e6c02c5cabdd41994533d7e9",
-    },
-    {
-      platform: "linux",
-      architecture: "amd64",
-      url: "https://github.com/wercker/stern/releases/download/1.11.0/stern_linux_amd64",
-      sha256: "e0b39dc26f3a0c7596b2408e4fb8da533352b76aaffdc18c7ad28c833c9eb7db",
-    },
-    {
-      platform: "windows",
-      architecture: "amd64",
-      url: "https://github.com/wercker/stern/releases/download/1.11.0/stern_windows_amd64.exe",
-      sha256: "75708b9acf6ef0eeffbe1f189402adc0405f1402e6b764f1f5152ca288e3109e",
-    },
-  ],
 }
