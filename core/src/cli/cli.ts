@@ -68,7 +68,7 @@ import { emoji as nodeEmoji } from "node-emoji"
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   const environments: EnvironmentConfig[] = gardenOpts.environmentName
     ? [{ name: parseEnvironment(gardenOpts.environmentName).environment, defaultNamespace, variables: {} }]
-    : [{ defaultNamespace: "default", name: "dummy-env", variables: {} }]
+    : [{ defaultNamespace: "default", name: "default", variables: {} }]
 
   const config: ProjectConfig = {
     path: root,
