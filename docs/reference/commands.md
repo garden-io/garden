@@ -2871,7 +2871,6 @@ Examples:
     garden publish                # publish artifacts for all modules in the project
     garden publish my-container   # only publish my-container
     garden publish --force-build  # force re-build of modules before publishing artifacts
-    garden publish --allow-dirty  # allow publishing dirty builds (which by default triggers error)
 
     # Publish my-container with a tag of v0.1
     garden publish my-container --tag "v0.1"
@@ -2894,7 +2893,6 @@ Examples:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--force-build` |  | boolean | Force rebuild of module(s) before publishing.
-  | `--allow-dirty` |  | boolean | Allow publishing dirty builds (with untracked/uncommitted changes).
   | `--tag` |  | string | Override the tag on the built artifacts. You can use the same sorts of template strings as when templating values in module configs, with the addition of ${module.*} tags, allowing you to reference the name and Garden version of the module being tagged.
 
 #### Outputs

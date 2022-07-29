@@ -41,9 +41,6 @@ export const publishOpts = {
   "force-build": new BooleanParameter({
     help: "Force rebuild of module(s) before publishing.",
   }),
-  "allow-dirty": new BooleanParameter({
-    help: "Allow publishing dirty builds (with untracked/uncommitted changes).",
-  }),
   "tag": new StringOption({
     help:
       "Override the tag on the built artifacts. You can use the same sorts of template " +
@@ -77,7 +74,6 @@ export class PublishCommand extends Command<Args, Opts> {
         garden publish                # publish artifacts for all modules in the project
         garden publish my-container   # only publish my-container
         garden publish --force-build  # force re-build of modules before publishing artifacts
-        garden publish --allow-dirty  # allow publishing dirty builds (which by default triggers error)
 
         # Publish my-container with a tag of v0.1
         garden publish my-container --tag "v0.1"
@@ -116,7 +112,6 @@ export class PublishCommand extends Command<Args, Opts> {
       log,
       modules,
       forceBuild: !!opts["force-build"],
-      allowDirty: !!opts["allow-dirty"],
       tagTemplate: opts.tag,
     })
 
@@ -138,7 +133,6 @@ export async function publishModules({
   log,
   modules,
   forceBuild,
-  allowDirty,
   tagTemplate,
 }: {
   garden: Garden
@@ -146,14 +140,8 @@ export async function publishModules({
   log: LogEntry
   modules: GardenModule<any>[]
   forceBuild: boolean
-  allowDirty: boolean
   tagTemplate?: string
 }): Promise<GraphResults> {
-  // TODO: remove in 0.13
-  if (!!allowDirty) {
-    log.warn(`The --allow-dirty flag has been deprecated. It no longer has an effect.`)
-  }
-
   const tasks = modules.map((module) => {
     return new PublishTask({ garden, graph, log, module, forceBuild, tagTemplate })
   })
