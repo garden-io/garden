@@ -70,12 +70,6 @@ const logsOpts = {
       unless \`--tail\` is set. Note that we don't recommend using a large value here when in follow mode.
     `,
   }),
-  // DEPRECATED: Remove in --original-color flag in v0.13 because we now always apply the original style to logs.
-  "original-color": new BooleanParameter({
-    help: "Show the original color output of the logs instead of color coding them.",
-    hidden: true,
-    defaultValue: false,
-  }),
   "hide-service": new BooleanParameter({
     help: "Hide the service name and render the logs directly.",
     defaultValue: false,
