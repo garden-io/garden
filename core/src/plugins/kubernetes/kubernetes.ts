@@ -37,7 +37,6 @@ import { DOCS_BASE_URL } from "../../constants"
 import { defaultIngressClass } from "./constants"
 import { pvcModuleDefinition } from "./volumes/persistentvolumeclaim"
 import { helm3Spec } from "./helm/helm-cli"
-import { sternSpec } from "./logs"
 import { isString } from "lodash"
 import { mutagenCliSpec } from "./mutagen"
 import { configMapModuleDefinition } from "./volumes/configmap"
@@ -206,6 +205,5 @@ export const gardenPlugin = () =>
         handlers: jibContainerHandlers,
       },
     ],
-    // DEPRECATED: Remove stern in v0.13
-    tools: [kubectlSpec, kustomizeSpec, helm3Spec, mutagenCliSpec, sternSpec],
+    tools: [kubectlSpec, kustomizeSpec, helm3Spec, mutagenCliSpec],
   })
