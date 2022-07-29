@@ -42,7 +42,7 @@ import {
 } from "../../../src/config/module"
 import { DEFAULT_API_VERSION } from "../../../src/constants"
 import { providerConfigBaseSchema } from "../../../src/config/provider"
-import { keyBy, set, mapValues } from "lodash"
+import { keyBy, set, mapValues, omit } from "lodash"
 import stripAnsi from "strip-ansi"
 import { joi } from "../../../src/config/common"
 import { defaultDotIgnoreFiles, makeTempDir } from "../../../src/util/fs"
@@ -242,6 +242,26 @@ describe("Garden", () => {
         async () => await TestGarden.factory(pathFoo, { config }),
         (err) =>
           expect(err.message).to.match(/Error validating project environments: value must contain at least 1 items/)
+      )
+    })
+
+    it("should throw if project.environments is not set", async () => {
+      let config: ProjectConfig = {
+        apiVersion: DEFAULT_API_VERSION,
+        kind: "Project",
+        name: "test",
+        path: pathFoo,
+        defaultEnvironment: "default",
+        dotIgnoreFiles: [],
+        environments: [], // this is omited later to simulate a config where envs are not set
+        providers: [{ name: "foo" }],
+        variables: {},
+      }
+
+      config = (omit(config, "environments") as any) as ProjectConfig
+      await expectError(
+        async () => await TestGarden.factory(pathFoo, { config }),
+        (err) => expect(err.message).to.include("Error validating project environments: value is required")
       )
     })
 
