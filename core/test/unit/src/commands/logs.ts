@@ -260,17 +260,6 @@ describe("LogsCommand", () => {
 
       expect(out[0]).to.eql(msgColor("Yes, this is log"))
     })
-    it("should optionally show the container name", async () => {
-      const garden = await makeGarden(tmpDir, makeTestPlugin())
-      const command = new LogsCommand()
-      await command.action(makeCommandParams({ garden, opts: { "show-container": true } }))
-
-      const out = getLogOutput(garden, logMsg)
-
-      expect(out[0]).to.eql(
-        `${color.bold("test-service-a")} → ${color.bold("my-container")} → ${msgColor("Yes, this is log")}`
-      )
-    })
     it("should optionally show timestamps", async () => {
       const garden = await makeGarden(tmpDir, makeTestPlugin())
       const command = new LogsCommand()
@@ -399,15 +388,17 @@ describe("LogsCommand", () => {
         const colD = chalk[colors[3]]
         const dc = msgColor
         const command = new LogsCommand()
-        await command.action(makeCommandParams({ garden, opts: { "show-container": true } }))
+        await command.action(makeCommandParams({ garden, opts: { "show-tags": true } }))
 
         const out = getLogOutput(garden, logMsg, (entry) => entry.level === LogLevel.info)
 
-        expect(out[0]).to.eql(`${colA.bold("a-short")} → ${colA.bold("short")} → ${dc(logMsg)}`)
-        expect(out[1]).to.eql(`${colB.bold("b-not-short")} → ${colB.bold("not-short")} → ${dc(logMsg)}`)
-        expect(out[2]).to.eql(`${colA.bold("a-short    ")} → ${colA.bold("short    ")} → ${dc(logMsg)}`)
-        expect(out[3]).to.eql(`${colD.bold("d-very-very-long")} → ${colD.bold("very-very-long")} → ${dc(logMsg)}`)
-        expect(out[4]).to.eql(`${colA.bold("a-short         ")} → ${colA.bold("short         ")} → ${dc(logMsg)}`)
+        expect(out[0]).to.eql(`${colA.bold("a-short")} → ${chalk.gray("[container=short] ")}${dc(logMsg)}`)
+        expect(out[1]).to.eql(`${colB.bold("b-not-short")} → ${chalk.gray("[container=not-short] ")}${dc(logMsg)}`)
+        expect(out[2]).to.eql(`${colA.bold("a-short    ")} → ${chalk.gray("[container=short] ")}${dc(logMsg)}`)
+        expect(out[3]).to.eql(
+          `${colD.bold("d-very-very-long")} → ${chalk.gray("[container=very-very-long] ")}${dc(logMsg)}`
+        )
+        expect(out[4]).to.eql(`${colA.bold("a-short         ")} → ${chalk.gray("[container=short] ")}${dc(logMsg)}`)
       })
     })
     it("should assign the same color to each service, regardless of which service logs are streamed", async () => {
