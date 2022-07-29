@@ -1,4 +1,6 @@
 ---
 kind: Project
 name: foo
+environments:
+  - name: local
 ---

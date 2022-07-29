@@ -1,5 +1,7 @@
 kind: Project
 name: custom-commands
+environments:
+  - name: local
 providers:
   - name: exec
 variables:

@@ -1,2 +1,4 @@
 kind: Project
 name: build-test-project
+environments:
+  - name: local

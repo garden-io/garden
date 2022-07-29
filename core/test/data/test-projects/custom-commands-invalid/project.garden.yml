@@ -1,5 +1,7 @@
 kind: Project
 name: custom-commands-invalid
+environments:
+  - name: local
 providers:
   - name: exec
 

@@ -222,7 +222,26 @@ describe("Garden", () => {
       const projectRoot = join(dataDir, "test-project-malformed-environments")
       await expectError(
         async () => makeTestGarden(projectRoot),
-        (err) => expect(err.message).to.match(/Error validating environments: value must be an array/)
+        (err) => expect(err.message).to.match(/Error validating project environments: value must be an array/)
+      )
+    })
+
+    it("should throw if project.environments is an empty array", async () => {
+      const config: ProjectConfig = {
+        apiVersion: DEFAULT_API_VERSION,
+        kind: "Project",
+        name: "test",
+        path: pathFoo,
+        defaultEnvironment: "default",
+        dotIgnoreFiles: [],
+        environments: [], // <--
+        providers: [{ name: "foo" }],
+        variables: {},
+      }
+      await expectError(
+        async () => await TestGarden.factory(pathFoo, { config }),
+        (err) =>
+          expect(err.message).to.match(/Error validating project environments: value must contain at least 1 items/)
       )
     })
 
@@ -297,6 +316,8 @@ describe("Garden", () => {
           dedent`
           kind: Project
           name: foo
+          environments:
+            - name: local
         `
         )
         await expectError(
