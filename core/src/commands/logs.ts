@@ -52,11 +52,6 @@ const logsOpts = {
     `,
     alias: "t",
   }),
-  // DEPRECATED, remove in 0.13 in favor of --show-tags
-  "show-container": new BooleanParameter({
-    help: "Show the name of the container with log output. May not apply to all providers",
-    defaultValue: false,
-  }),
   "show-tags": new BooleanParameter({
     help: "Show any tags attached to each log line. May not apply to all providers",
     defaultValue: false,
@@ -136,7 +131,6 @@ export class LogsCommand extends Command<Args, Opts> {
     const { follow, timestamps, tag } = opts
     let tail = opts.tail as number | undefined
     let since = opts.since as string | undefined
-    const showContainer = opts["show-container"]
     const showTags = opts["show-tags"]
     const hideService = opts["hide-service"]
     const logLevel = parseLogLevel(opts["log-level"])
@@ -174,7 +168,6 @@ export class LogsCommand extends Command<Args, Opts> {
 
     // If the container name should be displayed, we align the output wrt to the longest container name
     let maxServiceName = 1
-    let maxContainerName = 1
 
     const result: ServiceLogEntry[] = []
     const stream = new Stream<ServiceLogEntry>()
@@ -227,7 +220,6 @@ export class LogsCommand extends Command<Args, Opts> {
       const entryLevel = entry.level || LogLevel.info
 
       let timestamp: string | undefined
-      let container: string | undefined
       let tags: string | undefined
 
       if (timestamps && entry.timestamp) {
@@ -235,11 +227,6 @@ export class LogsCommand extends Command<Args, Opts> {
         try {
           timestamp = entry.timestamp.toISOString()
         } catch {}
-      }
-
-      // DEPRECATED, remove in 0.13 in favor of --show-tags
-      if (showContainer && entry.tags?.container) {
-        container = entry.tags.container
       }
 
       if (showTags && entry.tags) {
@@ -250,15 +237,11 @@ export class LogsCommand extends Command<Args, Opts> {
 
       if (entryLevel <= logLevel) {
         maxServiceName = Math.max(maxServiceName, entry.serviceName.length)
-        maxContainerName = container ? Math.max(maxContainerName, container.length) : maxContainerName
       }
 
       let out = ""
       if (!hideService) {
         out += `${sectionStyle(padSection(entry.serviceName, maxServiceName))} → `
-      }
-      if (container) {
-        out += `${sectionStyle(padSection(container, maxContainerName))} → `
       }
       if (timestamp) {
         out += `${chalk.gray(timestamp)} → `
