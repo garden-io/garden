@@ -197,21 +197,6 @@ export interface ProjectResource extends ProjectConfig {
   kind: "Project"
 }
 
-export const defaultEnvironments: EnvironmentConfig[] = [
-  {
-    name: "local",
-    defaultNamespace,
-    providers: [
-      {
-        name: "local-kubernetes",
-        environments: [],
-      },
-    ],
-    varfile: defaultEnvVarfilePath("local"),
-    variables: {},
-  },
-]
-
 export const projectNameSchema = () =>
   joiIdentifier().required().description("The name of the project.").example("my-sweet-project")
 
@@ -267,7 +252,7 @@ const projectOutputSchema = () =>
       .example("${modules.my-module.outputs.some-output}"),
   })
 
-export const projectDocsSchema = () =>
+export const projectSchema = () =>
   joi
     .object()
     .keys({
@@ -288,6 +273,8 @@ export const projectDocsSchema = () =>
       // because joi.alternatives() isn't handled well in the doc generation.
       environments: joi
         .array()
+        .min(1)
+        .required()
         .items(environmentSchema())
         .description((<any>environmentsSchema().describe().flags).description),
       providers: joiSparseArray(providerConfigBaseSchema()).description(
@@ -360,14 +347,8 @@ export const projectDocsSchema = () =>
       "Configuration for a Garden project. This should be specified in the garden.yml file in your project root."
     )
 
-export const projectSchema = () =>
-  projectDocsSchema().keys({
-    environments: environmentsSchema(),
-  })
-
 export function getDefaultEnvironmentName(defaultEnvironment: string, config: ProjectConfig): string {
-  // TODO: get rid of the default environment config
-  const environments = (config.environments || []).length === 0 ? cloneDeep(defaultEnvironments) : config.environments
+  const environments = config.environments
 
   // the default environment is the first specified environment in the config, unless specified
   if (!defaultEnvironment) {
@@ -442,7 +423,8 @@ export function resolveProjectConfig({
       ...globalConfig,
       name,
       defaultEnvironment,
-      environments: [],
+      // environments are validated later
+      environments: [{ defaultNamespace: null, name: "fake-env-only-here-for-inital-load", variables: {} }],
       sources: [],
     },
     schema: projectSchema(),
@@ -469,17 +451,12 @@ export function resolveProjectConfig({
 
   config = {
     ...config,
-    environments: config.environments || [],
+    environments: config.environments,
     providers,
     sources,
   }
 
   config.defaultEnvironment = getDefaultEnvironmentName(defaultEnvironment, config)
-
-  // // TODO: get rid of the default environment config
-  if (config.environments.length === 0) {
-    config.environments = cloneDeep(defaultEnvironments)
-  }
 
   return config
 }

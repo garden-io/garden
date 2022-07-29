@@ -38,11 +38,11 @@ import {
 } from "./helpers"
 import { Parameters, globalOptions, OUTPUT_RENDERERS, GlobalOptions, ParameterValues } from "./params"
 import {
-  defaultEnvironments,
   ProjectConfig,
   defaultNamespace,
   parseEnvironment,
   ProjectResource,
+  EnvironmentConfig,
 } from "../config/project"
 import { ERROR_LOG_FILENAME, DEFAULT_API_VERSION, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME } from "../constants"
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
@@ -66,9 +66,9 @@ import { renderDivider } from "../logger/util"
 import { emoji as nodeEmoji } from "node-emoji"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
-  const environments = gardenOpts.environmentName
+  const environments: EnvironmentConfig[] = gardenOpts.environmentName
     ? [{ name: parseEnvironment(gardenOpts.environmentName).environment, defaultNamespace, variables: {} }]
-    : defaultEnvironments
+    : [{ defaultNamespace: "default", name: "dummy-env", variables: {} }]
 
   const config: ProjectConfig = {
     path: root,
