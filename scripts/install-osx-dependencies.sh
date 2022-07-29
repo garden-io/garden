@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # install/update homebrew dependencies
-BREW_DEPS="jq cmake git kubectl kubernetes-helm rsync icu4c pkg-config faas-cli dep git-chglog parallel"
+BREW_DEPS="jq cmake git kubectl kubernetes-helm rsync icu4c pkg-config dep git-chglog parallel"
 
 brew update
 brew tap git-chglog/git-chglog
