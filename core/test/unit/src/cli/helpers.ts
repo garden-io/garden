@@ -453,7 +453,7 @@ describe("processCliArgs", () => {
 
   it("parses args and opts for a PublishCommand", async () => {
     const cmd = new PublishCommand()
-    const { args, opts } = parseAndProcess(["module-a,module-b", "--allow-dirty"], cmd)
+    const { args, opts } = parseAndProcess(["module-a,module-b", "--force-build"], cmd)
     await cmd.action({
       ...defaultActionParams,
       args,

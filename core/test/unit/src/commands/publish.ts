@@ -78,7 +78,6 @@ describe("PublishCommand", () => {
         modules: undefined,
       },
       opts: withDefaultGlobalOpts({
-        "allow-dirty": false,
         "force-build": false,
         "tag": undefined,
       }),
@@ -150,7 +149,6 @@ describe("PublishCommand", () => {
         modules: undefined,
       },
       opts: withDefaultGlobalOpts({
-        "allow-dirty": false,
         "force-build": false,
         "tag": tag,
       }),
@@ -178,7 +176,6 @@ describe("PublishCommand", () => {
         modules: undefined,
       },
       opts: withDefaultGlobalOpts({
-        "allow-dirty": false,
         "force-build": false,
         "tag": tag,
       }),
@@ -205,7 +202,6 @@ describe("PublishCommand", () => {
         modules: undefined,
       },
       opts: withDefaultGlobalOpts({
-        "allow-dirty": false,
         "force-build": true,
         "tag": undefined,
       }),
@@ -235,7 +231,6 @@ describe("PublishCommand", () => {
         modules: ["module-a"],
       },
       opts: withDefaultGlobalOpts({
-        "allow-dirty": false,
         "force-build": false,
         "tag": undefined,
       }),
@@ -261,7 +256,6 @@ describe("PublishCommand", () => {
         modules: ["module-c"],
       },
       opts: withDefaultGlobalOpts({
-        "allow-dirty": false,
         "force-build": false,
         "tag": undefined,
       }),
@@ -285,7 +279,6 @@ describe("PublishCommand", () => {
         modules: ["module-a"],
       },
       opts: withDefaultGlobalOpts({
-        "allow-dirty": false,
         "force-build": false,
         "tag": undefined,
       }),
