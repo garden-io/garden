@@ -374,8 +374,15 @@ export function renderArguments(params: Parameters) {
 
 export function renderOptions(params: Parameters) {
   return renderParameters(params, (name, param) => {
-    const alias = param.alias ? `-${param.alias}, ` : ""
-    return chalk.green(` ${alias}--${name} `)
+    const renderAlias = (alias: string | undefined): string => {
+      if (!alias) {
+        return ""
+      }
+      const prefix = alias.length === 1 ? "-" : "--"
+      return `${prefix}${alias}, `
+    }
+    const renderedAlias = renderAlias(param.alias)
+    return chalk.green(` ${renderedAlias}--${name} `)
   })
 }
 
