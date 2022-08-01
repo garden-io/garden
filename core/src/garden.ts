@@ -49,7 +49,7 @@ import { TaskGraph, GraphResults, ProcessTasksOpts } from "./task-graph"
 import { getLogger } from "./logger/logger"
 import { PluginActionHandlers, GardenPlugin } from "./types/plugin/plugin"
 import { loadConfigResources, findProjectConfig, prepareModuleResource, GardenResource } from "./config/base"
-import { DeepPrimitiveMap, StringMap, PrimitiveMap, treeVersionSchema, joiSparseArray, joi } from "./config/common"
+import { DeepPrimitiveMap, StringMap, PrimitiveMap, treeVersionSchema, joi } from "./config/common"
 import { BaseTask } from "./tasks/base"
 import { LocalConfigStore, ConfigStore, GlobalConfigStore, LinkedSource } from "./config-store"
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
@@ -1244,8 +1244,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   // This prevents cryptic type errors when the user mistakely writes down e.g. a map instead of an array.
   validateWithPath({
     config: config.environments,
-    schema: joiSparseArray(joi.object()),
-    configType: "environments",
+    schema: joi.array().items(joi.object()).min(1).required(),
+    configType: "project environments",
     path: config.path,
     projectRoot: config.path,
   })

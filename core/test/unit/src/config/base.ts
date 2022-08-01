@@ -390,6 +390,7 @@ describe("loadConfigResources", () => {
         apiVersion: DEFAULT_API_VERSION,
         kind: "Project",
         name: "foo",
+        environments: [{ name: "local" }],
         path,
         configPath,
       },

@@ -1,2 +1,4 @@
 kind: Project
 name: exec-task-outputs
+environments:
+  - name: local

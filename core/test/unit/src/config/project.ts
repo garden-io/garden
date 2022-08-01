@@ -12,7 +12,6 @@ import tmp from "tmp-promise"
 import {
   ProjectConfig,
   resolveProjectConfig,
-  defaultEnvironments,
   pickEnvironment,
   defaultVarfilePath,
   defaultEnvVarfilePath,
@@ -40,15 +39,20 @@ const vcsInfo = {
 
 describe("resolveProjectConfig", () => {
   it("should pass through a canonical project config", async () => {
-    const defaultEnvironment = "default"
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Project",
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment,
+      defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
+      environments: [
+        {
+          name: "default",
+          defaultNamespace,
+          variables: {},
+        },
+      ],
       outputs: [],
       providers: [{ name: "some-provider", dependencies: [] }],
       variables: {},
@@ -56,7 +60,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
-        defaultEnvironment,
+        defaultEnvironment: "default",
         config,
         artifactsPath: "/tmp",
         vcsInfo,
@@ -76,41 +80,6 @@ describe("resolveProjectConfig", () => {
         },
       ],
       sources: [],
-      varfile: defaultVarfilePath,
-    })
-  })
-
-  it("should inject a default environment if none is specified", async () => {
-    const defaultEnvironment = "local"
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "my-project",
-      path: "/tmp/foo",
-      defaultEnvironment,
-      dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [],
-      outputs: [],
-      providers: [{ name: "some-provider", dependencies: [] }],
-      variables: {},
-    }
-
-    expect(
-      resolveProjectConfig({
-        defaultEnvironment,
-        config,
-        artifactsPath: "/tmp",
-        vcsInfo,
-        username: "some-user",
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: {},
-        commandInfo,
-      })
-    ).to.eql({
-      ...config,
-      sources: [],
-      environments: defaultEnvironments,
       varfile: defaultVarfilePath,
     })
   })
@@ -387,7 +356,7 @@ describe("resolveProjectConfig", () => {
       path: "/tmp/foo",
       defaultEnvironment,
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [],
+      environments: [{ defaultNamespace: null, name: "first-env", variables: {} }],
       outputs: [],
       providers: [{ name: "some-provider", dependencies: [] }],
       variables: {},
@@ -407,8 +376,8 @@ describe("resolveProjectConfig", () => {
       })
     ).to.eql({
       ...config,
-      defaultEnvironment: "local",
-      environments: defaultEnvironments,
+      defaultEnvironment: "first-env",
+      environments: [{ defaultNamespace: null, name: "first-env", variables: {} }],
       sources: [],
       varfile: defaultVarfilePath,
     })
@@ -423,7 +392,7 @@ describe("resolveProjectConfig", () => {
       path: "/tmp/foo",
       defaultEnvironment,
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [],
+      environments: [{ defaultNamespace: null, name: "default", variables: {} }],
       outputs: [],
       providers: [{ name: "some-provider", dependencies: [] }],
       variables: {},
@@ -443,8 +412,8 @@ describe("resolveProjectConfig", () => {
       })
     ).to.eql({
       ...config,
-      defaultEnvironment: "local",
-      environments: defaultEnvironments,
+      defaultEnvironment: "default",
+      environments: [{ defaultNamespace: null, name: "default", variables: {} }],
       sources: [],
       varfile: defaultVarfilePath,
     })

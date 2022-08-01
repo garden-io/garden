@@ -10,7 +10,7 @@ import Joi from "@hapi/joi"
 import { readFileSync } from "fs"
 import linewrap from "linewrap"
 import { resolve } from "path"
-import { projectDocsSchema } from "../config/project"
+import { projectSchema } from "../config/project"
 import { get, isFunction, isString } from "lodash"
 import handlebars = require("handlebars")
 import { joi, JoiDescription } from "../config/common"
@@ -429,7 +429,7 @@ export function renderTemplateStringReference({
 
 export function renderProjectConfigReference(opts: RenderConfigOpts = {}) {
   return renderConfigReference(
-    projectDocsSchema().keys({
+    projectSchema().keys({
       // Hide this from docs until we actually use it
       apiVersion: joi.string().meta({ internal: true }),
     }),

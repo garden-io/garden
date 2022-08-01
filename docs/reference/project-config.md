@@ -226,7 +226,7 @@ A list of environments to configure for the project.
 
 | Type            | Required |
 | --------------- | -------- |
-| `array[object]` | No       |
+| `array[object]` | Yes      |
 
 ### `environments[].name`
 

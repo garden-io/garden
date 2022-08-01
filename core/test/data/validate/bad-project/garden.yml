@@ -1,2 +1,4 @@
 kind: Project
+environments:
+  - name: local
 # missing required name
