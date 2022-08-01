@@ -1,6 +1,7 @@
 kind: Module
 name: module-a
 type: test
+disabled: true
 include: ["*"]
 services:
   - name: service-a

@@ -1,0 +1,7 @@
+kind: Project
+name: test-project-a
+environments:
+  - name: local
+providers:
+  - name: test-plugin
+    environments: [local]

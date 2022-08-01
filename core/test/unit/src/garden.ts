@@ -4766,13 +4766,23 @@ describe("Garden", () => {
     })
 
     context("with flat module", async () => {
-      it("should return root project directory", async () => {
+      it("should return root project directory when at least one module is enabled", async () => {
         const garden = await makeTestGarden(resolve(dataDir, "test-project-watch-flat"))
         await garden.scanAndAddConfigs()
 
         const modules = await garden.resolveModules({ log: garden.log })
         const watchablePaths = await garden.getWatchablePaths(modules)
         expect(watchablePaths).to.eql([garden.projectRoot])
+      })
+
+      it("should return root project config when all flat modules are disabled", async () => {
+        const garden = await makeTestGarden(resolve(dataDir, "test-project-watch-flat-disabled"))
+        await garden.scanAndAddConfigs()
+
+        const modules = await garden.resolveModules({ log: garden.log })
+        const watchablePaths = await garden.getWatchablePaths(modules)
+        const projectConfigPath = await findProjectConfigPath(garden.projectRoot)
+        expect(watchablePaths).to.eql([projectConfigPath])
       })
     })
   })
