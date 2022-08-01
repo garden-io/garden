@@ -7,6 +7,8 @@
  */
 
 import { LogEntry } from "./logger/log-entry"
+import { getLogger, Logger } from "./logger/logger"
+import chalk from "chalk"
 
 export async function emitWarning(params: { key: string; log: LogEntry; message: string }) {
   // Note: lazy-loading for startup performance
@@ -18,4 +20,29 @@ export async function hideWarning(key: string) {
   // Note: lazy-loading for startup performance
   const { Warning } = require("./db/entities/warning")
   await Warning.hide(key)
+}
+
+interface LoggerContext {
+  readonly history: Set<string>
+  logger: Logger | undefined
+}
+
+const loggerContext: LoggerContext = {
+  history: new Set<string>(),
+  logger: undefined,
+}
+
+export function emitNonRepeatableWarning(message: string) {
+  if (loggerContext.history.has(message)) {
+    return
+  }
+
+  if (!loggerContext.logger) {
+    loggerContext.logger = getLogger()
+  }
+  loggerContext.logger.warn({
+    symbol: "warning",
+    msg: chalk.yellow(message),
+  })
+  loggerContext.history.add(message)
 }
