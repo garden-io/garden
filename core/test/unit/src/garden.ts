@@ -234,7 +234,7 @@ describe("Garden", () => {
         name: "test",
         path: pathFoo,
         defaultEnvironment: "default",
-        dotIgnoreFiles: [],
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [], // <--
         providers: [{ name: "foo" }],
         variables: {},
@@ -253,7 +253,7 @@ describe("Garden", () => {
         name: "test",
         path: pathFoo,
         defaultEnvironment: "default",
-        dotIgnoreFiles: [],
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [], // this is omited later to simulate a config where envs are not set
         providers: [{ name: "foo" }],
         variables: {},
