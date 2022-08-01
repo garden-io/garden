@@ -394,7 +394,8 @@ export class Garden {
 
     // Here we already have Garden project config parsed, so its path can't be undefined
     const projectConfigPath = (await findProjectConfigPath(this.projectRoot))!
-    const [flatModules, nestedModules] = partition(modules, (module) => module.path === this.projectRoot)
+    const enabledModules = modules.filter((m) => !m.disabled)
+    const [flatModules, nestedModules] = partition(enabledModules, (module) => module.path === this.projectRoot)
     const nestedModulesPaths = nestedModules.map((module) => module.path)
     const projectRootLevelPath = flatModules.length === 0 ? projectConfigPath : this.projectRoot
 
