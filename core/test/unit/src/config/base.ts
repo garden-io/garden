@@ -12,6 +12,7 @@ import {
   findProjectConfig,
   prepareModuleResource,
   prepareProjectResource,
+  findProjectConfigPath,
 } from "../../../../src/config/base"
 import { resolve, join } from "path"
 import { dataDir, expectError, getDataDir } from "../../../helpers"
@@ -518,6 +519,41 @@ describe("findProjectConfig", async () => {
   it("should throw an error if multiple projects are found", async () => {
     await expectError(
       async () => await findProjectConfig(projectPathDuplicateProjects),
+      (err) => {
+        expect(err.message).to.match(/Multiple project declarations found/)
+      }
+    )
+  })
+})
+
+describe("findProjectConfigPath", async () => {
+  const customConfigPath = getDataDir("test-projects", "custom-config-names")
+
+  it("should find the project config path when path is projectRoot", async () => {
+    const projectConfigPath = await findProjectConfigPath(projectPathA)
+    expect(projectConfigPath).to.eq(`${projectPathA}/garden.yml`)
+  })
+
+  it("should find the project config path when path is a subdir of projectRoot", async () => {
+    // modulePathA is a subdir of projectPathA
+    const projectConfigPath = await findProjectConfigPath(modulePathA)
+    expect(projectConfigPath).to.eq(`${projectPathA}/garden.yml`)
+  })
+
+  it("should find the project config path when path is projectRoot and config is in a custom-named file", async () => {
+    const projectConfigPath = await findProjectConfigPath(customConfigPath)
+    expect(projectConfigPath).to.eq(`${customConfigPath}/project.garden.yml`)
+  })
+
+  it("should find the project root config path from a subdir of projectRoot and config is in a custom-named file", async () => {
+    const modulePath = join(customConfigPath, "module-a")
+    const projectConfigPath = await findProjectConfigPath(modulePath)
+    expect(projectConfigPath).to.eq(`${customConfigPath}/project.garden.yml`)
+  })
+
+  it("should throw an error if multiple projects are found", async () => {
+    await expectError(
+      async () => await findProjectConfigPath(projectPathDuplicateProjects),
       (err) => {
         expect(err.message).to.match(/Multiple project declarations found/)
       }

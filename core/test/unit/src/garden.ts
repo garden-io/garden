@@ -4770,6 +4770,8 @@ describe("Garden", () => {
         const garden = await makeTestGarden(resolve(dataDir, "test-project-watch-flat"))
         await garden.scanAndAddConfigs()
 
+        await garden.scanAndAddConfigs()
+
         const modules = await garden.resolveModules({ log: garden.log })
         const watchablePaths = await garden.getWatchablePaths(modules)
         expect(watchablePaths).to.eql([garden.projectRoot])
