@@ -31,7 +31,7 @@ import {
 import { getNames, findByName, omitUndefined, exec } from "../../../src/util/util"
 import { LinkedSource } from "../../../src/config-store"
 import { getModuleVersionString, ModuleVersion, TreeVersion } from "../../../src/vcs/vcs"
-import { getModuleCacheContext } from "../../../src/types/module"
+import { GardenModule, getModuleCacheContext } from "../../../src/types/module"
 import { createGardenPlugin, PluginDependency } from "../../../src/types/plugin/plugin"
 import { ConfigureProviderParams } from "../../../src/types/plugin/provider/configureProvider"
 import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
@@ -4752,157 +4752,88 @@ describe("Garden", () => {
   })
 
   describe("getWatchablePaths", async () => {
-    context("with nested modules", async () => {
-      it("should return root project config and module directories", async () => {
-        const garden = await makeTestGarden(resolve(dataDir, "test-project-watch"))
-        await garden.scanAndAddConfigs()
+    let garden: TestGarden
+    let modules: GardenModule[]
 
-        const modules = await garden.resolveModules({ log: garden.log })
+    context("with nested modules", async () => {
+      before(async () => {
+        garden = await makeTestGarden(resolve(dataDir, "test-project-watch"))
+        modules = await garden.resolveModules({ log: garden.log })
+      })
+
+      after(async () => {
+        !!garden && (await garden.close())
+      })
+
+      it("should return root project config and module directories", async () => {
         const watchablePaths = await garden.getWatchablePaths(modules)
         const modulePaths = modules.map((m) => m.path)
         const projectConfigPath = await findProjectConfigPath(garden.projectRoot)
+        expect(projectConfigPath).to.be.not.undefined
         expect(watchablePaths).to.eql([projectConfigPath!, ...modulePaths])
       })
     })
 
     context("with flat module", async () => {
+      before(async () => {
+        garden = await makeTestGarden(resolve(dataDir, "test-project-watch-flat"))
+        modules = await garden.resolveModules({ log: garden.log })
+      })
+
+      after(async () => {
+        !!garden && (await garden.close())
+      })
+
       it("should return root project directory when at least one module is enabled", async () => {
-        const test = createGardenPlugin({
-          name: "test",
-          createModuleTypes: [
-            {
-              name: "test",
-              docs: "test",
-              schema: joi.object().keys({ bla: joi.object() }),
-              handlers: {},
-            },
-          ],
-        })
+        const moduleNames = modules.map((m) => m.name)
+        expect(moduleNames.length).to.equal(2)
 
-        const garden = await TestGarden.factory(pathFoo, {
-          plugins: [test],
-          config: {
-            apiVersion: DEFAULT_API_VERSION,
-            kind: "Project",
-            name: "test",
-            path: pathFoo,
-            defaultEnvironment: "default",
-            dotIgnoreFile: defaultDotIgnoreFile,
-            environments: [{ name: "default", defaultNamespace, variables: {} }],
-            providers: [{ name: "test" }],
-            variables: {},
-          },
-        })
+        const moduleA = modules.find((m) => m.name === "module-a")!
+        const moduleB = modules.find((m) => m.name === "module-b")!
+        expect(moduleA).to.be.not.undefined
+        expect(moduleB).to.be.not.undefined
 
-        garden.setModuleConfigs([
-          {
-            apiVersion: DEFAULT_API_VERSION,
-            name: "module-a",
-            type: "test",
-            allowPublish: false,
-            build: { dependencies: [] },
-            include: ["*"],
-            disabled: false,
-            path: pathFoo,
-            serviceConfigs: [],
-            taskConfigs: [],
-            testConfigs: [],
-            spec: {},
-          },
-          {
-            apiVersion: DEFAULT_API_VERSION,
-            name: "module-b",
-            type: "test",
-            allowPublish: false,
-            build: { dependencies: [] },
-            include: ["*"],
-            disabled: true,
-            path: pathFoo,
-            serviceConfigs: [],
-            taskConfigs: [],
-            testConfigs: [],
-            spec: {},
-          },
-        ])
+        moduleA.disabled = false
+        moduleB.disabled = true
 
-        const modules = await garden.resolveModules({ log: garden.log })
         const watchablePaths = await garden.getWatchablePaths(modules)
         expect(watchablePaths).to.eql([garden.projectRoot])
       })
 
       it("should return root project config when all flat modules are disabled", async () => {
-        const test = createGardenPlugin({
-          name: "test",
-          createModuleTypes: [
-            {
-              name: "test",
-              docs: "test",
-              schema: joi.object().keys({ bla: joi.object() }),
-              handlers: {},
-            },
-          ],
-        })
+        const moduleNames = modules.map((m) => m.name)
+        expect(moduleNames.length).to.equal(2)
 
-        const garden = await TestGarden.factory(pathFoo, {
-          plugins: [test],
-          config: {
-            apiVersion: DEFAULT_API_VERSION,
-            kind: "Project",
-            name: "test",
-            path: pathFoo,
-            defaultEnvironment: "default",
-            dotIgnoreFile: defaultDotIgnoreFile,
-            environments: [{ name: "default", defaultNamespace, variables: {} }],
-            providers: [{ name: "test" }],
-            variables: {},
-          },
-        })
+        const moduleA = modules.find((m) => m.name === "module-a")!
+        const moduleB = modules.find((m) => m.name === "module-b")!
+        expect(moduleA).to.be.not.undefined
+        expect(moduleB).to.be.not.undefined
 
-        garden.setModuleConfigs([
-          {
-            apiVersion: DEFAULT_API_VERSION,
-            name: "module-a",
-            type: "test",
-            allowPublish: false,
-            build: { dependencies: [] },
-            include: ["*"],
-            disabled: true,
-            path: pathFoo,
-            serviceConfigs: [],
-            taskConfigs: [],
-            testConfigs: [],
-            spec: {},
-          },
-          {
-            apiVersion: DEFAULT_API_VERSION,
-            name: "module-b",
-            type: "test",
-            allowPublish: false,
-            build: { dependencies: [] },
-            include: ["*"],
-            disabled: true,
-            path: pathFoo,
-            serviceConfigs: [],
-            taskConfigs: [],
-            testConfigs: [],
-            spec: {},
-          },
-        ])
+        moduleA.disabled = true
+        moduleB.disabled = true
 
-        const modules = await garden.resolveModules({ log: garden.log })
         const watchablePaths = await garden.getWatchablePaths(modules)
         const projectConfigPath = await findProjectConfigPath(garden.projectRoot)
-        expect(watchablePaths).to.eql([projectConfigPath])
+        expect(projectConfigPath).to.be.not.undefined
+        expect(watchablePaths).to.eql([projectConfigPath!])
       })
     })
   })
 
   describe("getSkipPaths", async () => {
-    it("should return skipped paths", async () => {
-      const garden = await makeTestGarden(resolve(dataDir, "test-project-watch"))
-      await garden.scanAndAddConfigs()
+    let garden: TestGarden
+    let modules: GardenModule[]
 
-      const modules = await garden.resolveModules({ log: garden.log })
+    before(async () => {
+      garden = await makeTestGarden(resolve(dataDir, "test-project-watch"))
+      modules = await garden.resolveModules({ log: garden.log })
+    })
+
+    after(async () => {
+      !!garden && (await garden.close())
+    })
+
+    it("should return skipped paths", async () => {
       const moduleA = modules.find((m) => m.name === "module-a")!
 
       const skipPaths = await garden.getSkipPaths([moduleA])
