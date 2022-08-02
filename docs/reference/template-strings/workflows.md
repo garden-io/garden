@@ -47,6 +47,20 @@ The environment variable value.
 | -------- |
 | `string` |
 
+### `${local.arch}`
+
+A string indicating the architecture that the framework is running on (see https://nodejs.org/api/process.html#process_process_arch)
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.arch}
+```
+
 ### `${local.platform}`
 
 A string indicating the platform that the framework is running on (see https://nodejs.org/api/process.html#process_process_platform)
