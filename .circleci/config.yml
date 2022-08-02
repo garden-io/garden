@@ -375,7 +375,7 @@ jobs:
       - run:
           name: Build image and push to registry
           command: |
-            TAG=gardendev/garden-aws:${CIRCLE_SHA1}
+            TAG=gardendev/garden:${CIRCLE_SHA1}-aws
             docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/aws.Dockerfile dist/alpine-amd64
             docker push ${TAG}
   build-docker-azure:
@@ -388,7 +388,7 @@ jobs:
       - run:
           name: Build image and push to registry
           command: |
-            TAG=gardendev/garden-azure:${CIRCLE_SHA1}
+            TAG=gardendev/garden:${CIRCLE_SHA1}-azure
             docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/azure.Dockerfile dist/alpine-amd64
             docker push ${TAG}
   build-docker-gcloud:
@@ -401,7 +401,7 @@ jobs:
       - run:
           name: Build image and push to registry
           command: |
-            TAG=gardendev/garden-gcloud:${CIRCLE_SHA1}
+            TAG=gardendev/garden:${CIRCLE_SHA1}-gcloud
             docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/gcloud.Dockerfile dist/alpine-amd64
             docker push ${TAG}
   build-docker-aws-gcloud:
@@ -414,7 +414,7 @@ jobs:
       - run:
           name: Build image and push to registry
           command: |
-            TAG=gardendev/garden-aws-gcloud:${CIRCLE_SHA1}
+            TAG=gardendev/garden:${CIRCLE_SHA1}-aws-gcloud
             docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/aws-gcloud.Dockerfile dist/alpine-amd64
             docker push ${TAG}
   build-docker-aws-gcloud-azure:
@@ -427,7 +427,7 @@ jobs:
       - run:
           name: Build image and push to registry
           command: |
-            TAG=gardendev/garden-aws-gcloud-azure:${CIRCLE_SHA1}
+            TAG=gardendev/garden:${CIRCLE_SHA1}-aws-gcloud-azure
             docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/aws-gcloud-azure.Dockerfile dist/alpine-amd64
             docker push ${TAG}
   build-docker-full:
@@ -440,7 +440,7 @@ jobs:
       - run:
           name: Build image and push to registry
           command: |
-            TAG=gardendev/garden-full:${CIRCLE_SHA1}
+            TAG=gardendev/garden:${CIRCLE_SHA1}-full
             docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/full.Dockerfile dist/alpine-amd64
             docker push ${TAG}
   build-docker-buster:
@@ -459,7 +459,7 @@ jobs:
 
   test-docker-gcloud:
     docker:
-      - image: gardendev/garden-gcloud:${CIRCLE_SHA1}
+      - image: gardendev/garden:${CIRCLE_SHA1}-gcloud
         environment:
           <<: *shared-env-config
           GARDEN_TASK_CONCURRENCY_LIMIT: "10"

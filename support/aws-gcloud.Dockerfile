@@ -1,5 +1,5 @@
 ARG TAG=latest
-FROM gardendev/garden-gcloud:${TAG}
+FROM gardendev/garden:${TAG}-gcloud
 
 RUN pip install awscli==1.22.77 --upgrade
 
