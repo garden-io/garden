@@ -4767,10 +4767,63 @@ describe("Garden", () => {
 
     context("with flat module", async () => {
       it("should return root project directory when at least one module is enabled", async () => {
-        const garden = await makeTestGarden(resolve(dataDir, "test-project-watch-flat"))
-        await garden.scanAndAddConfigs()
+        const test = createGardenPlugin({
+          name: "test",
+          createModuleTypes: [
+            {
+              name: "test",
+              docs: "test",
+              schema: joi.object().keys({ bla: joi.object() }),
+              handlers: {},
+            },
+          ],
+        })
 
-        await garden.scanAndAddConfigs()
+        const garden = await TestGarden.factory(pathFoo, {
+          plugins: [test],
+          config: {
+            apiVersion: DEFAULT_API_VERSION,
+            kind: "Project",
+            name: "test",
+            path: pathFoo,
+            defaultEnvironment: "default",
+            dotIgnoreFile: defaultDotIgnoreFile,
+            environments: [{ name: "default", defaultNamespace, variables: {} }],
+            providers: [{ name: "test" }],
+            variables: {},
+          },
+        })
+
+        garden.setModuleConfigs([
+          {
+            apiVersion: DEFAULT_API_VERSION,
+            name: "module-a",
+            type: "test",
+            allowPublish: false,
+            build: { dependencies: [] },
+            include: ["*"],
+            disabled: false,
+            path: pathFoo,
+            serviceConfigs: [],
+            taskConfigs: [],
+            testConfigs: [],
+            spec: {},
+          },
+          {
+            apiVersion: DEFAULT_API_VERSION,
+            name: "module-b",
+            type: "test",
+            allowPublish: false,
+            build: { dependencies: [] },
+            include: ["*"],
+            disabled: true,
+            path: pathFoo,
+            serviceConfigs: [],
+            taskConfigs: [],
+            testConfigs: [],
+            spec: {},
+          },
+        ])
 
         const modules = await garden.resolveModules({ log: garden.log })
         const watchablePaths = await garden.getWatchablePaths(modules)
@@ -4778,8 +4831,63 @@ describe("Garden", () => {
       })
 
       it("should return root project config when all flat modules are disabled", async () => {
-        const garden = await makeTestGarden(resolve(dataDir, "test-project-watch-flat-disabled"))
-        await garden.scanAndAddConfigs()
+        const test = createGardenPlugin({
+          name: "test",
+          createModuleTypes: [
+            {
+              name: "test",
+              docs: "test",
+              schema: joi.object().keys({ bla: joi.object() }),
+              handlers: {},
+            },
+          ],
+        })
+
+        const garden = await TestGarden.factory(pathFoo, {
+          plugins: [test],
+          config: {
+            apiVersion: DEFAULT_API_VERSION,
+            kind: "Project",
+            name: "test",
+            path: pathFoo,
+            defaultEnvironment: "default",
+            dotIgnoreFile: defaultDotIgnoreFile,
+            environments: [{ name: "default", defaultNamespace, variables: {} }],
+            providers: [{ name: "test" }],
+            variables: {},
+          },
+        })
+
+        garden.setModuleConfigs([
+          {
+            apiVersion: DEFAULT_API_VERSION,
+            name: "module-a",
+            type: "test",
+            allowPublish: false,
+            build: { dependencies: [] },
+            include: ["*"],
+            disabled: true,
+            path: pathFoo,
+            serviceConfigs: [],
+            taskConfigs: [],
+            testConfigs: [],
+            spec: {},
+          },
+          {
+            apiVersion: DEFAULT_API_VERSION,
+            name: "module-b",
+            type: "test",
+            allowPublish: false,
+            build: { dependencies: [] },
+            include: ["*"],
+            disabled: true,
+            path: pathFoo,
+            serviceConfigs: [],
+            taskConfigs: [],
+            testConfigs: [],
+            spec: {},
+          },
+        ])
 
         const modules = await garden.resolveModules({ log: garden.log })
         const watchablePaths = await garden.getWatchablePaths(modules)
