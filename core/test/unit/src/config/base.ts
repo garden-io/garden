@@ -492,28 +492,32 @@ describe("prepareModuleResource", () => {
 })
 
 describe("findProjectConfig", async () => {
-  const customConfigPath = getDataDir("test-projects", "custom-config-names")
+  context("standard config filename", async () => {
+    it("should find the project config when path is projectRoot", async () => {
+      const project = await findProjectConfig(projectPathA)
+      expect(project && project.path).to.eq(projectPathA)
+    })
 
-  it("should find the project config when path is projectRoot", async () => {
-    const project = await findProjectConfig(projectPathA)
-    expect(project && project.path).to.eq(projectPathA)
+    it("should find the project root from a subdir of projectRoot", async () => {
+      // modulePathA is a subdir of projectPathA
+      const project = await findProjectConfig(modulePathA)
+      expect(project && project.path).to.eq(projectPathA)
+    })
   })
 
-  it("should find the project config when path is a subdir of projectRoot", async () => {
-    // modulePathA is a subdir of projectPathA
-    const project = await findProjectConfig(modulePathA)
-    expect(project && project.path).to.eq(projectPathA)
-  })
+  context("custom config filename", async () => {
+    const customConfigPath = getDataDir("test-projects", "custom-config-names")
 
-  it("should find the project config when path is projectRoot and config is in a custom-named file", async () => {
-    const project = await findProjectConfig(customConfigPath)
-    expect(project && project.path).to.eq(customConfigPath)
-  })
+    it("should find the project config when path is projectRoot", async () => {
+      const project = await findProjectConfig(customConfigPath)
+      expect(project && project.path).to.eq(customConfigPath)
+    })
 
-  it("should find the project root from a subdir of projectRoot and config is in a custom-named file", async () => {
-    const modulePath = join(customConfigPath, "module-a")
-    const project = await findProjectConfig(modulePath)
-    expect(project && project.path).to.eq(customConfigPath)
+    it("should find the project root from a subdir of projectRoot", async () => {
+      const modulePath = join(customConfigPath, "module-a")
+      const project = await findProjectConfig(modulePath)
+      expect(project && project.path).to.eq(customConfigPath)
+    })
   })
 
   it("should throw an error if multiple projects are found", async () => {
@@ -527,28 +531,32 @@ describe("findProjectConfig", async () => {
 })
 
 describe("findProjectConfigPath", async () => {
-  const customConfigPath = getDataDir("test-projects", "custom-config-names")
+  context("standard config filename", async () => {
+    it("should find the project config path when path is projectRoot", async () => {
+      const projectConfigPath = await findProjectConfigPath(projectPathA)
+      expect(projectConfigPath).to.eq(`${projectPathA}/garden.yml`)
+    })
 
-  it("should find the project config path when path is projectRoot", async () => {
-    const projectConfigPath = await findProjectConfigPath(projectPathA)
-    expect(projectConfigPath).to.eq(`${projectPathA}/garden.yml`)
+    it("should find the project root config path from a subdir of projectRoot", async () => {
+      // modulePathA is a subdir of projectPathA
+      const projectConfigPath = await findProjectConfigPath(modulePathA)
+      expect(projectConfigPath).to.eq(`${projectPathA}/garden.yml`)
+    })
   })
 
-  it("should find the project config path when path is a subdir of projectRoot", async () => {
-    // modulePathA is a subdir of projectPathA
-    const projectConfigPath = await findProjectConfigPath(modulePathA)
-    expect(projectConfigPath).to.eq(`${projectPathA}/garden.yml`)
-  })
+  context("custom config filename", async () => {
+    const customConfigPath = getDataDir("test-projects", "custom-config-names")
 
-  it("should find the project config path when path is projectRoot and config is in a custom-named file", async () => {
-    const projectConfigPath = await findProjectConfigPath(customConfigPath)
-    expect(projectConfigPath).to.eq(`${customConfigPath}/project.garden.yml`)
-  })
+    it("should find the project config path when path is projectRoot", async () => {
+      const projectConfigPath = await findProjectConfigPath(customConfigPath)
+      expect(projectConfigPath).to.eq(`${customConfigPath}/project.garden.yml`)
+    })
 
-  it("should find the project root config path from a subdir of projectRoot and config is in a custom-named file", async () => {
-    const modulePath = join(customConfigPath, "module-a")
-    const projectConfigPath = await findProjectConfigPath(modulePath)
-    expect(projectConfigPath).to.eq(`${customConfigPath}/project.garden.yml`)
+    it("should find the project root config path from a subdir of projectRoot", async () => {
+      const modulePath = join(customConfigPath, "module-a")
+      const projectConfigPath = await findProjectConfigPath(modulePath)
+      expect(projectConfigPath).to.eq(`${customConfigPath}/project.garden.yml`)
+    })
   })
 
   it("should throw an error if multiple projects are found", async () => {
