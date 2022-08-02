@@ -9,12 +9,12 @@ version=${args[0]:-$(git rev-parse --short HEAD)}
 common_args="--platform linux/amd64"
 
 base_tag=gardendev/garden:${version}
-aws_tag=gardendev/garden-aws:${version}
-azure_tag=gardendev/garden-azure:${version}
-gcloud_tag=gardendev/garden-gcloud:${version}
-aws_gcloud_tag=gardendev/garden-aws-gcloud:${version}
-aws_gcloud_azure_tag=gardendev/garden-aws-gcloud-azure:${version}
-full_tag=gardendev/garden-full:${version}
+aws_tag=gardendev/garden:${version}-aws
+azure_tag=gardendev/garden:${version}-azure
+gcloud_tag=gardendev/garden:${version}-gcloud
+aws_gcloud_tag=gardendev/garden:${version}-aws-gcloud
+aws_gcloud_azure_tag=gardendev/garden:${version}-aws-gcloud-azure
+full_tag=gardendev/garden:${version}-full
 buster_tag=gardendev/garden:${version}-buster
 
 echo "Building version ${version}"
