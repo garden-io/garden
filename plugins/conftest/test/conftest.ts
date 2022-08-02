@@ -18,6 +18,7 @@ import { makeTestGarden } from "@garden-io/sdk/testing"
 
 import { TestTask } from "@garden-io/core/build/src/tasks/test"
 import { testFromConfig } from "@garden-io/core/build/src/types/test"
+import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
 
 describe("conftest provider", () => {
   const projectRoot = join(__dirname, "test-project")
@@ -28,7 +29,7 @@ describe("conftest provider", () => {
     name: "test",
     path: projectRoot,
     defaultEnvironment: "default",
-    dotIgnoreFiles: [],
+    dotIgnoreFile: defaultDotIgnoreFile,
     environments: [{ name: "default", defaultNamespace, variables: {} }],
     providers: [{ name: "conftest", policyPath: "policy.rego" }],
     variables: {},

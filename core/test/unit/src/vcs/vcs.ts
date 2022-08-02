@@ -30,7 +30,7 @@ import td from "testdouble"
 import tmp from "tmp-promise"
 import { realpath, readFile, writeFile } from "fs-extra"
 import { DEFAULT_API_VERSION, GARDEN_VERSIONFILE_NAME } from "../../../../src/constants"
-import { defaultDotIgnoreFiles, fixedProjectExcludes } from "../../../../src/util/fs"
+import { defaultDotIgnoreFile, fixedProjectExcludes } from "../../../../src/util/fs"
 import { LogEntry } from "../../../../src/logger/log-entry"
 
 export class TestVcsHandler extends VcsHandler {
@@ -83,7 +83,7 @@ describe("VcsHandler", () => {
     handlerA = new TestVcsHandler(
       gardenA.projectRoot,
       join(gardenA.projectRoot, ".garden"),
-      defaultDotIgnoreFiles,
+      defaultDotIgnoreFile,
       gardenA.cache
     )
   })
@@ -133,7 +133,7 @@ describe("VcsHandler", () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
       const moduleConfig = await garden.resolveModule("module-a")
-      const handler = new GitHandler(garden.projectRoot, garden.gardenDirPath, garden.dotIgnoreFiles, garden.cache)
+      const handler = new GitHandler(garden.projectRoot, garden.gardenDirPath, garden.dotIgnoreFile, garden.cache)
 
       const version = await handler.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
 
@@ -147,7 +147,7 @@ describe("VcsHandler", () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
       const moduleConfig = await garden.resolveModule("module-b")
-      const handler = new GitHandler(garden.projectRoot, garden.gardenDirPath, garden.dotIgnoreFiles, garden.cache)
+      const handler = new GitHandler(garden.projectRoot, garden.gardenDirPath, garden.dotIgnoreFile, garden.cache)
 
       const version = await handler.getTreeVersion(garden.log, garden.projectName, moduleConfig)
 
@@ -158,7 +158,7 @@ describe("VcsHandler", () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
       const moduleConfig = await garden.resolveModule("module-c")
-      const handler = new GitHandler(garden.projectRoot, garden.gardenDirPath, garden.dotIgnoreFiles, garden.cache)
+      const handler = new GitHandler(garden.projectRoot, garden.gardenDirPath, garden.dotIgnoreFile, garden.cache)
 
       const version = await handler.getTreeVersion(garden.log, garden.projectName, moduleConfig)
 

@@ -26,6 +26,7 @@ import {
   testGitUrlHash,
   resetLocalConfig,
   testGitUrl,
+  assertAsyncError,
 } from "../../helpers"
 import { getNames, findByName, omitUndefined, exec } from "../../../src/util/util"
 import { LinkedSource } from "../../../src/config-store"
@@ -45,7 +46,7 @@ import { providerConfigBaseSchema } from "../../../src/config/provider"
 import { keyBy, set, mapValues, omit } from "lodash"
 import stripAnsi from "strip-ansi"
 import { joi } from "../../../src/config/common"
-import { defaultDotIgnoreFiles, makeTempDir } from "../../../src/util/fs"
+import { defaultDotIgnoreFile, makeTempDir } from "../../../src/util/fs"
 import { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } from "fs-extra"
 import { dedent, deline, randomString } from "../../../src/util/string"
 import { ServiceState } from "../../../src/types/service"
@@ -71,7 +72,7 @@ describe("Garden", () => {
       name: "test",
       path: pathFoo,
       defaultEnvironment: "default",
-      dotIgnoreFiles: [],
+      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "foo" }],
       variables: {},
@@ -233,7 +234,7 @@ describe("Garden", () => {
         name: "test",
         path: pathFoo,
         defaultEnvironment: "default",
-        dotIgnoreFiles: [],
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [], // <--
         providers: [{ name: "foo" }],
         variables: {},
@@ -252,7 +253,7 @@ describe("Garden", () => {
         name: "test",
         path: pathFoo,
         defaultEnvironment: "default",
-        dotIgnoreFiles: [],
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [], // this is omited later to simulate a config where envs are not set
         providers: [{ name: "foo" }],
         variables: {},
@@ -363,7 +364,7 @@ describe("Garden", () => {
         name: "test",
         path: pathFoo,
         defaultEnvironment: "default",
-        dotIgnoreFiles: [],
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: {},
@@ -382,7 +383,7 @@ describe("Garden", () => {
         name: "test",
         path: pathFoo,
         defaultEnvironment: "default",
-        dotIgnoreFiles: [],
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace: null, variables: {} }],
         providers: [{ name: "foo" }],
         variables: {},
@@ -404,7 +405,7 @@ describe("Garden", () => {
         name: "test",
         path: pathFoo,
         defaultEnvironment: "default",
-        dotIgnoreFiles: [],
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "default", bar: "something" },
@@ -1476,7 +1477,7 @@ describe("Garden", () => {
           name: "test",
           path: pathFoo,
           defaultEnvironment: "default",
-          dotIgnoreFiles: [],
+          dotIgnoreFile: defaultDotIgnoreFile,
           environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "test-plugin" }],
           variables: {},
@@ -1527,7 +1528,7 @@ describe("Garden", () => {
         name: "test",
         path: pathFoo,
         defaultEnvironment: "default",
-        dotIgnoreFiles: defaultDotIgnoreFiles,
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test", foo: "bar" }],
         variables: {},
@@ -1574,7 +1575,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
-        dotIgnoreFiles: defaultDotIgnoreFiles,
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test", foo: "${bla.ble}" }],
         variables: {},
@@ -1603,7 +1604,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
-        dotIgnoreFiles: defaultDotIgnoreFiles,
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test", foo: "${providers.foo.config.bla}" }],
         variables: {},
@@ -1651,7 +1652,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
-        dotIgnoreFiles: defaultDotIgnoreFiles,
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test", foo: "bar" }],
         variables: {},
@@ -1680,7 +1681,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
-        dotIgnoreFiles: defaultDotIgnoreFiles,
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-a" }, { name: "test-b" }],
         variables: {},
@@ -1710,7 +1711,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
-        dotIgnoreFiles: defaultDotIgnoreFiles,
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-a" }],
         variables: {},
@@ -1739,7 +1740,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
-        dotIgnoreFiles: defaultDotIgnoreFiles,
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [
           { name: "test-a", foo: "${providers.test-b.outputs.foo}" },
@@ -1775,7 +1776,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
-        dotIgnoreFiles: defaultDotIgnoreFiles,
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [
           { name: "test-a", foo: "${providers.test-b.outputs.foo}" },
@@ -1813,7 +1814,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
-        dotIgnoreFiles: defaultDotIgnoreFiles,
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-a", foo: "${providers.test-b.outputs.foo}" }, { name: "test-b" }],
         variables: {},
@@ -1846,7 +1847,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
-        dotIgnoreFiles: defaultDotIgnoreFiles,
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test" }],
         variables: {},
@@ -1873,7 +1874,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
-        dotIgnoreFiles: defaultDotIgnoreFiles,
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test", foo: 123 }],
         variables: {},
@@ -1911,7 +1912,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
-        dotIgnoreFiles: defaultDotIgnoreFiles,
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test" }],
         variables: {},
@@ -1953,7 +1954,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
-        dotIgnoreFiles: defaultDotIgnoreFiles,
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-a" }, { name: "test-b", foo: "${providers.test-a.outputs.foo}" }],
         variables: {},
@@ -1990,7 +1991,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "dev",
-        dotIgnoreFiles: defaultDotIgnoreFiles,
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [
           { name: "dev", defaultNamespace, variables: {} },
           { name: "prod", defaultNamespace, variables: {} },
@@ -2021,7 +2022,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
-        dotIgnoreFiles: defaultDotIgnoreFiles,
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: { "my-variable": "bar" } }],
         providers: [{ name: "test-a", foo: "${var.my-variable}" }],
         variables: {},
@@ -2064,7 +2065,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
-        dotIgnoreFiles: defaultDotIgnoreFiles,
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-a" }, { name: "test-b" }],
         variables: {},
@@ -2114,7 +2115,7 @@ describe("Garden", () => {
         name: "test",
         path: projectRootA,
         defaultEnvironment: "default",
-        dotIgnoreFiles: defaultDotIgnoreFiles,
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-a" }, { name: "test-b" }, { name: "test-c" }],
         variables: {},
@@ -2150,7 +2151,7 @@ describe("Garden", () => {
           name: "test",
           path: projectRootA,
           defaultEnvironment: "default",
-          dotIgnoreFiles: defaultDotIgnoreFiles,
+          dotIgnoreFile: defaultDotIgnoreFile,
           environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "test", foo: 123 }],
           variables: {},
@@ -2194,7 +2195,7 @@ describe("Garden", () => {
           name: "test",
           path: projectRootA,
           defaultEnvironment: "default",
-          dotIgnoreFiles: defaultDotIgnoreFiles,
+          dotIgnoreFile: defaultDotIgnoreFile,
           environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "test" }],
           variables: {},
@@ -2226,7 +2227,7 @@ describe("Garden", () => {
           name: "test",
           path: pathFoo,
           defaultEnvironment: "default",
-          dotIgnoreFiles: [],
+          dotIgnoreFile: defaultDotIgnoreFile,
           environments: [{ name: "default", defaultNamespace, variables: { remoteTag } }],
           providers: [{ name: "test-plugin" }],
           variables: { sourceName: "${local.env.TEST_ENV_VAR}" },
@@ -2256,7 +2257,7 @@ describe("Garden", () => {
           name: "test",
           path: pathFoo,
           defaultEnvironment: "default",
-          dotIgnoreFiles: [],
+          dotIgnoreFile: defaultDotIgnoreFile,
           environments: [{ name: "default", defaultNamespace, variables: { remoteTag } }],
           providers: [{ name: "test-plugin" }],
           variables: { sourceName: 123 },
@@ -2532,11 +2533,42 @@ describe("Garden", () => {
     })
 
     it("should respect custom dotignore files", async () => {
-      const projectRoot = getDataDir("test-projects", "dotignore")
+      // In this project we have custom dotIgnoreFile: .customignore which overrides the default .gardenignore.
+      // Thus, all exclusions from .gardenignore will be skipped.
+      // TODO: amend the config core/test/data/test-projects/dotignore-custom/garden.yml in 0.14
+      const projectRoot = getDataDir("test-projects", "dotignore-custom")
       const garden = await makeTestGarden(projectRoot)
       const modules = await garden.resolveModules({ log: garden.log })
 
-      expect(getNames(modules).sort()).to.eql(["module-a"])
+      // Root-level .customignore excludes "module-b",
+      // and .customignore from "module-c" retains garden.yml file, so the "module-c" is still active.
+      expect(getNames(modules).sort()).to.eql(["module-a", "module-c"])
+    })
+
+    // TODO: Delete this context AND core/test/data/test-projects/dotignore-custom-legacy directory oin 0.14
+    context("dotignore files migration to 0.13", async () => {
+      it("should remap singleton array `dotIgnoreFiles` to scalar `dotIgnoreFile`", async () => {
+        // In this project we have custom dotIgnoreFile: .customignore which overrides the default .gardenignore.
+        // Thus, all exclusions from .gardenignore will be skipped.
+        const projectRoot = getDataDir("test-projects", "dotignore-custom-legacy", "with-supported-legacy-config")
+        const garden = await makeTestGarden(projectRoot)
+        const modules = await garden.resolveModules({ log: garden.log })
+
+        // Root-level .customignore excludes "module-b",
+        // and .customignore from "module-c" retains garden.yml file, so the "module-c" is still active.
+        expect(getNames(modules).sort()).to.eql(["module-a", "module-c"])
+      })
+
+      it("should throw and error if multi-valued `dotIgnoreFiles` is defined in the config", async () => {
+        // In this project we have custom dotIgnoreFile: .customignore which overrides the default .gardenignore.
+        // Thus, all exclusions from .gardenignore will be skipped.
+        const projectRoot = getDataDir("test-projects", "dotignore-custom-legacy", "with-unsupported-legacy-config")
+        const createGarden = async () => makeTestGarden(projectRoot)
+        await assertAsyncError(
+          createGarden,
+          "Cannot auto-convert array-field `dotIgnoreFiles` to scalar `dotIgnoreFile`: multiple values found in the array [.customignore, .gitignore]"
+        )
+      })
     })
 
     it("should throw a nice error if module paths overlap", async () => {
@@ -2634,7 +2666,7 @@ describe("Garden", () => {
           name: "test",
           path: pathFoo,
           defaultEnvironment: "default",
-          dotIgnoreFiles: [],
+          dotIgnoreFile: defaultDotIgnoreFile,
           environments: [{ name: "default", defaultNamespace, variables: { some: { nested: { key: "my value" } } } }],
           providers: [{ name: "test" }],
           variables: {},
@@ -2683,7 +2715,7 @@ describe("Garden", () => {
           name: "test",
           path: pathFoo,
           defaultEnvironment: "default",
-          dotIgnoreFiles: [],
+          dotIgnoreFile: defaultDotIgnoreFile,
           environments: [{ name: "default", defaultNamespace, variables: { some: { nested: { key: "my value" } } } }],
           providers: [{ name: "test" }],
           variables: {},
@@ -2732,7 +2764,7 @@ describe("Garden", () => {
           name: "test",
           path: pathFoo,
           defaultEnvironment: "default",
-          dotIgnoreFiles: [],
+          dotIgnoreFile: defaultDotIgnoreFile,
           environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "test" }],
           variables: {},
@@ -2781,7 +2813,7 @@ describe("Garden", () => {
           name: "test",
           path: pathFoo,
           defaultEnvironment: "default",
-          dotIgnoreFiles: [],
+          dotIgnoreFile: defaultDotIgnoreFile,
           environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "test" }],
           variables: {},
@@ -2830,7 +2862,7 @@ describe("Garden", () => {
           name: "test",
           path: pathFoo,
           defaultEnvironment: "default",
-          dotIgnoreFiles: [],
+          dotIgnoreFile: defaultDotIgnoreFile,
           environments: [{ name: "default", defaultNamespace, variables: { obj: { b: "B", c: "c" } } }],
           providers: [{ name: "test" }],
           variables: {},
@@ -2892,7 +2924,7 @@ describe("Garden", () => {
           name: "test",
           path: pathFoo,
           defaultEnvironment: "default",
-          dotIgnoreFiles: [],
+          dotIgnoreFile: defaultDotIgnoreFile,
           environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "test" }],
           variables: {},
@@ -2967,7 +2999,7 @@ describe("Garden", () => {
             name: "test",
             path: pathFoo,
             defaultEnvironment: "default",
-            dotIgnoreFiles: [],
+            dotIgnoreFile: defaultDotIgnoreFile,
             environments: [{ name: "default", defaultNamespace, variables: { some: "variable" } }],
             providers: [{ name: "test" }],
             variables: {},
@@ -3305,7 +3337,7 @@ describe("Garden", () => {
           name: "test",
           path: pathFoo,
           defaultEnvironment: "default",
-          dotIgnoreFiles: [],
+          dotIgnoreFile: defaultDotIgnoreFile,
           environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "test-plugin" }],
           variables: {},
@@ -3370,7 +3402,7 @@ describe("Garden", () => {
           name: "test",
           path: pathFoo,
           defaultEnvironment: "default",
-          dotIgnoreFiles: [],
+          dotIgnoreFile: defaultDotIgnoreFile,
           environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "test-plugin" }],
           variables: {},
@@ -3464,7 +3496,7 @@ describe("Garden", () => {
             name: "test",
             path: pathFoo,
             defaultEnvironment: "default",
-            dotIgnoreFiles: [],
+            dotIgnoreFile: defaultDotIgnoreFile,
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "test-plugin" }],
             sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#master" }],
@@ -3521,7 +3553,7 @@ describe("Garden", () => {
             name: "test",
             path: pathFoo,
             defaultEnvironment: "default",
-            dotIgnoreFiles: [],
+            dotIgnoreFile: defaultDotIgnoreFile,
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "test-plugin" }],
             sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#master" }],
@@ -3669,7 +3701,7 @@ describe("Garden", () => {
           name: "test",
           path: pathFoo,
           defaultEnvironment: "default",
-          dotIgnoreFiles: [],
+          dotIgnoreFile: defaultDotIgnoreFile,
           environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [],
           variables: {},
@@ -4477,7 +4509,7 @@ describe("Garden", () => {
         handlerA = new TestVcsHandler(
           gardenA.projectRoot,
           join(gardenA.projectRoot, ".garden"),
-          defaultDotIgnoreFiles,
+          defaultDotIgnoreFile,
           gardenA.cache
         )
       })

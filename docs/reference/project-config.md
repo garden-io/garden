@@ -99,16 +99,17 @@ providers:
 # the format `<namespace>.<environment>`. Defaults to the first configured environment, with no namespace set.
 defaultEnvironment: ''
 
-# Specify a list of filenames that should be used as ".ignore" files across the project, using the same syntax and
-# semantics as `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the
-# project, are ignored when scanning for modules and module sources (Note: prior to version 0.12.0, `.gitignore` files
-# were also used by default).
-# Note that these take precedence over the project `module.include` field, and module `include` fields, so any paths
-# matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
+# Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as
+# `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the project, are
+# ignored when scanning for modules and module sources.
+# Note: prior to Garden 0.13.0, it was possible to specify _multiple_ ".ignore" files using the `dotIgnoreFiles` field
+# in the project configuration.
+# Note that this take precedence over the project `module.include` field, and module `include` fields, so any paths
+# matched by the .ignore file will be ignored even if they are explicitly specified in those fields.
 # See the [Configuration Files
 # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
 # details.
-dotIgnoreFiles:
+dotIgnoreFile: .gardenignore
 
 # Control where to scan for modules in the project.
 modules:
@@ -475,20 +476,39 @@ defaultEnvironment: "dev"
 
 ### `dotIgnoreFiles[]`
 
-Specify a list of filenames that should be used as ".ignore" files across the project, using the same syntax and semantics as `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the project, are ignored when scanning for modules and module sources (Note: prior to version 0.12.0, `.gitignore` files were also used by default).
-Note that these take precedence over the project `module.include` field, and module `include` fields, so any paths matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
-See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
-| Type               | Default             | Required |
-| ------------------ | ------------------- | -------- |
-| `array[posixPath]` | `[".gardenignore"]` | No       |
+Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the project, are ignored when scanning for modules and module sources.
+Note: This field has been deprecated in 0.13 in favor of the `dotIgnoreFile` field, and as of 0.13 only one filename is allowed here. If a single filename is specified, the conversion is done automatically. If multiple filenames are provided, an error will be thrown. Otherwise, an error will be thrown.
+
+| Type               | Default | Required |
+| ------------------ | ------- | -------- |
+| `array[posixPath]` | `[]`    | No       |
 
 Example:
 
 ```yaml
 dotIgnoreFiles:
-  - .gardenignore
   - .gitignore
+```
+
+### `dotIgnoreFile`
+
+Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as `.gitignore` files. By default, patterns matched in `.gardenignore` files, found anywhere in the project, are ignored when scanning for modules and module sources.
+Note: prior to Garden 0.13.0, it was possible to specify _multiple_ ".ignore" files using the `dotIgnoreFiles` field in the project configuration.
+Note that this take precedence over the project `module.include` field, and module `include` fields, so any paths matched by the .ignore file will be ignored even if they are explicitly specified in those fields.
+See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+
+| Type        | Default           | Required |
+| ----------- | ----------------- | -------- |
+| `posixPath` | `".gardenignore"` | No       |
+
+Example:
+
+```yaml
+dotIgnoreFile: ".gitignore"
 ```
 
 ### `modules`

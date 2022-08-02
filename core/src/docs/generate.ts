@@ -13,7 +13,7 @@ import { TEMPLATES_DIR, renderProjectConfigReference, renderConfigReference } fr
 import { writeTemplateStringReferenceDocs } from "./template-strings"
 import { writeTableOfContents } from "./table-of-contents"
 import { Garden } from "../garden"
-import { defaultDotIgnoreFiles } from "../util/fs"
+import { defaultDotIgnoreFile } from "../util/fs"
 import { keyBy } from "lodash"
 import { writeFileSync, readFile, writeFile } from "fs-extra"
 import { renderModuleTypeReference, moduleTypes } from "./module-type"
@@ -66,7 +66,7 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
       kind: "Project",
       name: "generate-docs",
       defaultEnvironment: "default",
-      dotIgnoreFiles: defaultDotIgnoreFiles,
+      dotIgnoreFile: defaultDotIgnoreFile,
       variables: {},
       environments: [
         {

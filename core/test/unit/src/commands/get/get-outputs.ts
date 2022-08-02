@@ -14,6 +14,7 @@ import { ProjectConfig, defaultNamespace } from "../../../../../src/config/proje
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
 import { exec } from "../../../../../src/util/util"
+import { defaultDotIgnoreFile } from "../../../../../src/util/fs"
 
 describe("GetOutputsCommand", () => {
   let tmpDir: tmp.DirectoryResult
@@ -30,7 +31,7 @@ describe("GetOutputsCommand", () => {
       name: "test",
       path: tmpDir.path,
       defaultEnvironment: "default",
-      dotIgnoreFiles: [],
+      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
       variables: {},

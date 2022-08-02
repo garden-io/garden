@@ -373,7 +373,7 @@ export class Watcher extends EventEmitter {
       const parsed = parse(path)
       const filename = parsed.base
 
-      const isIgnoreFile = this.garden.dotIgnoreFiles.includes(filename)
+      const isIgnoreFile = this.garden.dotIgnoreFile === filename
 
       if (isIgnoreFile) {
         // TODO: check to see if the project structure actually changed after the ignore file change

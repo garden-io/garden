@@ -17,6 +17,7 @@ import { DEFAULT_API_VERSION } from "../../../src/constants"
 import { exec } from "../../../src/util/util"
 import { ServiceState } from "../../../src/types/service"
 import { RunTaskResult } from "../../../src/types/plugin/task/runTask"
+import { defaultDotIgnoreFile } from "../../../src/util/fs"
 
 describe("resolveProjectOutputs", () => {
   let tmpDir: tmp.DirectoryResult
@@ -33,7 +34,7 @@ describe("resolveProjectOutputs", () => {
       name: "test",
       path: tmpPath,
       defaultEnvironment: "default",
-      dotIgnoreFiles: [],
+      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
       variables: {},

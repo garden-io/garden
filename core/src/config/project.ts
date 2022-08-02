@@ -32,7 +32,7 @@ import { ConfigurationError, ParameterError, ValidationError } from "../exceptio
 import { cloneDeep, omit } from "lodash"
 import { GenericProviderConfig, providerConfigBaseSchema } from "./provider"
 import { DOCS_BASE_URL } from "../constants"
-import { defaultDotIgnoreFiles } from "../util/fs"
+import { defaultDotIgnoreFile } from "../util/fs"
 import { CommandInfo } from "../plugin-context"
 import { VcsInfo } from "../vcs/vcs"
 import { profileAsync } from "../util/profiling"
@@ -180,7 +180,8 @@ export interface ProjectConfig {
   domain?: string
   configPath?: string
   defaultEnvironment: string
-  dotIgnoreFiles: string[]
+  dotIgnoreFile: string
+  dotIgnoreFiles?: string[]
   environments: EnvironmentConfig[]
   modules?: {
     include?: string[]
@@ -295,17 +296,35 @@ export const projectSchema = () =>
         )
         .example("dev"),
       dotIgnoreFiles: joiSparseArray(joi.posixPath().filenameOnly())
-        .default(defaultDotIgnoreFiles)
+        .default([])
         .description(
           deline`
-        Specify a list of filenames that should be used as ".ignore" files across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for modules and module sources (Note: prior to version 0.12.0, \`.gitignore\` files were also used by default).
+        Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for modules and module sources.
 
-        Note that these take precedence over the project \`module.include\` field, and module \`include\` fields, so any paths matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
+        Note: This field has been deprecated in 0.13 in favor of the \`dotIgnoreFile\` field, and as of 0.13 only one filename is allowed here. If a single filename is specified, the conversion is done automatically. If multiple filenames are provided, an error will be thrown.
+        Otherwise, an error will be thrown.
+      `
+        )
+        .meta({
+          deprecated: "Please use `dotIgnoreFile` instead.",
+        })
+        .example([".gitignore"]),
+      dotIgnoreFile: joi
+        .posixPath()
+        .filenameOnly()
+        .default(defaultDotIgnoreFile)
+        .description(
+          deline`
+        Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for modules and module sources.
+
+        Note: prior to Garden 0.13.0, it was possible to specify _multiple_ ".ignore" files using the \`dotIgnoreFiles\` field in the project configuration.
+
+        Note that this take precedence over the project \`module.include\` field, and module \`include\` fields, so any paths matched by the .ignore file will be ignored even if they are explicitly specified in those fields.
 
         See the [Configuration Files guide](${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
       `
         )
-        .example([".gardenignore", ".gitignore"]),
+        .example(".gitignore"),
       modules: projectModulesSchema().description("Control where to scan for modules in the project."),
       outputs: joiSparseArray(projectOutputSchema())
         .unique("name")

@@ -13,7 +13,7 @@ import { getPackageVersion, exec, safeDumpYaml } from "../../util/util"
 import { platform, release } from "os"
 import { join, relative, basename, dirname } from "path"
 import { LogEntry } from "../../logger/log-entry"
-import { findConfigPathsInPath, defaultDotIgnoreFiles } from "../../util/fs"
+import { findConfigPathsInPath, defaultDotIgnoreFile } from "../../util/fs"
 import { ERROR_LOG_FILENAME } from "../../constants"
 import dedent = require("dedent")
 import { Garden } from "../../garden"
@@ -67,7 +67,7 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
 
   // Find all services paths
   const cache = new TreeCache()
-  const vcs = new GitHandler(root, gardenDirPath, projectConfig.dotIgnoreFiles || defaultDotIgnoreFiles, cache)
+  const vcs = new GitHandler(root, gardenDirPath, projectConfig.dotIgnoreFile || defaultDotIgnoreFile, cache)
   const include = projectConfig.modules && projectConfig.modules.include
   const exclude = projectConfig.modules && projectConfig.modules.exclude
   const paths = await findConfigPathsInPath({ vcs, dir: root, include, exclude, log })

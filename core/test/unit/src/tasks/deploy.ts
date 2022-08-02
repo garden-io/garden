@@ -21,6 +21,7 @@ import { DeployServiceParams } from "../../../../src/types/plugin/service/deploy
 import { RunTaskParams } from "../../../../src/types/plugin/task/runTask"
 import { expect } from "chai"
 import { TestGarden } from "../../../helpers"
+import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 
 describe("DeployTask", () => {
   let tmpDir: tmp.DirectoryResult
@@ -40,7 +41,7 @@ describe("DeployTask", () => {
       name: "test",
       path: tmpDir.path,
       defaultEnvironment: "default",
-      dotIgnoreFiles: [],
+      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
       variables: {},

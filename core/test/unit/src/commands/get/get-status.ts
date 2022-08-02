@@ -21,6 +21,7 @@ import { withDefaultGlobalOpts } from "../../../../helpers"
 import { expect } from "chai"
 import { LogLevel } from "../../../../../src/logger/logger"
 import { getLogMessages } from "../../../../../src/util/testing"
+import { defaultDotIgnoreFile } from "../../../../../src/util/fs"
 
 describe("GetStatusCommand", () => {
   let tmpDir: tmp.DirectoryResult
@@ -37,7 +38,7 @@ describe("GetStatusCommand", () => {
       name: "test",
       path: tmpDir.path,
       defaultEnvironment: "default",
-      dotIgnoreFiles: [],
+      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
       variables: {},

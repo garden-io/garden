@@ -17,11 +17,12 @@ import { ConfigurationError, FilesystemError, ParameterError } from "../exceptio
 import { DEFAULT_API_VERSION } from "../constants"
 import { ProjectResource } from "../config/project"
 import { validateWithPath } from "./validation"
-import { listDirectory } from "../util/fs"
+import { defaultDotIgnoreFile, listDirectory } from "../util/fs"
 import { isConfigFilename } from "../util/fs"
 import { TemplateKind, templateKind } from "./module-template"
 import { isTruthy } from "../util/util"
 import { PrimitiveMap } from "./common"
+import { emitNonRepeatableWarning } from "../warnings"
 
 export interface GardenResource {
   apiVersion: string
@@ -115,7 +116,7 @@ function prepareResource({
   spec.configPath = configPath
 
   if (kind === "Project" || kind === "Command" || kind === "Workflow" || kind === templateKind) {
-    return spec
+    return prepareProjectResource(spec)
   } else if (kind === "Module") {
     return prepareModuleResource(spec, configPath, projectRoot)
   } else if (allowInvalid) {
@@ -131,6 +132,44 @@ function prepareResource({
       path: relPath,
     })
   }
+}
+
+// TODO: remove this function in 0.14
+export function prepareProjectResource(spec: any): ProjectResource {
+  const projectSpec = <ProjectResource>spec
+
+  // If the project config has an explicitly defined `dotIgnoreFile` field,
+  // it means the config has already been updated to 0.13 format.
+  if (!!projectSpec.dotIgnoreFile) {
+    return projectSpec
+  }
+
+  const dotIgnoreFiles = projectSpec.dotIgnoreFiles
+  // If the project config has neither new `dotIgnoreFile` nor old `dotIgnoreFiles` fields
+  // then there is nothing to do.
+  if (!dotIgnoreFiles) {
+    return projectSpec
+  }
+
+  if (dotIgnoreFiles.length === 0) {
+    return { ...projectSpec, dotIgnoreFile: defaultDotIgnoreFile }
+  }
+
+  if (dotIgnoreFiles.length === 1) {
+    emitNonRepeatableWarning(
+      "Multi-valued project configuration field `dotIgnoreFiles` is deprecated in 0.13 and will be removed in 0.14. Please use single-valued `dotIgnoreFile` instead."
+    )
+    return { ...projectSpec, dotIgnoreFile: dotIgnoreFiles[0] }
+  }
+
+  throw new ConfigurationError(
+    `Cannot auto-convert array-field \`dotIgnoreFiles\` to scalar \`dotIgnoreFile\`: multiple values found in the array [${dotIgnoreFiles.join(
+      ", "
+    )}]`,
+    {
+      spec,
+    }
+  )
 }
 
 export function prepareModuleResource(spec: any, configPath: string, projectRoot: string): ModuleResource {

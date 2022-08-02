@@ -19,6 +19,7 @@ import { LogEntry } from "../../../../src/logger/log-entry"
 import { makeDummyGarden } from "../../../../src/cli/cli"
 import { defaultNamespace } from "../../../../src/config/project"
 import { getLogMessages } from "../../../../src/util/testing"
+import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 
 describe("ToolsCommand", () => {
   let tmpDir: TempDirectory
@@ -95,7 +96,7 @@ describe("ToolsCommand", () => {
         name: "test",
         path: tmpDir.path,
         defaultEnvironment: "default",
-        dotIgnoreFiles: [],
+        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-a" }],
         variables: {},

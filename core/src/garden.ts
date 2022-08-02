@@ -163,7 +163,7 @@ export interface GardenParams {
   enterpriseDomain?: string
   cache: TreeCache
   disablePortForwards?: boolean
-  dotIgnoreFiles: string[]
+  dotIgnoreFile: string
   environmentName: string
   environmentConfigs: EnvironmentConfig[]
   namespace: string
@@ -233,7 +233,7 @@ export class Garden {
   public readonly opts: GardenOpts
   private readonly providerConfigs: GenericProviderConfig[]
   public readonly workingCopyId: string
-  public readonly dotIgnoreFiles: string[]
+  public readonly dotIgnoreFile: string
   public readonly moduleIncludePatterns?: string[]
   public readonly moduleExcludePatterns: string[]
   public readonly persistent: boolean
@@ -268,7 +268,7 @@ export class Garden {
     this.cliVariables = params.cliVariables
     this.secrets = params.secrets
     this.workingCopyId = params.workingCopyId
-    this.dotIgnoreFiles = params.dotIgnoreFiles
+    this.dotIgnoreFile = params.dotIgnoreFile
     this.moduleIncludePatterns = params.moduleIncludePatterns
     this.moduleExcludePatterns = params.moduleExcludePatterns || []
     this.persistent = !!params.opts.persistent
@@ -279,7 +279,7 @@ export class Garden {
     this.cache = params.cache
 
     this.asyncLock = new AsyncLock()
-    this.vcs = new GitHandler(params.projectRoot, params.gardenDirPath, params.dotIgnoreFiles, params.cache)
+    this.vcs = new GitHandler(params.projectRoot, params.gardenDirPath, params.dotIgnoreFile, params.cache)
 
     // Use the legacy build sync mode if
     // A) GARDEN_LEGACY_BUILD_STAGE=true is set or
@@ -1236,7 +1236,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   const treeCache = new TreeCache()
 
   // Note: another VcsHandler is created later, this one is temporary
-  const gitHandler = new GitHandler(projectRoot, gardenDirPath, [], treeCache)
+  const gitHandler = new GitHandler(projectRoot, gardenDirPath, defaultConfigFilename, treeCache)
   const vcsInfo = await gitHandler.getPathInfo(log, projectRoot)
 
   // Since we iterate/traverse them before fully validating them (which we do after resolving template strings), we
@@ -1354,7 +1354,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     providerConfigs: providers,
     moduleExcludePatterns,
     workingCopyId,
-    dotIgnoreFiles: config.dotIgnoreFiles,
+    dotIgnoreFile: config.dotIgnoreFile,
     moduleIncludePatterns: (config.modules || {}).include,
     log,
     username: _username,

@@ -7,11 +7,17 @@
  */
 
 import { expect } from "chai"
-import { loadConfigResources, findProjectConfig, prepareModuleResource } from "../../../../src/config/base"
+import {
+  loadConfigResources,
+  findProjectConfig,
+  prepareModuleResource,
+  prepareProjectResource,
+} from "../../../../src/config/base"
 import { resolve, join } from "path"
 import { dataDir, expectError, getDataDir } from "../../../helpers"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import stripAnsi = require("strip-ansi")
+import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 
 const projectPathA = resolve(dataDir, "test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
@@ -20,6 +26,79 @@ const projectPathMultipleModules = resolve(dataDir, "test-projects", "multiple-m
 const modulePathAMultiple = resolve(projectPathMultipleModules, "module-a")
 
 const projectPathDuplicateProjects = resolve(dataDir, "test-project-duplicate-project-config")
+
+// TODO: remove this describe block in 0.14
+describe("prepareProjectResource", () => {
+  const projectResourceTemplate = {
+    apiVersion: DEFAULT_API_VERSION,
+    kind: "Project",
+    name: "test",
+    path: "/tmp/", // the path does not matter in this test suite
+    defaultEnvironment: "default",
+    environments: [{ name: "default", defaultNamespace: null, variables: {} }],
+    providers: [{ name: "foo" }],
+    variables: {},
+  }
+
+  it("no changes if new `dotIgnoreFile` field is provided explicitly", () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      dotIgnoreFile: ".somedotignore",
+    }
+
+    const migratedProjectResource = prepareProjectResource(projectResource)
+    expect(migratedProjectResource).to.eql(projectResource)
+  })
+
+  it("no changes if neither new `dotIgnoreFile` nor `dotIgnoreFiles` fields are defined in the project config", () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+    }
+
+    const migratedProjectResource = prepareProjectResource(projectResource)
+    expect(migratedProjectResource).to.eql(projectResource)
+  })
+
+  it("empty `dotIgnoreFiles` array is automatically remapped to the default `dotIgnoreFile`", () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      dotIgnoreFiles: [],
+    }
+
+    const migratedProjectResource = prepareProjectResource(projectResource)
+    const expectedProjectResource = {
+      ...projectResource,
+      dotIgnoreFile: defaultDotIgnoreFile,
+    }
+    expect(migratedProjectResource).to.eql(expectedProjectResource)
+  })
+
+  it("singe-valued `dotIgnoreFiles` array is automatically remapped to scalar `dotIgnoreFile`", () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      dotIgnoreFiles: [".somedotignore"],
+    }
+
+    const migratedProjectResource = prepareProjectResource(projectResource)
+    const expectedProjectResource = {
+      ...projectResource,
+      dotIgnoreFile: ".somedotignore",
+    }
+    expect(migratedProjectResource).to.eql(expectedProjectResource)
+  })
+
+  it("throw an error is multi-valued `dotIgnoreFiles` array is defined in the project config", () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      dotIgnoreFiles: [".somedotignore", ".gitignore"],
+    }
+
+    const processConfigAction = () => prepareProjectResource(projectResource)
+    expect(processConfigAction).to.throw(
+      "Cannot auto-convert array-field `dotIgnoreFiles` to scalar `dotIgnoreFile`: multiple values found in the array [.somedotignore, .gitignore]"
+    )
+  })
+})
 
 describe("loadConfigResources", () => {
   it("should throw a config error if the file couldn't be parsed", async () => {

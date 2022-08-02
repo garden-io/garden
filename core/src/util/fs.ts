@@ -26,7 +26,7 @@ import type Micromatch from "micromatch"
 export const defaultConfigFilename = "garden.yml"
 export const configFilenamePattern = "*garden.y*ml"
 const metadataFilename = "metadata.json"
-export const defaultDotIgnoreFiles = [".gardenignore"]
+export const defaultDotIgnoreFile = ".gardenignore"
 export const fixedProjectExcludes = [".git", ".gitmodules", ".garden/**/*", "debug-info*/**"]
 
 /*
