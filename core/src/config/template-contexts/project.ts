@@ -51,7 +51,7 @@ class LocalContext extends ConfigContext {
         "A string indicating the platform that the framework is running on " +
           "(see https://nodejs.org/api/process.html#process_process_platform)"
       )
-      .example("posix")
+      .example("linux")
   )
   public platform: string
 
