@@ -10,7 +10,7 @@ import chalk from "chalk"
 import { find } from "lodash"
 import minimatch = require("minimatch")
 
-import { BaseActionTask, BaseActionTaskParams, ActionTaskProcessParams } from "../tasks/base"
+import { BaseActionTaskParams, ActionTaskProcessParams, ExecuteActionTask, ActionTaskStatusParams } from "../tasks/base"
 import { prepareRuntimeContext } from "../runtime-context"
 import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
@@ -32,7 +32,7 @@ export interface TestTaskParams extends BaseActionTaskParams<TestAction> {
 }
 
 @Profile()
-export class TestTask extends BaseActionTask<TestAction, GetTestResult> {
+export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
   type = "test"
 
   skipRuntimeDependencies: boolean
@@ -60,26 +60,36 @@ export class TestTask extends BaseActionTask<TestAction, GetTestResult> {
     return `running ${this.action.longDescription()}`
   }
 
-  async getStatus({}: ActionTaskProcessParams<TestAction>) {
-    const result = await this.getTestResult()
-    const testResult = result?.detail
+  async getStatus({ dependencyResults }: ActionTaskStatusParams<TestAction>) {
+    const action = this.getResolvedAction(dependencyResults)
+    const router = await this.garden.getActionRouter()
+
+    const status = await router.test.getResult({
+      log: this.log,
+      graph: this.graph,
+      action,
+    })
+
+    const testResult = status?.detail
 
     if (testResult && testResult.success) {
       const passedEntry = this.log.info({
-        section: this.action.key(),
+        section: action.key(),
         msg: chalk.green("Already passed"),
       })
       passedEntry.setSuccess({
         msg: chalk.green("Already passed"),
         append: true,
       })
-      return result
+      return { ...status, executedAction: action.execute({ status }) }
     }
 
     return null
   }
 
-  async process({ resolvedAction: action, dependencyResults }: ActionTaskProcessParams<TestAction>) {
+  async process({ dependencyResults }: ActionTaskProcessParams<TestAction, GetTestResult>) {
+    const action = this.getResolvedAction(dependencyResults)
+
     const log = this.log.info({
       section: action.key(),
       msg: `Running...`,
@@ -92,11 +102,11 @@ export class TestTask extends BaseActionTask<TestAction, GetTestResult> {
       graphResults: dependencyResults,
     })
 
-    const actions = await this.garden.getActionRouter()
+    const router = await this.garden.getActionRouter()
 
-    let result: GetTestResult<TestAction>
+    let status: GetTestResult<TestAction>
     try {
-      result = await actions.test.run({
+      status = await router.test.run({
         log,
         action,
         graph: this.graph,
@@ -108,7 +118,7 @@ export class TestTask extends BaseActionTask<TestAction, GetTestResult> {
       log.setError()
       throw err
     }
-    if (result.detail?.success) {
+    if (status.detail?.success) {
       log.setSuccess({
         msg: chalk.green(`Success (took ${log.getDuration(1)} sec)`),
         append: true,
@@ -118,24 +128,10 @@ export class TestTask extends BaseActionTask<TestAction, GetTestResult> {
         msg: chalk.red(`Failed! (took ${log.getDuration(1)} sec)`),
         append: true,
       })
-      throw new TestError(result.detail?.log)
+      throw new TestError(status.detail?.log)
     }
 
-    return result
-  }
-
-  private async getTestResult(): Promise<GetTestResult<TestAction> | null> {
-    if (this.force) {
-      return null
-    }
-
-    const router = await this.garden.getActionRouter()
-
-    return router.test.getResult({
-      log: this.log,
-      graph: this.graph,
-      action: this.action,
-    })
+    return { ...status, executedAction: action.execute({ status }) }
   }
 }
 

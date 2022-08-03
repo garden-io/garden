@@ -11,6 +11,7 @@ import { dedent } from "../../../util/string"
 import { joiArray, joi } from "../../../config/common"
 import { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
+import { Executed } from "../../../actions/base"
 
 interface ExecInDeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   command: string[]
@@ -34,7 +35,7 @@ export const execInDeployResultSchema = () =>
 
 export class ExecInDeploy<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "Deploy",
-  ExecInDeployParams<T>,
+  ExecInDeployParams<Executed<T>>,
   ExecInDeployResult
 > {
   description = dedent`

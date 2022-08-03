@@ -22,6 +22,14 @@ import {
   ActionStatus,
   actionReferenceToString,
   ResolvedActionExtension,
+  ExecutedActionExtension,
+  ExecutedActionWrapperParams,
+  ResolveActionParams,
+  Resolved,
+  ResolvedActionConstructor,
+  ExecuteActionParams,
+  Executed,
+  ExecutedActionConstructor,
 } from "./base"
 
 export interface BuildCopyFrom {
@@ -140,21 +148,29 @@ export class BuildAction<C extends BuildActionConfig = BuildActionConfig, O exte
   getBuildMetadataPath() {
     return join(this.baseBuildDirectory, this.name + ".metadata")
   }
+
+  /**
+   * Returns a resolved version of this action.
+   */
+  resolve(params: ResolveActionParams): ResolvedBuildAction<C, O> {
+    // TODO-G2: validate static outputs here
+    const constructor = Object.getPrototypeOf(this).constructor
+    return constructor({ ...this.params, ...params })
+  }
 }
 
 // TODO: see if we can avoid the duplication here with ResolvedRuntimeAction
 export abstract class ResolvedBuildAction<C extends BuildActionConfig = BuildActionConfig, O extends {} = any>
   extends BuildAction<C, O>
-  implements ResolvedActionExtension<C, O> {
+  implements ResolvedActionExtension<C> {
+  protected readonly params: ResolvedActionWrapperParams<C>
   private readonly dependencyResults: GraphResults
   private readonly resolvedGraph: ResolvedConfigGraph
-  private readonly status: ActionStatus<this, any, O>
 
-  constructor(params: ResolvedActionWrapperParams<C, O>) {
+  constructor(params: ResolvedActionWrapperParams<C>) {
     super(params)
     this.dependencyResults = params.dependencyResults
     this.resolvedGraph = params.resolvedGraph
-    this.status = params.status
   }
 
   getResolvedDependencies() {
@@ -165,16 +181,43 @@ export abstract class ResolvedBuildAction<C extends BuildActionConfig = BuildAct
     return this.dependencyResults[actionReferenceToString(ref)] || null
   }
 
+  // TODO: allow nested key lookups here
+  getSpec(): C["spec"]
+  getSpec<K extends keyof C["spec"]>(key: K): C["spec"][K]
+  getSpec(key?: keyof C["spec"]) {
+    return key ? this._config.spec[key] : this._config.spec
+  }
+
+  getVariables() {
+    return this.variables
+  }
+
+  /**
+   * Returns an executed version of this action.
+   */
+  execute(params: ExecuteActionParams<C, O>): Executed<this> {
+    // TODO-G2: validate static outputs here
+    const constructor: ExecutedActionConstructor<this> = Object.getPrototypeOf(this).constructor
+    return constructor({ ...this.params, ...params })
+  }
+}
+
+export class ExecutedBuildAction<C extends BuildActionConfig = BuildActionConfig, O extends {} = any>
+  extends ResolvedBuildAction<C, O>
+  implements ExecutedActionExtension<C, O> {
+  private readonly status: ActionStatus<this, any, O>
+
+  constructor(params: ExecutedActionWrapperParams<C, O>) {
+    super(params)
+    this.status = params.status
+  }
+
   getOutput<K extends keyof O>(key: K) {
     return this.status.outputs[key]
   }
 
   getOutputs() {
     return this.status.outputs
-  }
-
-  getVariables() {
-    return this.variables
   }
 }
 

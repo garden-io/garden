@@ -8,7 +8,7 @@
 
 import { joiIdentifier, joi, joiSparseArray, joiStringMap } from "../../../config/common"
 import { dedent } from "../../../util/string"
-import { BaseVolumeSpec, baseVolumeSpecKeys } from "../../base-volume"
+import { BaseVolumeSpec } from "../../base-volume"
 import { V1ConfigMap } from "@kubernetes/client-node"
 import { ModuleTypeDefinition } from "../../../plugin/plugin"
 import { DOCS_BASE_URL } from "../../../constants"
@@ -22,6 +22,7 @@ import { omit } from "lodash"
 import { DeployActionDefinition } from "../../../plugin/action-types"
 import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
 import { KubernetesDeployActionConfig } from "../kubernetes-type/config"
+import { Resolved } from "../../../actions/base"
 
 // TODO: If we make a third one in addition to this and `persistentvolumeclaim`, we should dedupe some code.
 
@@ -148,7 +149,7 @@ export const configMapModuleDefinition = (): ModuleTypeDefinition => ({
 /**
  * Maps a `configmap` action to a `kubernetes` action (so we can re-use those handlers).
  */
-function getKubernetesAction(action: ConfigmapAction) {
+function getKubernetesAction(action: Resolved<ConfigmapAction>) {
   const configMapManifest: KubernetesResource<V1ConfigMap> = {
     apiVersion: "v1",
     kind: "ConfigMap",

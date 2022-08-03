@@ -15,6 +15,7 @@ import { testResultSchema } from "../../../types/test"
 import { ActionTypeHandlerSpec } from "../base/base"
 import { GetTestResult } from "./get-result"
 import { CommonRunParams } from "../run/run"
+import { Resolved } from "../../../actions/base"
 
 type TestActionParams<T extends TestAction> = PluginTestActionParamsBase<T> &
   CommonRunParams & {
@@ -23,7 +24,7 @@ type TestActionParams<T extends TestAction> = PluginTestActionParamsBase<T> &
 
 export class RunTestAction<T extends TestAction = TestAction> extends ActionTypeHandlerSpec<
   "Test",
-  TestActionParams<T>,
+  TestActionParams<Resolved<T>>,
   GetTestResult<T>
 > {
   description = dedent`

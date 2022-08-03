@@ -14,6 +14,7 @@ import { joi } from "../../../config/common"
 import { ActionTypeHandlerSpec } from "../base/base"
 import { DeployAction } from "../../../actions/deploy"
 import { DeployStatus } from "./get-status"
+import { Resolved } from "../../../actions/base"
 
 interface DeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   devMode: boolean
@@ -24,7 +25,7 @@ interface DeployParams<T extends DeployAction> extends PluginDeployActionParamsB
 
 export class DoDeployAction<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "Deploy",
-  DeployParams<T>,
+  DeployParams<Resolved<T>>,
   DeployStatus<T>
 > {
   description = dedent`

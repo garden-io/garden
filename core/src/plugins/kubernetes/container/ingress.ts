@@ -20,6 +20,7 @@ import { KubernetesResource } from "../types"
 import { ExtensionsV1beta1Ingress, V1Ingress, V1Secret } from "@kubernetes/client-node"
 import { LogEntry } from "../../../logger/log-entry"
 import chalk from "chalk"
+import { Resolved } from "../../../actions/base"
 
 // Ingress API versions in descending order of preference
 export const supportedIngressApiVersions = ["networking.k8s.io/v1", "networking.k8s.io/v1beta1", "extensions/v1beta1"]
@@ -53,7 +54,7 @@ export async function createIngressResources(
   api: KubeApi,
   provider: KubernetesProvider,
   namespace: string,
-  action: ContainerDeployAction,
+  action: Resolved<ContainerDeployAction>,
   log: LogEntry
 ) {
   const { ports, ingresses } = action.getSpec()
@@ -165,7 +166,7 @@ export async function createIngressResources(
 }
 
 async function getIngress(
-  action: ContainerDeployAction,
+  action: Resolved<ContainerDeployAction>,
   api: KubeApi,
   provider: KubernetesProvider,
   spec: ContainerIngressSpec
@@ -194,7 +195,7 @@ async function getIngress(
 }
 
 async function getIngressesWithCert(
-  action: ContainerDeployAction,
+  action: Resolved<ContainerDeployAction>,
   api: KubeApi,
   provider: KubernetesProvider
 ): Promise<ServiceIngressWithCert[]> {
@@ -203,7 +204,7 @@ async function getIngressesWithCert(
 }
 
 export async function getIngresses(
-  action: ContainerDeployAction,
+  action: Resolved<ContainerDeployAction>,
   api: KubeApi,
   provider: KubernetesProvider
 ): Promise<ServiceIngress[]> {

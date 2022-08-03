@@ -46,6 +46,7 @@ import { templateStringLiteral } from "../../docs/common"
 import { resolve } from "path"
 import Bluebird from "bluebird"
 import { PluginContext } from "../../plugin-context"
+import { Resolved } from "../../actions/base"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -209,7 +210,7 @@ export async function configureDevMode({
   ctx: PluginContext
   log: LogEntry
   provider: KubernetesProvider
-  action: SupportedRuntimeActions
+  action: Resolved<SupportedRuntimeActions>
   defaultTarget: KubernetesTargetResourceSpec | undefined
   manifests: KubernetesResource[]
   spec: KubernetesDeployDevModeSpec
@@ -366,7 +367,7 @@ export async function configureDevMode({
 interface StartDevModeSyncParams {
   ctx: KubernetesPluginContext
   log: LogEntry
-  action: SupportedRuntimeActions
+  action: Resolved<SupportedRuntimeActions>
 
   defaultNamespace: string
   manifests: KubernetesResource[]

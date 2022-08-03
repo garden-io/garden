@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { BaseActionTaskParams, BaseActionTask, ActionTaskProcessParams } from "../tasks/base"
+import { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams, ExecuteActionTask } from "../tasks/base"
 import { Profile } from "../util/profiling"
 import { BuildAction } from "../actions/build"
 import pluralize from "pluralize"
@@ -19,7 +19,7 @@ export interface BuildTaskParams extends BaseActionTaskParams<BuildAction> {
 }
 
 @Profile()
-export class BuildTask extends BaseActionTask<BuildAction, BuildResult, BuildStatus> {
+export class BuildTask extends ExecuteActionTask<BuildAction, BuildResult, BuildStatus> {
   type = "build"
   concurrencyLimit = 5
 
@@ -27,13 +27,16 @@ export class BuildTask extends BaseActionTask<BuildAction, BuildResult, BuildSta
     return `building ${this.action.longDescription()}`
   }
 
-  async getStatus({ resolvedAction: action }: ActionTaskProcessParams<BuildAction>) {
+  async getStatus({ dependencyResults }: ActionTaskStatusParams<BuildAction>) {
     const router = await this.garden.getActionRouter()
-    return router.build.getStatus({ log: this.log, graph: this.graph, action })
+    const action = this.getResolvedAction(dependencyResults)
+    const status = await router.build.getStatus({ log: this.log, graph: this.graph, action })
+    return { ...status, executedAction: action.execute({ status }) }
   }
 
-  async process({ resolvedAction: action }: ActionTaskProcessParams<BuildAction>) {
+  async process({ dependencyResults }: ActionTaskProcessParams<BuildAction, BuildStatus>) {
     const router = await this.garden.getActionRouter()
+    const action = this.getResolvedAction(dependencyResults)
 
     let log = this.log.info({
       section: this.getName(),
@@ -72,7 +75,14 @@ export class BuildTask extends BaseActionTask<BuildAction, BuildResult, BuildSta
         msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
         append: true,
       })
-      return result
+
+      const status: BuildStatus = {
+        state: "ready",
+        detail: result,
+        outputs: result.outputs,
+      }
+
+      return { ...result, executedAction: action.execute({ status }) }
     } catch (err) {
       log.setError()
       throw err

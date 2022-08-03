@@ -20,6 +20,7 @@ import { ConfigGraph } from "./graph/config-graph"
 import { gardenEnv } from "./constants"
 import { DeployAction } from "./actions/deploy"
 import { GetPortForwardResult } from "./plugin/handlers/deploy/get-port-forward"
+import { Executed } from "./actions/base"
 
 interface PortProxy {
   key: string
@@ -56,7 +57,7 @@ export async function startPortProxies({
   garden: Garden
   graph: ConfigGraph
   log: LogEntry
-  action: DeployAction
+  action: Executed<DeployAction>
   status: ServiceStatus
 }) {
   if (garden.disablePortForwards) {
@@ -73,7 +74,7 @@ interface StartPortProxyParams {
   garden: Garden
   graph: ConfigGraph
   log: LogEntry
-  action: DeployAction
+  action: Executed<DeployAction>
   spec: ForwardablePort
 }
 
@@ -94,7 +95,7 @@ async function startPortProxy({ garden, graph, log, action, spec }: StartPortPro
 }
 
 async function createProxy({ garden, graph, log, action, spec }: StartPortProxyParams): Promise<PortProxy> {
-  const actions = await garden.getActionRouter()
+  const router = await garden.getActionRouter()
   const key = getPortKey(action, spec)
   let fwd: GetPortForwardResult | null = null
 
@@ -112,7 +113,7 @@ async function createProxy({ garden, graph, log, action, spec }: StartPortProxyP
       log.debug(`Starting port forward to ${key}`)
 
       try {
-        fwd = await actions.deploy.getPortForward({ action, log, graph, ...spec })
+        fwd = await router.deploy.getPortForward({ action, log, graph, ...spec })
       } catch (err) {
         const msg = err.message.trim()
 

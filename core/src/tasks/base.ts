@@ -13,20 +13,14 @@ import { LogEntry } from "../logger/log-entry"
 import { pickBy, mapValues, mapKeys } from "lodash"
 import { splitLast } from "../util/util"
 import { Profile } from "../util/profiling"
-import { Action, Resolved } from "../actions/base"
+import { Action, Executed, Resolved } from "../actions/base"
 import { ConfigGraph } from "../graph/config-graph"
-import { isBuildAction } from "../actions/build"
-import { BuildTask } from "./build"
-import { isDeployAction } from "../actions/deploy"
-import { DeployTask } from "./deploy"
-import { isRunAction } from "../actions/run"
-import { RunTask } from "./run"
-import { InternalError } from "../exceptions"
-import { TestTask } from "./test"
-import { isTestAction } from "../actions/test"
 import { ActionReference } from "../config/common"
 import { DeployStatus } from "../plugin/handlers/deploy/get-status"
 import { GetRunResult } from "../plugin/handlers/run/get-result"
+import { getExecuteTaskForAction } from "../graph/actions"
+import { ResolveActionTask } from "./resolve-action"
+import { InternalError } from "../exceptions"
 
 export class TaskDefinitionError extends Error {}
 
@@ -122,8 +116,9 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType, S ex
   }
 }
 
-export interface ActionTaskProcessParams<T extends Action = any, S = any> extends TaskProcessParams {
-  resolvedAction: Resolved<T>
+export interface ActionTaskStatusParams<_ extends Action> extends TaskProcessParams {}
+export interface ActionTaskProcessParams<T extends Action, S extends ValidResultType>
+  extends ActionTaskStatusParams<T> {
   status: S
 }
 
@@ -152,19 +147,29 @@ export abstract class BaseActionTask<
     }
   }
 
-  abstract getStatus(params: ActionTaskProcessParams<T>): Promise<S | null>
-  abstract process(params: ActionTaskProcessParams<T>): Promise<O>
+  abstract getStatus(params: ActionTaskStatusParams<T>): Promise<S | null>
+  abstract process(params: ActionTaskProcessParams<T, S>): Promise<O>
 
   getName() {
     return this.action.name
   }
 
   // Most tasks can just use this default method.
+  // TODO-G2: review this for all task types
   resolveDependencies(): BaseTask[] {
-    return this.action.getDependencyReferences().map((dep) => {
+    const resolveTask = this.getResolveTask(this.action)
+
+    const depTasks = this.action.getDependencyReferences().map((dep) => {
       const action = this.graph.getActionByRef(dep)
-      return this.getResolveTaskForDependency(action)
+
+      if (dep.type === "implicit") {
+        return this.getResolveTask(action)
+      } else {
+        return this.getExecuteTask(action)
+      }
     })
+
+    return [...depTasks, resolveTask]
   }
 
   // Helpers //
@@ -182,15 +187,71 @@ export abstract class BaseActionTask<
   }
 
   /**
-   * Returns a primary Task for the given Action, e.g. DeployTask for Deploy, BuildTask for Build etc.
-   *
-   * Note that this is not always the correct Task to perform, e.g. for the DeleteDeployTask. This is generally
-   * the Task that is necessary to _resolve_ an action.
+   * Given a set of graph results, return a resolved version of the action.
+   * Throws if the dependency results don't contain the required task results.
    */
-  getResolveTaskForDependency(action: Action) {
-    const force = !!this.forceActions.find((r) => r.kind === action.kind && r.name === action.name)
-    return getResolveTaskForAction(action, { ...this.getBaseDependencyParams(), force })
+  getResolvedAction(dependencyResults: GraphResults): Resolved<T> {
+    const resolveTask = this.getResolveTask(this.action)
+    const result = getResultForTask(resolveTask, dependencyResults)
+
+    if (!result) {
+      throw new InternalError(
+        `Could not find resolved action '${this.action.key()}' when processing task '${this.getKey()}'. This is a bug, please report it!`,
+        { taskType: this.type, action: this.action.key() }
+      )
+    }
+
+    return <Resolved<T>>result.outputs.resolvedAction
   }
+
+  /**
+   * Given a set of graph results, return an executed version of the action.
+   * Throws if the dependency results don't contain the required task results.
+   */
+  getExecutedAction(dependencyResults: GraphResults): Executed<T> {
+    const resolveTask = this.getExecuteTask(this.action)
+    const result = getResultForTask(resolveTask, dependencyResults)
+
+    if (!result) {
+      throw new InternalError(
+        `Could not find executed action '${this.action.key()}' when processing task '${this.getKey()}'. This is a bug, please report it!`,
+        { taskType: this.type, action: this.action.key() }
+      )
+    }
+
+    return <Executed<T>>result.outputs.resolvedAction
+  }
+
+  /**
+   * Returns the ResolveActionTask for the given Action.
+   */
+  protected getResolveTask(action: Action) {
+    const force = !!this.forceActions.find((r) => r.kind === action.kind && r.name === action.name)
+    return new ResolveActionTask({ ...this.getBaseDependencyParams(), force, action })
+  }
+
+  /**
+   * Returns the execution Task for the given Action, e.g. DeployTask for Deploy, BuildTask for Build etc.
+   *
+   * Note that this is not always the correct Task to perform when processing deps, e.g. for the DeleteDeployTask.
+   */
+  protected getExecuteTask(action: Action) {
+    const force = !!this.forceActions.find((r) => r.kind === action.kind && r.name === action.name)
+    return getExecuteTaskForAction(action, { ...this.getBaseDependencyParams(), force })
+  }
+}
+
+export abstract class ExecuteActionTask<
+  T extends Action,
+  O extends ValidResultType = { outputs: T["_outputs"] },
+  S extends ValidResultType = O
+> extends BaseActionTask<T, O, S> {
+  abstract getStatus(params: ActionTaskStatusParams<T>): Promise<(S & { executedAction: Executed<T> }) | null>
+  abstract process(params: ActionTaskProcessParams<T, S>): Promise<O & { executedAction: Executed<T> }>
+}
+
+export function getResultForTask<T extends BaseTask>(task: T, graphResults: GraphResults): T["_resultType"] | null {
+  return graphResults[task.getKey()]
 }
 
 export function getServiceStatuses(dependencyResults: GraphResults): { [name: string]: DeployStatus } {
@@ -203,19 +264,4 @@ export function getRunResults(dependencyResults: GraphResults): { [name: string]
   const runResults = pickBy(dependencyResults, (r) => r && r.type === "run")
   const results = mapValues(runResults, (r) => r!.result as GetRunResult)
   return mapKeys(results, (_, key) => splitLast(key, ".")[1])
-}
-
-export function getResolveTaskForAction(action: Action, baseParams: Omit<BaseActionTaskParams, "action">) {
-  if (isBuildAction(action)) {
-    return new BuildTask({ ...baseParams, action })
-  } else if (isDeployAction(action)) {
-    return new DeployTask({ ...baseParams, action })
-  } else if (isRunAction(action)) {
-    return new RunTask({ ...baseParams, action })
-  } else if (isTestAction(action)) {
-    return new TestTask({ ...baseParams, action })
-  } else {
-    // Shouldn't happen
-    throw new InternalError(`Unexpected action kind ${action.kind}`, { config: action.getConfig() })
-  }
 }

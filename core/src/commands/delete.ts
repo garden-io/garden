@@ -65,8 +65,8 @@ export class DeleteSecretCommand extends Command<typeof deleteSecretArgs> {
 
   async action({ garden, log, args }: CommandParams<DeleteSecretArgs>): Promise<CommandResult<DeleteSecretResult>> {
     const key = args.key!
-    const actions = await garden.getActionRouter()
-    const result = await actions.provider.deleteSecret({ log, pluginName: args.provider!, key })
+    const router = await garden.getActionRouter()
+    const result = await router.provider.deleteSecret({ log, pluginName: args.provider!, key })
 
     if (result.found) {
       log.info(`Deleted config key ${args.key}`)

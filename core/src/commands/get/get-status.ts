@@ -11,7 +11,7 @@ import { fromPairs } from "lodash"
 import { deepFilter } from "../../util/util"
 import { Command, CommandResult, CommandParams } from "../base"
 import { Garden } from "../../garden"
-import { ConfigGraph } from "../../graph/config-graph"
+import { ResolvedConfigGraph } from "../../graph/config-graph"
 import { LogEntry } from "../../logger/log-entry"
 import { runStatus, RunStatus } from "../../plugin/base"
 import chalk from "chalk"
@@ -68,16 +68,16 @@ export class GetStatusCommand extends Command {
   }
 
   async action({ garden, log }: CommandParams): Promise<CommandResult<StatusCommandResult>> {
-    const actions = await garden.getActionRouter()
-    const graph = await garden.getConfigGraph({ log, emit: true })
+    const router = await garden.getActionRouter()
+    const graph = await garden.getResolvedConfigGraph({ log, emit: true })
 
     const envStatus = await garden.getEnvironmentStatus(log)
-    const serviceStatuses = await actions.getDeployStatuses({ log, graph })
+    const serviceStatuses = await router.getDeployStatuses({ log, graph })
 
     let result: StatusCommandResult = {
       providers: envStatus,
       actions: await Bluebird.props({
-        deploy: actions.getDeployStatuses({ log, graph }),
+        deploy: router.getDeployStatuses({ log, graph }),
         test: getTestStatuses(garden, graph, log),
         run: getTaskStatuses(garden, graph, log),
       }),
@@ -107,25 +107,25 @@ export class GetStatusCommand extends Command {
   }
 }
 
-async function getTestStatuses(garden: Garden, configGraph: ConfigGraph, log: LogEntry): Promise<RunStatuses> {
-  const actions = configGraph.getTests()
+async function getTestStatuses(garden: Garden, graph: ResolvedConfigGraph, log: LogEntry): Promise<RunStatuses> {
+  const actions = graph.getTests()
   const router = await garden.getActionRouter()
 
   return fromPairs(
     await Bluebird.map(actions, async (action) => {
-      const { detail } = await router.test.getResult({ action, log, graph: configGraph })
+      const { detail } = await router.test.getResult({ action, log, graph })
       return [action.name, runStatus(detail)]
     })
   )
 }
 
-async function getTaskStatuses(garden: Garden, configGraph: ConfigGraph, log: LogEntry): Promise<RunStatuses> {
-  const actions = configGraph.getRuns()
+async function getTaskStatuses(garden: Garden, graph: ResolvedConfigGraph, log: LogEntry): Promise<RunStatuses> {
+  const actions = graph.getRuns()
   const router = await garden.getActionRouter()
 
   return fromPairs(
     await Bluebird.map(actions, async (action) => {
-      const { detail } = await router.run.getResult({ action, log, graph: configGraph })
+      const { detail } = await router.run.getResult({ action, log, graph })
       return [action.name, runStatus(detail)]
     })
   )
