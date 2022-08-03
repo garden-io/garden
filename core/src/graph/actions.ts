@@ -459,7 +459,7 @@ function dependenciesFromActionConfig(config: ActionConfig, configsByKey: Action
   // -> Action template references in spec/variables
   for (const ref of getActionTemplateReferences(config)) {
     // TODO-G2: tease apart runtime and static output references
-    addImplicitDep(ref)
+    addImplicitDep(ref, true)
   }
 
   return deps

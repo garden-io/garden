@@ -20,10 +20,10 @@ import {
 import { GardenPlugin, ActionHandler, PluginMap } from "../plugin/plugin"
 import { PluginEventBroker } from "../plugin-context"
 import { ConfigContext } from "../config/template-contexts/base"
-import { ActionKind, BaseAction, BaseActionConfig, Resolved, isResolved } from "../actions/base"
+import { ActionKind, BaseAction, BaseActionConfig, Resolved } from "../actions/base"
 import {
   ActionTypeDefinition,
-  ActionTypeMap,
+  ActionClassMap,
   GetActionTypeHandler,
   getActionTypeHandlerDescriptions,
   GetActionTypeResults,
@@ -251,7 +251,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     defaultHandler,
   }: {
     params: {
-      action: ActionTypeMap[K] | Resolved<ActionTypeMap[K]>
+      action: ActionClassMap[K] | Resolved<ActionClassMap[K]>
       pluginName?: string
       log: LogEntry
       graph: ConfigGraph
@@ -275,14 +275,15 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     })
 
     const providers = await this.garden.resolveProviders(log)
-    const templateContext = isResolved(action)
+    const templateContext = action.isResolved()
       ? new ActionSpecContext({
           garden: this.garden,
           resolvedProviders: providers,
           action,
           partialRuntimeResolution: false,
           modules: graph.getModules(),
-          resolvedDependencies: action.getResolvedDependencies(),
+          executedDependencies: action.getExecutedDependencies(),
+          variables: action.getVariables(),
         })
       : new ActionConfigContext(this.garden)
 

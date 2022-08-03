@@ -71,6 +71,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType, S ex
   public readonly version: string
   public readonly fromWatch: boolean
   public readonly skipDependencies: boolean
+  public readonly executeTask: boolean = false
   interactive = false
 
   _resultType: O
@@ -190,14 +191,14 @@ export abstract class BaseActionTask<
    * Given a set of graph results, return a resolved version of the action.
    * Throws if the dependency results don't contain the required task results.
    */
-  getResolvedAction(dependencyResults: GraphResults): Resolved<T> {
-    const resolveTask = this.getResolveTask(this.action)
+  getResolvedAction(action: Action, dependencyResults: GraphResults): Resolved<T> {
+    const resolveTask = this.getResolveTask(action)
     const result = getResultForTask(resolveTask, dependencyResults)
 
     if (!result) {
       throw new InternalError(
-        `Could not find resolved action '${this.action.key()}' when processing task '${this.getKey()}'. This is a bug, please report it!`,
-        { taskType: this.type, action: this.action.key() }
+        `Could not find resolved action '${action.key()}' when processing task '${this.getKey()}'. This is a bug, please report it!`,
+        { taskType: this.type, action: action.key() }
       )
     }
 
@@ -208,14 +209,14 @@ export abstract class BaseActionTask<
    * Given a set of graph results, return an executed version of the action.
    * Throws if the dependency results don't contain the required task results.
    */
-  getExecutedAction(dependencyResults: GraphResults): Executed<T> {
-    const resolveTask = this.getExecuteTask(this.action)
+  getExecutedAction(action: Action, dependencyResults: GraphResults): Executed<T> {
+    const resolveTask = this.getExecuteTask(action)
     const result = getResultForTask(resolveTask, dependencyResults)
 
     if (!result) {
       throw new InternalError(
-        `Could not find executed action '${this.action.key()}' when processing task '${this.getKey()}'. This is a bug, please report it!`,
-        { taskType: this.type, action: this.action.key() }
+        `Could not find executed action '${action.key()}' when processing task '${this.getKey()}'. This is a bug, please report it!`,
+        { taskType: this.type, action: action.key() }
       )
     }
 
@@ -246,6 +247,8 @@ export abstract class ExecuteActionTask<
   O extends ValidResultType = { outputs: T["_outputs"] },
   S extends ValidResultType = O
 > extends BaseActionTask<T, O, S> {
+  executeTask = true
+
   abstract getStatus(params: ActionTaskStatusParams<T>): Promise<(S & { executedAction: Executed<T> }) | null>
   abstract process(params: ActionTaskProcessParams<T, S>): Promise<O & { executedAction: Executed<T> }>
 }

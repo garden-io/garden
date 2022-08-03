@@ -682,7 +682,7 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
       },
 
       convertRuntimeDependencies,
-      prepareRuntimeDependencies(deps: string[], build?: BuildActionConfig) {
+      prepareRuntimeDependencies(deps: string[], build?: BuildActionConfig<string, any>) {
         const resolved: string[] = convertRuntimeDependencies(deps)
         if (build) {
           resolved.push("build:" + build.name)

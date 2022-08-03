@@ -47,7 +47,7 @@ import { ConfigGraph, ResolvedConfigGraph } from "./graph/config-graph"
 import { getLogger } from "./logger/logger"
 import { ProviderHandlers, GardenPlugin } from "./plugin/plugin"
 import { loadConfigResources, findProjectConfig, GardenResource } from "./config/base"
-import { DeepPrimitiveMap, StringMap, PrimitiveMap, treeVersionSchema, joi } from "./config/common"
+import { DeepPrimitiveMap, StringMap, PrimitiveMap, treeVersionSchema, joi, allowUnknown } from "./config/common"
 import { LocalConfigStore, ConfigStore, GlobalConfigStore, LinkedSource } from "./config-store"
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { ModuleConfig } from "./config/module"
@@ -89,6 +89,8 @@ import {
   loadPlugin,
   getActionTypes,
   ActionDefinitionMap,
+  getActionTypeBases,
+  ActionTypeMap,
 } from "./plugins"
 import { deline, naturalList } from "./util/string"
 import { ensureConnected } from "./db/connection"
@@ -128,12 +130,14 @@ import {
   Action,
   ActionConfigMap,
   ActionConfigsByKey,
+  ActionKind,
   actionKinds,
   actionReferenceToString,
   BaseActionConfig,
 } from "./actions/base"
 import { GraphSolver, SolveParams, SolveResult } from "./graph/solver"
 import { actionConfigsToGraph, actionFromConfig, executeAction, resolveAction, resolveActions } from "./graph/actions"
+import { ActionTypeDefinition } from "./plugin/action-types"
 
 export interface ActionHandlerMap<T extends keyof ProviderHandlers> {
   [actionName: string]: ProviderHandlers[T]
@@ -223,6 +227,7 @@ export class Garden {
   public readonly events: EventBus
   private tools: { [key: string]: PluginTool }
   public moduleTemplates: { [name: string]: ModuleTemplateConfig }
+  private actionTypeBases: ActionTypeMap<ActionTypeDefinition<any>[]>
 
   public readonly production: boolean
   public readonly projectRoot: string
@@ -320,6 +325,12 @@ export class Garden {
     this.globalConfigStore = new GlobalConfigStore()
 
     this.actionConfigs = {
+      Build: {},
+      Deploy: {},
+      Run: {},
+      Test: {},
+    }
+    this.actionTypeBases = {
       Build: {},
       Deploy: {},
       Run: {},
@@ -521,6 +532,24 @@ export class Garden {
   async getActionTypes(): Promise<ActionDefinitionMap> {
     const configuredPlugins = await this.getConfiguredPlugins()
     return getActionTypes(configuredPlugins)
+  }
+
+  /**
+   * Get the bases for the given action kind/type, with schemas modified to allow any unknown fields.
+   * Used to validate actions whose types inherit from others.
+   *
+   * Implemented here so that we can cache the modified schemas.
+   */
+  async getActionTypeBases(kind: ActionKind, type: string) {
+    const definitions = await this.getActionTypes()
+
+    if (this.actionTypeBases[kind][type]) {
+      return this.actionTypeBases[kind][type]
+    }
+
+    const bases = getActionTypeBases(definitions[kind][type], definitions[kind])
+    this.actionTypeBases[kind][type] = bases.map((b) => ({ ...b, schema: allowUnknown(b.schema) }))
+    return this.actionTypeBases[kind][type]
   }
 
   getRawProviderConfigs(names?: string[]) {
@@ -916,7 +945,7 @@ export class Garden {
           )
         }
 
-        graph.addDependency(dependency.by, dependency.on)
+        graph.addDependency(dependency.by, dependency.on, "explicit")
         updated = true
       }
 

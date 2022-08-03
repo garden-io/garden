@@ -111,12 +111,12 @@ type BaseHandlers<A extends Action> = {
   validate: ValidateAction<A>
 }
 
-export type ActionTypeExtension<H> = {
+export type ActionTypeExtension<H extends ActionHandlers> = {
   name: string
   handlers: Partial<H>
 }
 
-export type ActionTypeDefinition<H> = ActionTypeExtension<H> & {
+export type ActionTypeDefinition<H extends ActionHandlers> = ActionTypeExtension<H> & {
   base?: string
   docs: string
   // TODO: specify the schemas using primitives (e.g. JSONSchema/OpenAPI) and not Joi objects
@@ -235,11 +235,11 @@ export interface ActionTypeDescriptions {
   Test: TestActionDescriptions
 }
 
-export type GenericActionTypeMap = {
+export type GenericActionClassMap = {
   [K in ActionKind]: K extends "Build" ? BuildAction : RuntimeAction
 }
 
-export interface ActionTypeMap extends GenericActionTypeMap {
+export interface ActionClassMap extends GenericActionClassMap {
   Build: BuildAction
   Deploy: DeployAction
   Run: RunAction

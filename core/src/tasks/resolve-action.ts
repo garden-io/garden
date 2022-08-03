@@ -8,7 +8,11 @@
 
 import { BaseActionTask, ActionTaskProcessParams, ActionTaskStatusParams } from "./base"
 import { Profile } from "../util/profiling"
-import { Action, Resolved } from "../actions/base"
+import { Action, ExecutedAction, Resolved, ResolvedAction } from "../actions/base"
+import { ActionSpecContext } from "../config/template-contexts/actions"
+import { resolveTemplateStrings } from "../template-string/template-string"
+import { InternalError } from "../exceptions"
+import { validateWithPath } from "../config/validation"
 
 export interface ResolveActionResults<T extends Action> {
   outputs: {
@@ -28,15 +32,112 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     return null
   }
 
-  async process({ dependencyResults }: ActionTaskProcessParams<T, ResolveActionResults<T>): Promise<ResolveActionResults<T>> {
-    // TODO-G2: resolve the action
-    
-    const resolvedAction = this.action.resolve({ dependencyResults })
+  resolveDependencies() {
+    return this.action.getDependencyReferences().map((d) => {
+      const action = this.graph.getActionByRef(d)
+
+      if (d.type === "implicit") {
+        return this.getResolveTask(action)
+      } else {
+        return this.getExecuteTask(action)
+      }
+    })
+  }
+
+  async process({
+    dependencyResults,
+  }: ActionTaskProcessParams<T, ResolveActionResults<T>>): Promise<ResolveActionResults<T>> {
+    // Collect dependencies
+    const resolvedDependencies: ResolvedAction[] = []
+    const executedDependencies: ExecutedAction[] = []
+
+    // TODO-G2: get this to a type-safer place
+    for (const r of Object.values(dependencyResults)) {
+      if (!r) {
+        continue
+      } else if (r.type === "resolve-action") {
+        resolvedDependencies.push(r.outputs.resolvedAction)
+      } else if (r.task.executeTask) {
+        executedDependencies.push(r.outputs.executedAction)
+      }
+    }
+
+    // Resolve variables
+    const variables = resolveTemplateStrings(
+      this.action.getConfig().variables || {},
+      new ActionSpecContext({
+        garden: this.garden,
+        resolvedProviders: await this.garden.resolveProviders(this.log),
+        action: this.action,
+        modules: this.graph.getModules(),
+        partialRuntimeResolution: false,
+        executedDependencies,
+        variables: {},
+      })
+    )
+
+    // Resolve spec
+    let spec = resolveTemplateStrings(
+      this.action.getConfig().spec || {},
+      new ActionSpecContext({
+        garden: this.garden,
+        resolvedProviders: await this.garden.resolveProviders(this.log),
+        action: this.action,
+        modules: this.graph.getModules(),
+        partialRuntimeResolution: false,
+        executedDependencies,
+        variables,
+      })
+    )
+
+    // -> Validate spec
+    spec = await this.validateSpec(spec)
+
+    // Resolve dependency graph
+    const resolvedAction = <Resolved<T>>(
+      this.action.resolve({ dependencyResults, executedDependencies, resolvedDependencies, variables, spec })
+    )
 
     return {
       outputs: {
         resolvedAction,
       },
     }
+  }
+
+  private async validateSpec<S>(spec: S) {
+    const actionTypes = await this.garden.getActionTypes()
+    const { kind, type } = this.action
+    const actionType = actionTypes[kind][type]
+    const description = this.action.longDescription()
+
+    if (!actionType) {
+      // This should be caught way earlier in normal usage, so it's an internal error
+      throw new InternalError(`Could not find type definition for ${description}.`, { kind, type })
+    }
+
+    const path = this.action.basePath()
+
+    spec = validateWithPath({
+      config: spec,
+      schema: actionType.schema,
+      path,
+      projectRoot: this.garden.projectRoot,
+      configType: `spec for ${description}`,
+    })
+
+    for (const base of await this.garden.getActionTypeBases(kind, type)) {
+      this.log.silly(`Validating ${description} spec against '${base.name}' schema`)
+
+      spec = validateWithPath({
+        config: spec,
+        schema: base.schema,
+        path,
+        projectRoot: this.garden.projectRoot,
+        configType: `spec for ${description} (base schema from '${base.name}' plugin)`,
+      })
+    }
+
+    return spec
   }
 }

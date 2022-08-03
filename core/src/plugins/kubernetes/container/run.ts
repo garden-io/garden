@@ -46,7 +46,7 @@ export const k8sRunContainerDeploy: DeployActionHandler<"run", ContainerDeployAc
 
   const provider = <KubernetesProvider>ctx.provider
 
-  const image = getDeployedImageId(action)
+  const image = getDeployedImageId(action, provider)
   const namespaceStatus = await getAppNamespaceStatus(ctx, log, provider)
 
   const result = await runAndCopy({
@@ -86,8 +86,8 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
     dropCapabilities,
   } = action.getSpec()
 
-  const image = getDeployedImageId(action)
   const k8sCtx = ctx as KubernetesPluginContext
+  const image = getDeployedImageId(action, k8sCtx.provider)
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
 
   const runResult = await runAndCopy({

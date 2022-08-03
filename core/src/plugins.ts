@@ -395,11 +395,13 @@ export function getPluginDependencies(plugin: GardenPlugin, loadedPlugins: Plugi
   )
 }
 
-export type ActionDefinitionMap = {
+export type ActionTypeMap<T> = {
   [K in ActionKind]: {
-    [type: string]: ActionTypeDefinition<any>
+    [type: string]: T
   }
 }
+
+export type ActionDefinitionMap = ActionTypeMap<ActionTypeDefinition<any>>
 
 /**
  * Returns all the action types defined in the given list of plugins.

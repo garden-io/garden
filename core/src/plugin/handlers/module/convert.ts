@@ -42,7 +42,7 @@ export interface ConvertModuleParams<T extends GardenModule = GardenModule> exte
   convertTestName: (d: string) => string
   convertBuildDependency: (d: string | BuildDependencyConfig) => string
   convertRuntimeDependencies: (d: string[]) => string[]
-  prepareRuntimeDependencies: (deps: string[], build: BuildActionConfig | undefined) => string[]
+  prepareRuntimeDependencies: (deps: string[], build: BuildActionConfig<string, any> | undefined) => string[]
 }
 
 export interface ConvertModuleResult {

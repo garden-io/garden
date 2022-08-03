@@ -61,7 +61,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
   }
 
   async getStatus({ dependencyResults }: ActionTaskStatusParams<TestAction>) {
-    const action = this.getResolvedAction(dependencyResults)
+    const action = this.getResolvedAction(this.action, dependencyResults)
     const router = await this.garden.getActionRouter()
 
     const status = await router.test.getResult({
@@ -88,7 +88,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
   }
 
   async process({ dependencyResults }: ActionTaskProcessParams<TestAction, GetTestResult>) {
-    const action = this.getResolvedAction(dependencyResults)
+    const action = this.getResolvedAction(this.action, dependencyResults)
 
     const log = this.log.info({
       section: action.key(),

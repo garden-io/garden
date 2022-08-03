@@ -55,7 +55,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx, k8sCtx.provider)
 
-  const imageId = getDeployedImageId(action)
+  const imageId = getDeployedImageId(action, k8sCtx.provider)
 
   if (deploymentStrategy === "blue-green") {
     await deployContainerServiceBlueGreen({ ...params, devMode: deployWithDevMode, api, imageId })

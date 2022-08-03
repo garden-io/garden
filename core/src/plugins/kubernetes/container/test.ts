@@ -34,7 +34,7 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
   const timeout = action.getConfig("timeout") || DEFAULT_TEST_TIMEOUT
   const k8sCtx = ctx as KubernetesPluginContext
 
-  const image = getDeployedImageId(action)
+  const image = getDeployedImageId(action, k8sCtx.provider)
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
 
   const res = await runAndCopy({
