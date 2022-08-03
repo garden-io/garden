@@ -6,7 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Action, ResolvedAction } from "../../actions/base"
+import { merge } from "lodash"
+import { Action, ExecutedAction } from "../../actions/base"
 import { Garden } from "../../garden"
 import { GardenModule } from "../../types/module"
 import { deline } from "../../util/string"
@@ -105,7 +106,7 @@ class ActionReferencesContext extends ConfigContext {
   @schema(_actionResultContextSchema.description("Alias for `run`."))
   public tasks: Map<string, ActionResultContext>
 
-  constructor(root: ConfigContext, allowPartial: boolean, resolvedDependencies: ResolvedAction[]) {
+  constructor(root: ConfigContext, allowPartial: boolean, actions: ExecutedAction[]) {
     super(root)
 
     this.build = new Map()
@@ -116,15 +117,15 @@ class ActionReferencesContext extends ConfigContext {
     this.services = this.deploy
     this.tasks = this.run
 
-    for (const dep of resolvedDependencies) {
-      this[dep.kind].set(
-        dep.name,
+    for (const action of actions) {
+      this[action.kind].set(
+        action.name,
         new ActionResultContext({
           root: this,
-          outputs: dep.getOutputs(),
-          version: dep.versionString(),
-          disabled: dep.isDisabled(),
-          variables: dep.getVariables(),
+          outputs: action.getOutputs(),
+          version: action.versionString(),
+          disabled: action.isDisabled(),
+          variables: action.getVariables(),
         })
       )
     }
@@ -140,7 +141,8 @@ export interface ActionSpecContextParams {
   modules: GardenModule[]
   partialRuntimeResolution: boolean
   action: Action
-  resolvedDependencies: ResolvedAction[]
+  executedDependencies: ExecutedAction[]
+  variables: DeepPrimitiveMap
 }
 
 /**
@@ -158,9 +160,14 @@ export class ActionSpecContext extends ModuleConfigContext {
   public runtime: ActionReferencesContext
 
   constructor(params: ActionSpecContextParams) {
-    const { action, garden, partialRuntimeResolution, resolvedDependencies } = params
+    const { action, garden, partialRuntimeResolution, variables, executedDependencies } = params
 
     const { internal } = action.getConfig()
+
+    const mergedVariables: DeepPrimitiveMap = {}
+    merge(mergedVariables, garden.variables)
+    merge(mergedVariables, variables)
+    merge(mergedVariables, garden.cliVariables)
 
     super({
       ...params,
@@ -170,12 +177,11 @@ export class ActionSpecContext extends ModuleConfigContext {
       parentName: internal?.parentName,
       templateName: internal?.templateName,
       inputs: internal?.inputs,
-      variables: { ...garden.variables, ...action.getVariables(), ...garden.cliVariables },
+      variables: mergedVariables,
     })
 
-    this.action = new ActionReferencesContext(this, partialRuntimeResolution, resolvedDependencies)
+    // TODO-G2: include resolved dependencies here as well, once static outputs are implemented
+    this.action = new ActionReferencesContext(this, partialRuntimeResolution, executedDependencies)
     this.runtime = this.action
-
-    // TODO-G2
   }
 }

@@ -10,7 +10,14 @@ import toposort from "toposort"
 import { flatten, difference, mapValues, cloneDeep } from "lodash"
 import { GardenBaseError } from "../exceptions"
 import { naturalList } from "../util/string"
-import { Action, ActionKind, actionReferenceToString, Resolved, ResolvedAction } from "../actions/base"
+import {
+  Action,
+  ActionDependencyType,
+  ActionKind,
+  actionReferenceToString,
+  Resolved,
+  ResolvedAction,
+} from "../actions/base"
 import { BuildAction } from "../actions/build"
 import { ActionReference, parseActionReference } from "../config/common"
 import { GardenModule } from "../types/module"
@@ -443,11 +450,11 @@ export class MutableConfigGraph extends ConfigGraph {
     this.addActionInternal(action)
   }
 
-  addDependency(by: ActionReference | string, on: ActionReference | string) {
+  addDependency(by: ActionReference | string, on: ActionReference | string, type: ActionDependencyType) {
     const dependant = this.getActionByRef(by)
     const dependency = this.getActionByRef(on)
 
-    dependant.addDependency(dependency)
+    dependant.addDependency({ ...dependency, type })
 
     this.addRelation({
       dependant: this.getNode(dependant.kind, dependant.name, dependant.isDisabled()),

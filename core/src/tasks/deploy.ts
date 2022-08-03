@@ -29,7 +29,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
 
   async getStatus({ dependencyResults }: ActionTaskProcessParams<DeployAction, DeployStatus>) {
     const log = this.log.placeholder()
-    const action = this.getResolvedAction(dependencyResults)
+    const action = this.getResolvedAction(this.action, dependencyResults)
 
     const devMode = includes(this.devModeDeployNames, action.name)
     const localMode = includes(this.localModeDeployNames, action.name)
@@ -67,7 +67,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
 
   async process({ dependencyResults, status }: ActionTaskProcessParams<DeployAction, DeployStatus>) {
     const version = this.version
-    const action = this.getResolvedAction(dependencyResults)
+    const action = this.getResolvedAction(this.action, dependencyResults)
 
     const devMode = includes(this.devModeDeployNames, action.name)
     const localMode = includes(this.localModeDeployNames, action.name)

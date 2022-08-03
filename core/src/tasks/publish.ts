@@ -65,7 +65,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
       return { state: <ActionState>"ready", detail: { published: false, outputs: {} }, outputs: {} }
     }
 
-    const action = this.getExecutedAction(dependencyResults)
+    const action = this.getExecutedAction(this.action, dependencyResults)
 
     let tag: string | undefined = undefined
 
@@ -78,7 +78,8 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
         resolvedProviders,
         modules: this.graph.getModules(),
         partialRuntimeResolution: false,
-        resolvedDependencies: action.getResolvedDependencies(),
+        executedDependencies: action.getExecutedDependencies(),
+        variables: action.getVariables(),
       })
 
       // Resolve template string and make sure the result is a string
