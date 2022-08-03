@@ -36,7 +36,7 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
       status: "active",
     })
     const router = await this.garden.getActionRouter()
-    const action = this.getResolvedAction(dependencyResults)
+    const action = this.getResolvedAction(this.action, dependencyResults)
 
     // The default handler (for plugins that don't implement getTaskResult) returns undefined.
     try {
@@ -60,7 +60,7 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
   }
 
   async process({ dependencyResults }: ActionTaskProcessParams<RunAction, GetRunResult>) {
-    const action = this.getResolvedAction(dependencyResults)
+    const action = this.getResolvedAction(this.action, dependencyResults)
 
     const log = this.log.info({
       section: action.key(),

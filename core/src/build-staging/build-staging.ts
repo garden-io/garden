@@ -121,7 +121,7 @@ export class BuildStaging {
 
   // TODO-G2: remove
   // TODO-G2: ensure build path elsewhere?
-  getBuildPath(config: BuildActionConfig | ModuleConfig): string {
+  getBuildPath(config: BuildActionConfig<string, any> | ModuleConfig): string {
     // We don't stage the build for local exec modules, so the module path is effectively the build path.
     if (config.kind === "Module" && config.type === "exec" && config["local"] === true) {
       return config.path
@@ -135,7 +135,7 @@ export class BuildStaging {
     return join(this.buildDirPath, config.name)
   }
 
-  async ensureBuildPath(config: BuildActionConfig): Promise<string> {
+  async ensureBuildPath(config: BuildActionConfig<string, any>): Promise<string> {
     const path = this.getBuildPath(config)
     await this.ensureDir(path)
     return path

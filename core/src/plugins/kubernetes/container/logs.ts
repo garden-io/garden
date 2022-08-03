@@ -23,7 +23,7 @@ export const k8sGetContainerDeployLogs: DeployActionHandler<"getLogs", Container
   const namespace = await getAppNamespace(k8sCtx, log, provider)
   const api = await KubeApi.factory(log, ctx, provider)
 
-  const imageId = getDeployedImageId(action)
+  const imageId = getDeployedImageId(action, provider)
 
   const resources = [
     await createWorkloadManifest({

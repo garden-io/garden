@@ -9,7 +9,6 @@
 import { join } from "path"
 import { ActionReference, includeGuideLink, joi, joiSparseArray, joiUserIdentifier } from "../config/common"
 import { ActionConfigContext } from "../config/template-contexts/actions"
-import { ResolvedConfigGraph } from "../graph/config-graph"
 import { GraphResult, GraphResults } from "../graph/solver"
 import { dedent } from "../util/string"
 import {
@@ -25,11 +24,11 @@ import {
   ExecutedActionExtension,
   ExecutedActionWrapperParams,
   ResolveActionParams,
-  Resolved,
-  ResolvedActionConstructor,
   ExecuteActionParams,
   Executed,
   ExecutedActionConstructor,
+  ExecutedAction,
+  ResolvedAction,
 } from "./base"
 
 export interface BuildCopyFrom {
@@ -38,9 +37,9 @@ export interface BuildCopyFrom {
   targetPath: string
 }
 
-export interface BuildActionConfig<N extends string = any, S extends object = any>
-  extends BaseActionConfig<"Build", N, S> {
-  type: N
+export interface BuildActionConfig<T extends string, S extends object>
+  extends BaseActionConfig<"Build", T, S> {
+  type: T
   allowPublish?: boolean
   buildAtSource?: boolean
   copyFrom?: BuildCopyFrom[]
@@ -129,7 +128,7 @@ export const buildActionConfig = () =>
       .meta({ templateContext: ActionConfigContext }),
   })
 
-export class BuildAction<C extends BuildActionConfig = BuildActionConfig, O extends {} = any> extends BaseAction<C, O> {
+export class BuildAction<C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>, O extends {} = any> extends BaseAction<C, O> {
   kind: "Build"
 
   /**
@@ -152,7 +151,7 @@ export class BuildAction<C extends BuildActionConfig = BuildActionConfig, O exte
   /**
    * Returns a resolved version of this action.
    */
-  resolve(params: ResolveActionParams): ResolvedBuildAction<C, O> {
+  resolve(params: ResolveActionParams<C>): ResolvedBuildAction<C, O> {
     // TODO-G2: validate static outputs here
     const constructor = Object.getPrototypeOf(this).constructor
     return constructor({ ...this.params, ...params })
@@ -160,21 +159,28 @@ export class BuildAction<C extends BuildActionConfig = BuildActionConfig, O exte
 }
 
 // TODO: see if we can avoid the duplication here with ResolvedRuntimeAction
-export abstract class ResolvedBuildAction<C extends BuildActionConfig = BuildActionConfig, O extends {} = any>
+export abstract class ResolvedBuildAction<C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>, O extends {} = any>
   extends BuildAction<C, O>
   implements ResolvedActionExtension<C> {
   protected readonly params: ResolvedActionWrapperParams<C>
+  protected readonly resolved: true
   private readonly dependencyResults: GraphResults
-  private readonly resolvedGraph: ResolvedConfigGraph
+  private readonly executedDependencies: ExecutedAction[]
+  private readonly resolvedDependencies: ResolvedAction[]
 
   constructor(params: ResolvedActionWrapperParams<C>) {
     super(params)
     this.dependencyResults = params.dependencyResults
-    this.resolvedGraph = params.resolvedGraph
+    this.executedDependencies = params.executedDependencies
+    this.resolvedDependencies = params.resolvedDependencies
+    this.resolved = true
+  }
+  getExecutedDependencies() {
+    return this.executedDependencies
   }
 
-  getResolvedDependencies() {
-    return this.dependencies.map((d) => this.resolvedGraph.getActionByRef(d))
+  getResolvedDependencies(): ResolvedAction[] {
+    return [...this.resolvedDependencies, ...this.executedDependencies]
   }
 
   getDependencyResult(ref: ActionReference | Action): GraphResult | null {
@@ -202,14 +208,16 @@ export abstract class ResolvedBuildAction<C extends BuildActionConfig = BuildAct
   }
 }
 
-export class ExecutedBuildAction<C extends BuildActionConfig = BuildActionConfig, O extends {} = any>
+export class ExecutedBuildAction<C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>, O extends {} = any>
   extends ResolvedBuildAction<C, O>
   implements ExecutedActionExtension<C, O> {
+  protected readonly executed: true
   private readonly status: ActionStatus<this, any, O>
 
   constructor(params: ExecutedActionWrapperParams<C, O>) {
     super(params)
     this.status = params.status
+    this.executed = true
   }
 
   getOutput<K extends keyof O>(key: K) {
@@ -222,5 +230,5 @@ export class ExecutedBuildAction<C extends BuildActionConfig = BuildActionConfig
 }
 
 export function isBuildAction(action: Action): action is BuildAction {
-  return action.kind === "build"
+  return action.kind === "Build"
 }

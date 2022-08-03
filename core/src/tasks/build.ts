@@ -29,14 +29,14 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildResult, Build
 
   async getStatus({ dependencyResults }: ActionTaskStatusParams<BuildAction>) {
     const router = await this.garden.getActionRouter()
-    const action = this.getResolvedAction(dependencyResults)
+    const action = this.getResolvedAction(this.action, dependencyResults)
     const status = await router.build.getStatus({ log: this.log, graph: this.graph, action })
     return { ...status, executedAction: action.execute({ status }) }
   }
 
   async process({ dependencyResults }: ActionTaskProcessParams<BuildAction, BuildStatus>) {
     const router = await this.garden.getActionRouter()
-    const action = this.getResolvedAction(dependencyResults)
+    const action = this.getResolvedAction(this.action, dependencyResults)
 
     let log = this.log.info({
       section: this.getName(),

@@ -34,6 +34,7 @@ export interface GraphResult<A extends BaseAction = BaseAction, H extends Action
   completedAt: Date | null
   error: Error | null
   outputs: A["_outputs"]
+  task: BaseTask
 }
 
 export interface GraphResults {
@@ -289,6 +290,7 @@ class TaskWrapper<T extends BaseTask = BaseTask> {
       error,
       version: this.task.version,
       outputs,
+      task,
     }
 
     return this.result
