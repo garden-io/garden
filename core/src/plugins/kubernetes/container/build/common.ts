@@ -39,6 +39,7 @@ import { compareDeployedResources, waitForResources } from "../../status/status"
 import { KubernetesDeployment, KubernetesResource } from "../../types"
 import { BuildActionHandler, BuildActionResults } from "../../../../plugin/action-types"
 import { k8sGetContainerBuildActionOutputs } from "../handlers"
+import { Resolved } from "../../../../actions/base"
 
 export const utilContainerName = "util"
 export const utilRsyncPort = 8730
@@ -210,7 +211,7 @@ export async function skopeoBuildStatus({
   api: KubeApi
   ctx: PluginContext
   provider: KubernetesProvider
-  action: ContainerBuildAction
+  action: Resolved<ContainerBuildAction>
 }): Promise<BuildStatusResult> {
   const deploymentRegistry = provider.config.deploymentRegistry
 

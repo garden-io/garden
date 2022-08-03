@@ -14,6 +14,7 @@ import { joi } from "../../../config/common"
 import { DeployAction } from "../../../actions/deploy"
 import { ServiceLogEntry } from "../../../types/service"
 import { ActionTypeHandlerSpec } from "../base/base"
+import { Resolved } from "../../../actions/base"
 
 interface GetDeployLogsParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   stream: Stream<ServiceLogEntry>
@@ -25,7 +26,7 @@ interface GetDeployLogsParams<T extends DeployAction> extends PluginDeployAction
 
 export class GetDeployLogs<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "Deploy",
-  GetDeployLogsParams<T>,
+  GetDeployLogsParams<Resolved<T>>,
   {}
 > {
   description = dedent`

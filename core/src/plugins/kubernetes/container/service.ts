@@ -12,6 +12,7 @@ import { ContainerDeployAction } from "../../container/moduleConfig"
 import { getDeploymentSelector } from "./deployment"
 import { KubernetesResource } from "../types"
 import { find } from "lodash"
+import { Resolved } from "../../../actions/base"
 
 function toServicePort(portSpec: ServicePortSpec): V1ServicePort {
   const port: V1ServicePort = {
@@ -30,7 +31,7 @@ function toServicePort(portSpec: ServicePortSpec): V1ServicePort {
 
 // todo: consider returning Promise<KubernetesResource<V1Service>[]>
 export async function createServiceResources(
-  action: ContainerDeployAction,
+  action: Resolved<ContainerDeployAction>,
   namespace: string,
   blueGreen: boolean
 ): Promise<any> {
@@ -40,7 +41,7 @@ export async function createServiceResources(
     return []
   }
 
-  const createServiceResource = (containerAction: ContainerDeployAction): KubernetesResource<V1Service> => {
+  const createServiceResource = (containerAction: Resolved<ContainerDeployAction>): KubernetesResource<V1Service> => {
     const serviceType = !!find(specPorts, (portSpec) => !!portSpec.nodePort) ? "NodePort" : "ClusterIP"
     const servicePorts = specPorts.map(toServicePort)
 

@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { join, relative, resolve } from "path"
+import { join, resolve } from "path"
 import { pathExists, readFile } from "fs-extra"
 import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "../../config/provider"
 import { joi } from "../../config/common"
@@ -23,7 +23,7 @@ import { createGardenPlugin } from "../../plugin/plugin"
 import { TestAction, TestActionConfig } from "../../actions/test"
 import { TestActionDefinition } from "../../plugin/action-types"
 import { ContainerBuildAction } from "../container/moduleConfig"
-import { resolveTemplateString } from "../../template-string/template-string"
+import { Resolved } from "../../actions/base"
 
 const defaultConfigPath = join(STATIC_DIR, "hadolint", "default.hadolint.yaml")
 const configFilename = ".hadolint.yaml"
@@ -92,7 +92,7 @@ export const gardenPlugin = () =>
 
         const existingHadolintDockerfiles = actions
           .filter((a) => a.isCompatible("hadolint"))
-          .map((a) => resolve(a.basePath(), a.getSpec("dockerfile")))
+          .map((a) => resolve(a.basePath(), a.getConfig("spec").dockerfile))
 
         return {
           addActions: await Bluebird.filter(actions, async (action) => {
@@ -101,9 +101,9 @@ export const gardenPlugin = () =>
               action.kind === "Build" &&
               action.isCompatible("container") &&
               // Make sure we don't step on an existing custom hadolint module
-              !existingHadolintDockerfiles.includes(resolve(action.basePath(), action.getSpec("dockerfile"))) &&
+              !existingHadolintDockerfiles.includes(resolve(action.basePath(), action.getConfig("spec").dockerfile)) &&
               // Only create for modules with Dockerfiles
-              containerHelpers.actionHasDockerfile(<ContainerBuildAction>action)
+              containerHelpers.actionHasDockerfile(<Resolved<ContainerBuildAction>>action)
             )
           }).map((action) => {
             const baseName = "hadolint-" + action.name
@@ -124,10 +124,7 @@ export const gardenPlugin = () =>
               description: `hadolint test for '${action.longDescription}' (auto-generated)`,
               basePath: action.basePath(),
               spec: {
-                dockerfilePath: relative(
-                  action.basePath(),
-                  resolve(action.basePath(), action.getSpec("dockerfile") || defaultDockerfileName)
-                ),
+                dockerfilePath: action.getConfig("spec").dockerfile || defaultDockerfileName,
               },
             }
           }),

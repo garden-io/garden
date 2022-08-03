@@ -12,7 +12,7 @@ import { joi } from "../../../config/common"
 import { BuildAction } from "../../../actions/build"
 import { actionOutputsSchema, ActionTypeHandlerSpec } from "../base/base"
 import _ from "lodash"
-import { GetActionOutputType } from "../../../actions/base"
+import { GetActionOutputType, Resolved } from "../../../actions/base"
 
 interface DoBuildActionParams<T extends BuildAction> extends PluginBuildActionParamsBase<T> {}
 
@@ -24,6 +24,7 @@ interface DoBuildActionParams<T extends BuildAction> extends PluginBuildActionPa
  */
 export type BuildState = "fetched" | "building" | "built" | "failed"
 
+// TODO-G2: use BuildStatus and combine as needed
 export interface BuildResult<T extends BuildAction = BuildAction> {
   buildLog?: string
   fetched?: boolean
@@ -47,7 +48,7 @@ export const buildResultSchema = () =>
 
 export class DoBuildAction<T extends BuildAction = BuildAction> extends ActionTypeHandlerSpec<
   "Build",
-  DoBuildActionParams<T>,
+  DoBuildActionParams<Resolved<T>>,
   BuildResult<T>
 > {
   description = dedent`

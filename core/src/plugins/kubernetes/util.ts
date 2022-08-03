@@ -44,6 +44,7 @@ import { PodRunner } from "./run"
 import { isSubset } from "../../util/is-subset"
 import { checkPodStatus } from "./status/pod"
 import { getActionNamespace } from "./namespace"
+import { Resolved } from "../../actions/base"
 
 export const skopeoImage = "gardendev/skopeo:1.41.0-2"
 
@@ -579,7 +580,7 @@ interface GetTargetResourceParams {
   log: LogEntry
   provider: KubernetesProvider
   manifests?: KubernetesResource[]
-  action: SupportedRuntimeActions
+  action: Resolved<SupportedRuntimeActions>
   query: KubernetesTargetResourceSpec
 }
 

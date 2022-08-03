@@ -9,7 +9,6 @@
 import chalk from "chalk"
 import { BuildTask } from "./build"
 import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams } from "../tasks/base"
-import { emptyRuntimeContext } from "../runtime-context"
 import { resolveTemplateString } from "../template-string/template-string"
 import { joi } from "../config/common"
 import { versionStringPrefix } from "../vcs/vcs"
@@ -56,15 +55,17 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
     return null
   }
 
-  async process({ resolvedAction: action }: ActionTaskProcessParams<BuildAction>) {
-    if (action.getConfig("allowPublish") === false) {
+  async process({ dependencyResults }: ActionTaskProcessParams<BuildAction, PublishActionResult>) {
+    if (this.action.getConfig("allowPublish") === false) {
       this.log.info({
-        section: action.key(),
+        section: this.action.key(),
         msg: "Publishing disabled (allowPublish=false set on module)",
         status: "active",
       })
       return { state: <ActionState>"ready", detail: { published: false, outputs: {} }, outputs: {} }
     }
+
+    const action = this.getExecutedAction(dependencyResults)
 
     let tag: string | undefined = undefined
 

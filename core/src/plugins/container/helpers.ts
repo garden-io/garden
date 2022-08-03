@@ -32,6 +32,7 @@ import { ModuleVersion } from "../../vcs/vcs"
 import { SpawnParams } from "../../util/ext-tools"
 import { ContainerBuildAction } from "./config"
 import { joinWithPosix } from "../../util/fs"
+import { Resolved } from "../../actions/base"
 
 interface DockerVersion {
   client?: string
@@ -89,7 +90,7 @@ const helpers = {
    * - The tag  part of the `image` field, if one is set and it includes a tag part.
    * - The Garden version of the module.
    */
-  getPublicImageId(action: ContainerBuildAction, tag?: string) {
+  getPublicImageId(action: Resolved<ContainerBuildAction>, tag?: string) {
     // TODO: allow setting a default user/org prefix in the project/plugin config
     const explicitImage = action.getSpec("publishId")
 
@@ -342,7 +343,7 @@ const helpers = {
     return !!config.spec.dockerfile || version.files.includes(getDockerfilePath(config.path, config.spec.dockerfile))
   },
 
-  async actionHasDockerfile(action: ContainerBuildAction): Promise<boolean> {
+  async actionHasDockerfile(action: Resolved<ContainerBuildAction>): Promise<boolean> {
     // If we explicitly set a Dockerfile, we take that to mean you want it to be built.
     // If the file turns out to be missing, this will come up in the build handler.
     const dockerfile = action.getSpec("dockerfile")

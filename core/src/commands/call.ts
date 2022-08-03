@@ -75,8 +75,11 @@ export class CallCommand extends Command<Args> {
     // No need for full context, since we're just checking if the deploy is running.
     const runtimeContext = emptyRuntimeContext
     const router = await garden.getActionRouter()
+
+    const resolved = await garden.resolveAction({ action, graph, log })
+
     const status = await router.deploy.getStatus({
-      action,
+      action: resolved,
       log,
       graph,
       devMode: false,

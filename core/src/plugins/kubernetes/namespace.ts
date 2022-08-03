@@ -23,6 +23,7 @@ import { isSubset } from "../../util/is-subset"
 import chalk from "chalk"
 import { NamespaceStatus } from "../../plugin/base"
 import { KubernetesServerResource, SupportedRuntimeActions } from "./types"
+import { Resolved } from "../../actions/base"
 
 const GARDEN_VERSION = getPackageVersion()
 
@@ -301,7 +302,7 @@ export async function getActionNamespace({
 }: {
   ctx: KubernetesPluginContext
   log: LogEntry
-  action: SupportedRuntimeActions
+  action: Resolved<SupportedRuntimeActions>
   provider: KubernetesProvider
   skipCreate?: boolean
 }): Promise<string> {
@@ -324,7 +325,7 @@ export async function getActionNamespaceStatus({
 }: {
   ctx: KubernetesPluginContext
   log: LogEntry
-  action: SupportedRuntimeActions
+  action: Resolved<SupportedRuntimeActions>
   provider: KubernetesProvider
   skipCreate?: boolean
 }): Promise<NamespaceStatus> {

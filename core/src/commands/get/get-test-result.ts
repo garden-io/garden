@@ -57,10 +57,12 @@ export class GetTestResultCommand extends Command<Args, {}, GetTestResultCommand
 
     const router = await garden.getActionRouter()
 
+    const resolved = await garden.resolveAction({ action, graph, log })
+
     const res = await router.test.getResult({
       log,
       graph,
-      action,
+      action: resolved,
     })
 
     let artifacts: string[] = []

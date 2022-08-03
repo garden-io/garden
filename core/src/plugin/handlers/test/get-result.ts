@@ -11,7 +11,7 @@ import { PluginTestActionParamsBase, actionParamsSchema } from "../../base"
 import { TestAction } from "../../../actions/test"
 import { TestResult, testResultSchema } from "../../../types/test"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { ActionStatus } from "../../../actions/base"
+import { ActionStatus, Resolved } from "../../../actions/base"
 import { joi } from "../../../config/common"
 
 interface GetTestResultParams<T extends TestAction> extends PluginTestActionParamsBase<T> {}
@@ -20,7 +20,7 @@ export type GetTestResult<T extends TestAction = TestAction> = ActionStatus<T, T
 
 export class GetTestActionResult<T extends TestAction = TestAction> extends ActionTypeHandlerSpec<
   "Test",
-  GetTestResultParams<T>,
+  GetTestResultParams<Resolved<T>>,
   GetTestResult<T>
 > {
   description = dedent`

@@ -7,17 +7,19 @@
  */
 
 import toposort from "toposort"
-import { flatten, uniq, difference, mapValues, cloneDeep } from "lodash"
+import { flatten, difference, mapValues, cloneDeep } from "lodash"
 import { GardenBaseError } from "../exceptions"
 import { naturalList } from "../util/string"
-import { Action, ActionKind, actionReferenceToString, Resolved, ResolvedAction, RuntimeAction } from "../actions/base"
+import { Action, ActionKind, actionReferenceToString, Resolved, ResolvedAction } from "../actions/base"
 import { BuildAction } from "../actions/build"
 import { ActionReference, parseActionReference } from "../config/common"
-import { GardenModule, ModuleTypeMap } from "../types/module"
+import { GardenModule } from "../types/module"
 import { GetManyParams, ModuleGraph } from "./modules"
-import { ActionTypeMap, GenericActionTypeMap } from "../plugin/action-types"
 import { getNames } from "../util/util"
 import { nodeKey } from "./common"
+import { DeployAction } from "../actions/deploy"
+import { RunAction } from "../actions/run"
+import { TestAction } from "../actions/test"
 
 export type DependencyRelationFilterFn = (node: ConfigGraphNode) => boolean
 
@@ -38,13 +40,6 @@ export interface RenderedNode {
 
 export type GraphNodes = { [key: string]: ConfigGraphNode }
 
-interface ResolvedActionTypeMap extends GenericActionTypeMap {
-  build: Resolved<BuildAction>
-  deploy: Resolved<RuntimeAction>
-  run: Resolved<RuntimeAction>
-  test: Resolved<RuntimeAction>
-}
-
 interface GetActionOpts {
   includeDisabled?: boolean
   ignoreMissing?: boolean
@@ -58,23 +53,37 @@ export class GraphError extends GardenBaseError {
   type = "graph"
 }
 
+type PickTypeByKind<
+  K extends ActionKind,
+  B extends BuildAction,
+  D extends DeployAction,
+  R extends RunAction,
+  T extends TestAction
+> = K extends "Build" ? B : K extends "Deploy" ? D : K extends "Run" ? R : T
+
 /**
  * A graph data structure that facilitates querying (recursive or non-recursive) of the project's dependency and
  * dependant relationships.
  *
  * This should be initialized with resolved and validated GardenModules.
  */
-export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeMap = ActionTypeMap> {
+export abstract class BaseConfigGraph<
+  A extends Action,
+  B extends BuildAction,
+  D extends DeployAction,
+  R extends RunAction,
+  T extends TestAction
+> {
   protected dependencyGraph: GraphNodes
 
   protected actions: {
-    Build: { [key: string]: M["Build"] }
-    Deploy: { [key: string]: M["Deploy"] }
-    Run: { [key: string]: M["Run"] }
-    Test: { [key: string]: M["Test"] }
+    Build: { [key: string]: B }
+    Deploy: { [key: string]: D }
+    Run: { [key: string]: R }
+    Test: { [key: string]: T }
   }
 
-  protected moduleGraph: ModuleGraph
+  readonly moduleGraph: ModuleGraph
 
   constructor({ actions, moduleGraph }: { actions: Action[]; moduleGraph: ModuleGraph }) {
     this.dependencyGraph = {}
@@ -132,11 +141,15 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
 
   getActionByRef(refOrString: ActionReference | string): A {
     const ref = parseActionReference(refOrString)
-    return <A>this.getActionByKind(ref.kind, ref.name)
+    return <A>(<unknown>this.getActionByKind(ref.kind, ref.name))
   }
 
-  getActionByKind<K extends ActionKind>(kind: K, name: string, opts: GetActionOpts = {}): M[K] {
-    const action = <M[K]>this.actions[kind][name]
+  getActionByKind<K extends ActionKind>(
+    kind: K,
+    name: string,
+    opts: GetActionOpts = {}
+  ): PickTypeByKind<K, B, D, R, T> {
+    const action = this.actions[kind][name]
 
     if (!action) {
       throw new GraphError(`Could not find ${kind} action ${name}.`, {
@@ -150,7 +163,7 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
       })
     }
 
-    return action
+    return <PickTypeByKind<K, B, D, R, T>>action
   }
 
   getNamesByKind() {
@@ -160,7 +173,7 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
   getActionsByKind<K extends ActionKind>(
     kind: K,
     { names, includeDisabled = false, ignoreMissing = false }: GetActionsParams = {}
-  ): M[K][] {
+  ): PickTypeByKind<K, B, D, R, T>[] {
     const foundNames: string[] = []
 
     const found = Object.values(this.actions[kind]).filter((a) => {
@@ -188,35 +201,35 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
     return found
   }
 
-  getBuild(name: string, opts?: GetActionOpts) {
+  getBuild(name: string, opts?: GetActionOpts): B {
     return this.getActionByKind("Build", name, opts)
   }
 
-  getDeploy(name: string, opts?: GetActionOpts) {
+  getDeploy(name: string, opts?: GetActionOpts): D {
     return this.getActionByKind("Deploy", name, opts)
   }
 
-  getRun(name: string, opts?: GetActionOpts) {
+  getRun(name: string, opts?: GetActionOpts): R {
     return this.getActionByKind("Run", name, opts)
   }
 
-  getTest(name: string, opts?: GetActionOpts) {
+  getTest(name: string, opts?: GetActionOpts): T {
     return this.getActionByKind("Test", name, opts)
   }
 
-  getBuilds(params: GetActionsParams = {}) {
+  getBuilds(params: GetActionsParams = {}): B[] {
     return this.getActionsByKind("Build", params)
   }
 
-  getDeploys(params: GetActionsParams = {}) {
+  getDeploys(params: GetActionsParams = {}): D[] {
     return this.getActionsByKind("Deploy", params)
   }
 
-  getRuns(params: GetActionsParams = {}) {
+  getRuns(params: GetActionsParams = {}): R[] {
     return this.getActionsByKind("Run", params)
   }
 
-  getTests(params: GetActionsParams = {}) {
+  getTests(params: GetActionsParams = {}): T[] {
     return this.getActionsByKind("Test", params)
   }
 
@@ -416,6 +429,15 @@ export class ConfigGraph<A extends Action = Action, M extends GenericActionTypeM
   }
 }
 
+export class ConfigGraph extends BaseConfigGraph<Action, BuildAction, DeployAction, RunAction, TestAction> {}
+export class ResolvedConfigGraph extends BaseConfigGraph<
+  ResolvedAction,
+  Resolved<BuildAction>,
+  Resolved<DeployAction>,
+  Resolved<RunAction>,
+  Resolved<TestAction>
+> {}
+
 export class MutableConfigGraph extends ConfigGraph {
   addAction(action: Action) {
     this.addActionInternal(action)
@@ -438,8 +460,6 @@ export class MutableConfigGraph extends ConfigGraph {
     return this.clone()
   }
 }
-
-export class ResolvedConfigGraph extends ConfigGraph<ResolvedAction, ResolvedActionTypeMap> {}
 
 export interface ConfigGraphEdge {
   dependant: ConfigGraphNode

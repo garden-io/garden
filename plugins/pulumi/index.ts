@@ -43,7 +43,7 @@ export const gardenPlugin = () =>
     createActionTypes: {
       Deploy: [
         {
-          name: "terraform",
+          name: "pulumi",
           docs: dedent`
           Deploys a Pulumi stack and either creates/updates it automatically (if \`autoApply: true\`) or warns when the stack resources are not up-to-date, or errors if it's missing entirely.
 

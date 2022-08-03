@@ -27,6 +27,7 @@ import { KubernetesDeployAction } from "./kubernetes-type/config"
 import { HelmDeployAction } from "./helm/config"
 import { DeployAction } from "../../actions/deploy"
 import { GetPortForwardResult } from "../../plugin/handlers/deploy/get-port-forward"
+import { Resolved } from "../../actions/base"
 
 // TODO: implement stopPortForward handler
 
@@ -219,7 +220,7 @@ function getTargetResourceName(action: SupportedRuntimeActions, targetName?: str
  */
 export function getForwardablePorts(
   resources: KubernetesResource[],
-  parentAction: KubernetesDeployAction | HelmDeployAction | undefined
+  parentAction: Resolved<KubernetesDeployAction | HelmDeployAction> | undefined
 ): ForwardablePort[] {
   const spec = parentAction?.getSpec()
 

@@ -43,7 +43,7 @@ import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { VcsHandler, ModuleVersion, getModuleVersionString, VcsInfo } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
 import { BuildStaging } from "./build-staging/build-staging"
-import { ConfigGraph } from "./graph/config-graph"
+import { ConfigGraph, ResolvedConfigGraph } from "./graph/config-graph"
 import { getLogger } from "./logger/logger"
 import { ProviderHandlers, GardenPlugin } from "./plugin/plugin"
 import { loadConfigResources, findProjectConfig, GardenResource } from "./config/base"
@@ -133,7 +133,7 @@ import {
   BaseActionConfig,
 } from "./actions/base"
 import { GraphSolver, SolveParams, SolveResult } from "./graph/solver"
-import { actionConfigsToGraph, actionFromConfig } from "./graph/actions"
+import { actionConfigsToGraph, actionFromConfig, executeAction, resolveAction, resolveActions } from "./graph/actions"
 
 export interface ActionHandlerMap<T extends keyof ProviderHandlers> {
   [actionName: string]: ProviderHandlers[T]
@@ -399,6 +399,7 @@ export class Garden {
     this.solver.clearCache()
   }
 
+  // TODO: would be nice if this returned a type based on the input tasks
   async processTasks(params: SolveParams): Promise<SolveResult> {
     return this.solver.solve(params)
   }
@@ -773,15 +774,7 @@ export class Garden {
    * When implementing a new command that calls this method and also streams events, make sure that the first
    * call to `getConfigGraph` in the command uses `emit = true` to ensure that the graph event gets streamed.
    */
-  async getConfigGraph({
-    log,
-    runtimeContext,
-    emit,
-  }: {
-    log: LogEntry
-    runtimeContext?: RuntimeContext
-    emit: boolean
-  }): Promise<ConfigGraph> {
+  async getConfigGraph({ log, runtimeContext, emit }: GetConfigGraphParams): Promise<ConfigGraph> {
     await this.scanAndAddConfigs()
 
     const resolvedProviders = await this.resolveProviders(log)
@@ -942,6 +935,44 @@ export class Garden {
     log.setSuccess({ msg: chalk.green("Done"), append: true })
 
     return graph.toConfigGraph()
+  }
+
+  async getResolvedConfigGraph(params: GetConfigGraphParams): Promise<ResolvedConfigGraph> {
+    const graph = await this.getConfigGraph(params)
+    const resolved = await this.resolveActions({ graph, actions: graph.getActions(), log: params.log })
+    return new ResolvedConfigGraph({ actions: Object.values(resolved), moduleGraph: graph.moduleGraph })
+  }
+
+  async resolveAction<T extends Action>({ action, graph, log }: { action: T; log: LogEntry; graph?: ConfigGraph }) {
+    if (!graph) {
+      graph = await this.getConfigGraph({ log, emit: false })
+    }
+
+    return resolveAction({ garden: this, action, graph, log })
+  }
+
+  async resolveActions<T extends Action>({
+    actions,
+    graph,
+    log,
+  }: {
+    actions: T[]
+    log: LogEntry
+    graph?: ConfigGraph
+  }) {
+    if (!graph) {
+      graph = await this.getConfigGraph({ log, emit: false })
+    }
+
+    return resolveActions({ garden: this, actions, graph, log })
+  }
+
+  async executeAction<T extends Action>({ action, graph, log }: { action: T; log: LogEntry; graph?: ConfigGraph }) {
+    if (!graph) {
+      graph = await this.getConfigGraph({ log, emit: false })
+    }
+
+    return executeAction({ garden: this, action, graph, log })
   }
 
   /**
@@ -1504,4 +1535,10 @@ export interface ConfigDump {
   projectRoot: string
   projectId?: string
   domain?: string
+}
+
+interface GetConfigGraphParams {
+  log: LogEntry
+  runtimeContext?: RuntimeContext
+  emit: boolean
 }

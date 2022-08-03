@@ -39,9 +39,11 @@ import {
   ContainerDeployAction,
   ContainerRunAction,
   ContainerTestAction,
+  ContainerRuntimeAction,
 } from "./config"
 import { publishContainerBuild } from "./publish"
 import { DeployActionDefinition, RunActionDefinition, TestActionDefinition } from "../../plugin/action-types"
+import { Resolved } from "../../actions/base"
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
 export type ContainerProvider = Provider<ContainerProviderConfig>
@@ -502,7 +504,7 @@ export const gardenPlugin = () =>
     ],
   })
 
-function validateCommon(action: ContainerDeployAction | ContainerRunAction | ContainerTestAction) {
+function validateCommon(action: Resolved<ContainerRuntimeAction>) {
   const { build } = action.getConfig()
   const { image } = action.getSpec()
 
