@@ -17,7 +17,9 @@ GARDEN_LOGGER_TYPE=basic garden test frontend -n no-artifacts
 GARDEN_LOGGER_TYPE=basic garden test frontend
 ```
 
-Logs from with artifacts run:
+---
+
+Logs from **with** artifacts run:
 ```log
 Failed running with-artifacts tests in module frontend. Here is the output:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
