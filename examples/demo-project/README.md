@@ -8,11 +8,11 @@ This example tries to reproduce issue where garden misses most logs when running
 how to run:
 ```sh
 # with artifacts
-GARDEN_LOGGER_TYPE=basic gdev run test frontend with-artifacts
+GARDEN_LOGGER_TYPE=basic garden test frontend -n with-artifacts
 
 # no artifacts
-GARDEN_LOGGER_TYPE=basic gdev run test frontend no-artifacts
+GARDEN_LOGGER_TYPE=basic garden test frontend -n no-artifacts
 
 # both together
-GARDEN_LOGGER_TYPE=basic gdev test frontend
+GARDEN_LOGGER_TYPE=basic garden test frontend
 ```
