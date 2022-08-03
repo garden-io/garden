@@ -119,10 +119,12 @@ export class RunBuildCommand extends Command<Args, Opts> {
       log.root.stop()
     }
 
+    const executed = await garden.executeAction({ log, graph, action })
+
     const result = await router.build.run({
       log,
       graph,
-      action,
+      action: executed,
       command: opts.command?.split(" "),
       args: args.arguments || [],
       runtimeContext,

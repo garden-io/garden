@@ -13,6 +13,7 @@ import { taskResultSchema } from "../../../types/task"
 import { RunAction } from "../../../actions/run"
 import { ActionTypeHandlerSpec } from "../base/base"
 import { GetRunResult } from "./get-result"
+import { Resolved } from "../../../actions/base"
 
 export interface CommonRunParams {
   artifactsPath: string
@@ -24,7 +25,7 @@ type RunActionParams<T extends RunAction> = PluginRunActionParamsBase<T> & Commo
 
 export class RunRunAction<T extends RunAction = RunAction> extends ActionTypeHandlerSpec<
   "Run",
-  RunActionParams<T>,
+  RunActionParams<Resolved<T>>,
   GetRunResult<T>
 > {
   description = dedent`

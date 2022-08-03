@@ -19,11 +19,13 @@ import {
   baseActionConfigSchema,
   describeActionConfig,
   describeActionConfigWithPath,
+  Executed,
+  Resolved,
 } from "../actions/base"
-import { BuildAction, buildActionConfig } from "../actions/build"
-import { DeployAction } from "../actions/deploy"
-import { RunAction } from "../actions/run"
-import { TestAction } from "../actions/test"
+import { BuildAction, buildActionConfig, isBuildAction } from "../actions/build"
+import { DeployAction, isDeployAction } from "../actions/deploy"
+import { isRunAction, RunAction } from "../actions/run"
+import { isTestAction, TestAction } from "../actions/test"
 import { loadVarfile, noTemplateFields } from "../config/base"
 import { ActionReference, DeepPrimitiveMap, parseActionReference } from "../config/common"
 import type { GroupConfig } from "../config/group"
@@ -36,6 +38,12 @@ import type { LogEntry } from "../logger/log-entry"
 import { getActionTypeBases } from "../plugins"
 import type { BaseActionRouter } from "../router/base"
 import type { ActionRouter } from "../router/router"
+import { BaseActionTaskParams } from "../tasks/base"
+import { BuildTask } from "../tasks/build"
+import { DeployTask } from "../tasks/deploy"
+import { ResolveActionTask } from "../tasks/resolve-action"
+import { RunTask } from "../tasks/run"
+import { TestTask } from "../tasks/test"
 import { resolveTemplateStrings, getActionTemplateReferences } from "../template-string/template-string"
 import { dedent } from "../util/string"
 import { ConfigGraph, MutableConfigGraph } from "./config-graph"
@@ -163,6 +171,109 @@ export function actionNameConflictError(configA: ActionConfig, configB: ActionCo
   )
 }
 
+// TODO-G2
+/**
+ * Helper for resolving a single action.
+ *
+ * This runs the GraphSolver as needed to resolve dependencies and fully resolve the action's spec.
+ */
+export async function resolveAction<T extends Action>({
+  garden,
+  graph,
+  action,
+  log,
+}: {
+  garden: Garden
+  graph: ConfigGraph
+  action: T
+  log: LogEntry
+}): Promise<Resolved<T>> {
+  const task = new ResolveActionTask({
+    garden,
+    action,
+    graph,
+    log,
+    force: true,
+    devModeDeployNames: [],
+    localModeDeployNames: [],
+    fromWatch: false,
+  })
+
+  const results = await garden.processTasks({ tasks: [task], log, throwOnError: true })
+
+  return <Resolved<T>>(<unknown>results.results[task.getKey()]!)
+}
+
+export interface ResolvedActions<T extends Action> {
+  [key: string]: Resolved<T>
+}
+
+/**
+ * Helper for resolving specific actions.
+ *
+ * This runs the GraphSolver as needed to resolve dependencies and fully resolve the action specs.
+ */
+export async function resolveActions<T extends Action>({
+  garden,
+  graph,
+  actions,
+  log,
+}: {
+  garden: Garden
+  graph: ConfigGraph
+  actions: T[]
+  log: LogEntry
+}): Promise<ResolvedActions<T>> {
+  const tasks = actions.map(
+    (action) =>
+      new ResolveActionTask({
+        garden,
+        action,
+        graph,
+        log,
+        force: true,
+        devModeDeployNames: [],
+        localModeDeployNames: [],
+        fromWatch: false,
+      })
+  )
+
+  const results = await garden.processTasks({ tasks, log, throwOnError: true })
+
+  return <ResolvedActions<T>>(<unknown>results.results)
+}
+
+/**
+ * Helper for executing a single action.
+ *
+ * This runs the GraphSolver as needed to resolve dependencies and execute the action if needed.
+ */
+export async function executeAction<T extends Action>({
+  garden,
+  graph,
+  action,
+  log,
+}: {
+  garden: Garden
+  graph: ConfigGraph
+  action: T
+  log: LogEntry
+}): Promise<Executed<T>> {
+  const task = getExecuteTaskForAction(action, {
+    garden,
+    graph,
+    log,
+    force: true,
+    devModeDeployNames: [],
+    localModeDeployNames: [],
+    fromWatch: false,
+  })
+
+  const results = await garden.processTasks({ tasks: [task], log, throwOnError: true })
+
+  return <Executed<T>>(<unknown>results.results[task.getKey()]!)
+}
+
 const getActionConfigContextKeys = memoize(() => {
   const schema = buildActionConfig()
   const configKeys = schema.describe().keys
@@ -171,7 +282,22 @@ const getActionConfigContextKeys = memoize(() => {
     .filter(isString)
 })
 
-export async function preprocessActionConfig({
+export function getExecuteTaskForAction(action: Action, baseParams: Omit<BaseActionTaskParams, "action">) {
+  if (isBuildAction(action)) {
+    return new BuildTask({ ...baseParams, action })
+  } else if (isDeployAction(action)) {
+    return new DeployTask({ ...baseParams, action })
+  } else if (isRunAction(action)) {
+    return new RunTask({ ...baseParams, action })
+  } else if (isTestAction(action)) {
+    return new TestTask({ ...baseParams, action })
+  } else {
+    // Shouldn't happen
+    throw new InternalError(`Unexpected action kind ${action.kind}`, { config: action.getConfig() })
+  }
+}
+
+async function preprocessActionConfig({
   garden,
   config,
   router,
@@ -259,7 +385,7 @@ export async function preprocessActionConfig({
   return config
 }
 
-export async function resolveActionVarfiles(config: ActionConfig) {
+async function resolveActionVarfiles(config: ActionConfig) {
   const varsByFile = await Bluebird.map(config.varfiles || [], (path) => {
     return loadVarfile({
       configRoot: config.basePath,
@@ -278,7 +404,7 @@ export async function resolveActionVarfiles(config: ActionConfig) {
   return output
 }
 
-export function dependenciesFromActionConfig(config: ActionConfig, configsByKey: ActionConfigsByKey) {
+function dependenciesFromActionConfig(config: ActionConfig, configsByKey: ActionConfigsByKey) {
   const description = describeActionConfig(config)
 
   if (!config.dependencies) {
@@ -290,13 +416,13 @@ export function dependenciesFromActionConfig(config: ActionConfig, configsByKey:
     return { kind, name, type: "explicit" }
   })
 
-  function addImplicitDep(ref: ActionReference) {
+  function addImplicitDep(ref: ActionReference, executed: boolean) {
     for (const dep of deps) {
       if (actionRefMatches(ref, dep)) {
         return
       }
     }
-    deps.push({ ...ref, type: "implicit" })
+    deps.push({ ...ref, type: executed ? "implicit-executed" : "implicit" })
   }
 
   if (config.kind === "Build") {
@@ -313,7 +439,7 @@ export function dependenciesFromActionConfig(config: ActionConfig, configsByKey:
         )
       }
 
-      addImplicitDep(ref)
+      addImplicitDep(ref, true)
     }
   } else if (config.build) {
     // -> build field on runtime actions
@@ -327,11 +453,12 @@ export function dependenciesFromActionConfig(config: ActionConfig, configsByKey:
       )
     }
 
-    addImplicitDep(ref)
+    addImplicitDep(ref, true)
   }
 
   // -> Action template references in spec/variables
   for (const ref of getActionTemplateReferences(config)) {
+    // TODO-G2: tease apart runtime and static output references
     addImplicitDep(ref)
   }
 

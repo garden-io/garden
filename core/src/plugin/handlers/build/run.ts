@@ -18,6 +18,7 @@ import { RuntimeContext } from "../../../runtime-context"
 import { joiArray, joi } from "../../../config/common"
 import { BuildAction } from "../../../actions/build"
 import { ActionTypeHandlerSpec } from "../base/base"
+import { Executed } from "../../../actions/base"
 
 // TODO: remove in 0.13? Seems out of place now.
 
@@ -39,7 +40,7 @@ const runBuildParamsSchema = () =>
 
 export class RunBuildAction<T extends BuildAction = BuildAction> extends ActionTypeHandlerSpec<
   "Build",
-  RunBuildParams<T>,
+  RunBuildParams<Executed<T>>,
   RunResult
 > {
   description = dedent`

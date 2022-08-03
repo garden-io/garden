@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BaseActionTask, BaseActionTaskParams } from "./base"
+import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams } from "./base"
 import { ServiceStatus } from "../types/service"
 import { GraphResults, GraphResult } from "../graph/solver"
 import { DeployAction, isDeployAction } from "../actions/deploy"
@@ -36,8 +36,10 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
   }
 
   resolveDependencies() {
+    const resolveTask = this.getResolveTask(this.action)
+
     if (!this.dependantsFirst) {
-      return []
+      return [resolveTask]
     }
 
     // Note: We delete in _reverse_ dependency order, so we query for dependants
@@ -48,7 +50,7 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
       filter: (depNode) => depNode.type === "Deploy" && this.deleteDeployNames.includes(depNode.name),
     })
 
-    return deps.filter(isDeployAction).map((action) => {
+    const depTasks = deps.filter(isDeployAction).map((action) => {
       return new DeleteDeployTask({
         ...this.getBaseDependencyParams(),
         action,
@@ -57,6 +59,8 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
         dependantsFirst: true,
       })
     })
+
+    return [...depTasks, resolveTask]
   }
 
   getName() {
@@ -71,12 +75,13 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
     return null
   }
 
-  async process() {
-    const actions = await this.garden.getActionRouter()
+  async process({ dependencyResults }: ActionTaskProcessParams<DeployAction, DeployStatus>) {
+    const action = this.getResolvedAction(dependencyResults)
+    const router = await this.garden.getActionRouter()
     let status: DeployStatus
 
     try {
-      status = await actions.deploy.delete({ log: this.log, action: this.action, graph: this.graph })
+      status = await router.deploy.delete({ log: this.log, action, graph: this.graph })
     } catch (err) {
       this.log.setError()
       throw err

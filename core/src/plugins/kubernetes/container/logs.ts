@@ -14,6 +14,7 @@ import { createWorkloadManifest } from "./deployment"
 import { emptyRuntimeContext } from "../../../runtime-context"
 import { KubeApi } from "../api"
 import { DeployActionHandler } from "../../../plugin/action-types"
+import { getDeployedImageId } from "./util"
 
 export const k8sGetContainerDeployLogs: DeployActionHandler<"getLogs", ContainerDeployAction> = async (params) => {
   const { ctx, log, action } = params
@@ -22,7 +23,7 @@ export const k8sGetContainerDeployLogs: DeployActionHandler<"getLogs", Container
   const namespace = await getAppNamespace(k8sCtx, log, provider)
   const api = await KubeApi.factory(log, ctx, provider)
 
-  const imageId = action.getOutput("deployedImageId")
+  const imageId = getDeployedImageId(action)
 
   const resources = [
     await createWorkloadManifest({

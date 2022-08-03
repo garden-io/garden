@@ -13,7 +13,7 @@ import { RuntimeContext, runtimeContextSchema } from "../../../runtime-context"
 import { joi } from "../../../config/common"
 import { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { ActionStatus, GetActionOutputType } from "../../../actions/base"
+import { ActionStatus, GetActionOutputType, Resolved } from "../../../actions/base"
 
 interface GetDeployStatusParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   devMode: boolean
@@ -28,7 +28,7 @@ export type DeployStatus<T extends DeployAction = DeployAction> = ActionStatus<
 
 export class GetDeployStatus<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "Deploy",
-  GetDeployStatusParams<T>,
+  GetDeployStatusParams<Resolved<T>>,
   DeployStatus<T>
 > {
   description = dedent`

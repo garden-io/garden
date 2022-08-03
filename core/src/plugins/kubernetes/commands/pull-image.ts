@@ -24,6 +24,7 @@ import { PluginContext } from "../../../plugin-context"
 import { ensureBuilderSecret } from "../container/build/common"
 import { ContainerBuildAction } from "../../container/config"
 import { k8sGetContainerBuildActionOutputs } from "../container/handlers"
+import { Resolved } from "../../../actions/base"
 
 const tmpTarPath = "/tmp/image.tar"
 const imagePullTimeoutSeconds = 60 * 20
@@ -34,7 +35,7 @@ export const pullImage: PluginCommand = {
   title: "Pull images from a remote registry",
   resolveGraph: true,
 
-  handler: async ({ ctx, args, log, graph }) => {
+  handler: async ({ ctx, args, log, garden, graph }) => {
     const result = {}
     const k8sCtx = ctx as KubernetesPluginContext
     const provider = k8sCtx.provider
@@ -57,7 +58,9 @@ export const pullImage: PluginCommand = {
 
     log.info({ msg: chalk.cyan(`\nPulling images for ${buildsToPull.length} builds`) })
 
-    await pullBuilds(k8sCtx, buildsToPull, log)
+    const resolvedBuilds = await garden.resolveActions({ actions: buildsToPull, graph, log })
+
+    await pullBuilds(k8sCtx, Object.values(resolvedBuilds), log)
 
     log.info({ msg: chalk.green("\nDone!"), status: "success" })
 
@@ -65,7 +68,7 @@ export const pullImage: PluginCommand = {
   },
 }
 
-async function pullBuilds(ctx: KubernetesPluginContext, builds: ContainerBuildAction[], log: LogEntry) {
+async function pullBuilds(ctx: KubernetesPluginContext, builds: Resolved<ContainerBuildAction>[], log: LogEntry) {
   await Promise.all(
     builds.map(async (action) => {
       const outputs = k8sGetContainerBuildActionOutputs({ provider: ctx.provider, action })

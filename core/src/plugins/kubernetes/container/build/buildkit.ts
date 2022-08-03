@@ -37,6 +37,7 @@ import { PodRunner } from "../../run"
 import { prepareSecrets } from "../../secrets"
 import { defaultDockerfileName } from "../../../container/helpers"
 import { k8sGetContainerBuildActionOutputs } from "../handlers"
+import { Resolved } from "../../../../actions/base"
 
 export const buildkitImageName = "gardendev/buildkit:v0.9.3-1"
 export const buildkitDeploymentName = "garden-buildkit"
@@ -231,7 +232,7 @@ export async function ensureBuildkit({
   })
 }
 
-export function getBuildkitFlags(action: ContainerBuildAction) {
+export function getBuildkitFlags(action: Resolved<ContainerBuildAction>) {
   const args: string[] = []
 
   const spec = action.getSpec()

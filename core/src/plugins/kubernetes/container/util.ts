@@ -22,8 +22,9 @@ import {
 import { V1ResourceRequirements, V1SecurityContext } from "@kubernetes/client-node"
 import { kilobytesToString, millicpuToString } from "../util"
 import { ConfigurationError } from "../../../exceptions"
+import { Resolved } from "../../../actions/base"
 
-export function getDeploymentImageId(action: ContainerRuntimeAction): string {
+export function getDeployedImageId(action: Resolved<ContainerRuntimeAction>): string {
   const explicitImage = action.getSpec().image
   const build = action.getBuildAction<ContainerBuildAction>()
 

@@ -28,6 +28,7 @@ import Bluebird from "bluebird"
 import { getK8sIngresses } from "../status/ingress"
 import { DeployActionHandler } from "../../../plugin/action-types"
 import { HelmDeployAction } from "./config"
+import { Resolved } from "../../../actions/base"
 
 export const gardenCloudAECPauseAnnotation = "garden.io/aec-status"
 
@@ -161,7 +162,7 @@ export async function getRenderedResources({
   ctx: KubernetesPluginContext
   releaseName: string
   log: LogEntry
-  action: HelmDeployAction
+  action: Resolved<HelmDeployAction>
 }) {
   const namespace = await getActionNamespace({
     ctx,
@@ -189,7 +190,7 @@ export async function getReleaseStatus({
   localMode,
 }: {
   ctx: KubernetesPluginContext
-  action: HelmDeployAction
+  action: Resolved<HelmDeployAction>
   releaseName: string
   log: LogEntry
   devMode: boolean
@@ -272,7 +273,7 @@ export async function getPausedResources({
 }: {
   ctx: KubernetesPluginContext
   namespace: string
-  action: HelmDeployAction
+  action: Resolved<HelmDeployAction>
   releaseName: string
   log: LogEntry
 }) {
@@ -298,7 +299,7 @@ async function isPaused({
 }: {
   ctx: KubernetesPluginContext
   namespace: string
-  action: HelmDeployAction
+  action: Resolved<HelmDeployAction>
   releaseName: string
   log: LogEntry
 }) {

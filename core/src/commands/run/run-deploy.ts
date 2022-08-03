@@ -83,7 +83,7 @@ export class RunDeployCommand extends Command<Args, Opts> {
       )
     }
 
-    const actions = await garden.getActionRouter()
+    const router = await garden.getActionRouter()
 
     // Make sure all dependencies are ready and collect their outputs for the runtime context
     const deployTask = new DeployTask({
@@ -114,10 +114,12 @@ export class RunDeployCommand extends Command<Args, Opts> {
       log.root.stop()
     }
 
-    const result = await actions.deploy.run({
+    const resolved = await garden.resolveAction({ action, graph, log })
+
+    const result = await router.deploy.run({
       log,
       graph,
-      action,
+      action: resolved,
       runtimeContext,
       interactive,
       timeout: 999999,
