@@ -295,7 +295,7 @@ To make a new release, set your current working directory to the garden root dir
 7. Go to our Github [Releases page](https://github.com/garden-io/garden/releases) and click the **Edit** button for the draft just created from CI. Note that for drafts, a new one is always created instead of replacing a previous one.
 8. Write release notes. The notes should give an overview of the release and mention all relevant features. They should also **acknowledge all external contributors** and contain the changelog for that release.
     * Automated release notes generation:
-      * Run `./scripts/show-contributors.sh <previous-tag> <current-tag>`, the filename with the draft notes will be printed in the console
+      * Run `./scripts/draft-release-notes.ts <previous-tag> <current-tag>`, the filename with the draft notes will be printed in the console
       * Open the draft file (it's named `release-notes-${version}-draft.txt`, e.g. `release-notes-0.12.38-draft.txt`) and resolve all suggested TODO items
     * Old way of release notes generation (if the automated way fails for some reason):
       * To generate a changelog for just that tag, run `git-chglog <previous-release-tag-name>..<tag-name>`
