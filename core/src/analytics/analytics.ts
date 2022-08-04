@@ -254,10 +254,12 @@ export class AnalyticsHandler {
       }
     }
 
-    const gitHubUrl = getGitHubUrl("README.md#Analytics")
+    const gitHubUrl = getGitHubUrl("docs/misc/telemetry.md")
 
     const analyticsEnabled = this.analyticsEnabled()
-    if (!this.isCI && analyticsEnabled && (this.analyticsConfig.firstRun || this.analyticsConfig.showOptInMessage)) {
+
+    // Show the analytics msg on the first run
+    if (!this.isCI && (this.analyticsConfig.firstRun || this.analyticsConfig.showOptInMessage)) {
       const msg = dedent`
         Thanks for installing Garden! We work hard to provide you with the best experience we can. We collect some anonymized usage data while you use Garden. If you'd like to know more about what we collect or if you'd like to opt out of telemetry, please read more at ${gitHubUrl}
       `
