@@ -33,7 +33,7 @@ const releaseNotesDraft = (version: string, changelog: string, contributors: str
 
 [TODO: INSERT BRIEF RELEASE DESCRIPTION HERE. Give an overview of the release and mention all relevant features.]
 
-[TODO: review the list of contributors, replace the list in [[]] with the comma-separated list of @github_names, and remove surrounding [[]] characters. Note that authors of squashed commits won't show up, so it might be good to do a quick sanity check on Github as well.]
+[TODO: prepare the list of **external** contributors, replace the list in [[]] with the comma-separated list of @github_names, and remove surrounding [[]] characters. Note that authors of squashed commits won't show up, so it might be good to do a quick sanity check on Github as well.]
 Many thanks to [[${contributors}]] for the contributions to this release!
 
 ## Assets
