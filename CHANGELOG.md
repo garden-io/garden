@@ -1,4 +1,24 @@
 
+<a name="0.12.44-0"></a>
+## [0.12.44-0](https://github.com/garden-io/garden/compare/0.12.43...0.12.44-0) (2022-08-03)
+
+### Bug Fixes
+
+* support `--dependants-first` option in `delete service` command ([7ce03030d](https://github.com/garden-io/garden/commit/7ce03030d))
+* **docs:** fixed multi-char aliases in commands' descriptions ([51ab495af](https://github.com/garden-io/garden/commit/51ab495af))
+* **k8s:** missing logs in some scenarios when tests/tasks with artifacts fail ([a21103212](https://github.com/garden-io/garden/commit/a21103212))
+
+### Features
+
+* added `local.arch` template variable ([f213c8675](https://github.com/garden-io/garden/commit/f213c8675))
+* **config:** add concat helper function ([f3a2e29d2](https://github.com/garden-io/garden/commit/f3a2e29d2))
+* **config:** support array literals in template strings ([1d119557c](https://github.com/garden-io/garden/commit/1d119557c))
+
+### Improvements
+
+* used async sleeps between retries in recoverable process ([efd6e73bd](https://github.com/garden-io/garden/commit/efd6e73bd))
+* **local-mode:** don't watch files in local-mode modules ([11f6d146a](https://github.com/garden-io/garden/commit/11f6d146a))
+
 <a name="0.12.43"></a>
 ## [0.12.43](https://github.com/garden-io/garden/compare/0.12.42...0.12.43) (2022-07-14)
 
