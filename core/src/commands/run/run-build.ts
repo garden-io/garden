@@ -13,9 +13,9 @@ import { prepareRuntimeContext } from "../../runtime-context"
 import { BuildTask } from "../../tasks/build"
 import { RunResult } from "../../plugin/base"
 import { dedent, deline } from "../../util/string"
-import { Command, CommandParams, CommandResult, handleRunResult, ProcessResultMetadata } from "../base"
+import { Command, CommandParams, CommandResult, handleRunResult } from "../base"
 import { printRuntimeContext } from "./run"
-import { GraphResults } from "../../graph/solver"
+import { GraphResultMap } from "../../graph/results"
 import { StringParameter, StringsParameter, BooleanParameter, StringOption } from "../../cli/params"
 
 const runBuildArgs = {
@@ -52,8 +52,8 @@ type Args = typeof runBuildArgs
 type Opts = typeof runBuildOpts
 
 interface RunBuildOutput {
-  result: RunResult & ProcessResultMetadata
-  graphResults: GraphResults
+  result: RunResult | null
+  graphResults: GraphResultMap
 }
 
 export class RunBuildCommand extends Command<Args, Opts> {
@@ -132,6 +132,6 @@ export class RunBuildCommand extends Command<Args, Opts> {
       timeout: interactive ? 999999 : undefined,
     })
 
-    return handleRunResult({ log, description: "run build", result, interactive, graphResults, action })
+    return handleRunResult({ log, description: "run build", result, interactive, graphResults })
   }
 }

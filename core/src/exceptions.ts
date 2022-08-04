@@ -97,6 +97,10 @@ export class RuntimeError extends GardenBaseError {
 
 export class InternalError extends GardenBaseError {
   type = "internal"
+
+  constructor(message: string, detail: any) {
+    super(message + " - This is a bug. Please report it!", detail)
+  }
 }
 
 export class TimeoutError extends GardenBaseError {

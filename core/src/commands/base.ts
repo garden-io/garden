@@ -10,7 +10,7 @@ import Joi = require("@hapi/joi")
 import chalk from "chalk"
 import dedent = require("dedent")
 import stripAnsi from "strip-ansi"
-import { fromPairs, pickBy, size } from "lodash"
+import { pickBy, size } from "lodash"
 
 import { joi, joiIdentifierMap, joiStringMap } from "../config/common"
 import { InternalError, RuntimeError, GardenBaseError } from "../exceptions"
@@ -19,18 +19,19 @@ import { LogEntry } from "../logger/log-entry"
 import { LoggerType } from "../logger/logger"
 import { printFooter, renderMessageWithDivider } from "../logger/util"
 import { ProcessResults } from "../process"
-import { GraphResults, GraphResult } from "../graph/solver"
+import { GraphResults, GraphResultMap } from "../graph/results"
 import { RunResult } from "../plugin/base"
 import { capitalize } from "lodash"
-import { getDurationMsec, splitFirst, userPrompt } from "../util/util"
-import { ServiceStatus, serviceStatusSchema } from "../types/service"
-import { TestResult, testResultSchema } from "../types/test"
+import { userPrompt } from "../util/util"
+import { serviceStatusSchema } from "../types/service"
+import { testResultSchema } from "../types/test"
 import { renderOptions, renderCommands, renderArguments, getCliStyles } from "../cli/helpers"
 import { GlobalOptions, ParameterValues, Parameters } from "../cli/params"
 import { GardenServer } from "../server/server"
 import { GardenCli } from "../cli/cli"
-import { BuildResult, buildResultSchema } from "../plugin/handlers/build/build"
-import { Action } from "../actions/base"
+import { buildResultSchema } from "../plugin/handlers/build/build"
+import { TestTask } from "../tasks/test"
+import { RunTask } from "../tasks/run"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -389,14 +390,12 @@ export async function handleRunResult<T extends RunResult>({
   graphResults,
   result,
   interactive,
-  action,
 }: {
   log: LogEntry
   description: string
   graphResults: GraphResults
   result: T
   interactive: boolean
-  action: Action
 }) {
   if (!interactive && result.log) {
     printResult({ log, result: result.log, success: result.success, description })
@@ -413,14 +412,7 @@ export async function handleRunResult<T extends RunResult>({
     printFooter(log)
   }
 
-  const resultWithMetadata = {
-    ...result,
-    aborted: false,
-    durationMsec: getDurationMsec(result.startedAt, result.completedAt),
-    version: action.versionString(),
-  }
-
-  return { result: { result: resultWithMetadata, graphResults } }
+  return { result: { error: null, result, graphResults: graphResults.getMap() } }
 }
 
 /**
@@ -431,20 +423,20 @@ export async function handleTaskResult({
   log,
   actionDescription,
   graphResults,
-  key,
+  task,
   interactive = false,
 }: {
   log: LogEntry
   actionDescription: string
-  graphResults: GraphResults
-  key: string
+  graphResults: GraphResults<RunTask | TestTask>
+  task: RunTask | TestTask
   interactive?: boolean
 }) {
-  const result = graphResults[key]!
+  const result = graphResults.getResult(task)!
 
   // If there's an error, the task graph prints it
-  if (!interactive && !result.error && result.result.log) {
-    printResult({ log, result: result.result.log, success: true, description: actionDescription })
+  if (!interactive && !result.error && result.result?.detail?.log) {
+    printResult({ log, result: result.result.detail.log, success: true, description: actionDescription })
   }
 
   if (result.error) {
@@ -456,31 +448,27 @@ export async function handleTaskResult({
 
   printFooter(log)
 
-  return { result: { result: prepareProcessResult(result), graphResults } }
-}
-
-export type ProcessResultMetadata = {
-  aborted: boolean
-  durationMsec?: number
-  success: boolean
-  error?: string
-  version?: string
+  return { result: { error: result.error, result, graphResults: graphResults.getMap() } }
 }
 
 // TODO-G2: update
 export interface ProcessCommandResult {
-  builds: { [moduleName: string]: BuildResult & ProcessResultMetadata }
-  deployments: { [serviceName: string]: ServiceStatus & ProcessResultMetadata }
-  tests: { [testName: string]: TestResult & ProcessResultMetadata }
-  graphResults: GraphResults
+  aborted: boolean
+  // durationMsec?: number | null
+  success: boolean
+  error?: string
+  graphResults: GraphResultMap
 }
 
-export const resultMetadataKeys = () => ({
-  aborted: joi.boolean().description("Set to true if the build was not attempted, e.g. if a dependency build failed."),
-  durationMsec: joi.number().integer().description("The duration of the build in msec, if applicable."),
-  success: joi.boolean().required().description("Whether the build was succeessful."),
-  error: joi.string().description("An error message, if the build failed."),
-  version: joi.string().description("The version of the module, service, task or test."),
+export const processCommandResultKeys = () => ({
+  aborted: joi
+    .boolean()
+    .description(
+      "Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect."
+    ),
+  // durationMsec: joi.number().integer().description("The duration of the processing in msec, if applicable."),
+  success: joi.boolean().required().description("Whether the action was succeessful."),
+  error: joi.string().description("An error message, if the action failed."),
 })
 
 export const graphResultsSchema = () =>
@@ -493,17 +481,17 @@ export const graphResultsSchema = () =>
 
 export const processCommandResultSchema = () =>
   joi.object().keys({
-    builds: joiIdentifierMap(buildResultSchema().keys(resultMetadataKeys()))
+    builds: joiIdentifierMap(buildResultSchema().keys(processCommandResultKeys()))
       .description(
         "A map of all modules that were built (or builds scheduled/attempted for) and information about the builds."
       )
       .meta({ keyPlaceholder: "<module name>" }),
-    deployments: joiIdentifierMap(serviceStatusSchema().keys(resultMetadataKeys()))
+    deployments: joiIdentifierMap(serviceStatusSchema().keys(processCommandResultKeys()))
       .description(
         "A map of all services that were deployed (or deployment scheduled/attempted for) and the service status."
       )
       .meta({ keyPlaceholder: "<service name>" }),
-    tests: joiStringMap(testResultSchema().keys(resultMetadataKeys()))
+    tests: joiStringMap(testResultSchema().keys(processCommandResultKeys()))
       .description("A map of all tests that were run (or scheduled/attempted) and the test results.")
       .meta({ keyPlaceholder: "<test name>" }),
     graphResults: graphResultsSchema(),
@@ -518,19 +506,20 @@ export async function handleProcessResults(
   taskType: string,
   results: ProcessResults
 ): Promise<CommandResult<ProcessCommandResult>> {
-  const graphResults = results.graphResults
+  const graphResults = results.graphResults.getMap()
 
-  const result = {
-    builds: prepareProcessResults("build", graphResults),
-    deployments: prepareProcessResults("deploy", graphResults),
-    tests: prepareProcessResults("test", graphResults),
+  const failed = pickBy(graphResults, (r) => r && r.error)
+  const failedCount = size(failed)
+
+  const success = failedCount === 0
+
+  const result: ProcessCommandResult = {
+    aborted: false,
+    success,
     graphResults,
   }
 
-  const failed = pickBy(results.graphResults, (r) => r && r.error)
-  const failedCount = size(failed)
-
-  if (failedCount > 0) {
+  if (!success) {
     const error = new RuntimeError(`${failedCount} ${taskType} action(s) failed!`, { results: failed })
     return { result, errors: [error], restartRequired: false }
   }
@@ -541,33 +530,6 @@ export async function handleProcessResults(
   return {
     result,
     restartRequired: results.restartRequired,
-  }
-}
-
-/**
- * Extracts structured results for builds, deploys or tests from TaskGraph results, suitable for command output.
- */
-export function prepareProcessResults(taskType: string, graphResults: GraphResults) {
-  const graphBuildResults = Object.entries(graphResults).filter(([name, _]) => name.split(".")[0] === taskType)
-
-  return fromPairs(
-    graphBuildResults.map(([name, graphResult]) => {
-      return [splitFirst(name, ".")[1], prepareProcessResult(graphResult)]
-    })
-  )
-}
-
-function prepareProcessResult(graphResult: GraphResult | null) {
-  return {
-    ...(graphResult?.result || {}),
-    aborted: !graphResult,
-    durationMsec:
-      graphResult?.startedAt &&
-      graphResult?.completedAt &&
-      getDurationMsec(graphResult?.startedAt, graphResult?.completedAt),
-    error: graphResult?.error?.message,
-    success: !!graphResult && !graphResult.error,
-    version: graphResult?.result?.version || graphResult?.version,
   }
 }
 

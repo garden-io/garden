@@ -18,7 +18,7 @@ import { CommandInfo } from "./plugin-context"
 import { sanitizeObject } from "./logger/util"
 import { BuildState } from "./plugin/handlers/build/build"
 import { ActionReference } from "./config/common"
-import { GraphResult } from "./graph/solver"
+import { GraphResult } from "./graph/results"
 
 export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
 
@@ -78,8 +78,8 @@ export function toGraphResultEventPayload(result: GraphResult): GraphResultEvent
   if (result.result) {
     // TODO: Use a combined blacklist of fields from all task types instead of hardcoding here.
     payload.output = omit(result.result, "dependencyResults", "log", "buildLog", "detail")
-    if (result.result.version) {
-      payload.output.version = result.result.version.versionString || null
+    if (result.version) {
+      payload.output.version = result.version || null
     }
   }
   return payload
