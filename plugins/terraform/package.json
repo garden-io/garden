@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/garden-terraform",
-  "version": "0.12.43",
+  "version": "0.12.44",
   "description": "Terraform plugin for Garden",
   "main": "build/index.js",
   "files": [
