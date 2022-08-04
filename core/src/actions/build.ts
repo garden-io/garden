@@ -9,7 +9,7 @@
 import { join } from "path"
 import { ActionReference, includeGuideLink, joi, joiSparseArray, joiUserIdentifier } from "../config/common"
 import { ActionConfigContext } from "../config/template-contexts/actions"
-import { GraphResult, GraphResults } from "../graph/solver"
+import { GraphResult, GraphResults } from "../graph/results"
 import { dedent } from "../util/string"
 import {
   BaseActionConfig,

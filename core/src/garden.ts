@@ -135,9 +135,11 @@ import {
   actionReferenceToString,
   BaseActionConfig,
 } from "./actions/base"
-import { GraphSolver, SolveParams, SolveResult } from "./graph/solver"
+import { GraphSolver, SolveOpts, SolveParams, SolveResult } from "./graph/solver"
 import { actionConfigsToGraph, actionFromConfig, executeAction, resolveAction, resolveActions } from "./graph/actions"
 import { ActionTypeDefinition } from "./plugin/action-types"
+import { Task } from "./tasks/base"
+import { GraphResultFromTask } from "./graph/results"
 
 export interface ActionHandlerMap<T extends keyof ProviderHandlers> {
   [actionName: string]: ProviderHandlers[T]
@@ -413,6 +415,11 @@ export class Garden {
   // TODO: would be nice if this returned a type based on the input tasks
   async processTasks(params: SolveParams): Promise<SolveResult> {
     return this.solver.solve(params)
+  }
+
+  async processTask<T extends Task>(task: T, log: LogEntry, opts: SolveOpts): Promise<GraphResultFromTask<T> | null> {
+    const { results } = await this.solver.solve({ tasks: [task], log, ...opts })
+    return results.getResult(task)
   }
 
   /**
