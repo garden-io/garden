@@ -52,13 +52,20 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     const executedDependencies: ExecutedAction[] = []
 
     // TODO-G2: get this to a type-safer place
-    for (const r of Object.values(dependencyResults)) {
-      if (!r) {
-        continue
-      } else if (r.type === "resolve-action") {
+    for (const task of dependencyResults.getTasks()) {
+      if (task instanceof ResolveActionTask) {
+        const r = dependencyResults.getResult(task)
+        if (!r) {
+          continue
+        }
         resolvedDependencies.push(r.outputs.resolvedAction)
-      } else if (r.task.executeTask) {
-        executedDependencies.push(r.outputs.executedAction)
+      } else if (task.isExecuteTask()) {
+        const r = dependencyResults.getResult(task)
+        if (!r) {
+          continue
+        }
+        r.result
+        resolvedDependencies.push(r.outputs.executedAction)
       }
     }
 

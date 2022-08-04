@@ -12,15 +12,13 @@ import {
   CommandResult,
   handleProcessResults,
   ProcessCommandResult,
-  ProcessResultMetadata,
-  prepareProcessResults,
   processCommandResultSchema,
-  resultMetadataKeys,
+  processCommandResultKeys,
 } from "./base"
 import { PublishTask } from "../tasks/publish"
 import { printHeader } from "../logger/util"
 import dedent = require("dedent")
-import { PublishActionResult, publishResultSchema } from "../plugin/handlers/build/publish"
+import { publishResultSchema } from "../plugin/handlers/build/publish"
 import { joiIdentifierMap } from "../config/common"
 import { StringsParameter, BooleanParameter, StringOption } from "../cli/params"
 
@@ -48,9 +46,7 @@ export const publishOpts = {
 type Args = typeof publishArgs
 type Opts = typeof publishOpts
 
-interface PublishCommandResult extends ProcessCommandResult {
-  published: { [moduleName: string]: PublishActionResult & ProcessResultMetadata }
-}
+interface PublishCommandResult extends ProcessCommandResult {}
 
 export class PublishCommand extends Command<Args, Opts> {
   name = "publish"
@@ -81,7 +77,7 @@ export class PublishCommand extends Command<Args, Opts> {
 
   outputsSchema = () =>
     processCommandResultSchema().keys({
-      published: joiIdentifierMap(publishResultSchema().keys(resultMetadataKeys())).description(
+      published: joiIdentifierMap(publishResultSchema().keys(processCommandResultKeys())).description(
         "A map of all modules that were published (or scheduled/attempted for publishing) and the results."
       ),
     })
@@ -116,14 +112,6 @@ export class PublishCommand extends Command<Args, Opts> {
     })
 
     const processed = await garden.processTasks({ tasks, log, throwOnError: true })
-    const output = await handleProcessResults(footerLog, "publish", { graphResults: processed.results })
-
-    return {
-      ...output,
-      result: {
-        ...output.result!,
-        published: prepareProcessResults("publish", output.result!.graphResults),
-      },
-    }
+    return handleProcessResults(footerLog, "publish", { graphResults: processed.results })
   }
 }

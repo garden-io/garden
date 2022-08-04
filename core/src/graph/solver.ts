@@ -6,56 +6,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BaseTask } from "../tasks/base"
+import { BaseTask, Task } from "../tasks/base"
 import { LogEntry } from "../logger/log-entry"
 import { GardenBaseError } from "../exceptions"
 import { uuidv4 } from "../util/util"
 import { DependencyGraph } from "./common"
 import { Profile } from "../util/profiling"
 import { TypedEventEmitter } from "../util/events"
-import { BaseAction } from "../actions/base"
-import { GetActionTypeResults } from "../plugin/action-types"
-import { ActionTypeHandlerSpec } from "../plugin/handlers/base/base"
 import { keyBy } from "lodash"
-
-interface TaskEventBase {
-  type: string
-  description: string
-  key: string
-  name: string
-  version: string
-}
-
-export interface GraphResult<A extends BaseAction = BaseAction, H extends ActionTypeHandlerSpec<any, any, any> = any>
-  extends TaskEventBase {
-  result: GetActionTypeResults<H> | null
-  dependencyResults: GraphResults | null
-  startedAt: Date | null
-  completedAt: Date | null
-  error: Error | null
-  outputs: A["_outputs"]
-  task: BaseTask
-}
-
-export interface GraphResults {
-  [key: string]: GraphResult | null
-}
+import { GraphResult, GraphResults, TaskEventBase } from "./results"
 
 export interface SolveOpts {
-  log: LogEntry
   statusOnly?: boolean
   throwOnError?: boolean
 }
 
-export interface SolveParams extends SolveOpts {
-  // garden: Garden
+export interface SolveParams<T extends Task = Task> extends SolveOpts {
   log: LogEntry
-  tasks: BaseTask[]
+  tasks: T[]
 }
 
-export interface SolveResult {
+export interface SolveResult<T extends Task = Task> {
   error: GraphError | null
-  results: GraphResults
+  results: GraphResults<T>
 }
 
 @Profile()
@@ -87,7 +60,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
     const _this = this
     const batchId = uuidv4()
-    const results: GraphResults = {}
+    const results = new GraphResults(tasks)
     let aborted = false
 
     return new Promise((resolve, reject) => {
@@ -104,14 +77,16 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           return
         }
 
+        const request = requests[result.key]
+
         // We only collect the requests tasks at the top level of the result object.
         // The solver cascades errors in dependencies. So if a dependency fails, we should still always get a
         // taskComplete event for each requested task, even if an error occurs before getting to it.
-        if (requests[result.key] === undefined) {
+        if (request === undefined) {
           return
         }
 
-        results[result.key] = result
+        results.setResult(request.task, result)
 
         if (throwOnError && result.error) {
           // TODO: abort remaining tasks?

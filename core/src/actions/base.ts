@@ -34,7 +34,7 @@ import type { TestActionConfig } from "./test"
 import type { ActionKind } from "../plugin/action-types"
 import pathIsInside from "path-is-inside"
 import { actionOutputsSchema } from "../plugin/handlers/base/base"
-import { GraphResult, GraphResults } from "../graph/solver"
+import { GraphResult, GraphResults } from "../graph/results"
 import { RunResult } from "../plugin/base"
 import { Memoize } from "typescript-memoize"
 import { fromPairs, isString } from "lodash"
@@ -672,7 +672,7 @@ export abstract class ResolvedRuntimeAction<
 
       if (!buildAction) {
         throw new InternalError(
-          `Could not find build dependency '${buildName}' specified on the build field on ${this.longDescription()}. This is a bug, please report it!`,
+          `Could not find build dependency '${buildName}' specified on the build field on ${this.longDescription()}.`,
           { action: this.key(), buildName }
         )
       }

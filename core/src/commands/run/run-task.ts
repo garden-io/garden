@@ -12,12 +12,11 @@ import {
   CommandParams,
   CommandResult,
   handleTaskResult,
-  ProcessResultMetadata,
-  resultMetadataKeys,
+  processCommandResultKeys,
   graphResultsSchema,
 } from "../base"
 import { RunTask } from "../../tasks/run"
-import { GraphResults } from "../../graph/solver"
+import { GraphResult, GraphResultMap, GraphResults } from "../../graph/results"
 import { printHeader } from "../../logger/util"
 import { CommandError } from "../../exceptions"
 import { dedent, deline } from "../../util/string"
@@ -46,8 +45,9 @@ type Args = typeof runTaskArgs
 type Opts = typeof runTaskOpts
 
 interface RunTaskOutput {
-  result: GetRunResult & ProcessResultMetadata
-  graphResults: GraphResults
+  error: Error | null
+  result: GraphResult<GetRunResult> | null
+  graphResults: GraphResultMap
 }
 
 export class RunTaskCommand extends Command<Args, Opts> {
@@ -70,7 +70,7 @@ export class RunTaskCommand extends Command<Args, Opts> {
 
   outputsSchema = () =>
     joi.object().keys({
-      result: taskResultSchema().keys(resultMetadataKeys()).description("The result of the task."),
+      result: taskResultSchema().keys(processCommandResultKeys()).description("The result of the task."),
       graphResults: graphResultsSchema(),
     })
 
@@ -94,7 +94,7 @@ export class RunTaskCommand extends Command<Args, Opts> {
       )
     }
 
-    const taskTask = new RunTask({
+    const runTask = new RunTask({
       garden,
       graph,
       action,
@@ -105,8 +105,13 @@ export class RunTaskCommand extends Command<Args, Opts> {
       localModeDeployNames: [],
       fromWatch: false,
     })
-    const { results } = await garden.processTasks({ tasks: [taskTask], log, throwOnError: true })
+    const { results } = await garden.processTasks({ tasks: [runTask], log, throwOnError: true })
 
-    return handleTaskResult({ log, actionDescription: "task", graphResults: results, key: taskTask.getKey() })
+    return handleTaskResult({
+      log,
+      actionDescription: "task",
+      graphResults: <GraphResults<RunTask>>results,
+      task: runTask,
+    })
   }
 }

@@ -6,21 +6,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GraphResults } from "../graph/solver"
+import { GraphResults } from "../graph/results"
 import { v1 as uuidv1 } from "uuid"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { pickBy, mapValues, mapKeys } from "lodash"
 import { splitLast } from "../util/util"
 import { Profile } from "../util/profiling"
-import { Action, Executed, Resolved } from "../actions/base"
-import { ConfigGraph } from "../graph/config-graph"
-import { ActionReference } from "../config/common"
+import type { Action, Executed, Resolved } from "../actions/base"
+import type { ConfigGraph } from "../graph/config-graph"
+import type { ActionReference } from "../config/common"
 import { DeployStatus } from "../plugin/handlers/deploy/get-status"
 import { GetRunResult } from "../plugin/handlers/run/get-result"
 import { getExecuteTaskForAction } from "../graph/actions"
-import { ResolveActionTask } from "./resolve-action"
 import { InternalError } from "../exceptions"
+import type { DeleteDeployTask } from "./delete-service"
+import type { BuildTask } from "./build"
+import type { DeployTask } from "./deploy"
+import type { PluginActionTask, PluginTask } from "./plugin"
+import type { PublishTask } from "./publish"
+import { ResolveActionTask } from "./resolve-action"
+import type { ResolveProviderTask } from "./resolve-provider"
+import type { RunTask } from "./run"
+import type { TestTask } from "./test"
 
 export class TaskDefinitionError extends Error {}
 
@@ -56,6 +64,20 @@ export interface TaskProcessParams {
 export interface ValidResultType {
   outputs: {}
 }
+
+export type Task =
+  | BuildTask
+  | DeleteDeployTask
+  | DeployTask
+  | PluginTask
+  | PluginActionTask<any, any, any>
+  | PublishTask
+  | ResolveActionTask<any>
+  | ResolveProviderTask
+  | RunTask
+  | TestTask
+
+export type ExecuteTask = BuildTask | DeployTask | RunTask | TestTask
 
 @Profile()
 export abstract class BaseTask<O extends ValidResultType = ValidResultType, S extends ValidResultType = O> {
@@ -114,6 +136,10 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType, S ex
 
   getId(): string {
     return `${this.getKey()}.${this.uid}`
+  }
+
+  isExecuteTask(): this is ExecuteTask {
+    return this.executeTask
   }
 }
 
@@ -197,7 +223,7 @@ export abstract class BaseActionTask<
 
     if (!result) {
       throw new InternalError(
-        `Could not find resolved action '${action.key()}' when processing task '${this.getKey()}'. This is a bug, please report it!`,
+        `Could not find resolved action '${action.key()}' when processing task '${this.getKey()}'.`,
         { taskType: this.type, action: action.key() }
       )
     }
@@ -215,7 +241,7 @@ export abstract class BaseActionTask<
 
     if (!result) {
       throw new InternalError(
-        `Could not find executed action '${action.key()}' when processing task '${this.getKey()}'. This is a bug, please report it!`,
+        `Could not find executed action '${action.key()}' when processing task '${this.getKey()}'.`,
         { taskType: this.type, action: action.key() }
       )
     }
@@ -242,15 +268,20 @@ export abstract class BaseActionTask<
   }
 }
 
+interface ExecuteActionOutputs<T extends Action> {
+  executedAction: Executed<T>
+}
+
 export abstract class ExecuteActionTask<
   T extends Action,
   O extends ValidResultType = { outputs: T["_outputs"] },
   S extends ValidResultType = O
 > extends BaseActionTask<T, O, S> {
+  _resultType: O & { executedAction: Executed<T> }
   executeTask = true
 
-  abstract getStatus(params: ActionTaskStatusParams<T>): Promise<(S & { executedAction: Executed<T> }) | null>
-  abstract process(params: ActionTaskProcessParams<T, S>): Promise<O & { executedAction: Executed<T> }>
+  abstract getStatus(params: ActionTaskStatusParams<T>): Promise<(S & ExecuteActionOutputs<T>) | null>
+  abstract process(params: ActionTaskProcessParams<T, S>): Promise<O & ExecuteActionOutputs<T>>
 }
 
 export function getResultForTask<T extends BaseTask>(task: T, graphResults: GraphResults): T["_resultType"] | null {
@@ -258,13 +289,13 @@ export function getResultForTask<T extends BaseTask>(task: T, graphResults: Grap
 }
 
 export function getServiceStatuses(dependencyResults: GraphResults): { [name: string]: DeployStatus } {
-  const deployResults = pickBy(dependencyResults, (r) => r && r.type === "deploy")
+  const deployResults = pickBy(dependencyResults.getMap(), (r) => r && r.type === "deploy")
   const statuses = mapValues(deployResults, (r) => r!.result as DeployStatus)
   return mapKeys(statuses, (_, key) => splitLast(key, ".")[1])
 }
 
 export function getRunResults(dependencyResults: GraphResults): { [name: string]: GetRunResult } {
-  const runResults = pickBy(dependencyResults, (r) => r && r.type === "run")
+  const runResults = pickBy(dependencyResults.getMap(), (r) => r && r.type === "run")
   const results = mapValues(runResults, (r) => r!.result as GetRunResult)
   return mapKeys(results, (_, key) => splitLast(key, ".")[1])
 }

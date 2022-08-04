@@ -15,9 +15,9 @@ import { prepareRuntimeContext } from "../../runtime-context"
 import { DeployTask } from "../../tasks/deploy"
 import { RunResult } from "../../plugin/base"
 import { deline } from "../../util/string"
-import { Command, CommandParams, CommandResult, handleRunResult, ProcessResultMetadata } from "../base"
+import { Command, CommandParams, CommandResult, handleRunResult } from "../base"
 import { printRuntimeContext } from "./run"
-import { GraphResults } from "../../graph/solver"
+import { GraphResultMap } from "../../graph/results"
 import { StringParameter, BooleanParameter } from "../../cli/params"
 
 const runDeployArgs = {
@@ -40,8 +40,9 @@ type Args = typeof runDeployArgs
 type Opts = typeof runDeployOpts
 
 interface RunDeployOutput {
-  result: RunResult & ProcessResultMetadata
-  graphResults: GraphResults
+  error: Error | null
+  result: RunResult | null
+  graphResults: GraphResultMap
 }
 
 export class RunDeployCommand extends Command<Args, Opts> {
@@ -131,7 +132,6 @@ export class RunDeployCommand extends Command<Args, Opts> {
       result,
       interactive,
       graphResults: dependencyResults,
-      action,
     })
   }
 }
