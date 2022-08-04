@@ -12,7 +12,7 @@ import { ensureDir, readdir } from "fs-extra"
 import dedent from "dedent"
 import { platform, arch } from "os"
 import { relative, resolve, join } from "path"
-import { flatten, sortBy, keyBy, mapValues, cloneDeep, groupBy, partition } from "lodash"
+import { flatten, sortBy, keyBy, mapValues, cloneDeep, groupBy, partition, uniq } from "lodash"
 const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
@@ -394,10 +394,9 @@ export class Garden {
 
     // Here we already have Garden project config parsed, so its path can't be undefined
     const projectConfigPath = (await findProjectConfigPath(this.projectRoot))!
-    const enabledModules = modules.filter((m) => !m.disabled)
-    const [flatModules, nestedModules] = partition(enabledModules, (module) => module.path === this.projectRoot)
-    const nestedModulesPaths = nestedModules.map((module) => module.path)
-    const projectRootLevelPath = flatModules.length === 0 ? projectConfigPath : this.projectRoot
+    const enabledModules = uniq(modules.filter((m) => !m.disabled).map((m) => m.path))
+    const [flatModulesPaths, nestedModulesPaths] = partition(enabledModules, (path) => path === this.projectRoot)
+    const projectRootLevelPath = flatModulesPaths.length === 0 ? projectConfigPath : this.projectRoot
 
     return [projectRootLevelPath, ...nestedModulesPaths, ...linkedPaths]
   }

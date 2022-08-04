@@ -4770,7 +4770,10 @@ describe("Garden", () => {
         const modulePaths = modules.map((m) => m.path)
         const projectConfigPath = await findProjectConfigPath(garden.projectRoot)
         expect(projectConfigPath).to.be.not.undefined
-        expect(watchablePaths).to.eql([projectConfigPath!, ...modulePaths])
+
+        const actualPaths = new Set<string>(watchablePaths)
+        const expectedPaths = new Set<string>([projectConfigPath!, ...modulePaths])
+        expect(actualPaths).to.eql(expectedPaths)
       })
     })
 
