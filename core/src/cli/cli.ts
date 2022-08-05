@@ -478,9 +478,8 @@ ${renderCommands(commands)}
           }
           this.bufferedEventStream.connect(connectParams)
           if (streamEvents) {
-            this.bufferedEventStream.streamEvent("commandInfo", commandInfo)
-
-            const commandContext = {
+            const commandInfoPayload = {
+              ...commandInfo,
               environmentName: garden.environmentName,
               projectName: garden.projectName,
               namespaceName: garden.namespace,
@@ -489,8 +488,7 @@ ${renderCommands(commands)}
               vcsCommitHash: garden.vcsInfo.commitHash,
               vcsOriginUrl: garden.vcsInfo.originUrl,
             }
-
-            this.bufferedEventStream.streamEvent("commandContext", commandContext)
+            this.bufferedEventStream.streamEvent("commandInfo", commandInfoPayload)
           }
         }
 
