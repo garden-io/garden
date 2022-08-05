@@ -132,6 +132,18 @@ export interface Events extends LoggerEvents {
   // Command/project metadata events
   commandInfo: CommandInfo
 
+  // Contains additional context for the command available
+  // at runtime
+  commandContext: {
+    environmentName: string
+    projectName: string
+    namespaceName: string
+    coreVersion: string
+    vcsBranch: string
+    vcsCommitHash: string
+    vcsOriginUrl: string
+  }
+
   // Stack Graph events
   stackGraph: RenderedActionGraph
 

@@ -479,6 +479,18 @@ ${renderCommands(commands)}
           this.bufferedEventStream.connect(connectParams)
           if (streamEvents) {
             this.bufferedEventStream.streamEvent("commandInfo", commandInfo)
+
+            const commandContext = {
+              environmentName: garden.environmentName,
+              projectName: garden.projectName,
+              namespaceName: garden.namespace,
+              coreVersion: getPackageVersion(),
+              vcsBranch: garden.vcsInfo.branch,
+              vcsCommitHash: garden.vcsInfo.commitHash,
+              vcsOriginUrl: garden.vcsInfo.originUrl,
+            }
+
+            this.bufferedEventStream.streamEvent("commandContext", commandContext)
           }
         }
 
