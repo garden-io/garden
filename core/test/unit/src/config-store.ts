@@ -13,7 +13,7 @@ import { resolve } from "path"
 
 type ExecConfig = {}
 
-class ExecConfigStore extends ConfigStore<ExecConfig> {
+export class ExecConfigStore extends ConfigStore<ExecConfig> {
   getConfigPath(gardenDirPath: string): string {
     return resolve(gardenDirPath, "local-config.yml")
   }

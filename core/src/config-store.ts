@@ -240,6 +240,12 @@ export interface VersionCheckGlobalConfig {
   lastRun: Date
 }
 
+export interface RequirementsCheck {
+  lastRunDateUNIX?: number
+  lastRunGardenVersion?: string
+  passed?: boolean
+}
+
 export interface GlobalConfig {
   analytics?: AnalyticsGlobalConfig
   lastVersionCheck?: VersionCheckGlobalConfig
@@ -267,9 +273,20 @@ const versionCheckGlobalConfigSchema = () =>
     })
     .meta({ internal: true })
 
+const requirementsCheckGlobalConfigSchema = () =>
+  joi
+    .object()
+    .keys({
+      lastRunDateUNIX: joi.number().optional(),
+      lastRunGardenVersion: joi.string().optional(),
+      passed: joi.bool().optional(),
+    })
+    .meta({ internal: true })
+
 const globalConfigSchemaKeys = {
   analytics: analyticsGlobalConfigSchema(),
   lastVersionCheck: versionCheckGlobalConfigSchema(),
+  requirementsCheck: requirementsCheckGlobalConfigSchema(),
 }
 
 /* This contains a config key, key string pair to be used when setting/getting values in the store

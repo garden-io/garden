@@ -35,6 +35,7 @@ import {
   parseCliArgs,
   optionsWithAliasValues,
   getCliStyles,
+  checkRequirements,
 } from "./helpers"
 import { Parameters, globalOptions, OUTPUT_RENDERERS, GlobalOptions, ParameterValues } from "./params"
 import {
@@ -64,6 +65,7 @@ import { JsonFileWriter } from "../logger/writers/json-file-writer"
 import { dedent } from "../util/string"
 import { renderDivider } from "../logger/util"
 import { emoji as nodeEmoji } from "node-emoji"
+import { GlobalConfigStore, RequirementsCheck } from "../config-store"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   const environments = gardenOpts.environmentName
@@ -291,6 +293,8 @@ ${renderCommands(commands)}
     const headerLog = logger.placeholder()
     const log = logger.placeholder()
     const footerLog = logger.placeholder()
+
+    await validateRuntimeRequirementsCached(logger, new GlobalConfigStore(), checkRequirements)
 
     command.printHeader({ headerLog, args: parsedArgs, opts: parsedOpts })
     const sessionId = uuidv4()
@@ -762,5 +766,34 @@ ${renderCommands(commands)}
     }
 
     return await getCustomCommands(Object.values(this.commands), projectRoot)
+  }
+}
+
+export async function validateRuntimeRequirementsCached(
+  log: Logger,
+  globalConfig: GlobalConfigStore,
+  requirementCheckFunction: () => Promise<void>
+) {
+  let requirementsCheck: RequirementsCheck | undefined
+  try {
+    requirementsCheck = (await globalConfig.get(["requirementsCheck"])) as RequirementsCheck
+  } catch {} // throws if requirementsCheck not yet populated
+  if (!requirementsCheck || !requirementsCheck.passed) {
+    const setReqCheck = async (passed: boolean) => {
+      await globalConfig.set(["requirementsCheck"], {
+        lastRunDateUNIX: Date.now(),
+        lastRunGardenVersion: getPackageVersion(),
+        passed,
+      } as RequirementsCheck)
+    }
+    try {
+      log.debug("checking for garden runtime requirements")
+      await requirementCheckFunction()
+      // didn't throw means requirements are met
+      await setReqCheck(true)
+    } catch (err) {
+      await setReqCheck(false)
+      throw err
+    }
   }
 }

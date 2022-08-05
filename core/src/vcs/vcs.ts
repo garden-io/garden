@@ -14,12 +14,12 @@ import { validateSchema } from "../config/validation"
 import { join, relative, isAbsolute } from "path"
 import { GARDEN_VERSIONFILE_NAME as GARDEN_TREEVERSION_FILENAME } from "../constants"
 import { pathExists, readFile, writeFile } from "fs-extra"
-import { ConfigurationError } from "../exceptions"
+import { ConfigurationError, RuntimeError } from "../exceptions"
 import { ExternalSourceType, getRemoteSourcesDirname, getRemoteSourceRelPath } from "../util/ext-source-util"
 import { ModuleConfig, serializeConfig } from "../config/module"
 import { LogEntry } from "../logger/log-entry"
 import { treeVersionSchema, moduleVersionSchema } from "../config/common"
-import { dedent } from "../util/string"
+import { dedent, deline } from "../util/string"
 import { fixedProjectExcludes } from "../util/fs"
 import { TreeCache } from "../cache"
 import { getModuleCacheContext } from "../types/module"
@@ -28,6 +28,8 @@ import { TaskConfig } from "../config/task"
 import { TestConfig } from "../config/test"
 import { GardenModule } from "../types/module"
 import { emitWarning } from "../warnings"
+import { exec } from "../util/util"
+import semver from "semver"
 
 const AsyncLock = require("async-lock")
 const scanLock = new AsyncLock()
@@ -35,6 +37,59 @@ const scanLock = new AsyncLock()
 export const versionStringPrefix = "v-"
 export const NEW_MODULE_VERSION = "0000000000"
 const fileCountWarningThreshold = 10000
+
+const minGitVersion = "2.14.0"
+const versionRegex = /git version [v]*([\d\.]+)/
+
+const versionDetectFailure = new RuntimeError(
+  deline`
+  Could not detect git version.
+  Please make sure git version ${minGitVersion} or later is installed and on your PATH.
+  `,
+  {}
+)
+
+/**
+ * throws if no git is installed or version is too old
+ */
+export async function validateGitInstall() {
+  let version: string | undefined = undefined
+
+  try {
+    const versionOutput = (await exec("git", ["--version"])).stdout
+    version = versionOutput.split("\n")[0].match(versionRegex)?.[1]
+  } catch (error) {
+    throw new RuntimeError(
+      deline`
+      Could not find git binary.
+      Please make sure git (version ${minGitVersion} or later) is installed and on your PATH.
+      `,
+      { error }
+    )
+  }
+
+  if (!version) {
+    throw versionDetectFailure
+  }
+
+  let versionGte = true
+
+  try {
+    versionGte = semver.gte(version, minGitVersion)
+  } catch (_) {
+    throw versionDetectFailure
+  }
+
+  if (!versionGte) {
+    throw new RuntimeError(
+      deline`
+      Found git binary but the version is too old (${version}).
+      Please install version ${minGitVersion} or later.
+      `,
+      { version }
+    )
+  }
+}
 
 export interface TreeVersion {
   contentHash: string
