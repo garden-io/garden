@@ -75,8 +75,11 @@ export interface ServiceStatusPayload extends Omit<ServiceStatus, "detail"> {
 export interface CommandInfoPayload extends CommandInfo {
   // Contains additional context for the command info available during init
   environmentName: string
+  environmentId: number | undefined
   projectName: string
+  projectId: string
   namespaceName: string
+  namespaceId: number | undefined
   coreVersion: string
   vcsBranch: string
   vcsCommitHash: string
