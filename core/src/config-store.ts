@@ -265,6 +265,7 @@ const versionCheckGlobalConfigSchema = () =>
     .keys({
       lastRun: joi.date().optional(),
     })
+    .unknown(true)
     .meta({ internal: true })
 
 const globalConfigSchemaKeys = {
@@ -286,7 +287,7 @@ export const globalConfigKeys = Object.keys(globalConfigSchemaKeys).reduce((acc,
   return acc
 }, {}) as { [K in keyof typeof globalConfigSchemaKeys]: K }
 
-const globalConfigSchema = () => joi.object().keys(globalConfigSchemaKeys).meta({ internal: true })
+const globalConfigSchema = () => joi.object().keys(globalConfigSchemaKeys).unknown(true).meta({ internal: true })
 
 export class GlobalConfigStore extends ConfigStore<GlobalConfig> {
   constructor() {
