@@ -31,7 +31,6 @@ export function getConnection(): Connection {
     const { Warning } = require("./entities/warning")
     const { Init1599658427984 } = require("./migrations/1599658427984-Init")
     const { refreshAuthToken1605039158093 } = require("./migrations/1605039158093-refresh-auth-token")
-    const { dropLocalAddress1659431901003 } = require("./migrations/1659431901003-drop-local-address")
 
     // Prepare the connection (the ormconfig.json in the static dir is only used for the typeorm CLI during dev)
     const options: ConnectionOptions = {
@@ -41,7 +40,7 @@ export function getConnection(): Connection {
       // IMPORTANT: All entities and migrations need to be manually referenced here because of how we
       // package the garden binary
       entities: [ClientAuthToken, GardenProcess, Warning],
-      migrations: [Init1599658427984, refreshAuthToken1605039158093, dropLocalAddress1659431901003],
+      migrations: [Init1599658427984, refreshAuthToken1605039158093],
       // Auto-run migrations on init
       migrationsRun: true,
     }
