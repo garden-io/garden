@@ -281,6 +281,7 @@ const requirementsCheckGlobalConfigSchema = () =>
       lastRunGardenVersion: joi.string().optional(),
       passed: joi.bool().optional(),
     })
+    .unknown(true)
     .meta({ internal: true })
 
 const globalConfigSchemaKeys = {
