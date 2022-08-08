@@ -231,19 +231,6 @@ async function createProxy({ garden, graph, log, service, spec }: StartPortProxy
 
   if (gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS) {
     localIp = gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS
-  } else if (!spec.preferredLocalPort) {
-    // TODO: drop this in 0.13, it causes more issues than it solves
-    // Only try a non-default IP if a preferred port isn't set
-    // Note: lazy-loading for startup performance
-    const { LocalAddress } = require("./db/entities/local-address")
-    const preferredLocalAddress = await LocalAddress.resolve({
-      projectName: garden.projectName,
-      moduleName: service.module.name,
-      serviceName: service.name,
-      hostname: getHostname(service, spec),
-    })
-
-    localIp = preferredLocalAddress.getIp()
   }
 
   while (true) {

@@ -26,7 +26,6 @@ export function getConnection(): Connection {
   }
 
   if (!connection) {
-    const { LocalAddress } = require("./entities/local-address")
     const { ClientAuthToken } = require("./entities/client-auth-token")
     const { GardenProcess } = require("./entities/garden-process")
     const { Warning } = require("./entities/warning")
@@ -40,7 +39,7 @@ export function getConnection(): Connection {
       database: databasePath,
       // IMPORTANT: All entities and migrations need to be manually referenced here because of how we
       // package the garden binary
-      entities: [LocalAddress, ClientAuthToken, GardenProcess, Warning],
+      entities: [ClientAuthToken, GardenProcess, Warning],
       migrations: [Init1599658427984, refreshAuthToken1605039158093],
       // Auto-run migrations on init
       migrationsRun: true,
