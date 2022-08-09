@@ -30,8 +30,8 @@ import { renderTable, tablePresets, naturalList } from "../util/string"
 import { globalOptions, GlobalOptions } from "./params"
 import { BuiltinArgs, Command, CommandGroup } from "../commands/base"
 import { DeepPrimitiveMap } from "../config/common"
-import { validateRsyncInstall } from "../build-staging/rsync"
 import { validateGitInstall } from "../vcs/vcs"
+import { validateRsyncInstall } from "../build-staging/rsync"
 
 let _cliStyles: any
 
