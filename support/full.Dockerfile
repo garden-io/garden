@@ -1,5 +1,5 @@
 ARG TAG=latest
-FROM gardendev/garden-gcloud:${TAG}
+FROM gardendev/garden:${TAG}-gcloud
 
 # Required by Azure DevOps to tell the system where node is installed
 LABEL "com.azure.dev.pipelines.agent.handler.node.path"="/usr/local/bin/node"

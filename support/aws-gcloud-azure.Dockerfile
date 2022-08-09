@@ -1,5 +1,5 @@
 ARG TAG=latest
-FROM gardendev/garden-gcloud:${TAG}
+FROM gardendev/garden:${TAG}-gcloud
 
 ENV KUBELOGIN_VERSION=v0.0.9
 
