@@ -72,6 +72,20 @@ export interface ServiceStatusPayload extends Omit<ServiceStatus, "detail"> {
   deployCompletedAt?: Date
 }
 
+export interface CommandInfoPayload extends CommandInfo {
+  // Contains additional context for the command info available during init
+  environmentName: string
+  environmentId: number | undefined
+  projectName: string
+  projectId: string
+  namespaceName: string
+  namespaceId: number | undefined
+  coreVersion: string
+  vcsBranch: string
+  vcsCommitHash: string
+  vcsOriginUrl: string
+}
+
 export function toGraphResultEventPayload(result: GraphResult): GraphResultEventPayload {
   const payload = sanitizeObject(omit(result, "dependencyResults"))
   if (result.output) {
@@ -130,7 +144,7 @@ export interface Events extends LoggerEvents {
   moduleRemoved: {}
 
   // Command/project metadata events
-  commandInfo: CommandInfo
+  commandInfo: CommandInfoPayload
 
   // Stack Graph events
   stackGraph: RenderedActionGraph

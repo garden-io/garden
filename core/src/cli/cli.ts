@@ -478,7 +478,20 @@ ${renderCommands(commands)}
           }
           this.bufferedEventStream.connect(connectParams)
           if (streamEvents) {
-            this.bufferedEventStream.streamEvent("commandInfo", commandInfo)
+            const commandInfoPayload = {
+              ...commandInfo,
+              environmentName: garden.environmentName,
+              environmentId: cloudApi.environmentId,
+              projectName: garden.projectName,
+              projectId: cloudApi.projectId,
+              namespaceName: garden.namespace,
+              namespaceId: cloudApi.namespaceId,
+              coreVersion: getPackageVersion(),
+              vcsBranch: garden.vcsInfo.branch,
+              vcsCommitHash: garden.vcsInfo.commitHash,
+              vcsOriginUrl: garden.vcsInfo.originUrl,
+            }
+            this.bufferedEventStream.streamEvent("commandInfo", commandInfoPayload)
           }
         }
 
