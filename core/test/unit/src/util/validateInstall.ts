@@ -33,7 +33,7 @@ describe("validateInstall", () => {
       (err) => expect(err.message).to.include("version is too old")
     )
   })
-  it("should throw binary not installed", async () => {
+  it("should throw if binary is not installed", async () => {
     await expectError(
       () =>
         validateInstall({
