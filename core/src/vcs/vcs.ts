@@ -38,7 +38,7 @@ export const NEW_MODULE_VERSION = "0000000000"
 const fileCountWarningThreshold = 10000
 
 const minGitVersion = "2.14.0"
-const versionRegex = /git version [v]*([\d\.]+)/
+export const gitVersionRegex = /git version [v]*([\d\.]+)/
 
 /**
  * throws if no git is installed or version is too old
@@ -48,7 +48,7 @@ export async function validateGitInstall() {
     minVersion: minGitVersion,
     name: "git",
     versionCommand: { cmd: "git", args: ["--version"] },
-    versionRegex,
+    versionRegex: gitVersionRegex,
   })
 }
 
