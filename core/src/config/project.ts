@@ -443,7 +443,7 @@ export function resolveProjectConfig({
       name,
       defaultEnvironment,
       // environments are validated later
-      environments: [{ defaultNamespace: null, name: "fake-env-only-here-for-inital-load", variables: {} }],
+      environments: [{ name: "fake-env-only-here-for-inital-load", defaultNamespace: null, variables: {} }],
       sources: [],
     },
     schema: projectSchema(),
