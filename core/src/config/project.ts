@@ -13,7 +13,6 @@ import {
   DeepPrimitiveMap,
   includeGuideLink,
   joi,
-  joiArray,
   joiIdentifier,
   joiPrimitive,
   joiRepositoryUrl,
@@ -29,7 +28,7 @@ import { resolveTemplateStrings } from "../template-string/template-string"
 import { EnvironmentConfigContext, ProjectConfigContext } from "./template-contexts/project"
 import { findByName, getNames } from "../util/util"
 import { ConfigurationError, ParameterError, ValidationError } from "../exceptions"
-import { cloneDeep, omit } from "lodash"
+import { cloneDeep } from "lodash"
 import { GenericProviderConfig, providerConfigBaseSchema } from "./provider"
 import { DOCS_BASE_URL } from "../constants"
 import { defaultDotIgnoreFile } from "../util/fs"
@@ -56,7 +55,6 @@ export interface ParsedEnvironment {
 export interface EnvironmentConfig {
   name: string
   defaultNamespace: string | null
-  providers?: GenericProviderConfig[] // further validated by each plugin
   varfile?: string
   variables: DeepPrimitiveMap
   production?: boolean
@@ -106,10 +104,6 @@ export const environmentSchema = () =>
       `
       )
       .example(true),
-    providers: joiArray(providerConfigBaseSchema()).unique("name").meta({
-      deprecated:
-        "Please use the top-level `providers` field  instead, and if needed use the `environments` key on the provider configurations to limit them to specific environments.",
-    }),
     varfile: joi
       .posixPath()
       .description(
@@ -454,19 +448,8 @@ export function resolveProjectConfig({
 
   const providers = config.providers
 
-  // TODO: Remove when we deprecate nesting providers under environments
-  for (const environment of environments || []) {
-    for (const provider of environment.providers || []) {
-      providers.push({
-        ...provider,
-        environments: [environment.name],
-      })
-    }
-    environment.providers = []
-  }
-
   // This will be validated separately, after resolving templates
-  config.environments = environments.map((e) => omit(e, ["providers"]))
+  config.environments = environments
 
   config = {
     ...config,
@@ -549,11 +532,9 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   })
   const projectVariables: DeepPrimitiveMap = <any>merge(projectConfig.variables, projectVarfileVars)
 
-  const envProviders = environmentConfig.providers || []
-
   // Resolve template strings in the environment config, except providers
   environmentConfig = resolveTemplateStrings(
-    { ...environmentConfig, providers: [] },
+    { ...environmentConfig },
     new EnvironmentConfigContext({
       projectName,
       projectRoot,
@@ -582,7 +563,6 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   const allProviders = [
     ...fixedProviders,
     ...projectConfig.providers.filter((p) => !p.environments || p.environments.includes(environment)),
-    ...envProviders,
   ]
 
   const mergedProviders: { [name: string]: GenericProviderConfig } = {}

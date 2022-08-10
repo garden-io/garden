@@ -26,7 +26,6 @@ import { realpath, writeFile } from "fs-extra"
 import { dedent } from "../../../../src/util/string"
 import { resolve, join } from "path"
 import stripAnsi from "strip-ansi"
-import { keyBy } from "lodash"
 
 const enterpriseDomain = "https://garden.mydomain.com"
 const commandInfo = { name: "test", args: {}, opts: {} }
@@ -503,83 +502,6 @@ describe("resolveProjectConfig", () => {
       varfile: defaultVarfilePath,
     })
   })
-
-  it("should convert old-style environment/provider config to the new canonical form", async () => {
-    const defaultEnvironment = "default"
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "my-project",
-      path: "/tmp/foo",
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [
-        {
-          name: "default",
-          defaultNamespace,
-          providers: [
-            {
-              name: "provider-b",
-            },
-          ],
-          variables: {
-            envVar: "bar",
-          },
-        },
-      ],
-      outputs: [],
-      providers: [
-        {
-          name: "provider-a",
-        },
-      ],
-      variables: {
-        defaultVar: "foo",
-      },
-    }
-
-    expect(
-      resolveProjectConfig({
-        defaultEnvironment,
-        config,
-        artifactsPath: "/tmp",
-        vcsInfo,
-        username: "some-user",
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: {},
-        commandInfo,
-      })
-    ).to.eql({
-      ...config,
-      dotIgnoreFiles: [],
-      environments: [
-        {
-          name: "default",
-          defaultNamespace,
-          variables: {
-            envVar: "bar",
-          },
-        },
-      ],
-      outputs: [],
-      providers: [
-        {
-          name: "provider-a",
-          dependencies: [],
-        },
-        {
-          name: "provider-b",
-          environments: ["default"],
-        },
-      ],
-      sources: [],
-      varfile: defaultVarfilePath,
-      variables: {
-        defaultVar: "foo",
-      },
-    })
-  })
 })
 
 describe("pickEnvironment", () => {
@@ -657,58 +579,6 @@ describe("pickEnvironment", () => {
       environmentName: "default",
       namespace: "default",
       providers: fixedPlugins.map((name) => ({ name })),
-      production: false,
-      variables: {},
-    })
-  })
-
-  it("should correctly merge provider configurations using JSON Merge Patch", async () => {
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "my-project",
-      path: "/tmp/foo",
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [
-        {
-          name: "default",
-          defaultNamespace,
-          variables: {},
-          providers: [{ name: "my-provider", b: "d" }, { name: "env-provider" }],
-        },
-      ],
-      providers: [
-        { name: "container", newKey: "foo" },
-        { name: "my-provider", a: "a" },
-        { name: "my-provider", b: "b" },
-        { name: "my-provider", a: "c" },
-      ],
-      variables: {},
-    }
-
-    expect(
-      await pickEnvironment({
-        projectConfig: config,
-        envString: "default",
-        artifactsPath,
-        vcsInfo,
-        username,
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: {},
-        commandInfo,
-      })
-    ).to.eql({
-      environmentName: "default",
-      namespace: "default",
-      providers: [
-        { name: "exec" },
-        { name: "container", newKey: "foo" },
-        { name: "templated" },
-        { name: "my-provider", a: "c", b: "d" },
-        { name: "env-provider" },
-      ],
       production: false,
       variables: {},
     })
@@ -1206,41 +1076,6 @@ describe("pickEnvironment", () => {
       secrets: {},
       commandInfo,
     })
-  })
-
-  it("should pass through template strings in the providers field on environments", async () => {
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "my-project",
-      path: "/tmp/foo",
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [
-        {
-          name: "default",
-          defaultNamespace,
-          variables: {},
-          providers: [{ name: "my-provider", a: "${var.missing}", b: "${secrets.missing}" }],
-        },
-      ],
-      providers: [],
-      variables: {},
-    }
-
-    const result = await pickEnvironment({
-      projectConfig: config,
-      envString: "default",
-      artifactsPath,
-      vcsInfo,
-      username,
-      loggedIn: true,
-      enterpriseDomain,
-      secrets: {},
-      commandInfo,
-    })
-
-    expect(keyBy(result.providers, "name")["my-provider"].a).to.equal("${var.missing}")
   })
 
   it("should allow referencing top-level variables", async () => {
