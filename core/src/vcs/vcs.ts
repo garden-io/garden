@@ -28,6 +28,7 @@ import { TaskConfig } from "../config/task"
 import { TestConfig } from "../config/test"
 import { GardenModule } from "../types/module"
 import { emitWarning } from "../warnings"
+import { validateInstall } from "../util/validateInstall"
 
 const AsyncLock = require("async-lock")
 const scanLock = new AsyncLock()
@@ -35,6 +36,21 @@ const scanLock = new AsyncLock()
 export const versionStringPrefix = "v-"
 export const NEW_MODULE_VERSION = "0000000000"
 const fileCountWarningThreshold = 10000
+
+const minGitVersion = "2.14.0"
+export const gitVersionRegex = /git version [v]*([\d\.]+)/
+
+/**
+ * throws if no git is installed or version is too old
+ */
+export async function validateGitInstall() {
+  await validateInstall({
+    minVersion: minGitVersion,
+    name: "git",
+    versionCommand: { cmd: "git", args: ["--version"] },
+    versionRegex: gitVersionRegex,
+  })
+}
 
 export interface TreeVersion {
   contentHash: string

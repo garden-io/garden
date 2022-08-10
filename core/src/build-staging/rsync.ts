@@ -6,66 +6,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import semver from "semver"
 import { relative, parse } from "path"
 import { ensureDir } from "fs-extra"
-import { RuntimeError } from "../exceptions"
 import { normalizeLocalRsyncPath, joinWithPosix } from "../util/fs"
-import { exec } from "../util/util"
-import { deline } from "../util/string"
 import { syncWithOptions } from "../util/sync"
 import { BuildStaging, SyncParams } from "./build-staging"
+import { validateInstall } from "../util/validateInstall"
 
 const minRsyncVersion = "3.1.0"
 const versionRegex = /rsync  version [v]*([\d\.]+)  /
 
-const versionDetectFailure = new RuntimeError(
-  deline`
-  Could not detect rsync version.
-  Please make sure rsync version ${minRsyncVersion} or later is installed and on your PATH.
-  `,
-  {}
-)
+/**
+ * throws if no rsync is installed or version is too old
+ */
+export async function validateRsyncInstall() {
+  await validateInstall({
+    minVersion: minRsyncVersion,
+    name: "rsync",
+    versionCommand: { cmd: "rsync", args: ["--version"] },
+    versionRegex,
+  })
+}
 
 export class BuildDirRsync extends BuildStaging {
   static async factory(projectRoot: string, gardenDirPath: string) {
-    // Make sure rsync is installed and is recent enough
-    let version: string | undefined = undefined
-
-    try {
-      const versionOutput = (await exec("rsync", ["--version"])).stdout
-      version = versionOutput.split("\n")[0].match(versionRegex)?.[1]
-    } catch (error) {
-      throw new RuntimeError(
-        deline`
-        Could not find rsync binary.
-        Please make sure rsync (version ${minRsyncVersion} or later) is installed and on your PATH.
-        `,
-        { error }
-      )
-    }
-
-    if (!version) {
-      throw versionDetectFailure
-    }
-
-    let versionGte = true
-
-    try {
-      versionGte = semver.gte(version, minRsyncVersion)
-    } catch (_) {
-      throw versionDetectFailure
-    }
-
-    if (!versionGte) {
-      throw new RuntimeError(
-        deline`
-        Found rsync binary but the version is too old (${version}).
-        Please install version ${minRsyncVersion} or later.
-        `,
-        { version }
-      )
-    }
+    await validateRsyncInstall()
 
     return new BuildDirRsync(projectRoot, gardenDirPath)
   }
