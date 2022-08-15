@@ -529,7 +529,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
 }) {
   const { environments, name: projectName, path: projectRoot } = projectConfig
 
-  let { environment, namespace } = parseEnvironment(envString)
+  let { environment, namespace: cliSpecifiedNamespace } = parseEnvironment(envString)
 
   let environmentConfig = findByName(environments, environment)
 
@@ -537,7 +537,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     throw new ParameterError(`Project ${projectName} does not specify environment ${environment}`, {
       projectName,
       environmentName: environment,
-      namespace,
+      cliSpecifiedNamespace,
       definedEnvironments: getNames(environments),
     })
   }
@@ -576,7 +576,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     projectRoot: projectConfig.path,
   })
 
-  namespace = getNamespace(environmentConfig, namespace)
+  const namespace = getNamespace(environmentConfig, cliSpecifiedNamespace)
 
   const fixedProviders = fixedPlugins.map((name) => ({ name }))
   const allProviders = [
@@ -617,26 +617,25 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
  * Validates that the value passed for `namespace` conforms with the namespacing setting in `environmentConfig`,
  * and returns `namespace` (or a default namespace, if appropriate).
  */
-export function getNamespace(environmentConfig: EnvironmentConfig, namespace: string | undefined): string {
+export function getNamespace(environmentConfig: EnvironmentConfig, cliSpecifiedNamespace: string | undefined): string {
+  if (cliSpecifiedNamespace) {
+    return cliSpecifiedNamespace
+  }
+
+  if (environmentConfig.defaultNamespace) {
+    return environmentConfig.defaultNamespace
+  }
+
   const envName = environmentConfig.name
+  const envHighlight = chalk.white.bold(envName)
+  const exampleFlag = chalk.white(`--env=${chalk.bold("some-namespace.")}${envName}`)
 
-  if (!namespace && environmentConfig.defaultNamespace) {
-    namespace = environmentConfig.defaultNamespace
-  }
-
-  if (!namespace) {
-    const envHighlight = chalk.white.bold(envName)
-    const exampleFlag = chalk.white(`--env=${chalk.bold("some-namespace.")}${envName}`)
-
-    throw new ParameterError(
-      `Environment ${envHighlight} has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. ${exampleFlag}).`,
-      {
-        environmentConfig,
-      }
-    )
-  }
-
-  return namespace
+  throw new ParameterError(
+    `Environment ${envHighlight} has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. ${exampleFlag}).`,
+    {
+      environmentConfig,
+    }
+  )
 }
 
 export function parseEnvironment(env: string): ParsedEnvironment {
