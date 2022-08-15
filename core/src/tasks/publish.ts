@@ -33,7 +33,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
     this.tagTemplate = params.tagTemplate
   }
 
-  resolveDependencies() {
+  resolveProcessDependencies() {
     if (this.action.getConfig("allowPublish") === false) {
       return []
     }

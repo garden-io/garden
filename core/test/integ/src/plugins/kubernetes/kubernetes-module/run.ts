@@ -48,7 +48,7 @@ describe("runKubernetesTask", () => {
     const ctx = await garden.getPluginContext(provider)
     await clearTaskResult({ ctx, log: garden.log, module: task.module, task })
 
-    const key = testTask.getKey()
+    const key = testTask.getBaseKey()
     const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
 
     expect(result).to.exist
@@ -118,7 +118,7 @@ describe("runKubernetesTask", () => {
       localModeDeployNames: [],
     })
 
-    const key = testTask.getKey()
+    const key = testTask.getBaseKey()
     const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
 
     expect(result).to.exist
@@ -203,7 +203,7 @@ describe("runKubernetesTask", () => {
 
       const results = await garden.processTasks([testTask], { throwOnError: false })
 
-      expect(results[testTask.getKey()]!.error).to.exist
+      expect(results[testTask.getBaseKey()]!.error).to.exist
 
       expect(await pathExists(join(garden.artifactsPath, "test.txt"))).to.be.true
       expect(await pathExists(join(garden.artifactsPath, "subdir", "test.txt"))).to.be.true

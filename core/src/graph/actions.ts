@@ -201,7 +201,7 @@ export async function resolveAction<T extends Action>({
 
   const results = await garden.processTasks({ tasks: [task], log, throwOnError: true })
 
-  return <Resolved<T>>(<unknown>results.results[task.getKey()]!)
+  return <Resolved<T>>(<unknown>results.results[task.getBaseKey()]!)
 }
 
 export interface ResolvedActions<T extends Action> {
@@ -271,7 +271,7 @@ export async function executeAction<T extends Action>({
 
   const results = await garden.processTasks({ tasks: [task], log, throwOnError: true })
 
-  return <Executed<T>>(<unknown>results.results[task.getKey()]!)
+  return <Executed<T>>(<unknown>results.results[task.getBaseKey()]!)
 }
 
 const getActionConfigContextKeys = memoize(() => {

@@ -24,6 +24,7 @@ import { GardenPlugin } from "../plugin/plugin"
 import { EnvironmentStatus } from "../plugin/handlers/provider/getEnvironmentStatus"
 import { environmentStatusSchema } from "./status"
 import { DashboardPage, dashboardPagesSchema } from "../plugin/handlers/provider/getDashboardPage"
+import { ActionState } from "../actions/base"
 
 export interface BaseProviderConfig {
   name: string
@@ -63,6 +64,7 @@ export interface Provider<T extends BaseProviderConfig = BaseProviderConfig> {
   environments?: string[]
   moduleConfigs: ModuleConfig[]
   config: T
+  state: ActionState
   status: EnvironmentStatus
   dashboardPages: DashboardPage[]
   outputs: PrimitiveMap
@@ -90,6 +92,7 @@ export const defaultProvider: Provider = {
   name: "_default",
   dependencies: {},
   moduleConfigs: [],
+  state: "ready",
   config: { name: "_default" },
   status: { ready: true, outputs: {} },
   dashboardPages: [],
@@ -114,6 +117,7 @@ export function providerFromConfig({
     dependencies,
     moduleConfigs,
     config,
+    state: status.ready ? "ready" : "not-ready",
     status,
     dashboardPages: plugin.dashboardPages,
     outputs: status.outputs,

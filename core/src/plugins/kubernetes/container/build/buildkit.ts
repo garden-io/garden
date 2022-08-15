@@ -171,11 +171,14 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
   log.silly(buildLog)
 
   return {
-    buildLog,
-    fetched: false,
-    fresh: true,
-    version: action.versionString(),
+    state: "ready",
     outputs,
+    detail: {
+      buildLog,
+      fetched: false,
+      fresh: true,
+      outputs,
+    },
   }
 }
 

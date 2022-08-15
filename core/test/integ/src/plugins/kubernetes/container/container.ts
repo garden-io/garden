@@ -290,7 +290,7 @@ describe("kubernetes container module handlers", () => {
 
         const results = await garden.processTasks([testTask], { throwOnError: false })
 
-        expect(results[testTask.getKey()]!.error).to.exist
+        expect(results[testTask.getBaseKey()]!.error).to.exist
 
         expect(await pathExists(join(garden.artifactsPath, "test.txt"))).to.be.true
         expect(await pathExists(join(garden.artifactsPath, "subdir", "test.txt"))).to.be.true

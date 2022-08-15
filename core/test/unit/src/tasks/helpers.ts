@@ -17,7 +17,7 @@ import { LogEntry } from "../../../../src/logger/log-entry"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 
 function sortedBaseKeys(tasks: BaseTask[]): string[] {
-  return uniq(tasks.map((t) => t.getKey())).sort()
+  return uniq(tasks.map((t) => t.getBaseKey())).sort()
 }
 
 describe("TaskHelpers", () => {

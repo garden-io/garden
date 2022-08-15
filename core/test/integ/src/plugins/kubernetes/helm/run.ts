@@ -43,7 +43,7 @@ describe("runHelmTask", () => {
       localModeDeployNames: [],
     })
 
-    const key = testTask.getKey()
+    const key = testTask.getBaseKey()
 
     // Clear any existing task result
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
@@ -119,7 +119,7 @@ describe("runHelmTask", () => {
       localModeDeployNames: [],
     })
 
-    const key = testTask.getKey()
+    const key = testTask.getBaseKey()
     const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
 
     expect(result).to.exist
@@ -204,7 +204,7 @@ describe("runHelmTask", () => {
 
       const results = await garden.processTasks([testTask], { throwOnError: false })
 
-      expect(results[testTask.getKey()]!.error).to.exist
+      expect(results[testTask.getBaseKey()]!.error).to.exist
 
       expect(await pathExists(join(garden.artifactsPath, "test.txt"))).to.be.true
       expect(await pathExists(join(garden.artifactsPath, "subdir", "test.txt"))).to.be.true

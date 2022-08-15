@@ -15,6 +15,7 @@ import { InternalError } from "../exceptions"
 import { validateWithPath } from "../config/validation"
 
 export interface ResolveActionResults<T extends Action> {
+  state: "ready"
   outputs: {
     resolvedAction: Resolved<T>
   }
@@ -32,7 +33,11 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     return null
   }
 
-  resolveDependencies() {
+  resolveStatusDependencies() {
+    return []
+  }
+
+  resolveProcessDependencies() {
     return this.action.getDependencyReferences().map((d) => {
       const action = this.graph.getActionByRef(d)
 
@@ -106,6 +111,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     )
 
     return {
+      state: "ready",
       outputs: {
         resolvedAction,
       },
