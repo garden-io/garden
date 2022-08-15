@@ -12,12 +12,18 @@ import { ConfigurationError } from "@garden-io/core/build/src/exceptions"
 import { getDockerBuildArgs } from "@garden-io/core/build/src/plugins/container/build"
 import { ContainerBuildSpec, ContainerModuleSpec } from "@garden-io/core/build/src/plugins/container/config"
 
+interface MavenPhases {
+  start?: string
+  end: string
+}
+
 interface JibModuleBuildSpec extends ContainerBuildSpec {
   dockerBuild?: boolean
   projectType: "gradle" | "maven" | "auto"
   jdkVersion: number
   tarOnly?: boolean
   tarFormat: "docker" | "oci"
+  mavenPhases?: MavenPhases
 }
 
 interface JibModuleSpec extends ContainerModuleSpec {
@@ -121,4 +127,14 @@ export function getBuildFlags(module: JibContainerModule, projectType: JibModule
   args.push(...(module.spec.extraFlags || []))
 
   return { args, tarPath }
+}
+
+export function resolveMavenPhases(mavenPhases?: MavenPhases): string[] {
+  if (!mavenPhases) {
+    return ["compile"]
+  } else {
+    const start = mavenPhases.start
+    const end = mavenPhases.end
+    return !!start ? [start, end] : [end]
+  }
 }

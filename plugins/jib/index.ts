@@ -26,7 +26,7 @@ import { ConfigureModuleParams } from "@garden-io/core/build/src/types/plugin/mo
 import { containerHelpers } from "@garden-io/core/build/src/plugins/container/helpers"
 import { cloneDeep } from "lodash"
 import { LogLevel } from "@garden-io/core/build/src/logger/logger"
-import { detectProjectType, getBuildFlags, JibContainerModule } from "./util"
+import { detectProjectType, getBuildFlags, JibContainerModule, resolveMavenPhases } from "./util"
 
 export interface JibProviderConfig extends GenericProviderConfig {}
 
@@ -66,6 +66,14 @@ const jibModuleSchema = () =>
         .valid("docker", "oci")
         .default("docker")
         .description("Specify the image format in the resulting tar file. Only used if `tarOnly: true`."),
+      mavenPhases: joi
+        .object()
+        .optional()
+        .keys({
+          start: joi.string().optional().description("Start Maven phase."),
+          end: joi.string().optional().default("compile").description("End Maven phase."),
+        })
+        .description("Defines the start and end phases of the Maven job."),
       extraFlags: joi
         .sparseArray()
         .items(joi.string())
@@ -163,7 +171,7 @@ export const gardenPlugin = () =>
 
           async build(params: BuildModuleParams<JibContainerModule>) {
             const { ctx, log, module } = params
-            const { jdkVersion } = module.spec.build
+            const { jdkVersion, mavenPhases } = module.spec.build
 
             const openJdk = ctx.tools["jib.openjdk-" + jdkVersion]
             const openJdkPath = await openJdk.getPath(log)
@@ -196,7 +204,7 @@ export const gardenPlugin = () =>
                 ctx,
                 log,
                 cwd: module.path,
-                args: ["compile", ...args],
+                args: [...resolveMavenPhases(mavenPhases), ...args],
                 openJdkPath,
                 outputStream,
               })
