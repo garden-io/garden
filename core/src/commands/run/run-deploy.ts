@@ -99,7 +99,7 @@ export class RunDeployCommand extends Command<Args, Opts> {
       localModeDeployNames: [],
     })
 
-    const tasks = deployTask.resolveDependencies()
+    const tasks = deployTask.resolveProcessDependencies()
     const { results: dependencyResults } = await garden.processTasks({ tasks, log, throwOnError: true })
     const interactive = true
 

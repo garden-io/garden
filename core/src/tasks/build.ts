@@ -11,7 +11,6 @@ import { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams, 
 import { Profile } from "../util/profiling"
 import { BuildAction } from "../actions/build"
 import pluralize from "pluralize"
-import { BuildResult } from "../plugin/handlers/build/build"
 import { BuildStatus } from "../plugin/handlers/build/get-status"
 
 export interface BuildTaskParams extends BaseActionTaskParams<BuildAction> {
@@ -19,7 +18,7 @@ export interface BuildTaskParams extends BaseActionTaskParams<BuildAction> {
 }
 
 @Profile()
-export class BuildTask extends ExecuteActionTask<BuildAction, BuildResult, BuildStatus> {
+export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
   type = "build"
   concurrencyLimit = 5
 

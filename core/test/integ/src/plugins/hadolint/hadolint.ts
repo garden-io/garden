@@ -195,7 +195,7 @@ describe("hadolint provider", () => {
         localModeDeployNames: [],
       })
 
-      const key = testTask.getKey()
+      const key = testTask.getBaseKey()
       const { [key]: result } = await garden.processTasks([testTask])
 
       expect(result).to.exist
@@ -259,7 +259,7 @@ describe("hadolint provider", () => {
         localModeDeployNames: [],
       })
 
-      const key = testTask.getKey()
+      const key = testTask.getBaseKey()
       const { [key]: result } = await garden.processTasks([testTask])
 
       expect(result).to.exist
@@ -318,7 +318,7 @@ describe("hadolint provider", () => {
         localModeDeployNames: [],
       })
 
-      const key = testTask.getKey()
+      const key = testTask.getBaseKey()
       const { [key]: result } = await garden.processTasks([testTask])
 
       expect(result).to.exist
@@ -371,7 +371,7 @@ describe("hadolint provider", () => {
         localModeDeployNames: [],
       })
 
-      const key = testTask.getKey()
+      const key = testTask.getBaseKey()
       const { [key]: result } = await garden.processTasks([testTask])
 
       expect(result).to.exist
@@ -414,7 +414,7 @@ describe("hadolint provider", () => {
         localModeDeployNames: [],
       })
 
-      const key = testTask.getKey()
+      const key = testTask.getBaseKey()
       const { [key]: result } = await garden.processTasks([testTask])
 
       expect(result).to.exist
@@ -460,7 +460,7 @@ describe("hadolint provider", () => {
         localModeDeployNames: [],
       })
 
-      const key = testTask.getKey()
+      const key = testTask.getBaseKey()
       const { [key]: result } = await garden.processTasks([testTask])
 
       expect(result).to.exist

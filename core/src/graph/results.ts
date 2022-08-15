@@ -24,6 +24,7 @@ export interface GraphResult<R extends ValidResultType = ValidResultType> extend
   startedAt: Date | null
   completedAt: Date | null
   error: Error | null
+  aborted: boolean
   outputs: R["outputs"]
   task: BaseTask
 }
@@ -39,18 +40,18 @@ export class GraphResults<B extends Task = Task> {
   private tasks: Map<string, B>
 
   constructor(tasks: B[]) {
-    this.results = new Map(tasks.map((t) => [t.getKey(), null]))
-    this.tasks = new Map(tasks.map((t) => [t.getKey(), t]))
+    this.results = new Map(tasks.map((t) => [t.getBaseKey(), null]))
+    this.tasks = new Map(tasks.map((t) => [t.getBaseKey(), t]))
   }
 
   setResult<T extends BaseTask>(task: T, result: GraphResultFromTask<T>) {
-    const key = task.getKey()
+    const key = task.getBaseKey()
     this.checkKey(key)
     this.results.set(key, result)
   }
 
   getResult<T extends BaseTask>(task: T): GraphResultFromTask<T> | null {
-    const key = task.getKey()
+    const key = task.getBaseKey()
     this.checkKey(key)
     return this.results.get(key) || null
   }

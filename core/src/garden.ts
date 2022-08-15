@@ -343,7 +343,7 @@ export class Garden {
     this.registeredPlugins = [...getBuiltinPlugins(), ...params.plugins]
     this.resolvedProviders = {}
 
-    this.solver = new GraphSolver()
+    this.solver = new GraphSolver(this)
     this.events = new EventBus()
 
     // TODO: actually resolve version, based on the VCS version of the plugin and its dependencies

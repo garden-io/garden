@@ -56,6 +56,7 @@ import { Action, runResultToActionState } from "../../actions/base"
 import { BuildResult } from "../../plugin/handlers/build/build"
 import { ResolvedBuildAction } from "../../actions/build"
 import { DeployStatus } from "../../plugin/handlers/deploy/get-status"
+import { BuildStatus } from "../../plugin/handlers/build/get-status"
 
 const persistentLocalProcRetryIntervalMs = 2500
 
@@ -179,19 +180,19 @@ async function run({
 }
 
 export const buildExecModule: BuildActionHandler<"build", ExecBuild> = async ({ action, log, ctx }) => {
-  const output: BuildResult = { outputs: {} }
+  const output: BuildStatus = { state: "ready", outputs: {}, detail: {} }
   const command = action.getSpec("command")
 
   if (command?.length) {
     const result = await run({ command, action, ctx, log })
 
-    output.fresh = true
-    output.buildLog = result.stdout + result.stderr
+    output.detail.fresh = true
+    output.detail.buildLog = result.stdout + result.stderr
   }
 
-  if (output.buildLog) {
+  if (output.detail.buildLog) {
     const prefix = `Finished building module ${chalk.white(action.name)}. Here is the full output:`
-    log.verbose(renderMessageWithDivider(prefix, output.buildLog, false, chalk.gray))
+    log.verbose(renderMessageWithDivider(prefix, output.detail.buildLog, false, chalk.gray))
   }
   // keep track of which version has been built
   const buildVersionFilePath = join(action.getBuildMetadataPath(), GARDEN_BUILD_VERSION_FILENAME)
