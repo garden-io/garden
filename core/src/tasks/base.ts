@@ -13,7 +13,7 @@ import { LogEntry } from "../logger/log-entry"
 import { pickBy, mapValues, mapKeys } from "lodash"
 import { splitLast } from "../util/util"
 import { Profile } from "../util/profiling"
-import type { Action, Executed, Resolved } from "../actions/base"
+import type { Action, ActionState, Executed, Resolved } from "../actions/base"
 import type { ConfigGraph } from "../graph/config-graph"
 import type { ActionReference } from "../config/common"
 import { DeployStatus } from "../plugin/handlers/deploy/get-status"
@@ -29,6 +29,7 @@ import { ResolveActionTask } from "./resolve-action"
 import type { ResolveProviderTask } from "./resolve-provider"
 import type { RunTask } from "./run"
 import type { TestTask } from "./test"
+import { Memoize } from "typescript-memoize"
 
 export class TaskDefinitionError extends Error {}
 
@@ -62,6 +63,7 @@ export interface TaskProcessParams {
 }
 
 export interface ValidResultType {
+  state: ActionState
   outputs: {}
 }
 
@@ -93,7 +95,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType, S ex
   public readonly version: string
   public readonly fromWatch: boolean
   public readonly skipDependencies: boolean
-  public readonly executeTask: boolean = false
+  protected readonly executeTask: boolean = false
   interactive = false
 
   _resultType: O
@@ -110,32 +112,59 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType, S ex
   }
 
   abstract getName(): string
-  abstract resolveDependencies(): BaseTask[]
+
+  // Which dependencies must be resolved to call this task's getStatus method
+  abstract resolveStatusDependencies(): BaseTask[]
+  // Which dependencies must be resolved to call this task's process method, in addition to the above
+  abstract resolveProcessDependencies(): BaseTask[]
+
   abstract getDescription(): string
   abstract getStatus(params: TaskProcessParams): Promise<S | null>
   abstract process(params: TaskProcessParams): Promise<O>
 
   /**
-   * Wrapper around resolveDependencies() that memoizes the results and applies generic filters.
+   * Wrapper around resolveStatusDependencies() that memoizes the results.
    */
-  getDependencies(): BaseTask[] {
-    if (!this._resolvedDependencies) {
-      if (this.skipDependencies) {
-        return []
-      } else {
-        this._resolvedDependencies = this.resolveDependencies()
-      }
-    }
-
-    return this._resolvedDependencies
+  @Memoize()
+  getStatusDependencies(): BaseTask[] {
+    return this.resolveStatusDependencies()
   }
 
-  getKey(): string {
+  /**
+   * Wrapper around resolveProcessDependencies() that memoizes the results.
+   */
+  @Memoize()
+  getProcessDependencies(): BaseTask[] {
+    return this.resolveProcessDependencies()
+  }
+
+  /**
+   * The basic type and name of the task.
+   */
+  getBaseKey(): string {
     return makeBaseKey(this.type, this.getName())
   }
 
+  /**
+   * A key that factors in different parameters, e.g. dev mode for deploys, force flags, versioning etc.
+   * Used to handle overlapping graph solve requests.
+   */
+  getKey(): string {
+    // TODO-G2
+    let key = this.getBaseKey()
+
+    // if (this.force) {
+    //   key += ".force=true"
+    // }
+
+    return key
+  }
+
+  /**
+   * A completely unique key for the instance of the task.
+   */
   getId(): string {
-    return `${this.getKey()}.${this.uid}`
+    return `${this.getBaseKey()}.${this.uid}`
   }
 
   isExecuteTask(): this is ExecuteTask {
@@ -151,7 +180,7 @@ export interface ActionTaskProcessParams<T extends Action, S extends ValidResult
 
 export abstract class BaseActionTask<
   T extends Action,
-  O extends ValidResultType = { outputs: T["_outputs"] },
+  O extends ValidResultType,
   S extends ValidResultType = O
 > extends BaseTask<O, S> {
   action: T
@@ -181,12 +210,14 @@ export abstract class BaseActionTask<
     return this.action.name
   }
 
+  resolveStatusDependencies(): BaseTask[] {
+    return [this.getResolveTask(this.action)]
+  }
+
   // Most tasks can just use this default method.
   // TODO-G2: review this for all task types
-  resolveDependencies(): BaseTask[] {
-    const resolveTask = this.getResolveTask(this.action)
-
-    const depTasks = this.action.getDependencyReferences().map((dep) => {
+  resolveProcessDependencies(): BaseTask[] {
+    return this.action.getDependencyReferences().map((dep) => {
       const action = this.graph.getActionByRef(dep)
 
       if (dep.type === "implicit") {
@@ -195,8 +226,6 @@ export abstract class BaseActionTask<
         return this.getExecuteTask(action)
       }
     })
-
-    return [...depTasks, resolveTask]
   }
 
   // Helpers //
@@ -223,7 +252,7 @@ export abstract class BaseActionTask<
 
     if (!result) {
       throw new InternalError(
-        `Could not find resolved action '${action.key()}' when processing task '${this.getKey()}'.`,
+        `Could not find resolved action '${action.key()}' when processing task '${this.getBaseKey()}'.`,
         { taskType: this.type, action: action.key() }
       )
     }
@@ -241,7 +270,7 @@ export abstract class BaseActionTask<
 
     if (!result) {
       throw new InternalError(
-        `Could not find executed action '${action.key()}' when processing task '${this.getKey()}'.`,
+        `Could not find executed action '${action.key()}' when processing task '${this.getBaseKey()}'.`,
         { taskType: this.type, action: action.key() }
       )
     }
@@ -285,7 +314,7 @@ export abstract class ExecuteActionTask<
 }
 
 export function getResultForTask<T extends BaseTask>(task: T, graphResults: GraphResults): T["_resultType"] | null {
-  return graphResults[task.getKey()]
+  return graphResults[task.getBaseKey()]
 }
 
 export function getServiceStatuses(dependencyResults: GraphResults): { [name: string]: DeployStatus } {

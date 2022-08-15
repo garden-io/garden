@@ -66,7 +66,7 @@ export interface LoggerEvents {
 
 export type LoggerEventName = keyof LoggerEvents
 
-export type GraphResultEventPayload = Omit<GraphResult, "dependencyResults">
+export type GraphResultEventPayload = Omit<GraphResult, "task"> // | "dependencyResults"
 
 export interface ServiceStatusPayload extends Omit<ServiceStatus, "detail"> {
   deployStartedAt?: Date
@@ -139,14 +139,12 @@ export interface Events extends LoggerEvents {
   // TaskGraph events
   taskPending: {
     addedAt: Date
-    batchId: string
     key: string
     type: string
     name: string
   }
   taskProcessing: {
     startedAt: Date
-    batchId: string
     key: string
     type: string
     name: string
@@ -156,7 +154,6 @@ export interface Events extends LoggerEvents {
   taskError: GraphResultEventPayload
   taskCancelled: {
     cancelledAt: Date
-    batchId: string
     type: string
     key: string
     name: string

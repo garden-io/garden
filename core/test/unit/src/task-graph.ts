@@ -58,7 +58,7 @@ export class TestTask extends BaseTask {
     this.dependencies = options.dependencies || []
   }
 
-  resolveDependencies() {
+  resolveProcessDependencies() {
     return this.dependencies
   }
 
@@ -66,7 +66,7 @@ export class TestTask extends BaseTask {
     return this.name
   }
 
-  getKey(): string {
+  getBaseKey(): string {
     return this.name
   }
 
@@ -146,7 +146,7 @@ describe("task-graph", () => {
           payload: {
             addedAt: now,
             batchId: generatedBatchId,
-            key: task.getKey(),
+            key: task.getBaseKey(),
             name: task.name,
             type: task.type,
           },
@@ -156,7 +156,7 @@ describe("task-graph", () => {
           payload: {
             startedAt: now,
             batchId: generatedBatchId,
-            key: task.getKey(),
+            key: task.getBaseKey(),
             name: task.name,
             type: task.type,
             versionString: task.version,
@@ -223,7 +223,7 @@ describe("task-graph", () => {
           payload: {
             addedAt: now,
             batchId: generatedBatchId,
-            key: task.getKey(),
+            key: task.getBaseKey(),
             name: task.name,
             type: task.type,
           },
@@ -233,7 +233,7 @@ describe("task-graph", () => {
           payload: {
             startedAt: now,
             batchId: generatedBatchId,
-            key: task.getKey(),
+            key: task.getBaseKey(),
             name: task.name,
             type: task.type,
             versionString: task.version,

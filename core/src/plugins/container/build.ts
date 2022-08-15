@@ -85,7 +85,11 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
     ctx,
   })
 
-  return { fresh: true, buildLog: res.all || "", outputs, details: { identifier } }
+  return {
+    state: "ready",
+    outputs,
+    detail: { fresh: true, buildLog: res.all || "", outputs, details: { identifier } },
+  }
 }
 
 export function getContainerBuildActionOutputs(action: Resolved<ContainerBuildAction>): ContainerBuildOutputs {

@@ -67,9 +67,9 @@ export async function getActionWatchTasks({
   }
 
   log.silly(`getActionWatchTasks called for ${updatedAction.longDescription()}, returning the following tasks:`)
-  log.silly(`  ${outputTasks.map((t) => t.getKey()).join(", ")}`)
+  log.silly(`  ${outputTasks.map((t) => t.getBaseKey()).join(", ")}`)
 
-  const deduplicated = uniqBy(outputTasks, (t) => t.getKey())
+  const deduplicated = uniqBy(outputTasks, (t) => t.getBaseKey())
 
   return deduplicated
 }
