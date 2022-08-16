@@ -57,7 +57,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
   // }
 
   getDescription() {
-    return `running ${this.action.longDescription()}`
+    return this.action.longDescription()
   }
 
   async getStatus({ dependencyResults }: ActionTaskStatusParams<TestAction>) {

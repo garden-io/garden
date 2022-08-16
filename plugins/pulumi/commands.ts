@@ -226,7 +226,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy> {
   }
 
   getDescription() {
-    return `deploying ${this.action.longDescription()})`
+    return this.action.longDescription()
   }
 
   resolveDependencies() {

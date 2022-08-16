@@ -47,7 +47,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
   }
 
   getDescription() {
-    return `publishing ${this.action.longDescription()}`
+    return `publish ${this.action.longDescription()}`
   }
 
   async getStatus() {
