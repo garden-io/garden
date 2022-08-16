@@ -322,9 +322,9 @@ providers:
     # You can specify a string as a shorthand for `name: <name>`. Defaults to `<project name>-<environment
     # namespace>`.
     #
-    # Note that the framework may generate other namespaces as well with this name as a prefix. Also note that if the
-    # namespace previously exists, Garden will attempt to add the specified labels and annotations. If the user does
-    # not have permissions to do so, a warning is shown.
+    # Note that the framework may generate other namespaces as well with this name as a prefix.
+    # Also note that if the namespace previously exists, Garden will attempt to add the specified labels and
+    # annotations. If the user does not have permissions to do so, a warning is shown.
     namespace:
       # A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
       # numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63
@@ -1371,7 +1371,8 @@ Specify which namespace to deploy services to, and optionally annotations/labels
 
 You can specify a string as a shorthand for `name: <name>`. Defaults to `<project name>-<environment namespace>`.
 
-Note that the framework may generate other namespaces as well with this name as a prefix. Also note that if the namespace previously exists, Garden will attempt to add the specified labels and annotations. If the user does not have permissions to do so, a warning is shown.
+Note that the framework may generate other namespaces as well with this name as a prefix.
+Also note that if the namespace previously exists, Garden will attempt to add the specified labels and annotations. If the user does not have permissions to do so, a warning is shown.
 
 | Type              | Required |
 | ----------------- | -------- |
