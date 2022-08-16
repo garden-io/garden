@@ -8,14 +8,14 @@
 
 import { BaseActionTask, ActionTaskProcessParams, ActionTaskStatusParams } from "./base"
 import { Profile } from "../util/profiling"
-import { Action, ExecutedAction, Resolved, ResolvedAction } from "../actions/base"
+import { Action, ActionState, ExecutedAction, Resolved, ResolvedAction } from "../actions/base"
 import { ActionSpecContext } from "../config/template-contexts/actions"
 import { resolveTemplateStrings } from "../template-string/template-string"
 import { InternalError } from "../exceptions"
 import { validateWithPath } from "../config/validation"
 
 export interface ResolveActionResults<T extends Action> {
-  state: "ready"
+  state: ActionState
   outputs: {
     resolvedAction: Resolved<T>
   }
@@ -26,7 +26,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
   type = "resolve-action"
 
   getDescription() {
-    return `resolving ${this.action.longDescription()}`
+    return `resolve ${this.action.longDescription()}`
   }
 
   async getStatus({}: ActionTaskStatusParams<T>) {

@@ -82,7 +82,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
   }
 
   getDescription() {
-    return `resolving provider ${this.getName()}`
+    return `resolve provider ${this.getName()}`
   }
 
   resolveStatusDependencies() {
