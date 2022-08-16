@@ -96,7 +96,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
         const result = await router.callHandler({
           params,
           handlerType: "build",
-          defaultHandler: async () => ({ outputs: {} }),
+          defaultHandler: async () => ({ state: <ActionState>"unknown", outputs: {}, detail: {} }),
         })
 
         await router.validateActionOutputs(action, result.outputs)

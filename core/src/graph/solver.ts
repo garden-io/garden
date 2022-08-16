@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BaseTask, Task } from "../tasks/base"
-import { LogEntry } from "../logger/log-entry"
-import { GardenBaseError, InternalError } from "../exceptions"
+import { Task } from "../tasks/base"
+import { LogEntry, LogEntryMetadata, TaskLogStatus } from "../logger/log-entry"
+import { GardenBaseError, toGardenError } from "../exceptions"
 import { uuidv4 } from "../util/util"
 import { DependencyGraph } from "./common"
 import { Profile } from "../util/profiling"
@@ -17,7 +17,21 @@ import { groupBy, keyBy } from "lodash"
 import { GraphResult, GraphResults, TaskEventBase } from "./results"
 import { gardenEnv } from "../constants"
 import { Garden } from "../garden"
-import { toGraphResultEventPayload } from "../events"
+import { GraphResultEventPayload, toGraphResultEventPayload } from "../events"
+import { renderError } from "../logger/renderers"
+import { renderMessageWithDivider } from "../logger/util"
+import chalk from "chalk"
+import {
+  CompleteTaskParams,
+  GraphNodeError,
+  ProcessTaskNode,
+  RequestTaskNode,
+  StatusTaskNode,
+  TaskNode,
+  TaskRequestParams,
+} from "./nodes"
+
+const taskStyle = chalk.cyan.bold
 
 export interface SolveOpts {
   statusOnly?: boolean
@@ -37,7 +51,7 @@ export interface SolveResult<T extends Task = Task> {
 @Profile()
 export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   // Explicitly requested tasks
-  private readonly requestedTasks: { [batchId: string]: { [key: string]: TaskRequest } }
+  private readonly requestedTasks: { [batchId: string]: { [key: string]: RequestTaskNode } }
   // All pending tasks, including implicit from dependencies
   private readonly pendingTasks: WrappedTasks
   // Tasks currently running
@@ -96,13 +110,10 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         }
 
         results.setResult(request.task, result)
-        delete _this.requestedTasks[request.key()] // Maybe belongs elsewhere?
 
         if (throwOnError && result.error) {
-          // TODO: abort remaining tasks?
-          aborted = true
           cleanup()
-          reject(new GraphTaskError(`Failed ${result.description}: ${result.error}`, result))
+          reject(new GraphNodeError(`Failed ${result.description}: ${result.error}`, result))
           return
         }
 
@@ -133,10 +144,10 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
       }
 
       function cleanup() {
-        _this.off("taskComplete", completeHandler)
+        // TODO: abort remaining tasks?
+        aborted = true
+        delete _this.requestedTasks[batchId]
       }
-
-      this.on("taskComplete", completeHandler)
 
       this.start()
     })
@@ -149,7 +160,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     const addNode = (task: TaskNode) => {
       graph.addNode(task.getKey(), task)
 
-      const deps = task.getDependencies()
+      const deps = task.getRemainingDependencies()
 
       for (const dep of deps) {
         addNode(dep)
@@ -168,8 +179,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   }
 
   clearCache() {
-    // TODO-G2
-    throw "TODO"
+    // TODO-G2: currently a no-op, possibly not necessary
   }
 
   // Note: It is important that this is not an async function
@@ -181,29 +191,44 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     this.inLoop = true
 
     try {
-      for (const [batchId, requests] of Object.entries(this.requestedTasks)) {
+      for (const [_batchId, requests] of Object.entries(this.requestedTasks)) {
         for (const request of Object.values(requests)) {
           // See what is missing to fulfill the request
           // -> Does it have its status?
-          //   -> If yes, and request is status only, resolve
-          //   -> What's needed to call getStatus?
-          // -> Does it need a result?
-          //   -> Is it there? If yes, resolve.
-          // Are we executing and explicit dependencies remain?
-          // -> If nothing remains, resolve the request and remove
-          // -> For every missing dependency or status call, ensure task is pending
+          const task = request.task
+          const statusNode = new StatusTaskNode({ task })
+          const status = this.getPendingResult(statusNode)
+
+          if (request.statusOnly && status !== undefined) {
+            // Status is resolved, and that's all we need
+            request.complete(status)
+          } else if (status === undefined && !task.force) {
+            // We're not forcing, and we don't have the status yet, so we ensure that's pending
+            this.ensurePending(statusNode, request)
+          } else {
+            // Need to process
+            const processNode = new ProcessTaskNode({ task })
+            const result = this.getPendingResult(processNode)
+            if (result) {
+              request.complete(result)
+            } else {
+              this.ensurePending(processNode, request)
+            }
+          }
         }
       }
 
-      for (const pending of Object.values(this.pendingTasks)) {
-        // See what is missing to fulfill the task
-        // -> For every missing dependency, ensure task is pending
+      for (const node of Object.values(this.pendingTasks)) {
+        // For every missing dependency, ensure task is pending.
+        const remainingDeps = node.getRemainingDependencies()
+        for (const dep of remainingDeps) {
+          this.ensurePending(dep, node)
+        }
       }
 
       const graph = this.getPendingGraph()
 
       if (graph.size() === 0) {
-        this.inLoop = false
         return
       }
 
@@ -222,28 +247,30 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         return nodes.slice(0, groupLimit - inProgress.length)
       })
 
+      if (limitedByGroup.length === 0) {
+        return
+      }
+
       // Enforce hard global limit
       const nodesToProcess = limitedByGroup.slice(0, this.hardConcurrencyLimit - inProgressNodes.length)
 
       this.emit("process", {
-        keys: nodesToProcess.map((n) => n.key),
-        inProgress: inProgressNodes.map((n) => n.key),
+        keys: nodesToProcess.map((n) => n.getKey()),
+        inProgress: inProgressNodes.map((n) => n.getKey()),
       })
 
       // Process the nodes
       for (const node of nodesToProcess) {
-        this.inProgress[node.key] = node
+        this.inProgress[node.getKey()] = node
         this.processNode(node).catch((error) => {
           this.garden.events.emit("internalError", { error, timestamp: new Date() })
           this.logInternalError(node, error)
-          this.cancelDependants(node)
+          node.complete({ error, aborted: true, result: null })
         })
       }
     } finally {
       // TODO-G2: clean up pending tasks with no dependant requests
-
       this.inLoop = false
-      this.loop()
     }
   }
 
@@ -251,20 +278,14 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
    * Processes a single task to completion, handling errors and providing its result to in-progress task batches.
    */
   private async processNode(node: TaskNode) {
-    let success = true
-
     // Errors thrown in this outer try block are caught in loop().
     try {
       const task = node.task
       const name = task.getName()
       const type = task.type
-      const key = node.key
-      const description = node.task.getDescription()
-      const version = node.task.version
+      const key = node.getKey()
 
-      // TODO-G2
-      // this.logTask(node)
-      // this.logEntryMap.inProgress.setState(inProgressToStr(this.inProgress.getNodes()))
+      this.logTask(node)
 
       const startedAt = new Date()
 
@@ -280,222 +301,85 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         })
         const processResult = await node.execute()
 
-        result = this.completeTask({ error: null, result: processResult, task: node })
+        result = this.completeTask({ error: null, result: processResult, node, aborted: false })
         result.startedAt = startedAt
-
-        this.garden.events.emit("taskComplete", toGraphResultEventPayload(result))
       } catch (error) {
-        success = false
-        result = { type, description, key, name, error, startedAt, completedAt: new Date(), batchId, version }
+        result = this.completeTask({ error: null, result: null, node, aborted: false })
         this.garden.events.emit("taskError", toGraphResultEventPayload(result))
         if (!node.task.interactive) {
           this.logTaskError(node, error)
         }
-        this.cancelDependants(node)
-      } finally {
-        this.resultCache.put(key, node.getVersion(), result)
-        this.provideResultToInProgressBatches(result)
       }
     } finally {
       this.loop()
     }
   }
 
-  private requestTask(params: RequestTaskParams) {
-    const request = new TaskRequest(params)
-    this.requestedTasks[params.batchId][request.key()] = request
-    this.registerTask(params)
+  private requestTask(params: TaskRequestParams) {
+    const request = new RequestTaskNode(params)
+    this.requestedTasks[params.batchId][request.getKey()] = request
     return request
   }
 
-  private registerTask({ task, statusOnly, completeHandler }: RegisterTaskParams) {
-    const key = task.getKey()
+  private ensurePending(node: TaskNode, dependant: TaskNode) {
+    const key = node.getKey()
     const existing = this.pendingTasks[key]
 
-    if (existing) {
-      const result = existing.getResult()
-      if (result?.completedAt) {
-        completeHandler(result)
-      }
-      if (!statusOnly && existing.statusOnly) {
-        existing.statusOnly = false
-      }
-    } else {
-      // TODO-G2: detect circular deps here
-      const dependencies = task
-        .getProcessDependencies()
-        .map((dep) => this.registerTask({ task: dep, statusOnly, completeHandler }))
-      const node = new TaskNode({ task, statusOnly, dependencies })
+    if (!existing) {
       this.pendingTasks[key] = node
     }
+
+    this.pendingTasks[key].addDependant(dependant)
 
     return this.pendingTasks[key]
   }
 
-  private completeTask(params: CompleteTaskParams & { task: TaskNode }) {
-    const result = params.task.complete(params)
-    this.emit("taskComplete", result)
+  private completeTask(params: CompleteTaskParams & { node: TaskNode }) {
+    const result = params.node.complete(params)
+    this.emit("taskComplete", toGraphResultEventPayload(result))
     return result
   }
-}
 
-interface RegisterTaskParams {
-  task: BaseTask
-  statusOnly: boolean
-  completeHandler: CompleteHandler
-}
-
-interface RequestTaskParams extends RegisterTaskParams {
-  batchId: string
-}
-
-interface TaskRequestParams<T extends BaseTask = BaseTask> {
-  task: T
-  batchId: string
-  statusOnly: boolean
-}
-
-class TaskRequest<T extends BaseTask = BaseTask> {
-  public readonly requestedAt: Date
-  public readonly task: T
-  public readonly batchId: string
-  public readonly statusOnly: boolean
-
-  constructor(params: TaskRequestParams<T>) {
-    this.requestedAt = new Date()
-    this.task = params.task
-    this.batchId = params.batchId
-    this.statusOnly = params.statusOnly
-  }
-
-  key() {
-    return `${this.task.getBaseKey()}.${this.batchId}`
-  }
-}
-
-type ExecutionType = "status" | "process"
-
-interface TaskNodeParams<T extends Task> {
-  task: T
-}
-
-abstract class TaskNode<E extends ExecutionType = ExecutionType, T extends Task = Task> {
-  abstract readonly executionType: E
-
-  public readonly type: string
-  public startedAt?: Date
-  public readonly task: T
-
-  protected dependencyResults: { [key: string]: GraphResult<any> }
-  protected result?: GraphResult<any>
-
-  constructor({ task }: TaskNodeParams<T>) {
-    this.task = task
-    this.type = task.type
-  }
-
-  abstract getDependencies(): TaskNode[]
-  abstract execute(): Promise<T["_resultType"] | null>
-
-  getKey() {
-    return `${this.task.getKey()}:${this.executionType}`
-  }
-
-  getDependencyResult<A extends ExecutionType, B extends Task>(
-    node: TaskNode<A, B>
-  ): GraphResult<B["_resultType"]> | undefined {
+  private getPendingResult<T extends TaskNode>(node: T) {
     const key = node.getKey()
-    return this.dependencyResults[key]
-  }
+    const existing = this.pendingTasks[key]
 
-  setDependencyResult(result: GraphResult) {
-    this.dependencyResults[result.key] = result
-  }
-
-  getDependencyResults(): GraphResults {
-    const deps = this.getDependencies()
-    const results = new GraphResults(deps.map((d) => d.task))
-
-    for (const dep of deps) {
-      const result = this.getDependencyResult(dep)
-
-      if (!result) {
-        const baseKey = dep.task.getBaseKey()
-        throw new InternalError(`Could not find result for task ${baseKey}`, { baseKey })
-      }
-
-      results.setResult(dep.task, result)
+    if (existing) {
+      return existing.getResult()
+    } else {
+      return undefined
     }
-
-    return results
   }
 
-  complete({ error, result, aborted }: CompleteTaskParams<T["_resultType"]>): GraphResult<any> {
-    const task = this.task
-
-    this.result = {
-      type: task.type,
-      description: task.getDescription(),
-      key: task.getKey(),
-      name: task.getName(),
-      result,
-      dependencyResults: this.getDependencyResults(),
-      aborted,
-      startedAt: this.startedAt || null,
-      completedAt: new Date(),
-      error,
-      version: this.task.version,
-      outputs: result?.outputs,
-      task,
-    }
-
-    return this.result
+  //
+  // Logging
+  //
+  private logTask(node: TaskNode) {
+    node.task.log.silly({
+      section: "tasks",
+      msg: `Processing node ${taskStyle(node.getKey())}`,
+      status: "active",
+      metadata: metadataForLog(node.task, "active"),
+    })
   }
 
-  /**
-   * Returns the task result if the task is completed. Returns undefined if result is not available.
-   */
-  getResult() {
-    return this.result
-  }
-}
-
-class ProcessTaskNode<T extends BaseTask = BaseTask> extends TaskNode<"process", T> {
-  executionType: "process" = "process"
-
-  getDependencies() {
-    // We first resolve the status
-    const statusTask = new StatusTaskNode({ task: this.task })
-    const statusResult = this.getDependencyResult(statusTask)
-
-    if (!statusResult) {
-      return [statusTask]
-    }
-
-    if (statusResult.result?.state === "ready") {
-      // No dependencies needed if status is ready
-      return []
-    }
-
-    const processDeps = this.task.getProcessDependencies()
-    return processDeps.map((task) => new ProcessTaskNode({ task }))
+  private logTaskError(node: TaskNode, err: Error) {
+    const prefix = `Failed ${node.describe()}. Here is the output:`
+    this.logError(node.task.log, err, prefix)
   }
 
-  async execute() {
-    return this.task.process({ dependencyResults: this.getDependencyResults() })
-  }
-}
-
-class StatusTaskNode<T extends BaseTask = BaseTask> extends TaskNode<"status", T> {
-  executionType: "status" = "status"
-
-  getDependencies() {
-    const statusDeps = this.task.getStatusDependencies()
-    return statusDeps.map((task) => new StatusTaskNode({ task }))
+  private logInternalError(node: TaskNode, err: Error) {
+    const prefix = `An internal error occurred while ${node.describe()}. Here is the output:`
+    this.logError(node.task.log, err, prefix)
   }
 
-  async execute() {
-    return this.task.getStatus({ dependencyResults: this.getDependencyResults() })
+  private logError(log: LogEntry, err: Error, errMessagePrefix: string) {
+    const error = toGardenError(err)
+    const errorMessage = error.message.trim()
+    const msg = renderMessageWithDivider(errMessagePrefix, errorMessage, true)
+    // TODO-G2: pass along log entry here instead of using Garden logger
+    const entry = log.error({ msg, error })
+    log.silly({ msg: renderError(entry) })
   }
 }
 
@@ -511,22 +395,14 @@ interface SolverEvents {
     }
   }
   start: {}
-  taskComplete: GraphResult
+  taskComplete: GraphResultEventPayload
   taskStart: TaskStartEvent
-  statusComplete: GraphResult
+  statusComplete: GraphResultEventPayload
   statusStart: TaskStartEvent
 }
 
 interface WrappedTasks {
   [key: string]: TaskNode
-}
-
-type CompleteHandler = (result: GraphResult) => void
-
-interface CompleteTaskParams<R = any> {
-  error: Error | null
-  result: R | null
-  aborted: boolean
 }
 
 interface GraphErrorDetail {
@@ -537,12 +413,18 @@ class GraphError extends GardenBaseError<GraphErrorDetail> {
   type = "graph"
 }
 
-interface GraphTaskErrorDetail extends GraphResult {}
+// class CircularDependenciesError extends GardenBaseError {
+//   type = "circular-dependencies"
+// }
 
-class GraphTaskError extends GardenBaseError<GraphTaskErrorDetail> {
-  type = "graph"
-}
-
-class CircularDependenciesError extends GardenBaseError {
-  type = "circular-dependencies"
+function metadataForLog(task: Task, status: TaskLogStatus): LogEntryMetadata {
+  return {
+    task: {
+      type: task.type,
+      key: task.getKey(),
+      status,
+      uid: task.uid,
+      versionString: task.version,
+    },
+  }
 }
