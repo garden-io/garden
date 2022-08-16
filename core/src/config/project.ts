@@ -199,7 +199,7 @@ export interface ProjectResource extends ProjectConfig {
 }
 
 export const projectNameSchema = () =>
-  joiIdentifier().required().description("The name of the project.").example("my-sweet-project")
+  joiIdentifier().required().min(2).max(48).description("The name of the project.").example("my-sweet-project")
 
 export const projectRootSchema = () => joi.string().description("The path to the project root.")
 
