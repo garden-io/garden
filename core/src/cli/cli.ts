@@ -98,7 +98,7 @@ function renderHeader({
   distroName?: string
 }) {
   const divider = chalk.gray(renderDivider())
-  let msg = `${nodeEmoji.earth_africa}  Running in namespace ${chalk.cyan(namespaceName + "." + environmentName)}`
+  let msg = `${nodeEmoji.earth_africa}  Running in ${chalk.cyan(namespaceName + "." + environmentName)}`
 
   if (namespaceUrl) {
     msg += dedent`
