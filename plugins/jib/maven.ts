@@ -7,7 +7,7 @@
  */
 
 import AsyncLock from "async-lock"
-import { PluginToolSpec, PluginContext, LogEntry } from "@garden-io/sdk/types"
+import { LogEntry, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
 import { find } from "lodash"
 import { PluginError } from "@garden-io/core/build/src/exceptions"
 import { Writable } from "node:stream"
@@ -103,4 +103,8 @@ export async function mvn({
 
     return res
   })
+}
+
+export function resolveMavenPhases(mavenPhases?: string[]): string[] {
+  return !mavenPhases || mavenPhases.length === 0 ? ["compile"] : mavenPhases
 }

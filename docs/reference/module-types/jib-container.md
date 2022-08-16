@@ -79,13 +79,8 @@ build:
   # Specify the image format in the resulting tar file. Only used if `tarOnly: true`.
   tarFormat: docker
 
-  # Defines the start and end phases of the Maven job.
+  # Defines the Maven phases to be executed during the Garden build step.
   mavenPhases:
-    # Start Maven phase.
-    start:
-
-    # End Maven phase.
-    end: compile
 
   # Specify extra flags to pass to maven/gradle when building the container image.
   extraFlags:
@@ -910,35 +905,15 @@ Specify the image format in the resulting tar file. Only used if `tarOnly: true`
 | -------- | --------------- | ---------- | -------- |
 | `string` | "docker", "oci" | `"docker"` | Yes      |
 
-### `build.mavenPhases`
+### `build.mavenPhases[]`
 
 [build](#build) > mavenPhases
 
-Defines the start and end phases of the Maven job.
+Defines the Maven phases to be executed during the Garden build step.
 
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `build.mavenPhases.start`
-
-[build](#build) > [mavenPhases](#buildmavenphases) > start
-
-Start Maven phase.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-### `build.mavenPhases.end`
-
-[build](#build) > [mavenPhases](#buildmavenphases) > end
-
-End Maven phase.
-
-| Type     | Default     | Required |
-| -------- | ----------- | -------- |
-| `string` | `"compile"` | No       |
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
 ### `build.extraFlags[]`
 

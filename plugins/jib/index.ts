@@ -11,7 +11,7 @@ import { createGardenPlugin } from "@garden-io/sdk"
 import { dedent } from "@garden-io/sdk/util/string"
 
 import { openJdkSpecs } from "./openjdk"
-import { mavenSpec, mvn } from "./maven"
+import { mavenSpec, mvn, resolveMavenPhases } from "./maven"
 import { gradle, gradleSpec } from "./gradle"
 
 // TODO: gradually get rid of these core dependencies, move some to SDK etc.
@@ -26,7 +26,7 @@ import { ConfigureModuleParams } from "@garden-io/core/build/src/types/plugin/mo
 import { containerHelpers } from "@garden-io/core/build/src/plugins/container/helpers"
 import { cloneDeep } from "lodash"
 import { LogLevel } from "@garden-io/core/build/src/logger/logger"
-import { detectProjectType, getBuildFlags, JibContainerModule, resolveMavenPhases } from "./util"
+import { detectProjectType, getBuildFlags, JibContainerModule } from "./util"
 
 export interface JibProviderConfig extends GenericProviderConfig {}
 
@@ -67,13 +67,10 @@ const jibModuleSchema = () =>
         .default("docker")
         .description("Specify the image format in the resulting tar file. Only used if `tarOnly: true`."),
       mavenPhases: joi
-        .object()
+        .array()
+        .items(joi.string())
         .optional()
-        .keys({
-          start: joi.string().optional().description("Start Maven phase."),
-          end: joi.string().optional().default("compile").description("End Maven phase."),
-        })
-        .description("Defines the start and end phases of the Maven job."),
+        .description("Defines the Maven phases to be executed during the Garden build step."),
       extraFlags: joi
         .sparseArray()
         .items(joi.string())

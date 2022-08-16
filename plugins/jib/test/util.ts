@@ -8,7 +8,7 @@
 
 import { expectError } from "@garden-io/sdk/testing"
 import { expect } from "chai"
-import { detectProjectType, getBuildFlags, resolveMavenPhases } from "../util"
+import { detectProjectType, getBuildFlags } from "../util"
 
 describe("util", () => {
   describe("detectProjectType", () => {
@@ -323,23 +323,6 @@ describe("util", () => {
 
         expect(args[0]).to.equal("jib:dockerBuild")
       })
-    })
-  })
-
-  describe("resolveMavenPhases", () => {
-    it('should return mvn "compile" phase if no mavenPhases are defined', () => {
-      const mavenPhases = resolveMavenPhases()
-      expect(mavenPhases).to.eql(["compile"])
-    })
-
-    it("should return mvn end phase if no start phase is defined in mavenPhases", () => {
-      const mavenPhases = resolveMavenPhases({ end: "package" })
-      expect(mavenPhases).to.eql(["package"])
-    })
-
-    it("should return mvn start and end phases if both are defined in mavenPhases", () => {
-      const mavenPhases = resolveMavenPhases({ start: "clean", end: "package" })
-      expect(mavenPhases).to.eql(["clean", "package"])
     })
   })
 })
