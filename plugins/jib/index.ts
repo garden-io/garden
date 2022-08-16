@@ -69,7 +69,7 @@ const jibModuleSchema = () =>
       mavenPhases: joi
         .array()
         .items(joi.string())
-        .optional()
+        .default(["compile"])
         .description("Defines the Maven phases to be executed during the Garden build step."),
       extraFlags: joi
         .sparseArray()

@@ -911,9 +911,9 @@ Specify the image format in the resulting tar file. Only used if `tarOnly: true`
 
 Defines the Maven phases to be executed during the Garden build step.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+| Type            | Default       | Required |
+| --------------- | ------------- | -------- |
+| `array[string]` | `["compile"]` | No       |
 
 ### `build.extraFlags[]`
 
