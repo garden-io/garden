@@ -24,7 +24,7 @@ export interface DeleteDeployTaskParams extends BaseActionTaskParams<DeployActio
 }
 
 export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus> {
-  type = "delete-service"
+  type = "delete-deploy"
   concurrencyLimit = 10
   dependantsFirst: boolean
   deleteDeployNames: string[]
@@ -64,7 +64,7 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
   }
 
   getDescription() {
-    return `deleting service ${this.action.longDescription()})`
+    return `delete ${this.action.longDescription()})`
   }
 
   async getStatus() {

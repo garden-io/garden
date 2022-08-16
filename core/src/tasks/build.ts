@@ -23,7 +23,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
   concurrencyLimit = 5
 
   getDescription() {
-    return `building ${this.action.longDescription()}`
+    return this.action.longDescription()
   }
 
   async getStatus({ dependencyResults }: ActionTaskStatusParams<BuildAction>) {
