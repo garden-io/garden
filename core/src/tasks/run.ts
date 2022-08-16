@@ -26,7 +26,7 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
   type = "run"
 
   getDescription() {
-    return `running ${this.action.longDescription()}`
+    return this.action.longDescription()
   }
 
   async getStatus({ dependencyResults }: ActionTaskStatusParams<RunAction>) {

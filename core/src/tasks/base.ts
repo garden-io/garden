@@ -303,7 +303,7 @@ interface ExecuteActionOutputs<T extends Action> {
 
 export abstract class ExecuteActionTask<
   T extends Action,
-  O extends ValidResultType = { outputs: T["_outputs"] },
+  O extends ValidResultType = { state: ActionState; outputs: T["_outputs"] },
   S extends ValidResultType = O
 > extends BaseActionTask<T, O, S> {
   _resultType: O & { executedAction: Executed<T> }

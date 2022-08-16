@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { includes } from "lodash"
-import { BaseActionTaskParams, ActionTaskProcessParams, ExecuteActionTask } from "./base"
+import { BaseActionTaskParams, ActionTaskProcessParams, ExecuteActionTask, ActionTaskStatusParams } from "./base"
 import { getLinkUrl } from "../types/service"
 import { startPortProxies } from "../proxy"
 import { prepareRuntimeContext } from "../runtime-context"
@@ -24,10 +24,10 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
   concurrencyLimit = 10
 
   getDescription() {
-    return `deploying ${this.action.longDescription()})`
+    return this.action.longDescription()
   }
 
-  async getStatus({ dependencyResults }: ActionTaskProcessParams<DeployAction, DeployStatus>) {
+  async getStatus({ dependencyResults }: ActionTaskStatusParams<DeployAction>) {
     const log = this.log.placeholder()
     const action = this.getResolvedAction(this.action, dependencyResults)
 
