@@ -15,6 +15,7 @@ import {
   joi,
   joiArray,
   joiIdentifier,
+  joiIdentifierLenLimit255,
   joiPrimitive,
   joiRepositoryUrl,
   joiSparseArray,
@@ -38,6 +39,7 @@ import { VcsInfo } from "../vcs/vcs"
 import { profileAsync } from "../util/profiling"
 import { loadVarfile } from "./base"
 import chalk = require("chalk")
+import hasha = require("hasha")
 
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -78,7 +80,7 @@ export const environmentNameSchema = () =>
 export const environmentSchema = () =>
   joi.object().keys({
     name: environmentNameSchema(),
-    defaultNamespace: joiIdentifier()
+    defaultNamespace: joiIdentifierLenLimit255()
       .allow(null)
       .default(defaultNamespace)
       .description(
@@ -576,7 +578,10 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     projectRoot: projectConfig.path,
   })
 
-  const namespace = getNamespace(environmentConfig, cliSpecifiedNamespace)
+  const namespace = truncateGardenNamespaceIfNeeded(
+    getNamespace(environmentConfig, cliSpecifiedNamespace),
+    projectConfig.name
+  )
 
   const fixedProviders = fixedPlugins.map((name) => ({ name }))
   const allProviders = [
@@ -612,6 +617,27 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     variables,
   }
 })
+
+/**
+ * truncates a namespace string if needed and adds a hash
+ */
+export function truncateGardenNamespaceIfNeeded(namespace: string, projectName: string): string {
+  const lenNs = namespace.length
+  const lenProjName = projectName.length
+  const maxK8sNsLen = 63
+
+  // don't truncate if <namespace>-<projectName> is under max
+  // as that is often used for remote k8s namespaces
+  if (lenNs + lenProjName + 1 <= maxK8sNsLen) {
+    return namespace
+  }
+
+  const sliceLen = maxK8sNsLen - 1 - lenProjName - 6 // last five chars will be a hash and a '-'
+  const nonHashedPart = namespace.slice(0, sliceLen)
+  const fiveCharHas = hasha(namespace).slice(-5)
+
+  return nonHashedPart + "-" + fiveCharHas
+}
 
 /**
  * Validates that the value passed for `namespace` conforms with the namespacing setting in `environmentConfig`,

@@ -438,6 +438,7 @@ export const joiPrimitive = () =>
 export const absolutePathRegex = /^\/.*/ // Note: Only checks for the leading slash
 // from https://stackoverflow.com/a/12311250/3290965
 export const identifierRegex = /^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$/
+export const identifierRegexLenLimit255 = /^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,255}$/
 export const userIdentifierRegex = /^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$/
 export const envVarRegex = /^(?!garden)[a-z_][a-z0-9_\.]*$/i
 export const gitUrlRegex = /(?:git|ssh|https?|git@[-\w.]+):(\/\/)?(.*?)(\/?|\#[-\d\w._\/]+?)$/
@@ -446,6 +447,10 @@ export const variableNameRegex = /[a-zA-Z][a-zA-Z0-9_\-]*/i
 export const joiIdentifierDescription =
   "valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +
   "and cannot end with a dash) and must not be longer than 63 characters."
+
+export const joiIdentifierDescriptionLen255 =
+  "string that may contain lowercase letters, numbers and dashes, must start with a letter, " +
+  "and cannot end with a dash) and must not be longer than 255 characters."
 
 const moduleIncludeDescription = (extraDescription?: string) => {
   const desc = dedent`
@@ -469,6 +474,12 @@ export const joiIdentifier = () =>
     .string()
     .regex(identifierRegex)
     .description(joiIdentifierDescription[0].toUpperCase() + joiIdentifierDescription.slice(1))
+
+export const joiIdentifierLenLimit255 = () =>
+  joi
+    .string()
+    .regex(identifierRegexLenLimit255)
+    .description(joiIdentifierDescriptionLen255[0].toUpperCase() + joiIdentifierDescriptionLen255.slice(1))
 
 export const joiProviderName = (name: string) =>
   joiIdentifier().required().description("The name of the provider plugin to use.").default(name).example(name)

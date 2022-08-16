@@ -18,6 +18,7 @@ import {
   parseEnvironment,
   defaultNamespace,
   fixedPlugins,
+  truncateGardenNamespaceIfNeeded,
 } from "../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { expectError } from "../../../helpers"
@@ -1650,5 +1651,40 @@ describe("parseEnvironment", () => {
           "Invalid environment specified (&.$): must be a valid environment name or <namespace>.<environment>"
         )
     )
+  })
+})
+
+describe("truncateGardenNamespaceIfNeeded", () => {
+  function getStringOfLength(len: number): string {
+    let str: string = ""
+    for (let i = 0; i < len; i++) {
+      str += "a"
+    }
+    return str
+  }
+
+  it("should not truncate if namespace+project name length does not exceed 62", () => {
+    const fourCharProjectName = "proj"
+    expect(truncateGardenNamespaceIfNeeded(getStringOfLength(58), fourCharProjectName)).to.equal(getStringOfLength(58))
+  })
+
+  it("should truncate if length exceeds limit from project name", () => {
+    const fiveCharProjName = "projj"
+    const truncatedNs = truncateGardenNamespaceIfNeeded(getStringOfLength(59), fiveCharProjName)
+    expect(truncatedNs.length).to.equal(57)
+  })
+
+  it("should truncate with a five char hash", () => {
+    const fiveCharProjName = "projj"
+    const truncatedNs = truncateGardenNamespaceIfNeeded(getStringOfLength(59), fiveCharProjName)
+    expect(truncatedNs.indexOf("-")).to.equal(truncatedNs.length - 6)
+  })
+
+  it("should still work with a very long project name", () => {
+    const longishNamespace = getStringOfLength(32)
+    const veryLongProjectName = getStringOfLength(48) // max allowed project len
+    const truncatedNs = truncateGardenNamespaceIfNeeded(longishNamespace, veryLongProjectName)
+    expect(truncatedNs.indexOf("-")).to.equal(truncatedNs.length - 6)
+    expect(truncatedNs.length).to.equal(14)
   })
 })
