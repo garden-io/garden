@@ -50,16 +50,6 @@ environments:
     # For more details please check the documentation for the providers in use.
     production: false
 
-        # The name of the provider plugin to use.
-        name:
-
-        # List other providers that should be resolved before this one.
-        dependencies: []
-
-        # If specified, this provider will only be used in the listed environments. Note that an empty array
-        # effectively disables the provider. To use a provider in all environments, omit this field.
-        environments:
-
     # Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
     # _environment-specific_ `variables` field.
     #
@@ -288,75 +278,6 @@ Example:
 ```yaml
 environments:
   - production: true
-```
-
-### `environments[].providers[]`
-
-[environments](#environments) > providers
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[object]` | `[]`    | No       |
-
-### `environments[].providers[].name`
-
-[environments](#environments) > [providers](#environmentsproviders) > name
-
-The name of the provider plugin to use.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-Example:
-
-```yaml
-environments:
-  - providers:
-      - name: "local-kubernetes"
-```
-
-### `environments[].providers[].dependencies[]`
-
-[environments](#environments) > [providers](#environmentsproviders) > dependencies
-
-List other providers that should be resolved before this one.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[string]` | `[]`    | No       |
-
-Example:
-
-```yaml
-environments:
-  - providers:
-      - dependencies:
-          - exec
-```
-
-### `environments[].providers[].environments[]`
-
-[environments](#environments) > [providers](#environmentsproviders) > environments
-
-If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-Example:
-
-```yaml
-environments:
-  - providers:
-      - environments:
-          - dev
-          - stage
 ```
 
 ### `environments[].varfile`

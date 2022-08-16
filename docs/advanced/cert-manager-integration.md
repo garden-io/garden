@@ -33,23 +33,21 @@ The integration currently only supports Let's Encrypt and HTTP-01 challenges. We
 To enable cert-manager, you'll need to configure it in the `kubernetes` provider configuration in your project `garden.yml` file:
 
 ```yaml
-    kind: Project
-    name: cert-manager-example
-    environments:
-    - name: remote-dev
-      providers:
-      - name: kubernetes
-        context: your-remote-k8s-cluster-context
-        setupIngressController: nginx
-        ...
-        certManager:
-          install: true  # let garden install cert-manager
-          email: name@example.com  # your email (required when requesting Let's Encrypt certificates)
-          issuer: acme  # the type of issuer for the certificate generation (currently only Let's Encrypt ACME is supported)
-          acmeChallengeType: HTTP-01  # type of ACME challenge (currently only "HTTP-01" is supported)
-          acmeServer: letsencrypt-staging  # the ACME server to use ("letsencrypt-staging" or "letsencrypt-prod")
-        tlsCertificates:
-          ...
+kind: Project
+name: cert-manager-example
+environments:
+- name: remote-dev
+providers:
+- name: kubernetes
+  context: your-remote-k8s-cluster-context
+  setupIngressController: nginx
+  certManager:
+    install: true  # let garden install cert-manager
+    email: name@example.com  # your email (required when requesting Let's Encrypt certificates)
+    issuer: acme  # the type of issuer for the certificate generation (currently only Let's Encrypt ACME is supported)
+    acmeChallengeType: HTTP-01  # type of ACME challenge (currently only "HTTP-01" is supported)
+    acmeServer: letsencrypt-staging  # the ACME server to use ("letsencrypt-staging" or "letsencrypt-prod")
+  tlsCertificates:
 ```
 
 Unless you want to use your own installation of cert-manager, you will need to set the option `install: true`. Garden will then install cert-manager for you under the `cert-manager` namespace.
@@ -69,28 +67,27 @@ If/when you need specific settings or advanced use-cases, you can choose which c
 When you set `managedBy: cert-manager` on a certificate specified in the `tlsCertificates` field, Garden creates a corresponding Certificate resource:
 
 ```yaml
-    kind: Project
-    name: cert-manager-example
-    environments:
-    - name: remote-dev
-      providers:
-      - name: kubernetes
-        context: your-remote-k8s-cluster-context
-        ...
-        certManager:
-          install: true
-          email: name@example.com
-          issuer: acme
-          acmeChallengeType: HTTP-01
-          acmeServer: letsencrypt-staging
-        tlsCertificates:
-          - name: example-certificate-staging-01
-            managedBy: cert-manager  # allow cert-manager to manage this certificate
-            hostnames:
-              - your-domain-name.com # the domain name(s) to be covered by the certificate
-            secretRef:
-              name: tls-secret-for-certificate # the secret where cert-manager will store the TLS certificate once it's generated
-              namespace: cert-manager-example
+kind: Project
+name: cert-manager-example
+environments:
+- name: remote-dev
+providers:
+- name: kubernetes
+  context: your-remote-k8s-cluster-context
+  certManager:
+    install: true
+    email: name@example.com
+    issuer: acme
+    acmeChallengeType: HTTP-01
+    acmeServer: letsencrypt-staging
+  tlsCertificates:
+    - name: example-certificate-staging-01
+      managedBy: cert-manager  # allow cert-manager to manage this certificate
+      hostnames:
+        - your-domain-name.com # the domain name(s) to be covered by the certificate
+      secretRef:
+        name: tls-secret-for-certificate # the secret where cert-manager will store the TLS certificate once it's generated
+        namespace: cert-manager-example
 ```
 
 The above configuration will trigger the following workflow:

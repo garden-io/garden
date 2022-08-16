@@ -39,13 +39,14 @@ Now, configure your Garden project for connecting to your cluster. Add to projec
 ```yaml
 kind: Project
 name: your-project
+environments:
   - name: remote  # or any name of your choice
-    providers:
-      - name: kubernetes
-        context: <name-of-your-gke-kubernetes-context>
-        defaultHostname: your-project.yourdomain.com     # <- replace this with your intended ingress hostname
-        buildMode: kaniko                                # <- (optional) enable in-cluster building
-        setupIngressController: nginx                    # <- skip this if you want to install your own ingress controller
+providers:
+  - name: kubernetes
+    context: <name-of-your-gke-kubernetes-context>
+    defaultHostname: your-project.yourdomain.com     # <- replace this with your intended ingress hostname
+    buildMode: kaniko                                # <- (optional) enable in-cluster building
+    setupIngressController: nginx                    # <- skip this if you want to install your own ingress controller
 ```
 
 Run `garden --env=remote plugins kubernetes cluster-init`, then `garden dev --env=remote`. Now you should be good to go.
@@ -94,14 +95,14 @@ kind: Project
 name: your-project
 environments:
   - name: azure   # or any name of your choice
-    providers:
-      - name: kubernetes
-        context: <name-of-your-azure-kubernetes-context>
-        defaultHostname: your-project.yourdomain.com     # <- replace this with your intended ingress hostname
-        buildMode: kaniko                              # <- (optional) enable in-cluster building
-        setupIngressController: nginx                    # <- skip this if you want to install your own ingress controller
   - name: some-other-environment
     ...
+providers:
+  - name: kubernetes
+    context: <name-of-your-azure-kubernetes-context>
+    defaultHostname: your-project.yourdomain.com     # <- replace this with your intended ingress hostname
+    buildMode: kaniko                              # <- (optional) enable in-cluster building
+    setupIngressController: nginx                    # <- skip this if you want to install your own ingress controller
 ```
 
 Then, run
@@ -129,14 +130,14 @@ kind: Project
 name: your-project
 environments:
   - name: eks   # or any name of your choice
-    providers:
-      - name: kubernetes
-        context: <name-of-your-eks-kubernetes-context>
-        defaultHostname: your-project.yourdomain.com     # <- replace this with your intended ingress hostname
-        buildMode: kaniko                                # <- (optional) enable in-cluster building
-        setupIngressController: nginx                    # <- skip this if you want to install your own ingress controller
   - name: some-other-environment
     ...
+providers:
+  - name: kubernetes
+    context: <name-of-your-eks-kubernetes-context>
+    defaultHostname: your-project.yourdomain.com     # <- replace this with your intended ingress hostname
+    buildMode: kaniko                                # <- (optional) enable in-cluster building
+    setupIngressController: nginx                    # <- skip this if you want to install your own ingress controller
 ```
 
 Then, run
@@ -168,12 +169,12 @@ kind: Project
 name: your-project
 environments:
   - name: aws # or any name of your choice
-    providers:
-      - name: kubernetes
-        context: <name-of-your-kops-kubernetes-context>
-        defaultHostname: your-project.yourdomain.com     # <- replace this with your intended ingress hostname
-        buildMode: kaniko                                # <- (optional) enable in-cluster building
-        setupIngressController: nginx                    # <- skip this if you want to install your own ingress controller
+providers:
+  - name: kubernetes
+    context: <name-of-your-kops-kubernetes-context>
+    defaultHostname: your-project.yourdomain.com     # <- replace this with your intended ingress hostname
+    buildMode: kaniko                                # <- (optional) enable in-cluster building
+    setupIngressController: nginx                    # <- skip this if you want to install your own ingress controller
     ...
 ```
 

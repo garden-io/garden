@@ -220,13 +220,8 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
 
     if (!fixedPlugins.includes(pluginName)) {
       if (projectConfig) {
-        const allProviders = flatten([
-          projectConfig.providers,
-          ...(projectConfig.environments || []).map((e) => e.providers || []),
-        ])
-
         const allProvidersWithBases = flatten(
-          allProviders.map((p) => getPluginBaseNames(p.name, keyBy(getSupportedPlugins, "name")))
+          projectConfig.providers.map((p) => getPluginBaseNames(p.name, keyBy(getSupportedPlugins, "name")))
         )
 
         if (!allProvidersWithBases.includes(pluginName)) {

@@ -2,9 +2,9 @@ kind: Project
 name: test-project-fixed-version-hashes-1
 environments:
   - name: local
-    providers:
-      - name: test-plugin
-      - name: test-plugin-b
   - name: other
+providers:
+  - name: test-plugin
+  - name: test-plugin-b
 variables:
   some: variable

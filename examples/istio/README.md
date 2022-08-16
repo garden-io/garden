@@ -31,9 +31,9 @@ cd istio-1.0.6
 When initializing a project that uses the `local-kubernetes` provider, Garden will install a Nginx ingress controller into the `garden-system` namespace, unless the [`setupIngressController`](https://docs.garden.io/reference/providers/local-kubernetes#project-environments-providers-setupingresscontroller) directive is set to false. In this example we have done just that:
 
 ```yaml
-    providers:
-      - name: local-kubernetes
-        setupIngressController: false
+providers:
+  - name: local-kubernetes
+    setupIngressController: false
 ```
 
 However, if you've used Garden for other projects, chances are that the Garden ingress controller is already installed and listening on port `80`.

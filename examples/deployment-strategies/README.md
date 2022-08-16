@@ -26,8 +26,8 @@ kind: Project
 name: My Project
 environments:
   - name: local-blue-green
-  providers:
-    # Blue-green deployment strategy on local-kubernetes.
-    - name: local-kubernetes
-      deploymentStrategy: blue-green
+providers:
+  # Blue-green deployment strategy on local-kubernetes.
+  - name: local-kubernetes
+    deploymentStrategy: blue-green
 ```

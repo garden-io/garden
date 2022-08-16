@@ -36,10 +36,10 @@ kind: Project
 name: my-project
 environments:
 - name: dev
-  providers:
-  - name: kubernetes
-    context: my-dev-context   # the name of the kubectl context for the cluster
-    ...
+providers:
+- name: kubernetes
+  context: my-dev-context   # the name of the kubectl context for the cluster
+  ...
 defaultEnvironment: dev
 ```
 
@@ -92,7 +92,7 @@ images when deploying. This should generally be a _private_ container registry, 
 public registry.
 
 Similarly to the below TLS configuration, you may also need to set up auth for the registry using K8s Secrets, in this
-case via the `kubectl create secret docker-registry` helper. You can read more about using and setting up private 
+case via the `kubectl create secret docker-registry` helper. You can read more about using and setting up private
 registries [here](https://kubernetes.io/docs/concepts/containers/images/#using-a-private-registry).
 
 _Note that you do not need to configure the authentication and imagePullSecrets when using GKE along with GCR,
@@ -106,17 +106,16 @@ kind: Project
 name: my-project
 environments:
 - name: dev
-  providers:
-  - name: kubernetes
-    context: my-dev-context
-    ...
-    deploymentRegistry:
-      # The hostname of the registry, e.g. gcr.io for GCR (Google Container Registry)
-      hostname: my.registry.io
-      # Namespace (aka project ID) to use in the registry for this project.
-      # For GKE/GCR, use the project ID where your cluster is.
-      namespace: my-project-id
-    imagePullSecrets:
+providers:
+- name: kubernetes
+  context: my-dev-context
+  deploymentRegistry:
+    # The hostname of the registry, e.g. gcr.io for GCR (Google Container Registry)
+    hostname: my.registry.io
+    # Namespace (aka project ID) to use in the registry for this project.
+    # For GKE/GCR, use the project ID where your cluster is.
+    namespace: my-project-id
+  imagePullSecrets:
       # The name of the secret you stored using `kubectl create secret docker-registry`
     - name: my-registry-secret
       # Change this if you store the secret in another namespace.
@@ -154,25 +153,25 @@ name: my-project
 defaultEnvironment: dev
 environments:
 - name: dev
-  providers:
-  - name: kubernetes
-    context: my-dev-context
-    defaultHostname: mydomain.com
-    tlsCertificates:
-    - name: main
-      # Optionally set particular hostnames to use this certificate for
-      # (useful if you have multiple certs for the same hostname).
-      hostnames: [mydomain.com]
-      secretRef:
-        # Change to whatever name you chose for the secret above.
-        name: my-tls-secret
-        # Change this if you store the secret in another namespace.
-        namespace: default
-    - name: wildcard
-      secretRef:
-        name: wildcard-tls-secret
-        namespace: default
-    ...
+providers:
+- name: kubernetes
+  context: my-dev-context
+  defaultHostname: mydomain.com
+  tlsCertificates:
+  - name: main
+    # Optionally set particular hostnames to use this certificate for
+    # (useful if you have multiple certs for the same hostname).
+    hostnames: [mydomain.com]
+    secretRef:
+      # Change to whatever name you chose for the secret above.
+      name: my-tls-secret
+      # Change this if you store the secret in another namespace.
+      namespace: default
+  - name: wildcard
+    secretRef:
+      name: wildcard-tls-secret
+      namespace: default
+  ...
 ```
 
 ## Deploying to production
