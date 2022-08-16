@@ -8,9 +8,7 @@ build:
   # Note: You could also specify a deploymentRegistry or set the `image` field if you prefer to push to a registry,
   #       but that'll obviously be much slower.
   dockerBuild: ${environment.name == "local"}
-  mavenPhases:
-    start: clean
-    end: package
+  mavenPhases: [ "clean", "package" ]
 services:
   - name: spring-boot
     ports:
