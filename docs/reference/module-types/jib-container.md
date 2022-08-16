@@ -858,9 +858,9 @@ Maximum time in seconds to wait for build to finish.
 
 The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the module root), but in some cases you may need to specify it.
 
-| Type     | Default  | Required |
-| -------- | -------- | -------- |
-| `string` | `"auto"` | No       |
+| Type     | Allowed Values                   | Default  | Required |
+| -------- | -------------------------------- | -------- | -------- |
+| `string` | "gradle", "maven", "jib", "auto" | `"auto"` | Yes      |
 
 ### `build.jdkVersion`
 
@@ -868,9 +868,9 @@ The type of project to build. Defaults to auto-detecting between gradle and mave
 
 The JDK version to use.
 
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `11`    | No       |
+| Type     | Allowed Values | Default | Required |
+| -------- | -------------- | ------- | -------- |
+| `number` | 8, 11, 13      | `11`    | Yes      |
 
 ### `build.dockerBuild`
 
@@ -898,9 +898,9 @@ Don't load or push the resulting image to a Docker daemon or registry, only buil
 
 Specify the image format in the resulting tar file. Only used if `tarOnly: true`.
 
-| Type     | Default    | Required |
-| -------- | ---------- | -------- |
-| `string` | `"docker"` | No       |
+| Type     | Allowed Values  | Default    | Required |
+| -------- | --------------- | ---------- | -------- |
+| `string` | "docker", "oci" | `"docker"` | Yes      |
 
 ### `build.extraFlags[]`
 

@@ -41,14 +41,14 @@ const jibModuleSchema = () =>
     build: baseBuildSpecSchema().keys({
       projectType: joi
         .string()
-        .allow("gradle", "maven", "jib", "auto")
+        .valid("gradle", "maven", "jib", "auto")
         .default("auto")
         .description(
           dedent`
             The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the module root), but in some cases you may need to specify it.
             `
         ),
-      jdkVersion: joi.number().integer().allow(8, 11).default(11).description("The JDK version to use."),
+      jdkVersion: joi.number().integer().valid(8, 11).default(11).description("The JDK version to use."),
       dockerBuild: joi
         .boolean()
         .default(false)
@@ -63,7 +63,7 @@ const jibModuleSchema = () =>
         ),
       tarFormat: joi
         .string()
-        .allow("docker", "oci")
+        .valid("docker", "oci")
         .default("docker")
         .description("Specify the image format in the resulting tar file. Only used if `tarOnly: true`."),
       extraFlags: joi
