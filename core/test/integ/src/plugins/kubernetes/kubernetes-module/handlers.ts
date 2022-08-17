@@ -32,7 +32,7 @@ import Bluebird from "bluebird"
 import { buildHelmModules } from "../helm/common"
 import { gardenAnnotationKey } from "../../../../../../src/util/string"
 import { getServiceStatuses } from "../../../../../../src/tasks/base"
-import { LocalModeProcessRegistry } from "../../../../../../src/plugins/kubernetes/local-mode"
+import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode"
 
 describe("kubernetes-module handlers", () => {
   let tmpDir: tmp.DirectoryResult
@@ -262,6 +262,7 @@ describe("kubernetes-module handlers", () => {
       const res2 = await findDeployedResources(manifests, log)
       // shut down local app and tunnels to avoid retrying after redeploy
       LocalModeProcessRegistry.getInstance().shutdown()
+      ProxySshKeystore.getInstance(log).shutdown(log)
 
       // Deploy without local mode again
       await deployKubernetesService(deployParams)
@@ -310,6 +311,7 @@ describe("kubernetes-module handlers", () => {
       const res2 = await findDeployedResources(manifests, log)
       // shut down local app and tunnels to avoid retrying after redeploy
       LocalModeProcessRegistry.getInstance().shutdown()
+      ProxySshKeystore.getInstance(log).shutdown(log)
 
       // Deploy without local mode again
       await deployKubernetesService(deployParams)

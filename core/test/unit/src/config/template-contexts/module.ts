@@ -58,6 +58,12 @@ describe("ModuleConfigContext", () => {
     delete process.env.TEST_VARIABLE
   })
 
+  it("should resolve the local arch", async () => {
+    expect(c.resolve({ key: ["local", "arch"], nodePath: [], opts: {} })).to.eql({
+      resolved: process.arch,
+    })
+  })
+
   it("should resolve the local platform", async () => {
     expect(c.resolve({ key: ["local", "platform"], nodePath: [], opts: {} })).to.eql({
       resolved: process.platform,

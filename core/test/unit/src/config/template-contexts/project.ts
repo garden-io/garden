@@ -221,6 +221,23 @@ describe("ProjectConfigContext", () => {
     )
   })
 
+  it("should resolve the local arch", () => {
+    const c = new ProjectConfigContext({
+      projectName: "some-project",
+      projectRoot: "/tmp",
+      artifactsPath: "/tmp",
+      vcsInfo,
+      username: "some-user",
+      loggedIn: true,
+      enterpriseDomain,
+      secrets: {},
+      commandInfo: { name: "test", args: {}, opts: {} },
+    })
+    expect(c.resolve({ key: ["local", "arch"], nodePath: [], opts: {} })).to.eql({
+      resolved: process.arch,
+    })
+  })
+
   it("should resolve the local platform", () => {
     const c = new ProjectConfigContext({
       projectName: "some-project",

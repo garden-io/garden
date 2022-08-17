@@ -182,6 +182,8 @@ export class DeleteServiceCommand extends Command<DeleteServiceArgs, DeleteServi
   workflows = true
   streamEvents = true
 
+  options = deleteServiceOpts
+
   description = dedent`
     Deletes (i.e. un-deploys) the specified services. Deletes all services in the project if no arguments are provided.
     Note that this command does not take into account any services depending on the deleted service/services, and might

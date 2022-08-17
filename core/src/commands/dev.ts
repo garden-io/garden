@@ -19,7 +19,7 @@ import { processModules } from "../process"
 import { GardenModule } from "../types/module"
 import { getTestTasks } from "../tasks/test"
 import { ConfigGraph } from "../config-graph"
-import { getDevModeModules, getMatchingServiceNames } from "./helpers"
+import { getModulesByServiceNames, getMatchingServiceNames } from "./helpers"
 import { startServer } from "../server/server"
 import { BuildTask } from "../tasks/build"
 import { DeployTask } from "../tasks/deploy"
@@ -176,7 +176,10 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       modules,
       watch: true,
       initialTasks,
-      skipWatchModules: getDevModeModules(devModeServiceNames, graph),
+      skipWatchModules: [
+        ...getModulesByServiceNames(devModeServiceNames, graph),
+        ...getModulesByServiceNames(localModeServiceNames, graph),
+      ],
       changeHandler: async (updatedGraph: ConfigGraph, module: GardenModule) => {
         return getDevCommandWatchTasks({
           garden,

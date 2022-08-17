@@ -98,7 +98,7 @@ $latestRelease = Invoke-WebRequest "https://github.com/garden-io/garden/releases
 $json = $latestRelease.Content | ConvertFrom-Json
 $latestVersion = $json.tag_name
 
-$url = "https://github.com/garden-io/garden/releases/download/$latestVersion/garden-$latestVersion-windows-amd64.zip"
+$url = "https://download.garden.io/core/$latestVersion/garden-$latestVersion-windows-amd64.zip"
 $zipPath = "$gardenTmpPath\garden-$latestVersion-windows-amd64.zip"
 
 Write-Host "-> Downloading $url..."

@@ -23,7 +23,7 @@ import { getModuleWatchTasks } from "../tasks/helpers"
 import { processModules } from "../process"
 import { printHeader } from "../logger/util"
 import { BaseTask } from "../tasks/base"
-import { getDevModeModules, getMatchingServiceNames } from "./helpers"
+import { getModulesByServiceNames, getMatchingServiceNames } from "./helpers"
 import { startServer } from "../server/server"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
@@ -219,7 +219,10 @@ export class DeployCommand extends Command<Args, Opts> {
       footerLog,
       modules,
       initialTasks,
-      skipWatchModules: getDevModeModules(devModeServiceNames, initGraph),
+      skipWatchModules: [
+        ...getModulesByServiceNames(devModeServiceNames, initGraph),
+        ...getModulesByServiceNames(localModeServiceNames, initGraph),
+      ],
       watch,
       changeHandler: async (graph, module) => {
         const tasks: BaseTask[] = await getModuleWatchTasks({

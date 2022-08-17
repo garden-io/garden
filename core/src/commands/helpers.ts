@@ -30,6 +30,10 @@ export function getDevModeModules(devModeServiceNames: string[], graph: ConfigGr
   return uniqByName(graph.getServices({ names: devModeServiceNames }).map((s) => s.module))
 }
 
+export function getModulesByServiceNames(serviceNames: string[], graph: ConfigGraph): GardenModule[] {
+  return uniqByName(graph.getServices({ names: serviceNames }).map((s) => s.module))
+}
+
 export function makeGetTestOrTaskResult(modules: GardenModule[], testsOrTasks: GardenTest[] | GardenTask[]) {
   return modules.map((m) => {
     const testsOrTasksForModule = sortBy(

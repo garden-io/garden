@@ -24,7 +24,7 @@ jobs:
         homebrew-tap: garden-io/homebrew-garden
         base-branch: master
         create-pullrequest: true
-        download-url: https://github.com/garden-io/garden/releases/download/${{ github.event.release.tag_name }}/garden-${{ github.event.release.tag_name }}-macos-amd64.tar.gz
+        download-url: https://download.garden.io/core/${{ github.event.release.tag_name }}/garden-${{ github.event.release.tag_name }}-macos-amd64.tar.gz
         commit-message: |
           Bump {{formulaName}} to {{version}}.
 

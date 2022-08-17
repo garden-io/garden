@@ -26,7 +26,7 @@ import Bluebird from "bluebird"
 import { CloudApi } from "../../../../../../src/cloud/api"
 import { resolve } from "path"
 import { getLogger } from "../../../../../../src/logger/logger"
-import { LocalModeProcessRegistry } from "../../../../../../src/plugins/kubernetes/local-mode"
+import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode"
 
 describe("deployHelmService in local-mode", () => {
   let garden: TestGarden
@@ -43,13 +43,18 @@ describe("deployHelmService in local-mode", () => {
   })
 
   after(async () => {
-    // shut down local app and tunnels to avoid retrying after redeploy
     LocalModeProcessRegistry.getInstance().shutdown()
+    ProxySshKeystore.getInstance(garden.log).shutdown(garden.log)
     const actions = await garden.getActionRouter()
     await actions.deleteServices(graph, garden.log)
     if (garden) {
       await garden.close()
     }
+  })
+
+  afterEach(async () => {
+    // shut down local app and tunnels to avoid retrying after redeploy
+    LocalModeProcessRegistry.getInstance().shutdown()
   })
 
   it("should deploy a chart with localMode enabled", async () => {

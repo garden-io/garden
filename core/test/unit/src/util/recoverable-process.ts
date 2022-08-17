@@ -8,7 +8,11 @@
 
 import env from "env-var"
 import { expect } from "chai"
-import { RecoverableProcess, validateRetryConfig } from "../../../../src/util/recoverable-process"
+import {
+  RecoverableProcess,
+  RecoverableProcessState,
+  validateRetryConfig,
+} from "../../../../src/util/recoverable-process"
 import { getLogger } from "../../../../src/logger/logger"
 import { sleep } from "../../../../src/util/util"
 import { initTestLogger } from "../../../helpers"
@@ -134,8 +138,8 @@ describe("RecoverableProcess", async () => {
     const rightChild1 = infiniteProcess(maxRetries, minTimeoutMs)
     const rightChild2 = infiniteProcess(maxRetries, minTimeoutMs)
 
-    root.addDescendantProcesses(left, right)
-    right.addDescendantProcesses(rightChild1, rightChild2)
+    root.addDescendants(left, right)
+    right.addDescendants(rightChild1, rightChild2)
 
     return [root, left, right, rightChild1, rightChild2]
   }
@@ -147,8 +151,8 @@ describe("RecoverableProcess", async () => {
     const rightChild1 = longSleepingProcess(maxRetries, minTimeoutMs)
     const rightChild2 = longSleepingProcess(maxRetries, minTimeoutMs)
 
-    root.addDescendantProcesses(left, right)
-    right.addDescendantProcesses(rightChild1, rightChild2)
+    root.addDescendants(left, right)
+    right.addDescendants(rightChild1, rightChild2)
 
     return [root, left, right, rightChild1, rightChild2]
   }
@@ -195,6 +199,57 @@ describe("RecoverableProcess", async () => {
       log,
     })
     expectRunnable(p)
+  })
+
+  context("addDescendantProcesses", async () => {
+    const maxRetries = 0
+    const minTimeoutMs = 0
+
+    let parent: RecoverableProcess = longSleepingProcess(maxRetries, minTimeoutMs)
+    let child: RecoverableProcess = longSleepingProcess(maxRetries, minTimeoutMs)
+
+    beforeEach(() => {
+      parent = longSleepingProcess(maxRetries, minTimeoutMs)
+      child = longSleepingProcess(maxRetries, minTimeoutMs)
+    })
+
+    function expectDescendantRejection(parentProc: RecoverableProcess, childProc: RecoverableProcess) {
+      expect(() => parentProc.addDescendants(childProc)).to.throw(
+        "Cannot attach a descendant to already running, stopped or failed process."
+      )
+      expectRunnable(childProc)
+    }
+
+    function setState(process: RecoverableProcess, state: RecoverableProcessState) {
+      process["state"] = state
+    }
+
+    it('child processes can be added to a "runnable" parent', () => {
+      expect(() => parent.addDescendants(child)).to.not.throw()
+
+      expectRunnable(parent)
+      expectRunnable(child)
+    })
+
+    it('child processes can not be added to a "running" parent', async () => {
+      setState(parent, "running")
+      expectDescendantRejection(parent, child)
+    })
+
+    it('child processes can not be added to a "retrying" parent', async () => {
+      setState(parent, "retrying")
+      expectDescendantRejection(parent, child)
+    })
+
+    it('child processes can not be added to a "stopped" parent', async () => {
+      setState(parent, "stopped")
+      expectDescendantRejection(parent, child)
+    })
+
+    it('child processes can not be added to a "failed" parent', async () => {
+      setState(parent, "failed")
+      expectDescendantRejection(parent, child)
+    })
   })
 
   it("startAll call is idempotent on success", () => {
@@ -322,8 +377,8 @@ describe("RecoverableProcess", async () => {
     const right = infiniteProcess(maxRetries, minTimeoutMs)
     const rightChild1 = infiniteProcess(maxRetries, minTimeoutMs)
     const rightChild2 = infiniteProcess(maxRetries, minTimeoutMs)
-    root.addDescendantProcesses(left, right)
-    right.addDescendantProcesses(rightChild1, rightChild2)
+    root.addDescendants(left, right)
+    right.addDescendants(rightChild1, rightChild2)
 
     root.startAll()
     expectRunning(root)
@@ -477,7 +532,7 @@ describe("RecoverableProcess", async () => {
     const root = failingProcess(maxRetries, minTimeoutMs)
     const left = longSleepingProcess(maxRetries, minTimeoutMs)
     const right = longSleepingProcess(maxRetries, minTimeoutMs)
-    root.addDescendantProcesses(left, right)
+    root.addDescendants(left, right)
 
     root.startAll()
 
@@ -497,8 +552,8 @@ describe("RecoverableProcess", async () => {
     const left = longSleepingProcess(maxRetries, minTimeoutMs)
     const right = failingProcess(maxRetries, minTimeoutMs)
     const rightChild = longSleepingProcess(maxRetries, minTimeoutMs)
-    root.addDescendantProcesses(left, right)
-    right.addDescendantProcess(rightChild)
+    root.addDescendants(left, right)
+    right.addDescendants(rightChild)
 
     root.startAll()
 
@@ -519,8 +574,8 @@ describe("RecoverableProcess", async () => {
     const left = longSleepingProcess(maxRetries, minTimeoutMs)
     const right = longSleepingProcess(maxRetries, minTimeoutMs)
     const rightChild = failingProcess(maxRetries, minTimeoutMs)
-    root.addDescendantProcesses(left, right)
-    right.addDescendantProcess(rightChild)
+    root.addDescendants(left, right)
+    right.addDescendants(rightChild)
 
     root.startAll()
 
@@ -532,5 +587,27 @@ describe("RecoverableProcess", async () => {
     expectFailed(rightChild)
 
     expect(() => root.startAll()).to.throw("Cannot start the process tree. Some processes failed with no retries left.")
+  })
+
+  it("stopped process cannot be started", async () => {
+    const maxRetries = 0
+    const minTimeoutMs = 500
+    const root = infiniteProcess(maxRetries, minTimeoutMs)
+
+    root.startAll()
+    root.stopAll()
+
+    expect(() => root.startAll()).to.throw("Cannot start already stopped process.")
+  })
+
+  it("failed process cannot be started", async () => {
+    const maxRetries = 0
+    const minTimeoutMs = 500
+    const root = infiniteProcess(maxRetries, minTimeoutMs)
+
+    const unsafeRoot = <any>root
+    unsafeRoot.fail()
+
+    expect(() => unsafeRoot.startNode()).to.throw("Cannot start failed process with no retries left.")
   })
 })

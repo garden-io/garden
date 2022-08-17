@@ -37,7 +37,11 @@ import {
   PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME,
   PROXY_CONTAINER_USER_NAME,
 } from "../../../../../../src/plugins/kubernetes/constants"
-import { LocalModeEnv } from "../../../../../../src/plugins/kubernetes/local-mode"
+import {
+  LocalModeEnv,
+  LocalModeProcessRegistry,
+  ProxySshKeystore,
+} from "../../../../../../src/plugins/kubernetes/local-mode"
 import stripAnsi = require("strip-ansi")
 
 describe("kubernetes container deployment handlers", () => {
@@ -67,6 +71,11 @@ describe("kubernetes container deployment handlers", () => {
   describe("createContainerManifests", () => {
     before(async () => {
       await init("local")
+    })
+
+    afterEach(async () => {
+      LocalModeProcessRegistry.getInstance().shutdown()
+      ProxySshKeystore.getInstance(garden.log).shutdown(garden.log)
     })
 
     function expectSshContainerPort(workload: KubernetesWorkload) {

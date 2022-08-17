@@ -54,6 +54,23 @@ const targets: { [name: string]: TargetSpec } = {
   "alpine-amd64": { pkgType: "node14-alpine-x64", handler: pkgAlpine, nodeBinaryPlatform: "linuxmusl" },
 }
 
+/**
+ * This function defines the filename format for release packages.
+ *
+ * The format SHOULD NOT be changed since other tools we use depend on it, unless you absolutely know what you're doing.
+ */
+function composePackageFilename(version: string, targetName: string, extension: string): string {
+  return `garden-${version}-${targetName}.${extension}`
+}
+
+export function getZipFilename(version: string, targetName: string): string {
+  return composePackageFilename(version, targetName, "zip")
+}
+
+export function getTarballFilename(version: string, targetName: string): string {
+  return composePackageFilename(version, targetName, "tar.gz")
+}
+
 async function buildBinaries(args: string[]) {
   const argv = minimist(args)
   const version = argv.version || getPackageVersion()
@@ -186,7 +203,8 @@ async function pkgWindows({ targetName, sourcePath, pkgType, version }: TargetHa
   })
 
   console.log(` - ${targetName} -> zip`)
-  await exec("zip", ["-q", "-r", `garden-${version}-${targetName}.zip`, targetName], { cwd: distPath })
+  const filename = getZipFilename(version, targetName)
+  await exec("zip", ["-q", "-r", filename, targetName], { cwd: distPath })
 }
 
 async function pkgAlpine({ targetName, version }: TargetHandlerParams) {
@@ -284,7 +302,7 @@ async function copyStatic(targetName: string) {
 }
 
 async function tarball(targetName: string, version: string): Promise<void> {
-  const filename = `garden-${version}-${targetName}.tar.gz`
+  const filename = getTarballFilename(version, targetName)
   console.log(` - ${targetName} -> tar (${filename})`)
 
   await exec("tar", ["-czf", filename, targetName], { cwd: distPath })
