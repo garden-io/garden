@@ -219,7 +219,10 @@ export const gardenPlugin = () =>
           docs: dedent`
             Build a Docker container image, and (if applicable) push to a remote registry.
           `,
-          outputsSchema: containerBuildOutputsSchema(),
+          outputs: {
+            schema: containerBuildOutputsSchema(),
+            staticKeys: true,
+          },
           schema: containerBuildSpecSchema(),
           handlers: {
             build: buildContainer,
@@ -237,7 +240,10 @@ export const gardenPlugin = () =>
             This is a simplified abstraction, which can be convenient for simple deployments, but has limited features compared to more platform-specific types. For example, you cannot specify replicas for redundancy, and various platform-specific options are not included. For more flexibility, please look at other Deploy types like [helm](./helm.md) or [kubernetes](./kubernetes.md).
           `,
           schema: containerDeploySchema(),
-          outputsSchema: containerDeployOutputsSchema(),
+          outputs: {
+            schema: containerDeployOutputsSchema(),
+            staticKeys: true,
+          },
           handlers: {
             // Other handlers are implemented by other providers (e.g. kubernetes)
 
@@ -308,7 +314,9 @@ export const gardenPlugin = () =>
             This is a simplified abstraction, which can be convenient for simple tasks, but has limited features compared to more platform-specific types. For example, you cannot specify replicas for redundancy, and various platform-specific options are not included. For more flexibility, please look at other Run types like [helm](./helm.md) or [kubernetes](./kubernetes.md).
           `,
           schema: containerRunActionSchema(),
-          outputsSchema: containerRunOutputSchema(),
+          outputs: {
+            schema: containerRunOutputSchema(),
+          },
           handlers: {
             // Implemented by other providers (e.g. kubernetes)
             async validate({ action }) {
@@ -327,7 +335,9 @@ export const gardenPlugin = () =>
             This is a simplified abstraction, which can be convenient for simple scenarios, but has limited features compared to more platform-specific types. For example, you cannot specify replicas for redundancy, and various platform-specific options are not included. For more flexibility, please look at other Test types like [helm](./helm.md) or [kubernetes](./kubernetes.md).
           `,
           schema: containerTestActionSchema(),
-          outputsSchema: containerTestOutputSchema(),
+          outputs: {
+            schema: containerTestOutputSchema(),
+          },
           handlers: {
             // Implemented by other providers (e.g. kubernetes)
           },

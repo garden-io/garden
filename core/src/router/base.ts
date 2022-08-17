@@ -306,16 +306,16 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     const actionTypes = await this.garden.getActionTypes()
     const spec: ActionTypeDefinition<any> = actionTypes[action.kind][action.type]
 
-    if (spec.outputsSchema) {
-      outputs = validateSchema(outputs, spec.outputsSchema, {
+    if (spec.outputs?.schema) {
+      outputs = validateSchema(outputs, spec.outputs.schema, {
         context: `outputs from service '${action.name}'`,
         ErrorClass: PluginError,
       })
     }
 
     for (const base of getActionTypeBases(spec, actionTypes[action.kind])) {
-      if (base.outputsSchema) {
-        outputs = validateSchema(outputs, base.outputsSchema.unknown(true), {
+      if (base.outputs?.schema) {
+        outputs = validateSchema(outputs, base.outputs.schema.unknown(true), {
           context: `outputs from service '${action.name}' (base schema from '${base.name}' plugin)`,
           ErrorClass: PluginError,
         })
