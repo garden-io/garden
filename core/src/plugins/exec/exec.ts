@@ -53,7 +53,6 @@ import {
   TestActionHandler,
 } from "../../plugin/action-types"
 import { Action, runResultToActionState } from "../../actions/base"
-import { BuildResult } from "../../plugin/handlers/build/build"
 import { ResolvedBuildAction } from "../../actions/build"
 import { DeployStatus } from "../../plugin/handlers/deploy/get-status"
 import { BuildStatus } from "../../plugin/handlers/build/get-status"
@@ -179,7 +178,7 @@ async function run({
   })
 }
 
-export const buildExecModule: BuildActionHandler<"build", ExecBuild> = async ({ action, log, ctx }) => {
+export const buildExecAction: BuildActionHandler<"build", ExecBuild> = async ({ action, log, ctx }) => {
   const output: BuildStatus = { state: "ready", outputs: {}, detail: {} }
   const command = action.getSpec("command")
 
@@ -555,7 +554,7 @@ export const execPlugin = () =>
           `,
           schema: execBuildActionSchema(),
           handlers: {
-            build: buildExecModule,
+            build: buildExecAction,
             run: runExecBuild,
           },
         },

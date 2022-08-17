@@ -67,7 +67,7 @@ describe("local mode deployments and ssh tunneling behavior", () => {
       localModeDeployNames: [service.name],
     })
 
-    await garden.processTasks([deployTask], { throwOnError: true })
+    await garden.processTasks({ tasks: [deployTask], throwOnError: true })
     const status = await getContainerServiceStatus({
       ctx,
       module,

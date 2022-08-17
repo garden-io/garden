@@ -33,8 +33,8 @@ describe("TaskHelpers", () => {
    * Note: Since we also test with dependencies included in the task lists generated , these tests also check the
    * getDependencies methods of the task classes in question.
    */
-  describe("getModuleWatchTasks", () => {
-    it("should return no deploy tasks for a disabled module, but include its dependant tasks", async () => {
+  describe("getActionWatchTasks", () => {
+    it("should return no deploy tasks for a disabled action, but include its dependants", async () => {
       const garden = await makeTestGardenA()
 
       garden.setModuleConfigs([
@@ -85,17 +85,17 @@ describe("TaskHelpers", () => {
       ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const module = graph.getModule("module-a", true)
+      const action = graph.getDeploy("service-a", { includeDisabled: true })
 
       const tasks = await getActionWatchTasks({
         garden,
         graph,
         log,
-        module,
-        deploysWatched: graph.getServices().map((s) => s.name),
+        updatedAction: action,
+        deploysWatched: graph.getDeploys().map((s) => s.name),
         devModeDeployNames: [],
-
         localModeDeployNames: [],
+        testsWatched: [],
       })
 
       expect(sortedBaseKeys(tasks)).to.eql(["deploy.service-b"])
@@ -152,16 +152,17 @@ describe("TaskHelpers", () => {
       ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const module = graph.getModule("module-a", true)
+      const action = graph.getDeploy("service-a", { includeDisabled: true })
 
       const tasks = await getActionWatchTasks({
         garden,
         graph,
         log,
-        module,
-        deploysWatched: graph.getServices().map((s) => s.name),
+        updatedAction: action,
+        deploysWatched: graph.getDeploys().map((s) => s.name),
         devModeDeployNames: [],
         localModeDeployNames: [],
+        testsWatched: [],
       })
 
       expect(sortedBaseKeys(tasks)).to.eql(["deploy.service-a"])
@@ -205,15 +206,17 @@ describe("TaskHelpers", () => {
       for (const { moduleName, expectedTasks } of expectedBaseKeysByChangedModule) {
         it(`returns the correct set of tasks for ${moduleName} with dependants`, async () => {
           const graph = await depGarden.getConfigGraph({ log: depGarden.log, emit: false })
-          const module = graph.getModule(<string>moduleName)
+          const action = graph.getDeploy(<string>moduleName)
 
           const tasks = await getActionWatchTasks({
             garden: depGarden,
             graph,
             log,
-            module,
-            deploysWatched: graph.getServices().map((s) => s.name),
+            updatedAction: action,
+            deploysWatched: graph.getDeploys().map((s) => s.name),
             devModeDeployNames: [],
+            localModeDeployNames: [],
+            testsWatched: [],
           })
           expect(sortedBaseKeys(tasks)).to.eql(expectedTasks.sort())
         })
@@ -248,15 +251,17 @@ describe("TaskHelpers", () => {
         ])
 
         const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-        const module = graph.getModule("module-a", true)
+        const action = graph.getDeploy("service-a", { includeDisabled: true })
 
         const tasks = await getActionWatchTasks({
           garden,
           graph,
           log,
-          module,
-          deploysWatched: graph.getServices().map((s) => s.name),
+          updatedAction: action,
+          deploysWatched: graph.getDeploys().map((s) => s.name),
           devModeDeployNames: [],
+          localModeDeployNames: [],
+          testsWatched: [],
         })
 
         expect(sortedBaseKeys(tasks)).to.eql([])
@@ -313,15 +318,17 @@ describe("TaskHelpers", () => {
         ])
 
         const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-        const module = graph.getModule("module-a", true)
+        const action = graph.getDeploy("service-a", { includeDisabled: true })
 
         const tasks = await getActionWatchTasks({
           garden,
           graph,
           log,
-          module,
-          deploysWatched: graph.getServices().map((s) => s.name),
+          updatedAction: action,
+          deploysWatched: graph.getDeploys().map((s) => s.name),
           devModeDeployNames: [],
+          localModeDeployNames: [],
+          testsWatched: [],
         })
 
         expect(sortedBaseKeys(tasks)).to.eql(["deploy.service-a"])

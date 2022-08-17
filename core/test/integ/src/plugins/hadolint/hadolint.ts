@@ -196,7 +196,7 @@ describe("hadolint provider", () => {
       })
 
       const key = testTask.getBaseKey()
-      const { [key]: result } = await garden.processTasks([testTask])
+      const { [key]: result } = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(result).to.exist
       expect(result!.error).to.exist
@@ -260,7 +260,7 @@ describe("hadolint provider", () => {
       })
 
       const key = testTask.getBaseKey()
-      const { [key]: result } = await garden.processTasks([testTask])
+      const { [key]: result } = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(result).to.exist
       expect(result!.error).to.exist
@@ -319,7 +319,7 @@ describe("hadolint provider", () => {
       })
 
       const key = testTask.getBaseKey()
-      const { [key]: result } = await garden.processTasks([testTask])
+      const { [key]: result } = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(result).to.exist
       expect(result!.error).to.exist
@@ -372,7 +372,7 @@ describe("hadolint provider", () => {
       })
 
       const key = testTask.getBaseKey()
-      const { [key]: result } = await garden.processTasks([testTask])
+      const { [key]: result } = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(result).to.exist
       expect(result!.error).to.exist
@@ -415,7 +415,7 @@ describe("hadolint provider", () => {
       })
 
       const key = testTask.getBaseKey()
-      const { [key]: result } = await garden.processTasks([testTask])
+      const { [key]: result } = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(result).to.exist
       expect(result!.error).to.not.exist
@@ -461,7 +461,7 @@ describe("hadolint provider", () => {
       })
 
       const key = testTask.getBaseKey()
-      const { [key]: result } = await garden.processTasks([testTask])
+      const { [key]: result } = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(result).to.exist
       expect(result!.error).to.not.exist

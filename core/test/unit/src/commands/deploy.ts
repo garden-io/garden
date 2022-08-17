@@ -9,7 +9,7 @@
 import { join } from "path"
 import { DeployCommand } from "../../../../src/commands/deploy"
 import { expect } from "chai"
-import { buildExecModule } from "../../../../src/plugins/exec/exec"
+import { buildExecAction } from "../../../../src/plugins/exec/exec"
 import { ServiceState, ServiceStatus } from "../../../../src/types/service"
 import {
   taskResultOutputs,
@@ -72,7 +72,7 @@ const testProvider = () => {
         schema: testModuleSpecSchema(),
         handlers: {
           configure: configureTestModule,
-          build: buildExecModule,
+          build: buildExecAction,
           deployService: async ({ service }: DeployServiceParams) => {
             const newStatus = {
               version: "1",
