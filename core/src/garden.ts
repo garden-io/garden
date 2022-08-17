@@ -71,6 +71,7 @@ import {
   fixedProjectExcludes,
   detectModuleOverlap,
   ModuleOverlap,
+  defaultConfigFilename,
 } from "./util/fs"
 import {
   Provider,

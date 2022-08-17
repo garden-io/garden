@@ -179,7 +179,7 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
   workflows = true
   streamEvents = true
 
-  options = deleteServiceOpts
+  options = deleteDeployOpts
 
   description = dedent`
     Cleans up (i.e. un-deploys) the specified actions. Cleans up all deploys/services in the project if no arguments are provided.
