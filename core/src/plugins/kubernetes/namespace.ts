@@ -250,10 +250,8 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
 
   const ns = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
 
-  // Including the metadata-namespace key for backwards-compatibility in provider outputs
   return {
     "app-namespace": ns,
-    "metadata-namespace": ns,
   }
 }
 
