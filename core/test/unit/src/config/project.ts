@@ -1587,7 +1587,7 @@ describe("pickEnvironment", () => {
         }),
       (err) =>
         expect(err.message).to.equal(
-          "Invalid environment specified ($.%): must be a valid environment name or <namespace>.<environment>"
+          "Invalid environment specified ($.%): invalid namespace specified, must be a valid environment name or <namespace>.<environment>"
         )
     )
   })
@@ -1650,7 +1650,7 @@ describe("parseEnvironment", () => {
       () => parseEnvironment("&.$"),
       (err) =>
         expect(err.message).to.equal(
-          "Invalid environment specified (&.$): must be a valid environment name or <namespace>.<environment>"
+          "Invalid environment specified (&.$): invalid namespace specified, must be a valid environment name or <namespace>.<environment>"
         )
     )
   })

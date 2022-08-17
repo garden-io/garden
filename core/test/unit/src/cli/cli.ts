@@ -1054,7 +1054,7 @@ describe("cli", () => {
 
       expect(errors.length).to.equal(1)
       expect(stripAnsi(errors[0].message)).to.equal(
-        "Invalid value for option --env: Invalid environment specified ($.%): must be a valid environment name or <namespace>.<environment>"
+        "Invalid value for option --env: Invalid environment specified ($.%): invalid namespace specified, must be a valid environment name or <namespace>.<environment>"
       )
     })
 

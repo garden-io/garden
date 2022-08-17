@@ -281,8 +281,7 @@ joi = joi.extend({
   messages: {
     base: "{{#label}} must be a valid environment name or <namespace>.<environment>",
     multipleDelimiters: "{{#label}} may only contain a single delimiter",
-    invalidNamespace:
-      "invalid namespace specified, {{#label}} must be a valid environment name or <namespace>.<environment>",
+    invalidNamespace: "invalid namespace specified, must be a valid environment name or <namespace>.<environment>",
   },
   validate(value: string, { error }) {
     const split = value.split(".")

@@ -216,7 +216,7 @@ describe("Garden", () => {
     })
 
     it("should throw if environment starts with 'garden-'", async () => {
-      await expectError(async () => makeTestGarden(projectRootA, { environmentName: "garden-bla" }), "parameter")
+      await expectError(async () => makeTestGarden(projectRootA, { environmentName: "garden-bla" }), "validation")
     })
 
     it("should throw if project.environments is not an array", async () => {
