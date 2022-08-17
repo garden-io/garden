@@ -121,7 +121,10 @@ export type ActionTypeDefinition<H extends ActionHandlers> = ActionTypeExtension
   docs: string
   // TODO: specify the schemas using primitives (e.g. JSONSchema/OpenAPI) and not Joi objects
   schema: Joi.ObjectSchema
-  outputsSchema?: Joi.ObjectSchema
+  outputs?: {
+    schema?: Joi.ObjectSchema
+    staticKeys?: string[] | true
+  }
   title?: string
 }
 
@@ -344,12 +347,25 @@ const createActionTypeSchema = (kind: ActionKind) => {
         fields), _or_ specify a \`configure\` handler that returns a module config compatible with the base's
         schema. This is to ensure that plugin handlers made for the base type also work with this action type.
       `),
-      outputsSchema: joiSchema().description(dedent`
-        A valid Joi schema describing the keys that each action of this type outputs at config resolution time,
-        for use in template strings (e.g. ${templateStringLiteral(`${kind}.my-${kind}.outputs.some-key`)}).
+      outputs: joi.object().keys({
+        schema: joiSchema().description(dedent`
+          A valid Joi schema describing the keys that each action of this type outputs at config resolution time,
+          for use in template strings (e.g. ${templateStringLiteral(`${kind}.my-${kind}.outputs.some-key`)}).
 
-        ${outputSchemaDocs}
-      `),
+          ${outputSchemaDocs}
+        `),
+        staticKeys: joi
+          .array()
+          .items(joi.string())
+          .allow(true)
+          .description(
+            dedent`
+            A list of keys that are resolved statically when resolving the configuration, as opposed to at runtime. Specifying these allows for more efficient processing of the graph when outputs are referenced, since the action may not need to be executed before resolving dependants that reference outputs from it.
+
+            You may also set this to \`true\` to indicate that every output key is statically resolvable.
+            `
+          ),
+      }),
       handlers: mapValues(descriptions[kind], (d) => {
         const schema = baseHandlerSchema().description(d.description)
         return d.required ? schema.required() : schema

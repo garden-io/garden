@@ -35,6 +35,7 @@ import { validateWithPath } from "../config/validation"
 import { ConfigurationError, InternalError, PluginError } from "../exceptions"
 import type { Garden } from "../garden"
 import type { LogEntry } from "../logger/log-entry"
+import { ActionTypeDefinition } from "../plugin/action-types"
 import { getActionTypeBases } from "../plugins"
 import type { BaseActionRouter } from "../router/base"
 import type { ActionRouter } from "../router/router"
@@ -116,19 +117,20 @@ export async function actionFromConfig({
   // Call configure handler and validate
   config = await preprocessActionConfig({ garden, config, router, log })
 
-  const dependencies = dependenciesFromActionConfig(config, configsByKey)
+  const actionTypes = await garden.getActionTypes()
+  const compatibleTypes = [
+    config.type,
+    ...getActionTypeBases(actionTypes[config.kind][config.type], actionTypes[config.kind]).map((t) => t.name),
+  ]
+  const definition = actionTypes[config.kind][config.type]
+
+  const dependencies = dependenciesFromActionConfig(config, configsByKey, definition)
   const treeVersion = await garden.vcs.getTreeVersion(log, garden.projectName, config)
 
   const variables: DeepPrimitiveMap = {}
   // TODO-G2: should we change the precedence order here?
   merge(variables, await resolveActionVarfiles(config))
   merge(variables, garden.cliVariables)
-
-  const actionTypes = await garden.getActionTypes()
-  const compatibleTypes = [
-    config.type,
-    ...getActionTypeBases(actionTypes[config.type], actionTypes[config.kind]).map((t) => t.name),
-  ]
 
   const params: ActionWrapperParams<any> = {
     baseBuildDirectory: garden.buildStaging.buildDirPath,
@@ -404,7 +406,11 @@ async function resolveActionVarfiles(config: ActionConfig) {
   return output
 }
 
-function dependenciesFromActionConfig(config: ActionConfig, configsByKey: ActionConfigsByKey) {
+function dependenciesFromActionConfig(
+  config: ActionConfig,
+  configsByKey: ActionConfigsByKey,
+  definition: ActionTypeDefinition<any>
+) {
   const description = describeActionConfig(config)
 
   if (!config.dependencies) {
@@ -456,10 +462,20 @@ function dependenciesFromActionConfig(config: ActionConfig, configsByKey: Action
     addImplicitDep(ref, true)
   }
 
-  // -> Action template references in spec/variables
+  // Action template references in spec/variables
+  // -> We avoid depending on action execution when referencing static output keys
+  const staticKeys = definition.outputs?.staticKeys
+
   for (const ref of getActionTemplateReferences(config)) {
-    // TODO-G2: tease apart runtime and static output references
-    addImplicitDep(ref, true)
+    let needsExecuted = false
+
+    const outputKey = ref.fullRef[3]
+
+    if (ref.fullRef[2] === "outputs" && outputKey && staticKeys !== true && !staticKeys?.includes(<string>outputKey)) {
+      needsExecuted = true
+    }
+
+    addImplicitDep(ref, needsExecuted)
   }
 
   return deps
