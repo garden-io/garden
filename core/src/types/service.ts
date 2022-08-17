@@ -26,7 +26,7 @@ import { getEntityVersion } from "../vcs/vcs"
 import { NamespaceStatus, namespaceStatusesSchema } from "../plugin/base"
 import { LogLevel } from "../logger/logger"
 import { ActionState } from "../actions/base"
-import { ConfigGraph } from "../graph/config-graph"
+import { ModuleGraph } from "../graph/modules"
 
 export interface GardenService<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule> {
   name: string
@@ -53,7 +53,7 @@ export const serviceSchema = () =>
     })
 
 export function serviceFromConfig<M extends GardenModule = GardenModule>(
-  graph: ConfigGraph,
+  graph: ModuleGraph,
   module: M,
   config: ServiceConfig
 ): GardenService<M> {
