@@ -607,3 +607,6 @@ export function allowUnknown<T extends Joi.Schema>(schema: T) {
 
   return schema
 }
+
+export const environmentNameSchema = () =>
+  joiUserIdentifier().required().description("The name of the environment.").example("dev")

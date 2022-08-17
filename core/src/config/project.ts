@@ -11,6 +11,7 @@ import { dedent, deline } from "../util/string"
 import {
   apiVersionSchema,
   DeepPrimitiveMap,
+  environmentNameSchema,
   includeGuideLink,
   joi,
   joiArray,
@@ -73,9 +74,6 @@ The format of the files is determined by the configured file's extension:
 
 _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays._
 `.trim()
-
-export const environmentNameSchema = () =>
-  joiUserIdentifier().required().description("The name of the environment.").example("dev")
 
 export const environmentSchema = () =>
   joi.object().keys({

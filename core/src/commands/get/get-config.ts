@@ -8,8 +8,7 @@
 
 import { Command, CommandResult, CommandParams } from "../base"
 import { ConfigDump } from "../../garden"
-import { environmentNameSchema } from "../../config/project"
-import { joiIdentifier, joiVariables, joiArray, joi } from "../../config/common"
+import { joiIdentifier, joiVariables, joiArray, joi, environmentNameSchema } from "../../config/common"
 import { providerConfigBaseSchema, providerSchema } from "../../config/provider"
 import { moduleConfigSchema } from "../../config/module"
 import { workflowConfigSchema } from "../../config/workflow"

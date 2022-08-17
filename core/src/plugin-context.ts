@@ -7,10 +7,10 @@
  */
 
 import { Garden } from "./garden"
-import { projectNameSchema, projectSourcesSchema, environmentNameSchema, SourceConfig } from "./config/project"
+import { projectNameSchema, projectSourcesSchema, SourceConfig } from "./config/project"
 import { Provider, providerSchema, GenericProviderConfig } from "./config/provider"
 import { deline } from "./util/string"
-import { joi, joiVariables, joiStringMap, DeepPrimitiveMap } from "./config/common"
+import { joi, joiVariables, joiStringMap, DeepPrimitiveMap, environmentNameSchema } from "./config/common"
 import { PluginTool } from "./util/ext-tools"
 import { ConfigContext, ContextResolveOpts } from "./config/template-contexts/base"
 import { resolveTemplateStrings } from "./template-string/template-string"
