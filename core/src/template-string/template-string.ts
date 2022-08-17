@@ -33,7 +33,7 @@ import { deepMap, ObjectWithName } from "../util/util"
 import { LogEntry } from "../logger/log-entry"
 import { ModuleConfigContext } from "../config/template-contexts/module"
 import { callHelperFunction } from "./functions"
-import { ActionKind, actionKinds, actionKindsLower } from "../actions/base"
+import { ActionKind, actionKindsLower } from "../actions/base"
 
 export type StringOrStringPromise = Promise<string> | string
 
@@ -428,6 +428,7 @@ interface ActionTemplateReference extends ActionReference {
 export function getActionTemplateReferences<T extends object>(config: T): ActionTemplateReference[] {
   const rawRefs = collectTemplateReferences(config)
 
+  // ${action.*}
   const refs: ActionTemplateReference[] = rawRefs
     .filter((ref) => ref[0] === "action")
     .map((ref) => {
@@ -455,6 +456,7 @@ export function getActionTemplateReferences<T extends object>(config: T): Action
       }
     })
 
+  // ${runtime.*}
   for (const ref of rawRefs) {
     if (ref[0] !== "runtime") {
       continue
