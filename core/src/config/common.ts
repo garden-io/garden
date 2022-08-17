@@ -281,19 +281,32 @@ joi = joi.extend({
   messages: {
     base: "{{#label}} must be a valid environment name or <namespace>.<environment>",
     multipleDelimiters: "{{#label}} may only contain a single delimiter",
+    invalidNamespace:
+      "invalid namespace specified, {{#label}} must be a valid environment name or <namespace>.<environment>",
   },
   validate(value: string, { error }) {
-    const baseSchema = joi.string().hostname()
-    const result = baseSchema.validate(value)
-
-    if (result.error) {
-      return { value, errors: error("base") }
-    }
-
     const split = value.split(".")
 
     if (split.length > 2) {
       return { value, errors: error("multipleDelimiters") }
+    }
+
+    if (split.length === 2) {
+      const resultNs = joiIdentifierLenLimit255().validate(split[0])
+      if (resultNs.error) {
+        return { value, errors: error("invalidNamespace") }
+      }
+      const resultEnv = environmentNameSchema().validate(split[1])
+      if (resultEnv.error) {
+        return { value, errors: error("base") }
+      }
+    }
+
+    if (split.length === 1) {
+      const resultEnv = environmentNameSchema().validate(split[0])
+      if (resultEnv.error) {
+        return { value, errors: error("base") }
+      }
     }
 
     return { value }
