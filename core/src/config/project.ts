@@ -643,9 +643,9 @@ export function truncateGardenNamespaceIfNeeded(
 
   const sliceLen = maxK8sNsLen - 1 - lenProjName - 6 // last five chars will be a hash and a '-'
   const nonHashedPart = namespace.slice(0, sliceLen)
-  const fiveCharHas = hasha(namespace).slice(-5)
+  const fiveCharHash = hasha(namespace).slice(-5)
 
-  return { namespace: nonHashedPart + "-" + fiveCharHas, wasTruncated: true }
+  return { namespace: nonHashedPart + "-" + fiveCharHash, wasTruncated: true }
 }
 
 /**
