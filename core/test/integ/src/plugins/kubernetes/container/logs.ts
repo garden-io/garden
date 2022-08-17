@@ -58,7 +58,7 @@ describe("kubernetes", () => {
         localModeDeployNames: [],
       })
 
-      await garden.processTasks([deployTask], { throwOnError: true })
+      await garden.processTasks({ tasks: [deployTask], throwOnError: true })
       const stream = new Stream<ServiceLogEntry>()
 
       void stream.forEach((entry) => {
@@ -103,7 +103,7 @@ describe("kubernetes", () => {
           localModeDeployNames: [],
         })
 
-        await garden.processTasks([deployTask], { throwOnError: true })
+        await garden.processTasks({ tasks: [deployTask], throwOnError: true })
         const stream = new Stream<ServiceLogEntry>()
 
         void stream.forEach((entry) => {
@@ -210,7 +210,7 @@ describe("kubernetes", () => {
         })
 
         // Start by deleting the service in case it already exists
-        await garden.processTasks([deleteTask], { throwOnError: true })
+        await garden.processTasks({ tasks: [deleteTask], throwOnError: true })
 
         // Start following logs even when no services is deployed
         // (we don't wait for the Promise since it won't resolve unless we close the connection)
@@ -219,7 +219,7 @@ describe("kubernetes", () => {
         await sleep(1500)
 
         // Deploy the service
-        await garden.processTasks([deployTask], { throwOnError: true })
+        await garden.processTasks({ tasks: [deployTask], throwOnError: true })
         await sleep(1500)
 
         logsFollower.close()

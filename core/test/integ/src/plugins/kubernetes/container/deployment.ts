@@ -709,7 +709,7 @@ describe("kubernetes container deployment handlers", () => {
           localModeDeployNames: [],
         })
 
-        const results = await garden.processTasks([deployTask], { throwOnError: true })
+        const results = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
         const statuses = getServiceStatuses(results)
         const status = statuses[service.name]
         const resources = keyBy(status.detail["remoteResources"], "kind")
@@ -777,7 +777,7 @@ describe("kubernetes container deployment handlers", () => {
           localModeDeployNames: [],
         })
 
-        await garden.processTasks([deployTask], { throwOnError: true })
+        await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
         // We expect this `ConfigMap` to still exist.
         await api.core.readNamespacedConfigMap(mapToNotPruneKey, namespace)
@@ -815,7 +815,7 @@ describe("kubernetes container deployment handlers", () => {
           localModeDeployNames: [],
         })
 
-        const results = await garden.processTasks([deployTask], { throwOnError: true })
+        const results = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
         const statuses = getServiceStatuses(results)
         const status = statuses[service.name]
         expect(status.state).to.eql("ready")
@@ -836,7 +836,7 @@ describe("kubernetes container deployment handlers", () => {
           localModeDeployNames: [],
         })
 
-        const results = await garden.processTasks([deployTask], { throwOnError: true })
+        const results = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
         const statuses = getServiceStatuses(results)
         const status = statuses[service.name]
         const resources = keyBy(status.detail["remoteResources"], "kind")
@@ -871,7 +871,7 @@ describe("kubernetes container deployment handlers", () => {
           localModeDeployNames: [],
         })
 
-        const results = await garden.processTasks([deployTask], { throwOnError: true })
+        const results = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
         const statuses = getServiceStatuses(results)
         const status = statuses[service.name]
         const resources = keyBy(status.detail["remoteResources"], "kind")

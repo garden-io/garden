@@ -86,7 +86,7 @@ describe("configmap module", () => {
       localModeDeployNames: [],
     })
 
-    await garden.processTasks([deployTask], { throwOnError: true })
+    await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
     const actions = await garden.getActionRouter()
     const status = await actions.getServiceStatus({

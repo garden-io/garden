@@ -25,8 +25,8 @@ import { uniq } from "lodash"
 import { getEntityVersion } from "../vcs/vcs"
 import { NamespaceStatus, namespaceStatusesSchema } from "../plugin/base"
 import { LogLevel } from "../logger/logger"
-import { ModuleGraph } from "../graph/modules"
 import { ActionState } from "../actions/base"
+import { ModuleGraph } from "../graph/modules"
 
 export interface GardenService<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule> {
   name: string

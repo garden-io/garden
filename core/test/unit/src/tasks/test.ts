@@ -12,7 +12,6 @@ import { TestTask } from "../../../../src/tasks/test"
 import { dataDir, makeTestGarden, TestGarden } from "../../../helpers"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { testFromConfig } from "../../../../src/types/test"
 
 describe("TestTask", () => {
   let garden: TestGarden
@@ -25,71 +24,74 @@ describe("TestTask", () => {
     log = garden.log
   })
 
+  describe("getStatus", () => {
+    describe("TODO", async () => {
+      throw "TODO"
+    })
+  })
+
   describe("process", () => {
     it("should correctly resolve runtime outputs from tasks", async () => {
-      const moduleA = graph.getModule("module-a")
-      const testConfig = moduleA.testConfigs[0]
+      const action = graph.getTest("module-a-integ")
 
       const testTask = new TestTask({
         garden,
         log,
         graph,
-        test: testFromConfig(moduleA, testConfig, graph),
+        action,
         force: true,
         forceBuild: false,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
+        fromWatch: false,
       })
 
-      const key = testTask.getBaseKey()
-      const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
+      const res = await garden.processTasks({ tasks: [testTask], throwOnError: true })
+      const result = res.results.getResult(testTask)!
 
-      expect(result!.output.log).to.eql("echo task-a-ok")
+      expect(result.result?.detail?.log).to.eql("echo task-a-ok")
     })
   })
 
   describe("getDependencies", () => {
     it("should include task dependencies", async () => {
-      const moduleA = graph.getModule("module-a")
-      const testConfig = moduleA.testConfigs[0]
+      const action = graph.getTest("module-a-integ")
 
       const task = new TestTask({
         garden,
         log,
         graph,
-        test: testFromConfig(moduleA, testConfig, graph),
+        action,
         force: true,
         forceBuild: false,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
+        fromWatch: false,
       })
 
-      const deps = await task.resolveProcessDependencies()
+      const deps = task.resolveProcessDependencies()
 
       expect(deps.map((d) => d.getBaseKey())).to.eql(["build.module-a", "deploy.service-b", "task.task-a"])
     })
 
     context("when skipRuntimeDependencies = true", () => {
       it("doesn't return deploy or task dependencies", async () => {
-        const moduleA = graph.getModule("module-a")
-        const testConfig = moduleA.testConfigs[0]
+        const action = graph.getTest("module-a-integ")
 
         const task = new TestTask({
           garden,
           log,
           graph,
-          test: testFromConfig(moduleA, testConfig, graph),
+          action,
           force: true,
           forceBuild: false,
           skipRuntimeDependencies: true, // <-----
           devModeDeployNames: [],
-
           localModeDeployNames: [],
+          fromWatch: false,
         })
 
-        const deps = await task.resolveProcessDependencies()
+        const deps = task.resolveProcessDependencies()
         expect(deps.find((dep) => dep.type === "deploy" || dep.type === "task")).to.be.undefined
       })
     })

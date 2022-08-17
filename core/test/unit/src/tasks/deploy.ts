@@ -197,12 +197,12 @@ describe("DeployTask", () => {
 
     context("when skipRuntimeDependencies = true", () => {
       it("doesn't return deploy or task dependencies", async () => {
-        const testService = graph.getService("test-service")
+        const action = graph.getDeploy("test-service")
 
         const deployTask = new DeployTask({
           garden,
           graph,
-          service: testService,
+          action,
           force: true,
           forceBuild: false,
           fromWatch: false,
@@ -235,7 +235,7 @@ describe("DeployTask", () => {
         localModeDeployNames: [],
       })
 
-      const result = await garden.processTasks([deployTask], { throwOnError: true })
+      const result = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
       expect(result[deployTask.getBaseKey()]!.result.outputs).to.eql({ log: "test output" })
     })
