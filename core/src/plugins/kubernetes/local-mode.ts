@@ -831,7 +831,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
       log.warn({
         status: "warn",
         symbol: "warning",
-        section: gardenService.name,
+        section: action.key(),
         msg: chalk.yellow("Unable to start local app. Reason: rejected by the registry"),
       })
     }
@@ -857,7 +857,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   const sshTunnelCmdRenderer = (command: OsCommand) => `${command.command} ${command.args?.join(" ")}`
   log.verbose({
     status: "active",
-    section: gardenService.name,
+    section: action.key(),
     msg: chalk.grey(
       `Starting the process tree for the local mode ssh tunnels:\n` +
         `${compositeSshTunnel.renderProcessTree(sshTunnelCmdRenderer)}`
@@ -868,7 +868,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
     log.warn({
       status: "warn",
       symbol: "warning",
-      section: gardenService.name,
+      section: action.key(),
       msg: chalk.yellow("Unable to local mode ssh tunnels. Reason: rejected by the registry"),
     })
   }
