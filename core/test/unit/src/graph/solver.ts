@@ -16,6 +16,8 @@ import { deepFilter, defer, sleep, uuidv4 } from "../../../../src/util/util"
 import { range } from "lodash"
 import { toGraphResultEventPayload } from "../../../../src/events"
 import { sanitizeObject } from "../../../../src/logger/util"
+import { GraphSolver } from "../../../../src/graph/solver"
+import { ActionState } from "../../../../src/actions/base"
 
 const projectRoot = join(dataDir, "test-project-empty")
 
@@ -44,6 +46,7 @@ export class TestTask extends BaseTask {
       log: garden.log,
       version: (options && options.versionString) || "12345-6789",
       force,
+      fromWatch: false,
     })
 
     if (!options) {
@@ -55,6 +58,10 @@ export class TestTask extends BaseTask {
     this.uid = options.uid || ""
     this.throwError = !!options.throwError
     this.dependencies = options.dependencies || []
+  }
+
+  resolveStatusDependencies() {
+    return []
   }
 
   resolveProcessDependencies() {
@@ -77,8 +84,12 @@ export class TestTask extends BaseTask {
     return this.getId()
   }
 
-  async process(dependencyResults: GraphResults) {
-    const result = { result: "result-" + this.getId(), dependencyResults }
+  async getStatus() {
+    return null
+  }
+
+  async process({ dependencyResults }) {
+    const result = { state: <ActionState>"ready", result: "result-" + this.getId(), dependencyResults, outputs: {} }
 
     if (this.callback) {
       await this.callback(this.getId(), result.result)
@@ -100,10 +111,10 @@ describe("GraphSolver", () => {
   it("should successfully process a single task without dependencies", async () => {
     const now = freezeTime()
     const garden = await getGarden()
-    const graph = new TaskGraph(garden, garden.log)
+    const solver = new GraphSolver(garden)
     const task = new TestTask(garden, "a", false)
 
-    const results = await graph.process([task])
+    const results = await solver.solve({ log: garden.log, tasks: [task] })
     const generatedBatchId = results?.a?.batchId || uuidv4()
 
     const expected: GraphResults = {
@@ -131,10 +142,10 @@ describe("GraphSolver", () => {
     const now = freezeTime()
 
     const garden = await getGarden()
-    const graph = new TaskGraph(garden, garden.log)
+    const solver = new GraphSolver(garden)
     const task = new TestTask(garden, "a", false)
 
-    const result = await graph.process([task])
+    const result = await solver.solve({ log: garden.log, tasks: [task] })
     const generatedBatchId = result?.a?.batchId || uuidv4()
 
     expect(garden.events.eventLog).to.eql([
@@ -167,7 +178,7 @@ describe("GraphSolver", () => {
 
   it("should throw if tasks have circular dependencies", async () => {
     const garden = await getGarden()
-    const graph = new TaskGraph(garden, garden.log)
+    const solver = new GraphSolver(garden)
     const taskA = new TestTask(garden, "a", false)
     const taskB = new TestTask(garden, "b", false, { dependencies: [taskA] })
     const taskC = new TestTask(garden, "c", false, { dependencies: [taskB] })
@@ -175,7 +186,7 @@ describe("GraphSolver", () => {
     const errorMsg = "Circular task dependencies detected:\n\nb <- a <- c <- b\n"
 
     await expectError(
-      () => graph.process([taskB]),
+      () => solver.solve({ log: garden.log, tasks: [taskB] }),
       (err) => expect(err.message).to.eql(errorMsg)
     )
   })
@@ -184,15 +195,15 @@ describe("GraphSolver", () => {
     const now = freezeTime()
 
     const garden = await getGarden()
-    const graph = new TaskGraph(garden, garden.log)
+    const solver = new GraphSolver(garden)
     const task = new TestTask(garden, "a", false)
-    await graph.process([task])
+    await solver.solve({ log: garden.log, tasks: [task] })
 
     garden.events.eventLog = []
 
     // repeatedTask has the same key and version as task, so its result is already cached
     const repeatedTask = new TestTask(garden, "a", false)
-    const results = await graph.process([repeatedTask])
+    const results = await solver.solve({ log: garden.log, tasks: [repeatedTask] })
 
     expect(garden.events.eventLog).to.eql([
       { name: "taskGraphProcessing", payload: { startedAt: now } },
@@ -208,10 +219,10 @@ describe("GraphSolver", () => {
     const now = freezeTime()
 
     const garden = await getGarden()
-    const graph = new TaskGraph(garden, garden.log)
+    const solver = new GraphSolver(garden)
     const task = new TestTask(garden, "a", false, { throwError: true })
 
-    const result = await graph.process([task])
+    const result = await solver.solve({ log: garden.log, tasks: [task] })
     const generatedBatchId = result?.a?.batchId || uuidv4()
 
     expect(garden.events.eventLog).to.eql([
@@ -246,10 +257,10 @@ describe("GraphSolver", () => {
     freezeTime()
 
     const garden = await getGarden()
-    const graph = new TaskGraph(garden, garden.log)
+    const solver = new GraphSolver(garden)
     const task = new TestTask(garden, "a", false, { throwError: true })
 
-    await graph.process([task])
+    await solver.solve({ log: garden.log, tasks: [task] })
     const taskError = garden.events.eventLog.find((obj) => obj.name === "taskError")
 
     expect(taskError && taskError.payload["error"]).to.exist
@@ -257,23 +268,23 @@ describe("GraphSolver", () => {
 
   it("should throw on task error if throwOnError is set", async () => {
     const garden = await getGarden()
-    const graph = new TaskGraph(garden, garden.log)
+    const solver = new GraphSolver(garden)
     const task = new TestTask(garden, "a", false, { throwError: true })
 
     await expectError(
-      () => graph.process([task], { throwOnError: true }),
+      () => solver.solve({ log: garden.log, tasks: [task], throwOnError: true }),
       (err) => expect(err.message).to.include("action(s) failed")
     )
   })
 
   it("should include any task errors in task results", async () => {
     const garden = await getGarden()
-    const graph = new TaskGraph(garden, garden.log)
+    const solver = new GraphSolver(garden)
     const taskA = new TestTask(garden, "a", false, { throwError: true })
     const taskB = new TestTask(garden, "b", false, { throwError: true })
     const taskC = new TestTask(garden, "c", false)
 
-    const results = await graph.process([taskA, taskB, taskC])
+    const results = await solver.solve({ log: garden.log, tasks: [taskA, taskB, taskC] })
 
     expect(results.a!.error).to.exist
     expect(results.b!.error).to.exist
@@ -283,8 +294,8 @@ describe("GraphSolver", () => {
   context("if a successful result has been cached", () => {
     it("should not process a matching task with force = false", async () => {
       const garden = await getGarden()
-      const graph = new TaskGraph(garden, garden.log)
-      const resultCache = graph["resultCache"]
+      const solver = new GraphSolver(garden)
+      const resultCache = solver["resultCache"]
 
       const resultOrder: string[] = []
       const callback = async (key: string, _result: any) => {
@@ -293,18 +304,18 @@ describe("GraphSolver", () => {
       const opts = { callback }
 
       const task = new TestTask(garden, "a", false, { ...opts, uid: "a1", versionString: "1" })
-      await graph.process([task])
+      await solver.solve({ log: garden.log, tasks: [task] })
       expect(resultCache.get("a", "1")).to.exist
 
       const repeatedTask = new TestTask(garden, "a", false, { ...opts, uid: "a2", versionString: "1" })
-      await graph.process([repeatedTask])
+      await solver.solve({ log: garden.log, tasks: [repeatedTask] })
 
       expect(resultOrder).to.eql(["a.a1"])
     })
 
     it("should process a matching task with force = true", async () => {
       const garden = await getGarden()
-      const graph = new TaskGraph(garden, garden.log)
+      const solver = new GraphSolver(garden)
 
       const resultOrder: string[] = []
       const callback = async (key: string, _result: any) => {
@@ -313,10 +324,10 @@ describe("GraphSolver", () => {
       const opts = { callback }
 
       const task = new TestTask(garden, "a", true, { ...opts, uid: "a1", versionString: "1" })
-      await graph.process([task])
+      await solver.solve({ log: garden.log, tasks: [task] })
 
       const repeatedTask = new TestTask(garden, "a", true, { ...opts, uid: "a2", versionString: "1" })
-      await graph.process([repeatedTask])
+      await solver.solve({ log: garden.log, tasks: [repeatedTask] })
 
       expect(resultOrder).to.eql(["a.a1", "a.a2"])
     })
@@ -325,8 +336,8 @@ describe("GraphSolver", () => {
   context("if a failing result has been cached", () => {
     it("should not process a matching task with force = false", async () => {
       const garden = await getGarden()
-      const graph = new TaskGraph(garden, garden.log)
-      const resultCache = graph["resultCache"]
+      const solver = new GraphSolver(garden)
+      const resultCache = solver["resultCache"]
 
       const resultOrder: string[] = []
       const callback = async (key: string, _result: any) => {
@@ -336,21 +347,21 @@ describe("GraphSolver", () => {
 
       const task = new TestTask(garden, "a", false, { ...opts, uid: "a1", versionString: "1", throwError: true })
       try {
-        await graph.process([task])
+        await solver.solve({ log: garden.log, tasks: [task] })
       } catch (error) {}
 
       const cacheEntry = resultCache.get("a", "1")
       expect(cacheEntry, "expected cache entry to exist").to.exist
 
       const repeatedTask = new TestTask(garden, "a", false, { ...opts, uid: "a2", versionString: "1" })
-      await graph.process([repeatedTask])
+      await solver.solve({ log: garden.log, tasks: [repeatedTask] })
 
       expect(resultOrder).to.eql(["a.a1"])
     })
 
     it("should process a matching task with force = true", async () => {
       const garden = await getGarden()
-      const graph = new TaskGraph(garden, garden.log)
+      const solver = new GraphSolver(garden)
 
       const resultOrder: string[] = []
       const callback = async (key: string, _result: any) => {
@@ -360,11 +371,11 @@ describe("GraphSolver", () => {
 
       const task = new TestTask(garden, "a", false, { ...opts, uid: "a1", versionString: "1", throwError: true })
       try {
-        await graph.process([task])
+        await solver.solve({ log: garden.log, tasks: [task] })
       } catch (error) {}
 
       const repeatedTask = new TestTask(garden, "a", true, { ...opts, uid: "a2", versionString: "1" })
-      await graph.process([repeatedTask])
+      await solver.solve({ log: garden.log, tasks: [repeatedTask] })
 
       expect(resultOrder).to.eql(["a.a1", "a.a2"])
     })
@@ -373,7 +384,7 @@ describe("GraphSolver", () => {
   it("should process multiple tasks in dependency order", async () => {
     const now = freezeTime()
     const garden = await getGarden()
-    const graph = new TaskGraph(garden, garden.log)
+    const solver = new GraphSolver(garden)
 
     const callbackResults = {}
     const resultOrder: string[] = []
@@ -391,7 +402,10 @@ describe("GraphSolver", () => {
     const taskD = new TestTask(garden, "d", false, { ...opts, dependencies: [taskB, taskC], uid: "d1" })
 
     // we should be able to add tasks multiple times and in any order
-    const results = await graph.process([taskA, taskB, taskC, taskC, taskD, taskA, taskD, taskB, taskD, taskA])
+    const results = await solver.solve({
+      log: garden.log,
+      tasks: [taskA, taskB, taskC, taskC, taskD, taskA, taskD, taskB, taskD, taskA],
+    })
     const generatedBatchId = results?.a?.batchId || uuidv4()
 
     // repeat
@@ -417,7 +431,7 @@ describe("GraphSolver", () => {
       uid: "b2f",
     })
 
-    await graph.process([repeatTaskBforced, repeatTaskAforced, repeatTaskC])
+    await solver.solve({ log: garden.log, tasks: [repeatTaskBforced, repeatTaskAforced, repeatTaskC] })
 
     const resultA: GraphResult = {
       type: "test",
@@ -519,7 +533,7 @@ describe("GraphSolver", () => {
 
   it("should add at most one pending task for a given key", async () => {
     const garden = await getGarden()
-    const graph = new TaskGraph(garden, garden.log)
+    const solver = new GraphSolver(garden)
 
     const processedVersions: string[] = []
 
@@ -544,13 +558,13 @@ describe("GraphSolver", () => {
     const t2 = new TestTask(garden, "a", false, { uid: "2", versionString: "2", callback: repeatedCallback("2") })
     const t3 = new TestTask(garden, "a", false, { uid: "3", versionString: "3", callback: repeatedCallback("3") })
 
-    const firstProcess = graph.process([t1])
+    const firstProcess = solver.solve({ log: garden.log, tasks: [t1] })
 
     // We make sure t1 is being processed before adding t2 and t3. Since t3 is added after t2,
     // only t1 and t3 should be processed (since t2 and t3 have the same key, "a").
     await t1StartedPromise
-    const secondProcess = graph.process([t2])
-    const thirdProcess = graph.process([t3])
+    const secondProcess = solver.solve({ log: garden.log, tasks: [t2] })
+    const thirdProcess = solver.solve({ log: garden.log, tasks: [t3] })
     await sleep(200) // TODO: Get rid of this?
     t1DoneResolver()
     await Bluebird.all([firstProcess, secondProcess, thirdProcess])
@@ -559,7 +573,7 @@ describe("GraphSolver", () => {
 
   it("should process requests with unrelated tasks concurrently", async () => {
     const garden = await getGarden()
-    const graph = new TaskGraph(garden, garden.log)
+    const solver = new GraphSolver(garden)
 
     const resultOrder: string[] = []
 
@@ -587,9 +601,9 @@ describe("GraphSolver", () => {
     const taskB = new TestTask(garden, "b", false, { ...opts, dependencies: [taskBDep] })
     const taskC = new TestTask(garden, "c", false, { ...opts })
 
-    const firstProcess = graph.process([taskA, taskADep1, taskADep2])
-    const secondProcess = graph.process([taskB, taskBDep])
-    const thirdProcess = graph.process([taskC])
+    const firstProcess = solver.solve({ log: garden.log, tasks: [taskA, taskADep1, taskADep2] })
+    const secondProcess = solver.solve({ log: garden.log, tasks: [taskB, taskBDep] })
+    const thirdProcess = solver.solve({ log: garden.log, tasks: [taskC] })
     aDoneResolver()
     await Bluebird.all([firstProcess, secondProcess, thirdProcess])
     expect(resultOrder).to.eql(["c", "a-dep1", "a-dep2", "b-dep", "a", "b"])
@@ -597,7 +611,7 @@ describe("GraphSolver", () => {
 
   it("should process two requests with related tasks sequentially", async () => {
     const garden = await getGarden()
-    const graph = new TaskGraph(garden, garden.log)
+    const solver = new GraphSolver(garden)
 
     const resultOrder: string[] = []
 
@@ -622,8 +636,8 @@ describe("GraphSolver", () => {
 
     const repeatTaskBDep = new TestTask(garden, "b-dep", true, { ...opts })
 
-    const firstProcess = graph.process([taskA, taskADep])
-    const secondProcess = graph.process([repeatTaskBDep])
+    const firstProcess = solver.solve({ log: garden.log, tasks: [taskA, taskADep] })
+    const secondProcess = solver.solve({ log: garden.log, tasks: [repeatTaskBDep] })
     aDoneResolver()
     await Bluebird.all([firstProcess, secondProcess])
     expect(resultOrder).to.eql(["b-dep", "a-dep1", "a"])
@@ -633,16 +647,16 @@ describe("GraphSolver", () => {
     const garden = await getGarden()
     const tasks = range(0, 10).map((n) => new TestTask(garden, "task-" + n, false))
     const limit = 3
-    const graph = new TaskGraph(garden, garden.log, limit)
+    const solver = new GraphSolver(garden, garden.log, limit)
     let gotEvents = false
 
-    graph.on("process", (event) => {
+    solver.on("process", (event) => {
       gotEvents = true
       // Ensure we never go over the hard limit
       expect(event.keys.length + event.inProgress.length).to.lte(limit)
     })
 
-    await graph.process(tasks)
+    await solver.solve({ log: garden.log, tasks: tasks })
 
     expect(gotEvents).to.be.true
   })
@@ -666,11 +680,11 @@ describe("GraphSolver", () => {
       ...range(0, 10).map((n) => new TaskTypeB(garden, "b-" + n, false)),
     ]
 
-    const graph = new TaskGraph(garden, garden.log)
+    const solver = new GraphSolver(garden)
 
     let gotEvents = false
 
-    graph.on("process", (event) => {
+    solver.on("process", (event) => {
       gotEvents = true
       // Ensure not more than two of each task type run concurrently
       for (const type of ["a", "b"]) {
@@ -679,7 +693,7 @@ describe("GraphSolver", () => {
       }
     })
 
-    await graph.process(tasks)
+    await solver.solve({ log: garden.log, tasks: tasks })
 
     expect(gotEvents).to.be.true
   })
@@ -687,7 +701,7 @@ describe("GraphSolver", () => {
   it("should recursively cancel a task's dependants when it throws an error", async () => {
     const now = freezeTime()
     const garden = await getGarden()
-    const graph = new TaskGraph(garden, garden.log)
+    const solver = new GraphSolver(garden)
 
     const resultOrder: string[] = []
 
@@ -702,7 +716,7 @@ describe("GraphSolver", () => {
     const taskC = new TestTask(garden, "c", true, { ...opts, dependencies: [taskB] })
     const taskD = new TestTask(garden, "d", true, { ...opts, dependencies: [taskB, taskC] })
 
-    const results = await graph.process([taskA, taskB, taskC, taskD])
+    const results = await solver.solve({ log: garden.log, tasks: [taskA, taskB, taskC, taskD] })
 
     const generatedBatchId = results?.a?.batchId || uuidv4()
 
@@ -771,11 +785,11 @@ describe("GraphSolver", () => {
 
   context("if a cached, failing result exists for a task", () => {
     let garden: TestGarden
-    let graph: TaskGraph
+    let solver: GraphSolver
 
     beforeEach(async () => {
       garden = await getGarden()
-      graph = new TaskGraph(garden, garden.log)
+      solver = new GraphSolver(garden)
 
       const opts = { versionString: "1" }
 
@@ -784,7 +798,7 @@ describe("GraphSolver", () => {
       const taskC = new TestTask(garden, "c", false, { ...opts, uid: "c1", dependencies: [taskB] })
       const taskD = new TestTask(garden, "d", false, { ...opts, uid: "d1", dependencies: [taskB, taskC] })
 
-      await graph.process([taskA, taskB, taskC, taskD])
+      await solver.solve({ log: garden.log, tasks: [taskA, taskB, taskC, taskD] })
 
       garden.events.eventLog = []
     })
@@ -802,7 +816,7 @@ describe("GraphSolver", () => {
       const repTaskC = new TestTask(garden, "c", false, { ...repOpts, uid: "c2", dependencies: [repTaskB] })
       const repTaskD = new TestTask(garden, "d", false, { ...repOpts, uid: "d2", dependencies: [repTaskB, repTaskC] })
 
-      await graph.process([repTaskA, repTaskB, repTaskC, repTaskD])
+      await solver.solve({ log: garden.log, tasks: [repTaskA, repTaskB, repTaskC, repTaskD] })
 
       const filteredEventLog = garden.events.eventLog.map((e) => {
         return { name: e.name, payload: deepFilter(e.payload, (_, key) => key === "key") }
@@ -832,7 +846,7 @@ describe("GraphSolver", () => {
       const repTaskC = new TestTask(garden, "c", true, { ...repOpts, uid: "c2", dependencies: [repTaskB] })
       const repTaskD = new TestTask(garden, "d", true, { ...repOpts, uid: "d2", dependencies: [repTaskB, repTaskC] })
 
-      await graph.process([repTaskA, repTaskB, repTaskC, repTaskD])
+      await solver.solve({ log: garden.log, tasks: [repTaskA, repTaskB, repTaskC, repTaskD] })
 
       const filteredEventLog = garden.events.eventLog.map((e) => {
         return { name: e.name, payload: deepFilter(e.payload, (_, key) => key === "key") }
@@ -864,7 +878,7 @@ describe("GraphSolver", () => {
       const repTaskC = new TestTask(garden, "c", false, { ...repOpts, uid: "c2", dependencies: [repTaskB] })
       const repTaskD = new TestTask(garden, "d", false, { ...repOpts, uid: "d2", dependencies: [repTaskB, repTaskC] })
 
-      await graph.process([repTaskA, repTaskB, repTaskC, repTaskD])
+      await solver.solve({ log: garden.log, tasks: [repTaskA, repTaskB, repTaskC, repTaskD] })
 
       const filteredEventLog = garden.events.eventLog.map((e) => {
         return { name: e.name, payload: deepFilter(e.payload, (_, key) => key === "key") }
@@ -885,85 +899,6 @@ describe("GraphSolver", () => {
         { name: "taskProcessing", payload: { key: "d" } },
         { name: "taskComplete", payload: { key: "d" } },
         { name: "taskGraphComplete", payload: {} },
-      ])
-    })
-  })
-
-  describe("partition", () => {
-    it("should partition a task list into unrelated batches", async () => {
-      const garden = await getGarden()
-      const graph = new TaskGraph(garden, garden.log)
-
-      const taskADep1 = new TestTask(garden, "a-dep1", false)
-      const taskADep2 = new TestTask(garden, "a-dep2", false)
-      const taskA = new TestTask(garden, "a", false, { dependencies: [taskADep1, taskADep2] })
-      const taskBDep = new TestTask(garden, "b-dep", false)
-      const taskB = new TestTask(garden, "b", false, { dependencies: [taskBDep] })
-      const taskC = new TestTask(garden, "c", false)
-
-      const tasks = [taskA, taskB, taskC, taskADep1, taskBDep, taskADep2]
-      const taskNodes = await graph["nodesWithDependencies"]({
-        tasks,
-        nodeMap: {},
-        stack: [],
-      })
-      const batches = graph.partition(taskNodes)
-      const batchKeys = batches.map((b) => b.nodes.map((n) => n.key))
-
-      expect(batchKeys).to.eql([["a", "a-dep1", "a-dep2"], ["b", "b-dep"], ["c"]])
-    })
-
-    it("should correctly deduplicate and partition tasks by key and version", async () => {
-      const garden = await getGarden()
-      const graph = new TaskGraph(garden, garden.log)
-
-      // Version 1 of task A, and its dependencies
-      const taskAv1Dep1 = new TestTask(garden, "a-v1-dep1", false)
-      const taskAv1Dep2 = new TestTask(garden, "a-v1-dep2", false)
-      const taskAv1 = new TestTask(garden, "a-v1", false, { dependencies: [taskAv1Dep1, taskAv1Dep2] })
-
-      // Version 2 of task A, and its dependencies
-      const taskAv2Dep1 = new TestTask(garden, "a-v2-dep1", false)
-      const taskAv2Dep2 = new TestTask(garden, "a-v2-dep2", false)
-      const taskAv2 = new TestTask(garden, "a-v2", false, { dependencies: [taskAv2Dep1, taskAv2Dep2] })
-
-      // A duplicate of task A at version 1, and its dependencies
-      const dupTaskAv1Dep1 = new TestTask(garden, "a-v1-dep1", false)
-      const dupTaskAv1Dep2 = new TestTask(garden, "a-v1-dep2", false)
-      const dupTaskAv1 = new TestTask(garden, "a-v1", false, { dependencies: [dupTaskAv1Dep1, dupTaskAv1Dep2] })
-
-      const taskBDep = new TestTask(garden, "b-dep", false)
-      const taskB = new TestTask(garden, "b", false, { dependencies: [taskBDep] })
-      const taskC = new TestTask(garden, "c", false)
-
-      const tasks = [
-        taskAv1,
-        taskAv1Dep1,
-        taskAv1Dep2,
-        taskAv2,
-        taskAv2Dep1,
-        taskAv2Dep2,
-        dupTaskAv1,
-        dupTaskAv1Dep1,
-        dupTaskAv1Dep2,
-        taskB,
-        taskBDep,
-        taskC,
-      ]
-
-      const taskNodes = await graph["nodesWithDependencies"]({
-        tasks,
-        nodeMap: {},
-        stack: [],
-      })
-      const batches = graph.partition(taskNodes)
-      const batchKeys = batches.map((b) => b.nodes.map((n) => n.key))
-
-      expect(batchKeys).to.eql([
-        ["a-v1", "a-v1-dep1", "a-v1-dep2"],
-        ["a-v2", "a-v2-dep1", "a-v2-dep2"],
-        ["b", "b-dep"],
-        ["c"],
       ])
     })
   })

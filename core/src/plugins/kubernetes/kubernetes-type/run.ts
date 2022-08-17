@@ -86,7 +86,9 @@ export const kubernetesRunDefinition = (): RunActionDefinition<KubernetesRunActi
     TODO-G2
   `,
   schema: kubernetesRunSchema(),
-  outputsSchema: kubernetesRunOutputsSchema(),
+  outputs: {
+    schema: kubernetesRunOutputsSchema(),
+  },
   handlers: {
     run: async (params) => {
       const { ctx, log, action } = params

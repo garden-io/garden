@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Task } from "../tasks/base"
+import { BaseTask, Task } from "../tasks/base"
 import { LogEntry, LogEntryMetadata, TaskLogStatus } from "../logger/log-entry"
 import { GardenBaseError, toGardenError } from "../exceptions"
 import { uuidv4 } from "../util/util"
@@ -38,7 +38,7 @@ export interface SolveOpts {
   throwOnError?: boolean
 }
 
-export interface SolveParams<T extends Task = Task> extends SolveOpts {
+export interface SolveParams<T extends BaseTask = BaseTask> extends SolveOpts {
   log: LogEntry
   tasks: T[]
 }
