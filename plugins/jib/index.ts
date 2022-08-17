@@ -11,7 +11,7 @@ import { createGardenPlugin } from "@garden-io/sdk"
 import { dedent } from "@garden-io/sdk/util/string"
 
 import { openJdkSpecs } from "./openjdk"
-import { mavenSpec, mvn, resolveMavenPhases } from "./maven"
+import { mavenSpec, mvn } from "./maven"
 import { gradle, gradleSpec } from "./gradle"
 
 // TODO: gradually get rid of these core dependencies, move some to SDK etc.
@@ -201,7 +201,7 @@ export const gardenPlugin = () =>
                 ctx,
                 log,
                 cwd: module.path,
-                args: [...resolveMavenPhases(mavenPhases), ...args],
+                args: [...mavenPhases, ...args],
                 openJdkPath,
                 outputStream,
               })

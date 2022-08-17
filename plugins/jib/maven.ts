@@ -104,7 +104,3 @@ export async function mvn({
     return res
   })
 }
-
-export function resolveMavenPhases(mavenPhases?: string[]): string[] {
-  return !mavenPhases || mavenPhases.length === 0 ? ["compile"] : mavenPhases
-}
