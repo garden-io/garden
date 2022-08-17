@@ -139,7 +139,7 @@ describe("GetServiceStatusTask", () => {
       })
 
       const key = statusTask.getKey()
-      const { [key]: result } = await garden.processTasks([statusTask], { throwOnError: true })
+      const { [key]: result } = await garden.processTasks({ tasks: [statusTask], throwOnError: true })
 
       expect(result!.result.outputs).to.eql({ log: "test output" })
     })
@@ -220,7 +220,7 @@ describe("GetServiceStatusTask", () => {
       })
 
       const key = statusTask.getKey()
-      const { [key]: result } = await garden.processTasks([statusTask], { throwOnError: true })
+      const { [key]: result } = await garden.processTasks({ tasks: [statusTask], throwOnError: true })
 
       expect(result!.result.state).to.equal("unknown")
     })

@@ -64,7 +64,7 @@ describe("System services", () => {
         localModeDeployNames: [],
       })
       const key = testTask.getBaseKey()
-      const result = await systemGarden.processTasks([testTask])
+      const result = await systemGarden.processTasks({ tasks: [testTask], throwOnError: false })
       expect(result[key]).to.exist
       expect(result[key]?.error).to.not.exist
     })

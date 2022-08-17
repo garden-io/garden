@@ -345,7 +345,7 @@ describe("kubernetes-module handlers", () => {
 
         localModeDeployNames: [],
       })
-      const results = await garden.processTasks([deployTask], { throwOnError: true })
+      const results = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
       const status = getServiceStatuses(results)["namespace-resource"]
       ns1Resource = await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log)
 
@@ -384,7 +384,7 @@ describe("kubernetes-module handlers", () => {
 
         localModeDeployNames: [],
       })
-      await garden.processTasks([deployTask2], { throwOnError: true })
+      await garden.processTasks({ tasks: [deployTask2], throwOnError: true })
       ns2Resource = await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log)
 
       expect(ns2Manifest, "ns2Manifest").to.exist
@@ -413,7 +413,7 @@ describe("kubernetes-module handlers", () => {
       })
 
       // This should only delete kubernetes-module-ns-2.
-      await garden.processTasks([deleteServiceTask], { throwOnError: true })
+      await garden.processTasks({ tasks: [deleteServiceTask], throwOnError: true })
 
       expect(await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log), "ns1resource").to.exist
       expect(await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log), "ns2resource").to.not.exist

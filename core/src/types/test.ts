@@ -17,7 +17,7 @@ import { serializeConfig } from "../config/module"
 import { RunResult, runResultSchema } from "../plugin/base"
 import { deline } from "../util/string"
 import { actionOutputsSchema } from "../plugin/handlers/base/base"
-import { ModuleGraph } from "../graph/modules"
+import { ConfigGraph } from "../graph/config-graph"
 
 export interface GardenTest<M extends GardenModule = GardenModule> {
   name: string
@@ -44,9 +44,9 @@ export const testSchema = () =>
 export function testFromConfig<M extends GardenModule = GardenModule>(
   module: M,
   config: TestConfig,
-  graph: ModuleGraph
+  graph: ConfigGraph
 ): GardenTest<M> {
-  const deps = graph.getDependencies({
+  const deps = graph.moduleGraph.getDependencies({
     kind: "test",
     name: module.name + "." + config.name,
     recursive: true,
@@ -71,7 +71,7 @@ export function testFromConfig<M extends GardenModule = GardenModule>(
 export function testFromModule<M extends GardenModule = GardenModule>(
   module: M,
   name: string,
-  graph: ModuleGraph
+  graph: ConfigGraph
 ): GardenTest<M> {
   const config = findByName(module.testConfigs, name)
 

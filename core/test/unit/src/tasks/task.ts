@@ -14,11 +14,10 @@ import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import execa from "execa"
 import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { joi } from "../../../../src/config/common"
-import { RunTaskParams, RunTaskResult } from "../../../../src/types/plugin/task/runTask"
 import { RunTask } from "../../../../src/tasks/run"
 import { GardenTask } from "../../../../src/types/task"
-import { GetTaskResultParams } from "../../../../src/types/plugin/task/getTaskResult"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
+import { GetRunResult } from "../../../../src/plugin/handlers/run/get-result"
 
 describe("TaskTask", () => {
   let tmpDir: tmp.DirectoryResult
@@ -47,7 +46,7 @@ describe("TaskTask", () => {
   })
 
   describe("process", () => {
-    let cache: { [key: string]: RunTaskResult } = {}
+    let cache: { [key: string]: GetRunResult } = {}
 
     beforeEach(() => {
       cache = {}
@@ -66,7 +65,7 @@ describe("TaskTask", () => {
           serviceOutputsSchema: joi.object().keys({ log: joi.string() }),
           handlers: {
             build: async () => ({}),
-            runTask: async ({ task }: RunTaskParams) => {
+            runTask: async ({ task }) => {
               const log = new Date().getTime().toString()
 
               const result = {
@@ -85,7 +84,7 @@ describe("TaskTask", () => {
 
               return result
             },
-            getTaskResult: async ({ task }: GetTaskResultParams) => {
+            getTaskResult: async ({ task }) => {
               return cache[getKey(task)] || null
             },
           },
@@ -125,21 +124,21 @@ describe("TaskTask", () => {
       let taskTask = new RunTask({
         garden,
         graph,
-        task: graph.getTask("test"),
+        action: graph.getRun("test"),
         force: false,
         forceBuild: false,
         log: garden.log,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
+        fromWatch: false,
       })
 
-      let result = await garden.processTasks([taskTask], { throwOnError: true })
+      let result = await garden.processTasks({ tasks: [taskTask], throwOnError: true })
       const logA = result[taskTask.getBaseKey()]!.result.outputs.log
 
       garden["taskGraph"].clearCache()
 
-      result = await garden.processTasks([taskTask], { throwOnError: true })
+      result = await garden.processTasks({ tasks: [taskTask], throwOnError: true })
       const logB = result[taskTask.getBaseKey()]!.result.outputs.log
 
       // Expect the same log from the second run
@@ -178,21 +177,19 @@ describe("TaskTask", () => {
       let taskTask = new RunTask({
         garden,
         graph,
-        task: graph.getTask("test"),
+        action: graph.getRun("test"),
         force: false,
         forceBuild: false,
         log: garden.log,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
+        fromWatch: false,
       })
 
-      let result = await garden.processTasks([taskTask], { throwOnError: true })
+      let result = await garden.processTasks({ tasks: [taskTask], throwOnError: true })
       const logA = result[taskTask.getBaseKey()]!.result.outputs.log
 
-      garden["taskGraph"].clearCache()
-
-      result = await garden.processTasks([taskTask], { throwOnError: true })
+      result = await garden.processTasks({ tasks: [taskTask], throwOnError: true })
       const logB = result[taskTask.getBaseKey()]!.result.outputs.log
 
       // Expect a different log from the second run
