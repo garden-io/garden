@@ -49,7 +49,6 @@ a registry auth secret.
 
 interface KubernetesProviderOutputs extends PrimitiveMap {
   "app-namespace": string
-  "metadata-namespace": string
   "default-hostname": string | null
 }
 
