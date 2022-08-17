@@ -641,7 +641,9 @@ export function truncateGardenNamespaceIfNeeded(
     return { namespace, wasTruncated: false }
   }
 
-  const sliceLen = maxK8sNsLen - 1 - lenProjName - 6 // last five chars will be a hash and a '-'
+  // reserve last 6 characters for 5-char hash and a dash-symbol ('-'), subtract one more to account for default k8s ns
+  // templating <project name>-<environment namespace> not exceeding limits
+  const sliceLen = maxK8sNsLen - 1 - lenProjName - 6
   const nonHashedPart = namespace.slice(0, sliceLen)
   const fiveCharHash = hasha(namespace).slice(-5)
 

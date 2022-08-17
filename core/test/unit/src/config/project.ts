@@ -1675,7 +1675,10 @@ describe("truncateGardenNamespaceIfNeeded", () => {
   it("should truncate if length exceeds limit from project name", () => {
     const fiveCharProjName = "projj"
     const result = truncateGardenNamespaceIfNeeded(getStringOfLength(59), fiveCharProjName)
-    expect(result.namespace.length).to.equal(57)
+    expect(result.namespace.length + fiveCharProjName.length).to.equal(
+      62,
+      "ns name + project name should always equal 62 (one character is reserved for a dash)"
+    )
     expect(result.wasTruncated).to.be.true
   })
 
