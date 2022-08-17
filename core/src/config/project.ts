@@ -41,6 +41,7 @@ import { profileAsync } from "../util/profiling"
 import { loadVarfile } from "./base"
 import chalk = require("chalk")
 import hasha = require("hasha")
+import { LogEntry } from "../logger/log-entry"
 
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -506,27 +507,30 @@ export function resolveProjectConfig({
  * @param config a resolved project config (as returned by `resolveProjectConfig()`)
  * @param envString the name of the environment to use
  */
-export const pickEnvironment = profileAsync(async function _pickEnvironment({
-  projectConfig,
-  envString,
-  artifactsPath,
-  vcsInfo,
-  username,
-  loggedIn,
-  enterpriseDomain,
-  secrets,
-  commandInfo,
-}: {
-  projectConfig: ProjectConfig
-  envString: string
-  artifactsPath: string
-  vcsInfo: VcsInfo
-  username: string
-  loggedIn: boolean
-  enterpriseDomain: string | undefined
-  secrets: PrimitiveMap
-  commandInfo: CommandInfo
-}) {
+export const pickEnvironment = profileAsync(async function _pickEnvironment(
+  log: LogEntry,
+  {
+    projectConfig,
+    envString,
+    artifactsPath,
+    vcsInfo,
+    username,
+    loggedIn,
+    enterpriseDomain,
+    secrets,
+    commandInfo,
+  }: {
+    projectConfig: ProjectConfig
+    envString: string
+    artifactsPath: string
+    vcsInfo: VcsInfo
+    username: string
+    loggedIn: boolean
+    enterpriseDomain: string | undefined
+    secrets: PrimitiveMap
+    commandInfo: CommandInfo
+  }
+) {
   const { environments, name: projectName, path: projectRoot } = projectConfig
 
   let { environment, namespace: cliSpecifiedNamespace } = parseEnvironment(envString)
@@ -576,10 +580,14 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     projectRoot: projectConfig.path,
   })
 
-  const namespace = truncateGardenNamespaceIfNeeded(
+  const { namespace, wasTruncated: namespaceWasTruncated } = truncateGardenNamespaceIfNeeded(
     getNamespace(environmentConfig, cliSpecifiedNamespace),
     projectConfig.name
   )
+
+  if (namespaceWasTruncated) {
+    log.warn("namespace name was truncated due to exceeding length limits")
+  }
 
   const fixedProviders = fixedPlugins.map((name) => ({ name }))
   const allProviders = [
@@ -619,7 +627,10 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
 /**
  * truncates a namespace string if needed and adds a hash
  */
-export function truncateGardenNamespaceIfNeeded(namespace: string, projectName: string): string {
+export function truncateGardenNamespaceIfNeeded(
+  namespace: string,
+  projectName: string
+): { namespace: string; wasTruncated: boolean } {
   const lenNs = namespace.length
   const lenProjName = projectName.length
   const maxK8sNsLen = 63
@@ -627,14 +638,14 @@ export function truncateGardenNamespaceIfNeeded(namespace: string, projectName: 
   // don't truncate if <namespace>-<projectName> is under max
   // as that is often used for remote k8s namespaces
   if (lenNs + lenProjName + 1 <= maxK8sNsLen) {
-    return namespace
+    return { namespace, wasTruncated: false }
   }
 
   const sliceLen = maxK8sNsLen - 1 - lenProjName - 6 // last five chars will be a hash and a '-'
   const nonHashedPart = namespace.slice(0, sliceLen)
   const fiveCharHas = hasha(namespace).slice(-5)
 
-  return nonHashedPart + "-" + fiveCharHas
+  return { namespace: nonHashedPart + "-" + fiveCharHas, wasTruncated: true }
 }
 
 /**

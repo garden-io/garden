@@ -1304,7 +1304,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     commandInfo,
   })
 
-  let { namespace, providers, variables, production } = await pickEnvironment({
+  let { namespace, providers, variables, production } = await pickEnvironment(log, {
     projectConfig: config,
     envString: environmentStr,
     artifactsPath,

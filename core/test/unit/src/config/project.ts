@@ -28,6 +28,7 @@ import { dedent } from "../../../../src/util/string"
 import { resolve, join } from "path"
 import stripAnsi from "strip-ansi"
 import { keyBy } from "lodash"
+import { getLogger } from "../../../../src/logger/logger"
 
 const enterpriseDomain = "https://garden.mydomain.com"
 const commandInfo = { name: "test", args: {}, opts: {} }
@@ -588,6 +589,7 @@ describe("pickEnvironment", () => {
   let tmpPath: string
   let artifactsPath: string
   const username = "test"
+  const log = getLogger().placeholder()
 
   beforeEach(async () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
@@ -614,7 +616,7 @@ describe("pickEnvironment", () => {
 
     await expectError(
       () =>
-        pickEnvironment({
+        pickEnvironment(log, {
           projectConfig: config,
           envString: "foo",
           artifactsPath,
@@ -643,7 +645,7 @@ describe("pickEnvironment", () => {
     }
 
     expect(
-      await pickEnvironment({
+      await pickEnvironment(log, {
         projectConfig: config,
         envString: "default",
         artifactsPath,
@@ -689,7 +691,7 @@ describe("pickEnvironment", () => {
     }
 
     expect(
-      await pickEnvironment({
+      await pickEnvironment(log, {
         projectConfig: config,
         envString: "default",
         artifactsPath,
@@ -734,7 +736,7 @@ describe("pickEnvironment", () => {
     }
 
     expect(
-      await pickEnvironment({
+      await pickEnvironment(log, {
         projectConfig: config,
         envString: "default",
         artifactsPath,
@@ -794,7 +796,7 @@ describe("pickEnvironment", () => {
       },
     }
 
-    const result = await pickEnvironment({
+    const result = await pickEnvironment(log, {
       projectConfig: config,
       envString: "default",
       artifactsPath,
@@ -850,7 +852,7 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    const result = await pickEnvironment({
+    const result = await pickEnvironment(log, {
       projectConfig: config,
       envString: "default",
       artifactsPath,
@@ -900,7 +902,7 @@ describe("pickEnvironment", () => {
       },
     }
 
-    const result = await pickEnvironment({
+    const result = await pickEnvironment(log, {
       projectConfig: config,
       envString: "default",
       artifactsPath,
@@ -951,7 +953,7 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    const result = await pickEnvironment({
+    const result = await pickEnvironment(log, {
       projectConfig: config,
       envString: "default",
       artifactsPath,
@@ -1002,7 +1004,7 @@ describe("pickEnvironment", () => {
       },
     }
 
-    const result = await pickEnvironment({
+    const result = await pickEnvironment(log, {
       projectConfig: config,
       envString: "default",
       artifactsPath,
@@ -1064,7 +1066,7 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    const result = await pickEnvironment({
+    const result = await pickEnvironment(log, {
       projectConfig: config,
       envString: "default",
       artifactsPath,
@@ -1127,7 +1129,7 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    const result = await pickEnvironment({
+    const result = await pickEnvironment(log, {
       projectConfig: config,
       envString: "default",
       artifactsPath,
@@ -1162,7 +1164,7 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    const result = await pickEnvironment({
+    const result = await pickEnvironment(log, {
       projectConfig: config,
       envString: "default",
       artifactsPath,
@@ -1196,7 +1198,7 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    await pickEnvironment({
+    await pickEnvironment(log, {
       projectConfig: config,
       envString: "default",
       artifactsPath,
@@ -1229,7 +1231,7 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    const result = await pickEnvironment({
+    const result = await pickEnvironment(log, {
       projectConfig: config,
       envString: "default",
       artifactsPath,
@@ -1257,7 +1259,7 @@ describe("pickEnvironment", () => {
       variables: { foo: "value" },
     }
 
-    const result = await pickEnvironment({
+    const result = await pickEnvironment(log, {
       projectConfig: config,
       envString: "default",
       artifactsPath,
@@ -1319,7 +1321,7 @@ describe("pickEnvironment", () => {
       },
     }
 
-    const result = await pickEnvironment({
+    const result = await pickEnvironment(log, {
       projectConfig: config,
       envString: "default",
       artifactsPath,
@@ -1363,7 +1365,7 @@ describe("pickEnvironment", () => {
 
     await expectError(
       () =>
-        pickEnvironment({
+        pickEnvironment(log, {
           projectConfig: config,
           envString: "default",
           artifactsPath,
@@ -1403,7 +1405,7 @@ describe("pickEnvironment", () => {
 
     await expectError(
       () =>
-        pickEnvironment({
+        pickEnvironment(log, {
           projectConfig: config,
           envString: "default",
           artifactsPath,
@@ -1440,7 +1442,7 @@ describe("pickEnvironment", () => {
 
     await expectError(
       () =>
-        pickEnvironment({
+        pickEnvironment(log, {
           projectConfig: config,
           envString: "default",
           artifactsPath,
@@ -1469,7 +1471,7 @@ describe("pickEnvironment", () => {
     }
 
     expect(
-      await pickEnvironment({
+      await pickEnvironment(log, {
         projectConfig: config,
         envString: "foo.default",
         artifactsPath,
@@ -1503,7 +1505,7 @@ describe("pickEnvironment", () => {
     }
 
     expect(
-      await pickEnvironment({
+      await pickEnvironment(log, {
         projectConfig: config,
         envString: "foo.default",
         artifactsPath,
@@ -1537,7 +1539,7 @@ describe("pickEnvironment", () => {
     }
 
     expect(
-      await pickEnvironment({
+      await pickEnvironment(log, {
         projectConfig: config,
         envString: "default",
         artifactsPath,
@@ -1572,7 +1574,7 @@ describe("pickEnvironment", () => {
 
     await expectError(
       () =>
-        pickEnvironment({
+        pickEnvironment(log, {
           projectConfig: config,
           envString: "$.%",
           artifactsPath,
@@ -1605,7 +1607,7 @@ describe("pickEnvironment", () => {
 
     await expectError(
       () =>
-        pickEnvironment({
+        pickEnvironment(log, {
           projectConfig: config,
           envString: "default",
           artifactsPath,
@@ -1665,25 +1667,33 @@ describe("truncateGardenNamespaceIfNeeded", () => {
 
   it("should not truncate if namespace+project name length does not exceed 62", () => {
     const fourCharProjectName = "proj"
-    expect(truncateGardenNamespaceIfNeeded(getStringOfLength(58), fourCharProjectName)).to.equal(getStringOfLength(58))
+    const result = truncateGardenNamespaceIfNeeded(getStringOfLength(58), fourCharProjectName)
+    expect(result.namespace).to.equal(getStringOfLength(58))
+    expect(result.wasTruncated).to.be.false
   })
 
   it("should truncate if length exceeds limit from project name", () => {
     const fiveCharProjName = "projj"
-    const truncatedNs = truncateGardenNamespaceIfNeeded(getStringOfLength(59), fiveCharProjName)
-    expect(truncatedNs.length).to.equal(57)
+    const result = truncateGardenNamespaceIfNeeded(getStringOfLength(59), fiveCharProjName)
+    expect(result.namespace.length).to.equal(57)
+    expect(result.wasTruncated).to.be.true
   })
 
   it("should truncate with a five char hash", () => {
     const fiveCharProjName = "projj"
-    const truncatedNs = truncateGardenNamespaceIfNeeded(getStringOfLength(59), fiveCharProjName)
-    expect(truncatedNs.indexOf("-")).to.equal(truncatedNs.length - 6)
+    const result = truncateGardenNamespaceIfNeeded(getStringOfLength(59), fiveCharProjName)
+    expect(result.namespace.indexOf("-")).to.equal(result.namespace.length - 6)
+    expect(result.wasTruncated).to.be.true
   })
 
   it("should still work with a very long project name", () => {
     const longishNamespace = getStringOfLength(32)
     const veryLongProjectName = getStringOfLength(48) // max allowed project len
-    const truncatedNs = truncateGardenNamespaceIfNeeded(longishNamespace, veryLongProjectName)
+    const { namespace: truncatedNs, wasTruncated } = truncateGardenNamespaceIfNeeded(
+      longishNamespace,
+      veryLongProjectName
+    )
+    expect(wasTruncated).to.be.true
     expect(truncatedNs.indexOf("-")).to.equal(truncatedNs.length - 6)
     expect(truncatedNs.length).to.equal(14)
   })
