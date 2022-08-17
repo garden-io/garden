@@ -42,9 +42,9 @@ import { serviceFromConfig } from "./types/service"
 import { taskFromConfig } from "./types/task"
 import { testFromConfig } from "./types/test"
 import { BuildActionConfig, BuildCopyFrom } from "./actions/build"
-import { ModuleGraph } from "./graph/modules"
 import { GroupConfig } from "./config/group"
 import { BaseActionConfig } from "./actions/base"
+import { ModuleGraph } from "./graph/modules"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 50

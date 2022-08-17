@@ -45,7 +45,7 @@ describe("testKubernetesModule", () => {
     })
 
     const key = testTask.getBaseKey()
-    const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
+    const { [key]: result } = await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
     expect(result).to.exist
     expect(result).to.have.property("output")
@@ -70,7 +70,7 @@ describe("testKubernetesModule", () => {
     })
 
     const key = testTask.getBaseKey()
-    const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
+    const { [key]: result } = await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
     expect(result).to.exist
     expect(result).to.have.property("output")
@@ -100,7 +100,7 @@ describe("testKubernetesModule", () => {
     })
 
     await expectError(
-      async () => await garden.processTasks([testTask], { throwOnError: true }),
+      async () => await garden.processTasks({ tasks: [testTask], throwOnError: true }),
       (err) => expect(err.message).to.match(/bork/)
     )
 
@@ -135,7 +135,7 @@ describe("testKubernetesModule", () => {
 
       await emptyDir(garden.artifactsPath)
 
-      await garden.processTasks([testTask], { throwOnError: true })
+      await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
       expect(await pathExists(join(garden.artifactsPath, "test.txt"))).to.be.true
       expect(await pathExists(join(garden.artifactsPath, "subdir", "test.txt"))).to.be.true
@@ -158,7 +158,7 @@ describe("testKubernetesModule", () => {
 
       await emptyDir(garden.artifactsPath)
 
-      const results = await garden.processTasks([testTask], { throwOnError: false })
+      const results = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(results[testTask.getBaseKey()]!.error).to.exist
 
@@ -183,7 +183,7 @@ describe("testKubernetesModule", () => {
 
       await emptyDir(garden.artifactsPath)
 
-      await garden.processTasks([testTask], { throwOnError: true })
+      await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
       expect(await pathExists(join(garden.artifactsPath, "subdir", "test.txt"))).to.be.true
       expect(await pathExists(join(garden.artifactsPath, "output.txt"))).to.be.true

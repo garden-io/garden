@@ -326,7 +326,7 @@ describe("Terraform module type", () => {
       localModeDeployNames: [],
     })
 
-    return garden.processTasks([deployTask], { throwOnError: true })
+    return garden.processTasks({ tasks: [deployTask], throwOnError: true })
   }
 
   async function runTestTask(autoApply: boolean, allowDestroy = false) {
@@ -349,7 +349,7 @@ describe("Terraform module type", () => {
       localModeDeployNames: [],
     })
 
-    return garden.processTasks([taskTask], { throwOnError: true })
+    return garden.processTasks({ tasks: [taskTask], throwOnError: true })
   }
 
   describe("apply-module command", () => {
@@ -620,7 +620,7 @@ describe("Terraform module type", () => {
         localModeDeployNames: [],
       })
 
-      const result = await _garden.processTasks([taskTask], { throwOnError: true })
+      const result = await _garden.processTasks({ tasks: [taskTask], throwOnError: true })
       expect(result["task.test-task"]!.result.outputs.log).to.equal("workspace: foo, input: foo")
     })
   })

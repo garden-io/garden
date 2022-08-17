@@ -197,7 +197,7 @@ describe("kubernetes container module handlers", () => {
 
       garden.events.eventLog = []
 
-      const result = await garden.processTasks([testTask], { throwOnError: true })
+      const result = await garden.processTasks({ tasks: [testTask], throwOnError: true })
       const logEvent = garden.events.eventLog.find((l) => l.name === "log" && l.payload["entity"]["type"] === "test")
 
       const key = "test.simple.echo-test-with-sleep"
@@ -228,7 +228,7 @@ describe("kubernetes container module handlers", () => {
       })
 
       await expectError(
-        async () => await garden.processTasks([testTask], { throwOnError: true }),
+        async () => await garden.processTasks({ tasks: [testTask], throwOnError: true }),
         (err) => {
           expect(err.message).to.match(/bork/)
         }
@@ -265,7 +265,7 @@ describe("kubernetes container module handlers", () => {
 
         await emptyDir(garden.artifactsPath)
 
-        await garden.processTasks([testTask], { throwOnError: true })
+        await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
         expect(await pathExists(join(garden.artifactsPath, "test.txt"))).to.be.true
         expect(await pathExists(join(garden.artifactsPath, "subdir", "test.txt"))).to.be.true
@@ -288,7 +288,7 @@ describe("kubernetes container module handlers", () => {
 
         await emptyDir(garden.artifactsPath)
 
-        const results = await garden.processTasks([testTask], { throwOnError: false })
+        const results = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
         expect(results[testTask.getBaseKey()]!.error).to.exist
 
@@ -313,7 +313,7 @@ describe("kubernetes container module handlers", () => {
 
         await emptyDir(garden.artifactsPath)
 
-        await garden.processTasks([testTask], { throwOnError: true })
+        await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
         expect(await pathExists(join(garden.artifactsPath, "subdir", "test.txt"))).to.be.true
         expect(await pathExists(join(garden.artifactsPath, "output.txt"))).to.be.true
@@ -334,7 +334,7 @@ describe("kubernetes container module handlers", () => {
           localModeDeployNames: [],
         })
 
-        const result = await garden.processTasks([testTask])
+        const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
         const key = "test.missing-sh.missing-sh-test"
         expect(result).to.have.property(key)
@@ -361,7 +361,7 @@ describe("kubernetes container module handlers", () => {
           localModeDeployNames: [],
         })
 
-        const result = await garden.processTasks([testTask])
+        const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
         const key = "test.missing-tar.missing-tar-test"
         expect(result).to.have.property(key)

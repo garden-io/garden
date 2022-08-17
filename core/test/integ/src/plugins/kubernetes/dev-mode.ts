@@ -81,7 +81,7 @@ describe("dev mode deployments and sync behavior", () => {
       localModeDeployNames: [],
     })
 
-    await garden.processTasks([deployTask], { throwOnError: true })
+    await garden.processTasks({ tasks: [deployTask], throwOnError: true })
     const status = await getContainerDeployStatus({
       ctx,
       module,
@@ -145,7 +145,7 @@ describe("dev mode deployments and sync behavior", () => {
       localModeDeployNames: [],
     })
 
-    await garden.processTasks([deployTask], { throwOnError: true })
+    await garden.processTasks({ tasks: [deployTask], throwOnError: true })
     const status = await getContainerDeployStatus({
       ctx,
       module,

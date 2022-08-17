@@ -26,6 +26,7 @@ import { getLogger } from "../logger/logger"
 import stripAnsi from "strip-ansi"
 import { VcsHandler } from "../vcs/vcs"
 import { ConfigGraph } from "../graph/config-graph"
+import { SolveParams } from "../graph/solver"
 
 export class TestError extends GardenBaseError {
   type = "_test"
@@ -172,6 +173,10 @@ export class TestGarden extends Garden {
     garden["cacheKey"] = cacheKey
 
     return garden
+  }
+
+  async processTasks(params: Omit<SolveParams, "log"> & { log?: LogEntry }) {
+    return super.processTasks({ ...params, log: params.log || this.log })
   }
 
   /**

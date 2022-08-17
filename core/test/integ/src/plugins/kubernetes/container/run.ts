@@ -57,7 +57,7 @@ describe("runContainerTask", () => {
     await clearTaskResult({ ctx, log: garden.log, module: task.module, task })
 
     const key = testTask.getBaseKey()
-    const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
+    const { [key]: result } = await garden.processTasks({ tasks: [testTask], throwOnError: true })
     const logEvent = garden.events.eventLog.find((l) => l.name === "log" && l.payload["entity"]["type"] === "task")
 
     expect(result).to.exist
@@ -97,7 +97,7 @@ describe("runContainerTask", () => {
     const ctx = await garden.getPluginContext(provider)
     await clearTaskResult({ ctx, log: garden.log, module: task.module, task })
 
-    await garden.processTasks([testTask], { throwOnError: true })
+    await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
     // Verify that the result was saved
     const actions = await garden.getActionRouter()
@@ -130,7 +130,7 @@ describe("runContainerTask", () => {
     await clearTaskResult({ ctx, log: garden.log, module: task.module, task })
 
     await expectError(
-      async () => await garden.processTasks([testTask], { throwOnError: true }),
+      async () => await garden.processTasks({ tasks: [testTask], throwOnError: true }),
       (err) => expect(err.message).to.match(/bork/)
     )
 
@@ -163,7 +163,7 @@ describe("runContainerTask", () => {
 
       await emptyDir(garden.artifactsPath)
 
-      await garden.processTasks([testTask], { throwOnError: true })
+      await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
       expect(await pathExists(join(garden.artifactsPath, "task.txt"))).to.be.true
       expect(await pathExists(join(garden.artifactsPath, "subdir", "task.txt"))).to.be.true
@@ -185,7 +185,7 @@ describe("runContainerTask", () => {
       })
       await emptyDir(garden.artifactsPath)
 
-      const results = await garden.processTasks([testTask], { throwOnError: false })
+      const results = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(results[testTask.getBaseKey()]!.error).to.exist
 
@@ -210,7 +210,7 @@ describe("runContainerTask", () => {
 
       await emptyDir(garden.artifactsPath)
 
-      await garden.processTasks([testTask], { throwOnError: true })
+      await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
       expect(await pathExists(join(garden.artifactsPath, "subdir", "task.txt"))).to.be.true
       expect(await pathExists(join(garden.artifactsPath, "output.txt"))).to.be.true
@@ -231,7 +231,7 @@ describe("runContainerTask", () => {
         localModeDeployNames: [],
       })
 
-      const result = await garden.processTasks([testTask])
+      const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       const key = "task.missing-sh-task"
 
@@ -259,7 +259,7 @@ describe("runContainerTask", () => {
         localModeDeployNames: [],
       })
 
-      const result = await garden.processTasks([testTask])
+      const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       const key = "task.missing-tar-task"
 
