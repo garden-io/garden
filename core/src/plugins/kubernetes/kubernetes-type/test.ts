@@ -34,7 +34,9 @@ export const kubernetesTestDefinition = (): TestActionDefinition<KubernetesTestA
     TODO-G2
   `,
   schema: kubernetesTestSchema(),
-  outputsSchema: kubernetesTestOutputsSchema(),
+  outputs: {
+    schema: kubernetesTestOutputsSchema(),
+  },
   handlers: {
     run: async (params) => {
       // TODO-G2: dedupe code from Run handler, does a lot of the same thing
