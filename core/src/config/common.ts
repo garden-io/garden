@@ -463,7 +463,7 @@ export const joiIdentifierDescription =
 
 export const joiIdentifierDescriptionLen255 =
   "string that may contain lowercase letters, numbers and dashes, must start with a letter, " +
-  "and cannot end with a dash) and must not be longer than 255 characters."
+  "and cannot end with a dash and must not be longer than 255 characters."
 
 const moduleIncludeDescription = (extraDescription?: string) => {
   const desc = dedent`
