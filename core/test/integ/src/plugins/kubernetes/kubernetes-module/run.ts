@@ -49,7 +49,7 @@ describe("runKubernetesTask", () => {
     await clearTaskResult({ ctx, log: garden.log, module: task.module, task })
 
     const key = testTask.getBaseKey()
-    const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
+    const { [key]: result } = await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
     expect(result).to.exist
     expect(result).to.have.property("output")
@@ -90,7 +90,7 @@ describe("runKubernetesTask", () => {
     const ctx = await garden.getPluginContext(provider)
     await clearTaskResult({ ctx, log: garden.log, module: task.module, task })
 
-    await garden.processTasks([testTask], { throwOnError: true })
+    await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
     // Verify that the result was saved
     const actions = await garden.getActionRouter()
@@ -119,7 +119,7 @@ describe("runKubernetesTask", () => {
     })
 
     const key = testTask.getBaseKey()
-    const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
+    const { [key]: result } = await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
     expect(result).to.exist
     expect(result).to.have.property("output")
@@ -145,7 +145,7 @@ describe("runKubernetesTask", () => {
     })
 
     await expectError(
-      async () => await garden.processTasks([testTask], { throwOnError: true }),
+      async () => await garden.processTasks({ tasks: [testTask], throwOnError: true }),
       (err) => expect(err.message).to.match(/bork/)
     )
 
@@ -179,7 +179,7 @@ describe("runKubernetesTask", () => {
 
       await emptyDir(garden.artifactsPath)
 
-      await garden.processTasks([testTask], { throwOnError: true })
+      await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
       expect(await pathExists(join(garden.artifactsPath, "task.txt"))).to.be.true
       expect(await pathExists(join(garden.artifactsPath, "subdir", "task.txt"))).to.be.true
@@ -201,7 +201,7 @@ describe("runKubernetesTask", () => {
       })
       await emptyDir(garden.artifactsPath)
 
-      const results = await garden.processTasks([testTask], { throwOnError: false })
+      const results = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(results[testTask.getBaseKey()]!.error).to.exist
 
@@ -226,7 +226,7 @@ describe("runKubernetesTask", () => {
 
       await emptyDir(garden.artifactsPath)
 
-      await garden.processTasks([testTask], { throwOnError: true })
+      await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
       expect(await pathExists(join(garden.artifactsPath, "subdir", "task.txt"))).to.be.true
       expect(await pathExists(join(garden.artifactsPath, "output.txt"))).to.be.true

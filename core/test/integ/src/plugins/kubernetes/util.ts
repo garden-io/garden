@@ -112,7 +112,7 @@ describe("util", () => {
           production: false,
           blueGreen: false,
         })
-        await garden.processTasks([deployTask], { throwOnError: true })
+        await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
         const pods = await getWorkloadPods(api, "container", resource)
         const services = flatten(pods.map((pod) => pod.spec.containers.map((container) => container.name)))
@@ -141,7 +141,7 @@ describe("util", () => {
         })
 
         const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
-        await garden.processTasks([deployTask], { throwOnError: true })
+        await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
         const namespace = await getAppNamespace(ctx, log, provider)
         const allPods = await api.core.listNamespacedPod(namespace)
@@ -396,7 +396,7 @@ describe("util", () => {
           localModeDeployNames: [],
         })
 
-        await helmGarden.processTasks([deployTask], { throwOnError: true })
+        await helmGarden.processTasks({ tasks: [deployTask], throwOnError: true })
       })
 
       it("returns running Pod if one is found matching podSelector", async () => {

@@ -312,7 +312,7 @@ describe("exec plugin", () => {
 
       localModeDeployNames: [],
     })
-    const results = await _garden.processTasks([taskTask])
+    const results = await _garden.processTasks({ tasks: [taskTask], throwOnError: false })
 
     // Task A echoes "task-a-output" and Task B echoes the output from Task A
     expect(results["task.task-b"]).to.exist
@@ -341,7 +341,7 @@ describe("exec plugin", () => {
 
     await emptyDir(_garden.artifactsPath)
 
-    await _garden.processTasks([taskTask])
+    await _garden.processTasks({ tasks: [taskTask], throwOnError: false })
 
     expect(await pathExists(join(_garden.artifactsPath, "task-outputs", "task-a.txt"))).to.be.true
   })
@@ -365,7 +365,7 @@ describe("exec plugin", () => {
 
     await emptyDir(_garden.artifactsPath)
 
-    await _garden.processTasks([testTask])
+    await _garden.processTasks({ tasks: [testTask], throwOnError: false })
 
     expect(await pathExists(join(_garden.artifactsPath, "test-outputs", "test-a.txt"))).to.be.true
   })

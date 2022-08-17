@@ -77,9 +77,9 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   }
 
   async solve(params: SolveParams): Promise<SolveResult> {
-    const { statusOnly, tasks, throwOnError } = params
+    // TODO-G2: put in lock here for now
 
-    // const plan = await this.getPlan(params)
+    const { statusOnly, tasks, throwOnError } = params
 
     const _this = this
     const batchId = uuidv4()
