@@ -148,8 +148,6 @@ describe("DeployCommand", () => {
       "get-task-result.task-a",
       "get-task-result.task-c",
 
-
-
       "task.task-a",
       "task.task-c",
     ])
@@ -492,8 +490,6 @@ describe("DeployCommand", () => {
       "get-task-result.task-a",
       "get-task-result.task-c",
 
-
-
       "task.task-a",
       "task.task-c",
     ])
@@ -542,8 +538,6 @@ describe("DeployCommand", () => {
         "get-service-status.service-b",
         "get-service-status.service-c",
         "get-task-result.task-c",
-
-
 
         // service-c has a dependency on task-c, it should be skipped here
         // "task.task-c",
@@ -602,8 +596,6 @@ describe("DeployCommand", () => {
       "get-task-result.task-a",
       "get-task-result.task-c",
 
-
-
       "task.task-a",
       "task.task-c",
     ])
@@ -650,7 +642,6 @@ describe("DeployCommand", () => {
       "get-service-status.service-a",
       "get-service-status.service-b",
       "get-task-result.task-a",
-
 
       "task.task-a",
     ])

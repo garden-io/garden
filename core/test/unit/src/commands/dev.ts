@@ -96,8 +96,6 @@ describe("DevCommand", () => {
       "resolve-provider.test-plugin",
       "resolve-provider.test-plugin-b",
 
-
-
       "task.task-c",
       "test.module-a.integration",
       "test.module-a.unit",
@@ -280,8 +278,6 @@ describe("getDevCommandWatchTasks", () => {
       "get-service-status.service-b",
       "get-service-status.service-c",
       "get-task-result.task-c",
-
-
 
       "task.task-c",
       "test.module-b.unit",
