@@ -22,7 +22,6 @@ import {
 import { taskResultOutputs } from "../../../helpers"
 import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { keyBy } from "lodash"
-import { PublishModuleParams, PublishModuleResult } from "../../../../src/types/plugin/module/publishModule"
 
 const projectRootB = join(dataDir, "test-project-b")
 

@@ -10,7 +10,6 @@ import { join } from "path"
 import { CallCommand } from "../../../../src/commands/call"
 import { expect } from "chai"
 import { GardenPlugin, createGardenPlugin } from "../../../../src/plugin/plugin"
-import { GetServiceStatusParams } from "../../../../src/types/plugin/service/getServiceStatus"
 import { ServiceStatus } from "../../../../src/types/service"
 import nock = require("nock")
 import {

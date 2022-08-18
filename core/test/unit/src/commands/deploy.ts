@@ -20,9 +20,6 @@ import {
   makeTestGarden,
   getRuntimeStatusEvents,
 } from "../../../helpers"
-import { GetServiceStatusParams } from "../../../../src/types/plugin/service/getServiceStatus"
-import { DeployServiceParams } from "../../../../src/types/plugin/service/deployService"
-import { RunTaskParams, RunTaskResult } from "../../../../src/types/plugin/task/runTask"
 import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { sortBy } from "lodash"
 import { getLogger } from "../../../../src/logger/logger"
