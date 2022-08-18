@@ -122,8 +122,8 @@ describe("GetRunResultCommand", () => {
     const name = "task-a"
 
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const task = graph.getTask("task-a")
-    const artifactKey = getArtifactKey("task", name, task.version)
+    const runAction = graph.getRun("task-a")
+    const artifactKey = getArtifactKey("task", name, runAction.versionString())
     const metadataPath = join(garden.artifactsPath, `.metadata.${artifactKey}.json`)
     const metadata = {
       key: artifactKey,
