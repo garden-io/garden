@@ -67,7 +67,7 @@ describe("DevCommand", () => {
   it("should deploy, run and test everything in a project", async () => {
     const garden = await makeTestGardenA()
 
-    const args = { services: undefined }
+    const args = { deploys: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
@@ -115,7 +115,7 @@ describe("DevCommand", () => {
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].spec.services[0].disabled = true
 
-    const args = { services: undefined }
+    const args = { deploys: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
@@ -138,7 +138,7 @@ describe("DevCommand", () => {
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].spec.tasks[0].disabled = true
 
-    const args = { services: undefined }
+    const args = { deploys: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
@@ -161,7 +161,7 @@ describe("DevCommand", () => {
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-b"].spec.tests[0].disabled = true
 
-    const args = { services: undefined }
+    const args = { deploys: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
@@ -184,7 +184,7 @@ describe("DevCommand", () => {
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].disabled = true
 
-    const args = { services: undefined }
+    const args = { deploys: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
@@ -207,7 +207,7 @@ describe("DevCommand", () => {
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].disabled = true
 
-    const args = { services: undefined }
+    const args = { deploys: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
@@ -230,7 +230,7 @@ describe("DevCommand", () => {
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].disabled = true
 
-    const args = { services: undefined }
+    const args = { deploys: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
