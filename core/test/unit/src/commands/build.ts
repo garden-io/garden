@@ -261,7 +261,7 @@ describe("BuildCommand", () => {
       return await makeTestGarden(projectPath, { noTempDir: true, noCache: true })
     }
 
-    // dependencie graph: (A and D depend on B which depends on C)
+    // dependencies graph: (A and D depend on B which depends on C)
     // A->B->C
     // D->B->C
 
