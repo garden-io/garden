@@ -9,19 +9,18 @@
 import {
   expectError,
   withDefaultGlobalOpts,
-  configureTestModule,
   makeTestGardenA,
   cleanProject,
   TestGarden,
+  customizedTestPlugin,
 } from "../../../../helpers"
 import { GetTestResultCommand } from "../../../../../src/commands/get/get-test-result"
 import { expect } from "chai"
 import { LogEntry } from "../../../../../src/logger/log-entry"
-import { createGardenPlugin } from "../../../../../src/plugin/plugin"
-import { joi } from "../../../../../src/config/common"
 import { getArtifactKey } from "../../../../../src/util/artifacts"
 import { join } from "path"
 import { writeFile } from "fs-extra"
+import { execTestActionSchema } from "../../../../../src/plugins/exec/config"
 
 const now = new Date()
 
@@ -42,19 +41,35 @@ const testResults = {
   integration: null,
 }
 
-const testPlugin = createGardenPlugin({
-  name: "test-plugin",
-  createModuleTypes: [
-    {
-      name: "test",
-      docs: "test",
-      schema: joi.object(),
-      handlers: {
-        configure: configureTestModule,
-        getTestResult: async (params: GetTestResultParams) => testResults[params.test.name],
+// TODO-G2: remove commented code and ensure proper actions config
+// const testPlugin = createGardenPlugin({
+//   name: "test-plugin",
+//   createModuleTypes: [
+//     {
+//       name: "test",
+//       docs: "test",
+//       schema: joi.object(),
+//       handlers: {
+//         configure: configureTestModule,
+//         getTestResult: async (params: GetTestResultParams) => testResults[params.test.name],
+//       },
+//     },
+//   ],
+// })
+
+const testPlugin = customizedTestPlugin({
+  createActionTypes: {
+    Test: [
+      {
+        name: "test",
+        docs: "Test Test action",
+        schema: execTestActionSchema(),
+        handlers: {
+          getResult: async (params) => testResults[params.action.name],
+        },
       },
-    },
-  ],
+    ],
+  },
 })
 
 describe("GetTestResultCommand", () => {

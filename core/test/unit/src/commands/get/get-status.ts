@@ -11,16 +11,14 @@ import execa from "execa"
 
 import { ProjectConfig, defaultNamespace } from "../../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
-import { createGardenPlugin } from "../../../../../src/plugin/plugin"
-import { joi } from "../../../../../src/config/common"
-import { ServiceState } from "../../../../../src/types/service"
-import { TestGarden } from "../../../../helpers"
+import { customizedTestPlugin, TestGarden } from "../../../../helpers"
 import { GetStatusCommand } from "../../../../../src/commands/get/get-status"
 import { withDefaultGlobalOpts } from "../../../../helpers"
 import { expect } from "chai"
 import { LogLevel } from "../../../../../src/logger/logger"
 import { getLogMessages } from "../../../../../src/util/testing"
 import { defaultDotIgnoreFile } from "../../../../../src/util/fs"
+import { execDeployActionSchema } from "../../../../../src/plugins/exec/config"
 
 describe("GetStatusCommand", () => {
   let tmpDir: tmp.DirectoryResult
@@ -50,25 +48,43 @@ describe("GetStatusCommand", () => {
 
   describe("action", () => {
     it("should warn if a service's status can't be resolved", async () => {
-      const testPlugin = createGardenPlugin({
-        name: "test",
-        createModuleTypes: [
-          {
-            name: "test",
-            docs: "test",
-            serviceOutputsSchema: joi.object().keys({ log: joi.string() }),
-            handlers: {
-              build: async () => ({}),
-              getServiceStatus: async ({ service }: GetServiceStatusParams) => {
-                return {
-                  state: <ServiceState>"ready",
-                  detail: {},
-                  outputs: { log: service.spec.log },
-                }
+      // TODO-G2: remove commented code and ensure proper actions config
+      // const testPlugin = createGardenPlugin({
+      //   name: "test",
+      //   createModuleTypes: [
+      //     {
+      //       name: "test",
+      //       docs: "test",
+      //       serviceOutputsSchema: joi.object().keys({ log: joi.string() }),
+      //       handlers: {
+      //         build: async () => ({}),
+      //         getServiceStatus: async ({ service }: GetServiceStatusParams) => {
+      //           return {
+      //             state: <ServiceState>"ready",
+      //             detail: {},
+      //             outputs: { log: service.spec.log },
+      //           }
+      //         },
+      //       },
+      //     },
+      //   ],
+      // })
+
+      const testPlugin = customizedTestPlugin({
+        createActionTypes: {
+          Deploy: [
+            {
+              name: "test",
+              docs: "Test Deploy action",
+              schema: execDeployActionSchema(),
+              handlers: {
+                getStatus: async () => {
+                  return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+                },
               },
             },
-          },
-        ],
+          ],
+        },
       })
 
       const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
