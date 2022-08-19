@@ -13,12 +13,13 @@ import { keyBy } from "lodash"
 import { ConfigContext } from "../../../../../src/config/template-contexts/base"
 import { expectError, makeTestGardenA, TestGarden } from "../../../../helpers"
 import { prepareRuntimeContext } from "../../../../../src/runtime-context"
-import { GardenService } from "../../../../../src/types/service"
 import { resolveTemplateString } from "../../../../../src/template-string/template-string"
 import { ModuleConfigContext } from "../../../../../src/config/template-contexts/module"
 import { WorkflowConfigContext, WorkflowStepConfigContext } from "../../../../../src/config/template-contexts/workflow"
 import { GardenModule } from "../../../../../src/types/module"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
+import { BuildAction } from "../../../../../src/actions/build"
+import { GraphResults } from "../../../../../src/graph/results"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
@@ -44,9 +45,13 @@ describe("ModuleConfigContext", () => {
       resolvedProviders: keyBy(await garden.resolveProviders(garden.log), "name"),
       variables: garden.variables,
       modules,
-      moduleConfig: module,
       buildPath: module.buildPath,
       partialRuntimeResolution: false,
+      name: module.name,
+      path: module.path,
+      parentName: module.parentName,
+      inputs: module.inputs,
+      templateName: module.templateName,
     })
   })
 
@@ -136,56 +141,36 @@ describe("ModuleConfigContext", () => {
 
   context("runtimeContext is set", () => {
     let withRuntime: ModuleConfigContext
-    let serviceA: GardenService
+    let buildA: BuildAction
 
     before(async () => {
       const modules = graph.getModules()
-      serviceA = graph.getService("service-a")
-      const serviceB = graph.getService("service-b")
-      const taskB = graph.getTask("task-b")
+      buildA = graph.getBuild("build-a")
+      const buildB = graph.getBuild("build-b")
+      // const testB = graph.getTest("test-b")
+      module = graph.getModule("module-b")
 
       const runtimeContext = await prepareRuntimeContext({
-        garden,
+        action: buildB,
         graph,
-        dependencies: {
-          build: [],
-          deploy: [serviceB],
-          run: [taskB],
-          test: [],
-        },
-        version: serviceA.version,
-        moduleVersion: serviceA.module.version.versionString,
-        serviceStatuses: {
-          "service-b": {
-            state: "ready",
-            outputs: { foo: "bar" },
-            detail: {},
-          },
-        },
-        taskResults: {
-          "task-b": {
-            moduleName: "module-b",
-            taskName: "task-b",
-            command: [],
-            outputs: { moo: "boo" },
-            success: true,
-            version: taskB.version,
-            startedAt: new Date(),
-            completedAt: new Date(),
-            log: "boo",
-          },
-        },
+        graphResults: new GraphResults([
+          // there should be somethinghere but I don't yet understand what so I'm leaving it empty
+          // so it will atleast build
+        ]),
       })
-
       withRuntime = new ModuleConfigContext({
         garden,
         resolvedProviders: keyBy(await garden.resolveProviders(garden.log), "name"),
         variables: garden.variables,
         modules,
-        moduleConfig: serviceA.module,
-        buildPath: serviceA.module.buildPath,
+        buildPath: buildA.getBuildPath(),
         runtimeContext,
         partialRuntimeResolution: false,
+        name: module.name,
+        inputs: module.inputs,
+        parentName: module.parentName,
+        path: module.path,
+        templateName: module.templateName,
       })
     })
 
