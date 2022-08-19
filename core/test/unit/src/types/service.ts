@@ -53,7 +53,7 @@ describe("serviceFromConfig", () => {
     const garden = await makeTestGardenA()
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const module = graph.getModule("module-a")
-    const service = await serviceFromConfig(graph, module, config)
+    const service = serviceFromConfig(graph.moduleGraph, module, config)
 
     expect(service.disabled).to.be.true
   })
@@ -71,7 +71,7 @@ describe("serviceFromConfig", () => {
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const module = graph.getModule("module-a")
     module.disabled = true
-    const service = serviceFromConfig(graph, module, config)
+    const service = serviceFromConfig(graph.moduleGraph, module, config)
 
     expect(service.disabled).to.be.true
   })
