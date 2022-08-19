@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { ConfigGraph } from "../../../../src/config-graph"
+import { ConfigGraph } from "../../../../src/graph/config-graph"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { CloudEventHandlerCommonParams, cloudEventHandlers } from "../../../../src/process"
 import { makeTestGardenA, TestGarden } from "../../../helpers"
@@ -67,7 +67,6 @@ describe("cloudEventHandlers", () => {
       })
       expect(deployTask["devModeDeployNames"]).to.eql([])
       expect(deployTask["localModeDeployNames"]).to.eql([])
-      expect(deployTask.service.name).to.eql("service-a")
     })
 
     it("should return a dev-mode deploy task for the requested service", async () => {
