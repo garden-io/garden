@@ -12,48 +12,52 @@ import { omit } from "lodash"
 import { RunTaskCommand } from "../../../../../src/commands/run/run-task"
 import {
   assertAsyncError,
+  customizedTestPlugin,
   expectError,
   makeTestGarden,
   projectRootA,
   projectTestFailsRoot,
-  testPlugin,
   testPluginB,
   withDefaultGlobalOpts,
 } from "../../../../helpers"
 import { LogLevel } from "../../../../../src/logger/logger"
 import { renderDivider } from "../../../../../src/logger/util"
 import { dedent } from "../../../../../src/util/string"
-import { runExecTask } from "../../../../../src/plugins/exec/exec"
+import { execRunAction } from "../../../../../src/plugins/exec/exec"
 import { getLogMessages } from "../../../../../src/util/testing"
-import { createGardenPlugin } from "../../../../../src/plugin/plugin"
+import { execRunActionSchema } from "../../../../../src/plugins/exec/config"
 
 describe("RunTaskCommand", () => {
   const cmd = new RunTaskCommand()
 
-  const basePlugin = testPlugin()
-
-  // Use the runExecTask handler
-  const testExecPlugin = createGardenPlugin({
-    ...basePlugin,
-    createModuleTypes: [
-      {
-        ...basePlugin.createModuleTypes![0],
-        handlers: {
-          ...basePlugin.createModuleTypes![0].handlers,
-          runTask: runExecTask,
+  // Use the execRunAction handler
+  const testExecPlugin = customizedTestPlugin({
+    createActionTypes: {
+      Run: [
+        {
+          name: "test",
+          docs: "Test Run action",
+          schema: execRunActionSchema(),
+          handlers: {
+            run: execRunAction,
+          },
         },
-      },
-    ],
+      ],
+    },
   })
 
-  const testExecPluginB = createGardenPlugin({
+  const testExecPluginB = customizedTestPlugin({
     ...testPluginB(),
-    extendModuleTypes: [
-      {
-        name: "test",
-        handlers: testExecPlugin.createModuleTypes![0].handlers,
-      },
-    ],
+    extendActionTypes: {
+      Run: [
+        {
+          name: "test",
+          handlers: {
+            run: execRunAction,
+          },
+        },
+      ],
+    },
   })
 
   async function makeExecTestGarden(projectRoot: string = projectRootA) {
