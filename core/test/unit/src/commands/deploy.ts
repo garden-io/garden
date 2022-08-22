@@ -9,20 +9,18 @@
 import { join } from "path"
 import { DeployCommand } from "../../../../src/commands/deploy"
 import { expect } from "chai"
-import { buildExecAction } from "../../../../src/plugins/exec/exec"
-import { ServiceState, ServiceStatus } from "../../../../src/types/service"
 import {
   taskResultOutputs,
-  configureTestModule,
   withDefaultGlobalOpts,
   dataDir,
-  testModuleSpecSchema,
   makeTestGarden,
   getRuntimeStatusEvents,
+  customizedTestPlugin,
 } from "../../../helpers"
-import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { sortBy } from "lodash"
 import { getLogger } from "../../../../src/logger/logger"
+import { ActionStatus } from "../../../../src/actions/base"
+import { execDeployActionSchema } from "../../../../src/plugins/exec/config"
 
 const placeholderTimestamp = new Date()
 
@@ -41,55 +39,65 @@ const placeholderTaskResult = (moduleName: string, taskName: string, command: st
 })
 
 const testProvider = () => {
-  const testStatuses: { [key: string]: ServiceStatus } = {
+  const testStatuses: { [key: string]: ActionStatus } = {
     "service-a": {
       state: "ready",
-      ingresses: [
-        {
-          hostname: "service-a.test-project-b.local.app.garden",
-          path: "/path-a",
-          port: 80,
-          protocol: "http",
-        },
-      ],
-      detail: {},
+      detail: {
+        state: "ready",
+        detail: {},
+        ingresses: [
+          {
+            hostname: "service-a.test-project-b.local.app.garden",
+            path: "/path-a",
+            port: 80,
+            protocol: "http",
+          },
+        ],
+      },
+      outputs: {},
     },
     "service-c": {
       state: "ready",
-      detail: {},
+      detail: { state: "ready", detail: {} },
+      outputs: {},
     },
   }
 
-  return createGardenPlugin({
+  return customizedTestPlugin({
     name: "test-plugin",
-    createModuleTypes: [
-      {
-        name: "test",
-        docs: "Test plugin",
-        schema: testModuleSpecSchema(),
-        handlers: {
-          configure: configureTestModule,
-          build: buildExecAction,
-          deployService: async ({ service }: DeployServiceParams) => {
-            const newStatus = {
-              version: "1",
-              state: <ServiceState>"ready",
-              detail: {},
-            }
-
-            testStatuses[service.name] = newStatus
-
-            return newStatus
-          },
-          getServiceStatus: async ({ service }: GetServiceStatusParams): Promise<ServiceStatus> => {
-            return testStatuses[service.name] || { state: "unknown", detail: {} }
-          },
-          runTask: async ({ task }: RunTaskParams): Promise<RunTaskResult> => {
-            return placeholderTaskResult(task.module.name, task.name, task.spec.command)
+    createActionTypes: {
+      Deploy: [
+        {
+          name: "test",
+          docs: "Test Deploy action",
+          schema: execDeployActionSchema(),
+          handlers: {
+            deploy: async (params) => {
+              const newStatus: ActionStatus = { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+              testStatuses[params.action.name] = newStatus
+              return newStatus
+            },
+            getStatus: async (params) => {
+              return (
+                testStatuses[params.action.name] || {
+                  state: "unknown",
+                  detail: { state: "unknown", detail: {} },
+                  outputs: {},
+                }
+              )
+            },
+            run: async (params) => {
+              // TODO-G2: check the result object structure and fix it if necessary
+              return placeholderTaskResult(params.action.moduleName(), params.action.name, params.action.getSpec().command)
+            },
+            exec: async ({ action }) => {
+              const { command } = action.getSpec()
+              return { code: 0, output: "Ran command: " + command.join(" ") }
+            },
           },
         },
-      },
-    ],
+      ],
+    },
   })
 }
 
@@ -152,14 +160,14 @@ describe("DeployCommand", () => {
       "task.task-c",
     ])
 
-    const { deployments } = result!
+    const deployResults = result!.graphResults
 
-    for (const res of Object.values(deployments)) {
-      expect(res.durationMsec).to.gte(0)
-      res.durationMsec = 0
-    }
+    // for (const res of Object.values(deployResults)) {
+    //   expect(res.durationMsec).to.gte(0)
+    //   res.durationMsec = 0
+    // }
 
-    expect(deployments).to.eql({
+    expect(deployResults).to.eql({
       "service-c": {
         version: "1",
         state: "ready",
@@ -230,8 +238,8 @@ describe("DeployCommand", () => {
     }
 
     const getModuleVersion = (moduleName: string) => graph.getModule(moduleName).version.versionString
-    const getServiceVersion = (serviceName: string) => graph.getService(serviceName).version
-    const getTaskVersion = (taskName: string) => graph.getTask(taskName).version
+    const getDeployVersion = (serviceName: string) => graph.getDeploy(serviceName).versionString()
+    const getRunVersion = (taskName: string) => graph.getRun(taskName).versionString()
 
     const deployServiceAUid = getDeployUid("service-a")
     const deployServiceBUid = getDeployUid("service-b")
@@ -245,13 +253,13 @@ describe("DeployCommand", () => {
     const moduleVersionB = getModuleVersion("module-b")
     const moduleVersionC = getModuleVersion("module-c")
 
-    const serviceVersionA = getServiceVersion("service-a")
-    const serviceVersionB = getServiceVersion("service-b")
-    const serviceVersionC = getServiceVersion("service-c")
-    const serviceVersionD = getServiceVersion("service-d") // `service-d` is defined in `module-c`
+    const serviceVersionA = getDeployVersion("service-a")
+    const serviceVersionB = getDeployVersion("service-b")
+    const serviceVersionC = getDeployVersion("service-c")
+    const serviceVersionD = getDeployVersion("service-d") // `service-d` is defined in `module-c`
 
-    const taskVersionA = getTaskVersion("task-a")
-    const taskVersionC = getTaskVersion("task-c")
+    const taskVersionA = getRunVersion("task-a")
+    const taskVersionC = getRunVersion("task-c")
 
     expect(sortedEvents).to.eql([
       {
@@ -741,7 +749,7 @@ describe("DeployCommand", () => {
         headerLog: log,
         footerLog: log,
         args: {
-          services: undefined,
+          names: undefined,
         },
         opts: withDefaultGlobalOpts({
           "dev-mode": undefined,
