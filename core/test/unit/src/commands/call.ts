@@ -10,94 +10,104 @@ import { join } from "path"
 import { CallCommand } from "../../../../src/commands/call"
 import { expect } from "chai"
 import { GardenPlugin, createGardenPlugin } from "../../../../src/plugin/plugin"
-import { ServiceStatus } from "../../../../src/types/service"
 import nock = require("nock")
-import {
-  configureTestModule,
-  withDefaultGlobalOpts,
-  dataDir,
-  testModuleSpecSchema,
-  makeTestGarden,
-} from "../../../helpers"
+import { withDefaultGlobalOpts, dataDir, makeTestGarden } from "../../../helpers"
+import { execTestActionSchema } from "../../../../src/plugins/exec/config"
+import { ActionStatus } from "../../../../src/actions/base"
 
-const testStatusesA: { [key: string]: ServiceStatus } = {
+const testStatusesA: { [key: string]: ActionStatus } = {
   "service-a": {
     state: "ready",
-    ingresses: [
-      {
-        hostname: "service-a.test-project-b.local.app.garden",
-        path: "/path-a",
-        protocol: "http",
-        port: 32000,
-      },
-    ],
-    detail: {},
+    detail: {
+      state: "ready",
+      detail: {},
+      ingresses: [
+        {
+          hostname: "service-a.test-project-b.local.app.garden",
+          path: "/path-a",
+          protocol: "http",
+          port: 32000,
+        },
+      ],
+    },
+    outputs: {},
   },
   "service-b": {
     state: "ready",
-    ingresses: [
-      {
-        hostname: "service-b.test-project-b.local.app.garden",
-        path: "/",
-        port: 32000,
-        protocol: "http",
-      },
-    ],
-    detail: {},
+    detail: {
+      state: "ready",
+      detail: {},
+      ingresses: [
+        {
+          hostname: "service-b.test-project-b.local.app.garden",
+          path: "/",
+          port: 32000,
+          protocol: "http",
+        },
+      ],
+    },
+    outputs: {},
   },
   "service-c": {
     state: "ready",
-    detail: {},
+    detail: { state: "ready", detail: {} },
+    outputs: {},
   },
 }
 
-const testStatusesB: { [key: string]: ServiceStatus } = {
+const testStatusesB: { [key: string]: ActionStatus } = {
   "service-a": {
     state: "ready",
-    ingresses: [
-      {
-        hostname: "service-a.test-project-b.local.app.garden",
-        linkUrl: "https://www.example.com",
-        path: "/path-a",
-        protocol: "http",
-        port: 32000,
-      },
-    ],
-    detail: {},
+    detail: {
+      state: "ready",
+      detail: {},
+      ingresses: [
+        {
+          hostname: "service-a.test-project-b.local.app.garden",
+          linkUrl: "https://www.example.com",
+          path: "/path-a",
+          protocol: "http",
+          port: 32000,
+        },
+      ],
+    },
+    outputs: {},
   },
   "service-b": {
     state: "ready",
-    ingresses: [
-      {
-        hostname: "service-b.test-project-b.local.app.garden",
-        linkUrl: "https://www.example.com/hello",
-        path: "/path-b",
-        protocol: "http",
-        port: 32000,
-      },
-    ],
-    detail: {},
+    detail: {
+      state: "ready",
+      detail: {},
+      ingresses: [
+        {
+          hostname: "service-b.test-project-b.local.app.garden",
+          linkUrl: "https://www.example.com/hello",
+          path: "/path-b",
+          protocol: "http",
+          port: 32000,
+        },
+      ],
+    },
+    outputs: {},
   },
 }
 
-function makeTestProvider(serviceStatuses: { [key: string]: ServiceStatus }): GardenPlugin {
-  const getServiceStatus = async (params: GetServiceStatusParams): Promise<ServiceStatus> => {
-    return serviceStatuses[params.service.name] || {}
-  }
-
+// TODO-G2: use the actual value type of `serviceStatuses` instead of any
+function makeTestProvider(serviceStatuses: { [key: string]: any }): GardenPlugin {
   return createGardenPlugin({
     name: "test-plugin",
-    createModuleTypes: [
-      {
-        name: "test",
-        docs: "Test plugin",
-        schema: testModuleSpecSchema(),
-        handlers: {
-          configure: configureTestModule,
-          getServiceStatus,
+    createActionTypes: {
+      Test: [
+        {
+          name: "test",
+          docs: "Test Test action",
+          schema: execTestActionSchema(),
+          handlers: {
+            run: (params) => serviceStatuses[params.action.name] || {},
+          },
         },
-      },
-    ],
+      ],
+    },
   })
 }
 
