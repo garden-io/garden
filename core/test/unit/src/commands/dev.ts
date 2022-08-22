@@ -257,16 +257,17 @@ describe("getDevCommandWatchTasks", () => {
       garden,
       log,
       updatedGraph: graph,
-      module: graph.getModule("module-b"),
-      servicesWatched: graph.getServices().map((s) => s.name),
+      // TODO-G2: fix this
+      updatedAction: undefined,
+      // module: graph.getModule("module-b"),
+      //servicesWatched: graph.getDeploys().map((s) => s.name),
       devModeDeployNames: [],
-
       localModeDeployNames: [],
       testNames: undefined,
       skipTests: false,
     })
 
-    const results = await garden.processTasks(watchTasks)
+    const results = await garden.processTasks({ log, tasks: watchTasks })
     expect(Object.keys(results).sort()).to.eql([
       "build.module-a",
       "build.module-b",
