@@ -21,12 +21,12 @@ describe("getMatchingServiceNames", () => {
 
   it("should return all services if --dev-mode=* is set", async () => {
     const result = getMatchingServiceNames(["*"], graph)
-    expect(result).to.eql(graph.getServices().map((s) => s.name))
+    expect(result).to.eql(graph.getDeploys().map((s) => s.name))
   })
 
   it("should return all services if --dev-mode is set with no value", async () => {
     const result = getMatchingServiceNames([], graph)
-    expect(result).to.eql(graph.getServices().map((s) => s.name))
+    expect(result).to.eql(graph.getDeploys().map((s) => s.name))
   })
 
   it("should return specific service if --dev-mode is set with a service name", async () => {
