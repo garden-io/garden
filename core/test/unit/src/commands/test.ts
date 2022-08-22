@@ -68,23 +68,27 @@ describe("TestCommand", () => {
       `Got: ${JSON.stringify(outputs)}`
     ).to.be.true
 
-    const { tests } = result!
+    const testActionResult = result!.graphResults
 
     const dummyDate = new Date()
 
-    for (const res of Object.values(tests)) {
-      expect(res.durationMsec).to.gte(0)
-      res.durationMsec = 0
+    for (const res of Object.values(testActionResult)) {
+      // expect(res.durationMsec).to.gte(0)
+      // res.durationMsec = 0
 
-      expect(res.startedAt).to.be.a("Date")
-      res.startedAt = dummyDate
+      expect(res?.startedAt).to.be.a("Date")
+      if (!!res) {
+        res.startedAt = dummyDate
+      }
 
-      expect(res.completedAt).to.be.a("Date")
-      res.completedAt = dummyDate
+      expect(res?.completedAt).to.be.a("Date")
+      if (!!res) {
+        res.completedAt = dummyDate
+      }
     }
 
-    expect(tests).to.eql({
-      "module-a.unit": {
+    expect(testActionResult).to.eql({
+      "test.module-a.unit": {
         moduleName: "module-a",
         command: ["echo", "OK"],
         testName: "unit",
@@ -97,7 +101,7 @@ describe("TestCommand", () => {
         durationMsec: 0,
         error: undefined,
       },
-      "module-a.integration": {
+      "test.module-a.integration": {
         moduleName: "module-a",
         command: ["echo", "OK"],
         testName: "integration",
@@ -110,7 +114,7 @@ describe("TestCommand", () => {
         durationMsec: 0,
         error: undefined,
       },
-      "module-b.unit": {
+      "test.module-b.unit": {
         moduleName: "module-b",
         command: ["echo", "OK"],
         testName: "unit",
@@ -123,7 +127,7 @@ describe("TestCommand", () => {
         durationMsec: 0,
         error: undefined,
       },
-      "module-c.unit": {
+      "test.module-c.unit": {
         moduleName: "module-c",
         command: ["echo", "OK"],
         testName: "unit",
@@ -136,7 +140,7 @@ describe("TestCommand", () => {
         durationMsec: 0,
         error: undefined,
       },
-      "module-c.integ": {
+      "test.module-c.integ": {
         moduleName: "module-c",
         command: ["echo", "OK"],
         testName: "integ",
