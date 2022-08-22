@@ -11,47 +11,42 @@ import { it } from "mocha"
 import { join } from "path"
 import { expect } from "chai"
 import { PublishCommand } from "../../../../src/commands/publish"
-import {
-  makeTestGardenA,
-  configureTestModule,
-  withDefaultGlobalOpts,
-  dataDir,
-  testModuleSpecSchema,
-  makeTestGarden,
-} from "../../../helpers"
+import { makeTestGardenA, withDefaultGlobalOpts, dataDir, makeTestGarden } from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
 import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { keyBy } from "lodash"
+import { execBuildActionSchema } from "../../../../src/plugins/exec/config"
+import { PublishActionResult, PublishBuildAction } from "../../../../src/plugin/handlers/build/publish"
 
 const projectRootB = join(dataDir, "test-project-b")
 
-const getBuildStatus = async () => {
-  return { ready: true }
-}
+type PublishActionParams = PublishBuildAction["_paramsType"]
+type PublishActionResultDetail = PublishActionResult["detail"]
 
-const build = async () => {
-  return { fresh: true }
-}
-
-const publishModule = async ({ tag }: PublishModuleParams): Promise<PublishModuleResult> => {
+const publishAction = async ({ tag }: PublishActionParams): Promise<PublishActionResultDetail> => {
   return { published: true, identifier: tag }
 }
 
 const testProvider = createGardenPlugin({
   name: "test-plugin",
-  createModuleTypes: [
-    {
-      name: "test",
-      docs: "Test plugin",
-      schema: testModuleSpecSchema(),
-      handlers: {
-        configure: configureTestModule,
-        getBuildStatus,
-        build,
-        publish: publishModule,
+  createActionTypes: {
+    Build: [
+      {
+        name: "test",
+        docs: "Test plugin",
+        schema: execBuildActionSchema(),
+        handlers: {
+          publish: async (params: PublishActionParams) => {
+            return {
+              state: "ready",
+              detail: await publishAction(params),
+              outputs: {},
+            }
+          },
+        },
       },
-    },
-  ],
+    ],
+  },
 })
 
 async function getTestGarden() {
@@ -92,18 +87,18 @@ describe("PublishCommand", () => {
       "publish.module-c": { published: false },
     })
 
-    const { published } = result!
+    const publishActionResults = result!.graphResults
 
-    for (const res of Object.values(published)) {
-      expect(res.durationMsec).to.gte(0)
-      res.durationMsec = 0
-    }
+    // for (const res of Object.values(publishActionResults)) {
+    //   expect(res.durationMsec).to.gte(0)
+    //   res.durationMsec = 0
+    // }
 
     const graph = await garden.getConfigGraph({ log, emit: false })
     const modules = keyBy(graph.getModules(), "name")
 
-    expect(published).to.eql({
-      "module-a": {
+    expect(publishActionResults).to.eql({
+      "publish.module-a": {
         published: true,
         aborted: false,
         durationMsec: 0,
@@ -112,7 +107,7 @@ describe("PublishCommand", () => {
         version: modules["module-a"].version.versionString,
         identifier: undefined,
       },
-      "module-b": {
+      "publish.module-b": {
         published: true,
         aborted: false,
         durationMsec: 0,
@@ -121,7 +116,7 @@ describe("PublishCommand", () => {
         version: modules["module-b"].version.versionString,
         identifier: undefined,
       },
-      "module-c": {
+      "publish.module-c": {
         published: false,
         aborted: false,
         durationMsec: 0,
@@ -151,12 +146,12 @@ describe("PublishCommand", () => {
       }),
     })
 
-    const { published } = result!
+    const publishActionResult = result!
 
-    expect(published["module-a"].published).to.be.true
-    expect(published["module-a"].identifier).to.equal(tag)
-    expect(published["module-b"].published).to.be.true
-    expect(published["module-b"].identifier).to.equal(tag)
+    expect(publishActionResult["publish.module-a"].published).to.be.true
+    expect(publishActionResult["publish.module-a"].identifier).to.equal(tag)
+    expect(publishActionResult["publish.module-b"].published).to.be.true
+    expect(publishActionResult["publish.module-b"].identifier).to.equal(tag)
   })
 
   it("should resolve a templated tag and apply to the modules", async () => {
@@ -178,12 +173,16 @@ describe("PublishCommand", () => {
       }),
     })
 
-    const { published } = result.result!
+    const publishActionResult = result.result!
 
-    expect(published["module-a"].published).to.be.true
-    expect(published["module-a"].identifier).to.equal(`v1.0-module-a-${published["module-a"].version}`)
-    expect(published["module-b"].published).to.be.true
-    expect(published["module-b"].identifier).to.equal(`v1.0-module-b-${published["module-b"].version}`)
+    expect(publishActionResult["publish.module-a"].published).to.be.true
+    expect(publishActionResult["publish.module-a"].identifier).to.equal(
+      `v1.0-module-a-${publishActionResult["module-a"].version}`
+    )
+    expect(publishActionResult["publish.module-b"].published).to.be.true
+    expect(publishActionResult["publish.module-b"].identifier).to.equal(
+      `v1.0-module-b-${publishActionResult["module-b"].version}`
+    )
   })
 
   it("should optionally force new build", async () => {
