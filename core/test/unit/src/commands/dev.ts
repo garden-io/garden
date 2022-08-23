@@ -12,6 +12,7 @@ import { DevCommand, DevCommandArgs, DevCommandOpts, getDevCommandWatchTasks } f
 import { makeTestGardenA, withDefaultGlobalOpts, TestGarden } from "../../../helpers"
 import { GlobalOptions, ParameterValues } from "../../../../src/cli/params"
 
+// TODO-G2: rename test cases to match the new graph model semantics
 describe("DevCommand", () => {
   const command = new DevCommand()
 
@@ -67,7 +68,7 @@ describe("DevCommand", () => {
   it("should deploy, run and test everything in a project", async () => {
     const garden = await makeTestGardenA()
 
-    const args = { services: undefined }
+    const args = { deploys: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
@@ -96,8 +97,6 @@ describe("DevCommand", () => {
       "resolve-provider.test-plugin",
       "resolve-provider.test-plugin-b",
 
-
-
       "task.task-c",
       "test.module-a.integration",
       "test.module-a.unit",
@@ -115,7 +114,7 @@ describe("DevCommand", () => {
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].spec.services[0].disabled = true
 
-    const args = { services: undefined }
+    const args = { deploys: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
@@ -138,7 +137,7 @@ describe("DevCommand", () => {
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].spec.tasks[0].disabled = true
 
-    const args = { services: undefined }
+    const args = { deploys: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
@@ -161,7 +160,7 @@ describe("DevCommand", () => {
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-b"].spec.tests[0].disabled = true
 
-    const args = { services: undefined }
+    const args = { deploys: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
@@ -184,7 +183,7 @@ describe("DevCommand", () => {
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].disabled = true
 
-    const args = { services: undefined }
+    const args = { deploys: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
@@ -207,7 +206,7 @@ describe("DevCommand", () => {
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].disabled = true
 
-    const args = { services: undefined }
+    const args = { deploys: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
@@ -230,7 +229,7 @@ describe("DevCommand", () => {
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].disabled = true
 
-    const args = { services: undefined }
+    const args = { deploys: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
@@ -255,20 +254,22 @@ describe("getDevCommandWatchTasks", () => {
     const log = garden.log
     const graph = await garden.getConfigGraph({ log, emit: false })
 
+    // TODO-G2: fix the semantics of the test
+    const deployAction = graph.getDeploy("deploy.module-b.service-b")
     const watchTasks = await getDevCommandWatchTasks({
       garden,
       log,
       updatedGraph: graph,
-      module: graph.getModule("module-b"),
-      servicesWatched: graph.getServices().map((s) => s.name),
+      updatedAction: deployAction,
+      // module: graph.getModule("module-b"),
+      //servicesWatched: graph.getDeploys().map((s) => s.name),
       devModeDeployNames: [],
-
       localModeDeployNames: [],
       testNames: undefined,
       skipTests: false,
     })
 
-    const results = await garden.processTasks(watchTasks)
+    const results = await garden.processTasks({ log, tasks: watchTasks })
     expect(Object.keys(results).sort()).to.eql([
       "build.module-a",
       "build.module-b",
@@ -280,8 +281,6 @@ describe("getDevCommandWatchTasks", () => {
       "get-service-status.service-b",
       "get-service-status.service-c",
       "get-task-result.task-c",
-
-
 
       "task.task-c",
       "test.module-b.unit",

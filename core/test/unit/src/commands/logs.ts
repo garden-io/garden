@@ -10,12 +10,10 @@ import tmp from "tmp-promise"
 import { expect } from "chai"
 import { Garden } from "../../../../src"
 import { colors, LogsCommand } from "../../../../src/commands/logs"
-import { joi } from "../../../../src/config/common"
 import { ProjectConfig, defaultNamespace } from "../../../../src/config/project"
-import { createGardenPlugin, GardenPlugin } from "../../../../src/plugin/plugin"
-import { GetServiceLogsParams } from "../../../../src/types/plugin/service/getServiceLogs"
+import { GardenPlugin } from "../../../../src/plugin/plugin"
 import { TestGarden } from "../../../../src/util/testing"
-import { expectError, withDefaultGlobalOpts } from "../../../helpers"
+import { customizedTestPlugin, expectError, withDefaultGlobalOpts } from "../../../helpers"
 import execa from "execa"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { formatForTerminal } from "../../../../src/logger/renderers"
@@ -25,6 +23,10 @@ import { LogLevel } from "../../../../src/logger/logger"
 import { ModuleConfig } from "../../../../src/config/module"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 import { ServiceLogEntry } from "../../../../src/types/service"
+import { execDeployActionSchema } from "../../../../src/plugins/exec/config"
+import { GetDeployLogs } from "../../../../src/plugin/handlers/deploy/get-logs"
+
+// TODO-G2: rename test cases to match the new graph model semantics
 
 function makeCommandParams({
   garden,
@@ -103,9 +105,10 @@ describe("LogsCommand", () => {
   const msgColor = chalk.bgRedBright
   const logMsg = "Yes, this is log"
   const logMsgWithColor = msgColor(logMsg)
-
   const color = chalk[colors[0]]
-  const defaultGetServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
+
+  type GetDeployLogsParams = GetDeployLogs["_paramsType"]
+  const defaultGetServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
     void stream.write({
       tags: { container: "my-container" },
       serviceName: "test-service-a",
@@ -116,18 +119,20 @@ describe("LogsCommand", () => {
   }
 
   const makeTestPlugin = (getServiceLogsHandler = defaultGetServiceLogsHandler) => {
-    return createGardenPlugin({
+    return customizedTestPlugin({
       name: "test",
-      createModuleTypes: [
-        {
-          name: "test",
-          docs: "test",
-          schema: joi.object(),
-          handlers: {
-            getServiceLogs: getServiceLogsHandler,
+      createActionTypes: {
+        Deploy: [
+          {
+            name: "test",
+            docs: "Test Deploy action",
+            schema: execDeployActionSchema(),
+            handlers: {
+              getLogs: getServiceLogsHandler,
+            },
           },
-        },
-      ],
+        ],
+      },
     })
   }
 
@@ -158,26 +163,26 @@ describe("LogsCommand", () => {
       })
     })
     it("should sort entries by timestamp", async () => {
-      const getServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
-        void stream.write({
+      const getServiceLogsHandler = async (params: GetDeployLogsParams) => {
+        void params.stream.write({
           tags: { container: "my-container" },
           serviceName: "test-service-a",
           msg: "3",
           timestamp: new Date("2021-05-13T20:03:00.000Z"),
         })
-        void stream.write({
+        void params.stream.write({
           tags: { container: "my-container" },
           serviceName: "test-service-a",
           msg: "4",
           timestamp: new Date("2021-05-13T20:04:00.000Z"),
         })
-        void stream.write({
+        void params.stream.write({
           tags: { container: "my-container" },
           serviceName: "test-service-a",
           msg: "2",
           timestamp: new Date("2021-05-13T20:02:00.000Z"),
         })
-        void stream.write({
+        void params.stream.write({
           tags: { container: "my-container" },
           serviceName: "test-service-a",
           msg: "1",
@@ -220,7 +225,7 @@ describe("LogsCommand", () => {
       })
     })
     it("should skip empty entries", async () => {
-      const getServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
+      const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
         // Empty message and invalid date
         void stream.write({
           tags: { container: "my-container" },
@@ -274,7 +279,7 @@ describe("LogsCommand", () => {
       )
     })
     it("should render entries with no ansi color white", async () => {
-      const getServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
+      const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
         void stream.write({
           tags: { container: "my-container" },
           serviceName: "test-service-a",
@@ -293,8 +298,8 @@ describe("LogsCommand", () => {
     })
     context("mutliple services", () => {
       it("should align content for visible entries", async () => {
-        const getServiceLogsHandler = async ({ stream, service }: GetServiceLogsParams) => {
-          if (service.name === "a-short") {
+        const getServiceLogsHandler = async ({ action, stream }: GetDeployLogsParams) => {
+          if (action.name === "a-short") {
             void stream.write({
               tags: { container: "short" },
               serviceName: "a-short",
@@ -313,14 +318,14 @@ describe("LogsCommand", () => {
               msg: logMsgWithColor,
               timestamp: new Date("2021-05-13T20:06:00.000Z"), // <--- 6
             })
-          } else if (service.name === "b-not-short") {
+          } else if (action.name === "b-not-short") {
             void stream.write({
               tags: { container: "not-short" },
               serviceName: "b-not-short",
               msg: logMsgWithColor,
               timestamp: new Date("2021-05-13T20:02:00.000Z"), // <--- 2
             })
-          } else if (service.name === "c-by-far-the-longest-of-the-bunch") {
+          } else if (action.name === "c-by-far-the-longest-of-the-bunch") {
             void stream.write({
               tags: { container: "by-far-the-longest-of-the-bunch" },
               serviceName: "c-by-far-the-longest-of-the-bunch",
@@ -328,7 +333,7 @@ describe("LogsCommand", () => {
               timestamp: new Date("2021-05-13T20:04:00.000Z"), // <--- 4
               level: LogLevel.verbose,
             })
-          } else if (service.name === "d-very-very-long") {
+          } else if (action.name === "d-very-very-long") {
             void stream.write({
               tags: { container: "very-very-long" },
               serviceName: "d-very-very-long",
@@ -404,8 +409,8 @@ describe("LogsCommand", () => {
       })
     })
     it("should assign the same color to each service, regardless of which service logs are streamed", async () => {
-      const getServiceLogsHandler = async ({ stream, service }: GetServiceLogsParams) => {
-        if (service.name === "test-service-a") {
+      const getServiceLogsHandler = async ({ action, stream }: GetDeployLogsParams) => {
+        if (action.name === "test-service-a") {
           void stream.write({
             tags: { container: "my-container" },
             serviceName: "test-service-a",
@@ -496,7 +501,7 @@ describe("LogsCommand", () => {
     ]
 
     it("should optionally print tags with --show-tags", async () => {
-      const getServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
+      const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
         void stream.write({
           tags: { container: "api" },
           serviceName: "api",
@@ -521,7 +526,7 @@ describe("LogsCommand", () => {
     }
 
     it("should apply a basic --tag filter", async () => {
-      const getServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
+      const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
         void stream.write({
           tags: { container: "api" },
           serviceName: "api",
@@ -547,7 +552,7 @@ describe("LogsCommand", () => {
     })
 
     it("should throw when passed an invalid --tag filter", async () => {
-      const getServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
+      const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
         void stream.write({
           tags: { container: "api-main" },
           serviceName: "api",
@@ -567,7 +572,7 @@ describe("LogsCommand", () => {
     })
 
     it("should AND together tag filters in a given --tag option instance", async () => {
-      const getServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
+      const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
         void stream.write({
           tags: { container: "api", myTag: "1" },
           serviceName: "api",
@@ -601,7 +606,7 @@ describe("LogsCommand", () => {
     })
 
     it("should OR together tag filters from all provided --tag option instances", async () => {
-      const getServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
+      const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
         void stream.write({
           tags: { container: "api", myTag: "1" },
           serviceName: "api",
@@ -647,7 +652,7 @@ describe("LogsCommand", () => {
     })
 
     it("should apply a wildcard --tag filter", async () => {
-      const getServiceLogsHandler = async ({ stream }: GetServiceLogsParams) => {
+      const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
         void stream.write({
           tags: { container: "api-main" },
           serviceName: "api",

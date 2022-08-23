@@ -8,7 +8,7 @@
 
 import td from "testdouble"
 import { join, relative, resolve } from "path"
-import { extend, intersection, mapValues, pick } from "lodash"
+import { extend, intersection, mapValues, merge, pick } from "lodash"
 import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
 import {
@@ -18,7 +18,13 @@ import {
 } from "../src/plugins/container/moduleConfig"
 import { buildExecAction } from "../src/plugins/exec/exec"
 import { joi, joiArray } from "../src/config/common"
-import { createGardenPlugin, ModuleActionHandlers, ProviderHandlers, RegisterPluginParam } from "../src/plugin/plugin"
+import {
+  createGardenPlugin,
+  GardenPluginSpec,
+  ModuleActionHandlers,
+  ProviderHandlers,
+  RegisterPluginParam,
+} from "../src/plugin/plugin"
 import { Garden, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { ModuleVersion } from "../src/vcs/vcs"
@@ -279,6 +285,12 @@ export const testPlugin = () =>
       },
     ],
   })
+
+export const customizedTestPlugin = (partialCustomSpec: Partial<GardenPluginSpec>) => {
+  const base = testPlugin()
+  merge(base, partialCustomSpec)
+  return base
+}
 
 export const testPluginB = () => {
   const base = testPlugin()

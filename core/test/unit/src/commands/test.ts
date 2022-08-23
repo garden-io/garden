@@ -12,6 +12,7 @@ import isSubset = require("is-subset")
 import { makeModuleConfig, makeTestGardenA, taskResultOutputs, withDefaultGlobalOpts } from "../../../helpers"
 import { ModuleConfig } from "../../../../src/config/module"
 
+// TODO-G2: rename test cases to match the new graph model semantics
 describe("TestCommand", () => {
   const command = new TestCommand()
 
@@ -68,27 +69,31 @@ describe("TestCommand", () => {
       `Got: ${JSON.stringify(outputs)}`
     ).to.be.true
 
-    const { tests } = result!
+    const testActionResult = result!.graphResults
 
     const dummyDate = new Date()
 
-    for (const res of Object.values(tests)) {
-      expect(res.durationMsec).to.gte(0)
-      res.durationMsec = 0
+    for (const res of Object.values(testActionResult)) {
+      // expect(res.durationMsec).to.gte(0)
+      // res.durationMsec = 0
 
-      expect(res.startedAt).to.be.a("Date")
-      res.startedAt = dummyDate
+      expect(res?.startedAt).to.be.a("Date")
+      if (!!res) {
+        res.startedAt = dummyDate
+      }
 
-      expect(res.completedAt).to.be.a("Date")
-      res.completedAt = dummyDate
+      expect(res?.completedAt).to.be.a("Date")
+      if (!!res) {
+        res.completedAt = dummyDate
+      }
     }
 
-    expect(tests).to.eql({
-      "module-a.unit": {
+    expect(testActionResult).to.eql({
+      "test.module-a.unit": {
         moduleName: "module-a",
         command: ["echo", "OK"],
         testName: "unit",
-        version: graph.getTest("module-a", "unit").version,
+        version: graph.getTest("module-a.unit").versionString(),
         success: true,
         startedAt: dummyDate,
         completedAt: dummyDate,
@@ -97,11 +102,11 @@ describe("TestCommand", () => {
         durationMsec: 0,
         error: undefined,
       },
-      "module-a.integration": {
+      "test.module-a.integration": {
         moduleName: "module-a",
         command: ["echo", "OK"],
         testName: "integration",
-        version: graph.getTest("module-a", "integration").version,
+        version: graph.getTest("module-a.integration").versionString(),
         success: true,
         startedAt: dummyDate,
         completedAt: dummyDate,
@@ -110,11 +115,11 @@ describe("TestCommand", () => {
         durationMsec: 0,
         error: undefined,
       },
-      "module-b.unit": {
+      "test.module-b.unit": {
         moduleName: "module-b",
         command: ["echo", "OK"],
         testName: "unit",
-        version: graph.getTest("module-b", "unit").version,
+        version: graph.getTest("module-b.unit").versionString(),
         success: true,
         startedAt: dummyDate,
         completedAt: dummyDate,
@@ -123,11 +128,11 @@ describe("TestCommand", () => {
         durationMsec: 0,
         error: undefined,
       },
-      "module-c.unit": {
+      "test.module-c.unit": {
         moduleName: "module-c",
         command: ["echo", "OK"],
         testName: "unit",
-        version: graph.getTest("module-c", "unit").version,
+        version: graph.getTest("module-c.unit").versionString(),
         success: true,
         startedAt: dummyDate,
         completedAt: dummyDate,
@@ -136,11 +141,11 @@ describe("TestCommand", () => {
         durationMsec: 0,
         error: undefined,
       },
-      "module-c.integ": {
+      "test.module-c.integ": {
         moduleName: "module-c",
         command: ["echo", "OK"],
         testName: "integ",
-        version: graph.getTest("module-c", "integ").version,
+        version: graph.getTest("module-c.integ").versionString(),
         success: true,
         startedAt: dummyDate,
         completedAt: dummyDate,
@@ -196,7 +201,7 @@ describe("TestCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { modules: ["module-a"] },
+      args: { names: ["module-a"] },
       opts: withDefaultGlobalOpts({
         "name": undefined,
         "force": true,
