@@ -25,6 +25,7 @@ import { LogEntry } from "../../../../src/logger/log-entry"
 import { execDeployActionSchema } from "../../../../src/plugins/exec/config"
 import { ActionStatus } from "../../../../src/actions/base"
 
+// TODO-G2: rename test cases to match the new graph model semantics
 describe("DeleteSecretCommand", () => {
   const pluginName = "test-plugin"
   const provider = pluginName

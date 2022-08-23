@@ -26,6 +26,8 @@ import { ServiceLogEntry } from "../../../../src/types/service"
 import { execDeployActionSchema } from "../../../../src/plugins/exec/config"
 import { GetDeployLogs } from "../../../../src/plugin/handlers/deploy/get-logs"
 
+// TODO-G2: rename test cases to match the new graph model semantics
+
 function makeCommandParams({
   garden,
   args = { services: undefined },

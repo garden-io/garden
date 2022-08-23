@@ -12,6 +12,7 @@ import { DevCommand, DevCommandArgs, DevCommandOpts, getDevCommandWatchTasks } f
 import { makeTestGardenA, withDefaultGlobalOpts, TestGarden } from "../../../helpers"
 import { GlobalOptions, ParameterValues } from "../../../../src/cli/params"
 
+// TODO-G2: rename test cases to match the new graph model semantics
 describe("DevCommand", () => {
   const command = new DevCommand()
 

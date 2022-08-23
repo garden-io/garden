@@ -11,6 +11,7 @@ import { getMatchingServiceNames } from "../../../../src/commands/helpers"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
 import { makeTestGardenA } from "../../../helpers"
 
+// TODO-G2: rename test cases to match the new graph model semantics
 describe("getMatchingServiceNames", () => {
   let graph: ConfigGraph
 

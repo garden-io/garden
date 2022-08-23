@@ -24,6 +24,7 @@ import { LogEntry } from "../../../../src/logger/log-entry"
 import { writeFile } from "fs-extra"
 import { join } from "path"
 
+// TODO-G2: rename test cases to match the new graph model semantics
 describe("BuildCommand", () => {
   it("should build all modules in a project and output the results", async () => {
     const garden = await makeTestGardenA()

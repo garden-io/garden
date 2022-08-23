@@ -18,6 +18,8 @@ import { keyBy } from "lodash"
 import { execBuildActionSchema } from "../../../../src/plugins/exec/config"
 import { PublishActionResult, PublishBuildAction } from "../../../../src/plugin/handlers/build/publish"
 
+// TODO-G2: rename test cases to match the new graph model semantics
+
 const projectRootB = join(dataDir, "test-project-b")
 
 type PublishActionParams = PublishBuildAction["_paramsType"]

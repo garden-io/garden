@@ -12,6 +12,7 @@ import isSubset = require("is-subset")
 import { makeModuleConfig, makeTestGardenA, taskResultOutputs, withDefaultGlobalOpts } from "../../../helpers"
 import { ModuleConfig } from "../../../../src/config/module"
 
+// TODO-G2: rename test cases to match the new graph model semantics
 describe("TestCommand", () => {
   const command = new TestCommand()
 

@@ -22,6 +22,8 @@ import { getLogger } from "../../../../src/logger/logger"
 import { ActionStatus } from "../../../../src/actions/base"
 import { execDeployActionSchema } from "../../../../src/plugins/exec/config"
 
+// TODO-G2: rename test cases to match the new graph model semantics
+
 const placeholderTimestamp = new Date()
 
 const placeholderTaskResult = (moduleName: string, taskName: string, command: string[]) => ({

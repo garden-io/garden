@@ -111,6 +111,7 @@ function makeTestProvider(serviceStatuses: { [key: string]: any }): GardenPlugin
   })
 }
 
+// TODO-G2: rename test cases to match the new graph model semantics
 describe("commands.call", () => {
   const projectRootB = join(dataDir, "test-project-b")
   const pluginsA = [makeTestProvider(testStatusesA)]
