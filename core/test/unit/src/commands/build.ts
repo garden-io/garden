@@ -24,6 +24,7 @@ import { LogEntry } from "../../../../src/logger/log-entry"
 import { writeFile } from "fs-extra"
 import { join } from "path"
 
+// TODO-G2: rename test cases to match the new graph model semantics
 describe("BuildCommand", () => {
   it("should build all modules in a project and output the results", async () => {
     const garden = await makeTestGardenA()
@@ -42,7 +43,7 @@ describe("BuildCommand", () => {
 
     expect(command.outputsSchema().validate(result).error).to.be.undefined
 
-    const { builds } = result!
+    const buildActionResults = result!.graphResults
 
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true, buildLog: "A" },
@@ -50,15 +51,15 @@ describe("BuildCommand", () => {
       "build.module-c": {},
     })
 
-    for (const build of Object.values(builds)) {
-      expect(build.durationMsec).to.gte(0)
-      build.durationMsec = 0
-    }
+    // for (const buildAction of Object.values(buildActionResults)) {
+    //   expect(buildAction.durationMsec).to.gte(0)
+    //   buildAction.durationMsec = 0
+    // }
 
     const graph = await garden.getConfigGraph({ log, emit: false })
     const modules = keyBy(graph.getModules(), "name")
 
-    expect(builds).to.eql({
+    expect(buildActionResults).to.eql({
       "module-a": {
         fresh: true,
         buildLog: "A",
@@ -261,7 +262,7 @@ describe("BuildCommand", () => {
       return await makeTestGarden(projectPath, { noTempDir: true, noCache: true })
     }
 
-    // dependencie graph: (A and D depend on B which depends on C)
+    // dependencies graph: (A and D depend on B which depends on C)
     // A->B->C
     // D->B->C
 
@@ -269,7 +270,7 @@ describe("BuildCommand", () => {
       const { result } = await buildCommand.action({
         garden: await makeTestGarden(projectPath, { noTempDir: true }),
         ...defaultOpts,
-        args: { modules: ["aaa-service"] },
+        args: { names: ["aaa-service"] },
         opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": false }),
       })
 
@@ -287,98 +288,127 @@ describe("BuildCommand", () => {
       const { result: resultFirst } = await buildCommand.action({
         garden: await getFreshTestGarden(),
         ...defaultOpts,
-        args: { modules: ["aaa-service"] },
+        args: { names: ["aaa-service"] },
         opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": false }),
       })
+      const graphResultFirst = resultFirst?.graphResults
 
       await writeFile(join(projectPath, "C/file.txt"), "module c has been modified")
 
       const { result: resultSecond } = await buildCommand.action({
         garden: await getFreshTestGarden(),
         ...defaultOpts,
-        args: { modules: ["aaa-service"] },
+        args: { names: ["aaa-service"] },
         opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": false }),
       })
+      const graphResultSecond = resultSecond?.graphResults
 
-      expect(Object.keys(resultSecond?.builds!).length).to.be.eq(3)
-      expect(resultSecond?.builds["ccc-service"].version).not.to.be.eq(resultFirst?.builds["ccc-service"].version)
-      expect(resultSecond?.builds["bbb-service"].version).not.to.be.eq(resultFirst?.builds["bbb-service"].version)
-      expect(resultSecond?.builds["aaa-service"].version).not.to.be.eq(resultFirst?.builds["aaa-service"].version)
+      // expect(Object.keys(resultSecond?.builds!).length).to.be.eq(3)
+      expect(graphResultSecond?.["build.ccc-service"]?.version).not.to.be.eq(
+        graphResultFirst?.["build.ccc-service"]?.version
+      )
+      expect(graphResultSecond?.["build.bbb-service"]?.version).not.to.be.eq(
+        graphResultFirst?.["build.bbb-service"]?.version
+      )
+      expect(graphResultSecond?.["build.aaa-service"]?.version).not.to.be.eq(
+        graphResultFirst?.["build.aaa-service"]?.version
+      )
     })
 
     it("should rebuild module and dependants if with-dependants flag has been passed", async () => {
       const { result: resultFirst } = await buildCommand.action({
         garden: await getFreshTestGarden(),
         ...defaultOpts,
-        args: { modules: undefined }, // all
+        args: { names: undefined }, // all
         opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": false }),
       })
+      const graphResultFirst = resultFirst?.graphResults
 
       await writeFile(join(projectPath, "C/file.txt"), "module c has been modified")
 
       const { result: resultSecond } = await buildCommand.action({
         garden: await getFreshTestGarden(),
         ...defaultOpts,
-        args: { modules: ["bbb-service"] },
+        args: { names: ["bbb-service"] },
         opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": true }), // <---
       })
+      const graphResultSecond = resultSecond?.graphResults
 
-      expect(Object.keys(resultSecond?.builds!).length).to.be.eq(4)
-      expect(resultSecond?.builds["aaa-service"].version).not.to.be.eq(resultFirst?.builds["aaa-service"].version)
-      expect(resultSecond?.builds["bbb-service"].version).not.to.be.eq(resultFirst?.builds["bbb-service"].version)
-      expect(resultSecond?.builds["ccc-service"].version).not.to.be.eq(resultFirst?.builds["ccc-service"].version)
-      expect(resultSecond?.builds["ddd-service"].version).not.to.be.eq(resultFirst?.builds["ddd-service"].version)
+      // expect(Object.keys(resultSecond?.builds!).length).to.be.eq(4)
+      expect(graphResultSecond?.["build.aaa-service"]?.version).not.to.be.eq(
+        graphResultFirst?.["build.aaa-service"]?.version
+      )
+      expect(graphResultSecond?.["build.bbb-service"]?.version).not.to.be.eq(
+        graphResultFirst?.["build.bbb-service"]?.version
+      )
+      expect(graphResultSecond?.["build.ccc-service"]?.version).not.to.be.eq(
+        graphResultFirst?.["build.ccc-service"]?.version
+      )
+      expect(graphResultSecond?.["build.ddd-service"]?.version).not.to.be.eq(
+        graphResultFirst?.["build.ddd-service"]?.version
+      )
     })
 
     it("should rebuild only necessary modules after changes even if with-dependants flag has been passed", async () => {
       const { result: resultFirst } = await buildCommand.action({
         garden: await getFreshTestGarden(),
         ...defaultOpts,
-        args: { modules: undefined }, // all
+        args: { names: undefined }, // all
         opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": false }),
       })
+      const graphResultFirst = resultFirst?.graphResults
 
       await writeFile(join(projectPath, "B/file.txt"), "module b has been modified")
 
       const { result: resultSecond } = await buildCommand.action({
         garden: await getFreshTestGarden(),
         ...defaultOpts,
-        args: { modules: ["bbb-service"] },
+        args: { names: ["bbb-service"] },
         opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": true }), // <---
       })
+      const graphResultSecond = resultSecond?.graphResults
 
-      expect(Object.keys(resultSecond?.builds!).length).to.be.eq(4)
-      expect(resultSecond?.builds["aaa-service"].version).not.to.be.eq(resultFirst?.builds["aaa-service"].version)
-      expect(resultSecond?.builds["bbb-service"].version).not.to.be.eq(resultFirst?.builds["bbb-service"].version)
-      expect(resultSecond?.builds["ddd-service"].version).not.to.be.eq(resultFirst?.builds["ddd-service"].version)
-      expect(resultSecond?.builds["ccc-service"].version, "c should be equal as it has not been changed").to.be.eq(
-        resultFirst?.builds["ccc-service"].version
+      // expect(Object.keys(resultSecond?.builds!).length).to.be.eq(4)
+      expect(graphResultSecond?.["build.aaa-service"]?.version).not.to.be.eq(
+        graphResultFirst?.["build.aaa-service"]?.version
       )
+      expect(graphResultSecond?.["build.bbb-service"]?.version).not.to.be.eq(
+        graphResultFirst?.["build.bbb-service"]?.version
+      )
+      expect(graphResultSecond?.["build.ddd-service"]?.version).not.to.be.eq(
+        graphResultFirst?.["build.ddd-service"]?.version
+      )
+      expect(
+        graphResultSecond?.["build.ccc-service"]?.version,
+        "c should be equal as it has not been changed"
+      ).to.be.eq(resultFirst?.["build.ccc-service"].version)
     })
 
     it("should not rebuild dependency after changes", async () => {
       const { result: resultFirst } = await buildCommand.action({
         garden: await getFreshTestGarden(),
         ...defaultOpts,
-        args: { modules: undefined }, // all
+        args: { names: undefined }, // all
         opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": false }),
       })
+      const graphResultFirst = resultFirst?.graphResults
 
       await writeFile(join(projectPath, "B/file.txt"), "module b has been modified")
 
       const { result: resultSecond } = await buildCommand.action({
         garden: await getFreshTestGarden(),
         ...defaultOpts,
-        args: { modules: ["bbb-service"] },
+        args: { names: ["bbb-service"] },
         opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": false }),
       })
+      const graphResultSecond = resultSecond?.graphResults
 
-      expect(Object.keys(resultSecond?.builds!).length).to.be.eq(2)
-      expect(resultSecond?.builds["bbb-service"].version, "b should change as it was updated").not.to.be.eq(
-        resultFirst?.builds["bbb-service"].version
+      // expect(Object.keys(resultSecond?.builds!).length).to.be.eq(2)
+      expect(graphResultSecond?.["build.bbb-service"]?.version, "b should change as it was updated").not.to.be.eq(
+        graphResultFirst?.["build.bbb-service"]?.version
       )
-      expect(resultSecond?.builds["ccc-service"].version, "c should not change as it was not updated").to.be.eq(
-        resultFirst?.builds["ccc-service"].version
+      expect(graphResultSecond?.["build.ccc-service"]?.version, "c should not change as it was not updated").to.be.eq(
+        graphResultFirst?.["build.ccc-service"]?.version
       )
     })
   })
