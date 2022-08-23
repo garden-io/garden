@@ -73,7 +73,7 @@ interface PrepareRuntimeContextParams {
 /**
  * This function prepares the "runtime context" that's used to inform action about any dependency outputs.
  * It includes environment variables, that can be directly passed by provider handlers  to the underlying platform
- * (e.g. container environments), as well as a more detailed list of all  dependencies and the outputs for each of them.
+ * (e.g. container environments), as well as a more detailed list of all dependencies and the outputs for each of them.
  *
  * This should be called just ahead of calling relevant action handlers.
  */
