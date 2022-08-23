@@ -253,12 +253,13 @@ describe("getDevCommandWatchTasks", () => {
     const log = garden.log
     const graph = await garden.getConfigGraph({ log, emit: false })
 
+    // TODO-G2: fix the semantics of the test
+    const deployAction = graph.getDeploy("deploy.module-b.service-b")
     const watchTasks = await getDevCommandWatchTasks({
       garden,
       log,
       updatedGraph: graph,
-      // TODO-G2: fix this
-      updatedAction: undefined,
+      updatedAction: deployAction,
       // module: graph.getModule("module-b"),
       //servicesWatched: graph.getDeploys().map((s) => s.name),
       devModeDeployNames: [],
