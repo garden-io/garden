@@ -20,6 +20,7 @@ import { getModuleTypes } from "../../../../../src/plugins"
 import { getSupportedPlugins } from "../../../../../src/plugins/plugins"
 import inquirer = require("inquirer")
 import { defaultConfigFilename } from "../../../../../src/util/fs"
+import { helmChartYamlFilename } from "../../../../../src/plugins/kubernetes/helm/common"
 
 describe("CreateModuleCommand", () => {
   const command = new CreateModuleCommand()
