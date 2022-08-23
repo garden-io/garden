@@ -11,7 +11,7 @@ import {
   expectError,
   makeTestGardenA,
   getDataDir,
-  configureTestModule,
+  customizedTestPlugin,
   withDefaultGlobalOpts,
   makeTestGarden,
   makeModuleConfig,
@@ -20,12 +20,12 @@ import {
 import { expect } from "chai"
 import { ServiceStatus } from "../../../../src/types/service"
 import { EnvironmentStatus } from "../../../../src/plugin/handlers/provider/getEnvironmentStatus"
-import { DeleteServiceParams } from "../../../../src/types/plugin/service/deleteService"
-import { createGardenPlugin } from "../../../../src/plugin/plugin"
-import { testModuleSpecSchema } from "../../../helpers"
 import { ModuleConfig } from "../../../../src/config/module"
 import { LogEntry } from "../../../../src/logger/log-entry"
+import { execDeployActionSchema } from "../../../../src/plugins/exec/config"
+import { ActionStatus } from "../../../../src/actions/base"
 
+// TODO-G2: rename test cases to match the new graph model semantics
 describe("DeleteSecretCommand", () => {
   const pluginName = "test-plugin"
   const provider = pluginName
@@ -135,7 +135,7 @@ describe("DeleteEnvironmentCommand", () => {
   let garden: TestGarden
   let log: LogEntry
 
-  const testProvider = createGardenPlugin({
+  const testProvider = customizedTestPlugin({
     name: "test-plugin",
     handlers: {
       cleanupEnvironment: async ({ ctx }) => {
@@ -146,22 +146,28 @@ describe("DeleteEnvironmentCommand", () => {
         return testEnvStatuses[ctx.environmentName] || { ready: true, outputs: {} }
       },
     },
-    createModuleTypes: [
-      {
-        name: "test",
-        docs: "Test plugin",
-        schema: testModuleSpecSchema(),
-        handlers: {
-          configure: configureTestModule,
-          getServiceStatus,
-          deleteService: async ({ service }): Promise<ServiceStatus> => {
-            deletedServices.push(service.name)
-            deleteOrder.push(service.name)
-            return { state: "missing", detail: {} }
+    createActionTypes: {
+      Deploy: [
+        {
+          name: "test",
+          docs: "Test Deploy action",
+          schema: execDeployActionSchema(),
+          handlers: {
+            deploy: async () => {
+              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+            },
+            getStatus: async () => {
+              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+            },
+            delete: async (params) => {
+              deletedServices.push(params.action.name)
+              deleteOrder.push(params.action.name)
+              return { state: "unknown", detail: { state: "unknown", detail: {} }, outputs: {} }
+            },
           },
         },
-      },
-    ],
+      ],
+    },
   })
 
   beforeEach(async () => {
@@ -211,7 +217,7 @@ describe("DeleteEnvironmentCommand", () => {
       expect(command.outputsSchema().validate(result).error).to.be.undefined
 
       expect(result!.providerStatuses["test-plugin"]["ready"]).to.be.false
-      expect(result!.serviceStatuses).to.eql({
+      expect(result!.deployStatuses).to.eql({
         "service-a": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
         "service-b": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
         "service-c": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
@@ -232,46 +238,52 @@ describe("DeleteEnvironmentCommand", () => {
 describe("DeleteServiceCommand", () => {
   let deleteOrder: string[] = []
 
-  const testStatuses: { [key: string]: ServiceStatus } = {
+  const testStatuses: { [key: string]: ActionStatus } = {
     "service-a": {
       state: "unknown",
-      ingresses: [],
-      detail: {},
+      detail: { state: "unknown", detail: {} },
+      outputs: {},
     },
     "service-b": {
       state: "unknown",
-      ingresses: [],
-      detail: {},
+      detail: { state: "unknown", detail: {} },
+      outputs: {},
     },
     "service-c": {
       state: "unknown",
-      ingresses: [],
-      detail: {},
+      detail: { state: "unknown", detail: {} },
+      outputs: {},
     },
     "service-d": {
       state: "unknown",
-      ingresses: [],
-      detail: {},
+      detail: { state: "unknown", detail: {} },
+      outputs: {},
     },
   }
 
-  const testProvider = createGardenPlugin({
+  const testProvider = customizedTestPlugin({
     name: "test-plugin",
-    createModuleTypes: [
-      {
-        name: "test",
-        docs: "Test plugin",
-        schema: testModuleSpecSchema(),
-        handlers: {
-          configure: configureTestModule,
-          getServiceStatus,
-          deleteService: async ({ service }: DeleteServiceParams) => {
-            deleteOrder.push(service.name)
-            return testStatuses[service.name]
+    createActionTypes: {
+      Deploy: [
+        {
+          name: "test",
+          docs: "Test Deploy action",
+          schema: execDeployActionSchema(),
+          handlers: {
+            deploy: async () => {
+              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+            },
+            getStatus: async () => {
+              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+            },
+            delete: async (params) => {
+              deleteOrder.push(params.action.name)
+              return testStatuses[params.action.name]
+            },
           },
         },
-      },
-    ],
+      ],
+    },
   })
 
   const plugins = [testProvider]
@@ -328,7 +340,7 @@ describe("DeleteServiceCommand", () => {
         log,
         headerLog: log,
         footerLog: log,
-        args: { services: ["service-a", "service-b", "service-c"] },
+        args: { names: ["service-a", "service-b", "service-c"] },
         opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": true }),
       })
       expect(deleteOrder).to.eql(["service-c", "service-b", "service-a"])
@@ -347,7 +359,7 @@ describe("DeleteServiceCommand", () => {
         log,
         headerLog: log,
         footerLog: log,
-        args: { services: ["service-a"] },
+        args: { names: ["service-a"] },
         opts: withDefaultGlobalOpts({ "with-dependants": true, "dependants-first": false }),
       })
       expect(deleteOrder).to.eql(["service-d", "service-c", "service-b", "service-a"])
