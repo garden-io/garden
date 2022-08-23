@@ -11,22 +11,21 @@ import {
   dataDir,
   expectError,
   withDefaultGlobalOpts,
-  configureTestModule,
-  testModuleSpecSchema,
   cleanProject,
   TestGarden,
   makeTestGarden,
+  customizedTestPlugin,
 } from "../../../../helpers"
 import { GetRunResultCommand } from "../../../../../src/commands/get/get-run-result"
 import { expect } from "chai"
-import { createGardenPlugin } from "../../../../../src/plugin/plugin"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { getArtifactKey } from "../../../../../src/util/artifacts"
 import { writeFile } from "fs-extra"
+import { execRunActionSchema } from "../../../../../src/plugins/exec/config"
 
 const now = new Date()
 
-const taskResults = {
+const runResults = {
   "task-a": {
     moduleName: "module-a",
     taskName: "task-a",
@@ -43,19 +42,35 @@ const taskResults = {
   "task-c": null,
 }
 
-const testPlugin = createGardenPlugin({
-  name: "test-plugin",
-  createModuleTypes: [
-    {
-      name: "test",
-      docs: "test",
-      schema: testModuleSpecSchema(),
-      handlers: {
-        configure: configureTestModule,
-        getTaskResult: async (params: GetTaskResultParams) => taskResults[params.task.name],
+// TODO-G2: remove commented code and ensure proper actions config
+// const testPlugin = createGardenPlugin({
+//   name: "test-plugin",
+//   createModuleTypes: [
+//     {
+//       name: "test",
+//       docs: "test",
+//       schema: testModuleSpecSchema(),
+//       handlers: {
+//         configure: configureTestModule,
+//         getTaskResult: async (params: GetTaskResultParams) => runResults[params.task.name],
+//       },
+//     },
+//   ],
+// })
+
+const testPlugin = customizedTestPlugin({
+  createActionTypes: {
+    Run: [
+      {
+        name: "test",
+        docs: "Test Run action",
+        schema: execRunActionSchema(),
+        handlers: {
+          run: (params) => runResults[params.action.name],
+        },
       },
-    },
-  ],
+    ],
+  },
 })
 
 describe("GetRunResultCommand", () => {
@@ -122,8 +137,8 @@ describe("GetRunResultCommand", () => {
     const name = "task-a"
 
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const task = graph.getTask("task-a")
-    const artifactKey = getArtifactKey("task", name, task.version)
+    const runAction = graph.getRun("task-a")
+    const artifactKey = getArtifactKey("task", name, runAction.versionString())
     const metadataPath = join(garden.artifactsPath, `.metadata.${artifactKey}.json`)
     const metadata = {
       key: artifactKey,
