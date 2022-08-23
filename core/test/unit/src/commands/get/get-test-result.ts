@@ -9,20 +9,18 @@
 import {
   expectError,
   withDefaultGlobalOpts,
-  configureTestModule,
   makeTestGardenA,
   cleanProject,
   TestGarden,
+  customizedTestPlugin,
 } from "../../../../helpers"
 import { GetTestResultCommand } from "../../../../../src/commands/get/get-test-result"
 import { expect } from "chai"
-import { GetTestResultParams } from "../../../../../src/types/plugin/module/getTestResult"
 import { LogEntry } from "../../../../../src/logger/log-entry"
-import { createGardenPlugin } from "../../../../../src/plugin/plugin"
-import { joi } from "../../../../../src/config/common"
 import { getArtifactKey } from "../../../../../src/util/artifacts"
 import { join } from "path"
 import { writeFile } from "fs-extra"
+import { execTestActionSchema } from "../../../../../src/plugins/exec/config"
 
 const now = new Date()
 
@@ -43,19 +41,35 @@ const testResults = {
   integration: null,
 }
 
-const testPlugin = createGardenPlugin({
-  name: "test-plugin",
-  createModuleTypes: [
-    {
-      name: "test",
-      docs: "test",
-      schema: joi.object(),
-      handlers: {
-        configure: configureTestModule,
-        getTestResult: async (params: GetTestResultParams) => testResults[params.test.name],
+// TODO-G2: remove commented code and ensure proper actions config
+// const testPlugin = createGardenPlugin({
+//   name: "test-plugin",
+//   createModuleTypes: [
+//     {
+//       name: "test",
+//       docs: "test",
+//       schema: joi.object(),
+//       handlers: {
+//         configure: configureTestModule,
+//         getTestResult: async (params: GetTestResultParams) => testResults[params.test.name],
+//       },
+//     },
+//   ],
+// })
+
+const testPlugin = customizedTestPlugin({
+  createActionTypes: {
+    Test: [
+      {
+        name: "test",
+        docs: "Test Test action",
+        schema: execTestActionSchema(),
+        handlers: {
+          getResult: async (params) => testResults[params.action.name],
+        },
       },
-    },
-  ],
+    ],
+  },
 })
 
 describe("GetTestResultCommand", () => {
@@ -83,7 +97,7 @@ describe("GetTestResultCommand", () => {
           log,
           headerLog: log,
           footerLog: log,
-          args: { name, module: moduleName },
+          args: { name, moduleTestName: moduleName },
           opts: withDefaultGlobalOpts({}),
         }),
       "not-found"
@@ -98,7 +112,7 @@ describe("GetTestResultCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { name, module: moduleName },
+      args: { name, moduleTestName: moduleName },
       opts: withDefaultGlobalOpts({}),
     })
 
@@ -124,8 +138,8 @@ describe("GetTestResultCommand", () => {
     const name = "unit"
 
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false, noCache: true })
-    const test = graph.getTest("module-a", "unit")
-    const artifactKey = getArtifactKey("test", name, test.version)
+    const testAction = graph.getTest("module-a.unit")
+    const artifactKey = getArtifactKey("test", name, testAction.versionString())
     const metadataPath = join(garden.artifactsPath, `.metadata.${artifactKey}.json`)
     const metadata = {
       key: artifactKey,
@@ -139,7 +153,7 @@ describe("GetTestResultCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { name, module: moduleName },
+      args: { name, moduleTestName: moduleName },
       opts: withDefaultGlobalOpts({}),
     })
 
@@ -167,7 +181,7 @@ describe("GetTestResultCommand", () => {
       log,
       footerLog: log,
       headerLog: log,
-      args: { name, module: moduleName },
+      args: { name, moduleTestName: moduleName },
       opts: withDefaultGlobalOpts({}),
     })
 

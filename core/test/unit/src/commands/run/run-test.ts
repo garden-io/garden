@@ -46,10 +46,10 @@ describe("RunTestCommand", () => {
 
     expect(cmd.outputsSchema().validate(result).error).to.be.undefined
 
-    expect(result!.result.durationMsec).to.gte(0)
-    expect(result!.result.startedAt).to.be.a("Date")
-    expect(result!.result.completedAt).to.be.a("Date")
-    expect(result!.result.version).to.be.a("string")
+    // expect(result!.result!.durationMsec).to.gte(0)
+    expect(result!.result!.startedAt).to.be.a("Date")
+    expect(result!.result!.completedAt).to.be.a("Date")
+    expect(result!.result!.version).to.be.a("string")
 
     expect(omit(result!.result, ["durationMsec", "startedAt", "completedAt", "version"])).to.eql({
       aborted: false,

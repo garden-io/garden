@@ -38,10 +38,12 @@ describe("Command", () => {
         }
 
         printHeader() {}
+
         async action() {
           return {}
         }
       }
+
       const cmd = new TestCommand()
 
       expect(trimLineEnds(stripAnsi(cmd.renderHelp())).trim()).to.equal(dedent`
@@ -68,10 +70,12 @@ describe("Command", () => {
         help = ""
 
         printHeader() {}
+
         async action() {
           return {}
         }
       }
+
       const cmd = new TestCommand()
       expect(cmd.getPaths()).to.eql([["test-command"]])
     })
@@ -83,10 +87,12 @@ describe("Command", () => {
         help = ""
 
         printHeader() {}
+
         async action() {
           return {}
         }
       }
+
       const cmd = new TestCommand()
       expect(cmd.getPaths()).to.eql([["test-command"], ["some-alias"]])
     })
@@ -97,16 +103,19 @@ describe("Command", () => {
         help = ""
 
         printHeader() {}
+
         async action() {
           return {}
         }
       }
+
       class TestGroup extends CommandGroup {
         name = "test-group"
         help = ""
 
         subCommands = [TestCommand]
       }
+
       const cmd = new TestCommand(new TestGroup())
       expect(cmd.getPaths()).to.eql([["test-group", "test-command"]])
     })
@@ -117,10 +126,12 @@ describe("Command", () => {
         help = ""
 
         printHeader() {}
+
         async action() {
           return {}
         }
       }
+
       class TestGroup extends CommandGroup {
         name = "test-group"
         aliases = ["group-alias"]
@@ -128,6 +139,7 @@ describe("Command", () => {
 
         subCommands = [TestCommand]
       }
+
       const cmd = new TestCommand(new TestGroup())
       expect(cmd.getPaths()).to.eql([
         ["test-group", "test-command"],
@@ -142,16 +154,19 @@ describe("Command", () => {
         help = ""
 
         printHeader() {}
+
         async action() {
           return {}
         }
       }
+
       class TestGroup extends CommandGroup {
         name = "test-group"
         help = ""
 
         subCommands = [TestCommand]
       }
+
       const cmd = new TestCommand(new TestGroup())
       expect(cmd.getPaths()).to.eql([
         ["test-group", "test-command"],
@@ -166,10 +181,12 @@ describe("Command", () => {
         help = ""
 
         printHeader() {}
+
         async action() {
           return {}
         }
       }
+
       class TestGroup extends CommandGroup {
         name = "test-group"
         aliases = ["group-alias"]
@@ -177,6 +194,7 @@ describe("Command", () => {
 
         subCommands = [TestCommand]
       }
+
       const cmd = new TestCommand(new TestGroup())
       expect(cmd.getPaths()).to.eql([
         ["test-group", "test-command"],
@@ -196,31 +214,37 @@ describe("CommandGroup", () => {
         help = ""
 
         printHeader() {}
+
         async action() {
           return {}
         }
       }
+
       class TestSubgroupA extends CommandGroup {
         name = "test-group-a"
         help = ""
 
         subCommands = [TestCommandA]
       }
+
       class TestCommandB extends Command {
         name = "test-command-b"
         help = ""
 
         printHeader() {}
+
         async action() {
           return {}
         }
       }
+
       class TestSubgroupB extends CommandGroup {
         name = "test-group-b"
         help = ""
 
         subCommands = [TestCommandB]
       }
+
       class TestGroup extends CommandGroup {
         name = "test-group"
         help = ""
@@ -245,10 +269,12 @@ describe("CommandGroup", () => {
         help = "Some help text."
 
         printHeader() {}
+
         async action() {
           return {}
         }
       }
+
       class TestGroup extends CommandGroup {
         name = "test-group"
         help = ""
