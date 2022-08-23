@@ -20,6 +20,8 @@ import Bluebird from "bluebird"
 import { TestGardenOpts } from "../../../../src/util/testing"
 import { BuildDirRsync } from "../../../../src/build-staging/rsync"
 
+// TODO-G2: rename test cases to match the new graph model semantics
+
 /*
   Module dependency diagram for build-dir test project
 
@@ -331,11 +333,11 @@ describe("BuildStagingRsync", () => {
   describe("sync", () => {
     it("should not sync symlinks that point outside the module root", async () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const module = graph.getModule("symlink-outside-module")
+      const buildAction = graph.getBuild("symlink-outside-module")
 
-      await garden.buildStaging.syncFromSrc(module, garden.log)
+      await garden.buildStaging.syncFromSrc(buildAction, garden.log)
 
-      const buildDir = await garden.buildStaging.ensureBuildPath(module)
+      const buildDir = await garden.buildStaging.ensureBuildPath(buildAction.getConfig())
       expect(await pathExists(join(buildDir, "symlink.txt"))).to.be.false
     })
   })
@@ -371,25 +373,26 @@ function commonSyncTests(legacyBuildSync: boolean) {
   it("should sync dependency products to their specified destinations", async () => {
     try {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const modules = graph.getModules()
-      const tasks = modules.map(
-        (module) =>
-          new BuildTask({
-            garden,
-            graph,
-            log,
-            module,
-            force: true,
-            _guard: true,
-          })
-      )
+      // TODO-G2: check if we need to do task processing here
+      // const modules = graph.getModules()
+      // const tasks = modules.map(
+      //   (module) =>
+      //     new BuildTask({
+      //       garden,
+      //       graph,
+      //       log,
+      //       module,
+      //       force: true,
+      //       _guard: true,
+      //     })
+      // )
+      //
+      // await garden.processTasks(tasks)
 
-      await garden.processTasks(tasks)
-
-      const moduleD = await garden.resolveModule("module-d")
-      const moduleF = await garden.resolveModule("module-f")
-      const buildDirD = await buildStaging.ensureBuildPath(moduleD)
-      const buildDirF = await buildStaging.ensureBuildPath(moduleF)
+      const buildActionD = await graph.getBuild("module-d")
+      const buildActionF = await graph.getBuild("module-f")
+      const buildDirD = await buildStaging.ensureBuildPath(buildActionD.getConfig())
+      const buildDirF = await buildStaging.ensureBuildPath(buildActionF.getConfig())
 
       // All these destinations should be populated now.
       const buildProductDestinations = [
@@ -418,8 +421,8 @@ function commonSyncTests(legacyBuildSync: boolean) {
   describe("ensureBuildPath", () => {
     it("should ensure the build path and return it", async () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const moduleA = graph.getModule("module-a")
-      const buildDirA = await buildStaging.ensureBuildPath(moduleA)
+      const buildActionA = graph.getBuild("module-a")
+      const buildDirA = await buildStaging.ensureBuildPath(buildActionA.getConfig())
 
       expect(await pathExists(buildDirA)).to.eql(true)
       expect(buildDirA).to.eql(join(buildStaging.buildDirPath, "module-a"))
@@ -427,18 +430,18 @@ function commonSyncTests(legacyBuildSync: boolean) {
 
     it("should return the module path for a local exec modules", async () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const moduleE = graph.getModule("module-e")
-      const buildDirE = await buildStaging.ensureBuildPath(moduleE)
+      const buildActionE = graph.getBuild("module-e")
+      const buildDirE = await buildStaging.ensureBuildPath(buildActionE.getConfig())
 
-      expect(buildDirE).to.eql(moduleE.path)
+      expect(buildDirE).to.eql(buildActionE.getBuildPath())
     })
   })
 
   it("should sync sources to the build dir", async () => {
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const moduleA = graph.getModule("module-a")
-    await buildStaging.syncFromSrc(moduleA, garden.log)
-    const buildDirA = await buildStaging.ensureBuildPath(moduleA)
+    const buildActionA = graph.getBuild("module-a")
+    await buildStaging.syncFromSrc(buildActionA, garden.log)
+    const buildDirA = await buildStaging.ensureBuildPath(buildActionA.getConfig())
 
     const copiedPaths = [join(buildDirA, "some-dir", "some-file")]
 
@@ -458,30 +461,31 @@ function commonSyncTests(legacyBuildSync: boolean) {
   })
 
   it("should ensure that a module's build subdir exists before returning from buildPath", async () => {
-    const moduleA = await garden.resolveModule("module-a")
-    const buildPath = await buildStaging.ensureBuildPath(moduleA)
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    const buildActionA = await graph.getBuild("module-a")
+    const buildPath = await buildStaging.ensureBuildPath(buildActionA.getConfig())
     expect(await pathExists(buildPath)).to.eql(true)
   })
 
   describe("sync", () => {
     it("should not sync sources for local exec modules", async () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const moduleE = graph.getModule("module-e")
-      await buildStaging.syncFromSrc(moduleE, garden.log)
+      const buildActionE = graph.getBuild("module-e")
+      await buildStaging.syncFromSrc(buildActionE, garden.log)
       // This is the dir Garden would have synced the sources into
-      const buildDirF = join(buildStaging.buildDirPath, moduleE.name)
+      const buildDirF = join(buildStaging.buildDirPath, buildActionE.name)
 
       expect(await pathExists(buildDirF)).to.eql(false)
     })
 
     it("should respect the file list in the module's version", async () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const moduleA = graph.getModule("module-a")
+      const buildActionA = graph.getBuild("module-a")
 
-      moduleA.version.files = [join(moduleA.path, defaultConfigFilename)]
+      buildActionA.getFullVersion().files = [join(buildActionA.getBuildPath(), defaultConfigFilename)]
 
-      await buildStaging.syncFromSrc(moduleA, garden.log)
-      const buildDirA = await buildStaging.ensureBuildPath(moduleA)
+      await buildStaging.syncFromSrc(buildActionA, garden.log)
+      const buildDirA = await buildStaging.ensureBuildPath(buildActionA.getConfig())
 
       expect(await pathExists(join(buildDirA, defaultConfigFilename))).to.eql(true)
       expect(await pathExists(join(buildDirA, "some-dir", "some-file"))).to.eql(false)
@@ -489,49 +493,49 @@ function commonSyncTests(legacyBuildSync: boolean) {
 
     it("should delete files that are not being synced from the module source directory", async () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const moduleA = graph.getModule("module-a")
+      const buildActionA = graph.getBuild("module-a")
 
-      const buildDirA = await buildStaging.ensureBuildPath(moduleA)
+      const buildDirA = await buildStaging.ensureBuildPath(buildActionA.getConfig())
       const deleteMe = join(buildDirA, "delete-me")
 
       await createFile(deleteMe)
 
-      moduleA.version.files = [join(moduleA.path, defaultConfigFilename)]
+      buildActionA.getFullVersion().files = [join(buildActionA.getBuildPath(), defaultConfigFilename)]
 
-      await buildStaging.syncFromSrc(moduleA, garden.log)
+      await buildStaging.syncFromSrc(buildActionA, garden.log)
 
       expect(await pathExists(deleteMe)).to.be.false
     })
 
     it("should sync hidden files and directories (names starting with .)", async () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const module = graph.getModule("hidden-files")
+      const buildAction = graph.getBuild("hidden-files")
 
-      await buildStaging.syncFromSrc(module, garden.log)
+      await buildStaging.syncFromSrc(buildAction, garden.log)
 
-      const buildDir = await buildStaging.ensureBuildPath(module)
+      const buildDir = await buildStaging.ensureBuildPath(buildAction.getConfig())
       expect(await pathExists(join(buildDir, ".hidden-file"))).to.be.true
       expect(await pathExists(join(buildDir, ".hidden-dir", "something"))).to.be.true
     })
 
     it("should sync symlinks that point within the module root", async () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const module = graph.getModule("symlink-within-module")
+      const buildAction = graph.getBuild("symlink-within-module")
 
-      await buildStaging.syncFromSrc(module, garden.log)
+      await buildStaging.syncFromSrc(buildAction, garden.log)
 
-      const buildDir = await buildStaging.ensureBuildPath(module)
+      const buildDir = await buildStaging.ensureBuildPath(buildAction.getConfig())
       expect(await pathExists(join(buildDir, "symlink.txt"))).to.be.true
       expect(await pathExists(join(buildDir, "nested", "symlink.txt"))).to.be.true
     })
 
     it("should not sync absolute symlinks", async () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const module = graph.getModule("symlink-absolute")
+      const buildAction = graph.getBuild("symlink-absolute")
 
-      await buildStaging.syncFromSrc(module, garden.log)
+      await buildStaging.syncFromSrc(buildAction, garden.log)
 
-      const buildDir = await buildStaging.ensureBuildPath(module)
+      const buildDir = await buildStaging.ensureBuildPath(buildAction.getConfig())
       expect(await pathExists(join(buildDir, "symlink.txt"))).to.be.false
     })
 
