@@ -11,7 +11,13 @@ import { makeTestGardenA } from "../../helpers"
 import { ConfigGraph } from "../../../src/graph/config-graph"
 import { prepareRuntimeContext } from "../../../src/runtime-context"
 import { expect } from "chai"
+import { ActionDependency } from "../../../src/actions/base"
+import { GraphResults } from "../../../src/graph/results"
+import { BuildTask } from "../../../src/tasks/build"
 
+// TODO-G2: remove this commented code after all tests are fixed.
+//  The code has been left for the additional context here.
+// TODO-G2: reduce repeated code and extract helper methods (or create parameterizable tests) after all tests are fixed.
 describe("prepareRuntimeContext", () => {
   let garden: Garden
   let graph: ConfigGraph
@@ -22,86 +28,170 @@ describe("prepareRuntimeContext", () => {
   })
 
   it("should add the module version to the output envVars", async () => {
-    const module = graph.getModule("module-a")
+    // const module = graph.getModule("module-a")
+    //
+    // const runtimeContext = await prepareRuntimeContext({
+    //   garden,
+    //   graph,
+    //   version: module.version.versionString,
+    //   moduleVersion: module.version.versionString,
+    //   dependencies: {
+    //     build: [],
+    //     deploy: [],
+    //     run: [],
+    //     test: [],
+    //   },
+    //   serviceStatuses: {},
+    //   taskResults: {},
+    // })
 
-    const runtimeContext = await prepareRuntimeContext({
+    const buildActionA = graph.getBuild("module-a")
+
+    const buildTaskA = new BuildTask({
       garden,
       graph,
-      version: module.version.versionString,
-      moduleVersion: module.version.versionString,
-      dependencies: {
-        build: [],
-        deploy: [],
-        run: [],
-        test: [],
-      },
-      serviceStatuses: {},
-      taskResults: {},
+      log: garden.log,
+      action: buildActionA,
+      fromWatch: false,
+      force: false,
+      devModeDeployNames: [],
+      localModeDeployNames: [],
     })
 
-    expect(runtimeContext.envVars.GARDEN_VERSION).to.equal(module.version.versionString)
-    expect(runtimeContext.envVars.GARDEN_MODULE_VERSION).to.equal(module.version.versionString)
+    const graphResults = new GraphResults([buildTaskA])
+    // TODO-G2: construct the valid result object here
+    // const result: GraphResultFromTask<BuildTask> = {}
+    // graphResults.setResult(buildTaskA, result)
+
+    const runtimeContext = await prepareRuntimeContext({
+      action: buildActionA,
+      graph,
+      graphResults,
+    })
+
+    expect(runtimeContext.envVars.GARDEN_VERSION).to.equal(buildActionA.versionString())
+    expect(runtimeContext.envVars.GARDEN_MODULE_VERSION).to.equal(buildActionA.versionString())
   })
 
   it("should add outputs for every build dependency output", async () => {
-    const module = graph.getModule("module-a")
-    const moduleB = graph.getModule("module-b")
+    // const module = graph.getModule("module-a")
+    // const moduleB = graph.getModule("module-b")
+    //
+    // moduleB.outputs = { "my-output": "meep" }
+    //
+    // const runtimeContext = await prepareRuntimeContext({
+    //   garden,
+    //   graph,
+    //   version: module.version.versionString,
+    //   moduleVersion: module.version.versionString,
+    //   dependencies: {
+    //     build: [moduleB],
+    //     deploy: [],
+    //     run: [],
+    //     test: [],
+    //   },
+    //   serviceStatuses: {},
+    //   taskResults: {},
+    // })
 
-    moduleB.outputs = { "my-output": "meep" }
+    const buildActionA = graph.getBuild("module-a")
+    const buildActionB = graph.getBuild("module-b")
 
-    const runtimeContext = await prepareRuntimeContext({
+    const depRef: ActionDependency = { kind: "Build", name: "module-b", type: "explicit" }
+    buildActionA.addDependency(depRef)
+
+    const outputs = { "my-output": "meep" }
+
+    const buildTaskA = new BuildTask({
       garden,
       graph,
-      version: module.version.versionString,
-      moduleVersion: module.version.versionString,
-      dependencies: {
-        build: [moduleB],
-        deploy: [],
-        run: [],
-        test: [],
-      },
-      serviceStatuses: {},
-      taskResults: {},
+      log: garden.log,
+      action: buildActionA,
+      fromWatch: false,
+      force: false,
+      devModeDeployNames: [],
+      localModeDeployNames: [],
+    })
+
+    const graphResults = new GraphResults([buildTaskA])
+    // TODO-G2: construct the valid result object here, and include the outputs defined above
+    // const result: GraphResultFromTask<BuildTask> = {}
+    // graphResults.setResult(buildTaskA, result)
+
+    const runtimeContext = await prepareRuntimeContext({
+      action: buildActionA,
+      graph,
+      graphResults,
     })
 
     expect(runtimeContext.dependencies).to.eql([
       {
         moduleName: "module-b",
         name: "module-b",
-        outputs: moduleB.outputs,
+        outputs,
         type: "build",
-        version: moduleB.version.versionString,
+        version: buildActionB.versionString(),
       },
     ])
   })
 
   it("should add outputs for every service dependency runtime output", async () => {
-    const module = graph.getModule("module-a")
-    const serviceB = graph.getDeploy("service-b")
+    // const module = graph.getModule("module-a")
+    // const serviceB = graph.getDeploy("service-b")
+    //
+    // const outputs = {
+    //   "my-output": "moop",
+    // }
+    //
+    // const runtimeContext = await prepareRuntimeContext({
+    //   garden,
+    //   graph,
+    //   version: module.version.versionString,
+    //   moduleVersion: module.version.versionString,
+    //   dependencies: {
+    //     build: [],
+    //     deploy: [serviceB],
+    //     run: [],
+    //     test: [],
+    //   },
+    //   serviceStatuses: {
+    //     "service-b": {
+    //       state: "ready",
+    //       outputs,
+    //       detail: {},
+    //     },
+    //   },
+    //   taskResults: {},
+    // })
 
-    const outputs = {
-      "my-output": "moop",
-    }
+    const buildActionA = graph.getBuild("module-a")
+    const deployActionB = graph.getDeploy("service-b")
 
-    const runtimeContext = await prepareRuntimeContext({
+    const depRef: ActionDependency = { kind: "Deploy", name: "service-b", type: "explicit" }
+    buildActionA.addDependency(depRef)
+
+    const outputs = { "my-output": "moop" }
+
+    const buildTaskA = new BuildTask({
       garden,
       graph,
-      version: module.version.versionString,
-      moduleVersion: module.version.versionString,
-      dependencies: {
-        build: [],
-        deploy: [serviceB],
-        run: [],
-        test: [],
-      },
-      serviceStatuses: {
-        "service-b": {
-          state: "ready",
-          outputs,
-          detail: {},
-        },
-      },
-      taskResults: {},
+      log: garden.log,
+      action: buildActionA,
+      fromWatch: false,
+      force: false,
+      devModeDeployNames: [],
+      localModeDeployNames: [],
+    })
+
+    const graphResults = new GraphResults([buildTaskA])
+    // TODO-G2: construct the valid result object here, and include the outputs defined above
+    // const result: GraphResultFromTask<BuildTask> = {}
+    // graphResults.setResult(buildTaskA, result)
+
+    const runtimeContext = await prepareRuntimeContext({
+      action: buildActionA,
+      graph,
+      graphResults,
     })
 
     expect(runtimeContext.dependencies).to.eql([
@@ -110,44 +200,74 @@ describe("prepareRuntimeContext", () => {
         name: "service-b",
         outputs,
         type: "service",
-        version: serviceB.versionString(),
+        version: deployActionB.versionString(),
       },
     ])
   })
 
   it("should add outputs for every task dependency runtime output", async () => {
-    const module = graph.getModule("module-a")
-    const taskB = graph.getRun("task-b")
+    // const module = graph.getModule("module-a")
+    // const taskB = graph.getRun("task-b")
+    //
+    // const outputs = {
+    //   "my-output": "mewp",
+    // }
+    //
+    // const runtimeContext = await prepareRuntimeContext({
+    //   garden,
+    //   graph,
+    //   version: module.version.versionString,
+    //   moduleVersion: module.version.versionString,
+    //   dependencies: {
+    //     build: [],
+    //     deploy: [],
+    //     run: [taskB],
+    //     test: [],
+    //   },
+    //   serviceStatuses: {},
+    //   taskResults: {
+    //     "task-b": {
+    //       command: ["foo"],
+    //       completedAt: new Date(),
+    //       log: "mewp",
+    //       moduleName: "module-b",
+    //       outputs,
+    //       startedAt: new Date(),
+    //       success: true,
+    //       taskName: "task-b",
+    //       version: taskB.versionString(),
+    //     },
+    //   },
+    // })
 
-    const outputs = {
-      "my-output": "mewp",
-    }
+    const buildActionA = graph.getBuild("module-a")
+    const runActionB = graph.getRun("task-b")
 
-    const runtimeContext = await prepareRuntimeContext({
+    const depRef: ActionDependency = { kind: "Run", name: "task-b", type: "explicit" }
+    buildActionA.addDependency(depRef)
+
+    const outputs = { "my-output": "mewp" }
+
+    const buildTaskA = new BuildTask({
       garden,
       graph,
-      version: module.version.versionString,
-      moduleVersion: module.version.versionString,
-      dependencies: {
-        build: [],
-        deploy: [],
-        run: [taskB],
-        test: [],
-      },
-      serviceStatuses: {},
-      taskResults: {
-        "task-b": {
-          command: ["foo"],
-          completedAt: new Date(),
-          log: "mewp",
-          moduleName: "module-b",
-          outputs,
-          startedAt: new Date(),
-          success: true,
-          taskName: "task-b",
-          version: taskB.versionString(),
-        },
-      },
+      log: garden.log,
+      action: buildActionA,
+      fromWatch: false,
+      force: false,
+      devModeDeployNames: [],
+      localModeDeployNames: [],
+    })
+
+    const graphResults = new GraphResults([buildTaskA])
+    // TODO-G2: construct the valid result object here, and include the outputs defined above
+    // const result: GraphResultFromTask<BuildTask> = {}
+    // graphResults.setResult(buildTaskA, result)
+
+    const runtimeContext = await prepareRuntimeContext({
+      action: buildActionA,
+      graph,
+      graphResults,
     })
 
     expect(runtimeContext.dependencies).to.eql([
@@ -156,7 +276,7 @@ describe("prepareRuntimeContext", () => {
         name: "task-b",
         outputs,
         type: "task",
-        version: taskB.versionString(),
+        version: runActionB.versionString(),
       },
     ])
   })
