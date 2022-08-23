@@ -77,7 +77,7 @@ describe("prepareRuntimeContext", () => {
 
   it("should add outputs for every service dependency runtime output", async () => {
     const module = graph.getModule("module-a")
-    const serviceB = graph.getService("service-b")
+    const serviceB = graph.getDeploy("service-b")
 
     const outputs = {
       "my-output": "moop",
@@ -110,14 +110,14 @@ describe("prepareRuntimeContext", () => {
         name: "service-b",
         outputs,
         type: "service",
-        version: serviceB.version,
+        version: serviceB.versionString(),
       },
     ])
   })
 
   it("should add outputs for every task dependency runtime output", async () => {
     const module = graph.getModule("module-a")
-    const taskB = graph.getTask("task-b")
+    const taskB = graph.getRun("task-b")
 
     const outputs = {
       "my-output": "mewp",
@@ -145,7 +145,7 @@ describe("prepareRuntimeContext", () => {
           startedAt: new Date(),
           success: true,
           taskName: "task-b",
-          version: taskB.version,
+          version: taskB.versionString(),
         },
       },
     })
@@ -156,7 +156,7 @@ describe("prepareRuntimeContext", () => {
         name: "task-b",
         outputs,
         type: "task",
-        version: taskB.version,
+        version: taskB.versionString(),
       },
     ])
   })
