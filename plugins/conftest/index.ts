@@ -27,6 +27,7 @@ import { TestAction, TestActionConfig } from "@garden-io/core/build/src/actions/
 import { TestActionHandlers } from "../../core/build/src/plugin/action-types"
 import { uniq } from "lodash"
 import { HelmDeployAction } from "@garden-io/core/build/src/plugins/kubernetes/helm/config"
+import { actionRefMatches, Resolved } from "@garden-io/core/build/src/actions/base"
 
 export interface ConftestProviderConfig extends GenericProviderConfig {
   policyPath: string
@@ -237,8 +238,10 @@ export const gardenPlugin = () =>
               const k8sProvider = getK8sProvider(ctx.provider.dependencies)
               const k8sCtx = { ...ctx, provider: k8sProvider }
 
-              const sourceAction = <HelmDeployAction | null>(
-                action.getDependency({ kind: "Deploy", name: spec.helmDeploy })
+              const sourceAction = <Resolved<HelmDeployAction> | null>(
+                (action
+                  .getResolvedDependencies()
+                  .find((d) => actionRefMatches(d, { kind: "Deploy", name: spec.helmDeploy })) || null)
               )
 
               if (!sourceAction) {
