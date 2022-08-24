@@ -25,6 +25,11 @@ import {
   defaultDockerfileName,
 } from "../../../../../src/plugins/container/helpers"
 import { getDockerBuildFlags } from "../../../../../src/plugins/container/build"
+import { actionFromConfig } from "../../../../../src/graph/actions"
+import { convertModule } from "../../../../../src/plugin/handlers/module/convert"
+import { convertModules } from "../../../../../src/resolve-module"
+import { BuildAction, BuildActionConfig } from "../../../../../src/actions/build"
+import { ModuleConfig } from "../../../../../src/config/module"
 
 describe("plugins.container", () => {
   const projectRoot = resolve(dataDir, "test-project-container")
@@ -32,7 +37,7 @@ describe("plugins.container", () => {
   const relDockerfilePath = "docker-dir/Dockerfile"
 
   const plugin = gardenPlugin()
-  const handlers = plugin.createModuleTypes![0].handlers
+  const handlers = plugin.createActionTypes![0].handlers
   const configure = handlers.configure!
   const build = handlers.build!
   const publishModule = handlers.publish!
@@ -86,6 +91,18 @@ describe("plugins.container", () => {
   async function getTestModule(moduleConfig: ContainerModuleConfig) {
     const parsed = await configure({ ctx, moduleConfig, log })
     return moduleFromConfig({ garden, log, config: parsed.moduleConfig, buildDependencies: [], forceVersion: true })
+  }
+
+  async function getTestBuildAction(moduleConfig: ModuleConfig<any, any, any, any>) {
+    const parsed = await configure({ ctx, moduleConfig, log })
+    return actionFromConfig({
+      garden,
+      log,
+      config: parsed.moduleConfig,
+      configsByKey: [],
+      router: await garden.getActionRouter(),
+      graph: await garden.getConfigGraph({ log, emit: false }),
+    }) as Promise<BuildAction>
   }
 
   it("has a stable build version even if a services, tests and tasks are added", async () => {
@@ -1190,7 +1207,7 @@ describe("plugins.container", () => {
     it("should include extraFlags", async () => {
       td.replace(helpers, "hasDockerfile", () => true)
 
-      const module = await getTestModule({
+      const buildAction = await getTestBuildAction({
         allowPublish: false,
         build: {
           dependencies: [],
@@ -1217,8 +1234,9 @@ describe("plugins.container", () => {
         taskConfigs: [],
         testConfigs: [],
       })
+      const resolvedBuild = await garden.resolveAction({ action: buildAction, log })
 
-      const args = getDockerBuildFlags(module)
+      const args = getDockerBuildFlags(resolvedBuild)
 
       expect(args.slice(-2)).to.eql(["--cache-from", "some-image:latest"])
     })
@@ -1226,7 +1244,7 @@ describe("plugins.container", () => {
     it("should set GARDEN_MODULE_VERSION", async () => {
       td.replace(helpers, "hasDockerfile", () => true)
 
-      const module = await getTestModule({
+      const buildAction = await getTestBuildAction({
         allowPublish: false,
         build: {
           dependencies: [],
@@ -1254,9 +1272,11 @@ describe("plugins.container", () => {
         testConfigs: [],
       })
 
-      const args = getDockerBuildFlags(module)
+      const resolvedBuild = await garden.resolveAction({ action: buildAction, log })
 
-      expect(args.slice(0, 2)).to.eql(["--build-arg", `GARDEN_MODULE_VERSION=${module.version.versionString}`])
+      const args = getDockerBuildFlags(resolvedBuild)
+
+      expect(args.slice(0, 2)).to.eql(["--build-arg", `GARDEN_MODULE_VERSION=${buildAction.versionString()}`])
     })
   })
 })

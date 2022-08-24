@@ -29,6 +29,10 @@ import {
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { dedent } from "../../../../../src/util/string"
 import { ModuleVersion } from "../../../../../src/vcs/vcs"
+import { convertModules } from "../../../../../src/resolve-module"
+import { error } from "console"
+import { BuildActionConfig, BuildAction } from "../../../../../src/actions/build"
+import { actionFromConfig } from "../../../../../src/graph/actions"
 
 describe("containerHelpers", () => {
   const projectRoot = resolve(dataDir, "test-project-container")
@@ -85,6 +89,23 @@ describe("containerHelpers", () => {
     td.replace(garden.buildStaging, "syncDependencyProducts", () => null)
     td.replace(Garden.prototype, "resolveModuleVersion", async () => dummyVersion)
   })
+
+  async function getTestBuildAction(moduleConfig: ModuleConfig<any, any, any, any>) {
+    const parsed = await configure({ ctx, moduleConfig, log })
+    return actionFromConfig({
+      garden,
+      log,
+      config: parsed.moduleConfig,
+      configsByKey: [],
+      router: await garden.getActionRouter(),
+      graph: await garden.getConfigGraph({ log, emit: false }),
+    }) as Promise<BuildAction>
+  }
+
+  async function getResolvedTestBuildAction(moduleConfig: ModuleConfig<any, any, any, any>) {
+    const action = await getTestBuildAction(moduleConfig)
+    return await garden.resolveAction({ action, log })
+  }
 
   async function getTestModule(moduleConfig: ContainerModuleConfig) {
     const parsed = await configure({ ctx, moduleConfig, log })
@@ -163,13 +184,13 @@ describe("containerHelpers", () => {
     it("should use image name including version if specified", async () => {
       const config = cloneDeep(baseConfig)
       config.spec.image = "some/image:1.1"
-      const module = await getTestModule(config)
+      const action = await getResolvedTestBuildAction(config)
 
-      expect(helpers.getPublicImageId(module)).to.equal("some/image:1.1")
+      expect(helpers.getPublicImageId(action)).to.equal("some/image:1.1")
     })
 
     it("should use image name if specified with commit hash if no version is set", async () => {
-      const module = await getTestModule({
+      const action = await getResolvedTestBuildAction({
         apiVersion: "garden.io/v0",
         allowPublish: false,
         build: {
@@ -198,32 +219,17 @@ describe("containerHelpers", () => {
         testConfigs: [],
       })
 
-      expect(helpers.getPublicImageId(module)).to.equal("some/image:1234")
+      expect(helpers.getPublicImageId(action)).to.equal("some/image:1234")
     })
 
     it("should use local id if no image name is set", async () => {
       td.replace(helpers, "hasDockerfile", () => true)
 
-      const module = await getTestModule(baseConfig)
+      const action = await getResolvedTestBuildAction(baseConfig)
 
       td.replace(helpers, "getLocalImageId", () => "test:1234")
 
-      expect(helpers.getPublicImageId(module)).to.equal("test:1234")
-    })
-  })
-
-  describe("getDockerfilePathFromConfig", () => {
-    it("should return the absolute default Dockerfile path", async () => {
-      const path = helpers.getDockerfileSourcePath(baseConfig)
-      expect(path).to.equal(join(baseConfig.path, defaultDockerfileName))
-    })
-
-    it("should return the absolute user specified Dockerfile path", async () => {
-      const config = cloneDeep(baseConfig)
-      config.spec.dockerfile = relDockerfilePath
-
-      const path = helpers.getDockerfileSourcePath(config)
-      expect(path).to.equal(join(config.path, relDockerfilePath))
+      expect(helpers.getPublicImageId(action)).to.equal("test:1234")
     })
   })
 
