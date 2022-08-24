@@ -10,10 +10,9 @@ import { expect } from "chai"
 import { mkdirp, pathExists, readFile, remove, writeFile } from "fs-extra"
 import { join } from "path"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
+import { k8sGetContainerDeployStatus } from "../../../../../src/plugins/kubernetes/container/status"
 import { LogEntry } from "../../../../../src/logger/log-entry"
-import { ContainerService } from "../../../../../src/plugins/container/moduleConfig"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
-import { getContainerDeployStatus } from "../../../../../src/plugins/kubernetes/container/status"
 import { flushAllMutagenSyncs, killSyncDaemon } from "../../../../../src/plugins/kubernetes/mutagen"
 import { KubernetesWorkload } from "../../../../../src/plugins/kubernetes/types"
 import { execInWorkload } from "../../../../../src/plugins/kubernetes/util"
@@ -66,33 +65,35 @@ describe("dev mode deployments and sync behavior", () => {
 
   it("should deploy a service in dev mode and successfully set a two-way sync", async () => {
     await init("local")
-    const service = graph.getService("dev-mode")
-    const module = service.module
+    const action = graph.getDeploy("dev-mode")
     const log = garden.log
     const deployTask = new DeployTask({
       garden,
       graph,
       log,
-      service,
+      action,
       force: true,
-      forceBuild: false,
-      devModeDeployNames: [service.name],
+      fromWatch: false,
+      devModeDeployNames: [action.name],
       localModeDeployNames: [],
     })
 
-    await garden.processTasks({ tasks: [deployTask], throwOnError: true })
-    const status = await getContainerDeployStatus({
+    // await garden.processTasks({ tasks: [deployTask], throwOnError: true })
+    const resolvedAction = await garden.resolveAction({
+      action: action,
+      log: garden.log,
+      graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
+    })
+    const status = await k8sGetContainerDeployStatus({
       ctx,
-      module,
-      service,
+      action: resolvedAction,
       log,
       devMode: true,
-
       localMode: false,
     })
-    expect(status.devMode).to.eql(true)
+    expect(status.detail?.devMode).to.eql(true)
 
-    const workload = status.detail.workload!
+    const workload = status.detail?.detail.workload!
 
     // First, we create a file locally and verify that it gets synced into the pod
     await writeFile(join(module.path, "made_locally"), "foo")
@@ -109,7 +110,7 @@ describe("dev mode deployments and sync behavior", () => {
 
     // This is to make sure that the two-way sync doesn't recreate the local files we're about to delete here.
     const actions = await garden.getActionRouter()
-    await actions.deploy.delete({ graph, log: garden.log, service })
+    await actions.deploy.delete({ graph, log: garden.log, action: resolvedAction })
 
     // Clean up the files we created locally
     for (const filename of ["made_locally", "made_in_pod"]) {
@@ -121,39 +122,42 @@ describe("dev mode deployments and sync behavior", () => {
 
   it("should apply ignore rules from the sync spec and the provider-level dev mode defaults", async () => {
     await init("local")
-    const service: ContainerService = graph.getService("dev-mode")
+    const action = graph.getDeploy("dev-mode")
 
     // We want to ignore the following directories (all at module root)
     // somedir
     // prefix-a         <--- matched by provider-level default excludes
     // nested/prefix-b  <--- matched by provider-level default excludes
 
-    service.spec.devMode!.sync[0].mode = "one-way-replica"
-    service.spec.devMode!.sync[0].exclude = ["somedir"]
-    const module = service.module
+    action.getConfig().spec.devMode!.sync[0].mode = "one-way-replica"
+    action.getConfig().spec.devMode!.sync[0].exclude = ["somedir"]
     const log = garden.log
     const deployTask = new DeployTask({
       garden,
       graph,
       log,
-      service,
+      action,
       force: true,
-      forceBuild: false,
-      devModeDeployNames: [service.name],
+      fromWatch: false,
+      devModeDeployNames: [action.name],
       localModeDeployNames: [],
     })
 
-    await garden.processTasks({ tasks: [deployTask], throwOnError: true })
-    const status = await getContainerDeployStatus({
+    // await garden.processTasks({ tasks: [deployTask], throwOnError: true })
+    const resolvedAction = await garden.resolveAction({
+      action: action,
+      log: garden.log,
+      graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
+    })
+    const status = await k8sGetContainerDeployStatus({
       ctx,
-      module,
-      service,
+      action: resolvedAction,
       log,
       devMode: true,
       localMode: false,
     })
 
-    const workload = status.detail.workload!
+    const workload = status.detail?.detail.workload!
 
     // First, we create a non-ignored file locally
     await writeFile(join(module.path, "made_locally"), "foo")
