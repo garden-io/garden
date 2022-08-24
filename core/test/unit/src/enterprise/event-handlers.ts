@@ -67,6 +67,8 @@ describe("cloudEventHandlers", () => {
       })
       expect(deployTask["devModeDeployNames"]).to.eql([])
       expect(deployTask["localModeDeployNames"]).to.eql([])
+      expect(deployTask.length).to.eql(1)
+      expect(deployTask[0].action.name).to.eql("service-a")
     })
 
     it("should return a dev-mode deploy task for the requested service", async () => {
