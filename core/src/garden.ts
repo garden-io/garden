@@ -853,8 +853,6 @@ export class Garden {
       moduleGraph
     )
 
-    // -> TODO-G2 Collect module outputs for templating from actions (attach to ConfigGraph?)
-
     // Get action configs
     const actionConfigs: ActionConfigsByKey = {}
 
@@ -1344,20 +1342,34 @@ export class Garden {
     let providers: ConfigDump["providers"] = []
     let moduleConfigs: ModuleConfig[]
     let workflowConfigs: WorkflowConfig[]
+    let actionConfigs: ActionConfigMap = {
+      Build: {},
+      Deploy: {},
+      Run: {},
+      Test: {},
+    }
+
+    await this.scanAndAddConfigs()
 
     if (partial) {
       providers = this.getRawProviderConfigs()
       moduleConfigs = await this.getRawModuleConfigs()
       workflowConfigs = await this.getRawWorkflowConfigs()
+      actionConfigs = this.actionConfigs
     } else {
-      const graph = await this.getConfigGraph({ log, emit: false })
-      const modules = graph.getModules({ includeDisabled })
-      workflowConfigs = (await this.getRawWorkflowConfigs()).map((config) => resolveWorkflowConfig(this, config))
+      const graph = await this.getResolvedConfigGraph({ log, emit: false })
 
+      for (const action of graph.getActions()) {
+        actionConfigs[action.kind][action.name] = action.getConfig()
+      }
+
+      const modules = graph.getModules({ includeDisabled })
       moduleConfigs = sortBy(
         modules.map((m) => m._config),
         "name"
       )
+
+      workflowConfigs = (await this.getRawWorkflowConfigs()).map((config) => resolveWorkflowConfig(this, config))
 
       providers = Object.values(await this.resolveProviders(log))
     }
@@ -1370,6 +1382,7 @@ export class Garden {
       namespace: this.namespace,
       providers,
       variables: this.variables,
+      actionConfigs,
       moduleConfigs,
       workflowConfigs: sortBy(workflowConfigs, "name"),
       projectName: this.projectName,
@@ -1566,6 +1579,7 @@ export interface ConfigDump {
   namespace: string
   providers: (Provider | GenericProviderConfig)[]
   variables: DeepPrimitiveMap
+  actionConfigs: ActionConfigMap
   moduleConfigs: ModuleConfig[]
   workflowConfigs: WorkflowConfig[]
   projectName: string

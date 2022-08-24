@@ -41,6 +41,7 @@ import { fromPairs, isString } from "lodash"
 import { ActionConfigContext } from "../config/template-contexts/actions"
 import { relative } from "path"
 import { InternalError } from "../exceptions"
+import Joi from "@hapi/joi"
 
 // TODO-G2: split this file
 
@@ -304,7 +305,11 @@ export interface ActionStatus<
   outputs: O
 }
 
-export const actionStatusSchema = () =>
+export interface ActionStatusMap<T extends BaseAction = BaseAction> {
+  [key: string]: ActionStatus<T>
+}
+
+export const actionStatusSchema = (detailSchema?: Joi.ObjectSchema) =>
   joi.object().keys({
     status: joi
       .string()
@@ -312,7 +317,9 @@ export const actionStatusSchema = () =>
       .only()
       .required()
       .description("The state of the action."),
-    detail: joi.any().description("Optional provider-specific information about the action status or results."),
+    detail:
+      detailSchema ||
+      joi.any().description("Optional provider-specific information about the action status or results."),
     outputs: actionOutputsSchema(),
   })
 

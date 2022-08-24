@@ -6,11 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ServerWebsocketMessage } from "@garden-io/core/build/src/server/server"
-import { Events } from "@garden-io/core/build/src/events"
+import type { ServerWebsocketMessage } from "@garden-io/core/build/src/server/server"
+import type { Events } from "@garden-io/core/build/src/events"
 
 import { Entities, SupportedEventName, supportedEventNames, TaskState, taskStates } from "../contexts/api"
 import produce from "immer"
+import titleize from "titleize"
+import type { ActionKind } from "@garden-io/core/build/src/plugin/action-types"
 
 export type WsEventMessage = ServerWebsocketMessage & {
   type: "event"
@@ -52,30 +54,12 @@ export function processWebSocketMessage(store: Entities, message: WsEventMessage
         case "publish":
           break
         case "deploy":
-          draft.services[entityName] = {
-            ...draft.services[entityName],
-            taskState,
-          }
-          break
         case "build":
-          draft.modules[entityName] = {
-            ...store.modules[entityName],
-            taskState,
-          }
-          break
         case "run":
-          draft.tasks[entityName] = {
-            ...store.tasks[entityName],
-            taskState,
-          }
-          break
         case "test":
-          // Note that the task payload name for tests has the same format that we use in the
-          // store. So there's no need to use getTestKey here.
-          // FIXME: We need to make this more robust, although it will resolve itself when we implement
-          // https://github.com/garden-io/garden/issues/1177.
-          draft.tests[entityName] = {
-            ...store.tests[entityName],
+          const kind = titleize(payload.type) as ActionKind
+          draft.actions[kind][entityName] = {
+            ...store.actions[kind][entityName],
             taskState,
           }
           break

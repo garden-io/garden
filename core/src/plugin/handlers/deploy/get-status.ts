@@ -12,7 +12,7 @@ import { ServiceStatus, serviceStatusSchema } from "../../../types/service"
 import { joi } from "../../../config/common"
 import { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { ActionStatus, GetActionOutputType, Resolved } from "../../../actions/base"
+import { ActionStatus, ActionStatusMap, actionStatusSchema, GetActionOutputType, Resolved } from "../../../actions/base"
 
 interface GetDeployStatusParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   devMode: boolean
@@ -23,6 +23,12 @@ export type DeployStatus<T extends DeployAction = DeployAction> = ActionStatus<
   T,
   ServiceStatus<any, GetActionOutputType<T>>
 >
+
+export interface DeployStatusMap extends ActionStatusMap<DeployAction> {
+  [key: string]: DeployStatus
+}
+
+export const getDeployStatusSchema = () => actionStatusSchema(serviceStatusSchema())
 
 export class GetDeployStatus<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "Deploy",
@@ -41,5 +47,5 @@ export class GetDeployStatus<T extends DeployAction = DeployAction> extends Acti
       localMode: joi.boolean().default(false).description("Whether the service should be configured in local mode."),
     })
 
-  resultSchema = () => serviceStatusSchema()
+  resultSchema = () => getDeployStatusSchema()
 }

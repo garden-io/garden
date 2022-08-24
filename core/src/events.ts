@@ -16,7 +16,7 @@ import { AuthTokenResponse } from "./cloud/api"
 import { RenderedActionGraph } from "./graph/config-graph"
 import { CommandInfo } from "./plugin-context"
 import { sanitizeObject } from "./logger/util"
-import { BuildState } from "./plugin/handlers/build/build"
+import { BuildState } from "./plugin/handlers/build/get-status"
 import { ActionReference } from "./config/common"
 import { GraphResult } from "./graph/results"
 
