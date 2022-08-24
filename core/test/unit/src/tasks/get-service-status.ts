@@ -11,17 +11,13 @@ import execa from "execa"
 
 import { ProjectConfig, defaultNamespace } from "../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
-import { createGardenPlugin } from "../../../../src/plugin/plugin"
-import { joi } from "../../../../src/config/common"
-import { ServiceState } from "../../../../src/types/service"
 import { expect } from "chai"
-import { GetServiceStatusTask } from "../../../../src/tasks/get-service-status"
-import { GetServiceStatusParams } from "../../../../src/types/plugin/service/getServiceStatus"
-import { GetTaskResultParams } from "../../../../src/types/plugin/task/getTaskResult"
-import { TestGarden } from "../../../helpers"
+import { customizedTestPlugin, TestGarden, testPlugin as getTestPlugin } from "../../../helpers"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
+import { DeployTask } from "../../../../src/tasks/deploy"
 
-describe("GetServiceStatusTask", () => {
+// TODO-G2: consider merging it with ./deploy.ts
+describe("DeployTask", () => {
   let tmpDir: tmp.DirectoryResult
   let config: ProjectConfig
 
@@ -49,42 +45,43 @@ describe("GetServiceStatusTask", () => {
 
   describe("process", () => {
     it("should correctly resolve runtime outputs from tasks", async () => {
-      const testPlugin = createGardenPlugin({
-        name: "test",
-        createModuleTypes: [
-          {
-            name: "test",
-            docs: "test",
-            serviceOutputsSchema: joi.object().keys({ log: joi.string() }),
-            handlers: {
-              build: async () => ({}),
-              getServiceStatus: async ({ service }: GetServiceStatusParams) => {
-                return {
-                  state: <ServiceState>"ready",
-                  detail: {},
-                  outputs: { log: service.spec.log },
-                }
-              },
-              getTaskResult: async ({ task }: GetTaskResultParams) => {
-                const log = task.spec.log
-
-                return {
-                  taskName: task.name,
-                  moduleName: task.module.name,
-                  success: true,
-                  outputs: { log },
-                  command: [],
-                  log,
-                  startedAt: new Date(),
-                  completedAt: new Date(),
-                  version: task.version,
-                }
-              },
-            },
-          },
-        ],
-      })
-
+      // const testPlugin = createGardenPlugin({
+      //   name: "test",
+      //   createModuleTypes: [
+      //     {
+      //       name: "test",
+      //       docs: "test",
+      //       serviceOutputsSchema: joi.object().keys({ log: joi.string() }),
+      //       handlers: {
+      //         build: async () => ({}),
+      //         getServiceStatus: async ({ service }: GetServiceStatusParams) => {
+      //           return {
+      //             state: <ServiceState>"ready",
+      //             detail: {},
+      //             outputs: { log: service.spec.log },
+      //           }
+      //         },
+      //         getTaskResult: async ({ task }: GetTaskResultParams) => {
+      //           const log = task.spec.log
+      //
+      //           return {
+      //             taskName: task.name,
+      //             moduleName: task.module.name,
+      //             success: true,
+      //             outputs: { log },
+      //             command: [],
+      //             log,
+      //             startedAt: new Date(),
+      //             completedAt: new Date(),
+      //             version: task.version,
+      //           }
+      //         },
+      //       },
+      //     },
+      //   ],
+      // })
+      // TODO-G2: customize behaviour to inject outputs if necessary, see getTaskResult in the commented code above
+      const testPlugin = customizedTestPlugin({})
       const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
 
       garden.setModuleConfigs([
@@ -125,47 +122,27 @@ describe("GetServiceStatusTask", () => {
       ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const testService = graph.getService("test-service")
+      const action = graph.getDeploy("test-service")
 
-      const statusTask = new GetServiceStatusTask({
+      const deployTask = new DeployTask({
         garden,
         graph,
-        service: testService,
+        action,
         force: true,
+        fromWatch: false,
         log: garden.log,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
       })
 
-      const key = statusTask.getKey()
-      const { [key]: result } = await garden.processTasks({ tasks: [statusTask], throwOnError: true })
+      const key = deployTask.getKey()
+      const result = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
-      expect(result!.result.outputs).to.eql({ log: "test output" })
+      expect(result.results.getResult(deployTask)?.outputs).to.eql({ log: "test output" })
     })
 
     it("should set status to unknown if runtime variables can't be resolved", async () => {
-      const testPlugin = createGardenPlugin({
-        name: "test",
-        createModuleTypes: [
-          {
-            name: "test",
-            docs: "test",
-            serviceOutputsSchema: joi.object().keys({ log: joi.string() }),
-            handlers: {
-              build: async () => ({}),
-              getServiceStatus: async ({ service }: GetServiceStatusParams) => {
-                return {
-                  state: <ServiceState>"ready",
-                  detail: {},
-                  outputs: { log: service.spec.log },
-                }
-              },
-            },
-          },
-        ],
-      })
-
+      const testPlugin = getTestPlugin()
       const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
 
       garden.setModuleConfigs([
@@ -206,23 +183,23 @@ describe("GetServiceStatusTask", () => {
       ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const testService = graph.getService("test-service")
+      const action = graph.getDeploy("test-service")
 
-      const statusTask = new GetServiceStatusTask({
+      const deployTask = new DeployTask({
         garden,
         graph,
-        service: testService,
+        action,
         force: true,
+        fromWatch: false,
         log: garden.log,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
       })
 
-      const key = statusTask.getKey()
-      const { [key]: result } = await garden.processTasks({ tasks: [statusTask], throwOnError: true })
+      const key = deployTask.getKey()
+      const result = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
-      expect(result!.result.state).to.equal("unknown")
+      expect(result.results.getResult(deployTask)?.result?.state).to.equal("unknown")
     })
   })
 })
