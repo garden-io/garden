@@ -14,11 +14,11 @@ import { getDuration } from "../../util/helpers"
 import { TertiaryButton } from "../button"
 import { css } from "emotion"
 import { SelectEntity } from "../../contexts/ui"
-import { TestEntity, TaskEntity } from "../../contexts/api"
+import { TestEntity, RunEntity } from "../../contexts/api"
 import { EntityCardWrap, Header, Label, StateLabel, Content } from "./common"
 
-export type Props = Pick<TaskEntity["config"], "name" | "dependencies"> &
-  Pick<TestEntity["status"], "state" | "startedAt" | "completedAt"> & {
+export type Props = Pick<RunEntity["config"], "name" | "dependencies"> &
+  Pick<TestEntity["status"], "state" | "detail"> & {
     moduleName: string
     disabled: boolean
     isLoading: boolean
@@ -32,19 +32,20 @@ export const TaskCard = ({
   disabled,
   dependencies,
   state,
-  startedAt,
-  completedAt,
+  detail,
   moduleName,
   isLoading,
   showInfo,
   onEntitySelected,
 }: Props) => {
-  const duration = startedAt && completedAt && getDuration(startedAt, completedAt)
+  const startedAt = detail?.startedAt
+  const completedAt = detail?.completedAt
+  const duration = startedAt && completedAt && getDuration(detail.startedAt, detail.completedAt)
 
   const handleEntitySelected = () => {
     if (moduleName && name) {
       onEntitySelected({
-        type: "task",
+        kind: "Run",
         name,
         module: moduleName,
       })
@@ -69,6 +70,10 @@ export const TaskCard = ({
     )
   }
 
+  if (!dependencies) {
+    dependencies = []
+  }
+
   return (
     <EntityCardWrap>
       <Header>
@@ -91,7 +96,7 @@ export const TaskCard = ({
                 <Key>Ran:</Key>
                 <Value>{moment(startedAt).fromNow()}</Value>
               </Field>
-              <Field inline visible={state === "succeeded"}>
+              <Field inline visible={state === "ready"}>
                 <Key>Took:</Key>
                 <Value>{duration}</Value>
               </Field>

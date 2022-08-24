@@ -8,10 +8,9 @@
 
 import { runBaseParams, artifactsPathSchema, PluginRunActionParamsBase, actionParamsSchema } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
-import { taskResultSchema } from "../../../types/task"
 import { RunAction } from "../../../actions/run"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { GetRunResult } from "./get-result"
+import { GetRunResult, getRunResultSchema } from "./get-result"
 import { Resolved } from "../../../actions/base"
 
 export interface CommonRunParams {
@@ -34,5 +33,5 @@ export class RunRunAction<T extends RunAction = RunAction> extends ActionTypeHan
     actionParamsSchema().keys(runBaseParams()).keys({
       artifactsPath: artifactsPathSchema(),
     })
-  resultSchema = () => taskResultSchema()
+  resultSchema = () => getRunResultSchema()
 }

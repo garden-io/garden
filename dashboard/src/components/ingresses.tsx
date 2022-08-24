@@ -9,7 +9,7 @@
 import React from "react"
 import styled from "@emotion/styled"
 import { ExternalLink } from "./links"
-import { ServiceIngress } from "@garden-io/core/build/src/types/service"
+import type { ServiceIngress } from "@garden-io/core/build/src/types/service"
 import { truncateMiddle, getLinkUrl } from "../util/helpers"
 import { useUiState } from "../hooks"
 

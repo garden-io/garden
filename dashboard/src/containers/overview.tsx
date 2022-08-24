@@ -9,14 +9,13 @@
 import React from "react"
 import styled from "@emotion/styled"
 
-import { ServiceState } from "@garden-io/core/build/src/types/service"
-import { RunState } from "@garden-io/core/build/src/plugin/base"
+import type { ServiceState } from "@garden-io/core/build/src/types/service"
+import type { RunState } from "@garden-io/core/build/src/plugin/base"
 
 import PageError from "../components/page-error"
 import { ModuleCard, Props as ModuleProps } from "../components/entity-cards/module"
 import EntityResult from "./entity-result"
 import ViewIngress from "../components/view-ingress"
-import { ServiceEntity, TestEntity, TaskEntity } from "../contexts/api"
 import { useApi, useUiState } from "../hooks"
 
 const Overview = styled.div`
@@ -35,44 +34,10 @@ export type Entity = {
   dependencies: string[]
 }
 
-const mapServices = (serviceEntities: ServiceEntity[]): ModuleProps["serviceCardProps"] => {
-  return serviceEntities.map(({ config, status }) => ({
-    name: config.name,
-    dependencies: config.dependencies || [],
-    state: status ? status.state : "missing",
-    disabled: config.disabled || config.moduleDisabled,
-    ingresses: status ? status.ingresses : [],
-  }))
-}
-
-const mapTests = (testEntities: TestEntity[], moduleName: string): ModuleProps["testCardProps"] => {
-  return testEntities.map(({ config, status }) => ({
-    name: config.name,
-    dependencies: config.dependencies || [],
-    state: status.state,
-    startedAt: status.startedAt,
-    completedAt: status.completedAt,
-    disabled: config.disabled || config.moduleDisabled,
-    moduleName,
-  }))
-}
-
-const mapTasksToProps = (taskConfigs: TaskEntity[], moduleName: string): ModuleProps["taskCardProps"] => {
-  return taskConfigs.map(({ config, status }) => ({
-    name: config.name,
-    dependencies: config.dependencies || [],
-    state: status.state,
-    startedAt: status.startedAt,
-    completedAt: status.completedAt,
-    disabled: config.disabled || config.moduleDisabled,
-    moduleName,
-  }))
-}
-
 export default () => {
   const {
     store: {
-      entities: { project, modules, services, tests, tasks },
+      entities: { project, modules },
       requestStates,
     },
   } = useApi()
@@ -92,10 +57,12 @@ export default () => {
     return <PageError error={requestStates.status.error} />
   }
 
+  // TODO-G2: make actions the top level instead of modules, and just annotate with module name as applicable
+
   const moduleProps: ModuleProps[] = Object.values(modules).map((module) => {
-    const serviceEntities = module.services.map((serviceName) => services[serviceName]).filter(Boolean)
-    const testEntities = module.tests.map((testKey) => tests[testKey]).filter(Boolean)
-    const taskEntities = module.tasks.map((taskName) => tasks[taskName]).filter(Boolean)
+    // const serviceEntities = module.services.map((serviceName) => services[serviceName]).filter(Boolean)
+    // const testEntities = module.tests.map((testKey) => tests[testKey]).filter(Boolean)
+    // const taskEntities = module.tasks.map((taskName) => tasks[taskName]).filter(Boolean)
 
     return {
       name: module.name,
@@ -104,9 +71,9 @@ export default () => {
       path: project.root.split("/").pop() + module.path.replace(project.root, ""),
       repositoryUrl: module.repositoryUrl,
       description: module.description,
-      serviceCardProps: mapServices(serviceEntities),
-      testCardProps: mapTests(testEntities, module.name),
-      taskCardProps: mapTasksToProps(taskEntities, module.name),
+      serviceCardProps: [], // mapServices(serviceEntities),
+      testCardProps: [], // mapTests(testEntities, module.name),
+      taskCardProps: [], // mapTasksToProps(taskEntities, module.name),
       isLoading: requestStates.status.pending,
     }
   })
@@ -128,7 +95,7 @@ export default () => {
           <div className="col-xs-5 col-sm-5 col-md-4 col-lg-4 col-xl-4">
             <EntityResult
               name={selectedEntity.name}
-              type={selectedEntity.type}
+              kind={selectedEntity.kind}
               moduleName={selectedEntity.module}
               onClose={clearSelectedEntity}
             />

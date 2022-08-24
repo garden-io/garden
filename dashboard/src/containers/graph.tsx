@@ -11,16 +11,16 @@ import styled from "@emotion/styled"
 import { StackGraph } from "../components/graph"
 import PageError from "../components/page-error"
 import { TaskState } from "../contexts/api"
-import { StackGraphSupportedFilterKeys, EntityResultSupportedTypes } from "../contexts/ui"
 import EntityResult from "./entity-result"
 import Spinner from "../components/spinner"
 import { Filters } from "../components/group-filter"
 import { capitalize } from "lodash"
 import { RenderedNode } from "../../../core/build/src/graph/config-graph"
-import { GraphOutput } from "@garden-io/core/build/src/commands/get/get-graph"
+import type { GraphOutput } from "@garden-io/core/build/src/commands/get/get-graph"
 import { loadGraph } from "../api/actions"
 import { useApi, useUiState } from "../hooks"
 import { colors } from "../styles/variables"
+import type { ActionKind } from "@garden-io/core/src/plugin/action-types"
 
 const Wrapper = styled.div`
   position: relative;
@@ -52,7 +52,7 @@ export default () => {
     store: { entities, requestStates },
   } = useApi()
 
-  const { project, modules, services, tests, tasks, graph } = entities
+  const { project, actions, graph } = entities
 
   const {
     actions: { selectGraphNode, stackGraphToggleItemsView, clearGraphNodeSelection },
@@ -79,28 +79,9 @@ export default () => {
   }
 
   const nodesWithStatus: StackGraphNode[] = graph.nodes.map((node) => {
-    let taskState: TaskState = "taskComplete"
-    let disabled = modules[node.name]?.disabled
-    switch (node.type) {
-      case "Deploy":
-        const service = services[node.name]
-        disabled = service.config.disabled || service.config.moduleDisabled
-        taskState = service.taskState
-        break
-      case "Build":
-        taskState = modules[node.name].taskState
-        break
-      case "Run":
-        const task = tasks[node.name]
-        disabled = task.config.disabled || task.config.moduleDisabled
-        taskState = task.taskState
-        break
-      case "Test":
-        const test = tests[node.name]
-        disabled = test.config.disabled || test.config.moduleDisabled
-        taskState = test.taskState
-        break
-    }
+    const action = actions[node.kind][node.name]
+    const taskState = action.taskState
+    const disabled = action.config.disabled || false
     return { ...node, disabled, status: taskState }
   })
 
@@ -113,7 +94,7 @@ export default () => {
       moreInfoPane = (
         <EntityResult
           name={node.name}
-          type={node.type as EntityResultSupportedTypes}
+          kind={node.kind as ActionKind}
           moduleName={node.moduleName}
           onClose={clearGraphNodeSelection}
           cardProps={{ style: cardStyle }}
@@ -130,7 +111,7 @@ export default () => {
         selected: filters[type],
       },
     }
-  }, {}) as Filters<StackGraphSupportedFilterKeys>
+  }, {}) as Filters<ActionKind>
 
   return (
     <Wrapper>

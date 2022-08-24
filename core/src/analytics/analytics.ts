@@ -20,6 +20,7 @@ import { AnalyticsType } from "./analytics-types"
 import dedent from "dedent"
 import { getGitHubUrl } from "../docs/common"
 import { Profile } from "../util/profiling"
+import { ActionKind } from "../actions/base"
 
 const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 
@@ -82,7 +83,12 @@ interface AnalyticsApiEventProperties extends AnalyticsEventProperties {
   name: string
 }
 
-interface AnalyticsConfigErrorProperties extends AnalyticsEventProperties {
+interface AnalyticsActionConfigErrorProperties extends AnalyticsEventProperties {
+  kind: ActionKind
+  type: string
+}
+
+interface AnalyticsModuleConfigErrorProperties extends AnalyticsEventProperties {
   moduleType: string
 }
 
@@ -479,6 +485,32 @@ export class AnalyticsHandler {
   }
 
   /**
+   * Tracks a Garden action configuration error
+   */
+  trackActionConfigError({
+    kind,
+    type,
+    name,
+    moduleName,
+  }: {
+    kind: string
+    type: string
+    name: string
+    moduleName: string
+  }) {
+    return this.track(<AnalyticsEvent>{
+      type: AnalyticsType.MODULE_CONFIG_ERROR,
+      properties: <AnalyticsActionConfigErrorProperties>{
+        ...this.getBasicAnalyticsProperties(),
+        kind,
+        type,
+        name: hasha(name, { algorithm: "sha256" }),
+        moduleName: hasha(moduleName, { algorithm: "sha256" }),
+      },
+    })
+  }
+
+  /**
    *  Tracks a Garden Module configuration error
    *
    * @param {string} moduleType The type of the module causing the configuration error
@@ -489,7 +521,7 @@ export class AnalyticsHandler {
     const moduleName = hasha(name, { algorithm: "sha256" })
     return this.track(<AnalyticsEvent>{
       type: AnalyticsType.MODULE_CONFIG_ERROR,
-      properties: <AnalyticsConfigErrorProperties>{
+      properties: <AnalyticsModuleConfigErrorProperties>{
         ...this.getBasicAnalyticsProperties(),
         moduleName,
         moduleType,

@@ -6,17 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginRunActionParamsBase, actionParamsSchema, RunResult } from "../../base"
+import { PluginRunActionParamsBase, actionParamsSchema, RunResult, runResultSchema } from "../../base"
 import { dedent } from "../../../util/string"
-import { taskResultSchema } from "../../../types/task"
 import { RunAction } from "../../../actions/run"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { ActionStatus, Resolved } from "../../../actions/base"
-import { joi } from "../../../config/common"
+import { ActionStatus, ActionStatusMap, actionStatusSchema, Resolved } from "../../../actions/base"
+import { memoize } from "lodash"
 
 interface GetRunResultParams<T extends RunAction> extends PluginRunActionParamsBase<T> {}
 
 export type GetRunResult<T extends RunAction = RunAction> = ActionStatus<T, RunResult>
+
+export interface RunStatusMap extends ActionStatusMap<RunAction> {
+  [key: string]: GetRunResult
+}
+
+export const getRunResultSchema = memoize(() => actionStatusSchema(runResultSchema()))
 
 export class GetRunActionResult<T extends RunAction> extends ActionTypeHandlerSpec<
   "Run",
@@ -28,9 +33,5 @@ export class GetRunActionResult<T extends RunAction> extends ActionTypeHandlerSp
   `
 
   paramsSchema = () => actionParamsSchema()
-  resultSchema = () =>
-    joi.object().keys({
-      result: taskResultSchema().allow(null),
-      outputs: joi.object().allow(null),
-    })
+  resultSchema = () => getRunResultSchema()
 }

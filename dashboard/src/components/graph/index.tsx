@@ -15,11 +15,12 @@ import { capitalize } from "lodash"
 import "./graph.scss"
 import { colors } from "../../styles/variables"
 import Spinner, { SpinnerProps } from "../spinner"
-import { SelectGraphNode, StackGraphSupportedFilterKeys } from "../../contexts/ui"
+import { SelectGraphNode } from "../../contexts/ui"
 import { FiltersButton, Filters } from "../group-filter"
 import { GraphOutputWithNodeStatus, StackGraphNode } from "../../containers/graph"
 import { getTextWidth } from "../../util/helpers"
 import { menuHeight } from "../../containers/menu"
+import type { ActionKind } from "@garden-io/core/build/src/actions/base"
 
 interface Node {
   id: string
@@ -60,7 +61,7 @@ const nodePaddingPx = 11
 const nodeBorderWidthPx = 2
 const nodeFont = "Nunito Sans, Arial, Helvetica, sans-serif"
 const subNameFont = `${nodeTextSizePx}px ${nodeFont}`
-const moduleNameFont = `bold ${subNameFont}`
+const actionNameFont = `bold ${subNameFont}`
 
 interface TaskState {
   indicator?: string
@@ -80,8 +81,8 @@ interface Props {
   onGraphNodeSelected: SelectGraphNode
   selectedGraphNode: string | null
   isProcessing: boolean // set whenever wsMessages are received
-  filters: Filters<StackGraphSupportedFilterKeys>
-  onFilter: (filterKey: StackGraphSupportedFilterKeys) => void
+  filters: Filters<ActionKind>
+  onFilter: (filterKey: ActionKind) => void
 }
 
 export const StackGraph: React.FC<Props> = ({
@@ -101,12 +102,12 @@ export const StackGraph: React.FC<Props> = ({
   const [selections, setSelections] = useState<string[]>(selectedGraphNode ? [selectedGraphNode] : [])
 
   const nodes = graph.nodes
-    .filter((n) => filters[n.type].selected)
+    .filter((n) => filters[n.kind].selected)
     .map((n) => {
       const { key, name, moduleName } = n
 
-      let textWidth = getTextWidth(moduleName, moduleNameFont)
-      let subName = moduleName !== name ? ` / ${name}` : ""
+      let textWidth = getTextWidth(name, actionNameFont)
+      let subName = moduleName ? ` / ${moduleName}` : ""
 
       if (subName) {
         textWidth += getTextWidth(subName, subNameFont)
@@ -129,7 +130,7 @@ export const StackGraph: React.FC<Props> = ({
     })
 
   const edges = graph.relationships
-    .filter((n) => filters[n.dependant.type].selected && filters[n.dependency.type].selected)
+    .filter((n) => filters[n.dependant.kind].selected && filters[n.dependency.kind].selected)
     .map((r) => {
       const source = r.dependency
       const target = r.dependant
@@ -137,7 +138,7 @@ export const StackGraph: React.FC<Props> = ({
         id: `${source.key}-${target.key}`,
         from: source.key,
         to: target.key,
-        type: source.type,
+        type: source.kind,
       }
     })
 

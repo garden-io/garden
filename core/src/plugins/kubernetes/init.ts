@@ -22,7 +22,7 @@ import { CleanupEnvironmentParams, CleanupEnvironmentResult } from "../../plugin
 import { millicpuToString, megabytesToString } from "./util"
 import chalk from "chalk"
 import { deline, dedent, gardenAnnotationKey } from "../../util/string"
-import { combineStates, ServiceStatusMap, ServiceState } from "../../types/service"
+import { combineStates, ServiceState } from "../../types/service"
 import {
   setupCertManager,
   checkCertManagerStatus,
@@ -40,6 +40,7 @@ import { PrimitiveMap } from "../../config/common"
 import { mapValues } from "lodash"
 import { getIngressApiVersion, supportedIngressApiVersions } from "./container/ingress"
 import { LogEntry } from "../../logger/log-entry"
+import { DeployStatusMap } from "../../plugin/handlers/deploy/get-status"
 
 const dockerAuthSecretType = "kubernetes.io/dockerconfigjson"
 const dockerAuthDocsLink = `
@@ -54,7 +55,7 @@ interface KubernetesProviderOutputs extends PrimitiveMap {
 
 interface KubernetesEnvironmentDetail {
   projectHelmMigrated: boolean
-  serviceStatuses: ServiceStatusMap
+  deployStatuses: DeployStatusMap
   systemReady: boolean
   systemServiceState: ServiceState
   systemCertManagerReady: boolean
@@ -84,7 +85,7 @@ export async function getEnvironmentStatus({
 
   const detail: KubernetesEnvironmentDetail = {
     projectHelmMigrated,
-    serviceStatuses: {},
+    deployStatuses: {},
     systemReady: true,
     systemServiceState: <ServiceState>"unknown",
     systemCertManagerReady: true,
@@ -180,7 +181,7 @@ export async function getEnvironmentStatus({
     detail.systemReady = false
   }
 
-  detail.serviceStatuses = systemServiceStatus.serviceStatuses
+  detail.deployStatuses = systemServiceStatus.serviceStatuses
   detail.systemServiceState = systemServiceStatus.state
 
   sysGarden.log.setSuccess()
@@ -254,8 +255,8 @@ export async function prepareSystem({
     return {}
   }
 
-  const serviceStatuses: ServiceStatusMap = (status.detail && status.detail.serviceStatuses) || {}
-  const serviceStates = Object.values(serviceStatuses).map((s) => (s && s.state) || "unknown")
+  const deployStatuses: DeployStatusMap = (status.detail && status.detail.deployStatuses) || {}
+  const serviceStates = Object.values(deployStatuses).map((s) => s.detail?.state || "unknown")
   const combinedState = combineStates(serviceStates)
 
   const remoteCluster = provider.name !== "local-kubernetes"
