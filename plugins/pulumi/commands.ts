@@ -33,12 +33,12 @@ import { emptyDir } from "fs-extra"
 import { deletePulumiDeploy } from "./handlers"
 import { isDeployAction } from "@garden-io/core/build/src/actions/deploy"
 import { ActionConfigContext } from "@garden-io/core/build/src/config/template-contexts/actions"
+import { ActionState } from "@garden-io/core/build/src/actions/base"
+import { ActionTaskProcessParams, ValidResultType } from "@garden-io/core/build/src/tasks/base"
 
-interface PulumiParamsWithService extends PulumiParams {
-  action: PulumiDeploy
-}
+type PulumiBaseParams = Omit<PulumiParams, "action">
 
-type PulumiRunFn = (params: PulumiParamsWithService) => Promise<void>
+type PulumiRunFn = (params: PulumiParams) => Promise<void>
 
 interface PulumiCommandSpec {
   name: string
@@ -97,12 +97,14 @@ interface PulumiPluginCommandTaskParams {
   commandName: string
   commandDescription: string
   runFn: PulumiRunFn
-  pulumiParams: PulumiParamsWithService
+  pulumiParams: PulumiBaseParams
 }
 
+interface PulumiCommandResult extends ValidResultType {}
+
 @Profile()
-class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy> {
-  pulumiParams: PulumiParamsWithService
+class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiCommandResult> {
+  pulumiParams: PulumiBaseParams
   commandName: string
   commandDescription: string
   runFn: PulumiRunFn
@@ -154,7 +156,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy> {
       })
       .filter(isDeployAction)
 
-    return deps.map((action) => {
+    const tasks = deps.map((action) => {
       return new PulumiPluginCommandTask({
         garden: this.garden,
         graph: this.graph,
@@ -166,21 +168,26 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy> {
         pulumiParams: this.pulumiParams,
       })
     })
+
+    return [this.getResolveTask(this.action), ...tasks]
   }
 
   async getStatus() {
     return null
   }
 
-  async process() {
+  async process({ dependencyResults }: ActionTaskProcessParams<PulumiDeploy, PulumiCommandResult>) {
     const log = this.log.info({
       section: this.getName(),
       msg: chalk.gray(`Running ${chalk.white(this.commandDescription)}`),
       status: "active",
     })
+
+    const params = { ...this.pulumiParams, action: this.getResolvedAction(this.action, dependencyResults) }
+
     try {
-      await selectStack(this.pulumiParams)
-      await this.runFn(this.pulumiParams)
+      await selectStack(params)
+      await this.runFn(params)
     } catch (err) {
       log.setError({
         msg: chalk.red(`Failed! (took ${log.getDuration(1)} sec)`),
@@ -191,6 +198,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy> {
       msg: chalk.green(`Success (took ${log.getDuration(1)} sec)`),
     })
     return {
+      state: <ActionState>"ready",
       outputs: {},
     }
   }
@@ -226,12 +234,7 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn }: Pulumi
       const tasks = await Bluebird.map(actions, async (action) => {
         const templateContext = new ActionConfigContext(garden)
         const ctxForModule = await garden.getPluginContext(provider, templateContext, ctx.events)
-        const pulumiParams: PulumiParamsWithService = {
-          ctx: ctxForModule,
-          provider,
-          log,
-          action,
-        }
+
         // TODO: Generate a non-empty runtime context to provide runtime values for template resolution in varfiles.
         // This will require processing deploy & task dependencies (also for non-pulumi modules).
         return new PulumiPluginCommandTask({
@@ -242,7 +245,11 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn }: Pulumi
           commandName: name,
           commandDescription,
           runFn,
-          pulumiParams,
+          pulumiParams: {
+            ctx: ctxForModule,
+            provider,
+            log,
+          },
         })
       })
 

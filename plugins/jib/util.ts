@@ -16,7 +16,8 @@ import {
   ContainerModuleSpec,
 } from "@garden-io/core/build/src/plugins/container/moduleConfig"
 import { BuildAction, BuildActionConfig } from "@garden-io/core/build/src/actions/build"
-import { ContainerBuildOutputs } from "@garden-io/core/build/src/plugins/container/config"
+import { ContainerBuildAction, ContainerBuildOutputs } from "@garden-io/core/build/src/plugins/container/config"
+import { Resolved } from "@garden-io/core/build/src/actions/base"
 
 interface JibBuildSpec {
   dockerBuild?: boolean
@@ -72,8 +73,8 @@ export function detectProjectType(action: BuildAction): JibPluginType {
   throw new ConfigurationError(`Could not detect a gradle or maven project to build ${action.name}`, {})
 }
 
-export function getBuildFlags(action: JibBuildAction, projectType: JibModuleBuildSpec["projectType"]) {
-  const { tarOnly, tarFormat, dockerBuild, extraFlags, buildArgs, localId } = action.getSpec()
+export function getBuildFlags(action: Resolved<JibBuildAction>, projectType: JibModuleBuildSpec["projectType"]) {
+  const { tarOnly, tarFormat, dockerBuild, extraFlags, buildArgs } = action.getSpec()
 
   let targetDir: string
   let target: string
@@ -106,11 +107,8 @@ export function getBuildFlags(action: JibBuildAction, projectType: JibModuleBuil
   const tarPath = resolve(module.path, targetDir, tarFilename)
 
   const dockerBuildArgs = getDockerBuildArgs(action.versionString(), buildArgs)
-  const outputs = getContainerBuildActionOutputs({
-    buildName: action.name,
-    localId,
-    version: action.getFullVersion(),
-  })
+  // FIXME: this casting is annoying...
+  const outputs = getContainerBuildActionOutputs(<Resolved<ContainerBuildAction>>(<unknown>action))
   const imageId = outputs.deploymentImageId
 
   const args = [
