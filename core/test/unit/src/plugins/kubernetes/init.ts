@@ -70,6 +70,8 @@ const basicProvider: KubernetesProvider = {
   moduleConfigs: [],
   status: { ready: true, outputs: {} },
   dashboardPages: [],
+  outputs: {},
+  state: "ready",
 }
 
 const dockerSimpleAuthSecret: KubernetesResource<V1Secret> = {
