@@ -80,9 +80,11 @@ function makeModuleCommand(commandName: string): PluginCommand {
     title: ({ args }) =>
       chalk.bold.magenta(`Running ${chalk.white.bold(terraformCommand)} for module ${chalk.white.bold(args[0] || "")}`),
 
-    async handler({ ctx, args, log, graph }) {
+    async handler({ garden, ctx, args, log, graph }) {
       const action = findAction(graph, args[0])
-      const spec = action.getSpec()
+
+      const resolvedAction = await garden.resolveAction({ graph, action, log })
+      const spec = resolvedAction.getSpec()
 
       const root = join(action.basePath(), spec.root)
 
