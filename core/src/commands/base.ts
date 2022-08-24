@@ -29,9 +29,9 @@ import { renderOptions, renderCommands, renderArguments, getCliStyles } from "..
 import { GlobalOptions, ParameterValues, Parameters } from "../cli/params"
 import { GardenServer } from "../server/server"
 import { GardenCli } from "../cli/cli"
-import { buildResultSchema } from "../plugin/handlers/build/build"
 import { TestTask } from "../tasks/test"
 import { RunTask } from "../tasks/run"
+import { buildResultSchema } from "../plugin/handlers/build/get-status"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -479,6 +479,7 @@ export const graphResultsSchema = () =>
     )
     .meta({ keyPlaceholder: "<key>" })
 
+// TODO-G2: update
 export const processCommandResultSchema = () =>
   joi.object().keys({
     builds: joiIdentifierMap(buildResultSchema().keys(processCommandResultKeys()))

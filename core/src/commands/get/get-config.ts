@@ -15,10 +15,11 @@ import { moduleConfigSchema } from "../../config/module"
 import { workflowConfigSchema } from "../../config/workflow"
 import { BooleanParameter, ChoicesParameter } from "../../cli/params"
 import { printHeader } from "../../logger/util"
+import { baseActionConfigSchema } from "../../actions/base"
 
 export const getConfigOptions = {
   "exclude-disabled": new BooleanParameter({
-    help: "Exclude disabled module, service, test, and task configs from output.",
+    help: "Exclude disabled action and module configs from output.",
   }),
   "resolve": new ChoicesParameter({
     help:
@@ -44,6 +45,7 @@ export class GetConfigCommand extends Command<{}, Opts> {
         "A list of all configured providers in the environment."
       ),
       variables: joiVariables().description("All configured variables in the environment."),
+      actionConfigs: joiArray(baseActionConfigSchema()).description("All action configs in the project."),
       moduleConfigs: joiArray(moduleConfigSchema()).description("All module configs in the project."),
       workflowConfigs: joi.array().items(workflowConfigSchema()).description("All workflow configs in the project."),
       projectName: joi.string().description("The name of the project."),
@@ -78,6 +80,15 @@ export class GetConfigCommand extends Command<{}, Opts> {
       })
 
       config.moduleConfigs = filteredModuleConfigs
+
+      for (const configs of Object.values(config.actionConfigs)) {
+        // TODO-G2: work out why c resolves as any
+        for (const [key, c] of Object.entries(configs)) {
+          if (c.disabled) {
+            delete configs[key]
+          }
+        }
+      }
     }
 
     // TODO: do a nicer print of this by default

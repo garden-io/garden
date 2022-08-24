@@ -7,12 +7,10 @@
  */
 
 import chalk from "chalk"
-import { mapValues } from "lodash"
 
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { GardenPlugin, ModuleTypeDefinition } from "../plugin/plugin"
-import { ServiceStatusMap } from "../types/service"
 import { getServiceStatuses } from "../tasks/base"
 import { DeleteDeployTask, deletedDeployStatuses } from "../tasks/delete-service"
 import { DeployTask } from "../tasks/deploy"
@@ -25,6 +23,7 @@ import { buildRouter } from "./build"
 import { deployRouter } from "./deploy"
 import { runRouter } from "./run"
 import { testRouter } from "./test"
+import { DeployStatus } from "../plugin/handlers/deploy/get-status"
 
 export interface DeployManyParams {
   graph: ConfigGraph
@@ -81,7 +80,7 @@ export class ActionRouter extends BaseRouter {
     log: LogEntry
     graph: ConfigGraph
     names?: string[]
-  }): Promise<ServiceStatusMap> {
+  }): Promise<{ [name: string]: DeployStatus }> {
     const actions = graph.getDeploys({ names })
 
     const tasks = actions.map(
@@ -100,7 +99,7 @@ export class ActionRouter extends BaseRouter {
     )
     const { results } = await this.garden.processTasks({ tasks, log, throwOnError: true, statusOnly: true })
 
-    return mapValues(getServiceStatuses(results), (r) => r.detail!)
+    return getServiceStatuses(results)
   }
 
   async deployMany({ graph, deployNames, force = false, forceBuild = false, log }: DeployManyParams) {

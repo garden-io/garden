@@ -10,7 +10,7 @@ import chalk from "chalk"
 
 import { uuidv4 } from "../util/util"
 import { PluginEventBroker } from "../plugin-context"
-import { BuildState } from "../plugin/handlers/build/build"
+import { BuildState } from "../plugin/handlers/build/get-status"
 import { BaseRouterParams, createActionRouter } from "./base"
 import { ActionState } from "../actions/base"
 import { PublishActionResult } from "../plugin/handlers/build/publish"

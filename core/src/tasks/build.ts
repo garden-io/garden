@@ -75,13 +75,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
         append: true,
       })
 
-      const status: BuildStatus = {
-        state: "ready",
-        detail: result,
-        outputs: result.outputs,
-      }
-
-      return { ...result, executedAction: action.execute({ status }) }
+      return { ...result, executedAction: action.execute({ status: result }) }
     } catch (err) {
       log.setError()
       throw err

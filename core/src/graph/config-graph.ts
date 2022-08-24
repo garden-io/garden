@@ -38,7 +38,7 @@ export type RenderedActionGraph = {
 export type RenderedEdge = { dependant: RenderedNode; dependency: RenderedNode }
 
 export interface RenderedNode {
-  type: ActionKind
+  kind: ActionKind
   name: string
   moduleName?: string
   key: string
@@ -372,7 +372,7 @@ export abstract class BaseConfigGraph<
 
     const sortedNodeKeys = toposort(simpleEdges)
 
-    const edgeSortIndex = (e) => {
+    const edgeSortIndex = (e: ConfigGraphEdge) => {
       return sortedNodeKeys.findIndex((k: string) => k === nodeKey(e.dependency.type, e.dependency.name))
     }
     edges = edges.sort((e1, e2) => edgeSortIndex(e2) - edgeSortIndex(e1))
@@ -485,7 +485,7 @@ export class ConfigGraphNode {
   render(): RenderedNode {
     return {
       name: this.name,
-      type: this.type,
+      kind: this.type,
       key: this.name,
       disabled: this.disabled,
     }

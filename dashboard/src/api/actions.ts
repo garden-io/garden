@@ -17,14 +17,14 @@ import type { GetTestResultCommandResult } from "@garden-io/core/build/src/comma
 import type { GraphOutput } from "@garden-io/core/build/src/commands/get/get-graph"
 import {
   ApiDispatch,
-  defaultRunStatus,
-  defaultServiceStatus,
   defaultTaskState,
   Entities,
   ModuleEntity,
-  ServiceEntity,
-  TaskEntity,
+  DeployEntity,
+  RunEntity,
   TestEntity,
+  BuildEntity,
+  defaultActionStatus,
 } from "../contexts/api"
 import {
   fetchConfig,
@@ -36,10 +36,10 @@ import {
   fetchTestResult,
   FetchTestResultParams,
 } from "./api"
-import { getAuthKey, getTestKey } from "../util/helpers"
+import { getAuthKey } from "../util/helpers"
 import type { ProviderMap } from "@garden-io/core/build/src/config/provider"
 import type { DashboardPage } from "@garden-io/core/build/src/plugin/handlers/provider/getDashboardPage"
-import { AxiosError } from "axios"
+import type { AxiosError } from "axios"
 
 // This file contains the API action functions.
 // The actions are responsible for dispatching the appropriate action types and normalising the
@@ -48,24 +48,17 @@ import { AxiosError } from "axios"
 // Section: Helpers
 
 /**
- * Returns service status if set, otherwise default service status.
+ * Returns entity status if set, otherwise default status.
  */
-function getServiceStatus(service?: ServiceEntity) {
-  return service ? service.status : defaultServiceStatus || defaultServiceStatus
+function getEntityStatus(entity?: DeployEntity | BuildEntity | TestEntity | RunEntity) {
+  return entity?.status || defaultActionStatus
 }
 
 /**
  * Returns task state if set, otherwise default task state.
  */
-function getTaskState(entity?: ServiceEntity | ModuleEntity | TestEntity | TaskEntity) {
-  return entity ? entity.taskState : defaultTaskState || defaultTaskState
-}
-
-/**
- * Returns run status if set, otherwise default run status.
- */
-function getRunStatus(entity?: TaskEntity | TestEntity) {
-  return entity ? entity.status : defaultRunStatus || defaultRunStatus
+function getTaskState(entity?: DeployEntity | BuildEntity | TestEntity | RunEntity) {
+  return entity?.taskState || defaultTaskState
 }
 
 // Section: Init actions and process handlers
@@ -133,41 +126,13 @@ function processConfigInitResult(entities: Entities, config: ConfigDump) {
       }
       draft.modules[cfg.name] = module
 
-      const moduleDisabled = module.disabled
-      for (const serviceConfig of cfg.serviceConfigs) {
-        const service = entities.services[serviceConfig.name]
-        draft.services[serviceConfig.name] = {
-          taskState: getTaskState(service),
-          status: getServiceStatus(service),
-          config: {
-            ...serviceConfig,
-            moduleDisabled,
-          },
-        }
-      }
-      for (const testConfig of cfg.testConfigs) {
-        const testKey = getTestKey({ testName: testConfig.name, moduleName: cfg.name })
-        const test = entities.tests[testKey]
-        draft.tests[testKey] = {
-          taskState: getTaskState(test),
-          status: getRunStatus(test),
-          result: null,
-          config: {
-            ...testConfig,
-            moduleDisabled,
-          },
-        }
-      }
-      for (const taskConfig of cfg.taskConfigs) {
-        const task = entities.tasks[taskConfig.name]
-        draft.tasks[taskConfig.name] = {
-          taskState: getTaskState(task),
-          status: getRunStatus(task),
-          result: null,
-          config: {
-            ...taskConfig,
-            moduleDisabled,
-          },
+      for (const [kind, actions] of Object.entries(config.actionConfigs)) {
+        for (const name of Object.keys(actions)) {
+          const entity = entities[kind][name]
+          draft.actions[kind][name] = {
+            taskState: getTaskState(entity),
+            status: getEntityStatus(entity),
+          }
         }
       }
     }
@@ -201,17 +166,11 @@ export async function loadStatus(dispatch: ApiDispatch) {
  */
 function processStatusInitResult(entities: Entities, status: StatusCommandResult) {
   return produce(entities, (draft) => {
-    for (const serviceName of Object.keys(status.actions.deploy)) {
-      draft.services[serviceName] = entities.services[serviceName] || {}
-      draft.services[serviceName].status = status.actions.deploy[serviceName]
-    }
-    for (const [taskName, taskStatus] of Object.entries(status.actions.run || {})) {
-      draft.tasks[taskName] = entities.tasks[taskName] || {}
-      draft.tasks[taskName].status = taskStatus
-    }
-    for (const [testName, testStatus] of Object.entries(status.actions.run || {})) {
-      draft.tests[testName] = entities.tests[testName] || {}
-      draft.tests[testName].status = testStatus
+    for (const [kind, statuses] of Object.entries(status.actions)) {
+      for (const s of Object.values(statuses)) {
+        draft.actions[kind][s.name] = entities.actions[kind][s.name] || {}
+        draft.actions[kind][s.name].status = s
+      }
     }
     draft.environmentStatuses = status.providers
   })
@@ -260,15 +219,15 @@ export async function loadTaskResult({ dispatch, ...fetchParams }: LoadTaskResul
     return
   }
 
-  const processResults = (entities: Entities) => processTaskResult(entities, fetchParams.name, res)
+  const processResults = (entities: Entities) => processRunResult(entities, fetchParams.name, res)
 
   dispatch({ type: "fetchSuccess", requestKey, processResults })
 }
 
-function processTaskResult(entities: Entities, name: string, result: GetRunResultCommandResult) {
+function processRunResult(entities: Entities, name: string, result: GetRunResultCommandResult) {
   return produce(entities, (draft) => {
     if (result) {
-      draft.tasks[name].result = result
+      draft.actions.Run[name].result = result
     }
   })
 }
@@ -298,9 +257,7 @@ export async function loadTestResult({ dispatch, ...fetchParams }: LoadTestResul
 function processTestResult(entities: Entities, params: FetchTestResultParams, result: GetTestResultCommandResult) {
   return produce(entities, (draft) => {
     if (result) {
-      // Test names are not unique so we store the data under a unique test key
-      const testKey = getTestKey({ testName: params.name, moduleName: params.moduleName })
-      draft.tests[testKey].result = result
+      draft.actions.Test[params.name].result = result
     }
   })
 }

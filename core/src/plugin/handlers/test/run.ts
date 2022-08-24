@@ -11,9 +11,8 @@ import { artifactsPathSchema, PluginTestActionParamsBase } from "../../../plugin
 import { TestAction } from "../../../actions/test"
 import { runBuildBaseSchema } from "../build/run"
 import { joi } from "../../../config/common"
-import { testResultSchema } from "../../../types/test"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { GetTestResult } from "./get-result"
+import { GetTestResult, getTestResultSchema } from "./get-result"
 import { CommonRunParams } from "../run/run"
 import { Resolved } from "../../../actions/base"
 
@@ -40,5 +39,5 @@ export class RunTestAction<T extends TestAction = TestAction> extends ActionType
       artifactsPath: artifactsPathSchema(),
       silent: joi.boolean().description("Set to true if no log output should be emitted during execution"),
     })
-  resultSchema = () => testResultSchema()
+  resultSchema = () => getTestResultSchema()
 }

@@ -12,7 +12,7 @@ import React from "react"
 import { default as AnsiUp } from "ansi_up"
 
 import { colors } from "../styles/variables"
-import { ServiceLogEntry } from "@garden-io/core/build/src/types/plugin/service/getServiceLogs"
+import type { ServiceLogEntry } from "@garden-io/core/src/types/service"
 
 interface Props {
   entries: ServiceLogEntry[]

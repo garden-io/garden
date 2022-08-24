@@ -12,8 +12,8 @@ import PageError from "../components/page-error"
 import Logs from "../components/logs"
 import Spinner from "../components/spinner"
 import { loadLogs } from "../api/actions"
-import { ServiceLogEntry } from "@garden-io/core/build/src/types/plugin/service/getServiceLogs"
 import { useApi } from "../hooks"
+import type { ServiceLogEntry } from "@garden-io/core/build/src/types/service"
 
 interface LogsLoaded {
   [serviceName: string]: ServiceLogEntry[]
@@ -27,17 +27,17 @@ export default () => {
 
   useEffect(() => {
     // We need this inside the hook for referential equality
-    const serviceNames: string[] = Object.keys(entities.services).filter((serviceName) => {
-      const service = entities.services[serviceName]
-      return !(service.config.disabled || service.config.moduleDisabled)
+    const deployNames: string[] = Object.keys(entities.actions.Deploy).filter((name) => {
+      const action = entities.actions.Deploy[name]
+      return !action.config.disabled
     })
 
-    const fetchData = async () => loadLogs(dispatch, serviceNames)
+    const fetchData = async () => loadLogs(dispatch, deployNames)
 
-    if (!requestStates.logs.initLoadComplete && serviceNames.length) {
+    if (!requestStates.logs.initLoadComplete && deployNames.length) {
       fetchData()
     }
-  }, [dispatch, requestStates.logs.initLoadComplete, entities.services])
+  }, [dispatch, requestStates.logs.initLoadComplete, entities.actions.Deploy])
 
   const handleRefresh = useCallback(
     (names: string[]) => {

@@ -11,16 +11,20 @@ import { Facebook as ContentLoader } from "react-content-loader"
 import { FieldWrap, Field, Key, Value, NameField } from "./common"
 import Ingresses from "../ingresses"
 import { EntityCardWrap, Header, Content, StateLabel, Label } from "./common"
-import { ServiceEntity } from "../../contexts/api"
+import { DeployEntity } from "../../contexts/api"
 
-export type Props = Pick<ServiceEntity["config"], "name" | "dependencies"> &
-  Pick<ServiceEntity["status"], "ingresses" | "state"> & {
+export type Props = Pick<DeployEntity["config"], "name" | "dependencies"> &
+  Pick<DeployEntity["status"], "ingresses" | "state"> & {
     disabled: boolean
     isLoading: boolean
     showInfo: boolean
   }
 
 export const ServiceCard = ({ name, dependencies, state, ingresses, isLoading, showInfo, disabled }: Props) => {
+  if (!dependencies) {
+    dependencies = []
+  }
+
   return (
     <EntityCardWrap>
       <Header>

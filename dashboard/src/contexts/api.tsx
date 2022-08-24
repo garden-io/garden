@@ -11,24 +11,27 @@ import React from "react"
 import produce from "immer"
 import { AxiosError } from "axios"
 
-import { ServiceLogEntry } from "@garden-io/core/build/src/types/plugin/service/getServiceLogs"
-import { GraphOutput } from "@garden-io/core/build/src/commands/get/get-graph"
-import { ServiceStatus } from "@garden-io/core/build/src/types/service"
-import { ModuleConfig } from "@garden-io/core/build/src/config/module"
-import { PickFromUnion } from "@garden-io/core/build/src/util/util"
-import { ServiceConfig } from "@garden-io/core/build/src/config/service"
-import { RunStatus } from "@garden-io/core/build/src/plugin/base"
-import { TaskConfig } from "@garden-io/core/build/src/config/task"
-import { GetTaskResultCommandResult } from "@garden-io/core/build/src/commands/get/get-task-result"
-import { GetTestResultCommandResult } from "@garden-io/core/build/src/commands/get/get-test-result"
-import { TestConfig } from "@garden-io/core/build/src/config/test"
-import { EventName } from "@garden-io/core/build/src/events"
-import { EnvironmentStatusMap } from "../../../core/build/src/plugin/handlers/provider/getEnvironmentStatus"
+import type { GraphOutput } from "@garden-io/core/build/src/commands/get/get-graph"
+import type { ServiceLogEntry, ServiceStatus } from "@garden-io/core/build/src/types/service"
+import type { ModuleConfig } from "@garden-io/core/build/src/config/module"
+import type { PickFromUnion } from "@garden-io/core/build/src/util/util"
+import type { GetTestResultCommandResult } from "@garden-io/core/build/src/commands/get/get-test-result"
+import type { EventName } from "@garden-io/core/build/src/events"
+import type { EnvironmentStatusMap } from "../../../core/build/src/plugin/handlers/provider/getEnvironmentStatus"
 import { isSupportedEvent, processWebSocketMessage } from "../api/ws"
-import { ServerWebsocketMessage } from "@garden-io/core/build/src/server/server"
+import type { ServerWebsocketMessage } from "@garden-io/core/build/src/server/server"
 import { useWebsocket, useUiState } from "../hooks"
-import { ProviderMap } from "@garden-io/core/build/src/config/provider"
+import type { ProviderMap } from "@garden-io/core/build/src/config/provider"
 import { DashboardPage } from "../../../core/build/src/plugin/handlers/provider/getDashboardPage"
+import type { BuildActionConfig } from "@garden-io/core/build/src/actions/build"
+import type { BuildStatus } from "@garden-io/core/build/src/plugin/handlers/build/get-status"
+import type { DeployActionConfig } from "@garden-io/core/build/src/actions/deploy"
+import type { GetRunResultCommandResult } from "@garden-io/core/build/src/commands/get/get-run-result"
+import type { TestActionConfig } from "@garden-io/core/build/src/actions/test"
+import type { RunActionConfig } from "@garden-io/core/build/src/actions/run"
+import type { GetTestResult } from "@garden-io/core/build/src/plugin/handlers/test/get-result"
+import type { GetRunResult } from "@garden-io/core/build/src/plugin/handlers/run/get-result"
+import type { ActionStatus } from "@garden-io/core/build/src/actions/base"
 
 export type SupportedEventName = PickFromUnion<
   EventName,
@@ -51,48 +54,44 @@ export type TaskState = PickFromUnion<
 
 export const taskStates = ["taskComplete", "taskError", "taskPending", "taskProcessing", "taskCancelled"]
 export const defaultTaskState: TaskState = "taskComplete"
-export const defaultServiceStatus: ServiceStatus = {
+export const defaultActionStatus: ActionStatus = {
   state: "unknown",
   detail: {},
-}
-export const defaultRunStatus: RunStatus = {
-  state: "outdated",
+  outputs: {},
 }
 
-export interface TestEntity {
-  config: TestConfig & {
-    moduleDisabled: boolean
-  }
-  status: RunStatus
+interface BaseEntity {
+  taskState: TaskState
+}
+
+export interface TestEntity extends BaseEntity {
+  config: TestActionConfig
+  status: GetTestResult
   result: GetTestResultCommandResult
-  taskState: TaskState // State of the test task for the module
 }
 
-export interface TaskEntity {
-  config: TaskConfig & {
-    moduleDisabled: boolean
-  }
-  status: RunStatus
-  result: GetTaskResultCommandResult
+export interface RunEntity extends BaseEntity {
+  config: RunActionConfig
+  status: GetRunResult
+  result: GetRunResultCommandResult
   taskState: TaskState // State of the task task for the module
 }
 
-export type ModuleEntity = Pick<
-  ModuleConfig,
-  "name" | "type" | "path" | "repositoryUrl" | "description" | "disabled"
-> & {
-  services: string[]
-  tasks: string[]
-  tests: string[]
-  taskState: TaskState // State of the build task for the module
+export type ModuleEntity = BaseEntity &
+  Pick<ModuleConfig, "name" | "type" | "path" | "repositoryUrl" | "description" | "disabled"> & {
+    services: string[]
+    tasks: string[]
+    tests: string[]
+  }
+
+export interface BuildEntity extends BaseEntity {
+  config: BuildActionConfig<string, any>
+  status: BuildStatus
 }
 
-export interface ServiceEntity {
-  config: ServiceConfig & {
-    moduleDisabled: boolean
-  }
+export interface DeployEntity extends BaseEntity {
+  config: DeployActionConfig
   status: ServiceStatus
-  taskState: TaskState // State of the deploy task for the service
 }
 
 export interface ProjectEntity {
@@ -126,9 +125,12 @@ export interface Entities {
     taskGraphProcessing: boolean
   }
   modules: { [moduleName: string]: ModuleEntity }
-  services: { [serviceName: string]: ServiceEntity }
-  tasks: { [taskName: string]: TaskEntity }
-  tests: { [testKey: string]: TestEntity }
+  actions: {
+    Build: { [name: string]: BuildEntity }
+    Deploy: { [name: string]: DeployEntity }
+    Run: { [name: string]: RunEntity }
+    Test: { [name: string]: TestEntity }
+  }
   logs: { [serviceName: string]: ServiceLogEntry[] | undefined }
   graph: GraphOutput
   environmentStatuses: EnvironmentStatusMap
@@ -196,9 +198,12 @@ const initialState: Store = {
       taskGraphProcessing: false,
     },
     modules: {},
-    services: {},
-    tasks: {},
-    tests: {},
+    actions: {
+      Build: {},
+      Deploy: {},
+      Run: {},
+      Test: {},
+    },
     logs: {},
     graph: { nodes: [], relationships: [] },
     environmentStatuses: {},
