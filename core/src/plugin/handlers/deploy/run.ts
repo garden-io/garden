@@ -14,14 +14,12 @@ import {
   runResultSchema,
 } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
-import { RuntimeContext } from "../../../runtime-context"
 import { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
 import { Resolved } from "../../../actions/base"
 
 interface RunDeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   interactive: boolean
-  runtimeContext: RuntimeContext
   timeout?: number
 }
 

@@ -593,7 +593,6 @@ describe("kubernetes Pod runner functions", () => {
         module: helmModule,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
-        runtimeContext: { envVars: {}, dependencies: [] },
         envVars: {},
         description: "Helm module",
         errorMetadata: {},
@@ -639,7 +638,7 @@ describe("kubernetes Pod runner functions", () => {
         module: helmModule,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
-        runtimeContext: { envVars: {}, dependencies: [] },
+
         envVars: {},
         resources, // <---
         description: "Helm module",
@@ -687,7 +686,7 @@ describe("kubernetes Pod runner functions", () => {
         module: helmModule,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
-        runtimeContext: { envVars: {}, dependencies: [] },
+
         envVars: {},
         resources, // <---
         description: "Helm module",
@@ -735,7 +734,7 @@ describe("kubernetes Pod runner functions", () => {
         module: helmModule,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
-        runtimeContext: { envVars: {}, dependencies: [] },
+
         envVars: {},
         resources, // <---
         description: "Helm module",
@@ -817,7 +816,7 @@ describe("kubernetes Pod runner functions", () => {
         module: helmModule,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
-        runtimeContext: { envVars: {}, dependencies: [] },
+
         envVars: {},
         description: "Helm module",
         errorMetadata: {},
@@ -888,7 +887,7 @@ describe("kubernetes Pod runner functions", () => {
         module: helmModule,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
-        runtimeContext: { envVars: {}, dependencies: [] },
+
         envVars: {},
         description: "Helm module",
         errorMetadata: {},
@@ -953,7 +952,7 @@ describe("kubernetes Pod runner functions", () => {
         interactive: false,
         module,
         namespace,
-        runtimeContext: { envVars: {}, dependencies: [] },
+
         image,
         version: module.version.versionString,
       })
@@ -974,7 +973,7 @@ describe("kubernetes Pod runner functions", () => {
         module,
         namespace: provider.config.namespace!.name!,
         podName,
-        runtimeContext: { envVars: {}, dependencies: [] },
+
         image,
         version: module.version.versionString,
       })
@@ -997,7 +996,7 @@ describe("kubernetes Pod runner functions", () => {
         interactive: false,
         module,
         namespace,
-        runtimeContext: { envVars: {}, dependencies: [] },
+
         image,
         timeout: 4,
         version: module.version.versionString,
@@ -1021,7 +1020,7 @@ describe("kubernetes Pod runner functions", () => {
           interactive: false,
           module,
           namespace,
-          runtimeContext: { envVars: {}, dependencies: [] },
+
           artifacts: task.spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
@@ -1047,7 +1046,7 @@ describe("kubernetes Pod runner functions", () => {
           module,
           namespace,
           podName,
-          runtimeContext: { envVars: {}, dependencies: [] },
+
           artifacts: task.spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
@@ -1072,7 +1071,7 @@ describe("kubernetes Pod runner functions", () => {
           interactive: false,
           module,
           namespace,
-          runtimeContext: { envVars: {}, dependencies: [] },
+
           artifacts: task.spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
@@ -1095,7 +1094,7 @@ describe("kubernetes Pod runner functions", () => {
           interactive: false,
           module,
           namespace,
-          runtimeContext: { envVars: {}, dependencies: [] },
+
           artifacts: task.spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
@@ -1114,7 +1113,7 @@ describe("kubernetes Pod runner functions", () => {
           interactive: false,
           module,
           namespace,
-          runtimeContext: { envVars: {}, dependencies: [] },
+
           artifacts: [
             {
               source: "/report/*",
@@ -1141,7 +1140,7 @@ describe("kubernetes Pod runner functions", () => {
           interactive: false,
           module,
           namespace,
-          runtimeContext: { envVars: {}, dependencies: [] },
+
           artifacts: [
             {
               source: "/report",
@@ -1168,7 +1167,7 @@ describe("kubernetes Pod runner functions", () => {
           interactive: false,
           module,
           namespace,
-          runtimeContext: { envVars: {}, dependencies: [] },
+
           artifacts: task.spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
@@ -1192,7 +1191,7 @@ describe("kubernetes Pod runner functions", () => {
           interactive: false,
           module,
           namespace,
-          runtimeContext: { envVars: {}, dependencies: [] },
+
           artifacts: task.spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
@@ -1228,7 +1227,7 @@ describe("kubernetes Pod runner functions", () => {
               interactive: false,
               module,
               namespace,
-              runtimeContext: { envVars: {}, dependencies: [] },
+
               artifacts: task.spec.artifacts,
               artifactsPath: tmpDir.path,
               description: "Foo",
@@ -1268,7 +1267,7 @@ describe("kubernetes Pod runner functions", () => {
               interactive: false,
               module,
               namespace,
-              runtimeContext: { envVars: {}, dependencies: [] },
+
               artifacts: task.spec.artifacts,
               artifactsPath: tmpDir.path,
               description: "Foo",
@@ -1298,7 +1297,7 @@ describe("kubernetes Pod runner functions", () => {
               interactive: false,
               module,
               namespace,
-              runtimeContext: { envVars: {}, dependencies: [] },
+
               artifacts: task.spec.artifacts,
               artifactsPath: tmpDir.path,
               description: "Foo",

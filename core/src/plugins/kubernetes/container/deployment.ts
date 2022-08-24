@@ -31,7 +31,6 @@ import { ContainerServiceStatus, k8sGetContainerDeployStatus } from "./status"
 import { LogEntry } from "../../../logger/log-entry"
 import { prepareEnvVars, workloadTypes } from "../util"
 import { deline, gardenAnnotationKey } from "../../../util/string"
-import { RuntimeContext } from "../../../runtime-context"
 import { resolve } from "path"
 import { killPortForwards } from "../port-forward"
 import { prepareSecrets } from "../secrets"
@@ -170,7 +169,7 @@ export async function startLocalMode({
 export const deployContainerServiceRolling = async (
   params: DeployActionParams<"deploy", ContainerDeployAction> & { api: KubeApi; imageId: string }
 ) => {
-  const { ctx, api, action, runtimeContext, log, devMode, imageId, localMode } = params
+  const { ctx, api, action, log, devMode, imageId, localMode } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
@@ -182,7 +181,6 @@ export const deployContainerServiceRolling = async (
     log,
     action,
     imageId,
-    runtimeContext,
     enableDevMode: devMode,
     enableLocalMode: localMode,
     blueGreen: false,
@@ -207,7 +205,7 @@ export const deployContainerServiceRolling = async (
 export const deployContainerServiceBlueGreen = async (
   params: DeployActionParams<"deploy", ContainerDeployAction> & { api: KubeApi; imageId: string }
 ) => {
-  const { ctx, api, action, runtimeContext, log, devMode, imageId, localMode } = params
+  const { ctx, api, action, log, devMode, imageId, localMode } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
   const namespace = namespaceStatus.namespaceName
@@ -219,7 +217,6 @@ export const deployContainerServiceBlueGreen = async (
     log,
     action,
     imageId,
-    runtimeContext,
     enableDevMode: devMode,
     enableLocalMode: localMode,
     blueGreen: true,
@@ -330,7 +327,6 @@ export async function createContainerManifests({
   log,
   action,
   imageId,
-  runtimeContext,
   enableDevMode,
   enableLocalMode,
   blueGreen,
@@ -340,7 +336,6 @@ export async function createContainerManifests({
   log: LogEntry
   action: Resolved<ContainerDeployAction>
   imageId: string
-  runtimeContext: RuntimeContext
   enableDevMode: boolean
   enableLocalMode: boolean
   blueGreen: boolean
@@ -356,7 +351,6 @@ export async function createContainerManifests({
     provider,
     action,
     imageId,
-    runtimeContext,
     namespace,
     enableDevMode,
     enableLocalMode,
@@ -394,7 +388,6 @@ interface CreateDeploymentParams {
   api: KubeApi
   provider: KubernetesProvider
   action: Resolved<ContainerDeployAction>
-  runtimeContext: RuntimeContext
   namespace: string
   imageId: string
   enableDevMode: boolean
@@ -410,7 +403,6 @@ export async function createWorkloadManifest({
   provider,
   action,
   imageId,
-  runtimeContext,
   namespace,
   enableDevMode,
   enableLocalMode,
@@ -442,7 +434,7 @@ export async function createWorkloadManifest({
     configuredReplicas = 1
   }
 
-  const env = prepareEnvVars({ ...runtimeContext.envVars, ...spec.env })
+  const env = prepareEnvVars({ ...action.getEnvVars(), ...spec.env })
 
   // expose some metadata to the container
   env.push({

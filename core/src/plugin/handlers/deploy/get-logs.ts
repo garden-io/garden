@@ -9,7 +9,6 @@
 import { Stream } from "ts-stream"
 import { actionParamsSchema, PluginDeployActionParamsBase } from "../../base"
 import { dedent } from "../../../util/string"
-import { runtimeContextSchema } from "../../../runtime-context"
 import { joi } from "../../../config/common"
 import { DeployAction } from "../../../actions/deploy"
 import { ServiceLogEntry } from "../../../types/service"
@@ -39,7 +38,6 @@ export class GetDeployLogs<T extends DeployAction = DeployAction> extends Action
 
   paramsSchema = () =>
     actionParamsSchema().keys({
-      runtimeContext: runtimeContextSchema(),
       stream: joi.object().description("A Stream object, to write the logs to."),
       follow: joi.boolean().description("Whether to keep listening for logs until aborted."),
       since: joi.string().description(`Only return logs newer than a relative duration like 5s, 2m, or 3h.`),

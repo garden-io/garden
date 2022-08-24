@@ -10,7 +10,6 @@ import { expect } from "chai"
 
 import { dataDir, makeTestGarden, TestGarden } from "../../../../../helpers"
 import { deployHelmService } from "../../../../../../src/plugins/kubernetes/helm/deployment"
-import { emptyRuntimeContext } from "../../../../../../src/runtime-context"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import {
   gardenCloudAECPauseAnnotation,
@@ -70,7 +69,6 @@ describe("deployHelmService in local-mode", () => {
       force: false,
       devMode: false,
       localMode: true, // <-----
-      runtimeContext: emptyRuntimeContext,
     })
 
     const status = await getReleaseStatus({
@@ -107,7 +105,7 @@ describe("deployHelmService in local-mode", () => {
       force: false,
       devMode: true, // <-----
       localMode: true, // <-----
-      runtimeContext: emptyRuntimeContext,
+
     })
 
     const status = await getReleaseStatus({
@@ -166,7 +164,7 @@ describe("deployHelmService", () => {
       force: false,
       devMode: false,
       localMode: false,
-      runtimeContext: emptyRuntimeContext,
+
     })
 
     const releaseName = getReleaseName(service.module)
@@ -208,7 +206,7 @@ describe("deployHelmService", () => {
       force: false,
       devMode: true, // <-----
       localMode: false,
-      runtimeContext: emptyRuntimeContext,
+
     })
 
     const status = await getReleaseStatus({
@@ -245,7 +243,7 @@ describe("deployHelmService", () => {
       force: false,
       devMode: false,
       localMode: false,
-      runtimeContext: emptyRuntimeContext,
+
     })
 
     const releaseName = getReleaseName(service.module)
@@ -289,7 +287,7 @@ describe("deployHelmService", () => {
       force: false,
       devMode: false,
       localMode: false,
-      runtimeContext: emptyRuntimeContext,
+
     })
 
     const releaseName = getReleaseName(service.module)

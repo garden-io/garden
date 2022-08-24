@@ -11,13 +11,13 @@ import { PrimitiveMap, joiIdentifierMap, joiPrimitive, DeepPrimitiveMap, joiVari
 import { ProviderMap } from "../provider"
 import { Garden } from "../../garden"
 import { joi } from "../common"
-import { RuntimeContext } from "../../runtime-context"
 import { deline } from "../../util/string"
 import { getModuleTypeUrl } from "../../docs/common"
 import { GardenModule } from "../../types/module"
 import { ConfigContext, schema, ErrorContext } from "./base"
 import { ProjectConfigContext, ProjectConfigContextParams } from "./project"
 import { ProviderConfigContext } from "./provider"
+import { GraphResults } from "../../graph/results"
 
 export const exampleVersion = "v-17ad4cb3fd"
 
@@ -154,24 +154,24 @@ class RuntimeConfigContext extends ConfigContext {
   )
   public tasks: Map<string, TaskRuntimeContext>
 
-  constructor(root: ConfigContext, allowPartial: boolean, runtimeContext?: RuntimeContext) {
+  constructor(root: ConfigContext, allowPartial: boolean, graphResults?: GraphResults) {
     super(root)
 
     this.services = new Map()
     this.tasks = new Map()
 
-    if (runtimeContext) {
-      for (const dep of runtimeContext.dependencies) {
-        if (dep.kind === "Deploy") {
-          this.services.set(dep.name, new ServiceRuntimeContext(this, dep.outputs, dep.version))
-        } else if (dep.kind === "Run") {
-          this.tasks.set(dep.name, new TaskRuntimeContext(this, dep.outputs, dep.version))
+    if (graphResults) {
+      for (const result of Object.values(graphResults.getMap())) {
+        if (result?.task.type === "deploy") {
+          this.services.set(result.name, new ServiceRuntimeContext(this, result.outputs, result.version))
+        } else if (result?.task.type === "run") {
+          this.tasks.set(result.name, new TaskRuntimeContext(this, result.outputs, result.version))
         }
       }
     }
 
     // This ensures that any template string containing runtime.* references is returned unchanged when
-    // there is no or limited runtimeContext available.
+    // there is no or limited runtime context available.
     this._alwaysAllowPartial = allowPartial
   }
 }
@@ -227,7 +227,7 @@ export interface OutputConfigContextParams {
   modules: GardenModule[]
   // We only supply this when resolving configuration in dependency order.
   // Otherwise we pass `${runtime.*} template strings through for later resolution.
-  runtimeContext?: RuntimeContext
+  graphResults?: GraphResults
   partialRuntimeResolution: boolean
 }
 
@@ -255,7 +255,7 @@ export class OutputConfigContext extends ProviderConfigContext {
     resolvedProviders,
     variables,
     modules,
-    runtimeContext,
+    graphResults,
     partialRuntimeResolution,
   }: OutputConfigContextParams) {
     super(garden, resolvedProviders, variables)
@@ -264,7 +264,7 @@ export class OutputConfigContext extends ProviderConfigContext {
       modules.map((config) => <[string, ModuleReferenceContext]>[config.name, new ModuleReferenceContext(this, config)])
     )
 
-    this.runtime = new RuntimeConfigContext(this, partialRuntimeResolution, runtimeContext)
+    this.runtime = new RuntimeConfigContext(this, partialRuntimeResolution, graphResults)
   }
 }
 
@@ -279,10 +279,6 @@ export interface ModuleConfigContextParams extends OutputConfigContextParams {
   parentName: string | undefined
   templateName: string | undefined
   inputs: DeepPrimitiveMap | undefined
-
-  // We only supply this when resolving configuration in dependency order.
-  // Otherwise we pass `${runtime.*} template strings through for later resolution.
-  runtimeContext?: RuntimeContext
 }
 
 /**

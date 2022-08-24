@@ -11,7 +11,6 @@ import { getAppNamespace } from "../namespace"
 import { streamK8sLogs } from "../logs"
 import { KubernetesPluginContext } from "../config"
 import { createWorkloadManifest } from "./deployment"
-import { emptyRuntimeContext } from "../../../runtime-context"
 import { KubeApi } from "../api"
 import { DeployActionHandler } from "../../../plugin/action-types"
 import { getDeployedImageId } from "./util"
@@ -32,8 +31,6 @@ export const k8sGetContainerDeployLogs: DeployActionHandler<"getLogs", Container
       provider,
       action,
       imageId,
-      // No need for the proper context here
-      runtimeContext: emptyRuntimeContext,
       namespace,
       enableDevMode: false,
       enableLocalMode: false,

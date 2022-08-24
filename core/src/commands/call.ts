@@ -16,7 +16,6 @@ import { find, includes } from "lodash"
 import { ServiceIngress, getIngressUrl } from "../types/service"
 import { dedent } from "../util/string"
 import { printHeader } from "../logger/util"
-import { emptyRuntimeContext } from "../runtime-context"
 import { got, GotResponse } from "../util/http"
 import { StringParameter } from "../cli/params"
 
@@ -72,8 +71,6 @@ export class CallCommand extends Command<Args> {
     // TODO: better error when deploy doesn't exist
     const graph = await garden.getConfigGraph({ log, emit: true })
     const action = graph.getDeploy(deployName)
-    // No need for full context, since we're just checking if the deploy is running.
-    const runtimeContext = emptyRuntimeContext
     const router = await garden.getActionRouter()
 
     const resolved = await garden.resolveAction({ action, graph, log })
@@ -84,7 +81,6 @@ export class CallCommand extends Command<Args> {
       graph,
       devMode: false,
       localMode: false,
-      runtimeContext,
     })
 
     if (!includes(["ready", "outdated"], status.state)) {

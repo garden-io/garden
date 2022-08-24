@@ -15,7 +15,6 @@ import { join, resolve } from "path"
 import { deployPulumiService, getPulumiServiceStatus } from "../handlers"
 import { PulumiProvider } from "../config"
 import { gardenPlugin as pulumiPlugin } from ".."
-import { emptyRuntimeContext } from "@garden-io/core/build/src/runtime-context"
 import { expect } from "chai"
 import { getStackVersionTag } from "../helpers"
 import { getPulumiCommands } from "../commands"
@@ -74,9 +73,7 @@ describe.skip("pulumi plugin handlers", () => {
         service,
         force: false,
         devMode: false,
-
         localMode: false,
-        runtimeContext: emptyRuntimeContext,
       })
       const versionTag = await getStackVersionTag({ log, ctx, provider, module })
       expect(status.state).to.eql("ready")
@@ -99,9 +96,7 @@ describe.skip("pulumi plugin handlers", () => {
         module,
         service,
         devMode: false,
-
         localMode: false,
-        runtimeContext: emptyRuntimeContext,
       })
       expect(status.state).to.eql("outdated")
     })
@@ -116,9 +111,7 @@ describe.skip("pulumi plugin handlers", () => {
         module,
         service,
         devMode: false,
-
         localMode: false,
-        runtimeContext: emptyRuntimeContext,
       })
       expect(status.state).to.eql("ready")
     })

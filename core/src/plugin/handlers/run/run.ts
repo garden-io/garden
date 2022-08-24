@@ -8,7 +8,6 @@
 
 import { runBaseParams, artifactsPathSchema, PluginRunActionParamsBase, actionParamsSchema } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
-import { RuntimeContext } from "../../../runtime-context"
 import { taskResultSchema } from "../../../types/task"
 import { RunAction } from "../../../actions/run"
 import { ActionTypeHandlerSpec } from "../base/base"
@@ -18,7 +17,6 @@ import { Resolved } from "../../../actions/base"
 export interface CommonRunParams {
   artifactsPath: string
   interactive: boolean
-  runtimeContext: RuntimeContext
 }
 
 type RunActionParams<T extends RunAction> = PluginRunActionParamsBase<T> & CommonRunParams

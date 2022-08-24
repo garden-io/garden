@@ -9,7 +9,6 @@
 import { expect } from "chai"
 import { Garden } from "../../../../../../src/garden"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
-import { emptyRuntimeContext } from "../../../../../../src/runtime-context"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import {
   createContainerManifests,
@@ -124,7 +123,7 @@ describe("kubernetes container deployment handlers", () => {
           api,
           service,
           log: garden.log,
-          runtimeContext: emptyRuntimeContext,
+
           enableDevMode: false,
           enableLocalMode: true, // <----
           blueGreen: false,
@@ -141,7 +140,7 @@ describe("kubernetes container deployment handlers", () => {
           api,
           service,
           log: garden.log,
-          runtimeContext: emptyRuntimeContext,
+
           enableDevMode: false,
           enableLocalMode: true, // <----
           blueGreen: false,
@@ -158,7 +157,7 @@ describe("kubernetes container deployment handlers", () => {
           api,
           service,
           log: garden.log,
-          runtimeContext: emptyRuntimeContext,
+
           enableDevMode: false,
           enableLocalMode: true, // <----
           blueGreen: false,
@@ -175,7 +174,7 @@ describe("kubernetes container deployment handlers", () => {
           api,
           service,
           log: garden.log,
-          runtimeContext: emptyRuntimeContext,
+
           enableDevMode: false,
           enableLocalMode: true, // <----
           blueGreen: false,
@@ -194,7 +193,7 @@ describe("kubernetes container deployment handlers", () => {
           api,
           service,
           log: garden.log,
-          runtimeContext: emptyRuntimeContext,
+
           enableDevMode: true, // <----
           enableLocalMode: true, // <----
           blueGreen: false,
@@ -211,7 +210,7 @@ describe("kubernetes container deployment handlers", () => {
           api,
           service,
           log: garden.log,
-          runtimeContext: emptyRuntimeContext,
+
           enableDevMode: true, // <----
           enableLocalMode: true, // <----
           blueGreen: false,
@@ -229,7 +228,7 @@ describe("kubernetes container deployment handlers", () => {
           api,
           service,
           log: garden.log,
-          runtimeContext: emptyRuntimeContext,
+
           enableDevMode: true, // <----
           enableLocalMode: true, // <----
           blueGreen: false,
@@ -246,7 +245,7 @@ describe("kubernetes container deployment handlers", () => {
           api,
           service,
           log: garden.log,
-          runtimeContext: emptyRuntimeContext,
+
           enableDevMode: true, // <----
           enableLocalMode: true, // <----
           blueGreen: false,
@@ -270,7 +269,7 @@ describe("kubernetes container deployment handlers", () => {
         api,
         provider,
         service,
-        runtimeContext: emptyRuntimeContext,
+
         namespace,
         enableDevMode: false,
 
@@ -343,7 +342,7 @@ describe("kubernetes container deployment handlers", () => {
         api,
         provider,
         service,
-        runtimeContext: emptyRuntimeContext,
+
         namespace,
         enableDevMode: false,
 
@@ -371,7 +370,7 @@ describe("kubernetes container deployment handlers", () => {
         api,
         provider,
         service,
-        runtimeContext: emptyRuntimeContext,
+
         namespace,
         enableDevMode: false,
 
@@ -398,7 +397,7 @@ describe("kubernetes container deployment handlers", () => {
         api,
         provider,
         service,
-        runtimeContext: emptyRuntimeContext,
+
         namespace,
         enableDevMode: false,
 
@@ -426,7 +425,7 @@ describe("kubernetes container deployment handlers", () => {
         api,
         provider,
         service,
-        runtimeContext: emptyRuntimeContext,
+
         namespace,
         enableDevMode: true, // <----
 
@@ -472,7 +471,7 @@ describe("kubernetes container deployment handlers", () => {
         api,
         provider,
         service,
-        runtimeContext: emptyRuntimeContext,
+
         namespace,
         enableDevMode: true, // <----
 
@@ -503,7 +502,7 @@ describe("kubernetes container deployment handlers", () => {
         api,
         provider,
         service,
-        runtimeContext: emptyRuntimeContext,
+
         namespace,
         enableDevMode: false,
 
@@ -550,7 +549,7 @@ describe("kubernetes container deployment handlers", () => {
         api,
         provider: _provider,
         service,
-        runtimeContext: emptyRuntimeContext,
+
         namespace,
         enableDevMode: false,
 
@@ -591,7 +590,7 @@ describe("kubernetes container deployment handlers", () => {
         api,
         provider: _provider,
         service,
-        runtimeContext: emptyRuntimeContext,
+
         namespace,
         enableDevMode: false,
 
@@ -614,7 +613,7 @@ describe("kubernetes container deployment handlers", () => {
         api,
         provider,
         service,
-        runtimeContext: emptyRuntimeContext,
+
         namespace,
         enableDevMode: false,
 
@@ -638,7 +637,7 @@ describe("kubernetes container deployment handlers", () => {
         api,
         provider,
         service,
-        runtimeContext: emptyRuntimeContext,
+
         namespace,
         enableDevMode: false,
 
@@ -671,7 +670,7 @@ describe("kubernetes container deployment handlers", () => {
             api,
             provider,
             service,
-            runtimeContext: emptyRuntimeContext,
+
             namespace,
             enableDevMode: false,
 

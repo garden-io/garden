@@ -13,7 +13,6 @@ import { DEFAULT_API_VERSION } from "../../../../../../src/constants"
 import { expect } from "chai"
 import { TestGarden, makeTempDir } from "../../../../../helpers"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
-import { emptyRuntimeContext } from "../../../../../../src/runtime-context"
 import { isSubset } from "../../../../../../src/util/is-subset"
 import { defaultDotIgnoreFile } from "../../../../../../src/util/fs"
 
@@ -82,7 +81,6 @@ describe("configmap module", () => {
       force: true,
       forceBuild: false,
       devModeDeployNames: [],
-
       localModeDeployNames: [],
     })
 
@@ -94,9 +92,7 @@ describe("configmap module", () => {
       service,
       graph,
       devMode: false,
-
       localMode: false,
-      runtimeContext: emptyRuntimeContext,
     })
 
     const remoteResources = status.detail["remoteResources"]

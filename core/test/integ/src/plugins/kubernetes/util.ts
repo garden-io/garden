@@ -27,7 +27,6 @@ import {
   getResourcePodSpec,
 } from "../../../../../src/plugins/kubernetes/util"
 import { createWorkloadManifest } from "../../../../../src/plugins/kubernetes/container/deployment"
-import { emptyRuntimeContext } from "../../../../../src/runtime-context"
 import { getHelmTestGarden } from "./helm/common"
 import { deline } from "../../../../../src/util/string"
 import { getBaseModule, getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
@@ -103,7 +102,6 @@ describe("util", () => {
           api,
           provider,
           service,
-          runtimeContext: emptyRuntimeContext,
           namespace: provider.config.namespace!.name!,
           enableDevMode: false,
 
