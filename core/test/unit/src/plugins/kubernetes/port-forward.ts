@@ -7,6 +7,8 @@
  */
 
 import { expect } from "chai"
+import { ResolvedRuntimeAction } from "../../../../../src/actions/base"
+import { KubernetesDeployActionConfig } from "../../../../../src/plugins/kubernetes/kubernetes-type/config"
 import { KubernetesService } from "../../../../../src/plugins/kubernetes/kubernetes-type/module-config"
 import { getForwardablePorts } from "../../../../../src/plugins/kubernetes/port-forward"
 
@@ -76,7 +78,8 @@ describe("getForwardablePorts", () => {
           },
         },
       ],
-      service
+      // service
+      undefined // TODO-G2
     )
 
     expect(ports).to.eql([

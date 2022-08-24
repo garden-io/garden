@@ -25,9 +25,10 @@ describe("createServiceResources", () => {
 
   it("should return service resources", async () => {
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const service = graph.getService("service-a")
+    const rawAction = graph.getDeploy("service-a")
+    const action = await garden.resolveAction({ graph, log: garden.log, action: rawAction })
 
-    const resources = await createServiceResources(service, "my-namespace", false)
+    const resources = await createServiceResources(action, "my-namespace", false)
 
     expect(resources).to.eql([
       {
@@ -58,9 +59,10 @@ describe("createServiceResources", () => {
 
   it("should pin to specific deployment version if blueGreen=true", async () => {
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const service = graph.getService("service-a")
+    const rawAction = graph.getDeploy("service-a")
+    const action = await garden.resolveAction({ graph, log: garden.log, action: rawAction })
 
-    const resources = await createServiceResources(service, "my-namespace", true)
+    const resources = await createServiceResources(action, "my-namespace", false)
 
     expect(resources).to.eql([
       {
@@ -82,7 +84,7 @@ describe("createServiceResources", () => {
           ],
           selector: {
             [gardenAnnotationKey("service")]: "service-a",
-            [gardenAnnotationKey("version")]: service.version,
+            [gardenAnnotationKey("version")]: action.versionString(),
           },
           type: "ClusterIP",
         },
@@ -92,11 +94,12 @@ describe("createServiceResources", () => {
 
   it("should add annotations if configured", async () => {
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const service: ContainerService = graph.getService("service-a")
+    const rawAction = graph.getDeploy("service-a")
+    const action = await garden.resolveAction({ graph, log: garden.log, action: rawAction })
 
-    service.spec.annotations = { my: "annotation" }
+    action._config.spec.annotations = { my: "annotation" }
 
-    const resources = await createServiceResources(service, "my-namespace", false)
+    const resources = await createServiceResources(action, "my-namespace", false)
 
     expect(resources).to.eql([
       {
@@ -129,11 +132,12 @@ describe("createServiceResources", () => {
 
   it("should create a NodePort service if a nodePort is specified", async () => {
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const service: ContainerService = graph.getService("service-a")
+    const rawAction = graph.getDeploy("service-a")
+    const action = await garden.resolveAction({ graph, log: garden.log, action: rawAction })
 
-    service.spec.ports[0].nodePort = 12345
+    action._config.spec.ports[0].nodePort = 12345
 
-    const resources = await createServiceResources(service, "my-namespace", false)
+    const resources = await createServiceResources(action, "my-namespace", false)
 
     expect(resources).to.eql([
       {
@@ -165,11 +169,12 @@ describe("createServiceResources", () => {
 
   it("should create a NodePort service without nodePort set if nodePort is specified as true", async () => {
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const service: ContainerService = graph.getService("service-a")
+    const rawAction = graph.getDeploy("service-a")
+    const action = await garden.resolveAction({ graph, log: garden.log, action: rawAction })
 
-    service.spec.ports[0].nodePort = true
+    action._config.spec.ports[0].nodePort = true
 
-    const resources = await createServiceResources(service, "my-namespace", false)
+    const resources = await createServiceResources(action, "my-namespace", false)
 
     expect(resources).to.eql([
       {
