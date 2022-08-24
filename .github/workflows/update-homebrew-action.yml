@@ -13,11 +13,6 @@ jobs:
     runs-on: macOS-latest
 
     steps:
-    - name: Harden Runner
-      uses: step-security/harden-runner@dd2c410b088af7c0dc8046f3ac9a8f4148492a95
-      with:
-        egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
-
     - name: Checks if pre-release
       if: github.event.release.prerelease == true
       run: |
