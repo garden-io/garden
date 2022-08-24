@@ -13,6 +13,7 @@ import psTree from "ps-tree"
 
 import { Garden } from "../../../../../src/garden"
 import { gardenPlugin, getLogFilePath } from "../../../../../src/plugins/exec/exec"
+import { ExecBuildActionSpec } from "../../../../../src/plugins/exec/config"
 import { GARDEN_BUILD_VERSION_FILENAME, DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { keyBy } from "lodash"
@@ -26,11 +27,14 @@ import { pathExists, emptyDir } from "fs-extra"
 import { TestTask } from "../../../../../src/tasks/test"
 import { defaultNamespace } from "../../../../../src/config/project"
 import { readFile, remove } from "fs-extra"
-import { testFromConfig } from "../../../../../src/types/test"
 import { dedent } from "../../../../../src/util/string"
 import { sleep } from "../../../../../src/util/util"
 import { defaultDotIgnoreFile } from "../../../../../src/util/fs"
 import { configureExecModule } from "../../../../../src/plugins/exec/moduleConfig"
+import { actionFromConfig } from "../../../../../src/graph/actions"
+import { TestAction, TestActionConfig } from "../../../../../src/actions/test"
+import { BuildActionConfig, ExecutedBuildAction } from "../../../../../src/actions/build"
+import { emptyRuntimeContext } from "../../../../../src/runtime-context"
 
 describe("exec plugin", () => {
   const moduleName = "module-a"
@@ -299,12 +303,13 @@ describe("exec plugin", () => {
   it("should propagate task logs to runtime outputs", async () => {
     const _garden = await makeTestGarden(getDataDir("test-projects", "exec-task-outputs"))
     const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
-    const taskB = _graph.getTask("task-b")
+    const taskB = _graph.getRun("task-b")
 
     const taskTask = new RunTask({
       garden: _garden,
       graph: _graph,
-      task: taskB,
+      action: taskB,
+      fromWatch: false,
       log: _garden.log,
       force: false,
       forceBuild: false,
@@ -325,12 +330,13 @@ describe("exec plugin", () => {
   it("should copy artifacts after task runs", async () => {
     const _garden = await makeTestGarden(getDataDir("test-projects", "exec-artifacts"))
     const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
-    const task = _graph.getTask("task-a")
+    const run = _graph.getRun("task-a")
 
     const taskTask = new RunTask({
       garden: _garden,
       graph: _graph,
-      task,
+      action: run,
+      fromWatch: false,
       log: _garden.log,
       force: false,
       forceBuild: false,
@@ -349,12 +355,13 @@ describe("exec plugin", () => {
   it("should copy artifacts after test runs", async () => {
     const _garden = await makeTestGarden(getDataDir("test-projects", "exec-artifacts"))
     const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
-    const test = _graph.getTest("module-a", "test-a")
+    const test = _graph.getTest("module-a.test-a")
 
     const testTask = new TestTask({
       garden: _garden,
       graph: _graph,
-      test,
+      action: test,
+      fromWatch: false,
       log: _garden.log,
       force: false,
       forceBuild: false,
@@ -396,153 +403,167 @@ describe("exec plugin", () => {
 
   describe("build", () => {
     it("should write a build version file after building", async () => {
-      const module = graph.getModule(moduleName)
-      const buildMetadataPath = module.buildMetadataPath
+      const action = graph.getBuild(moduleName)
+      const buildMetadataPath = action.getBuildMetadataPath()
       const versionFilePath = join(buildMetadataPath, GARDEN_BUILD_VERSION_FILENAME)
 
-      await garden.buildStaging.syncFromSrc(module, log)
+      await garden.buildStaging.syncFromSrc(action, log)
       const actions = await garden.getActionRouter()
-      await actions.build.build({ log, module, graph })
+      const resolvedAction = await garden.resolveAction({ action, graph, log })
+      await actions.build.build({ log, action: resolvedAction, graph })
 
       const versionFileContents = await readModuleVersionFile(versionFilePath)
 
-      expect(versionFileContents).to.eql(module.version)
+      expect(versionFileContents).to.eql(action.versionString())
     })
 
     it("should run the build command in the module dir if local true", async () => {
-      const module = graph.getModule("module-local")
+      const action = graph.getBuild("module-local")
       const actions = await garden.getActionRouter()
-      const res = await actions.build.build({ log, module, graph })
-      expect(res.buildLog).to.eql(join(garden.projectRoot, "module-local"))
+      const resolvedAction = await garden.resolveAction({ action, log, graph })
+      const res = await actions.build.build({ log, action: resolvedAction, graph })
+      // TODO-G2 figure the expect out here
+      expect(res.detail).to.eql(join(garden.projectRoot, "module-local"))
     })
 
     it("should receive module version as an env var", async () => {
-      const module = graph.getModule("module-local")
+      const action = graph.getBuild("module-local")
       const actions = await garden.getActionRouter()
 
-      module.spec.build.command = ["echo", "$GARDEN_MODULE_VERSION"]
-      const res = await actions.build.build({ log, module, graph })
+      action._config.spec.command = ["echo", "$GARDEN_MODULE_VERSION"]
+      const resolvedAction = await garden.resolveAction({ log, graph, action })
+      const res = await actions.build.build({ log, action: resolvedAction, graph })
 
-      expect(res.buildLog).to.equal(module.version.versionString)
+      // TODO-G2 figure the expect out here
+      expect(res.outputs).to.equal(action.versionString())
     })
   })
 
   describe("testExecModule", () => {
     it("should run the test command in the module dir if local true", async () => {
-      const module = graph.getModule("module-local")
-      const actions = await garden.getActionRouter()
-      const res = await actions.test.run({
+      const router = await garden.getActionRouter()
+      const rawAction = (await actionFromConfig({
+        garden,
+        graph,
+        router,
         log,
-        module,
+        config: {
+          type: "test",
+          kind: "Test",
+          name: "test",
+          dependencies: [],
+          disabled: false,
+          timeout: 1234,
+          spec: {
+            command: ["pwd"],
+          },
+          basePath: "TODO-G2",
+        } as TestActionConfig,
+        configsByKey: {},
+      })) as TestAction
+      const action = await garden.resolveAction<TestAction>({ action: rawAction, graph, log })
+      const res = await router.test.run({
+        log,
         interactive: true,
         graph,
-        runtimeContext: {
-          envVars: {},
-          dependencies: [],
-        },
+        runtimeContext: emptyRuntimeContext,
         silent: false,
-        test: testFromConfig(
-          module,
-          {
-            name: "test",
-            dependencies: [],
-            disabled: false,
-            timeout: 1234,
-            spec: {
-              command: ["pwd"],
-            },
-          },
-          graph
-        ),
+        action,
       })
-      expect(res.log).to.eql(join(garden.projectRoot, "module-local"))
+      expect(res.outputs).to.eql(join(garden.projectRoot, "module-local"))
     })
 
     it("should receive module version as an env var", async () => {
-      const module = graph.getModule("module-local")
-      const actions = await garden.getActionRouter()
-      const res = await actions.test.run({
+      const router = await garden.getActionRouter()
+      const rawAction = (await actionFromConfig({
+        garden,
+        graph,
+        router,
         log,
-        module,
+        config: {
+          type: "test",
+          kind: "Test",
+          name: "test",
+          dependencies: [],
+          disabled: false,
+          timeout: 1234,
+          spec: {
+            command: ["echo", "$GARDEN_MODULE_VERSION"],
+          },
+          basePath: "TODO-G2",
+        } as TestActionConfig,
+        configsByKey: {},
+      })) as TestAction
+      const action = await garden.resolveAction({ action: rawAction, graph, log })
+      const res = await router.test.run({
+        log,
+        action,
         interactive: true,
         graph,
-        runtimeContext: {
-          envVars: {},
-          dependencies: [],
-        },
+        runtimeContext: emptyRuntimeContext,
         silent: false,
-        test: testFromConfig(
-          module,
-          {
-            name: "test",
-            dependencies: [],
-            disabled: false,
-            timeout: 1234,
-            spec: {
-              command: ["echo", "$GARDEN_MODULE_VERSION"],
-            },
-          },
-          graph
-        ),
       })
-      expect(res.log).to.equal(module.version.versionString)
+      expect(res.outputs).to.equal(rawAction.versionString())
     })
   })
 
   describe("runExecTask", () => {
     it("should run the task command in the module dir if local true", async () => {
       const actions = await garden.getActionRouter()
-      const task = graph.getTask("pwd")
+      const task = graph.getRun("pwd")
+      const action = await garden.resolveAction({ action: task, graph, log })
       const res = await actions.run.run({
         log,
-        task,
+        action,
         interactive: true,
         graph,
-        runtimeContext: {
-          envVars: {},
-          dependencies: [],
-        },
+        runtimeContext: emptyRuntimeContext,
       })
-      expect(res.log).to.eql(join(garden.projectRoot, "module-local"))
+      expect(res.outputs).to.eql(join(garden.projectRoot, "module-local"))
     })
 
     it("should receive module version as an env var", async () => {
-      const module = graph.getModule("module-local")
       const actions = await garden.getActionRouter()
-      const task = graph.getTask("pwd")
+      const task = graph.getRun("pwd")
+      const action = await garden.resolveAction({ action: task, graph, log })
 
-      task.spec.command = ["echo", "$GARDEN_MODULE_VERSION"]
+      action._config.spec.command = ["echo", "$GARDEN_MODULE_VERSION"]
 
       const res = await actions.run.run({
         log,
-        task,
+        action,
         interactive: true,
         graph,
-        runtimeContext: {
-          envVars: {},
-          dependencies: [],
-        },
+        runtimeContext: emptyRuntimeContext,
       })
 
-      expect(res.log).to.equal(module.version.versionString)
+      expect(res.outputs).to.equal(action.versionString())
     })
   })
 
   describe("runExecModule", () => {
     it("should run the module with the args that are passed through the command", async () => {
-      const module = graph.getModule("module-local")
-      const actions = await garden.getActionRouter()
-      const res = await actions.build.run({
-        log,
-        module,
-        command: [],
-        args: ["echo", "hello", "world"],
-        interactive: false,
+      const router = await garden.getActionRouter()
+      const rawAction = (await actionFromConfig({
         graph,
-        runtimeContext: {
-          envVars: {},
-          dependencies: [],
-        },
+        log,
+        garden,
+        router,
+        configsByKey: {},
+        config: {
+          basePath: "TODO-G2",
+          kind: "Build",
+          name: "build-something",
+          spec: {} as ExecBuildActionSpec,
+        } as BuildActionConfig<any, any>,
+      })) as ExecutedBuildAction
+      const res = await router.build.run({
+        action: rawAction,
+        args: [],
+        graph,
+        interactive: false,
+        log,
+        runtimeContext: emptyRuntimeContext,
       })
       expect(res.log).to.eql("hello world")
     })
@@ -638,60 +659,54 @@ describe("exec plugin", () => {
 
     describe("deployExecService", () => {
       it("runs the service's deploy command with the specified env vars", async () => {
-        const service = graph.getService("echo")
-        const actions = await garden.getActionRouter()
-        const res = await actions.deploy.deploy({
+        const rawAction = graph.getDeploy("echo")
+        const router = await garden.getActionRouter()
+        const action = await garden.resolveAction({ log, graph, action: rawAction })
+        const res = await router.deploy.deploy({
           devMode: false,
           force: false,
 
           localMode: false,
           log,
-          service,
+          action,
           graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
+          runtimeContext: emptyRuntimeContext,
         })
-        expect(res.detail.deployCommandOutput).to.eql("deployed echo service")
+        expect(res.detail?.outputs).to.eql("deployed echo service")
       })
 
       it("skips deploying if deploy command is empty but does not throw", async () => {
-        const service = graph.getService("empty")
-        const actions = await garden.getActionRouter()
-        const res = await actions.deploy.deploy({
+        const rawAction = graph.getDeploy("empty")
+        const router = await garden.getActionRouter()
+        const action = await garden.resolveAction({ graph, log, action: rawAction })
+        const res = await router.deploy.deploy({
           devMode: false,
           force: false,
 
           localMode: false,
           log,
-          service,
+          action,
           graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
+          runtimeContext: emptyRuntimeContext,
         })
-        expect(res.detail.skipped).to.eql(true)
+        expect(res.detail?.detail.skipped).to.eql(true)
       })
 
       it("throws if deployCommand returns with non-zero code", async () => {
-        const service = graph.getService("error")
-        const actions = await garden.getActionRouter()
+        const rawAction = graph.getDeploy("error")
+        const router = await garden.getActionRouter()
+        const action = await garden.resolveAction({ graph, log, action: rawAction })
         await expectError(
           async () =>
-            await actions.deploy.deploy({
+            await router.deploy.deploy({
               devMode: false,
               force: false,
 
               localMode: false,
               log,
-              service,
+              action,
               graph,
-              runtimeContext: {
-                envVars: {},
-                dependencies: [],
-              },
+              runtimeContext: emptyRuntimeContext,
             }),
           (err) =>
             expect(err.message).to.equal(dedent`
@@ -727,53 +742,49 @@ describe("exec plugin", () => {
         })
 
         it("should run a persistent local service in dev mode", async () => {
-          const service = graph.getService("dev-mode")
-          const actions = await garden.getActionRouter()
-          const res = await actions.deploy.deploy({
+          const rawAction = graph.getDeploy("dev-mode")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+          const res = await router.deploy.deploy({
             devMode: true,
             force: false,
 
             localMode: false,
             log,
-            service,
+            action,
             graph,
-            runtimeContext: {
-              envVars: {},
-              dependencies: [],
-            },
+            runtimeContext: emptyRuntimeContext,
           })
 
-          pid = res.detail.pid
+          pid = res.detail?.detail.pid
           expect(pid).to.be.a("number")
           expect(pid).to.be.greaterThan(0)
         })
         it("should write logs to a local file with the proper format", async () => {
           // This services just echos a string N times before exiting.
-          const service = graph.getService("dev-mode-with-logs")
-          const actions = await garden.getActionRouter()
-          const res = await actions.deploy.deploy({
+          const rawAction = graph.getDeploy("dev-mode-with-logs")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+          const res = await router.deploy.deploy({
             devMode: true,
             force: false,
 
             localMode: false,
             log,
-            service,
+            action,
             graph,
-            runtimeContext: {
-              envVars: {},
-              dependencies: [],
-            },
+            runtimeContext: emptyRuntimeContext,
           })
 
           // Wait for entries to be written since we otherwise don't wait on persistent commands (unless
           // a status command is set).
           await sleep(1500)
 
-          pid = res.detail.pid
+          pid = res.detail?.detail.pid
           expect(pid).to.be.a("number")
           expect(pid).to.be.greaterThan(0)
 
-          const logFilePath = getLogFilePath({ projectRoot: garden.projectRoot, deployName: service.name })
+          const logFilePath = getLogFilePath({ projectRoot: garden.projectRoot, deployName: action.name })
           const logFileContents = (await readFile(logFilePath)).toString()
           const logEntriesWithoutTimestamps = logFileContents
             .split("\n")
@@ -817,29 +828,27 @@ describe("exec plugin", () => {
         })
         it("should handle empty log lines", async () => {
           // This services just echos a string N times before exiting.
-          const service = graph.getService("dev-mode-with-empty-log-lines")
-          const actions = await garden.getActionRouter()
-          const res = await actions.deploy.deploy({
+          const rawAction = graph.getDeploy("dev-mode-with-empty-log-lines")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
+          const res = await router.deploy.deploy({
             devMode: true,
             force: false,
 
             localMode: false,
             log,
-            service,
+            action,
             graph,
-            runtimeContext: {
-              envVars: {},
-              dependencies: [],
-            },
+            runtimeContext: emptyRuntimeContext,
           })
 
           // Wait for entries to be written since we otherwise don't wait on persistent commands (unless
           // a status command is set).
           await sleep(1500)
 
-          pid = res.detail.pid
+          pid = res.detail?.detail.pid
 
-          const logFilePath = getLogFilePath({ projectRoot: garden.projectRoot, deployName: service.name })
+          const logFilePath = getLogFilePath({ projectRoot: garden.projectRoot, deployName: action.name })
           const logFileContents = (await readFile(logFilePath)).toString()
           const logEntriesWithoutTimestamps = logFileContents
             .split("\n")
@@ -887,22 +896,20 @@ describe("exec plugin", () => {
           ])
         })
         it("should eventually timeout if status command is set and it returns a non-zero exit code ", async () => {
-          const service = graph.getService("dev-mode-timeout")
-          const actions = await garden.getActionRouter()
+          const rawAction = graph.getDeploy("dev-mode-timeout")
+          const router = await garden.getActionRouter()
+          const action = await garden.resolveAction({ graph, log, action: rawAction })
           let error: any
           try {
-            await actions.deploy.deploy({
+            await router.deploy.deploy({
               devMode: true,
               force: false,
 
               localMode: false,
               log,
-              service,
+              action,
               graph,
-              runtimeContext: {
-                envVars: {},
-                dependencies: [],
-              },
+              runtimeContext: emptyRuntimeContext,
             })
           } catch (err) {
             error = err
@@ -921,134 +928,101 @@ describe("exec plugin", () => {
 
     describe("getExecServiceStatus", async () => {
       it("returns 'unknown' if no statusCommand is set", async () => {
-        const service = graph.getService("error")
-        const actions = await garden.getActionRouter()
-        const res = await actions.getServiceStatus({
-          devMode: false,
-
-          localMode: false,
+        const rawAction = graph.getDeploy("error")
+        const router = await garden.getActionRouter()
+        const action = await garden.resolveAction({ graph, log, action: rawAction })
+        const res = await router.getDeployStatuses({
           log,
-          service,
           graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
+          names: [action.name],
         })
         expect(res.state).to.equal("unknown")
       })
 
       it("returns 'ready' if statusCommand returns zero exit code", async () => {
-        const service = graph.getService("touch")
-        const actions = await garden.getActionRouter()
-        await actions.deploy.deploy({
+        const rawAction = graph.getDeploy("touch")
+        const router = await garden.getActionRouter()
+        const action = await garden.resolveAction({ graph, log, action: rawAction })
+        await router.deploy.deploy({
           devMode: false,
 
           localMode: false,
           force: false,
           log,
-          service,
+          action,
           graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
+          runtimeContext: emptyRuntimeContext,
         })
-        const res = await actions.getServiceStatus({
-          devMode: false,
-
-          localMode: false,
+        const res = await router.getDeployStatuses({
           log,
-          service,
           graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
+          names: [action.name],
         })
         expect(res.state).to.equal("ready")
-        expect(res.version).to.equal(service.version)
-        expect(res.detail.statusCommandOutput).to.equal("already deployed")
+        expect(res.version).to.equal(action.versionString())
+        // expect(res.detail.statusCommandOutput).to.equal("already deployed") TODO-G2
       })
 
       it("returns 'outdated' if statusCommand returns non-zero exit code", async () => {
-        const service = graph.getService("touch")
-        const actions = await garden.getActionRouter()
-        const res = await actions.getServiceStatus({
-          devMode: false,
-
-          localMode: false,
-          log,
-          service,
+        const rawAction = graph.getDeploy("touch")
+        const router = await garden.getActionRouter()
+        const action = await garden.resolveAction({ graph, log, action: rawAction })
+        const res = await router.getDeployStatuses({
           graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
+          log,
+          names: [action.name],
         })
         expect(res.state).to.equal("outdated")
-        expect(res.version).to.equal(service.version)
+        expect(res.version).to.equal(action.versionString())
       })
     })
 
     describe("deleteExecService", async () => {
       it("runs the cleanup command if set", async () => {
-        const service = graph.getService("touch")
-        const actions = await garden.getActionRouter()
-        await actions.deploy.deploy({
+        const rawAction = graph.getDeploy("touch")
+        const router = await garden.getActionRouter()
+        const action = await garden.resolveAction({ graph, log, action: rawAction })
+        await router.deploy.deploy({
           devMode: false,
 
           localMode: false,
           force: false,
           log,
-          service,
+          action,
           graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
+          runtimeContext: emptyRuntimeContext,
         })
-        const res = await actions.deploy.delete({
+        const res = await router.deploy.delete({
           log,
-          service,
           graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
+          action,
         })
         expect(res.state).to.equal("missing")
-        expect(res.detail.cleanupCommandOutput).to.equal("cleaned up")
+        // expect(res.detail.cleanupCommandOutput).to.equal("cleaned up") TODO-G2
       })
 
       it("returns 'unknown' state if no cleanupCommand is set", async () => {
-        const service = graph.getService("echo")
-        const actions = await garden.getActionRouter()
-        const res = await actions.deploy.delete({
+        const rawAction = graph.getDeploy("echo")
+        const router = await garden.getActionRouter()
+        const action = await garden.resolveAction({ graph, log, action: rawAction })
+        const res = await router.deploy.delete({
           log,
-          service,
           graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
+          action,
         })
         expect(res.state).to.equal("unknown")
       })
 
       it("throws if cleanupCommand returns with non-zero code", async () => {
-        const service = graph.getService("error")
-        const actions = await garden.getActionRouter()
+        const rawAction = graph.getDeploy("error")
+        const router = await garden.getActionRouter()
+        const action = await garden.resolveAction({ graph, log, action: rawAction })
         await expectError(
           async () =>
-            await actions.deploy.delete({
+            await router.deploy.delete({
               log,
-              service,
+              action,
               graph,
-              runtimeContext: {
-                envVars: {},
-                dependencies: [],
-              },
             }),
           (err) =>
             expect(err.message).to.equal(dedent`
