@@ -7,9 +7,9 @@
  */
 
 import { expect } from "chai"
-import { ConfigGraph } from "../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../src/graph/config-graph"
+import { k8sGetContainerDeployStatus } from "../../../../../src/plugins/kubernetes/container/status"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
-import { getContainerServiceStatus } from "../../../../../src/plugins/kubernetes/container/status"
 import { DeployTask } from "../../../../../src/tasks/deploy"
 import { TestGarden } from "../../../../helpers"
 import { getContainerTestGarden } from "./container/container"
@@ -51,41 +51,31 @@ describe("local mode deployments and ssh tunneling behavior", () => {
   }
 
   it("should deploy a service in local mode and successfully start a port-forwarding", async () => {
-    const service = graph.getService("local-mode")
-    const module = service.module
+    const action = graph.getDeploy("local-mode")
     const log = garden.log
-    const deployTask = new DeployTask({
-      garden,
-      graph,
-      log,
-      service,
-      force: true,
-      forceBuild: false,
-      devModeDeployNames: [],
 
-      localModeDeployNames: [service.name],
+    const resolvedAction = await garden.resolveAction({
+      action,
+      log: garden.log,
+      graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
     })
-
-    await garden.processTasks({ tasks: [deployTask], throwOnError: true })
-    const status = await getContainerServiceStatus({
+    const status = await k8sGetContainerDeployStatus({
       ctx,
-      module,
-      service,
+      action: resolvedAction,
       log,
       devMode: false,
-
       localMode: true,
     })
-    expect(status.localMode).to.eql(true)
+    expect(status.detail?.localMode).to.eql(true)
 
     const serviceSshKeysPath = ProxySshKeystore.getSshDirPath(ctx.gardenDirPath)
-    const serviceSshKeyName = service.name
+    const serviceSshKeyName = action.name
     const privateSshKeyPath = join(serviceSshKeysPath, serviceSshKeyName)
     const publicSshKeyPath = join(serviceSshKeysPath, `${serviceSshKeyName}.pub`)
     expect(await pathExists(privateSshKeyPath)).to.be.true
     expect(await pathExists(publicSshKeyPath)).to.be.true
 
-    const localModePortSpec = service.config.spec.localMode.ports[0]
+    const localModePortSpec = action.getConfig().config.spec.localMode.ports[0]
     const containerPort = localModePortSpec.remote
     const localPort = localModePortSpec.local
 
