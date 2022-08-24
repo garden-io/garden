@@ -7,9 +7,9 @@
  */
 
 import { expect } from "chai"
-import { ConfigGraph } from "../../../../../src/config-graph"
+import { ConfigGraph } from "../../../../../src/graph/config-graph"
+import { k8sGetContainerDeployStatus } from "../../../../../src/plugins/kubernetes/container/status"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
-import { getContainerServiceStatus } from "../../../../../src/plugins/kubernetes/container/status"
 import { DeployTask } from "../../../../../src/tasks/deploy"
 import { TestGarden } from "../../../../helpers"
 import { getContainerTestGarden } from "./container/container"
@@ -51,44 +51,45 @@ describe("local mode deployments and ssh tunneling behavior", () => {
   }
 
   it("should deploy a service in local mode and successfully start a port-forwarding", async () => {
-    const service = graph.getService("local-mode")
-    const module = service.module
+    const action = graph.getDeploy("local-mode")
     const log = garden.log
     const deployTask = new DeployTask({
       garden,
       graph,
       log,
-      service,
+      action,
       force: true,
-      forceBuild: false,
+      fromWatch: false,
       devModeDeployNames: [],
-
-      localModeDeployNames: [service.name],
+      localModeDeployNames: [action.name],
     })
 
-    await garden.processTasks({ tasks: [deployTask], throwOnError: true })
-    const status = await getContainerServiceStatus({
+    // await garden.processTasks({ tasks: [deployTask], throwOnError: true })
+    const resolvedAction = await garden.resolveAction({
+      action: action,
+      log: garden.log,
+      graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
+    })
+    const status = await k8sGetContainerDeployStatus({
       ctx,
-      module,
-      service,
+      action: resolvedAction,
       log,
       devMode: false,
-
       localMode: true,
     })
-    expect(status.localMode).to.eql(true)
+    expect(status.detail?.localMode).to.eql(true)
 
     const serviceSshKeysPath = ProxySshKeystore.getSshDirPath(ctx.gardenDirPath)
-    const serviceSshKeyName = service.name
+    const serviceSshKeyName = action.name
     const privateSshKeyPath = join(serviceSshKeysPath, serviceSshKeyName)
     const publicSshKeyPath = join(serviceSshKeysPath, `${serviceSshKeyName}.pub`)
     expect(await pathExists(privateSshKeyPath)).to.be.true
     expect(await pathExists(publicSshKeyPath)).to.be.true
 
-    const firstTcpPort = service.config.spec.ports.find((p) => p.protocol === "TCP")
-    const firstForwardablePort = firstTcpPort || service.config.spec.ports[0]
+    const firstTcpPort = action.getConfig().spec.ports.find((p) => p.protocol === "TCP")
+    const firstForwardablePort = firstTcpPort || action.getConfig().spec.ports[0]
     const containerPort = firstForwardablePort.containerPort
-    const localPort = service.config.spec.localMode.localPort
+    const localPort = action.getConfig().spec.localMode?.localPort
 
     const grepSshTunnelCommand = `ps -ef | grep 'ssh -T -R ${containerPort}:127.0.0.1:${localPort} ${PROXY_CONTAINER_USER_NAME}@127.0.0.1'`
     log.info(`Looking for running ssh reverse port forwarding with command: ${grepSshTunnelCommand}`)
