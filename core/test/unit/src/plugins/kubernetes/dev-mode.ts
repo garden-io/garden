@@ -12,19 +12,16 @@ import { builtInExcludes, makeSyncConfig } from "../../../../../src/plugins/kube
 describe("k8s dev mode helpers", () => {
   const localPath = "/path/to/module/src"
   const remoteDestination = "exec:'various fun connection parameters'"
-  const source = "src"
-  const target = "/app/src"
+  // const source = "src"
+  // const target = "/app/src"
   describe("makeSyncConfig", () => {
     it("should generate a simple sync config", () => {
       const config = makeSyncConfig({
         localPath,
         remoteDestination,
-        defaults: {},
-        spec: {
-          source,
-          target,
-          mode: "one-way",
-        },
+        actionDefaults: {},
+        opts: {},
+        providerDefaults: {},
       })
 
       expect(config).to.eql({
@@ -43,18 +40,22 @@ describe("k8s dev mode helpers", () => {
       const config = makeSyncConfig({
         localPath,
         remoteDestination,
-        defaults: {
+        actionDefaults: {
           exclude: ["**/*.log"],
           owner: "node",
           group: "admin",
           fileMode: 600,
           directoryMode: 700,
         },
-        spec: {
-          source,
-          target,
+        // spec: {
+        //   source, // TODO-G2 figure out where these two go
+        //   target,
+        //   mode: "one-way",
+        // },
+        opts: {
           mode: "one-way",
         },
+        providerDefaults: {},
       })
 
       expect(config).to.eql({
@@ -73,16 +74,14 @@ describe("k8s dev mode helpers", () => {
       const config = makeSyncConfig({
         localPath,
         remoteDestination,
-        defaults: {
+        actionDefaults: {
           exclude: ["**/*.log"],
           owner: "node",
           group: "admin",
           fileMode: 600,
           directoryMode: 700,
         },
-        spec: {
-          source,
-          target,
+        opts: {
           mode: "one-way",
           exclude: ["node_modules"],
           defaultOwner: "owner_from_spec",
@@ -90,6 +89,7 @@ describe("k8s dev mode helpers", () => {
           defaultFileMode: 700,
           defaultDirectoryMode: 777,
         },
+        providerDefaults: {},
       })
 
       expect(config).to.eql({
@@ -108,12 +108,11 @@ describe("k8s dev mode helpers", () => {
       const config = makeSyncConfig({
         localPath,
         remoteDestination,
-        defaults: {},
-        spec: {
-          source,
-          target,
+        actionDefaults: {},
+        opts: {
           mode: "one-way-replica-reverse",
         },
+        providerDefaults: {},
       })
 
       expect(config).to.eql({
