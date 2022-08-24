@@ -17,8 +17,8 @@ import Terminal from "./terminal"
 import Card, { CardTitle } from "./card"
 import { colors } from "../styles/variables"
 
-import { ServiceLogEntry } from "@garden-io/core/build/src/types/plugin/service/getServiceLogs"
 import { ActionIcon } from "./action-icon"
+import type { ServiceLogEntry } from "@garden-io/core/build/src/types/service"
 
 interface Props {
   logs: { [serviceName: string]: ServiceLogEntry[] }

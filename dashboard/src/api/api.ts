@@ -8,13 +8,13 @@
 
 import axios from "axios"
 
-import { GraphOutput } from "@garden-io/core/build/src/commands/get/get-graph"
-import { GetRunResultCommandResult } from "@garden-io/core/build/src/commands/get/get-run-result"
-import { GetTestResultCommandResult } from "@garden-io/core/build/src/commands/get/get-test-result"
-import { ServiceLogEntry } from "@garden-io/core/build/src/types/service"
-import { CommandResult } from "@garden-io/core/build/src/commands/base"
-import { ConfigDump } from "@garden-io/core/build/src/garden"
-import { StatusCommandResult } from "@garden-io/core/build/src/commands/get/get-status"
+import type { GraphOutput } from "@garden-io/core/build/src/commands/get/get-graph"
+import type { GetRunResultCommandResult } from "@garden-io/core/build/src/commands/get/get-run-result"
+import type { GetTestResultCommandResult } from "@garden-io/core/build/src/commands/get/get-test-result"
+import type { ServiceLogEntry } from "@garden-io/core/build/src/types/service"
+import type { CommandResult } from "@garden-io/core/build/src/commands/base"
+import type { ConfigDump } from "@garden-io/core/build/src/garden"
+import type { StatusCommandResult } from "@garden-io/core/build/src/commands/get/get-status"
 import { getAuthKey } from "../util/helpers"
 
 export interface ApiRequest {
@@ -55,11 +55,10 @@ export async function fetchTaskResult(params: FetchTaskResultParams) {
 
 export interface FetchTestResultParams {
   name: string
-  moduleName: string
 }
 
-export async function fetchTestResult({ name, moduleName }: FetchTestResultParams) {
-  return apiCommand<GetTestResultCommandResult>("get.test-result", { name, module: moduleName })
+export async function fetchTestResult({ name }: FetchTestResultParams) {
+  return apiCommand<GetTestResultCommandResult>("get.test-result", { name })
 }
 
 async function apiCommand<T>(command: string, parameters: {} = {}): Promise<T> {

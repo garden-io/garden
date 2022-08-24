@@ -8,11 +8,10 @@
 
 import { actionParamsSchema, PluginDeployActionParamsBase } from "../../base"
 import { dedent } from "../../../util/string"
-import { serviceStatusSchema } from "../../../types/service"
 import { joi } from "../../../config/common"
 import { ActionTypeHandlerSpec } from "../base/base"
 import { DeployAction } from "../../../actions/deploy"
-import { DeployStatus } from "./get-status"
+import { DeployStatus, getDeployStatusSchema } from "./get-status"
 import { Resolved } from "../../../actions/base"
 
 interface DeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
@@ -40,5 +39,5 @@ export class DoDeployAction<T extends DeployAction = DeployAction> extends Actio
       localMode: joi.boolean().default(false).description("Whether the service should be configured in local mode."),
     })
 
-  resultSchema = () => serviceStatusSchema()
+  resultSchema = () => getDeployStatusSchema()
 }

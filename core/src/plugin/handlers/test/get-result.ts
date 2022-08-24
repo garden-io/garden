@@ -11,12 +11,17 @@ import { PluginTestActionParamsBase, actionParamsSchema } from "../../base"
 import { TestAction } from "../../../actions/test"
 import { TestResult, testResultSchema } from "../../../types/test"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { ActionStatus, Resolved } from "../../../actions/base"
-import { joi } from "../../../config/common"
+import { ActionStatus, ActionStatusMap, actionStatusSchema, Resolved } from "../../../actions/base"
 
 interface GetTestResultParams<T extends TestAction> extends PluginTestActionParamsBase<T> {}
 
 export type GetTestResult<T extends TestAction = TestAction> = ActionStatus<T, TestResult>
+
+export interface TestStatusMap extends ActionStatusMap<TestAction> {
+  [key: string]: GetTestResult
+}
+
+export const getTestResultSchema = () => actionStatusSchema(testResultSchema())
 
 export class GetTestActionResult<T extends TestAction = TestAction> extends ActionTypeHandlerSpec<
   "Test",
@@ -28,10 +33,5 @@ export class GetTestActionResult<T extends TestAction = TestAction> extends Acti
   `
 
   paramsSchema = () => actionParamsSchema()
-
-  resultSchema = () =>
-    joi.object().keys({
-      result: testResultSchema().allow(null),
-      outputs: joi.object().allow(null),
-    })
+  resultSchema = () => getTestResultSchema()
 }

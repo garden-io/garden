@@ -10,11 +10,43 @@ import { dedent } from "../../../util/string"
 import { actionParamsSchema, PluginBuildActionParamsBase } from "../../base"
 import { BuildAction } from "../../../actions/build"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { ActionStatus, actionStatusSchema, Resolved } from "../../../actions/base"
+import { ActionStatus, ActionStatusMap, actionStatusSchema, Resolved } from "../../../actions/base"
+import { joi } from "../../../config/common"
 
 interface GetBuildStatusParams<T extends BuildAction = BuildAction> extends PluginBuildActionParamsBase<T> {}
 
-export type BuildStatus<T extends BuildAction = BuildAction, D = any> = ActionStatus<T, D>
+/**
+ * - `fetched`: The build was fetched from a remote repository instead of building.
+ * - `building`: The build is in progress.
+ * - `built`: The build was completed successfully.
+ * - `failed`: An error occurred while fetching or building.
+ */
+export type BuildState = "fetched" | "building" | "built" | "failed"
+
+export interface BuildResult {
+  buildLog?: string
+  fetched?: boolean
+  fresh?: boolean
+  details?: any
+}
+
+export const buildResultSchema = () =>
+  joi.object().keys({
+    buildLog: joi.string().allow("").description("The full log from the build."),
+    fetched: joi.boolean().description("Set to true if the build was fetched from a remote registry."),
+    fresh: joi
+      .boolean()
+      .description("Set to true if the build was performed, false if it was already built, or fetched from a registry"),
+    details: joi.object().description("Additional information, specific to the provider."),
+  })
+
+export type BuildStatus<T extends BuildAction = BuildAction, D = BuildResult> = ActionStatus<T, D>
+
+export interface BuildStatusMap extends ActionStatusMap<BuildAction> {
+  [key: string]: BuildStatus
+}
+
+export const getBuildStatusSchema = () => actionStatusSchema()
 
 export class GetBuildActionStatus<T extends BuildAction = BuildAction> extends ActionTypeHandlerSpec<
   "Build",
@@ -26,5 +58,5 @@ export class GetBuildActionStatus<T extends BuildAction = BuildAction> extends A
   `
 
   paramsSchema = () => actionParamsSchema()
-  resultSchema = () => actionStatusSchema()
+  resultSchema = () => getBuildStatusSchema()
 }

@@ -102,7 +102,7 @@ export async function getSystemServiceStatus({ sysGarden, log, names }: GetSyste
     graph,
     names,
   })
-  const state = combineStates(Object.values(serviceStatuses).map((s) => (s && s.state) || "unknown"))
+  const state = combineStates(Object.values(serviceStatuses).map((s) => s.detail?.state || "unknown"))
 
   return {
     state,

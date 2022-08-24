@@ -185,13 +185,17 @@ export const buildExecAction: BuildActionHandler<"build", ExecBuild> = async ({ 
   if (command?.length) {
     const result = await run({ command, action, ctx, log })
 
+    if (!output.detail) {
+      output.detail = {}
+    }
+
     output.detail.fresh = true
     output.detail.buildLog = result.stdout + result.stderr
   }
 
-  if (output.detail.buildLog) {
+  if (output.detail?.buildLog) {
     const prefix = `Finished building module ${chalk.white(action.name)}. Here is the full output:`
-    log.verbose(renderMessageWithDivider(prefix, output.detail.buildLog, false, chalk.gray))
+    log.verbose(renderMessageWithDivider(prefix, output.detail?.buildLog, false, chalk.gray))
   }
   // keep track of which version has been built
   const buildVersionFilePath = join(action.getBuildMetadataPath(), GARDEN_BUILD_VERSION_FILENAME)

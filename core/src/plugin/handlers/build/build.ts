@@ -8,43 +8,12 @@
 
 import { dedent } from "../../../util/string"
 import { actionParamsSchema, PluginBuildActionParamsBase } from "../../../plugin/base"
-import { joi } from "../../../config/common"
 import { BuildAction } from "../../../actions/build"
-import { actionOutputsSchema, ActionTypeHandlerSpec } from "../base/base"
-import _ from "lodash"
-import { GetActionOutputType, Resolved } from "../../../actions/base"
-import { BuildStatus } from "./get-status"
+import { ActionTypeHandlerSpec } from "../base/base"
+import { Resolved } from "../../../actions/base"
+import { BuildStatus, getBuildStatusSchema } from "./get-status"
 
 interface DoBuildActionParams<T extends BuildAction> extends PluginBuildActionParamsBase<T> {}
-
-/**
- * - `fetched`: The build was fetched from a remote repository instead of building.
- * - `building`: The build is in progress.
- * - `built`: The build was completed successfully.
- * - `failed`: An error occurred while fetching or building.
- */
-export type BuildState = "fetched" | "building" | "built" | "failed"
-
-// TODO-G2: use BuildStatus and combine as needed
-export interface BuildResult<T extends BuildAction = BuildAction> {
-  buildLog?: string
-  fetched?: boolean
-  fresh?: boolean
-  details?: any
-  outputs: GetActionOutputType<T>
-}
-
-export const buildResultSchema = () =>
-  joi.object().keys({
-    buildLog: joi.string().allow("").description("The full log from the build."),
-    fetched: joi.boolean().description("Set to true if the build was fetched from a remote registry."),
-    fresh: joi
-      .boolean()
-      .description("Set to true if the build was performed, false if it was already built, or fetched from a registry"),
-    version: joi.string().description("The version that was built."),
-    details: joi.object().description("Additional information, specific to the provider."),
-    outputs: actionOutputsSchema(),
-  })
 
 export class DoBuildAction<T extends BuildAction = BuildAction> extends ActionTypeHandlerSpec<
   "Build",
@@ -56,5 +25,5 @@ export class DoBuildAction<T extends BuildAction = BuildAction> extends ActionTy
   `
 
   paramsSchema = () => actionParamsSchema()
-  resultSchema = () => buildResultSchema()
+  resultSchema = () => getBuildStatusSchema()
 }

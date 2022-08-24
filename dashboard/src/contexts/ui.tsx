@@ -8,9 +8,8 @@
 
 import React, { useState } from "react"
 import produce from "immer"
-import { ServiceIngress } from "@garden-io/core/build/src/types/service"
-import { DependencyGraphNodeType } from "../../../core/build/src/graph/config-graph"
-import { PickFromUnion } from "@garden-io/core/build/src/util/util"
+import type { ServiceIngress } from "@garden-io/core/build/src/types/service"
+import type { ActionKind } from "@garden-io/core/build/src/plugin/action-types"
 
 interface UiState {
   isMenuOpen: boolean
@@ -23,7 +22,7 @@ interface UiState {
   }
   stackGraph: {
     filters: {
-      [key in StackGraphSupportedFilterKeys]: boolean
+      [key in ActionKind]: boolean
     }
   }
   selectedGraphNode: string | null
@@ -49,17 +48,15 @@ export type OverviewSupportedFilterKeys =
   | "tasksInfo"
   | "tests"
   | "testsInfo"
-export type StackGraphSupportedFilterKeys = PickFromUnion<DependencyGraphNodeType, "Test" | "Deploy" | "Build" | "Run">
-export type EntityResultSupportedTypes = StackGraphSupportedFilterKeys | "Run"
 export type SelectedEntity = {
-  type: EntityResultSupportedTypes
+  kind: ActionKind
   name: string
   module: string
 }
 
 interface UiActions {
   overviewToggleItemsView: (filterKey: OverviewSupportedFilterKeys) => void
-  stackGraphToggleItemsView: (filterKey: StackGraphSupportedFilterKeys) => void
+  stackGraphToggleItemsView: (filterKey: ActionKind) => void
   selectGraphNode: SelectGraphNode
   selectEntity: SelectEntity
   selectIngress: SelectIngress
@@ -88,10 +85,10 @@ const INITIAL_UI_STATE: UiState = {
   stackGraph: {
     // todo: currently not attached to graph/index.tsx, use context there
     filters: {
-      build: true,
-      run: true,
-      deploy: true,
-      test: true,
+      Build: true,
+      Run: true,
+      Deploy: true,
+      Test: true,
     },
   },
   modal: {
@@ -123,7 +120,7 @@ const useUiStateProvider = () => {
     )
   }
 
-  const stackGraphToggleItemsView = (filterKey: StackGraphSupportedFilterKeys) => {
+  const stackGraphToggleItemsView = (filterKey: ActionKind) => {
     setState(
       produce(uiState, (draft) => {
         draft.stackGraph.filters[filterKey] = !uiState.stackGraph.filters[filterKey]

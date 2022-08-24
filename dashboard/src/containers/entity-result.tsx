@@ -8,14 +8,14 @@
 
 import React, { useEffect } from "react"
 import { Entities } from "../contexts/api"
-import { getDuration, getTestKey } from "../util/helpers"
+import { getDuration } from "../util/helpers"
 import EntityResult from "../components/entity-result"
 import { ErrorNotification } from "../components/notifications"
-import { EntityResultSupportedTypes } from "../contexts/ui"
 import { loadTestResult, loadTaskResult } from "../api/actions"
-import { GetTaskResultCommandResult } from "@garden-io/core/build/src/commands/get/get-task-result"
-import { GetTestResultCommandResult } from "@garden-io/core/build/src/commands/get/get-test-result"
+import type { GetRunResultCommandResult } from "@garden-io/core/build/src/commands/get/get-run-result"
+import type { GetTestResultCommandResult } from "@garden-io/core/build/src/commands/get/get-test-result"
 import { useApi } from "../hooks"
+import type { ActionKind } from "@garden-io/core/build/src/plugin/action-types"
 
 const ErrorMsg = ({ error, type }) => (
   <ErrorNotification>
@@ -23,57 +23,35 @@ const ErrorMsg = ({ error, type }) => (
   </ErrorNotification>
 )
 
-function prepareData(data?: GetTaskResultCommandResult | GetTestResultCommandResult) {
+function prepareData(data?: GetRunResultCommandResult | GetTestResultCommandResult) {
   if (!data) {
     return {}
   }
 
-  const startedAt = data.startedAt
-  const completedAt = data.completedAt
+  const startedAt = data.detail?.startedAt
+  const completedAt = data.detail?.completedAt
   const duration = startedAt && completedAt && getDuration(startedAt, completedAt)
 
   return {
     duration,
     startedAt,
     completedAt,
-    output: data.log,
+    output: data.detail?.log,
     artifacts: data.artifacts,
   }
 }
 
 interface Props {
-  type: EntityResultSupportedTypes
+  kind: ActionKind
   name: string
   moduleName?: string
   cardProps?: any
   onClose: () => void
 }
 
-function isEntityDisabled({
-  name,
-  type,
-  moduleName,
-  entities,
-}: {
-  name: string
-  type: EntityResultSupportedTypes
-  moduleName?: string
-  entities: Entities
-}) {
-  if (type === "test") {
-    const testKey = getTestKey({ moduleName, testName: name })
-    const test = entities.tests[testKey]
-    return test.config.disabled || test.config.moduleDisabled
-  } else if (type === "task" || type === "run") {
-    const task = entities.tasks[name]
-    return task.config.disabled || task.config.moduleDisabled
-  } else if (type === "deploy") {
-    const service = entities.services[name]
-    return service.config.disabled || service.config.moduleDisabled
-  } else {
-    const module = entities.modules[name]
-    return module.disabled
-  }
+function isEntityDisabled({ name, kind, entities }: { name: string; kind: ActionKind; entities: Entities }) {
+  const entity = entities.actions[kind][name]
+  return entity.config.disabled
 }
 
 /**
@@ -81,21 +59,20 @@ function isEntityDisabled({
  *
  * If the node is of type "test" or "run", it loads the results as well.
  */
-export default ({ name, moduleName, type, onClose, cardProps }: Props) => {
+export default ({ name, moduleName, kind, onClose, cardProps }: Props) => {
   const {
     dispatch,
     store: { entities, requestStates },
   } = useApi()
-  const { tasks, tests } = entities
-  const disabled = isEntityDisabled({ name, moduleName, type, entities })
+  const disabled = isEntityDisabled({ name, kind, entities })
 
   const loadResults = () => {
     if (disabled) {
       return
     }
-    if (type === "test") {
-      loadTestResult({ dispatch, name, moduleName })
-    } else if (type === "run" || type === "task") {
+    if (kind === "Test") {
+      loadTestResult({ dispatch, name })
+    } else if (kind === "Run") {
       loadTaskResult({ name, dispatch })
     }
   }
@@ -106,15 +83,14 @@ export default ({ name, moduleName, type, onClose, cardProps }: Props) => {
     return null
   }
 
-  if (type === "test") {
-    const testKey = getTestKey({ moduleName, testName: name })
-    const test = tests[testKey]
+  const entity = entities[kind][name]
 
+  if (kind === "Test") {
     if (requestStates.testResult.error) {
-      return <ErrorMsg error={requestStates.testResult.error} type={type} />
+      return <ErrorMsg error={requestStates.testResult.error} type={kind} />
     }
 
-    const results = prepareData(test.result)
+    const results = prepareData(entity.result)
 
     return (
       <EntityResult
@@ -122,18 +98,17 @@ export default ({ name, moduleName, type, onClose, cardProps }: Props) => {
         loading={requestStates.testResult.pending}
         onClose={onClose}
         name={name}
-        type={type}
+        kind={kind}
         moduleName={moduleName}
         cardProps={cardProps}
         {...results}
       />
     )
-  } else if (type === "task" || type === "run") {
-    const task = tasks[name]
-    const taskResult = task.result
+  } else if (kind === "Run") {
+    const taskResult = entity.result
 
     if (requestStates.taskResult.error) {
-      return <ErrorMsg error={requestStates.taskResult.error} type={type} />
+      return <ErrorMsg error={requestStates.taskResult.error} type={kind} />
     }
 
     const results = prepareData(taskResult)
@@ -144,13 +119,13 @@ export default ({ name, moduleName, type, onClose, cardProps }: Props) => {
         loading={requestStates.taskResult.pending}
         onClose={onClose}
         name={name}
-        type={type}
+        kind={kind}
         moduleName={moduleName}
         cardProps={cardProps}
         {...results}
       />
     )
   } else {
-    return <EntityResult onClose={onClose} name={name} type={type} moduleName={moduleName} />
+    return <EntityResult onClose={onClose} name={name} kind={kind} moduleName={moduleName} />
   }
 }

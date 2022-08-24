@@ -16,11 +16,11 @@ import Card from "./card"
 import { colors, fontMedium } from "../styles/variables"
 import { WarningNotification } from "./notifications"
 import { ActionIcon } from "./action-icon"
-import { EntityResultSupportedTypes } from "../contexts/ui"
 import { ExternalLink } from "./links"
 import { truncateMiddle } from "../util/helpers"
 import { CopyActionIcon } from "./copy-action-icon"
 import { useUiState } from "../hooks"
+import type { ActionKind } from "@garden-io/core/build/src/actions/base"
 
 const Term = styled.div`
   background-color: ${colors.gardenBlack};
@@ -88,9 +88,9 @@ const Header = styled.div`
 
 // TODO: Just use the test|task results type here instead of specifying each key
 interface Props {
-  type: EntityResultSupportedTypes
+  kind: ActionKind
   name: string
-  moduleName: string
+  moduleName?: string
   artifacts?: string[]
   output?: string | null
   startedAt?: Date | null
@@ -103,7 +103,7 @@ interface Props {
 }
 
 export default ({
-  type,
+  kind,
   name,
   artifacts,
   moduleName,
@@ -148,7 +148,7 @@ export default ({
     outputEl = (
       <div className="row pt-1">
         <div className="col-xs-12">
-          <WarningNotification>No {type} output</WarningNotification>
+          <WarningNotification>No {kind} output</WarningNotification>
         </div>
       </div>
     )
@@ -177,7 +177,7 @@ export default ({
           `}
         >
           <div>
-            <IconContainer className={cls(`garden-icon`, `garden-icon--${type}`)} />
+            <IconContainer className={cls(`garden-icon`, `garden-icon--${kind}`)} />
           </div>
 
           <Header
@@ -206,13 +206,15 @@ export default ({
         >
           <Field>
             <Key text="Type" />
-            <Value>{capitalize(type)}</Value>
+            <Value>{capitalize(kind)}</Value>
           </Field>
 
-          <Field>
-            <Key text="Module" />
-            <Value>{moduleName}</Value>
-          </Field>
+          {moduleName && (
+            <Field>
+              <Key text="Module" />
+              <Value>{moduleName}</Value>
+            </Field>
+          )}
 
           {duration && (
             <Field>
@@ -280,8 +282,8 @@ export default ({
           )}
         </div>
 
-        {/* we only show the output if has content and only for these types */}
-        {(type === "test" || type === "run" || type === "task") && outputEl !== null && outputEl}
+        {/* we only show the output if has content */}
+        {outputEl !== null && outputEl}
       </div>
     </Card>
   )
