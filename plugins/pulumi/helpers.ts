@@ -22,12 +22,13 @@ import { defaultPulumiEnv, pulumi } from "./cli"
 import { PulumiDeploy, PulumiProvider } from "./config"
 import chalk from "chalk"
 import { deline } from "@garden-io/sdk/util/string"
+import { Resolved } from "@garden-io/core/build/src/actions/base"
 
 export interface PulumiParams {
   ctx: PluginContext
   log: LogEntry
   provider: PulumiProvider
-  action: PulumiDeploy
+  action: Resolved<PulumiDeploy>
 }
 
 export interface PulumiConfig {
@@ -176,11 +177,11 @@ export async function clearStackVersionTag({ log, ctx, provider, action }: Pulum
   })
 }
 
-export function getStackName(action: PulumiDeploy): string {
+export function getStackName(action: Resolved<PulumiDeploy>): string {
   return action.getSpec("stack") || action.name
 }
 
-export function getActionStackRoot(action: PulumiDeploy): string {
+export function getActionStackRoot(action: Resolved<PulumiDeploy>): string {
   return join(action.basePath(), action.getSpec("root"))
 }
 
@@ -359,7 +360,7 @@ export async function selectStack({ action, ctx, provider, log }: PulumiParams) 
   return stackName
 }
 
-function getOrgName(provider: PulumiProvider, action: PulumiDeploy): string | null {
+function getOrgName(provider: PulumiProvider, action: Resolved<PulumiDeploy>): string | null {
   const orgName = action.getSpec("orgName")
   if (orgName || orgName === null) {
     return orgName
@@ -368,11 +369,11 @@ function getOrgName(provider: PulumiProvider, action: PulumiDeploy): string | nu
   }
 }
 
-export function getPlanPath(ctx: PluginContext, action: PulumiDeploy): string {
+export function getPlanPath(ctx: PluginContext, action: Resolved<PulumiDeploy>): string {
   return join(getPlanDirPath(ctx, action), getPlanFileName(action, ctx.environmentName))
 }
 
-export function getStackConfigPath(action: PulumiDeploy, environmentName: string): string {
+export function getStackConfigPath(action: Resolved<PulumiDeploy>, environmentName: string): string {
   const stackName = action.getSpec("stack") || environmentName
   return join(getActionStackRoot(action), `Pulumi.${stackName}.yaml`)
 }
@@ -380,7 +381,7 @@ export function getStackConfigPath(action: PulumiDeploy, environmentName: string
 /**
  * TODO: Write unit tests for this
  */
-export function getPlanDirPath(ctx: PluginContext, action: PulumiDeploy): string {
+export function getPlanDirPath(ctx: PluginContext, action: Resolved<PulumiDeploy>): string {
   return action.getSpec("deployFromPreview") ? getPreviewDirPath(ctx) : getCachePath(ctx)
 }
 

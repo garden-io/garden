@@ -90,7 +90,7 @@ export const gardenPlugin = () =>
                   policyPath,
                   namespace: provider.config.namespace,
                   combine: false,
-                  files: action.getSpec("files") || ["*.yaml", "**/*.yaml", "*.yml", "**/*.yml"],
+                  files: action.getConfig().spec.files || ["*.yaml", "**/*.yaml", "*.yml", "**/*.yml"],
                 },
               }
             }

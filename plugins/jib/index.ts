@@ -168,17 +168,17 @@ export const gardenPlugin = () =>
                 })
               }
 
-              const outputs = getContainerBuildActionOutputs({
-                buildName: action.name,
-                localId: spec.localId,
-                version: action.getFullVersion(),
-              })
+              const outputs = getContainerBuildActionOutputs(action)
 
               return {
-                fetched: false,
-                buildLog,
-                details: {
-                  tarPath,
+                state: "ready",
+                detail: {
+                  fetched: false,
+                  buildLog,
+                  details: {
+                    tarPath,
+                  },
+                  outputs,
                 },
                 outputs,
               }

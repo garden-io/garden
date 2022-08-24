@@ -70,7 +70,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
           continue
         }
         r.result
-        resolvedDependencies.push(r.outputs.executedAction)
+        executedDependencies.push(r.outputs.executedAction)
       }
     }
 
