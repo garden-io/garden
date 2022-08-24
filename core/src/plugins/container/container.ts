@@ -463,6 +463,7 @@ export const gardenPlugin = () =>
               group: {
                 kind: "Group",
                 name: module.name,
+                path: module.path,
                 actions,
               },
             }
