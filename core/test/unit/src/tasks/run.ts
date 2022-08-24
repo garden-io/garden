@@ -13,13 +13,13 @@ import { ProjectConfig, defaultNamespace } from "../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import execa from "execa"
 import { createGardenPlugin } from "../../../../src/plugin/plugin"
-import { joi } from "../../../../src/config/common"
 import { RunTask } from "../../../../src/tasks/run"
 import { GardenTask } from "../../../../src/types/task"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 import { GetRunResult } from "../../../../src/plugin/handlers/run/get-result"
+import { execRunActionSchema } from "../../../../src/plugins/exec/config"
 
-describe("TaskTask", () => {
+describe("RunTask", () => {
   let tmpDir: tmp.DirectoryResult
   let config: ProjectConfig
 
@@ -58,38 +58,38 @@ describe("TaskTask", () => {
 
     const testPlugin = createGardenPlugin({
       name: "test",
-      createModuleTypes: [
-        {
-          name: "test",
-          docs: "test",
-          serviceOutputsSchema: joi.object().keys({ log: joi.string() }),
-          handlers: {
-            build: async () => ({}),
-            runTask: async ({ task }) => {
-              const log = new Date().getTime().toString()
+      createActionTypes: {
+        Run: [
+          {
+            name: "test",
+            docs: "test",
+            schema: execRunActionSchema(),
+            handlers: {
+              run: async (params) => {
+                const log = new Date().getTime().toString()
 
-              const result = {
-                taskName: task.name,
-                moduleName: task.module.name,
-                success: true,
-                outputs: { log },
-                command: [],
-                log,
-                startedAt: new Date(),
-                completedAt: new Date(),
-                version: task.version,
-              }
+                const result: GetRunResult = {
+                  state: "ready",
+                  detail: {
+                    completedAt: new Date(),
+                    log: params.action.getSpec().command.join(" "),
+                    startedAt: new Date(),
+                    success: true,
+                  },
+                  outputs: { log },
+                }
 
-              cache[getKey(task)] = result
+                cache[params.action.key()] = result
 
-              return result
-            },
-            getTaskResult: async ({ task }) => {
-              return cache[getKey(task)] || null
+                return result
+              },
+              getResult: async (params) => {
+                return cache[params.action.key()]
+              },
             },
           },
-        },
-      ],
+        ],
+      },
     })
 
     it("should cache results when cacheResult=true", async () => {
