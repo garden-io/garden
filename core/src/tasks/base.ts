@@ -56,6 +56,7 @@ export interface BaseActionTaskParams<T extends Action = Action> extends CommonT
   localModeDeployNames: string[]
   forceActions?: ActionReference[]
   forceBuild?: boolean // Shorthand for placing all builds in forceActions
+  skipRuntimeDependencies?: boolean
 }
 
 export interface TaskProcessParams {
@@ -131,10 +132,13 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType, S ex
   }
 
   /**
-   * Wrapper around resolveProcessDependencies() that memoizes the results.
+   * Wrapper around resolveProcessDependencies() that memoizes the results and applies filters.
    */
   @Memoize()
   getProcessDependencies(): BaseTask[] {
+    if (this.skipDependencies) {
+      return []
+    }
     return this.resolveProcessDependencies()
   }
 
@@ -188,6 +192,7 @@ export abstract class BaseActionTask<
   devModeDeployNames: string[]
   localModeDeployNames: string[]
   forceActions: ActionReference[]
+  skipRuntimeDependencies: boolean
 
   constructor(params: BaseActionTaskParams<T>) {
     const { action } = params
@@ -197,6 +202,7 @@ export abstract class BaseActionTask<
     this.devModeDeployNames = params.devModeDeployNames
     this.localModeDeployNames = params.localModeDeployNames
     this.forceActions = params.forceActions || []
+    this.skipRuntimeDependencies = params.skipRuntimeDependencies || false
 
     if (params.forceBuild) {
       this.forceActions.push(...this.graph.getBuilds())
@@ -210,20 +216,27 @@ export abstract class BaseActionTask<
     return this.action.name
   }
 
+  // Most tasks can just use these default methods.
   resolveStatusDependencies(): BaseTask[] {
     return [this.getResolveTask(this.action)]
   }
 
-  // Most tasks can just use this default method.
-  // TODO-G2: review this for all task types
   resolveProcessDependencies(): BaseTask[] {
-    return this.action.getDependencyReferences().map((dep) => {
+    return this.action.getDependencyReferences().flatMap((dep): BaseTask[] => {
       const action = this.graph.getActionByRef(dep)
 
       if (dep.type === "implicit") {
-        return this.getResolveTask(action)
+        return [this.getResolveTask(action)]
+      } else if (dep.type === "implicit-executed") {
+        return [this.getExecuteTask(action)]
+      } else if (dep.type === "explicit") {
+        if (this.skipRuntimeDependencies && dep.kind !== "Build") {
+          return []
+        } else {
+          return [this.getExecuteTask(action)]
+        }
       } else {
-        return this.getExecuteTask(action)
+        return []
       }
     })
   }
@@ -239,6 +252,8 @@ export abstract class BaseActionTask<
       devModeDeployNames: this.devModeDeployNames,
       localModeDeployNames: this.localModeDeployNames,
       forceActions: this.forceActions,
+      skipDependencies: this.skipDependencies,
+      skipRuntimeDependencies: this.skipRuntimeDependencies,
     }
   }
 

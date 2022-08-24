@@ -169,8 +169,8 @@ export class DeployCommand extends Command<Args, Opts> {
       return { result: { aborted: true, success: true, graphResults: {} } }
     }
 
-    const skipDependencies = opts["skip-dependencies"]
-    if (skipDependencies && (!args.names || args.names.length === 0)) {
+    const skipRuntimeDependencies = opts["skip-dependencies"]
+    if (skipRuntimeDependencies && (!args.names || args.names.length === 0)) {
       const errMsg = deline`
         No names were provided as CLI arguments, but the --skip-dependencies option was used. Please provide a
         list of names when using the --skip-dependencies option.
@@ -202,7 +202,7 @@ export class DeployCommand extends Command<Args, Opts> {
           force,
           forceBuild: opts["force-build"],
           fromWatch: false,
-          skipDependencies,
+          skipRuntimeDependencies,
           localModeDeployNames,
           devModeDeployNames,
         })
@@ -216,7 +216,7 @@ export class DeployCommand extends Command<Args, Opts> {
       actions,
       initialTasks,
       skipWatch: [
-        // TODO-G2: include skipDependencies here
+        // TODO-G2: include skipRuntimeDependencies here
         ...initGraph.getDeploys({ names: devModeDeployNames }),
         ...initGraph.getDeploys({ names: localModeDeployNames }),
       ],
