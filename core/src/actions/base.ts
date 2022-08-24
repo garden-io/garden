@@ -551,6 +551,16 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     return versionStringPrefix + hashStrings([this.stringifyConfig()])
   }
 
+  /**
+   * Returns a map of commonly used environment variables for the action.
+   */
+  getEnvVars() {
+    return {
+      GARDEN_VERSION: this.versionString(),
+      GARDEN_MODULE_VERSION: this.moduleVersion().versionString,
+    }
+  }
+
   versionString(): string {
     return this.getFullVersion().versionString
   }

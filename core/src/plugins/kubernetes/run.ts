@@ -34,7 +34,6 @@ import { prepareSecrets } from "./secrets"
 import { configureVolumes } from "./container/deployment"
 import { PluginContext, PluginEventBroker } from "../../plugin-context"
 import { waitForResources, ResourceStatus } from "./status/status"
-import { RuntimeContext } from "../../runtime-context"
 import { getResourceRequirements, getSecurityContext } from "./container/util"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { copy } from "fs-extra"
@@ -110,7 +109,6 @@ export async function runAndCopy({
   args,
   command,
   interactive,
-  runtimeContext,
   timeout,
   image,
   container,
@@ -168,7 +166,6 @@ export async function runAndCopy({
     command,
     api,
     provider,
-    runtimeContext,
     envVars,
     resources,
     description: description || "",
@@ -203,7 +200,6 @@ export async function runAndCopy({
       args,
       command,
       interactive,
-      runtimeContext,
       timeout,
     },
   }
@@ -241,7 +237,6 @@ export async function prepareRunPodSpec({
   action,
   args,
   command,
-  runtimeContext,
   envVars,
   resources,
   description,
@@ -263,7 +258,6 @@ export async function prepareRunPodSpec({
   command: string[] | undefined
   api: KubeApi
   provider: KubernetesProvider
-  runtimeContext: RuntimeContext
   envVars: ContainerEnvVars
   resources?: ContainerResourcesSpec
   description: string
@@ -278,7 +272,7 @@ export async function prepareRunPodSpec({
   dropCapabilities?: string[]
 }): Promise<V1PodSpec> {
   // Prepare environment variables
-  envVars = { ...runtimeContext.envVars, ...envVars }
+  envVars = { ...action.getEnvVars(), ...envVars }
   const env = uniqByName([
     ...prepareEnvVars(envVars),
     // If `container` is specified, include its variables as well

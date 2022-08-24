@@ -11,7 +11,6 @@ import { find } from "lodash"
 import minimatch = require("minimatch")
 
 import { BaseActionTaskParams, ActionTaskProcessParams, ExecuteActionTask, ActionTaskStatusParams } from "../tasks/base"
-import { prepareRuntimeContext } from "../runtime-context"
 import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
 import { TestAction } from "../actions/test"
@@ -83,12 +82,6 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       status: "active",
     })
 
-    const runtimeContext = await prepareRuntimeContext({
-      action,
-      graph: this.graph,
-      graphResults: dependencyResults,
-    })
-
     const router = await this.garden.getActionRouter()
 
     let status: GetTestResult<TestAction>
@@ -97,7 +90,6 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
         log,
         action,
         graph: this.graph,
-        runtimeContext,
         silent: this.silent,
         interactive: this.interactive,
       })

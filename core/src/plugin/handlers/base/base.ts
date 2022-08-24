@@ -9,7 +9,6 @@
 import Joi from "@hapi/joi"
 import { ActionKind, BaseActionConfig } from "../../../actions/base"
 import { joi, joiVariables } from "../../../config/common"
-import { RuntimeContext } from "../../../runtime-context"
 
 export type ParamsBase<_ = any> = {}
 
@@ -62,6 +61,5 @@ export interface BaseRunParams {
   command?: string[]
   args: string[]
   interactive: boolean
-  runtimeContext: RuntimeContext
   timeout?: number
 }

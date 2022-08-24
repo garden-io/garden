@@ -38,11 +38,6 @@ export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = a
     ctx,
     action,
     log,
-    // The runtime context doesn't matter here. We're just checking if the service is running.
-    runtimeContext: {
-      envVars: {},
-      dependencies: [],
-    },
     devMode: false,
     localMode: false,
   })

@@ -17,7 +17,6 @@ import { getTerraformCommands } from "../commands"
 import { ConfigGraph, LogLevel } from "@garden-io/sdk/types"
 import { gardenPlugin, TerraformProvider } from ".."
 import { DeployTask } from "@garden-io/core/build/src/tasks/deploy"
-import { emptyRuntimeContext } from "@garden-io/core/build/src/runtime-context"
 import { getWorkspaces, setWorkspace } from "../common"
 
 describe("Terraform provider", () => {
@@ -534,7 +533,6 @@ describe("Terraform module type", () => {
         localMode: false,
         log: garden.log,
         graph,
-        runtimeContext: emptyRuntimeContext,
       })
 
       expect(status.outputs).to.eql({
@@ -569,11 +567,9 @@ describe("Terraform module type", () => {
       const status = await actions.getServiceStatus({
         service: graph.getService("tf"),
         devMode: false,
-
         localMode: false,
         log: _garden.log,
         graph,
-        runtimeContext: emptyRuntimeContext,
       })
 
       expect(status.outputs?.["my-output"]).to.equal("workspace: default, input: foo")

@@ -9,12 +9,10 @@
 import chalk from "chalk"
 
 import { printHeader } from "../../logger/util"
-import { prepareRuntimeContext } from "../../runtime-context"
 import { BuildTask } from "../../tasks/build"
 import { RunResult } from "../../plugin/base"
 import { dedent, deline } from "../../util/string"
 import { Command, CommandParams, CommandResult, handleRunResult } from "../base"
-import { printRuntimeContext } from "./run"
 import { GraphResultMap } from "../../graph/results"
 import { StringParameter, StringsParameter, BooleanParameter, StringOption } from "../../cli/params"
 
@@ -105,14 +103,6 @@ export class RunBuildCommand extends Command<Args, Opts> {
     const { results: graphResults } = await garden.processTasks({ tasks: [buildTask], log, throwOnError: true })
     const interactive = opts.interactive
 
-    const runtimeContext = await prepareRuntimeContext({
-      action,
-      graph,
-      graphResults,
-    })
-
-    printRuntimeContext(log, runtimeContext)
-
     log.info("")
 
     if (interactive) {
@@ -127,7 +117,6 @@ export class RunBuildCommand extends Command<Args, Opts> {
       action: executed,
       command: opts.command?.split(" "),
       args: args.arguments || [],
-      runtimeContext,
       interactive,
       timeout: interactive ? 999999 : undefined,
     })

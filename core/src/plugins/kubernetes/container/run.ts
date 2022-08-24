@@ -39,10 +39,10 @@ export const k8sRunContainerBuild: BuildActionHandler<"run", ContainerBuildActio
 }
 
 export const k8sRunContainerDeploy: DeployActionHandler<"run", ContainerDeployAction> = async (params) => {
-  const { action, ctx, log, runtimeContext, interactive, timeout } = params
+  const { action, ctx, log, interactive, timeout } = params
   const { command, args, env, privileged, addCapabilities, dropCapabilities } = action.getSpec()
 
-  runtimeContext.envVars = { ...runtimeContext.envVars, ...env }
+  const envVars = { ...action.getEnvVars(), ...env }
 
   const provider = <KubernetesProvider>ctx.provider
 
@@ -56,7 +56,7 @@ export const k8sRunContainerDeploy: DeployActionHandler<"run", ContainerDeployAc
     timeout,
     image,
     interactive,
-    runtimeContext,
+    envVars,
     namespace: namespaceStatus.namespaceName,
     version: action.versionString(),
     privileged,

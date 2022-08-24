@@ -11,12 +11,10 @@ import dedent = require("dedent")
 
 import { CommandError } from "../../exceptions"
 import { printHeader } from "../../logger/util"
-import { prepareRuntimeContext } from "../../runtime-context"
 import { DeployTask } from "../../tasks/deploy"
 import { RunResult } from "../../plugin/base"
 import { deline } from "../../util/string"
 import { Command, CommandParams, CommandResult, handleRunResult } from "../base"
-import { printRuntimeContext } from "./run"
 import { GraphResultMap } from "../../graph/results"
 import { StringParameter, BooleanParameter } from "../../cli/params"
 
@@ -103,14 +101,6 @@ export class RunDeployCommand extends Command<Args, Opts> {
     const { results: dependencyResults } = await garden.processTasks({ tasks, log, throwOnError: true })
     const interactive = true
 
-    const runtimeContext = await prepareRuntimeContext({
-      action,
-      graph,
-      graphResults: dependencyResults,
-    })
-
-    printRuntimeContext(log, runtimeContext)
-
     if (interactive) {
       log.root.stop()
     }
@@ -121,7 +111,6 @@ export class RunDeployCommand extends Command<Args, Opts> {
       log,
       graph,
       action: resolved,
-      runtimeContext,
       interactive,
       timeout: 999999,
     })

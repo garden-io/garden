@@ -17,7 +17,6 @@ import { getContainerDeployStatus } from "../../../../../src/plugins/kubernetes/
 import { flushAllMutagenSyncs, killSyncDaemon } from "../../../../../src/plugins/kubernetes/mutagen"
 import { KubernetesWorkload } from "../../../../../src/plugins/kubernetes/types"
 import { execInWorkload } from "../../../../../src/plugins/kubernetes/util"
-import { emptyRuntimeContext } from "../../../../../src/runtime-context"
 import { DeployTask } from "../../../../../src/tasks/deploy"
 import { dedent } from "../../../../../src/util/string"
 import { sleep } from "../../../../../src/util/util"
@@ -86,7 +85,6 @@ describe("dev mode deployments and sync behavior", () => {
       ctx,
       module,
       service,
-      runtimeContext: emptyRuntimeContext,
       log,
       devMode: true,
 
@@ -150,10 +148,8 @@ describe("dev mode deployments and sync behavior", () => {
       ctx,
       module,
       service,
-      runtimeContext: emptyRuntimeContext,
       log,
       devMode: true,
-
       localMode: false,
     })
 
