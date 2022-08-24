@@ -24,9 +24,6 @@ class TestError extends Error {
 }
 
 export interface TestTaskParams extends BaseActionTaskParams<TestAction> {
-  skipRuntimeDependencies?: boolean
-  devModeDeployNames: string[]
-  localModeDeployNames: string[]
   silent?: boolean
   interactive?: boolean
 }
@@ -35,26 +32,16 @@ export interface TestTaskParams extends BaseActionTaskParams<TestAction> {
 export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
   type = "test"
 
-  skipRuntimeDependencies: boolean
   silent: boolean
 
   constructor(params: TestTaskParams) {
     super(params)
 
-    const { skipRuntimeDependencies = false, silent = true, interactive = false } = params
+    const { silent = true, interactive = false } = params
 
-    this.skipRuntimeDependencies = skipRuntimeDependencies
     this.silent = silent
     this.interactive = interactive
   }
-
-  // resolveDependencies() {
-  //   if (this.skipRuntimeDependencies) {
-  //     return [...buildTasks, ...getServiceStatusDeps(this, deps), ...getTaskResultDeps(this, deps)]
-  //   } else {
-  //     return [...buildTasks, ...getDeployDeps(this, deps, false), ...getTaskDeps(this, deps, this.force)]
-  //   }
-  // }
 
   getDescription() {
     return this.action.longDescription()

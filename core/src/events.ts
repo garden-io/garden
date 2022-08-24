@@ -319,6 +319,7 @@ export interface Events extends LoggerEvents {
     taskName: string
     force: boolean
     forceBuild: boolean
+    skipDependencies: boolean
   }
   setBuildOnWatch: {
     moduleName: string
