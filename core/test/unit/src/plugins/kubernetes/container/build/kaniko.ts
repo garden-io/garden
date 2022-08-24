@@ -19,9 +19,6 @@ describe("kaniko build", () => {
 
     expect(
       kanikoBuildFailed({
-        moduleName: "foo",
-        command: [],
-        version: "",
         startedAt: new Date(),
         completedAt: new Date(),
         success: false,
@@ -35,9 +32,6 @@ describe("kaniko build", () => {
 
     expect(
       kanikoBuildFailed({
-        moduleName: "foo",
-        command: [],
-        version: "",
         startedAt: new Date(),
         completedAt: new Date(),
         success: false,
@@ -49,9 +43,6 @@ describe("kaniko build", () => {
   it("should return as success when the build succeeded", () => {
     expect(
       kanikoBuildFailed({
-        moduleName: "foo",
-        command: [],
-        version: "",
         startedAt: new Date(),
         completedAt: new Date(),
         success: true,
