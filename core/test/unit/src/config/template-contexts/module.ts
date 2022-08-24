@@ -18,8 +18,8 @@ import { ModuleConfigContext } from "../../../../../src/config/template-contexts
 import { WorkflowConfigContext, WorkflowStepConfigContext } from "../../../../../src/config/template-contexts/workflow"
 import { GardenModule } from "../../../../../src/types/module"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
-import { BuildAction } from "../../../../../src/actions/build"
 import { GraphResults } from "../../../../../src/graph/results"
+import { DeployAction } from "../../../../../src/actions/deploy"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
@@ -141,17 +141,17 @@ describe("ModuleConfigContext", () => {
 
   context("runtimeContext is set", () => {
     let withRuntime: ModuleConfigContext
-    let buildA: BuildAction
+    let deployA: DeployAction
 
     before(async () => {
       const modules = graph.getModules()
-      buildA = graph.getBuild("build-a")
-      const buildB = graph.getBuild("build-b")
+      deployA = graph.getDeploy("service-a")
+      const deployB = graph.getDeploy("service-b")
       // const testB = graph.getTest("test-b")
       module = graph.getModule("module-b")
 
       const runtimeContext = await prepareRuntimeContext({
-        action: buildB,
+        action: deployB,
         graph,
         graphResults: new GraphResults([
           // there should be somethinghere but I don't yet understand what so I'm leaving it empty
@@ -163,7 +163,7 @@ describe("ModuleConfigContext", () => {
         resolvedProviders: keyBy(await garden.resolveProviders(garden.log), "name"),
         variables: garden.variables,
         modules,
-        buildPath: buildA.getBuildPath(),
+        buildPath: deployA.getBuildPath(),
         runtimeContext,
         partialRuntimeResolution: false,
         name: module.name,
