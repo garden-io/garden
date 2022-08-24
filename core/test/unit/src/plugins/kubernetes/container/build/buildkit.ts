@@ -7,6 +7,7 @@
  */
 
 import { expect } from "chai"
+import { ContainerBuildAction } from "../../../../../../../src/plugins/container/config"
 import { getBuildkitFlags } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit"
 import { getDataDir, makeTestGarden } from "../../../../../../helpers"
 
@@ -15,17 +16,13 @@ describe("getBuildkitFlags", () => {
     const projectRoot = getDataDir("test-project-container")
     const garden = await makeTestGarden(projectRoot)
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const module = graph.getModule("module-a")
+    const rawBuild = graph.getBuild("module-a.build") as ContainerBuildAction
+    const build = await garden.resolveAction({ action: rawBuild, log: garden.log, graph })
 
-    module.spec.build.targetImage = "foo"
+    build._config.spec.targetStage = "foo"
 
-    const flags = getBuildkitFlags(module)
+    const flags = getBuildkitFlags(build)
 
-    expect(flags).to.eql([
-      "--opt",
-      "build-arg:GARDEN_MODULE_VERSION=" + module.version.versionString,
-      "--opt",
-      "target=foo",
-    ])
+    expect(flags).to.eql(["--opt", "build-arg:GARDEN_MODULE_VERSION=" + build.versionString, "--opt", "target=foo"])
   })
 })
