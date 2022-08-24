@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
 
+permissions:  # added using https://github.com/step-security/secure-workflows
+  contents: read
+
 jobs:
   homebrew-release:
 
@@ -17,7 +20,7 @@ jobs:
         echo Skipping all the next steps.
     - name: Release Homebrew Formula
       if: github.event.release.prerelease != true
-      uses: mislav/bump-homebrew-formula-action@v1.16
+      uses: mislav/bump-homebrew-formula-action@21991dc8f899341b552c9842957677139a340980
       with:
         formula-name: garden-cli
         formula-path: Formula/garden-cli.rb
