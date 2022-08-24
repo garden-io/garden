@@ -28,7 +28,7 @@ describe("ConfigGraph", () => {
     await ensureDir(tmpPath)
   })
 
-  it("should throw when two services have the same name", async () => {
+  it("should throw when two deploy actions have the same name", async () => {
     const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-service"))
 
     await expectError(
@@ -41,7 +41,7 @@ describe("ConfigGraph", () => {
     )
   })
 
-  it("should throw when two tasks have the same name", async () => {
+  it("should throw when two run actions have the same name", async () => {
     const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-task"))
 
     await expectError(
@@ -54,7 +54,7 @@ describe("ConfigGraph", () => {
     )
   })
 
-  it("should throw when a service and a task have the same name", async () => {
+  it("should throw when a deploy and a run actions have the same name", async () => {
     const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-service-and-task"))
 
     await expectError(
@@ -187,20 +187,20 @@ describe("ConfigGraph", () => {
     })
   })
 
-  describe("getServices", () => {
-    it("should scan for modules and return all registered services in the context", async () => {
-      const services = graphA.getServices()
+  describe("getDeploys", () => {
+    it("should scan for modules and return all registered deploys in the context", async () => {
+      const deploys = graphA.getDeploys()
 
-      expect(getNames(services).sort()).to.eql(["service-a", "service-b", "service-c"])
+      expect(getNames(deploys).sort()).to.eql(["service-a", "service-b", "service-c"])
     })
 
-    it("should optionally return specified services in the context", async () => {
-      const services = graphA.getServices({ names: ["service-b", "service-c"] })
+    it("should optionally return specified deploys in the context", async () => {
+      const deploys = graphA.getDeploys({ names: ["service-b", "service-c"] })
 
-      expect(getNames(services).sort()).to.eql(["service-b", "service-c"])
+      expect(getNames(deploys).sort()).to.eql(["service-b", "service-c"])
     })
 
-    it("should omit disabled services", async () => {
+    it("should omit disabled deploys", async () => {
       const garden = await makeTestGardenA()
 
       garden.setModuleConfigs([
@@ -230,12 +230,12 @@ describe("ConfigGraph", () => {
       ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const deps = graph.getServices()
+      const deps = graph.getDeploys()
 
       expect(deps).to.eql([])
     })
 
-    it("should optionally include disabled services", async () => {
+    it("should optionally include disabled deploys", async () => {
       const garden = await makeTestGardenA()
 
       garden.setModuleConfigs([
@@ -265,12 +265,12 @@ describe("ConfigGraph", () => {
       ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const deps = graph.getServices({ includeDisabled: true })
+      const deps = graph.getDeploys({ includeDisabled: true })
 
       expect(deps.map((s) => s.name)).to.eql(["disabled-service"])
     })
 
-    it("should throw if specifically requesting a disabled service", async () => {
+    it("should throw if specifically requesting a disabled deploy", async () => {
       const garden = await makeTestGardenA()
 
       garden.setModuleConfigs([
@@ -302,14 +302,14 @@ describe("ConfigGraph", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       await expectError(
-        () => graph.getServices({ names: ["service-a"] }),
+        () => graph.getDeploys({ names: ["service-a"] }),
         (err) => expect(err.message).to.equal("Could not find service(s): service-a")
       )
     })
 
-    it("should throw if named service is missing", async () => {
+    it("should throw if named deploy is missing", async () => {
       try {
-        graphA.getServices({ names: ["bla"] })
+        graphA.getDeploys({ names: ["bla"] })
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return
@@ -319,16 +319,16 @@ describe("ConfigGraph", () => {
     })
   })
 
-  describe("getService", () => {
-    it("should return the specified service", async () => {
-      const service = graphA.getService("service-b")
+  describe("getDeploy", () => {
+    it("should return the specified deploy", async () => {
+      const deploy = graphA.getDeploy("service-b")
 
-      expect(service.name).to.equal("service-b")
+      expect(deploy.name).to.equal("service-b")
     })
 
-    it("should throw if service is missing", async () => {
+    it("should throw if deploy is missing", async () => {
       try {
-        graphA.getService("bla")
+        graphA.getDeploy("bla")
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return
@@ -338,18 +338,18 @@ describe("ConfigGraph", () => {
     })
   })
 
-  describe("getTasks", () => {
-    it("should scan for modules and return all registered tasks in the context", async () => {
-      const tasks = graphA.getTasks()
-      expect(getNames(tasks).sort()).to.eql(["task-a", "task-a2", "task-b", "task-c"])
+  describe("getRuns", () => {
+    it("should scan for modules and return all registered runs in the context", async () => {
+      const runs = graphA.getRuns()
+      expect(getNames(runs).sort()).to.eql(["task-a", "task-a2", "task-b", "task-c"])
     })
 
-    it("should optionally return specified tasks in the context", async () => {
-      const tasks = graphA.getTasks({ names: ["task-b", "task-c"] })
-      expect(getNames(tasks).sort()).to.eql(["task-b", "task-c"])
+    it("should optionally return specified runs in the context", async () => {
+      const runs = graphA.getRuns({ names: ["task-b", "task-c"] })
+      expect(getNames(runs).sort()).to.eql(["task-b", "task-c"])
     })
 
-    it("should omit disabled tasks", async () => {
+    it("should omit disabled runs", async () => {
       const garden = await makeTestGardenA()
 
       garden.setModuleConfigs([
@@ -377,12 +377,12 @@ describe("ConfigGraph", () => {
       ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const deps = graph.getTasks()
+      const deps = graph.getRuns()
 
       expect(deps).to.eql([])
     })
 
-    it("should optionally include disabled tasks", async () => {
+    it("should optionally include disabled runs", async () => {
       const garden = await makeTestGardenA()
 
       garden.setModuleConfigs([
@@ -410,12 +410,12 @@ describe("ConfigGraph", () => {
       ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const deps = graph.getTasks({ includeDisabled: true })
+      const deps = graph.getRuns({ includeDisabled: true })
 
       expect(deps.map((t) => t.name)).to.eql(["disabled-task"])
     })
 
-    it("should throw if specifically requesting a disabled task", async () => {
+    it("should throw if specifically requesting a disabled run", async () => {
       const garden = await makeTestGardenA()
 
       garden.setModuleConfigs([
@@ -445,14 +445,14 @@ describe("ConfigGraph", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       await expectError(
-        () => graph.getTasks({ names: ["disabled-task"] }),
+        () => graph.getRuns({ names: ["disabled-task"] }),
         (err) => expect(err.message).to.equal("Could not find task(s): disabled-task")
       )
     })
 
-    it("should throw if named task is missing", async () => {
+    it("should throw if named run is missing", async () => {
       try {
-        graphA.getTasks({ names: ["bla"] })
+        graphA.getRuns({ names: ["bla"] })
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return
@@ -462,16 +462,16 @@ describe("ConfigGraph", () => {
     })
   })
 
-  describe("getTask", () => {
-    it("should return the specified task", async () => {
-      const task = graphA.getTask("task-b")
+  describe("getRun", () => {
+    it("should return the specified run", async () => {
+      const run = graphA.getRun("task-b")
 
-      expect(task.name).to.equal("task-b")
+      expect(run.name).to.equal("task-b")
     })
 
-    it("should throw if task is missing", async () => {
+    it("should throw if run is missing", async () => {
       try {
-        graphA.getTask("bla")
+        graphA.getRun("bla")
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return
@@ -524,10 +524,11 @@ describe("ConfigGraph", () => {
         recursive: false,
       })
 
-      expect(deps.build.map((m) => m.name)).to.eql(["module-a"])
+      const buildDeps = deps.filter((d) => d.kind === "Build")
+      expect(buildDeps.map((m) => m.name)).to.eql(["module-a"])
     })
 
-    it("should ignore dependencies by services on disabled services", async () => {
+    it("should ignore dependencies by deploys on disabled deploys", async () => {
       const garden = await makeTestGardenA()
 
       garden.setModuleConfigs([
@@ -567,10 +568,11 @@ describe("ConfigGraph", () => {
         recursive: false,
       })
 
-      expect(deps.deploy).to.eql([])
+      const deployDeps = deps.filter((d) => d.kind === "Deploy")
+      expect(deployDeps).to.eql([])
     })
 
-    it("should ignore dependencies by services on disabled tasks", async () => {
+    it("should ignore dependencies by deploys on disabled runs", async () => {
       const garden = await makeTestGardenA()
 
       garden.setModuleConfigs([
@@ -612,10 +614,11 @@ describe("ConfigGraph", () => {
         recursive: false,
       })
 
-      expect(deps.run).to.eql([])
+      const runDeps = deps.filter((d) => d.kind === "Run")
+      expect(runDeps).to.eql([])
     })
 
-    it("should ignore dependencies by services on services in disabled modules", async () => {
+    it("should ignore dependencies by deploys on deploys in disabled modules", async () => {
       const garden = await makeTestGardenA()
 
       garden.setModuleConfigs([
@@ -673,10 +676,11 @@ describe("ConfigGraph", () => {
         recursive: false,
       })
 
-      expect(deps.deploy).to.eql([])
+      const deployDeps = deps.filter((d) => d.kind === "Deploy")
+      expect(deployDeps).to.eql([])
     })
 
-    it("should ignore dependencies by tasks on disabled services", async () => {
+    it("should ignore dependencies by runs on disabled deploys", async () => {
       const garden = await makeTestGardenA()
 
       garden.setModuleConfigs([
@@ -718,10 +722,11 @@ describe("ConfigGraph", () => {
         recursive: false,
       })
 
-      expect(deps.deploy).to.eql([])
+      const deployDeps = deps.filter((d) => d.kind === "Deploy")
+      expect(deployDeps).to.eql([])
     })
 
-    it("should ignore dependencies by tests on disabled services", async () => {
+    it("should ignore dependencies by tests on disabled deploys", async () => {
       const garden = await makeTestGardenA()
 
       garden.setModuleConfigs([
@@ -763,7 +768,8 @@ describe("ConfigGraph", () => {
         recursive: false,
       })
 
-      expect(deps.deploy).to.eql([])
+      const deployDeps = deps.filter((d) => d.kind === "Deploy")
+      expect(deployDeps).to.eql([])
     })
   })
 
@@ -803,14 +809,14 @@ describe("ConfigGraph", () => {
       ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const deps = graph.resolveDependencyModules([{ name: "module-a", copy: [] }], [])
+      const deps = graph.moduleGraph.resolveDependencyModules([{ name: "module-a", copy: [] }], [])
 
       expect(deps.map((m) => m.name)).to.eql(["module-a"])
     })
   })
 
   describe("getDependants", () => {
-    it("should not traverse past disabled services", async () => {
+    it("should not traverse past disabled deploys", async () => {
       const garden = await makeTestGardenA()
 
       garden.setModuleConfigs([
@@ -863,12 +869,13 @@ describe("ConfigGraph", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const deps = graph.getDependants({ kind: "Build", name: "module-a", recursive: true })
 
-      expect(deps.deploy.map((m) => m.name)).to.eql([])
+      const deployDeps = deps.filter((d) => d.kind === "Deploy")
+      expect(deployDeps).to.eql([])
     })
   })
 
   describe("getDependantsForModule", () => {
-    it("should return services and tasks for a build dependant of the given module", async () => {
+    it("should return deploys and runs for a build dependant of the given module", async () => {
       const garden = await makeTestGardenA()
 
       garden.setModuleConfigs([
@@ -919,7 +926,7 @@ describe("ConfigGraph", () => {
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const moduleA = graph.getModule("module-a")
-      const deps = graph.getDependantsForModule(moduleA, true)
+      const deps = graph.moduleGraph.getDependantsForModule(moduleA, true)
 
       expect(deps.deploy.map((m) => m.name)).to.eql(["service-b"])
       expect(deps.run.map((m) => m.name)).to.eql(["task-b"])
@@ -928,17 +935,17 @@ describe("ConfigGraph", () => {
 
   describe("resolveDependencyModules", () => {
     it("should resolve build dependencies", async () => {
-      const modules = graphA.resolveDependencyModules([{ name: "module-c", copy: [] }], [])
+      const modules = graphA.moduleGraph.resolveDependencyModules([{ name: "module-c", copy: [] }], [])
       expect(getNames(modules)).to.eql(["module-a", "module-b", "module-c"])
     })
 
-    it("should resolve service dependencies", async () => {
-      const modules = graphA.resolveDependencyModules([], ["service-b"])
+    it("should resolve deploy dependencies", async () => {
+      const modules = graphA.moduleGraph.resolveDependencyModules([], ["service-b"])
       expect(getNames(modules)).to.eql(["module-a", "module-b"])
     })
 
-    it("should combine module and service dependencies", async () => {
-      const modules = graphA.resolveDependencyModules([{ name: "module-b", copy: [] }], ["service-c"])
+    it("should combine module and deploy dependencies", async () => {
+      const modules = graphA.moduleGraph.resolveDependencyModules([{ name: "module-b", copy: [] }], ["service-c"])
       expect(getNames(modules)).to.eql(["module-a", "module-b", "module-c"])
     })
   })
@@ -1050,10 +1057,10 @@ describe("ConfigGraph", () => {
   })
 })
 
-describe("DependencyGraphNode", () => {
+describe("ConfigGraphNode", () => {
   describe("render", () => {
     it("should render a build node", () => {
-      const node = new ConfigGraphNode("build", "module-a", "module-a", false)
+      const node = new ConfigGraphNode("Build", "module-a", false)
       const res = node.render()
       expect(res).to.eql({
         type: "build",
@@ -1065,7 +1072,7 @@ describe("DependencyGraphNode", () => {
     })
 
     it("should render a deploy node", () => {
-      const node = new ConfigGraphNode("deploy", "service-a", "module-a", false)
+      const node = new ConfigGraphNode("Deploy", "service-a",  false)
       const res = node.render()
       expect(res).to.eql({
         type: "deploy",
@@ -1077,7 +1084,7 @@ describe("DependencyGraphNode", () => {
     })
 
     it("should render a run node", () => {
-      const node = new ConfigGraphNode("run", "task-a", "module-a", false)
+      const node = new ConfigGraphNode("Run", "task-a", false)
       const res = node.render()
       expect(res).to.eql({
         type: "run",
@@ -1089,7 +1096,7 @@ describe("DependencyGraphNode", () => {
     })
 
     it("should render a test node", () => {
-      const node = new ConfigGraphNode("test", "module-a.test-a", "module-a", false)
+      const node = new ConfigGraphNode("Test", "module-a.test-a", false)
       const res = node.render()
       expect(res).to.eql({
         type: "test",
@@ -1101,7 +1108,7 @@ describe("DependencyGraphNode", () => {
     })
 
     it("should indicate if the node is disabled", () => {
-      const node = new ConfigGraphNode("test", "module-a.test-a", "module-a", true)
+      const node = new ConfigGraphNode("Test", "module-a.test-a", true)
       const res = node.render()
       expect(res).to.eql({
         type: "test",
