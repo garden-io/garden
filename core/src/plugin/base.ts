@@ -9,7 +9,6 @@
 import { LogEntry } from "../logger/log-entry"
 import { PluginContext, pluginContextSchema, PluginEventBroker } from "../plugin-context"
 import { GardenModule, moduleSchema } from "../types/module"
-import { runtimeContextSchema } from "../runtime-context"
 import { CustomObjectSchema, joi, joiIdentifier } from "../config/common"
 import { dedent, deline } from "../util/string"
 import { BuildAction } from "../actions/build"
@@ -123,7 +122,6 @@ export const moduleActionParamsSchema = () =>
 
 export const runBaseParams = () => ({
   interactive: joi.boolean().description("Whether to run interactively (i.e. attach to the terminal)."),
-  runtimeContext: runtimeContextSchema(),
   silent: joi.boolean().description("Set to false if the output should not be logged to the console."),
   timeout: joi.number().optional().description("If set, how long to run the command before timing out."),
 })

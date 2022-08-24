@@ -79,7 +79,6 @@ export async function processActions({
   log.silly("Starting processActions")
 
   // Let the user know if any actions are linked to a local path
-  // TODO-G2: feels like this needs revisiting... - JE
   const linkedActionsMsg = actions
     .filter((a) => a.isLinked())
     .map((a) => `${a.longDescription()} linked to path ${chalk.white(a.basePath())}`)
@@ -349,7 +348,7 @@ export interface CloudEventHandlerCommonParams {
  */
 export const cloudEventHandlers = {
   // TODO-G2: need to reformulate the request schema
-  // TODO-G2: this logic duplicates some of the command code, we should split those accordingly
+  // TODO: this logic duplicates some of the command code, we should split those accordingly
   buildRequested: async (params: CloudEventHandlerCommonParams & { request: Events["buildRequested"] }) => {
     const { garden, graph, log } = params
     const { moduleName, force } = params.request

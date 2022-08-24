@@ -27,7 +27,6 @@ import {
   deployKubernetesService,
   getKubernetesServiceStatus,
 } from "../../../../../../src/plugins/kubernetes/kubernetes-type/handlers"
-import { emptyRuntimeContext } from "../../../../../../src/runtime-context"
 import Bluebird from "bluebird"
 import { buildHelmModules } from "../helm/common"
 import { gardenAnnotationKey } from "../../../../../../src/util/string"
@@ -134,7 +133,7 @@ describe("kubernetes-module handlers", () => {
         devMode: false,
 
         localMode: false,
-        runtimeContext: emptyRuntimeContext,
+
       }
       service.module.spec.manifests = [
         {
@@ -163,7 +162,7 @@ describe("kubernetes-module handlers", () => {
         devMode: false,
 
         localMode: false,
-        runtimeContext: emptyRuntimeContext,
+
       }
       const status = await deployKubernetesService(deployParams)
       expect(status.state).to.eql("ready")
@@ -195,7 +194,7 @@ describe("kubernetes-module handlers", () => {
         devMode: false,
 
         localMode: false,
-        runtimeContext: emptyRuntimeContext,
+
       }
       const manifests = await getManifests({
         ctx,
@@ -242,7 +241,7 @@ describe("kubernetes-module handlers", () => {
         devMode: false,
 
         localMode: false,
-        runtimeContext: emptyRuntimeContext,
+
       }
       const manifests = await getManifests({
         ctx,
@@ -291,7 +290,7 @@ describe("kubernetes-module handlers", () => {
         force: false,
         devMode: false,
         localMode: false,
-        runtimeContext: emptyRuntimeContext,
+
       }
       const manifests = await getManifests({
         ctx,

@@ -13,7 +13,6 @@ import { GardenParams } from "../garden"
 import { ModuleConfig } from "../config/module"
 import { WorkflowConfig } from "../config/workflow"
 import { LogEntry } from "../logger/log-entry"
-import { RuntimeContext } from "../runtime-context"
 import { GardenModule } from "../types/module"
 import { findByName, getNames, ValueOf, isPromise, serializeObject, hashString, uuidv4 } from "./util"
 import { GardenBaseError, GardenError } from "../exceptions"
@@ -27,6 +26,7 @@ import stripAnsi from "strip-ansi"
 import { VcsHandler } from "../vcs/vcs"
 import { ConfigGraph } from "../graph/config-graph"
 import { SolveParams } from "../graph/solver"
+import { GraphResults } from "../graph/results"
 
 export class TestError extends GardenBaseError {
   type = "_test"
@@ -184,32 +184,33 @@ export class TestGarden extends Garden {
    */
   async getConfigGraph(params: {
     log: LogEntry
-    runtimeContext?: RuntimeContext
+    graphResults?: GraphResults
     emit: boolean
     noCache?: boolean
   }): Promise<ConfigGraph> {
-    // We don't try to cache if a runtime context is given (TODO: might revisit that)
-    let cacheKey: string | undefined = undefined
+    // TODO-G2: re-instate this after we're done refactoring
+    // // We don't try to cache if a runtime context is given (TODO: might revisit that)
+    // let cacheKey: string | undefined = undefined
 
-    if (this.cacheKey && !params.noCache) {
-      const moduleConfigHash = hashString(serializeObject(await this.getRawModuleConfigs()))
-      const runtimeContextHash = hashString(serializeObject(params.runtimeContext || {}))
-      cacheKey = [this.cacheKey, moduleConfigHash, runtimeContextHash].join("-")
-    }
+    // if (this.cacheKey && !params.noCache) {
+    //   const moduleConfigHash = hashString(serializeObject(await this.getRawModuleConfigs()))
+    //   const runtimeContextHash = hashString(serializeObject(params.runtimeContext || {}))
+    //   cacheKey = [this.cacheKey, moduleConfigHash, runtimeContextHash].join("-")
+    // }
 
-    if (cacheKey) {
-      const cached = configGraphCache[cacheKey]
-      if (cached) {
-        // Clone the cached graph and return
-        return configGraphCache[cacheKey].clone()
-      }
-    }
+    // if (cacheKey) {
+    //   const cached = configGraphCache[cacheKey]
+    //   if (cached) {
+    //     // Clone the cached graph and return
+    //     return configGraphCache[cacheKey].clone()
+    //   }
+    // }
 
     const graph = await super.getConfigGraph(params)
 
-    if (cacheKey) {
-      configGraphCache[cacheKey] = graph
-    }
+    // if (cacheKey) {
+    //   configGraphCache[cacheKey] = graph
+    // }
     return graph
   }
 
@@ -238,14 +239,14 @@ export class TestGarden extends Garden {
    */
   async resolveModules({
     log,
-    runtimeContext,
+    graphResults,
     includeDisabled = false,
   }: {
     log: LogEntry
-    runtimeContext?: RuntimeContext
+    graphResults?: GraphResults
     includeDisabled?: boolean
   }): Promise<GardenModule[]> {
-    const graph = await this.getConfigGraph({ log, runtimeContext, emit: false })
+    const graph = await this.getConfigGraph({ log, graphResults, emit: false })
     return graph.getModules({ includeDisabled })
   }
 
@@ -253,8 +254,8 @@ export class TestGarden extends Garden {
    * Helper to get a single module. We don't put this on the Garden class because it is highly inefficient
    * and not advisable except for testing.
    */
-  async resolveModule(name: string, runtimeContext?: RuntimeContext) {
-    const modules = await this.resolveModules({ log: this.log, runtimeContext })
+  async resolveModule(name: string, graphResults?: GraphResults) {
+    const modules = await this.resolveModules({ log: this.log, graphResults })
     const config = findByName(modules, name)
 
     if (!config) {

@@ -82,7 +82,6 @@ import {
 } from "./config/provider"
 import { ResolveProviderTask } from "./tasks/resolve-provider"
 import { ActionRouter } from "./router/router"
-import { RuntimeContext } from "./runtime-context"
 import {
   loadAndResolvePlugins,
   getDependencyOrder,
@@ -140,7 +139,7 @@ import { GraphSolver, SolveOpts, SolveParams, SolveResult } from "./graph/solver
 import { actionConfigsToGraph, actionFromConfig, executeAction, resolveAction, resolveActions } from "./graph/actions"
 import { ActionTypeDefinition } from "./plugin/action-types"
 import { Task } from "./tasks/base"
-import { GraphResultFromTask } from "./graph/results"
+import { GraphResultFromTask, GraphResults } from "./graph/results"
 
 export interface ActionHandlerMap<T extends keyof ProviderHandlers> {
   [actionName: string]: ProviderHandlers[T]
@@ -790,14 +789,14 @@ export class Garden {
     return Object.values(keys ? pickKeys(this.moduleConfigs, keys, "module config") : this.moduleConfigs)
   }
 
-  async getOutputConfigContext(log: LogEntry, modules: GardenModule[], runtimeContext: RuntimeContext) {
+  async getOutputConfigContext(log: LogEntry, modules: GardenModule[], graphResults: GraphResults) {
     const providers = await this.resolveProviders(log)
     return new OutputConfigContext({
       garden: this,
       resolvedProviders: providers,
       variables: this.variables,
       modules,
-      runtimeContext,
+      graphResults,
       partialRuntimeResolution: false,
     })
   }
@@ -811,7 +810,7 @@ export class Garden {
    * When implementing a new command that calls this method and also streams events, make sure that the first
    * call to `getConfigGraph` in the command uses `emit = true` to ensure that the graph event gets streamed.
    */
-  async getConfigGraph({ log, runtimeContext, emit }: GetConfigGraphParams): Promise<ConfigGraph> {
+  async getConfigGraph({ log, graphResults, emit }: GetConfigGraphParams): Promise<ConfigGraph> {
     await this.scanAndAddConfigs()
 
     const resolvedProviders = await this.resolveProviders(log)
@@ -825,7 +824,7 @@ export class Garden {
       log,
       rawConfigs,
       resolvedProviders,
-      runtimeContext,
+      graphResults,
     })
 
     const resolvedModules = await resolver.resolveAll()
@@ -836,7 +835,6 @@ export class Garden {
     const moduleGraph = new ModuleGraph(resolvedModules, moduleTypes)
 
     // Require include/exclude on modules if their paths overlap
-    // TODO-G2: change this to detect overlap on Build actions
     const overlaps = detectModuleOverlap({
       projectRoot: this.projectRoot,
       gardenDirPath: this.gardenDirPath,
@@ -891,6 +889,8 @@ export class Garden {
       log,
       moduleGraph,
     })
+
+    // TODO-G2: detect overlap on Build actions
 
     // Walk through all plugins in dependency order, and allow them to augment the graph
     const plugins = keyBy(await this.getAllPlugins(), "name")
@@ -1583,6 +1583,6 @@ export interface ConfigDump {
 
 interface GetConfigGraphParams {
   log: LogEntry
-  runtimeContext?: RuntimeContext
+  graphResults?: GraphResults
   emit: boolean
 }

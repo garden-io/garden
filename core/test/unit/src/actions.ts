@@ -15,7 +15,6 @@ import {
   ModuleActionHandler,
 } from "../../../src/plugin/plugin"
 import { GardenService, ServiceState } from "../../../src/types/service"
-import { RuntimeContext, prepareRuntimeContext } from "../../../src/runtime-context"
 import { expectError, makeTestGardenA, stubModuleAction, projectRootA, TestGarden, makeTestGarden } from "../../helpers"
 import { ActionRouter } from "../../../src/router/router"
 import { LogEntry } from "../../../src/logger/log-entry"
@@ -47,7 +46,6 @@ describe("ActionRouter", () => {
   let actions: ActionRouter
   let module: GardenModule
   let service: GardenService
-  let runtimeContext: RuntimeContext
   let task: GardenTask
 
   const projectConfig: ProjectConfig = {
@@ -73,20 +71,6 @@ describe("ActionRouter", () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     module = graph.getModule("module-a")
     service = graph.getService("service-a")
-    runtimeContext = await prepareRuntimeContext({
-      garden,
-      graph,
-      dependencies: {
-        build: [],
-        deploy: [],
-        run: [],
-        test: [],
-      },
-      version: module.version.versionString,
-      moduleVersion: module.version.versionString,
-      serviceStatuses: {},
-      taskResults: {},
-    })
     task = graph.getTask("task-a")
   })
 
@@ -322,10 +306,6 @@ describe("ActionRouter", () => {
           args: command,
           interactive: true,
           graph,
-          runtimeContext: {
-            envVars: { FOO: "bar" },
-            dependencies: [],
-          },
         })
         expect(result).to.eql({
           moduleName: module.name,
@@ -357,10 +337,6 @@ describe("ActionRouter", () => {
           module,
           interactive: true,
           graph,
-          runtimeContext: {
-            envVars: { FOO: "bar" },
-            dependencies: [],
-          },
           silent: false,
           test,
         })
@@ -397,10 +373,6 @@ describe("ActionRouter", () => {
           module,
           interactive: true,
           graph,
-          runtimeContext: {
-            envVars: { FOO: "bar" },
-            dependencies: [],
-          },
           silent: false,
           test,
         })
@@ -454,10 +426,6 @@ describe("ActionRouter", () => {
           module,
           interactive: true,
           graph,
-          runtimeContext: {
-            envVars: { FOO: "bar" },
-            dependencies: [],
-          },
           silent: false,
           test,
         })
@@ -534,7 +502,6 @@ describe("ActionRouter", () => {
           log,
           service,
           graph,
-          runtimeContext,
           devMode: false,
 
           localMode: false,
@@ -548,7 +515,6 @@ describe("ActionRouter", () => {
           log,
           service,
           graph,
-          runtimeContext,
           devMode: false,
 
           localMode: false,
@@ -574,9 +540,7 @@ describe("ActionRouter", () => {
               log,
               service,
               graph,
-              runtimeContext,
               devMode: false,
-
               localMode: false,
             }),
           (err) =>
@@ -597,9 +561,7 @@ describe("ActionRouter", () => {
               log,
               service,
               graph,
-              runtimeContext,
               devMode: false,
-
               localMode: false,
             }),
           (err) =>
@@ -616,10 +578,8 @@ describe("ActionRouter", () => {
           log,
           service,
           graph,
-          runtimeContext,
           force: true,
           devMode: false,
-
           localMode: false,
         })
         expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } })
@@ -631,10 +591,8 @@ describe("ActionRouter", () => {
           log,
           service,
           graph,
-          runtimeContext,
           force: true,
           devMode: false,
-
           localMode: false,
         })
         const moduleVersion = service.module.version.versionString
@@ -669,10 +627,8 @@ describe("ActionRouter", () => {
               log,
               service,
               graph,
-              runtimeContext,
               force: true,
               devMode: false,
-
               localMode: false,
             }),
           (err) =>
@@ -693,10 +649,8 @@ describe("ActionRouter", () => {
               log,
               service,
               graph,
-              runtimeContext,
               force: true,
               devMode: false,
-
               localMode: false,
             }),
           (err) =>
@@ -709,7 +663,7 @@ describe("ActionRouter", () => {
 
     describe("deleteService", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.deploy.delete({ log, service, graph, runtimeContext })
+        const result = await actions.deploy.delete({ log, service, graph })
         expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: {} })
       })
     })
@@ -720,7 +674,6 @@ describe("ActionRouter", () => {
           log,
           service,
           graph,
-          runtimeContext,
           command: ["foo"],
           interactive: false,
         })
@@ -735,7 +688,6 @@ describe("ActionRouter", () => {
           log,
           service,
           graph,
-          runtimeContext,
           stream,
           follow: false,
           tail: -1,
@@ -751,10 +703,6 @@ describe("ActionRouter", () => {
           service,
           interactive: true,
           graph,
-          runtimeContext: {
-            envVars: { FOO: "bar" },
-            dependencies: [],
-          },
         })
         expect(result).to.eql({
           moduleName: service.module.name,
@@ -853,10 +801,6 @@ describe("ActionRouter", () => {
           task,
           interactive: true,
           graph,
-          runtimeContext: {
-            envVars: { FOO: "bar" },
-            dependencies: [],
-          },
         })
         expect(result).to.eql(taskResult)
       })
@@ -868,10 +812,6 @@ describe("ActionRouter", () => {
           task,
           interactive: true,
           graph,
-          runtimeContext: {
-            envVars: { FOO: "bar" },
-            dependencies: [],
-          },
         })
         const moduleVersion = task.module.version.versionString
         const event1 = garden.events.eventLog[0]
@@ -906,10 +846,6 @@ describe("ActionRouter", () => {
               task,
               interactive: true,
               graph,
-              runtimeContext: {
-                envVars: { FOO: "bar" },
-                dependencies: [],
-              },
             }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
@@ -930,10 +866,6 @@ describe("ActionRouter", () => {
               task,
               interactive: true,
               graph,
-              runtimeContext: {
-                envVars: { FOO: "bar" },
-                dependencies: [],
-              },
             }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
@@ -963,10 +895,6 @@ describe("ActionRouter", () => {
           task: _task,
           interactive: true,
           graph,
-          runtimeContext: {
-            envVars: { FOO: "bar" },
-            dependencies: [],
-          },
         })
 
         const targetPaths = _task.spec.artifacts.map((spec) => join(garden.artifactsPath, spec.source)).sort()
@@ -1725,10 +1653,8 @@ describe("ActionRouter", () => {
         params: {
           service: serviceA,
           graph,
-          runtimeContext,
           log,
           devMode: false,
-
           localMode: false,
           force: false,
         },
@@ -1754,29 +1680,11 @@ describe("ActionRouter", () => {
         return { forwardablePorts: [], state: <ServiceState>"ready", detail: { resolved } }
       }
 
-      const _runtimeContext = await prepareRuntimeContext({
-        garden,
-        graph,
-        dependencies: {
-          build: [],
-          deploy: [serviceA],
-          run: [],
-          test: [],
-        },
-        version: module.version.versionString,
-        moduleVersion: module.version.versionString,
-        serviceStatuses: {
-          "service-a": { state: "ready", detail: {} },
-        },
-        taskResults: {},
-      })
-
       const { result } = await emptyActions["callServiceHandler"]({
         handlerType: "deployService", // Doesn't matter which one it is
         params: {
           service: serviceB,
           graph,
-          runtimeContext: _runtimeContext,
           log,
           devMode: false,
 
@@ -1787,116 +1695,6 @@ describe("ActionRouter", () => {
       })
 
       expect(result.detail?.resolved).to.equal(serviceA.version)
-    })
-
-    it("should interpolate runtime template strings", async () => {
-      const emptyActions = new ActionRouter(garden, [], [], {
-        test: {
-          name: "test",
-          docs: "test",
-          handlers: {},
-        },
-      })
-
-      garden["moduleConfigs"]["module-a"].spec.foo = "${runtime.services.service-b.outputs.foo}"
-
-      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const serviceA = graph.getService("service-a")
-      const serviceB = graph.getService("service-b")
-
-      const _runtimeContext = await prepareRuntimeContext({
-        garden,
-        graph,
-        dependencies: {
-          build: [],
-          deploy: [serviceB],
-          run: [],
-          test: [],
-        },
-        version: serviceA.version,
-        moduleVersion: serviceA.module.version.versionString,
-        serviceStatuses: {
-          "service-b": {
-            state: "ready",
-            outputs: { foo: "bar" },
-            detail: {},
-          },
-        },
-        taskResults: {},
-      })
-
-      await emptyActions["callServiceHandler"]({
-        handlerType: "deployService", // Doesn't matter which one it is
-        params: {
-          service: serviceA,
-          graph,
-          runtimeContext: _runtimeContext,
-          log,
-          devMode: false,
-
-          localMode: false,
-          force: false,
-        },
-        defaultHandler: async (params) => {
-          expect(params.module.spec.foo).to.equal("bar")
-
-          return { forwardablePorts: [], state: <ServiceState>"ready", detail: {} }
-        },
-      })
-    })
-
-    it("should throw if one or more runtime variables remain unresolved after re-resolution", async () => {
-      const emptyActions = new ActionRouter(garden, [], [], {
-        test: {
-          name: "test",
-          docs: "test",
-          handlers: {},
-        },
-      })
-
-      garden["moduleConfigs"]["module-a"].spec.services[0].foo = "${runtime.services.service-b.outputs.foo}"
-
-      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const serviceA = graph.getService("service-a")
-
-      const _runtimeContext = await prepareRuntimeContext({
-        garden,
-        graph,
-        dependencies: {
-          build: [],
-          deploy: [],
-          run: [],
-          test: [],
-        },
-        version: serviceA.version,
-        moduleVersion: serviceA.module.version.versionString,
-        serviceStatuses: {},
-        taskResults: {},
-      })
-
-      await expectError(
-        () =>
-          emptyActions["callServiceHandler"]({
-            handlerType: "deployService", // Doesn't matter which one it is
-            params: {
-              service: serviceA,
-              graph,
-              runtimeContext: _runtimeContext,
-              log,
-              devMode: false,
-
-              localMode: false,
-              force: false,
-            },
-            defaultHandler: async () => {
-              return {} as any
-            },
-          }),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            "Invalid template string (${runtime.services.service-b.outpu…): Could not find key service-b under runtime.services."
-          )
-      )
     })
   })
 
@@ -1951,7 +1749,6 @@ describe("ActionRouter", () => {
           artifactsPath: "/tmp",
           task: taskA,
           graph,
-          runtimeContext,
           log,
           interactive: false,
         },
@@ -2022,124 +1819,6 @@ describe("ActionRouter", () => {
       })
 
       expect(result.outputs?.resolved).to.equal(serviceB.version)
-    })
-
-    it("should interpolate runtime template strings", async () => {
-      const emptyActions = new ActionRouter(garden, [], [], {
-        test: {
-          name: "test",
-          docs: "test",
-          handlers: {},
-        },
-      })
-
-      garden["moduleConfigs"]["module-a"].spec.tasks[0].foo = "${runtime.services.service-b.outputs.foo}"
-
-      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const taskA = graph.getTask("task-a")
-      const serviceB = graph.getService("service-b")
-
-      const _runtimeContext = await prepareRuntimeContext({
-        garden,
-        graph,
-        dependencies: {
-          build: [],
-          deploy: [serviceB],
-          run: [],
-          test: [],
-        },
-        version: taskA.version,
-        moduleVersion: taskA.module.version.versionString,
-        serviceStatuses: {
-          "service-b": {
-            state: "ready",
-            outputs: { foo: "bar" },
-            detail: {},
-          },
-        },
-        taskResults: {},
-      })
-
-      await emptyActions["callTaskHandler"]({
-        handlerType: "runTask",
-        params: {
-          artifactsPath: "/tmp", // Not used in this test
-          task: taskA,
-          graph,
-          runtimeContext: _runtimeContext,
-          log,
-          interactive: false,
-        },
-        defaultHandler: async (params) => {
-          expect(params.task.spec.foo).to.equal("bar")
-
-          return {
-            moduleName: "module-a",
-            taskName: "task-a",
-            command: [],
-            outputs: { moo: "boo" },
-            success: true,
-            version: task.version,
-            moduleVersion: task.module.version.versionString,
-            startedAt: new Date(),
-            completedAt: new Date(),
-            log: "boo",
-          }
-        },
-      })
-    })
-
-    it("should throw if one or more runtime variables remain unresolved after re-resolution", async () => {
-      const emptyActions = new ActionRouter(garden, [], [], {
-        test: {
-          name: "test",
-          docs: "test",
-          handlers: {},
-        },
-      })
-
-      garden["moduleConfigs"]["module-a"].spec.tasks[0].foo = "${runtime.services.service-b.outputs.foo}"
-
-      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const taskA = graph.getTask("task-a")
-
-      const _runtimeContext = await prepareRuntimeContext({
-        garden,
-        graph,
-        dependencies: {
-          build: [],
-          deploy: [],
-          run: [],
-          test: [],
-        },
-        version: taskA.version,
-        moduleVersion: taskA.module.version.versionString,
-        // Omitting the service-b outputs here
-        serviceStatuses: {},
-        taskResults: {},
-      })
-
-      await expectError(
-        () =>
-          emptyActions["callTaskHandler"]({
-            handlerType: "runTask",
-            params: {
-              artifactsPath: "/tmp", // Not used in this test
-              task: taskA,
-              graph,
-              runtimeContext: _runtimeContext,
-              log,
-              interactive: false,
-            },
-            defaultHandler: async () => {
-              return {} as any
-            },
-          }),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            "Invalid template string (${runtime.services.service-b.outpu…): Could not find key service-b under runtime.services."
-          )
-      )
     })
   })
 })

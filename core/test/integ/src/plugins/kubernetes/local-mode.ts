@@ -10,7 +10,6 @@ import { expect } from "chai"
 import { ConfigGraph } from "../../../../../src/config-graph"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
 import { getContainerServiceStatus } from "../../../../../src/plugins/kubernetes/container/status"
-import { emptyRuntimeContext } from "../../../../../src/runtime-context"
 import { DeployTask } from "../../../../../src/tasks/deploy"
 import { TestGarden } from "../../../../helpers"
 import { getContainerTestGarden } from "./container/container"
@@ -72,7 +71,6 @@ describe("local mode deployments and ssh tunneling behavior", () => {
       ctx,
       module,
       service,
-      runtimeContext: emptyRuntimeContext,
       log,
       devMode: false,
 
