@@ -20,7 +20,7 @@ export interface GroupConfig {
   description?: string
 
   // Location / internal metadata
-  path?: string
+  path: string
   internal?: {
     configFilePath?: string
   }

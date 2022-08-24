@@ -146,6 +146,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
       group: {
         kind: "Group",
         name: module.name,
+        path: module.path,
         actions,
       },
     }

@@ -442,6 +442,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   }
 
   isDisabled(): boolean {
+    // TODO-G2: return true if group is disabled
     return !!this.getConfig("disabled")
   }
 
@@ -454,7 +455,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     return !pathIsInside(this.basePath(), this.projectRoot)
   }
 
-  group() {
+  groupName() {
     const internal = this.getConfig("internal")
     return internal?.groupName
   }
@@ -591,7 +592,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
       compatibleTypes: this.compatibleTypes,
       config: this.getConfig(),
       configVersion: this.configVersion(),
-      group: this.group(),
+      group: this.groupName(),
       isLinked: this.isLinked(),
       key: this.key(),
       longDescription: this.longDescription(),

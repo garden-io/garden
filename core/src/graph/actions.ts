@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { isString, memoize, merge, omit, pick } from "lodash"
+import { isString, memoize, omit, pick } from "lodash"
 import {
   Action,
   ActionConfig,
@@ -26,8 +26,8 @@ import { BuildAction, buildActionConfig, isBuildAction } from "../actions/build"
 import { DeployAction, isDeployAction } from "../actions/deploy"
 import { isRunAction, RunAction } from "../actions/run"
 import { isTestAction, TestAction } from "../actions/test"
-import { loadVarfile, noTemplateFields } from "../config/base"
-import { ActionReference, DeepPrimitiveMap, parseActionReference } from "../config/common"
+import { noTemplateFields } from "../config/base"
+import { ActionReference, parseActionReference } from "../config/common"
 import type { GroupConfig } from "../config/group"
 import { ActionConfigContext } from "../config/template-contexts/actions"
 import { ProjectConfigContext } from "../config/template-contexts/project"
@@ -47,6 +47,7 @@ import { RunTask } from "../tasks/run"
 import { TestTask } from "../tasks/test"
 import { resolveTemplateStrings, getActionTemplateReferences } from "../template-string/template-string"
 import { dedent } from "../util/string"
+import { resolveVariables } from "./common"
 import { ConfigGraph, MutableConfigGraph } from "./config-graph"
 import type { ModuleGraph } from "./modules"
 
@@ -85,7 +86,7 @@ export async function actionConfigsToGraph({
   const router = await garden.getActionRouter()
 
   // TODO-G2: Maybe we could optimize resolving tree versions, avoid parallel scanning of the same directory etc.
-  const graph = new MutableConfigGraph({ actions: [], moduleGraph })
+  const graph = new MutableConfigGraph({ actions: [], moduleGraph, groups: groupConfigs })
 
   await Bluebird.map(Object.values(configsByKey), async (config) => {
     const action = await actionFromConfig({ garden, graph, config, router, log, configsByKey })
@@ -127,10 +128,11 @@ export async function actionFromConfig({
   const dependencies = dependenciesFromActionConfig(config, configsByKey, definition)
   const treeVersion = await garden.vcs.getTreeVersion(log, garden.projectName, config)
 
-  const variables: DeepPrimitiveMap = {}
-  // TODO-G2: should we change the precedence order here?
-  merge(variables, await resolveActionVarfiles(config))
-  merge(variables, garden.cliVariables)
+  const variables = await resolveVariables({
+    basePath: config.basePath,
+    variables: config.variables,
+    varfiles: config.varfiles,
+  })
 
   const params: ActionWrapperParams<any> = {
     baseBuildDirectory: garden.buildStaging.buildDirPath,
@@ -388,25 +390,6 @@ async function preprocessActionConfig({
   }
 
   return config
-}
-
-async function resolveActionVarfiles(config: ActionConfig) {
-  const varsByFile = await Bluebird.map(config.varfiles || [], (path) => {
-    return loadVarfile({
-      configRoot: config.basePath,
-      path,
-      defaultPath: undefined,
-    })
-  })
-
-  const output: DeepPrimitiveMap = {}
-
-  // Merge different varfiles, later files taking precedence over prior files in the list.
-  for (const vars of varsByFile) {
-    merge(output, vars)
-  }
-
-  return output
 }
 
 function dependenciesFromActionConfig(
