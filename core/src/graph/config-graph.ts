@@ -27,6 +27,7 @@ import { nodeKey } from "./common"
 import { DeployAction } from "../actions/deploy"
 import { RunAction } from "../actions/run"
 import { TestAction } from "../actions/test"
+import { GroupConfig } from "../config/group"
 
 export type DependencyRelationFilterFn = (node: ConfigGraphNode) => boolean
 
@@ -83,16 +84,28 @@ export abstract class BaseConfigGraph<
 > {
   protected dependencyGraph: GraphNodes
 
-  protected actions: {
+  protected readonly actions: {
     Build: { [key: string]: B }
     Deploy: { [key: string]: D }
     Run: { [key: string]: R }
     Test: { [key: string]: T }
   }
 
+  protected readonly groups: {
+    [key: string]: GroupConfig
+  }
+
   readonly moduleGraph: ModuleGraph
 
-  constructor({ actions, moduleGraph }: { actions: Action[]; moduleGraph: ModuleGraph }) {
+  constructor({
+    actions,
+    moduleGraph,
+    groups,
+  }: {
+    actions: Action[]
+    moduleGraph: ModuleGraph
+    groups: GroupConfig[]
+  }) {
     this.dependencyGraph = {}
     this.actions = {
       Build: {},
@@ -106,6 +119,10 @@ export abstract class BaseConfigGraph<
       this.addActionInternal(action)
     }
 
+    for (const group of groups) {
+      this.groups[group.name] = group
+    }
+
     this.validate()
   }
 
@@ -114,7 +131,7 @@ export abstract class BaseConfigGraph<
   }
 
   clone() {
-    const clone = new ConfigGraph({ actions: [], moduleGraph: this.moduleGraph })
+    const clone = new ConfigGraph({ actions: [], moduleGraph: this.moduleGraph, groups: Object.values(this.groups) })
     for (const key of Object.getOwnPropertyNames(this)) {
       clone[key] = cloneDeep(this[key])
     }
@@ -238,6 +255,20 @@ export abstract class BaseConfigGraph<
 
   getTests(params: GetActionsParams = {}): T[] {
     return this.getActionsByKind("Test", params)
+  }
+
+  getGroup(name: string): GroupConfig {
+    const group = this.groups[name]
+
+    if (!group) {
+      throw new GraphError(`Could not find Group ${name}`, { availableGroups: Object.keys(this.groups) })
+    }
+
+    return group
+  }
+
+  getGroups(): GroupConfig[] {
+    return Object.values(this.groups)
   }
 
   /*

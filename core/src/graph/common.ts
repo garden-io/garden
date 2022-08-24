@@ -7,13 +7,16 @@
  */
 
 import { DepGraph } from "dependency-graph"
-import { flatten, uniq } from "lodash"
+import { flatten, merge, uniq } from "lodash"
 import { get, isEqual, join, set, uniqWith } from "lodash"
 import { ConfigurationError } from "../exceptions"
 import { GraphNodes, ConfigGraphNode } from "./config-graph"
 import { Profile } from "../util/profiling"
 import type { ModuleGraphNodes } from "./modules"
 import { ActionKind } from "../plugin/action-types"
+import Bluebird from "bluebird"
+import { loadVarfile } from "../config/base"
+import { DeepPrimitiveMap } from "../config/common"
 
 // Shared type used by ConfigGraph and TaskGraph to facilitate circular dependency detection
 export type DependencyGraphNode = {
@@ -112,6 +115,32 @@ interface CycleGraph {
     }
   }
 }
+
+export async function resolveVariables({ basePath, variables, varfiles }: { basePath: string; variables?: DeepPrimitiveMap; varfiles?: string[] }) {
+  const varsByFile = await Bluebird.map(varfiles || [], (path) => {
+    return loadVarfile({
+      configRoot: basePath,
+      path,
+      defaultPath: undefined,
+    })
+  })
+
+  const output: DeepPrimitiveMap = {}
+
+  // Merge different varfiles, later files taking precedence over prior files in the list.
+  // TODO-G2: should we change precedence order here?
+  // TODO-G2: should this be a JSON merge?
+  for (const vars of varsByFile) {
+    merge(output, vars)
+  }
+
+  if (variables) {
+    merge(output, variables)
+  }
+
+  return output
+}
+
 
 /**
  * Implements a variation on the Floyd-Warshall algorithm to compute minimal cycles.

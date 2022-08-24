@@ -13,6 +13,9 @@ import { ActionSpecContext } from "../config/template-contexts/actions"
 import { resolveTemplateStrings } from "../template-string/template-string"
 import { InternalError } from "../exceptions"
 import { validateWithPath } from "../config/validation"
+import { DeepPrimitiveMap } from "../config/common"
+import { merge } from "lodash"
+import { resolveVariables } from "../graph/common"
 
 export interface ResolveActionResults<T extends Action> {
   state: ActionState
@@ -75,8 +78,34 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     }
 
     // Resolve variables
-    const variables = resolveTemplateStrings(
-      this.action.getConfig().variables || {},
+    let groupVariables: DeepPrimitiveMap = {}
+    const groupName = this.action.groupName()
+
+    if (groupName) {
+      const group = this.graph.getGroup(groupName)
+
+      groupVariables = resolveTemplateStrings(
+        await resolveVariables({ basePath: group.path, variables: group.variables, varfiles: group.varfiles }),
+        new ActionSpecContext({
+          garden: this.garden,
+          resolvedProviders: await this.garden.resolveProviders(this.log),
+          action: this.action,
+          modules: this.graph.getModules(),
+          partialRuntimeResolution: false,
+          executedDependencies,
+          variables: {},
+        })
+      )
+    }
+
+    const config = this.action.getConfig()
+
+    const actionVariables = resolveTemplateStrings(
+      await resolveVariables({
+        basePath: this.action.basePath(),
+        variables: config.variables,
+        varfiles: config.varfiles,
+      }),
       new ActionSpecContext({
         garden: this.garden,
         resolvedProviders: await this.garden.resolveProviders(this.log),
@@ -84,9 +113,14 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         modules: this.graph.getModules(),
         partialRuntimeResolution: false,
         executedDependencies,
-        variables: {},
+        variables: groupVariables,
       })
     )
+
+    const variables = groupVariables
+    merge(variables, actionVariables)
+    // Override with CLI-set variables
+    merge(variables, this.garden.cliVariables)
 
     // Resolve spec
     let spec = resolveTemplateStrings(

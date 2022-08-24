@@ -731,6 +731,7 @@ export const execPlugin = () =>
               group: {
                 kind: "Group",
                 name: module.name,
+                path: module.path,
                 actions,
                 variables: module.variables,
                 varfiles: module.varfile ? [module.varfile] : undefined,

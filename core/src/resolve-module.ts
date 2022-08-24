@@ -40,9 +40,9 @@ import { ModuleTypeDefinition } from "./plugin/plugin"
 import { serviceFromConfig } from "./types/service"
 import { taskFromConfig } from "./types/task"
 import { testFromConfig } from "./types/test"
-import { BuildActionConfig, BuildCopyFrom } from "./actions/build"
+import { BuildActionConfig, BuildCopyFrom, isBuildActionConfig } from "./actions/build"
 import { GroupConfig } from "./config/group"
-import { BaseActionConfig } from "./actions/base"
+import { ActionConfig, BaseActionConfig } from "./actions/base"
 import { ModuleGraph } from "./graph/modules"
 import { GraphResults } from "./graph/results"
 
@@ -692,14 +692,56 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
     })
 
     if (result.group) {
+      // Enforce some inheritance from module
+      if (module.varfile) {
+        result.group.varfiles = [module.varfile]
+      }
+      result.group.variables = { ...module.variables, ...result.group.variables }
+
+      for (const action of result.group.actions) {
+        inheritModuleToAction(module, action)
+      }
+
       groups.push(result.group)
     }
+
     if (result.actions) {
+      for (const action of result.actions) {
+        inheritModuleToAction(module, action)
+
+        if (!action.varfiles && module.varfile) {
+          action.varfiles = [module.varfile]
+        }
+        if (!action.variables) {
+          action.variables = module.variables
+        }
+      }
+
       actions.push(...result.actions)
     }
   })
 
   return { groups, actions }
+}
+
+function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
+  // Enforce some inheritance from module
+  if (module.disabled) {
+    action.disabled = true
+  }
+  if (!action.internal) {
+    action.internal = {}
+  }
+  action.basePath = module.path
+  if (module.configPath) {
+    action.internal.configFilePath = module.configPath
+  }
+  if (module.templateName) {
+    action.internal.templateName = module.templateName
+  }
+  if (isBuildActionConfig(action) && !module.allowPublish) {
+    action.allowPublish = false
+  }
 }
 
 function missingBuildDependency(moduleName: string, dependencyName: string) {
