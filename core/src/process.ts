@@ -397,8 +397,7 @@ export const cloudEventHandlers = {
       force,
       forceActions: forceBuild ? graph.getBuilds() : [],
       fromWatch: false,
-      // TODO-G2
-      // skipRuntimeDependencies: params.request.skipDependencies,
+      skipRuntimeDependencies: params.request.skipDependencies,
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
@@ -417,6 +416,7 @@ export const cloudEventHandlers = {
       force,
       forceActions: forceBuild ? graph.getBuilds() : [],
       fromWatch: false,
+      skipRuntimeDependencies: params.request.skipDependencies,
     })
     return [task]
   },
