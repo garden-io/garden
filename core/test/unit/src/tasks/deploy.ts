@@ -11,21 +11,16 @@ import execa from "execa"
 
 import { ProjectConfig, defaultNamespace } from "../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
-import { Garden } from "../../../../src/garden"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { createGardenPlugin, GardenPlugin } from "../../../../src/plugin/plugin"
-import { joi } from "../../../../src/config/common"
-import { ServiceState } from "../../../../src/types/service"
+import { GardenPlugin } from "../../../../src/plugin/plugin"
 import { DeployTask } from "../../../../src/tasks/deploy"
-import { DeployServiceParams } from "../../../../src/types/plugin/service/deployService"
-import { RunTaskParams } from "../../../../src/types/plugin/task/runTask"
 import { expect } from "chai"
-import { TestGarden } from "../../../helpers"
+import { customizedTestPlugin, TestGarden } from "../../../helpers"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 
 describe("DeployTask", () => {
   let tmpDir: tmp.DirectoryResult
-  let garden: Garden
+  let garden: TestGarden
   let graph: ConfigGraph
   let config: ProjectConfig
   let testPlugin: GardenPlugin
@@ -47,49 +42,50 @@ describe("DeployTask", () => {
       variables: {},
     }
 
-    testPlugin = createGardenPlugin({
-      name: "test",
-      createModuleTypes: [
-        {
-          name: "test",
-          docs: "test",
-          serviceOutputsSchema: joi.object().keys({ log: joi.string() }),
-          handlers: {
-            build: async () => ({}),
-            getServiceStatus: async () => {
-              return {
-                state: <ServiceState>"missing",
-                detail: {},
-                outputs: {},
-              }
-            },
-            deployService: async ({ service }: DeployServiceParams) => {
-              return {
-                state: <ServiceState>"ready",
-                detail: {},
-                outputs: { log: service.spec.log },
-              }
-            },
-            runTask: async ({ task }: RunTaskParams) => {
-              const log = task.spec.log
-
-              return {
-                taskName: task.name,
-                moduleName: task.module.name,
-                success: true,
-                outputs: { log },
-                command: [],
-                log,
-                startedAt: new Date(),
-                completedAt: new Date(),
-                version: task.version,
-              }
-            },
-          },
-        },
-      ],
-    })
-
+    // testPlugin = createGardenPlugin({
+    //   name: "test",
+    //   createModuleTypes: [
+    //     {
+    //       name: "test",
+    //       docs: "test",
+    //       serviceOutputsSchema: joi.object().keys({ log: joi.string() }),
+    //       handlers: {
+    //         build: async () => ({}),
+    //         getServiceStatus: async () => {
+    //           return {
+    //             state: <ServiceState>"missing",
+    //             detail: {},
+    //             outputs: {},
+    //           }
+    //         },
+    //         deployService: async ({ service }: DeployServiceParams) => {
+    //           return {
+    //             state: <ServiceState>"ready",
+    //             detail: {},
+    //             outputs: { log: service.spec.log },
+    //           }
+    //         },
+    //         runTask: async ({ task }: RunTaskParams) => {
+    //           const log = task.spec.log
+    //
+    //           return {
+    //             taskName: task.name,
+    //             moduleName: task.module.name,
+    //             success: true,
+    //             outputs: { log },
+    //             command: [],
+    //             log,
+    //             startedAt: new Date(),
+    //             completedAt: new Date(),
+    //             version: task.version,
+    //           }
+    //         },
+    //       },
+    //     },
+    //   ],
+    // })
+    // TODO-G2: customize behaviour to inject outputs if necessary, see getTaskResult in the commented code above
+    const testPlugin = customizedTestPlugin({})
     garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
 
     garden["moduleConfigs"] = {
@@ -145,58 +141,55 @@ describe("DeployTask", () => {
     await tmpDir.cleanup()
   })
 
-  describe("getDependencies", () => {
-    it("should always return task dependencies having force = false", async () => {
-      const testService = graph.getService("test-service")
+  describe("resolveProcessDependencies", () => {
+    it("should always return deploy action's dependencies having force = false", async () => {
+      const action = graph.getDeploy("test-service")
 
       const forcedDeployTask = new DeployTask({
         garden,
         graph,
-        service: testService,
+        action,
         force: true,
         forceBuild: false,
         fromWatch: false,
         log: garden.log,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
       })
 
-      expect((await forcedDeployTask.resolveProcessDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
+      expect(forcedDeployTask.resolveProcessDependencies().find((dep) => dep.type === "task")!.force).to.be.false
 
       const unforcedDeployTask = new DeployTask({
         garden,
         graph,
-        service: testService,
+        action,
         force: false,
         forceBuild: false,
         fromWatch: false,
         log: garden.log,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
       })
 
-      expect((await unforcedDeployTask.resolveProcessDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
+      expect(unforcedDeployTask.resolveProcessDependencies().find((dep) => dep.type === "task")!.force).to.be.false
 
       const deployTaskFromWatch = new DeployTask({
         garden,
         graph,
-        service: testService,
+        action,
         force: false,
         forceBuild: false,
         fromWatch: true,
         log: garden.log,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
       })
 
-      expect((await deployTaskFromWatch.resolveProcessDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
+      expect(deployTaskFromWatch.resolveProcessDependencies().find((dep) => dep.type === "task")!.force).to.be.false
     })
 
-    context("when skipRuntimeDependencies = true", () => {
-      it("doesn't return deploy or task dependencies", async () => {
+    context("when skipDependencies = true", () => {
+      it("doesn't return deploy or run dependencies", async () => {
         const action = graph.getDeploy("test-service")
 
         const deployTask = new DeployTask({
@@ -207,31 +200,29 @@ describe("DeployTask", () => {
           forceBuild: false,
           fromWatch: false,
           log: garden.log,
-          skipRuntimeDependencies: true, // <-----
+          skipDependencies: true, // <-----
           devModeDeployNames: [],
-
           localModeDeployNames: [],
         })
 
-        const deps = await deployTask.resolveProcessDependencies()
-        expect(deps.find((dep) => dep.type === "deploy" || dep.type === "task")).to.be.undefined
+        const deps = deployTask.resolveProcessDependencies()
+        expect(deps.find((dep) => dep.type === "deploy" || dep.type === "run")).to.be.undefined
       })
     })
   })
 
   describe("process", () => {
-    it("should correctly resolve runtime outputs from tasks", async () => {
-      const testService = graph.getService("test-service")
+    it("should correctly resolve runtime outputs from deploys", async () => {
+      const action = graph.getDeploy("test-service")
 
       const deployTask = new DeployTask({
         garden,
         graph,
-        service: testService,
+        action,
         force: true,
-        forceBuild: false,
+        fromWatch: false,
         log: garden.log,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
       })
 
