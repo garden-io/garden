@@ -12,7 +12,6 @@ import stripAnsi = require("strip-ansi")
 import { keyBy } from "lodash"
 import { ConfigContext } from "../../../../../src/config/template-contexts/base"
 import { expectError, makeTestGardenA, TestGarden } from "../../../../helpers"
-import { prepareRuntimeContext } from "../../../../../src/runtime-context"
 import { GardenService } from "../../../../../src/types/service"
 import { resolveTemplateString } from "../../../../../src/template-string/template-string"
 import { ModuleConfigContext } from "../../../../../src/config/template-contexts/module"
@@ -134,7 +133,7 @@ describe("ModuleConfigContext", () => {
     })
   })
 
-  context("runtimeContext is set", () => {
+  context("graphResults is set", () => {
     let withRuntime: ModuleConfigContext
     let serviceA: GardenService
 

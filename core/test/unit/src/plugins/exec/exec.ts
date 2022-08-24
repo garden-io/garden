@@ -436,10 +436,6 @@ describe("exec plugin", () => {
         module,
         interactive: true,
         graph,
-        runtimeContext: {
-          envVars: {},
-          dependencies: [],
-        },
         silent: false,
         test: testFromConfig(
           module,
@@ -466,10 +462,6 @@ describe("exec plugin", () => {
         module,
         interactive: true,
         graph,
-        runtimeContext: {
-          envVars: {},
-          dependencies: [],
-        },
         silent: false,
         test: testFromConfig(
           module,
@@ -498,10 +490,6 @@ describe("exec plugin", () => {
         task,
         interactive: true,
         graph,
-        runtimeContext: {
-          envVars: {},
-          dependencies: [],
-        },
       })
       expect(res.log).to.eql(join(garden.projectRoot, "module-local"))
     })
@@ -518,10 +506,6 @@ describe("exec plugin", () => {
         task,
         interactive: true,
         graph,
-        runtimeContext: {
-          envVars: {},
-          dependencies: [],
-        },
       })
 
       expect(res.log).to.equal(module.version.versionString)
@@ -539,10 +523,6 @@ describe("exec plugin", () => {
         args: ["echo", "hello", "world"],
         interactive: false,
         graph,
-        runtimeContext: {
-          envVars: {},
-          dependencies: [],
-        },
       })
       expect(res.log).to.eql("hello world")
     })
@@ -648,10 +628,6 @@ describe("exec plugin", () => {
           log,
           service,
           graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
         })
         expect(res.detail.deployCommandOutput).to.eql("deployed echo service")
       })
@@ -667,10 +643,6 @@ describe("exec plugin", () => {
           log,
           service,
           graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
         })
         expect(res.detail.skipped).to.eql(true)
       })
@@ -688,10 +660,6 @@ describe("exec plugin", () => {
               log,
               service,
               graph,
-              runtimeContext: {
-                envVars: {},
-                dependencies: [],
-              },
             }),
           (err) =>
             expect(err.message).to.equal(dedent`
@@ -737,10 +705,6 @@ describe("exec plugin", () => {
             log,
             service,
             graph,
-            runtimeContext: {
-              envVars: {},
-              dependencies: [],
-            },
           })
 
           pid = res.detail.pid
@@ -759,10 +723,6 @@ describe("exec plugin", () => {
             log,
             service,
             graph,
-            runtimeContext: {
-              envVars: {},
-              dependencies: [],
-            },
           })
 
           // Wait for entries to be written since we otherwise don't wait on persistent commands (unless
@@ -827,10 +787,6 @@ describe("exec plugin", () => {
             log,
             service,
             graph,
-            runtimeContext: {
-              envVars: {},
-              dependencies: [],
-            },
           })
 
           // Wait for entries to be written since we otherwise don't wait on persistent commands (unless
@@ -899,10 +855,6 @@ describe("exec plugin", () => {
               log,
               service,
               graph,
-              runtimeContext: {
-                envVars: {},
-                dependencies: [],
-              },
             })
           } catch (err) {
             error = err
@@ -930,10 +882,6 @@ describe("exec plugin", () => {
           log,
           service,
           graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
         })
         expect(res.state).to.equal("unknown")
       })
@@ -949,10 +897,6 @@ describe("exec plugin", () => {
           log,
           service,
           graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
         })
         const res = await actions.getServiceStatus({
           devMode: false,
@@ -961,10 +905,6 @@ describe("exec plugin", () => {
           log,
           service,
           graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
         })
         expect(res.state).to.equal("ready")
         expect(res.version).to.equal(service.version)
@@ -981,10 +921,6 @@ describe("exec plugin", () => {
           log,
           service,
           graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
         })
         expect(res.state).to.equal("outdated")
         expect(res.version).to.equal(service.version)
@@ -1003,19 +939,11 @@ describe("exec plugin", () => {
           log,
           service,
           graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
         })
         const res = await actions.deploy.delete({
           log,
           service,
           graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
         })
         expect(res.state).to.equal("missing")
         expect(res.detail.cleanupCommandOutput).to.equal("cleaned up")
@@ -1028,10 +956,6 @@ describe("exec plugin", () => {
           log,
           service,
           graph,
-          runtimeContext: {
-            envVars: {},
-            dependencies: [],
-          },
         })
         expect(res.state).to.equal("unknown")
       })
@@ -1045,10 +969,6 @@ describe("exec plugin", () => {
               log,
               service,
               graph,
-              runtimeContext: {
-                envVars: {},
-                dependencies: [],
-              },
             }),
           (err) =>
             expect(err.message).to.equal(dedent`

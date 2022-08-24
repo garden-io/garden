@@ -8,9 +8,8 @@
 
 import chalk from "chalk"
 import { omit } from "lodash"
-import { Action, ActionState } from "../actions/base"
+import { ActionState } from "../actions/base"
 import { PluginEventBroker } from "../plugin-context"
-import { emptyRuntimeContext } from "../runtime-context"
 import { ServiceState } from "../types/service"
 import { uuidv4 } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
@@ -89,8 +88,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         status: "active",
       })
 
-      const runtimeContext = emptyRuntimeContext
-      const status = await handlers.getStatus({ ...params, runtimeContext, devMode: false, localMode: false })
+      const status = await handlers.getStatus({ ...params, devMode: false, localMode: false })
 
       if (status.detail?.state === "missing") {
         log.setSuccess({

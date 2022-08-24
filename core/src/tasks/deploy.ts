@@ -11,7 +11,6 @@ import { includes } from "lodash"
 import { BaseActionTaskParams, ActionTaskProcessParams, ExecuteActionTask, ActionTaskStatusParams } from "./base"
 import { getLinkUrl } from "../types/service"
 import { startPortProxies } from "../proxy"
-import { prepareRuntimeContext } from "../runtime-context"
 import { Profile } from "../util/profiling"
 import { DeployAction } from "../actions/deploy"
 import { DeployStatus } from "../plugin/handlers/deploy/get-status"
@@ -34,12 +33,6 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     const devMode = includes(this.devModeDeployNames, action.name)
     const localMode = includes(this.localModeDeployNames, action.name)
 
-    const runtimeContext = await prepareRuntimeContext({
-      action,
-      graph: this.graph,
-      graphResults: dependencyResults,
-    })
-
     const router = await this.garden.getActionRouter()
 
     let status: DeployStatus = { state: "unknown", detail: { state: "unknown", detail: {} }, outputs: {} }
@@ -51,7 +44,6 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
         log,
         devMode,
         localMode,
-        runtimeContext,
       })
     } catch (err) {
       // This can come up if runtime outputs are not resolvable
@@ -71,13 +63,6 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
 
     const devMode = includes(this.devModeDeployNames, action.name)
     const localMode = includes(this.localModeDeployNames, action.name)
-
-    // TODO: attach runtimeContext to GetServiceStatusTask output
-    const runtimeContext = await prepareRuntimeContext({
-      action,
-      graph: this.graph,
-      graphResults: dependencyResults,
-    })
 
     const router = await this.garden.getActionRouter()
 
@@ -105,7 +90,6 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
         status = await router.deploy.deploy({
           graph: this.graph,
           action,
-          runtimeContext,
           log,
           force: this.force,
           devMode,

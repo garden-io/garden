@@ -36,11 +36,6 @@ export const execInKubernetesDeploy: DeployActionHandler<"exec", KubernetesDeplo
     ctx,
     log,
     action,
-    // The runtime context doesn't matter here. We're just checking if the service is running.
-    runtimeContext: {
-      envVars: {},
-      dependencies: [],
-    },
     devMode: false,
     localMode: false,
   })

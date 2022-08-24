@@ -9,7 +9,6 @@
 import { actionParamsSchema, PluginDeployActionParamsBase } from "../../base"
 import { dedent } from "../../../util/string"
 import { ServiceStatus, serviceStatusSchema } from "../../../types/service"
-import { RuntimeContext, runtimeContextSchema } from "../../../runtime-context"
 import { joi } from "../../../config/common"
 import { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
@@ -18,7 +17,6 @@ import { ActionStatus, GetActionOutputType, Resolved } from "../../../actions/ba
 interface GetDeployStatusParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   devMode: boolean
   localMode: boolean
-  runtimeContext: RuntimeContext
 }
 
 export type DeployStatus<T extends DeployAction = DeployAction> = ActionStatus<
@@ -41,7 +39,6 @@ export class GetDeployStatus<T extends DeployAction = DeployAction> extends Acti
     actionParamsSchema().keys({
       devMode: joi.boolean().default(false).description("Whether the deployment should be configured in dev mode."),
       localMode: joi.boolean().default(false).description("Whether the service should be configured in local mode."),
-      runtimeContext: runtimeContextSchema(),
     })
 
   resultSchema = () => serviceStatusSchema()

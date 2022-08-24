@@ -131,7 +131,7 @@ class ActionReferencesContext extends ConfigContext {
     }
 
     // This ensures that any template string containing runtime.* references is returned unchanged when
-    // there is no or limited runtimeContext available.
+    // there is no or limited runtime context available.
     this._alwaysAllowPartial = allowPartial
   }
 }

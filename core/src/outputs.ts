@@ -9,12 +9,12 @@
 import { Garden } from "./garden"
 import { collectTemplateReferences, resolveTemplateStrings } from "./template-string/template-string"
 import { OutputConfigContext } from "./config/template-contexts/module"
-import { emptyRuntimeContext, RuntimeContext } from "./runtime-context"
 import { LogEntry } from "./logger/log-entry"
 import { OutputSpec } from "./config/project"
 import { ActionReference, parseActionReference } from "./config/common"
 import { ActionKind } from "./plugin/action-types"
 import { getExecuteTaskForAction } from "./graph/actions"
+import { GraphResults } from "./graph/results"
 
 /**
  * Resolves all declared project outputs. If necessary, this will resolve providers and modules, and ensure services
@@ -28,7 +28,7 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
   // Check for template references to figure out what needs to be resolved
   let needProviders: string[] = []
   let needModules: string[] = []
-  let needActions: ActionReference[] = [] // TODO-G2
+  let needActions: ActionReference[] = []
 
   const templateRefs = collectTemplateReferences(garden.rawOutputs)
 
@@ -37,6 +37,7 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
     return garden.rawOutputs
   }
 
+  // TODO-G2: validate these
   for (const ref of templateRefs) {
     if (!ref[1]) {
       continue
@@ -67,7 +68,6 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
         resolvedProviders: {},
         variables: garden.variables,
         modules: [],
-        runtimeContext: emptyRuntimeContext,
         partialRuntimeResolution: false,
       })
     )
@@ -95,33 +95,11 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
   })
 
   const { results } =
-    graphTasks.length > 0 ? await garden.processTasks({ tasks: graphTasks, log, throwOnError: true }) : { results: {} }
+    graphTasks.length > 0
+      ? await garden.processTasks({ tasks: graphTasks, log, throwOnError: true })
+      : { results: new GraphResults([]) }
 
-  const dependencies: RuntimeContext["dependencies"] = []
-
-  for (const ref of Object.keys(results)) {
-    const dep = graph.getActionByRef(parseActionReference(ref))
-
-    const result = results[dep.key()]
-    if (!result) {
-      continue
-    }
-
-    dependencies.push({
-      name: dep.name,
-      kind: dep.kind,
-      outputs: result.outputs || {},
-      version: result.version,
-      moduleName: dep.moduleName(),
-    })
-  }
-
-  const runtimeContext: RuntimeContext = {
-    envVars: {},
-    dependencies,
-  }
-
-  const configContext = await garden.getOutputConfigContext(log, modules, runtimeContext)
+  const configContext = await garden.getOutputConfigContext(log, modules, results)
 
   return resolveTemplateStrings(garden.rawOutputs, configContext)
 }

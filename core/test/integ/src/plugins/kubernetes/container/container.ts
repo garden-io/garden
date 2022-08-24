@@ -16,7 +16,6 @@ import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { findByName } from "../../../../../../src/util/util"
 import { deline } from "../../../../../../src/util/string"
 import { runContainerService } from "../../../../../../src/plugins/kubernetes/container/run"
-import { prepareRuntimeContext } from "../../../../../../src/runtime-context"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { decryptSecretFile } from "../../../../helpers"
@@ -118,28 +117,12 @@ describe("kubernetes container module handlers", () => {
     it("should run a service", async () => {
       const service = graph.getService("echo-service")
 
-      const runtimeContext = await prepareRuntimeContext({
-        garden,
-        graph,
-        dependencies: {
-          build: [],
-          deploy: [],
-          run: [],
-          test: [],
-        },
-        version: service.version,
-        moduleVersion: service.module.version.versionString,
-        serviceStatuses: {},
-        taskResults: {},
-      })
-
       const result = await runContainerService({
         ctx: await garden.getPluginContext(provider),
         log: garden.log,
         service,
         module: service.module,
         interactive: false,
-        runtimeContext,
       })
 
       expect(result.success).to.be.true
@@ -150,28 +133,12 @@ describe("kubernetes container module handlers", () => {
     it("should add configured env vars to the runtime context", async () => {
       const service = graph.getService("env-service")
 
-      const runtimeContext = await prepareRuntimeContext({
-        garden,
-        graph,
-        dependencies: {
-          build: [],
-          deploy: [],
-          run: [],
-          test: [],
-        },
-        version: service.version,
-        moduleVersion: service.module.version.versionString,
-        serviceStatuses: {},
-        taskResults: {},
-      })
-
       const result = await runContainerService({
         ctx: await garden.getPluginContext(provider),
         log: garden.log,
         service,
         module: service.module,
         interactive: false,
-        runtimeContext,
       })
 
       expect(result.log.trim()).to.eql("foo")

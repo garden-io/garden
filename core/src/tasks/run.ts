@@ -8,7 +8,6 @@
 
 import chalk from "chalk"
 import { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams, ExecuteActionTask } from "./base"
-import { prepareRuntimeContext } from "../runtime-context"
 import { Profile } from "../util/profiling"
 import { RunAction } from "../actions/run"
 import { GetRunResult } from "../plugin/handlers/run/get-result"
@@ -68,12 +67,6 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
       status: "active",
     })
 
-    const runtimeContext = await prepareRuntimeContext({
-      action,
-      graph: this.graph,
-      graphResults: dependencyResults,
-    })
-
     const actions = await this.garden.getActionRouter()
 
     let status: GetRunResult
@@ -83,7 +76,6 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
         graph: this.graph,
         action,
         log,
-        runtimeContext,
         interactive: false,
       })
     } catch (err) {
