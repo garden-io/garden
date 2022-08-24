@@ -29,15 +29,12 @@ import {
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { dedent } from "../../../../../src/util/string"
 import { ModuleVersion } from "../../../../../src/vcs/vcs"
-import { convertModules } from "../../../../../src/resolve-module"
-import { error } from "console"
-import { BuildActionConfig, BuildAction } from "../../../../../src/actions/build"
+import { BuildAction } from "../../../../../src/actions/build"
 import { actionFromConfig } from "../../../../../src/graph/actions"
 
 describe("containerHelpers", () => {
   const projectRoot = resolve(dataDir, "test-project-container")
   const modulePath = resolve(dataDir, "test-project-container", "module-a")
-  const relDockerfilePath = "docker-dir/Dockerfile"
 
   const plugin = gardenPlugin()
   const configure = plugin.createModuleTypes![0].handlers.configure!
