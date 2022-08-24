@@ -975,7 +975,12 @@ export class Garden {
   async getResolvedConfigGraph(params: GetConfigGraphParams): Promise<ResolvedConfigGraph> {
     const graph = await this.getConfigGraph(params)
     const resolved = await this.resolveActions({ graph, actions: graph.getActions(), log: params.log })
-    return new ResolvedConfigGraph({ actions: Object.values(resolved), moduleGraph: graph.moduleGraph })
+    return new ResolvedConfigGraph({
+      actions: Object.values(resolved),
+      moduleGraph: graph.moduleGraph,
+      // TODO-G2: perhaps this should be resolved here
+      groups: graph.getGroups(),
+    })
   }
 
   async resolveAction<T extends Action>({ action, graph, log }: { action: T; log: LogEntry; graph?: ConfigGraph }) {

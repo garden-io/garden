@@ -232,3 +232,7 @@ export class ExecutedBuildAction<C extends BuildActionConfig<any, any> = BuildAc
 export function isBuildAction(action: Action): action is BuildAction {
   return action.kind === "Build"
 }
+
+export function isBuildActionConfig(config: BaseActionConfig): config is BuildActionConfig {
+  return config.kind === "Build"
+}

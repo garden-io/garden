@@ -124,6 +124,7 @@ export const configMapModuleDefinition = (): ModuleTypeDefinition => ({
         group: {
           kind: "Group",
           name: module.name,
+          path: module.path,
           actions: [
             ...(dummyBuild ? [dummyBuild] : []),
             {
