@@ -16,7 +16,6 @@ import { ServiceLogEntry } from "../../../../../../src/types/service"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { K8sLogFollower, makeServiceLogEntry } from "../../../../../../src/plugins/kubernetes/logs"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
-import { emptyRuntimeContext } from "../../../../../../src/runtime-context"
 import { createWorkloadManifest } from "../../../../../../src/plugins/kubernetes/container/deployment"
 import { sleep } from "../../../../../../src/util/util"
 import { DeleteDeployTask } from "../../../../../../src/tasks/delete-service"
@@ -115,8 +114,6 @@ describe("kubernetes", () => {
             api,
             provider,
             service,
-            // No need for the proper context here
-            runtimeContext: emptyRuntimeContext,
             namespace,
             enableDevMode: false,
 
@@ -187,8 +184,6 @@ describe("kubernetes", () => {
             api,
             provider,
             service,
-            // No need for the proper context here
-            runtimeContext: emptyRuntimeContext,
             namespace,
             enableDevMode: false,
 

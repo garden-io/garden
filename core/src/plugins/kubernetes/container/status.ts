@@ -19,7 +19,6 @@ import { compareDeployedResources } from "../status/status"
 import { getIngresses } from "./ingress"
 import { getAppNamespaceStatus } from "../namespace"
 import { KubernetesPluginContext } from "../config"
-import { RuntimeContext } from "../../../runtime-context"
 import { KubernetesServerResource, KubernetesWorkload } from "../types"
 import { DeployActionHandler } from "../../../plugin/action-types"
 import { getDeployedImageId } from "./util"
@@ -33,7 +32,7 @@ interface ContainerStatusDetail {
 export type ContainerServiceStatus = ServiceStatus<ContainerStatusDetail, ContainerDeployOutputs>
 
 export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", ContainerDeployAction> = async (params) => {
-  const { ctx, action, runtimeContext, log, devMode, localMode } = params
+  const { ctx, action, log, devMode, localMode } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
@@ -51,7 +50,6 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
     log,
     action,
     imageId,
-    runtimeContext,
     enableDevMode,
     enableLocalMode: localMode,
     blueGreen: provider.config.deploymentStrategy === "blue-green",
@@ -120,7 +118,6 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
 export async function waitForContainerService(
   ctx: PluginContext,
   log: LogEntry,
-  runtimeContext: RuntimeContext,
   action: Resolved<ContainerDeployAction>,
   devMode: boolean,
   localMode: boolean,
@@ -133,7 +130,6 @@ export async function waitForContainerService(
       ctx,
       log,
       action,
-      runtimeContext,
       devMode,
       localMode,
     })

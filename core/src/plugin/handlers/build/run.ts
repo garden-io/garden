@@ -14,7 +14,6 @@ import {
   PluginBuildActionParamsBase,
   RunResult,
 } from "../../../plugin/base"
-import { RuntimeContext } from "../../../runtime-context"
 import { joiArray, joi } from "../../../config/common"
 import { BuildAction } from "../../../actions/build"
 import { ActionTypeHandlerSpec } from "../base/base"
@@ -26,7 +25,6 @@ export interface RunBuildParams<T extends BuildAction> extends PluginBuildAction
   command?: string[]
   args: string[]
   interactive: boolean
-  runtimeContext: RuntimeContext
   timeout?: number
 }
 

@@ -26,7 +26,6 @@ import { Profile } from "./util/profiling"
 import { getLinkedSources } from "./util/ext-source-util"
 import { allowUnknown, DeepPrimitiveMap } from "./config/common"
 import { ProviderMap } from "./config/provider"
-import { RuntimeContext } from "./runtime-context"
 import chalk from "chalk"
 import { DependencyGraph } from "./graph/common"
 import Bluebird from "bluebird"
@@ -45,6 +44,7 @@ import { BuildActionConfig, BuildCopyFrom } from "./actions/build"
 import { GroupConfig } from "./config/group"
 import { BaseActionConfig } from "./actions/base"
 import { ModuleGraph } from "./graph/modules"
+import { GraphResults } from "./graph/results"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 50
@@ -62,7 +62,7 @@ export class ModuleResolver {
   private log: LogEntry
   private rawConfigsByKey: ModuleConfigMap
   private resolvedProviders: ProviderMap
-  private runtimeContext?: RuntimeContext
+  private graphResults?: GraphResults
   private bases: { [type: string]: ModuleTypeDefinition[] }
 
   constructor({
@@ -70,19 +70,19 @@ export class ModuleResolver {
     log,
     rawConfigs,
     resolvedProviders,
-    runtimeContext,
+    graphResults,
   }: {
     garden: Garden
     log: LogEntry
     rawConfigs: ModuleConfig[]
     resolvedProviders: ProviderMap
-    runtimeContext?: RuntimeContext
+    graphResults?: GraphResults
   }) {
     this.garden = garden
     this.log = log
     this.rawConfigsByKey = keyBy(rawConfigs, (c) => c.name)
     this.resolvedProviders = resolvedProviders
-    this.runtimeContext = runtimeContext
+    this.graphResults = graphResults
     this.bases = {}
   }
 
@@ -255,7 +255,7 @@ export class ModuleResolver {
       templateName: rawConfig.templateName,
       inputs: rawConfig.inputs,
       modules: [],
-      runtimeContext: this.runtimeContext,
+      graphResults: this.graphResults,
       partialRuntimeResolution: true,
     })
 
@@ -307,7 +307,7 @@ export class ModuleResolver {
       parentName: config.parentName,
       templateName: config.templateName,
       inputs: config.inputs,
-      runtimeContext: this.runtimeContext,
+      graphResults: this.graphResults,
       partialRuntimeResolution: true,
     }
 
@@ -479,7 +479,7 @@ export class ModuleResolver {
       templateName: resolvedConfig.templateName,
       inputs: resolvedConfig.inputs,
       modules: dependencies,
-      runtimeContext: this.runtimeContext,
+      graphResults: this.graphResults,
       partialRuntimeResolution: true,
     })
 
