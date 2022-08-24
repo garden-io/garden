@@ -4,16 +4,24 @@ on:
   release:
     types: [published]
 
+permissions:  # added using https://github.com/step-security/secure-workflows
+  contents: read
+
 jobs:
   publish-npm-package:
     runs-on: macOS-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@dd2c410b088af7c0dc8046f3ac9a8f4148492a95
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
       - name: Set Environment Variables
         run: |
           echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e
       - name: Use Node.js 14.x
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e
         with:
           node-version: 14.x
       - name: Build package
