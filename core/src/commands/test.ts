@@ -160,7 +160,7 @@ export class TestCommand extends Command<Args, Opts> {
 
     const filterNames = opts.name || []
     const force = opts.force
-    const skipDependencies = opts["skip-dependencies"]
+    const skipRuntimeDependencies = opts["skip-dependencies"]
     const skipped = opts.skip || []
 
     const actions = getTestActions({ graph, modules, filterNames })
@@ -178,7 +178,7 @@ export class TestCommand extends Command<Args, Opts> {
             action,
             devModeDeployNames: [],
             localModeDeployNames: [],
-            skipDependencies,
+            skipRuntimeDependencies,
           })
       )
       .filter(
@@ -209,7 +209,7 @@ export class TestCommand extends Command<Args, Opts> {
             fromWatch: false,
             action,
             devModeDeployNames: [],
-            skipRuntimeDependencies: skipDependencies,
+            skipRuntimeDependencies,
             localModeDeployNames: [],
           }),
         ]
