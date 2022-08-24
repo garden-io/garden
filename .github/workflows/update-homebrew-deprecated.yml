@@ -10,15 +10,20 @@ jobs:
     runs-on: macOS-latest
 
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@dd2c410b088af7c0dc8046f3ac9a8f4148492a95
+      with:
+        egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
     - name: Checks if pre-release
       if: github.event.release.prerelease == true
       run: |
         echo This is running against a pre-release.
         echo Skipping all the next steps.
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e
       if: github.event.release.prerelease != true
     - name: Use Node.js 12.x
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e
       if: github.event.release.prerelease != true
       with:
         node-version: 12.x
@@ -41,7 +46,7 @@ jobs:
         END
     - name: Release Homebrew Formula
       if: github.event.release.prerelease != true
-      uses: garden-io/update-homebrew-action@v1
+      uses: garden-io/update-homebrew-action@8f5f7e8b9ab33e0ed39851013a9187c2154fd69b
       with:
         packageName: 'garden-cli'
         templatePath: 'support/homebrew-formula.rb'
