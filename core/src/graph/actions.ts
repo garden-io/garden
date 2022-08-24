@@ -173,7 +173,6 @@ export function actionNameConflictError(configA: ActionConfig, configB: ActionCo
   )
 }
 
-// TODO-G2
 /**
  * Helper for resolving a single action.
  *
@@ -190,6 +189,8 @@ export async function resolveAction<T extends Action>({
   action: T
   log: LogEntry
 }): Promise<Resolved<T>> {
+  const status = log.info({ msg: `Resolving ${action.longDescription()}`, status: "active" })
+
   const task = new ResolveActionTask({
     garden,
     action,
@@ -202,6 +203,8 @@ export async function resolveAction<T extends Action>({
   })
 
   const results = await garden.processTasks({ tasks: [task], log, throwOnError: true })
+
+  status.setState({ status: "done" })
 
   return <Resolved<T>>(<unknown>results.results[task.getBaseKey()]!)
 }
