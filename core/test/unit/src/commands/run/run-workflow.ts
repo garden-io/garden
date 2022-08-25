@@ -16,12 +16,12 @@ import {
   expectError,
   TestGardenCli,
   makeTestGarden,
+  customizedTestPlugin,
 } from "../../../../helpers"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { RunWorkflowCommand, shouldBeDropped } from "../../../../../src/commands/run/run-workflow"
 import { createGardenPlugin } from "../../../../../src/plugin/plugin"
 import { joi } from "../../../../../src/config/common"
-import { RunTaskParams } from "../../../../../src/types/plugin/task/runTask"
 import { ProjectConfig, defaultNamespace } from "../../../../../src/config/project"
 import { join } from "path"
 import { remove, readFile, pathExists } from "fs-extra"
@@ -197,60 +197,134 @@ describe("RunWorkflowCommand", () => {
   it("should abort subsequent steps if a command returns an error", async () => {
     const testModuleLog: string[] = []
     // This plugin always returns errors when a task is run.
-    const testPlugin = createGardenPlugin({
+    const testPlugin = customizedTestPlugin({
       name: "test",
-      createModuleTypes: [
-        {
-          name: "test",
-          docs: "test",
-          serviceOutputsSchema: joi.object().keys({ log: joi.string() }),
-          handlers: {
-            build: async () => ({}),
-            runTask: async ({ task }: RunTaskParams) => {
-              const result = {
-                taskName: task.name,
-                moduleName: task.module.name,
-                success: false,
-                outputs: { log: "" },
-                command: [],
-                errors: [
-                  {
-                    type: "task",
-                    message: "Task failed",
-                    detail: {},
+      // createModuleTypes: [
+      //   {
+      //     name: "test",
+      //     docs: "test",
+      //     serviceOutputsSchema: joi.object().keys({ log: joi.string() }),
+      //     handlers: {
+      //       build: async () => ({}),
+      //       runTask: async ({ task }: RunTaskParams) => {
+      //         const result = {
+      //           taskName: task.name,
+      //           moduleName: task.module.name,
+      //           success: false,
+      //           outputs: { log: "" },
+      //           command: [],
+      //           errors: [
+      //             {
+      //               type: "task",
+      //               message: "Task failed",
+      //               detail: {},
+      //             },
+      //           ],
+      //           log: "",
+      //           startedAt: new Date(),
+      //           completedAt: new Date(),
+      //           version: task.version,
+      //         }
+      //
+      //         return result
+      //       },
+      //       testModule: async ({}) => {
+      //         testModuleLog.push("tests have been run")
+      //         const now = new Date()
+      //         return {
+      //           moduleName: "",
+      //           command: [],
+      //           completedAt: now,
+      //           log: "",
+      //           outputs: {
+      //             log: "",
+      //           },
+      //           success: true,
+      //           startedAt: now,
+      //           testName: "some-test",
+      //           version: "123",
+      //         }
+      //       },
+      //       getTaskResult: async ({}) => {
+      //         return null
+      //       },
+      //     },
+      //   },
+      // ],
+      createActionTypes: {
+        Run: [
+          {
+            name: "run",
+            docs: "run",
+            schema: joi.object().keys({ log: joi.string() }),
+            handlers: {
+              run: async (params) => {
+                return {
+                  state: "failed",
+                  detail: {
+                    taskName: params.action.name,
+                    success: false,
+                    command: [],
+                    errors: [
+                      {
+                        type: "task",
+                        message: "Task failed",
+                        detail: {},
+                      },
+                    ],
+                    log: "",
+                    startedAt: new Date(),
+                    completedAt: new Date(),
+                    version: params.action.versionString(),
                   },
-                ],
-                log: "",
-                startedAt: new Date(),
-                completedAt: new Date(),
-                version: task.version,
-              }
-
-              return result
-            },
-            testModule: async ({}) => {
-              testModuleLog.push("tests have been run")
-              const now = new Date()
-              return {
-                moduleName: "",
-                command: [],
-                completedAt: now,
-                log: "",
-                outputs: {
-                  log: "",
-                },
-                success: true,
-                startedAt: now,
-                testName: "some-test",
-                version: "123",
-              }
-            },
-            getTaskResult: async ({}) => {
-              return null
+                  outputs: { log: "" },
+                }
+              },
+              getResult: async (params) => {
+                return {
+                  state: "failed",
+                  detail: null,
+                  outputs: {},
+                }
+              },
             },
           },
-        },
-      ],
+        ],
+        Test: [
+          {
+            name: "test",
+            docs: "test",
+            schema: joi.object().keys({ log: joi.string() }),
+            handlers: {
+              run: async (params) => {
+                testModuleLog.push("tests have been run")
+                const now = new Date()
+                return {
+                  state: "ready",
+                  detail: {
+                    moduleName: "",
+                    command: [],
+                    completedAt: now,
+                    log: "",
+                    success: true,
+                    startedAt: now,
+                    testName: "some-test",
+                    version: "123",
+                  },
+                  outputs: { log: "" },
+                }
+              },
+              getResult: async (params) => {
+                return {
+                  state: "ready",
+                  detail: null,
+                  outputs: {},
+                }
+              },
+            },
+          },
+        ],
+      },
     })
 
     const tmpDir = await tmp.dir({ unsafeCleanup: true })
