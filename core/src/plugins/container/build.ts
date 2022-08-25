@@ -22,7 +22,7 @@ export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerB
   action,
   log,
 }) => {
-  const outputs = getContainerBuildActionOutputs(action)
+  const outputs = action.getOutputs()
   const identifier = await containerHelpers.imageExistsLocally(outputs.localImageId, log, ctx)
 
   if (identifier) {
@@ -54,7 +54,7 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
     )
   }
 
-  const outputs = getContainerBuildActionOutputs(action)
+  const outputs = action.getOutputs()
 
   const identifier = outputs.localImageId
 
@@ -97,16 +97,23 @@ export function getContainerBuildActionOutputs(action: Resolved<ContainerBuildAc
   const localId = action.getSpec("localId")
   const version = action.getFullVersion()
 
+  const localImageName = containerHelpers.getLocalImageName(buildName, localId)
+  const localImageId = containerHelpers.getLocalImageId(buildName, localId, version)
+
   // Note: The deployment image name/ID outputs are overridden by the kubernetes provider, these defaults are
   // generally not used.
   const deploymentImageName = containerHelpers.getDeploymentImageName(buildName, localId, undefined)
   const deploymentImageId = containerHelpers.getBuildDeploymentImageId(buildName, localId, version, undefined)
 
   return {
-    localImageName: containerHelpers.getLocalImageName(buildName, localId),
-    localImageId: containerHelpers.getLocalImageId(buildName, localId, version),
+    localImageName,
+    localImageId,
     deploymentImageName,
     deploymentImageId,
+    "local-image-name": localImageName,
+    "local-image-id": localImageId,
+    "deployment-image-name": deploymentImageName,
+    "deployment-image-id": deploymentImageId,
   }
 }
 

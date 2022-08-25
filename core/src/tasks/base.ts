@@ -222,23 +222,32 @@ export abstract class BaseActionTask<
   }
 
   resolveProcessDependencies(): BaseTask[] {
-    return this.action.getDependencyReferences().flatMap((dep): BaseTask[] => {
+    const resolveTask = this.getResolveTask(this.action)
+
+    const deps = this.action.getDependencyReferences().flatMap((dep): BaseTask[] => {
       const action = this.graph.getActionByRef(dep)
 
-      if (dep.type === "implicit") {
-        return [this.getResolveTask(action)]
-      } else if (dep.type === "implicit-executed") {
+      // Maybe we can make this easier to reason about... - JE
+      if (dep.needsExecutedOutputs) {
         return [this.getExecuteTask(action)]
-      } else if (dep.type === "explicit") {
+      } else if (dep.explicit) {
         if (this.skipRuntimeDependencies && dep.kind !== "Build") {
-          return []
+          if (dep.needsStaticOutputs) {
+            return [this.getResolveTask(action)]
+          } else {
+            return []
+          }
         } else {
           return [this.getExecuteTask(action)]
         }
+      } else if (dep.needsStaticOutputs) {
+        return [this.getResolveTask(action)]
       } else {
         return []
       }
     })
+
+    return [resolveTask, ...deps]
   }
 
   // Helpers //

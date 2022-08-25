@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BaseActionTask, ActionTaskProcessParams, ActionTaskStatusParams } from "./base"
+import { BaseActionTask, ActionTaskProcessParams, ActionTaskStatusParams, BaseTask } from "./base"
 import { Profile } from "../util/profiling"
 import { Action, ActionState, ExecutedAction, Resolved, ResolvedAction } from "../actions/base"
 import { ActionSpecContext } from "../config/template-contexts/actions"
@@ -40,14 +40,24 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     return []
   }
 
-  resolveProcessDependencies() {
-    return this.action.getDependencyReferences().map((d) => {
+  resolveProcessDependencies(): BaseTask[] {
+    // TODO-G2B
+    // If we get a resolved task upfront, e.g. from module conversion, we could avoid resolving any dependencies.
+    // if (this.action.getConfig().internal?.resolved) {
+    //   return []
+    // }
+
+    return this.action.getDependencyReferences().flatMap((d): BaseTask[] => {
       const action = this.graph.getActionByRef(d)
 
-      if (d.type === "implicit") {
-        return this.getResolveTask(action)
+      if (d.needsExecutedOutputs) {
+        // Need runtime outputs from dependency
+        return [this.getExecuteTask(action)]
+      } else if (d.needsStaticOutputs) {
+        // Needs a static output from dependency
+        return [this.getResolveTask(action)]
       } else {
-        return this.getExecuteTask(action)
+        return []
       }
     })
   }
@@ -55,6 +65,8 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
   async process({
     dependencyResults,
   }: ActionTaskProcessParams<T, ResolveActionResults<T>>): Promise<ResolveActionResults<T>> {
+    const action = this.action
+
     // Collect dependencies
     const resolvedDependencies: ResolvedAction[] = []
     const executedDependencies: ExecutedAction[] = []
@@ -79,7 +91,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
 
     // Resolve variables
     let groupVariables: DeepPrimitiveMap = {}
-    const groupName = this.action.groupName()
+    const groupName = action.groupName()
 
     if (groupName) {
       const group = this.graph.getGroup(groupName)
@@ -89,7 +101,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         new ActionSpecContext({
           garden: this.garden,
           resolvedProviders: await this.garden.resolveProviders(this.log),
-          action: this.action,
+          action,
           modules: this.graph.getModules(),
           partialRuntimeResolution: false,
           executedDependencies,
@@ -98,18 +110,18 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       )
     }
 
-    const config = this.action.getConfig()
+    const config = action.getConfig()
 
     const actionVariables = resolveTemplateStrings(
       await resolveVariables({
-        basePath: this.action.basePath(),
+        basePath: action.basePath(),
         variables: config.variables,
         varfiles: config.varfiles,
       }),
       new ActionSpecContext({
         garden: this.garden,
         resolvedProviders: await this.garden.resolveProviders(this.log),
-        action: this.action,
+        action,
         modules: this.graph.getModules(),
         partialRuntimeResolution: false,
         executedDependencies,
@@ -124,11 +136,11 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
 
     // Resolve spec
     let spec = resolveTemplateStrings(
-      this.action.getConfig().spec || {},
+      action.getConfig().spec || {},
       new ActionSpecContext({
         garden: this.garden,
         resolvedProviders: await this.garden.resolveProviders(this.log),
-        action: this.action,
+        action,
         modules: this.graph.getModules(),
         partialRuntimeResolution: false,
         executedDependencies,
@@ -136,13 +148,28 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       })
     )
 
-    // -> Validate spec
+    // Validate spec
     spec = await this.validateSpec(spec)
 
-    // Resolve dependency graph
-    const resolvedAction = <Resolved<T>>(
-      this.action.resolve({ dependencyResults, executedDependencies, resolvedDependencies, variables, spec })
-    )
+    // Resolve action without outputs
+    const resolvedAction = <Resolved<T>>this.action.resolve({
+      dependencyResults,
+      executedDependencies,
+      resolvedDependencies,
+      variables,
+      spec,
+      staticOutputs: {},
+    })
+
+    // Get outputs and assign to the resolved action
+    const router = await this.garden.getActionRouter()
+    const staticOutputs = await router.getOutputs({
+      action: resolvedAction,
+      graph: this.graph,
+    })
+    // TODO-G2: validate the outputs
+    // TODO-G2B: avoid this private assignment
+    resolvedAction["_outputs"] = staticOutputs
 
     return {
       state: "ready",

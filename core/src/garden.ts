@@ -951,7 +951,11 @@ export class Garden {
           )
         }
 
-        graph.addDependency(dependency.by, dependency.on, "explicit")
+        graph.addDependency(dependency.by, dependency.on, {
+          explicit: true,
+          needsStaticOutputs: false,
+          needsExecutedOutputs: false,
+        })
         updated = true
       }
 
