@@ -25,7 +25,7 @@ export interface ConfigureActionConfigResult<T extends BaseActionConfig> {
   config: T
 }
 
-// TODO-G2: maybe rename to transform?
+// TODO-G2B: maybe rename to transform?
 export class ConfigureActionConfig<T extends BaseActionConfig = BaseActionConfig> extends ActionTypeHandlerSpec<
   any,
   ConfigureActionConfigParams<T>,
@@ -56,7 +56,8 @@ export class ConfigureActionConfig<T extends BaseActionConfig = BaseActionConfig
       //   .object()
       //   .pattern(identifierRegex, baseActionConfigSchema())
       //   .description(
-      //     "A list of configs for every dependency of this action, transitively (i.e. including dependencies of dependencies etc.)."
+      //     "A list of configs for every dependency of this action, transitively
+      //      (i.e. including dependencies of dependencies etc.)."
       //   ),
     })
 

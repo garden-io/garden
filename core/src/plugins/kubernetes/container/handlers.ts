@@ -63,12 +63,12 @@ export function k8sGetContainerBuildActionOutputs({
   const localId = action.getSpec("localId")
   const outputs = getContainerBuildActionOutputs(action)
 
-  outputs.deploymentImageName = containerHelpers.getDeploymentImageName(
+  outputs.deploymentImageName = outputs["deployment-image-name"] = containerHelpers.getDeploymentImageName(
     action.name,
     localId,
     provider.config.deploymentRegistry
   )
-  outputs.deploymentImageId = containerHelpers.getBuildDeploymentImageId(
+  outputs.deploymentImageId = outputs["deployment-image-id"] = containerHelpers.getBuildDeploymentImageId(
     action.name,
     localId,
     action.getFullVersion(),

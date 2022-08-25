@@ -131,6 +131,8 @@ export abstract class BaseRouter {
   }
 }
 
+type CommonHandlers = "configure" | "validate" | "getOutputs"
+
 type HandlerMap<K extends ActionKind> = {
   [T in keyof ActionTypeClasses<K>]: {
     [actionType: string]: {
@@ -152,7 +154,7 @@ type WrapRouterHandler<K extends ActionKind, H extends keyof ActionTypeClasses<K
 }
 
 export type WrappedActionRouterHandlers<K extends ActionKind> = {
-  [H in keyof Omit<ActionTypeClasses<K>, "configure" | "validate">]: WrapRouterHandler<K, H>
+  [H in keyof Omit<ActionTypeClasses<K>, CommonHandlers>]: WrapRouterHandler<K, H>
 }
 
 type ActionRouterHandler<K extends ActionKind, H extends keyof ActionTypeClasses<K>> = {
@@ -174,7 +176,7 @@ export type ActionRouterHandlers<K extends ActionKind> = {
 export function createActionRouter<K extends ActionKind>(
   kind: K,
   baseParams: BaseRouterParams,
-  handlers: Omit<ActionRouterHandlers<K>, "configure" | "validate">
+  handlers: Omit<ActionRouterHandlers<K>, CommonHandlers>
 ): WrappedActionRouterHandlers<K> {
   class Router extends BaseActionRouter<K> {}
   const router = new Router(kind, baseParams)
@@ -234,15 +236,11 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
     const commonParams = await this.commonParams(handler, log, templateContext)
 
-    const result = handler({
+    // Note: this is called by preprocessActionConfig(), and outputs are validated there
+    return handler({
       ...commonParams,
       config,
     })
-
-    // TODO-G2: resolve template strings on built-in fields
-    // TODO-G2: validate result
-
-    return result
   }
 
   async callHandler<T extends keyof ActionTypeClasses<K>>({

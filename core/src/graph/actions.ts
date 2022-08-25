@@ -13,6 +13,7 @@ import {
   ActionConfig,
   ActionConfigsByKey,
   ActionDependency,
+  ActionDependencyAttributes,
   actionReferenceToString,
   actionRefMatches,
   ActionWrapperParams,
@@ -392,6 +393,24 @@ async function preprocessActionConfig({
   return config
 }
 
+/**
+ * Adds or merges the given dependency into a list of dependencies.
+ */
+export function addActionDependency(dep: ActionDependency, dependencies: ActionDependency[]) {
+  for (const d of dependencies) {
+    if (actionRefMatches(d, dep)) {
+      // Merge with existing dependency link. Basically a boolean OR on each attribute.
+      for (const [key, value] of Object.entries(dep)) {
+        if (value) {
+          d[key] = value
+        }
+      }
+      return
+    }
+  }
+  dependencies.push(dep)
+}
+
 function dependenciesFromActionConfig(
   config: ActionConfig,
   configsByKey: ActionConfigsByKey,
@@ -405,16 +424,11 @@ function dependenciesFromActionConfig(
 
   const deps: ActionDependency[] = config.dependencies.map((d) => {
     const { kind, name } = parseActionReference(d)
-    return { kind, name, type: "explicit" }
+    return { kind, name, explicit: true, needsExecutedOutputs: false, needsStaticOutputs: false }
   })
 
-  function addImplicitDep(ref: ActionReference, executed: boolean) {
-    for (const dep of deps) {
-      if (actionRefMatches(ref, dep)) {
-        return
-      }
-    }
-    deps.push({ ...ref, type: executed ? "implicit-executed" : "implicit" })
+  function addDep(ref: ActionReference, attributes: ActionDependencyAttributes) {
+    addActionDependency({ ...ref, ...attributes }, deps)
   }
 
   if (config.kind === "Build") {
@@ -431,7 +445,7 @@ function dependenciesFromActionConfig(
         )
       }
 
-      addImplicitDep(ref, true)
+      addDep(ref, { explicit: true, needsExecutedOutputs: false, needsStaticOutputs: false })
     }
   } else if (config.build) {
     // -> build field on runtime actions
@@ -445,7 +459,7 @@ function dependenciesFromActionConfig(
       )
     }
 
-    addImplicitDep(ref, true)
+    addDep(ref, { explicit: true, needsExecutedOutputs: false, needsStaticOutputs: false })
   }
 
   // Action template references in spec/variables
@@ -461,7 +475,7 @@ function dependenciesFromActionConfig(
       needsExecuted = true
     }
 
-    addImplicitDep(ref, needsExecuted)
+    addDep(ref, { explicit: false, needsExecutedOutputs: needsExecuted, needsStaticOutputs: !needsExecuted })
   }
 
   return deps
