@@ -5,6 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "node main.js",
+    "dev": "nodemon src/main.js",
     "test": "echo OK",
     "integ": "node_modules/mocha/bin/mocha test/integ.js"
   },
@@ -17,6 +18,7 @@
   },
   "devDependencies": {
     "mocha": "^5.1.1",
+    "nodemon": "^2.0.19",
     "supertest": "^3.0.0"
   }
 }
