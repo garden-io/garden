@@ -10,20 +10,23 @@ import chalk from "chalk"
 
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
-import { GardenPlugin, ModuleTypeDefinition } from "../plugin/plugin"
+import { GardenPlugin, ModuleTypeDefinition, PluginActionParamsBase } from "../plugin/plugin"
 import { getServiceStatuses } from "../tasks/base"
 import { DeleteDeployTask, deletedDeployStatuses } from "../tasks/delete-service"
 import { DeployTask } from "../tasks/deploy"
 import { Profile } from "../util/profiling"
 import { ConfigGraph } from "../graph/config-graph"
 import { ProviderRouter } from "./provider"
-import { BaseRouter, WrappedActionRouterHandlers } from "./base"
+import { BaseActionRouter, BaseRouter, WrappedActionRouterHandlers } from "./base"
 import { ModuleRouter } from "./module"
 import { buildRouter } from "./build"
 import { deployRouter } from "./deploy"
 import { runRouter } from "./run"
 import { testRouter } from "./test"
 import { DeployStatus } from "../plugin/handlers/deploy/get-status"
+import { BaseAction } from "../actions/base"
+import { GetActionOutputsParams, GetActionOutputsResult } from "../plugin/handlers/base/get-outputs"
+import { GetActionTypeHandler, ActionTypeClasses } from "../plugin/action-types"
 
 export interface DeployManyParams {
   graph: ConfigGraph
@@ -32,6 +35,9 @@ export interface DeployManyParams {
   force?: boolean
   forceBuild?: boolean
 }
+
+type Bar = ActionTypeClasses<"Build">["getOutputs"]
+type Foo = GetActionTypeHandler<Bar, "getOutputs">
 
 /**
  * The ActionRouter takes care of choosing which plugin should be responsible for handling an action,
@@ -66,6 +72,19 @@ export class ActionRouter extends BaseRouter {
     this.test = testRouter(baseParams)
 
     garden.log.silly(`Creating ActionRouter with ${configuredPlugins.length} configured providers`)
+  }
+
+  async getOutputs<T extends BaseAction>(
+    params: Omit<GetActionOutputsParams<T>, keyof PluginActionParamsBase> & { graph: ConfigGraph }
+  ): Promise<GetActionOutputsResult> {
+    const router: BaseActionRouter<T["kind"]> = this[params.action.kind]
+
+    // TODO-G2: figure out why the typing clashes here
+    return (<any>router.callHandler)({
+      handlerType: "getOutputs",
+      params: { ...params, action: <any>params.action },
+      defaultHandler: async ({}) => ({ outputs: {} }),
+    })
   }
 
   //===========================================================================

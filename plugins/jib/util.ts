@@ -9,14 +9,14 @@
 import { resolve } from "path"
 import { GardenModule } from "@garden-io/sdk/types"
 import { ConfigurationError } from "@garden-io/core/build/src/exceptions"
-import { getContainerBuildActionOutputs, getDockerBuildArgs } from "@garden-io/core/build/src/plugins/container/build"
+import { getDockerBuildArgs } from "@garden-io/core/build/src/plugins/container/build"
 import {
   ContainerBuildActionSpec,
   ContainerModuleBuildSpec,
   ContainerModuleSpec,
 } from "@garden-io/core/build/src/plugins/container/moduleConfig"
 import { BuildAction, BuildActionConfig } from "@garden-io/core/build/src/actions/build"
-import { ContainerBuildAction, ContainerBuildOutputs } from "@garden-io/core/build/src/plugins/container/config"
+import { ContainerBuildOutputs } from "@garden-io/core/build/src/plugins/container/config"
 import { Resolved } from "@garden-io/core/build/src/actions/base"
 
 interface JibBuildSpec {
@@ -107,8 +107,7 @@ export function getBuildFlags(action: Resolved<JibBuildAction>, projectType: Jib
   const tarPath = resolve(module.path, targetDir, tarFilename)
 
   const dockerBuildArgs = getDockerBuildArgs(action.versionString(), buildArgs)
-  // FIXME: this casting is annoying...
-  const outputs = getContainerBuildActionOutputs(<Resolved<ContainerBuildAction>>(<unknown>action))
+  const outputs = action.getOutputs()
   const imageId = outputs.deploymentImageId
 
   const args = [

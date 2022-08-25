@@ -18,7 +18,7 @@ import {
   containerModuleOutputsSchema,
   containerModuleSpecSchema,
 } from "./moduleConfig"
-import { buildContainer, getContainerBuildStatus } from "./build"
+import { buildContainer, getContainerBuildActionOutputs, getContainerBuildStatus } from "./build"
 import { ConfigureModuleParams } from "../../plugin/handlers/module/configure"
 import { SuggestModulesParams, SuggestModulesResult } from "../../plugin/handlers/module/suggest"
 import { listDirectory } from "../../util/fs"
@@ -40,10 +40,19 @@ import {
   ContainerRunAction,
   ContainerTestAction,
   ContainerRuntimeAction,
+  ContainerBuildAction,
 } from "./config"
 import { publishContainerBuild } from "./publish"
-import { DeployActionDefinition, RunActionDefinition, TestActionDefinition } from "../../plugin/action-types"
+import {
+  BuildActionDefinition,
+  DeployActionDefinition,
+  RunActionDefinition,
+  TestActionDefinition,
+} from "../../plugin/action-types"
 import { Resolved } from "../../actions/base"
+import { getDeployedImageId } from "../kubernetes/container/util"
+import { KubernetesProvider } from "../kubernetes/config"
+import { DeepPrimitiveMap } from "../../config/common"
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
 export type ContainerProvider = Provider<ContainerProviderConfig>
@@ -207,14 +216,14 @@ export const gardenPlugin = () =>
   createGardenPlugin({
     name: "container",
     docs: dedent`
-      Provides the [container](../module-types/container.md) module type.
+      Provides the \`container\` actions and module type.
       _Note that this provider is currently automatically included, and you do not need to configure it in your project configuration._
     `,
     configSchema: providerConfigBaseSchema(),
 
     createActionTypes: {
       Build: [
-        {
+        <BuildActionDefinition<ContainerBuildAction>>{
           name: "container",
           docs: dedent`
             Build a Docker container image, and (if applicable) push to a remote registry.
@@ -225,6 +234,13 @@ export const gardenPlugin = () =>
           },
           schema: containerBuildSpecSchema(),
           handlers: {
+            async getOutputs({ action }) {
+              // TODO-G2B: figure out why this cast is needed here
+              return {
+                outputs: (getContainerBuildActionOutputs(action) as unknown) as DeepPrimitiveMap,
+              }
+            },
+
             build: buildContainer,
             getStatus: getContainerBuildStatus,
             publish: publishContainerBuild,
@@ -301,6 +317,15 @@ export const gardenPlugin = () =>
               }
 
               return {}
+            },
+
+            async getOutputs({ ctx, action }) {
+              const provider = ctx.provider as KubernetesProvider
+              return {
+                outputs: {
+                  deployedImageId: getDeployedImageId(action, provider),
+                },
+              }
             },
           },
         },

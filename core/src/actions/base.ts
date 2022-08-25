@@ -42,6 +42,7 @@ import { ActionConfigContext } from "../config/template-contexts/actions"
 import { relative } from "path"
 import { InternalError } from "../exceptions"
 import Joi from "@hapi/joi"
+import { addActionDependency } from "../graph/actions"
 
 // TODO-G2: split this file
 
@@ -120,10 +121,11 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
     configFilePath?: string
     groupName?: string
     moduleName?: string // For backwards-compatibility, applied on actions returned from module conversion handlers
+    resolved?: boolean // Set to true if no resolution is required, e.g. set for actions converted from modules
     // -> set by templates
+    inputs?: DeepPrimitiveMap
     parentName?: string
     templateName?: string
-    inputs?: DeepPrimitiveMap
   }
 
   // Flow/execution control
@@ -334,11 +336,13 @@ export function runResultToActionState(result: RunResult) {
   }
 }
 
-export type ActionDependencyType = "explicit" | "implicit" | "implicit-executed"
-
-export interface ActionDependency extends ActionReference {
-  type: ActionDependencyType
+export interface ActionDependencyAttributes {
+  explicit: boolean // Set to true if action config explicitly states the dependency
+  needsStaticOutputs: boolean // Set to true if action cannot be resolved without resolving the dependency
+  needsExecutedOutputs: boolean // Set to true if action cannot be resolved without the dependency executed
 }
+
+export type ActionDependency = ActionReference & ActionDependencyAttributes
 
 export interface ActionWrapperParams<C extends BaseActionConfig> {
   baseBuildDirectory: string // <project>/.garden/build by default
@@ -353,11 +357,12 @@ export interface ActionWrapperParams<C extends BaseActionConfig> {
   variables: DeepPrimitiveMap
 }
 
-export interface ResolveActionParams<C extends BaseActionConfig> {
+export interface ResolveActionParams<C extends BaseActionConfig, Outputs extends {} = any> {
   dependencyResults: GraphResults
   executedDependencies: ExecutedAction[]
   resolvedDependencies: ResolvedAction[]
   spec: C["spec"]
+  staticOutputs: Outputs
   variables: DeepPrimitiveMap
 }
 
@@ -370,7 +375,7 @@ export interface ExecuteActionParams<C extends BaseActionConfig = BaseActionConf
 export type ExecutedActionWrapperParams<C extends BaseActionConfig, O extends {}> = ResolvedActionWrapperParams<C> &
   ExecuteActionParams<C, O>
 
-export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, O extends {} = any> {
+export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, Outputs extends {} = any> {
   // TODO-G2: figure out why kind and type come out as any types on Action type
   public readonly kind: C["kind"]
   public readonly type: C["type"]
@@ -381,7 +386,9 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
 
   // Note: These need to be public because we need to reference the types (a current TS limitation)
   _config: C
-  _outputs: O
+  // TODO-G2: split the typing here
+  _outputs: Outputs
+  protected _staticOutputs: Outputs
 
   protected readonly baseBuildDirectory: string
   protected readonly compatibleTypes: string[]
@@ -512,15 +519,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   }
 
   addDependency(dep: ActionDependency) {
-    for (const d of this.dependencies) {
-      if (actionRefMatches(d, dep)) {
-        if (dep.type === "explicit") {
-          d.type = "explicit"
-        }
-        return
-      }
-    }
-    this.dependencies.push(dep)
+    addActionDependency(dep, this.dependencies)
   }
 
   // Note: Making this name verbose so that people don't accidentally use this instead of versionString()
@@ -606,8 +605,8 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
 
 export abstract class RuntimeAction<
   C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
-  O extends {} = any
-> extends BaseAction<C, O> {
+  Outputs extends {} = any
+> extends BaseAction<C, Outputs> {
   /**
    * Return the Build action specified on the `build` field if defined, otherwise null
    */
@@ -650,12 +649,17 @@ export interface ExecutedActionConstructor<A extends BaseAction> {
 
 // Used to ensure compatibility between ResolvedBuildAction and ResolvedRuntimeAction
 // FIXME: Might be possible to remove in a later TypeScript version or through some hacks.
-export interface ResolvedActionExtension<C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig> {
+export interface ResolvedActionExtension<
+  C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
+  Outputs extends {} = any
+> {
   getDependencyResult(ref: ActionReference | Action): GraphResult | null
   getExecutedDependencies(): ExecutedAction[]
   getResolvedDependencies(): ResolvedAction[]
   getSpec(): C["spec"]
   getSpec<K extends keyof C["spec"]>(key: K): C["spec"][K]
+  getOutput<K extends keyof Outputs>(key: K): Outputs[K] | undefined
+  getOutputs(): Outputs
   getVariables(): DeepPrimitiveMap
 }
 
@@ -665,7 +669,7 @@ export abstract class ResolvedRuntimeAction<
     Outputs extends {} = any
   >
   extends RuntimeAction<Config, Outputs>
-  implements ResolvedActionExtension<Config> {
+  implements ResolvedActionExtension<Config, Outputs> {
   protected readonly params: ResolvedActionWrapperParams<Config>
   protected readonly resolved: true
   private readonly dependencyResults: GraphResults
@@ -674,10 +678,12 @@ export abstract class ResolvedRuntimeAction<
 
   constructor(params: ResolvedActionWrapperParams<Config>) {
     super(params)
+    this.resolved = true
+
     this.dependencyResults = params.dependencyResults
     this.executedDependencies = params.executedDependencies
     this.resolvedDependencies = params.resolvedDependencies
-    this.resolved = true
+    this._staticOutputs = params.staticOutputs
   }
 
   /**
@@ -720,6 +726,14 @@ export abstract class ResolvedRuntimeAction<
     return key ? this._config.spec[key] : this._config.spec
   }
 
+  getOutput<K extends keyof Outputs>(key: K) {
+    return this._staticOutputs[key]
+  }
+
+  getOutputs() {
+    return this._staticOutputs
+  }
+
   getVariables() {
     return this.variables
   }
@@ -736,11 +750,8 @@ export abstract class ResolvedRuntimeAction<
 
 export interface ExecutedActionExtension<
   _ extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
-  Outputs extends {} = any
-> {
-  getOutput<K extends keyof Outputs>(key: K): Outputs[K]
-  getOutputs(): Outputs
-}
+  _Outputs extends {} = any
+> {}
 
 // TODO: see if we can avoid the duplication here with ResolvedBuildAction
 export abstract class ExecutedRuntimeAction<
@@ -757,7 +768,7 @@ export abstract class ExecutedRuntimeAction<
   }
 
   getOutput<K extends keyof O>(key: K) {
-    return this.status.outputs[key]
+    return this.status.outputs[key] || this._staticOutputs[key]
   }
 
   getOutputs() {

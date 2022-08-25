@@ -37,6 +37,7 @@ import { dedent } from "../util/string"
 import { templateStringLiteral } from "../docs/common"
 import { ValidateAction } from "./handlers/base/validate"
 import { ConfigureActionConfig } from "./handlers/base/configure"
+import { GetActionOutputs } from "./handlers/base/get-outputs"
 
 // BASE //
 
@@ -67,6 +68,7 @@ export type WrappedActionTypeHandler<T, N> = GetActionTypeHandler<T, N> & {
 const actionTypeClasses = {
   Build: {
     configure: new ConfigureActionConfig(),
+    getOutputs: new GetActionOutputs(),
     validate: new ValidateAction(),
     build: new DoBuildAction(),
     getStatus: new GetBuildActionStatus(),
@@ -75,6 +77,7 @@ const actionTypeClasses = {
   },
   Deploy: {
     configure: new ConfigureActionConfig(),
+    getOutputs: new GetActionOutputs(),
     validate: new ValidateAction(),
     delete: new DeleteDeploy(),
     deploy: new DoDeployAction(),
@@ -87,12 +90,14 @@ const actionTypeClasses = {
   },
   Run: {
     configure: new ConfigureActionConfig(),
+    getOutputs: new GetActionOutputs(),
     validate: new ValidateAction(),
     getResult: new GetRunActionResult(),
     run: new RunRunAction(),
   },
   Test: {
     configure: new ConfigureActionConfig(),
+    getOutputs: new GetActionOutputs(),
     validate: new ValidateAction(),
     getResult: new GetTestActionResult(),
     run: new RunTestAction(),
@@ -109,6 +114,7 @@ export type ActionHandlers = { [name: string]: ActionTypeHandler<any, any, any, 
 type BaseHandlers<A extends Action> = {
   configure: ConfigureActionConfig<A["_config"]>
   validate: ValidateAction<A>
+  getOutputs: GetActionOutputs<A>
 }
 
 export type ActionTypeExtension<H extends ActionHandlers> = {

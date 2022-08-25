@@ -825,33 +825,52 @@ export const containerRunActionSchema = () => joi.object().keys(containerRunSpec
 // BUILD //
 
 export interface ContainerBuildOutputs {
-  localImageName: string
-  localImageId: string
-  deploymentImageName: string
-  deploymentImageId: string
+  "localImageName": string
+  "localImageId": string
+  "deploymentImageName": string
+  "deploymentImageId": string
+
+  // Aliases, for backwards compatibility.
+  // TODO: remove in 0.14
+  "local-image-name": string
+  "local-image-id": string
+  "deployment-image-name": string
+  "deployment-image-id": string
 }
 
 export const containerBuildOutputSchemaKeys = () => ({
-  localImageName: joi
+  "localImageName": joi
     .string()
     .required()
     .description("The name of the image (without tag/version) that the module uses for local builds and deployments.")
     .example("my-module"),
-  localImageId: joi
+  "localImageId": joi
     .string()
     .required()
     .description("The full ID of the image (incl. tag/version) that the module uses for local builds and deployments.")
     .example("my-module:v-abf3f8dca"),
-  deploymentImageName: joi
+  "deploymentImageName": joi
     .string()
     .required()
     .description("The name of the image (without tag/version) that the module will use during deployment.")
     .example("my-deployment-registry.io/my-org/my-module"),
-  deploymentImageId: joi
+  "deploymentImageId": joi
     .string()
     .required()
     .description("The full ID of the image (incl. tag/version) that the module will use during deployment.")
     .example("my-deployment-registry.io/my-org/my-module:v-abf3f8dca"),
+
+  // Aliases
+  "local-image-name": joi.string().required().description("Alias for localImageName, for backward compatibility."),
+  "local-image-id": joi.string().required().description("Alias for localImageId, for backward compatibility."),
+  "deployment-image-name": joi
+    .string()
+    .required()
+    .description("Alias for deploymentImageName, for backward compatibility."),
+  "deployment-image-id": joi
+    .string()
+    .required()
+    .description("Alias for deploymentImageId, for backward compatibility."),
 })
 
 export const containerBuildOutputsSchema = () => joi.object().keys(containerBuildOutputSchemaKeys())

@@ -33,6 +33,5 @@ export class ValidateAction<T extends BaseAction = BaseAction> extends ActionTyp
   `
   paramsSchema = () => actionParamsSchema()
 
-  resultSchema = () =>
-    joi.object().keys({})
+  resultSchema = () => joi.object().keys({})
 }
