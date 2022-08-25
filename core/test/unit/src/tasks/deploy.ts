@@ -188,7 +188,7 @@ describe("DeployTask", () => {
       expect(deployTaskFromWatch.resolveProcessDependencies().find((dep) => dep.type === "task")!.force).to.be.false
     })
 
-    context("when skipDependencies = true", () => {
+    context("when skipRuntimeDependencies = true", () => {
       it("doesn't return deploy or run dependencies", async () => {
         const action = graph.getDeploy("test-service")
 
@@ -200,7 +200,7 @@ describe("DeployTask", () => {
           forceBuild: false,
           fromWatch: false,
           log: garden.log,
-          skipDependencies: true, // <-----
+          skipRuntimeDependencies: true, // <-----
           devModeDeployNames: [],
           localModeDeployNames: [],
         })
