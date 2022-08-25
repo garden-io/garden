@@ -10,6 +10,17 @@ build:
           target: "config/"
 services:
   - name: frontend
+    devMode:
+      command: [npm, run, dev]
+      sync:
+        - source: .
+          target: /app
+          exclude: [node_modules]
+          mode: one-way # do not set to one-way-replica, otherwise it will remove the /config dir
+        - source: ../shared-config/
+          target: /app/config/
+          exclude: [garden.yml]
+          mode: one-way-replica
     ports:
       - name: http
         containerPort: 8080
