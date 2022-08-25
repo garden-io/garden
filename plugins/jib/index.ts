@@ -28,9 +28,9 @@ import { ConfigureModuleParams } from "@garden-io/core/build/src/plugin/handlers
 import { containerHelpers } from "@garden-io/core/build/src/plugins/container/helpers"
 import { cloneDeep, pick } from "lodash"
 import { LogLevel } from "@garden-io/core/build/src/logger/logger"
-import { detectProjectType, getBuildFlags, JibBuildConfig, JibContainerModule } from "./util"
+import { detectProjectType, getBuildFlags, JibBuildAction, JibBuildConfig, JibContainerModule } from "./util"
 import { ConvertModuleParams, ConvertModuleResult } from "@garden-io/core/build/src/plugin/handlers/module/convert"
-import { getContainerBuildActionOutputs } from "@garden-io/core/build/src/plugins/container/build"
+import { BuildActionDefinition } from "@garden-io/core/build/src/plugin/action-types"
 
 export interface JibProviderConfig extends GenericProviderConfig {}
 
@@ -123,7 +123,7 @@ export const gardenPlugin = () =>
 
     createActionTypes: {
       Build: [
-        {
+        <BuildActionDefinition<JibBuildAction>>{
           name: "jib-container",
           base: "container",
           docs,
@@ -132,7 +132,7 @@ export const gardenPlugin = () =>
             build: async (params) => {
               const { ctx, log, action } = params
               const spec = action.getSpec()
-              const { jdkVersion, jdkPath, mavenPhases, mavenPath } = spec.build
+              const { jdkVersion, jdkPath, mavenPhases, mavenPath } = spec
 
               let openJdkPath: string
               if (!!jdkPath) {
@@ -146,7 +146,7 @@ export const gardenPlugin = () =>
 
               const statusLine = log.placeholder({ level: LogLevel.verbose, childEntriesInheritLevel: true })
 
-              let projectType = spec.build.projectType
+              let projectType = spec.projectType
 
               if (!projectType) {
                 projectType = detectProjectType(action)
@@ -188,7 +188,7 @@ export const gardenPlugin = () =>
                 })
               }
 
-              const outputs = getContainerBuildActionOutputs(action)
+              const outputs = action.getOutputs()
 
               return {
                 state: "ready",

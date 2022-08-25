@@ -128,7 +128,10 @@ export const buildActionConfig = () =>
       .meta({ templateContext: ActionConfigContext }),
   })
 
-export class BuildAction<C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>, O extends {} = any> extends BaseAction<C, O> {
+export class BuildAction<
+  C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>,
+  O extends {} = any
+> extends BaseAction<C, O> {
   kind: "Build"
 
   /**
@@ -159,9 +162,12 @@ export class BuildAction<C extends BuildActionConfig<any, any> = BuildActionConf
 }
 
 // TODO: see if we can avoid the duplication here with ResolvedRuntimeAction
-export abstract class ResolvedBuildAction<C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>, O extends {} = any>
-  extends BuildAction<C, O>
-  implements ResolvedActionExtension<C> {
+export abstract class ResolvedBuildAction<
+    C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>,
+    Outputs extends {} = any
+  >
+  extends BuildAction<C, Outputs>
+  implements ResolvedActionExtension<C, Outputs> {
   protected readonly params: ResolvedActionWrapperParams<C>
   protected readonly resolved: true
   private readonly dependencyResults: GraphResults
@@ -194,6 +200,14 @@ export abstract class ResolvedBuildAction<C extends BuildActionConfig<any, any> 
     return key ? this._config.spec[key] : this._config.spec
   }
 
+  getOutput<K extends keyof Outputs>(key: K) {
+    return this._staticOutputs[key]
+  }
+
+  getOutputs() {
+    return this._staticOutputs
+  }
+
   getVariables() {
     return this.variables
   }
@@ -201,14 +215,17 @@ export abstract class ResolvedBuildAction<C extends BuildActionConfig<any, any> 
   /**
    * Returns an executed version of this action.
    */
-  execute(params: ExecuteActionParams<C, O>): Executed<this> {
+  execute(params: ExecuteActionParams<C, Outputs>): Executed<this> {
     // TODO-G2: validate static outputs here
     const constructor: ExecutedActionConstructor<this> = Object.getPrototypeOf(this).constructor
     return constructor({ ...this.params, ...params })
   }
 }
 
-export class ExecutedBuildAction<C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>, O extends {} = any>
+export class ExecutedBuildAction<
+    C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>,
+    O extends {} = any
+  >
   extends ResolvedBuildAction<C, O>
   implements ExecutedActionExtension<C, O> {
   protected readonly executed: true
@@ -221,7 +238,7 @@ export class ExecutedBuildAction<C extends BuildActionConfig<any, any> = BuildAc
   }
 
   getOutput<K extends keyof O>(key: K) {
-    return this.status.outputs[key]
+    return this.status.outputs[key] || this._staticOutputs[key]
   }
 
   getOutputs() {

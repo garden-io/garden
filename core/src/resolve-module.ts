@@ -692,12 +692,6 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
     })
 
     if (result.group) {
-      // Enforce some inheritance from module
-      if (module.varfile) {
-        result.group.varfiles = [module.varfile]
-      }
-      result.group.variables = { ...module.variables, ...result.group.variables }
-
       for (const action of result.group.actions) {
         inheritModuleToAction(module, action)
       }
@@ -708,13 +702,6 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
     if (result.actions) {
       for (const action of result.actions) {
         inheritModuleToAction(module, action)
-
-        if (!action.varfiles && module.varfile) {
-          action.varfiles = [module.varfile]
-        }
-        if (!action.variables) {
-          action.variables = module.variables
-        }
       }
 
       actions.push(...result.actions)
@@ -725,12 +712,16 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
 }
 
 function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
+  if (!action.internal) {
+    action.internal = {}
+  }
+
+  // Converted actions are fully resolved upfront
+  action.internal.resolved = true
+
   // Enforce some inheritance from module
   if (module.disabled) {
     action.disabled = true
-  }
-  if (!action.internal) {
-    action.internal = {}
   }
   action.basePath = module.path
   if (module.configPath) {
@@ -741,6 +732,12 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
   }
   if (isBuildActionConfig(action) && !module.allowPublish) {
     action.allowPublish = false
+  }
+  if (!action.varfiles && module.varfile) {
+    action.varfiles = [module.varfile]
+  }
+  if (!action.variables) {
+    action.variables = module.variables
   }
 }
 

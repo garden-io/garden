@@ -12,7 +12,7 @@ import { GardenBaseError } from "../exceptions"
 import { naturalList } from "../util/string"
 import {
   Action,
-  ActionDependencyType,
+  ActionDependencyAttributes,
   ActionKind,
   actionReferenceToString,
   Resolved,
@@ -481,11 +481,11 @@ export class MutableConfigGraph extends ConfigGraph {
     this.addActionInternal(action)
   }
 
-  addDependency(by: ActionReference | string, on: ActionReference | string, type: ActionDependencyType) {
+  addDependency(by: ActionReference | string, on: ActionReference | string, attributes: ActionDependencyAttributes) {
     const dependant = this.getActionByRef(by)
     const dependency = this.getActionByRef(on)
 
-    dependant.addDependency({ ...dependency, type })
+    dependant.addDependency({ ...dependency, ...attributes })
 
     this.addRelation({
       dependant: this.getNode(dependant.kind, dependant.name, dependant.isDisabled()),

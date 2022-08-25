@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { DeepPrimitiveMap } from "../../../config/common"
 import {
   BuildActionExtension,
   DeployActionExtension,
@@ -28,7 +29,7 @@ import { getKanikoBuildStatus, kanikoBuild } from "./build/kaniko"
 import { getLocalBuildStatus, localBuild } from "./build/local"
 import { k8sContainerDeploy } from "./deployment"
 import { execInContainer } from "./exec"
-import { validateDeploySpec } from "./handlers"
+import { k8sGetContainerBuildActionOutputs, validateDeploySpec } from "./handlers"
 import { k8sGetContainerDeployLogs } from "./logs"
 import { k8sPublishContainerBuild } from "./publish"
 import { k8sContainerRun, k8sRunContainerBuild, k8sRunContainerDeploy } from "./run"
@@ -38,6 +39,14 @@ import { k8sContainerTest } from "./test"
 export const k8sContainerBuildExtension = (): BuildActionExtension<ContainerBuildAction> => ({
   name: "container",
   handlers: {
+    async getOutputs({ ctx, action }) {
+      const provider = ctx.provider as KubernetesProvider
+      // TODO-G2B: figure out why this cast is needed here
+      return {
+        outputs: (k8sGetContainerBuildActionOutputs({ action, provider }) as unknown) as DeepPrimitiveMap,
+      }
+    },
+
     build: async (params) => {
       const { ctx } = params
 
@@ -74,7 +83,7 @@ export const k8sContainerDeployExtension = (): DeployActionExtension<ContainerDe
     validate: async ({ ctx, action }) => {
       validateDeploySpec(action.name, <KubernetesProvider>ctx.provider, action.getSpec())
       return {}
-    }
+    },
   },
 })
 
