@@ -185,11 +185,7 @@ devMode:
 
   # Specify one or more source files or directories to automatically sync with the running container.
   sync:
-    - # POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be
-      # a relative path. Defaults to the module's top-level directory if no value is provided.
-      source: .
-
-      # POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not
+    - # POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not
       # allowed.
       target:
 
@@ -197,6 +193,10 @@ devMode:
       #
       # `.git` directories and `.garden` directories are always ignored.
       exclude:
+
+      # POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be
+      # a relative path. Defaults to the module's top-level directory if no value is provided.
+      source: .
 
       # The sync mode to use for the given paths. See the [Dev Mode
       # guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
@@ -902,25 +902,6 @@ Specify one or more source files or directories to automatically sync with the r
 | --------------- | -------- |
 | `array[object]` | No       |
 
-### `devMode.sync[].source`
-
-[devMode](#devmode) > [sync](#devmodesync) > source
-
-POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be a relative path. Defaults to the module's top-level directory if no value is provided.
-
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `"."`   | No       |
-
-Example:
-
-```yaml
-devMode:
-  ...
-  sync:
-    - source: "src"
-```
-
 ### `devMode.sync[].target`
 
 [devMode](#devmode) > [sync](#devmodesync) > target
@@ -961,6 +942,25 @@ devMode:
     - exclude:
         - dist/**/*
         - '*.log'
+```
+
+### `devMode.sync[].source`
+
+[devMode](#devmode) > [sync](#devmodesync) > source
+
+POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be a relative path. Defaults to the module's top-level directory if no value is provided.
+
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `"."`   | No       |
+
+Example:
+
+```yaml
+devMode:
+  ...
+  sync:
+    - source: "src"
 ```
 
 ### `devMode.sync[].mode`
