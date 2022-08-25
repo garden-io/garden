@@ -251,7 +251,7 @@ describe("ActionRouter", () => {
 
     describe("getBuildStatus", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.build.build.getBuildStatus({ log, module, graph })
+        const result = await actions.build.getStatus({ log, module, graph })
         expect(result).to.eql({
           ready: true,
         })
@@ -259,7 +259,7 @@ describe("ActionRouter", () => {
 
       it("should emit a buildStatus event", async () => {
         garden.events.eventLog = []
-        await actions.build.build.getBuildStatus({ log, module, graph })
+        await actions.build.getStatus({ log, module, graph })
         const event = garden.events.eventLog[0]
         expect(event).to.exist
         expect(event.name).to.eql("buildStatus")
@@ -330,7 +330,7 @@ describe("ActionRouter", () => {
             timeout: 1234,
             spec: {},
           },
-          graph
+          graph.moduleGraph
         )
         const result = await actions.test.run({
           log,
@@ -366,7 +366,7 @@ describe("ActionRouter", () => {
             timeout: 1234,
             spec: {},
           },
-          graph
+          graph.moduleGraph
         )
         await actions.test.run({
           log,
@@ -419,7 +419,7 @@ describe("ActionRouter", () => {
           },
         }
 
-        const test = testFromConfig(module, testConfig, graph)
+        const test = testFromConfig(module, testConfig, graph.moduleGraph)
 
         await actions.test.run({
           log,
@@ -451,7 +451,7 @@ describe("ActionRouter", () => {
 
     describe("getTestResult", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const test = testFromModule(module, "unit", graph)
+        const test = testFromModule(module, "unit", graph.moduleGraph)
         const result = await actions.test.getResult({
           log,
           module,
@@ -476,7 +476,7 @@ describe("ActionRouter", () => {
 
     it("should emit a testStatus event", async () => {
       garden.events.eventLog = []
-      const test = testFromModule(module, "unit", graph)
+      const test = testFromModule(module, "unit", graph.moduleGraph)
       await actions.test.getResult({
         log,
         module,
@@ -718,7 +718,7 @@ describe("ActionRouter", () => {
   })
 
   describe("task actions", () => {
-    let taskResult: RunTaskResult
+    let taskResult
 
     before(() => {
       taskResult = {
@@ -948,7 +948,14 @@ describe("ActionRouter", () => {
       const gardenA = await makeTestGardenA()
       const actionsA = await gardenA.getActionRouter()
       const pluginName = "test-plugin-b"
-      await expectError(() => actionsA.provider["getPluginHandler"]({ handlerType: "cleanupEnvironment", pluginName }), "plugin")
+      await expectError(
+        () =>
+          actionsA.provider["getPluginHandler"]({
+            handlerType: "cleanupEnvironment",
+            pluginName,
+          }),
+        "plugin"
+      )
     })
   })
 
@@ -989,8 +996,9 @@ describe("ActionRouter", () => {
               name: "bar",
               docs: "bar",
               schema: joi.object(),
+              needsBuild: true,
               handlers: {
-                build: async () => ({}),
+                // build: async () => ({}),
               },
             },
           ],
@@ -1030,8 +1038,9 @@ describe("ActionRouter", () => {
               name: "bar",
               docs: "bar",
               schema: joi.object(),
+              needsBuild: true,
               handlers: {
-                build: async () => ({}),
+                // build: async () => ({}),
               },
             },
           ],
@@ -1042,8 +1051,9 @@ describe("ActionRouter", () => {
           extendModuleTypes: [
             {
               name: "bar",
+              needsBuild: true,
               handlers: {
-                build: async () => ({}),
+                // build: async () => ({}),
               },
             },
           ],
@@ -1083,8 +1093,9 @@ describe("ActionRouter", () => {
               name: "bar",
               docs: "bar",
               schema: joi.object(),
+              needsBuild: true,
               handlers: {
-                build: async () => ({}),
+                // build: async () => ({}),
               },
             },
           ],
@@ -1095,8 +1106,9 @@ describe("ActionRouter", () => {
           extendModuleTypes: [
             {
               name: "bar",
+              needsBuild: true,
               handlers: {
-                build: async () => ({}),
+                // build: async () => ({}),
               },
             },
           ],
@@ -1107,8 +1119,9 @@ describe("ActionRouter", () => {
           extendModuleTypes: [
             {
               name: "bar",
+              needsBuild: true,
               handlers: {
-                build: async () => ({}),
+                // build: async () => ({}),
               },
             },
           ],
@@ -1152,8 +1165,9 @@ describe("ActionRouter", () => {
                 name: "bar",
                 docs: "bar",
                 schema: joi.object(),
+                needsBuild: true,
                 handlers: {
-                  build: async () => ({}),
+                  // build: async () => ({}),
                 },
               },
             ],
@@ -1164,8 +1178,9 @@ describe("ActionRouter", () => {
             extendModuleTypes: [
               {
                 name: "bar",
+                needsBuild: true,
                 handlers: {
-                  build: async () => ({}),
+                  // build: async () => ({}),
                 },
               },
             ],
@@ -1176,8 +1191,9 @@ describe("ActionRouter", () => {
             extendModuleTypes: [
               {
                 name: "bar",
+                needsBuild: true,
                 handlers: {
-                  build: async () => ({}),
+                  // build: async () => ({}),
                 },
               },
             ],
@@ -1223,6 +1239,7 @@ describe("ActionRouter", () => {
               name: "bar",
               docs: "bar",
               schema: joi.object(),
+              needsBuild: true,
               handlers: {},
             },
           ],
@@ -1233,8 +1250,9 @@ describe("ActionRouter", () => {
           extendModuleTypes: [
             {
               name: "bar",
+              needsBuild: true,
               handlers: {
-                build: async () => ({}),
+                // build: async () => ({}),
               },
             },
           ],
@@ -1286,8 +1304,9 @@ describe("ActionRouter", () => {
               name: "bar",
               docs: "bar",
               schema: joi.object(),
+              needsBuild: true,
               handlers: {
-                build: async () => ({}),
+                // build: async () => ({}),
               },
             },
           ],
@@ -1301,8 +1320,9 @@ describe("ActionRouter", () => {
               base: "bar",
               docs: "moo",
               schema: joi.object(),
+              needsBuild: true,
               handlers: {
-                build: async () => ({}),
+                // build: async () => ({}),
               },
             },
           ],
@@ -1330,8 +1350,9 @@ describe("ActionRouter", () => {
               name: "bar",
               docs: "bar",
               schema: joi.object(),
+              needsBuild: true,
               handlers: {
-                build: async () => ({ buildLog: "base" }),
+                // build: async () => ({ buildLog: "base" }),
               },
             },
           ],
@@ -1345,6 +1366,7 @@ describe("ActionRouter", () => {
               base: "bar",
               docs: "moo",
               schema: joi.object(),
+              needsBuild: true,
               handlers: {},
             },
           ],
@@ -1373,8 +1395,9 @@ describe("ActionRouter", () => {
               name: "base-a",
               docs: "base A",
               schema: joi.object(),
+              needsBuild: true,
               handlers: {
-                build: async () => ({ buildLog: "base" }),
+                // build: async () => ({ buildLog: "base" }),
               },
             },
           ],
@@ -1388,6 +1411,7 @@ describe("ActionRouter", () => {
               base: "base-a",
               docs: "base B",
               schema: joi.object(),
+              needsBuild: true,
               handlers: {},
             },
           ],
@@ -1401,6 +1425,7 @@ describe("ActionRouter", () => {
               base: "base-b",
               docs: "moo",
               schema: joi.object(),
+              needsBuild: true,
               handlers: {},
             },
           ],
@@ -1554,6 +1579,7 @@ describe("ActionRouter", () => {
         test: {
           name: "test",
           docs: "test",
+          needsBuild: true,
           handlers: {},
         },
       })
@@ -1592,6 +1618,7 @@ describe("ActionRouter", () => {
         test: {
           name: "test",
           docs: "test",
+          needsBuild: true,
           handlers: {},
         },
       })
@@ -1625,12 +1652,13 @@ describe("ActionRouter", () => {
         test: {
           name: "test",
           docs: "test",
+          needsBuild: true,
           handlers: {},
         },
       })
 
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const serviceA = graph.getService("service-a")
+      const deployServiceA = graph.getDeploy("service-a")
 
       const base = Object.assign(
         async () => ({
@@ -1651,7 +1679,7 @@ describe("ActionRouter", () => {
       await emptyActions["callServiceHandler"]({
         handlerType: "deployService", // Doesn't matter which one it is
         params: {
-          service: serviceA,
+          service: deployServiceA,
           graph,
           log,
           devMode: false,
@@ -1667,13 +1695,14 @@ describe("ActionRouter", () => {
         test: {
           name: "test",
           docs: "test",
+          needsBuild: true,
           handlers: {},
         },
       })
 
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const serviceA = graph.getService("service-a")
-      const serviceB = graph.getService("service-b")
+      const deployServiceA = graph.getDeploy("service-a")
+      const deployServiceB = graph.getDeploy("service-b")
 
       const handler: ModuleActionHandler<any, any> = async ({ ctx }) => {
         const resolved = ctx.resolveTemplateStrings("${runtime.services.service-a.version}")
@@ -1683,7 +1712,7 @@ describe("ActionRouter", () => {
       const { result } = await emptyActions["callServiceHandler"]({
         handlerType: "deployService", // Doesn't matter which one it is
         params: {
-          service: serviceB,
+          service: deployServiceB,
           graph,
           log,
           devMode: false,
@@ -1694,7 +1723,7 @@ describe("ActionRouter", () => {
         defaultHandler: handler,
       })
 
-      expect(result.detail?.resolved).to.equal(serviceA.version)
+      expect(result.detail?.resolved).to.equal(deployServiceA.versionString())
     })
   })
 
@@ -1704,12 +1733,13 @@ describe("ActionRouter", () => {
         test: {
           name: "test",
           docs: "test",
+          needsBuild: true,
           handlers: {},
         },
       })
 
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const taskA = graph.getTask("task-a")
+      const runTaskA = graph.getRun("task-a")
 
       const base = Object.assign(
         async () => ({
@@ -1747,7 +1777,7 @@ describe("ActionRouter", () => {
         handlerType: "runTask",
         params: {
           artifactsPath: "/tmp",
-          task: taskA,
+          task: runTaskA,
           graph,
           log,
           interactive: false,
@@ -1761,42 +1791,21 @@ describe("ActionRouter", () => {
         test: {
           name: "test",
           docs: "test",
+          needsBuild: true,
           handlers: {},
         },
       })
 
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const taskA = graph.getTask("task-a")
-      const serviceB = graph.getService("service-b")
-
-      const _runtimeContext = await prepareRuntimeContext({
-        garden,
-        graph,
-        dependencies: {
-          build: [],
-          deploy: [serviceB],
-          run: [],
-          test: [],
-        },
-        version: taskA.version,
-        moduleVersion: taskA.module.version.versionString,
-        serviceStatuses: {
-          "service-b": {
-            state: "ready",
-            outputs: { foo: "bar" },
-            detail: {},
-          },
-        },
-        taskResults: {},
-      })
+      const runTaskA = graph.getRun("task-a")
+      const deployServiceB = graph.getDeploy("service-b")
 
       const { result } = await emptyActions["callTaskHandler"]({
         handlerType: "runTask",
         params: {
           artifactsPath: "/tmp", // Not used in this test
-          task: taskA,
+          task: runTaskA,
           graph,
-          runtimeContext: _runtimeContext,
           log,
           interactive: false,
         },
@@ -1818,7 +1827,7 @@ describe("ActionRouter", () => {
         },
       })
 
-      expect(result.outputs?.resolved).to.equal(serviceB.version)
+      expect(result.outputs?.resolved).to.equal(deployServiceB.versionString())
     })
   })
 })
@@ -1833,8 +1842,7 @@ const basePlugin = createGardenPlugin({
       name: "base",
       docs: "bla bla bla",
       moduleOutputsSchema: baseOutputsSchema(),
-      serviceOutputsSchema: baseOutputsSchema(),
-      taskOutputsSchema: baseOutputsSchema(),
+      needsBuild: true,
       handlers: {},
     },
   ],
@@ -1924,15 +1932,13 @@ const testPlugin = createGardenPlugin({
     {
       name: "test",
       base: "base",
-
       docs: "bla bla bla",
       moduleOutputsSchema: testOutputSchema(),
-      serviceOutputsSchema: testOutputSchema(),
-      taskOutputsSchema: testOutputSchema(),
       schema: joi.object(),
+      needsBuild: true,
       title: "Bla",
 
-      handlers: <ModuleAndRuntimeActionHandlers>{
+      handlers: {
         configure: async (params) => {
           validateParams(params, moduleActionDescriptions.configure.paramsSchema)
 
