@@ -11,12 +11,11 @@ import { TestGarden } from "../../helpers"
 import { resolveProjectOutputs } from "../../../src/outputs"
 import { expect } from "chai"
 import { realpath } from "fs-extra"
-import { createGardenPlugin } from "../../../src/plugin/plugin"
+import { createGardenPlugin, RunResult } from "../../../src/plugin/plugin"
 import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../src/constants"
 import { exec } from "../../../src/util/util"
 import { ServiceState } from "../../../src/types/service"
-import { RunTaskResult } from "../../../src/types/plugin/task/runTask"
 import { defaultDotIgnoreFile } from "../../../src/util/fs"
 
 describe("resolveProjectOutputs", () => {
@@ -86,6 +85,7 @@ describe("resolveProjectOutputs", () => {
         {
           name: "test",
           docs: "test",
+          needsBuild: false,
           handlers: {
             async getModuleOutputs({ moduleConfig }) {
               return { outputs: moduleConfig.spec.outputs }
@@ -135,16 +135,18 @@ describe("resolveProjectOutputs", () => {
         {
           name: "test",
           docs: "test",
+          needsBuild: false,
           handlers: {
             async getModuleOutputs({ moduleConfig }) {
               return { outputs: moduleConfig.spec.outputs }
             },
-            async getServiceStatus() {
-              return status
-            },
-            async deployService() {
-              return status
-            },
+            // TODO-G2
+            // async getServiceStatus() {
+            //   return status
+            // },
+            // async deployService() {
+            //   return status
+            // },
           },
         },
       ],
@@ -190,16 +192,11 @@ describe("resolveProjectOutputs", () => {
   })
 
   it("should resolve task runtime output references", async () => {
-    const result: RunTaskResult = {
-      command: ["whatever"],
+    const result: RunResult = {
+      success: true,
       completedAt: new Date(),
       log: "hello",
-      moduleName: "test",
-      outputs: { log: "hello" },
       startedAt: new Date(),
-      success: true,
-      taskName: "test",
-      version: "abcdef",
     }
 
     const plugin = createGardenPlugin({
@@ -209,16 +206,18 @@ describe("resolveProjectOutputs", () => {
         {
           name: "test",
           docs: "test",
+          needsBuild: false,
           handlers: {
             async getModuleOutputs({ moduleConfig }) {
               return { outputs: moduleConfig.spec.outputs }
             },
-            async getTaskResult() {
-              return result
-            },
-            async runTask() {
-              return result
-            },
+            // TODO-G2
+            // async getResult() {
+            //   return
+            // },
+            // async runTask() {
+            //   return result
+            // },
           },
         },
       ],
