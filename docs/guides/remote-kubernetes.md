@@ -161,7 +161,7 @@ providers:
     defaultHostname: ${var.hostname}
 ```
 
-If you would like to manage TLS for development environments, we recommend using an application load balancer and your cloud provider's certificate management service. You can find the documentation for (AWS here)[https://aws.amazon.com/premiumsupport/knowledge-center/associate-acm-certificate-alb-nlb/] and for (GCP here)[https://cloud.google.com/load-balancing/docs/ssl-certificates/google-managed-certs].
+If you would like to manage TLS for development environments, we recommend using your cloud provider's certificate management service in combination with a load balancer. You can find the documentation for (AWS here)[https://aws.amazon.com/premiumsupport/knowledge-center/associate-acm-certificate-alb-nlb/] and for (GCP here)[https://cloud.google.com/load-balancing/docs/ssl-certificates/google-managed-certs].
 
 If you are using [cert-manager](https://github.com/jetstack/cert-manager) (or would like to use it) to manage your TLS certificates, you may want to check out the [cert-manager integration](../advanced/cert-manager-integration.md), which helps to automate some of the otherwise manual work involved in managing certificates.
 

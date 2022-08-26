@@ -285,7 +285,7 @@ providers:
 
 #### Configuring Access
 
-To grant your service account the right permission to push to ECS, add this policy to each of the repositories in the container registry that you want to use with in-cluster building:
+To grant your service account the right permission to push to ECR, add this policy to each of the repositories in the container registry that you want to use with in-cluster building:
 
 ```json
 {

@@ -1,7 +1,5 @@
 # Cloud Permissions for Cluster Access
 
-Which permissions are needed to give dev accounts in my cloud provider for access to the dev Kubernetes cluster?
-
 For each environment cluster, you will want permissions for various members of your company to have access.
 
 ## AWS
@@ -27,7 +25,7 @@ You can select these when creating the policy through the UI, or with this JSON 
 }
 ```
 
-You will also need a kubernetes `role` or `cluster resource` so that users can view information about the resources running in the cluster. The [instructions are documented here](https://docs.aws.amazon.com/eks/latest/userguide/connector-grant-access.html).
+You will also need a Kubernetes role and service account in the EKS cluster. This can be achieved with the aws-auth configmap. The [instructions are documented here](https://docs.aws.amazon.com/eks/latest/userguide/add-user-role.html). If you are interested in minimizing the permissions in the cluster, please take a look at our [Kubernetes RBAC guide](https://docs.garden.io/advanced/rbac-config).
 
 ## GCP
 
