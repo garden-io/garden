@@ -19,7 +19,7 @@ import {
   createIngressResources,
   supportedIngressApiVersions,
 } from "../../../../../../src/plugins/kubernetes/container/ingress"
-import { defaultContainerResources } from "../../../../../../src/plugins/container/moduleConfig"
+import { ContainerDeployAction, defaultContainerResources } from "../../../../../../src/plugins/container/moduleConfig"
 import {
   ServicePortProtocol,
   ContainerIngressSpec,
@@ -33,6 +33,7 @@ import { PluginTool } from "../../../../../../src/util/ext-tools"
 import { kubectlSpec } from "../../../../../../src/plugins/kubernetes/kubectl"
 import { getContainerTestGarden } from "./container"
 import { PartialBy } from "../../../../../../src/util/util"
+import { Resolved } from "../../../../../../src/actions/base"
 
 const namespace = "my-namespace"
 const ports = [
@@ -344,6 +345,8 @@ describe("createIngressResources", () => {
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
       dashboardPages: [],
+      outputs: {},
+      state: "ready",
     }
 
     multiTlsProvider = {
@@ -353,6 +356,8 @@ describe("createIngressResources", () => {
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
       dashboardPages: [],
+      outputs: {},
+      state: "ready",
     }
 
     singleTlsProvider = {
@@ -362,10 +367,12 @@ describe("createIngressResources", () => {
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
       dashboardPages: [],
+      outputs: {},
+      state: "ready",
     }
   })
 
-  async function getTestService(...ingresses: ContainerIngressSpec[]): Promise<ContainerService> {
+  async function resolveContainerDeployAction(...ingresses: ContainerIngressSpec[]): Promise<Resolved<ContainerDeployAction>> {
     const spec: ContainerServiceSpec = {
       name: "my-service",
       annotations: {},
@@ -381,6 +388,7 @@ describe("createIngressResources", () => {
       replicas: 1,
       volumes: [],
     }
+    // todo: use action based config instead of module based one to build the result
     const moduleConfig = {
       allowPublish: false,
       disabled: false,
@@ -447,14 +455,14 @@ describe("createIngressResources", () => {
   }
 
   it("should create an ingress for a basic container service", async () => {
-    const service = await getTestService({
+    const action = await resolveContainerDeployAction({
       annotations: {},
       path: "/",
       port: "http",
     })
 
     const api = await getKubeApi(basicProvider)
-    const ingresses = await createIngressResources(api, basicProvider, namespace, service, garden.log)
+    const ingresses = await createIngressResources(api, basicProvider, namespace, action, garden.log)
 
     expect(ingresses.length).to.equal(1)
 
@@ -462,7 +470,7 @@ describe("createIngressResources", () => {
 
     expect(ingress.apiVersion).to.be.oneOf(supportedIngressApiVersions)
     expect(ingress.kind).to.equal("Ingress")
-    expect(ingress.metadata.name).to.equal(`${service.name}-0`)
+    expect(ingress.metadata.name).to.equal(`${action.name}-0`)
     expect(ingress.metadata.annotations?.["ingress.kubernetes.io/force-ssl-redirect"]).to.equal("false")
     expect(ingress.metadata.namespace).to.equal(namespace)
 
@@ -512,21 +520,21 @@ describe("createIngressResources", () => {
   })
 
   it("should add annotations if configured", async () => {
-    const service = await getTestService({
+    const action = await resolveContainerDeployAction({
       annotations: { foo: "bar" },
       path: "/",
       port: "http",
     })
 
     const api = await getKubeApi(basicProvider)
-    const ingresses = await createIngressResources(api, basicProvider, namespace, service, garden.log)
+    const ingresses = await createIngressResources(api, basicProvider, namespace, action, garden.log)
 
     const ingress = ingresses[0]
     expect(ingress.metadata.annotations?.foo).to.equal("bar")
   })
 
   it("should create multiple ingresses if specified", async () => {
-    const service = await getTestService(
+    const action = await resolveContainerDeployAction(
       {
         annotations: {},
         path: "/",
@@ -541,28 +549,28 @@ describe("createIngressResources", () => {
     )
 
     const api = await getKubeApi(basicProvider)
-    const ingresses = await createIngressResources(api, basicProvider, namespace, service, garden.log)
+    const ingresses = await createIngressResources(api, basicProvider, namespace, action, garden.log)
 
     expect(ingresses.length).to.equal(2)
 
-    expect(ingresses[0].metadata.name).to.equal(`${service.name}-0`)
+    expect(ingresses[0].metadata.name).to.equal(`${action.name}-0`)
     expect(ingresses[0].spec?.rules?.[0].host).to.equal("my.domain.com")
     expect(ingresses[0].spec?.rules?.[0].http?.paths[0].path).to.equal("/")
 
-    expect(ingresses[1].metadata.name).to.equal(`${service.name}-1`)
+    expect(ingresses[1].metadata.name).to.equal(`${action.name}-1`)
     expect(ingresses[1].spec?.rules?.[0].host).to.equal("bla")
     expect(ingresses[1].spec?.rules?.[0].http?.paths[0].path).to.equal("/foo")
   })
 
   it("should map a configured TLS certificate to an ingress", async () => {
-    const service = await getTestService({
+    const action = await resolveContainerDeployAction({
       annotations: {},
       path: "/",
       port: "http",
     })
 
     const api = await getKubeApi(singleTlsProvider)
-    const ingresses = await createIngressResources(api, singleTlsProvider, namespace, service, garden.log)
+    const ingresses = await createIngressResources(api, singleTlsProvider, namespace, action, garden.log)
 
     td.verify(api.upsert({ kind: "Secret", namespace, obj: myDomainCertSecret, log: garden.log }))
 
@@ -577,7 +585,7 @@ describe("createIngressResources", () => {
   })
 
   it("should throw if a configured certificate doesn't exist", async () => {
-    const service = await getTestService({
+    const action = await resolveContainerDeployAction({
       annotations: {},
       path: "/",
       port: "http",
@@ -585,7 +593,7 @@ describe("createIngressResources", () => {
 
     const api = await getKubeApi(basicProvider)
 
-    const provider = {
+    const provider: KubernetesProvider = {
       name: "kubernetes",
       config: {
         ...basicConfig,
@@ -601,7 +609,9 @@ describe("createIngressResources", () => {
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
       dashboardPages: [],
-      tools,
+      outputs: {},
+      state: "ready",
+      // tools,
     }
 
     const err: any = new Error("nope")
@@ -609,19 +619,19 @@ describe("createIngressResources", () => {
     td.when(api.core.readNamespacedSecret("foo", "default")).thenReject(err)
 
     await expectError(
-      async () => await createIngressResources(api, provider, namespace, service, garden.log),
+      async () => await createIngressResources(api, provider, namespace, action, garden.log),
       "configuration"
     )
   })
 
   it("should throw if a secret for a configured certificate doesn't contain a certificate", async () => {
-    const service = await getTestService({
+    const action = await resolveContainerDeployAction({
       annotations: {},
       path: "/",
       port: "http",
     })
 
-    const provider = {
+    const provider: KubernetesProvider = {
       name: "kubernetes",
       config: {
         ...basicConfig,
@@ -637,7 +647,9 @@ describe("createIngressResources", () => {
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
       dashboardPages: [],
-      tools,
+      outputs: {},
+      state: "ready",
+      // tools,
     }
 
     const api = await getKubeApi(basicProvider)
@@ -647,19 +659,19 @@ describe("createIngressResources", () => {
     td.when(api.core.readNamespacedSecret("foo", "default")).thenResolve({ data: {} })
 
     await expectError(
-      async () => await createIngressResources(api, provider, namespace, service, garden.log),
+      async () => await createIngressResources(api, provider, namespace, action, garden.log),
       "configuration"
     )
   })
 
   it("should throw if a secret for a configured certificate contains an invalid certificate", async () => {
-    const service = await getTestService({
+    const action = await resolveContainerDeployAction({
       annotations: {},
       path: "/",
       port: "http",
     })
 
-    const provider = {
+    const provider: KubernetesProvider = {
       name: "kubernetes",
       config: {
         ...basicConfig,
@@ -675,7 +687,9 @@ describe("createIngressResources", () => {
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
       dashboardPages: [],
-      tools,
+      outputs: {},
+      state: "ready",
+      // tools,
     }
 
     const api = await getKubeApi(basicProvider)
@@ -689,13 +703,13 @@ describe("createIngressResources", () => {
     })
 
     await expectError(
-      async () => await createIngressResources(api, provider, namespace, service, garden.log),
+      async () => await createIngressResources(api, provider, namespace, action, garden.log),
       "configuration"
     )
   })
 
   it("should correctly match an ingress to a wildcard certificate", async () => {
-    const service = await getTestService({
+    const action = await resolveContainerDeployAction({
       annotations: {},
       hostname: "something.wildcarddomain.com",
       path: "/",
@@ -703,7 +717,7 @@ describe("createIngressResources", () => {
     })
 
     const api = await getKubeApi(multiTlsProvider)
-    const ingresses = await createIngressResources(api, multiTlsProvider, namespace, service, garden.log)
+    const ingresses = await createIngressResources(api, multiTlsProvider, namespace, action, garden.log)
 
     td.verify(api.upsert({ kind: "Secret", namespace, obj: wildcardDomainCertSecret, log: garden.log }))
 
@@ -713,7 +727,7 @@ describe("createIngressResources", () => {
   })
 
   it("should use configured hostnames for a certificate when specified", async () => {
-    const service = await getTestService({
+    const action = await resolveContainerDeployAction({
       annotations: {},
       hostname: "madeup.domain.com",
       path: "/",
@@ -722,7 +736,7 @@ describe("createIngressResources", () => {
 
     const api = await getKubeApi(basicProvider)
 
-    const provider = {
+    const provider: KubernetesProvider = {
       name: "kubernetes",
       config: {
         ...basicConfig,
@@ -739,11 +753,13 @@ describe("createIngressResources", () => {
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
       dashboardPages: [],
-      tools,
+      outputs: {},
+      state: "ready",
+      // tools,
     }
 
     td.when(api.core.readNamespacedSecret("foo", "default")).thenResolve(myDomainCertSecret)
-    const ingresses = await createIngressResources(api, provider, namespace, service, garden.log)
+    const ingresses = await createIngressResources(api, provider, namespace, action, garden.log)
 
     td.verify(api.upsert({ kind: "Secret", namespace, obj: myDomainCertSecret, log: garden.log }))
 
