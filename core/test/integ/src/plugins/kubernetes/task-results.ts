@@ -12,7 +12,7 @@ import { KubernetesConfig } from "../../../../../src/plugins/kubernetes/config"
 import { getDataDir, makeTestGarden } from "../../../../helpers"
 import { randomString } from "../../../../../src/util/string"
 import { expect } from "chai"
-import { storeTaskResult, getTaskResult } from "../../../../../src/plugins/kubernetes/run-results"
+import { k8sGetRunResult, storeRunResult } from "../../../../../src/plugins/kubernetes/run-results"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../../../../../src/plugins/kubernetes/constants"
 
 describe("kubernetes task results", () => {
@@ -33,39 +33,38 @@ describe("kubernetes task results", () => {
     it("should trim logs when necessary", async () => {
       const ctx = await garden.getPluginContext(provider)
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const task = graph.getTask("echo-task")
+      const action = graph.getRun("echo-task")
 
       const data = randomString(1024 * 1024)
 
-      const trimmed = await storeTaskResult({
+      const trimmed = await storeRunResult({
         ctx,
         log: garden.log,
-        module: task.module,
-        task,
+        // module: task.module,
+        action,
         result: {
-          moduleName: task.module.name,
-          taskName: task.name,
-          outputs: { log: data },
+          // moduleName: task.module.name,
+          // taskName: task.name,
+          // outputs: { log: data },
           log: data,
           startedAt: new Date(),
           completedAt: new Date(),
-          command: [],
-          version: task.version,
+          // command: [],
+          // version: task.version,
           success: true,
         },
       })
 
       expect(trimmed.log.length).to.be.lte(MAX_RUN_RESULT_LOG_LENGTH)
 
-      const stored = await getTaskResult({
+      const stored = await k8sGetRunResult({
         ctx,
         log: garden.log,
-        module: task.module,
-        task,
+        action,
       })
 
       expect(stored).to.exist
-      expect(stored!.log.length).to.equal(trimmed.log.length)
+      expect(stored!.detail?.log.length).to.equal(trimmed.log.length)
 
       const outputsLog = stored!.outputs.log as string
       expect(outputsLog.length).to.equal(trimmed.log.length)
