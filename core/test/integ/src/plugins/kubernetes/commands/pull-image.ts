@@ -13,10 +13,10 @@ import { getContainerTestGarden } from "../container/container"
 import { k8sBuildContainer } from "../../../../../../src/plugins/kubernetes/container/build/build"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { KubernetesProvider, KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config"
-import { GardenModule } from "../../../../../../src/types/module"
 import { containerHelpers } from "../../../../../../src/plugins/container/helpers"
 import { expect } from "chai"
 import { grouped } from "../../../../../helpers"
+import { BuildAction } from "../../../../../../src/actions/build"
 
 describe("pull-image plugin command", () => {
   let garden: Garden
@@ -37,8 +37,8 @@ describe("pull-image plugin command", () => {
     ctx = await garden.getPluginContext(provider)
   }
 
-  async function removeImage(module: GardenModule) {
-    const imageId = module.outputs["local-image-id"]
+  async function removeImage(action: BuildAction) {
+    const imageId = action._outputs["local-image-id"]
     try {
       await containerHelpers.dockerCli({
         cwd: "/tmp",
@@ -51,10 +51,10 @@ describe("pull-image plugin command", () => {
     }
   }
 
-  async function ensureImagePulled(module: GardenModule) {
-    const imageId = module.outputs["local-image-id"]
+  async function ensureImagePulled(action: BuildAction) {
+    const imageId = action._outputs["local-image-id"]
     const imageHash = await containerHelpers.dockerCli({
-      cwd: module.buildPath,
+      cwd: action.getBuildPath(),
       args: ["run", imageId, "echo", "ok"],
       log: garden.log,
       ctx,
@@ -64,52 +64,66 @@ describe("pull-image plugin command", () => {
   }
 
   grouped("kaniko", "remote-only").context("using an external cluster registry with kaniko", () => {
-    let module: GardenModule
+    let action: BuildAction
 
     before(async () => {
       await init("kaniko")
 
-      module = graph.getModule("remote-registry-test")
+      action = graph.getBuild("remote-registry-test.build") as BuildAction
+      const resolvedAction = await garden.resolveAction({ action, graph, log: garden.log })
 
       // build the image
-      await garden.buildStaging.syncFromSrc(module, garden.log)
+      await garden.buildStaging.syncFromSrc(action, garden.log)
 
       await k8sBuildContainer({
         ctx,
         log: garden.log,
-        module,
+        action: resolvedAction,
       })
     })
 
     it("should pull the image", async () => {
-      await removeImage(module)
-      await pullBuild({ ctx: ctx as KubernetesPluginContext, action: module, log: garden.log })
-      await ensureImagePulled(module)
+      await removeImage(action)
+      await pullBuild({
+        localId: action._outputs["local-image-id"],
+        remoteId: action._outputs["deployment-image-id"],
+        ctx: ctx as KubernetesPluginContext,
+        action: action,
+        log: garden.log,
+      })
+      await ensureImagePulled(action)
     })
   })
 
   grouped("cluster-buildkit", "remote-only").context("using an external cluster registry with buildkit", () => {
-    let module: GardenModule
+    let action: BuildAction
 
     before(async () => {
       await init("cluster-buildkit")
 
-      module = graph.getModule("remote-registry-test")
+      action = graph.getBuild("remote-registry-test.build")
+      const resolvedAction = await garden.resolveAction({ action, graph, log: garden.log })
 
       // build the image
-      await garden.buildStaging.syncFromSrc(module, garden.log)
+      await garden.buildStaging.syncFromSrc(action, garden.log)
 
       await k8sBuildContainer({
         ctx,
         log: garden.log,
-        module,
+        action: resolvedAction,
       })
     })
 
     it("should pull the image", async () => {
-      await removeImage(module)
-      await pullBuild({ ctx: ctx as KubernetesPluginContext, action: module, log: garden.log })
-      await ensureImagePulled(module)
+      await removeImage(action)
+      await pullBuild({
+        localId: action._outputs["local-image-id"],
+        remoteId: action._outputs["deployment-image-id"],
+        ctx: ctx as KubernetesPluginContext,
+        action,
+        log: garden.log,
+      })
+      await ensureImagePulled(action)
     })
   })
 })
