@@ -11,6 +11,7 @@ import { flatten, find, first } from "lodash"
 import stripAnsi from "strip-ansi"
 import { TestGarden, expectError } from "../../../../helpers"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
+import { actionFromConfig } from "../../../../../src/graph/actions"
 import { Provider } from "../../../../../src/config/provider"
 import { DeployTask } from "../../../../../src/tasks/deploy"
 import { KubeApi } from "../../../../../src/plugins/kubernetes/api"
@@ -28,14 +29,24 @@ import {
 } from "../../../../../src/plugins/kubernetes/util"
 import { createWorkloadManifest } from "../../../../../src/plugins/kubernetes/container/deployment"
 import { getHelmTestGarden } from "./helm/common"
-import { deline } from "../../../../../src/util/string"
+import { deline, gardenAnnotationKey } from "../../../../../src/util/string"
 import { getBaseModule, getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
-import { buildHelmModule } from "../../../../../src/plugins/kubernetes/helm/build"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { BuildTask } from "../../../../../src/tasks/build"
 import { getContainerTestGarden } from "./container/container"
-import { KubernetesDeployment, KubernetesPod, KubernetesWorkload } from "../../../../../src/plugins/kubernetes/types"
+import {
+  KubernetesDeployment,
+  KubernetesPod,
+  KubernetesWorkload,
+  SyncableKind,
+} from "../../../../../src/plugins/kubernetes/types"
 import { getAppNamespace } from "../../../../../src/plugins/kubernetes/namespace"
+import { convertModules } from "../../../../../src/resolve-module"
+import { BuildAction } from "../../../../../src/actions/build"
+import Bluebird from "bluebird"
+import { DeployAction, DeployActionConfig } from "../../../../../src/actions/deploy"
+import { Resolved } from "../../../../../src/actions/base"
+import { HelmDeployAction } from "../../../../../src/plugins/kubernetes/helm/config"
 
 describe("util", () => {
   let helmGarden: TestGarden
@@ -64,10 +75,31 @@ describe("util", () => {
 
   async function buildModules() {
     const modules = helmGraph.getModules()
-    const tasks = modules.map(
-      (module) => new BuildTask({ garden: helmGarden, graph: helmGraph, log, module, force: false, _guard: true })
-    )
-    const results = await helmGarden.processTasks(tasks)
+    const graph = await helmGarden.getConfigGraph({ emit: false, log })
+    const router = await helmGarden.getActionRouter()
+    const { actions } = await convertModules(helmGarden, helmGarden.log, modules, graph.moduleGraph)
+
+    const tasks = await Bluebird.map(actions, async (rawAction) => {
+      const action = (await actionFromConfig({
+        garden: helmGarden,
+        graph,
+        config: rawAction,
+        log: helmGarden.log,
+        configsByKey: {},
+        router,
+      })) as BuildAction
+      return new BuildTask({
+        garden: helmGarden,
+        graph: helmGraph,
+        log,
+        action,
+        force: false,
+        devModeDeployNames: [],
+        fromWatch: false,
+        localModeDeployNames: [],
+      })
+    })
+    const results = await helmGarden.processTasks({ tasks })
 
     const err = first(Object.values(results).map((r) => r && r.error))
 
@@ -85,7 +117,12 @@ describe("util", () => {
         const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
 
-        const service = graph.getService("simple-service")
+        const rawAction = graph.getDeploy("simple-service")
+        const action = await garden.resolveAction({
+          action: rawAction,
+          log: garden.log,
+          graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
+        })
 
         const deployTask = new DeployTask({
           force: false,
@@ -93,15 +130,18 @@ describe("util", () => {
           garden,
           graph,
           log: garden.log,
-          service,
+          action,
           devModeDeployNames: [],
           localModeDeployNames: [],
+          fromWatch: false,
         })
 
         const resource = await createWorkloadManifest({
           api,
           provider,
-          service,
+          action,
+          ctx,
+          imageId: action.getSpec().image,
           namespace: provider.config.namespace!.name!,
           enableDevMode: false,
 
@@ -125,7 +165,12 @@ describe("util", () => {
 
       try {
         const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-        const service = graph.getService("simple-service")
+        const rawAction = graph.getDeploy("simple-service")
+        const action = await garden.resolveAction({
+          action: rawAction,
+          log: garden.log,
+          graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
+        })
 
         const deployTask = new DeployTask({
           force: false,
@@ -133,7 +178,8 @@ describe("util", () => {
           garden,
           graph,
           log: garden.log,
-          service,
+          action,
+          fromWatch: false,
           devModeDeployNames: [],
           localModeDeployNames: [],
         })
@@ -218,47 +264,53 @@ describe("util", () => {
 
   describe("getServiceResource", () => {
     it("should return the resource specified by serviceResource", async () => {
-      const module = helmGraph.getModule("api")
+      const rawAction = helmGraph.getActions({ refs: [{ kind: "Deploy", name: "api" }] })[0] as DeployAction
+      const action = await helmGarden.resolveAction<DeployAction>({ action: rawAction, log: helmGarden.log })
       const manifests = await getChartResources({
         ctx,
-        module,
+        action,
         devMode: false,
         localMode: false,
         log,
-        version: module.version.versionString,
       })
       const result = await getTargetResource({
         ctx,
         log,
         provider: ctx.provider,
-        module,
+        action,
         manifests,
-        query: getServiceResourceSpec(module, undefined),
+        query: {
+          // getServiceResourceSpec() <- Use this once it's sgv2 ready
+          /* TODO-G2 */
+        },
       })
       const expected = find(manifests, (r) => r.kind === "Deployment")
       expect(result).to.eql(expected)
     })
 
     it("should throw if no resourceSpec or serviceResource is specified", async () => {
-      const module = helmGraph.getModule("api")
+      const rawAction = helmGraph.getActions({ refs: [{ kind: "Deploy", name: "api" }] })[0] as DeployAction
+      const action = await helmGarden.resolveAction<DeployAction>({ action: rawAction, log: helmGarden.log })
       const manifests = await getChartResources({
         ctx,
-        module,
+        action,
         devMode: false,
         localMode: false,
         log,
-        version: module.version.versionString,
       })
-      delete module.spec.serviceResource
+      delete action._config.spec.serviceResource
       await expectError(
         () =>
           getTargetResource({
             ctx,
             log,
             provider: ctx.provider,
-            module,
+            action,
             manifests,
-            query: getServiceResourceSpec(module, undefined),
+            query: {
+              // getServiceResourceSpec() <- Use this once it's sgv2 ready
+              /* TODO-G2 */
+            },
           }),
         (err) =>
           expect(stripAnsi(err.message)).to.equal(
@@ -270,18 +322,18 @@ describe("util", () => {
     })
 
     it("should throw if no resource of the specified kind is in the chart", async () => {
-      const module = helmGraph.getModule("api")
+      const rawAction = helmGraph.getActions({ refs: [{ kind: "Deploy", name: "api" }] })[0] as DeployAction
+      const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
       const manifests = await getChartResources({
         ctx,
-        module,
+        action,
         devMode: false,
         localMode: false,
         log,
-        version: module.version.versionString,
       })
       const resourceSpec = {
-        ...module.spec.serviceResource,
-        kind: "DaemonSet",
+        ...action._config.spec.defaultTarget,
+        kind: "DaemonSet" as SyncableKind,
       }
       await expectError(
         () =>
@@ -289,7 +341,7 @@ describe("util", () => {
             ctx,
             log,
             provider: ctx.provider,
-            module,
+            action,
             manifests,
             query: resourceSpec,
           }),
@@ -298,17 +350,17 @@ describe("util", () => {
     })
 
     it("should throw if matching resource is not found by name", async () => {
-      const module = helmGraph.getModule("api")
+      const rawAction = helmGraph.getActions({ refs: [{ kind: "Deploy", name: "api" }] })[0] as DeployAction
+      const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
       const manifests = await getChartResources({
         ctx,
-        module,
+        action,
         devMode: false,
         localMode: false,
         log,
-        version: module.version.versionString,
       })
       const resourceSpec = {
-        ...module.spec.serviceResource,
+        ...action._config.spec.defaultTarget,
         name: "foo",
       }
       await expectError(
@@ -317,7 +369,7 @@ describe("util", () => {
             ctx,
             log,
             provider: ctx.provider,
-            module,
+            action,
             manifests,
             query: resourceSpec,
           }),
@@ -326,14 +378,14 @@ describe("util", () => {
     })
 
     it("should throw if no name is specified and multiple resources are matched", async () => {
-      const module = helmGraph.getModule("api")
+      const rawAction = helmGraph.getActions({ refs: [{ kind: "Deploy", name: "api" }] })[0] as DeployAction
+      const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
       const manifests = await getChartResources({
         ctx,
-        module,
+        action,
         devMode: false,
         localMode: false,
         log,
-        version: module.version.versionString,
       })
       const deployment = find(manifests, (r) => r.kind === "Deployment")
       manifests.push(deployment!)
@@ -344,9 +396,12 @@ describe("util", () => {
             ctx,
             log,
             provider: ctx.provider,
-            module,
+            action,
             manifests,
-            query: getServiceResourceSpec(module, undefined),
+            query: {
+              // getServiceResourceSpec() <- Use this once it's sgv2 ready
+              /* TODO-G2 */
+            },
           }),
         (err) =>
           expect(stripAnsi(err.message)).to.equal(
@@ -356,24 +411,26 @@ describe("util", () => {
     })
 
     it("should resolve template string for resource name", async () => {
-      const module = helmGraph.getModule("postgres")
-      await buildHelmModule({ ctx, module, log })
+      const rawAction = helmGraph.getActions({ refs: [{ kind: "Deploy", name: "postgres" }] })[0] as DeployAction
+      const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
       const manifests = await getChartResources({
         ctx,
-        module,
+        action,
         devMode: false,
         localMode: false,
         log,
-        version: module.version.versionString,
       })
-      module.spec.serviceResource.name = `{{ template "postgresql.primary.fullname" . }}`
+      action._config.spec.defaultTarget!.name = `{{ template "postgresql.primary.fullname" . }}`
       const result = await getTargetResource({
         ctx,
         log,
         provider: ctx.provider,
-        module,
+        action,
         manifests,
-        query: getServiceResourceSpec(module, undefined),
+        query: {
+          // getServiceResourceSpec() <- Use this once it's sgv2 ready
+          /* TODO-G2 */
+        },
       })
       const expected = find(manifests, (r) => r.kind === "StatefulSet")
       expect(result).to.eql(expected)
@@ -381,24 +438,26 @@ describe("util", () => {
 
     context("podSelector", () => {
       before(async () => {
-        const service = helmGraph.getService("api")
-
+        const rawAction = helmGraph.getActions({ refs: [{ kind: "Deploy", name: "api" }] })[0] as DeployAction
+        const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
         const deployTask = new DeployTask({
           force: false,
           forceBuild: false,
           garden: helmGarden,
           graph: helmGraph,
           log: helmGarden.log,
-          service,
+          action,
           devModeDeployNames: [],
           localModeDeployNames: [],
+          fromWatch: false,
         })
 
         await helmGarden.processTasks({ tasks: [deployTask], throwOnError: true })
       })
 
       it("returns running Pod if one is found matching podSelector", async () => {
-        const module = helmGraph.getModule("api")
+        const rawAction = helmGraph.getActions({ refs: [{ kind: "Deploy", name: "api" }] })[0] as DeployAction
+        const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
         const resourceSpec: ServiceResourceSpec = {
           podSelector: {
             "app.kubernetes.io/name": "api",
@@ -410,7 +469,7 @@ describe("util", () => {
           ctx,
           log,
           provider: ctx.provider,
-          module,
+          action,
           manifests: [],
 
           query: resourceSpec,
@@ -422,7 +481,8 @@ describe("util", () => {
       })
 
       it("throws if podSelector is set and no Pod is found matching the selector", async () => {
-        const module = helmGraph.getModule("api")
+        const rawAction = helmGraph.getActions({ refs: [{ kind: "Deploy", name: "api" }] })[0] as DeployAction
+        const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
         const resourceSpec: ServiceResourceSpec = {
           podSelector: {
             "app.kubernetes.io/name": "boo",
@@ -436,7 +496,7 @@ describe("util", () => {
               ctx,
               log,
               provider: ctx.provider,
-              module,
+              action,
               manifests: [],
 
               query: resourceSpec,
@@ -496,27 +556,27 @@ describe("util", () => {
   })
 
   describe("getResourceContainer", () => {
-    async function getDeployment() {
-      const module = helmGraph.getModule("api")
+    async function getK8sDeployment() {
+      const rawAction = helmGraph.getActions({ refs: [{ kind: "Deploy", name: "api" }] })[0] as DeployAction
+      const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
       const manifests = await getChartResources({
         ctx,
-        module,
+        action,
         devMode: false,
         localMode: false,
         log,
-        version: module.version.versionString,
       })
       return <KubernetesWorkload>find(manifests, (r) => r.kind === "Deployment")!
     }
 
     it("should get the first container on the resource if no name is specified", async () => {
-      const deployment = await getDeployment()
+      const deployment = await getK8sDeployment()
       const expected = deployment.spec.template?.spec!.containers[0]
       expect(getResourceContainer(deployment)).to.equal(expected)
     })
 
     it("should pick the container by name if specified", async () => {
-      const deployment = await getDeployment()
+      const deployment = await getK8sDeployment()
       const expected = deployment.spec.template?.spec!.containers[0]
       expect(getResourceContainer(deployment, "api")).to.equal(expected)
     })
@@ -542,7 +602,7 @@ describe("util", () => {
     })
 
     it("should throw if no containers are in resource", async () => {
-      const deployment = await getDeployment()
+      const deployment = await getK8sDeployment()
       deployment.spec.template!.spec!.containers = []
       await expectError(
         () => getResourceContainer(deployment),
@@ -551,7 +611,7 @@ describe("util", () => {
     })
 
     it("should throw if name is specified and no containers match", async () => {
-      const deployment = await getDeployment()
+      const deployment = await getK8sDeployment()
       await expectError(
         () => getResourceContainer(deployment, "foo"),
         (err) => expect(err.message).to.equal("Could not find container 'foo' in Deployment 'api-release'")
