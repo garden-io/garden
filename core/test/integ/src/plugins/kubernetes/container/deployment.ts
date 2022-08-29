@@ -25,7 +25,7 @@ import { expectError, grouped } from "../../../../../helpers"
 import { kilobytesToString, millicpuToString } from "../../../../../../src/plugins/kubernetes/util"
 import { getDeployedImageId, getResourceRequirements } from "../../../../../../src/plugins/kubernetes/container/util"
 import { isConfiguredForDevMode } from "../../../../../../src/plugins/kubernetes/status/status"
-import { ContainerService } from "../../../../../../src/plugins/container/moduleConfig"
+import { ContainerDeployAction } from "../../../../../../src/plugins/container/moduleConfig"
 import { apply } from "../../../../../../src/plugins/kubernetes/kubectl"
 import { getAppNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
 import { gardenAnnotationKey } from "../../../../../../src/util/string"
@@ -51,7 +51,7 @@ describe("kubernetes container deployment handlers", () => {
   let api: KubeApi
 
   async function resolveDeployAction(name: string) {
-    return await garden.resolveAction({ action: graph.getDeploy(name), log: garden.log, graph })
+    return await garden.resolveAction<ContainerDeployAction>({ action: graph.getDeploy(name), log: garden.log, graph })
   }
 
   beforeEach(async () => {
@@ -666,7 +666,7 @@ describe("kubernetes container deployment handlers", () => {
       const action = await resolveDeployAction("volume-reference")
       const namespace = provider.config.namespace!.name!
 
-      action.getSpec().volumes = [{ name: "test", module: "simple-service" }]
+      action.getSpec().volumes = [{ name: "test", containerPath: "TODO-G2", action: "simple-service" }]
 
       await expectError(
         () =>
@@ -875,7 +875,7 @@ describe("kubernetes container deployment handlers", () => {
           localModeDeployNames: [],
         })
 
-        const results = await garden.processTasks({ tasks: [deployTask],log: garden.log, throwOnError: true })
+        const results = await garden.processTasks({ tasks: [deployTask], log: garden.log, throwOnError: true })
         const statuses = getServiceStatuses(results.results)
         const status = statuses[action.name]
         const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
