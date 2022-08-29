@@ -18,7 +18,7 @@ import { KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/
 import { expect } from "chai"
 import { getContainerTestGarden } from "../container"
 import { containerHelpers } from "../../../../../../../src/plugins/container/helpers"
-import { k8sPublishContainerModule } from "../../../../../../../src/plugins/kubernetes/container/publish"
+import { k8sPublishContainerBuild } from "../../../../../../../src/plugins/kubernetes/container/publish"
 import { LogEntry } from "../../../../../../../src/logger/log-entry"
 import { cloneDeep } from "lodash"
 
@@ -30,7 +30,7 @@ describe("kubernetes build flow", () => {
   let ctx: PluginContext
   let currentEnv: string
 
-  const builtImages: { [key: string]: boolean } = {}
+  const builtImages: { [key: string]: any } = {}
 
   after(async () => {
     if (garden) {
@@ -47,25 +47,27 @@ describe("kubernetes build flow", () => {
     ctx = await garden.getPluginContext(provider)
   }
 
-  async function buildImage(moduleName: string) {
-    const module = cloneDeep(graph.getModule(moduleName))
-    const key = `${currentEnv}.${module.name}.${module.version.versionString}`
+  async function resolveBuildImageAction(buildActionName: string) {
+    const buildAction = cloneDeep(graph.getBuild(buildActionName))
+    const key = `${currentEnv}.${buildAction.name}.${buildAction.versionString()}`
 
-    if (builtImages[key]) {
-      return module
+    if (!!builtImages[key]) {
+      return builtImages[key]
     }
 
-    await garden.buildStaging.syncFromSrc(module, garden.log)
+    await garden.buildStaging.syncFromSrc(buildAction, garden.log)
+
+    const resolvedBuildAction = await garden.resolveAction({ action: buildAction, log: garden.log, graph })
 
     await k8sBuildContainer({
       ctx,
       log,
-      module,
+      action: resolvedBuildAction,
     })
 
     builtImages[key] = true
 
-    return module
+    return resolvedBuildAction
   }
 
   context("local mode", () => {
@@ -74,7 +76,7 @@ describe("kubernetes build flow", () => {
     })
 
     it("should build a simple container", async () => {
-      await buildImage("simple-service")
+      await resolveBuildImageAction("simple-service")
     })
   })
 
@@ -84,12 +86,12 @@ describe("kubernetes build flow", () => {
     })
 
     it("should push to configured deploymentRegistry if specified", async () => {
-      const module = await buildImage("remote-registry-test")
+      const action = await resolveBuildImageAction("remote-registry-test")
 
-      const remoteId = module.outputs["deployment-image-id"]
+      const remoteId = action._outputs["deployment-image-id"]
       // This throws if the image doesn't exist
       await containerHelpers.dockerCli({
-        cwd: module.buildPath,
+        cwd: action.getBuildPath(),
         args: ["manifest", "inspect", remoteId],
         log,
         ctx,
@@ -97,22 +99,22 @@ describe("kubernetes build flow", () => {
     })
 
     it("should get the build status from the deploymentRegistry", async () => {
-      const module = await buildImage("remote-registry-test")
+      const action = await resolveBuildImageAction("remote-registry-test")
 
-      const remoteId = module.outputs["deployment-image-id"]
+      const remoteId = action._outputs["deployment-image-id"]
 
       await containerHelpers.dockerCli({
-        cwd: module.buildPath,
+        cwd: action.getBuildPath(),
         args: ["rmi", remoteId],
         log,
         ctx,
       })
-      builtImages[`${currentEnv}.${module.name}.${module.version.versionString}`] = false
+      builtImages[`${currentEnv}.${action.name}.${action.versionString()}`] = false
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
         log,
-        module,
+        action,
       })
 
       expect(status.state).to.equal("ready")
@@ -120,28 +122,28 @@ describe("kubernetes build flow", () => {
 
     context("publish handler", () => {
       it("should publish the built image", async () => {
-        const module = await buildImage("remote-registry-test")
+        const action = await resolveBuildImageAction("remote-registry-test")
 
-        const { message } = await k8sPublishContainerModule({
+        const result = await k8sPublishContainerBuild({
           ctx,
-          module,
+          action,
           log,
         })
 
-        expect(message).to.eql("Published gardendev/remote-registry-test:" + module.version.versionString)
+        expect(result.detail?.message).to.eql("Published gardendev/remote-registry-test:" + action.versionString())
       })
 
       it("should set custom tag if specified", async () => {
-        const module = await buildImage("remote-registry-test")
+        const action = await resolveBuildImageAction("remote-registry-test")
 
-        const { message } = await k8sPublishContainerModule({
+        const result = await k8sPublishContainerBuild({
           ctx,
-          module,
+          action,
           log,
           tag: "foo",
         })
 
-        expect(message).to.eql("Published gardendev/remote-registry-test:foo")
+        expect(result.detail?.message).to.eql("Published gardendev/remote-registry-test:foo")
       })
     })
   })
@@ -152,16 +154,16 @@ describe("kubernetes build flow", () => {
     })
 
     it("should build a simple container", async () => {
-      await buildImage("simple-service")
+      await resolveBuildImageAction("simple-service")
     })
 
     it("should get the build status from the registry", async () => {
-      const module = await buildImage("simple-service")
+      const action = await resolveBuildImageAction("simple-service")
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
         log,
-        module,
+        action,
       })
 
       expect(status.state).to.equal("ready")
@@ -174,50 +176,50 @@ describe("kubernetes build flow", () => {
     })
 
     it("should build and push to configured deploymentRegistry", async () => {
-      await buildImage("remote-registry-test")
+      await resolveBuildImageAction("remote-registry-test")
     })
 
     it("should get the build status from the registry", async () => {
-      const module = await buildImage("remote-registry-test")
+      const action = await resolveBuildImageAction("remote-registry-test")
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
         log,
-        module,
+        action,
       })
 
       expect(status.state).to.equal("ready")
     })
 
     it("should return ready=false status when image doesn't exist in registry", async () => {
-      const module = cloneDeep(graph.getModule("remote-registry-test"))
-      await garden.buildStaging.syncFromSrc(module, garden.log)
+      const action = cloneDeep(graph.getBuild("remote-registry-test"))
+      await garden.buildStaging.syncFromSrc(action, garden.log)
 
-      module.version.versionString = "v-0000000000"
+      action.getFullVersion().versionString = "v-0000000000"
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
         log,
-        module,
+        action: await garden.resolveAction({ action, log: garden.log, graph }),
       })
 
       expect(status.state).to.equal("not-ready")
     })
 
     grouped("remote-only").it("should support pulling from private registries", async () => {
-      await buildImage("private-base")
+      await resolveBuildImageAction("private-base")
     })
 
     it("should throw if attempting to pull from private registry without access", async () => {
-      const module = graph.getModule("inaccessible-base")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
+      const action = graph.getBuild("inaccessible-base")
+      await garden.buildStaging.syncFromSrc(action, garden.log)
 
       await expectError(
-        () =>
+        async () =>
           k8sBuildContainer({
             ctx,
             log,
-            module,
+            action: await garden.resolveAction({ action, log: garden.log, graph }),
           }),
         (err) => {
           expect(err.message).to.include("UNAUTHORIZED")
@@ -227,28 +229,28 @@ describe("kubernetes build flow", () => {
 
     context("publish handler", () => {
       it("should publish the built image", async () => {
-        const module = await buildImage("remote-registry-test")
+        const action = await resolveBuildImageAction("remote-registry-test")
 
-        const { message } = await k8sPublishContainerModule({
+        const result = await k8sPublishContainerBuild({
           ctx,
-          module,
+          action,
           log,
         })
 
-        expect(message).to.eql("Published gardendev/remote-registry-test:" + module.version.versionString)
+        expect(result.detail?.message).to.eql("Published gardendev/remote-registry-test:" + action.versionString())
       })
 
       it("should set custom tag if specified", async () => {
-        const module = await buildImage("remote-registry-test")
+        const action = await resolveBuildImageAction("remote-registry-test")
 
-        const { message } = await k8sPublishContainerModule({
+        const result = await k8sPublishContainerBuild({
           ctx,
-          module,
+          action,
           log,
           tag: "foo",
         })
 
-        expect(message).to.eql("Published gardendev/remote-registry-test:foo")
+        expect(result.detail?.message).to.eql("Published gardendev/remote-registry-test:foo")
       })
     })
   })
@@ -259,7 +261,7 @@ describe("kubernetes build flow", () => {
     })
 
     it("should push to configured deploymentRegistry if specified", async () => {
-      await buildImage("remote-registry-test")
+      await resolveBuildImageAction("remote-registry-test")
     })
   })
 
@@ -270,50 +272,50 @@ describe("kubernetes build flow", () => {
     })
 
     it("should build and push a simple container", async () => {
-      await buildImage("simple-service")
+      await resolveBuildImageAction("simple-service")
     })
 
     it("should get the build status from the registry", async () => {
-      const module = await buildImage("simple-service")
+      const action = await resolveBuildImageAction("simple-service")
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
         log,
-        module,
+        action,
       })
 
       expect(status.state).to.equal("ready")
     })
 
     it("should support pulling from private registries", async () => {
-      await buildImage("private-base")
+      await resolveBuildImageAction("private-base")
     })
 
     it("should return ready=false status when image doesn't exist in registry", async () => {
-      const module = graph.getModule("simple-service")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
+      const action = graph.getBuild("simple-service")
+      await garden.buildStaging.syncFromSrc(action, garden.log)
 
-      module.spec.image = "skee-ba-dee-skoop"
+      action.getConfig().spec.image = "skee-ba-dee-skoop"
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
         log,
-        module,
+        action: await garden.resolveAction({ action, log: garden.log, graph }),
       })
 
       expect(status.state).to.equal("not-ready")
     })
 
     it("should throw if attempting to pull from private registry without access", async () => {
-      const module = graph.getModule("inaccessible-base")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
+      const action = graph.getBuild("inaccessible-base")
+      await garden.buildStaging.syncFromSrc(action, garden.log)
 
       await expectError(
-        () =>
+        async () =>
           k8sBuildContainer({
             ctx,
             log,
-            module,
+            action: await garden.resolveAction({ action, log: garden.log, graph }),
           }),
         (err) => {
           expect(err.message).to.include("authorization failed")
@@ -323,28 +325,28 @@ describe("kubernetes build flow", () => {
 
     context("publish handler", () => {
       it("should publish the built image", async () => {
-        const module = await buildImage("remote-registry-test")
+        const action = await resolveBuildImageAction("remote-registry-test")
 
-        const { message } = await k8sPublishContainerModule({
+        const result = await k8sPublishContainerBuild({
           ctx,
-          module,
+          action,
           log,
         })
 
-        expect(message).to.eql("Published gardendev/remote-registry-test:" + module.version.versionString)
+        expect(result.detail?.message).to.eql("Published gardendev/remote-registry-test:" + action.versionString())
       })
 
       it("should set custom tag if specified", async () => {
-        const module = await buildImage("remote-registry-test")
+        const action = await resolveBuildImageAction("remote-registry-test")
 
-        const { message } = await k8sPublishContainerModule({
+        const result = await k8sPublishContainerBuild({
           ctx,
-          module,
+          action,
           log,
           tag: "foo",
         })
 
-        expect(message).to.eql("Published gardendev/remote-registry-test:foo")
+        expect(result.detail?.message).to.eql("Published gardendev/remote-registry-test:foo")
       })
     })
   })
@@ -356,50 +358,50 @@ describe("kubernetes build flow", () => {
     })
 
     it("should build a simple container", async () => {
-      await buildImage("simple-service")
+      await resolveBuildImageAction("simple-service")
     })
 
     it("should get the build status from the registry", async () => {
-      const module = await buildImage("simple-service")
+      const action = await resolveBuildImageAction("simple-service")
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
         log,
-        module,
+        action,
       })
 
       expect(status.state).to.equal("ready")
     })
 
     grouped("remote-only").it("should support pulling from private registries", async () => {
-      await buildImage("private-base")
+      await resolveBuildImageAction("private-base")
     })
 
     it("should return ready=false status when image doesn't exist in registry", async () => {
-      const module = graph.getModule("simple-service")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
+      const action = graph.getBuild("simple-service")
+      await garden.buildStaging.syncFromSrc(action, garden.log)
 
-      module.spec.image = "skee-ba-dee-skoop"
+      action.getConfig().spec.image = "skee-ba-dee-skoop"
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
         log,
-        module,
+        action: await garden.resolveAction({ action, log: garden.log, graph }),
       })
 
       expect(status.state).to.equal("not-ready")
     })
 
     it("should throw if attempting to pull from private registry without access", async () => {
-      const module = graph.getModule("inaccessible-base")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
+      const action = graph.getBuild("inaccessible-base")
+      await garden.buildStaging.syncFromSrc(action, garden.log)
 
       await expectError(
-        () =>
+        async () =>
           k8sBuildContainer({
             ctx,
             log,
-            module,
+            action: await garden.resolveAction({ action, log: garden.log, graph }),
           }),
         (err) => {
           expect(err.message).to.include("authorization failed")
