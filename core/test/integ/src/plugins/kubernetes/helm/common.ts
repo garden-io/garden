@@ -11,7 +11,6 @@ import { resolve } from "path"
 import { expect } from "chai"
 import { first, uniq } from "lodash"
 import {
-  containsSource,
   getBaseModule,
   getChartPath,
   getChartResources,
@@ -61,19 +60,21 @@ export async function getHelmLocalModeTestGarden() {
 }
 
 export async function buildHelmModules(garden: Garden | TestGarden, graph: ConfigGraph) {
-  const modules = graph.getModules()
-  const tasks = modules.map(
-    (module) =>
+  const actions = graph.getBuilds()
+  const tasks = actions.map(
+    (action) =>
       new BuildTask({
         garden,
         graph,
         log: garden.log,
-        module,
+        action,
         force: false,
-        _guard: true,
+        fromWatch: false,
+        devModeDeployNames: [],
+        localModeDeployNames: [],
       })
   )
-  const results = await garden.processTasks(tasks)
+  const results = await garden.processTasks({ tasks, log: garden.log })
 
   const err = first(Object.values(results).map((r) => r && r.error))
 
@@ -103,29 +104,16 @@ describe("Helm common functions", () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
-  describe("containsSource", () => {
-    it("should return true if the specified module contains chart sources", async () => {
-      const module = graph.getModule("api")
-      expect(await containsSource(module)).to.be.true
-    })
-
-    it("should return false if the specified module does not contain chart sources", async () => {
-      const module = graph.getModule("postgres")
-      expect(await containsSource(module)).to.be.false
-    })
-  })
-
   describe("renderTemplates", () => {
     it("should render and return the manifests for a local template", async () => {
-      const module = graph.getModule("api")
-      const imageModule = graph.getModule("api-image")
+      const deployAction = graph.getDeploy("api")
+      const buildImageAction = graph.getBuild("api-image")
       const templates = await renderTemplates({
         ctx,
-        module,
+        action: await garden.resolveAction({ action: deployAction, log, graph }),
         devMode: false,
         localMode: false,
         log,
-        version: module.version.versionString,
       })
 
       const api = await KubeApi.factory(log, ctx, ctx.provider)
@@ -227,7 +215,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: "api-image:${imageModule.version.versionString}"
+          image: "api-image:${buildImageAction.versionString()}"
           imagePullPolicy: IfNotPresent
           args: [python, app.py]
           ports:
@@ -244,14 +232,13 @@ ${expectedIngressOutput}
     })
 
     it("should render and return the manifests for a remote template", async () => {
-      const module = graph.getModule("postgres")
+      const action = graph.getDeploy("postgres")
       const templates = await renderTemplates({
         ctx,
-        module,
+        action: await garden.resolveAction({ action, log, graph }),
         devMode: false,
         localMode: false,
         log,
-        version: module.version.versionString,
       })
 
       // The exact output will vary by K8s versions so we just validate that we get valid YAML and
@@ -266,14 +253,13 @@ ${expectedIngressOutput}
 
   describe("getChartResources", () => {
     it("should render and return resources for a local template", async () => {
-      const module = graph.getModule("api")
+      const action = graph.getDeploy("api")
       const resources = await getChartResources({
         ctx,
-        module,
+        action: await garden.resolveAction({ action, log, graph }),
         devMode: false,
         localMode: false,
         log,
-        version: module.version.versionString,
       })
 
       const api = await KubeApi.factory(log, ctx, ctx.provider)
@@ -435,14 +421,13 @@ ${expectedIngressOutput}
     })
 
     it("should render and return resources for a remote template", async () => {
-      const module = graph.getModule("postgres")
+      const action = graph.getDeploy("postgres")
       const resources = await getChartResources({
         ctx,
-        module,
+        action: await garden.resolveAction({ action, log, graph }),
         devMode: false,
         localMode: false,
         log,
-        version: module.version.versionString,
       })
 
       // The exact output will vary by K8s versions so we just validate that we get valid YAML and
@@ -454,28 +439,26 @@ ${expectedIngressOutput}
     })
 
     it("should handle duplicate keys in template", async () => {
-      const module = graph.getModule("duplicate-keys-in-template")
+      const action = graph.getDeploy("duplicate-keys-in-template")
       expect(
         await getChartResources({
           ctx,
-          module,
+          action: await garden.resolveAction({ action, log, graph }),
           devMode: false,
           localMode: false,
           log,
-          version: module.version.versionString,
         })
       ).to.not.throw
     })
 
     it("should filter out resources with hooks", async () => {
-      const module = graph.getModule("chart-with-test-pod")
+      const action = graph.getDeploy("chart-with-test-pod")
       const resources = await getChartResources({
         ctx,
-        module,
+        action: await garden.resolveAction({ action, log, graph }),
         devMode: false,
         localMode: false,
         log,
-        version: module.version.versionString,
       })
 
       expect(resources).to.eql([
@@ -557,15 +540,15 @@ ${expectedIngressOutput}
   describe("getChartPath", () => {
     context("module has chart sources", () => {
       it("should return the chart path in the build directory", async () => {
-        const module = graph.getModule("api")
-        expect(await getChartPath(module)).to.equal(resolve(ctx.projectRoot, ".garden", "build", "api"))
+        const action = await garden.resolveAction({ action: graph.getDeploy("api"), log, graph })
+        expect(await getChartPath(action)).to.equal(resolve(ctx.projectRoot, ".garden", "build", "api"))
       })
     })
 
     context("module references remote chart", () => {
       it("should construct the chart path based on the chart name", async () => {
-        const module = graph.getModule("postgres")
-        expect(await getChartPath(module)).to.equal(
+        const action = await garden.resolveAction({ action: graph.getDeploy("postgres"), log, graph })
+        expect(await getChartPath(action)).to.equal(
           resolve(ctx.projectRoot, ".garden", "build", "postgres", "postgresql")
         )
       })
@@ -580,17 +563,17 @@ ${expectedIngressOutput}
 
   describe("getValueArgs", () => {
     it("should return just garden-values.yml if no valueFiles are configured", async () => {
-      const module = graph.getModule("api")
-      module.spec.valueFiles = []
-      const gardenValuesPath = getGardenValuesPath(module.buildPath)
-      expect(await getValueArgs(module, false, false)).to.eql(["--values", gardenValuesPath])
+      const action = await garden.resolveAction({ action: graph.getDeploy("api"), log, graph })
+      action.getSpec().valueFiles = []
+      const gardenValuesPath = getGardenValuesPath(action.getBuildPath())
+      expect(await getValueArgs(action, false, false)).to.eql(["--values", gardenValuesPath])
     })
 
     it("should add a --set flag if devMode=true", async () => {
-      const module = graph.getModule("api")
-      module.spec.valueFiles = []
-      const gardenValuesPath = getGardenValuesPath(module.buildPath)
-      expect(await getValueArgs(module, true, false)).to.eql([
+      const action = await garden.resolveAction({ action: graph.getDeploy("api"), log, graph })
+      action.getSpec().valueFiles = []
+      const gardenValuesPath = getGardenValuesPath(action.getBuildPath())
+      expect(await getValueArgs(action, true, false)).to.eql([
         "--values",
         gardenValuesPath,
         "--set",
@@ -599,10 +582,10 @@ ${expectedIngressOutput}
     })
 
     it("should add a --set flag if localMode=true", async () => {
-      const module = graph.getModule("api")
-      module.spec.valueFiles = []
-      const gardenValuesPath = getGardenValuesPath(module.buildPath)
-      expect(await getValueArgs(module, false, true)).to.eql([
+      const action = await garden.resolveAction({ action: graph.getDeploy("api"), log, graph })
+      action.getSpec().valueFiles = []
+      const gardenValuesPath = getGardenValuesPath(action.getBuildPath())
+      expect(await getValueArgs(action, false, true)).to.eql([
         "--values",
         gardenValuesPath,
         "--set",
@@ -611,10 +594,10 @@ ${expectedIngressOutput}
     })
 
     it("localMode should always take precedence over devMode when add a --set flag", async () => {
-      const module = graph.getModule("api")
-      module.spec.valueFiles = []
-      const gardenValuesPath = getGardenValuesPath(module.buildPath)
-      expect(await getValueArgs(module, true, true)).to.eql([
+      const action = await garden.resolveAction({ action: graph.getDeploy("api"), log, graph })
+      action.getSpec().valueFiles = []
+      const gardenValuesPath = getGardenValuesPath(action.getBuildPath())
+      expect(await getValueArgs(action, true, true)).to.eql([
         "--values",
         gardenValuesPath,
         "--set",
@@ -623,15 +606,15 @@ ${expectedIngressOutput}
     })
 
     it("should return a --values arg for each valueFile configured", async () => {
-      const module = graph.getModule("api")
-      module.spec.valueFiles = ["foo.yaml", "bar.yaml"]
-      const gardenValuesPath = getGardenValuesPath(module.buildPath)
+      const action = await garden.resolveAction({ action: graph.getDeploy("api"), log, graph })
+      action.getSpec().valueFiles = ["foo.yaml", "bar.yaml"]
+      const gardenValuesPath = getGardenValuesPath(action.getBuildPath())
 
-      expect(await getValueArgs(module, false, false)).to.eql([
+      expect(await getValueArgs(action, false, false)).to.eql([
         "--values",
-        resolve(module.buildPath, "foo.yaml"),
+        resolve(action.getBuildPath(), "foo.yaml"),
         "--values",
-        resolve(module.buildPath, "bar.yaml"),
+        resolve(action.getBuildPath(), "bar.yaml"),
         "--values",
         gardenValuesPath,
       ])
@@ -640,14 +623,14 @@ ${expectedIngressOutput}
 
   describe("getReleaseName", () => {
     it("should return the module name if not overridden in config", async () => {
-      const module = graph.getModule("api")
-      delete module.spec.releaseName
-      expect(getReleaseName(module)).to.equal("api")
+      const action = await garden.resolveAction({ action: graph.getDeploy("api"), log, graph })
+      delete action.getSpec().releaseName
+      expect(getReleaseName(action)).to.equal("api")
     })
 
     it("should return the configured release name if any", async () => {
-      const module = graph.getModule("api")
-      expect(getReleaseName(module)).to.equal("api-release")
+      const action = await garden.resolveAction({ action: graph.getDeploy("api"), log, graph })
+      expect(getReleaseName(action)).to.equal("api-release")
     })
   })
 })
