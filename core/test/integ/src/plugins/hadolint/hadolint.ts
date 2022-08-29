@@ -18,9 +18,11 @@ import { TestTask } from "../../../../../src/tasks/test"
 import { writeFile, remove, pathExists } from "fs-extra"
 import { join } from "path"
 import { createGardenPlugin } from "../../../../../src/plugin/plugin"
-import { testFromConfig } from "../../../../../src/types/test"
 import { defaultBuildTimeout } from "../../../../../src/config/module"
 import { defaultDotIgnoreFile } from "../../../../../src/util/fs"
+import { convertModules } from "../../../../../src/resolve-module"
+import { actionFromConfig } from "../../../../../src/graph/actions"
+import { TestAction } from "../../../../../src/actions/test"
 
 describe("hadolint provider", () => {
   let tmpDir: tmp.DirectoryResult
@@ -114,6 +116,7 @@ describe("hadolint provider", () => {
       dependencies: [{ name: "container" }],
       createModuleTypes: [
         {
+          needsBuild: false,
           name: "foo",
           base: "container",
           docs: "foo",
@@ -183,20 +186,29 @@ describe("hadolint provider", () => {
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
+      const { actions } = await convertModules(garden, garden.log, [module], graph.moduleGraph)
+      const action = (await actionFromConfig({
+        garden,
+        graph,
+        config: actions[0],
+        log: garden.log,
+        configsByKey: {},
+        router: await garden.getActionRouter(),
+      })) as TestAction
 
       const testTask = new TestTask({
         garden,
         log: garden.log,
+        fromWatch: false,
         graph,
-        test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
         devModeDeployNames: [],
         localModeDeployNames: [],
+        action,
       })
 
-      const key = testTask.getBaseKey()
-      const { [key]: result } = await garden.processTasks({ tasks: [testTask], throwOnError: false })
+      const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(result).to.exist
       expect(result!.error).to.exist
@@ -247,20 +259,29 @@ describe("hadolint provider", () => {
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
+      const { actions } = await convertModules(garden, garden.log, [module], graph.moduleGraph)
+      const action = (await actionFromConfig({
+        garden,
+        graph,
+        config: actions[0],
+        log: garden.log,
+        configsByKey: {},
+        router: await garden.getActionRouter(),
+      })) as TestAction
 
       const testTask = new TestTask({
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0], graph),
+        action,
+        fromWatch: false,
         force: true,
         forceBuild: false,
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
 
-      const key = testTask.getBaseKey()
-      const { [key]: result } = await garden.processTasks({ tasks: [testTask], throwOnError: false })
+      const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(result).to.exist
       expect(result!.error).to.exist
@@ -306,20 +327,29 @@ describe("hadolint provider", () => {
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
+      const { actions } = await convertModules(garden, garden.log, [module], graph.moduleGraph)
+      const action = (await actionFromConfig({
+        garden,
+        graph,
+        config: actions[0],
+        log: garden.log,
+        configsByKey: {},
+        router: await garden.getActionRouter(),
+      })) as TestAction
 
       const testTask = new TestTask({
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0], graph),
+        action,
+        fromWatch: false,
         force: true,
         forceBuild: false,
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
 
-      const key = testTask.getBaseKey()
-      const { [key]: result } = await garden.processTasks({ tasks: [testTask], throwOnError: false })
+      const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(result).to.exist
       expect(result!.error).to.exist
@@ -356,23 +386,31 @@ describe("hadolint provider", () => {
           spec: { dockerfilePath: "warn.Dockerfile" },
         },
       }
-
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
+      const { actions } = await convertModules(garden, garden.log, [module], graph.moduleGraph)
+      const action = (await actionFromConfig({
+        garden,
+        graph,
+        config: actions[0],
+        log: garden.log,
+        configsByKey: {},
+        router: await garden.getActionRouter(),
+      })) as TestAction
 
       const testTask = new TestTask({
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0], graph),
+        action,
+        fromWatch: false,
         force: true,
         forceBuild: false,
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
 
-      const key = testTask.getBaseKey()
-      const { [key]: result } = await garden.processTasks({ tasks: [testTask], throwOnError: false })
+      const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(result).to.exist
       expect(result!.error).to.exist
@@ -402,20 +440,29 @@ describe("hadolint provider", () => {
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
+      const { actions } = await convertModules(garden, garden.log, [module], graph.moduleGraph)
+      const action = (await actionFromConfig({
+        garden,
+        graph,
+        config: actions[0],
+        log: garden.log,
+        configsByKey: {},
+        router: await garden.getActionRouter(),
+      })) as TestAction
 
       const testTask = new TestTask({
         garden,
         log: garden.log,
         graph,
-        test: testFromConfig(module, module.testConfigs[0], graph),
+        action,
+        fromWatch: false,
         force: true,
         forceBuild: false,
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
 
-      const key = testTask.getBaseKey()
-      const { [key]: result } = await garden.processTasks({ tasks: [testTask], throwOnError: false })
+      const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(result).to.exist
       expect(result!.error).to.not.exist
@@ -448,20 +495,29 @@ describe("hadolint provider", () => {
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
+      const { actions } = await convertModules(garden, garden.log, [module], graph.moduleGraph)
+      const action = (await actionFromConfig({
+        garden,
+        graph,
+        config: actions[0],
+        log: garden.log,
+        configsByKey: {},
+        router: await garden.getActionRouter(),
+      })) as TestAction
 
       const testTask = new TestTask({
         garden,
-        test: testFromConfig(module, module.testConfigs[0], graph),
         log: garden.log,
         graph,
+        action,
+        fromWatch: false,
         force: true,
         forceBuild: false,
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
 
-      const key = testTask.getBaseKey()
-      const { [key]: result } = await garden.processTasks({ tasks: [testTask], throwOnError: false })
+      const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(result).to.exist
       expect(result!.error).to.not.exist
