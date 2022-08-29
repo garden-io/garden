@@ -12,10 +12,8 @@ import { expectError, TestGarden } from "../../../../../helpers"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { getHelmTestGarden } from "./common"
 import { TestTask } from "../../../../../../src/tasks/test"
-import { findByName } from "../../../../../../src/util/util"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
-import { testFromConfig, testFromModule } from "../../../../../../src/types/test"
 
 describe("testHelmModule", () => {
   let garden: TestGarden
@@ -30,72 +28,70 @@ describe("testHelmModule", () => {
   })
 
   it("should run a basic test", async () => {
-    const module = graph.getModule("artifacts")
+    const action = graph.getTest("artifacts.echo-test")
 
     const testTask = new TestTask({
       garden,
       graph,
-      test: testFromModule(module, "echo-test", graph),
+      action,
       log: garden.log,
       force: true,
       forceBuild: false,
+      fromWatch: false,
       devModeDeployNames: [],
-
       localModeDeployNames: [],
     })
 
-    const key = testTask.getBaseKey()
-    const { [key]: result } = await garden.processTasks({ tasks: [testTask], throwOnError: true })
+    const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
+    const result = results.results.getResult(testTask)
 
     expect(result).to.exist
+    expect(result!.result).to.exist
     expect(result).to.have.property("output")
-    expect(result!.result.log.trim()).to.equal("ok")
-    expect(result!.result.namespaceStatus).to.exist
-    expect(result!.result.namespaceStatus.namespaceName).to.eq("helm-test-default")
+    expect(result!.result!.detail?.log.trim()).to.equal("ok")
+    expect(result!.result!.detail?.namespaceStatus).to.exist
+    expect(result!.result!.detail?.namespaceStatus?.namespaceName).to.eq("helm-test-default")
   })
 
   it("should run a test in a different namespace, if configured", async () => {
-    const module = graph.getModule("chart-with-namespace")
+    const action = graph.getTest("chart-with-namespace.echo-test")
 
     const testTask = new TestTask({
       garden,
       graph,
-      test: testFromModule(module, "echo-test", graph),
+      action,
       log: garden.log,
       force: true,
       forceBuild: false,
+      fromWatch: false,
       devModeDeployNames: [],
-
       localModeDeployNames: [],
     })
 
-    const key = testTask.getBaseKey()
-    const { [key]: result } = await garden.processTasks({ tasks: [testTask], throwOnError: true })
+    const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
+    const result = results.results.getResult(testTask)
 
     expect(result).to.exist
+    expect(result!.result).to.exist
     expect(result).to.have.property("output")
-    expect(result!.result.log.trim()).to.equal(module.spec.namespace)
-    expect(result!.result.namespaceStatus).to.exist
-    expect(result!.result.namespaceStatus.namespaceName).to.eq(module.spec.namespace)
+    expect(result!.result!.detail?.log.trim()).to.equal(action.getConfig().spec.namespace)
+    expect(result!.result!.detail?.namespaceStatus).to.exist
+    expect(result!.result!.detail?.namespaceStatus?.namespaceName).to.eq(action.getConfig().spec.namespace)
   })
 
   it("should fail if an error occurs, but store the result", async () => {
-    const module = graph.getModule("artifacts")
-
-    const testConfig = findByName(module.testConfigs, "echo-test")!
-    testConfig.spec.command = ["bork"] // this will fail
-
-    const test = testFromConfig(module, testConfig, graph)
+    const action = graph.getTest("artifacts.echo-test")
+    action.getConfig().spec.command = ["bork"] // this will fail
 
     const testTask = new TestTask({
       garden,
       graph,
-      test,
+      action,
       log: garden.log,
       force: true,
       forceBuild: false,
+      fromWatch: false,
       devModeDeployNames: [],
-
       localModeDeployNames: [],
     })
 
@@ -109,8 +105,7 @@ describe("testHelmModule", () => {
     // We also verify that, despite the test failing, its result was still saved.
     const result = await actions.test.getResult({
       log: garden.log,
-      module,
-      test,
+      action: await garden.resolveAction({ action, log: garden.log, graph }),
       graph,
     })
 
@@ -119,17 +114,17 @@ describe("testHelmModule", () => {
 
   context("artifacts are specified", () => {
     it("should copy artifacts out of the container", async () => {
-      const module = graph.getModule("artifacts")
+      const action = graph.getTest("artifacts.artifacts-test")
 
       const testTask = new TestTask({
         garden,
         graph,
-        test: testFromModule(module, "artifacts-test", graph),
+        action,
         log: garden.log,
         force: true,
         forceBuild: false,
+        fromWatch: false,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
       })
 
@@ -142,17 +137,17 @@ describe("testHelmModule", () => {
     })
 
     it("should fail if an error occurs, but copy the artifacts out of the container", async () => {
-      const module = graph.getModule("artifacts")
+      const action = graph.getTest("artifacts.artifacts-test-fail")
 
       const testTask = new TestTask({
         garden,
         graph,
-        test: testFromModule(module, "artifacts-test-fail", graph),
+        action,
         log: garden.log,
         force: true,
         forceBuild: false,
+        fromWatch: false,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
       })
 
@@ -167,17 +162,17 @@ describe("testHelmModule", () => {
     })
 
     it("should handle globs when copying artifacts out of the container", async () => {
-      const module = graph.getModule("artifacts")
+      const action = graph.getTest("artifacts.globs-test")
 
       const testTask = new TestTask({
         garden,
         graph,
-        test: testFromModule(module, "globs-test", graph),
+        action,
         log: garden.log,
         force: true,
         forceBuild: false,
+        fromWatch: false,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
       })
 
