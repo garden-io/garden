@@ -10,7 +10,7 @@ import { expect } from "chai"
 import { getDataDir, makeTestGarden, TestGarden } from "../../../../../helpers"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
-import { getServiceLogs } from "../../../../../../src/plugins/kubernetes/container/logs"
+import { k8sGetContainerDeployLogs } from "../../../../../../src/plugins/kubernetes/container/logs"
 import { Stream } from "ts-stream"
 import { ServiceLogEntry } from "../../../../../../src/types/service"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
@@ -19,6 +19,7 @@ import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { createWorkloadManifest } from "../../../../../../src/plugins/kubernetes/container/deployment"
 import { sleep } from "../../../../../../src/util/util"
 import { DeleteDeployTask } from "../../../../../../src/tasks/delete-service"
+import { getDeployedImageId } from "../../../../../../src/plugins/kubernetes/container/util"
 
 describe("kubernetes", () => {
   let garden: TestGarden
@@ -38,22 +39,21 @@ describe("kubernetes", () => {
     await garden.close()
   })
 
-  describe("getServiceLogs", () => {
+  describe("k8sGetContainerDeployLogs", () => {
     it("should write service logs to stream", async () => {
-      const module = graph.getModule("simple-service")
-      const service = graph.getService("simple-service")
+      const action = graph.getDeploy("simple-service")
 
       const entries: ServiceLogEntry[] = []
 
       const deployTask = new DeployTask({
         force: true,
         forceBuild: true,
+        fromWatch: false,
         garden,
         graph,
         log: garden.log,
-        service,
+        action,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
       })
 
@@ -64,10 +64,11 @@ describe("kubernetes", () => {
         entries.push(entry)
       })
 
-      await getServiceLogs({
+      const resolvedDeployAction = await garden.resolveAction({ action, log: garden.log, graph })
+
+      await k8sGetContainerDeployLogs({
         ctx,
-        module,
-        service,
+        action: resolvedDeployAction,
         log: garden.log,
         stream,
         follow: false,
@@ -83,7 +84,7 @@ describe("kubernetes", () => {
       })
 
       it("should write service logs to stream and listen for more", async () => {
-        const service = graph.getService("simple-service")
+        const action = graph.getDeploy("simple-service")
         const log = garden.log
         const namespace = provider.config.namespace!.name!
         const api = await KubeApi.factory(log, ctx, provider)
@@ -93,10 +94,11 @@ describe("kubernetes", () => {
         const deployTask = new DeployTask({
           force: true,
           forceBuild: true,
+          fromWatch: false,
           garden,
           graph,
           log: garden.log,
-          service,
+          action,
           devModeDeployNames: [],
 
           localModeDeployNames: [],
@@ -109,14 +111,17 @@ describe("kubernetes", () => {
           entries.push(entry)
         })
 
+        const resolvedDeployAction = await garden.resolveAction({ action, log: garden.log, graph })
+
         const resources = [
           await createWorkloadManifest({
+            ctx,
             api,
             provider,
-            service,
+            action: resolvedDeployAction,
             namespace,
+            imageId: getDeployedImageId(resolvedDeployAction, provider),
             enableDevMode: false,
-
             enableLocalMode: false,
             production: ctx.production,
             log,
@@ -127,7 +132,7 @@ describe("kubernetes", () => {
           defaultNamespace: provider.config.namespace!.name!,
           log,
           stream,
-          entryConverter: makeServiceLogEntry(service.name),
+          entryConverter: makeServiceLogEntry(action.name),
           resources,
           k8sApi: api,
         })
@@ -148,7 +153,7 @@ describe("kubernetes", () => {
       })
 
       it("should automatically connect if a service that was missing is deployed", async () => {
-        const service = graph.getService("simple-service")
+        const action = graph.getDeploy("simple-service")
         const log = garden.log
         const namespace = provider.config.namespace!.name!
         const api = await KubeApi.factory(log, ctx, provider)
@@ -158,19 +163,23 @@ describe("kubernetes", () => {
         const deployTask = new DeployTask({
           force: true,
           forceBuild: true,
+          fromWatch: false,
           garden,
           graph,
           log: garden.log,
-          service,
+          action,
           devModeDeployNames: [],
-
           localModeDeployNames: [],
         })
         const deleteTask = new DeleteDeployTask({
           garden,
           graph,
+          action,
           log: garden.log,
-          action: service,
+          devModeDeployNames: [],
+          localModeDeployNames: [],
+          fromWatch: false,
+          force: false,
         })
 
         const stream = new Stream<ServiceLogEntry>()
@@ -179,14 +188,17 @@ describe("kubernetes", () => {
           entries.push(entry)
         })
 
+        const resolvedDeployAction = await garden.resolveAction({ action, log: garden.log, graph })
+
         const resources = [
           await createWorkloadManifest({
+            ctx,
             api,
             provider,
-            service,
+            action: resolvedDeployAction,
             namespace,
+            imageId: getDeployedImageId(resolvedDeployAction, provider),
             enableDevMode: false,
-
             enableLocalMode: false,
             production: ctx.production,
             log,
@@ -198,7 +210,7 @@ describe("kubernetes", () => {
           defaultNamespace: provider.config.namespace!.name!,
           stream,
           log,
-          entryConverter: makeServiceLogEntry(service.name),
+          entryConverter: makeServiceLogEntry(action.name),
           resources,
           k8sApi: api,
           retryIntervalMs,
