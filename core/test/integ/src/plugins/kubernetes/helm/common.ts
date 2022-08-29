@@ -28,6 +28,7 @@ import { safeLoadAll } from "js-yaml"
 import { Garden } from "../../../../../../src"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { getIngressApiVersion } from "../../../../../../src/plugins/kubernetes/container/ingress"
+import { HelmDeployAction } from "../../../../../../src/plugins/kubernetes/helm/config"
 
 let helmTestGarden: TestGarden
 
@@ -110,7 +111,7 @@ describe("Helm common functions", () => {
       const buildImageAction = graph.getBuild("api-image")
       const templates = await renderTemplates({
         ctx,
-        action: await garden.resolveAction({ action: deployAction, log, graph }),
+        action: await garden.resolveAction<HelmDeployAction>({ action: deployAction, log, graph }),
         devMode: false,
         localMode: false,
         log,
@@ -256,7 +257,7 @@ ${expectedIngressOutput}
       const action = graph.getDeploy("api")
       const resources = await getChartResources({
         ctx,
-        action: await garden.resolveAction({ action, log, graph }),
+        action: await garden.resolveAction<HelmDeployAction>({ action, log, graph }),
         devMode: false,
         localMode: false,
         log,
@@ -540,14 +541,14 @@ ${expectedIngressOutput}
   describe("getChartPath", () => {
     context("module has chart sources", () => {
       it("should return the chart path in the build directory", async () => {
-        const action = await garden.resolveAction({ action: graph.getDeploy("api"), log, graph })
+        const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
         expect(await getChartPath(action)).to.equal(resolve(ctx.projectRoot, ".garden", "build", "api"))
       })
     })
 
     context("module references remote chart", () => {
       it("should construct the chart path based on the chart name", async () => {
-        const action = await garden.resolveAction({ action: graph.getDeploy("postgres"), log, graph })
+        const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("postgres"), log, graph })
         expect(await getChartPath(action)).to.equal(
           resolve(ctx.projectRoot, ".garden", "build", "postgres", "postgresql")
         )
@@ -563,14 +564,14 @@ ${expectedIngressOutput}
 
   describe("getValueArgs", () => {
     it("should return just garden-values.yml if no valueFiles are configured", async () => {
-      const action = await garden.resolveAction({ action: graph.getDeploy("api"), log, graph })
+      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = []
       const gardenValuesPath = getGardenValuesPath(action.getBuildPath())
       expect(await getValueArgs(action, false, false)).to.eql(["--values", gardenValuesPath])
     })
 
     it("should add a --set flag if devMode=true", async () => {
-      const action = await garden.resolveAction({ action: graph.getDeploy("api"), log, graph })
+      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = []
       const gardenValuesPath = getGardenValuesPath(action.getBuildPath())
       expect(await getValueArgs(action, true, false)).to.eql([
@@ -582,7 +583,7 @@ ${expectedIngressOutput}
     })
 
     it("should add a --set flag if localMode=true", async () => {
-      const action = await garden.resolveAction({ action: graph.getDeploy("api"), log, graph })
+      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = []
       const gardenValuesPath = getGardenValuesPath(action.getBuildPath())
       expect(await getValueArgs(action, false, true)).to.eql([
@@ -594,7 +595,7 @@ ${expectedIngressOutput}
     })
 
     it("localMode should always take precedence over devMode when add a --set flag", async () => {
-      const action = await garden.resolveAction({ action: graph.getDeploy("api"), log, graph })
+      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = []
       const gardenValuesPath = getGardenValuesPath(action.getBuildPath())
       expect(await getValueArgs(action, true, true)).to.eql([
@@ -606,7 +607,7 @@ ${expectedIngressOutput}
     })
 
     it("should return a --values arg for each valueFile configured", async () => {
-      const action = await garden.resolveAction({ action: graph.getDeploy("api"), log, graph })
+      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = ["foo.yaml", "bar.yaml"]
       const gardenValuesPath = getGardenValuesPath(action.getBuildPath())
 
@@ -623,13 +624,13 @@ ${expectedIngressOutput}
 
   describe("getReleaseName", () => {
     it("should return the module name if not overridden in config", async () => {
-      const action = await garden.resolveAction({ action: graph.getDeploy("api"), log, graph })
+      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       delete action.getSpec().releaseName
       expect(getReleaseName(action)).to.equal("api")
     })
 
     it("should return the configured release name if any", async () => {
-      const action = await garden.resolveAction({ action: graph.getDeploy("api"), log, graph })
+      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       expect(getReleaseName(action)).to.equal("api-release")
     })
   })

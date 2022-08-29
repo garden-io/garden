@@ -26,6 +26,7 @@ import { CloudApi } from "../../../../../../src/cloud/api"
 import { resolve } from "path"
 import { getLogger } from "../../../../../../src/logger/logger"
 import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode"
+import { HelmDeployAction } from "../../../../../../src/plugins/kubernetes/helm/config"
 
 describe("helmDeploy in local-mode", () => {
   let garden: TestGarden
@@ -58,7 +59,11 @@ describe("helmDeploy in local-mode", () => {
 
   it("should deploy a chart with localMode enabled", async () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const action = await garden.resolveAction({ action: graph.getDeploy("backend"), log: garden.log, graph })
+    const action = await garden.resolveAction<HelmDeployAction>({
+      action: graph.getDeploy("backend"),
+      log: garden.log,
+      graph,
+    })
 
     const releaseName = getReleaseName(action)
     await helmDeploy({
@@ -92,7 +97,11 @@ describe("helmDeploy in local-mode", () => {
 
   it("localMode should always take precedence over devMode", async () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const action = await garden.resolveAction({ action: graph.getDeploy("backend"), log: garden.log, graph })
+    const action = await garden.resolveAction<HelmDeployAction>({
+      action: graph.getDeploy("backend"),
+      log: garden.log,
+      graph,
+    })
 
     const releaseName = getReleaseName(action)
     await helmDeploy({
@@ -149,7 +158,11 @@ describe("helmDeploy", () => {
 
   it("should deploy a chart", async () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const action = await garden.resolveAction({ action: graph.getDeploy("api"), log: garden.log, graph })
+    const action = await garden.resolveAction<HelmDeployAction>({
+      action: graph.getDeploy("api"),
+      log: garden.log,
+      graph,
+    })
 
     const status = await helmDeploy({
       ctx,
@@ -187,7 +200,11 @@ describe("helmDeploy", () => {
 
   it("should deploy a chart with devMode enabled", async () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const action = await garden.resolveAction({ action: graph.getDeploy("api"), log: garden.log, graph })
+    const action = await garden.resolveAction<HelmDeployAction>({
+      action: graph.getDeploy("api"),
+      log: garden.log,
+      graph,
+    })
 
     const releaseName = getReleaseName(action)
     await helmDeploy({
@@ -219,13 +236,13 @@ describe("helmDeploy", () => {
 
   it("should deploy a chart with an alternate namespace set", async () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const action = await garden.resolveAction({
+    const action = await garden.resolveAction<HelmDeployAction>({
       action: graph.getDeploy("chart-with-namespace"),
       log: garden.log,
       graph,
     })
 
-    const namespace = action.getSpec().namespace
+    const namespace = action.getSpec().namespace!
     expect(namespace).to.equal(provider.config.namespace!.name + "-extra")
 
     await helmDeploy({
@@ -267,7 +284,11 @@ describe("helmDeploy", () => {
     const providerWithApi = <KubernetesProvider>await garden.resolveProvider(gardenWithCloudApi.log, "local-kubernetes")
     const ctxWithCloudApi = <KubernetesPluginContext>await gardenWithCloudApi.getPluginContext(providerWithApi)
 
-    const action = await garden.resolveAction({ action: graph.getDeploy("api"), log: garden.log, graph })
+    const action = await garden.resolveAction<HelmDeployAction>({
+      action: graph.getDeploy("api"),
+      log: garden.log,
+      graph,
+    })
 
     const status = await helmDeploy({
       ctx: ctxWithCloudApi,
