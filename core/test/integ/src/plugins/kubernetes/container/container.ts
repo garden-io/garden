@@ -22,6 +22,7 @@ import { GARDEN_CORE_ROOT } from "../../../../../../src/constants"
 import { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
 import { V1Secret } from "@kubernetes/client-node"
 import { clusterInit } from "../../../../../../src/plugins/kubernetes/commands/cluster-init"
+import { ContainerDeployAction, ContainerTestAction } from "../../../../../../src/plugins/container/config"
 
 const root = getDataDir("test-projects", "container")
 const defaultEnvironment = process.env.GARDEN_INTEG_TEST_MODE === "remote" ? "kaniko" : "local"
@@ -119,7 +120,10 @@ describe("kubernetes container module handlers", () => {
 
   describe("k8sRunContainerDeploy", () => {
     it("should run a service", async () => {
-      const action = await garden.resolveAction({ action: graph.getDeploy("echo-service"), log: garden.log })
+      const action = await garden.resolveAction<ContainerDeployAction>({
+        action: graph.getDeploy("echo-service"),
+        log: garden.log,
+      })
 
       const result = await k8sRunContainerDeploy({
         ctx: await garden.getPluginContext(provider),
@@ -134,7 +138,10 @@ describe("kubernetes container module handlers", () => {
     })
 
     it("should add configured env vars to the runtime context", async () => {
-      const action = await garden.resolveAction({ action: graph.getDeploy("env-service"), log: garden.log })
+      const action = await garden.resolveAction<ContainerDeployAction>({
+        action: graph.getDeploy("env-service"),
+        log: garden.log,
+      })
 
       const result = await k8sRunContainerDeploy({
         ctx: await garden.getPluginContext(provider),
@@ -199,14 +206,18 @@ describe("kubernetes container module handlers", () => {
         }
       )
 
-      const reslvedTestAction = await garden.resolveAction({ action: testAction, log: garden.log, graph })
+      const resolvedRuntimeAction = await garden.resolveAction<ContainerTestAction>({
+        action: testAction,
+        log: garden.log,
+        graph,
+      })
       const actions = await garden.getActionRouter()
 
       // We also verify that, despite the test failing, its result was still saved.
       const result = await actions.test.getResult({
         log: garden.log,
         graph,
-        action: reslvedTestAction,
+        action: resolvedRuntimeAction,
       })
 
       expect(result).to.exist

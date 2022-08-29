@@ -21,6 +21,7 @@ import { containerHelpers } from "../../../../../../../src/plugins/container/hel
 import { k8sPublishContainerBuild } from "../../../../../../../src/plugins/kubernetes/container/publish"
 import { LogEntry } from "../../../../../../../src/logger/log-entry"
 import { cloneDeep } from "lodash"
+import { ContainerBuildAction } from "../../../../../../../src/plugins/container/config"
 
 describe("kubernetes build flow", () => {
   let garden: Garden
@@ -57,7 +58,11 @@ describe("kubernetes build flow", () => {
 
     await garden.buildStaging.syncFromSrc(buildAction, garden.log)
 
-    const resolvedBuildAction = await garden.resolveAction({ action: buildAction, log: garden.log, graph })
+    const resolvedBuildAction = await garden.resolveAction<ContainerBuildAction>({
+      action: buildAction,
+      log: garden.log,
+      graph,
+    })
 
     await k8sBuildContainer({
       ctx,
@@ -200,7 +205,7 @@ describe("kubernetes build flow", () => {
       const status = await k8sGetContainerBuildStatus({
         ctx,
         log,
-        action: await garden.resolveAction({ action, log: garden.log, graph }),
+        action: await garden.resolveAction<ContainerBuildAction>({ action, log: garden.log, graph }),
       })
 
       expect(status.state).to.equal("not-ready")
@@ -219,7 +224,7 @@ describe("kubernetes build flow", () => {
           k8sBuildContainer({
             ctx,
             log,
-            action: await garden.resolveAction({ action, log: garden.log, graph }),
+            action: await garden.resolveAction<ContainerBuildAction>({ action, log: garden.log, graph }),
           }),
         (err) => {
           expect(err.message).to.include("UNAUTHORIZED")
@@ -300,7 +305,7 @@ describe("kubernetes build flow", () => {
       const status = await k8sGetContainerBuildStatus({
         ctx,
         log,
-        action: await garden.resolveAction({ action, log: garden.log, graph }),
+        action: await garden.resolveAction<ContainerBuildAction>({ action, log: garden.log, graph }),
       })
 
       expect(status.state).to.equal("not-ready")
@@ -315,7 +320,7 @@ describe("kubernetes build flow", () => {
           k8sBuildContainer({
             ctx,
             log,
-            action: await garden.resolveAction({ action, log: garden.log, graph }),
+            action: await garden.resolveAction<ContainerBuildAction>({ action, log: garden.log, graph }),
           }),
         (err) => {
           expect(err.message).to.include("authorization failed")
@@ -386,7 +391,7 @@ describe("kubernetes build flow", () => {
       const status = await k8sGetContainerBuildStatus({
         ctx,
         log,
-        action: await garden.resolveAction({ action, log: garden.log, graph }),
+        action: await garden.resolveAction<ContainerBuildAction>({ action, log: garden.log, graph }),
       })
 
       expect(status.state).to.equal("not-ready")
@@ -401,7 +406,7 @@ describe("kubernetes build flow", () => {
           k8sBuildContainer({
             ctx,
             log,
-            action: await garden.resolveAction({ action, log: garden.log, graph }),
+            action: await garden.resolveAction<ContainerBuildAction>({ action, log: garden.log, graph }),
           }),
         (err) => {
           expect(err.message).to.include("authorization failed")
