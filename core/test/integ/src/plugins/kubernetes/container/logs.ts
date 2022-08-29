@@ -20,6 +20,7 @@ import { createWorkloadManifest } from "../../../../../../src/plugins/kubernetes
 import { sleep } from "../../../../../../src/util/util"
 import { DeleteDeployTask } from "../../../../../../src/tasks/delete-service"
 import { getDeployedImageId } from "../../../../../../src/plugins/kubernetes/container/util"
+import { ContainerDeployAction } from "../../../../../../src/plugins/container/config"
 
 describe("kubernetes", () => {
   let garden: TestGarden
@@ -64,7 +65,7 @@ describe("kubernetes", () => {
         entries.push(entry)
       })
 
-      const resolvedDeployAction = await garden.resolveAction({ action, log: garden.log, graph })
+      const resolvedDeployAction = await garden.resolveAction<ContainerDeployAction>({ action, log: garden.log, graph })
 
       await k8sGetContainerDeployLogs({
         ctx,
@@ -111,7 +112,11 @@ describe("kubernetes", () => {
           entries.push(entry)
         })
 
-        const resolvedDeployAction = await garden.resolveAction({ action, log: garden.log, graph })
+        const resolvedDeployAction = await garden.resolveAction<ContainerDeployAction>({
+          action,
+          log: garden.log,
+          graph,
+        })
 
         const resources = [
           await createWorkloadManifest({
@@ -188,7 +193,11 @@ describe("kubernetes", () => {
           entries.push(entry)
         })
 
-        const resolvedDeployAction = await garden.resolveAction({ action, log: garden.log, graph })
+        const resolvedDeployAction = await garden.resolveAction<ContainerDeployAction>({
+          action,
+          log: garden.log,
+          graph,
+        })
 
         const resources = [
           await createWorkloadManifest({
