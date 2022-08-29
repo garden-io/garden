@@ -15,6 +15,7 @@ import { RunTask } from "../../../../../../src/tasks/run"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
 import { clearTaskResult } from "../../../../../../src/plugins/kubernetes/run-results"
+import { KubernetesRunAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/run"
 
 describe("runKubernetesTask", () => {
   let garden: TestGarden
@@ -29,40 +30,41 @@ describe("runKubernetesTask", () => {
   })
 
   it("should run a basic task and store its result", async () => {
-    const task = graph.getTask("echo-task")
+    const action = graph.getRun("echo-task")
 
     const testTask = new RunTask({
       garden,
       graph,
-      task,
+      action,
       log: garden.log,
       force: true,
       forceBuild: false,
+      fromWatch: false,
       devModeDeployNames: [],
-
       localModeDeployNames: [],
     })
 
     // Clear any existing task result
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
     const ctx = await garden.getPluginContext(provider)
-    await clearTaskResult({ ctx, log: garden.log, module: task.module, task })
+    await clearTaskResult({ ctx, log: garden.log, action })
 
-    const key = testTask.getBaseKey()
-    const { [key]: result } = await garden.processTasks({ tasks: [testTask], throwOnError: true })
+    const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
+    const result = results.results.getResult(testTask)
 
     expect(result).to.exist
+    expect(result!.result).to.exist
     expect(result).to.have.property("output")
-    expect(result!.result.log.trim()).to.equal("ok")
+    expect(result!.result!.detail?.log.trim()).to.equal("ok")
     expect(result!.result).to.have.property("outputs")
-    expect(result!.result.outputs.log.trim()).to.equal("ok")
-    expect(result!.result.namespaceStatus).to.exist
+    expect(result!.result!.outputs.log.trim()).to.equal("ok")
+    expect(result!.result!.detail?.namespaceStatus).to.exist
 
     // Verify that the result was saved
     const actions = await garden.getActionRouter()
     const storedResult = await actions.run.getResult({
       log: garden.log,
-      task,
+      action: await garden.resolveAction<KubernetesRunAction>({ action, log: garden.log, graph }),
       graph,
     })
 
@@ -70,25 +72,25 @@ describe("runKubernetesTask", () => {
   })
 
   it("should not store task results if cacheResult=false", async () => {
-    const task = graph.getTask("echo-task")
-    task.config.cacheResult = false
+    const action = graph.getRun("echo-task")
+    action.getConfig().spec.cacheResult = false
 
     const testTask = new RunTask({
       garden,
       graph,
-      task,
+      action,
       log: garden.log,
       force: true,
       forceBuild: false,
+      fromWatch: false,
       devModeDeployNames: [],
-
       localModeDeployNames: [],
     })
 
     // Clear any existing task result
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
     const ctx = await garden.getPluginContext(provider)
-    await clearTaskResult({ ctx, log: garden.log, module: task.module, task })
+    await clearTaskResult({ ctx, log: garden.log, action })
 
     await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
@@ -96,7 +98,7 @@ describe("runKubernetesTask", () => {
     const actions = await garden.getActionRouter()
     const storedResult = await actions.run.getResult({
       log: garden.log,
-      task,
+      action: await garden.resolveAction<KubernetesRunAction>({ action, log: garden.log, graph }),
       graph,
     })
 
@@ -104,43 +106,44 @@ describe("runKubernetesTask", () => {
   })
 
   it("should run a task in a different namespace, if configured", async () => {
-    const task = graph.getTask("with-namespace-task")
+    const action = graph.getRun("with-namespace-task")
 
     const testTask = new RunTask({
       garden,
       graph,
-      task,
+      action,
       log: garden.log,
       force: true,
       forceBuild: false,
+      fromWatch: false,
       devModeDeployNames: [],
-
       localModeDeployNames: [],
     })
 
-    const key = testTask.getBaseKey()
-    const { [key]: result } = await garden.processTasks({ tasks: [testTask], throwOnError: true })
+    const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
+    const result = results.results.getResult(testTask)
 
     expect(result).to.exist
+    expect(result!.result).to.exist
     expect(result).to.have.property("output")
-    expect(result!.result.log.trim()).to.equal(task.module.spec.namespace)
+    expect(result!.result!.detail?.log.trim()).to.equal(action.getConfig().spec.namespace)
     expect(result!.result).to.have.property("outputs")
-    expect(result!.result.outputs.log.trim()).to.equal(task.module.spec.namespace)
+    expect(result!.result!.outputs.log.trim()).to.equal(action.getConfig().spec.namespace)
   })
 
   it("should fail if an error occurs, but store the result", async () => {
-    const task = graph.getTask("echo-task")
-    task.config.spec.command = ["bork"] // this will fail
+    const action = graph.getRun("echo-task")
+    action.getConfig().spec.command = ["bork"] // this will fail
 
     const testTask = new RunTask({
       garden,
       graph,
-      task,
+      action,
       log: garden.log,
       force: true,
       forceBuild: false,
+      fromWatch: false,
       devModeDeployNames: [],
-
       localModeDeployNames: [],
     })
 
@@ -154,7 +157,7 @@ describe("runKubernetesTask", () => {
     // We also verify that, despite the task failing, its result was still saved.
     const result = await actions.run.getResult({
       log: garden.log,
-      task,
+      action: await garden.resolveAction<KubernetesRunAction>({ action, log: garden.log, graph }),
       graph,
     })
 
@@ -163,17 +166,17 @@ describe("runKubernetesTask", () => {
 
   context("artifacts are specified", () => {
     it("should copy artifacts out of the container", async () => {
-      const task = graph.getTask("artifacts-task")
+      const action = graph.getRun("artifacts-task")
 
       const testTask = new RunTask({
         garden,
         graph,
-        task,
+        action,
         log: garden.log,
         force: true,
         forceBuild: false,
+        fromWatch: false,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
       })
 
@@ -186,17 +189,17 @@ describe("runKubernetesTask", () => {
     })
 
     it("should fail if an error occurs, but copy the artifacts out of the container", async () => {
-      const task = graph.getTask("artifacts-task-fail")
+      const action = graph.getRun("artifacts-task-fail")
 
       const testTask = new RunTask({
         garden,
         graph,
-        task,
+        action,
         log: garden.log,
         force: true,
         forceBuild: false,
+        fromWatch: false,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
       })
       await emptyDir(garden.artifactsPath)
@@ -210,17 +213,17 @@ describe("runKubernetesTask", () => {
     })
 
     it("should handle globs when copying artifacts out of the container", async () => {
-      const task = graph.getTask("globs-task")
+      const action = graph.getRun("globs-task")
 
       const testTask = new RunTask({
         garden,
         graph,
-        task,
+        action,
         log: garden.log,
         force: true,
         forceBuild: false,
+        fromWatch: false,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
       })
 
