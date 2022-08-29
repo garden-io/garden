@@ -78,9 +78,24 @@ describe("ActionRouter", () => {
     actions = await garden.getActionRouter()
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     module = graph.getModule("module-a")
-    resolvedBuildAction = graph.getBuild("module-a").resolve() // todo: pass parameters
-    resolvedDeployAction = graph.getDeploy("service-a").resolve() // todo: pass parameters
-    resolvedRunAction = graph.getRun("task-a").resolve() // todo: pass parameters
+    const buildAction = graph.getBuild("module-a")
+    resolvedBuildAction = await garden.resolveAction({
+      action: buildAction,
+      log: garden.log,
+      graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
+    })
+    const deployAction = graph.getDeploy("service-a")
+    resolvedDeployAction = await garden.resolveAction({
+      action: deployAction,
+      log: garden.log,
+      graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
+    })
+    const runAction = graph.getRun("task-a")
+    resolvedRunAction = await garden.resolveAction({
+      action: runAction,
+      log: garden.log,
+      graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
+    })
   })
 
   after(async () => {
@@ -310,7 +325,11 @@ describe("ActionRouter", () => {
         const command = ["npm", "run"]
         const result = await actions.build.run({
           log,
-          action: resolvedBuildAction.execute(), // todo: parameters
+          action: await garden.executeAction({
+            action: resolvedBuildAction,
+            log: garden.log,
+            graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
+          }),
           args: command,
           interactive: true,
           graph,
@@ -900,7 +919,11 @@ describe("ActionRouter", () => {
 
         await actions.run.run({
           log,
-          action: runActionTaskA.resolve(), // todo: params
+          action: await garden.resolveAction({
+            action: runActionTaskA,
+            log: garden.log,
+            graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
+          }),
           interactive: true,
           graph,
         })
