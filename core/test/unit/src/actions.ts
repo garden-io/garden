@@ -37,6 +37,12 @@ import { testFromModule, testFromConfig } from "../../../src/types/test"
 import { ConfigGraph } from "../../../src/graph/config-graph"
 import { ResolvedRuntimeAction } from "../../../src/actions/base"
 import { ResolvedBuildAction } from "../../../src/actions/build"
+import {
+  execBuildActionSchema,
+  execDeployActionSchema,
+  execRunActionSchema,
+  execTestActionSchema,
+} from "../../../src/plugins/exec/config"
 
 const now = new Date()
 
@@ -1995,174 +2001,206 @@ const testPlugin = createGardenPlugin({
         suggestModules: async () => {
           return { suggestions: [] }
         },
-
-        getBuildStatus: async (params) => {
-          validateParams(params, moduleActionDescriptions.getBuildStatus.paramsSchema)
-          return { ready: true }
-        },
-
-        build: async (params) => {
-          validateParams(params, moduleActionDescriptions.build.paramsSchema)
-          return {}
-        },
-
-        publish: async (params) => {
-          validateParams(params, moduleActionDescriptions.publish.paramsSchema)
-          return { published: true }
-        },
-
-        runModule: async (params) => {
-          validateParams(params, moduleActionDescriptions.runModule.paramsSchema)
-          return {
-            moduleName: params.module.name,
-            command: params.args,
-            completedAt: now,
-            log: "bla bla",
-            success: true,
-            startedAt: now,
-            version: params.module.version.versionString,
-          }
-        },
-
-        testModule: async (params) => {
-          validateParams(params, moduleActionDescriptions.testModule.paramsSchema)
-
-          // Create artifacts, to test artifact copying
-          for (const artifact of params.test.config.spec.artifacts || []) {
-            await ensureFile(join(params.artifactsPath, artifact.source))
-          }
-
-          return {
-            moduleName: params.module.name,
-            command: [],
-            completedAt: now,
-            log: "bla bla",
-            outputs: {
-              log: "bla bla",
-            },
-            success: true,
-            startedAt: now,
-            testName: params.test.config.name,
-            version: params.test.version,
-          }
-        },
-
-        getTestResult: async (params) => {
-          validateParams(params, moduleActionDescriptions.getTestResult.paramsSchema)
-          return {
-            moduleName: params.module.name,
-            command: [],
-            completedAt: now,
-            log: "bla bla",
-            outputs: {
-              log: "bla bla",
-            },
-            success: true,
-            startedAt: now,
-            testName: params.test.name,
-            version: params.test.version,
-          }
-        },
-
-        getServiceStatus: async (params) => {
-          validateParams(params, moduleActionDescriptions.getServiceStatus.paramsSchema)
-          return { state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } }
-        },
-
-        deployService: async (params) => {
-          validateParams(params, moduleActionDescriptions.deployService.paramsSchema)
-          return { state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } }
-        },
-
-        deleteService: async (params) => {
-          validateParams(params, moduleActionDescriptions.deleteService.paramsSchema)
-          return { state: "ready", detail: {} }
-        },
-
-        execInService: async (params) => {
-          validateParams(params, moduleActionDescriptions.execInService.paramsSchema)
-          return {
-            code: 0,
-            output: "bla bla",
-          }
-        },
-
-        getServiceLogs: async (params) => {
-          validateParams(params, moduleActionDescriptions.getServiceLogs.paramsSchema)
-          return {}
-        },
-
-        runService: async (params) => {
-          validateParams(params, moduleActionDescriptions.runService.paramsSchema)
-          return {
-            moduleName: params.module.name,
-            command: ["foo"],
-            completedAt: now,
-            log: "bla bla",
-            success: true,
-            startedAt: now,
-            version: params.service.version,
-          }
-        },
-
-        getPortForward: async (params) => {
-          validateParams(params, moduleActionDescriptions.getPortForward.paramsSchema)
-          return {
-            hostname: "bla",
-            port: 123,
-          }
-        },
-
-        stopPortForward: async (params) => {
-          validateParams(params, moduleActionDescriptions.stopPortForward.paramsSchema)
-          return {}
-        },
-
-        getTaskResult: async (params) => {
-          validateParams(params, moduleActionDescriptions.getTaskResult.paramsSchema)
-          const module = params.task.module
-          return {
-            moduleName: module.name,
-            taskName: params.task.name,
-            command: ["foo"],
-            completedAt: now,
-            log: "bla bla",
-            outputs: { base: "ok", foo: "ok" },
-            success: true,
-            startedAt: now,
-            version: params.task.version,
-          }
-        },
-
-        runTask: async (params) => {
-          validateParams(params, moduleActionDescriptions.runTask.paramsSchema)
-
-          const module = params.task.module
-
-          // Create artifacts, to test artifact copying
-          for (const artifact of params.task.spec.artifacts || []) {
-            await ensureFile(join(params.artifactsPath, artifact.source))
-          }
-
-          return {
-            moduleName: module.name,
-            taskName: params.task.name,
-            command: ["foo"],
-            completedAt: now,
-            log: "bla bla",
-            outputs: { base: "ok", foo: "ok" },
-            success: true,
-            startedAt: now,
-            version: params.task.version,
-          }
-        },
       },
     },
   ],
+  createActionTypes: {
+    Build: [
+      {
+        name: "build",
+        docs: "Test Build action",
+        schema: execBuildActionSchema(),
+        handlers: {
+          getStatus: async (_params) => {
+            return { state: "ready", detail: {}, outputs: { foo: "bar" } }
+          },
+
+          build: async (_params) => {
+            return { state: "ready", detail: {}, outputs: { foo: "bar" } }
+          },
+
+          publish: async (_params) => {
+            return { state: "ready", detail: null, outputs: {} }
+          },
+
+          run: async (params) => {
+            return {
+              moduleName: params.action.name,
+              command: params.args,
+              completedAt: now,
+              log: "bla bla",
+              success: true,
+              startedAt: now,
+              version: params.action.versionString(),
+            }
+          },
+        },
+      },
+    ],
+    Deploy: [
+      {
+        name: "deploy",
+        docs: "Test Deploy action",
+        schema: execDeployActionSchema(),
+        handlers: {
+          getStatus: async (_params) => {
+            return { state: "ready", detail: { state: "ready", detail: {} }, outputs: { base: "ok", foo: "ok" } }
+          },
+
+          deploy: async (params) => {
+            validateParams(params, moduleActionDescriptions.deployService.paramsSchema)
+            return { state: "ready", detail: { state: "ready", detail: {} }, outputs: { base: "ok", foo: "ok" } }
+          },
+
+          delete: async (_params) => {
+            return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+          },
+
+          exec: async (_params) => {
+            return {
+              code: 0,
+              output: "bla bla",
+            }
+          },
+
+          getLogs: async (_params) => {
+            return {}
+          },
+
+          run: async (params) => {
+            return {
+              moduleName: params.action.name,
+              command: ["foo"],
+              completedAt: now,
+              log: "bla bla",
+              success: true,
+              startedAt: now,
+              version: params.action.versionString(),
+            }
+          },
+
+          getPortForward: async (params) => {
+            validateParams(params, moduleActionDescriptions.getPortForward.paramsSchema)
+            return {
+              hostname: "bla",
+              port: 123,
+            }
+          },
+
+          stopPortForward: async (params) => {
+            validateParams(params, moduleActionDescriptions.stopPortForward.paramsSchema)
+            return {}
+          },
+        },
+      },
+    ],
+    Run: [
+      {
+        name: "run",
+        docs: "Test Run action",
+        schema: execRunActionSchema(),
+        handlers: {
+          getResult: async (params) => {
+            return {
+              state: "ready",
+              detail: {
+                moduleName: params.action.name,
+                taskName: params.action.name,
+                command: ["foo"],
+                completedAt: now,
+                log: "bla bla",
+                outputs: { base: "ok", foo: "ok" },
+                success: true,
+                startedAt: now,
+                version: params.action.versionString(),
+              },
+              outputs: {},
+            }
+          },
+
+          run: async (params) => {
+            // Create artifacts, to test artifact copying
+            for (const artifact of params.action.getSpec().artifacts || []) {
+              await ensureFile(join(params.artifactsPath, artifact.source))
+            }
+
+            return {
+              state: "ready",
+              detail: {
+                moduleName: params.action.name,
+                taskName: params.action.name,
+                command: ["foo"],
+                completedAt: now,
+                log: "bla bla",
+                outputs: { base: "ok", foo: "ok" },
+                success: true,
+                startedAt: now,
+                version: params.action.versionString(),
+              },
+              outputs: {},
+            }
+          },
+        },
+      },
+    ],
+    Test: [
+      {
+        name: "test",
+        docs: "Test Test action",
+        schema: execTestActionSchema(),
+        handlers: {
+          run: async (params) => {
+            // Create artifacts, to test artifact copying
+            for (const artifact of params.action.getSpec().artifacts || []) {
+              await ensureFile(join(params.artifactsPath, artifact.source))
+            }
+
+            return {
+              state: "ready",
+              detail: {
+                moduleName: params.action.name,
+                command: [],
+                completedAt: now,
+                log: "bla bla",
+                outputs: {
+                  log: "bla bla",
+                },
+                success: true,
+                startedAt: now,
+                testName: params.action.name,
+                version: params.action.versionString(),
+              },
+              outputs: [],
+            }
+          },
+
+          getResult: async (params) => {
+            return {
+              state: "ready",
+              detail: {
+                moduleName: params.action.name,
+                command: [],
+                completedAt: now,
+                log: "bla bla",
+                outputs: {
+                  log: "bla bla",
+                },
+                success: true,
+                startedAt: now,
+                testName: params.action.name,
+                version: params.action.versionString(),
+              },
+              outputs: {},
+            }
+          },
+        },
+      },
+    ],
+  },
 })
 
 const testPluginB = createGardenPlugin({
-  ...omit(testPlugin, ["createModuleTypes"]),
+  ...omit(testPlugin, ["createModuleTypes", "createActionTypes"]),
   name: "test-plugin-b",
 })
 
