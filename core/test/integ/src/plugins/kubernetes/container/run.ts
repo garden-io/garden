@@ -17,6 +17,7 @@ import { getContainerTestGarden } from "./container"
 import { clearTaskResult } from "../../../../../../src/plugins/kubernetes/run-results"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { deline } from "../../../../../../src/util/string"
+import { ContainerRunAction } from "../../../../../../src/plugins/container/config"
 
 describe("runContainerTask", () => {
   let garden: TestGarden
@@ -73,7 +74,7 @@ describe("runContainerTask", () => {
     const actions = await garden.getActionRouter()
     const storedResult = await actions.run.getResult({
       log: garden.log,
-      action: await garden.resolveAction({ action, log: garden.log, graph }),
+      action: await garden.resolveAction<ContainerRunAction>({ action, log: garden.log, graph }),
       graph,
     })
 
@@ -105,7 +106,7 @@ describe("runContainerTask", () => {
     const actions = await garden.getActionRouter()
     const storedResult = await actions.run.getResult({
       log: garden.log,
-      action: await garden.resolveAction({ action, log: garden.log, graph }),
+      action: await garden.resolveAction<ContainerRunAction>({ action, log: garden.log, graph }),
       graph,
     })
 
@@ -140,7 +141,7 @@ describe("runContainerTask", () => {
     const actions = await garden.getActionRouter()
     const result = await actions.run.getResult({
       log: garden.log,
-      action: await garden.resolveAction({ action, log: garden.log, graph }),
+      action: await garden.resolveAction<ContainerRunAction>({ action, log: garden.log, graph }),
       graph,
     })
 
