@@ -283,6 +283,37 @@ providers:
         namespace: default
 ```
 
+#### Configuring Access
+
+To grant your service account the right permission to push to ECR, add this policy to each of the repositories in the container registry that you want to use with in-cluster building:
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowPushPull",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": [
+                    "arn:aws:iam::<account-id>:role/<k8s_worker_iam_role>"                ]
+            },
+            "Action": [
+                "ecr:BatchGetImage",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:CompleteLayerUpload",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:InitiateLayerUpload",
+                "ecr:PutImage",
+                "ecr:UploadLayerPart"
+            ]
+        }
+    ]
+}
+```
+
+To grant developers permission to push and pull directly from a repository, see [the AWS documentation](https://docs.aws.amazon.com/AmazonECR/latest/userguide/security_iam_id-based-policy-examples.html).
+
 ### Using in-cluster building with GCR
 
 To use in-cluster building with GCR (Google Container Registry) you need to set up authentication, with the following steps:
