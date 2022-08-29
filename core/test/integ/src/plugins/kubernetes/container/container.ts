@@ -13,9 +13,8 @@ import { expect } from "chai"
 import { join, resolve } from "path"
 import { Garden } from "../../../../../../src/garden"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
-import { findByName } from "../../../../../../src/util/util"
 import { deline } from "../../../../../../src/util/string"
-import { runContainerService } from "../../../../../../src/plugins/kubernetes/container/run"
+import { k8sRunContainerDeploy } from "../../../../../../src/plugins/kubernetes/container/run"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { decryptSecretFile } from "../../../../helpers"
@@ -23,7 +22,6 @@ import { GARDEN_CORE_ROOT } from "../../../../../../src/constants"
 import { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
 import { V1Secret } from "@kubernetes/client-node"
 import { clusterInit } from "../../../../../../src/plugins/kubernetes/commands/cluster-init"
-import { testFromConfig, testFromModule } from "../../../../../../src/types/test"
 
 const root = getDataDir("test-projects", "container")
 const defaultEnvironment = process.env.GARDEN_INTEG_TEST_MODE === "remote" ? "kaniko" : "local"
@@ -88,7 +86,13 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
 
   if (needsInit) {
     // Run cluster-init
-    await clusterInit.handler({ garden, ctx, log: garden.log, args: [], modules: [] })
+    await clusterInit.handler({
+      garden,
+      ctx,
+      log: garden.log,
+      args: [],
+      graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
+    })
     initializedEnvs.push(environmentName)
   }
 
@@ -113,15 +117,14 @@ describe("kubernetes container module handlers", () => {
     await garden.close()
   })
 
-  describe("runContainerService", () => {
+  describe("k8sRunContainerDeploy", () => {
     it("should run a service", async () => {
-      const service = graph.getService("echo-service")
+      const action = await garden.resolveAction({ action: graph.getDeploy("echo-service"), log: garden.log })
 
-      const result = await runContainerService({
+      const result = await k8sRunContainerDeploy({
         ctx: await garden.getPluginContext(provider),
         log: garden.log,
-        service,
-        module: service.module,
+        action,
         interactive: false,
       })
 
@@ -131,13 +134,12 @@ describe("kubernetes container module handlers", () => {
     })
 
     it("should add configured env vars to the runtime context", async () => {
-      const service = graph.getService("env-service")
+      const action = await garden.resolveAction({ action: graph.getDeploy("env-service"), log: garden.log })
 
-      const result = await runContainerService({
+      const result = await k8sRunContainerDeploy({
         ctx: await garden.getPluginContext(provider),
         log: garden.log,
-        service,
-        module: service.module,
+        action,
         interactive: false,
       })
 
@@ -147,18 +149,18 @@ describe("kubernetes container module handlers", () => {
 
   describe("testContainerModule", () => {
     it("should run a basic test and emit log events", async () => {
-      const module = graph.getModule("simple")
+      const action = graph.getTest("simple-echo-test-with-sleep")
 
       const testTask = new TestTask({
         garden,
         graph,
         silent: false,
-        test: testFromModule(module, "echo-test-with-sleep", graph),
+        action,
         log: garden.log,
         force: true,
         forceBuild: false,
+        fromWatch: false,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
       })
 
@@ -175,22 +177,18 @@ describe("kubernetes container module handlers", () => {
     })
 
     it("should fail if an error occurs, but store the result", async () => {
-      const module = graph.getModule("simple")
-
-      const testConfig = findByName(module.testConfigs, "echo-test")!
-      testConfig.spec.command = ["bork"] // this will fail
-
-      const test = testFromConfig(module, testConfig, graph)
+      const testAction = graph.getTest("echo-test")!
+      testAction.getConfig().spec.command = ["bork"] // this will fail
 
       const testTask = new TestTask({
         garden,
         graph,
-        test,
+        action: testAction,
         log: garden.log,
         force: true,
         forceBuild: false,
+        fromWatch: false,
         devModeDeployNames: [],
-
         localModeDeployNames: [],
       })
 
@@ -201,14 +199,14 @@ describe("kubernetes container module handlers", () => {
         }
       )
 
+      const reslvedTestAction = await garden.resolveAction({ action: testAction, log: garden.log, graph })
       const actions = await garden.getActionRouter()
 
       // We also verify that, despite the test failing, its result was still saved.
       const result = await actions.test.getResult({
         log: garden.log,
         graph,
-        module,
-        test,
+        action: reslvedTestAction,
       })
 
       expect(result).to.exist
@@ -216,17 +214,17 @@ describe("kubernetes container module handlers", () => {
 
     context("artifacts are specified", () => {
       it("should copy artifacts out of the container", async () => {
-        const module = graph.getModule("simple")
+        const action = graph.getTest("artifacts-test")
 
         const testTask = new TestTask({
           garden,
           graph,
-          test: testFromModule(module, "artifacts-test", graph),
+          action,
           log: garden.log,
           force: true,
           forceBuild: false,
+          fromWatch: false,
           devModeDeployNames: [],
-
           localModeDeployNames: [],
         })
 
@@ -239,17 +237,17 @@ describe("kubernetes container module handlers", () => {
       })
 
       it("should fail if an error occurs, but copy the artifacts out of the container", async () => {
-        const module = graph.getModule("simple")
+        const action = graph.getTest("artifacts-test-fail")
 
         const testTask = new TestTask({
           garden,
           graph,
-          test: testFromModule(module, "artifacts-test-fail", graph),
+          action,
           log: garden.log,
           force: true,
           forceBuild: false,
+          fromWatch: false,
           devModeDeployNames: [],
-
           localModeDeployNames: [],
         })
 
@@ -264,17 +262,17 @@ describe("kubernetes container module handlers", () => {
       })
 
       it("should handle globs when copying artifacts out of the container", async () => {
-        const module = graph.getModule("simple")
+        const action = graph.getTest("globs-test")
 
         const testTask = new TestTask({
           garden,
           graph,
-          test: testFromModule(module, "globs-test", graph),
+          action,
           log: garden.log,
           force: true,
           forceBuild: false,
+          fromWatch: false,
           devModeDeployNames: [],
-
           localModeDeployNames: [],
         })
 
@@ -287,17 +285,17 @@ describe("kubernetes container module handlers", () => {
       })
 
       it("should throw when container doesn't contain sh", async () => {
-        const module = graph.getModule("missing-sh")
+        const action = graph.getTest("missing-sh-test")
 
         const testTask = new TestTask({
           garden,
           graph,
-          test: testFromConfig(module, module.testConfigs[0], graph),
+          action,
           log: garden.log,
           force: true,
           forceBuild: false,
+          fromWatch: false,
           devModeDeployNames: [],
-
           localModeDeployNames: [],
         })
 
@@ -314,17 +312,17 @@ describe("kubernetes container module handlers", () => {
       })
 
       it("should throw when container doesn't contain tar", async () => {
-        const module = graph.getModule("missing-tar")
+        const action = graph.getTest("missing-tar-test")
 
         const testTask = new TestTask({
           garden,
           graph,
-          test: testFromConfig(module, module.testConfigs[0], graph),
+          action,
           log: garden.log,
           force: true,
           forceBuild: false,
+          fromWatch: false,
           devModeDeployNames: [],
-
           localModeDeployNames: [],
         })
 
