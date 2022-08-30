@@ -121,7 +121,7 @@ const defaultCommandinfo = { name: "test", args: {}, opts: {} }
 const repoRoot = resolve(GARDEN_CORE_ROOT, "..")
 
 const paramCache: { [key: string]: GardenParams } = {}
-const configGraphCache: { [key: string]: ConfigGraph } = {}
+// const configGraphCache: { [key: string]: ConfigGraph } = {}
 
 export type TestGardenOpts = Partial<GardenOpts> & { noCache?: boolean; noTempDir?: boolean }
 

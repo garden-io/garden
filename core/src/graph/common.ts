@@ -116,7 +116,15 @@ interface CycleGraph {
   }
 }
 
-export async function resolveVariables({ basePath, variables, varfiles }: { basePath: string; variables?: DeepPrimitiveMap; varfiles?: string[] }) {
+export async function resolveVariables({
+  basePath,
+  variables,
+  varfiles,
+}: {
+  basePath: string
+  variables?: DeepPrimitiveMap
+  varfiles?: string[]
+}) {
   const varsByFile = await Bluebird.map(varfiles || [], (path) => {
     return loadVarfile({
       configRoot: basePath,
@@ -140,7 +148,6 @@ export async function resolveVariables({ basePath, variables, varfiles }: { base
 
   return output
 }
-
 
 /**
  * Implements a variation on the Floyd-Warshall algorithm to compute minimal cycles.

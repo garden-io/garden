@@ -1072,7 +1072,7 @@ describe("ConfigGraphNode", () => {
     })
 
     it("should render a deploy node", () => {
-      const node = new ConfigGraphNode("Deploy", "service-a",  false)
+      const node = new ConfigGraphNode("Deploy", "service-a", false)
       const res = node.render()
       expect(res).to.eql({
         type: "deploy",

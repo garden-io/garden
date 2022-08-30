@@ -11,7 +11,7 @@ import { collectTemplateReferences, resolveTemplateStrings } from "./template-st
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { LogEntry } from "./logger/log-entry"
 import { OutputSpec } from "./config/project"
-import { ActionReference, parseActionReference } from "./config/common"
+import { ActionReference } from "./config/common"
 import { ActionKind } from "./plugin/action-types"
 import { getExecuteTaskForAction } from "./graph/actions"
 import { GraphResults } from "./graph/results"
