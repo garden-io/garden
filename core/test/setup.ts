@@ -20,7 +20,7 @@ initTestLogger()
 
 // Global hooks
 exports.mochaHooks = {
-  async before() {
+  async beforeAll() {
     getDefaultProfiler().setEnabled(true)
     gardenEnv.GARDEN_DISABLE_ANALYTICS = true
     testFlags.disableShutdown = true
@@ -29,7 +29,7 @@ exports.mochaHooks = {
     await ensureConnected()
   },
 
-  async after() {
+  async afterAll() {
     // tslint:disable-next-line: no-console
     console.log(getDefaultProfiler().report())
     await Bluebird.map(Object.values(testProjectTempDirs), (d) => d.cleanup())
