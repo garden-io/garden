@@ -18,13 +18,7 @@ import {
 } from "../src/plugins/container/moduleConfig"
 import { buildExecAction } from "../src/plugins/exec/exec"
 import { joi, joiArray } from "../src/config/common"
-import {
-  createGardenPlugin,
-  GardenPluginSpec,
-  ModuleActionHandlers,
-  ProviderHandlers,
-  RegisterPluginParam,
-} from "../src/plugin/plugin"
+import { createGardenPlugin, GardenPluginSpec, ProviderHandlers, RegisterPluginParam } from "../src/plugin/plugin"
 import { Garden, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { ModuleVersion } from "../src/vcs/vcs"
@@ -56,8 +50,9 @@ import {
   execRunActionSchema,
   execTestActionSchema,
 } from "../src/plugins/exec/config"
-import { RunActionHandler } from "../src/plugin/action-types"
+import { ActionKind, RunActionHandler } from "../src/plugin/action-types"
 import { GetRunResult } from "../src/plugin/handlers/run/get-result"
+import { WrappedActionRouterHandlers } from "../src/router/base"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError } from "../src/util/testing"
@@ -457,17 +452,15 @@ export async function stubProviderAction<T extends keyof ProviderHandlers>(
   return td.replace(actions.provider["pluginHandlers"][type], pluginName, handler)
 }
 
-export function stubModuleAction<T extends keyof ModuleActionHandlers<any>>(
-  actions: ActionRouter,
-  moduleType: string,
-  pluginName: string,
-  handlerType: T,
-  handler: ModuleActionHandlers<any>[T]
+export function stubRouterAction<K extends ActionKind, H extends keyof WrappedActionRouterHandlers<K>>(
+  actionRouter: ActionRouter,
+  actionKind: K,
+  handlerType: H,
+  handler: WrappedActionRouterHandlers<K>[H]
 ) {
-  handler["handlerType"] = handlerType
-  handler["pluginName"] = pluginName
-  handler["moduleType"] = moduleType
-  return td.replace(actions.module["moduleHandlers"][handlerType][moduleType], pluginName, handler)
+  const actionKindKey = actionKind.toLowerCase()
+  const actionKindHandlers: WrappedActionRouterHandlers<K> = actionRouter[actionKindKey]
+  actionKindHandlers[handlerType] = handler
 }
 
 export function taskResultOutputs(results: ProcessCommandResult) {
