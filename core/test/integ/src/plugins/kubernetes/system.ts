@@ -15,7 +15,9 @@ import { TestTask } from "../../../../../src/tasks/test"
 import { getSystemGarden } from "../../../../../src/plugins/kubernetes/system"
 import { getKubernetesSystemVariables } from "../../../../../src/plugins/kubernetes/init"
 import Bluebird = require("bluebird")
-import { testFromConfig } from "../../../../../src/types/test"
+import { convertModules } from "../../../../../src/resolve-module"
+import { TestAction } from "../../../../../src/actions/test"
+import { actionFromConfig } from "../../../../../src/graph/actions"
 
 describe("System services", () => {
   let garden: Garden
@@ -50,21 +52,32 @@ describe("System services", () => {
     const systemGarden = await getSystemGarden(ctx, variables, garden.log)
     const graph = await systemGarden.getConfigGraph({ log: garden.log, emit: false })
     const modules = graph.getModules().filter((module) => module.name.startsWith("conftest-"))
+    const actions = await convertModules(systemGarden, systemGarden.log, modules, graph.moduleGraph)
+    const router = await systemGarden.getActionRouter()
+    const tests = actions.actions.filter((a) => a.kind === "Test")
 
-    await Bluebird.map(modules, async (module) => {
-      const test = testFromConfig(module, module.testConfigs[0], graph)
+    await Bluebird.map(tests, async (testConfig) => {
+      const action = (await actionFromConfig({
+        config: testConfig,
+        configsByKey: {},
+        garden: systemGarden,
+        graph,
+        log: systemGarden.log,
+        router,
+      })) as TestAction<any, any>
+      const resolved = await systemGarden.resolveAction<TestAction>({ action, graph, log: systemGarden.log })
       const testTask = new TestTask({
         garden: systemGarden,
-        test,
         log: garden.log,
-        graph,
-        force: true,
-        forceBuild: true,
-        devModeDeployNames: [],
+        action: resolved,
         localModeDeployNames: [],
+        devModeDeployNames: [],
+        force: false,
+        fromWatch: false,
+        graph,
       })
       const key = testTask.getBaseKey()
-      const result = await systemGarden.processTasks({ tasks: [testTask], throwOnError: false })
+      const result = await systemGarden.processTasks({ tasks: [testTask], throwOnError: false, log: systemGarden.log })
       expect(result[key]).to.exist
       expect(result[key]?.error).to.not.exist
     })
