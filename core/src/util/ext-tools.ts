@@ -26,6 +26,7 @@ import AsyncLock from "async-lock"
 import { PluginContext } from "../plugin-context"
 
 const toolsPath = join(GARDEN_GLOBAL_PATH, "tools")
+const lock = new AsyncLock()
 
 export class DownloadError extends GardenBaseError {
   type = "download"
@@ -223,7 +224,6 @@ export class PluginTool extends CliWrapper {
   spec: PluginToolSpec
   buildSpec: ToolBuildSpec
 
-  private lock: any
   private versionDirname: string
   protected versionPath: string
   protected targetSubpath: string
@@ -247,8 +247,6 @@ export class PluginTool extends CliWrapper {
         }
       )
     }
-
-    this.lock = new AsyncLock()
 
     this.name = spec.name
     this.type = spec.type
@@ -277,7 +275,7 @@ export class PluginTool extends CliWrapper {
   }
 
   protected async download(log: LogEntry) {
-    return this.lock.acquire("download", async () => {
+    return lock.acquire(this.versionPath, async () => {
       if (await pathExists(this.versionPath)) {
         return
       }
