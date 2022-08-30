@@ -15,7 +15,7 @@ import { joiPathPlaceholder } from "./validation"
 import { DEFAULT_API_VERSION } from "../constants"
 import { ActionKind, actionKinds } from "../actions/base"
 import { ConfigurationError } from "../exceptions"
-import { ConfigContext, ConfigContextType } from "./template-contexts/base"
+import { ConfigContextType } from "./template-contexts/base"
 
 export const objectSpreadKey = "$merge"
 export const arrayConcatKey = "$concat"

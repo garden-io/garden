@@ -21,7 +21,12 @@ import type {
 } from "@kubernetes/client-node"
 
 import type { Omit } from "../../util/util"
-import type { ContainerBuildAction, ContainerDeployAction, ContainerRunAction, ContainerTestAction } from "../container/config"
+import type {
+  ContainerBuildAction,
+  ContainerDeployAction,
+  ContainerRunAction,
+  ContainerTestAction,
+} from "../container/config"
 import type { HelmDeployAction } from "./helm/config"
 import type { KubernetesDeployAction } from "./kubernetes-type/config"
 import { KubernetesRunAction } from "./kubernetes-type/run"
