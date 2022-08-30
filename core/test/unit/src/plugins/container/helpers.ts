@@ -92,8 +92,8 @@ describe("containerHelpers", () => {
     return actionFromConfig({
       garden,
       log,
-      config: parsed.moduleConfig,
-      configsByKey: [],
+      config: parsed.moduleConfig.buildConfig,
+      configsByKey: {},
       router: await garden.getActionRouter(),
       graph: await garden.getConfigGraph({ log, emit: false }),
     }) as Promise<BuildAction>
