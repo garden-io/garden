@@ -18,7 +18,7 @@ import { isConfigFilename, matchPath } from "./util/fs"
 import Bluebird from "bluebird"
 import { InternalError } from "./exceptions"
 import { EventEmitter } from "events"
-import { Action } from "./actions/base"
+import { Action } from "./actions/types"
 
 // How long we wait between processing added files and directories
 const DEFAULT_BUFFER_INTERVAL = 1250

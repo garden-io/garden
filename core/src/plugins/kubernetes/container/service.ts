@@ -12,7 +12,7 @@ import { ContainerDeployAction } from "../../container/moduleConfig"
 import { getDeploymentSelector } from "./deployment"
 import { KubernetesResource } from "../types"
 import { find } from "lodash"
-import { Resolved } from "../../../actions/base"
+import { Resolved } from "../../../actions/types"
 
 function toServicePort(portSpec: ServicePortSpec): V1ServicePort {
   const port: V1ServicePort = {

@@ -20,7 +20,7 @@ import { ConfigGraph } from "./graph/config-graph"
 import { gardenEnv } from "./constants"
 import { DeployAction } from "./actions/deploy"
 import { GetPortForwardResult } from "./plugin/handlers/deploy/get-port-forward"
-import { Executed } from "./actions/base"
+import { Executed } from "./actions/types"
 
 interface PortProxy {
   key: string

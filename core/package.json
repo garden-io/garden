@@ -80,6 +80,7 @@
     "hasha": "^5.2.0",
     "http-status-codes": "^1.4.0",
     "humanize-string": "^2.1.0",
+    "import-lazy": "^4.0.0",
     "indent-string": "^4.0.0",
     "inquirer": "^7.1.0",
     "ip": "^1.1.5",

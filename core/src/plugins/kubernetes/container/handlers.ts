@@ -20,7 +20,7 @@ import { GetModuleOutputsParams } from "../../../plugin/handlers/module/get-outp
 import { containerHelpers } from "../../container/helpers"
 import { getContainerModuleOutputs } from "../../container/container"
 import { getContainerBuildActionOutputs } from "../../container/build"
-import { Resolved } from "../../../actions/base"
+import { Resolved } from "../../../actions/types"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
   let { moduleConfig } = await params.base!(params)

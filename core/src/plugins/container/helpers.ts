@@ -32,7 +32,7 @@ import { ModuleVersion } from "../../vcs/vcs"
 import { SpawnParams } from "../../util/ext-tools"
 import { ContainerBuildAction } from "./config"
 import { joinWithPosix } from "../../util/fs"
-import { Resolved } from "../../actions/base"
+import { Resolved } from "../../actions/types"
 
 interface DockerVersion {
   client?: string

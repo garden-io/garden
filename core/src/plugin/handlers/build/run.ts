@@ -17,7 +17,7 @@ import {
 import { joiArray, joi } from "../../../config/common"
 import { BuildAction } from "../../../actions/build"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { Executed } from "../../../actions/base"
+import { Executed } from "../../../actions/types"
 
 // TODO: remove in 0.13? Seems out of place now.
 

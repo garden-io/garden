@@ -10,7 +10,8 @@ import { PluginRunActionParamsBase, actionParamsSchema, RunResult, runResultSche
 import { dedent } from "../../../util/string"
 import { RunAction } from "../../../actions/run"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { ActionStatus, ActionStatusMap, actionStatusSchema, Resolved } from "../../../actions/base"
+import { actionStatusSchema } from "../../../actions/base"
+import { ActionStatus, ActionStatusMap, Resolved } from "../../../actions/types"
 import { memoize } from "lodash"
 
 interface GetRunResultParams<T extends RunAction> extends PluginRunActionParamsBase<T> {}

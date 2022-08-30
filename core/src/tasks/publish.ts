@@ -16,7 +16,7 @@ import { ConfigContext, schema } from "../config/template-contexts/base"
 import { PublishActionResult } from "../plugin/handlers/build/publish"
 import { BuildAction } from "../actions/build"
 import { ActionSpecContext, ActionSpecContextParams } from "../config/template-contexts/actions"
-import { ActionState } from "../actions/base"
+import { ActionState } from "../actions/types"
 
 export interface PublishTaskParams extends BaseActionTaskParams<BuildAction> {
   tagTemplate?: string

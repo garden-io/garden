@@ -13,7 +13,7 @@ import { LogEntry } from "./logger/log-entry"
 import { OutputSpec } from "./config/project"
 import { ActionReference } from "./config/common"
 import { ActionKind } from "./plugin/action-types"
-import { getExecuteTaskForAction } from "./graph/actions"
+import { getExecuteTaskForAction } from "./tasks/helpers"
 import { GraphResults } from "./graph/results"
 
 /**

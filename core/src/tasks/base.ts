@@ -10,15 +10,10 @@ import { GraphResults } from "../graph/results"
 import { v1 as uuidv1 } from "uuid"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
-import { pickBy, mapValues, mapKeys } from "lodash"
-import { splitLast } from "../util/util"
 import { Profile } from "../util/profiling"
-import type { Action, ActionState, Executed, Resolved } from "../actions/base"
+import type { Action, ActionState, Executed, Resolved } from "../actions/types"
 import type { ConfigGraph } from "../graph/config-graph"
 import type { ActionReference } from "../config/common"
-import { DeployStatus } from "../plugin/handlers/deploy/get-status"
-import { GetRunResult } from "../plugin/handlers/run/get-result"
-import { getExecuteTaskForAction } from "../graph/actions"
 import { InternalError } from "../exceptions"
 import type { DeleteDeployTask } from "./delete-service"
 import type { BuildTask } from "./build"
@@ -30,6 +25,7 @@ import type { ResolveProviderTask } from "./resolve-provider"
 import type { RunTask } from "./run"
 import type { TestTask } from "./test"
 import { Memoize } from "typescript-memoize"
+import { getResultForTask, getExecuteTaskForAction, getResolveTaskForAction } from "./helpers"
 
 export class TaskDefinitionError extends Error {}
 
@@ -307,7 +303,7 @@ export abstract class BaseActionTask<
    */
   protected getResolveTask(action: Action) {
     const force = !!this.forceActions.find((r) => r.kind === action.kind && r.name === action.name)
-    return new ResolveActionTask({ ...this.getBaseDependencyParams(), force, action })
+    return getResolveTaskForAction(action, { ...this.getBaseDependencyParams(), force })
   }
 
   /**
@@ -335,20 +331,4 @@ export abstract class ExecuteActionTask<
 
   abstract getStatus(params: ActionTaskStatusParams<T>): Promise<(S & ExecuteActionOutputs<T>) | null>
   abstract process(params: ActionTaskProcessParams<T, S>): Promise<O & ExecuteActionOutputs<T>>
-}
-
-export function getResultForTask<T extends BaseTask>(task: T, graphResults: GraphResults): T["_resultType"] | null {
-  return graphResults[task.getBaseKey()]
-}
-
-export function getServiceStatuses(dependencyResults: GraphResults): { [name: string]: DeployStatus } {
-  const deployResults = pickBy(dependencyResults.getMap(), (r) => r && r.type === "deploy")
-  const statuses = mapValues(deployResults, (r) => r!.result as DeployStatus)
-  return mapKeys(statuses, (_, key) => splitLast(key, ".")[1])
-}
-
-export function getRunResults(dependencyResults: GraphResults): { [name: string]: GetRunResult } {
-  const runResults = pickBy(dependencyResults.getMap(), (r) => r && r.type === "run")
-  const results = mapValues(runResults, (r) => r!.result as GetRunResult)
-  return mapKeys(results, (_, key) => splitLast(key, ".")[1])
 }

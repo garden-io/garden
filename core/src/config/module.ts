@@ -22,7 +22,7 @@ import {
 import { TestConfig, testConfigSchema } from "./test"
 import { TaskConfig, taskConfigSchema } from "./task"
 import { dedent, stableStringify } from "../util/string"
-import { moduleTemplateKind } from "./module-template"
+import { moduleTemplateKind } from "./base"
 import { varfileDescription } from "./project"
 
 export const defaultBuildTimeout = 1200

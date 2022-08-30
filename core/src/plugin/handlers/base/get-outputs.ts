@@ -10,7 +10,8 @@ import { deline } from "../../../util/string"
 import { PluginActionParamsBase, actionParamsSchema } from "../../base"
 import { joi, joiVariables, DeepPrimitiveMap } from "../../../config/common"
 import { templateStringLiteral } from "../../../docs/common"
-import { BaseAction, Resolved } from "../../../actions/base"
+import { BaseAction } from "../../../actions/base"
+import { Resolved } from "../../../actions/types"
 import { ActionTypeHandlerSpec } from "./base"
 
 export interface GetActionOutputsParams<T extends BaseAction> extends PluginActionParamsBase {

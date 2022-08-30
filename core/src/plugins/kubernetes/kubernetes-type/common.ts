@@ -28,7 +28,7 @@ import { runAndCopy } from "../run"
 import { getTargetResource, getResourcePodSpec, getResourceContainer, makePodName } from "../util"
 import { KubernetesRunAction } from "./run"
 import { KubernetesTestAction } from "./test"
-import { Resolved } from "../../../actions/base"
+import { Resolved } from "../../../actions/types"
 
 /**
  * Reads the manifests and makes sure each has a namespace set (when applicable) and adds annotations.

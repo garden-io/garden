@@ -19,13 +19,14 @@ import { ProjectResource } from "../config/project"
 import { validateWithPath } from "./validation"
 import { defaultDotIgnoreFile, listDirectory } from "../util/fs"
 import { isConfigFilename } from "../util/fs"
-import { ModuleTemplateKind, moduleTemplateKind } from "./module-template"
+import { ModuleTemplateKind } from "./module-template"
 import { isTruthy } from "../util/util"
 import { PrimitiveMap } from "./common"
 import { emitNonRepeatableWarning } from "../warnings"
-import { ActionKind, actionKinds } from "../actions/base"
+import { ActionKind, actionKinds } from "../actions/types"
 import { mayContainTemplateString } from "../template-string/template-string"
 
+export const moduleTemplateKind = "ModuleTemplate"
 export const noTemplateFields = ["apiVersion", "kind", "type", "name", "description"]
 
 export interface GardenResource {

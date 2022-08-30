@@ -20,6 +20,9 @@ import {
   WaitForOptions,
 } from "eventemitter2"
 
+// Note: This file is a fairly ugly hack to add some additional type safety possibilities on eventemitter2.
+// Ain't pretty here, but it does work in usage.
+
 const EventEmitter2 = require("eventemitter2")
 
 interface ListenerFn<V = any> {
@@ -27,6 +30,7 @@ interface ListenerFn<V = any> {
 }
 
 // Copied and adapted from the eventemitter2 type
+// @ts-expect-error
 declare class _TypedEventEmitter<T extends object> {
   constructor(options?: ConstructorOptions)
   emit<N extends keyof T>(event: N | eventNS, payload: T[N]): boolean
@@ -83,6 +87,9 @@ declare class _TypedEventEmitter<T extends object> {
   ): CancelablePromise<any[]>
   static defaultMaxListeners: number
 }
+
+// @ts-ignore
+class _TypedEventEmitter extends EventEmitter2 {}
 
 export class TypedEventEmitter<T extends object> extends _TypedEventEmitter<T> {
   constructor(options?: ConstructorOptions) {

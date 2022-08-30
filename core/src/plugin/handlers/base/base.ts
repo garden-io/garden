@@ -7,7 +7,7 @@
  */
 
 import Joi from "@hapi/joi"
-import { ActionKind, BaseActionConfig } from "../../../actions/base"
+import { ActionKind, BaseActionConfig } from "../../../actions/types"
 import { joi, joiVariables } from "../../../config/common"
 
 export type ParamsBase<_ = any> = {}

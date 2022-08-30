@@ -14,9 +14,9 @@ import { Logger } from "./logger"
 import { LogEntry, LogEntryParams, EmojiName, LogEntryMessage } from "./log-entry"
 import { deepMap, deepFilter, safeDumpYaml } from "../util/util"
 import { padEnd, isEmpty, isPlainObject } from "lodash"
-import { dedent } from "../util/string"
 import hasAnsi from "has-ansi"
 import { GardenError } from "../exceptions"
+import dedent from "dedent"
 
 // Add platforms/terminals?
 export function envSupportsEmoji() {

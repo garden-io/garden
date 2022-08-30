@@ -31,7 +31,7 @@ import { DeployActionHandler } from "../../../plugin/action-types"
 import { convertKubernetesDevModeSpec } from "../helm/handlers"
 import { getTargetResource } from "../util"
 import { LogEntry } from "../../../logger/log-entry"
-import { Resolved } from "../../../actions/base"
+import { Resolved } from "../../../actions/types"
 
 export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>> = {
   configure: configureKubernetesModule,

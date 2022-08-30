@@ -27,7 +27,8 @@ import { TestAction, TestActionConfig } from "@garden-io/core/build/src/actions/
 import { TestActionHandlers } from "../../core/build/src/plugin/action-types"
 import { uniq } from "lodash"
 import { HelmDeployAction } from "@garden-io/core/build/src/plugins/kubernetes/helm/config"
-import { actionRefMatches, Resolved } from "@garden-io/core/build/src/actions/base"
+import { actionRefMatches } from "@garden-io/core/build/src/actions/base"
+import { Resolved } from "@garden-io/core/build/src/actions/types"
 
 export interface ConftestProviderConfig extends GenericProviderConfig {
   policyPath: string

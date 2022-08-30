@@ -12,7 +12,8 @@ import { ServiceStatus, serviceStatusSchema } from "../../../types/service"
 import { joi } from "../../../config/common"
 import { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { ActionStatus, ActionStatusMap, actionStatusSchema, GetActionOutputType, Resolved } from "../../../actions/base"
+import { ActionStatus, ActionStatusMap, GetActionOutputType, Resolved } from "../../../actions/types"
+import { actionStatusSchema } from "../../../actions/base"
 
 interface GetDeployStatusParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   devMode: boolean

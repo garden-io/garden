@@ -20,7 +20,7 @@ import { KubernetesResource, KubernetesWorkload } from "../../../../../../src/pl
 import { cloneDeep, keyBy } from "lodash"
 import { getContainerTestGarden } from "./container"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
-import { getServiceStatuses } from "../../../../../../src/tasks/base"
+import { getServiceStatuses } from "../../../../../../src/tasks/helpers"
 import { expectError, grouped } from "../../../../../helpers"
 import { kilobytesToString, millicpuToString } from "../../../../../../src/plugins/kubernetes/util"
 import { getDeployedImageId, getResourceRequirements } from "../../../../../../src/plugins/kubernetes/container/util"

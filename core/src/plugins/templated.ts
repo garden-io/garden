@@ -8,7 +8,7 @@
 
 import { createGardenPlugin } from "../plugin/plugin"
 import { ModuleConfig, ModuleSpec, baseModuleSpecKeys, baseBuildSpecSchema } from "../config/module"
-import { moduleTemplateKind } from "../config/module-template"
+import { moduleTemplateKind } from "../config/base"
 import { joiIdentifier, joi, DeepPrimitiveMap } from "../config/common"
 import { dedent, naturalList } from "../util/string"
 import { omit } from "lodash"

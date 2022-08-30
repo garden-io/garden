@@ -31,9 +31,9 @@ import { profile } from "../util/profiling"
 import { dedent, deline, naturalList, titleize, truncate } from "../util/string"
 import { deepMap, ObjectWithName } from "../util/util"
 import { LogEntry } from "../logger/log-entry"
-import { ModuleConfigContext } from "../config/template-contexts/module"
+import type { ModuleConfigContext } from "../config/template-contexts/module"
 import { callHelperFunction } from "./functions"
-import { ActionKind, actionKindsLower } from "../actions/base"
+import { ActionKind, actionKindsLower } from "../actions/types"
 
 export type StringOrStringPromise = Promise<string> | string
 

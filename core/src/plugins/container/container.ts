@@ -49,7 +49,7 @@ import {
   RunActionDefinition,
   TestActionDefinition,
 } from "../../plugin/action-types"
-import { Resolved } from "../../actions/base"
+import { Resolved } from "../../actions/types"
 import { getDeployedImageId } from "../kubernetes/container/util"
 import { KubernetesProvider } from "../kubernetes/config"
 import { DeepPrimitiveMap } from "../../config/common"

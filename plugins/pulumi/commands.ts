@@ -33,7 +33,7 @@ import { emptyDir } from "fs-extra"
 import { deletePulumiDeploy } from "./handlers"
 import { isDeployAction } from "@garden-io/core/build/src/actions/deploy"
 import { ActionConfigContext } from "@garden-io/core/build/src/config/template-contexts/actions"
-import { ActionState } from "@garden-io/core/build/src/actions/base"
+import { ActionState } from "@garden-io/core/build/src/actions/types"
 import { ActionTaskProcessParams, ValidResultType } from "@garden-io/core/build/src/tasks/base"
 
 type PulumiBaseParams = Omit<PulumiParams, "action">

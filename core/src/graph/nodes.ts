@@ -9,7 +9,7 @@
 import { Task, ValidResultType } from "../tasks/base"
 import { GardenBaseError, InternalError } from "../exceptions"
 import { GraphResult, GraphResults } from "./results"
-import { ActionStatus } from "../actions/base"
+import { ActionStatus } from "../actions/types"
 
 export type NodeType = "request" | "status" | "process"
 

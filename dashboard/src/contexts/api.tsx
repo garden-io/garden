@@ -31,7 +31,7 @@ import type { TestActionConfig } from "@garden-io/core/build/src/actions/test"
 import type { RunActionConfig } from "@garden-io/core/build/src/actions/run"
 import type { GetTestResult } from "@garden-io/core/build/src/plugin/handlers/test/get-result"
 import type { GetRunResult } from "@garden-io/core/build/src/plugin/handlers/run/get-result"
-import type { ActionStatus } from "@garden-io/core/build/src/actions/base"
+import type { ActionStatus } from "@garden-io/core/build/src/actions/types"
 
 export type SupportedEventName = PickFromUnion<
   EventName,
