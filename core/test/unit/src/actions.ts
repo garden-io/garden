@@ -751,7 +751,7 @@ describe("ActionRouter", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const result = await actionRouter.deploy.exec({
           log,
-          action: resolvedDeployAction.execute(), // todo: parameters
+          action: await garden.executeAction({ action: resolvedDeployAction, log: garden.log, graph }),
           graph,
           command: ["foo"],
           interactive: false,
