@@ -149,7 +149,6 @@ describe("GardenServer", () => {
           buildLog: "A",
           fresh: true,
         },
-
       })
     })
   })
@@ -391,7 +390,6 @@ describe("GardenServer", () => {
               buildLog: "A",
               fresh: true,
             },
-
           },
         })
         done()

@@ -17,7 +17,6 @@ import { serializeConfig } from "../config/module"
 import { RunResult, runResultSchema } from "../plugin/base"
 import { deline } from "../util/string"
 import { actionOutputsSchema } from "../plugin/handlers/base/base"
-import { ConfigGraph } from "../graph/config-graph"
 import { ModuleGraph } from "../graph/modules"
 
 export interface GardenTest<M extends GardenModule = GardenModule> {

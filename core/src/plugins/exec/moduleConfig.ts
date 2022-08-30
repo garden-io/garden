@@ -12,7 +12,7 @@
  */
 
 import { joiArray, joiEnvVars, joi, joiSparseArray } from "../../config/common"
-import { ArtifactSpec, validateWithPath } from "../../config/validation"
+import { ArtifactSpec } from "../../config/validation"
 import { GardenModule } from "../../types/module"
 import { baseServiceSpecSchema, CommonServiceSpec } from "../../config/service"
 import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
