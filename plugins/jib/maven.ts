@@ -16,7 +16,7 @@ import execa from "execa"
 const buildLock = new AsyncLock()
 
 const spec = {
-  url: "https://archive.apache.org/dist/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz",
+  url: "https://archive.apache.org/dist/maven/maven-3/3.8.5/binaries/apache-maven-3.8.5-bin.zip",
   sha256: "26ad91d751b3a9a53087aefa743f4e16a17741d3915b219cf74112bf87a438c5",
   extract: {
     format: "tar",
