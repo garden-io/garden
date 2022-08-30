@@ -43,6 +43,9 @@ import {
   execRunActionSchema,
   execTestActionSchema,
 } from "../../../src/plugins/exec/config"
+import { convertModules } from "../../../src/resolve-module"
+import { actionFromConfig } from "../../../src/graph/actions"
+import { TestAction } from "../../../src/actions/test"
 
 const now = new Date()
 
@@ -50,7 +53,7 @@ describe("ActionRouter", () => {
   let garden: TestGarden
   let graph: ConfigGraph
   let log: LogEntry
-  let actions: ActionRouter
+  let actionRouter: ActionRouter
   let module: GardenModule
   let resolvedBuildAction: ResolvedBuildAction
   let resolvedDeployAction: ResolvedRuntimeAction
@@ -75,7 +78,7 @@ describe("ActionRouter", () => {
     })
     projectConfig.path = garden.projectRoot
     log = garden.log
-    actions = await garden.getActionRouter()
+    actionRouter = await garden.getActionRouter()
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     module = graph.getModule("module-a")
     const buildAction = graph.getBuild("module-a")
@@ -107,7 +110,7 @@ describe("ActionRouter", () => {
     describe("configureProvider", () => {
       it("should configure the provider", async () => {
         const config = { name: "test-plugin", foo: "bar", dependencies: [] }
-        const result = await actions.provider.configureProvider({
+        const result = await actionRouter.provider.configureProvider({
           ctx: await garden.getPluginContext(
             providerFromConfig({
               plugin: await garden.getPlugin("test-plugin"),
@@ -138,7 +141,7 @@ describe("ActionRouter", () => {
       it("should return modules and/or dependency relations to add to the stack graph", async () => {
         graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const providers = await garden.resolveProviders(garden.log)
-        const result = await actions.provider.augmentGraph({
+        const result = await actionRouter.provider.augmentGraph({
           log,
           pluginName: "test-plugin",
           actions: graph.getActions(),
@@ -175,7 +178,7 @@ describe("ActionRouter", () => {
           description: "foodefoodefoo",
           newWindow: false,
         }
-        const result = await actions.provider.getDashboardPage({ log, pluginName: "test-plugin", page })
+        const result = await actionRouter.provider.getDashboardPage({ log, pluginName: "test-plugin", page })
         expect(result).to.eql({
           url: "http://foo",
         })
@@ -184,7 +187,7 @@ describe("ActionRouter", () => {
 
     describe("getEnvironmentStatus", () => {
       it("should return the environment status for a provider", async () => {
-        const result = await actions.provider.getEnvironmentStatus({ log, pluginName: "test-plugin" })
+        const result = await actionRouter.provider.getEnvironmentStatus({ log, pluginName: "test-plugin" })
         expect(result).to.eql({
           ready: false,
           outputs: {},
@@ -194,7 +197,7 @@ describe("ActionRouter", () => {
 
     describe("prepareEnvironment", () => {
       it("should prepare the environment for a configured provider", async () => {
-        const result = await actions.provider.prepareEnvironment({
+        const result = await actionRouter.provider.prepareEnvironment({
           log,
           pluginName: "test-plugin",
           force: false,
@@ -211,28 +214,33 @@ describe("ActionRouter", () => {
 
     describe("cleanupEnvironment", () => {
       it("should clean up environment for a provider", async () => {
-        const result = await actions.provider.cleanupEnvironment({ log, pluginName: "test-plugin" })
+        const result = await actionRouter.provider.cleanupEnvironment({ log, pluginName: "test-plugin" })
         expect(result).to.eql({})
       })
     })
 
     describe("getSecret", () => {
       it("should retrieve a secret from the specified provider", async () => {
-        const result = await actions.provider.getSecret({ log, pluginName: "test-plugin", key: "foo" })
+        const result = await actionRouter.provider.getSecret({ log, pluginName: "test-plugin", key: "foo" })
         expect(result).to.eql({ value: "foo" })
       })
     })
 
     describe("setSecret", () => {
       it("should set a secret via the specified provider", async () => {
-        const result = await actions.provider.setSecret({ log, pluginName: "test-plugin", key: "foo", value: "boo" })
+        const result = await actionRouter.provider.setSecret({
+          log,
+          pluginName: "test-plugin",
+          key: "foo",
+          value: "boo",
+        })
         expect(result).to.eql({})
       })
     })
 
     describe("deleteSecret", () => {
       it("should delete a secret from the specified provider", async () => {
-        const result = await actions.provider.deleteSecret({ log, pluginName: "test-plugin", key: "foo" })
+        const result = await actionRouter.provider.deleteSecret({ log, pluginName: "test-plugin", key: "foo" })
         expect(result).to.eql({ found: true })
       })
     })
@@ -255,7 +263,7 @@ describe("ActionRouter", () => {
           },
         }
 
-        const result = await actions.module.configureModule({ log, moduleConfig })
+        const result = await actionRouter.module.configureModule({ log, moduleConfig })
         expect(result.moduleConfig.build.dependencies).to.eql([
           {
             name: "module-b",
@@ -274,7 +282,7 @@ describe("ActionRouter", () => {
 
     describe("build.getStatus", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.build.getStatus({ log, action: resolvedBuildAction, graph })
+        const result = await actionRouter.build.getStatus({ log, action: resolvedBuildAction, graph })
         expect(result).to.eql({
           ready: true,
         })
@@ -282,7 +290,7 @@ describe("ActionRouter", () => {
 
       it("should emit a buildStatus event", async () => {
         garden.events.eventLog = []
-        await actions.build.getStatus({ log, action: resolvedBuildAction, graph })
+        await actionRouter.build.getStatus({ log, action: resolvedBuildAction, graph })
         const event = garden.events.eventLog[0]
         expect(event).to.exist
         expect(event.name).to.eql("buildStatus")
@@ -295,13 +303,13 @@ describe("ActionRouter", () => {
 
     describe("build", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.build.build({ log, action: resolvedBuildAction, graph })
+        const result = await actionRouter.build.build({ log, action: resolvedBuildAction, graph })
         expect(result).to.eql({})
       })
 
       it("should emit buildStatus events", async () => {
         garden.events.eventLog = []
-        await actions.build.build({ log, action: resolvedBuildAction, graph })
+        await actionRouter.build.build({ log, action: resolvedBuildAction, graph })
         const event1 = garden.events.eventLog[0]
         const event2 = garden.events.eventLog[1]
         const moduleVersion = module.version.versionString
@@ -323,7 +331,7 @@ describe("ActionRouter", () => {
     describe("build.run", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const command = ["npm", "run"]
-        const result = await actions.build.run({
+        const result = await actionRouter.build.run({
           log,
           action: await garden.executeAction({
             action: resolvedBuildAction,
@@ -359,7 +367,7 @@ describe("ActionRouter", () => {
           },
           graph.moduleGraph
         )
-        const result = await actions.test.run({
+        const result = await actionRouter.test.run({
           log,
           module,
           interactive: true,
@@ -395,7 +403,7 @@ describe("ActionRouter", () => {
           },
           graph.moduleGraph
         )
-        await actions.test.run({
+        await actionRouter.test.run({
           log,
           module,
           interactive: true,
@@ -448,7 +456,7 @@ describe("ActionRouter", () => {
 
         const test = testFromConfig(module, testConfig, graph.moduleGraph)
 
-        await actions.test.run({
+        await actionRouter.test.run({
           log,
           module,
           interactive: true,
@@ -479,7 +487,7 @@ describe("ActionRouter", () => {
     describe("test.getResult", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const test = testFromModule(module, "unit", graph.moduleGraph)
-        const result = await actions.test.getResult({
+        const result = await actionRouter.test.getResult({
           log,
           module,
           test,
@@ -504,7 +512,7 @@ describe("ActionRouter", () => {
     it("should emit a testStatus event", async () => {
       garden.events.eventLog = []
       const test = testFromModule(module, "unit", graph.moduleGraph)
-      await actions.test.getResult({
+      await actionRouter.test.getResult({
         log,
         module,
         test,
@@ -525,7 +533,7 @@ describe("ActionRouter", () => {
   describe("service actions", () => {
     describe("getServiceStatus", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.getServiceStatus({
+        const result = await actionRouter.getServiceStatus({
           log,
           service: resolvedDeployAction,
           graph,
@@ -538,7 +546,7 @@ describe("ActionRouter", () => {
 
       it("should emit a serviceStatus event", async () => {
         garden.events.eventLog = []
-        await actions.getServiceStatus({
+        await actionRouter.getServiceStatus({
           log,
           service: resolvedDeployAction,
           graph,
@@ -557,13 +565,19 @@ describe("ActionRouter", () => {
       })
 
       it("should throw if the outputs don't match the service outputs schema of the plugin", async () => {
-        stubModuleAction(actions, resolvedDeployAction.module.type, "test-plugin", "getServiceStatus", async () => {
-          return { state: <ServiceState>"ready", detail: {}, outputs: { base: "ok", foo: 123 } }
-        })
+        stubModuleAction(
+          actionRouter,
+          resolvedDeployAction.module.type,
+          "test-plugin",
+          "getServiceStatus",
+          async () => {
+            return { state: <ServiceState>"ready", detail: {}, outputs: { base: "ok", foo: 123 } }
+          }
+        )
 
         await expectError(
           () =>
-            actions.getServiceStatus({
+            actionRouter.getServiceStatus({
               log,
               service: resolvedDeployAction,
               graph,
@@ -578,13 +592,19 @@ describe("ActionRouter", () => {
       })
 
       it("should throw if the outputs don't match the service outputs schema of a plugin's base", async () => {
-        stubModuleAction(actions, resolvedDeployAction.module.type, "test-plugin", "getServiceStatus", async () => {
-          return { state: <ServiceState>"ready", detail: {}, outputs: { base: 123, foo: "ok" } }
-        })
+        stubModuleAction(
+          actionRouter,
+          resolvedDeployAction.module.type,
+          "test-plugin",
+          "getServiceStatus",
+          async () => {
+            return { state: <ServiceState>"ready", detail: {}, outputs: { base: 123, foo: "ok" } }
+          }
+        )
 
         await expectError(
           () =>
-            actions.getServiceStatus({
+            actionRouter.getServiceStatus({
               log,
               service: resolvedDeployAction,
               graph,
@@ -601,7 +621,7 @@ describe("ActionRouter", () => {
 
     describe("deploy.deploy", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.deploy.deploy({
+        const result = await actionRouter.deploy.deploy({
           log,
           action: resolvedDeployAction,
           graph,
@@ -614,7 +634,7 @@ describe("ActionRouter", () => {
 
       it("should emit serviceStatus events", async () => {
         garden.events.eventLog = []
-        await actions.deploy.deploy({
+        await actionRouter.deploy.deploy({
           log,
           action: resolvedDeployAction,
           graph,
@@ -644,13 +664,13 @@ describe("ActionRouter", () => {
       })
 
       it("should throw if the outputs don't match the service outputs schema of the plugin", async () => {
-        stubModuleAction(actions, resolvedDeployAction.module.type, "test-plugin", "deployService", async () => {
+        stubModuleAction(actionRouter, resolvedDeployAction.module.type, "test-plugin", "deployService", async () => {
           return { state: <ServiceState>"ready", detail: {}, outputs: { base: "ok", foo: 123 } }
         })
 
         await expectError(
           () =>
-            actions.deploy.deploy({
+            actionRouter.deploy.deploy({
               log,
               action: resolvedDeployAction,
               graph,
@@ -666,13 +686,13 @@ describe("ActionRouter", () => {
       })
 
       it("should throw if the outputs don't match the service outputs schema of a plugin's base", async () => {
-        stubModuleAction(actions, resolvedDeployAction.module.type, "test-plugin", "deployService", async () => {
+        stubModuleAction(actionRouter, resolvedDeployAction.module.type, "test-plugin", "deployService", async () => {
           return { state: <ServiceState>"ready", detail: {}, outputs: { base: 123, foo: "ok" } }
         })
 
         await expectError(
           () =>
-            actions.deploy.deploy({
+            actionRouter.deploy.deploy({
               log,
               action: resolvedDeployAction,
               graph,
@@ -690,14 +710,14 @@ describe("ActionRouter", () => {
 
     describe("deploy.delete", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.deploy.delete({ log, action: resolvedDeployAction, graph })
+        const result = await actionRouter.deploy.delete({ log, action: resolvedDeployAction, graph })
         expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: {} })
       })
     })
 
     describe("deploy.exec", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.deploy.exec({
+        const result = await actionRouter.deploy.exec({
           log,
           action: resolvedDeployAction.execute(), // todo: parameters
           graph,
@@ -711,7 +731,7 @@ describe("ActionRouter", () => {
     describe("deploy.getLogs", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const stream = new Stream<ServiceLogEntry>()
-        const result = await actions.deploy.getLogs({
+        const result = await actionRouter.deploy.getLogs({
           log,
           action: resolvedDeployAction,
           graph,
@@ -725,7 +745,7 @@ describe("ActionRouter", () => {
 
     describe("deploy.run", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.deploy.run({
+        const result = await actionRouter.deploy.run({
           log,
           action: resolvedDeployAction,
           interactive: true,
@@ -766,7 +786,7 @@ describe("ActionRouter", () => {
 
     describe("run.getResult", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.run.getResult({
+        const result = await actionRouter.run.getResult({
           log,
           task: resolvedRunAction,
           graph,
@@ -776,7 +796,7 @@ describe("ActionRouter", () => {
 
       it("should emit a taskStatus event", async () => {
         garden.events.eventLog = []
-        await actions.run.getResult({
+        await actionRouter.run.getResult({
           log,
           task: resolvedRunAction,
           graph,
@@ -793,12 +813,12 @@ describe("ActionRouter", () => {
       })
 
       it("should throw if the outputs don't match the task outputs schema of the plugin", async () => {
-        stubModuleAction(actions, resolvedDeployAction.module.type, "test-plugin", "getTaskResult", async () => {
+        stubModuleAction(actionRouter, resolvedDeployAction.module.type, "test-plugin", "getTaskResult", async () => {
           return { ...taskResult, outputs: { base: "ok", foo: 123 } }
         })
 
         await expectError(
-          () => actions.run.getResult({ log, task: resolvedRunAction, graph }),
+          () => actionRouter.run.getResult({ log, task: resolvedRunAction, graph }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from task 'task-a': key .foo must be a string"
@@ -807,12 +827,12 @@ describe("ActionRouter", () => {
       })
 
       it("should throw if the outputs don't match the task outputs schema of a plugin's base", async () => {
-        stubModuleAction(actions, resolvedDeployAction.module.type, "test-plugin", "getTaskResult", async () => {
+        stubModuleAction(actionRouter, resolvedDeployAction.module.type, "test-plugin", "getTaskResult", async () => {
           return { ...taskResult, outputs: { base: 123, foo: "ok" } }
         })
 
         await expectError(
-          () => actions.run.getResult({ log, task: resolvedRunAction, graph }),
+          () => actionRouter.run.getResult({ log, task: resolvedRunAction, graph }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from task 'task-a': key .base must be a string"
@@ -823,7 +843,7 @@ describe("ActionRouter", () => {
 
     describe("run.run", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.run.run({
+        const result = await actionRouter.run.run({
           log,
           task: resolvedRunAction,
           interactive: true,
@@ -834,7 +854,7 @@ describe("ActionRouter", () => {
 
       it("should emit taskStatus events", async () => {
         garden.events.eventLog = []
-        await actions.run.run({
+        await actionRouter.run.run({
           log,
           task: resolvedRunAction,
           interactive: true,
@@ -862,13 +882,13 @@ describe("ActionRouter", () => {
       })
 
       it("should throw if the outputs don't match the task outputs schema of the plugin", async () => {
-        stubModuleAction(actions, resolvedDeployAction.module.type, "test-plugin", "runTask", async () => {
+        stubModuleAction(actionRouter, resolvedDeployAction.module.type, "test-plugin", "runTask", async () => {
           return { ...taskResult, outputs: { base: "ok", foo: 123 } }
         })
 
         await expectError(
           () =>
-            actions.run.run({
+            actionRouter.run.run({
               log,
               task: resolvedRunAction,
               interactive: true,
@@ -882,13 +902,13 @@ describe("ActionRouter", () => {
       })
 
       it("should throw if the outputs don't match the task outputs schema of a plugin's base", async () => {
-        stubModuleAction(actions, resolvedRunAction.module.type, "test-plugin", "runTask", async () => {
+        stubModuleAction(actionRouter, resolvedRunAction.module.type, "test-plugin", "runTask", async () => {
           return { ...taskResult, outputs: { base: 123, foo: "ok" } }
         })
 
         await expectError(
           () =>
-            actions.run.run({
+            actionRouter.run.run({
               log,
               action: resolvedRunAction,
               interactive: true,
@@ -917,7 +937,7 @@ describe("ActionRouter", () => {
           },
         ]
 
-        await actions.run.run({
+        await actionRouter.run.run({
           log,
           action: await garden.resolveAction({
             action: runActionTaskA,
@@ -953,7 +973,7 @@ describe("ActionRouter", () => {
 
   describe("getActionHandlers", () => {
     it("should return all handlers for a type", async () => {
-      const handlers = await actions["getActionHandlers"]("prepareEnvironment")
+      const handlers = await actionRouter["getActionHandlers"]("prepareEnvironment")
 
       expect(Object.keys(handlers)).to.eql(["exec", "test-plugin", "test-plugin-b"])
     })
@@ -961,7 +981,7 @@ describe("ActionRouter", () => {
 
   describe("getModuleActionHandlers", () => {
     it("should return all handlers for a type", async () => {
-      const handlers = await actions["getModuleActionHandlers"]({ handlerType: "build", moduleType: "exec" })
+      const handlers = await actionRouter["getModuleActionHandlers"]({ handlerType: "build", moduleType: "exec" })
 
       expect(Object.keys(handlers)).to.eql(["exec"])
     })
