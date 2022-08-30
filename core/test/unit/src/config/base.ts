@@ -159,7 +159,6 @@ describe("loadConfigResources", () => {
 
   it("throws if basic fields contain template strings", async () => {
     for (const field of noTemplateFields) {
-
     }
 
     throw "TODO"

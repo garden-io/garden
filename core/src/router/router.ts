@@ -26,7 +26,6 @@ import { testRouter } from "./test"
 import { DeployStatus } from "../plugin/handlers/deploy/get-status"
 import { BaseAction } from "../actions/base"
 import { GetActionOutputsParams, GetActionOutputsResult } from "../plugin/handlers/base/get-outputs"
-import { GetActionTypeHandler, ActionTypeClasses } from "../plugin/action-types"
 
 export interface DeployManyParams {
   graph: ConfigGraph
@@ -35,9 +34,6 @@ export interface DeployManyParams {
   force?: boolean
   forceBuild?: boolean
 }
-
-type Bar = ActionTypeClasses<"Build">["getOutputs"]
-type Foo = GetActionTypeHandler<Bar, "getOutputs">
 
 /**
  * The ActionRouter takes care of choosing which plugin should be responsible for handling an action,

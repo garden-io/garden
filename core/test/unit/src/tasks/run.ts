@@ -14,7 +14,6 @@ import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import execa from "execa"
 import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { RunTask } from "../../../../src/tasks/run"
-import { GardenTask } from "../../../../src/types/task"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 import { GetRunResult } from "../../../../src/plugin/handlers/run/get-result"
 import { execRunActionSchema } from "../../../../src/plugins/exec/config"
@@ -52,9 +51,9 @@ describe("RunTask", () => {
       cache = {}
     })
 
-    const getKey = (task: GardenTask) => {
-      return `${task.name}-${task.version}`
-    }
+    // const getKey = (task: GardenTask) => {
+    //   return `${task.name}-${task.version}`
+    // }
 
     const testPlugin = createGardenPlugin({
       name: "test",

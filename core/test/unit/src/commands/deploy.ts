@@ -90,7 +90,11 @@ const testProvider = () => {
             },
             run: async (params) => {
               // TODO-G2: check the result object structure and fix it if necessary
-              return placeholderTaskResult(params.action.moduleName(), params.action.name, params.action.getSpec().command)
+              return placeholderTaskResult(
+                params.action.moduleName(),
+                params.action.name,
+                params.action.getSpec().command
+              )
             },
             exec: async ({ action }) => {
               const { command } = action.getSpec()
