@@ -71,33 +71,31 @@ describe("configmap module", () => {
     ])
 
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const service = graph.getService("test")
+    const action = await garden.resolveAction({ action: graph.getDeploy("test"), log: garden.log })
 
     const deployTask = new DeployTask({
       garden,
       graph,
       log: garden.log,
-      service,
+      action,
       force: true,
       forceBuild: false,
       devModeDeployNames: [],
       localModeDeployNames: [],
+      fromWatch: false,
     })
 
     await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
     const actions = await garden.getActionRouter()
-    const status = await actions.getServiceStatus({
+    const status = await actions.getDeployStatuses({
       log: garden.log,
-      service,
       graph,
-      devMode: false,
-      localMode: false,
     })
 
     const remoteResources = status.detail["remoteResources"]
 
-    expect(status.state === "ready")
+    expect(status.state.state === "ready")
     expect(remoteResources.length).to.equal(1)
     expect(
       isSubset(remoteResources[0], {
@@ -108,6 +106,6 @@ describe("configmap module", () => {
       })
     ).to.be.true
 
-    await actions.deploy.delete({ log: garden.log, service, graph })
+    await actions.deploy.delete({ log: garden.log, action, graph })
   })
 })
