@@ -149,21 +149,12 @@ describe("ModuleConfigContext", () => {
       // const testB = graph.getTest("test-b")
       module = graph.getModule("module-b")
 
-      const runtimeContext = await prepareRuntimeContext({
-        action: deployB,
-        graph,
-        graphResults: new GraphResults([
-          // there should be somethinghere but I don't yet understand what so I'm leaving it empty
-          // so it will atleast build
-        ]),
-      })
       withRuntime = new ModuleConfigContext({
         garden,
         resolvedProviders: keyBy(await garden.resolveProviders(garden.log), "name"),
         variables: garden.variables,
         modules,
         buildPath: deployA.getBuildPath(),
-        runtimeContext,
         partialRuntimeResolution: false,
         name: module.name,
         inputs: module.inputs,
