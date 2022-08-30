@@ -563,12 +563,12 @@ describe("ActionRouter", () => {
     })
   })
 
-  describe("service actions", () => {
-    describe("getServiceStatus", () => {
+  describe("deploy actions", () => {
+    describe("deploy.getStatus", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actionRouter.getServiceStatus({
+        const result = await actionRouter.deploy.getStatus({
           log,
-          service: resolvedDeployAction,
+          action: resolvedDeployAction,
           graph,
           devMode: false,
 
@@ -579,12 +579,11 @@ describe("ActionRouter", () => {
 
       it("should emit a serviceStatus event", async () => {
         garden.events.eventLog = []
-        await actionRouter.getServiceStatus({
+        await actionRouter.deploy.getStatus({
           log,
-          service: resolvedDeployAction,
+          action: resolvedDeployAction,
           graph,
           devMode: false,
-
           localMode: false,
         })
         const event = garden.events.eventLog[0]
@@ -610,9 +609,9 @@ describe("ActionRouter", () => {
 
         await expectError(
           () =>
-            actionRouter.getServiceStatus({
+            actionRouter.deploy.getStatus({
               log,
-              service: resolvedDeployAction,
+              action: resolvedDeployAction,
               graph,
               devMode: false,
               localMode: false,
@@ -637,9 +636,9 @@ describe("ActionRouter", () => {
 
         await expectError(
           () =>
-            actionRouter.getServiceStatus({
+            actionRouter.deploy.getStatus({
               log,
-              service: resolvedDeployAction,
+              action: resolvedDeployAction,
               graph,
               devMode: false,
               localMode: false,
