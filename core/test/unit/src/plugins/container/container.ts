@@ -27,9 +27,7 @@ import {
 } from "../../../../../src/plugins/container/helpers"
 import { getDockerBuildFlags } from "../../../../../src/plugins/container/build"
 import { actionFromConfig } from "../../../../../src/graph/actions"
-import { convertModule } from "../../../../../src/plugin/handlers/module/convert"
-import { convertModules } from "../../../../../src/resolve-module"
-import { BuildAction, BuildActionConfig } from "../../../../../src/actions/build"
+import { BuildAction } from "../../../../../src/actions/build"
 import { ModuleConfig } from "../../../../../src/config/module"
 
 describe("plugins.container", () => {
@@ -100,7 +98,7 @@ describe("plugins.container", () => {
       garden,
       log,
       config: parsed.moduleConfig,
-      configsByKey: [],
+      configsByKey: {},
       router: await garden.getActionRouter(),
       graph: await garden.getConfigGraph({ log, emit: false }),
     }) as Promise<BuildAction>
