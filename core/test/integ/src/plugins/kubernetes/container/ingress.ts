@@ -11,30 +11,25 @@ import td from "testdouble"
 
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { KubernetesProvider, KubernetesConfig, defaultResources } from "../../../../../../src/plugins/kubernetes/config"
-import { gardenPlugin } from "../../../../../../src/plugins/container/container"
 import { expectError } from "../../../../../helpers"
 import { Garden } from "../../../../../../src/garden"
-import { moduleFromConfig } from "../../../../../../src/types/module"
 import {
   createIngressResources,
   supportedIngressApiVersions,
 } from "../../../../../../src/plugins/kubernetes/container/ingress"
 import { defaultDeploymentStrategy } from "../../../../../../src/plugins/container/config"
-import { ContainerDeployAction, defaultContainerResources } from "../../../../../../src/plugins/container/moduleConfig"
 import {
-  ServicePortProtocol,
-  ContainerIngressSpec,
-  ContainerService,
-  ContainerServiceSpec,
+  ContainerDeployAction,
+  ContainerDeploySpec,
+  defaultContainerResources,
 } from "../../../../../../src/plugins/container/moduleConfig"
+import { ServicePortProtocol, ContainerIngressSpec } from "../../../../../../src/plugins/container/moduleConfig"
 import { defaultSystemNamespace } from "../../../../../../src/plugins/kubernetes/system"
-import { PluginTools } from "../../../../../../src/plugin/tools"
-import { keyBy } from "lodash"
-import { PluginTool } from "../../../../../../src/util/ext-tools"
-import { kubectlSpec } from "../../../../../../src/plugins/kubernetes/kubectl"
 import { getContainerTestGarden } from "./container"
 import { PartialBy } from "../../../../../../src/util/util"
 import { Resolved } from "../../../../../../src/actions/base"
+import { actionFromConfig } from "../../../../../../src/graph/actions"
+import { DeployAction, DeployActionConfig } from "../../../../../../src/actions/deploy"
 
 const namespace = "my-namespace"
 const ports = [
@@ -305,12 +300,8 @@ const wildcardDomainCertSecret = {
 }
 
 describe("createIngressResources", () => {
-  const plugin = gardenPlugin()
-  const configure = plugin.createModuleTypes![0].handlers.configure!
-
   let garden: Garden
   let context: string
-  let tools: PluginTools
   let basicProvider: KubernetesProvider
   let singleTlsProvider: KubernetesProvider
   let multiTlsProvider: KubernetesProvider
@@ -323,12 +314,6 @@ describe("createIngressResources", () => {
 
   beforeEach(async () => {
     garden = await getContainerTestGarden()
-    const k8sPlugin = await garden.getPlugin("kubernetes")
-    tools = keyBy(
-      (k8sPlugin.tools || []).map((t) => new PluginTool(t)),
-      "name"
-    )
-
     const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as KubernetesProvider
     context = provider.config.context
 
@@ -374,74 +359,43 @@ describe("createIngressResources", () => {
     }
   })
 
-  async function resolveContainerDeployAction(...ingresses: ContainerIngressSpec[]): Promise<Resolved<ContainerDeployAction>> {
-    const spec: ContainerServiceSpec = {
-      name: "my-service",
-      annotations: {},
-      args: [],
-      daemon: false,
-      dependencies: [],
-      disabled: false,
-      env: {},
-      ingresses,
-      cpu: defaultContainerResources.cpu,
-      memory: defaultContainerResources.memory,
-      ports,
-      replicas: 1,
-      volumes: [],
-      deploymentStrategy: defaultDeploymentStrategy,
-    }
-    // todo: use action based config instead of module based one to build the result
-    const moduleConfig = {
-      allowPublish: false,
-      disabled: false,
-      build: {
-        command: [],
-        dependencies: [],
-      },
-      apiVersion: "garden.io/v0",
-      name: "test",
-      path: "/tmp",
-      type: "container",
-
-      spec: {
-        buildArgs: {},
-        image: "some/image:1.1",
-        services: [],
-        tasks: [],
-        tests: [],
-      },
-
-      serviceConfigs: [],
-      taskConfigs: [],
-      testConfigs: [],
-    }
-
-    const provider = await garden.resolveProvider(garden.log, "container")
-    const ctx = await garden.getPluginContext(provider)
-    ctx.tools["kubernetes.kubectl"] = new PluginTool(kubectlSpec)
-    const parsed = await configure({ ctx, moduleConfig, log: garden.log })
-    const module = await moduleFromConfig({
+  async function resolveContainerDeployAction(
+    ...ingresses: ContainerIngressSpec[]
+  ): Promise<Resolved<ContainerDeployAction>> {
+    const router = await garden.getActionRouter()
+    const log = garden.log
+    const graph = await garden.getConfigGraph({ emit: false, log })
+    const unresolved = (await actionFromConfig({
       garden,
-      log: garden.log,
-      config: parsed.moduleConfig,
-      buildDependencies: [],
-    })
-
-    return {
-      name: spec.name,
+      log,
+      router,
+      configsByKey: {},
+      graph,
       config: {
-        name: spec.name,
-        dependencies: [],
-        disabled: false,
-        spec,
-      },
-      disabled: false,
-      module,
-      sourceModule: module,
-      spec,
-      version: module.version.versionString,
-    }
+        basePath: "asd",
+        kind: "Deploy",
+        name: "test",
+        spec: {
+          name: "my-service",
+          annotations: {},
+          args: [],
+          daemon: false,
+          dependencies: [],
+          disabled: false,
+          env: {},
+          ingresses,
+          cpu: defaultContainerResources.cpu,
+          memory: defaultContainerResources.memory,
+          ports,
+          replicas: 1,
+          volumes: [],
+          deploymentStrategy: defaultDeploymentStrategy,
+        } as ContainerDeploySpec,
+        type: "",
+      } as DeployActionConfig,
+    })) as DeployAction
+
+    return await garden.resolveAction({ action: unresolved, graph, log })
   }
 
   async function getKubeApi(provider: KubernetesProvider) {
