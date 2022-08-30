@@ -33,9 +33,8 @@ import stripAnsi from "strip-ansi"
 import { emptyDir, pathExists, ensureFile, readFile } from "fs-extra"
 import { join } from "path"
 import { DashboardPage } from "../../../src/plugin/handlers/provider/getDashboardPage"
-import { testFromModule, testFromConfig } from "../../../src/types/test"
 import { ConfigGraph } from "../../../src/graph/config-graph"
-import { BaseRuntimeActionConfig, ResolvedRuntimeAction, RuntimeAction } from "../../../src/actions/base"
+import { ResolvedRuntimeAction } from "../../../src/actions/base"
 import { BuildActionConfig, ResolvedBuildAction } from "../../../src/actions/build"
 import {
   execBuildActionSchema,
@@ -48,7 +47,7 @@ import { actionFromConfig } from "../../../src/graph/actions"
 import { TestAction } from "../../../src/actions/test"
 import { TestConfig } from "../../../src/config/test"
 import { findByName } from "../../../src/util/util"
-import { RunAction, RunActionConfig } from "../../../src/actions/run"
+import { RunActionConfig } from "../../../src/actions/run"
 import { DeployActionConfig } from "../../../src/actions/deploy"
 
 const now = new Date()
