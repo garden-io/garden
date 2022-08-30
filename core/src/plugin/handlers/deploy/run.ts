@@ -16,7 +16,7 @@ import {
 import { dedent } from "../../../util/string"
 import { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { Resolved } from "../../../actions/base"
+import { Resolved } from "../../../actions/types"
 
 interface RunDeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   interactive: boolean

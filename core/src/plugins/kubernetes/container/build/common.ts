@@ -39,7 +39,7 @@ import { compareDeployedResources, waitForResources } from "../../status/status"
 import { KubernetesDeployment, KubernetesResource } from "../../types"
 import { BuildActionHandler, BuildActionResults } from "../../../../plugin/action-types"
 import { k8sGetContainerBuildActionOutputs } from "../handlers"
-import { Resolved } from "../../../../actions/base"
+import { Resolved } from "../../../../actions/types"
 
 export const utilContainerName = "util"
 export const utilRsyncPort = 8730

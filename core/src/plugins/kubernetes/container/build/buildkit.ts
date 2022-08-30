@@ -37,7 +37,7 @@ import { PodRunner } from "../../run"
 import { prepareSecrets } from "../../secrets"
 import { defaultDockerfileName } from "../../../container/helpers"
 import { k8sGetContainerBuildActionOutputs } from "../handlers"
-import { Resolved } from "../../../../actions/base"
+import { Resolved } from "../../../../actions/types"
 
 export const buildkitImageName = "gardendev/buildkit:v0.9.3-1"
 export const buildkitDeploymentName = "garden-buildkit"

@@ -12,7 +12,7 @@ import { ForwardablePort, forwardablePortKeys } from "../../../types/service"
 import { joi } from "../../../config/common"
 import { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { Resolved } from "../../../actions/base"
+import { Resolved } from "../../../actions/types"
 
 type StopPortForwardParams<T extends DeployAction> = PluginDeployActionParamsBase<T> & ForwardablePort
 

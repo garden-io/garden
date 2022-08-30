@@ -44,7 +44,7 @@ import { PodRunner } from "./run"
 import { isSubset } from "../../util/is-subset"
 import { checkPodStatus } from "./status/pod"
 import { getActionNamespace } from "./namespace"
-import { Resolved } from "../../actions/base"
+import { Resolved } from "../../actions/types"
 
 export const skopeoImage = "gardendev/skopeo:1.41.0-2"
 

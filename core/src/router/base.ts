@@ -20,7 +20,8 @@ import {
 import { GardenPlugin, ActionHandler, PluginMap } from "../plugin/plugin"
 import { PluginEventBroker } from "../plugin-context"
 import { ConfigContext } from "../config/template-contexts/base"
-import { ActionKind, BaseAction, BaseActionConfig, Resolved } from "../actions/base"
+import { BaseAction } from "../actions/base"
+import { ActionKind, BaseActionConfig, Resolved } from "../actions/types"
 import {
   ActionTypeDefinition,
   ActionClassMap,

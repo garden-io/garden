@@ -13,7 +13,7 @@ import { joi } from "../../../config/common"
 import { DeployAction } from "../../../actions/deploy"
 import { ServiceLogEntry } from "../../../types/service"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { Resolved } from "../../../actions/base"
+import { Resolved } from "../../../actions/types"
 
 interface GetDeployLogsParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   stream: Stream<ServiceLogEntry>

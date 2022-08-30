@@ -23,7 +23,7 @@ import { isSubset } from "../../util/is-subset"
 import chalk from "chalk"
 import { NamespaceStatus } from "../../plugin/base"
 import { KubernetesServerResource, SupportedRuntimeActions } from "./types"
-import { Resolved } from "../../actions/base"
+import { Resolved } from "../../actions/types"
 
 const GARDEN_VERSION = getPackageVersion()
 

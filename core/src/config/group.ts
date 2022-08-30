@@ -7,7 +7,8 @@
  */
 
 import dedent from "dedent"
-import { baseActionConfigSchema, ActionConfig } from "../actions/base"
+import { ActionConfig } from "../actions/types"
+import { baseActionConfigSchema } from "../actions/base"
 import { templateStringLiteral } from "../docs/common"
 import { apiVersionSchema, DeepPrimitiveMap, joi, joiSparseArray, joiUserIdentifier, joiVariables } from "./common"
 import { varfileDescription } from "./project"

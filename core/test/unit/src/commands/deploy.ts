@@ -19,7 +19,7 @@ import {
 } from "../../../helpers"
 import { sortBy } from "lodash"
 import { getLogger } from "../../../../src/logger/logger"
-import { ActionStatus } from "../../../../src/actions/base"
+import { ActionStatus } from "../../../../src/actions/types"
 import { execDeployActionSchema } from "../../../../src/plugins/exec/config"
 
 // TODO-G2: rename test cases to match the new graph model semantics

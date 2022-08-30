@@ -26,7 +26,7 @@ import { RunResult } from "../../../plugin/base"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants"
 import { dumpYaml } from "../../../util/util"
 import { HelmDeployAction } from "./config"
-import { Resolved } from "../../../actions/base"
+import { Resolved } from "../../../actions/types"
 
 const gardenValuesFilename = "garden-values.yml"
 export const helmChartYamlFilename = "Chart.yaml"

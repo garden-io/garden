@@ -13,9 +13,9 @@ import { deline, dedent, naturalList, titleize } from "../util/string"
 import { cloneDeep, isArray, isPlainObject, isString } from "lodash"
 import { joiPathPlaceholder } from "./validation"
 import { DEFAULT_API_VERSION } from "../constants"
-import { ActionKind, actionKinds } from "../actions/base"
+import { ActionKind, actionKinds } from "../actions/types"
 import { ConfigurationError } from "../exceptions"
-import { ConfigContextType } from "./template-contexts/base"
+import type { ConfigContextType } from "./template-contexts/base"
 
 export const objectSpreadKey = "$merge"
 export const arrayConcatKey = "$concat"
@@ -506,6 +506,24 @@ export const joiIdentifier = () =>
     .regex(identifierRegex)
     .description(joiIdentifierDescription[0].toUpperCase() + joiIdentifierDescription.slice(1))
 
+export const joiPrimitive = () =>
+  joi
+    .alternatives()
+    .try(joi.string().allow("").allow(null), joi.number(), joi.boolean())
+    .description("Number, string or boolean")
+
+export const absolutePathRegex = /^\/.*/ // Note: Only checks for the leading slash
+// from https://stackoverflow.com/a/12311250/3290965
+export const identifierRegex = /^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$/
+export const userIdentifierRegex = /^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$/
+export const envVarRegex = /^(?!garden)[a-z_][a-z0-9_\.]*$/i
+export const gitUrlRegex = /(?:git|ssh|https?|git@[-\w.]+):(\/\/)?(.*?)(\/?|\#[-\d\w._\/]+?)$/
+export const variableNameRegex = /[a-zA-Z][a-zA-Z0-9_\-]*/i
+
+export const joiIdentifierDescription =
+  "valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +
+  "and cannot end with a dash) and must not be longer than 63 characters."
+
 /**
  * Add a joi.actionReference() type, wrapping the parseActionReference() function and returning it as a parsed object.
  */
@@ -597,24 +615,6 @@ joi = joi.extend({
     },
   },
 })
-
-export const joiPrimitive = () =>
-  joi
-    .alternatives()
-    .try(joi.string().allow("").allow(null), joi.number(), joi.boolean())
-    .description("Number, string or boolean")
-
-export const absolutePathRegex = /^\/.*/ // Note: Only checks for the leading slash
-// from https://stackoverflow.com/a/12311250/3290965
-export const identifierRegex = /^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$/
-export const userIdentifierRegex = /^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$/
-export const envVarRegex = /^(?!garden)[a-z_][a-z0-9_\.]*$/i
-export const gitUrlRegex = /(?:git|ssh|https?|git@[-\w.]+):(\/\/)?(.*?)(\/?|\#[-\d\w._\/]+?)$/
-export const variableNameRegex = /[a-zA-Z][a-zA-Z0-9_\-]*/i
-
-export const joiIdentifierDescription =
-  "valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +
-  "and cannot end with a dash) and must not be longer than 63 characters."
 
 const moduleIncludeDescription = (extraDescription?: string) => {
   const desc = dedent`

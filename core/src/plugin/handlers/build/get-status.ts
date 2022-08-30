@@ -10,7 +10,8 @@ import { dedent } from "../../../util/string"
 import { actionParamsSchema, PluginBuildActionParamsBase } from "../../base"
 import { BuildAction } from "../../../actions/build"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { ActionStatus, ActionStatusMap, actionStatusSchema, Resolved } from "../../../actions/base"
+import { actionStatusSchema } from "../../../actions/base"
+import { ActionStatus, ActionStatusMap, Resolved } from "../../../actions/types"
 import { joi } from "../../../config/common"
 
 interface GetBuildStatusParams<T extends BuildAction = BuildAction> extends PluginBuildActionParamsBase<T> {}

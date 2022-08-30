@@ -46,7 +46,7 @@ import { BuildStaging } from "./build-staging/build-staging"
 import { ConfigGraph, ResolvedConfigGraph } from "./graph/config-graph"
 import { getLogger } from "./logger/logger"
 import { ProviderHandlers, GardenPlugin } from "./plugin/plugin"
-import { loadConfigResources, findProjectConfig, GardenResource } from "./config/base"
+import { loadConfigResources, findProjectConfig, GardenResource, moduleTemplateKind } from "./config/base"
 import { DeepPrimitiveMap, StringMap, PrimitiveMap, treeVersionSchema, joi, allowUnknown } from "./config/common"
 import { LocalConfigStore, ConfigStore, GlobalConfigStore, LinkedSource } from "./config-store"
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
@@ -108,7 +108,6 @@ import {
   ModuleTemplateResource,
   resolveModuleTemplate,
   resolveTemplatedModule,
-  moduleTemplateKind,
   ModuleTemplateConfig,
 } from "./config/module-template"
 import { TemplatedModuleConfig } from "./plugins/templated"
@@ -126,15 +125,8 @@ import { ConfigContext } from "./config/template-contexts/base"
 import { validateSchema, validateWithPath } from "./config/validation"
 import { pMemoizeDecorator } from "./lib/p-memoize"
 import { ModuleGraph } from "./graph/modules"
-import {
-  Action,
-  ActionConfigMap,
-  ActionConfigsByKey,
-  ActionKind,
-  actionKinds,
-  actionReferenceToString,
-  BaseActionConfig,
-} from "./actions/base"
+import { Action, ActionConfigMap, ActionConfigsByKey, ActionKind, actionKinds, BaseActionConfig } from "./actions/types"
+import { actionReferenceToString } from "./actions/base"
 import { GraphSolver, SolveOpts, SolveParams, SolveResult } from "./graph/solver"
 import { actionConfigsToGraph, actionFromConfig, executeAction, resolveAction, resolveActions } from "./graph/actions"
 import { ActionTypeDefinition } from "./plugin/action-types"

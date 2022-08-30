@@ -9,7 +9,7 @@
 import { joi, apiVersionSchema, joiUserIdentifier, CustomObjectSchema } from "./common"
 import { baseModuleSpecSchema, BaseModuleSpec, ModuleConfig } from "./module"
 import { dedent, deline } from "../util/string"
-import { GardenResource, prepareModuleResource } from "./base"
+import { GardenResource, moduleTemplateKind, prepareModuleResource } from "./base"
 import { resolveTemplateStrings } from "../template-string/template-string"
 import { validateWithPath } from "./validation"
 import { Garden } from "../garden"
@@ -26,8 +26,6 @@ const inputTemplatePattern = "${inputs.*}"
 const parentNameTemplate = "${parent.name}"
 const moduleTemplateNameTemplate = "${template.name}"
 const moduleTemplateReferenceUrl = "./template-strings/modules.md"
-
-export const moduleTemplateKind = "ModuleTemplate"
 
 export type ModuleTemplateKind = typeof moduleTemplateKind
 

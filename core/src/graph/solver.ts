@@ -30,8 +30,10 @@ import {
   TaskNode,
   TaskRequestParams,
 } from "./nodes"
+import AsyncLock from "async-lock"
 
 const taskStyle = chalk.cyan.bold
+const lock = new AsyncLock()
 
 export interface SolveOpts {
   statusOnly?: boolean
@@ -77,79 +79,80 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   }
 
   async solve(params: SolveParams): Promise<SolveResult> {
-    // TODO-G2: put in lock here for now
+    // TODO-G2: remove this lock and test with concurrent execution
+    return lock.acquire("solve", async () => {
+      const { statusOnly, tasks, throwOnError } = params
 
-    const { statusOnly, tasks, throwOnError } = params
+      const _this = this
+      const batchId = uuidv4()
+      const results = new GraphResults(tasks)
+      let aborted = false
 
-    const _this = this
-    const batchId = uuidv4()
-    const results = new GraphResults(tasks)
-    let aborted = false
+      return new Promise<SolveResult>((resolve, reject) => {
+        const requests = keyBy(
+          tasks.map((t) => {
+            results[t.getBaseKey()] = null
+            return this.requestTask({ task: t, batchId, statusOnly: !!statusOnly, completeHandler })
+          }),
+          (r) => r.task.getKey()
+        )
 
-    return new Promise((resolve, reject) => {
-      const requests = keyBy(
-        tasks.map((t) => {
-          results[t.getBaseKey()] = null
-          return this.requestTask({ task: t, batchId, statusOnly: !!statusOnly, completeHandler })
-        }),
-        (r) => r.task.getKey()
-      )
-
-      function completeHandler(result: GraphResult) {
-        if (aborted) {
-          return
-        }
-
-        const request = requests[result.key]
-
-        // We only collect the requests tasks at the top level of the result object.
-        // The solver cascades errors in dependencies. So if a dependency fails, we should still always get a
-        // taskComplete event for each requested task, even if an error occurs before getting to it.
-        if (request === undefined) {
-          return
-        }
-
-        results.setResult(request.task, result)
-
-        if (throwOnError && result.error) {
-          cleanup()
-          reject(new GraphNodeError(`Failed ${result.description}: ${result.error}`, result))
-          return
-        }
-
-        for (const r of Object.values(results)) {
-          if (!r) {
-            // Keep going if any of the expected results are pending
+        function completeHandler(result: GraphResult) {
+          if (aborted) {
             return
           }
-        }
 
-        // All requested results have been filled (i.e. none are null) so we're done.
-        let error: GraphError | null = null
+          const request = requests[result.key]
 
-        const failed = Object.values(results).filter((r) => !!r?.error)
-
-        if (failed.length > 0) {
-          // TODO-G2: better aggregate error output
-          let msg = `Failed to complete ${failed.length} tasks:\n`
-
-          for (const r of failed) {
-            msg += `- ${r?.description}: ${r?.error}`
+          // We only collect the requests tasks at the top level of the result object.
+          // The solver cascades errors in dependencies. So if a dependency fails, we should still always get a
+          // taskComplete event for each requested task, even if an error occurs before getting to it.
+          if (request === undefined) {
+            return
           }
 
-          error = new GraphError(msg, { results })
+          results.setResult(request.task, result)
+
+          if (throwOnError && result.error) {
+            cleanup()
+            reject(new GraphNodeError(`Failed ${result.description}: ${result.error}`, result))
+            return
+          }
+
+          for (const r of Object.values(results)) {
+            if (!r) {
+              // Keep going if any of the expected results are pending
+              return
+            }
+          }
+
+          // All requested results have been filled (i.e. none are null) so we're done.
+          let error: GraphError | null = null
+
+          const failed = Object.values(results).filter((r) => !!r?.error)
+
+          if (failed.length > 0) {
+            // TODO-G2: better aggregate error output
+            let msg = `Failed to complete ${failed.length} tasks:\n`
+
+            for (const r of failed) {
+              msg += `- ${r?.description}: ${r?.error}`
+            }
+
+            error = new GraphError(msg, { results })
+          }
+
+          resolve({ error, results })
         }
 
-        resolve({ error, results })
-      }
+        function cleanup() {
+          // TODO: abort remaining tasks?
+          aborted = true
+          delete _this.requestedTasks[batchId]
+        }
 
-      function cleanup() {
-        // TODO: abort remaining tasks?
-        aborted = true
-        delete _this.requestedTasks[batchId]
-      }
-
-      this.start()
+        this.start()
+      })
     })
   }
 
@@ -191,38 +194,13 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     this.inLoop = true
 
     try {
-      for (const [_batchId, requests] of Object.entries(this.requestedTasks)) {
-        for (const request of Object.values(requests)) {
-          // See what is missing to fulfill the request
-          // -> Does it have its status?
-          const task = request.task
-          const statusNode = new StatusTaskNode({ task })
-          const status = this.getPendingResult(statusNode)
-
-          if (request.statusOnly && status !== undefined) {
-            // Status is resolved, and that's all we need
-            request.complete(status)
-          } else if (status === undefined && !task.force) {
-            // We're not forcing, and we don't have the status yet, so we ensure that's pending
-            this.ensurePending(statusNode, request)
-          } else {
-            // Need to process
-            const processNode = new ProcessTaskNode({ task })
-            const result = this.getPendingResult(processNode)
-            if (result) {
-              request.complete(result)
-            } else {
-              this.ensurePending(processNode, request)
-            }
-          }
-        }
-      }
+      this.ensurePendingNodes()
 
       for (const node of Object.values(this.pendingTasks)) {
         // For every missing dependency, ensure task is pending.
         const remainingDeps = node.getRemainingDependencies()
         for (const dep of remainingDeps) {
-          this.ensurePending(dep, node)
+          this.ensurePendingNode(dep, node)
         }
       }
 
@@ -321,7 +299,36 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     return request
   }
 
-  private ensurePending(node: TaskNode, dependant: TaskNode) {
+  private ensurePendingNodes() {
+    for (const [_batchId, requests] of Object.entries(this.requestedTasks)) {
+      for (const request of Object.values(requests)) {
+        // See what is missing to fulfill the request
+        // -> Does it have its status?
+        const task = request.task
+        const statusNode = new StatusTaskNode({ task })
+        const status = this.getPendingResult(statusNode)
+
+        if (request.statusOnly && status !== undefined) {
+          // Status is resolved, and that's all we need
+          request.complete(status)
+        } else if (status === undefined && !task.force) {
+          // We're not forcing, and we don't have the status yet, so we ensure that's pending
+          this.ensurePendingNode(statusNode, request)
+        } else {
+          // Need to process
+          const processNode = new ProcessTaskNode({ task })
+          const result = this.getPendingResult(processNode)
+          if (result) {
+            request.complete(result)
+          } else {
+            this.ensurePendingNode(processNode, request)
+          }
+        }
+      }
+    }
+  }
+
+  private ensurePendingNode(node: TaskNode, dependant: TaskNode) {
     const key = node.getKey()
     const existing = this.pendingTasks[key]
 

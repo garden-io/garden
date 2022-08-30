@@ -42,7 +42,7 @@ import { taskFromConfig } from "./types/task"
 import { testFromConfig } from "./types/test"
 import { BuildActionConfig, BuildCopyFrom, isBuildActionConfig } from "./actions/build"
 import { GroupConfig } from "./config/group"
-import { ActionConfig, BaseActionConfig } from "./actions/base"
+import { ActionConfig, BaseActionConfig } from "./actions/types"
 import { ModuleGraph } from "./graph/modules"
 import { GraphResults } from "./graph/results"
 

@@ -23,7 +23,7 @@ import { LogEntry, PluginContext } from "@garden-io/sdk/types"
 import { defaultPulumiEnv, pulumi } from "./cli"
 import { PulumiDeploy, PulumiProvider } from "./config"
 import { deline } from "@garden-io/sdk/util/string"
-import { Resolved } from "@garden-io/core/build/src/actions/base"
+import { Resolved } from "@garden-io/core/build/src/actions/types"
 
 export interface PulumiParams {
   ctx: PluginContext

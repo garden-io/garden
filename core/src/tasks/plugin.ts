@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Action } from "../actions/base"
+import { Action } from "../actions/types"
 import { BaseActionTask, BaseTask, ValidResultType } from "../tasks/base"
 import { Profile } from "../util/profiling"
 

@@ -22,7 +22,7 @@ import { KubernetesPluginContext } from "../config"
 import { KubernetesServerResource, KubernetesWorkload } from "../types"
 import { DeployActionHandler } from "../../../plugin/action-types"
 import { getDeployedImageId } from "./util"
-import { Resolved } from "../../../actions/base"
+import { Resolved } from "../../../actions/types"
 
 interface ContainerStatusDetail {
   remoteResources: KubernetesServerResource[]
