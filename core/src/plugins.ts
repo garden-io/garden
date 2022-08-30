@@ -27,7 +27,7 @@ import { DependencyGraph } from "./graph/common"
 import { parse, resolve } from "path"
 import Bluebird from "bluebird"
 import { ModuleTypeMap } from "./types/module"
-import { ActionKind, actionKinds } from "./actions/base"
+import { ActionKind, actionKinds } from "./actions/types"
 import { ActionTypeDefinition } from "./plugin/action-types"
 
 export async function loadAndResolvePlugins(

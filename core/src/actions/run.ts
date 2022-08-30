@@ -7,7 +7,8 @@
  */
 
 import { joi } from "../config/common"
-import { Action, BaseRuntimeActionConfig, baseRuntimeActionConfig, RuntimeAction } from "./base"
+import { BaseRuntimeActionConfig, baseRuntimeActionConfig, RuntimeAction } from "./base"
+import { Action } from "./types"
 
 export interface RunActionConfig<N extends string = any, S extends object = any>
   extends BaseRuntimeActionConfig<"Run", N, S> {

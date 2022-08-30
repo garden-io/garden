@@ -12,7 +12,7 @@ import { BaseTask, BaseTaskParams, TaskProcessParams, ValidResultType } from "..
 import { makeTestGarden, freezeTime, dataDir, TestGarden } from "../../../helpers"
 import { MakeOptional } from "../../../../src/util/util"
 import { SolveOpts } from "../../../../src/graph/solver"
-import { ActionState } from "../../../../src/actions/base"
+import { ActionState } from "../../../../src/actions/types"
 import { NEW_RESOURCE_VERSION } from "../../../../src/vcs/vcs"
 
 const projectRoot = join(dataDir, "test-project-empty")

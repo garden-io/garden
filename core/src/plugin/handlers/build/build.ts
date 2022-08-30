@@ -10,7 +10,7 @@ import { dedent } from "../../../util/string"
 import { actionParamsSchema, PluginBuildActionParamsBase } from "../../../plugin/base"
 import { BuildAction } from "../../../actions/build"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { Resolved } from "../../../actions/base"
+import { Resolved } from "../../../actions/types"
 import { BuildStatus, getBuildStatusSchema } from "./get-status"
 
 interface DoBuildActionParams<T extends BuildAction> extends PluginBuildActionParamsBase<T> {}

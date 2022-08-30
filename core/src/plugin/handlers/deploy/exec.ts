@@ -11,7 +11,7 @@ import { dedent } from "../../../util/string"
 import { joiArray, joi } from "../../../config/common"
 import { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { Executed } from "../../../actions/base"
+import { Executed } from "../../../actions/types"
 
 interface ExecInDeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   command: string[]

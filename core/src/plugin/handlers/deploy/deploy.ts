@@ -12,7 +12,7 @@ import { joi } from "../../../config/common"
 import { ActionTypeHandlerSpec } from "../base/base"
 import { DeployAction } from "../../../actions/deploy"
 import { DeployStatus, getDeployStatusSchema } from "./get-status"
-import { Resolved } from "../../../actions/base"
+import { Resolved } from "../../../actions/types"
 
 interface DeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   devMode: boolean

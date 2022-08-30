@@ -23,7 +23,7 @@ import { EnvironmentStatus } from "../../../../src/plugin/handlers/provider/getE
 import { ModuleConfig } from "../../../../src/config/module"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { execDeployActionSchema } from "../../../../src/plugins/exec/config"
-import { ActionStatus } from "../../../../src/actions/base"
+import { ActionStatus } from "../../../../src/actions/types"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 describe("DeleteSecretCommand", () => {

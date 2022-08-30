@@ -22,7 +22,7 @@ import { omit } from "lodash"
 import { DeployActionDefinition } from "../../../plugin/action-types"
 import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
 import { KubernetesDeployActionConfig } from "../kubernetes-type/config"
-import { Resolved } from "../../../actions/base"
+import { Resolved } from "../../../actions/types"
 
 // TODO: If we make a third one in addition to this and `persistentvolumeclaim`, we should dedupe some code.
 

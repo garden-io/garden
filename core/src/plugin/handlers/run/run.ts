@@ -11,7 +11,7 @@ import { dedent } from "../../../util/string"
 import { RunAction } from "../../../actions/run"
 import { ActionTypeHandlerSpec } from "../base/base"
 import { GetRunResult, getRunResultSchema } from "./get-result"
-import { Resolved } from "../../../actions/base"
+import { Resolved } from "../../../actions/types"
 
 export interface CommonRunParams {
   artifactsPath: string

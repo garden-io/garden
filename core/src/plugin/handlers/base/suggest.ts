@@ -10,7 +10,8 @@ import { dedent } from "../../../util/string"
 import { joi, joiArray } from "../../../config/common"
 import { LogEntry } from "../../../logger/log-entry"
 import { ActionHandlerParamsBase } from "../../../plugin/plugin"
-import { BaseActionConfig, baseActionConfigSchema } from "../../../actions/base"
+import { BaseActionConfig } from "../../../actions/types"
+import { baseActionConfigSchema } from "../../../actions/base"
 import { ActionTypeHandlerSpec } from "./base"
 
 export const maxDescriptionLength = 48

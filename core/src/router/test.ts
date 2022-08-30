@@ -8,7 +8,7 @@
 
 import { realpath } from "fs-extra"
 import normalizePath from "normalize-path"
-import { ActionState } from "../actions/base"
+import { ActionState } from "../actions/types"
 import { PluginEventBroker } from "../plugin-context"
 import { runStatus } from "../plugin/base"
 import { copyArtifacts, getArtifactKey } from "../util/artifacts"

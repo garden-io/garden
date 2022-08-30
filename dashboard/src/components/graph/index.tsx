@@ -20,7 +20,7 @@ import { FiltersButton, Filters } from "../group-filter"
 import { GraphOutputWithNodeStatus, StackGraphNode } from "../../containers/graph"
 import { getTextWidth } from "../../util/helpers"
 import { menuHeight } from "../../containers/menu"
-import type { ActionKind } from "@garden-io/core/build/src/actions/base"
+import type { ActionKind } from "@garden-io/core/build/src/actions/types"
 
 interface Node {
   id: string

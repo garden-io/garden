@@ -27,7 +27,7 @@ import { LogEntry } from "../logger/log-entry"
 import { BooleanParameter, StringsParameter } from "../cli/params"
 import { printHeader } from "../logger/util"
 import { DeployAction } from "../actions/deploy"
-import { Action } from "../actions/base"
+import { Action } from "../actions/types"
 import { getNames } from "../util/util"
 
 // NOTE: This is all due to change in 0.13, just getting it to compile for now - JE

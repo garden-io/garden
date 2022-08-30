@@ -28,7 +28,7 @@ import Bluebird from "bluebird"
 import { getK8sIngresses } from "../status/ingress"
 import { DeployActionHandler } from "../../../plugin/action-types"
 import { HelmDeployAction } from "./config"
-import { Resolved } from "../../../actions/base"
+import { Resolved } from "../../../actions/types"
 
 export const gardenCloudAECPauseAnnotation = "garden.io/aec-status"
 

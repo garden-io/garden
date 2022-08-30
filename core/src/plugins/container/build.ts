@@ -15,7 +15,7 @@ import split2 from "split2"
 import { BuildActionHandler } from "../../plugin/action-types"
 import { ContainerBuildAction, ContainerBuildOutputs } from "./config"
 import { joinWithPosix } from "../../util/fs"
-import { Resolved } from "../../actions/base"
+import { Resolved } from "../../actions/types"
 
 export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerBuildAction> = async ({
   ctx,

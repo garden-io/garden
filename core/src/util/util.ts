@@ -77,6 +77,7 @@ export type Unpacked<T> = T extends (infer U)[]
   ? W
   : T
 export type ExcludesFalsy = <T>(x: T | false | null | undefined) => x is T
+export type MakeOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
 
 const MAX_BUFFER_SIZE = 1024 * 1024
 

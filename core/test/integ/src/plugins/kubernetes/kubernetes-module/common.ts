@@ -14,7 +14,7 @@ import { PluginContext } from "../../../../../../src/plugin-context"
 import { readManifests } from "../../../../../../src/plugins/kubernetes/kubernetes-type/common"
 import { TestGarden, dataDir, makeTestGarden, getExampleDir, expectError } from "../../../../../helpers"
 import { KubernetesDeployAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/config"
-import { Resolved } from "../../../../../../src/actions/base"
+import { Resolved } from "../../../../../../src/actions/types"
 
 let kubernetesTestGarden: TestGarden
 

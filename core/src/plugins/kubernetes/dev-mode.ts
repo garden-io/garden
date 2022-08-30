@@ -46,7 +46,7 @@ import { templateStringLiteral } from "../../docs/common"
 import { resolve } from "path"
 import Bluebird from "bluebird"
 import { PluginContext } from "../../plugin-context"
-import { Resolved } from "../../actions/base"
+import { Resolved } from "../../actions/types"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 

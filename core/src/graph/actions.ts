@@ -8,25 +8,27 @@
 
 import Bluebird from "bluebird"
 import { isString, memoize, omit, pick } from "lodash"
-import {
+import type {
   Action,
   ActionConfig,
   ActionConfigsByKey,
   ActionDependency,
   ActionDependencyAttributes,
-  actionReferenceToString,
-  actionRefMatches,
   ActionWrapperParams,
+  Executed,
+  Resolved,
+} from "../actions/types"
+import {
+  actionReferenceToString,
+  addActionDependency,
   baseActionConfigSchema,
   describeActionConfig,
   describeActionConfigWithPath,
-  Executed,
-  Resolved,
 } from "../actions/base"
-import { BuildAction, buildActionConfig, isBuildAction } from "../actions/build"
-import { DeployAction, isDeployAction } from "../actions/deploy"
-import { isRunAction, RunAction } from "../actions/run"
-import { isTestAction, TestAction } from "../actions/test"
+import { BuildAction, buildActionConfig } from "../actions/build"
+import { DeployAction } from "../actions/deploy"
+import { RunAction } from "../actions/run"
+import { TestAction } from "../actions/test"
 import { noTemplateFields } from "../config/base"
 import { ActionReference, parseActionReference } from "../config/common"
 import type { GroupConfig } from "../config/group"
@@ -40,12 +42,8 @@ import { ActionTypeDefinition } from "../plugin/action-types"
 import { getActionTypeBases } from "../plugins"
 import type { BaseActionRouter } from "../router/base"
 import type { ActionRouter } from "../router/router"
-import { BaseActionTaskParams } from "../tasks/base"
-import { BuildTask } from "../tasks/build"
-import { DeployTask } from "../tasks/deploy"
+import { getExecuteTaskForAction } from "../tasks/helpers"
 import { ResolveActionTask } from "../tasks/resolve-action"
-import { RunTask } from "../tasks/run"
-import { TestTask } from "../tasks/test"
 import { resolveTemplateStrings, getActionTemplateReferences } from "../template-string/template-string"
 import { dedent } from "../util/string"
 import { resolveVariables } from "./common"
@@ -290,21 +288,6 @@ const getActionConfigContextKeys = memoize(() => {
     .filter(isString)
 })
 
-export function getExecuteTaskForAction(action: Action, baseParams: Omit<BaseActionTaskParams, "action">) {
-  if (isBuildAction(action)) {
-    return new BuildTask({ ...baseParams, action })
-  } else if (isDeployAction(action)) {
-    return new DeployTask({ ...baseParams, action })
-  } else if (isRunAction(action)) {
-    return new RunTask({ ...baseParams, action })
-  } else if (isTestAction(action)) {
-    return new TestTask({ ...baseParams, action })
-  } else {
-    // Shouldn't happen
-    throw new InternalError(`Unexpected action kind ${action.kind}`, { config: action.getConfig() })
-  }
-}
-
 async function preprocessActionConfig({
   garden,
   config,
@@ -391,24 +374,6 @@ async function preprocessActionConfig({
   }
 
   return config
-}
-
-/**
- * Adds or merges the given dependency into a list of dependencies.
- */
-export function addActionDependency(dep: ActionDependency, dependencies: ActionDependency[]) {
-  for (const d of dependencies) {
-    if (actionRefMatches(d, dep)) {
-      // Merge with existing dependency link. Basically a boolean OR on each attribute.
-      for (const [key, value] of Object.entries(dep)) {
-        if (value) {
-          d[key] = value
-        }
-      }
-      return
-    }
-  }
-  dependencies.push(dep)
 }
 
 function dependenciesFromActionConfig(

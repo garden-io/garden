@@ -38,7 +38,7 @@ import { configureDevMode, startDevModeSyncs } from "../dev-mode"
 import { getDeployedImageId, getResourceRequirements, getSecurityContext } from "./util"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import { DeployActionHandler, DeployActionParams } from "../../../plugin/action-types"
-import { Resolved } from "../../../actions/base"
+import { Resolved } from "../../../actions/types"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters
