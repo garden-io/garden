@@ -15,7 +15,7 @@ import {
   ModuleActionHandler,
 } from "../../../src/plugin/plugin"
 import { ServiceState } from "../../../src/types/service"
-import { expectError, makeTestGardenA, stubModuleAction, projectRootA, TestGarden, makeTestGarden } from "../../helpers"
+import { expectError, makeTestGardenA, stubRouterAction, projectRootA, TestGarden, makeTestGarden } from "../../helpers"
 import { ActionRouter } from "../../../src/router/router"
 import { LogEntry } from "../../../src/logger/log-entry"
 import { GardenModule } from "../../../src/types/module"
@@ -597,10 +597,9 @@ describe("ActionRouter", () => {
       })
 
       it("should throw if the outputs don't match the service outputs schema of the plugin", async () => {
-        // TODO-G2: extract a helper method similar to `stubModuleAction`
-        actionRouter.deploy.getStatus = async (_params) => {
+        stubRouterAction(actionRouter, "Deploy", "getStatus", async (_params) => {
           return { state: "ready", detail: { state: "ready", detail: {} }, outputs: { base: "ok", foo: 123 } }
-        }
+        })
 
         await expectError(
           () =>
@@ -619,10 +618,9 @@ describe("ActionRouter", () => {
       })
 
       it("should throw if the outputs don't match the service outputs schema of a plugin's base", async () => {
-        // TODO-G2: extract a helper method similar to `stubModuleAction`, see the top-most similar TODO-G2
-        actionRouter.deploy.getStatus = async (_params) => {
+        stubRouterAction(actionRouter, "Deploy", "getStatus", async (_params) => {
           return { state: "ready", detail: { state: "ready", detail: {} }, outputs: { base: 123, foo: "ok" } }
-        }
+        })
 
         await expectError(
           () =>
@@ -686,10 +684,9 @@ describe("ActionRouter", () => {
       })
 
       it("should throw if the outputs don't match the service outputs schema of the plugin", async () => {
-        // TODO-G2: extract a helper method similar to `stubModuleAction`, see the top-most similar TODO-G2
-        actionRouter.deploy.deploy = async (_params) => {
+        stubRouterAction(actionRouter, "Deploy", "deploy", async (_params) => {
           return { state: "ready", detail: { state: "ready", detail: {} }, outputs: { base: "ok", foo: 123 } }
-        }
+        })
 
         await expectError(
           () =>
@@ -709,10 +706,9 @@ describe("ActionRouter", () => {
       })
 
       it("should throw if the outputs don't match the service outputs schema of a plugin's base", async () => {
-        // TODO-G2: extract a helper method similar to `stubModuleAction`, see the top-most similar TODO-G2
-        actionRouter.deploy.deploy = async (_params) => {
+        stubRouterAction(actionRouter, "Deploy", "deploy", async (_params) => {
           return { state: "ready", detail: { state: "ready", detail: {} }, outputs: { base: 123, foo: "ok" } }
-        }
+        })
 
         await expectError(
           () =>
@@ -837,14 +833,13 @@ describe("ActionRouter", () => {
       })
 
       it("should throw if the outputs don't match the task outputs schema of the plugin", async () => {
-        // TODO-G2: extract a helper method similar to `stubModuleAction`, see the top-most similar TODO-G2
-        actionRouter.run.getResult = async (_params) => {
+        stubRouterAction(actionRouter, "Run", "getResult", async (_params) => {
           return {
             state: "ready",
             detail: { success: true, startedAt: new Date(), completedAt: new Date(), log: "" },
             outputs: { base: "ok", foo: 123 },
           }
-        }
+        })
 
         await expectError(
           () => actionRouter.run.getResult({ log, action: resolvedRunAction, graph }),
@@ -856,14 +851,13 @@ describe("ActionRouter", () => {
       })
 
       it("should throw if the outputs don't match the task outputs schema of a plugin's base", async () => {
-        // TODO-G2: extract a helper method similar to `stubModuleAction`, see the top-most similar TODO-G2
-        actionRouter.run.getResult = async (_params) => {
+        stubRouterAction(actionRouter, "Run", "getResult", async (_params) => {
           return {
             state: "ready",
             detail: { success: true, startedAt: new Date(), completedAt: new Date(), log: "" },
             outputs: { base: 123, foo: "ok" },
           }
-        }
+        })
 
         await expectError(
           () => actionRouter.run.getResult({ log, action: resolvedRunAction, graph }),
@@ -916,14 +910,13 @@ describe("ActionRouter", () => {
       })
 
       it("should throw if the outputs don't match the task outputs schema of the plugin", async () => {
-        // TODO-G2: extract a helper method similar to `stubModuleAction`, see the top-most similar TODO-G2
-        actionRouter.run.run = async (_params) => {
+        stubRouterAction(actionRouter, "Run", "run", async (_params) => {
           return {
             state: "ready",
             detail: { success: true, startedAt: new Date(), completedAt: new Date(), log: "" },
             outputs: { base: "ok", foo: 123 },
           }
-        }
+        })
 
         await expectError(
           () =>
@@ -941,14 +934,13 @@ describe("ActionRouter", () => {
       })
 
       it("should throw if the outputs don't match the task outputs schema of a plugin's base", async () => {
-        // TODO-G2: extract a helper method similar to `stubModuleAction`, see the top-most similar TODO-G2
-        actionRouter.run.run = async (_params) => {
+        stubRouterAction(actionRouter, "Run", "run", async (_params) => {
           return {
             state: "ready",
             detail: { success: true, startedAt: new Date(), completedAt: new Date(), log: "" },
             outputs: { base: 123, foo: "ok" },
           }
-        }
+        })
 
         await expectError(
           () =>
