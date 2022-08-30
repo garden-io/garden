@@ -134,7 +134,7 @@ describe("cloudEventHandlers", () => {
     it("should return test tasks for the requested module", async () => {
       const taskTask = await cloudEventHandlers.taskRequested({
         ...params,
-        request: { taskName: "task-a", force: false, forceBuild: false },
+        request: { taskName: "task-a", force: false, forceBuild: false, skipDependencies: false },
       })
       expect(taskTask["task"].name).to.eql("task-a")
     })
