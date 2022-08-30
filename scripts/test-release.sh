@@ -22,7 +22,7 @@ download_release() {
 
   platform=${os}-amd64
   filename="garden-${base_version}-${platform}.tar.gz"
-  url="https://download.garden.io/core/${version}/${filename}"
+  url="https://github.com/garden-io/garden/releases/download/${version}/${filename}"
   dir=${HOME}/.garden-release
   target_path=${dir}/bin
 

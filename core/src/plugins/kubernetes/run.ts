@@ -557,10 +557,20 @@ async function runWithArtifacts({
     const cmd = [...command!, ...(args || [])].map((s) => JSON.stringify(s))
 
     try {
+      // See https://stackoverflow.com/a/20564208
+      const commandScript = `
+exec 1<&-
+exec 2<&-
+exec 1<>/tmp/output
+exec 2>&1
+
+${cmd.join(" ")}
+`
+
       const res = await runner.exec({
         // Pipe the output from the command to the /tmp/output pipe, including stderr. Some shell voodoo happening
         // here, but this was the only working approach I could find after a lot of trial and error.
-        command: ["sh", "-c", `exec &>/tmp/output; ${cmd.join(" ")}`],
+        command: ["sh", "-c", commandScript],
         containerName: mainContainerName,
         log,
         stdout,

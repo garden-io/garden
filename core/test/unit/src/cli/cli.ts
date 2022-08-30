@@ -9,8 +9,9 @@
 import { expect } from "chai"
 import nock from "nock"
 import { isEqual } from "lodash"
+import td from "testdouble"
 
-import { makeDummyGarden, GardenCli } from "../../../../src/cli/cli"
+import { makeDummyGarden, GardenCli, validateRuntimeRequirementsCached } from "../../../../src/cli/cli"
 import {
   getDataDir,
   TestGarden,
@@ -37,6 +38,9 @@ import { FancyTerminalWriter } from "../../../../src/logger/writers/fancy-termin
 import { BasicTerminalWriter } from "../../../../src/logger/writers/basic-terminal-writer"
 import { envSupportsEmoji } from "../../../../src/logger/util"
 import { expectError } from "../../../../src/util/testing"
+import { GlobalConfigStore, RequirementsCheck } from "../../../../src/config-store"
+import { ExecConfigStore } from "../config-store"
+import tmp from "tmp-promise"
 
 describe("cli", () => {
   let cli: GardenCli
@@ -1145,6 +1149,69 @@ describe("cli", () => {
       const dg = await garden.getConfigGraph({ log: garden.log, emit: false })
       expect(garden).to.be.ok
       expect(dg.getModules()).to.not.throw
+    })
+  })
+
+  describe("runtime dependency check", () => {
+    describe("validateRuntimeRequirementsCached", () => {
+      let config: GlobalConfigStore
+      let tmpDir
+      const log = getLogger()
+
+      before(async () => {
+        tmpDir = await tmp.dir({ unsafeCleanup: true })
+        config = new ExecConfigStore(tmpDir.path) as GlobalConfigStore
+      })
+
+      after(async () => {
+        await tmpDir.cleanup()
+      })
+
+      afterEach(async () => {
+        await config.clear()
+      })
+
+      it("should call requirementCheckFunction if requirementsCheck hasn't been populated", async () => {
+        const requirementCheckFunction = td.func<() => Promise<void>>()
+        await validateRuntimeRequirementsCached(log, config, requirementCheckFunction)
+
+        expect(td.explain(requirementCheckFunction).callCount).to.equal(1)
+      })
+
+      it("should call requirementCheckFunction if requirementsCheck hasn't passed", async () => {
+        await config.set(["requirementsCheck"], { passed: false } as RequirementsCheck)
+        const requirementCheckFunction = td.func<() => Promise<void>>()
+        await validateRuntimeRequirementsCached(log, config, requirementCheckFunction)
+
+        expect(td.explain(requirementCheckFunction).callCount).to.equal(1)
+      })
+
+      it("should populate config if requirementCheckFunction passes", async () => {
+        const requirementCheckFunction = td.func<() => Promise<void>>()
+        await validateRuntimeRequirementsCached(log, config, requirementCheckFunction)
+
+        const requirementsCheckConfig = (await config.get(["requirementsCheck"])) as RequirementsCheck
+        expect(requirementsCheckConfig.passed).to.equal(true)
+      })
+
+      it("should not call requirementCheckFunction if requirementsCheck has been passed", async () => {
+        await config.set(["requirementsCheck"], { passed: true } as RequirementsCheck)
+        const requirementCheckFunction = td.func<() => Promise<void>>()
+        await validateRuntimeRequirementsCached(log, config, requirementCheckFunction)
+
+        expect(td.explain(requirementCheckFunction).callCount).to.equal(0)
+      })
+
+      it("should throw if requirementCheckFunction throws", async () => {
+        async function requirementCheckFunction() {
+          throw new Error("broken")
+        }
+
+        await expectError(
+          () => validateRuntimeRequirementsCached(log, config, requirementCheckFunction),
+          (err) => expect(err.message).to.include("broken")
+        )
+      })
     })
   })
 })

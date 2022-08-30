@@ -240,6 +240,12 @@ export interface VersionCheckGlobalConfig {
   lastRun: Date
 }
 
+export interface RequirementsCheck {
+  lastRunDateUNIX?: number
+  lastRunGardenVersion?: string
+  passed?: boolean
+}
+
 export interface GlobalConfig {
   analytics?: AnalyticsGlobalConfig
   lastVersionCheck?: VersionCheckGlobalConfig
@@ -265,11 +271,24 @@ const versionCheckGlobalConfigSchema = () =>
     .keys({
       lastRun: joi.date().optional(),
     })
+    .unknown(true)
+    .meta({ internal: true })
+
+const requirementsCheckGlobalConfigSchema = () =>
+  joi
+    .object()
+    .keys({
+      lastRunDateUNIX: joi.number().optional(),
+      lastRunGardenVersion: joi.string().optional(),
+      passed: joi.bool().optional(),
+    })
+    .unknown(true)
     .meta({ internal: true })
 
 const globalConfigSchemaKeys = {
   analytics: analyticsGlobalConfigSchema(),
   lastVersionCheck: versionCheckGlobalConfigSchema(),
+  requirementsCheck: requirementsCheckGlobalConfigSchema(),
 }
 
 /* This contains a config key, key string pair to be used when setting/getting values in the store
@@ -286,7 +305,7 @@ export const globalConfigKeys = Object.keys(globalConfigSchemaKeys).reduce((acc,
   return acc
 }, {}) as { [K in keyof typeof globalConfigSchemaKeys]: K }
 
-const globalConfigSchema = () => joi.object().keys(globalConfigSchemaKeys).meta({ internal: true })
+const globalConfigSchema = () => joi.object().keys(globalConfigSchemaKeys).unknown(true).meta({ internal: true })
 
 export class GlobalConfigStore extends ConfigStore<GlobalConfig> {
   constructor() {

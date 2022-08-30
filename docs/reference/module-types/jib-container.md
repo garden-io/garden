@@ -7,7 +7,7 @@ tocTitle: "`jib-container`"
 
 ## Description
 
-Extends the [container module type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.43/examples/jib-container) to see it in action.
+Extends the [container module type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.44/examples/jib-container) to see it in action.
 
 The image is always built locally, directly from the module source directory (see the note on that below), before shipping the container image to the right place. You can set `build.tarOnly: true` to only build the image as a tarball.
 
@@ -833,9 +833,9 @@ Maximum time in seconds to wait for build to finish.
 
 The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the module root), but in some cases you may need to specify it.
 
-| Type     | Default  | Required |
-| -------- | -------- | -------- |
-| `string` | `"auto"` | No       |
+| Type     | Allowed Values                   | Default  | Required |
+| -------- | -------------------------------- | -------- | -------- |
+| `string` | "gradle", "maven", "jib", "auto" | `"auto"` | Yes      |
 
 ### `build.jdkVersion`
 
@@ -843,9 +843,9 @@ The type of project to build. Defaults to auto-detecting between gradle and mave
 
 The JDK version to use.
 
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `11`    | No       |
+| Type     | Allowed Values | Default | Required |
+| -------- | -------------- | ------- | -------- |
+| `number` | 8, 11, 13      | `11`    | Yes      |
 
 ### `build.dockerBuild`
 
@@ -873,9 +873,9 @@ Don't load or push the resulting image to a Docker daemon or registry, only buil
 
 Specify the image format in the resulting tar file. Only used if `tarOnly: true`.
 
-| Type     | Default    | Required |
-| -------- | ---------- | -------- |
-| `string` | `"docker"` | No       |
+| Type     | Allowed Values  | Default    | Required |
+| -------- | --------------- | ---------- | -------- |
+| `string` | "docker", "oci" | `"docker"` | Yes      |
 
 ### `build.extraFlags[]`
 

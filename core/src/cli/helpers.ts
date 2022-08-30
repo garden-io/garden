@@ -30,6 +30,8 @@ import { renderTable, tablePresets, naturalList } from "../util/string"
 import { globalOptions, GlobalOptions } from "./params"
 import { BuiltinArgs, Command, CommandGroup } from "../commands/base"
 import { DeepPrimitiveMap } from "../config/common"
+import { validateGitInstall } from "../vcs/vcs"
+import { validateRsyncInstall } from "../build-staging/rsync"
 
 let _cliStyles: any
 
@@ -67,6 +69,14 @@ export async function checkForStaticDir() {
       {}
     )
   }
+}
+
+/**
+ * checks if requirements to run garden are installed, throws if they are not
+ */
+export async function checkRequirements() {
+  await validateRsyncInstall()
+  await validateGitInstall()
 }
 
 export async function checkForUpdates(config: GlobalConfigStore, logger: LogEntry) {
