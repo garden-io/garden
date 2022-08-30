@@ -22,7 +22,7 @@ import { GardenModule } from "../../../src/types/module"
 import { ServiceLogEntry } from "../../../src/types/service"
 import Stream from "ts-stream"
 import { expect } from "chai"
-import { omit } from "lodash"
+import { cloneDeep, omit } from "lodash"
 import { CustomObjectSchema, joi } from "../../../src/config/common"
 import { validateSchema } from "../../../src/config/validation"
 import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
@@ -46,6 +46,8 @@ import {
 import { convertModules } from "../../../src/resolve-module"
 import { actionFromConfig } from "../../../src/graph/actions"
 import { TestAction } from "../../../src/actions/test"
+import { TestConfig } from "../../../src/config/test"
+import { findByName } from "../../../src/util/util"
 
 const now = new Date()
 
@@ -104,6 +106,22 @@ describe("ActionRouter", () => {
   after(async () => {
     await garden.close()
   })
+
+  async function executeTestAction(targetModule: GardenModule, testConfig: TestConfig) {
+    const testModule = cloneDeep(targetModule)
+    testModule.testConfigs.push(testConfig)
+    const { actions } = await convertModules(garden, garden.log, [module], graph.moduleGraph)
+    const action = (await actionFromConfig({
+      garden,
+      // rebuild config graph because the module config has been changed
+      graph: await garden.getConfigGraph({ emit: false, log: garden.log }),
+      config: actions.filter((a) => a.name === testConfig.name)[0],
+      log: garden.log,
+      configsByKey: {},
+      router: await garden.getActionRouter(),
+    })) as TestAction
+    return await garden.executeAction<TestAction>({ action, log: garden.log })
+  }
 
   // Note: The test plugins below implicitly validate input params for each of the tests
   describe("environment actions", () => {
@@ -356,24 +374,30 @@ describe("ActionRouter", () => {
 
     describe("test.run", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const test = testFromConfig(
-          module,
-          {
-            name: "test",
-            dependencies: [],
-            disabled: false,
-            timeout: 1234,
-            spec: {},
-          },
-          graph.moduleGraph
-        )
+        // const test = testFromConfig(
+        //   module,
+        //   {
+        //     name: "test",
+        //     dependencies: [],
+        //     disabled: false,
+        //     timeout: 1234,
+        //     spec: {},
+        //   },
+        //   graph.moduleGraph
+        // )
+        const action = await executeTestAction(module, {
+          name: "test",
+          dependencies: [],
+          disabled: false,
+          timeout: 1234,
+          spec: {},
+        })
         const result = await actionRouter.test.run({
           log,
-          module,
+          action,
           interactive: true,
           graph,
           silent: false,
-          test,
         })
         expect(result).to.eql({
           moduleName: module.name,
@@ -386,33 +410,39 @@ describe("ActionRouter", () => {
           success: true,
           startedAt: now,
           testName: "test",
-          version: test.version,
+          version: action.versionString(),
         })
       })
 
       it("should emit testStatus events", async () => {
         garden.events.eventLog = []
-        const test = testFromConfig(
-          module,
-          {
-            name: "test",
-            dependencies: [],
-            disabled: false,
-            timeout: 1234,
-            spec: {},
-          },
-          graph.moduleGraph
-        )
+        // const test = testFromConfig(
+        //   module,
+        //   {
+        //     name: "test",
+        //     dependencies: [],
+        //     disabled: false,
+        //     timeout: 1234,
+        //     spec: {},
+        //   },
+        //   graph.moduleGraph
+        // )
+        const action = await executeTestAction(module, {
+          name: "test",
+          dependencies: [],
+          disabled: false,
+          timeout: 1234,
+          spec: {},
+        })
         await actionRouter.test.run({
           log,
-          module,
+          action,
           interactive: true,
           graph,
           silent: false,
-          test,
         })
         const moduleVersion = module.version.versionString
-        const testVersion = test.version
+        const testVersion = action.versionString()
         const event1 = garden.events.eventLog[0]
         const event2 = garden.events.eventLog[1]
         expect(event1).to.exist
@@ -454,15 +484,15 @@ describe("ActionRouter", () => {
           },
         }
 
-        const test = testFromConfig(module, testConfig, graph.moduleGraph)
+        // const test = testFromConfig(module, testConfig, graph.moduleGraph)
+        const action = await executeTestAction(module, testConfig)
 
         await actionRouter.test.run({
           log,
-          module,
+          action,
           interactive: true,
           graph,
           silent: false,
-          test,
         })
 
         const targetPaths = testConfig.spec.artifacts.map((spec) => join(garden.artifactsPath, spec.source)).sort()
@@ -471,7 +501,7 @@ describe("ActionRouter", () => {
           expect(await pathExists(path)).to.be.true
         }
 
-        const metadataKey = `test.test.${test.version}`
+        const metadataKey = `test.test.${action.versionString()}`
         const metadataFilename = `.metadata.${metadataKey}.json`
         const metadataPath = join(garden.artifactsPath, metadataFilename)
         expect(await pathExists(metadataPath)).to.be.true
@@ -486,11 +516,12 @@ describe("ActionRouter", () => {
 
     describe("test.getResult", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const test = testFromModule(module, "unit", graph.moduleGraph)
+        // const test = testFromModule(module, "unit", graph.moduleGraph)
+        const testConfig = findByName(module.testConfigs, "unit")!
+        const action = await executeTestAction(module, testConfig)
         const result = await actionRouter.test.getResult({
           log,
-          module,
-          test,
+          action,
           graph,
         })
         expect(result).to.eql({
@@ -504,18 +535,19 @@ describe("ActionRouter", () => {
           success: true,
           startedAt: now,
           testName: "unit",
-          version: test.version,
+          version: action.versionString(),
         })
       })
     })
 
     it("should emit a testStatus event", async () => {
       garden.events.eventLog = []
-      const test = testFromModule(module, "unit", graph.moduleGraph)
+      // const test = testFromModule(module, "unit", graph.moduleGraph)
+      const testConfig = findByName(module.testConfigs, "unit")!
+      const action = await executeTestAction(module, testConfig)
       await actionRouter.test.getResult({
         log,
-        module,
-        test,
+        action,
         graph,
       })
       const event = garden.events.eventLog[0]
@@ -524,7 +556,7 @@ describe("ActionRouter", () => {
       expect(event.payload.testName).to.eql("unit")
       expect(event.payload.moduleName).to.eql("module-a")
       expect(event.payload.moduleVersion).to.eql(module.version.versionString)
-      expect(event.payload.testVersion).to.eql(test.version)
+      expect(event.payload.testVersion).to.eql(action.versionString())
       expect(event.payload.actionUid).to.be.undefined
       expect(event.payload.status.state).to.eql("succeeded")
     })
