@@ -35,8 +35,8 @@ import { join } from "path"
 import { DashboardPage } from "../../../src/plugin/handlers/provider/getDashboardPage"
 import { testFromModule, testFromConfig } from "../../../src/types/test"
 import { ConfigGraph } from "../../../src/graph/config-graph"
-import { ResolvedRuntimeAction } from "../../../src/actions/base"
-import { ResolvedBuildAction } from "../../../src/actions/build"
+import { BaseRuntimeActionConfig, ResolvedRuntimeAction, RuntimeAction } from "../../../src/actions/base"
+import { BuildActionConfig, ResolvedBuildAction } from "../../../src/actions/build"
 import {
   execBuildActionSchema,
   execDeployActionSchema,
@@ -48,6 +48,8 @@ import { actionFromConfig } from "../../../src/graph/actions"
 import { TestAction } from "../../../src/actions/test"
 import { TestConfig } from "../../../src/config/test"
 import { findByName } from "../../../src/util/util"
+import { RunAction, RunActionConfig } from "../../../src/actions/run"
+import { DeployActionConfig } from "../../../src/actions/deploy"
 
 const now = new Date()
 
@@ -57,9 +59,9 @@ describe("ActionRouter", () => {
   let log: LogEntry
   let actionRouter: ActionRouter
   let module: GardenModule
-  let resolvedBuildAction: ResolvedBuildAction
-  let resolvedDeployAction: ResolvedRuntimeAction
-  let resolvedRunAction: ResolvedRuntimeAction
+  let resolvedBuildAction: ResolvedBuildAction<BuildActionConfig<any, any>>
+  let resolvedDeployAction: ResolvedRuntimeAction<DeployActionConfig>
+  let resolvedRunAction: ResolvedRuntimeAction<RunActionConfig>
 
   const projectConfig: ProjectConfig = {
     apiVersion: DEFAULT_API_VERSION,
@@ -820,7 +822,7 @@ describe("ActionRouter", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const result = await actionRouter.run.getResult({
           log,
-          task: resolvedRunAction,
+          action: resolvedRunAction,
           graph,
         })
         expect(result).to.eql(taskResult)
@@ -830,7 +832,7 @@ describe("ActionRouter", () => {
         garden.events.eventLog = []
         await actionRouter.run.getResult({
           log,
-          task: resolvedRunAction,
+          action: resolvedRunAction,
           graph,
         })
         const event = garden.events.eventLog[0]
@@ -850,7 +852,7 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actionRouter.run.getResult({ log, task: resolvedRunAction, graph }),
+          () => actionRouter.run.getResult({ log, action: resolvedRunAction, graph }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from task 'task-a': key .foo must be a string"
@@ -864,7 +866,7 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actionRouter.run.getResult({ log, task: resolvedRunAction, graph }),
+          () => actionRouter.run.getResult({ log, action: resolvedRunAction, graph }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from task 'task-a': key .base must be a string"
@@ -877,7 +879,7 @@ describe("ActionRouter", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const result = await actionRouter.run.run({
           log,
-          task: resolvedRunAction,
+          action: resolvedRunAction,
           interactive: true,
           graph,
         })
@@ -888,7 +890,7 @@ describe("ActionRouter", () => {
         garden.events.eventLog = []
         await actionRouter.run.run({
           log,
-          task: resolvedRunAction,
+          action: resolvedRunAction,
           interactive: true,
           graph,
         })
@@ -922,7 +924,7 @@ describe("ActionRouter", () => {
           () =>
             actionRouter.run.run({
               log,
-              task: resolvedRunAction,
+              action: resolvedRunAction,
               interactive: true,
               graph,
             }),
