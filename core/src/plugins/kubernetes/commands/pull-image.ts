@@ -24,7 +24,7 @@ import { PluginContext } from "../../../plugin-context"
 import { ensureBuilderSecret } from "../container/build/common"
 import { ContainerBuildAction } from "../../container/config"
 import { k8sGetContainerBuildActionOutputs } from "../container/handlers"
-import { Resolved } from "../../../actions/base"
+import { Resolved } from "../../../actions/types"
 
 const tmpTarPath = "/tmp/image.tar"
 const imagePullTimeoutSeconds = 60 * 20

@@ -27,7 +27,7 @@ import { ServicePortProtocol, ContainerIngressSpec } from "../../../../../../src
 import { defaultSystemNamespace } from "../../../../../../src/plugins/kubernetes/system"
 import { getContainerTestGarden } from "./container"
 import { PartialBy } from "../../../../../../src/util/util"
-import { Resolved } from "../../../../../../src/actions/base"
+import { Resolved } from "../../../../../../src/actions/types"
 import { actionFromConfig } from "../../../../../../src/graph/actions"
 import { DeployAction, DeployActionConfig } from "../../../../../../src/actions/deploy"
 

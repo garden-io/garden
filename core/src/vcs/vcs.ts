@@ -28,7 +28,8 @@ import { TestConfig } from "../config/test"
 import { GardenModule } from "../types/module"
 import { emitWarning } from "../warnings"
 import { validateInstall } from "../util/validateInstall"
-import { BaseActionConfig, isActionConfig } from "../actions/base"
+import { isActionConfig } from "../actions/base"
+import { BaseActionConfig } from "../actions/types"
 
 const AsyncLock = require("async-lock")
 const scanLock = new AsyncLock()

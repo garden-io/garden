@@ -13,7 +13,7 @@ import { GardenPlugin, createGardenPlugin } from "../../../../src/plugin/plugin"
 import nock = require("nock")
 import { withDefaultGlobalOpts, dataDir, makeTestGarden } from "../../../helpers"
 import { execTestActionSchema } from "../../../../src/plugins/exec/config"
-import { ActionStatus } from "../../../../src/actions/base"
+import { ActionStatus } from "../../../../src/actions/types"
 
 const testStatusesA: { [key: string]: ActionStatus } = {
   "service-a": {

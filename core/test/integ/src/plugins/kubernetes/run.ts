@@ -45,9 +45,7 @@ import { GardenModule } from "../../../../../src/types/module"
 import { V1Container, V1Pod, V1PodSpec } from "@kubernetes/client-node"
 import { getResourceRequirements } from "../../../../../src/plugins/kubernetes/container/util"
 import { ContainerResourcesSpec } from "../../../../../src/plugins/container/moduleConfig"
-import { TestAction } from "../../../../../src/actions/test"
 import { ResolvedRuntimeAction } from "../../../../../src/actions/base"
-import { RunActionConfig } from "../../../../../src/actions/run"
 import { KubernetesRunActionSpec } from "../../../../../src/plugins/kubernetes/kubernetes-type/run"
 
 describe("kubernetes Pod runner functions", () => {

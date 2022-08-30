@@ -20,7 +20,7 @@ import { ExternalLink } from "./links"
 import { truncateMiddle } from "../util/helpers"
 import { CopyActionIcon } from "./copy-action-icon"
 import { useUiState } from "../hooks"
-import type { ActionKind } from "@garden-io/core/build/src/actions/base"
+import type { ActionKind } from "@garden-io/core/build/src/actions/types"
 
 const Term = styled.div`
   background-color: ${colors.gardenBlack};

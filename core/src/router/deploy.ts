@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { omit } from "lodash"
-import { ActionState } from "../actions/base"
+import { ActionState } from "../actions/types"
 import { PluginEventBroker } from "../plugin-context"
 import { ServiceState } from "../types/service"
 import { uuidv4 } from "../util/util"

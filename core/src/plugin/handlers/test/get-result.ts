@@ -11,7 +11,8 @@ import { PluginTestActionParamsBase, actionParamsSchema } from "../../base"
 import { TestAction } from "../../../actions/test"
 import { TestResult, testResultSchema } from "../../../types/test"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { ActionStatus, ActionStatusMap, actionStatusSchema, Resolved } from "../../../actions/base"
+import { actionStatusSchema } from "../../../actions/base"
+import { ActionStatus, ActionStatusMap, Resolved } from "../../../actions/types"
 
 interface GetTestResultParams<T extends TestAction> extends PluginTestActionParamsBase<T> {}
 

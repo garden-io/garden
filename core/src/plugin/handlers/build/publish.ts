@@ -11,7 +11,7 @@ import { actionParamsSchema, PluginBuildActionParamsBase } from "../../../plugin
 import { joi } from "../../../config/common"
 import { BuildAction } from "../../../actions/build"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { ActionStatus, Executed } from "../../../actions/base"
+import { ActionStatus, Executed } from "../../../actions/types"
 
 interface PublishActionParams<T extends BuildAction = BuildAction> extends PluginBuildActionParamsBase<T> {
   tag?: string

@@ -7,7 +7,7 @@
  */
 
 import { merge } from "lodash"
-import { Action, ExecutedAction } from "../../actions/base"
+import { Action, ExecutedAction } from "../../actions/types"
 import { Garden } from "../../garden"
 import { GardenModule } from "../../types/module"
 import { deline } from "../../util/string"

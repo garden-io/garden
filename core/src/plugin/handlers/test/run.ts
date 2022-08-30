@@ -14,7 +14,7 @@ import { joi } from "../../../config/common"
 import { ActionTypeHandlerSpec } from "../base/base"
 import { GetTestResult, getTestResultSchema } from "./get-result"
 import { CommonRunParams } from "../run/run"
-import { Resolved } from "../../../actions/base"
+import { Resolved } from "../../../actions/types"
 
 type TestActionParams<T extends TestAction> = PluginTestActionParamsBase<T> &
   CommonRunParams & {

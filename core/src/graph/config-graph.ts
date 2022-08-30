@@ -14,9 +14,11 @@ import {
   Action,
   ActionDependencyAttributes,
   ActionKind,
-  actionReferenceToString,
   Resolved,
   ResolvedAction,
+} from "../actions/types"
+import {
+  actionReferenceToString,
 } from "../actions/base"
 import { BuildAction } from "../actions/build"
 import { ActionReference, parseActionReference } from "../config/common"

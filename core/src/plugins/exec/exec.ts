@@ -52,7 +52,8 @@ import {
   TestActionDefinition,
   TestActionHandler,
 } from "../../plugin/action-types"
-import { Action, runResultToActionState } from "../../actions/base"
+import { Action } from "../../actions/types"
+import { runResultToActionState } from "../../actions/base"
 import { ResolvedBuildAction } from "../../actions/build"
 import { DeployStatus } from "../../plugin/handlers/deploy/get-status"
 import { BuildStatus } from "../../plugin/handlers/build/get-status"

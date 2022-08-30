@@ -24,7 +24,7 @@ import { GardenPlugin } from "../plugin/plugin"
 import { EnvironmentStatus } from "../plugin/handlers/provider/getEnvironmentStatus"
 import { environmentStatusSchema } from "./status"
 import { DashboardPage, dashboardPagesSchema } from "../plugin/handlers/provider/getDashboardPage"
-import { ActionState } from "../actions/base"
+import type { ActionState } from "../actions/types"
 
 export interface BaseProviderConfig {
   name: string

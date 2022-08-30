@@ -6,7 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Action, BaseRuntimeActionConfig, baseRuntimeActionConfig, RuntimeAction } from "./base"
+import { BaseRuntimeActionConfig, baseRuntimeActionConfig, RuntimeAction } from "./base"
+import { Action } from "./types"
 
 export interface DeployActionConfig<N extends string = any, S extends object = any>
   extends BaseRuntimeActionConfig<"Deploy", N, S> {

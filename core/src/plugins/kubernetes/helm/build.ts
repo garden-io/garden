@@ -14,7 +14,7 @@ import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesPluginContext } from "../config"
 import { basename, join } from "path"
 import { defaultHelmRepo, HelmDeployAction } from "./config"
-import { Resolved } from "../../../actions/base"
+import { Resolved } from "../../../actions/types"
 
 export async function pullChart(ctx: KubernetesPluginContext, log: LogEntry, action: Resolved<HelmDeployAction>) {
   const chartPath = await getChartPath(action)

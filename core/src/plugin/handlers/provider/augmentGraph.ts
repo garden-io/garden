@@ -11,7 +11,8 @@ import { dedent } from "../../../util/string"
 import { joi, joiArray, joiIdentifier, joiIdentifierMap } from "../../../config/common"
 import { baseModuleSpecSchema } from "../../../config/module"
 import { providerSchema, ProviderMap } from "../../../config/provider"
-import { BaseAction, baseActionConfigSchema, BaseActionConfig } from "../../../actions/base"
+import { BaseAction, baseActionConfigSchema } from "../../../actions/base"
+import { BaseActionConfig } from "../../../actions/types"
 
 export interface AugmentGraphParams extends PluginActionParamsBase {
   actions: BaseAction[]

@@ -9,26 +9,28 @@
 import { join } from "path"
 import { ActionReference, includeGuideLink, joi, joiSparseArray, joiUserIdentifier } from "../config/common"
 import { ActionConfigContext } from "../config/template-contexts/actions"
-import { GraphResult, GraphResults } from "../graph/results"
+import type { GraphResult, GraphResults } from "../graph/results"
 import { dedent } from "../util/string"
-import {
+import type {
   BaseActionConfig,
-  baseActionConfigSchema,
-  BaseAction,
-  includeExcludeSchema,
   ResolvedActionWrapperParams,
   Action,
   ActionStatus,
-  actionReferenceToString,
-  ResolvedActionExtension,
-  ExecutedActionExtension,
   ExecutedActionWrapperParams,
   ResolveActionParams,
   ExecuteActionParams,
   Executed,
-  ExecutedActionConstructor,
   ExecutedAction,
   ResolvedAction,
+} from "./types"
+import {
+  baseActionConfigSchema,
+  BaseAction,
+  includeExcludeSchema,
+  actionReferenceToString,
+  ResolvedActionExtension,
+  ExecutedActionExtension,
+  ExecutedActionConstructor,
 } from "./base"
 
 export interface BuildCopyFrom {

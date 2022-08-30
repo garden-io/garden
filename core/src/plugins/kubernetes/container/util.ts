@@ -22,7 +22,7 @@ import {
 import { V1ResourceRequirements, V1SecurityContext } from "@kubernetes/client-node"
 import { kilobytesToString, millicpuToString } from "../util"
 import { ConfigurationError } from "../../../exceptions"
-import { Resolved } from "../../../actions/base"
+import { Resolved } from "../../../actions/types"
 import { containerHelpers } from "../../container/helpers"
 
 export function getDeployedImageId(action: Resolved<ContainerRuntimeAction>, provider: KubernetesProvider): string {
