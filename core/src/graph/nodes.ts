@@ -10,29 +10,46 @@ import { Task, ValidResultType } from "../tasks/base"
 import { GardenBaseError, InternalError } from "../exceptions"
 import { GraphResult, GraphResults } from "./results"
 import { ActionStatus } from "../actions/types"
+import type { GraphSolver } from "./solver"
+import { ValuesType } from "utility-types"
 
-export type NodeType = "request" | "status" | "process"
+export interface InternalNodeTypes {
+  status: StatusTaskNode
+  process: ProcessTaskNode
+}
+
+export type InternalNode = ValuesType<InternalNodeTypes>
+
+export interface NodeTypes extends InternalNodeTypes {
+  request: RequestTaskNode
+}
+
+export type NodeType = keyof NodeTypes
 
 export interface TaskNodeParams<T extends Task> {
+  solver: GraphSolver
   task: T
   dependant?: TaskNode
 }
 
-export abstract class TaskNode<N extends NodeType = NodeType, T extends Task = Task> {
-  abstract readonly executionType: N
+export abstract class TaskNode<T extends Task = Task> {
+  abstract readonly executionType: NodeType
 
   public readonly type: string
   public startedAt?: Date
   public readonly task: T
 
+  protected solver: GraphSolver
   protected dependants: { [key: string]: TaskNode }
   protected dependencyResults: { [key: string]: GraphResult<any> }
   protected result?: GraphResult<any>
 
-  constructor({ task }: TaskNodeParams<T>) {
+  constructor({ solver, task }: TaskNodeParams<T>) {
     this.task = task
     this.type = task.type
+    this.solver = solver
     this.dependants = {}
+    this.dependencyResults = {}
   }
 
   abstract describe(): string
@@ -40,7 +57,7 @@ export abstract class TaskNode<N extends NodeType = NodeType, T extends Task = T
   abstract execute(): Promise<T["_resultType"] | null>
 
   getKey() {
-    return `${this.task.getKey()}:${this.executionType}`
+    return getNodeKey(this.task, this.executionType)
   }
 
   addDependant(node: TaskNode) {
@@ -60,15 +77,8 @@ export abstract class TaskNode<N extends NodeType = NodeType, T extends Task = T
   /**
    * Get the result for the given dependency node. Returns undefined if result is not yet set.
    */
-  getDependencyResult<A extends NodeType, B extends Task>(
-    node: TaskNode<A, B>
-  ): GraphResult<B["_resultType"]> | undefined {
-    const key = node.getKey()
-    return this.dependencyResults[key]
-  }
-
-  setDependencyResult(result: GraphResult) {
-    this.dependencyResults[result.key] = result
+  getDependencyResult<A extends Task>(node: TaskNode<A>): GraphResult<A["_resultType"]> | undefined {
+    return node.getResult()
   }
 
   /**
@@ -86,6 +96,10 @@ export abstract class TaskNode<N extends NodeType = NodeType, T extends Task = T
     return results
   }
 
+  isComplete() {
+    return !!this.result
+  }
+
   /**
    * Completes the node, setting its result and propagating it to each dependant node.
    *
@@ -94,12 +108,14 @@ export abstract class TaskNode<N extends NodeType = NodeType, T extends Task = T
    * If the node was already completed, this is a no-op (may e.g. happen if the node has been completed
    * but a dependency fails and is aborting dependants).
    */
-  complete({ error, result, aborted }: CompleteTaskParams<T["_resultType"]>): GraphResult<any> {
+  complete({ startedAt, error, result, aborted }: CompleteTaskParams<T["_resultType"]>): GraphResult<any> {
     if (this.result) {
       return this.result
     }
 
     const task = this.task
+
+    task.log.silly(`Completing task node ${this.describe()}. aborted=${aborted}, error=${error ? error.message : null}`)
 
     this.result = {
       type: task.type,
@@ -109,20 +125,20 @@ export abstract class TaskNode<N extends NodeType = NodeType, T extends Task = T
       result,
       dependencyResults: this.getDependencyResults(),
       aborted,
-      startedAt: this.startedAt || null,
+      startedAt,
       completedAt: new Date(),
       error,
       version: this.task.version,
       outputs: result?.outputs,
       task,
+      processed: this.executionType === "process",
     }
 
     for (const d of Object.values(this.dependants)) {
-      d.setDependencyResult(this.result)
-
       if (aborted || error) {
         const failureDescription = aborted ? "was aborted" : "failed"
         d.complete({
+          startedAt,
           aborted,
           result: null,
           error: new GraphNodeError(
@@ -142,6 +158,10 @@ export abstract class TaskNode<N extends NodeType = NodeType, T extends Task = T
   getResult() {
     return this.result
   }
+
+  protected getNode<NT extends keyof InternalNodeTypes>(type: NT, task: Task): InternalNodeTypes[NT] {
+    return this.solver.getNode(type, task)
+  }
 }
 
 export interface TaskRequestParams<T extends Task = Task> extends TaskNodeParams<T> {
@@ -150,8 +170,9 @@ export interface TaskRequestParams<T extends Task = Task> extends TaskNodeParams
   completeHandler: CompleteHandler<T["_resultType"]>
 }
 
-export class RequestTaskNode<T extends Task = Task> extends TaskNode<"request", T> {
-  executionType: "request" = "request"
+export class RequestTaskNode<T extends Task = Task> extends TaskNode<T> {
+  // FIXME: this is a bit of a TS oddity, but it does work...
+  executionType = <NodeType>"request"
 
   public readonly requestedAt: Date
   public readonly batchId: string
@@ -175,13 +196,11 @@ export class RequestTaskNode<T extends Task = Task> extends TaskNode<"request", 
     return `${this.task.getBaseKey()}:request:${this.batchId}`
   }
 
-  getDependencies(): TaskNode<NodeType, T>[] {
-    const params = { task: this.task }
-
+  getDependencies(): TaskNode[] {
     if (this.statusOnly) {
-      return [new StatusTaskNode(params)]
+      return [this.getNode("status", this.task)]
     } else {
-      return [new ProcessTaskNode(params)]
+      return [this.getNode("process", this.task)]
     }
   }
 
@@ -197,17 +216,17 @@ export class RequestTaskNode<T extends Task = Task> extends TaskNode<"request", 
   }
 }
 
-export class ProcessTaskNode<T extends Task = Task> extends TaskNode<"process", T> {
-  executionType: "process" = "process"
+export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
+  executionType = <NodeType>"process"
 
   describe() {
-    return this.task.getDescription()
+    return `process ${this.task.getDescription()}`
   }
 
   getDependencies() {
     if (!this.task.force) {
       // Not forcing execution, so we first resolve the status
-      const statusTask = new StatusTaskNode({ task: this.task })
+      const statusTask = this.getNode("status", this.task)
       const statusResult = this.getDependencyResult(statusTask)
 
       if (statusResult === undefined) {
@@ -221,17 +240,15 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<"process", 
 
     // Either forcing, or status is not ready
     const processDeps = this.task.getProcessDependencies()
-    return processDeps.map((task) => new ProcessTaskNode({ task }))
-  }
-
-  getStatus(): ActionStatus | undefined {
-    const statusTask = new StatusTaskNode({ task: this.task })
-    const result = this.getDependencyResult(statusTask)
-    return result === undefined ? undefined : <ActionStatus>result.result
+    return processDeps.map((task) => this.getNode("process", task))
   }
 
   async execute() {
-    const status = this.getStatus()
+    this.task.log.silly(`Executing node ${this.describe()}`)
+
+    const statusTask = this.getNode("status", this.task)
+    const result = this.getDependencyResult(statusTask)
+    const status = result === undefined ? undefined : <ActionStatus>result.result
 
     if (status === undefined) {
       throw new InternalError(`Attempted to execute ${this.describe()} before resolving status.`, {
@@ -239,30 +256,39 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<"process", 
       })
     }
 
-    return this.task.process({ status, dependencyResults: this.getDependencyResults() })
+    const dependencyResults = this.getDependencyResults()
+
+    return this.task.process({ status, dependencyResults })
   }
 }
 
-export class StatusTaskNode<T extends Task = Task> extends TaskNode<"status", T> {
-  executionType: "status" = "status"
+export class StatusTaskNode<T extends Task = Task> extends TaskNode<T> {
+  executionType = <NodeType>"status"
 
   describe() {
-    return `status for ${this.task.getDescription()}`
+    return `resolve status for ${this.task.getDescription()}`
   }
 
   getDependencies() {
     const statusDeps = this.task.getStatusDependencies()
-    return statusDeps.map((task) => new StatusTaskNode({ task }))
+    return statusDeps.map((task) => this.getNode("status", task))
   }
 
   async execute() {
-    return this.task.getStatus({ dependencyResults: this.getDependencyResults() })
+    this.task.log.silly(`Executing node ${this.describe()}`)
+    const dependencyResults = this.getDependencyResults()
+    return this.task.getStatus({ dependencyResults })
   }
+}
+
+export function getNodeKey(task: Task, type: NodeType) {
+  return `${task.getKey()}:${type}`
 }
 
 export type CompleteHandler<R extends ValidResultType> = (result: GraphResult<R>) => void
 
 export interface CompleteTaskParams<R = any> {
+  startedAt: Date | null
   error: Error | null
   result: R | null
   aborted: boolean

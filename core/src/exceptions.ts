@@ -99,7 +99,7 @@ export class InternalError extends GardenBaseError {
   type = "internal"
 
   constructor(message: string, detail: any) {
-    super(message + " - This is a bug. Please report it!", detail)
+    super(message + "\nThis is a bug. Please report it!", detail)
   }
 }
 

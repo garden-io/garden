@@ -21,6 +21,7 @@ export type TestTaskCallback = (params: { task: BaseTask; params: TaskProcessPar
 
 interface TestTaskParams extends BaseTaskParams {
   name?: string
+  state?: ActionState
   callback?: TestTaskCallback
   dependencies?: BaseTask[]
   statusDependencies?: BaseTask[]
@@ -29,6 +30,8 @@ interface TestTaskParams extends BaseTaskParams {
 
 interface TestTaskResult extends ValidResultType {
   outputs: {
+    id: string
+    processed: boolean
     callbackResult: any
   }
 }
@@ -39,6 +42,7 @@ export class TestTask extends BaseTask<TestTaskResult> {
   type = "test"
 
   name: string
+  state: ActionState
   callback: TestTaskCallback | null
   statusCallback: TestTaskCallback | null
   throwError: boolean
@@ -48,6 +52,7 @@ export class TestTask extends BaseTask<TestTaskResult> {
   constructor(params: TestTaskParams) {
     super(params)
     this.name = params.name || "a"
+    this.state = params.state || "not-ready"
     this.callback = params.callback || null
     this.dependencies = params.dependencies || []
     this.statusDependencies = params.statusDependencies || []
@@ -90,8 +95,10 @@ export class TestTask extends BaseTask<TestTaskResult> {
     }
 
     return {
-      state: <ActionState>"ready",
+      state: this.state,
       outputs: {
+        id: this.getId(),
+        processed: false,
         callbackResult,
       },
     }
@@ -111,6 +118,8 @@ export class TestTask extends BaseTask<TestTaskResult> {
     return {
       state: <ActionState>"ready",
       outputs: {
+        id: this.getId(),
+        processed: true,
         callbackResult,
       },
     }
@@ -144,15 +153,54 @@ describe("GraphSolver", () => {
 
   it("processes a single task without dependencies", async () => {
     const task = makeTask({})
-    const result = await processTask(task)
+    const result = await processTask(task, { throwOnError: true })
 
     expect(result).to.exist
     expect(result!.type).to.equal("test")
-    expect(result!.name).to.equal("test")
+    expect(result!.name).to.equal("a")
     expect(result!.startedAt).to.eql(now)
     expect(result!.completedAt).to.eql(now)
     expect(result!.version).to.equal(task.version)
     expect(result!.result?.state).to.equal("ready")
+    expect(result!.outputs["processed"]).to.equal(true)
+  })
+
+  it("returns status for task without processing if it's status is ready and force=false", async () => {
+    const task = makeTask({ state: "ready" })
+    const result = await processTask(task, { throwOnError: true })
+
+    expect(result).to.exist
+    expect(result!.result?.state).to.equal("ready")
+    expect(result!.outputs["processed"]).to.equal(false)
+  })
+
+  it("processes task if it's status is ready and force=true", async () => {
+    const task = makeTask({ state: "ready", force: true })
+    const result = await processTask(task, { throwOnError: true })
+
+    expect(result).to.exist
+    expect(result!.result?.state).to.equal("ready")
+    expect(result!.outputs["processed"]).to.equal(true)
+  })
+
+  it("processes two tasks in dependency order", async () => {
+    const taskA = makeTask({ name: "a" })
+    const taskB = makeTask({
+      name: "b",
+      dependencies: [taskA],
+      callback: async ({ params }) => {
+        return params.dependencyResults.getResult(taskA)?.outputs.id
+      },
+    })
+    const { error, results } = await garden.processTasks({ tasks: [taskA, taskB], throwOnError: true })
+
+    expect(error).to.not.exist
+    expect(results).to.exist
+
+    // const resultA = results.getResult(taskA)
+    const resultB = results.getResult(taskB)
+
+    expect(resultB?.outputs.callbackResult).to.equal(taskA.getId())
   })
 
   // it("should emit a taskPending event when adding a task", async () => {

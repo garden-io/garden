@@ -89,7 +89,7 @@ declare class _TypedEventEmitter<T extends object> {
 }
 
 // @ts-ignore
-class _TypedEventEmitter extends EventEmitter2 {}
+class _TypedEventEmitter {}
 
 export class TypedEventEmitter<T extends object> extends _TypedEventEmitter<T> {
   constructor(options?: ConstructorOptions) {
@@ -98,3 +98,11 @@ export class TypedEventEmitter<T extends object> extends _TypedEventEmitter<T> {
     Object.assign(this, cls)
   }
 }
+
+Object.getOwnPropertyNames(EventEmitter2.prototype).forEach((name) => {
+  Object.defineProperty(
+    TypedEventEmitter.prototype,
+    name,
+    Object.getOwnPropertyDescriptor(EventEmitter2.prototype, name) || Object.create(null)
+  )
+})
