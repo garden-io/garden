@@ -66,6 +66,7 @@ const jibModuleSchema = () =>
         .valid("docker", "oci")
         .default("docker")
         .description("Specify the image format in the resulting tar file. Only used if `tarOnly: true`."),
+      mavenPath: joi.string().optional().description("Defines the location of the executable Maven binary."),
       mavenPhases: joi
         .array()
         .items(joi.string())
@@ -203,6 +204,7 @@ export const gardenPlugin = () =>
                 cwd: module.path,
                 args: [...mavenPhases, ...args],
                 openJdkPath,
+                mavenPath: module.spec.build.mavenPath,
                 outputStream,
               })
             } else {

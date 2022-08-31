@@ -79,6 +79,9 @@ build:
   # Specify the image format in the resulting tar file. Only used if `tarOnly: true`.
   tarFormat: docker
 
+  # Defines the location of the executable Maven binary.
+  mavenPath:
+
   # Defines the Maven phases to be executed during the Garden build step.
   mavenPhases:
 
@@ -904,6 +907,16 @@ Specify the image format in the resulting tar file. Only used if `tarOnly: true`
 | Type     | Allowed Values  | Default    | Required |
 | -------- | --------------- | ---------- | -------- |
 | `string` | "docker", "oci" | `"docker"` | Yes      |
+
+### `build.mavenPath`
+
+[build](#build) > mavenPath
+
+Defines the location of the executable Maven binary.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `build.mavenPhases[]`
 

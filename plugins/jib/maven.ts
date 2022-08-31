@@ -9,7 +9,7 @@
 import AsyncLock from "async-lock"
 import { LogEntry, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
 import { find } from "lodash"
-import { PluginError } from "@garden-io/core/build/src/exceptions"
+import { PluginError, RuntimeError } from "@garden-io/core/build/src/exceptions"
 import { Writable } from "node:stream"
 import execa from "execa"
 
@@ -65,6 +65,45 @@ export function getMvnTool(ctx: PluginContext) {
   return tool
 }
 
+const baseErrorMessage = (mvnPath: string): string =>
+  `Maven binary path "${mvnPath}" is incorrect! Please check the \`mavenPath\` configuration option.`
+
+async function checkMavenVersion(mvnPath: string) {
+  try {
+    const res = await execa(mvnPath, ["--version"])
+    return res.stdout
+  } catch (err) {
+    const composeErrorMessage = (err: any): string => {
+      if (err.code === "EACCES") {
+        return `${baseErrorMessage(
+          mvnPath
+        )} It looks like the Maven path defined in the config is not an executable binary.`
+      } else {
+        return baseErrorMessage(mvnPath)
+      }
+    }
+    throw new RuntimeError(composeErrorMessage(err), { mvnPath })
+  }
+}
+
+let mavenPathValid = false
+
+async function verifyMavenPath(mvnPath: string) {
+  if (mavenPathValid) {
+    return
+  }
+
+  const versionOutput = await checkMavenVersion(mvnPath)
+  const isMaven = versionOutput.toLowerCase().includes("maven")
+  if (!isMaven) {
+    throw new RuntimeError(
+      `${baseErrorMessage(mvnPath)} It looks like the Maven path points to a non-Maven executable binary.`,
+      { mvnPath }
+    )
+  }
+  mavenPathValid = true
+}
+
 /**
  * Run maven with the specified args in the specified directory.
  */
@@ -74,6 +113,7 @@ export async function mvn({
   cwd,
   log,
   openJdkPath,
+  mavenPath,
   outputStream,
 }: {
   ctx: PluginContext
@@ -81,10 +121,19 @@ export async function mvn({
   cwd: string
   log: LogEntry
   openJdkPath: string
+  mavenPath?: string
   outputStream?: Writable
 }) {
-  const tool = getMvnTool(ctx)
-  const mvnPath = await tool.getPath(log)
+  let mvnPath: string
+  if (!!mavenPath) {
+    log.verbose(`Using explicitly specified Maven binary from ${mavenPath}`)
+    mvnPath = mavenPath
+    await verifyMavenPath(mvnPath)
+  } else {
+    log.verbose(`The Maven binary hasn't been specified explicitly. Using default Maven binary from ${mavenPath}`)
+    const tool = getMvnTool(ctx)
+    mvnPath = await tool.getPath(log)
+  }
 
   // Maven has issues when running concurrent processes, so we're working around that with a lock.
   // TODO: http://takari.io/book/30-team-maven.html would be a more robust solution.
