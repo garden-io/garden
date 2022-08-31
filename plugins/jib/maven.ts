@@ -17,7 +17,7 @@ const buildLock = new AsyncLock()
 
 const spec = {
   url: "https://archive.apache.org/dist/maven/maven-3/3.8.5/binaries/apache-maven-3.8.5-bin.zip",
-  sha256: "26ad91d751b3a9a53087aefa743f4e16a17741d3915b219cf74112bf87a438c5",
+  sha256: "d53e045bc5c02aad179fae2fbc565d953354880db6661a8fab31f3a718d7b62c",
   extract: {
     format: "tar",
     targetPath: "apache-maven-3.6.3/bin/mvn",
