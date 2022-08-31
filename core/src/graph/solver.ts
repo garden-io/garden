@@ -14,7 +14,7 @@ import { DependencyGraph } from "./common"
 import { Profile } from "../util/profiling"
 import { TypedEventEmitter } from "../util/events"
 import { groupBy, keyBy } from "lodash"
-import { GraphResult, GraphResults, TaskEventBase } from "./results"
+import { GraphResult, GraphResults, resultToString, TaskEventBase } from "./results"
 import { gardenEnv } from "../constants"
 import { Garden } from "../garden"
 import { GraphResultEventPayload, toGraphResultEventPayload } from "../events"
@@ -23,7 +23,9 @@ import { renderMessageWithDivider } from "../logger/util"
 import chalk from "chalk"
 import {
   CompleteTaskParams,
+  getNodeKey,
   GraphNodeError,
+  InternalNodeTypes,
   ProcessTaskNode,
   RequestTaskNode,
   StatusTaskNode,
@@ -54,12 +56,16 @@ export interface SolveResult<T extends Task = Task> {
 export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   // Explicitly requested tasks
   private readonly requestedTasks: { [batchId: string]: { [key: string]: RequestTaskNode } }
-  // All pending tasks, including implicit from dependencies
-  private readonly pendingTasks: WrappedTasks
+  // All nodes, including implicit from dependencies
+  private nodes: WrappedNodes
+  // All pending nodes, including implicit from dependencies
+  private pendingNodes: WrappedNodes
   // Tasks currently running
-  private readonly inProgress: WrappedTasks
+  private readonly inProgress: WrappedNodes
 
   private inLoop: boolean
+
+  private log: LogEntry
 
   constructor(
     private garden: Garden,
@@ -69,9 +75,12 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   ) {
     super()
 
+    this.log = garden.log
     this.inLoop = false
     this.requestedTasks = {}
-    this.pendingTasks = {}
+    this.nodes = {}
+    this.pendingNodes = {}
+    this.inProgress = {}
 
     this.on("start", () => {
       this.loop()
@@ -81,23 +90,24 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   async solve(params: SolveParams): Promise<SolveResult> {
     // TODO-G2: remove this lock and test with concurrent execution
     return lock.acquire("solve", async () => {
-      const { statusOnly, tasks, throwOnError } = params
+      const { statusOnly, tasks, throwOnError, log } = params
 
       const _this = this
       const batchId = uuidv4()
       const results = new GraphResults(tasks)
       let aborted = false
 
-      return new Promise<SolveResult>((resolve, reject) => {
+      const output = await new Promise<SolveResult>((resolve, reject) => {
         const requests = keyBy(
           tasks.map((t) => {
-            results[t.getBaseKey()] = null
-            return this.requestTask({ task: t, batchId, statusOnly: !!statusOnly, completeHandler })
+            return this.requestTask({ solver: _this, task: t, batchId, statusOnly: !!statusOnly, completeHandler })
           }),
           (r) => r.task.getKey()
         )
 
         function completeHandler(result: GraphResult) {
+          log.silly(`Complete handler for batch ${batchId} called with ${resultToString(result)}`)
+
           if (aborted) {
             return
           }
@@ -111,7 +121,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
             return
           }
 
-          results.setResult(request.task, result)
+          log.silly(`Complete handler for batch ${batchId} matched with request ${request.getKey()}`)
 
           if (throwOnError && result.error) {
             cleanup()
@@ -119,59 +129,84 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
             return
           }
 
-          for (const r of Object.values(results)) {
-            if (!r) {
-              // Keep going if any of the expected results are pending
-              return
-            }
+          results.setResult(request.task, result)
+
+          const missingCount = results.getMissing().length
+
+          if (missingCount > 0) {
+            log.silly(`Batch ${batchId} has ${missingCount} results still missing`)
+            // Keep going if any of the expected results are pending
+            return
           }
 
           // All requested results have been filled (i.e. none are null) so we're done.
           let error: GraphError | null = null
 
-          const failed = Object.values(results).filter((r) => !!r?.error)
+          const failed = Object.entries(results.getMap()).filter(([_, r]) => !!r?.error || !!r?.aborted)
 
           if (failed.length > 0) {
             // TODO-G2: better aggregate error output
             let msg = `Failed to complete ${failed.length} tasks:\n`
 
-            for (const r of failed) {
-              msg += `- ${r?.description}: ${r?.error}`
+            for (const [_, r] of failed) {
+              if (!r) {
+                continue
+              }
+              msg += `- ${r.description}: ${r?.error || "ABORTED"}`
             }
 
             error = new GraphError(msg, { results })
+          }
+
+          cleanup()
+
+          if (error) {
+            log.silly(`Batch ${batchId} failed: ${error}`)
+          } else {
+            log.silly(`Batch ${batchId} completed`)
           }
 
           resolve({ error, results })
         }
 
         function cleanup() {
-          // TODO: abort remaining tasks?
+          // TODO: abort remaining pending tasks?
           aborted = true
           delete _this.requestedTasks[batchId]
         }
 
         this.start()
       })
+
+      // Clean up
+      // TODO-G2: needs revising for concurrency, shortcutting just for now
+      this.nodes = {}
+      this.pendingNodes = {}
+
+      return output
     })
   }
 
   private getPendingGraph() {
-    const tasks = Object.values(this.pendingTasks)
+    const nodes = Object.values(this.pendingNodes)
     const graph = new DependencyGraph<TaskNode>()
 
-    const addNode = (task: TaskNode) => {
-      graph.addNode(task.getKey(), task)
+    const addNode = (node: TaskNode) => {
+      if (node.isComplete()) {
+        return
+      }
+      graph.addNode(node.getKey(), node)
 
-      const deps = task.getRemainingDependencies()
+      const deps = node.getRemainingDependencies()
 
       for (const dep of deps) {
         addNode(dep)
+        graph.addDependency(node.getKey(), dep.getKey())
       }
     }
 
-    for (const task of tasks) {
-      graph.addNode(task.getKey(), task)
+    for (const node of nodes) {
+      addNode(node)
     }
 
     return graph
@@ -185,6 +220,29 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     // TODO-G2: currently a no-op, possibly not necessary
   }
 
+  // TODO-G2B: This should really only be visible to TaskNode instances
+  getNode<N extends keyof InternalNodeTypes>(type: N, task: Task): InternalNodeTypes[N] {
+    // Return existing node if it's there
+    const key = getNodeKey(task, type)
+
+    if (this.nodes[key]) {
+      return this.nodes[key]
+    }
+
+    // Otherwise create a new one
+    let node: InternalNodeTypes[N]
+
+    if (type === "process") {
+      node = new ProcessTaskNode({ solver: this, task })
+    } else {
+      node = new StatusTaskNode({ solver: this, task })
+    }
+
+    this.nodes[key] = node
+
+    return node
+  }
+
   // Note: It is important that this is not an async function
   private loop() {
     // Make sure only one instance of this function is running at any point
@@ -194,9 +252,9 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     this.inLoop = true
 
     try {
-      this.ensurePendingNodes()
+      this.evaluateRequests()
 
-      for (const node of Object.values(this.pendingTasks)) {
+      for (const node of Object.values(this.pendingNodes)) {
         // For every missing dependency, ensure task is pending.
         const remainingDeps = node.getRemainingDependencies()
         for (const dep of remainingDeps) {
@@ -211,7 +269,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
       }
 
       const leaves = graph.overallOrder(true)
-      const pending = leaves.map((key) => this.pendingTasks[key])
+      const pending = leaves.map((key) => this.pendingNodes[key])
 
       const inProgressNodes = Object.values(this.inProgress)
       const inProgressByGroup = groupBy(inProgressNodes, "type")
@@ -230,7 +288,13 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
       }
 
       // Enforce hard global limit
-      const nodesToProcess = limitedByGroup.slice(0, this.hardConcurrencyLimit - inProgressNodes.length)
+      const nodesToProcess = limitedByGroup
+        .slice(0, this.hardConcurrencyLimit - inProgressNodes.length)
+        .filter((node) => !this.inProgress[node.getKey()])
+
+      if (nodesToProcess.length === 0) {
+        return
+      }
 
       this.emit("process", {
         keys: nodesToProcess.map((n) => n.getKey()),
@@ -239,11 +303,13 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
       // Process the nodes
       for (const node of nodesToProcess) {
-        this.inProgress[node.getKey()] = node
-        this.processNode(node).catch((error) => {
+        const key = node.getKey()
+        this.inProgress[key] = node
+        const startedAt = new Date()
+        this.processNode(node, startedAt).catch((error) => {
           this.garden.events.emit("internalError", { error, timestamp: new Date() })
           this.logInternalError(node, error)
-          node.complete({ error, aborted: true, result: null })
+          node.complete({ startedAt, error, aborted: true, result: null })
         })
       }
     } finally {
@@ -255,7 +321,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   /**
    * Processes a single task to completion, handling errors and providing its result to in-progress task batches.
    */
-  private async processNode(node: TaskNode) {
+  private async processNode(node: TaskNode, startedAt: Date) {
     // Errors thrown in this outer try block are caught in loop().
     try {
       const task = node.task
@@ -264,8 +330,6 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
       const key = node.getKey()
 
       this.logTask(node)
-
-      const startedAt = new Date()
 
       let result: GraphResult
 
@@ -277,12 +341,13 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           startedAt: new Date(),
           versionString: task.version,
         })
-        const processResult = await node.execute()
 
-        result = this.completeTask({ error: null, result: processResult, node, aborted: false })
-        result.startedAt = startedAt
+        const processResult = await node.execute()
+        processResult.startedAt = startedAt
+
+        result = this.completeTask({ startedAt, error: null, result: processResult, node, aborted: false })
       } catch (error) {
-        result = this.completeTask({ error: null, result: null, node, aborted: false })
+        result = this.completeTask({ startedAt, error, result: null, node, aborted: false })
         this.garden.events.emit("taskError", toGraphResultEventPayload(result))
         if (!node.task.interactive) {
           this.logTaskError(node, error)
@@ -295,32 +360,50 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
   private requestTask(params: TaskRequestParams) {
     const request = new RequestTaskNode(params)
+    if (!this.requestedTasks[params.batchId]) {
+      this.requestedTasks[params.batchId] = {}
+    }
     this.requestedTasks[params.batchId][request.getKey()] = request
     return request
   }
 
-  private ensurePendingNodes() {
+  private evaluateRequests() {
     for (const [_batchId, requests] of Object.entries(this.requestedTasks)) {
       for (const request of Object.values(requests)) {
-        // See what is missing to fulfill the request
-        // -> Does it have its status?
+        if (request.isComplete()) {
+          continue
+        }
+
+        // See what is missing to fulfill the request, or resolve
         const task = request.task
-        const statusNode = new StatusTaskNode({ task })
+        const statusNode = this.getNode("status", task)
         const status = this.getPendingResult(statusNode)
 
-        if (request.statusOnly && status !== undefined) {
-          // Status is resolved, and that's all we need
+        if (status?.aborted || status?.error) {
+          // Status is either aborted or failed
+          this.log.silly(`Request ${request.getKey()} status: ${resultToString(status)}`)
           request.complete(status)
-        } else if (status === undefined && !task.force) {
+        } else if (request.statusOnly && status !== undefined) {
+          // Status is resolved, and that's all we need
+          this.log.silly(`Request ${request.getKey()} is statusOnly and the status is available. Completing.`)
+          request.complete(status)
+        } else if (status === undefined) {
           // We're not forcing, and we don't have the status yet, so we ensure that's pending
+          this.log.silly(`Request ${request.getKey()} is missing its status.`)
           this.ensurePendingNode(statusNode, request)
+          // TODO-G2: The state should be a top-level field
+        } else if (status.result?.state === "ready" && !task.force) {
+          this.log.silly(`Request ${request.getKey()} has ready status and force=false, no need to process.`)
+          request.complete(status)
         } else {
-          // Need to process
-          const processNode = new ProcessTaskNode({ task })
+          const processNode = this.getNode("process", task)
           const result = this.getPendingResult(processNode)
+
           if (result) {
+            this.log.silly(`Request ${request.getKey()} has been processed.`)
             request.complete(result)
           } else {
+            this.log.silly(`Request ${request.getKey()} should be processed. Status: ${resultToString(status)}`)
             this.ensurePendingNode(processNode, request)
           }
         }
@@ -330,26 +413,27 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
   private ensurePendingNode(node: TaskNode, dependant: TaskNode) {
     const key = node.getKey()
-    const existing = this.pendingTasks[key]
+    const existing = this.pendingNodes[key]
 
     if (!existing) {
-      this.pendingTasks[key] = node
+      this.pendingNodes[key] = node
     }
 
-    this.pendingTasks[key].addDependant(dependant)
+    this.pendingNodes[key].addDependant(dependant)
 
-    return this.pendingTasks[key]
+    return this.pendingNodes[key]
   }
 
   private completeTask(params: CompleteTaskParams & { node: TaskNode }) {
     const result = params.node.complete(params)
+    delete this.inProgress[params.node.getKey()]
     this.emit("taskComplete", toGraphResultEventPayload(result))
     return result
   }
 
   private getPendingResult<T extends TaskNode>(node: T) {
     const key = node.getKey()
-    const existing = this.pendingTasks[key]
+    const existing = this.pendingNodes[key]
 
     if (existing) {
       return existing.getResult()
@@ -363,7 +447,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   //
   private logTask(node: TaskNode) {
     node.task.log.silly({
-      section: "tasks",
+      section: "graph-solver",
       msg: `Processing node ${taskStyle(node.getKey())}`,
       status: "active",
       metadata: metadataForLog(node.task, "active"),
@@ -388,6 +472,12 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     const entry = log.error({ msg, error })
     log.silly({ msg: renderError(entry) })
   }
+
+  // // Overriding to ease debugging
+  // emit<N extends keyof SolverEvents>(event: N, payload: SolverEvents[N]): boolean {
+  //   this.log.silly(`Emit event ${event} with payload ${JSON.stringify(payload)}`)
+  //   return super.emit(event, payload)
+  // }
 }
 
 interface TaskStartEvent extends TaskEventBase {
@@ -408,7 +498,7 @@ interface SolverEvents {
   statusStart: TaskStartEvent
 }
 
-interface WrappedTasks {
+interface WrappedNodes {
   [key: string]: TaskNode
 }
 
