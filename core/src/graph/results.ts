@@ -9,6 +9,7 @@
 import { BaseTask, Task, ValidResultType } from "../tasks/base"
 import { InternalError } from "../exceptions"
 import { fromPairs } from "lodash"
+import { toGraphResultEventPayload } from "../events"
 
 export interface TaskEventBase {
   type: string
@@ -27,6 +28,7 @@ export interface GraphResult<R extends ValidResultType = ValidResultType> extend
   aborted: boolean
   outputs: R["outputs"]
   task: BaseTask
+  processed: boolean
 }
 
 export type GraphResultFromTask<T extends Task> = GraphResult<T["_resultType"]>
@@ -60,6 +62,10 @@ export class GraphResults<B extends Task = Task> {
     return Array.from(this.tasks.values())
   }
 
+  getMissing(): Task[] {
+    return this.getTasks().filter((t) => this.getResult(t) === null)
+  }
+
   getMap(): GraphResultMap {
     return fromPairs(Array.from(this.results.entries()))
   }
@@ -69,4 +75,12 @@ export class GraphResults<B extends Task = Task> {
       throw new InternalError(`GraphResults object does not have task ${key}.`, { key, taskKeys: this.tasks.keys() })
     }
   }
+}
+
+/**
+ * Render a result to string. Used for debugging and errors.
+ */
+export function resultToString(result: GraphResult) {
+  // TODO-G2: improve
+  return JSON.stringify(toGraphResultEventPayload(result))
 }
