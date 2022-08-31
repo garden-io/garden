@@ -51,7 +51,7 @@ export interface ConvertModuleResult {
   actions?: ActionConfig[]
 }
 
-export const convertModule = () => ({
+export const convert = () => ({
   description: dedent`
     Validate and convert the given module configuration to a Group containing its atomic _action_ components (i.e. Build, Deploy, Run and Test), and/or individual actions. This is to allow backwards-compatibility from the Module configuration format to the newer action-oriented configuration style.
 
