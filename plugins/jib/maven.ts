@@ -16,11 +16,11 @@ import execa from "execa"
 const buildLock = new AsyncLock()
 
 const spec = {
-  url: "https://archive.apache.org/dist/maven/maven-3/3.8.5/binaries/apache-maven-3.8.5-bin.zip",
-  sha256: "d53e045bc5c02aad179fae2fbc565d953354880db6661a8fab31f3a718d7b62c",
+  url: "https://archive.apache.org/dist/maven/maven-3/3.8.5/binaries/apache-maven-3.8.5-bin.tar.gz",
+  sha256: "88e30700f32a3f60e0d28d0f12a3525d29b7c20c72d130153df5b5d6d890c673",
   extract: {
     format: "tar",
-    targetPath: "apache-maven-3.6.3/bin/mvn",
+    targetPath: "apache-maven-3.8.5/bin/mvn",
   },
 }
 
@@ -43,8 +43,8 @@ export const mavenSpec: PluginToolSpec = {
       platform: "windows",
       architecture: "amd64",
       ...spec,
-      url: "https://archive.apache.org/dist/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.zip",
-      sha256: "444522b0af3a85e966f25c50adfcd00a1a6fc5fce79f503bff096e02b9977c2e",
+      url: "https://archive.apache.org/dist/maven/maven-3/3.8.5/binaries/apache-maven-3.8.5-bin.zip",
+      sha256: "d53e045bc5c02aad179fae2fbc565d953354880db6661a8fab31f3a718d7b62c",
       extract: {
         format: "zip",
         targetPath: spec.extract.targetPath + ".cmd",
