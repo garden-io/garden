@@ -66,7 +66,9 @@ export interface LoggerEvents {
 
 export type LoggerEventName = keyof LoggerEvents
 
-export type GraphResultEventPayload = Omit<GraphResult, "task"> // | "dependencyResults"
+export type GraphResultEventPayload = Omit<GraphResult, "task" | "dependencyResults" | "error"> & {
+  error: string | null
+}
 
 export interface ServiceStatusPayload extends Omit<ServiceStatus, "detail"> {
   deployStartedAt?: Date
@@ -88,7 +90,10 @@ export interface CommandInfoPayload extends CommandInfo {
 }
 
 export function toGraphResultEventPayload(result: GraphResult): GraphResultEventPayload {
-  const payload = sanitizeObject(omit(result, "dependencyResults"))
+  const payload = sanitizeObject({
+    ...omit(result, "dependencyResults", "task"),
+    error: result.error ? String(result.error) : null,
+  })
   if (result.result) {
     // TODO: Use a combined blacklist of fields from all task types instead of hardcoding here.
     payload.output = omit(result.result, "dependencyResults", "log", "buildLog", "detail")
