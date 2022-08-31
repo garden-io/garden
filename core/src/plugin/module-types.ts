@@ -16,7 +16,7 @@ import { dedent } from "../util/string"
 import { suggestModules, SuggestModulesParams, SuggestModulesResult } from "./handlers/module/suggest"
 import { templateStringLiteral } from "../docs/common"
 import { getModuleOutputs, GetModuleOutputsParams, GetModuleOutputsResult } from "./handlers/module/get-outputs"
-import { convertModule, ConvertModuleParams, ConvertModuleResult } from "./handlers/module/convert"
+import { convert, ConvertModuleParams, ConvertModuleResult } from "./handlers/module/convert"
 import { baseHandlerSchema } from "./handlers/base/base"
 import { ResolvedActionHandlerDescriptions } from "./plugin"
 
@@ -76,7 +76,7 @@ export function getModuleHandlerDescriptions(): ResolvedActionHandlerDescription
 
   const descriptions = {
     configure,
-    convertModule,
+    convert,
     getModuleOutputs,
     suggestModules,
   }
