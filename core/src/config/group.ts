@@ -63,7 +63,8 @@ export const groupConfig = () =>
       .example("my-action.env"),
 
     // Actions
-    actions: joiSparseArray(baseActionConfigSchema()).description(
+    // Note: Further validation happens later
+    actions: joiSparseArray(baseActionConfigSchema().unknown(true)).description(
       dedent`
         A list of actions to include in this group.
 
