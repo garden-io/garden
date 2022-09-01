@@ -30,7 +30,7 @@ import { join, dirname } from "path"
 import { readFile, writeFile, ensureDir } from "fs-extra"
 import { deserialize, serialize } from "v8"
 import { environmentStatusSchema } from "../config/status"
-import { hashString } from "../util/util"
+import { hashString, isNotNull } from "../util/util"
 import { gardenEnv } from "../constants"
 import { stableStringify } from "../util/string"
 
@@ -145,10 +145,8 @@ export class ResolveProviderTask extends BaseTask<Provider> {
   }
 
   async process({ dependencyResults }: TaskProcessParams) {
-    const resolvedProviders: ProviderMap = keyBy(
-      Object.values(dependencyResults).map((result) => result && result.result),
-      "name"
-    )
+    const providerResults = dependencyResults.getResultsByType(ResolveProviderTask).filter(isNotNull)
+    const resolvedProviders: ProviderMap = keyBy(providerResults.map((r) => r.result).filter(isNotNull), "name")
 
     // Return immediately if the provider has been previously resolved
     const alreadyResolvedProviders = this.garden["resolvedProviders"][this.config.name]
