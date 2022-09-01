@@ -306,7 +306,7 @@ describe("joi.hostname", () => {
   it("should reject hostnames with wildcard DNS labels that are not the first label", () => {
     const result = schema.validate("foo.*.bas")
     expect(result.error).to.exist
-    expect(result!.error!.message).to.eql(`"value" only first DNS label my contain a wildcard.`)
+    expect(result!.error!.message).to.eql(`"value" only first DNS label may contain a wildcard.`)
   })
 })
 
