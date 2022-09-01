@@ -16,7 +16,7 @@ import {
   containerModuleTestSchema,
   containerTaskSchema,
 } from "../src/plugins/container/moduleConfig"
-import { buildExecAction } from "../src/plugins/exec/exec"
+import { buildExecAction, convertExecModule } from "../src/plugins/exec/exec"
 import { joi, joiArray } from "../src/config/common"
 import { createGardenPlugin, GardenPluginSpec, ProviderHandlers, RegisterPluginParam } from "../src/plugin/plugin"
 import { Garden, GardenOpts } from "../src/garden"
@@ -275,8 +275,7 @@ export const testPlugin = () =>
         schema: testModuleSpecSchema(),
         needsBuild: true,
         handlers: {
-          // TODO-G2: convert handler
-
+          convert: convertExecModule,
           configure: configureTestModule,
 
           async getModuleOutputs() {
