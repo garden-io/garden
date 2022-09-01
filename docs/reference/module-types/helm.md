@@ -208,8 +208,8 @@ devMode:
       # `.git` directories and `.garden` directories are always ignored.
       exclude:
 
-      # POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be
-      # a relative path. Defaults to the module's top-level directory if no value is provided.
+      # POSIX-style path of the directory to sync to the target. Can be either a relative or an absolute path.
+      # Defaults to the module's top-level directory if no value is provided.
       source: .
 
       # The sync mode to use for the given paths. See the [Dev Mode
@@ -1053,7 +1053,7 @@ devMode:
 
 [devMode](#devmode) > [sync](#devmodesync) > source
 
-POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be a relative path. Defaults to the module's top-level directory if no value is provided.
+POSIX-style path of the directory to sync to the target. Can be either a relative or an absolute path. Defaults to the module's top-level directory if no value is provided.
 
 | Type        | Default | Required |
 | ----------- | ------- | -------- |

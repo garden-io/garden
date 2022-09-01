@@ -253,15 +253,14 @@ export const syncDefaultGroupSchema = () =>
 const devModeSyncSchema = () =>
   hotReloadSyncSchema().keys({
     exclude: syncExcludeSchema(),
-    source: joi // same as hotReloadSyncSchema but no subPathOnly
+    source: joi // same as hotReloadSyncSchema but no subPathOnly and relativeOnly
       .posixPath()
-      .relativeOnly()
       .allowGlobs()
       .default(".")
       .description(
         deline`
-      POSIX-style path of the directory to sync to the target, relative to the module's top-level directory.
-      Must be a relative path. Defaults to the module's top-level directory if no value is provided.`
+      POSIX-style path of the directory to sync to the target. Can be either a relative or an absolute path.
+      Defaults to the module's top-level directory if no value is provided.`
       )
       .example("src"),
     mode: joi
