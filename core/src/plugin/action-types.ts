@@ -313,7 +313,7 @@ export function getActionTypeHandlerDescriptions<K extends ActionKind>(
     }
   })
 
-  return _actionTypeHandlerDescriptions
+  return _actionTypeHandlerDescriptions[kind]
 }
 
 export type ManyActionTypeExtensions = {
@@ -335,6 +335,11 @@ export type ManyActionTypeDefinitions = {
 const createActionTypeSchema = (kind: ActionKind) => {
   const titleKind = titleize(kind)
   const descriptions = getActionTypeHandlerDescriptions(kind)
+
+  const handlers = mapValues(descriptions, (d) => {
+    const schema = baseHandlerSchema().description(d.description)
+    return d.required ? schema.required() : schema
+  })
 
   return joi
     .object()
@@ -373,10 +378,7 @@ const createActionTypeSchema = (kind: ActionKind) => {
             `
           ),
       }),
-      handlers: mapValues(descriptions[kind], (d) => {
-        const schema = baseHandlerSchema().description(d.description)
-        return d.required ? schema.required() : schema
-      }),
+      handlers,
     })
     .description(`Define a ${titleKind} action.`)
 }
