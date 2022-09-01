@@ -28,7 +28,7 @@ describe("k8s dev mode helpers", () => {
         alpha: localPath,
         beta: remoteDestination,
         ignore: [...builtInExcludes],
-        mode: "one-way",
+        mode: "one-way-safe",
         defaultOwner: undefined,
         defaultGroup: undefined,
         defaultDirectoryMode: undefined,
