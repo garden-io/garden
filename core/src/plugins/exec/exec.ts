@@ -533,6 +533,122 @@ const deleteExecDeploy: DeployActionHandler<"delete", ExecDeploy> = async (param
   }
 }
 
+export async function convertExecModule(params: ConvertModuleParams<ExecModule>) {
+  const { module, convertBuildDependency, convertRuntimeDependencies, dummyBuild } = params
+  const actions: ExecActionConfig[] = []
+
+  let needsBuild = !!dummyBuild
+
+  if (module.spec.build?.command) {
+    needsBuild = true
+  }
+
+  let buildAction: ExecBuildConfig | undefined = undefined
+
+  if (needsBuild) {
+    buildAction = {
+      kind: "Build",
+      type: "exec",
+      name: module.name,
+
+      ...params.baseFields,
+      ...dummyBuild,
+
+      buildAtSource: module.spec.local,
+      dependencies: module.build.dependencies.map(convertBuildDependency),
+
+      spec: {
+        command: module.spec.build?.command,
+        env: module.spec.env,
+      },
+    }
+    actions.push(buildAction)
+  }
+
+  function prepRuntimeDeps(deps: string[]): string[] {
+    if (buildAction) {
+      return convertRuntimeDependencies(deps)
+    } else {
+      // If we don't return a Build action, we must still include any declared build dependencies
+      return [...module.build.dependencies.map(convertBuildDependency), ...convertRuntimeDependencies(deps)]
+    }
+  }
+
+  // Instead of doing this at runtime, we fold together env vars from the module top-level and the individual
+  // runtime actions at conversion time.
+  function prepareEnv(env: StringMap) {
+    return { ...module.spec.env, ...env }
+  }
+
+  for (const service of module.serviceConfigs) {
+    actions.push({
+      kind: "Deploy",
+      type: "exec",
+      name: service.name,
+      ...params.baseFields,
+
+      disabled: service.disabled,
+      build: buildAction ? buildAction.name : undefined,
+      dependencies: prepRuntimeDeps(service.spec.dependencies),
+
+      spec: {
+        ...service.spec,
+        env: prepareEnv(service.spec.env),
+      },
+    })
+  }
+
+  for (const task of module.taskConfigs) {
+    actions.push({
+      kind: "Run",
+      type: "exec",
+      name: task.name,
+      ...params.baseFields,
+
+      disabled: task.disabled,
+      build: buildAction ? buildAction.name : undefined,
+      dependencies: prepRuntimeDeps(task.spec.dependencies),
+      timeout: task.spec.timeout ? task.spec.timeout : undefined,
+
+      spec: {
+        ...task.spec,
+        env: prepareEnv(task.spec.env),
+      },
+    })
+  }
+
+  for (const test of module.testConfigs) {
+    actions.push({
+      kind: "Test",
+      type: "exec",
+      name: module.name + "-" + test.name,
+      ...params.baseFields,
+
+      disabled: test.disabled,
+      build: buildAction ? buildAction.name : undefined,
+      dependencies: prepRuntimeDeps(test.spec.dependencies),
+      timeout: test.spec.timeout ? test.spec.timeout : undefined,
+
+      spec: {
+        ...test.spec,
+        env: prepareEnv(test.spec.env),
+      },
+    })
+  }
+
+  return {
+    group: {
+      // This is an annoying TypeScript limitation :P
+      kind: <"Group">"Group",
+      name: module.name,
+      path: module.path,
+      actions,
+      variables: module.variables,
+      varfiles: module.varfile ? [module.varfile] : undefined,
+    },
+  }
+}
+
 export const execPlugin = () =>
   createGardenPlugin({
     name: "exec",
@@ -624,121 +740,7 @@ export const execPlugin = () =>
         schema: execModuleSpecSchema(),
         handlers: {
           configure: configureExecModule,
-
-          async convert(params: ConvertModuleParams<ExecModule>) {
-            const { module, convertBuildDependency, convertRuntimeDependencies, dummyBuild } = params
-            const actions: ExecActionConfig[] = []
-
-            let needsBuild = !!dummyBuild
-
-            if (module.spec.build?.command) {
-              needsBuild = true
-            }
-
-            let buildAction: ExecBuildConfig | undefined = undefined
-
-            if (needsBuild) {
-              buildAction = {
-                kind: "Build",
-                type: "exec",
-                name: module.name,
-
-                ...params.baseFields,
-                ...dummyBuild,
-
-                buildAtSource: module.spec.local,
-                dependencies: module.build.dependencies.map(convertBuildDependency),
-
-                spec: {
-                  command: module.spec.build?.command,
-                  env: module.spec.env,
-                },
-              }
-              actions.push(buildAction)
-            }
-
-            function prepRuntimeDeps(deps: string[]): string[] {
-              if (buildAction) {
-                return convertRuntimeDependencies(deps)
-              } else {
-                // If we don't return a Build action, we must still include any declared build dependencies
-                return [...module.build.dependencies.map(convertBuildDependency), ...convertRuntimeDependencies(deps)]
-              }
-            }
-
-            // Instead of doing this at runtime, we fold together env vars from the module top-level and the individual
-            // runtime actions at conversion time.
-            function prepareEnv(env: StringMap) {
-              return { ...module.spec.env, ...env }
-            }
-
-            for (const service of module.serviceConfigs) {
-              actions.push({
-                kind: "Deploy",
-                type: "exec",
-                name: service.name,
-                ...params.baseFields,
-
-                disabled: service.disabled,
-                build: buildAction ? buildAction.name : undefined,
-                dependencies: prepRuntimeDeps(service.spec.dependencies),
-
-                spec: {
-                  ...service.spec,
-                  env: prepareEnv(service.spec.env),
-                },
-              })
-            }
-
-            for (const task of module.taskConfigs) {
-              actions.push({
-                kind: "Run",
-                type: "exec",
-                name: task.name,
-                ...params.baseFields,
-
-                disabled: task.disabled,
-                build: buildAction ? buildAction.name : undefined,
-                dependencies: prepRuntimeDeps(task.spec.dependencies),
-                timeout: task.spec.timeout ? task.spec.timeout : undefined,
-
-                spec: {
-                  ...task.spec,
-                  env: prepareEnv(task.spec.env),
-                },
-              })
-            }
-
-            for (const test of module.testConfigs) {
-              actions.push({
-                kind: "Test",
-                type: "exec",
-                name: module.name + "-" + test.name,
-                ...params.baseFields,
-
-                disabled: test.disabled,
-                build: buildAction ? buildAction.name : undefined,
-                dependencies: prepRuntimeDeps(test.spec.dependencies),
-                timeout: test.spec.timeout ? test.spec.timeout : undefined,
-
-                spec: {
-                  ...test.spec,
-                  env: prepareEnv(test.spec.env),
-                },
-              })
-            }
-
-            return {
-              group: {
-                kind: "Group",
-                name: module.name,
-                path: module.path,
-                actions,
-                variables: module.variables,
-                varfiles: module.varfile ? [module.varfile] : undefined,
-              },
-            }
-          },
+          convert: convertExecModule,
         },
       },
     ],
