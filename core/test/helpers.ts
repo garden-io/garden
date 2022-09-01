@@ -229,10 +229,10 @@ export const testPlugin = () =>
           docs: "Test Deploy action",
           schema: execDeployActionSchema(),
           handlers: {
-            deploy: async () => {
+            deploy: async ({}) => {
               return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
             },
-            getStatus: async () => {
+            getStatus: async ({}) => {
               return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
             },
             run: async (params) => {
