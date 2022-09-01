@@ -14,7 +14,7 @@ import { joi, joiArray } from "../../../config/common"
 import { LogEntry } from "../../../logger/log-entry"
 import { GroupConfig, groupConfig } from "../../../config/group"
 import { GardenModule, moduleSchema } from "../../../types/module"
-import { baseActionConfigSchema } from "../../../actions/base"
+import { baseActionConfigSchema, baseRuntimeActionConfig } from "../../../actions/base"
 import { ActionConfig } from "../../../actions/types"
 import { BuildActionConfig, buildActionConfig, BuildCopyFrom } from "../../../actions/build"
 import { GardenService, serviceSchema } from "../../../types/service"
@@ -102,8 +102,11 @@ export const convert = () => ({
   }),
 
   resultSchema: joi.object().keys({
-    group: groupConfig(),
-    actions: joi.array().items(baseActionConfigSchema()),
+    group: groupConfig().keys({
+      path: joi.string().required(),
+    }),
+    // Further validation happens later
+    actions: joi.array().items(baseActionConfigSchema().unknown(true)),
   }),
 })
 
