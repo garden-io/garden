@@ -115,6 +115,7 @@ export abstract class BaseConfigGraph<
       Run: {},
       Test: {},
     }
+    this.groups = {}
     this.moduleGraph = moduleGraph
 
     for (const action of actions) {
