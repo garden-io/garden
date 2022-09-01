@@ -53,6 +53,7 @@ import {
 import { ActionKind, RunActionHandler } from "../src/plugin/action-types"
 import { GetRunResult } from "../src/plugin/handlers/run/get-result"
 import { WrappedActionRouterHandlers } from "../src/router/base"
+import stripAnsi from "strip-ansi"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError } from "../src/util/testing"
@@ -69,6 +70,11 @@ export const testModuleVersion: ModuleVersion = {
 // All test projects use this git URL
 export const testGitUrl = "https://my-git-server.com/my-repo.git#main"
 export const testGitUrlHash = hashRepoUrl(testGitUrl)
+
+export function expectErrorMessageContains(err: any, messagePart: string) {
+  const errorMessage = stripAnsi(err.message)
+  expect(errorMessage.toLowerCase()).to.contain(messagePart.toLowerCase())
+}
 
 export function getDataDir(...names: string[]) {
   return resolve(dataDir, ...names)
