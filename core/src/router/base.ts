@@ -202,6 +202,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     this.handlerDescriptions = <any>getActionTypeHandlerDescriptions(kind)
     const handlerNames: (keyof ActionTypeClasses<K>)[] = <any>Object.keys(this.handlerDescriptions)
     this.handlers = <any>fromPairs(handlerNames.map((n) => [n, {}]))
+    this.definitions = {}
 
     for (const plugin of params.configuredPlugins) {
       const created = <any>plugin.createActionTypes[kind] || []
