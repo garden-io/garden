@@ -739,6 +739,11 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
   if (!action.variables) {
     action.variables = module.variables
   }
+
+  // Need to remove this since we set it in the baseFields object passed to the convert handler
+  if (action.kind !== "Build") {
+    delete action["copyFrom"]
+  }
 }
 
 function missingBuildDependency(moduleName: string, dependencyName: string) {

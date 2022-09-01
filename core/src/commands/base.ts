@@ -482,6 +482,8 @@ export const graphResultsSchema = () =>
 // TODO-G2: update
 export const processCommandResultSchema = () =>
   joi.object().keys({
+    aborted: joi.boolean().description("Set to true if the command execution was aborted."),
+    success: joi.boolean().description("Set to false if the command execution was unsuccessful."),
     builds: joiIdentifierMap(buildResultSchema().keys(processCommandResultKeys()))
       .description(
         "A map of all modules that were built (or builds scheduled/attempted for) and information about the builds."
