@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import { optionsWithAliasValues, pickCommand, processCliArgs } from "../../../../src/cli/helpers"
 import { Parameters } from "../../../../src/cli/params"
-import { expectError } from "../../../helpers"
+import {expectError, expectErrorMessageContains} from "../../../helpers"
 import { getPackageVersion } from "../../../../src/util/util"
 import { GARDEN_CORE_ROOT } from "../../../../src/constants"
 import { join } from "path"
@@ -296,7 +296,7 @@ describe("processCliArgs", () => {
     const cmd = new RunTaskCommand()
     expectError(
       () => parseAndProcess([], cmd),
-      (err) => expect(stripAnsi(err.message)).to.equal("Missing required argument task")
+      (err) => expectErrorMessageContains(err, "Missing required argument")
     )
   })
 
@@ -304,7 +304,7 @@ describe("processCliArgs", () => {
     const cmd = new DeleteDeployCommand()
     expectError(
       () => parseAndProcess(["my-service", "bla"], cmd),
-      (err) => expect(stripAnsi(err.message)).to.equal(`Unexpected positional argument "bla" (expected only services)`)
+      (err) =>  expectErrorMessageContains(err, `Unexpected positional argument "bla"`)
     )
   })
 
@@ -312,7 +312,7 @@ describe("processCliArgs", () => {
     const cmd = new BuildCommand()
     expectError(
       () => parseAndProcess(["--foo=bar"], cmd),
-      (err) => expect(stripAnsi(err.message)).to.equal("Unrecognized option flag --foo")
+      (err) =>  expectErrorMessageContains(err, "Unrecognized option flag --foo")
     )
   })
 
@@ -321,7 +321,7 @@ describe("processCliArgs", () => {
     expectError(
       () => parseAndProcess(["--logger-type=foo"], cmd),
       (err) =>
-        expect(stripAnsi(err.message)).to.equal(
+        expectErrorMessageContains(err,
           'Invalid value for option --logger-type: "foo" is not a valid argument (should be any of "quiet", "basic", "fancy", "json")'
         )
     )
@@ -332,7 +332,7 @@ describe("processCliArgs", () => {
     expectError(
       () => parseAndProcess(["--tail=foo"], cmd),
       (err) =>
-        expect(stripAnsi(err.message)).to.equal('Invalid value for option --tail: Could not parse "foo" as integer')
+        expectErrorMessageContains(err, 'Invalid value for option --tail: Could not parse "foo" as integer')
     )
   })
 
@@ -372,12 +372,10 @@ describe("processCliArgs", () => {
     const cmd = new RunTestCommand()
     expectError(
       () => parseAndProcess(["--foo=bar", "--interactive=9"], cmd),
-      (err) =>
-        expect(stripAnsi(err.message)).to.equal(dedent`
-          Missing required argument module
-          Missing required argument test
-          Unrecognized option flag --foo
-        `)
+      (err) => {
+        expectErrorMessageContains(err, "Missing required argument")
+        expectErrorMessageContains(err, "Unrecognized option flag --foo")
+      }
     )
   })
 
