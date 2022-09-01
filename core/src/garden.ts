@@ -664,7 +664,9 @@ export class Garden {
       // Process as many providers in parallel as possible
       const taskResults = await this.processTasks({ tasks, log })
 
-      const failed = Object.values(taskResults).filter((r) => r && r.error)
+      const providerResults = Object.values(taskResults.results.getMap())
+
+      const failed = providerResults.filter((r) => r && r.error)
 
       if (failed.length) {
         const messages = failed.map((r) => `- ${r!.name}: ${r!.error!.message}`)
@@ -676,7 +678,7 @@ export class Garden {
         })
       }
 
-      providers = Object.values(taskResults).map((result) => result!.result)
+      providers = providerResults.map((result) => result!.result)
 
       const gotCachedResult = !!providers.find((p) => p.status.cached)
 
