@@ -71,7 +71,6 @@ export class CustomCommandWrapper extends Command {
   name = "<custom>"
   help = ""
 
-  noProject = true
   allowUndefinedArguments = true
 
   constructor(public spec: CommandResource) {
@@ -138,6 +137,7 @@ export class CustomCommandWrapper extends Command {
           PKG_EXECPATH: "",
           ...(exec.env || {}),
         },
+        cwd: garden.projectRoot,
         reject: false,
       })
       const completedAt = new Date()
