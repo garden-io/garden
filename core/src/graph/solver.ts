@@ -88,15 +88,21 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   }
 
   async solve(params: SolveParams): Promise<SolveResult> {
+    const { statusOnly, tasks, throwOnError, log } = params
+
+    const _this = this
+    const batchId = uuidv4()
+    const results = new GraphResults(tasks)
+    let aborted = false
+
+    log.silly(`GraphSolver: Starting batch ${batchId} (${tasks.length} tasks)`)
+
+    if (tasks.length === 0) {
+      return { results, error: null }
+    }
+
     // TODO-G2: remove this lock and test with concurrent execution
     return lock.acquire("solve", async () => {
-      const { statusOnly, tasks, throwOnError, log } = params
-
-      const _this = this
-      const batchId = uuidv4()
-      const results = new GraphResults(tasks)
-      let aborted = false
-
       const output = await new Promise<SolveResult>((resolve, reject) => {
         const requests = keyBy(
           tasks.map((t) => {
