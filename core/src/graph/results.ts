@@ -58,12 +58,25 @@ export class GraphResults<B extends Task = Task> {
     return this.results.get(key) || null
   }
 
+  /**
+   * Get results for all tasks with the same type as the given `task`.
+   */
+  getResultsByType<T extends new (...args: any) => Task>(type: T): (GraphResultFromTask<InstanceType<T>> | null)[] {
+    return this.getTasks()
+      .filter((t) => t.type === type.prototype.type)
+      .map((t) => this.getResult(t))
+  }
+
   getTasks(): Task[] {
     return Array.from(this.tasks.values())
   }
 
   getMissing(): Task[] {
     return this.getTasks().filter((t) => this.getResult(t) === null)
+  }
+
+  getAll(): (GraphResult | null)[] {
+    return Array.from(this.results.values())
   }
 
   getMap(): GraphResultMap {
