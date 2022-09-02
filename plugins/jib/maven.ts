@@ -78,6 +78,8 @@ async function checkMavenVersion(mvnPath: string) {
         return `${baseErrorMessage(
           mvnPath
         )} It looks like the Maven path defined in the config is not an executable binary.`
+      } else if (err.code === "ENOENT") {
+        return `${baseErrorMessage(mvnPath)} The Maven path defined in the configuration does not exist.`
       } else {
         return baseErrorMessage(mvnPath)
       }
