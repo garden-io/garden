@@ -13,12 +13,14 @@ import {
   prepareModuleResource,
   prepareProjectResource,
   noTemplateFields,
+  validateRawConfig,
 } from "../../../../src/config/base"
 import { resolve, join } from "path"
-import { dataDir, expectError, getDataDir } from "../../../helpers"
+import { dataDir, defaultProjectConfig, expectError, expectFuzzyMatch, getDataDir } from "../../../helpers"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import stripAnsi = require("strip-ansi")
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
+import { safeDumpYaml } from "../../../../src/util/util"
 
 const projectPathA = resolve(dataDir, "test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
@@ -159,9 +161,16 @@ describe("loadConfigResources", () => {
 
   it("throws if basic fields contain template strings", async () => {
     for (const field of noTemplateFields) {
+      const basicProjecConfig = { ...defaultProjectConfig }
+      basicProjecConfig[field] = '${camelCase("No templating should be allowed here")}'
+      const configRaw = safeDumpYaml(basicProjecConfig)
+      await expectError(
+        async () => validateRawConfig(configRaw, "fake/path", "fake/projec/root"),
+        (err) => {
+          expectFuzzyMatch(err, "does not allow templating")
+        }
+      )
     }
-
-    throw "TODO"
   })
 
   // TODO: test more cases
