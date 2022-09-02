@@ -69,15 +69,20 @@ export async function loadConfigResources(
   configPath: string,
   allowInvalid = false
 ): Promise<GardenResource[]> {
-  let fileData: Buffer
+  let fileData: Buffer = await readConfigFile(configPath, projectRoot)
 
-  try {
-    fileData = await readFile(configPath)
-  } catch (err) {
-    throw new FilesystemError(`Could not find configuration file at ${configPath}`, { projectRoot, configPath })
-  }
+  const resources = await validateRawConfig(fileData.toString(), configPath, projectRoot, allowInvalid)
 
-  let rawSpecs = await loadAndValidateYaml(fileData.toString(), configPath)
+  return resources
+}
+
+export async function validateRawConfig(
+  rawConfig: string,
+  configPath: string,
+  projectRoot: string,
+  allowInvalid = false
+) {
+  let rawSpecs = await loadAndValidateYaml(rawConfig, configPath)
 
   // Ignore empty resources
   rawSpecs = rawSpecs.filter(Boolean)
@@ -85,8 +90,18 @@ export async function loadConfigResources(
   const resources = <GardenResource[]>(
     rawSpecs.map((s) => prepareResource({ spec: s, configPath, projectRoot, allowInvalid })).filter(Boolean)
   )
-
   return resources
+}
+
+export async function readConfigFile(configPath: string, projectRoot: string) {
+  let fileData: Buffer
+
+  try {
+    fileData = await readFile(configPath)
+  } catch (err) {
+    throw new FilesystemError(`Could not find configuration file at ${configPath}`, { projectRoot, configPath })
+  }
+  return fileData
 }
 
 /**
