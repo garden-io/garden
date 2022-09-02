@@ -16,7 +16,7 @@ import { writeFile, mkdir } from "fs-extra"
 import { Garden } from "../../../../../src/garden"
 import { PluginContext } from "../../../../../src/plugin-context"
 import { gardenPlugin } from "../../../../../src/plugins/container/container"
-import { dataDir, expectError, makeTestGarden } from "../../../../helpers"
+import { dataDir, expectError, getPropertyName, makeTestGarden } from "../../../../helpers"
 import { moduleFromConfig } from "../../../../../src/types/module"
 import { ModuleConfig } from "../../../../../src/config/module"
 import { LogEntry } from "../../../../../src/logger/log-entry"
@@ -76,6 +76,7 @@ describe("containerHelpers", () => {
   let garden: Garden
   let ctx: PluginContext
   let log: LogEntry
+  const moduleHasDockerfile = getPropertyName(helpers, (x) => x.moduleHasDockerfile)
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
@@ -121,7 +122,7 @@ describe("containerHelpers", () => {
 
   describe("getLocalImageName", () => {
     it("should return explicit image name with no version if specified", async () => {
-      td.replace(helpers, "hasDockerfile", () => false)
+      td.replace(helpers, moduleHasDockerfile, () => false)
 
       const config = cloneDeep(baseConfig)
       config.spec.image = "some/image:1.1"
@@ -130,7 +131,7 @@ describe("containerHelpers", () => {
     })
 
     it("should return build name if no image name is specified", async () => {
-      td.replace(helpers, "hasDockerfile", () => true)
+      td.replace(helpers, moduleHasDockerfile, () => true)
 
       const config = cloneDeep(baseConfig)
 
@@ -140,7 +141,7 @@ describe("containerHelpers", () => {
 
   describe("getDeploymentImageId", () => {
     it("should return module name with module version if there is a Dockerfile and no image name set", async () => {
-      td.replace(helpers, "hasDockerfile", () => true)
+      td.replace(helpers, moduleHasDockerfile, () => true)
 
       const config = cloneDeep(baseConfig)
       const module = await getTestModule(config)
@@ -149,7 +150,7 @@ describe("containerHelpers", () => {
     })
 
     it("should return image name with module version if there is a Dockerfile and image name is set", async () => {
-      td.replace(helpers, "hasDockerfile", () => true)
+      td.replace(helpers, moduleHasDockerfile, () => true)
 
       const config = cloneDeep(baseConfig)
       config.spec.image = "some/image:1.1"
@@ -159,7 +160,7 @@ describe("containerHelpers", () => {
     })
 
     it("should return configured image tag if there is no Dockerfile", async () => {
-      td.replace(helpers, "hasDockerfile", () => false)
+      td.replace(helpers, moduleHasDockerfile, () => false)
 
       const config = cloneDeep(baseConfig)
       config.spec.image = "some/image:1.1"
@@ -171,7 +172,7 @@ describe("containerHelpers", () => {
     it("should throw if no image name is set and there is no Dockerfile", async () => {
       const config = cloneDeep(baseConfig)
 
-      td.replace(helpers, "hasDockerfile", () => false)
+      td.replace(helpers, moduleHasDockerfile, () => false)
 
       await expectError(() => helpers.getModuleDeploymentImageId(config, dummyVersion, undefined), "configuration")
     })
@@ -220,7 +221,7 @@ describe("containerHelpers", () => {
     })
 
     it("should use local id if no image name is set", async () => {
-      td.replace(helpers, "hasDockerfile", () => true)
+      td.replace(helpers, moduleHasDockerfile, () => true)
 
       const action = await getResolvedTestBuildAction(baseConfig)
 
@@ -337,7 +338,7 @@ describe("containerHelpers", () => {
 
   describe("hasDockerfile", () => {
     it("should return true if module config explicitly sets a Dockerfile", async () => {
-      td.replace(helpers, "hasDockerfile", () => true)
+      td.replace(helpers, moduleHasDockerfile, () => true)
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("module-a")
