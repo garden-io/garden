@@ -79,6 +79,9 @@ build:
   # Specify the image format in the resulting tar file. Only used if `tarOnly: true`.
   tarFormat: docker
 
+  # Defines the Maven phases to be executed during the Garden build step.
+  mavenPhases:
+
   # Specify extra flags to pass to maven/gradle when building the container image.
   extraFlags:
 
@@ -901,6 +904,16 @@ Specify the image format in the resulting tar file. Only used if `tarOnly: true`
 | Type     | Allowed Values  | Default    | Required |
 | -------- | --------------- | ---------- | -------- |
 | `string` | "docker", "oci" | `"docker"` | Yes      |
+
+### `build.mavenPhases[]`
+
+[build](#build) > mavenPhases
+
+Defines the Maven phases to be executed during the Garden build step.
+
+| Type            | Default       | Required |
+| --------------- | ------------- | -------- |
+| `array[string]` | `["compile"]` | No       |
 
 ### `build.extraFlags[]`
 

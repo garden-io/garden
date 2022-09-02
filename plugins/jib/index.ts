@@ -66,6 +66,11 @@ const jibModuleSchema = () =>
         .valid("docker", "oci")
         .default("docker")
         .description("Specify the image format in the resulting tar file. Only used if `tarOnly: true`."),
+      mavenPhases: joi
+        .array()
+        .items(joi.string())
+        .default(["compile"])
+        .description("Defines the Maven phases to be executed during the Garden build step."),
       extraFlags: joi
         .sparseArray()
         .items(joi.string())
@@ -163,7 +168,7 @@ export const gardenPlugin = () =>
 
           async build(params: BuildModuleParams<JibContainerModule>) {
             const { ctx, log, module } = params
-            const { jdkVersion } = module.spec.build
+            const { jdkVersion, mavenPhases } = module.spec.build
 
             const openJdk = ctx.tools["jib.openjdk-" + jdkVersion]
             const openJdkPath = await openJdk.getPath(log)
@@ -196,7 +201,7 @@ export const gardenPlugin = () =>
                 ctx,
                 log,
                 cwd: module.path,
-                args: ["compile", ...args],
+                args: [...mavenPhases, ...args],
                 openJdkPath,
                 outputStream,
               })
