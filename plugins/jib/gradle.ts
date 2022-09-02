@@ -15,7 +15,7 @@ import { resolve } from "path"
 import { pathExists } from "fs-extra"
 import { Writable } from "stream"
 
-const gradleVersion = "7.1.1"
+const gradleVersion = "7.5.1"
 
 const spec = {
   url: `https://services.gradle.org/distributions/gradle-${gradleVersion}-bin.zip`,
