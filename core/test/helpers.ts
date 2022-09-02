@@ -35,7 +35,7 @@ import { Logger, LogLevel } from "../src/logger/logger"
 import { ClientAuthToken } from "../src/db/entities/client-auth-token"
 import { GardenCli } from "../src/cli/cli"
 import { profileAsync } from "../src/util/profiling"
-import { makeTempDir } from "../src/util/fs"
+import { defaultDotIgnoreFile, makeTempDir } from "../src/util/fs"
 import { DirectoryResult } from "tmp-promise"
 import { ConfigurationError } from "../src/exceptions"
 import { assert, expect } from "chai"
@@ -55,6 +55,7 @@ import { ActionKind, RunActionHandler, TestActionHandler } from "../src/plugin/a
 import { GetRunResult } from "../src/plugin/handlers/run/get-result"
 import { WrappedActionRouterHandlers } from "../src/router/base"
 import { Resolved } from "../src/actions/types"
+import { defaultNamespace, ProjectConfig } from "../src/config/project"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError, expectFuzzyMatch } from "../src/util/testing"
@@ -328,6 +329,18 @@ export const testPluginC = () => {
       },
     ],
   })
+}
+
+export const defaultProjectConfig: ProjectConfig = {
+  apiVersion: DEFAULT_API_VERSION,
+  kind: "Project",
+  name: "test",
+  path: "tmp",
+  defaultEnvironment: "default",
+  dotIgnoreFile: defaultDotIgnoreFile,
+  environments: [{ name: "default", defaultNamespace, variables: {} }],
+  providers: [],
+  variables: {},
 }
 
 export const defaultModuleConfig: ModuleConfig = {
