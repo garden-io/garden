@@ -19,7 +19,7 @@ const gradleVersion = "7.1.1"
 
 const spec = {
   url: `https://services.gradle.org/distributions/gradle-${gradleVersion}-bin.zip`,
-  sha256: "bf8b869948901d422e9bb7d1fa61da6a6e19411baa7ad6ee929073df85d6365d",
+  sha256: "f6b8596b10cce501591e92f229816aa4046424f3b24d771751b06779d58c8ec4",
   extract: {
     format: "zip",
     targetPath: `gradle-${gradleVersion}/bin/gradle`,
