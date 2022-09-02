@@ -132,7 +132,7 @@ export async function mvn({
     mvnPath = mavenPath
     await verifyMavenPath(mvnPath)
   } else {
-    log.verbose(`The Maven binary hasn't been specified explicitly. Using default Maven binary from ${mavenPath}`)
+    log.verbose(`The Maven binary hasn't been specified explicitly. Maven ${mvnVersion} will be used by default.`)
     const tool = getMvnTool(ctx)
     mvnPath = await tool.getPath(log)
   }
