@@ -18,7 +18,7 @@ import {
 import { TempDirectory, makeTempDir } from "../../../../src/util/fs"
 import { realpath, symlink, writeFile, readFile, mkdir, ensureFile, ensureDir } from "fs-extra"
 import { expect } from "chai"
-import { expectError } from "../../../helpers"
+import { expectError, expectErrorMessageContains } from "../../../helpers"
 import { sleep } from "../../../../src/util/util"
 import { round, sortBy } from "lodash"
 
@@ -379,7 +379,7 @@ describe("build staging helpers", () => {
       it("throws if given a relative path", async () => {
         return expectError(
           () => statsHelper.extendedStat({ path: "foo" }),
-          (err) => expect(err.message).to.equal("Must specify absolute path (got foo)")
+          (err) => expectErrorMessageContains(err, "Must specify absolute path (got foo)")
         )
       })
 
@@ -475,7 +475,7 @@ describe("build staging helpers", () => {
       it("throws if a relative path is given", async () => {
         return expectError(
           () => resolveSymlink({ path: "foo" }),
-          (err) => expect(err.message).to.equal("Must specify absolute path (got foo)")
+          (err) => expectErrorMessageContains(err, "Must specify absolute path (got foo)")
         )
       })
 
@@ -483,7 +483,7 @@ describe("build staging helpers", () => {
         return expectError(
           () => resolveSymlink({ path: tmpPath }),
           (err) =>
-            expect(err.message).to.equal(`Error reading symlink: EINVAL: invalid argument, readlink '${tmpPath}'`)
+            expectErrorMessageContains(err, `Error reading symlink: EINVAL: invalid argument, readlink '${tmpPath}'`)
         )
       })
 
