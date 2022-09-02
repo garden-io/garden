@@ -55,24 +55,24 @@ describe("testFromConfig", () => {
     let moduleA = graph.getModule("module-a")
     const testConfig = moduleA.testConfigs[0]
     const versionBeforeChange = testFromConfig(moduleA, testConfig, graph.moduleGraph).version
-    const backup = cloneDeep(graph["modules"]["module-b"])
+    const backup = cloneDeep(graph.moduleGraph.getModule("module-b"))
 
     // Verify that changed build version is reflected in the test version
-    graph["modules"]["module-b"].version.versionString = "12345"
+    graph.moduleGraph["modules"]["module-b"].version.versionString = "12345"
     moduleA = graph.getModule("module-a")
     const testAfterBuildChange = testFromConfig(moduleA, testConfig, graph.moduleGraph)
     expect(versionBeforeChange).to.not.eql(testAfterBuildChange.version)
 
     // Verify that changed service dependency config is reflected in the test version
-    graph["modules"]["module-b"] = backup
-    graph["serviceConfigs"]["service-b"].config.spec["command"] = ["echo", "something-else"]
+    graph.moduleGraph["modules"]["module-b"] = backup
+    graph.moduleGraph["serviceConfigs"]["service-b"].config.spec["command"] = ["echo", "something-else"]
     moduleA = graph.getModule("module-a")
     const testAfterServiceConfigChange = testFromConfig(moduleA, testConfig, graph.moduleGraph)
     expect(versionBeforeChange).to.not.eql(testAfterServiceConfigChange.version)
 
     // Verify that changed task dependency config is reflected in the test version
-    graph["modules"]["module-b"] = backup
-    graph["taskConfigs"]["task-a"].config.spec["command"] = ["echo", "something-else"]
+    graph.moduleGraph["modules"]["module-b"] = backup
+    graph.moduleGraph["taskConfigs"]["task-a"].config.spec["command"] = ["echo", "something-else"]
     moduleA = graph.getModule("module-a")
     const testAfterTaskConfigChange = testFromConfig(moduleA, testConfig, graph.moduleGraph)
     expect(versionBeforeChange).to.not.eql(testAfterTaskConfigChange.version)
