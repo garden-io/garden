@@ -15,12 +15,14 @@ import { resolve } from "path"
 import { pathExists } from "fs-extra"
 import { Writable } from "stream"
 
+const gradleVersion = "7.1.1"
+
 const spec = {
-  url: "https://services.gradle.org/distributions/gradle-7.1.1-bin.zip",
+  url: `https://services.gradle.org/distributions/gradle-${gradleVersion}-bin.zip`,
   sha256: "bf8b869948901d422e9bb7d1fa61da6a6e19411baa7ad6ee929073df85d6365d",
   extract: {
     format: "zip",
-    targetPath: "gradle-7.1.1/bin/gradle",
+    targetPath: `gradle-${gradleVersion}/bin/gradle`,
   },
 }
 
