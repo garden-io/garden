@@ -27,7 +27,7 @@ import { RunTestAction } from "./handlers/test/run"
 import { Action } from "../actions/types"
 import type { RuntimeAction } from "../actions/base"
 import Joi from "@hapi/joi"
-import { joi, joiArray, joiSchema, joiUserIdentifier } from "../config/common"
+import { joi, joiArray, joiIdentifier, joiSchema, joiUserIdentifier } from "../config/common"
 import titleize from "titleize"
 import { BuildAction } from "../actions/build"
 import { DeployAction } from "../actions/deploy"
@@ -345,6 +345,13 @@ const createActionTypeSchema = (kind: ActionKind) => {
     .object()
     .keys({
       name: joiUserIdentifier().description(`The name of the ${titleKind} type to create.`),
+      base: joiIdentifier().description(dedent`
+        Name of action type to use as a base for this action type.
+
+        If specified, providers that support the base action type also work with this action type.
+        Note that some constraints apply on the configuration and output schemas. Please see each of the schema
+        fields for details.
+      `),
       docs: joi.string().required().description("Documentation for the action, in markdown format."),
       title: joi
         .string()
