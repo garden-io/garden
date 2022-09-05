@@ -116,8 +116,8 @@ export async function clearTaskResult({
 }: {
   ctx: PluginContext
   log: LogEntry
-  action: RuntimeAction
-}) {
+  action: Action
+}): Promise<void> {
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
   const namespace = await getAppNamespace(ctx, log, provider)

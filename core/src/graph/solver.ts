@@ -158,7 +158,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
               if (!r) {
                 continue
               }
-              msg += `- ${r.description}: ${r?.error || "ABORTED"}`
+              msg += `- ${r.description}: ${r?.error || "ABORTED"}\n`
             }
 
             error = new GraphError(msg, { results })
@@ -275,13 +275,13 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
       }
 
       const leaves = graph.overallOrder(true)
-      const pending = leaves.map((key) => this.pendingNodes[key])
+      const pending = leaves.map((key) => this.nodes[key])
 
       const inProgressNodes = Object.values(this.inProgress)
       const inProgressByGroup = groupBy(inProgressNodes, "type")
 
       // Enforce concurrency limits per task type
-      const grouped = groupBy(pending, "type")
+      const grouped = groupBy(pending, (n) => n.task.type)
       const limitedByGroup = Object.values(grouped).flatMap((nodes) => {
         // Note: We can be sure there is at least one node in the array
         const groupLimit = nodes[0].task.concurrencyLimit

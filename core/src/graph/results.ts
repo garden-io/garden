@@ -10,6 +10,7 @@ import { BaseTask, Task, ValidResultType } from "../tasks/base"
 import { InternalError } from "../exceptions"
 import { fromPairs } from "lodash"
 import { toGraphResultEventPayload } from "../events"
+import CircularJSON from "circular-json"
 
 export interface TaskEventBase {
   type: string
@@ -95,5 +96,5 @@ export class GraphResults<B extends Task = Task> {
  */
 export function resultToString(result: GraphResult) {
   // TODO-G2: improve
-  return JSON.stringify(toGraphResultEventPayload(result))
+  return CircularJSON.stringify(toGraphResultEventPayload(result))
 }

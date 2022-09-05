@@ -7,7 +7,13 @@
  */
 
 import { joi } from "../config/common"
-import { BaseRuntimeActionConfig, baseRuntimeActionConfig, RuntimeAction } from "./base"
+import {
+  BaseRuntimeActionConfig,
+  baseRuntimeActionConfig,
+  ExecutedRuntimeAction,
+  ResolvedRuntimeAction,
+  RuntimeAction,
+} from "./base"
 import { Action } from "./types"
 
 export interface RunActionConfig<N extends string = any, S extends object = any>
@@ -22,6 +28,20 @@ export const runActionConfig = () =>
   })
 
 export class RunAction<C extends RunActionConfig = RunActionConfig, O extends {} = any> extends RuntimeAction<C, O> {
+  kind: "Run"
+}
+
+export class ResolvedRunAction<
+  C extends RunActionConfig = RunActionConfig,
+  O extends {} = any
+> extends ResolvedRuntimeAction<C, O> {
+  kind: "Run"
+}
+
+export class ExecutedRunAction<
+  C extends RunActionConfig = RunActionConfig,
+  O extends {} = any
+> extends ExecutedRuntimeAction<C, O> {
   kind: "Run"
 }
 

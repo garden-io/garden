@@ -365,10 +365,6 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
     wrapped.base = this.wrapBase(handler.base)
 
-    if (!this.handlers[handlerType]) {
-      this.handlers[handlerType] = {}
-    }
-
     if (!this.handlers[handlerType][actionType]) {
       // I'm not sure why we need the cast here - JE
       const handlers: any = this.handlers
@@ -392,12 +388,16 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     pluginName?: string
     defaultHandler?: GetActionTypeHandler<ActionTypeClasses<K>[T], T>
   }): Promise<WrappedActionTypeHandler<ActionTypeClasses<K>[T], T>> {
-    const handlers: WrappedActionTypeHandler<ActionTypeClasses<K>[T], T>[] = []
+    const handlers: WrappedActionTypeHandler<ActionTypeClasses<K>[T], T>[] = Object.values(
+      this.handlers[handlerType][actionType] || {}
+    )
     const spec = this.definitions[actionType]
 
     if (handlers.length === 0 && spec.base && !pluginName) {
       // No handler found but module type has a base. Check if the base type has the handler we're looking for.
-      this.garden.log.silly(`No ${String(handlerType)} handler found for ${actionType}. Trying ${spec.base} base.`)
+      this.garden.log.silly(
+        `No ${String(handlerType)} handler found for ${actionType} ${this.kind} type. Trying ${spec.base} base.`
+      )
 
       return this.getHandler({
         handlerType,
@@ -452,6 +452,9 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
         return filtered[0]
       }
     } else if (defaultHandler) {
+      this.garden.log.silly(
+        `No ${String(handlerType)} handler found for ${actionType} ${this.kind} type. Using default handler.`
+      )
       // Return the default handler, but wrap it to match the expected interface.
       return Object.assign(defaultHandler, {
         handlerType,

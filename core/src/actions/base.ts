@@ -48,11 +48,9 @@ import {
   ActionStatus,
   ActionWrapperParams,
   BaseActionConfig,
-  ExecuteActionParams,
   Executed,
   ExecutedAction,
   ExecutedActionWrapperParams,
-  ResolveActionParams,
   Resolved,
   ResolvedAction,
   ResolvedActionWrapperParams,
@@ -525,23 +523,14 @@ export abstract class RuntimeAction<
     const buildAction = this.getBuildAction()
     return buildAction?.getBuildPath() || this.basePath()
   }
-
-  /**
-   * Returns a resolved version of this action.
-   */
-  resolve(params: ResolveActionParams<C>): Resolved<this> {
-    // TODO-G2: validate static outputs here
-    const constructor: ResolvedActionConstructor<this> = Object.getPrototypeOf(this).constructor
-    return constructor({ ...this.params, ...params })
-  }
 }
 
 export interface ResolvedActionConstructor<A extends BaseAction> {
-  (params: ResolvedActionWrapperParams<A["_config"]>): Resolved<A>
+  new (params: ResolvedActionWrapperParams<A["_config"]>): Resolved<A>
 }
 
 export interface ExecutedActionConstructor<A extends BaseAction> {
-  (params: ExecutedActionWrapperParams<A["_config"], A["_outputs"]>): Executed<A>
+  new (params: ExecutedActionWrapperParams<A["_config"], A["_outputs"]>): Executed<A>
 }
 
 // Used to ensure compatibility between ResolvedBuildAction and ResolvedRuntimeAction
@@ -633,15 +622,6 @@ export abstract class ResolvedRuntimeAction<
 
   getVariables() {
     return this.variables
-  }
-
-  /**
-   * Returns an executed version of this action.
-   */
-  execute(params: ExecuteActionParams<Config, Outputs>): Executed<this> {
-    // TODO-G2: validate static outputs here
-    const constructor: ExecutedActionConstructor<this> = Object.getPrototypeOf(this).constructor
-    return constructor({ ...this.params, ...params })
   }
 }
 

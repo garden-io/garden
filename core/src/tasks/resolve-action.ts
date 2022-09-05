@@ -16,6 +16,7 @@ import { validateWithPath } from "../config/validation"
 import { DeepPrimitiveMap } from "../config/common"
 import { merge } from "lodash"
 import { resolveVariables } from "../graph/common"
+import { resolveAction } from "../actions/helpers"
 
 export interface ResolveActionResults<T extends Action> {
   state: ActionState
@@ -152,14 +153,14 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     spec = await this.validateSpec(spec)
 
     // Resolve action without outputs
-    const resolvedAction = <Resolved<T>>this.action.resolve({
+    const resolvedAction = resolveAction(action, {
       dependencyResults,
       executedDependencies,
       resolvedDependencies,
       variables,
       spec,
       staticOutputs: {},
-    })
+    }) as Resolved<T>
 
     // Get outputs and assign to the resolved action
     const router = await this.garden.getActionRouter()
