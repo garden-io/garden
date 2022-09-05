@@ -14,6 +14,7 @@ import type {
   ActionConfigsByKey,
   ActionDependency,
   ActionDependencyAttributes,
+  ActionKind,
   ActionWrapperParams,
   Executed,
   Resolved,
@@ -21,14 +22,13 @@ import type {
 import {
   actionReferenceToString,
   addActionDependency,
-  baseActionConfigSchema,
   describeActionConfig,
   describeActionConfigWithPath,
 } from "../actions/base"
 import { BuildAction, buildActionConfig } from "../actions/build"
-import { DeployAction } from "../actions/deploy"
-import { RunAction } from "../actions/run"
-import { TestAction } from "../actions/test"
+import { DeployAction, deployActionConfig } from "../actions/deploy"
+import { RunAction, runActionConfig } from "../actions/run"
+import { TestAction, testActionConfig } from "../actions/test"
 import { noTemplateFields } from "../config/base"
 import { ActionReference, parseActionReference } from "../config/common"
 import type { GroupConfig } from "../config/group"
@@ -44,7 +44,7 @@ import type { BaseActionRouter } from "../router/base"
 import type { ActionRouter } from "../router/router"
 import { getExecuteTaskForAction } from "../tasks/helpers"
 import { ResolveActionTask } from "../tasks/resolve-action"
-import { resolveTemplateStrings, getActionTemplateReferences } from "../template-string/template-string"
+import { getActionTemplateReferences, resolveTemplateStrings } from "../template-string/template-string"
 import { dedent } from "../util/string"
 import { resolveVariables } from "./common"
 import { ConfigGraph, MutableConfigGraph } from "./config-graph"
@@ -289,6 +289,21 @@ const getActionConfigContextKeys = memoize(() => {
     .filter(isString)
 })
 
+function getActionSchema(kind: ActionKind) {
+  switch (kind) {
+    case "Build":
+      return buildActionConfig()
+    case "Deploy":
+      return deployActionConfig()
+    case "Run":
+      return runActionConfig()
+    case "Test":
+      return testActionConfig()
+    default:
+      return kind // exhaustive type check, kind must have type 'never' here
+  }
+}
+
 async function preprocessActionConfig({
   garden,
   config,
@@ -318,7 +333,7 @@ async function preprocessActionConfig({
         variables: {},
         spec: {},
       },
-      schema: baseActionConfigSchema(),
+      schema: getActionSchema(config.kind),
       configType: `${describeActionConfig(config)}`,
       name: config.name,
       path: config.basePath,
