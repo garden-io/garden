@@ -13,7 +13,7 @@ import { deline, dedent, naturalList, titleize } from "../util/string"
 import { cloneDeep, isArray, isPlainObject, isString } from "lodash"
 import { joiPathPlaceholder } from "./validation"
 import { DEFAULT_API_VERSION } from "../constants"
-import { ActionKind, actionKinds } from "../actions/types"
+import { ActionKind, actionKinds, actionKindsLower } from "../actions/types"
 import { ConfigurationError } from "../exceptions"
 import type { ConfigContextType } from "./template-contexts/base"
 
@@ -443,7 +443,7 @@ export interface ActionReference {
 
 const actionRefParseError = (reference: any) => {
   const validActionKinds = naturalList(
-    actionKinds.map((k) => "'" + k + "'"),
+    actionKindsLower.map((k) => "'" + k + "'"),
     "or"
   )
 
@@ -467,20 +467,18 @@ export function parseActionReference(reference: string | object): ActionReferenc
   if (isString(reference)) {
     const split = reference.toLowerCase().split(".")
 
-    if (split.length !== 2 || !actionKinds.includes(<any>split[0]) || !split[1]) {
+    if (split.length !== 2 || !actionKindsLower.includes(<any>split[0]) || !split[1]) {
       throw actionRefParseError(reference)
     }
 
     let [kind, name] = split
     const nameResult = joiIdentifier().validate(name)
 
-    kind = titleize(kind)
-
-    if (nameResult.error || !actionKinds.includes(<any>kind)) {
+    if (nameResult.error) {
       throw actionRefParseError(reference)
     }
 
-    return { kind: <ActionKind>titleize(kind), name }
+    return { kind: titleize(kind) as ActionKind, name }
   } else if (isPlainObject(reference)) {
     let kind = reference["kind"]
 
