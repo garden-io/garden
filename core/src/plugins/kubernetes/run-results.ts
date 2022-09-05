@@ -61,7 +61,7 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
 }
 
 export function getRunResultKey(ctx: PluginContext, action: Action) {
-  const key = `${ctx.projectName}--${action.type}:${action.name}--${action.versionString()}`
+  const key = `${ctx.projectName}--${action.type}.${action.name}--${action.versionString()}`
   const hash = hasha(key, { algorithm: "sha1" })
   return `run-result--${hash.slice(0, 32)}`
 }
