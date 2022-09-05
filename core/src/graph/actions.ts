@@ -79,6 +79,7 @@ export async function actionConfigsToGraph({
       if (existing) {
         throw actionNameConflictError(existing, config, garden.projectRoot)
       }
+      configsByKey[key] = config
     }
   }
 
