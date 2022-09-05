@@ -10,22 +10,22 @@ import chalk from "chalk"
 
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
-import { GardenPlugin, ModuleTypeDefinition, PluginActionParamsBase } from "../plugin/plugin"
+import { GardenPlugin, ModuleTypeDefinition, PluginActionContextParams } from "../plugin/plugin"
 import { getServiceStatuses } from "../tasks/helpers"
 import { DeleteDeployTask, deletedDeployStatuses } from "../tasks/delete-service"
 import { DeployTask } from "../tasks/deploy"
 import { Profile } from "../util/profiling"
 import { ConfigGraph } from "../graph/config-graph"
 import { ProviderRouter } from "./provider"
-import { BaseActionRouter, BaseRouter, WrappedActionRouterHandlers } from "./base"
+import { ActionKindRouter, BaseRouter, WrappedActionRouterHandlers } from "./base"
 import { ModuleRouter } from "./module"
 import { buildRouter } from "./build"
 import { deployRouter } from "./deploy"
 import { runRouter } from "./run"
 import { testRouter } from "./test"
 import { DeployStatus } from "../plugin/handlers/deploy/get-status"
-import { BaseAction } from "../actions/base"
 import { GetActionOutputsParams, GetActionOutputsResult } from "../plugin/handlers/base/get-outputs"
+import { ActionKind, BaseActionConfig, ResolvedAction } from "../actions/types"
 
 export interface DeployManyParams {
   graph: ConfigGraph
@@ -70,22 +70,34 @@ export class ActionRouter extends BaseRouter {
     garden.log.silly(`Creating ActionRouter with ${configuredPlugins.length} configured providers`)
   }
 
-  async getOutputs<T extends BaseAction>(
-    params: Omit<GetActionOutputsParams<T>, keyof PluginActionParamsBase> & { graph: ConfigGraph }
-  ): Promise<GetActionOutputsResult> {
-    const router: BaseActionRouter<T["kind"]> = this[params.action.kind]
+  //===========================================================================
+  //region Helper Methods
+  //===========================================================================
 
-    // TODO-G2: figure out why the typing clashes here
-    return (<any>router.callHandler)({
+  getRouterForActionKind<K extends ActionKind>(kind: K): ActionKindRouter<K> {
+    return this[kind.toLowerCase()]
+  }
+
+  async configureAction<K extends ActionKind>({ config, log }: { config: BaseActionConfig<K>; log: LogEntry }) {
+    const router = this.getRouterForActionKind(config.kind)
+    return router.configure({ config, log })
+  }
+
+  async getActionOutputs<T extends ResolvedAction>(
+    params: Omit<GetActionOutputsParams<T>, keyof PluginActionContextParams | "action"> & {
+      action: T
+      graph: ConfigGraph
+    }
+  ): Promise<GetActionOutputsResult> {
+    const router = this.getRouterForActionKind(params.action.kind)
+
+    return router.callHandler({
       handlerType: "getOutputs",
+      // TODO-G2: figure out why the typing clashes here
       params: { ...params, action: <any>params.action },
       defaultHandler: async ({}) => ({ outputs: {} }),
     })
   }
-
-  //===========================================================================
-  //region Helper Methods
-  //===========================================================================
 
   async getDeployStatuses({
     log,
