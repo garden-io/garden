@@ -9,6 +9,7 @@
 // FIXME: figure out why the hell this causes builds to fail
 // import { PluginToolSpec } from "@garden-io/sdk/types"
 import { posix } from "path"
+import { PluginToolSpec } from "@garden-io/core/build/src/types/plugin/tools"
 
 interface JdkBinary {
   filename: string
@@ -16,6 +17,8 @@ interface JdkBinary {
 }
 
 interface JdkVersion {
+  lookupName: string
+  description: string
   baseUrl: string
   versionName: string
   mac: JdkBinary
@@ -24,6 +27,8 @@ interface JdkVersion {
 }
 
 const jdk8Version: JdkVersion = {
+  lookupName: "openjdk-8",
+  description: "The OpenJDK 8 library.",
   baseUrl: "https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u292-b10/",
   versionName: "jdk8u292-b10",
   mac: {
@@ -41,6 +46,8 @@ const jdk8Version: JdkVersion = {
 }
 
 const jdk11Version: JdkVersion = {
+  lookupName: "openjdk-11",
+  description: "The OpenJDK 11 library.",
   baseUrl: "https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-11.0.9.1%2B1/",
   versionName: "jdk-11.0.9.1+1",
   mac: {
@@ -58,186 +65,86 @@ const jdk11Version: JdkVersion = {
 }
 
 const jdk13Version: JdkVersion = {
+  lookupName: "openjdk-13",
+  description: "The OpenJDK 13 library.",
   baseUrl: "https://github.com/AdoptOpenJDK/openjdk13-binaries/releases/download/jdk-13%2B33/",
   versionName: "jdk-13+33",
   mac: {
     filename: "OpenJDK13U-jdk_x64_mac_hotspot_13_33.tar.gz",
-    sha256: "f948be96daba250b6695e22cb51372d2ba3060e4d778dd09c89548889783099f"
+    sha256: "f948be96daba250b6695e22cb51372d2ba3060e4d778dd09c89548889783099f",
   },
   linux: {
     filename: "OpenJDK13U-jdk_x64_linux_hotspot_13_33.tar.gz",
-    sha256: "e562caeffa89c834a69a44242d802eae3523875e427f07c05b1902c152638368"
+    sha256: "e562caeffa89c834a69a44242d802eae3523875e427f07c05b1902c152638368",
   },
   windows: {
     filename: "OpenJDK13U-jdk_x64_windows_hotspot_13_33.zip",
-    sha256: "65d71a954167d538c7a260e64d9868ceffe60edd1108817a9c44fddf60d13569"
+    sha256: "65d71a954167d538c7a260e64d9868ceffe60edd1108817a9c44fddf60d13569",
   },
 }
 
 const jdk17Version: JdkVersion = {
+  lookupName: "openjdk-17",
+  description: "The OpenJDK 17 library.",
   baseUrl: "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.4.1%2B1/",
   versionName: "jdk-17.0.4.1+1",
   mac: {
     filename: "OpenJDK17U-jdk_x64_mac_hotspot_17.0.4.1_1.tar.gz",
-    sha256: "ac21a5a87f7cfa00212ab7c41f7eb80ca33640d83b63ad850be811c24095d61a"
+    sha256: "ac21a5a87f7cfa00212ab7c41f7eb80ca33640d83b63ad850be811c24095d61a",
   },
   linux: {
     filename: "OpenJDK17U-jdk_x64_linux_hotspot_17.0.4.1_1.tar.gz",
-    sha256: "5fbf8b62c44f10be2efab97c5f5dbf15b74fae31e451ec10abbc74e54a04ff44"
+    sha256: "5fbf8b62c44f10be2efab97c5f5dbf15b74fae31e451ec10abbc74e54a04ff44",
   },
   windows: {
     filename: "OpenJDK17U-jdk_x64_windows_hotspot_17.0.4.1_1.zip",
-    sha256: "3860d2ed7405674baeb0f9f4c71377421716759fe4301e92bdd4dd43c0442dc3"
+    sha256: "3860d2ed7405674baeb0f9f4c71377421716759fe4301e92bdd4dd43c0442dc3",
   },
 }
 
-export const openJdkSpecs: any = [
-  {
-    name: "openjdk-8",
-    description: "The OpenJDK 8 library.",
+function openJdkSpec(jdkVersion: JdkVersion): PluginToolSpec {
+  return {
+    name: jdkVersion.lookupName,
+    description: jdkVersion.description,
     type: "library",
     builds: [
       {
         platform: "darwin",
         architecture: "amd64",
-        url: jdk8Version.baseUrl + jdk8Version.mac.filename,
-        sha256: jdk8Version.mac.sha256,
+        url: jdkVersion.baseUrl + jdkVersion.mac.filename,
+        sha256: jdkVersion.mac.sha256,
         extract: {
           format: "tar",
-          targetPath: posix.join(jdk8Version.versionName, "Contents", "Home"),
+          targetPath: posix.join(jdkVersion.versionName, "Contents", "Home"),
         },
       },
       {
         platform: "linux",
         architecture: "amd64",
-        url: jdk8Version.baseUrl + jdk8Version.linux.filename,
-        sha256: jdk8Version.linux.sha256,
+        url: jdkVersion.baseUrl + jdkVersion.linux.filename,
+        sha256: jdkVersion.linux.sha256,
         extract: {
           format: "tar",
-          targetPath: jdk8Version.versionName,
+          targetPath: jdkVersion.versionName,
         },
       },
       {
         platform: "windows",
         architecture: "amd64",
-        url: jdk8Version.baseUrl + jdk8Version.windows.filename,
-        sha256: jdk8Version.windows.sha256,
+        url: jdkVersion.baseUrl + jdkVersion.windows.filename,
+        sha256: jdkVersion.windows.sha256,
         extract: {
           format: "zip",
-          targetPath: jdk8Version.versionName,
+          targetPath: jdkVersion.versionName,
         },
       },
     ],
-  },
-  {
-    name: "openjdk-11",
-    description: "The OpenJDK 11 library.",
-    type: "library",
-    builds: [
-      {
-        platform: "darwin",
-        architecture: "amd64",
-        url: jdk11Version.baseUrl + jdk11Version.mac.filename,
-        sha256: jdk11Version.mac.sha256,
-        extract: {
-          format: "tar",
-          targetPath: posix.join(jdk11Version.versionName, "Contents", "Home"),
-        },
-      },
-      {
-        platform: "linux",
-        architecture: "amd64",
-        url: jdk11Version.baseUrl + jdk11Version.linux.filename,
-        sha256: jdk11Version.linux.sha256,
-        extract: {
-          format: "tar",
-          targetPath: jdk11Version.versionName,
-        },
-      },
-      {
-        platform: "windows",
-        architecture: "amd64",
-        url: jdk11Version.baseUrl + jdk11Version.windows.filename,
-        sha256: jdk11Version.windows.sha256,
-        extract: {
-          format: "zip",
-          targetPath: jdk11Version.versionName,
-        },
-      },
-    ],
-  },
-  {
-    name: "openjdk-13",
-    description: "The OpenJDK 13 library.",
-    type: "library",
-    builds: [
-      {
-        platform: "darwin",
-        architecture: "amd64",
-        url: jdk13Version.baseUrl + jdk13Version.mac.filename,
-        sha256: jdk13Version.mac.sha256,
-        extract: {
-          format: "tar",
-          targetPath: posix.join(jdk13Version.versionName, "Contents", "Home"),
-        },
-      },
-      {
-        platform: "linux",
-        architecture: "amd64",
-        url: jdk13Version.baseUrl + jdk13Version.linux.filename,
-        sha256: jdk13Version.linux.sha256,
-        extract: {
-          format: "tar",
-          targetPath: jdk13Version.versionName,
-        },
-      },
-      {
-        platform: "windows",
-        architecture: "amd64",
-        url: jdk13Version.baseUrl + jdk13Version.windows.filename,
-        sha256: jdk13Version.windows.sha256,
-        extract: {
-          format: "zip",
-          targetPath: jdk13Version.versionName,
-        },
-      },
-    ],
-  },
-  {
-    name: "openjdk-17",
-    description: "The OpenJDK 17 library.",
-    type: "library",
-    builds: [
-      {
-        platform: "darwin",
-        architecture: "amd64",
-        url: jdk17Version.baseUrl + jdk17Version.mac.filename,
-        sha256: jdk17Version.mac.sha256,
-        extract: {
-          format: "tar",
-          targetPath: posix.join(jdk17Version.versionName, "Contents", "Home"),
-        },
-      },
-      {
-        platform: "linux",
-        architecture: "amd64",
-        url: jdk17Version.baseUrl + jdk17Version.linux.filename,
-        sha256: jdk17Version.linux.sha256,
-        extract: {
-          format: "tar",
-          targetPath: jdk17Version.versionName,
-        },
-      },
-      {
-        platform: "windows",
-        architecture: "amd64",
-        url: jdk17Version.baseUrl + jdk17Version.windows.filename,
-        sha256: jdk17Version.windows.sha256,
-        extract: {
-          format: "zip",
-          targetPath: jdk17Version.versionName,
-        },
-      },
-    ],
-  },
+  }
+}
+
+export const openJdkSpecs: PluginToolSpec[] = [
+  openJdkSpec(jdk8Version),
+  openJdkSpec(jdk11Version),
+  openJdkSpec(jdk13Version),
+  openJdkSpec(jdk17Version),
 ]
