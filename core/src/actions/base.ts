@@ -693,7 +693,7 @@ export function actionReferencesToMap(refs: ActionReference[]) {
 }
 
 export function isActionConfig(config: any): config is BaseActionConfig {
-  return actionKinds.includes(config)
+  return actionKinds.includes(config.kind)
 }
 
 export function actionRefMatches(a: ActionReference, b: ActionReference) {

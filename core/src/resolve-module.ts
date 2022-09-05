@@ -648,9 +648,9 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
 
       for (const d of deps) {
         if (allServices[d]) {
-          resolved.push("deploy:" + d)
+          resolved.push("deploy." + d)
         } else if (allTasks[d]) {
-          resolved.push("run:" + d)
+          resolved.push("run." + d)
         }
       }
 
@@ -674,9 +674,9 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
 
       convertBuildDependency: (d: string | BuildDependencyConfig) => {
         if (typeof d === "string") {
-          return "build:" + d
+          return "build." + d
         } else {
-          return "build:" + d.name
+          return "build." + d.name
         }
       },
       convertTestName: (d: string) => {
@@ -687,7 +687,7 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
       prepareRuntimeDependencies(deps: string[], build?: BuildActionConfig<string, any>) {
         const resolved: string[] = convertRuntimeDependencies(deps)
         if (build) {
-          resolved.push("build:" + build.name)
+          resolved.push("build." + build.name)
         }
         return resolved
       },
