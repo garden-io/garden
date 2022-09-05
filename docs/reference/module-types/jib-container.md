@@ -68,7 +68,17 @@ build:
   projectType: auto
 
   # The JDK version to use.
+  #
+  # The chosen version will be downloaded by Garden and used to define `JAVA_HOME` environment variable for Gradle and
+  # Maven.
+  #
+  # To use an arbitrary JDK distribution, please use the `jdkPath` configuration option.
   jdkVersion: 11
+
+  # The JDK home path. This **always overrides** the JDK defined in `jdkVersion`.
+  #
+  # The value will be used as `JAVA_HOME` environment variable for Gradle and Maven.
+  jdkPath:
 
   # Build the image and push to a local Docker daemon (i.e. use the `jib:dockerBuild` / `jibDockerBuild` target).
   dockerBuild: false
@@ -79,7 +89,11 @@ build:
   # Specify the image format in the resulting tar file. Only used if `tarOnly: true`.
   tarFormat: docker
 
-  # Defines the location of the executable Maven binary.
+  # Defines the location of the custom executable Maven binary.
+  #
+  # **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom
+  # Maven.
+  # To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
   mavenPath:
 
   # Defines the Maven phases to be executed during the Garden build step.
@@ -874,9 +888,33 @@ The type of project to build. Defaults to auto-detecting between gradle and mave
 
 The JDK version to use.
 
+The chosen version will be downloaded by Garden and used to define `JAVA_HOME` environment variable for Gradle and Maven.
+
+To use an arbitrary JDK distribution, please use the `jdkPath` configuration option.
+
 | Type     | Allowed Values | Default | Required |
 | -------- | -------------- | ------- | -------- |
 | `number` | 8, 11, 13, 17  | `11`    | Yes      |
+
+### `build.jdkPath`
+
+[build](#build) > jdkPath
+
+The JDK home path. This **always overrides** the JDK defined in `jdkVersion`.
+
+The value will be used as `JAVA_HOME` environment variable for Gradle and Maven.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+Example:
+
+```yaml
+build:
+  ...
+  jdkPath: "${local.env.JAVA_HOME}"
+```
 
 ### `build.dockerBuild`
 
@@ -912,7 +950,10 @@ Specify the image format in the resulting tar file. Only used if `tarOnly: true`
 
 [build](#build) > mavenPath
 
-Defines the location of the executable Maven binary.
+Defines the location of the custom executable Maven binary.
+
+**Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom Maven.
+To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
 
 | Type     | Required |
 | -------- | -------- |
