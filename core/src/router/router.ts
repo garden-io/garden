@@ -26,6 +26,7 @@ import { testRouter } from "./test"
 import { DeployStatus } from "../plugin/handlers/deploy/get-status"
 import { BaseAction } from "../actions/base"
 import { GetActionOutputsParams, GetActionOutputsResult } from "../plugin/handlers/base/get-outputs"
+import { ActionKind } from "../plugin/action-types"
 
 export interface DeployManyParams {
   graph: ConfigGraph
@@ -68,6 +69,11 @@ export class ActionRouter extends BaseRouter {
     this.test = testRouter(baseParams)
 
     garden.log.silly(`Creating ActionRouter with ${configuredPlugins.length} configured providers`)
+  }
+
+  getByActionKind<K extends ActionKind>(kind: K): WrappedActionRouterHandlers<K> {
+    const _this: ActionRouter = this
+    return _this[kind.toLowerCase()]
   }
 
   async getOutputs<T extends BaseAction>(

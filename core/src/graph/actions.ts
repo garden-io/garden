@@ -362,7 +362,7 @@ async function preprocessActionConfig({
   resolveTemplates()
 
   const description = describeActionConfig(config)
-  const kindRouter: BaseActionRouter<any> = router[config.kind]
+  const kindRouter: BaseActionRouter<any> = router.getByActionKind(config.kind)
 
   const { config: updatedConfig } = await kindRouter.configure({ config, log })
 
