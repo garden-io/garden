@@ -862,8 +862,8 @@ export class Garden {
       const existing = actionConfigs[key]
 
       if (existing) {
-        const moduleActionPath = config.internal?.configFilePath || config.basePath
-        const actionPath = existing.internal?.configFilePath || existing.basePath
+        const moduleActionPath = config.internal.configFilePath || config.internal.basePath
+        const actionPath = existing.internal.configFilePath || existing.internal.basePath
         throw new ConfigurationError(
           `${existing.kind} action '${existing.name}' (in ${actionPath}) conflicts with ${config.kind} action with same name generated from Module ${config.internal?.moduleName} (in ${moduleActionPath}). Please rename either one.`,
           { configFromModule: config, actionConfig: existing }
@@ -1181,8 +1181,8 @@ export class Garden {
 
     if (existing) {
       const paths = [
-        existing.internal?.configFilePath || existing.basePath,
-        config.internal?.configFilePath || config.basePath,
+        existing.internal.configFilePath || existing.internal.basePath,
+        config.internal.configFilePath || config.internal.basePath,
       ]
       const [pathA, pathB] = paths.map((path) => relative(this.projectRoot, path)).sort()
 
