@@ -12,6 +12,7 @@ import { GraphResult, GraphResults } from "./results"
 import { ActionStatus } from "../actions/types"
 import type { GraphSolver } from "./solver"
 import { ValuesType } from "utility-types"
+import chalk from "chalk"
 
 export interface InternalNodeTypes {
   status: StatusTaskNode
@@ -41,7 +42,6 @@ export abstract class TaskNode<T extends Task = Task> {
 
   protected solver: GraphSolver
   protected dependants: { [key: string]: TaskNode }
-  protected dependencyResults: { [key: string]: GraphResult<any> }
   protected result?: GraphResult<any>
 
   constructor({ solver, task }: TaskNodeParams<T>) {
@@ -49,7 +49,6 @@ export abstract class TaskNode<T extends Task = Task> {
     this.type = task.type
     this.solver = solver
     this.dependants = {}
-    this.dependencyResults = {}
   }
 
   abstract describe(): string
@@ -115,7 +114,9 @@ export abstract class TaskNode<T extends Task = Task> {
 
     const task = this.task
 
-    task.log.silly(`Completing task node ${this.describe()}. aborted=${aborted}, error=${error ? error.message : null}`)
+    task.log.silly(
+      `Completing node ${chalk.underline(this.getKey())}. aborted=${aborted}, error=${error ? error.message : null}`
+    )
 
     this.result = {
       type: task.type,
@@ -134,8 +135,8 @@ export abstract class TaskNode<T extends Task = Task> {
       processed: this.executionType === "process",
     }
 
-    for (const d of Object.values(this.dependants)) {
-      if (aborted || error) {
+    if (aborted || error) {
+      for (const d of Object.values(this.dependants)) {
         const failureDescription = aborted ? "was aborted" : "failed"
         d.complete({
           startedAt,
@@ -244,7 +245,7 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
   }
 
   async execute() {
-    this.task.log.silly(`Executing node ${this.describe()}`)
+    this.task.log.silly(`Executing node ${chalk.underline(this.getKey())}`)
 
     const statusTask = this.getNode("status", this.task)
     const result = this.getDependencyResult(statusTask)
@@ -271,11 +272,12 @@ export class StatusTaskNode<T extends Task = Task> extends TaskNode<T> {
 
   getDependencies() {
     const statusDeps = this.task.getStatusDependencies()
-    return statusDeps.map((task) => this.getNode("status", task))
+    // Note: We need to _process_ the status dependencies
+    return statusDeps.map((task) => this.getNode("process", task))
   }
 
   async execute() {
-    this.task.log.silly(`Executing node ${this.describe()}`)
+    this.task.log.silly(`Executing node ${chalk.underline(this.getKey())}`)
     const dependencyResults = this.getDependencyResults()
     return this.task.getStatus({ dependencyResults })
   }

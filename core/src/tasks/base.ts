@@ -25,7 +25,7 @@ import type { ResolveProviderTask } from "./resolve-provider"
 import type { RunTask } from "./run"
 import type { TestTask } from "./test"
 import { Memoize } from "typescript-memoize"
-import { getResultForTask, getExecuteTaskForAction, getResolveTaskForAction } from "./helpers"
+import { getExecuteTaskForAction, getResolveTaskForAction } from "./helpers"
 
 export class TaskDefinitionError extends Error {}
 
@@ -268,7 +268,7 @@ export abstract class BaseActionTask<
    */
   getResolvedAction(action: Action, dependencyResults: GraphResults): Resolved<T> {
     const resolveTask = this.getResolveTask(action)
-    const result = getResultForTask(resolveTask, dependencyResults)
+    const result = dependencyResults.getResult(resolveTask)
 
     if (!result) {
       throw new InternalError(
@@ -285,8 +285,8 @@ export abstract class BaseActionTask<
    * Throws if the dependency results don't contain the required task results.
    */
   getExecutedAction(action: Action, dependencyResults: GraphResults): Executed<T> {
-    const resolveTask = this.getExecuteTask(action)
-    const result = getResultForTask(resolveTask, dependencyResults)
+    const execTask = this.getExecuteTask(action)
+    const result = dependencyResults.getResult(execTask)
 
     if (!result) {
       throw new InternalError(

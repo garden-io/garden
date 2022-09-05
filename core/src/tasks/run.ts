@@ -11,6 +11,7 @@ import { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams, 
 import { Profile } from "../util/profiling"
 import { RunAction } from "../actions/run"
 import { GetRunResult } from "../plugin/handlers/run/get-result"
+import { executeAction } from "../actions/helpers"
 
 export interface RunTaskParams extends BaseActionTaskParams<RunAction> {}
 
@@ -51,7 +52,7 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
         return null
       }
 
-      return { ...status, executedAction: action.execute({ status }) }
+      return { ...status, executedAction: executeAction(action, { status }) }
     } catch (err) {
       log.setError()
       throw err
@@ -92,6 +93,6 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
       throw new RunTaskError(status.detail?.log)
     }
 
-    return { ...status, executedAction: action.execute({ status }) }
+    return { ...status, executedAction: executeAction(action, { status }) }
   }
 }

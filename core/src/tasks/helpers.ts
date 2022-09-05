@@ -30,7 +30,7 @@ const build = importLazy("./build")
 const deploy = importLazy("./deploy")
 const run = importLazy("./run")
 const test = importLazy("./test")
-const resolve = importLazy("./resolve")
+const resolve = importLazy("./resolve-action")
 
 export function getResolveTaskForAction<T extends Action>(
   action: T,
@@ -53,7 +53,7 @@ export function getExecuteTaskForAction<T extends Action>(
     return new test.TestTask({ ...baseParams, action })
   } else {
     // Shouldn't happen
-    throw new InternalError(`Unexpected action kind ${action.kind}`, { config: action.getConfig() })
+    throw new InternalError(`Unexpected action kind`, {})
   }
 }
 
@@ -112,10 +112,6 @@ export async function getActionWatchTasks({
   const deduplicated = uniqBy(outputTasks, (t) => t.getBaseKey())
 
   return deduplicated
-}
-
-export function getResultForTask<T extends BaseTask>(task: T, graphResults: GraphResults): T["_resultType"] | null {
-  return graphResults[task.getBaseKey()]
 }
 
 export function getServiceStatuses(dependencyResults: GraphResults): { [name: string]: DeployStatus } {
