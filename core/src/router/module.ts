@@ -140,9 +140,6 @@ export class ModuleRouter extends BaseRouter {
     const result = await handler(<any>handlerParams)
 
     for (const config of result.actions || []) {
-      if (!config.internal) {
-        config.internal = {}
-      }
       config.internal.configFilePath = module.configPath
       config.internal.moduleName = module.name
     }

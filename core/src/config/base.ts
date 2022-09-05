@@ -137,7 +137,9 @@ function prepareResource({
 
   if (kind === "Project") {
     return prepareProjectResource(spec)
-  } else if (kind === "Command" || kind === "Workflow" || kind === moduleTemplateKind || actionKinds.includes(kind)) {
+  } else if (actionKinds.includes(kind)) {
+    return prepareActionResource(spec, configPath, relPath)
+  } else if (kind === "Command" || kind === "Workflow" || kind === moduleTemplateKind) {
     return spec
   } else if (kind === "Module") {
     return prepareModuleResource(spec, configPath, projectRoot)
@@ -192,6 +194,22 @@ export function prepareProjectResource(spec: any): ProjectResource {
       spec,
     }
   )
+}
+
+export function prepareActionResource(spec: any, configPath: string, relPath: string) {
+  delete spec.path
+
+  if (spec.internal) {
+    throw new ConfigurationError(`yFound invalid ke "internal" in config at ${relPath}`, {
+      spec,
+      path: relPath,
+    })
+  }
+
+  spec.internal = {
+    basePath: dirname(configPath),
+  }
+  return spec
 }
 
 export function prepareModuleResource(spec: any, configPath: string, projectRoot: string): ModuleResource {

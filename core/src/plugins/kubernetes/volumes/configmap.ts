@@ -164,7 +164,9 @@ function getKubernetesAction(action: Resolved<ConfigmapAction>) {
     kind: "Deploy",
     type: "kubernetes",
     name: action.name,
-    basePath: action.basePath(),
+    internal: {
+      basePath: action.basePath(),
+    },
     include: [],
     spec: {
       namespace: action.getSpec("namespace"),

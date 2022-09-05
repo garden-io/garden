@@ -14,7 +14,7 @@ import { joi, joiArray } from "../../../config/common"
 import { LogEntry } from "../../../logger/log-entry"
 import { GroupConfig, groupConfig } from "../../../config/group"
 import { GardenModule, moduleSchema } from "../../../types/module"
-import { baseActionConfigSchema, baseRuntimeActionConfig } from "../../../actions/base"
+import { baseActionConfigSchema } from "../../../actions/base"
 import { ActionConfig } from "../../../actions/types"
 import { BuildActionConfig, buildActionConfig, BuildCopyFrom } from "../../../actions/build"
 import { GardenService, serviceSchema } from "../../../types/service"
@@ -31,9 +31,11 @@ export interface ConvertModuleParams<T extends GardenModule = GardenModule> exte
   tests: GardenTest<T>[]
   dummyBuild?: ExecBuildConfig
   baseFields: {
-    basePath: string
     copyFrom: BuildCopyFrom[]
     disabled: boolean
+    internal: {
+      basePath: string
+    }
     source?: {
       repository?: {
         url: string
