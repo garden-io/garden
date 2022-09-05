@@ -664,7 +664,9 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
       tasks,
       tests,
       baseFields: {
-        basePath: module.path,
+        internal: {
+          basePath: module.path,
+        },
         copyFrom,
         disabled: module.disabled,
         source: module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
@@ -713,7 +715,9 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
 
 function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
   if (!action.internal) {
-    action.internal = {}
+    action.internal = {
+      basePath: module.path,
+    }
   }
 
   // Converted actions are fully resolved upfront
@@ -723,7 +727,7 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
   if (module.disabled) {
     action.disabled = true
   }
-  action.basePath = module.path
+  action.internal.basePath = module.path
   if (module.configPath) {
     action.internal.configFilePath = module.configPath
   }

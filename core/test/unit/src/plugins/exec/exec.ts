@@ -456,7 +456,9 @@ describe("exec plugin", () => {
           spec: {
             command: ["pwd"],
           },
-          basePath: "TODO-G2",
+          internal: {
+            basePath: "TODO-G2",
+          },
         } as TestActionConfig,
         configsByKey: {},
       })) as TestAction
@@ -488,7 +490,9 @@ describe("exec plugin", () => {
           spec: {
             command: ["echo", "$GARDEN_MODULE_VERSION"],
           },
-          basePath: "TODO-G2",
+          internal: {
+            basePath: "TODO-G2",
+          },
         } as TestActionConfig,
         configsByKey: {},
       })) as TestAction
@@ -546,10 +550,12 @@ describe("exec plugin", () => {
         router,
         configsByKey: {},
         config: {
-          basePath: "TODO-G2",
           kind: "Build",
           name: "build-something",
           spec: {} as ExecBuildActionSpec,
+          internal: {
+            basePath: "TODO-G2",
+          },
         } as BuildActionConfig<any, any>,
       })) as ExecutedBuildAction
       const res = await router.build.run({
