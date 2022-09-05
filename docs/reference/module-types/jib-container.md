@@ -876,7 +876,7 @@ The JDK version to use.
 
 | Type     | Allowed Values | Default | Required |
 | -------- | -------------- | ------- | -------- |
-| `number` | 8, 11, 13      | `11`    | Yes      |
+| `number` | 8, 11, 13, 17  | `11`    | Yes      |
 
 ### `build.dockerBuild`
 
