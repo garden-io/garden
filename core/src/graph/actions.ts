@@ -40,7 +40,6 @@ import type { Garden } from "../garden"
 import type { LogEntry } from "../logger/log-entry"
 import { ActionTypeDefinition } from "../plugin/action-types"
 import { getActionTypeBases } from "../plugins"
-import type { BaseActionRouter } from "../router/base"
 import type { ActionRouter } from "../router/router"
 import { getExecuteTaskForAction } from "../tasks/helpers"
 import { ResolveActionTask } from "../tasks/resolve-action"
@@ -362,9 +361,8 @@ async function preprocessActionConfig({
   resolveTemplates()
 
   const description = describeActionConfig(config)
-  const kindRouter: BaseActionRouter<any> = router[config.kind]
 
-  const { config: updatedConfig } = await kindRouter.configure({ config, log })
+  const { config: updatedConfig } = await router.configureAction({ config, log })
 
   // -> Throw if trying to modify no-template fields
   for (const field of noTemplateFields) {
