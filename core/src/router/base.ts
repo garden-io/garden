@@ -178,18 +178,22 @@ export function createActionRouter<K extends ActionKind>(
   kind: K,
   baseParams: BaseRouterParams,
   handlers: Omit<ActionRouterHandlers<K>, CommonHandlers>
-): WrappedActionRouterHandlers<K> {
+): ActionKindRouter<K> {
   class Router extends BaseActionRouter<K> {}
   const router = new Router(kind, baseParams)
 
-  const wrapped = mapValues(handlers, (h) => {
-    return (params: any) => {
+  const wrapped = mapValues(handlers, (h, key) => {
+    const handler = (params: any) => {
       return h({ ...params, router, garden: baseParams.garden, handlers: wrapped })
     }
+    router[key] = handler
+    return handler
   })
 
-  return wrapped
+  return router as ActionKindRouter<K>
 }
+
+export type ActionKindRouter<K extends ActionKind> = BaseActionRouter<K> & WrappedActionRouterHandlers<K>
 
 export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter {
   protected readonly handlers: HandlerMap<K>
@@ -229,9 +233,15 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       throw new InternalError(`Attempted to call ${this.kind} handler for ${config.kind} action`, {})
     }
 
+    // TODO-G2B: work out why this cast is needed
+    const defaultHandler: any = async (params) => {
+      return { config: params.config }
+    }
+
     const handler = await this.getHandler({
       handlerType: "configure",
       actionType: config.type,
+      defaultHandler,
     })
 
     const templateContext = new ActionConfigContext(this.garden)
