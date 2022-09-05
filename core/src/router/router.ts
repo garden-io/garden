@@ -72,8 +72,7 @@ export class ActionRouter extends BaseRouter {
   }
 
   getByActionKind<K extends ActionKind>(kind: K): WrappedActionRouterHandlers<K> {
-    const _this: ActionRouter = this
-    return _this[kind.toLowerCase()]
+    return this[kind.toLowerCase()]
   }
 
   async getOutputs<T extends BaseAction>(
