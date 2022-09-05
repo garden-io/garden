@@ -25,7 +25,6 @@ import { RunRunAction } from "./handlers/run/run"
 import { GetTestActionResult } from "./handlers/test/get-result"
 import { RunTestAction } from "./handlers/test/run"
 import { Action } from "../actions/types"
-import type { RuntimeAction } from "../actions/base"
 import Joi from "@hapi/joi"
 import { joi, joiArray, joiSchema, joiUserIdentifier } from "../config/common"
 import titleize from "titleize"
@@ -245,11 +244,7 @@ export interface ActionTypeDescriptions {
   Test: TestActionDescriptions
 }
 
-export type GenericActionClassMap = {
-  [K in ActionKind]: K extends "Build" ? BuildAction : RuntimeAction
-}
-
-export interface ActionClassMap extends GenericActionClassMap {
+export interface ActionClassMap {
   Build: BuildAction
   Deploy: DeployAction
   Run: RunAction

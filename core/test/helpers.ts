@@ -48,12 +48,14 @@ import {
   execDeployActionSchema,
   ExecRun,
   execRunActionSchema,
+  ExecTest,
   execTestActionSchema,
 } from "../src/plugins/exec/config"
-import { ActionKind, RunActionHandler } from "../src/plugin/action-types"
+import { ActionKind, RunActionHandler, TestActionHandler } from "../src/plugin/action-types"
 import { GetRunResult } from "../src/plugin/handlers/run/get-result"
 import { WrappedActionRouterHandlers } from "../src/router/base"
 import stripAnsi from "strip-ansi"
+import { Resolved } from "../src/actions/types"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError } from "../src/util/testing"
@@ -236,7 +238,11 @@ export const testPlugin = () =>
               return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
             },
             run: async (params) => {
-              const res = await runTest({ ...params, artifactsPath: "/tmp" })
+              const res = await runTest({
+                ...params,
+                action: <Resolved<ExecRun>>(<unknown>params.action),
+                artifactsPath: "/tmp",
+              })
               return res.detail!
             },
             exec: async ({ action }) => {
@@ -262,7 +268,7 @@ export const testPlugin = () =>
           docs: "Test Test action",
           schema: execTestActionSchema(),
           handlers: {
-            run: runTest,
+            run: <TestActionHandler<"run", ExecTest>>(<unknown>runTest),
           },
         },
       ],

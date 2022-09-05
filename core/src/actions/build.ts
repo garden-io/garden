@@ -17,9 +17,6 @@ import type {
   Action,
   ActionStatus,
   ExecutedActionWrapperParams,
-  ResolveActionParams,
-  ExecuteActionParams,
-  Executed,
   ExecutedAction,
   ResolvedAction,
 } from "./types"
@@ -30,7 +27,6 @@ import {
   actionReferenceToString,
   ResolvedActionExtension,
   ExecutedActionExtension,
-  ExecutedActionConstructor,
 } from "./base"
 
 export interface BuildCopyFrom {
@@ -152,19 +148,10 @@ export class BuildAction<
   getBuildMetadataPath() {
     return join(this.baseBuildDirectory, this.name + ".metadata")
   }
-
-  /**
-   * Returns a resolved version of this action.
-   */
-  resolve(params: ResolveActionParams<C>): ResolvedBuildAction<C, O> {
-    // TODO-G2: validate static outputs here
-    const constructor = Object.getPrototypeOf(this).constructor
-    return constructor({ ...this.params, ...params })
-  }
 }
 
 // TODO: see if we can avoid the duplication here with ResolvedRuntimeAction
-export abstract class ResolvedBuildAction<
+export class ResolvedBuildAction<
     C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>,
     Outputs extends {} = any
   >
@@ -212,15 +199,6 @@ export abstract class ResolvedBuildAction<
 
   getVariables() {
     return this.variables
-  }
-
-  /**
-   * Returns an executed version of this action.
-   */
-  execute(params: ExecuteActionParams<C, Outputs>): Executed<this> {
-    // TODO-G2: validate static outputs here
-    const constructor: ExecutedActionConstructor<this> = Object.getPrototypeOf(this).constructor
-    return constructor({ ...this.params, ...params })
   }
 }
 
