@@ -117,6 +117,22 @@ export const baseActionConfigSchema = () =>
       .meta({ templateContext: null }),
     description: joi.string().description("A description of the action.").meta({ templateContext: null }),
 
+    // Internal metadata fields (these are rejected in `loadConfigResources()` if specified by users)
+    internal: joi
+      .object()
+      .keys({
+        basePath: joi.posixPath().required(),
+        configFilePath: joi.posixPath().optional(),
+        groupName: joi.string().optional(),
+        moduleName: joi.string().optional(),
+        resolved: joi.boolean().optional(),
+        inputs: joi.object().optional(),
+        parentName: joi.string().optional(),
+        templateName: joi.string().optional(),
+      })
+      .unknown(true)
+      .meta({ internal: true }),
+
     // Location
     source: actionSourceSpecSchema(),
 
@@ -352,11 +368,11 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     // TODO-G2
     // TODO: handle repository.url
     // TODO: handle build field
-    return this._config.basePath
+    return this._config.internal.basePath
   }
 
   configPath() {
-    return this._config.internal?.configFilePath
+    return this._config.internal.configFilePath
   }
 
   moduleName(): string {
@@ -696,7 +712,7 @@ export function describeActionConfig(config: ActionConfig) {
 }
 
 export function describeActionConfigWithPath(config: ActionConfig, rootPath: string) {
-  const path = relative(rootPath, config.internal?.configFilePath || config.basePath)
+  const path = relative(rootPath, config.internal.configFilePath || config.internal.basePath)
   return `${describeActionConfig(config)} in ${path}`
 }
 

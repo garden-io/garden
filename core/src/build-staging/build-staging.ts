@@ -128,7 +128,7 @@ export class BuildStaging {
     }
 
     if (config["buildAtSource"]) {
-      return config["basePath"]
+      return config["internal"].basePath
     }
 
     // This returns the same result for modules and module configs

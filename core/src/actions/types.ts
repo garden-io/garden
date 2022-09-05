@@ -51,14 +51,13 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
   description?: string
 
   // Location
-  // -> No templating is allowed on these.
-  basePath: string
   // -> Templating with ActionConfigContext allowed
   source?: ActionSourceSpec
 
   // Internal metadata
   // -> No templating is allowed on these.
-  internal?: {
+  internal: {
+    basePath: string
     configFilePath?: string
     groupName?: string
     moduleName?: string // For backwards-compatibility, applied on actions returned from module conversion handlers

@@ -131,8 +131,10 @@ export const gardenPlugin = () =>
               type: "hadolint",
               name,
               description: `hadolint test for '${action.longDescription}' (auto-generated)`,
-              basePath: action.basePath(),
               include,
+              internal: {
+                basePath: action.basePath(),
+              },
               spec: {
                 dockerfilePath,
               },
