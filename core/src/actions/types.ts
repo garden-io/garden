@@ -11,12 +11,12 @@ import type { ConfigGraph } from "../graph/config-graph"
 import type { ActionReference, DeepPrimitiveMap } from "../config/common"
 import type { ModuleVersion, TreeVersion } from "../vcs/vcs"
 import type { BuildAction, BuildActionConfig, ExecutedBuildAction, ResolvedBuildAction } from "./build"
-import type { DeployActionConfig } from "./deploy"
-import type { RunActionConfig } from "./run"
-import type { TestActionConfig } from "./test"
+import type { DeployAction, DeployActionConfig, ExecutedDeployAction, ResolvedDeployAction } from "./deploy"
+import type { ExecutedRunAction, ResolvedRunAction, RunAction, RunActionConfig } from "./run"
+import type { ExecutedTestAction, ResolvedTestAction, TestAction, TestActionConfig } from "./test"
 import type { ActionKind } from "../plugin/action-types"
 import type { GraphResults } from "../graph/results"
-import type { BaseAction, RuntimeAction, ResolvedRuntimeAction, ExecutedRuntimeAction } from "./base"
+import type { BaseAction } from "./base"
 
 // TODO-G2: split this file
 
@@ -164,21 +164,29 @@ export function actionReferenceToString(ref: ActionReference) {
 }
 
 export type ActionConfig = ValuesType<ActionConfigTypes>
-export type Action = BuildAction | RuntimeAction
-export type ResolvedAction = ResolvedBuildAction | ResolvedRuntimeAction
-export type ExecutedAction = ExecutedBuildAction | ExecutedRuntimeAction
+export type Action = BuildAction | DeployAction | RunAction | TestAction
+export type ResolvedAction = ResolvedBuildAction | ResolvedDeployAction | ResolvedRunAction | ResolvedTestAction
+export type ExecutedAction = ExecutedBuildAction | ExecutedDeployAction | ExecutedRunAction | ExecutedTestAction
 
-export type Resolved<T extends BaseAction> = T extends ResolvedAction
-  ? T
-  : T extends BuildAction
+export type Resolved<T extends BaseAction> = T extends BuildAction
   ? ResolvedBuildAction<T["_config"], T["_outputs"]>
-  : ResolvedRuntimeAction<T["_config"], T["_outputs"]>
+  : T extends DeployAction
+  ? ResolvedDeployAction<T["_config"], T["_outputs"]>
+  : T extends RunAction
+  ? ResolvedRunAction<T["_config"], T["_outputs"]>
+  : T extends TestAction
+  ? ResolvedTestAction<T["_config"], T["_outputs"]>
+  : T
 
-export type Executed<T extends BaseAction> = T extends ExecutedAction
-  ? T
-  : T extends BuildAction
+export type Executed<T extends BaseAction> = T extends BuildAction
   ? ExecutedBuildAction<T["_config"], T["_outputs"]>
-  : ExecutedRuntimeAction<T["_config"], T["_outputs"]>
+  : T extends DeployAction
+  ? ExecutedDeployAction<T["_config"], T["_outputs"]>
+  : T extends RunAction
+  ? ExecutedRunAction<T["_config"], T["_outputs"]>
+  : T extends TestAction
+  ? ExecutedTestAction<T["_config"], T["_outputs"]>
+  : T
 
 export type ActionReferenceMap = {
   [K in ActionKind]: string[]

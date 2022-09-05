@@ -45,8 +45,8 @@ import { GardenModule } from "../../../../../src/types/module"
 import { V1Container, V1Pod, V1PodSpec } from "@kubernetes/client-node"
 import { getResourceRequirements } from "../../../../../src/plugins/kubernetes/container/util"
 import { ContainerResourcesSpec } from "../../../../../src/plugins/container/moduleConfig"
-import { ResolvedRuntimeAction } from "../../../../../src/actions/base"
 import { KubernetesRunActionSpec } from "../../../../../src/plugins/kubernetes/kubernetes-type/run"
+import { ResolvedDeployAction } from "../../../../../src/actions/deploy"
 
 describe("kubernetes Pod runner functions", () => {
   let garden: Garden
@@ -534,7 +534,7 @@ describe("kubernetes Pod runner functions", () => {
     let helmTarget: KubernetesWorkload | KubernetesPod
     let helmContainer: V1Container
     let helmNamespace: string
-    let randomHelmAction: ResolvedRuntimeAction<any, any>
+    let randomHelmAction: ResolvedDeployAction
     const resources: ContainerResourcesSpec = {
       cpu: {
         min: 123,
@@ -556,7 +556,7 @@ describe("kubernetes Pod runner functions", () => {
       await buildHelmModules(helmGarden, helmGraph)
       // just need an action here (any will do)
       randomHelmAction = await helmGarden.resolveAction({
-        action: helmGraph.getTest("artifacts.echo-test"),
+        action: helmGraph.getDeploy("TODO-G2"),
         log: helmLog,
         graph: helmGraph,
       })

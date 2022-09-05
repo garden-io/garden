@@ -45,16 +45,10 @@ describe("BuildCommand", () => {
 
     const buildActionResults = result!.graphResults
 
-    expect(taskResultOutputs(result!)).to.eql({
-      "build.module-a": { fresh: true, buildLog: "A" },
-      "build.module-b": { fresh: true, buildLog: "B" },
-      "build.module-c": {},
-    })
-
-    // for (const buildAction of Object.values(buildActionResults)) {
-    //   expect(buildAction.durationMsec).to.gte(0)
-    //   buildAction.durationMsec = 0
-    // }
+    expect(buildActionResults["build.module-a"]?.outputs.fresh).to.be.true
+    expect(buildActionResults["build.module-a"]?.outputs.buildLog).to.equal("A")
+    expect(buildActionResults["build.module-b"]?.outputs.fresh).to.be.true
+    expect(buildActionResults["build.module-b"]?.outputs.buildLog).to.equal("B")
 
     const graph = await garden.getConfigGraph({ log, emit: false })
     const modules = keyBy(graph.getModules(), "name")

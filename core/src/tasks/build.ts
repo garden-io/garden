@@ -12,6 +12,7 @@ import { Profile } from "../util/profiling"
 import { BuildAction } from "../actions/build"
 import pluralize from "pluralize"
 import { BuildStatus } from "../plugin/handlers/build/get-status"
+import { executeAction } from "../actions/helpers"
 
 export interface BuildTaskParams extends BaseActionTaskParams<BuildAction> {
   force: boolean
@@ -30,7 +31,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
     const status = await router.build.getStatus({ log: this.log, graph: this.graph, action })
-    return { ...status, executedAction: action.execute({ status }) }
+    return { ...status, executedAction: executeAction(action, { status }) }
   }
 
   async process({ dependencyResults }: ActionTaskProcessParams<BuildAction, BuildStatus>) {
@@ -75,7 +76,9 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
         append: true,
       })
 
-      return { ...result, executedAction: action.execute({ status: result }) }
+      console.log(result)
+
+      return { ...result, executedAction: executeAction(action, { status: result }) }
     } catch (err) {
       log.setError()
       throw err
