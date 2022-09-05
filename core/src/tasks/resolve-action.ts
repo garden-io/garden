@@ -163,9 +163,10 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
 
     // Get outputs and assign to the resolved action
     const router = await this.garden.getActionRouter()
-    const staticOutputs = await router.getOutputs({
+    const staticOutputs = await router.getActionOutputs({
       action: resolvedAction,
       graph: this.graph,
+      log: this.log,
     })
     // TODO-G2: validate the outputs
     // TODO-G2B: avoid this private assignment
