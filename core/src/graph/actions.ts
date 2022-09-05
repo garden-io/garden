@@ -285,7 +285,7 @@ const getActionConfigContextKeys = memoize(() => {
   const schema = buildActionConfig()
   const configKeys = schema.describe().keys
   return Object.entries(configKeys)
-    .map(([k, v]) => ((<any>v).meta.templateContext === ProjectConfigContext ? k : null))
+    .map(([k, v]) => ((<any>v).meta?.templateContext === ProjectConfigContext ? k : null))
     .filter(isString)
 })
 
