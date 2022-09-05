@@ -48,7 +48,7 @@ const jibModuleSchema = () =>
             The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the module root), but in some cases you may need to specify it.
             `
         ),
-      jdkVersion: joi.number().integer().valid(8, 11, 13).default(11).description("The JDK version to use."),
+      jdkVersion: joi.number().integer().valid(8, 11, 13, 17).default(11).description("The JDK version to use."),
       dockerBuild: joi
         .boolean()
         .default(false)

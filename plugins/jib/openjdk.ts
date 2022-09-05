@@ -13,10 +13,12 @@ import { posix } from "path"
 const jdk8Version = "jdk8u292-b10"
 const jdk11Version = "jdk-11.0.9.1+1"
 const jdk13Version = "jdk-13+33"
+const jdk17Version = "jdk-17.0.4.1+1"
 
 const jdk8Base = `https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/${jdk8Version}/`
 const jdk11Base = "https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-11.0.9.1%2B1/"
 const jdk13Base = "https://github.com/AdoptOpenJDK/openjdk13-binaries/releases/download/jdk-13%2B33/"
+const jdk17Base = "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.4.1%2B1/"
 
 export const openJdkSpecs: any = [
   {
@@ -126,6 +128,43 @@ export const openJdkSpecs: any = [
         extract: {
           format: "zip",
           targetPath: jdk13Version,
+        },
+      },
+    ],
+  },
+  {
+    name: "openjdk-17",
+    description: "The OpenJDK 17 library.",
+    type: "library",
+    builds: [
+      {
+        platform: "darwin",
+        architecture: "amd64",
+        url: jdk17Base + "OpenJDK17U-jdk_x64_mac_hotspot_17.0.4.1_1.tar.gz",
+        sha256: "ac21a5a87f7cfa00212ab7c41f7eb80ca33640d83b63ad850be811c24095d61a",
+        extract: {
+          format: "tar",
+          targetPath: posix.join(jdk17Version, "Contents", "Home"),
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "amd64",
+        url: jdk17Base + "OpenJDK17U-jdk_x64_linux_hotspot_17.0.4.1_1.tar.gz",
+        sha256: "5fbf8b62c44f10be2efab97c5f5dbf15b74fae31e451ec10abbc74e54a04ff44",
+        extract: {
+          format: "tar",
+          targetPath: jdk17Version,
+        },
+      },
+      {
+        platform: "windows",
+        architecture: "amd64",
+        url: jdk17Base + "OpenJDK17U-jdk_x64_windows_hotspot_17.0.4.1_1.zip",
+        sha256: "3860d2ed7405674baeb0f9f4c71377421716759fe4301e92bdd4dd43c0442dc3",
+        extract: {
+          format: "zip",
+          targetPath: jdk17Version,
         },
       },
     ],
