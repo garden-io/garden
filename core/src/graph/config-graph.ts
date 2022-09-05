@@ -427,6 +427,7 @@ export abstract class BaseConfigGraph<
   }
 
   protected addActionInternal(action: Action) {
+    this.actions[action.kind][action.name] = <any>action
     const node = this.getNode(action.kind, action.name, action.isDisabled())
 
     for (const dep of action.getDependencyReferences()) {
