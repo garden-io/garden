@@ -94,12 +94,17 @@ export function toGraphResultEventPayload(result: GraphResult): GraphResultEvent
     ...omit(result, "dependencyResults", "task"),
     error: result.error ? String(result.error) : null,
   })
-  if (result.result) {
+  if (payload.result) {
     // TODO: Use a combined blacklist of fields from all task types instead of hardcoding here.
-    payload.output = omit(result.result, "dependencyResults", "log", "buildLog", "detail")
-    if (result.version) {
-      payload.output.version = result.version || null
-    }
+    payload.result = omit(
+      result.result,
+      "dependencyResults",
+      "log",
+      "buildLog",
+      "detail",
+      "resolvedAction",
+      "executedAction"
+    )
   }
   return payload
 }

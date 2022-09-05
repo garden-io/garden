@@ -34,8 +34,7 @@ import { emptyDir, pathExists, ensureFile, readFile } from "fs-extra"
 import { join } from "path"
 import { DashboardPage } from "../../../src/plugin/handlers/provider/getDashboardPage"
 import { ConfigGraph } from "../../../src/graph/config-graph"
-import { ResolvedRuntimeAction } from "../../../src/actions/base"
-import { BuildActionConfig, ResolvedBuildAction } from "../../../src/actions/build"
+import { ResolvedBuildAction } from "../../../src/actions/build"
 import {
   execBuildActionSchema,
   execDeployActionSchema,
@@ -47,8 +46,8 @@ import { actionFromConfig } from "../../../src/graph/actions"
 import { TestAction } from "../../../src/actions/test"
 import { TestConfig } from "../../../src/config/test"
 import { findByName } from "../../../src/util/util"
-import { RunActionConfig } from "../../../src/actions/run"
-import { DeployActionConfig } from "../../../src/actions/deploy"
+import { ResolvedRunAction } from "../../../src/actions/run"
+import { ResolvedDeployAction } from "../../../src/actions/deploy"
 
 const now = new Date()
 
@@ -58,9 +57,9 @@ describe("ActionRouter", () => {
   let log: LogEntry
   let actionRouter: ActionRouter
   let module: GardenModule
-  let resolvedBuildAction: ResolvedBuildAction<BuildActionConfig<any, any>>
-  let resolvedDeployAction: ResolvedRuntimeAction<DeployActionConfig>
-  let resolvedRunAction: ResolvedRuntimeAction<RunActionConfig>
+  let resolvedBuildAction: ResolvedBuildAction
+  let resolvedDeployAction: ResolvedDeployAction
+  let resolvedRunAction: ResolvedRunAction
 
   const projectConfig: ProjectConfig = {
     apiVersion: DEFAULT_API_VERSION,

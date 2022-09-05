@@ -200,7 +200,7 @@ export function prepareActionResource(spec: any, configPath: string, relPath: st
   delete spec.path
 
   if (spec.internal) {
-    throw new ConfigurationError(`yFound invalid ke "internal" in config at ${relPath}`, {
+    throw new ConfigurationError(`Found invalid key "internal" in config at ${relPath}`, {
       spec,
       path: relPath,
     })
