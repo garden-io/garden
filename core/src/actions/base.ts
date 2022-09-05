@@ -118,7 +118,24 @@ export const baseActionConfigSchema = () =>
     description: joi.string().description("A description of the action.").meta({ templateContext: null }),
 
     // Location
+    basePath: joi.posixPath().description("TODO"), // TODO-G2
     source: actionSourceSpecSchema(),
+
+    // Internal metadata
+    // TODO-G2
+    internal: joi
+      .object()
+      .keys({
+        configFilePath: joi.posixPath().optional().description("TODO"),
+        groupName: joi.string().optional().description("TODO"),
+        moduleName: joi.string().optional().description("TODO"),
+        resolved: joi.boolean().optional().description("TODO"),
+        inputs: joi.object().optional().description("TODO"),
+        parentName: joi.string().optional().description("TODO"),
+        templateName: joi.string().optional().description("TODO"),
+      })
+      .unknown(true)
+      .description("TODO"), // TODO-G2
 
     // Flow/execution control
     dependencies: joiSparseArray(joi.actionReference())
@@ -535,12 +552,19 @@ export interface ResolvedActionExtension<
   Outputs extends {} = any
 > {
   getDependencyResult(ref: ActionReference | Action): GraphResult | null
+
   getExecutedDependencies(): ExecutedAction[]
+
   getResolvedDependencies(): ResolvedAction[]
+
   getSpec(): C["spec"]
+
   getSpec<K extends keyof C["spec"]>(key: K): C["spec"][K]
+
   getOutput<K extends keyof Outputs>(key: K): Outputs[K] | undefined
+
   getOutputs(): Outputs
+
   getVariables(): DeepPrimitiveMap
 }
 
