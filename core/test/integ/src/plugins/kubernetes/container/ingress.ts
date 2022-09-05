@@ -370,7 +370,9 @@ describe("createIngressResources", () => {
       configsByKey: {},
       graph,
       config: {
-        basePath: "asd",
+        internal: {
+          basePath: "TODO-G2",
+        },
         kind: "Deploy",
         name: "test",
         spec: {

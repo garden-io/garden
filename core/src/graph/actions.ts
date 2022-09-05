@@ -66,9 +66,6 @@ export async function actionConfigsToGraph({
 
   for (const group of groupConfigs) {
     for (const config of group.actions) {
-      if (!config.internal) {
-        config.internal = {}
-      }
       config.internal.groupName = group.name
       config.internal.configFilePath = group.internal?.configFilePath
 
@@ -128,7 +125,7 @@ export async function actionFromConfig({
   const treeVersion = await garden.vcs.getTreeVersion(log, garden.projectName, config)
 
   const variables = await resolveVariables({
-    basePath: config.basePath,
+    basePath: config.internal.basePath,
     variables: config.variables,
     varfiles: config.varfiles,
   })
@@ -335,7 +332,7 @@ async function preprocessActionConfig({
       schema: getActionSchema(config.kind),
       configType: `${describeActionConfig(config)}`,
       name: config.name,
-      path: config.basePath,
+      path: config.internal.basePath,
       projectRoot: garden.projectRoot,
     })
 

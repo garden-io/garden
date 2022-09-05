@@ -340,7 +340,7 @@ function getConfigFilePath(config: ModuleConfig | BaseActionConfig) {
 }
 
 function getConfigBasePath(config: ModuleConfig | BaseActionConfig) {
-  return isActionConfig(config) ? config.basePath : config.path
+  return isActionConfig(config) ? config.internal.basePath : config.path
 }
 
 function describeConfig(config: ModuleConfig | BaseActionConfig) {
