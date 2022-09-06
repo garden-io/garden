@@ -10,7 +10,14 @@ import { resolve, join } from "path"
 import { expect } from "chai"
 import { ensureDir } from "fs-extra"
 import stripAnsi from "strip-ansi"
-import { makeTestGardenA, makeTestGarden, dataDir, expectError, makeTestModule } from "../../helpers"
+import {
+  makeTestGardenA,
+  makeTestGarden,
+  dataDir,
+  expectError,
+  expectErrorMessageContains,
+  makeTestModule,
+} from "../../helpers"
 import { getNames } from "../../../src/util/util"
 import { ConfigGraph, ConfigGraphNode } from "../../../src/graph/config-graph"
 import { Garden } from "../../../src/garden"
@@ -34,7 +41,8 @@ describe("ConfigGraph", () => {
     await expectError(
       () => garden.getConfigGraph({ log: garden.log, emit: false }),
       (err) =>
-        expect(err.message).to.equal(
+        expectErrorMessageContains(
+          err,
           "Service names must be unique - the service name 'dupe' is declared multiple times " +
             "(in modules 'module-a' and 'module-b')"
         )
@@ -47,7 +55,8 @@ describe("ConfigGraph", () => {
     await expectError(
       () => garden.getConfigGraph({ log: garden.log, emit: false }),
       (err) =>
-        expect(err.message).to.equal(
+        expectErrorMessageContains(
+          err,
           "Task names must be unique - the task name 'dupe' is declared multiple times " +
             "(in modules 'module-a' and 'module-b')"
         )
@@ -60,7 +69,8 @@ describe("ConfigGraph", () => {
     await expectError(
       () => garden.getConfigGraph({ log: garden.log, emit: false }),
       (err) =>
-        expect(err.message).to.equal(
+        expectErrorMessageContains(
+          err,
           "Service and task names must be mutually unique - the name 'dupe' is used for a task " +
             "in 'module-b' and for a service in 'module-a'"
         )
@@ -119,7 +129,7 @@ describe("ConfigGraph", () => {
 
       await expectError(
         () => graph.getModules({ names: ["module-c"] }),
-        (err) => expect(err.message).to.equal("Could not find module(s): module-c")
+        (err) => expectErrorMessageContains(err, "Could not find module(s): module-c")
       )
     })
 
@@ -303,7 +313,7 @@ describe("ConfigGraph", () => {
 
       await expectError(
         () => graph.getDeploys({ names: ["service-a"] }),
-        (err) => expect(err.message).to.equal("Could not find service(s): service-a")
+        (err) => expectErrorMessageContains(err, "Could not find one or more Deploy actions: service-a")
       )
     })
 
@@ -446,7 +456,7 @@ describe("ConfigGraph", () => {
 
       await expectError(
         () => graph.getRuns({ names: ["disabled-task"] }),
-        (err) => expect(err.message).to.equal("Could not find task(s): disabled-task")
+        (err) => expectErrorMessageContains(err, "Could not find one or more Run actions: disabled-task")
       )
     })
 
