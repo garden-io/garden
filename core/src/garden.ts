@@ -1157,8 +1157,8 @@ export class Garden {
       let actionsCount = 0
 
       for (const kind of actionKinds) {
-        for (const config of allResources[kind] || []) {
-          this.addActionConfig(config)
+        for (const config of groupedResources[kind] || []) {
+          this.addActionConfig((config as unknown) as BaseActionConfig)
           actionsCount++
         }
       }
