@@ -78,7 +78,7 @@ describe("GetStatusCommand", () => {
               docs: "Test Deploy action",
               schema: execDeployActionSchema(),
               handlers: {
-                getStatus: async () => {
+                getStatus: async (_params) => {
                   return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
                 },
               },

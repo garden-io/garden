@@ -124,10 +124,6 @@ const moduleConfigs: ModuleConfig[] = [
   }),
 ]
 
-const getServiceStatus = async (): Promise<ServiceStatus> => {
-  return { state: "ready", detail: {} }
-}
-
 describe("DeleteEnvironmentCommand", () => {
   let deletedServices: string[] = []
   let deleteOrder: string[] = []
@@ -153,10 +149,10 @@ describe("DeleteEnvironmentCommand", () => {
           docs: "Test Deploy action",
           schema: execDeployActionSchema(),
           handlers: {
-            deploy: async () => {
+            deploy: async (_params) => {
               return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
             },
-            getStatus: async () => {
+            getStatus: async (_params) => {
               return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
             },
             delete: async (params) => {
@@ -270,10 +266,10 @@ describe("DeleteServiceCommand", () => {
           docs: "Test Deploy action",
           schema: execDeployActionSchema(),
           handlers: {
-            deploy: async () => {
+            deploy: async (_params) => {
               return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
             },
-            getStatus: async () => {
+            getStatus: async (_params) => {
               return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
             },
             delete: async (params) => {
