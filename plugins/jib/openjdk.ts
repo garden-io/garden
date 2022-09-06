@@ -21,7 +21,8 @@ interface JdkVersion {
   description: string
   baseUrl: string
   versionName: string
-  mac: JdkBinary
+  mac_amd64: JdkBinary
+  mac_arm64?: JdkBinary
   linux: JdkBinary
   windows: JdkBinary
 }
@@ -31,7 +32,7 @@ const jdk8Version: JdkVersion = {
   description: "The OpenJDK 8 library.",
   baseUrl: "https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u292-b10/",
   versionName: "jdk8u292-b10",
-  mac: {
+  mac_amd64: {
     filename: "OpenJDK8U-jdk_x64_mac_hotspot_8u292b10.tar.gz",
     sha256: "5646fbe9e4138c902c910bb7014d41463976598097ad03919e4848634c7e8007",
   },
@@ -50,7 +51,7 @@ const jdk11Version: JdkVersion = {
   description: "The OpenJDK 11 library.",
   baseUrl: "https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-11.0.9.1%2B1/",
   versionName: "jdk-11.0.9.1+1",
-  mac: {
+  mac_amd64: {
     filename: "OpenJDK11U-jdk_x64_mac_hotspot_11.0.9.1_1.tar.gz",
     sha256: "96bc469f9b02a3b84382a0685b0bd7935e1ad1bd82a0aab9befb5b42a17cbd77",
   },
@@ -69,7 +70,7 @@ const jdk13Version: JdkVersion = {
   description: "The OpenJDK 13 library.",
   baseUrl: "https://github.com/AdoptOpenJDK/openjdk13-binaries/releases/download/jdk-13%2B33/",
   versionName: "jdk-13+33",
-  mac: {
+  mac_amd64: {
     filename: "OpenJDK13U-jdk_x64_mac_hotspot_13_33.tar.gz",
     sha256: "f948be96daba250b6695e22cb51372d2ba3060e4d778dd09c89548889783099f",
   },
@@ -88,9 +89,13 @@ const jdk17Version: JdkVersion = {
   description: "The OpenJDK 17 library.",
   baseUrl: "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.4.1%2B1/",
   versionName: "jdk-17.0.4.1+1",
-  mac: {
+  mac_amd64: {
     filename: "OpenJDK17U-jdk_x64_mac_hotspot_17.0.4.1_1.tar.gz",
     sha256: "ac21a5a87f7cfa00212ab7c41f7eb80ca33640d83b63ad850be811c24095d61a",
+  },
+  mac_arm64: {
+    filename: "OpenJDK17U-jdk_aarch64_mac_hotspot_17.0.4.1_1.tar.gz",
+    sha256: "3a976943a9e6a635e68e2b06bd093fc096aad9f5894acda673d3bea0cb3a6f38",
   },
   linux: {
     filename: "OpenJDK17U-jdk_x64_linux_hotspot_17.0.4.1_1.tar.gz",
@@ -103,21 +108,37 @@ const jdk17Version: JdkVersion = {
 }
 
 function openJdkSpec(jdkVersion: JdkVersion): PluginToolSpec {
+  const macBuilds = [
+    {
+      platform: "darwin",
+      architecture: "amd64",
+      url: jdkVersion.baseUrl + jdkVersion.mac_amd64.filename,
+      sha256: jdkVersion.mac_amd64.sha256,
+      extract: {
+        format: "tar",
+        targetPath: posix.join(jdkVersion.versionName, "Contents", "Home"),
+      },
+    },
+  ]
+
+  if (jdkVersion.mac_arm64) {
+    macBuilds.push({
+      platform: "darwin",
+      architecture: "arm64",
+      url: jdkVersion.baseUrl + jdkVersion.mac_amd64.filename,
+      sha256: jdkVersion.mac_amd64.sha256,
+      extract: {
+        format: "tar",
+        targetPath: posix.join(jdkVersion.versionName, "Contents", "Home"),
+      },
+    })
+  }
+
   return {
     name: jdkVersion.lookupName,
     description: jdkVersion.description,
     type: "library",
     builds: [
-      {
-        platform: "darwin",
-        architecture: "amd64",
-        url: jdkVersion.baseUrl + jdkVersion.mac.filename,
-        sha256: jdkVersion.mac.sha256,
-        extract: {
-          format: "tar",
-          targetPath: posix.join(jdkVersion.versionName, "Contents", "Home"),
-        },
-      },
       {
         platform: "linux",
         architecture: "amd64",
@@ -138,6 +159,7 @@ function openJdkSpec(jdkVersion: JdkVersion): PluginToolSpec {
           targetPath: jdkVersion.versionName,
         },
       },
+      ...macBuilds
     ],
   }
 }

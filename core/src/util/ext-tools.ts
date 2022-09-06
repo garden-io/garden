@@ -250,8 +250,6 @@ export class PluginTool extends CliWrapper {
     const architecture = getArchitecture()
     const isEmulated = isRosetta()
 
-    console.log("===================", { _platform, architecture, isEmulated })
-
     let buildSpec: ToolBuildSpec
     // first look for native arch, if not found, then try (potentially emulated) arch
     if (isEmulated) {

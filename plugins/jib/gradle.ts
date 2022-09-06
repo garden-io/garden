@@ -37,6 +37,11 @@ export const gradleSpec: any = {
       ...spec,
     },
     {
+      platform: "darwin",
+      architecture: "arm64",
+      ...spec,
+    },
+    {
       platform: "linux",
       architecture: "amd64",
       ...spec,
