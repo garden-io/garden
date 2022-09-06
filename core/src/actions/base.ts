@@ -525,14 +525,6 @@ export abstract class RuntimeAction<
   }
 }
 
-export interface ResolvedActionConstructor<A extends BaseAction> {
-  new (params: ResolvedActionWrapperParams<A["_config"]>): Resolved<A>
-}
-
-export interface ExecutedActionConstructor<A extends BaseAction> {
-  new (params: ExecutedActionWrapperParams<A["_config"], A["_outputs"]>): Executed<A>
-}
-
 // Used to ensure compatibility between ResolvedBuildAction and ResolvedRuntimeAction
 // FIXME: Might be possible to remove in a later TypeScript version or through some hacks.
 export interface ResolvedActionExtension<
