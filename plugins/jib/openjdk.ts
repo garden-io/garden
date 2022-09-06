@@ -6,10 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-// FIXME: figure out why the hell this causes builds to fail
-// import { PluginToolSpec } from "@garden-io/sdk/types"
+import { PluginToolSpec } from "@garden-io/sdk/types"
 import { posix } from "path"
-import { PluginToolSpec } from "@garden-io/core/build/src/types/plugin/tools"
 
 interface JdkBinary {
   filename: string

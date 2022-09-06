@@ -8,8 +8,7 @@
 
 import execa from "execa"
 import { find } from "lodash"
-// import { PluginToolSpec, PluginContext, LogEntry } from "@garden-io/sdk/types"
-import { PluginContext, LogEntry } from "@garden-io/sdk/types"
+import { LogEntry, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
 import { PluginError } from "@garden-io/core/build/src/exceptions"
 import { resolve } from "path"
 import { pathExists } from "fs-extra"
@@ -26,7 +25,7 @@ const spec = {
   },
 }
 
-export const gradleSpec: any = {
+export const gradleSpec: PluginToolSpec = {
   name: "gradle",
   description: "The gradle CLI.",
   type: "binary",
