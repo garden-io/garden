@@ -32,7 +32,7 @@ export const helm3Spec: PluginToolSpec = {
     },
     {
       platform: "darwin",
-      architecture: "amd64",
+      architecture: "arm64",
       url: "https://get.helm.sh/helm-v3.7.2-darwin-arm64.tar.gz",
       sha256: "260d4b8bffcebc6562ea344dfe88efe252cf9511dd6da3cccebf783773d42aec",
       extract: {

@@ -125,8 +125,8 @@ function openJdkSpec(jdkVersion: JdkVersion): PluginToolSpec {
     macBuilds.push({
       platform: "darwin",
       architecture: "arm64",
-      url: jdkVersion.baseUrl + jdkVersion.mac_amd64.filename,
-      sha256: jdkVersion.mac_amd64.sha256,
+      url: jdkVersion.baseUrl + jdkVersion.mac_arm64.filename,
+      sha256: jdkVersion.mac_arm64.sha256,
       extract: {
         format: "tar",
         targetPath: posix.join(jdkVersion.versionName, "Contents", "Home"),
