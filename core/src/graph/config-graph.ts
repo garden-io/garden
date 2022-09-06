@@ -426,8 +426,8 @@ export abstract class BaseConfigGraph<
     }
   }
 
-  protected addActionInternal(action: Action) {
-    this.actions[action.kind][action.name] = <any>action
+  protected addActionInternal<K extends ActionKind>(action: Action) {
+    this.actions[action.kind][action.name] = <PickTypeByKind<K, B, D, R, T>>action
     const node = this.getNode(action.kind, action.name, action.isDisabled())
 
     for (const dep of action.getDependencyReferences()) {
