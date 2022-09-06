@@ -76,8 +76,6 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
         append: true,
       })
 
-      console.log(result)
-
       return { ...result, executedAction: executeAction(action, { status: result }) }
     } catch (err) {
       log.setError()
