@@ -90,6 +90,7 @@ describe("plugins.container", () => {
   it("TODO-G2", () => {
     throw "TODO-G2 (all tests need updating)"
   })
+})
 
 //   async function getTestModule(moduleConfig: ContainerModuleConfig) {
 //     const parsed = await configure({ ctx, moduleConfig, log })

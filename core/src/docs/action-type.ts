@@ -12,7 +12,7 @@ import handlebars = require("handlebars")
 import { joi } from "../config/common"
 import { ModuleReferenceContext } from "../config/template-contexts/module"
 import { renderConfigReference, renderTemplateStringReference, TEMPLATES_DIR } from "./config"
-import { ActionTypeDefinition } from "../plugin/action-types"
+import { ActionKind, ActionTypeDefinition } from "../plugin/action-types"
 import { buildActionConfig } from "../actions/build"
 import { deployActionConfig } from "../actions/deploy"
 import { runActionConfig } from "../actions/run"
@@ -23,14 +23,16 @@ import titleize = require("titleize")
  * Generates the action type reference from the action-type.hbs template.
  * The reference includes the rendered output from the config-partial.hbs template.
  */
-export function renderActionTypeReference(kind: string, name: string, desc: ActionTypeDefinition<any>) {
+export function renderActionTypeReference(kind: ActionKind, name: string, desc: ActionTypeDefinition<any>) {
   let { schema, docs } = desc
 
+  const kindLower = kind.toLowerCase()
+
   const baseSchemas = {
-    build: buildActionConfig(),
-    deploy: deployActionConfig(),
-    run: runActionConfig(),
-    test: testActionConfig(),
+    Build: buildActionConfig(),
+    Deploy: deployActionConfig(),
+    Run: runActionConfig(),
+    Test: testActionConfig(),
   }
 
   const fullSchema = baseSchemas[kind].keys({ spec: schema })
@@ -44,15 +46,16 @@ export function renderActionTypeReference(kind: string, name: string, desc: Acti
     schema: ModuleReferenceContext.getSchema().keys({
       outputs: outputsSchema.required(),
     }),
-    prefix: `actions.${kind}`,
+    prefix: `actions.${kind.toLowerCase()}`,
     placeholder: "<name>",
-    exampleName: "my-" + kind,
+    exampleName: "my-" + kind.toLowerCase(),
   })
 
-  const frontmatterTitle = `\`${name}\` ${titleize(kind)}`
+  const frontmatterTitle = `\`${name}\` ${kind}`
   const template = handlebars.compile(readFileSync(templatePath).toString())
   return template({
     kind,
+    kindLower,
     frontmatterTitle,
     name,
     docs,
