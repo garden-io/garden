@@ -321,7 +321,7 @@ describe("ConfigGraph", () => {
       try {
         graphA.getDeploys({ names: ["bla"] })
       } catch (err) {
-        expect(err.type).to.equal("parameter")
+        expect(err.type).to.equal("graph")
         return
       }
 
@@ -340,7 +340,7 @@ describe("ConfigGraph", () => {
       try {
         graphA.getDeploy("bla")
       } catch (err) {
-        expect(err.type).to.equal("parameter")
+        expect(err.type).to.equal("graph")
         return
       }
 
@@ -464,7 +464,7 @@ describe("ConfigGraph", () => {
       try {
         graphA.getRuns({ names: ["bla"] })
       } catch (err) {
-        expect(err.type).to.equal("parameter")
+        expect(err.type).to.equal("graph")
         return
       }
 
@@ -483,7 +483,7 @@ describe("ConfigGraph", () => {
       try {
         graphA.getRun("bla")
       } catch (err) {
-        expect(err.type).to.equal("parameter")
+        expect(err.type).to.equal("graph")
         return
       }
 
