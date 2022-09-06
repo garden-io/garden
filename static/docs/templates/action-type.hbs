@@ -1,6 +1,6 @@
 ---
 title: "{{{frontmatterTitle}}}"
-tocTitle: "`{{{name}}} {{{kindTitle}}}`"
+tocTitle: "`{{{name}}}` {{{kind}}}"
 ---
 
 # {{{frontmatterTitle}}}
@@ -32,6 +32,6 @@ The values in the schema below are the default values.
 
 ## Outputs
 
-The following keys are available via the `${actions.{{{kind}}}.<name>}` template string key for `{{{name}}}`
+The following keys are available via the `${actions.{{{kindLower}}}.<name>}` template string key for `{{{name}}}`
 modules.
 {{{outputsReference}}}{{/if}}
