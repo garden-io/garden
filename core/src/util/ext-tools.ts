@@ -231,12 +231,10 @@ export class PluginTool extends CliWrapper {
     const architecture = getArchitecture()
     const nativeArchitecture = getNativeArchitecture()
 
-    function findMatchingSpec(p: string, a: string) {
-      return spec.builds.find((build) => build.platform === p && build.architecture === a)!
-    }
-
     // first look for native arch, if not found, try (potentially emulated) arch
-    this.buildSpec = findMatchingSpec(_platform, nativeArchitecture) || findMatchingSpec(_platform, architecture)
+    this.buildSpec = spec.builds.find((build) => {
+      return build.platform === _platform && [architecture, nativeArchitecture].includes(build.architecture)
+    })!
 
     if (!this.buildSpec) {
       const testedArchs = new Set(["${_platform}-${architecture}", "${_platform}-${nativeArchitecture}"])
