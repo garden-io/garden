@@ -11,7 +11,7 @@ import split2 from "split2"
 import { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } from "fs-extra"
 import { ConfigurationError, ParameterError, GardenBaseError, RuntimeError } from "../exceptions"
 import { join, dirname, basename, posix } from "path"
-import { hashString, exec, uuidv4, getPlatform, getArchitecture, getNativeArchitecture } from "./util"
+import { hashString, exec, uuidv4, getPlatform, getArchitecture, isRosetta } from "./util"
 import tar from "tar"
 import { GARDEN_GLOBAL_PATH } from "../constants"
 import { LogEntry } from "../logger/log-entry"
@@ -49,13 +49,20 @@ export interface SpawnParams extends ExecParams {
   rawMode?: boolean // Only used if tty = true. See also: https://nodejs.org/api/tty.html#tty_readstream_setrawmode_mode
 }
 
+// for translating arch to values expected by /usr/bin/arch
+const darwinArchMap = {
+  amd64: "x86_64",
+}
+
 export class CliWrapper {
   name: string
   protected toolPath: string
+  protected darwinPreferredArch: string | undefined
 
-  constructor(name: string, path: string) {
+  constructor(name: string, path: string, darwinPreferredArch?: string) {
     this.name = name
     this.toolPath = path
+    this.darwinPreferredArch = darwinPreferredArch
   }
 
   async getPath(_: LogEntry) {
@@ -63,18 +70,28 @@ export class CliWrapper {
   }
 
   async exec({ args, cwd, env, log, timeoutSec, input, ignoreError, stdout, stderr }: ExecParams) {
-    const path = await this.getPath(log)
+    const toolPath = await this.getPath(log)
 
     if (!args) {
       args = []
     }
     if (!cwd) {
-      cwd = dirname(path)
+      cwd = dirname(toolPath)
     }
 
-    log.silly(`Execing '${path} ${args.join(" ")}' in ${cwd}`)
+    let execPath: string
+    if (this.darwinPreferredArch) {
+      const archOverride = darwinArchMap[this.darwinPreferredArch] || this.darwinPreferredArch
 
-    return exec(path, args, {
+      execPath = "/usr/bin/arch"
+      args = [`-arch=${archOverride}`, toolPath, ...args]
+    } else {
+      execPath = toolPath
+    }
+
+    log.silly(`Execing '${execPath} ${args.join(" ")}' in ${cwd}`)
+
+    return exec(execPath, args, {
       cwd,
       timeout: timeoutSec ? timeoutSec * 1000 : undefined,
       env,
@@ -202,6 +219,10 @@ export class CliWrapper {
   }
 }
 
+const findBuildSpec = (spec: PluginToolSpec, plat: string, arch: string) => {
+  return spec.builds.find((build) => build.platform === plat && build.architecture === arch)!
+}
+
 export interface PluginTools {
   [key: string]: PluginTool
 }
@@ -225,16 +246,24 @@ export class PluginTool extends CliWrapper {
   private chmodDone: boolean
 
   constructor(spec: PluginToolSpec) {
-    super(spec.name, "")
-
     const _platform = getPlatform()
     const architecture = getArchitecture()
-    const nativeArchitecture = getNativeArchitecture()
+    const isEmulated = isRosetta()
 
-    // first look for native arch, if not found, try (potentially emulated) arch
-    this.buildSpec = spec.builds.find((build) => {
-      return build.platform === _platform && [architecture, nativeArchitecture].includes(build.architecture)
-    })!
+    console.log("===================", { _platform, architecture, isEmulated })
+
+    let buildSpec: ToolBuildSpec
+    // first look for native arch, if not found, then try (potentially emulated) arch
+    if (isEmulated) {
+      buildSpec = findBuildSpec(spec, _platform, "arm64") || findBuildSpec(spec, _platform, architecture)
+    } else {
+      buildSpec = findBuildSpec(spec, _platform, architecture)
+    }
+
+    const darwinPreferredArch = isEmulated ? buildSpec.architecture : undefined
+    super(spec.name, "", darwinPreferredArch)
+
+    this.buildSpec = buildSpec
 
     if (!this.buildSpec) {
       const testedArchs = new Set(["${_platform}-${architecture}", "${_platform}-${nativeArchitecture}"])
@@ -244,7 +273,6 @@ export class PluginTool extends CliWrapper {
           spec,
           platform,
           architecture,
-          nativeArchitecture,
         }
       )
     }
@@ -323,9 +351,9 @@ export class PluginTool extends CliWrapper {
       protocol === "file:"
         ? createReadStream(parsed.path!)
         : got.stream({
-            method: "GET",
-            url: this.buildSpec.url,
-          })
+          method: "GET",
+          url: this.buildSpec.url,
+        })
 
     // compute the sha256 checksum
     const hash = createHash("sha256")
