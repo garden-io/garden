@@ -435,7 +435,7 @@ Retrieve information about modules that are defined in the project.
 
 ### `${modules.<module-name>.buildPath}`
 
-The build path of the module.
+The build path of the action/module.
 
 | Type     |
 | -------- |
@@ -449,7 +449,7 @@ my-variable: ${modules.<module-name>.buildPath}
 
 ### `${modules.<module-name>.name}`
 
-The name of the module.
+The name of the action/module.
 
 | Type     |
 | -------- |
@@ -457,7 +457,7 @@ The name of the module.
 
 ### `${modules.<module-name>.path}`
 
-The local path of the module.
+The source path of the action/module.
 
 | Type     |
 | -------- |

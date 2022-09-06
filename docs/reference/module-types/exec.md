@@ -1062,7 +1062,7 @@ modules.
 
 ### `${modules.<module-name>.buildPath}`
 
-The build path of the module.
+The build path of the action/module.
 
 | Type     |
 | -------- |
@@ -1076,7 +1076,7 @@ my-variable: ${modules.my-module.buildPath}
 
 ### `${modules.<module-name>.name}`
 
-The name of the module.
+The name of the action/module.
 
 | Type     |
 | -------- |
@@ -1084,7 +1084,7 @@ The name of the module.
 
 ### `${modules.<module-name>.path}`
 
-The local path of the module.
+The source path of the action/module.
 
 | Type     |
 | -------- |
@@ -1163,12 +1163,4 @@ Example:
 ```yaml
 my-variable: ${runtime.tasks.my-tasks.version}
 ```
-
-### `${runtime.tasks.<task-name>.outputs.log}`
-
-The full log from the executed task. (Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)
-
-| Type     | Default |
-| -------- | ------- |
-| `string` | `""`    |
 

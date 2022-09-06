@@ -161,6 +161,10 @@ variables:
 # varfiles exist).
 varfile:
 
+# The names of any services that this service depends on at runtime, and the names of any tasks that should be
+# executed before this service is deployed.
+dependencies: []
+
 # If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete env` or `garden delete
 # service <module name>`.
 allowDestroy: false
@@ -174,11 +178,7 @@ allowDestroy: false
 # Defaults to the value set in the provider config.
 autoApply: null
 
-# The names of any services that this service depends on at runtime, and the names of any tasks that should be
-# executed before this service is deployed.
-dependencies: []
-
-# Specify the path to the working directory root—i.e. where your Terraform files are—relative to the module root.
+# Specify the path to the working directory root—i.e. where your Terraform files are—relative to the config directory.
 root: .
 
 # The version of Terraform to use. Defaults to the version set in the provider config.
@@ -485,6 +485,14 @@ Example:
 varfile: "my-module.env"
 ```
 
+### `dependencies[]`
+
+The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
+
 ### `allowDestroy`
 
 If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete env` or `garden delete service <module name>`.
@@ -507,17 +515,9 @@ Defaults to the value set in the provider config.
 | --------- | ------- | -------- |
 | `boolean` | `null`  | No       |
 
-### `dependencies[]`
-
-The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[string]` | `[]`    | No       |
-
 ### `root`
 
-Specify the path to the working directory root—i.e. where your Terraform files are—relative to the module root.
+Specify the path to the working directory root—i.e. where your Terraform files are—relative to the config directory.
 
 | Type        | Default | Required |
 | ----------- | ------- | -------- |
@@ -550,7 +550,7 @@ modules.
 
 ### `${modules.<module-name>.buildPath}`
 
-The build path of the module.
+The build path of the action/module.
 
 | Type     |
 | -------- |
@@ -564,7 +564,7 @@ my-variable: ${modules.my-module.buildPath}
 
 ### `${modules.<module-name>.name}`
 
-The name of the module.
+The name of the action/module.
 
 | Type     |
 | -------- |
@@ -572,7 +572,7 @@ The name of the module.
 
 ### `${modules.<module-name>.path}`
 
-The local path of the module.
+The source path of the action/module.
 
 | Type     |
 | -------- |
@@ -631,20 +631,6 @@ Example:
 ```yaml
 my-variable: ${runtime.services.my-service.version}
 ```
-
-### `${runtime.services.<service-name>.outputs.*}`
-
-A map of all the outputs defined in the Terraform stack.
-
-| Type     | Default |
-| -------- | ------- |
-| `object` | `{}`    |
-
-### `${runtime.services.<service-name>.outputs.<name>}`
-
-| Type                                                 |
-| ---------------------------------------------------- |
-| `string \| number \| boolean \| link \| array[link]` |
 
 
 ### Task Outputs

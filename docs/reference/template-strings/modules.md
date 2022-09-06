@@ -435,7 +435,7 @@ Retrieve information about modules that are defined in the project.
 
 ### `${modules.<module-name>.buildPath}`
 
-The build path of the module.
+The build path of the action/module.
 
 | Type     |
 | -------- |
@@ -449,7 +449,7 @@ my-variable: ${modules.<module-name>.buildPath}
 
 ### `${modules.<module-name>.name}`
 
-The name of the module.
+The name of the action/module.
 
 | Type     |
 | -------- |
@@ -457,7 +457,7 @@ The name of the module.
 
 ### `${modules.<module-name>.path}`
 
-The local path of the module.
+The source path of the action/module.
 
 | Type     |
 | -------- |
@@ -599,7 +599,7 @@ my-variable: ${runtime.tasks.<task-name>.version}
 
 ### `${inputs.*}`
 
-The inputs provided to the module through a undefined, if applicable.
+The inputs provided to the config through a template, if applicable.
 
 | Type     | Default |
 | -------- | ------- |
@@ -613,7 +613,7 @@ The inputs provided to the module through a undefined, if applicable.
 
 ### `${parent.*}`
 
-Information about the parent module (if the module is a submodule, e.g. generated in a templated module).
+Information about the config parent, if any (usually a template, if applicable).
 
 | Type     |
 | -------- |
@@ -629,7 +629,7 @@ The name of the parent module.
 
 ### `${template.*}`
 
-Information about the undefined used when generating the module.
+Information about the template used when generating the config, if applicable.
 
 | Type     |
 | -------- |
@@ -637,7 +637,7 @@ Information about the undefined used when generating the module.
 
 ### `${template.name}`
 
-The name of the undefined being resolved.
+The name of the template.
 
 | Type     |
 | -------- |
@@ -645,7 +645,7 @@ The name of the undefined being resolved.
 
 ### `${this.*}`
 
-Information about the module currently being resolved.
+Information about the action/module currently being resolved.
 
 | Type     |
 | -------- |
@@ -653,7 +653,7 @@ Information about the module currently being resolved.
 
 ### `${this.buildPath}`
 
-The build path of the module.
+The build path of the action/module.
 
 | Type     |
 | -------- |
@@ -667,7 +667,7 @@ my-variable: ${this.buildPath}
 
 ### `${this.name}`
 
-The name of the module.
+The name of the action/module.
 
 | Type     |
 | -------- |
@@ -675,7 +675,7 @@ The name of the module.
 
 ### `${this.path}`
 
-The local path of the module.
+The source path of the action/module.
 
 | Type     |
 | -------- |

@@ -15,7 +15,7 @@ one or more files with existing manifests.
 Note that if you include the manifests in the `garden.yml` file, you can use
 [template strings](../../using-garden/variables-and-templating.md) to interpolate values into the manifests.
 
-If you need more advanced templating features you can use the [helm](./helm.md) module type.
+If you need more advanced templating features you can use the [helm](./helm.md) Deploy type.
 
 Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-overview.md).
@@ -162,6 +162,50 @@ variables:
 # varfiles exist).
 varfile:
 
+# Resolve the specified kustomization and include the resulting resources. Note that if you specify `files` or
+# `manifests` as well, these are also included.
+kustomize:
+  # The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an
+  # overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the module
+  # root. Defaults to the module root. If you set this to null, kustomize will not be run.
+  path: .
+
+  # A list of additional arguments to pass to the `kustomize build` command. Note that specifying '-o' or '--output'
+  # is not allowed.
+  extraArgs: []
+
+# List of Kubernetes resource manifests to deploy. If `files` is also specified, this is combined with the manifests
+# read from the files.
+manifests:
+  - # The API version of the resource.
+    apiVersion:
+
+    # The kind of the resource.
+    kind:
+
+    metadata:
+      # The name of the resource.
+      name:
+
+# Manually specify port forwards that Garden should set up when deploying in dev or watch mode. If specified, these
+# override the auto-detection of forwardable ports, so you'll need to specify the full list of port forwards to
+# create.
+portForwards:
+  - # An identifier to describe the port forward.
+    name:
+
+    # The full resource kind and name to forward to, e.g. Service/my-service or Deployment/my-deployment. Note that
+    # Garden will not validate this ahead of attempting to start the port forward, so you need to make sure this is
+    # correctly set. The types of resources supported will match that of the `kubectl port-forward` CLI command.
+    resource:
+
+    # The port number on the remote resource to forward to.
+    targetPort:
+
+    # The _preferred_ local port to forward from. If none is set, a random port is chosen. If the specified port is
+    # not available, a warning is shown and a random port chosen instead.
+    localPort:
+
 # The names of any services that this service depends on at runtime, and the names of any tasks that should be
 # executed before this service is deployed.
 dependencies: []
@@ -185,12 +229,11 @@ devMode:
 
   # Specify one or more source files or directories to automatically sync with the running container.
   sync:
-    - # POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be
-      # a relative path. Defaults to the module's top-level directory if no value is provided.
+    - # POSIX-style path of the directory to sync to the target, relative to the config's directory. Must be a
+      # relative path. Defaults to the config's directory if no value is provided.
       source: .
 
-      # POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not
-      # allowed.
+      # POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
       target:
 
       # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
@@ -227,19 +270,12 @@ devMode:
   containerName:
 
 # Configures the local application which will send and receive network requests instead of the target resource
-# specified by `serviceResource`.
-#
-# Note that `serviceResource` must also be specified to enable local mode. Local mode configuration for the
-# `kubernetes` module type relies on the `serviceResource.kind` and `serviceResource.name` fields to select a target
-# Kubernetes resource.
-#
-# The `serviceResource.containerName` field is not used by local mode configuration.
-# Note that `localMode` uses its own field `containerName` to specify a target container name explicitly.
+# specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for
+# the action.
 #
 # The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH
 # server to proxy requests.
-# Reverse port-forwarding will be automatically configured to route traffic to the locally deployed application and
-# back.
+# Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
 #
 # Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
 # Local mode always takes the precedence over dev mode if there are any conflicting service names.
@@ -268,60 +304,29 @@ localMode:
     # Max number of the local application restarts. Unlimited by default.
     max: .inf
 
-  # The name of the target container. The first available container will be used if this field is not defined.
+  # When using the `defaultTarget` and not specifying `localMode.target`, this field can be used to override the
+  # default container name to proxy traffic from.
   containerName:
+
+  # The remote Kubernetes resource to proxy traffic from. If specified, this is used instead of `defaultTarget`.
+  target:
+    # The kind of Kubernetes resource to find.
+    kind:
+
+    # The name of the resource, of the specified `kind`. If specified, you must also specify `kind`.
+    name:
+
+    # A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with
+    # matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+    podSelector:
+
+    # The name of a container in the target. Specify this if the target contains more than one container and the main
+    # container is not the first container in the spec.
+    containerName:
 
 # POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any
 # Garden template strings, which will be resolved before applying the manifests.
 files: []
-
-# Resolve the specified kustomization and include the resulting resources. Note that if you specify `files` or
-# `manifests` as well, these are also included.
-kustomize:
-  # The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an
-  # overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the module
-  # root. Defaults to the module root. If you set this to null, kustomize will not be run.
-  path: .
-
-  # A list of additional arguments to pass to the `kustomize build` command. Note that specifying '-o' or '--output'
-  # is not allowed.
-  extraArgs: []
-
-# List of Kubernetes resource manifests to deploy. Use this instead of the `files` field if you need to resolve
-# template strings in any of the manifests.
-manifests:
-  - # The API version of the resource.
-    apiVersion:
-
-    # The kind of the resource.
-    kind:
-
-    metadata:
-      # The name of the resource.
-      name:
-
-# A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
-# numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
-namespace:
-
-# Manually specify port forwards that Garden should set up when deploying in dev or watch mode. If specified, these
-# override the auto-detection of forwardable ports, so you'll need to specify the full list of port forwards to
-# create.
-portForwards:
-  - # An identifier to describe the port forward.
-    name:
-
-    # The full resource kind and name to forward to, e.g. Service/my-service or Deployment/my-deployment. Note that
-    # Garden will not validate this ahead of attempting to start the port forward, so you need to make sure this is
-    # correctly set. The types of resources supported will match that of the `kubectl port-forward` CLI command.
-    resource:
-
-    # The port number on the remote resource to forward to.
-    targetPort:
-
-    # The _preferred_ local port to forward from. If none is set, a random port is chosen. If the specified port is
-    # not available, a warning is shown and a random port chosen instead.
-    localPort:
 
 # The Deployment, DaemonSet or StatefulSet or Pod that Garden should regard as the _Garden service_ in this module
 # (not to be confused with Kubernetes Service resources).
@@ -438,10 +443,10 @@ tasks:
     # version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run task`.
     cacheResult: true
 
-    # The command/entrypoint used to run the task inside the container.
+    # The command/entrypoint used to run inside the container.
     command:
 
-    # The arguments to pass to the container used for execution.
+    # The arguments to pass to the command/entypoint used for execution.
     args:
 
     # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
@@ -457,6 +462,11 @@ tasks:
         # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at
         # `.garden/artifacts`.
         target: .
+
+    # A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
+    # numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63
+    # characters.
+    namespace:
 
 tests:
   - # The name of the test.
@@ -847,6 +857,128 @@ Example:
 varfile: "my-module.env"
 ```
 
+### `kustomize`
+
+Resolve the specified kustomization and include the resulting resources. Note that if you specify `files` or `manifests` as well, these are also included.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `kustomize.path`
+
+[kustomize](#kustomize) > path
+
+The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the module root. Defaults to the module root. If you set this to null, kustomize will not be run.
+
+| Type                 | Default | Required |
+| -------------------- | ------- | -------- |
+| `posixPath | string` | `"."`   | No       |
+
+### `kustomize.extraArgs[]`
+
+[kustomize](#kustomize) > extraArgs
+
+A list of additional arguments to pass to the `kustomize build` command. Note that specifying '-o' or '--output' is not allowed.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
+
+### `manifests[]`
+
+List of Kubernetes resource manifests to deploy. If `files` is also specified, this is combined with the manifests read from the files.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `manifests[].apiVersion`
+
+[manifests](#manifests) > apiVersion
+
+The API version of the resource.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `manifests[].kind`
+
+[manifests](#manifests) > kind
+
+The kind of the resource.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `manifests[].metadata`
+
+[manifests](#manifests) > metadata
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | Yes      |
+
+### `manifests[].metadata.name`
+
+[manifests](#manifests) > [metadata](#manifestsmetadata) > name
+
+The name of the resource.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `portForwards[]`
+
+Manually specify port forwards that Garden should set up when deploying in dev or watch mode. If specified, these override the auto-detection of forwardable ports, so you'll need to specify the full list of port forwards to create.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `portForwards[].name`
+
+[portForwards](#portforwards) > name
+
+An identifier to describe the port forward.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `portForwards[].resource`
+
+[portForwards](#portforwards) > resource
+
+The full resource kind and name to forward to, e.g. Service/my-service or Deployment/my-deployment. Note that Garden will not validate this ahead of attempting to start the port forward, so you need to make sure this is correctly set. The types of resources supported will match that of the `kubectl port-forward` CLI command.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `portForwards[].targetPort`
+
+[portForwards](#portforwards) > targetPort
+
+The port number on the remote resource to forward to.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | Yes      |
+
+### `portForwards[].localPort`
+
+[portForwards](#portforwards) > localPort
+
+The _preferred_ local port to forward from. If none is set, a random port is chosen. If the specified port is not available, a warning is shown and a random port chosen instead.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
 ### `dependencies[]`
 
 The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
@@ -903,7 +1035,7 @@ Specify one or more source files or directories to automatically sync with the r
 
 [devMode](#devmode) > [sync](#devmodesync) > source
 
-POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be a relative path. Defaults to the module's top-level directory if no value is provided.
+POSIX-style path of the directory to sync to the target, relative to the config's directory. Must be a relative path. Defaults to the config's directory if no value is provided.
 
 | Type        | Default | Required |
 | ----------- | ------- | -------- |
@@ -922,7 +1054,7 @@ devMode:
 
 [devMode](#devmode) > [sync](#devmodesync) > target
 
-POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not allowed.
+POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
 
 | Type        | Required |
 | ----------- | -------- |
@@ -1022,15 +1154,10 @@ Optionally specify the name of a specific container to sync to. If not specified
 
 ### `localMode`
 
-Configures the local application which will send and receive network requests instead of the target resource specified by `serviceResource`.
-
-Note that `serviceResource` must also be specified to enable local mode. Local mode configuration for the `kubernetes` module type relies on the `serviceResource.kind` and `serviceResource.name` fields to select a target Kubernetes resource.
-
-The `serviceResource.containerName` field is not used by local mode configuration.
-Note that `localMode` uses its own field `containerName` to specify a target container name explicitly.
+Configures the local application which will send and receive network requests instead of the target resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for the action.
 
 The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH server to proxy requests.
-Reverse port-forwarding will be automatically configured to route traffic to the locally deployed application and back.
+Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
 
 Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
 Local mode always takes the precedence over dev mode if there are any conflicting service names.
@@ -1117,7 +1244,57 @@ Max number of the local application restarts. Unlimited by default.
 
 [localMode](#localmode) > containerName
 
-The name of the target container. The first available container will be used if this field is not defined.
+When using the `defaultTarget` and not specifying `localMode.target`, this field can be used to override the default container name to proxy traffic from.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `localMode.target`
+
+[localMode](#localmode) > target
+
+The remote Kubernetes resource to proxy traffic from. If specified, this is used instead of `defaultTarget`.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `localMode.target.kind`
+
+[localMode](#localmode) > [target](#localmodetarget) > kind
+
+The kind of Kubernetes resource to find.
+
+| Type     | Allowed Values                           | Required |
+| -------- | ---------------------------------------- | -------- |
+| `string` | "Deployment", "DaemonSet", "StatefulSet" | Yes      |
+
+### `localMode.target.name`
+
+[localMode](#localmode) > [target](#localmodetarget) > name
+
+The name of the resource, of the specified `kind`. If specified, you must also specify `kind`.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `localMode.target.podSelector`
+
+[localMode](#localmode) > [target](#localmodetarget) > podSelector
+
+A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `localMode.target.containerName`
+
+[localMode](#localmode) > [target](#localmodetarget) > containerName
+
+The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1130,136 +1307,6 @@ POSIX-style paths to YAML files to load manifests from. Each can contain multipl
 | Type               | Default | Required |
 | ------------------ | ------- | -------- |
 | `array[posixPath]` | `[]`    | No       |
-
-### `kustomize`
-
-Resolve the specified kustomization and include the resulting resources. Note that if you specify `files` or `manifests` as well, these are also included.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `kustomize.path`
-
-[kustomize](#kustomize) > path
-
-The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the module root. Defaults to the module root. If you set this to null, kustomize will not be run.
-
-| Type                  | Default | Required |
-| --------------------- | ------- | -------- |
-| `posixPath \| string` | `"."`   | No       |
-
-### `kustomize.extraArgs[]`
-
-[kustomize](#kustomize) > extraArgs
-
-A list of additional arguments to pass to the `kustomize build` command. Note that specifying '-o' or '--output' is not allowed.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[string]` | `[]`    | No       |
-
-### `manifests[]`
-
-List of Kubernetes resource manifests to deploy. Use this instead of the `files` field if you need to resolve template strings in any of the manifests.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[object]` | `[]`    | No       |
-
-### `manifests[].apiVersion`
-
-[manifests](#manifests) > apiVersion
-
-The API version of the resource.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `manifests[].kind`
-
-[manifests](#manifests) > kind
-
-The kind of the resource.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `manifests[].metadata`
-
-[manifests](#manifests) > metadata
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | Yes      |
-
-### `manifests[].metadata.name`
-
-[manifests](#manifests) > [metadata](#manifestsmetadata) > name
-
-The name of the resource.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `namespace`
-
-A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-### `portForwards[]`
-
-Manually specify port forwards that Garden should set up when deploying in dev or watch mode. If specified, these override the auto-detection of forwardable ports, so you'll need to specify the full list of port forwards to create.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[object]` | No       |
-
-### `portForwards[].name`
-
-[portForwards](#portforwards) > name
-
-An identifier to describe the port forward.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-### `portForwards[].resource`
-
-[portForwards](#portforwards) > resource
-
-The full resource kind and name to forward to, e.g. Service/my-service or Deployment/my-deployment. Note that Garden will not validate this ahead of attempting to start the port forward, so you need to make sure this is correctly set. The types of resources supported will match that of the `kubectl port-forward` CLI command.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `portForwards[].targetPort`
-
-[portForwards](#portforwards) > targetPort
-
-The port number on the remote resource to forward to.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | Yes      |
-
-### `portForwards[].localPort`
-
-[portForwards](#portforwards) > localPort
-
-The _preferred_ local port to forward from. If none is set, a random port is chosen. If the specified port is not available, a warning is shown and a random port chosen instead.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
 
 ### `serviceResource`
 
@@ -1491,7 +1538,7 @@ Set to false if you don't want the task's result to be cached. Use this if the t
 
 [tasks](#tasks) > command
 
-The command/entrypoint used to run the task inside the container.
+The command/entrypoint used to run inside the container.
 
 | Type            | Required |
 | --------------- | -------- |
@@ -1510,7 +1557,7 @@ tasks:
 
 [tasks](#tasks) > args
 
-The arguments to pass to the container used for execution.
+The arguments to pass to the command/entypoint used for execution.
 
 | Type            | Required |
 | --------------- | -------- |
@@ -1594,6 +1641,16 @@ tasks:
   - artifacts:
       - target: "outputs/foo/"
 ```
+
+### `tasks[].namespace`
+
+[tasks](#tasks) > namespace
+
+A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `tests[]`
 
@@ -1854,7 +1911,7 @@ modules.
 
 ### `${modules.<module-name>.buildPath}`
 
-The build path of the module.
+The build path of the action/module.
 
 | Type     |
 | -------- |
@@ -1868,7 +1925,7 @@ my-variable: ${modules.my-module.buildPath}
 
 ### `${modules.<module-name>.name}`
 
-The name of the module.
+The name of the action/module.
 
 | Type     |
 | -------- |
@@ -1876,7 +1933,7 @@ The name of the module.
 
 ### `${modules.<module-name>.path}`
 
-The local path of the module.
+The source path of the action/module.
 
 | Type     |
 | -------- |

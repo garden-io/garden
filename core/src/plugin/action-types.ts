@@ -26,7 +26,7 @@ import { GetTestActionResult } from "./handlers/test/get-result"
 import { RunTestAction } from "./handlers/test/run"
 import { Action } from "../actions/types"
 import Joi from "@hapi/joi"
-import { joi, joiArray, joiSchema, joiUserIdentifier } from "../config/common"
+import { joi, joiArray, joiIdentifier, joiSchema, joiUserIdentifier } from "../config/common"
 import titleize from "titleize"
 import { BuildAction } from "../actions/build"
 import { DeployAction } from "../actions/deploy"
@@ -346,6 +346,13 @@ const createActionTypeSchema = (kind: ActionKind) => {
         .description(
           "Readable title for the module type. Defaults to the title-cased type name, with dashes replaced by spaces."
         ),
+      base: joiIdentifier().description(dedent`
+        Name of action type to use as a base for this action type.
+
+        If specified, providers that support the base action type also work with this type.
+        Note that some constraints apply on the configuration and output schemas. Please see each of the schema
+        fields for details.
+      `),
       schema: joiSchema().required().description(dedent`
         A valid Joi schema describing the configuration keys for the \`spec\` field on the action type.
 
