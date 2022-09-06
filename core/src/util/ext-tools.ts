@@ -11,7 +11,7 @@ import split2 from "split2"
 import { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } from "fs-extra"
 import { ConfigurationError, ParameterError, GardenBaseError, RuntimeError } from "../exceptions"
 import { join, dirname, basename, posix } from "path"
-import { hashString, exec, uuidv4, getPlatform, getArchitecture } from "./util"
+import { hashString, exec, uuidv4, getPlatform, getArchitecture, getNativeArchitecture } from "./util"
 import tar from "tar"
 import { GARDEN_GLOBAL_PATH } from "../constants"
 import { LogEntry } from "../logger/log-entry"
@@ -202,11 +202,6 @@ export class CliWrapper {
   }
 }
 
-interface PluginToolOpts {
-  platform?: string
-  architecture?: string
-}
-
 export interface PluginTools {
   [key: string]: PluginTool
 }
@@ -229,21 +224,29 @@ export class PluginTool extends CliWrapper {
   protected targetSubpath: string
   private chmodDone: boolean
 
-  constructor(spec: PluginToolSpec, opts: PluginToolOpts = {}) {
+  constructor(spec: PluginToolSpec) {
     super(spec.name, "")
 
-    const _platform = opts.platform || getPlatform()
-    const architecture = opts.architecture || getArchitecture()
+    const _platform = getPlatform()
+    const architecture = getArchitecture()
+    const nativeArchitecture = getNativeArchitecture()
 
-    this.buildSpec = spec.builds.find((build) => build.platform === _platform && build.architecture === architecture)!
+    function findMatchingSpec(p: string, a: string) {
+      return spec.builds.find((build) => build.platform === p && build.architecture === a)!
+    }
+
+    // first look for native arch, if not found, try (potentially emulated) arch
+    this.buildSpec = findMatchingSpec(_platform, nativeArchitecture) || findMatchingSpec(_platform, architecture)
 
     if (!this.buildSpec) {
+      const testedArchs = new Set(["${_platform}-${architecture}", "${_platform}-${nativeArchitecture}"])
       throw new ConfigurationError(
-        `Command ${spec.name} doesn't have a spec for this platform/architecture (${platform}-${architecture})`,
+        `Command ${spec.name} doesn't have a spec for this platform/architecture (${[...testedArchs].join(", ")})`,
         {
           spec,
           platform,
           architecture,
+          nativeArchitecture,
         }
       )
     }

@@ -43,6 +43,7 @@ import { gardenEnv } from "../constants"
 import split2 = require("split2")
 import Bluebird = require("bluebird")
 import execa = require("execa")
+import { execSync } from "child_process"
 
 export { v4 as uuidv4 } from "uuid"
 
@@ -701,6 +702,23 @@ export function getPlatform() {
 export function getArchitecture() {
   const arch = process.arch
   return archMap[arch] || arch
+}
+
+export function getNativeArchitecture() {
+  const arch = getArchitecture()
+
+  // detect rosetta on Apple M cpu family macs
+  // see also https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment
+  if (arch === "x64" && process.platform === "darwin") {
+    // Use execSync here, because getNativeArch is called in a constructor
+    // otherwise we should make the function async and call `spawn`
+    const stdout = execSync("sysctl -n sysctl.proc_translated", { encoding: "utf-8" })
+    if (stdout === "1") {
+      return "arm64"
+    }
+  }
+
+  return arch
 }
 
 export function getDurationMsec(start: Date, end: Date): number {
