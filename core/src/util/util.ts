@@ -15,6 +15,7 @@ import {
   isArray,
   isPlainObject,
   mapValues,
+  memoize,
   omit,
   pick,
   pickBy,
@@ -704,11 +705,11 @@ export function getArchitecture() {
   return archMap[arch] || arch
 }
 
-export function isRosetta() {
+export const isRosetta = memoize(() => {
   // detect rosetta on Apple M cpu family macs
   // see also https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment
   if (process.arch === "x64" && process.platform === "darwin") {
-    // Use execSync here, because getNativeArch is called in a constructor
+    // Use execSync here, because this function is called in a constructor
     // otherwise we'd make the function async and call `spawn`
     const stdout = execSync("sysctl -n sysctl.proc_translated", { encoding: "utf-8" })
     if (stdout === "1\n") {
@@ -717,7 +718,7 @@ export function isRosetta() {
   }
 
   return false
-}
+})
 
 export function getDurationMsec(start: Date, end: Date): number {
   return Math.round(end.getTime() - start.getTime())
