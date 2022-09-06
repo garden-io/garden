@@ -25,6 +25,7 @@ import { LogEntry } from "../../../../src/logger/log-entry"
 import Bluebird from "bluebird"
 import { TestGardenOpts } from "../../../../src/util/testing"
 import { BuildDirRsync, minRsyncVersion } from "../../../../src/build-staging/rsync"
+import { BuildTask } from "../../../../src/tasks/build"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 
@@ -393,21 +394,23 @@ function commonSyncTests(legacyBuildSync: boolean) {
   it("should sync dependency products to their specified destinations", async () => {
     try {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      // TODO-G2: check if we need to do task processing here
-      // const modules = graph.getModules()
-      // const tasks = modules.map(
-      //   (module) =>
-      //     new BuildTask({
-      //       garden,
-      //       graph,
-      //       log,
-      //       module,
-      //       force: true,
-      //       _guard: true,
-      //     })
-      // )
-      //
-      // await garden.processTasks(tasks)
+      const buildActions = graph.getBuilds()
+      const buildTasks = buildActions.map(
+        (action) =>
+          new BuildTask({
+            garden,
+            log,
+            graph,
+            action,
+            force: true,
+            forceBuild: false,
+            devModeDeployNames: [],
+            localModeDeployNames: [],
+            fromWatch: false,
+          })
+      )
+
+      await garden.processTasks({ tasks: buildTasks })
 
       const buildActionD = await graph.getBuild("module-d")
       const buildActionF = await graph.getBuild("module-f")
