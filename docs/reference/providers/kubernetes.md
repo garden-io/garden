@@ -130,8 +130,7 @@ providers:
     devMode:
       # Specifies default settings for dev mode syncs (e.g. for `container`, `kubernetes` and `helm` services).
       #
-      # These are overridden/extended by the settings of any individual dev mode sync specs for a given module or
-      # service.
+      # These are overridden/extended by the settings of any individual dev mode sync specs.
       #
       # Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden
       # deploy` command.
@@ -633,7 +632,7 @@ Configuration options for dev mode.
 
 Specifies default settings for dev mode syncs (e.g. for `container`, `kubernetes` and `helm` services).
 
-These are overridden/extended by the settings of any individual dev mode sync specs for a given module or service.
+These are overridden/extended by the settings of any individual dev mode sync specs.
 
 Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy` command.
 
@@ -1433,18 +1432,6 @@ The primary namespace used for resource deployments.
 ### `${providers.<provider-name>.outputs.default-hostname}`
 
 The default hostname configured on the provider.
-
-| Type     |
-| -------- |
-| `string` |
-
-### `${providers.<provider-name>.outputs.metadata-namespace}`
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-The namespace used for Garden metadata (currently always the same as app-namespace).
 
 | Type     |
 | -------- |

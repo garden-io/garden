@@ -126,8 +126,7 @@ providers:
     devMode:
       # Specifies default settings for dev mode syncs (e.g. for `container`, `kubernetes` and `helm` services).
       #
-      # These are overridden/extended by the settings of any individual dev mode sync specs for a given module or
-      # service.
+      # These are overridden/extended by the settings of any individual dev mode sync specs.
       #
       # Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden
       # deploy` command.
@@ -586,7 +585,7 @@ Configuration options for dev mode.
 
 Specifies default settings for dev mode syncs (e.g. for `container`, `kubernetes` and `helm` services).
 
-These are overridden/extended by the settings of any individual dev mode sync specs for a given module or service.
+These are overridden/extended by the settings of any individual dev mode sync specs.
 
 Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy` command.
 

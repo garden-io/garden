@@ -57,9 +57,9 @@ build:
   # Maximum time in seconds to wait for build to finish.
   timeout: 1200
 
-  # For multi-stage Dockerfiles, specify which image to build (see
+  # For multi-stage Dockerfiles, specify which image/stage to build (see
   # https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for details).
-  targetImage:
+  target:
 
 # A description of the module.
 description:
@@ -170,7 +170,8 @@ varfile:
 
 # Specify build arguments to use when building the container image.
 #
-# Note: Garden will always set a `GARDEN_MODULE_VERSION` argument with the module version at build time.
+# Note: Garden will always set a `GARDEN_BUILD_VERSION` (alias `GARDEN_MODULE_VERSION`) argument with the module/build
+# version at build time.
 buildArgs: {}
 
 # Specify extra flags to use when building the container image. Note that arguments may not be portable across
@@ -182,7 +183,7 @@ extraFlags:
 # module does contain a Dockerfile, this identifier is used when pushing the built image.
 image:
 
-# POSIX-style name of Dockerfile, relative to module root.
+# POSIX-style name of a Dockerfile, relative to module root.
 dockerfile:
 
 # A list of services to deploy from this container module.
@@ -209,6 +210,45 @@ services:
     # them, using conditional expressions.
     disabled: false
 
+    # The command/entrypoint to run the container with.
+    command:
+
+    # The arguments (on top of the `command`, i.e. entrypoint) to run the container with.
+    args:
+
+    # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
+    # `GARDEN`) and values must be primitives or references to secrets.
+    env: {}
+
+    cpu:
+      # The minimum amount of CPU the container needs to be available for it to be deployed, in millicpus (i.e. 1000 =
+      # 1 CPU)
+      min: 10
+
+      # The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)
+      max: 1000
+
+    memory:
+      # The minimum amount of RAM the container needs to be available for it to be deployed, in megabytes (i.e. 1024 =
+      # 1 GB)
+      min: 90
+
+      # The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
+      max: 90
+
+    # If true, run the main container in privileged mode. Processes in privileged containers are essentially
+    # equivalent to root on the host. Defaults to false.
+    privileged:
+
+    # POSIX capabilities to add when running the container.
+    addCapabilities:
+
+    # POSIX capabilities to remove when running the container.
+    dropCapabilities:
+
+    # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+    tty: false
+
     # Annotations to attach to the service _(note: May not be applicable to all providers)_.
     #
     # When using the Kubernetes provider, these annotations are applied to both Service and Pod resources. You can
@@ -216,12 +256,6 @@ services:
     # either side will be ignored (i.e. if you put a Service annotation here, it'll also appear on Pod specs but will
     # be safely ignored there, and vice versa).
     annotations: {}
-
-    # The command/entrypoint to run the container with when starting the service.
-    command:
-
-    # The arguments to run the container with when starting the service.
-    args:
 
     # Whether to run the service as a daemon (to ensure exactly one instance runs per node). May not be supported by
     # all providers.
@@ -244,12 +278,11 @@ services:
 
       # Specify one or more source files or directories to automatically sync with the running container.
       sync:
-        - # POSIX-style path of the directory to sync to the target, relative to the module's top-level directory.
-          # Must be a relative path. Defaults to the module's top-level directory if no value is provided.
+        - # POSIX-style path of the directory to sync to the target, relative to the config's directory. Must be a
+          # relative path. Defaults to the config's directory if no value is provided.
           source: .
 
-          # POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not
-          # allowed.
+          # POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
           target:
 
           # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
@@ -313,6 +346,9 @@ services:
         # Max number of the local application restarts. Unlimited by default.
         max: .inf
 
+    # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+    image:
+
     # List of ingress endpoints that the service exposes.
     ingresses:
       - # Annotations to attach to the ingress (Note: May not be applicable to all providers)
@@ -338,10 +374,6 @@ services:
 
         # The name of the container port where the specified paths should be routed.
         port:
-
-    # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
-    # `GARDEN`) and values must be primitives or references to secrets.
-    env: {}
 
     # Specify how the service's health should be checked after deploying.
     healthCheck:
@@ -369,22 +401,6 @@ services:
 
     # The maximum duration (in seconds) to wait for resources to deploy and become healthy.
     timeout: 300
-
-    cpu:
-      # The minimum amount of CPU the service needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1
-      # CPU)
-      min: 10
-
-      # The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)
-      max: 1000
-
-    memory:
-      # The minimum amount of RAM the service needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1
-      # GB)
-      min: 90
-
-      # The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)
-      max: 90
 
     # List of ports that the service container exposes.
     ports:
@@ -426,11 +442,11 @@ services:
 
     # The number of instances of the service to deploy. Defaults to 3 for environments configured with `production:
     # true`, otherwise 1.
-    # Note: This setting may be overridden or ignored in some cases. For example, when running with `daemon: true`,
-    # with dev-mode enabled, or if the provider doesn't support multiple replicas.
+    # Note: This setting may be overridden or ignored in some cases. For example, when running with `daemon: true` or
+    # if the provider doesn't support multiple replicas.
     replicas:
 
-    # List of volumes that should be mounted when deploying the service.
+    # List of volumes that should be mounted when starting the container.
     #
     # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
     # deploying the container.
@@ -445,7 +461,7 @@ services:
         # and providers. Some providers may not support it at all._
         #
         # A local path or path on the node that's running the container, to mount in the container, relative to the
-        # module source path (or absolute).
+        # config source directory (or absolute).
         hostPath:
 
         # The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will
@@ -459,19 +475,6 @@ services:
         # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
         # services at the same time. Refer to the documentation of the module type in question to learn more.
         module:
-
-    # If true, run the service's main container in privileged mode. Processes in privileged containers are essentially
-    # equivalent to root on the host. Defaults to false.
-    privileged:
-
-    # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
-    tty: false
-
-    # POSIX capabilities to add to the running service's main container.
-    addCapabilities:
-
-    # POSIX capabilities to remove from the running service's main container.
-    dropCapabilities:
 
 # A list of tests to run in the module.
 tests:
@@ -491,46 +494,33 @@ tests:
     # Maximum duration (in seconds) of the test run.
     timeout: null
 
-    # The arguments used to run the test inside the container.
-    args:
-
-    # Specify artifacts to copy out of the container after the run. The artifacts are stored locally under the
-    # `.garden/artifacts` directory.
-    #
-    # Note: Depending on the provider, this may require the container image to include `sh` `tar`, in order to enable
-    # the file transfer.
-    artifacts:
-      - # A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
-        source:
-
-        # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at
-        # `.garden/artifacts`.
-        target: .
-
-    # The command/entrypoint used to run the test inside the container.
+    # The command/entrypoint to run the container with.
     command:
+
+    # The arguments (on top of the `command`, i.e. entrypoint) to run the container with.
+    args:
 
     # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
     # `GARDEN`) and values must be primitives or references to secrets.
     env: {}
 
     cpu:
-      # The minimum amount of CPU the test needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1
-      # CPU)
+      # The minimum amount of CPU the container needs to be available for it to be deployed, in millicpus (i.e. 1000 =
+      # 1 CPU)
       min: 10
 
-      # The maximum amount of CPU the test can use, in millicpus (i.e. 1000 = 1 CPU)
+      # The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)
       max: 1000
 
     memory:
-      # The minimum amount of RAM the test needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1
-      # GB)
+      # The minimum amount of RAM the container needs to be available for it to be deployed, in megabytes (i.e. 1024 =
+      # 1 GB)
       min: 90
 
-      # The maximum amount of RAM the test can use, in megabytes (i.e. 1024 = 1 GB)
+      # The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
       max: 90
 
-    # List of volumes that should be mounted when deploying the test.
+    # List of volumes that should be mounted when starting the container.
     #
     # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
     # deploying the container.
@@ -545,30 +535,42 @@ tests:
         # and providers. Some providers may not support it at all._
         #
         # A local path or path on the node that's running the container, to mount in the container, relative to the
-        # module source path (or absolute).
+        # config source directory (or absolute).
         hostPath:
 
-        # The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will
-        # depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim
-        # module](./persistentvolumeclaim.md), for example.
-        #
-        # When a `module` is specified, the referenced module/volume will be automatically configured as a runtime
-        # dependency of this service, as well as a build dependency of this module.
+        # The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types
+        # are [persistentvolumeclaim](./persistentvolumeclaim.md) and [configmap](./configmap.md), for example.
         #
         # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
         # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
         # services at the same time. Refer to the documentation of the module type in question to learn more.
-        module:
+        action:
 
-    # If true, run the test's main container in privileged mode. Processes in privileged containers are essentially
+    # If true, run the main container in privileged mode. Processes in privileged containers are essentially
     # equivalent to root on the host. Defaults to false.
     privileged:
 
-    # POSIX capabilities to add to the running test's main container.
+    # POSIX capabilities to add when running the container.
     addCapabilities:
 
-    # POSIX capabilities to remove from the running test's main container.
+    # POSIX capabilities to remove when running the container.
     dropCapabilities:
+
+    # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+    tty: false
+
+    # Specify artifacts to copy out of the container after the run. The artifacts are stored locally under the
+    # `.garden/artifacts` directory.
+    #
+    # Note: Depending on the provider, this may require the container image to include `sh` `tar`, in order to enable
+    # the file transfer.
+    artifacts:
+      - # A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
+        source:
+
+        # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at
+        # `.garden/artifacts`.
+        target: .
 
 # A list of tasks that can be run from this container module. These can be used as dependencies for services (executed
 # before the service is deployed) or for other tasks.
@@ -599,8 +601,70 @@ tasks:
     # Maximum duration (in seconds) of the task's execution.
     timeout: null
 
-    # The arguments used to run the task inside the container.
+    # The command/entrypoint to run the container with.
+    command:
+
+    # The arguments (on top of the `command`, i.e. entrypoint) to run the container with.
     args:
+
+    # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
+    # `GARDEN`) and values must be primitives or references to secrets.
+    env: {}
+
+    cpu:
+      # The minimum amount of CPU the container needs to be available for it to be deployed, in millicpus (i.e. 1000 =
+      # 1 CPU)
+      min: 10
+
+      # The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)
+      max: 1000
+
+    memory:
+      # The minimum amount of RAM the container needs to be available for it to be deployed, in megabytes (i.e. 1024 =
+      # 1 GB)
+      min: 90
+
+      # The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
+      max: 90
+
+    # List of volumes that should be mounted when starting the container.
+    #
+    # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
+    # deploying the container.
+    volumes:
+      - # The name of the allocated volume.
+        name:
+
+        # The path where the volume should be mounted in the container.
+        containerPath:
+
+        # _NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
+        # and providers. Some providers may not support it at all._
+        #
+        # A local path or path on the node that's running the container, to mount in the container, relative to the
+        # config source directory (or absolute).
+        hostPath:
+
+        # The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types
+        # are [persistentvolumeclaim](./persistentvolumeclaim.md) and [configmap](./configmap.md), for example.
+        #
+        # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
+        # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
+        # services at the same time. Refer to the documentation of the module type in question to learn more.
+        action:
+
+    # If true, run the main container in privileged mode. Processes in privileged containers are essentially
+    # equivalent to root on the host. Defaults to false.
+    privileged:
+
+    # POSIX capabilities to add when running the container.
+    addCapabilities:
+
+    # POSIX capabilities to remove when running the container.
+    dropCapabilities:
+
+    # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+    tty: false
 
     # Specify artifacts to copy out of the container after the run. The artifacts are stored locally under the
     # `.garden/artifacts` directory.
@@ -619,69 +683,6 @@ tasks:
     # your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its
     # version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run task`.
     cacheResult: true
-
-    # The command/entrypoint used to run the task inside the container.
-    command:
-
-    # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
-    # `GARDEN`) and values must be primitives or references to secrets.
-    env: {}
-
-    cpu:
-      # The minimum amount of CPU the task needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1
-      # CPU)
-      min: 10
-
-      # The maximum amount of CPU the task can use, in millicpus (i.e. 1000 = 1 CPU)
-      max: 1000
-
-    memory:
-      # The minimum amount of RAM the task needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1
-      # GB)
-      min: 90
-
-      # The maximum amount of RAM the task can use, in megabytes (i.e. 1024 = 1 GB)
-      max: 90
-
-    # List of volumes that should be mounted when deploying the task.
-    #
-    # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
-    # deploying the container.
-    volumes:
-      - # The name of the allocated volume.
-        name:
-
-        # The path where the volume should be mounted in the container.
-        containerPath:
-
-        # _NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
-        # and providers. Some providers may not support it at all._
-        #
-        # A local path or path on the node that's running the container, to mount in the container, relative to the
-        # module source path (or absolute).
-        hostPath:
-
-        # The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will
-        # depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim
-        # module](./persistentvolumeclaim.md), for example.
-        #
-        # When a `module` is specified, the referenced module/volume will be automatically configured as a runtime
-        # dependency of this service, as well as a build dependency of this module.
-        #
-        # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
-        # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
-        # services at the same time. Refer to the documentation of the module type in question to learn more.
-        module:
-
-    # If true, run the task's main container in privileged mode. Processes in privileged containers are essentially
-    # equivalent to root on the host. Defaults to false.
-    privileged:
-
-    # POSIX capabilities to add to the running task's main container.
-    addCapabilities:
-
-    # POSIX capabilities to remove from the running task's main container.
-    dropCapabilities:
 ```
 
 ## Configuration Keys
@@ -806,11 +807,11 @@ Maximum time in seconds to wait for build to finish.
 | -------- | ------- | -------- |
 | `number` | `1200`  | No       |
 
-### `build.targetImage`
+### `build.target`
 
-[build](#build) > targetImage
+[build](#build) > target
 
-For multi-stage Dockerfiles, specify which image to build (see https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for details).
+For multi-stage Dockerfiles, specify which image/stage to build (see https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for details).
 
 | Type     | Required |
 | -------- | -------- |
@@ -997,7 +998,7 @@ varfile: "my-module.env"
 
 Specify build arguments to use when building the container image.
 
-Note: Garden will always set a `GARDEN_MODULE_VERSION` argument with the module version at build time.
+Note: Garden will always set a `GARDEN_BUILD_VERSION` (alias `GARDEN_MODULE_VERSION`) argument with the module/build version at build time.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
@@ -1021,7 +1022,7 @@ Specify the image name for the container. Should be a valid Docker image identif
 
 ### `dockerfile`
 
-POSIX-style name of Dockerfile, relative to module root.
+POSIX-style name of a Dockerfile, relative to module root.
 
 | Type        | Required |
 | ----------- | -------- |
@@ -1069,31 +1070,11 @@ Note however that template strings referencing the service's outputs (i.e. runti
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
-### `services[].annotations`
-
-[services](#services) > annotations
-
-Annotations to attach to the service _(note: May not be applicable to all providers)_.
-
-When using the Kubernetes provider, these annotations are applied to both Service and Pod resources. You can generally specify the annotations intended for both Pods or Services here, and the ones that don't apply on either side will be ignored (i.e. if you put a Service annotation here, it'll also appear on Pod specs but will be safely ignored there, and vice versa).
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `object` | `{}`    | No       |
-
-Example:
-
-```yaml
-services:
-  - annotations:
-        nginx.ingress.kubernetes.io/proxy-body-size: '0'
-```
-
 ### `services[].command[]`
 
 [services](#services) > command
 
-The command/entrypoint to run the container with when starting the service.
+The command/entrypoint to run the container with.
 
 | Type            | Required |
 | --------------- | -------- |
@@ -1112,7 +1093,7 @@ services:
 
 [services](#services) > args
 
-The arguments to run the container with when starting the service.
+The arguments (on top of the `command`, i.e. entrypoint) to run the container with.
 
 | Type            | Required |
 | --------------- | -------- |
@@ -1125,6 +1106,145 @@ services:
   - args:
       - npm
       - start
+```
+
+### `services[].env`
+
+[services](#services) > env
+
+Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
+
+Example:
+
+```yaml
+services:
+  - env:
+        - MY_VAR: some-value
+          MY_SECRET_VAR:
+            secretRef:
+              name: my-secret
+              key: some-key
+        - {}
+```
+
+### `services[].cpu`
+
+[services](#services) > cpu
+
+| Type     | Default                 | Required |
+| -------- | ----------------------- | -------- |
+| `object` | `{"min":10,"max":1000}` | No       |
+
+### `services[].cpu.min`
+
+[services](#services) > [cpu](#servicescpu) > min
+
+The minimum amount of CPU the container needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1 CPU)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `10`    | No       |
+
+### `services[].cpu.max`
+
+[services](#services) > [cpu](#servicescpu) > max
+
+The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `1000`  | No       |
+
+### `services[].memory`
+
+[services](#services) > memory
+
+| Type     | Default                 | Required |
+| -------- | ----------------------- | -------- |
+| `object` | `{"min":90,"max":1024}` | No       |
+
+### `services[].memory.min`
+
+[services](#services) > [memory](#servicesmemory) > min
+
+The minimum amount of RAM the container needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1 GB)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `90`    | No       |
+
+### `services[].memory.max`
+
+[services](#services) > [memory](#servicesmemory) > max
+
+The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `90`    | No       |
+
+### `services[].privileged`
+
+[services](#services) > privileged
+
+If true, run the main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.
+
+| Type      | Required |
+| --------- | -------- |
+| `boolean` | No       |
+
+### `services[].addCapabilities[]`
+
+[services](#services) > addCapabilities
+
+POSIX capabilities to add when running the container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `services[].dropCapabilities[]`
+
+[services](#services) > dropCapabilities
+
+POSIX capabilities to remove when running the container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `services[].tty`
+
+[services](#services) > tty
+
+Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
+
+### `services[].annotations`
+
+[services](#services) > annotations
+
+Annotations to attach to the service _(note: May not be applicable to all providers)_.
+
+When using the Kubernetes provider, these annotations are applied to both Service and Pod resources. You can generally specify the annotations intended for both Pods or Services here, and the ones that don't apply on either side will be ignored (i.e. if you put a Service annotation here, it'll also appear on Pod specs but will be safely ignored there, and vice versa).
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
+
+Example:
+
+```yaml
+services:
+  - annotations:
+        nginx.ingress.kubernetes.io/proxy-body-size: '0'
 ```
 
 ### `services[].daemon`
@@ -1185,7 +1305,7 @@ Specify one or more source files or directories to automatically sync with the r
 
 [services](#services) > [devMode](#servicesdevmode) > [sync](#servicesdevmodesync) > source
 
-POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be a relative path. Defaults to the module's top-level directory if no value is provided.
+POSIX-style path of the directory to sync to the target, relative to the config's directory. Must be a relative path. Defaults to the config's directory if no value is provided.
 
 | Type        | Default | Required |
 | ----------- | ------- | -------- |
@@ -1205,7 +1325,7 @@ services:
 
 [services](#services) > [devMode](#servicesdevmode) > [sync](#servicesdevmodesync) > target
 
-POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not allowed.
+POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
 
 | Type        | Required |
 | ----------- | -------- |
@@ -1365,6 +1485,16 @@ Max number of the local application restarts. Unlimited by default.
 | -------- | ------- | -------- |
 | `number` | `null`  | No       |
 
+### `services[].image`
+
+[services](#services) > image
+
+Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
 ### `services[].ingresses[]`
 
 [services](#services) > ingresses
@@ -1450,29 +1580,6 @@ The name of the container port where the specified paths should be routed.
 | Type     | Required |
 | -------- | -------- |
 | `string` | Yes      |
-
-### `services[].env`
-
-[services](#services) > env
-
-Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `object` | `{}`    | No       |
-
-Example:
-
-```yaml
-services:
-  - env:
-        - MY_VAR: some-value
-          MY_SECRET_VAR:
-            secretRef:
-              name: my-secret
-              key: some-key
-        - {}
-```
 
 ### `services[].healthCheck`
 
@@ -1614,62 +1721,6 @@ The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)
 | -------- | -------- |
 | `number` | No       |
 
-### `services[].cpu`
-
-[services](#services) > cpu
-
-| Type     | Default                 | Required |
-| -------- | ----------------------- | -------- |
-| `object` | `{"min":10,"max":1000}` | No       |
-
-### `services[].cpu.min`
-
-[services](#services) > [cpu](#servicescpu) > min
-
-The minimum amount of CPU the service needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1 CPU)
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `10`    | No       |
-
-### `services[].cpu.max`
-
-[services](#services) > [cpu](#servicescpu) > max
-
-The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1000`  | No       |
-
-### `services[].memory`
-
-[services](#services) > memory
-
-| Type     | Default                 | Required |
-| -------- | ----------------------- | -------- |
-| `object` | `{"min":90,"max":1024}` | No       |
-
-### `services[].memory.min`
-
-[services](#services) > [memory](#servicesmemory) > min
-
-The minimum amount of RAM the service needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1 GB)
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `90`    | No       |
-
-### `services[].memory.max`
-
-[services](#services) > [memory](#servicesmemory) > max
-
-The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `90`    | No       |
-
 ### `services[].ports[]`
 
 [services](#services) > ports
@@ -1790,7 +1841,7 @@ This allows you to call the service from the outside by the node's IP address an
 [services](#services) > replicas
 
 The number of instances of the service to deploy. Defaults to 3 for environments configured with `production: true`, otherwise 1.
-Note: This setting may be overridden or ignored in some cases. For example, when running with `daemon: true`, with dev-mode enabled, or if the provider doesn't support multiple replicas.
+Note: This setting may be overridden or ignored in some cases. For example, when running with `daemon: true` or if the provider doesn't support multiple replicas.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1800,7 +1851,7 @@ Note: This setting may be overridden or ignored in some cases. For example, when
 
 [services](#services) > volumes
 
-List of volumes that should be mounted when deploying the service.
+List of volumes that should be mounted when starting the container.
 
 Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
 
@@ -1832,11 +1883,9 @@ The path where the volume should be mounted in the container.
 
 [services](#services) > [volumes](#servicesvolumes) > hostPath
 
-_NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
-and providers. Some providers may not support it at all._
+_NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms and providers. Some providers may not support it at all._
 
-A local path or path on the node that's running the container, to mount in the container, relative to the
-module source path (or absolute).
+A local path or path on the node that's running the container, to mount in the container, relative to the config source directory (or absolute).
 
 | Type        | Required |
 | ----------- | -------- |
@@ -1863,46 +1912,6 @@ Note: Make sure to pay attention to the supported `accessModes` of the reference
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
-
-### `services[].privileged`
-
-[services](#services) > privileged
-
-If true, run the service's main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.
-
-| Type      | Required |
-| --------- | -------- |
-| `boolean` | No       |
-
-### `services[].tty`
-
-[services](#services) > tty
-
-Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
-
-| Type      | Default | Required |
-| --------- | ------- | -------- |
-| `boolean` | `false` | No       |
-
-### `services[].addCapabilities[]`
-
-[services](#services) > addCapabilities
-
-POSIX capabilities to add to the running service's main container.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-### `services[].dropCapabilities[]`
-
-[services](#services) > dropCapabilities
-
-POSIX capabilities to remove from the running service's main container.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
 
 ### `tests[]`
 
@@ -1955,11 +1964,30 @@ Maximum duration (in seconds) of the test run.
 | -------- | ------- | -------- |
 | `number` | `null`  | No       |
 
+### `tests[].command[]`
+
+[tests](#tests) > command
+
+The command/entrypoint to run the container with.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+Example:
+
+```yaml
+tests:
+  - command:
+      - /bin/sh
+      - '-c'
+```
+
 ### `tests[].args[]`
 
 [tests](#tests) > args
 
-The arguments used to run the test inside the container.
+The arguments (on top of the `command`, i.e. entrypoint) to run the container with.
 
 | Type            | Required |
 | --------------- | -------- |
@@ -1971,8 +1999,191 @@ Example:
 tests:
   - args:
       - npm
-      - test
+      - start
 ```
+
+### `tests[].env`
+
+[tests](#tests) > env
+
+Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
+
+Example:
+
+```yaml
+tests:
+  - env:
+        - MY_VAR: some-value
+          MY_SECRET_VAR:
+            secretRef:
+              name: my-secret
+              key: some-key
+        - {}
+```
+
+### `tests[].cpu`
+
+[tests](#tests) > cpu
+
+| Type     | Default                 | Required |
+| -------- | ----------------------- | -------- |
+| `object` | `{"min":10,"max":1000}` | No       |
+
+### `tests[].cpu.min`
+
+[tests](#tests) > [cpu](#testscpu) > min
+
+The minimum amount of CPU the container needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1 CPU)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `10`    | No       |
+
+### `tests[].cpu.max`
+
+[tests](#tests) > [cpu](#testscpu) > max
+
+The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `1000`  | No       |
+
+### `tests[].memory`
+
+[tests](#tests) > memory
+
+| Type     | Default                 | Required |
+| -------- | ----------------------- | -------- |
+| `object` | `{"min":90,"max":1024}` | No       |
+
+### `tests[].memory.min`
+
+[tests](#tests) > [memory](#testsmemory) > min
+
+The minimum amount of RAM the container needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1 GB)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `90`    | No       |
+
+### `tests[].memory.max`
+
+[tests](#tests) > [memory](#testsmemory) > max
+
+The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `90`    | No       |
+
+### `tests[].volumes[]`
+
+[tests](#tests) > volumes
+
+List of volumes that should be mounted when starting the container.
+
+Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `tests[].volumes[].name`
+
+[tests](#tests) > [volumes](#testsvolumes) > name
+
+The name of the allocated volume.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `tests[].volumes[].containerPath`
+
+[tests](#tests) > [volumes](#testsvolumes) > containerPath
+
+The path where the volume should be mounted in the container.
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
+
+### `tests[].volumes[].hostPath`
+
+[tests](#tests) > [volumes](#testsvolumes) > hostPath
+
+_NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms and providers. Some providers may not support it at all._
+
+A local path or path on the node that's running the container, to mount in the container, relative to the config source directory (or absolute).
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
+
+Example:
+
+```yaml
+tests:
+  - volumes:
+      - hostPath: "/some/dir"
+```
+
+### `tests[].volumes[].action`
+
+[tests](#tests) > [volumes](#testsvolumes) > action
+
+The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are [persistentvolumeclaim](./persistentvolumeclaim.md) and [configmap](./configmap.md), for example.
+
+Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
+
+| Type              | Required |
+| ----------------- | -------- |
+| `actionReference` | No       |
+
+### `tests[].privileged`
+
+[tests](#tests) > privileged
+
+If true, run the main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.
+
+| Type      | Required |
+| --------- | -------- |
+| `boolean` | No       |
+
+### `tests[].addCapabilities[]`
+
+[tests](#tests) > addCapabilities
+
+POSIX capabilities to add when running the container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `tests[].dropCapabilities[]`
+
+[tests](#tests) > dropCapabilities
+
+POSIX capabilities to remove when running the container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `tests[].tty`
+
+[tests](#tests) > tty
+
+Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 ### `tests[].artifacts[]`
 
@@ -2031,202 +2242,6 @@ tests:
       - source: /report/**/*
       - target: "outputs/foo/"
 ```
-
-### `tests[].command[]`
-
-[tests](#tests) > command
-
-The command/entrypoint used to run the test inside the container.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-Example:
-
-```yaml
-tests:
-  - command:
-      - /bin/sh
-      - '-c'
-```
-
-### `tests[].env`
-
-[tests](#tests) > env
-
-Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `object` | `{}`    | No       |
-
-Example:
-
-```yaml
-tests:
-  - env:
-        - MY_VAR: some-value
-          MY_SECRET_VAR:
-            secretRef:
-              name: my-secret
-              key: some-key
-        - {}
-```
-
-### `tests[].cpu`
-
-[tests](#tests) > cpu
-
-| Type     | Default                 | Required |
-| -------- | ----------------------- | -------- |
-| `object` | `{"min":10,"max":1000}` | No       |
-
-### `tests[].cpu.min`
-
-[tests](#tests) > [cpu](#testscpu) > min
-
-The minimum amount of CPU the test needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1 CPU)
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `10`    | No       |
-
-### `tests[].cpu.max`
-
-[tests](#tests) > [cpu](#testscpu) > max
-
-The maximum amount of CPU the test can use, in millicpus (i.e. 1000 = 1 CPU)
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1000`  | No       |
-
-### `tests[].memory`
-
-[tests](#tests) > memory
-
-| Type     | Default                 | Required |
-| -------- | ----------------------- | -------- |
-| `object` | `{"min":90,"max":1024}` | No       |
-
-### `tests[].memory.min`
-
-[tests](#tests) > [memory](#testsmemory) > min
-
-The minimum amount of RAM the test needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1 GB)
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `90`    | No       |
-
-### `tests[].memory.max`
-
-[tests](#tests) > [memory](#testsmemory) > max
-
-The maximum amount of RAM the test can use, in megabytes (i.e. 1024 = 1 GB)
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `90`    | No       |
-
-### `tests[].volumes[]`
-
-[tests](#tests) > volumes
-
-List of volumes that should be mounted when deploying the test.
-
-Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[object]` | `[]`    | No       |
-
-### `tests[].volumes[].name`
-
-[tests](#tests) > [volumes](#testsvolumes) > name
-
-The name of the allocated volume.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `tests[].volumes[].containerPath`
-
-[tests](#tests) > [volumes](#testsvolumes) > containerPath
-
-The path where the volume should be mounted in the container.
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | Yes      |
-
-### `tests[].volumes[].hostPath`
-
-[tests](#tests) > [volumes](#testsvolumes) > hostPath
-
-_NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
-and providers. Some providers may not support it at all._
-
-A local path or path on the node that's running the container, to mount in the container, relative to the
-module source path (or absolute).
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | No       |
-
-Example:
-
-```yaml
-tests:
-  - volumes:
-      - hostPath: "/some/dir"
-```
-
-### `tests[].volumes[].module`
-
-[tests](#tests) > [volumes](#testsvolumes) > module
-
-The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
-
-When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
-
-Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-### `tests[].privileged`
-
-[tests](#tests) > privileged
-
-If true, run the test's main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.
-
-| Type      | Required |
-| --------- | -------- |
-| `boolean` | No       |
-
-### `tests[].addCapabilities[]`
-
-[tests](#tests) > addCapabilities
-
-POSIX capabilities to add to the running test's main container.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-### `tests[].dropCapabilities[]`
-
-[tests](#tests) > dropCapabilities
-
-POSIX capabilities to remove from the running test's main container.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
 
 ### `tasks[]`
 
@@ -2290,11 +2305,30 @@ Maximum duration (in seconds) of the task's execution.
 | -------- | ------- | -------- |
 | `number` | `null`  | No       |
 
+### `tasks[].command[]`
+
+[tasks](#tasks) > command
+
+The command/entrypoint to run the container with.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+Example:
+
+```yaml
+tasks:
+  - command:
+      - /bin/sh
+      - '-c'
+```
+
 ### `tasks[].args[]`
 
 [tasks](#tasks) > args
 
-The arguments used to run the task inside the container.
+The arguments (on top of the `command`, i.e. entrypoint) to run the container with.
 
 | Type            | Required |
 | --------------- | -------- |
@@ -2305,9 +2339,192 @@ Example:
 ```yaml
 tasks:
   - args:
-      - rake
-      - 'db:migrate'
+      - npm
+      - start
 ```
+
+### `tasks[].env`
+
+[tasks](#tasks) > env
+
+Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
+
+Example:
+
+```yaml
+tasks:
+  - env:
+        - MY_VAR: some-value
+          MY_SECRET_VAR:
+            secretRef:
+              name: my-secret
+              key: some-key
+        - {}
+```
+
+### `tasks[].cpu`
+
+[tasks](#tasks) > cpu
+
+| Type     | Default                 | Required |
+| -------- | ----------------------- | -------- |
+| `object` | `{"min":10,"max":1000}` | No       |
+
+### `tasks[].cpu.min`
+
+[tasks](#tasks) > [cpu](#taskscpu) > min
+
+The minimum amount of CPU the container needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1 CPU)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `10`    | No       |
+
+### `tasks[].cpu.max`
+
+[tasks](#tasks) > [cpu](#taskscpu) > max
+
+The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `1000`  | No       |
+
+### `tasks[].memory`
+
+[tasks](#tasks) > memory
+
+| Type     | Default                 | Required |
+| -------- | ----------------------- | -------- |
+| `object` | `{"min":90,"max":1024}` | No       |
+
+### `tasks[].memory.min`
+
+[tasks](#tasks) > [memory](#tasksmemory) > min
+
+The minimum amount of RAM the container needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1 GB)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `90`    | No       |
+
+### `tasks[].memory.max`
+
+[tasks](#tasks) > [memory](#tasksmemory) > max
+
+The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `90`    | No       |
+
+### `tasks[].volumes[]`
+
+[tasks](#tasks) > volumes
+
+List of volumes that should be mounted when starting the container.
+
+Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `tasks[].volumes[].name`
+
+[tasks](#tasks) > [volumes](#tasksvolumes) > name
+
+The name of the allocated volume.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `tasks[].volumes[].containerPath`
+
+[tasks](#tasks) > [volumes](#tasksvolumes) > containerPath
+
+The path where the volume should be mounted in the container.
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
+
+### `tasks[].volumes[].hostPath`
+
+[tasks](#tasks) > [volumes](#tasksvolumes) > hostPath
+
+_NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms and providers. Some providers may not support it at all._
+
+A local path or path on the node that's running the container, to mount in the container, relative to the config source directory (or absolute).
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
+
+Example:
+
+```yaml
+tasks:
+  - volumes:
+      - hostPath: "/some/dir"
+```
+
+### `tasks[].volumes[].action`
+
+[tasks](#tasks) > [volumes](#tasksvolumes) > action
+
+The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are [persistentvolumeclaim](./persistentvolumeclaim.md) and [configmap](./configmap.md), for example.
+
+Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
+
+| Type              | Required |
+| ----------------- | -------- |
+| `actionReference` | No       |
+
+### `tasks[].privileged`
+
+[tasks](#tasks) > privileged
+
+If true, run the main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.
+
+| Type      | Required |
+| --------- | -------- |
+| `boolean` | No       |
+
+### `tasks[].addCapabilities[]`
+
+[tasks](#tasks) > addCapabilities
+
+POSIX capabilities to add when running the container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `tasks[].dropCapabilities[]`
+
+[tasks](#tasks) > dropCapabilities
+
+POSIX capabilities to remove when running the container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `tasks[].tty`
+
+[tasks](#tasks) > tty
+
+Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 ### `tasks[].artifacts[]`
 
@@ -2377,202 +2594,6 @@ Set to false if you don't want the task's result to be cached. Use this if the t
 | --------- | ------- | -------- |
 | `boolean` | `true`  | No       |
 
-### `tasks[].command[]`
-
-[tasks](#tasks) > command
-
-The command/entrypoint used to run the task inside the container.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-Example:
-
-```yaml
-tasks:
-  - command:
-      - /bin/sh
-      - '-c'
-```
-
-### `tasks[].env`
-
-[tasks](#tasks) > env
-
-Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `object` | `{}`    | No       |
-
-Example:
-
-```yaml
-tasks:
-  - env:
-        - MY_VAR: some-value
-          MY_SECRET_VAR:
-            secretRef:
-              name: my-secret
-              key: some-key
-        - {}
-```
-
-### `tasks[].cpu`
-
-[tasks](#tasks) > cpu
-
-| Type     | Default                 | Required |
-| -------- | ----------------------- | -------- |
-| `object` | `{"min":10,"max":1000}` | No       |
-
-### `tasks[].cpu.min`
-
-[tasks](#tasks) > [cpu](#taskscpu) > min
-
-The minimum amount of CPU the task needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1 CPU)
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `10`    | No       |
-
-### `tasks[].cpu.max`
-
-[tasks](#tasks) > [cpu](#taskscpu) > max
-
-The maximum amount of CPU the task can use, in millicpus (i.e. 1000 = 1 CPU)
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1000`  | No       |
-
-### `tasks[].memory`
-
-[tasks](#tasks) > memory
-
-| Type     | Default                 | Required |
-| -------- | ----------------------- | -------- |
-| `object` | `{"min":90,"max":1024}` | No       |
-
-### `tasks[].memory.min`
-
-[tasks](#tasks) > [memory](#tasksmemory) > min
-
-The minimum amount of RAM the task needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1 GB)
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `90`    | No       |
-
-### `tasks[].memory.max`
-
-[tasks](#tasks) > [memory](#tasksmemory) > max
-
-The maximum amount of RAM the task can use, in megabytes (i.e. 1024 = 1 GB)
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `90`    | No       |
-
-### `tasks[].volumes[]`
-
-[tasks](#tasks) > volumes
-
-List of volumes that should be mounted when deploying the task.
-
-Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[object]` | `[]`    | No       |
-
-### `tasks[].volumes[].name`
-
-[tasks](#tasks) > [volumes](#tasksvolumes) > name
-
-The name of the allocated volume.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `tasks[].volumes[].containerPath`
-
-[tasks](#tasks) > [volumes](#tasksvolumes) > containerPath
-
-The path where the volume should be mounted in the container.
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | Yes      |
-
-### `tasks[].volumes[].hostPath`
-
-[tasks](#tasks) > [volumes](#tasksvolumes) > hostPath
-
-_NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
-and providers. Some providers may not support it at all._
-
-A local path or path on the node that's running the container, to mount in the container, relative to the
-module source path (or absolute).
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | No       |
-
-Example:
-
-```yaml
-tasks:
-  - volumes:
-      - hostPath: "/some/dir"
-```
-
-### `tasks[].volumes[].module`
-
-[tasks](#tasks) > [volumes](#tasksvolumes) > module
-
-The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
-
-When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
-
-Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-### `tasks[].privileged`
-
-[tasks](#tasks) > privileged
-
-If true, run the task's main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.
-
-| Type      | Required |
-| --------- | -------- |
-| `boolean` | No       |
-
-### `tasks[].addCapabilities[]`
-
-[tasks](#tasks) > addCapabilities
-
-POSIX capabilities to add to the running task's main container.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-### `tasks[].dropCapabilities[]`
-
-[tasks](#tasks) > dropCapabilities
-
-POSIX capabilities to remove from the running task's main container.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
 
 ## Outputs
 
@@ -2583,7 +2604,7 @@ modules.
 
 ### `${modules.<module-name>.buildPath}`
 
-The build path of the module.
+The build path of the action/module.
 
 | Type     |
 | -------- |
@@ -2597,7 +2618,7 @@ my-variable: ${modules.my-module.buildPath}
 
 ### `${modules.<module-name>.name}`
 
-The name of the module.
+The name of the action/module.
 
 | Type     |
 | -------- |
@@ -2605,7 +2626,7 @@ The name of the module.
 
 ### `${modules.<module-name>.path}`
 
-The local path of the module.
+The source path of the action/module.
 
 | Type     |
 | -------- |
@@ -2647,59 +2668,35 @@ my-variable: ${modules.my-module.version}
 
 ### `${modules.<module-name>.outputs.local-image-name}`
 
-The name of the image (without tag/version) that the module uses for local builds and deployments.
+Alias for localImageName, for backward compatibility.
 
 | Type     |
 | -------- |
 | `string` |
-
-Example:
-
-```yaml
-my-variable: ${modules.my-module.outputs.local-image-name}
-```
 
 ### `${modules.<module-name>.outputs.local-image-id}`
 
-The full ID of the image (incl. tag/version) that the module uses for local builds and deployments.
+Alias for localImageId, for backward compatibility.
 
 | Type     |
 | -------- |
 | `string` |
-
-Example:
-
-```yaml
-my-variable: ${modules.my-module.outputs.local-image-id}
-```
 
 ### `${modules.<module-name>.outputs.deployment-image-name}`
 
-The name of the image (without tag/version) that the module will use during deployment.
+Alias for deploymentImageName, for backward compatibility.
 
 | Type     |
 | -------- |
 | `string` |
-
-Example:
-
-```yaml
-my-variable: ${modules.my-module.outputs.deployment-image-name}
-```
 
 ### `${modules.<module-name>.outputs.deployment-image-id}`
 
-The full ID of the image (incl. tag/version) that the module will use during deployment.
+Alias for deploymentImageId, for backward compatibility.
 
 | Type     |
 | -------- |
 | `string` |
-
-Example:
-
-```yaml
-my-variable: ${modules.my-module.outputs.deployment-image-id}
-```
 
 
 ### Service Outputs
@@ -2740,12 +2737,4 @@ Example:
 ```yaml
 my-variable: ${runtime.tasks.my-tasks.version}
 ```
-
-### `${runtime.tasks.<task-name>.outputs.log}`
-
-The full log from the executed task. (Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)
-
-| Type     | Default |
-| -------- | ------- |
-| `string` | `""`    |
 

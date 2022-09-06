@@ -9,9 +9,9 @@ tocTitle: "`pulumi`"
 
 Deploys a Pulumi stack and either creates/updates it automatically (if `autoApply: true`) or warns when the stack resources are not up-to-date, or errors if it's missing entirely.
 
-**Note: It is not recommended to set `autoApply` to `true` for production or shared environments, since this may result in accidental or conflicting changes to the stack.** Instead, it is recommended to manually preview and update using the provided plugin commands. Run `garden plugins pulumi` for details. Note that not all Pulumi CLI commands are wrapped by the plugin, only the ones where it's important to apply any variables defined in the module. For others, simply run the Pulumi CLI as usual from the project root.
+**Note: It is not recommended to set `autoApply` to `true` for production or shared environments, since this may result in accidental or conflicting changes to the stack.** Instead, it is recommended to manually preview and update using the provided plugin commands. Run `garden plugins pulumi` for details. Note that not all Pulumi CLI commands are wrapped by the plugin, only the ones where it's important to apply any variables defined in the action. For others, simply run the Pulumi CLI as usual from the project root.
 
-Stack outputs are made available as service outputs. These can then be referenced by other modules under `${runtime.services.<module-name>.outputs.<key>}`. You can template in those values as e.g. command arguments or environment variables for other services.
+Stack outputs are made available as service outputs. These can then be referenced by other actions under `${runtime.services.<module-name>.outputs.<key>}`. You can template in those values as e.g. command arguments or environment variables for other services.
 
 Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-overview.md).
@@ -689,7 +689,7 @@ modules.
 
 ### `${modules.<module-name>.buildPath}`
 
-The build path of the module.
+The build path of the action/module.
 
 | Type     |
 | -------- |
@@ -703,7 +703,7 @@ my-variable: ${modules.my-module.buildPath}
 
 ### `${modules.<module-name>.name}`
 
-The name of the module.
+The name of the action/module.
 
 | Type     |
 | -------- |
@@ -711,7 +711,7 @@ The name of the module.
 
 ### `${modules.<module-name>.path}`
 
-The local path of the module.
+The source path of the action/module.
 
 | Type     |
 | -------- |
@@ -770,20 +770,6 @@ Example:
 ```yaml
 my-variable: ${runtime.services.my-service.version}
 ```
-
-### `${runtime.services.<service-name>.outputs.*}`
-
-A map of all the outputs returned by the Pulumi stack.
-
-| Type     | Default |
-| -------- | ------- |
-| `object` | `{}`    |
-
-### `${runtime.services.<service-name>.outputs.<name>}`
-
-| Type                                             |
-| ------------------------------------------------ |
-| `string | number | boolean | link | array[link]` |
 
 
 ### Task Outputs

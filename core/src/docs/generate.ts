@@ -23,6 +23,7 @@ import { GardenPlugin, GardenPluginReference } from "../plugin/plugin"
 import { workflowConfigSchema } from "../config/workflow"
 import { moduleTemplateSchema } from "../config/module-template"
 import { renderActionTypeReference } from "./action-type"
+import { ActionKind } from "../plugin/action-types"
 
 export async function generateDocs(targetDir: string, plugins: GardenPluginReference[]) {
   // tslint:disable: no-console
@@ -109,10 +110,12 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
   for (const [kind, types] of Object.entries(actionTypeDefinitions)) {
     actionsReadme.push(`* \`kind\``)
     for (const [type, definition] of Object.entries(types)) {
-      const path = resolve(actionTypeDir, kind, `${type}.md`)
+      const dir = resolve(actionTypeDir, kind)
+      await mkdirp(dir)
+      const path = resolve(dir, `${type}.md`)
 
       console.log("->", path)
-      await writeFile(path, renderActionTypeReference(kind, type, definition))
+      await writeFile(path, renderActionTypeReference(kind as ActionKind, type, definition))
 
       actionsReadme.push(`  * [\`${type}\`](./${kind}/${type}.md)`)
     }

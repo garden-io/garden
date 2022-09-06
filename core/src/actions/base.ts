@@ -119,14 +119,14 @@ export const baseActionConfigSchema = () =>
     internal: joi
       .object()
       .keys({
-        basePath: joi.posixPath().required(),
-        configFilePath: joi.posixPath().optional(),
-        groupName: joi.string().optional(),
-        moduleName: joi.string().optional(),
-        resolved: joi.boolean().optional(),
-        inputs: joi.object().optional(),
-        parentName: joi.string().optional(),
-        templateName: joi.string().optional(),
+        basePath: joi.posixPath().required().meta({ internal: true }),
+        configFilePath: joi.posixPath().optional().meta({ internal: true }),
+        groupName: joi.string().optional().meta({ internal: true }),
+        moduleName: joi.string().optional().meta({ internal: true }),
+        resolved: joi.boolean().optional().meta({ internal: true }),
+        inputs: joi.object().optional().meta({ internal: true }),
+        parentName: joi.string().optional().meta({ internal: true }),
+        templateName: joi.string().optional().meta({ internal: true }),
       })
       .unknown(true)
       .meta({ internal: true }),
