@@ -245,18 +245,18 @@ export class PluginTool extends CliWrapper {
   private chmodDone: boolean
 
   constructor(spec: PluginToolSpec) {
-    const _platform = getPlatform()
+    const platform = getPlatform()
     const architecture = getArchitecture()
-    const _isDarwinARM = isDarwinARM()
+    const darwinARM = isDarwinARM()
 
     let buildSpec: ToolBuildSpec
     let darwinPreferredArch: string | undefined
-    if (_isDarwinARM) {
+    if (darwinARM) {
       // first look for native arch, if not found, then try (potentially emulated) arch
-      buildSpec = findBuildSpec(spec, _platform, "arm64") || findBuildSpec(spec, _platform, "amd64")
+      buildSpec = findBuildSpec(spec, platform, "arm64") || findBuildSpec(spec, platform, "amd64")
       darwinPreferredArch = buildSpec?.architecture
     } else {
-      buildSpec = findBuildSpec(spec, _platform, architecture)
+      buildSpec = findBuildSpec(spec, platform, architecture)
     }
 
     super(spec.name, "", darwinPreferredArch)
@@ -265,12 +265,12 @@ export class PluginTool extends CliWrapper {
 
     if (!this.buildSpec) {
       throw new ConfigurationError(
-        `Command ${spec.name} doesn't have a spec for this platform/architecture (${_platform}-${architecture})`,
+        `Command ${spec.name} doesn't have a spec for this platform/architecture (${platform}-${architecture})`,
         {
           spec,
-          platform: _platform,
+          platform,
           architecture,
-          isDarwinARM: _isDarwinARM,
+          darwinARM,
         }
       )
     }
