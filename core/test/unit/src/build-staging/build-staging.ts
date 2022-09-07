@@ -16,8 +16,8 @@ import {
   dataDir,
   TestGarden,
   expectError,
-  getDataDir,
   expectErrorMessageContains,
+  getDataDir,
 } from "../../../helpers"
 import { defaultConfigFilename, TempDirectory, makeTempDir, joinWithPosix } from "../../../../src/util/fs"
 import { BuildStaging, SyncParams } from "../../../../src/build-staging/build-staging"

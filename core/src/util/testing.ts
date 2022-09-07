@@ -6,15 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { keyBy, isEqual, cloneDeep } from "lodash"
-import { Garden, GardenOpts, resolveGardenParams } from "../garden"
-import { StringMap, DeepPrimitiveMap } from "../config/common"
-import { GardenParams } from "../garden"
+import { cloneDeep, isEqual, keyBy } from "lodash"
+import { Garden, GardenOpts, GardenParams, resolveGardenParams } from "../garden"
+import { DeepPrimitiveMap, StringMap } from "../config/common"
 import { ModuleConfig } from "../config/module"
 import { WorkflowConfig } from "../config/workflow"
 import { LogEntry } from "../logger/log-entry"
 import { GardenModule } from "../types/module"
-import { findByName, getNames, ValueOf, isPromise, serializeObject, hashString, uuidv4 } from "./util"
+import { findByName, getNames, hashString, isPromise, serializeObject, uuidv4, ValueOf } from "./util"
 import { GardenBaseError, GardenError } from "../exceptions"
 import { EventBus, Events } from "../events"
 import { dedent } from "./string"
@@ -27,6 +26,7 @@ import { VcsHandler } from "../vcs/vcs"
 import { ConfigGraph } from "../graph/config-graph"
 import { SolveParams } from "../graph/solver"
 import { GraphResults } from "../graph/results"
+import { expect } from "chai"
 
 export class TestError extends GardenBaseError {
   type = "_test"
@@ -264,6 +264,11 @@ export class TestGarden extends Garden {
 
     return config
   }
+}
+
+export function expectErrorMessageContains(err: any, messagePart: string) {
+  const errorMessage = stripAnsi(err.message)
+  expect(errorMessage.toLowerCase()).to.contain(messagePart.toLowerCase())
 }
 
 export function expectError(fn: Function, typeOrCallback?: string | ((err: any) => void)) {

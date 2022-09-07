@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import { optionsWithAliasValues, pickCommand, processCliArgs } from "../../../../src/cli/helpers"
 import { Parameters } from "../../../../src/cli/params"
-import {expectError, expectErrorMessageContains} from "../../../helpers"
+import { expectError, expectErrorMessageContains } from "../../../helpers"
 import { getPackageVersion } from "../../../../src/util/util"
 import { GARDEN_CORE_ROOT } from "../../../../src/constants"
 import { join } from "path"
@@ -304,7 +304,7 @@ describe("processCliArgs", () => {
     const cmd = new DeleteDeployCommand()
     expectError(
       () => parseAndProcess(["my-service", "bla"], cmd),
-      (err) =>  expectErrorMessageContains(err, `Unexpected positional argument "bla"`)
+      (err) => expectErrorMessageContains(err, `Unexpected positional argument "bla"`)
     )
   })
 
@@ -312,7 +312,7 @@ describe("processCliArgs", () => {
     const cmd = new BuildCommand()
     expectError(
       () => parseAndProcess(["--foo=bar"], cmd),
-      (err) =>  expectErrorMessageContains(err, "Unrecognized option flag --foo")
+      (err) => expectErrorMessageContains(err, "Unrecognized option flag --foo")
     )
   })
 
@@ -321,7 +321,8 @@ describe("processCliArgs", () => {
     expectError(
       () => parseAndProcess(["--logger-type=foo"], cmd),
       (err) =>
-        expectErrorMessageContains(err,
+        expectErrorMessageContains(
+          err,
           'Invalid value for option --logger-type: "foo" is not a valid argument (should be any of "quiet", "basic", "fancy", "json")'
         )
     )
@@ -331,8 +332,7 @@ describe("processCliArgs", () => {
     const cmd = new LogsCommand()
     expectError(
       () => parseAndProcess(["--tail=foo"], cmd),
-      (err) =>
-        expectErrorMessageContains(err, 'Invalid value for option --tail: Could not parse "foo" as integer')
+      (err) => expectErrorMessageContains(err, 'Invalid value for option --tail: Could not parse "foo" as integer')
     )
   })
 
