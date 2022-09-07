@@ -250,8 +250,8 @@ export class PluginTool extends CliWrapper {
     const architecture = getArchitecture()
 
     let buildSpec: ToolBuildSpec
-    // first look for native arch, if not found, then try (potentially emulated) arch
     if (isDarwinARM()) {
+      // first look for native arch, if not found, then try (potentially emulated) arch
       buildSpec = findBuildSpec(spec, _platform, "arm64") || findBuildSpec(spec, _platform, "amd64")
     } else {
       buildSpec = findBuildSpec(spec, _platform, architecture)
