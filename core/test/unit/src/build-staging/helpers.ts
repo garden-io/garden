@@ -18,7 +18,7 @@ import {
 import { TempDirectory, makeTempDir } from "../../../../src/util/fs"
 import { realpath, symlink, writeFile, readFile, mkdir, ensureFile, ensureDir } from "fs-extra"
 import { expect } from "chai"
-import { expectError, expectErrorMessageContains } from "../../../helpers"
+import { expectError } from "../../../helpers"
 import { sleep } from "../../../../src/util/util"
 import { round, sortBy } from "lodash"
 
@@ -70,13 +70,9 @@ describe("build staging helpers", () => {
       await writeFile(a, "foo")
       await mkdir(b)
 
-      await expectError(
-        () => cloneFileAsync({ from: a, to: b, statsHelper, allowDelete: false }),
-        (err) =>
-          expect(err.message).to.equal(
-            `Build staging: Failed copying file ${a} to ${b} because a directory exists at the target path`
-          )
-      )
+      await expectError(() => cloneFileAsync({ from: a, to: b, statsHelper, allowDelete: false }), {
+        contains: `Build staging: Failed copying file ${a} to ${b} because a directory exists at the target path`,
+      })
     })
 
     it("preserves mtime from source at target", async () => {
@@ -377,10 +373,9 @@ describe("build staging helpers", () => {
       })
 
       it("throws if given a relative path", async () => {
-        return expectError(
-          () => statsHelper.extendedStat({ path: "foo" }),
-          (err) => expectErrorMessageContains(err, "Must specify absolute path (got foo)")
-        )
+        return expectError(() => statsHelper.extendedStat({ path: "foo" }), {
+          contains: "Must specify absolute path (got foo)",
+        })
       })
 
       context("with callback", () => {
@@ -473,18 +468,13 @@ describe("build staging helpers", () => {
       })
 
       it("throws if a relative path is given", async () => {
-        return expectError(
-          () => resolveSymlink({ path: "foo" }),
-          (err) => expectErrorMessageContains(err, "Must specify absolute path (got foo)")
-        )
+        return expectError(() => resolveSymlink({ path: "foo" }), { contains: "Must specify absolute path (got foo)" })
       })
 
       it("throws if a path to a non-symlink (e.g. directory) is given", async () => {
-        return expectError(
-          () => resolveSymlink({ path: tmpPath }),
-          (err) =>
-            expectErrorMessageContains(err, `Error reading symlink: EINVAL: invalid argument, readlink '${tmpPath}'`)
-        )
+        return expectError(() => resolveSymlink({ path: tmpPath }), {
+          contains: `Error reading symlink: EINVAL: invalid argument, readlink '${tmpPath}'`,
+        })
       })
 
       it("returns null if resolving a circular symlink", async () => {
