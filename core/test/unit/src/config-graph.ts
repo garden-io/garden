@@ -9,7 +9,6 @@
 import { resolve, join } from "path"
 import { expect } from "chai"
 import { ensureDir } from "fs-extra"
-import stripAnsi from "strip-ansi"
 import { makeTestGardenA, makeTestGarden, dataDir, expectError, makeTestModule } from "../../helpers"
 import { getNames } from "../../../src/util/util"
 import { ConfigGraph, ConfigGraphNode } from "../../../src/graph/config-graph"
@@ -31,40 +30,28 @@ describe("ConfigGraph", () => {
   it("should throw when two deploy actions have the same name", async () => {
     const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-service"))
 
-    await expectError(
-      () => garden.getConfigGraph({ log: garden.log, emit: false }),
-      (err) =>
-        expect(err.message).to.equal(
-          "Service names must be unique - the service name 'dupe' is declared multiple times " +
-            "(in modules 'module-a' and 'module-b')"
-        )
-    )
+    await expectError(() => garden.getConfigGraph({ log: garden.log, emit: false }), {
+      contains:
+        "Service names must be unique - the service name 'dupe' is declared multiple times (in modules 'module-a' and 'module-b')",
+    })
   })
 
   it("should throw when two run actions have the same name", async () => {
     const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-task"))
 
-    await expectError(
-      () => garden.getConfigGraph({ log: garden.log, emit: false }),
-      (err) =>
-        expect(err.message).to.equal(
-          "Task names must be unique - the task name 'dupe' is declared multiple times " +
-            "(in modules 'module-a' and 'module-b')"
-        )
-    )
+    await expectError(() => garden.getConfigGraph({ log: garden.log, emit: false }), {
+      contains:
+        "Task names must be unique - the task name 'dupe' is declared multiple times (in modules 'module-a' and 'module-b')",
+    })
   })
 
   it("should throw when a deploy and a run actions have the same name", async () => {
     const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-service-and-task"))
 
-    await expectError(
-      () => garden.getConfigGraph({ log: garden.log, emit: false }),
-      (err) =>
-        expect(err.message).to.equal(
-          "Service and task names must be mutually unique - the name 'dupe' is used for a task " +
-            "in 'module-b' and for a service in 'module-a'"
-        )
-    )
+    await expectError(() => garden.getConfigGraph({ log: garden.log, emit: false }), {
+      contains:
+        "Service and task names must be mutually unique - the name 'dupe' is used for a task in 'module-b' and for a service in 'module-a'",
+    })
   })
 
   it("should automatically add service source modules as module build dependencies", async () => {
@@ -117,10 +104,9 @@ describe("ConfigGraph", () => {
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
-      await expectError(
-        () => graph.getModules({ names: ["module-c"] }),
-        (err) => expect(err.message).to.equal("Could not find module(s): module-c")
-      )
+      await expectError(() => graph.getModules({ names: ["module-c"] }), {
+        contains: "Could not find module(s): module-c",
+      })
     })
 
     it("should throw if named module is missing", async () => {
@@ -147,13 +133,9 @@ describe("ConfigGraph", () => {
         }),
       ])
 
-      await expectError(
-        () => garden.getConfigGraph({ log: garden.log, emit: false }),
-        (err) =>
-          expect(stripAnsi(err.message)).to.match(
-            /Could not find build dependency missing-build-dep, configured in module test/
-          )
-      )
+      await expectError(() => garden.getConfigGraph({ log: garden.log, emit: false }), {
+        contains: "Could not find build dependency missing-build-dep, configured in module test",
+      })
     })
 
     it("should throw if a runtime dependency is missing", async () => {
@@ -177,13 +159,9 @@ describe("ConfigGraph", () => {
         }),
       ])
 
-      await expectError(
-        () => garden.getConfigGraph({ log: garden.log, emit: false }),
-        (err) =>
-          expect(stripAnsi(err.message)).to.match(
-            /Unknown service or task 'missing-runtime-dep' referenced in dependencies/
-          )
-      )
+      await expectError(() => garden.getConfigGraph({ log: garden.log, emit: false }), {
+        contains: "Unknown service or task 'missing-runtime-dep' referenced in dependencies",
+      })
     })
   })
 
@@ -301,17 +279,16 @@ describe("ConfigGraph", () => {
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
-      await expectError(
-        () => graph.getDeploys({ names: ["service-a"] }),
-        (err) => expect(err.message).to.equal("Could not find service(s): service-a")
-      )
+      await expectError(() => graph.getDeploys({ names: ["service-a"] }), {
+        contains: "Could not find one or more Deploy actions: service-a",
+      })
     })
 
     it("should throw if named deploy is missing", async () => {
       try {
         graphA.getDeploys({ names: ["bla"] })
       } catch (err) {
-        expect(err.type).to.equal("parameter")
+        expect(err.type).to.equal("graph")
         return
       }
 
@@ -330,7 +307,7 @@ describe("ConfigGraph", () => {
       try {
         graphA.getDeploy("bla")
       } catch (err) {
-        expect(err.type).to.equal("parameter")
+        expect(err.type).to.equal("graph")
         return
       }
 
@@ -444,17 +421,16 @@ describe("ConfigGraph", () => {
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
-      await expectError(
-        () => graph.getRuns({ names: ["disabled-task"] }),
-        (err) => expect(err.message).to.equal("Could not find task(s): disabled-task")
-      )
+      await expectError(() => graph.getRuns({ names: ["disabled-task"] }), {
+        contains: "Could not find one or more Run actions: disabled-task",
+      })
     })
 
     it("should throw if named run is missing", async () => {
       try {
         graphA.getRuns({ names: ["bla"] })
       } catch (err) {
-        expect(err.type).to.equal("parameter")
+        expect(err.type).to.equal("graph")
         return
       }
 
@@ -473,7 +449,7 @@ describe("ConfigGraph", () => {
       try {
         graphA.getRun("bla")
       } catch (err) {
-        expect(err.type).to.equal("parameter")
+        expect(err.type).to.equal("graph")
         return
       }
 
@@ -485,9 +461,13 @@ describe("ConfigGraph", () => {
     it("should include disabled modules in build dependencies", async () => {
       const garden = await makeTestGardenA()
 
+      // FIXME: find a proper way of refreshing module configs programmatically.
+      //  With the configs below, function convertModules(...) from convert-modules.ts loses the build actions info
+      //  when its' called from Garden.getConfigGraph(...)
       garden.setModuleConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
+          kind: "Module",
           allowPublish: false,
           build: { dependencies: [] },
           disabled: true,
@@ -502,6 +482,7 @@ describe("ConfigGraph", () => {
         },
         {
           apiVersion: DEFAULT_API_VERSION,
+          kind: "Module",
           allowPublish: false,
           build: { dependencies: [{ name: "module-a", copy: [] }] },
           disabled: false,
@@ -955,101 +936,87 @@ describe("ConfigGraph", () => {
       const rendered = graphA.render()
       expect(rendered.nodes).to.include.deep.members([
         {
-          type: "build",
+          kind: "Build",
           name: "module-a",
-          moduleName: "module-a",
-          key: "build.module-a",
+          key: "module-a",
           disabled: false,
         },
         {
-          type: "build",
+          kind: "Build",
           name: "module-b",
-          moduleName: "module-b",
-          key: "build.module-b",
+          key: "module-b",
           disabled: false,
         },
         {
-          type: "build",
+          kind: "Build",
           name: "module-c",
-          moduleName: "module-c",
-          key: "build.module-c",
+          key: "module-c",
           disabled: false,
         },
         {
-          type: "test",
-          name: "unit",
-          moduleName: "module-c",
-          key: "test.module-c.unit",
+          kind: "Test",
+          name: "module-c-unit",
+          key: "module-c-unit",
           disabled: false,
         },
         {
-          type: "test",
-          name: "integ",
-          moduleName: "module-c",
-          key: "test.module-c.integ",
+          kind: "Test",
+          name: "module-c-integ",
+          key: "module-c-integ",
           disabled: false,
         },
         {
-          type: "run",
+          kind: "Run",
           name: "task-c",
-          moduleName: "module-c",
-          key: "task.task-c",
+          key: "task-c",
           disabled: false,
         },
         {
-          type: "deploy",
+          kind: "Deploy",
           name: "service-c",
-          moduleName: "module-c",
-          key: "deploy.service-c",
+          key: "service-c",
           disabled: false,
         },
         {
-          type: "test",
-          name: "unit",
-          moduleName: "module-a",
-          key: "test.module-a.unit",
+          kind: "Test",
+          name: "module-a-unit",
+          key: "module-a-unit",
           disabled: false,
         },
         {
-          type: "test",
-          name: "integration",
-          moduleName: "module-a",
-          key: "test.module-a.integration",
+          kind: "Test",
+          name: "module-a-integration",
+          key: "module-a-integration",
           disabled: false,
         },
         {
-          type: "run",
+          kind: "Run",
           name: "task-a",
-          moduleName: "module-a",
-          key: "task.task-a",
+          key: "task-a",
           disabled: false,
         },
         {
-          type: "test",
-          name: "unit",
-          moduleName: "module-b",
-          key: "test.module-b.unit",
+          kind: "Test",
+          name: "module-b-unit",
+          key: "module-b-unit",
           disabled: false,
         },
         {
-          type: "run",
+          kind: "Run",
           name: "task-b",
-          moduleName: "module-b",
-          key: "task.task-b",
+          key: "task-b",
           disabled: false,
         },
         {
-          type: "deploy",
+          kind: "Deploy",
           name: "service-a",
-          moduleName: "module-a",
-          key: "deploy.service-a",
+          key: "service-a",
           disabled: false,
         },
         {
-          type: "deploy",
+          kind: "Deploy",
           name: "service-b",
-          moduleName: "module-b",
-          key: "deploy.service-b",
+          key: "service-b",
           disabled: false,
         },
       ])
@@ -1063,10 +1030,9 @@ describe("ConfigGraphNode", () => {
       const node = new ConfigGraphNode("Build", "module-a", false)
       const res = node.render()
       expect(res).to.eql({
-        type: "build",
+        kind: "Build",
         name: "module-a",
-        moduleName: "module-a",
-        key: "build.module-a",
+        key: "module-a",
         disabled: false,
       })
     })
@@ -1075,10 +1041,9 @@ describe("ConfigGraphNode", () => {
       const node = new ConfigGraphNode("Deploy", "service-a", false)
       const res = node.render()
       expect(res).to.eql({
-        type: "deploy",
+        kind: "Deploy",
         name: "service-a",
-        moduleName: "module-a",
-        key: "deploy.service-a",
+        key: "service-a",
         disabled: false,
       })
     })
@@ -1087,10 +1052,9 @@ describe("ConfigGraphNode", () => {
       const node = new ConfigGraphNode("Run", "task-a", false)
       const res = node.render()
       expect(res).to.eql({
-        type: "run",
+        kind: "Run",
         name: "task-a",
-        moduleName: "module-a",
-        key: "task.task-a",
+        key: "task-a",
         disabled: false,
       })
     })
@@ -1099,10 +1063,9 @@ describe("ConfigGraphNode", () => {
       const node = new ConfigGraphNode("Test", "module-a.test-a", false)
       const res = node.render()
       expect(res).to.eql({
-        type: "test",
-        name: "test-a",
-        moduleName: "module-a",
-        key: "test.module-a.test-a",
+        kind: "Test",
+        name: "module-a.test-a",
+        key: "module-a.test-a",
         disabled: false,
       })
     })
@@ -1111,10 +1074,9 @@ describe("ConfigGraphNode", () => {
       const node = new ConfigGraphNode("Test", "module-a.test-a", true)
       const res = node.render()
       expect(res).to.eql({
-        type: "test",
-        name: "test-a",
-        moduleName: "module-a",
-        key: "test.module-a.test-a",
+        kind: "Test",
+        name: "module-a.test-a",
+        key: "module-a.test-a",
         disabled: true,
       })
     })

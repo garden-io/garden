@@ -9,7 +9,7 @@
 import { SortedStreamIntersection } from "../../../../src/util/streams"
 import { expect } from "chai"
 import { splitStream } from "../../../../src/util/streams"
-import { expectErrorMessageContains } from "../../../helpers"
+import { expectFuzzyMatch } from "../../../helpers"
 
 describe("SortedStreamIntersection", () => {
   const comparator = (a: Buffer, b: Buffer) => a.toString().localeCompare(b.toString())
@@ -93,7 +93,7 @@ describe("SortedStreamIntersection", () => {
     const stream = new SortedStreamIntersection([a, b], comparator)
     stream.on("data", () => {})
     stream.on("error", (err) => {
-      expectErrorMessageContains(err, "Received unordered stream")
+      expectFuzzyMatch(err.message, "Received unordered stream")
       done()
     })
 
