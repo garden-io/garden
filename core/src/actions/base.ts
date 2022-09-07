@@ -48,10 +48,8 @@ import {
   ActionStatus,
   ActionWrapperParams,
   BaseActionConfig,
-  Executed,
   ExecutedAction,
   ExecutedActionWrapperParams,
-  Resolved,
   ResolvedAction,
   ResolvedActionWrapperParams,
 } from "./types"

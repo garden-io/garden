@@ -135,7 +135,6 @@ describe("DeployTask", () => {
         localModeDeployNames: [],
       })
 
-      const key = deployTask.getKey()
       const result = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
       expect(result.results.getResult(deployTask)?.outputs).to.eql({ log: "test output" })
@@ -196,7 +195,6 @@ describe("DeployTask", () => {
         localModeDeployNames: [],
       })
 
-      const key = deployTask.getKey()
       const result = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
       expect(result.results.getResult(deployTask)?.result?.state).to.equal("unknown")

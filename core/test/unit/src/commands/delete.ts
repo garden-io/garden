@@ -18,7 +18,6 @@ import {
   TestGarden,
 } from "../../../helpers"
 import { expect } from "chai"
-import { ServiceStatus } from "../../../../src/types/service"
 import { EnvironmentStatus } from "../../../../src/plugin/handlers/provider/getEnvironmentStatus"
 import { ModuleConfig } from "../../../../src/config/module"
 import { LogEntry } from "../../../../src/logger/log-entry"
