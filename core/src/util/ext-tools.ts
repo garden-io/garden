@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { platform } from "os"
 import split2 from "split2"
 import { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } from "fs-extra"
 import { ConfigurationError, ParameterError, GardenBaseError, RuntimeError } from "../exceptions"
@@ -248,28 +247,30 @@ export class PluginTool extends CliWrapper {
   constructor(spec: PluginToolSpec) {
     const _platform = getPlatform()
     const architecture = getArchitecture()
+    const _isDarwinARM = isDarwinARM()
 
     let buildSpec: ToolBuildSpec
-    if (isDarwinARM()) {
+    let darwinPreferredArch: string | undefined
+    if (_isDarwinARM) {
       // first look for native arch, if not found, then try (potentially emulated) arch
       buildSpec = findBuildSpec(spec, _platform, "arm64") || findBuildSpec(spec, _platform, "amd64")
+      darwinPreferredArch = buildSpec?.architecture
     } else {
       buildSpec = findBuildSpec(spec, _platform, architecture)
     }
 
-    const darwinPreferredArch = architecture !== buildSpec.architecture ? buildSpec.architecture : undefined
     super(spec.name, "", darwinPreferredArch)
 
     this.buildSpec = buildSpec
 
     if (!this.buildSpec) {
-      const testedArchs = new Set(["${_platform}-${architecture}", "${_platform}-${nativeArchitecture}"])
       throw new ConfigurationError(
-        `Command ${spec.name} doesn't have a spec for this platform/architecture (${[...testedArchs].join(", ")})`,
+        `Command ${spec.name} doesn't have a spec for this platform/architecture (${_platform}-${architecture})`,
         {
           spec,
-          platform,
+          platform: _platform,
           architecture,
+          isDarwinARM: _isDarwinARM,
         }
       )
     }
