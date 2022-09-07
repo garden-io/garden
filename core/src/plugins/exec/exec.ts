@@ -537,11 +537,12 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
   const { module, convertBuildDependency, convertRuntimeDependencies, dummyBuild } = params
   const actions: ExecActionConfig[] = []
 
-  let needsBuild = !!dummyBuild
-
-  if (module.spec.build?.command) {
-    needsBuild = true
-  }
+  const needsBuild =
+    !!dummyBuild ||
+    !!module.spec.build?.command ||
+    // We create a single Build action if there are no other entities
+    // (otherwise nothing is created, which would be unexpected for users).
+    module.serviceConfigs.length + module.taskConfigs.length + module.testConfigs.length === 0
 
   let buildAction: ExecBuildConfig | undefined = undefined
 
