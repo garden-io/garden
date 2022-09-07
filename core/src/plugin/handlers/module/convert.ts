@@ -29,7 +29,7 @@ export interface ConvertModuleParams<T extends GardenModule = GardenModule> exte
   services: GardenService<T>[]
   tasks: GardenTask<T>[]
   tests: GardenTest<T>[]
-  dummyBuild?: ExecBuildConfig
+  dummyBuild: ExecBuildConfig | undefined
   baseFields: {
     copyFrom: BuildCopyFrom[]
     disabled: boolean
@@ -73,7 +73,7 @@ export const convert = () => ({
     services: joiArray(serviceSchema()).description("Any Services belonging to the Module."),
     tasks: joiArray(taskSchema()).description("Any Tasks belonging to the Module."),
     tests: joiArray(testSchema()).description("Any Tests belonging to the Module."),
-    dummyBuildConfig: buildActionConfig().description(
+    dummyBuild: buildActionConfig().description(
       "If a Build is required (i.e. if the Module uses any features that necessitate a Build action), this dummy exec Build is provided as a convenience. If an actual Build is created based on the Module, this config can be used as a base, since it sets some fields that would be needed on the returned Build, such as `copyFrom`."
     ),
     baseFields: joi
@@ -111,36 +111,3 @@ export const convert = () => ({
     actions: joi.array().items(baseActionConfigSchema().unknown(true)),
   }),
 })
-
-// TODO-G2: provide these to the handlers, if applicable
-// dummybuild: {
-//   kind: "Build",
-//   type: "exec",
-//   name: module.name,
-
-//   basePath: module.path,
-
-//   copyFrom,
-//   source: module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
-
-//   allowPublish: module.allowPublish,
-//   dependencies: module.build.dependencies.map(convertBuildDependency),
-
-//   spec: {
-//     env: {},
-//   },
-// },
-//
-// function prepareRuntimeDependencies(deps: string[], build?: BuildActionConfig) {
-//   if (build) {
-//     return ["build:" + build.name, ...deps.map(convertRuntimeDependency)]]
-//   } else {
-//     // If we don't return a Build action, we must still include any declared build dependencies
-//     return [...module.build.dependencies.map(convertBuildDependency), ...deps.map(convertRuntimeDependency)]
-//   }
-// }
-
-// baseFields = {
-//   basePath: module.path,
-//   source: module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
-// }
