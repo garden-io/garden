@@ -45,6 +45,7 @@ import { GroupConfig } from "./config/group"
 import { ActionConfig, BaseActionConfig } from "./actions/types"
 import { ModuleGraph } from "./graph/modules"
 import { GraphResults } from "./graph/results"
+import { ExecBuildConfig } from "./plugins/exec/config"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 50
@@ -643,6 +644,14 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
       }
     }
 
+    const convertBuildDependency = (d: string | BuildDependencyConfig) => {
+      if (typeof d === "string") {
+        return "build." + d
+      } else {
+        return "build." + d.name
+      }
+    }
+
     const convertRuntimeDependencies = (deps: string[]): string[] => {
       const resolved: string[] = []
 
@@ -657,12 +666,38 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
       return resolved
     }
 
+    let dummyBuild: ExecBuildConfig | undefined = undefined
+
+    if (copyFrom.length > 0) {
+      dummyBuild = {
+        kind: "Build",
+        type: "exec",
+        name: module.name,
+
+        internal: {
+          basePath: module.path,
+        },
+
+        copyFrom,
+        source: module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
+
+        allowPublish: module.allowPublish,
+        dependencies: module.build.dependencies.map(convertBuildDependency),
+
+        spec: {
+          env: {},
+        },
+      }
+    }
+
     const result = await router.module.convert({
       log,
       module,
       services,
       tasks,
       tests,
+      dummyBuild,
+
       baseFields: {
         internal: {
           basePath: module.path,
@@ -672,13 +707,7 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
         source: module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
       },
 
-      convertBuildDependency: (d: string | BuildDependencyConfig) => {
-        if (typeof d === "string") {
-          return "build." + d
-        } else {
-          return "build." + d.name
-        }
-      },
+      convertBuildDependency,
       convertTestName: (d: string) => {
         return module.name + "-" + d
       },
