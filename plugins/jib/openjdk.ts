@@ -159,7 +159,7 @@ function openJdkSpec(jdkVersion: JdkVersion): PluginToolSpec {
           targetPath: jdkVersion.versionName,
         },
       },
-      ...macBuilds
+      ...macBuilds,
     ],
   }
 }

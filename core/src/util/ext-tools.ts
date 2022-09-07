@@ -234,7 +234,6 @@ export class PluginTool extends CliWrapper {
     const architecture = getArchitecture()
     const darwinARM = isDarwinARM()
 
-    let buildSpec: ToolBuildSpec
     if (darwinARM) {
       // first look for native arch, if not found, then try (potentially emulated) arch
       this.buildSpec = findBuildSpec(spec, platform, "arm64") || findBuildSpec(spec, platform, "amd64")
@@ -328,9 +327,9 @@ export class PluginTool extends CliWrapper {
       protocol === "file:"
         ? createReadStream(parsed.path!)
         : got.stream({
-          method: "GET",
-          url: this.buildSpec.url,
-        })
+            method: "GET",
+            url: this.buildSpec.url,
+          })
 
     // compute the sha256 checksum
     const hash = createHash("sha256")
