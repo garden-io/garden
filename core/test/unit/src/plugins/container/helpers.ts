@@ -20,7 +20,12 @@ import { dataDir, expectError, getPropertyName, makeTestGarden } from "../../../
 import { moduleFromConfig } from "../../../../../src/types/module"
 import { ModuleConfig } from "../../../../../src/config/module"
 import { LogEntry } from "../../../../../src/logger/log-entry"
-import { ContainerModuleSpec, ContainerModuleConfig } from "../../../../../src/plugins/container/moduleConfig"
+import {
+  ContainerModuleSpec,
+  ContainerModuleConfig,
+  ContainerBuildActionSpec,
+  ContainerBuildActionConfig,
+} from "../../../../../src/plugins/container/moduleConfig"
 import {
   containerHelpers as helpers,
   defaultDockerfileName,
@@ -29,7 +34,7 @@ import {
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { dedent } from "../../../../../src/util/string"
 import { ModuleVersion } from "../../../../../src/vcs/vcs"
-import { BuildAction } from "../../../../../src/actions/build"
+import { BuildAction, BuildActionConfig } from "../../../../../src/actions/build"
 import { actionFromConfig } from "../../../../../src/graph/actions"
 
 describe("containerHelpers", () => {
@@ -87,23 +92,6 @@ describe("containerHelpers", () => {
     td.replace(garden.buildStaging, "syncDependencyProducts", () => null)
     td.replace(Garden.prototype, "resolveModuleVersion", async () => dummyVersion)
   })
-
-  async function getTestBuildAction(moduleConfig: ModuleConfig<any, any, any, any>) {
-    const parsed = await configure({ ctx, moduleConfig, log })
-    return actionFromConfig({
-      garden,
-      log,
-      config: parsed.moduleConfig.buildConfig,
-      configsByKey: {},
-      router: await garden.getActionRouter(),
-      graph: await garden.getConfigGraph({ log, emit: false }),
-    }) as Promise<BuildAction>
-  }
-
-  async function getResolvedTestBuildAction(moduleConfig: ModuleConfig<any, any, any, any>) {
-    const action = await getTestBuildAction(moduleConfig)
-    return await garden.resolveAction({ action, log })
-  }
 
   async function getTestModule(moduleConfig: ContainerModuleConfig) {
     const parsed = await configure({ ctx, moduleConfig, log })
@@ -179,51 +167,48 @@ describe("containerHelpers", () => {
   })
 
   describe("getPublicImageId", () => {
+    const baseActionConfig: ContainerBuildActionConfig = {
+      internal: {
+        basePath: "foo",
+        moduleName: "module-a",
+      },
+      kind: "Build",
+      name: "test",
+      type: "container",
+      spec: {} as ContainerBuildActionSpec,
+    }
+
+    async function getResolvedTestBuildAction(config: BuildActionConfig<string, any>) {
+      td.replace(helpers, moduleHasDockerfile, () => true)
+      const graph = await garden.getConfigGraph({ log, emit: false })
+      const router = await garden.getActionRouter()
+      const action = (await actionFromConfig({
+        garden,
+        log,
+        config,
+        configsByKey: {},
+        router,
+        graph,
+      })) as BuildAction
+      return await garden.resolveAction({ action, log })
+    }
+
     it("should use image name including version if specified", async () => {
-      const config = cloneDeep(baseConfig)
-      config.spec.image = "some/image:1.1"
+      const config = cloneDeep(baseActionConfig)
+      config.spec.publishId = "some/image:1.1"
       const action = await getResolvedTestBuildAction(config)
 
       expect(helpers.getPublicImageId(action)).to.equal("some/image:1.1")
     })
 
     it("should use image name if specified with commit hash if no version is set", async () => {
-      const action = await getResolvedTestBuildAction({
-        apiVersion: "garden.io/v0",
-        allowPublish: false,
-        build: {
-          dependencies: [],
-        },
-        disabled: false,
-        name: "test",
-        path: modulePath,
-        type: "container",
-
-        spec: {
-          build: {
-            dependencies: [],
-            timeout: DEFAULT_BUILD_TIMEOUT,
-          },
-          buildArgs: {},
-          extraFlags: [],
-          image: "some/image",
-          services: [],
-          tasks: [],
-          tests: [],
-        },
-
-        serviceConfigs: [],
-        taskConfigs: [],
-        testConfigs: [],
-      })
+      const action = await getResolvedTestBuildAction(baseActionConfig)
 
       expect(helpers.getPublicImageId(action)).to.equal("some/image:1234")
     })
 
     it("should use local id if no image name is set", async () => {
-      td.replace(helpers, moduleHasDockerfile, () => true)
-
-      const action = await getResolvedTestBuildAction(baseConfig)
+      const action = await getResolvedTestBuildAction(baseActionConfig)
 
       td.replace(helpers, "getLocalImageId", () => "test:1234")
 
