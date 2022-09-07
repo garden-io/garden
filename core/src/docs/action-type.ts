@@ -17,7 +17,6 @@ import { buildActionConfig } from "../actions/build"
 import { deployActionConfig } from "../actions/deploy"
 import { runActionConfig } from "../actions/run"
 import { testActionConfig } from "../actions/test"
-import titleize = require("titleize")
 
 /**
  * Generates the action type reference from the action-type.hbs template.
