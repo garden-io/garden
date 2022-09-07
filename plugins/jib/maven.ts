@@ -37,6 +37,11 @@ export const mavenSpec: PluginToolSpec = {
       ...spec,
     },
     {
+      platform: "darwin",
+      architecture: "arm64",
+      ...spec,
+    },
+    {
       platform: "linux",
       architecture: "amd64",
       ...spec,

@@ -6,12 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { platform } from "os"
 import split2 from "split2"
 import { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } from "fs-extra"
 import { ConfigurationError, ParameterError, GardenBaseError, RuntimeError } from "../exceptions"
 import { join, dirname, basename, posix } from "path"
-import { hashString, exec, uuidv4, getPlatform, getArchitecture } from "./util"
+import { hashString, exec, uuidv4, getPlatform, getArchitecture, isDarwinARM } from "./util"
 import tar from "tar"
 import { GARDEN_GLOBAL_PATH } from "../constants"
 import { LogEntry } from "../logger/log-entry"
@@ -202,9 +201,8 @@ export class CliWrapper {
   }
 }
 
-interface PluginToolOpts {
-  platform?: string
-  architecture?: string
+const findBuildSpec = (spec: PluginToolSpec, plat: string, arch: string) => {
+  return spec.builds.find((build) => build.platform === plat && build.architecture === arch)
 }
 
 export interface PluginTools {
@@ -229,24 +227,35 @@ export class PluginTool extends CliWrapper {
   protected targetSubpath: string
   private chmodDone: boolean
 
-  constructor(spec: PluginToolSpec, opts: PluginToolOpts = {}) {
+  constructor(spec: PluginToolSpec) {
     super(spec.name, "")
 
-    const _platform = opts.platform || getPlatform()
-    const architecture = opts.architecture || getArchitecture()
+    const platform = getPlatform()
+    const architecture = getArchitecture()
+    const darwinARM = isDarwinARM()
 
-    this.buildSpec = spec.builds.find((build) => build.platform === _platform && build.architecture === architecture)!
+    let buildSpec: ToolBuildSpec | undefined
 
-    if (!this.buildSpec) {
+    if (darwinARM) {
+      // first look for native arch, if not found, then try (potentially emulated) arch
+      buildSpec = findBuildSpec(spec, platform, "arm64") || findBuildSpec(spec, platform, "amd64")
+    } else {
+      buildSpec = findBuildSpec(spec, platform, architecture)!
+    }
+
+    if (!buildSpec) {
       throw new ConfigurationError(
         `Command ${spec.name} doesn't have a spec for this platform/architecture (${platform}-${architecture})`,
         {
           spec,
           platform,
           architecture,
+          darwinARM,
         }
       )
     }
+
+    this.buildSpec = buildSpec
 
     this.name = spec.name
     this.type = spec.type

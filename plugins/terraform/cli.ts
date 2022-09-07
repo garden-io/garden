@@ -174,6 +174,16 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
         },
       },
       {
+        platform: "darwin",
+        architecture: "arm64",
+        url: "https://releases.hashicorp.com/terraform/1.0.5/terraform_1.0.5_darwin_arm64.zip",
+        sha256: "3de4b9f167392622ef49d807e438a166e6c86c631afa730ff3189cf72cc950e2",
+        extract: {
+          format: "zip",
+          targetPath: "terraform",
+        },
+      },
+      {
         platform: "linux",
         architecture: "amd64",
         url: "https://releases.hashicorp.com/terraform/1.0.5/terraform_1.0.5_linux_amd64.zip",

@@ -301,6 +301,12 @@ export const kubectlSpec: PluginToolSpec = {
       sha256: "ecc91cd2f92184630912f9dcd8c47443b50ebfa4b1da431fb28fa7b462dd70ab",
     },
     {
+      platform: "darwin",
+      architecture: "arm64",
+      url: "https://storage.googleapis.com/kubernetes-release/release/v1.23.3/bin/darwin/arm64/kubectl",
+      sha256: "e43303daa6e99de6e182f0c3b3113e45ea0015bc84abd2485f0dde5770163f63",
+    },
+    {
       platform: "linux",
       architecture: "amd64",
       url: "https://storage.googleapis.com/kubernetes-release/release/v1.23.3/bin/linux/amd64/kubectl",
