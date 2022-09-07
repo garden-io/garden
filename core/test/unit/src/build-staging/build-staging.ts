@@ -11,14 +11,7 @@ import readdir from "@jsdevtools/readdir-enhanced"
 import { join, basename } from "path"
 import { pathExists, createFile, realpath, readFile, ensureFile, writeFile, ensureDir } from "fs-extra"
 import { expect } from "chai"
-import {
-  makeTestGarden,
-  dataDir,
-  TestGarden,
-  expectError,
-  getDataDir,
-  expectErrorMessageContains,
-} from "../../../helpers"
+import { makeTestGarden, dataDir, TestGarden, expectError, getDataDir } from "../../../helpers"
 import { defaultConfigFilename, TempDirectory, makeTempDir, joinWithPosix } from "../../../../src/util/fs"
 import { BuildStaging, SyncParams } from "../../../../src/build-staging/build-staging"
 import { LogEntry } from "../../../../src/logger/log-entry"
@@ -123,40 +116,37 @@ describe("BuildStaging", () => {
     it("throws if source relative path is absolute", async () => {
       await expectError(
         () => sync({ log, sourceRoot: tmpPath, targetRoot: tmpPath, sourceRelPath: "/foo", withDelete: false }),
-        (err) => expectErrorMessageContains(err, "Build staging: Got absolute path for sourceRelPath")
+        { contains: "Build staging: Got absolute path for sourceRelPath" }
       )
     })
 
     it("throws if target relative path is absolute", async () => {
       await expectError(
         () => sync({ log, sourceRoot: tmpPath, targetRoot: tmpPath, targetRelPath: "/foo", withDelete: false }),
-        (err) => expectErrorMessageContains(err, "Build staging: Got absolute path for targetRelPath")
+        { contains: "Build staging: Got absolute path for targetRelPath" }
       )
     })
 
     it("throws if target relative path contains wildcards", async () => {
       await expectError(
         () => sync({ log, sourceRoot: tmpPath, targetRoot: tmpPath, targetRelPath: "foo/*", withDelete: false }),
-        (err) => expectErrorMessageContains(err, "Build staging: Target path (foo/*) must not contain wildcards")
+        { contains: "Build staging: Target path (foo/*) must not contain wildcards" }
       )
     })
 
     it("throws if source root doesn't exist", async () => {
-      await expectError(
-        () => sync({ log, sourceRoot: "/oepfkaopwefk", targetRoot: tmpPath, withDelete: false }),
-        (err) =>
-          expectErrorMessageContains(err, "Build staging: Source root /oepfkaopwefk must exist and be a directory")
-      )
+      await expectError(() => sync({ log, sourceRoot: "/oepfkaopwefk", targetRoot: tmpPath, withDelete: false }), {
+        contains: "Build staging: Source root /oepfkaopwefk must exist and be a directory",
+      })
     })
 
     it("throws if source root is not a directory", async () => {
       const path = join(tmpPath, "a")
       await ensureFile(path)
 
-      await expectError(
-        () => sync({ log, sourceRoot: path, targetRoot: tmpPath, withDelete: false }),
-        (err) => expectErrorMessageContains(err, `Build staging: Source root ${path} must exist and be a directory`)
-      )
+      await expectError(() => sync({ log, sourceRoot: path, targetRoot: tmpPath, withDelete: false }), {
+        contains: `Build staging: Source root ${path} must exist and be a directory`,
+      })
     })
 
     it("does nothing if source path has no wildcard and cannot be found", async () => {
@@ -170,7 +160,7 @@ describe("BuildStaging", () => {
 
       await expectError(
         () => sync({ log, sourceRoot: tmpPath, targetRoot: tmpPath, sourceRelPath: "a/", withDelete: false }),
-        (err) => expectErrorMessageContains(err, `Build staging: Expected source path ${tmpPath}/a/ to be a directory`)
+        { contains: `Build staging: Expected source path ${tmpPath}/a/ to be a directory` }
       )
     })
 
@@ -179,11 +169,7 @@ describe("BuildStaging", () => {
 
       await expectError(
         () => sync({ log, sourceRoot: tmpPath, targetRoot: tmpPath, targetRelPath: "a/", withDelete: false }),
-        (err) =>
-          expectErrorMessageContains(
-            err,
-            `Build staging: Expected target path ${tmpPath}/a/ to not exist or be a directory`
-          )
+        { contains: `Build staging: Expected target path ${tmpPath}/a/ to not exist or be a directory` }
       )
     })
 
@@ -200,11 +186,7 @@ describe("BuildStaging", () => {
             withDelete: false,
             files: ["b"],
           }),
-        (err) =>
-          expectErrorMessageContains(
-            err,
-            "Build staging: Both source and target must be directories when specifying a file list"
-          )
+        { contains: "Build staging: Both source and target must be directories when specifying a file list" }
       )
     })
 
@@ -213,11 +195,9 @@ describe("BuildStaging", () => {
 
       await expectError(
         () => sync({ log, sourceRoot: tmpPath, targetRoot: join(tmpPath, "a"), sourceRelPath: "*", withDelete: false }),
-        (err) =>
-          expectErrorMessageContains(
-            err,
-            `Build staging: Attempting to copy multiple files from ${tmpPath} to ${tmpPath}/a, but a file exists at target path`
-          )
+        {
+          contains: `Build staging: Attempting to copy multiple files from ${tmpPath} to ${tmpPath}/a, but a file exists at target path`,
+        }
       )
     })
 
@@ -239,11 +219,9 @@ describe("BuildStaging", () => {
 
       await expectError(
         () => sync({ log, sourceRoot: tmpPath, targetRoot: tmpPath, targetRelPath: "a", withDelete: false }),
-        (err) =>
-          expectErrorMessageContains(
-            err,
-            `Build staging: Attempting to copy directory from ${tmpPath} to ${tmpPath}/a, but a file exists at target path`
-          )
+        {
+          contains: `Build staging: Attempting to copy directory from ${tmpPath} to ${tmpPath}/a, but a file exists at target path`,
+        }
       )
     })
   })
@@ -270,14 +248,10 @@ describe("BuildStagingRsync", () => {
 
     try {
       process.env.PATH = ""
-      await expectError(
-        () => BuildDirRsync.factory(garden.projectRoot, garden.gardenDirPath),
-        (err) =>
-          expect(err.message).to.equal(
-            "Could not find rsync binary. Please make sure rsync (version 3.1.0 or later) is installed " +
-              "and on your PATH."
-          )
-      )
+      await expectError(() => BuildDirRsync.factory(garden.projectRoot, garden.gardenDirPath), {
+        contains:
+          "Could not find rsync binary. Please make sure rsync (version 3.1.0 or later) is installed and on your PATH.",
+      })
     } finally {
       process.env.PATH = orgPath
     }
@@ -310,13 +284,9 @@ describe("BuildStagingRsync", () => {
 
     try {
       process.env.PATH = getDataDir("dummy-rsync", "old-version")
-      await expectError(
-        () => BuildDirRsync.factory(garden.projectRoot, garden.gardenDirPath),
-        (err) =>
-          expect(err.message).to.equal(
-            "Found rsync binary but the version is too old (2.1.2). Please install version 3.1.0 or later."
-          )
-      )
+      await expectError(() => BuildDirRsync.factory(garden.projectRoot, garden.gardenDirPath), {
+        contains: "Found rsync binary but the version is too old (2.1.2). Please install version 3.1.0 or later.",
+      })
     } finally {
       process.env.PATH = orgPath
     }
@@ -327,14 +297,10 @@ describe("BuildStagingRsync", () => {
 
     try {
       process.env.PATH = getDataDir("dummy-rsync", "invalid")
-      await expectError(
-        () => BuildDirRsync.factory(garden.projectRoot, garden.gardenDirPath),
-        (err) =>
-          expect(err.message).to.equal(
-            "Could not detect rsync version. Please make sure rsync version 3.1.0 or later is installed " +
-              "and on your PATH."
-          )
-      )
+      await expectError(() => BuildDirRsync.factory(garden.projectRoot, garden.gardenDirPath), {
+        contains:
+          "Could not detect rsync version. Please make sure rsync version 3.1.0 or later is installed and on your PATH.",
+      })
     } finally {
       process.env.PATH = orgPath
     }

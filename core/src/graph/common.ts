@@ -33,8 +33,8 @@ export class DependencyGraph<T> extends DepGraph<T> {
   static fromGraphNodes<G extends GraphNodes | ModuleGraphNodes>(dependencyGraph: G) {
     const withDeps = (node: ConfigGraphNode): DependencyGraphNode => {
       return {
-        key: nodeKey(node.type, node.name),
-        dependencies: node.dependencies.map((d) => nodeKey(d.type, d.name)),
+        key: nodeKey(node.kind, node.name),
+        dependencies: node.dependencies.map((d) => nodeKey(d.kind, d.name)),
       }
     }
 
