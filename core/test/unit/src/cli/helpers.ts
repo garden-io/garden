@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import { optionsWithAliasValues, pickCommand, processCliArgs } from "../../../../src/cli/helpers"
 import { Parameters } from "../../../../src/cli/params"
-import { expectError, expectErrorMessageContains } from "../../../helpers"
+import { expectError, expectErrorWithMessageLike } from "../../../helpers"
 import { getPackageVersion } from "../../../../src/util/util"
 import { GARDEN_CORE_ROOT } from "../../../../src/constants"
 import { join } from "path"
@@ -294,45 +294,32 @@ describe("processCliArgs", () => {
 
   it("throws an error when a required positional argument is missing", () => {
     const cmd = new RunTaskCommand()
-    expectError(
-      () => parseAndProcess([], cmd),
-      (err) => expectErrorMessageContains(err, "Missing required argument")
-    )
+    expectErrorWithMessageLike(() => parseAndProcess([], cmd), "Missing required argument")
   })
 
   it("throws an error when an unexpected positional argument is given", () => {
     const cmd = new DeleteDeployCommand()
-    expectError(
-      () => parseAndProcess(["my-service", "bla"], cmd),
-      (err) => expectErrorMessageContains(err, `Unexpected positional argument "bla"`)
-    )
+    expectErrorWithMessageLike(() => parseAndProcess(["my-service", "bla"], cmd), `Unexpected positional argument "bla"`)
   })
 
   it("throws an error when an unrecognized option is set", () => {
     const cmd = new BuildCommand()
-    expectError(
-      () => parseAndProcess(["--foo=bar"], cmd),
-      (err) => expectErrorMessageContains(err, "Unrecognized option flag --foo")
-    )
+    expectErrorWithMessageLike(() => parseAndProcess(["--foo=bar"], cmd), "Unrecognized option flag --foo")
   })
 
   it("throws an error when an invalid argument is given to a choice option", () => {
     const cmd = new BuildCommand()
-    expectError(
+    expectErrorWithMessageLike(
       () => parseAndProcess(["--logger-type=foo"], cmd),
-      (err) =>
-        expectErrorMessageContains(
-          err,
-          'Invalid value for option --logger-type: "foo" is not a valid argument (should be any of "quiet", "basic", "fancy", "json")'
-        )
+      'Invalid value for option --logger-type: "foo" is not a valid argument (should be any of "quiet", "basic", "fancy", "json")'
     )
   })
 
   it("throws an error when an invalid argument is given to an integer option", () => {
     const cmd = new LogsCommand()
-    expectError(
+    expectErrorWithMessageLike(
       () => parseAndProcess(["--tail=foo"], cmd),
-      (err) => expectErrorMessageContains(err, 'Invalid value for option --tail: Could not parse "foo" as integer')
+      'Invalid value for option --tail: Could not parse "foo" as integer'
     )
   })
 
@@ -373,8 +360,8 @@ describe("processCliArgs", () => {
     expectError(
       () => parseAndProcess(["--foo=bar", "--interactive=9"], cmd),
       (err) => {
-        expectErrorMessageContains(err, "Missing required argument")
-        expectErrorMessageContains(err, "Unrecognized option flag --foo")
+        expectErrorWithMessageLike(err, "Missing required argument")
+        expectErrorWithMessageLike(err, "Unrecognized option flag --foo")
       }
     )
   })

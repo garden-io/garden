@@ -266,12 +266,16 @@ export class TestGarden extends Garden {
   }
 }
 
-export function expectErrorMessageContains(err: any, messagePart: string) {
-  const errorMessage = stripAnsi(err.message)
-  expect(errorMessage.toLowerCase()).to.contain(messagePart.toLowerCase())
+export function expectFuzzyMatch(str: string, sample: string) {
+  const errorMessageNonAnsi = stripAnsi(str)
+  expect(errorMessageNonAnsi.toLowerCase()).to.contain(sample.toLowerCase())
 }
 
-export function expectError(fn: Function, typeOrCallback?: string | ((err: any) => void)) {
+export function expectErrorWithMessageLike(fn: Function, errorMessageSample: string) {
+  expectError(fn, (err) => expectFuzzyMatch(err.message, errorMessageSample))
+}
+
+export function expectError(fn: Function, typeOrCallback?: string | ((err: any) => void), messagePart?: string) {
   const handleError = (err: GardenError) => {
     if (typeOrCallback === undefined) {
       return true

@@ -57,7 +57,7 @@ import { WrappedActionRouterHandlers } from "../src/router/base"
 import { Resolved } from "../src/actions/types"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
-export { TestGarden, TestError, TestEventBus, expectError, expectErrorMessageContains } from "../src/util/testing"
+export { TestGarden, TestError, TestEventBus, expectError, expectErrorWithMessageLike, expectFuzzyMatch } from "../src/util/testing"
 
 export const dataDir = resolve(GARDEN_CORE_ROOT, "test", "data")
 export const testNow = new Date()
