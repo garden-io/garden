@@ -271,37 +271,47 @@ export function expectFuzzyMatch(str: string, sample: string) {
   expect(errorMessageNonAnsi.toLowerCase()).to.contain(sample.toLowerCase())
 }
 
-export function expectErrorWithMessageLike(fn: Function, errorMessageSample: string) {
-  expectError(fn, (err) => expectFuzzyMatch(err.message, errorMessageSample))
-}
+type ExpectErrorAssertion = string | ((err: any) => void) | { type?: string; contains?: string }
 
-export function expectError(fn: Function, typeOrCallback?: string | ((err: any) => void), messagePart?: string) {
+export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) {
   const handleError = (err: GardenError) => {
-    if (typeOrCallback === undefined) {
-      return true
-    } else if (typeof typeOrCallback === "function") {
-      typeOrCallback(err)
-      return true
-    } else {
-      if (!err.type) {
-        const newError = Error(`Expected GardenError with type ${typeOrCallback}, got: ${err}`)
-        newError.stack = err.stack
-        throw newError
-      }
-      if (err.type !== typeOrCallback) {
-        const newError = Error(`Expected ${typeOrCallback} error, got: ${err.type} error`)
-        newError.stack = err.stack
-        throw newError
-      }
+    if (assertion === undefined) {
       return true
     }
+
+    if (typeof assertion === "function") {
+      assertion(err)
+      return true
+    }
+
+    const type = typeof assertion === "string" ? assertion : assertion.type
+    const contains = typeof assertion === "object" && assertion.contains
+
+    if (type) {
+      if (!err.type) {
+        const newError = Error(`Expected GardenError with type ${type}, got: ${err}`)
+        newError.stack = err.stack
+        throw newError
+      }
+      if (err.type !== type) {
+        const newError = Error(`Expected ${type} error, got: ${err.type} error`)
+        newError.stack = err.stack
+        throw newError
+      }
+    }
+
+    if (contains) {
+      expectFuzzyMatch(err.message, contains)
+    }
+
+    return true
   }
 
   const handleNonError = (caught: boolean) => {
     if (caught) {
       return
-    } else if (typeof typeOrCallback === "string") {
-      throw new Error(`Expected ${typeOrCallback} error (got no error)`)
+    } else if (typeof assertion === "string") {
+      throw new Error(`Expected ${assertion} error (got no error)`)
     } else {
       throw new Error(`Expected error (got no error)`)
     }

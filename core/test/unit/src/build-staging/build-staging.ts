@@ -11,13 +11,7 @@ import readdir from "@jsdevtools/readdir-enhanced"
 import { join, basename } from "path"
 import { pathExists, createFile, realpath, readFile, ensureFile, writeFile, ensureDir } from "fs-extra"
 import { expect } from "chai"
-import {
-  makeTestGarden,
-  dataDir,
-  TestGarden,
-  expectErrorWithMessageLike,
-  getDataDir,
-} from "../../../helpers"
+import { makeTestGarden, dataDir, TestGarden, expectError, getDataDir } from "../../../helpers"
 import { defaultConfigFilename, TempDirectory, makeTempDir, joinWithPosix } from "../../../../src/util/fs"
 import { BuildStaging, SyncParams } from "../../../../src/build-staging/build-staging"
 import { LogEntry } from "../../../../src/logger/log-entry"
@@ -120,41 +114,39 @@ describe("BuildStaging", () => {
     })
 
     it("throws if source relative path is absolute", async () => {
-      await expectErrorWithMessageLike(
+      await expectError(
         () => sync({ log, sourceRoot: tmpPath, targetRoot: tmpPath, sourceRelPath: "/foo", withDelete: false }),
-        "Build staging: Got absolute path for sourceRelPath"
+        { contains: "Build staging: Got absolute path for sourceRelPath" }
       )
     })
 
     it("throws if target relative path is absolute", async () => {
-      await expectErrorWithMessageLike(
+      await expectError(
         () => sync({ log, sourceRoot: tmpPath, targetRoot: tmpPath, targetRelPath: "/foo", withDelete: false }),
-        "Build staging: Got absolute path for targetRelPath"
+        { contains: "Build staging: Got absolute path for targetRelPath" }
       )
     })
 
     it("throws if target relative path contains wildcards", async () => {
-      await expectErrorWithMessageLike(
+      await expectError(
         () => sync({ log, sourceRoot: tmpPath, targetRoot: tmpPath, targetRelPath: "foo/*", withDelete: false }),
-        "Build staging: Target path (foo/*) must not contain wildcards"
+        { contains: "Build staging: Target path (foo/*) must not contain wildcards" }
       )
     })
 
     it("throws if source root doesn't exist", async () => {
-      await expectErrorWithMessageLike(
-        () => sync({ log, sourceRoot: "/oepfkaopwefk", targetRoot: tmpPath, withDelete: false }),
-        "Build staging: Source root /oepfkaopwefk must exist and be a directory"
-      )
+      await expectError(() => sync({ log, sourceRoot: "/oepfkaopwefk", targetRoot: tmpPath, withDelete: false }), {
+        contains: "Build staging: Source root /oepfkaopwefk must exist and be a directory",
+      })
     })
 
     it("throws if source root is not a directory", async () => {
       const path = join(tmpPath, "a")
       await ensureFile(path)
 
-      await expectErrorWithMessageLike(
-        () => sync({ log, sourceRoot: path, targetRoot: tmpPath, withDelete: false }),
-        `Build staging: Source root ${path} must exist and be a directory`
-      )
+      await expectError(() => sync({ log, sourceRoot: path, targetRoot: tmpPath, withDelete: false }), {
+        contains: `Build staging: Source root ${path} must exist and be a directory`,
+      })
     })
 
     it("does nothing if source path has no wildcard and cannot be found", async () => {
@@ -166,25 +158,25 @@ describe("BuildStaging", () => {
     it("throws if source rel path ends with slash but points to a file", async () => {
       await ensureFile(join(tmpPath, "a"))
 
-      await expectErrorWithMessageLike(
+      await expectError(
         () => sync({ log, sourceRoot: tmpPath, targetRoot: tmpPath, sourceRelPath: "a/", withDelete: false }),
-        `Build staging: Expected source path ${tmpPath}/a/ to be a directory`
+        { contains: `Build staging: Expected source path ${tmpPath}/a/ to be a directory` }
       )
     })
 
     it("throws if target rel path ends with slash but points to a file", async () => {
       await ensureFile(join(tmpPath, "a"))
 
-      await expectErrorWithMessageLike(
+      await expectError(
         () => sync({ log, sourceRoot: tmpPath, targetRoot: tmpPath, targetRelPath: "a/", withDelete: false }),
-        `Build staging: Expected target path ${tmpPath}/a/ to not exist or be a directory`
+        { contains: `Build staging: Expected target path ${tmpPath}/a/ to not exist or be a directory` }
       )
     })
 
     it("throws if file list is specified and source+target aren't both directories", async () => {
       await ensureFile(join(tmpPath, "a"))
 
-      await expectErrorWithMessageLike(
+      await expectError(
         () =>
           sync({
             log,
@@ -194,16 +186,18 @@ describe("BuildStaging", () => {
             withDelete: false,
             files: ["b"],
           }),
-        "Build staging: Both source and target must be directories when specifying a file list"
+        { contains: "Build staging: Both source and target must be directories when specifying a file list" }
       )
     })
 
     it("throws if source relative path has wildcard and target path points to an existing file", async () => {
       await ensureFile(join(tmpPath, "a"))
 
-      await expectErrorWithMessageLike(
+      await expectError(
         () => sync({ log, sourceRoot: tmpPath, targetRoot: join(tmpPath, "a"), sourceRelPath: "*", withDelete: false }),
-        `Build staging: Attempting to copy multiple files from ${tmpPath} to ${tmpPath}/a, but a file exists at target path`
+        {
+          contains: `Build staging: Attempting to copy multiple files from ${tmpPath} to ${tmpPath}/a, but a file exists at target path`,
+        }
       )
     })
 
@@ -223,9 +217,11 @@ describe("BuildStaging", () => {
     it("throws if source is directory, target is a file and withDelete=false", async () => {
       await ensureFile(join(tmpPath, "a"))
 
-      await expectErrorWithMessageLike(
+      await expectError(
         () => sync({ log, sourceRoot: tmpPath, targetRoot: tmpPath, targetRelPath: "a", withDelete: false }),
-        `Build staging: Attempting to copy directory from ${tmpPath} to ${tmpPath}/a, but a file exists at target path`
+        {
+          contains: `Build staging: Attempting to copy directory from ${tmpPath} to ${tmpPath}/a, but a file exists at target path`,
+        }
       )
     })
   })
@@ -252,10 +248,10 @@ describe("BuildStagingRsync", () => {
 
     try {
       process.env.PATH = ""
-      await expectErrorWithMessageLike(
-        () => BuildDirRsync.factory(garden.projectRoot, garden.gardenDirPath),
-        "Could not find rsync binary. Please make sure rsync (version 3.1.0 or later) is installed and on your PATH."
-      )
+      await expectError(() => BuildDirRsync.factory(garden.projectRoot, garden.gardenDirPath), {
+        contains:
+          "Could not find rsync binary. Please make sure rsync (version 3.1.0 or later) is installed and on your PATH.",
+      })
     } finally {
       process.env.PATH = orgPath
     }
@@ -288,10 +284,9 @@ describe("BuildStagingRsync", () => {
 
     try {
       process.env.PATH = getDataDir("dummy-rsync", "old-version")
-      await expectErrorWithMessageLike(
-        () => BuildDirRsync.factory(garden.projectRoot, garden.gardenDirPath),
-        "Found rsync binary but the version is too old (2.1.2). Please install version 3.1.0 or later."
-      )
+      await expectError(() => BuildDirRsync.factory(garden.projectRoot, garden.gardenDirPath), {
+        contains: "Found rsync binary but the version is too old (2.1.2). Please install version 3.1.0 or later.",
+      })
     } finally {
       process.env.PATH = orgPath
     }
@@ -302,10 +297,10 @@ describe("BuildStagingRsync", () => {
 
     try {
       process.env.PATH = getDataDir("dummy-rsync", "invalid")
-      await expectErrorWithMessageLike(
-        () => BuildDirRsync.factory(garden.projectRoot, garden.gardenDirPath),
-        "Could not detect rsync version. Please make sure rsync version 3.1.0 or later is installed and on your PATH."
-      )
+      await expectError(() => BuildDirRsync.factory(garden.projectRoot, garden.gardenDirPath), {
+        contains:
+          "Could not detect rsync version. Please make sure rsync version 3.1.0 or later is installed and on your PATH.",
+      })
     } finally {
       process.env.PATH = orgPath
     }

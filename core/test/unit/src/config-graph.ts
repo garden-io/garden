@@ -9,7 +9,7 @@
 import { resolve, join } from "path"
 import { expect } from "chai"
 import { ensureDir } from "fs-extra"
-import { makeTestGardenA, makeTestGarden, dataDir, expectErrorWithMessageLike, makeTestModule } from "../../helpers"
+import { makeTestGardenA, makeTestGarden, dataDir, expectError, makeTestModule } from "../../helpers"
 import { getNames } from "../../../src/util/util"
 import { ConfigGraph, ConfigGraphNode } from "../../../src/graph/config-graph"
 import { Garden } from "../../../src/garden"
@@ -30,31 +30,28 @@ describe("ConfigGraph", () => {
   it("should throw when two deploy actions have the same name", async () => {
     const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-service"))
 
-    await expectErrorWithMessageLike(
-      () => garden.getConfigGraph({ log: garden.log, emit: false }),
-      "Service names must be unique - the service name 'dupe' is declared multiple times " +
-        "(in modules 'module-a' and 'module-b')"
-    )
+    await expectError(() => garden.getConfigGraph({ log: garden.log, emit: false }), {
+      contains:
+        "Service names must be unique - the service name 'dupe' is declared multiple times (in modules 'module-a' and 'module-b')",
+    })
   })
 
   it("should throw when two run actions have the same name", async () => {
     const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-task"))
 
-    await expectErrorWithMessageLike(
-      () => garden.getConfigGraph({ log: garden.log, emit: false }),
-      "Task names must be unique - the task name 'dupe' is declared multiple times " +
-        "(in modules 'module-a' and 'module-b')"
-    )
+    await expectError(() => garden.getConfigGraph({ log: garden.log, emit: false }), {
+      contains:
+        "Task names must be unique - the task name 'dupe' is declared multiple times (in modules 'module-a' and 'module-b')",
+    })
   })
 
   it("should throw when a deploy and a run actions have the same name", async () => {
     const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-service-and-task"))
 
-    await expectErrorWithMessageLike(
-      () => garden.getConfigGraph({ log: garden.log, emit: false }),
-      "Service and task names must be mutually unique - the name 'dupe' is used for a task " +
-        "in 'module-b' and for a service in 'module-a'"
-    )
+    await expectError(() => garden.getConfigGraph({ log: garden.log, emit: false }), {
+      contains:
+        "Service and task names must be mutually unique - the name 'dupe' is used for a task in 'module-b' and for a service in 'module-a'",
+    })
   })
 
   it("should automatically add service source modules as module build dependencies", async () => {
@@ -107,10 +104,9 @@ describe("ConfigGraph", () => {
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
-      await expectErrorWithMessageLike(
-        () => graph.getModules({ names: ["module-c"] }),
-        "Could not find module(s): module-c"
-      )
+      await expectError(() => graph.getModules({ names: ["module-c"] }), {
+        contains: "Could not find module(s): module-c",
+      })
     })
 
     it("should throw if named module is missing", async () => {
@@ -137,10 +133,9 @@ describe("ConfigGraph", () => {
         }),
       ])
 
-      await expectErrorWithMessageLike(
-        () => garden.getConfigGraph({ log: garden.log, emit: false }),
-        "Could not find build dependency missing-build-dep, configured in module test"
-      )
+      await expectError(() => garden.getConfigGraph({ log: garden.log, emit: false }), {
+        contains: "Could not find build dependency missing-build-dep, configured in module test",
+      })
     })
 
     it("should throw if a runtime dependency is missing", async () => {
@@ -164,10 +159,9 @@ describe("ConfigGraph", () => {
         }),
       ])
 
-      await expectErrorWithMessageLike(
-        () => garden.getConfigGraph({ log: garden.log, emit: false }),
-        "Unknown service or task 'missing-runtime-dep' referenced in dependencies"
-      )
+      await expectError(() => garden.getConfigGraph({ log: garden.log, emit: false }), {
+        contains: "Unknown service or task 'missing-runtime-dep' referenced in dependencies",
+      })
     })
   })
 
@@ -285,10 +279,9 @@ describe("ConfigGraph", () => {
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
-      await expectErrorWithMessageLike(
-        () => graph.getDeploys({ names: ["service-a"] }),
-        "Could not find one or more Deploy actions: service-a"
-      )
+      await expectError(() => graph.getDeploys({ names: ["service-a"] }), {
+        contains: "Could not find one or more Deploy actions: service-a",
+      })
     })
 
     it("should throw if named deploy is missing", async () => {
@@ -428,10 +421,9 @@ describe("ConfigGraph", () => {
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
-      await expectErrorWithMessageLike(
-        () => graph.getRuns({ names: ["disabled-task"] }),
-        "Could not find one or more Run actions: disabled-task"
-      )
+      await expectError(() => graph.getRuns({ names: ["disabled-task"] }), {
+        contains: "Could not find one or more Run actions: disabled-task",
+      })
     })
 
     it("should throw if named run is missing", async () => {
