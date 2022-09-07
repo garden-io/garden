@@ -266,12 +266,13 @@ export class TestGarden extends Garden {
   }
 }
 
-export function expectFuzzyMatch(str: string, sample: string) {
+export function expectFuzzyMatch(str: string, sample: string | string[]) {
   const errorMessageNonAnsi = stripAnsi(str)
-  expect(errorMessageNonAnsi.toLowerCase()).to.contain(sample.toLowerCase())
+  const samples = typeof sample === "string" ? [sample] : sample
+  samples.forEach((s) => expect(errorMessageNonAnsi.toLowerCase()).to.contain(s.toLowerCase()))
 }
 
-type ExpectErrorAssertion = string | ((err: any) => void) | { type?: string; contains?: string }
+type ExpectErrorAssertion = string | ((err: any) => void) | { type?: string; contains?: string | string[] }
 
 export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) {
   const handleError = (err: GardenError) => {
