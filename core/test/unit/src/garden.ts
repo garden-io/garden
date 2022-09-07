@@ -33,7 +33,7 @@ import { getNames, findByName, omitUndefined, exec } from "../../../src/util/uti
 import { LinkedSource } from "../../../src/config-store"
 import { getModuleVersionString, ModuleVersion, TreeVersion } from "../../../src/vcs/vcs"
 import { getModuleCacheContext } from "../../../src/types/module"
-import { createGardenPlugin, PluginDependency } from "../../../src/plugin/plugin"
+import { createGardenPlugin, PluginDependency, ProviderActionName } from "../../../src/plugin/plugin"
 import { ConfigureProviderParams } from "../../../src/plugin/handlers/provider/configureProvider"
 import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
 import {
@@ -54,6 +54,7 @@ import execa from "execa"
 import { getLinkedSources, addLinkedSources } from "../../../src/util/ext-source-util"
 import { safeDump } from "js-yaml"
 import { TestVcsHandler } from "./vcs/vcs"
+import { ActionRouter } from "../../../src/router/router"
 
 // TODO-G2: change all module config based tests to be action-based.
 
@@ -90,12 +91,17 @@ describe("Garden", () => {
   })
 
   describe("factory", () => {
+    function getProviderActionHandler(router: ActionRouter, handlerType: ProviderActionName, pluginName: string) {
+      return router.provider.getPluginHandler({ handlerType, pluginName: pluginName })
+    }
+
     it("should initialize and add the action handlers for a plugin", async () => {
       const garden = await makeTestGardenA()
       const actions = await garden.getActionRouter()
 
-      expect((<any>actions).actionHandlers.prepareEnvironment["test-plugin"]).to.be.ok
-      expect((<any>actions).actionHandlers.prepareEnvironment["test-plugin-b"]).to.be.ok
+      // TODO-G2: check all handler types
+      expect(getProviderActionHandler(actions, "prepareEnvironment", "test-plugin")).to.be.ok
+      expect(getProviderActionHandler(actions, "prepareEnvironment", "test-plugin-b")).to.be.ok
     })
 
     it("should initialize a project with config files with yaml and yml extensions", async () => {
