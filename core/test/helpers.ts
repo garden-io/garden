@@ -469,8 +469,7 @@ export function stubRouterAction<K extends ActionKind, H extends keyof WrappedAc
   handlerType: H,
   handler: WrappedActionRouterHandlers<K>[H]
 ) {
-  const actionKindKey = actionKind.toLowerCase()
-  const actionKindHandlers: WrappedActionRouterHandlers<K> = actionRouter[actionKindKey]
+  const actionKindHandlers: WrappedActionRouterHandlers<K> = actionRouter.getRouterForActionKind(actionKind)
   actionKindHandlers[handlerType] = handler
 }
 
