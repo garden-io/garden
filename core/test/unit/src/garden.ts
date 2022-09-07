@@ -214,11 +214,13 @@ describe("Garden", () => {
     })
 
     it("should throw if the specified environment isn't configured", async () => {
-      await expectError(async () => makeTestGarden(projectRootA, { environmentName: "bla" }), "parameter")
+      await expectError(async () => makeTestGarden(projectRootA, { environmentName: "bla" }), { type: "parameter" })
     })
 
     it("should throw if environment starts with 'garden-'", async () => {
-      await expectError(async () => makeTestGarden(projectRootA, { environmentName: "garden-bla" }), "parameter")
+      await expectError(async () => makeTestGarden(projectRootA, { environmentName: "garden-bla" }), {
+        type: "parameter",
+      })
     })
 
     it("should throw if project.environments is not an array", async () => {
@@ -339,10 +341,9 @@ describe("Garden", () => {
             - name: local
         `
         )
-        await expectError(
-          async () => Garden.factory(tmpPath, { commandInfo: { name: "test", args: {}, opts: {} } }),
-          "runtime"
-        )
+        await expectError(async () => Garden.factory(tmpPath, { commandInfo: { name: "test", args: {}, opts: {} } }), {
+          type: "runtime",
+        })
       } finally {
         await dir.cleanup()
       }
