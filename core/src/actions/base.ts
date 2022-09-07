@@ -197,8 +197,7 @@ export const baseActionConfigSchema = () =>
     `
       )
       .meta({ templateContext: ActionConfigContext }),
-    varfiles: joi
-      .posixPath()
+    varfiles: joiSparseArray(joi.posixPath())
       .description(
         dedent`
           Specify a list of paths (relative to the directory where the action is defined) to a file containing variables, that we apply on top of the action-level \`variables\` field, and take precedence over group-level variables (if applicable) and project-level variables, in that order.
@@ -530,12 +529,19 @@ export interface ResolvedActionExtension<
   Outputs extends {} = any
 > {
   getDependencyResult(ref: ActionReference | Action): GraphResult | null
+
   getExecutedDependencies(): ExecutedAction[]
+
   getResolvedDependencies(): ResolvedAction[]
+
   getSpec(): C["spec"]
+
   getSpec<K extends keyof C["spec"]>(key: K): C["spec"][K]
+
   getOutput<K extends keyof Outputs>(key: K): Outputs[K] | undefined
+
   getOutputs(): Outputs
+
   getVariables(): DeepPrimitiveMap
 }
 
