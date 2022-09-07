@@ -202,7 +202,7 @@ export class CliWrapper {
 }
 
 const findBuildSpec = (spec: PluginToolSpec, plat: string, arch: string) => {
-  return spec.builds.find((build) => build.platform === plat && build.architecture === arch)!
+  return spec.builds.find((build) => build.platform === plat && build.architecture === arch)
 }
 
 export interface PluginTools {
@@ -236,9 +236,9 @@ export class PluginTool extends CliWrapper {
 
     if (darwinARM) {
       // first look for native arch, if not found, then try (potentially emulated) arch
-      this.buildSpec = findBuildSpec(spec, platform, "arm64") || findBuildSpec(spec, platform, "amd64")
+      this.buildSpec = findBuildSpec(spec, platform, "arm64")! || findBuildSpec(spec, platform, "amd64")!
     } else {
-      this.buildSpec = findBuildSpec(spec, platform, architecture)
+      this.buildSpec = findBuildSpec(spec, platform, architecture)!
     }
 
     if (!this.buildSpec) {
