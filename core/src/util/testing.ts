@@ -6,15 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { keyBy, isEqual, cloneDeep } from "lodash"
-import { Garden, GardenOpts, resolveGardenParams } from "../garden"
-import { StringMap, DeepPrimitiveMap } from "../config/common"
-import { GardenParams } from "../garden"
+import { cloneDeep, isEqual, keyBy } from "lodash"
+import { Garden, GardenOpts, GardenParams, resolveGardenParams } from "../garden"
+import { DeepPrimitiveMap, StringMap } from "../config/common"
 import { ModuleConfig } from "../config/module"
 import { WorkflowConfig } from "../config/workflow"
 import { LogEntry } from "../logger/log-entry"
 import { GardenModule } from "../types/module"
-import { findByName, getNames, ValueOf, isPromise, serializeObject, hashString, uuidv4 } from "./util"
+import { findByName, getNames, hashString, isPromise, serializeObject, uuidv4, ValueOf } from "./util"
 import { GardenBaseError, GardenError } from "../exceptions"
 import { EventBus, Events } from "../events"
 import { dedent } from "./string"
@@ -27,6 +26,7 @@ import { VcsHandler } from "../vcs/vcs"
 import { ConfigGraph } from "../graph/config-graph"
 import { SolveParams } from "../graph/solver"
 import { GraphResults } from "../graph/results"
+import { expect } from "chai"
 
 export class TestError extends GardenBaseError {
   type = "_test"
@@ -266,33 +266,52 @@ export class TestGarden extends Garden {
   }
 }
 
-export function expectError(fn: Function, typeOrCallback?: string | ((err: any) => void)) {
+export function expectFuzzyMatch(str: string, sample: string) {
+  const errorMessageNonAnsi = stripAnsi(str)
+  expect(errorMessageNonAnsi.toLowerCase()).to.contain(sample.toLowerCase())
+}
+
+type ExpectErrorAssertion = string | ((err: any) => void) | { type?: string; contains?: string }
+
+export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) {
   const handleError = (err: GardenError) => {
-    if (typeOrCallback === undefined) {
-      return true
-    } else if (typeof typeOrCallback === "function") {
-      typeOrCallback(err)
-      return true
-    } else {
-      if (!err.type) {
-        const newError = Error(`Expected GardenError with type ${typeOrCallback}, got: ${err}`)
-        newError.stack = err.stack
-        throw newError
-      }
-      if (err.type !== typeOrCallback) {
-        const newError = Error(`Expected ${typeOrCallback} error, got: ${err.type} error`)
-        newError.stack = err.stack
-        throw newError
-      }
+    if (assertion === undefined) {
       return true
     }
+
+    if (typeof assertion === "function") {
+      assertion(err)
+      return true
+    }
+
+    const type = typeof assertion === "string" ? assertion : assertion.type
+    const contains = typeof assertion === "object" && assertion.contains
+
+    if (type) {
+      if (!err.type) {
+        const newError = Error(`Expected GardenError with type ${type}, got: ${err}`)
+        newError.stack = err.stack
+        throw newError
+      }
+      if (err.type !== type) {
+        const newError = Error(`Expected ${type} error, got: ${err.type} error`)
+        newError.stack = err.stack
+        throw newError
+      }
+    }
+
+    if (contains) {
+      expectFuzzyMatch(err.message, contains)
+    }
+
+    return true
   }
 
   const handleNonError = (caught: boolean) => {
     if (caught) {
       return
-    } else if (typeof typeOrCallback === "string") {
-      throw new Error(`Expected ${typeOrCallback} error (got no error)`)
+    } else if (typeof assertion === "string") {
+      throw new Error(`Expected ${assertion} error (got no error)`)
     } else {
       throw new Error(`Expected error (got no error)`)
     }
