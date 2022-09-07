@@ -521,7 +521,7 @@ export class ConfigGraphNode {
     return {
       name: this.name,
       kind: this.kind,
-      key: nodeKey(this.kind, this.name),
+      key: this.name,
       disabled: this.disabled,
     }
   }

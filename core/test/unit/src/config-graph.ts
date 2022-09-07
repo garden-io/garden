@@ -1040,7 +1040,7 @@ describe("ConfigGraphNode", () => {
       expect(res).to.eql({
         kind: "Build",
         name: "module-a",
-        key: "Build.module-a",
+        key: "module-a",
         disabled: false,
       })
     })
@@ -1051,7 +1051,7 @@ describe("ConfigGraphNode", () => {
       expect(res).to.eql({
         kind: "Deploy",
         name: "service-a",
-        key: "Deploy.service-a",
+        key: "service-a",
         disabled: false,
       })
     })
@@ -1062,7 +1062,7 @@ describe("ConfigGraphNode", () => {
       expect(res).to.eql({
         kind: "Run",
         name: "task-a",
-        key: "Run.task-a",
+        key: "task-a",
         disabled: false,
       })
     })
@@ -1073,7 +1073,7 @@ describe("ConfigGraphNode", () => {
       expect(res).to.eql({
         kind: "Test",
         name: "module-a.test-a",
-        key: "Test.module-a.test-a",
+        key: "module-a.test-a",
         disabled: false,
       })
     })
@@ -1084,7 +1084,7 @@ describe("ConfigGraphNode", () => {
       expect(res).to.eql({
         kind: "Test",
         name: "module-a.test-a",
-        key: "Test.module-a.test-a",
+        key: "module-a.test-a",
         disabled: true,
       })
     })
