@@ -148,7 +148,7 @@ variables:
 # e.g. `varfile: "my-action.\$\{environment.name\}.env` (this assumes that the corresponding varfiles exist).
 #
 # If a listed varfile cannot be found, it is ignored.
-varfiles:
+varfiles: []
 
 # Specify a _Build_ action, and resolve this action from the context of that Build.
 #
@@ -395,7 +395,7 @@ A map of variables scoped to this particular action. These are resolved before a
 | -------- | -------- |
 | `object` | No       |
 
-### `varfiles`
+### `varfiles[]`
 
 Specify a list of paths (relative to the directory where the action is defined) to a file containing variables, that we apply on top of the action-level `variables` field, and take precedence over group-level variables (if applicable) and project-level variables, in that order.
 
@@ -413,14 +413,15 @@ To use different varfiles in different environments, you can template in the env
 
 If a listed varfile cannot be found, it is ignored.
 
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | No       |
+| Type               | Default | Required |
+| ------------------ | ------- | -------- |
+| `array[posixPath]` | `[]`    | No       |
 
 Example:
 
 ```yaml
-varfiles: "my-action.env"
+varfiles:
+  "my-action.env"
 ```
 
 ### `build`
