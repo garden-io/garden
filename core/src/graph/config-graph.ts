@@ -386,7 +386,7 @@ export abstract class BaseConfigGraph<
   }
 
   private nodesToActions(nodes: ConfigGraphNode[]) {
-    return nodes.map((n) => this.actions[n.type][n.name])
+    return nodes.map((n) => this.actions[n.kind][n.name])
   }
 
   // private uniqueNames(nodes: ConfigGraphNode[], type: ActionKind) {
@@ -400,14 +400,14 @@ export abstract class BaseConfigGraph<
     for (const dependant of nodes) {
       for (const dependency of dependant.dependencies) {
         edges.push({ dependant, dependency })
-        simpleEdges.push([nodeKey(dependant.type, dependant.name), nodeKey(dependency.type, dependency.name)])
+        simpleEdges.push([nodeKey(dependant.kind, dependant.name), nodeKey(dependency.kind, dependency.name)])
       }
     }
 
     const sortedNodeKeys = toposort(simpleEdges)
 
     const edgeSortIndex = (e: ConfigGraphEdge) => {
-      return sortedNodeKeys.findIndex((k: string) => k === nodeKey(e.dependency.type, e.dependency.name))
+      return sortedNodeKeys.findIndex((k: string) => k === nodeKey(e.dependency.kind, e.dependency.name))
     }
     edges = edges.sort((e1, e2) => edgeSortIndex(e2) - edgeSortIndex(e1))
     const renderedEdges = edges.map((e) => ({
@@ -416,7 +416,7 @@ export abstract class BaseConfigGraph<
     }))
 
     const nodeSortIndex = (n: ConfigGraphNode) => {
-      return sortedNodeKeys.findIndex((k: string) => k === nodeKey(n.type, n.name))
+      return sortedNodeKeys.findIndex((k: string) => k === nodeKey(n.kind, n.name))
     }
     const renderedNodes = nodes.sort((n1, n2) => nodeSortIndex(n2) - nodeSortIndex(n1)).map((n) => n.render())
 
@@ -512,7 +512,7 @@ export class ConfigGraphNode {
   dependencies: ConfigGraphNode[]
   dependants: ConfigGraphNode[]
 
-  constructor(public type: ActionKind, public name: string, public disabled: boolean) {
+  constructor(public kind: ActionKind, public name: string, public disabled: boolean) {
     this.dependencies = []
     this.dependants = []
   }
@@ -520,24 +520,24 @@ export class ConfigGraphNode {
   render(): RenderedNode {
     return {
       name: this.name,
-      kind: this.type,
-      key: nodeKey(this.type, this.name),
+      kind: this.kind,
+      key: nodeKey(this.kind, this.name),
       disabled: this.disabled,
     }
   }
 
   // Idempotent.
   addDependency(node: ConfigGraphNode) {
-    const key = nodeKey(node.type, node.name)
-    if (!this.dependencies.find((d) => nodeKey(d.type, d.name) === key)) {
+    const key = nodeKey(node.kind, node.name)
+    if (!this.dependencies.find((d) => nodeKey(d.kind, d.name) === key)) {
       this.dependencies.push(node)
     }
   }
 
   // Idempotent.
   addDependant(node: ConfigGraphNode) {
-    const key = nodeKey(node.type, node.name)
-    if (!this.dependants.find((d) => nodeKey(d.type, d.name) === key)) {
+    const key = nodeKey(node.kind, node.name)
+    if (!this.dependants.find((d) => nodeKey(d.kind, d.name) === key)) {
       this.dependants.push(node)
     }
   }
@@ -564,7 +564,7 @@ export class ConfigGraphNode {
 
   private traverse(type: "dependants" | "dependencies", recursive: boolean, filter?: DependencyRelationFilterFn) {
     const nodes = this[type].filter((n) => {
-      if (n.type !== "Build" && n.disabled) {
+      if (n.kind !== "Build" && n.disabled) {
         return false
       } else if (filter) {
         return filter(n)
