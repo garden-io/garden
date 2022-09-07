@@ -11,7 +11,7 @@ import split2 from "split2"
 import { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } from "fs-extra"
 import { ConfigurationError, ParameterError, GardenBaseError, RuntimeError } from "../exceptions"
 import { join, dirname, basename, posix } from "path"
-import { hashString, exec, uuidv4, getPlatform, getArchitecture, isRosetta } from "./util"
+import { hashString, exec, uuidv4, getPlatform, getArchitecture, isDarwinARM } from "./util"
 import tar from "tar"
 import { GARDEN_GLOBAL_PATH } from "../constants"
 import { LogEntry } from "../logger/log-entry"
@@ -248,17 +248,16 @@ export class PluginTool extends CliWrapper {
   constructor(spec: PluginToolSpec) {
     const _platform = getPlatform()
     const architecture = getArchitecture()
-    const isEmulated = isRosetta()
 
     let buildSpec: ToolBuildSpec
     // first look for native arch, if not found, then try (potentially emulated) arch
-    if (isEmulated) {
-      buildSpec = findBuildSpec(spec, _platform, "arm64") || findBuildSpec(spec, _platform, architecture)
+    if (isDarwinARM()) {
+      buildSpec = findBuildSpec(spec, _platform, "arm64") || findBuildSpec(spec, _platform, "amd64")
     } else {
       buildSpec = findBuildSpec(spec, _platform, architecture)
     }
 
-    const darwinPreferredArch = isEmulated ? buildSpec.architecture : undefined
+    const darwinPreferredArch = architecture !== buildSpec.architecture ? buildSpec.architecture : undefined
     super(spec.name, "", darwinPreferredArch)
 
     this.buildSpec = buildSpec

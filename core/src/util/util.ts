@@ -705,11 +705,17 @@ export function getArchitecture() {
   return archMap[arch] || arch
 }
 
-export const isRosetta = memoize(() => {
-  // detect rosetta on Apple M cpu family macs
-  // see also https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment
-  if (process.arch === "x64" && process.platform === "darwin") {
-    // Use execSync here, because this function is called in a constructor
+export const isDarwinARM = memoize(() => {
+  if (process.platform !== "darwin") {
+    return false
+  }
+
+  if (process.arch === "arm64") {
+    return true
+  } else if (process.arch === "x64") {
+    // detect rosetta on Apple M cpu family macs
+    // see also https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment
+    // We use execSync here, because this function is called in a constructor
     // otherwise we'd make the function async and call `spawn`
     const stdout = execSync("sysctl -n sysctl.proc_translated", { encoding: "utf-8" })
     if (stdout === "1\n") {
