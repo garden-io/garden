@@ -48,20 +48,13 @@ export interface SpawnParams extends ExecParams {
   rawMode?: boolean // Only used if tty = true. See also: https://nodejs.org/api/tty.html#tty_readstream_setrawmode_mode
 }
 
-// for translating arch to values expected by /usr/bin/arch
-const darwinArchMap = {
-  amd64: "x86_64",
-}
-
 export class CliWrapper {
   name: string
   protected toolPath: string
-  protected darwinPreferredArch: string | undefined
 
-  constructor(name: string, path: string, darwinPreferredArch?: string) {
+  constructor(name: string, path: string) {
     this.name = name
     this.toolPath = path
-    this.darwinPreferredArch = darwinPreferredArch
   }
 
   async getPath(_: LogEntry) {
@@ -69,28 +62,18 @@ export class CliWrapper {
   }
 
   async exec({ args, cwd, env, log, timeoutSec, input, ignoreError, stdout, stderr }: ExecParams) {
-    const toolPath = await this.getPath(log)
+    const path = await this.getPath(log)
 
     if (!args) {
       args = []
     }
     if (!cwd) {
-      cwd = dirname(toolPath)
+      cwd = dirname(path)
     }
 
-    let execPath: string
-    if (this.darwinPreferredArch) {
-      const archOverride = darwinArchMap[this.darwinPreferredArch] || this.darwinPreferredArch
+    log.silly(`Execing '${path} ${args.join(" ")}' in ${cwd}`)
 
-      execPath = "/usr/bin/arch"
-      args = [`-arch=${archOverride}`, toolPath, ...args]
-    } else {
-      execPath = toolPath
-    }
-
-    log.silly(`Execing '${execPath} ${args.join(" ")}' in ${cwd}`)
-
-    return exec(execPath, args, {
+    return exec(path, args, {
       cwd,
       timeout: timeoutSec ? timeoutSec * 1000 : undefined,
       env,
@@ -245,23 +228,19 @@ export class PluginTool extends CliWrapper {
   private chmodDone: boolean
 
   constructor(spec: PluginToolSpec) {
+    super(spec.name, "")
+
     const platform = getPlatform()
     const architecture = getArchitecture()
     const darwinARM = isDarwinARM()
 
     let buildSpec: ToolBuildSpec
-    let darwinPreferredArch: string | undefined
     if (darwinARM) {
       // first look for native arch, if not found, then try (potentially emulated) arch
-      buildSpec = findBuildSpec(spec, platform, "arm64") || findBuildSpec(spec, platform, "amd64")
-      darwinPreferredArch = buildSpec?.architecture
+      this.buildSpec = findBuildSpec(spec, platform, "arm64") || findBuildSpec(spec, platform, "amd64")
     } else {
-      buildSpec = findBuildSpec(spec, platform, architecture)
+      this.buildSpec = findBuildSpec(spec, platform, architecture)
     }
-
-    super(spec.name, "", darwinPreferredArch)
-
-    this.buildSpec = buildSpec
 
     if (!this.buildSpec) {
       throw new ConfigurationError(
