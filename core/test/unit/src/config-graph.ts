@@ -469,9 +469,13 @@ describe("ConfigGraph", () => {
     it("should include disabled modules in build dependencies", async () => {
       const garden = await makeTestGardenA()
 
+      // FIXME: find a proper way of refreshing module configs programmatically.
+      //  With the configs below, function convertModules(...) from convert-modules.ts loses the build actions info
+      //  when its' called from Garden.getConfigGraph(...)
       garden.setModuleConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
+          kind: "Module",
           allowPublish: false,
           build: { dependencies: [] },
           disabled: true,
@@ -486,6 +490,7 @@ describe("ConfigGraph", () => {
         },
         {
           apiVersion: DEFAULT_API_VERSION,
+          kind: "Module",
           allowPublish: false,
           build: { dependencies: [{ name: "module-a", copy: [] }] },
           disabled: false,
