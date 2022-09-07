@@ -1053,10 +1053,9 @@ describe("ConfigGraphNode", () => {
       const node = new ConfigGraphNode("Build", "module-a", false)
       const res = node.render()
       expect(res).to.eql({
-        type: "build",
+        kind: "Build",
         name: "module-a",
-        moduleName: "module-a",
-        key: "build.module-a",
+        key: "Build.module-a",
         disabled: false,
       })
     })
@@ -1065,10 +1064,9 @@ describe("ConfigGraphNode", () => {
       const node = new ConfigGraphNode("Deploy", "service-a", false)
       const res = node.render()
       expect(res).to.eql({
-        type: "deploy",
+        kind: "Deploy",
         name: "service-a",
-        moduleName: "module-a",
-        key: "deploy.service-a",
+        key: "Deploy.service-a",
         disabled: false,
       })
     })
@@ -1077,10 +1075,9 @@ describe("ConfigGraphNode", () => {
       const node = new ConfigGraphNode("Run", "task-a", false)
       const res = node.render()
       expect(res).to.eql({
-        type: "run",
+        kind: "Run",
         name: "task-a",
-        moduleName: "module-a",
-        key: "task.task-a",
+        key: "Run.task-a",
         disabled: false,
       })
     })
@@ -1089,10 +1086,9 @@ describe("ConfigGraphNode", () => {
       const node = new ConfigGraphNode("Test", "module-a.test-a", false)
       const res = node.render()
       expect(res).to.eql({
-        type: "test",
-        name: "test-a",
-        moduleName: "module-a",
-        key: "test.module-a.test-a",
+        kind: "Test",
+        name: "module-a.test-a",
+        key: "Test.module-a.test-a",
         disabled: false,
       })
     })
@@ -1101,10 +1097,9 @@ describe("ConfigGraphNode", () => {
       const node = new ConfigGraphNode("Test", "module-a.test-a", true)
       const res = node.render()
       expect(res).to.eql({
-        type: "test",
-        name: "test-a",
-        moduleName: "module-a",
-        key: "test.module-a.test-a",
+        kind: "Test",
+        name: "module-a.test-a",
+        key: "Test.module-a.test-a",
         disabled: true,
       })
     })
