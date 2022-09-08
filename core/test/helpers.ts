@@ -8,7 +8,7 @@
 
 import td from "testdouble"
 import { join, relative, resolve } from "path"
-import { extend, intersection, mapValues, merge, pick } from "lodash"
+import { cloneDeep, extend, intersection, mapValues, merge, pick } from "lodash"
 import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
 import {
@@ -331,17 +331,18 @@ export const testPluginC = () => {
   })
 }
 
-export const defaultProjectConfig: ProjectConfig = {
-  apiVersion: DEFAULT_API_VERSION,
-  kind: "Project",
-  name: "test",
-  path: "tmp",
-  defaultEnvironment: "default",
-  dotIgnoreFile: defaultDotIgnoreFile,
-  environments: [{ name: "default", defaultNamespace, variables: {} }],
-  providers: [],
-  variables: {},
-}
+export const getDefaultProjectConfig = (): ProjectConfig =>
+  cloneDeep({
+    apiVersion: DEFAULT_API_VERSION,
+    kind: "Project",
+    name: "test",
+    path: "tmp",
+    defaultEnvironment: "default",
+    dotIgnoreFile: defaultDotIgnoreFile,
+    environments: [{ name: "default", defaultNamespace, variables: {} }],
+    providers: [],
+    variables: {},
+  })
 
 export const defaultModuleConfig: ModuleConfig = {
   apiVersion: DEFAULT_API_VERSION,
