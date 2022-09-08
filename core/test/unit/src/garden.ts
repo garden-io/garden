@@ -90,18 +90,34 @@ describe("Garden", () => {
     td.replace(Garden.prototype, "resolveModuleVersion", async () => testModuleVersion)
   })
 
+  const providerActionHandlerTypes: ProviderActionName[] = [
+    "configureProvider",
+    "augmentGraph",
+    "getEnvironmentStatus",
+    "prepareEnvironment",
+    "cleanupEnvironment",
+    "getSecret",
+    "setSecret",
+    "deleteSecret",
+    "getDashboardPage",
+    "getDebugInfo",
+  ]
+
   describe("factory", () => {
     function getProviderActionHandler(router: ActionRouter, handlerType: ProviderActionName, pluginName: string) {
       return router.provider.getPluginHandler({ handlerType, pluginName: pluginName })
+    }
+
+    function ensureProviderActionHandlers(router: ActionRouter, pluginName: string) {
+      providerActionHandlerTypes.forEach((h) => expect(getProviderActionHandler(router, h, pluginName)).to.be.ok)
     }
 
     it("should initialize and add the action handlers for a plugin", async () => {
       const garden = await makeTestGardenA()
       const actions = await garden.getActionRouter()
 
-      // TODO-G2: check all handler types
-      expect(getProviderActionHandler(actions, "prepareEnvironment", "test-plugin")).to.be.ok
-      expect(getProviderActionHandler(actions, "prepareEnvironment", "test-plugin-b")).to.be.ok
+      ensureProviderActionHandlers(actions, "test-plugin")
+      ensureProviderActionHandlers(actions, "test-plugin-b")
     })
 
     it("should initialize a project with config files with yaml and yml extensions", async () => {
