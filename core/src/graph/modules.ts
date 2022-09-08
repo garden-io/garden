@@ -23,7 +23,7 @@ import { testFromModule, GardenTest, testFromConfig } from "../types/test"
 import indentString from "indent-string"
 
 // Each of these types corresponds to a Task class (e.g. BuildTask, DeployTask, ...).
-type ModuleDependencyGraphNodeType = "build" | "deploy" | "run" | "test"
+export type ModuleDependencyGraphNodeKind = "build" | "deploy" | "run" | "test"
 
 // The primary output type (for dependencies and dependants).
 type DependencyRelations = {
@@ -43,14 +43,14 @@ type DependencyRelationNames = {
 type DependencyRelationFilterFn = (node: ModuleDependencyGraphNode) => boolean
 
 interface RenderedNode {
-  type: ModuleDependencyGraphNodeType
+  type: ModuleDependencyGraphNodeKind
   name: string
   moduleName: string
   key: string
   disabled: boolean
 }
 
-type DepNodeTaskTypeMap = { [key in ModuleDependencyGraphNodeType]: string }
+type DepNodeTaskKindMap = { [key in ModuleDependencyGraphNodeKind]: string }
 
 type EntityConfig = ServiceConfig | TaskConfig | TestConfig
 
@@ -407,7 +407,7 @@ export class ModuleGraph {
     recursive,
     filter,
   }: {
-    kind: ModuleDependencyGraphNodeType
+    kind: ModuleDependencyGraphNodeKind
     name: string
     recursive: boolean
     filter?: DependencyRelationFilterFn
@@ -428,7 +428,7 @@ export class ModuleGraph {
     recursive,
     filter,
   }: {
-    kind: ModuleDependencyGraphNodeType
+    kind: ModuleDependencyGraphNodeKind
     name: string
     recursive: boolean
     filter?: DependencyRelationFilterFn
@@ -446,7 +446,7 @@ export class ModuleGraph {
     recursive,
     filter,
   }: {
-    kind: ModuleDependencyGraphNodeType
+    kind: ModuleDependencyGraphNodeKind
     names: string[]
     recursive: boolean
     filter?: DependencyRelationFilterFn
@@ -464,7 +464,7 @@ export class ModuleGraph {
     recursive,
     filter,
   }: {
-    kind: ModuleDependencyGraphNodeType
+    kind: ModuleDependencyGraphNodeKind
     names: string[]
     recursive: boolean
     filter?: DependencyRelationFilterFn
@@ -552,7 +552,7 @@ export class ModuleGraph {
     recursive,
     filter,
   }: {
-    kind: ModuleDependencyGraphNodeType
+    kind: ModuleDependencyGraphNodeKind
     name: string
     recursive: boolean
     filter?: DependencyRelationFilterFn
@@ -567,7 +567,7 @@ export class ModuleGraph {
     recursive,
     filter,
   }: {
-    kind: ModuleDependencyGraphNodeType
+    kind: ModuleDependencyGraphNodeKind
     name: string
     recursive: boolean
     filter?: DependencyRelationFilterFn
@@ -576,8 +576,8 @@ export class ModuleGraph {
     return node ? node.getDependants(recursive, filter) : []
   }
 
-  private uniqueNames(nodes: ModuleDependencyGraphNode[], type: ModuleDependencyGraphNodeType) {
-    return uniq(nodes.filter((n) => n.type === type).map((n) => n.name))
+  private uniqueNames(nodes: ModuleDependencyGraphNode[], type: ModuleDependencyGraphNodeKind) {
+    return uniq(nodes.filter((n) => n.kind === type).map((n) => n.name))
   }
 
   // Idempotent.
@@ -588,7 +588,7 @@ export class ModuleGraph {
     dependencyModuleName,
   }: {
     dependant: ModuleDependencyGraphNode
-    dependencyType: ModuleDependencyGraphNodeType
+    dependencyType: ModuleDependencyGraphNodeKind
     dependencyName: string
     dependencyModuleName: string
   }) {
@@ -598,7 +598,7 @@ export class ModuleGraph {
   }
 
   // Idempotent.
-  private getNode(type: ModuleDependencyGraphNodeType, name: string, moduleName: string, disabled: boolean) {
+  private getNode(type: ModuleDependencyGraphNodeKind, name: string, moduleName: string, disabled: boolean) {
     const key = nodeKey(type, name)
     const existingNode = this.dependencyGraph[key]
     if (existingNode) {
@@ -614,7 +614,7 @@ export class ModuleGraph {
   }
 }
 
-const depNodeTaskTypeMap: DepNodeTaskTypeMap = {
+const depNodeTaskTypeMap: DepNodeTaskKindMap = {
   build: "build",
   deploy: "deploy",
   run: "run",
@@ -626,7 +626,7 @@ export class ModuleDependencyGraphNode {
   dependants: ModuleDependencyGraphNode[]
 
   constructor(
-    public type: ModuleDependencyGraphNodeType,
+    public kind: ModuleDependencyGraphNodeKind,
     public name: string,
     public moduleName: string,
     public disabled: boolean
@@ -636,12 +636,12 @@ export class ModuleDependencyGraphNode {
   }
 
   render(): RenderedNode {
-    const name = this.type === "test" ? parseTestKey(this.name).testName : this.name
-    const taskType = depNodeTaskTypeMap[this.type]
+    const name = this.kind === "test" ? parseTestKey(this.name).testName : this.name
+    const taskType = depNodeTaskTypeMap[this.kind]
 
     return {
       name,
-      type: this.type,
+      type: this.kind,
       moduleName: this.moduleName,
       key: makeBaseKey(taskType, this.name),
       disabled: this.disabled,
@@ -650,16 +650,16 @@ export class ModuleDependencyGraphNode {
 
   // Idempotent.
   addDependency(node: ModuleDependencyGraphNode) {
-    const key = nodeKey(node.type, node.name)
-    if (!this.dependencies.find((d) => nodeKey(d.type, d.name) === key)) {
+    const key = nodeKey(node.kind, node.name)
+    if (!this.dependencies.find((d) => nodeKey(d.kind, d.name) === key)) {
       this.dependencies.push(node)
     }
   }
 
   // Idempotent.
   addDependant(node: ModuleDependencyGraphNode) {
-    const key = nodeKey(node.type, node.name)
-    if (!this.dependants.find((d) => nodeKey(d.type, d.name) === key)) {
+    const key = nodeKey(node.kind, node.name)
+    if (!this.dependants.find((d) => nodeKey(d.kind, d.name) === key)) {
       this.dependants.push(node)
     }
   }
@@ -686,7 +686,7 @@ export class ModuleDependencyGraphNode {
 
   private traverse(type: "dependants" | "dependencies", recursive: boolean, filter?: DependencyRelationFilterFn) {
     const nodes = this[type].filter((n) => {
-      if (n.type !== "build" && n.disabled) {
+      if (n.kind !== "build" && n.disabled) {
         return false
       } else if (filter) {
         return filter(n)
@@ -755,7 +755,7 @@ export function detectMissingDependencies(moduleConfigs: ModuleConfig[]) {
  * Note: If type === "build", name should be a prefix-qualified module name, as
  * returned by keyForModule or getModuleKey.
  */
-function nodeKey(type: ModuleDependencyGraphNodeType, name: string) {
+function nodeKey(type: ModuleDependencyGraphNodeKind, name: string) {
   return `${type}.${name}`
 }
 
