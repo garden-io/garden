@@ -167,9 +167,7 @@ describe("loadConfigResources", () => {
       await expectError(
         async () =>
           validateRawConfig({ rawConfig: configRaw, configPath: "fake/path", projectRoot: "fake/projec/root" }),
-        (err) => {
-          expectFuzzyMatch(err, "does not allow templating")
-        }
+        { contains: "does not allow templating" }
       )
     }
   })
