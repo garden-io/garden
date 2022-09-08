@@ -88,7 +88,7 @@ describe("GetTestResultCommand", () => {
   })
 
   it("should throw error if test not found", async () => {
-    const name = "banana"
+    const testName = "banana"
 
     await expectError(
       async () =>
@@ -97,22 +97,22 @@ describe("GetTestResultCommand", () => {
           log,
           headerLog: log,
           footerLog: log,
-          args: { name, moduleTestName: moduleName },
+          args: { name: moduleName, moduleTestName: testName },
           opts: withDefaultGlobalOpts({}),
         }),
-      "not-found"
+      { type: "parameter", contains: `Could not find test "${testName}" in module ${moduleName}` }
     )
   })
 
   it("should return the test result", async () => {
-    const name = "unit"
+    const testName = "unit"
 
     const res = await command.action({
       garden,
       log,
       headerLog: log,
       footerLog: log,
-      args: { name, moduleTestName: moduleName },
+      args: { name: moduleName, moduleTestName: testName },
       opts: withDefaultGlobalOpts({}),
     })
 
@@ -135,11 +135,11 @@ describe("GetTestResultCommand", () => {
   })
 
   it("should include paths to artifacts if artifacts exist", async () => {
-    const name = "unit"
+    const testName = "unit"
 
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false, noCache: true })
     const testAction = graph.getTest("module-a-unit")
-    const artifactKey = getArtifactKey("test", name, testAction.versionString())
+    const artifactKey = getArtifactKey("test", testName, testAction.versionString())
     const metadataPath = join(garden.artifactsPath, `.metadata.${artifactKey}.json`)
     const metadata = {
       key: artifactKey,
@@ -153,7 +153,7 @@ describe("GetTestResultCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { name, moduleTestName: moduleName },
+      args: { name: moduleName, moduleTestName: testName },
       opts: withDefaultGlobalOpts({}),
     })
 
@@ -174,14 +174,14 @@ describe("GetTestResultCommand", () => {
   })
 
   it("should return result null if test result does not exist", async () => {
-    const name = "integration"
+    const testName = "integration"
 
     const res = await command.action({
       garden,
       log,
       footerLog: log,
       headerLog: log,
-      args: { name, moduleTestName: moduleName },
+      args: { name: moduleName, moduleTestName: testName },
       opts: withDefaultGlobalOpts({}),
     })
 
