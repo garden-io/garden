@@ -69,7 +69,7 @@ export async function loadConfigResources(
   configPath: string,
   allowInvalid = false
 ): Promise<GardenResource[]> {
-  let fileData: Buffer = await readConfigFile(configPath, projectRoot)
+  const fileData = await readConfigFile(configPath, projectRoot)
 
   const resources = await validateRawConfig(fileData.toString(), configPath, projectRoot, allowInvalid)
 
