@@ -71,17 +71,22 @@ export async function loadConfigResources(
 ): Promise<GardenResource[]> {
   const fileData = await readConfigFile(configPath, projectRoot)
 
-  const resources = await validateRawConfig(fileData.toString(), configPath, projectRoot, allowInvalid)
+  const resources = await validateRawConfig({ rawConfig: fileData.toString(), configPath, projectRoot, allowInvalid })
 
   return resources
 }
 
-export async function validateRawConfig(
-  rawConfig: string,
-  configPath: string,
-  projectRoot: string,
-  allowInvalid = false
-) {
+export async function validateRawConfig({
+  rawConfig,
+  configPath,
+  projectRoot,
+  allowInvalid = false,
+}: {
+  rawConfig: string
+  configPath: string
+  projectRoot: string
+  allowInvalid?: boolean
+}) {
   let rawSpecs = await loadAndValidateYaml(rawConfig, configPath)
 
   // Ignore empty resources

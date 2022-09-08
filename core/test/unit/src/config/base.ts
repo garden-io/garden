@@ -165,7 +165,8 @@ describe("loadConfigResources", () => {
       basicProjecConfig[field] = '${camelCase("No templating should be allowed here")}'
       const configRaw = safeDumpYaml(basicProjecConfig)
       await expectError(
-        async () => validateRawConfig(configRaw, "fake/path", "fake/projec/root"),
+        async () =>
+          validateRawConfig({ rawConfig: configRaw, configPath: "fake/path", projectRoot: "fake/projec/root" }),
         (err) => {
           expectFuzzyMatch(err, "does not allow templating")
         }
