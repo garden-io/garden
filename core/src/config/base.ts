@@ -99,14 +99,11 @@ export async function validateRawConfig({
 }
 
 export async function readConfigFile(configPath: string, projectRoot: string) {
-  let fileData: Buffer
-
   try {
-    fileData = await readFile(configPath)
+    return await readFile(configPath)
   } catch (err) {
     throw new FilesystemError(`Could not find configuration file at ${configPath}`, { projectRoot, configPath })
   }
-  return fileData
 }
 
 /**
