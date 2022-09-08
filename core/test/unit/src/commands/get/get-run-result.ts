@@ -101,7 +101,7 @@ describe("GetRunResultCommand", () => {
           args: { name },
           opts: withDefaultGlobalOpts({}),
         }),
-      "parameter"
+      { type: "graph", contains: `Could not find Run action ${name}` }
     )
   })
 
