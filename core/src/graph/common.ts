@@ -12,7 +12,7 @@ import { get, isEqual, join, set, uniqWith } from "lodash"
 import { ConfigurationError } from "../exceptions"
 import { GraphNodes, ConfigGraphNode } from "./config-graph"
 import { Profile } from "../util/profiling"
-import type { ModuleGraphNodes } from "./modules"
+import type { ModuleDependencyGraphNode, ModuleDependencyGraphNodeKind, ModuleGraphNodes } from "./modules"
 import { ActionKind } from "../plugin/action-types"
 import Bluebird from "bluebird"
 import { loadVarfile } from "../config/base"
@@ -31,7 +31,7 @@ export type DependencyGraphNode = {
 @Profile()
 export class DependencyGraph<T> extends DepGraph<T> {
   static fromGraphNodes<G extends GraphNodes | ModuleGraphNodes>(dependencyGraph: G) {
-    const withDeps = (node: ConfigGraphNode): DependencyGraphNode => {
+    const withDeps = (node: ConfigGraphNode | ModuleDependencyGraphNode): DependencyGraphNode => {
       return {
         key: nodeKey(node.kind, node.name),
         dependencies: node.dependencies.map((d) => nodeKey(d.kind, d.name)),
@@ -210,6 +210,6 @@ export function cyclesToString(cycles: Cycle[]) {
   return cycleDescriptions.length === 1 ? cycleDescriptions[0] : cycleDescriptions.join("\n\n")
 }
 
-export function nodeKey(type: ActionKind, name: string) {
+export function nodeKey(type: ActionKind | ModuleDependencyGraphNodeKind, name: string) {
   return `${type}.${name}`
 }
