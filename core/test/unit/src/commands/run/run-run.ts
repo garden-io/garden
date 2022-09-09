@@ -6,12 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import stripAnsi from "strip-ansi"
 import { expect } from "chai"
 import { omit } from "lodash"
 import { RunTaskCommand } from "../../../../../src/commands/run/run-task"
 import {
-  assertAsyncError,
   customizedTestPlugin,
   expectError,
   makeTestGarden,
@@ -108,17 +106,18 @@ describe("RunTaskCommand", () => {
     const garden = await makeExecTestGarden(projectTestFailsRoot)
     const log = garden.log
 
-    const action = async () =>
-      await cmd.action({
-        garden,
-        log,
-        headerLog: log,
-        footerLog: log,
-        args: { name: "task" },
-        opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
-      })
-
-    await assertAsyncError(action, "task-error")
+    await expectError(
+      () =>
+        cmd.action({
+          garden,
+          log,
+          headerLog: log,
+          footerLog: log,
+          args: { name: "task" },
+          opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
+        }),
+      { type: "task-error" }
+    )
   })
 
   it("should throw if the task is disabled", async () => {
@@ -138,11 +137,10 @@ describe("RunTaskCommand", () => {
           args: { name: "task-a" },
           opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
         }),
-      (err) =>
-        expect(stripAnsi(err.message)).to.equal(
-          "Task task-a is disabled for the local environment. If you're sure you want to run it anyway, " +
-            "please run the command again with the --force flag."
-        )
+      {
+        contains:
+          "Task task-a is disabled for the local environment. If you're sure you want to run it anyway, please run the command again with the --force flag.",
+      }
     )
   })
 
@@ -194,17 +192,18 @@ describe("RunTaskCommand", () => {
     const garden = await makeExecTestGarden(projectTestFailsRoot)
     const log = garden.log
 
-    const action = async () =>
-      await cmd.action({
-        garden,
-        log,
-        headerLog: log,
-        footerLog: log,
-        args: { name: "task" },
-        opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
-      })
-
-    await assertAsyncError(action, "task-error")
+    await expectError(
+      () =>
+        cmd.action({
+          garden,
+          log,
+          headerLog: log,
+          footerLog: log,
+          args: { name: "task" },
+          opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
+        }),
+      { type: "task-error" }
+    )
 
     const logOutput = getLogMessages(log, (entry) => entry.level === LogLevel.error).join("\n")
 
