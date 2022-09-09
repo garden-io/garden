@@ -26,7 +26,6 @@ import {
   testGitUrlHash,
   resetLocalConfig,
   testGitUrl,
-  assertAsyncError,
   expectFuzzyMatch,
 } from "../../helpers"
 import { getNames, findByName, omitUndefined, exec } from "../../../src/util/util"
@@ -45,7 +44,6 @@ import {
 import { DEFAULT_API_VERSION } from "../../../src/constants"
 import { providerConfigBaseSchema } from "../../../src/config/provider"
 import { keyBy, set, mapValues, omit } from "lodash"
-import stripAnsi from "strip-ansi"
 import { joi } from "../../../src/config/common"
 import { defaultDotIgnoreFile, makeTempDir } from "../../../src/util/fs"
 import { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } from "fs-extra"
@@ -2575,11 +2573,10 @@ describe("Garden", () => {
         // In this project we have custom dotIgnoreFile: .customignore which overrides the default .gardenignore.
         // Thus, all exclusions from .gardenignore will be skipped.
         const projectRoot = getDataDir("test-projects", "dotignore-custom-legacy", "with-unsupported-legacy-config")
-        const createGarden = async () => makeTestGarden(projectRoot)
-        await assertAsyncError(
-          createGarden,
-          "Cannot auto-convert array-field `dotIgnoreFiles` to scalar `dotIgnoreFile`: multiple values found in the array [.customignore, .gitignore]"
-        )
+        await expectError(() => makeTestGarden(projectRoot), {
+          contains:
+            "Cannot auto-convert array-field `dotIgnoreFiles` to scalar `dotIgnoreFile`: multiple values found in the array [.customignore, .gitignore]",
+        })
       })
     })
 
