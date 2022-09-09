@@ -752,11 +752,11 @@ export function detectMissingDependencies(moduleConfigs: ModuleConfig[]) {
 }
 
 /**
- * Note: If type === "build", name should be a prefix-qualified module name, as
+ * Note: If kind === "build", name should be a prefix-qualified module name, as
  * returned by keyForModule or getModuleKey.
  */
-function nodeKey(type: ModuleDependencyGraphNodeKind, name: string) {
-  return `${type}.${name}`
+function nodeKey(kind: ModuleDependencyGraphNodeKind, name: string) {
+  return `${kind}.${name}`
 }
 
 function parseTestKey(key: string) {
