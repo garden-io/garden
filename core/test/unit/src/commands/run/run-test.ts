@@ -200,7 +200,7 @@ describe("RunTestCommand", () => {
           log,
           headerLog: log,
           footerLog: log,
-          args: { name: "unit", moduleTestName: "module" },
+          args: { name: "module", moduleTestName: "unit" },
           opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": true }),
         }),
       { type: "test-error" }
