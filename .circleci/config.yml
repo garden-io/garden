@@ -925,8 +925,8 @@ workflows:
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
-          name: e2e-project-variables
-          project: project-variables
+          name: e2e-variables
+          project: variables
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
