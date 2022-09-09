@@ -2,13 +2,21 @@ kind: Module
 name: backend
 description: Backend service container
 type: container
+
+variables:
+  dev-mode: ${command.params contains 'dev-mode' && (command.params.dev-mode contains '<module-name>' || isEmpty(command.params.dev-mode))}
+  httpPort:
+    name: http
+    containerPort: 80
+  debugPort:
+    name: debug
+    containerPort: 12345
+    localPort: 12345
+
 services:
   - name: backend
     replicas: ${var.service-replicas}   # <- Refers to the variable set in the project config
-    ports:
-      - name: http
-        containerPort: 8080
-        servicePort: 80
+    ports: "${var.dev-mode == true ? [var.httpPort, var.debugPort] : [var.httpPort] }"
     ingresses:
       - path: /hello-backend
         port: http
