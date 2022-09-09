@@ -721,11 +721,12 @@ export async function assertAsyncError(action: () => Promise<any>, ...expectedEr
   }
 }
 
+type NameOfProperty = string
 // https://stackoverflow.com/a/66836940
 // useful for typesafe stubbing
 export function getPropertyName<T>(
   obj: T,
-  expression: (x: { [Property in keyof T]: () => string }) => () => string
+  expression: (x: { [Property in keyof T]: () => string }) => () => NameOfProperty
 ): string {
   const res: { [Property in keyof T]: () => string } = {} as { [Property in keyof T]: () => string }
 
