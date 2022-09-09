@@ -17,6 +17,7 @@ import {
   TestGardenCli,
   makeTestGarden,
   customizedTestPlugin,
+  expectFuzzyMatch,
 } from "../../../../helpers"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { RunWorkflowCommand, shouldBeDropped } from "../../../../../src/commands/run/run-workflow"
@@ -27,7 +28,6 @@ import { join } from "path"
 import { remove, readFile, pathExists } from "fs-extra"
 import { defaultDotIgnoreFile } from "../../../../../src/util/fs"
 import { dedent } from "../../../../../src/util/string"
-import stripAnsi from "strip-ansi"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { defaultWorkflowResources, WorkflowStepSpec } from "../../../../../src/config/workflow"
 
@@ -191,7 +191,7 @@ describe("RunWorkflowCommand", () => {
 
     expect(result).to.exist
     expect(errors).to.not.exist
-    expect(stripAnsi(result?.steps["step-1"].log!).trim()).to.match(/echo OK/)
+    expectFuzzyMatch((result?.steps["step-1"].log!).trim(), "echo OK")
   })
 
   it("should abort subsequent steps if a command returns an error", async () => {
