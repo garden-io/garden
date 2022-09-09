@@ -34,7 +34,7 @@ describe("cloudEventHandlers", () => {
       expect(tasks.length).to.eql(1)
       const buildTask = tasks.find((t) => t.type === "build")
       expect(buildTask).to.exist
-      expect(buildTask!["module"].name).to.eql("module-a")
+      expect(buildTask!.getName()).to.eql("module-a")
       expect(buildTask!.force).to.eql(false)
     })
 
@@ -46,14 +46,14 @@ describe("cloudEventHandlers", () => {
       expect(tasks.length).to.eql(1)
       const buildTask = tasks.find((t) => t.type === "build")
       expect(buildTask).to.exist
-      expect(buildTask!["module"].name).to.eql("module-a")
+      expect(buildTask!.getName()).to.eql("module-a")
       expect(buildTask!.force).to.eql(true)
     })
   })
 
   describe("deployRequested", () => {
     it("should return a deploy task for the requested service", async () => {
-      const deployTask = await cloudEventHandlers.deployRequested({
+      const deployTasks = await cloudEventHandlers.deployRequested({
         ...params,
         request: {
           serviceName: "service-a",
@@ -65,14 +65,15 @@ describe("cloudEventHandlers", () => {
           skipDependencies: true,
         },
       })
-      expect(deployTask["devModeDeployNames"]).to.eql([])
-      expect(deployTask["localModeDeployNames"]).to.eql([])
-      expect(deployTask.length).to.eql(1)
-      expect(deployTask[0].action.name).to.eql("service-a")
+      expect(deployTasks.length).to.eql(1)
+      const deployTask = deployTasks[0]
+      expect(deployTask.devModeDeployNames).to.eql([])
+      expect(deployTask.localModeDeployNames).to.eql([])
+      expect(deployTask.action.name).to.eql("service-a")
     })
 
     it("should return a dev-mode deploy task for the requested service", async () => {
-      const deployTask = await cloudEventHandlers.deployRequested({
+      const deployTasks = await cloudEventHandlers.deployRequested({
         ...params,
         request: {
           serviceName: "service-a",
@@ -83,13 +84,15 @@ describe("cloudEventHandlers", () => {
           skipDependencies: true,
         },
       })
-      expect(deployTask["service"].name).to.eql("service-a")
+      expect(deployTasks.length).to.eql(1)
+      const deployTask = deployTasks[0]
+      expect(deployTask.action.name).to.eql("service-a")
       // todo
-      // expect(deployTask["devModeDeployNames"]).to.eql(["service-a"])
+      // expect(deployTask.devModeDeployNames).to.eql(["service-a"])
     })
 
     it("should return a local-mode deploy task for the requested service", async () => {
-      const deployTask = await cloudEventHandlers.deployRequested({
+      const deployTasks = await cloudEventHandlers.deployRequested({
         ...params,
         request: {
           serviceName: "service-a",
@@ -100,9 +103,11 @@ describe("cloudEventHandlers", () => {
           skipDependencies: true,
         },
       })
-      expect(deployTask["service"].name).to.eql("service-a")
+      expect(deployTasks.length).to.eql(1)
+      const deployTask = deployTasks[0]
+      expect(deployTask.action.name).to.eql("service-a")
       // todo
-      // expect(deployTask["localModeDeployNames"]).to.eql(["service-a"])
+      // expect(deployTask.localModeDeployNames).to.eql(["service-a"])
     })
   })
 
@@ -112,7 +117,7 @@ describe("cloudEventHandlers", () => {
         ...params,
         request: { moduleName: "module-a", force: false, forceBuild: false, skipDependencies: true },
       })
-      expect(testTasks.map((t) => t["test"].name).sort()).to.eql(["integration", "unit"])
+      expect(testTasks.map((t) => t.action.name).sort()).to.eql(["integration", "unit"])
     })
 
     it("should return test tasks for the requested module and test names", async () => {
@@ -126,17 +131,20 @@ describe("cloudEventHandlers", () => {
           skipDependencies: true,
         },
       })
-      expect(testTasks.map((t) => t["test"].name).sort()).to.eql(["unit"])
+      expect(testTasks.map((t) => t.action.name).sort()).to.eql(["unit"])
     })
   })
 
   describe("taskRequested", () => {
     it("should return test tasks for the requested module", async () => {
-      const taskTask = await cloudEventHandlers.taskRequested({
+      const taskTasks = await cloudEventHandlers.taskRequested({
         ...params,
         request: { taskName: "task-a", force: false, forceBuild: false, skipDependencies: false },
       })
-      expect(taskTask["task"].name).to.eql("task-a")
+
+      expect(taskTasks.length).to.eql(1)
+      const taskTask = taskTasks[0]
+      expect(taskTask.action.name).to.eql("task-a")
     })
   })
 })
