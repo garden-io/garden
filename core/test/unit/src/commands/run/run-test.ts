@@ -6,11 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import stripAnsi from "strip-ansi"
 import { expect } from "chai"
 import { omit } from "lodash"
 import {
-  assertAsyncError,
   expectError,
   makeTestGarden,
   makeTestGardenA,
@@ -66,7 +64,7 @@ describe("RunTestCommand", () => {
     const garden = await makeTestGardenTasksFails()
     const log = garden.log
 
-    await assertAsyncError(
+    await expectError(
       () =>
         cmd.action({
           garden,
@@ -76,7 +74,7 @@ describe("RunTestCommand", () => {
           args: { moduleTestName: "unit", name: "module" },
           opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": true }),
         }),
-      "test-error"
+      { type: "test-error" }
     )
   })
 
@@ -97,11 +95,10 @@ describe("RunTestCommand", () => {
           args: { name: "module-a", moduleTestName: "unit" },
           opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": false }),
         }),
-      (err) =>
-        expect(stripAnsi(err.message)).to.equal(
-          "Test module-a.unit is disabled for the local environment. If you're sure you want to run it anyway, " +
-            "please run the command again with the --force flag."
-        )
+      {
+        contains:
+          "Test module-a.unit is disabled for the local environment. If you're sure you want to run it anyway, please run the command again with the --force flag.",
+      }
     )
   })
 
@@ -170,17 +167,18 @@ describe("RunTestCommand", () => {
     const garden = await makeTestGardenTasksFails()
     const log = garden.log
 
-    const action = async () =>
-      await cmd.action({
-        garden,
-        log,
-        headerLog: log,
-        footerLog: log,
-        args: { moduleTestName: "unit", name: "module" },
-        opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": false }),
-      })
-
-    await assertAsyncError(action, "test-error")
+    await expectError(
+      () =>
+        cmd.action({
+          garden,
+          log,
+          headerLog: log,
+          footerLog: log,
+          args: { moduleTestName: "unit", name: "module" },
+          opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": false }),
+        }),
+      { type: "test-error" }
+    )
 
     const logOutput = getLogMessages(log, (entry) => entry.level === LogLevel.error).join("\n")
     expect(logOutput).to.include(dedent`
@@ -195,7 +193,7 @@ describe("RunTestCommand", () => {
     const garden = await makeTestGardenTasksFails()
     const log = garden.log
 
-    await assertAsyncError(
+    await expectError(
       () =>
         cmd.action({
           garden,
@@ -205,7 +203,7 @@ describe("RunTestCommand", () => {
           args: { name: "unit", moduleTestName: "module" },
           opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": true }),
         }),
-      "test-error"
+      { type: "test-error" }
     )
 
     const logOutput = getLogMessages(log, (entry) => entry.level === LogLevel.error).join("\n")

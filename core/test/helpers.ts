@@ -711,16 +711,6 @@ export function makeCommandParams<T extends Parameters = {}, U extends Parameter
   }
 }
 
-export async function assertAsyncError(action: () => Promise<any>, ...expectedErrorMessages: string[]) {
-  try {
-    await action()
-    assert.fail("Illegal test state. The action must have failed with error.")
-  } catch (err) {
-    const errorString = !!err.message ? err.message : err.toString()
-    expectedErrorMessages.forEach((msg) => expect(errorString).to.contain(msg))
-  }
-}
-
 type NameOfProperty = string
 // https://stackoverflow.com/a/66836940
 // useful for typesafe stubbing

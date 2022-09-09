@@ -10,7 +10,6 @@ import { RunDeployCommand } from "../../../../../src/commands/run/run-deploy"
 import { makeTestGardenA, testNow, withDefaultGlobalOpts, expectError, TestGarden } from "../../../../helpers"
 import { expect } from "chai"
 import { LogEntry } from "../../../../../src/logger/log-entry"
-import stripAnsi from "strip-ansi"
 import { omit } from "lodash"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
 
@@ -67,11 +66,10 @@ describe("RunDeployCommand", () => {
           args: { name: "service-a" },
           opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
         }),
-      (err) =>
-        expect(stripAnsi(err.message)).to.equal(
-          "Service service-a is disabled for the local environment. If you're sure you want to run it anyway, " +
-            "please run the command again with the --force flag."
-        )
+      {
+        contains:
+          "exec Deploy service-a is disabled for the local environment. If you're sure you want to run it anyway, please run the command again with the --force flag.",
+      }
     )
   })
 
