@@ -1,6 +1,6 @@
 # Variables
 
-This variant of the basic [demo project](../demo-project/README.md) demonstrate the use of variables with garden.
+This variant of the basic [demo project](../demo-project/README.md) demonstrate the use of variables with Garden.
 
 ## Project variables
 
@@ -16,4 +16,4 @@ default to three when deploying remotely.
 Also in the [backend module configuration](./backend/garden.yml#L6-L14) two variables are used to store ports configuration for the service and a variable
 is additionally used to detect dev-mode being used. Later in the [service ports configuration](./backend/garden.yml#L19) the variables are dynamically used to enable the development port if dev mode is being used. 
 
-You can read more about garden string templating functionalities [here](../../docs/reference/template-strings/).
+You can read more about Garden string templating functionalities [here](../../docs/reference/template-strings/).
