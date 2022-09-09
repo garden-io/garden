@@ -3836,7 +3836,7 @@ Examples:
 
 #### Usage
 
-    garden update-remote modules [modules] 
+    garden update-remote modules [modules] [options]
 
 #### Arguments
 
@@ -3844,6 +3844,11 @@ Examples:
 | -------- | -------- | ----------- |
   | `modules` | No | The name(s) of the remote module(s) to update. Use comma as a separator to specify multiple modules.
 
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--parallel` |  | boolean | Allow git updates to happen in parallel
 
 #### Outputs
 
@@ -3868,8 +3873,13 @@ Examples:
 
 #### Usage
 
-    garden update-remote all 
+    garden update-remote all [options]
 
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--parallel` |  | boolean | Allow git updates to happen in parallel
 
 #### Outputs
 
