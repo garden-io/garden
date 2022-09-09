@@ -1,4 +1,4 @@
-# Project variables
+# Variables
 
 This variant of the basic [demo project](../demo-project/README.md) demonstrate the use of variables with garden.
 

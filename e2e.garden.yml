@@ -16,8 +16,8 @@ tests:
     timeout: ${var.timeout}
   # - name: openfaas
   #   command: [yarn, e2e-project, --, --project=openfaas, "--showlog=${var.show-log}", "--env=${environment.name}"]
-  - name: project-variables
-    command: [yarn, e2e-project, --, --project=project-variables, "--showlog=${var.show-log}", "--env=${environment.name}"]
+  - name: variables
+    command: [yarn, e2e-project, --, --project=variables, "--showlog=${var.show-log}", "--env=${environment.name}"]
     timeout: ${var.timeout}
   - name: vote-helm
     command: [yarn, e2e-project, --, --project=vote-helm, "--showlog=${var.show-log}", "--env=${environment.name}"]
