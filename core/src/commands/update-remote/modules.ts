@@ -31,7 +31,8 @@ type Args = typeof updateRemoteModulesArguments
 
 const updateRemoteModulesOptions = {
   parallel: new BooleanParameter({
-    help: "Allow git updates to happen in parallel",
+    help:
+      "Allow git updates to happen in parallel. This will automatically reject any Git prompt, such as username / password",
     defaultValue: false,
   }),
 }
