@@ -717,10 +717,12 @@ export const isDarwinARM = memoize(() => {
     // see also https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment
     // We use execSync here, because this function is called in a constructor
     // otherwise we'd make the function async and call `spawn`
-    const stdout = execSync("sysctl -n sysctl.proc_translated", { encoding: "utf-8" })
-    if (stdout === "1\n") {
-      return true
+    try {
+      execSync("sysctl -n -q sysctl.proc_translated", { encoding: "utf-8" })
+    } catch (err) {
+      return false
     }
+    return true
   }
 
   return false
