@@ -1600,10 +1600,12 @@ describe("Garden", () => {
         () => garden.resolveProviders(garden.log),
         (err) => {
           expectFuzzyMatch(err.message, ["Failed resolving one or more providers:", "- test"])
-          expectFuzzyMatch(
-            err.detail.messages[0],
-            "- test: Invalid template string (${bla.ble}): Could not find key bla. Available keys: command, datetime, environment, git, local, project, providers, secrets, var and variables."
-          )
+          expectFuzzyMatch(err.detail.messages[0], [
+            "- test:",
+            "Error: Invalid template string (${bla.ble}):",
+            "Could not find key bla.",
+            "Available keys: command, datetime, environment, git, local, project, providers, secrets, var and variables.",
+          ])
         }
       )
     })
@@ -1893,10 +1895,11 @@ describe("Garden", () => {
         () => garden.resolveProviders(garden.log),
         (err) => {
           expectFuzzyMatch(err.message, ["Failed resolving one or more providers:", "- test"])
-          expectFuzzyMatch(
-            err.detail.messages[0],
-            "- test: Error validating provider configuration: key .foo must be a string"
-          )
+          expectFuzzyMatch(err.detail.messages[0], [
+            "- test:",
+            "Error: Error validating provider configuration:",
+            "key .foo must be a string",
+          ])
         }
       )
     })
@@ -1932,10 +1935,11 @@ describe("Garden", () => {
         () => garden.resolveProviders(garden.log),
         (err) => {
           expectFuzzyMatch(err.message, ["Failed resolving one or more providers:", "- test"])
-          expectFuzzyMatch(
-            err.detail.messages[0],
-            "- test: Error validating provider configuration: key .foo must be a string"
-          )
+          expectFuzzyMatch(err.detail.messages[0], [
+            "- test:",
+            " Error: Error validating provider configuration:",
+            "key .foo must be a string",
+          ])
         }
       )
     })
@@ -2172,10 +2176,11 @@ describe("Garden", () => {
           () => garden.resolveProviders(garden.log),
           (err) => {
             expectFuzzyMatch(err.message, ["Failed resolving one or more providers:", "- test"])
-            expectFuzzyMatch(
-              err.detail.messages[0],
-              "- test: Error validating provider configuration: key .foo must be a string"
-            )
+            expectFuzzyMatch(err.detail.messages[0], [
+              "- test:",
+              "Error: Error validating provider configuration:",
+              "key .foo must be a string",
+            ])
           }
         )
       })
@@ -2217,10 +2222,11 @@ describe("Garden", () => {
           () => garden.resolveProviders(garden.log),
           (err) => {
             expectFuzzyMatch(err.message, ["Failed resolving one or more providers:", "- test"])
-            expectFuzzyMatch(
-              err.detail.messages[0],
-              "- test: Error validating provider configuration (base schema from 'base' plugin): key .foo must be a string"
-            )
+            expectFuzzyMatch(err.detail.messages[0], [
+              "- test:",
+              "Error: Error validating provider configuration (base schema from 'base' plugin):",
+              "key .foo must be a string",
+            ])
           }
         )
       })
