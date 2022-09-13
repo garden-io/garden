@@ -296,7 +296,7 @@ export type CompleteHandler<R extends ValidResultType> = (result: GraphResult<R>
 
 export interface CompleteTaskParams<R = any> {
   startedAt: Date | null
-  error: Error | null
+  error: GardenBaseError | null
   result: R | null
   aborted: boolean
 }

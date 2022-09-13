@@ -7,7 +7,7 @@
  */
 
 import { BaseTask, Task, ValidResultType } from "../tasks/base"
-import { InternalError } from "../exceptions"
+import { GardenBaseError, InternalError } from "../exceptions"
 import { fromPairs } from "lodash"
 import { toGraphResultEventPayload } from "../events"
 import CircularJSON from "circular-json"
@@ -25,7 +25,7 @@ export interface GraphResult<R extends ValidResultType = ValidResultType> extend
   dependencyResults: GraphResults | null
   startedAt: Date | null
   completedAt: Date | null
-  error: Error | null
+  error: GardenBaseError | null
   aborted: boolean
   outputs: R["outputs"]
   task: BaseTask

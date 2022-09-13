@@ -13,6 +13,7 @@ import dedent from "dedent"
 import { platform, arch } from "os"
 import { relative, resolve } from "path"
 import { flatten, sortBy, keyBy, mapValues, cloneDeep, groupBy, uniq } from "lodash"
+
 const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
@@ -132,6 +133,7 @@ import { actionConfigsToGraph, actionFromConfig, executeAction, resolveAction, r
 import { ActionTypeDefinition } from "./plugin/action-types"
 import { Task } from "./tasks/base"
 import { GraphResultFromTask, GraphResults } from "./graph/results"
+import stripAnsi from "strip-ansi"
 
 export interface ActionHandlerMap<T extends keyof ProviderHandlers> {
   [actionName: string]: ProviderHandlers[T]
@@ -669,7 +671,12 @@ export class Garden {
       const failed = providerResults.filter((r) => r && r.error)
 
       if (failed.length) {
-        const messages = failed.map((r) => `- ${r!.name}: ${r!.error!.message}`)
+        const renderMessage = (r: GraphResultFromTask<Task>) => {
+          const err = r.error!
+          const endsWithPeriod = err.message.endsWith(".")
+          return `- ${r.name}: ${err.message}${endsWithPeriod ? "" : "."} ${stripAnsi(err.detail.error)}`.trim()
+        }
+        const messages = failed.map((r) => renderMessage(r!))
         const failedNames = failed.map((r) => r!.name)
         throw new PluginError(`Failed resolving one or more providers:\n- ${failedNames.join("\n- ")}`, {
           rawConfigs,
