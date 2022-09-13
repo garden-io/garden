@@ -53,6 +53,7 @@ import { getLinkedSources, addLinkedSources } from "../../../src/util/ext-source
 import { safeDump } from "js-yaml"
 import { TestVcsHandler } from "./vcs/vcs"
 import { ActionRouter } from "../../../src/router/router"
+import { convertExecModule } from "../../../src/plugins/exec/exec"
 
 // TODO-G2: change all module config based tests to be action-based.
 
@@ -2652,7 +2653,9 @@ describe("Garden", () => {
             docs: "test",
             schema: joi.object().keys({ bla: joi.string() }),
             needsBuild: true,
-            handlers: {},
+            handlers: {
+              convert: convertExecModule,
+            },
           },
         ],
       })
@@ -2702,7 +2705,9 @@ describe("Garden", () => {
             docs: "test",
             schema: joi.object().keys({ bla: joi.object() }),
             needsBuild: true,
-            handlers: {},
+            handlers: {
+              convert: convertExecModule,
+            },
           },
         ],
       })
@@ -2752,7 +2757,9 @@ describe("Garden", () => {
             docs: "test",
             schema: joi.object().keys({ bla: joi.string() }),
             needsBuild: true,
-            handlers: {},
+            handlers: {
+              convert: convertExecModule,
+            },
           },
         ],
       })
@@ -2802,7 +2809,9 @@ describe("Garden", () => {
             docs: "test",
             schema: joi.object().keys({ bla: joi.string() }),
             needsBuild: true,
-            handlers: {},
+            handlers: {
+              convert: convertExecModule,
+            },
           },
         ],
       })
@@ -2852,7 +2861,9 @@ describe("Garden", () => {
             docs: "test",
             schema: joi.object().keys({ bla: joi.object() }),
             needsBuild: true,
-            handlers: {},
+            handlers: {
+              convert: convertExecModule,
+            },
           },
         ],
       })
@@ -2915,6 +2926,7 @@ describe("Garden", () => {
                 }
                 return { moduleConfig }
               },
+              convert: convertExecModule,
             },
           },
         ],
@@ -3164,7 +3176,7 @@ describe("Garden", () => {
       const projectRoot = getDataDir("test-projects", "module-templates")
 
       const garden = await makeTestGarden(projectRoot)
-      garden["cacheKey"] = "" // Disable caching
+      garden.cacheKey = "" // Disable caching
 
       const filePath = resolve(garden.projectRoot, "module-a.log")
       await remove(filePath)
@@ -3647,10 +3659,10 @@ describe("Garden", () => {
             moduleOutputsSchema: joi.object().keys({ foo: joi.string() }),
             needsBuild: true,
             handlers: {
-              // TODO-G2
-              // getModuleOutputs: async () => ({
-              //   outputs: { foo: 123 },
-              // }),
+              convert: convertExecModule,
+              getModuleOutputs: async () => ({
+                outputs: { foo: 123 },
+              }),
             },
           },
         ],
