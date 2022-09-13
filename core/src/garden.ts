@@ -1136,7 +1136,7 @@ export class Garden {
 
       ${overlapList}
 
-      If this was intentional, there you have two options to resolve this error.
+      If this was intentional, there are two options to resolve this error:
 
       - You can add ${chalk.bold("include")} and/or ${chalk.bold("exclude")} directives on the affected modules.
         With explicitly including / encluding files, the modules are actually allowed to overlap in case that is
