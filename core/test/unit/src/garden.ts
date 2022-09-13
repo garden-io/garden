@@ -449,7 +449,7 @@ describe("Garden", () => {
             schema: joi.object(),
             needsBuild: true,
             handlers: {
-              // build: async () => ({}),
+              convert: async ({}) => ({}),
             },
           },
         ],
@@ -462,7 +462,7 @@ describe("Garden", () => {
             name: "foo",
             needsBuild: true,
             handlers: {
-              // build: async () => ({}),
+              convert: async ({}) => ({}),
             },
           },
         ],
@@ -481,15 +481,13 @@ describe("Garden", () => {
 
       expect(extended).to.exist
       expect(extended.name).to.equal("foo")
-      // TODO-G2
-      // const buildHandler = extended.handlers.build!
-      const buildHandler: any = {}
-      expect(buildHandler).to.exist
-      expect(buildHandler.base).to.exist
-      expect(buildHandler.base!.handlerType).to.equal("build")
-      expect(buildHandler.base!.moduleType).to.equal("foo")
-      expect(buildHandler.base!.pluginName).to.equal("base")
-      expect(buildHandler.base!.base).to.not.exist
+      const convertHandler = extended.handlers.convert!
+      expect(convertHandler).to.exist
+      expect(convertHandler.base).to.exist
+      expect(convertHandler.base!.handlerType).to.equal("convert")
+      expect(convertHandler.base!.moduleType).to.equal("foo")
+      expect(convertHandler.base!.pluginName).to.equal("base")
+      expect(convertHandler.base!.base).to.not.exist
     })
 
     it("should throw if plugin module exports invalid name", async () => {
@@ -540,7 +538,7 @@ describe("Garden", () => {
               needsBuild: true,
               handlers: {
                 configure: async ({ moduleConfig }) => ({ moduleConfig }),
-                // getServiceStatus: async () => ({ state: <ServiceState>"ready", detail: {} }),
+                suggestModules: async () => ({ suggestions: [] }),
               },
             },
           ],
@@ -556,7 +554,7 @@ describe("Garden", () => {
               schema: baseModuleSpecSchema(),
               needsBuild: true,
               handlers: {
-                // build: async () => ({}),
+                convert: async ({}) => ({}),
               },
             },
           ],
@@ -573,8 +571,10 @@ describe("Garden", () => {
               needsBuild: true,
               handlers: {
                 configure: async ({ moduleConfig }) => ({ moduleConfig }),
-                // build: async () => ({}),
-                // getBuildStatus: async () => ({ ready: true }),
+                convert: async ({}) => ({}),
+                getModuleOutputs: async () => {
+                  return { outputs: { foo: "bar" } }
+                },
               },
             },
           ],
@@ -606,26 +606,20 @@ describe("Garden", () => {
         expect(configureHandler.base!.pluginName).to.equal("base-a")
         expect(configureHandler.base!.base).to.not.exist
 
-        // TODO-G2
-        // const buildHandler = spec.handlers.build!
-        const buildHandler: any = {}
-        expect(buildHandler).to.exist
-        expect(buildHandler.base).to.exist
-        expect(buildHandler.base!.handlerType).to.equal("build")
-        expect(buildHandler.base!.moduleType).to.equal("foo-b")
-        expect(buildHandler.base!.pluginName).to.equal("base-b")
-        expect(buildHandler.base!.base).to.not.exist
+        const convertHandler = spec.handlers.convert!
+        expect(convertHandler).to.exist
+        expect(convertHandler.base).to.exist
+        expect(convertHandler.base!.handlerType).to.equal("convert")
+        expect(convertHandler.base!.moduleType).to.equal("foo-b")
+        expect(convertHandler.base!.pluginName).to.equal("base-b")
+        expect(convertHandler.base!.base).to.not.exist
 
-        // TODO-G2
-        // const getBuildStatusHandler = spec.handlers.getBuildStatus!
-        const getBuildStatusHandler: any = {}
-        expect(getBuildStatusHandler).to.exist
-        expect(getBuildStatusHandler.base).to.not.exist
+        const getModuleOutputsHandler = spec.handlers.getModuleOutputs!
+        expect(getModuleOutputsHandler).to.exist
+        expect(getModuleOutputsHandler.base).to.not.exist
 
-        // TODO-G2
-        // const getServiceStatusHandler = spec.handlers.getServiceStatus!
-        const getServiceStatusHandler: any = {}
-        expect(getServiceStatusHandler).to.not.exist
+        const suggestModulesHandler = spec.handlers.suggestModules!
+        expect(suggestModulesHandler).to.not.exist
       })
 
       it("should throw when a module type has a base that is not defined", async () => {
@@ -997,7 +991,7 @@ describe("Garden", () => {
               schema: joi.object(),
               needsBuild: true,
               handlers: {
-                // build: async () => ({}),
+                convert: async ({}) => ({}),
               },
             },
           ],
@@ -1010,8 +1004,8 @@ describe("Garden", () => {
               name: "foo",
               needsBuild: true,
               handlers: {
-                // build: async () => ({}),
-                // getBuildStatus: async () => ({ ready: true }),
+                convert: async ({}) => ({}),
+                configure: async ({ moduleConfig }) => ({ moduleConfig }),
               },
             },
           ],
@@ -1039,7 +1033,7 @@ describe("Garden", () => {
               schema: joi.object(),
               needsBuild: true,
               handlers: {
-                // build: async () => ({}),
+                convert: async ({}) => ({}),
               },
             },
           ],
@@ -1052,8 +1046,8 @@ describe("Garden", () => {
               name: "foo",
               needsBuild: true,
               handlers: {
-                // build: async () => ({}),
-                // getBuildStatus: async () => ({ ready: true }),
+                convert: async ({}) => ({}),
+                configure: async ({ moduleConfig }) => ({ moduleConfig }),
               },
             },
           ],
@@ -1356,7 +1350,7 @@ describe("Garden", () => {
                 schema: joi.object(),
                 needsBuild: true,
                 handlers: {
-                  // build: async () => ({}),
+                  convert: async ({}) => ({}),
                 },
               },
             ],
@@ -1373,8 +1367,8 @@ describe("Garden", () => {
                 name: "foo",
                 needsBuild: true,
                 handlers: {
-                  // build: async () => ({}),
-                  // getBuildStatus: async () => ({ ready: true }),
+                  convert: async ({}) => ({}),
+                  configure: async ({ moduleConfig }) => ({ moduleConfig }),
                 },
               },
             ],
@@ -1400,7 +1394,7 @@ describe("Garden", () => {
                 schema: joi.object(),
                 needsBuild: true,
                 handlers: {
-                  // build: async () => ({}),
+                  convert: async ({}) => ({}),
                 },
               },
             ],
@@ -1414,7 +1408,7 @@ describe("Garden", () => {
                 name: "foo",
                 needsBuild: true,
                 handlers: {
-                  // build: async () => ({}),
+                  convert: async ({}) => ({}),
                 },
               },
             ],
@@ -1428,8 +1422,8 @@ describe("Garden", () => {
                 name: "foo",
                 needsBuild: true,
                 handlers: {
-                  // build: async () => ({}),
-                  // getBuildStatus: async () => ({ ready: true }),
+                  configure: async ({ moduleConfig }) => ({ moduleConfig }),
+                  convert: async ({}) => ({}),
                 },
               },
             ],
@@ -1451,19 +1445,15 @@ describe("Garden", () => {
 
           expect(fooExtension).to.exist
 
-          // TODO-G2
-          // const getBuildStatusHandler = fooExtension.handlers.getBuildStatus!
-          const getBuildStatusHandler: any = {}
-          expect(getBuildStatusHandler).to.exist
+          const configureHandler = fooExtension.handlers.configure!
+          expect(configureHandler).to.exist
 
-          // TODO-G2
-          // const buildHandler = fooExtension.handlers.build!
-          const buildHandler: any = {}
-          expect(buildHandler).to.exist
-          expect(buildHandler.base).to.exist
-          expect(buildHandler.base!.handlerType).to.equal("build")
-          expect(buildHandler.base!.moduleType).to.equal("foo")
-          expect(buildHandler.base!.pluginName).to.equal("base-a")
+          const convertHandler = fooExtension.handlers.convert!
+          expect(convertHandler).to.exist
+          expect(convertHandler.base).to.exist
+          expect(convertHandler.base!.handlerType).to.equal("convert")
+          expect(convertHandler.base!.moduleType).to.equal("foo")
+          expect(convertHandler.base!.pluginName).to.equal("base-a")
         })
 
         it("should throw if plugins have circular bases", async () => {
