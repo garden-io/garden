@@ -167,7 +167,7 @@ describe("detectModuleOverlap", () => {
       expect(detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleA, moduleB] })).to.be.empty
     })
 
-    it("should ignore modules that set excludes", () => {
+    it("should ignore modules that are disabled", () => {
       const moduleA = {
         name: "module-a",
         path: join(projectRoot, "foo"),
