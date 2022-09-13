@@ -91,10 +91,14 @@ export class GitHandler extends VcsHandler {
     this.gitSafeDirsRead = false
   }
 
-  gitCli(log: LogEntry, cwd: string): GitCli {
+  gitCli(log: LogEntry, cwd: string, failOnPrompt = false): GitCli {
     return async (...args: (string | undefined)[]) => {
       log.silly(`Calling git with args '${args.join(" ")}' in ${cwd}`)
-      const { stdout } = await exec("git", args.filter(isString), { cwd, maxBuffer: 10 * 1024 * 1024 })
+      const { stdout } = await exec("git", args.filter(isString), {
+        cwd,
+        maxBuffer: 10 * 1024 * 1024,
+        env: failOnPrompt ? { GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "true" } : undefined,
+      })
       return stdout.split("\n").filter((line) => line.length > 0)
     }
   }
@@ -131,17 +135,17 @@ export class GitHandler extends VcsHandler {
    * Git has stricter repository ownerships checks since 2.36.0,
    * see https://github.blog/2022-04-18-highlights-from-git-2-36/ for more details.
    */
-  private async ensureSafeDirGitRepo(log: LogEntry, path: string): Promise<void> {
+  private async ensureSafeDirGitRepo(log: LogEntry, path: string, failOnPrompt = false): Promise<void> {
     if (this.gitSafeDirs.has(path)) {
       return
     }
 
-    const git = this.gitCli(log, path)
+    const git = this.gitCli(log, path, failOnPrompt)
 
     if (!this.gitSafeDirsRead) {
       await gitConfigAsyncLock.acquire(".gitconfig", async () => {
         if (!this.gitSafeDirsRead) {
-          const gitCli = this.gitCli(log, path)
+          const gitCli = this.gitCli(log, path, failOnPrompt)
           try {
             const safeDirectories = await gitCli("config", "--get-all", "safe.directory")
             safeDirectories.forEach((safeDir) => this.gitSafeDirs.add(safeDir))
@@ -192,15 +196,15 @@ export class GitHandler extends VcsHandler {
     this.gitSafeDirs.add(path)
   }
 
-  async getRepoRoot(log: LogEntry, path: string) {
+  async getRepoRoot(log: LogEntry, path: string, failOnPrompt = false) {
     if (this.repoRoots.has(path)) {
       return this.repoRoots.get(path)
     }
 
-    await this.ensureSafeDirGitRepo(log, STATIC_DIR)
-    await this.ensureSafeDirGitRepo(log, path)
+    await this.ensureSafeDirGitRepo(log, STATIC_DIR, failOnPrompt)
+    await this.ensureSafeDirGitRepo(log, path, failOnPrompt)
 
-    const git = this.gitCli(log, path)
+    const git = this.gitCli(log, path, failOnPrompt)
 
     try {
       const repoRoot = (await git("rev-parse", "--show-toplevel"))[0]
@@ -227,6 +231,7 @@ export class GitHandler extends VcsHandler {
     include,
     exclude,
     filter,
+    failOnPrompt = false,
   }: GetFilesParams): Promise<VcsFile[]> {
     if (include && include.length === 0) {
       // No need to proceed, nothing should be included
@@ -260,8 +265,8 @@ export class GitHandler extends VcsHandler {
       }
     }
 
-    const git = this.gitCli(log, path)
-    const gitRoot = await this.getRepoRoot(log, path)
+    const git = this.gitCli(log, path, failOnPrompt)
+    const gitRoot = await this.getRepoRoot(log, path, failOnPrompt)
 
     // List modified files, so that we can ensure we have the right hash for them later
     const modified = new Set(
@@ -568,15 +573,16 @@ export class GitHandler extends VcsHandler {
     remoteSourcesPath: string,
     repositoryUrl: string,
     hash: string,
-    absPath: string
+    absPath: string,
+    failOnPrompt = false
   ) {
-    const git = this.gitCli(log, remoteSourcesPath)
+    const git = this.gitCli(log, remoteSourcesPath, failOnPrompt)
     // Use `--recursive` to include submodules
     return git("clone", "--recursive", "--depth=1", `--branch=${hash}`, repositoryUrl, absPath)
   }
 
   // TODO Better auth handling
-  async ensureRemoteSource({ url, name, log, sourceType }: RemoteSourceParams): Promise<string> {
+  async ensureRemoteSource({ url, name, log, sourceType, failOnPrompt = false }: RemoteSourceParams): Promise<string> {
     const remoteSourcesPath = join(this.gardenDirPath, this.getRemoteSourcesDirname(sourceType))
     await ensureDir(remoteSourcesPath)
 
@@ -588,7 +594,7 @@ export class GitHandler extends VcsHandler {
       const { repositoryUrl, hash } = parseGitUrl(url)
 
       try {
-        await this.cloneRemoteSource(log, remoteSourcesPath, repositoryUrl, hash, absPath)
+        await this.cloneRemoteSource(log, remoteSourcesPath, repositoryUrl, hash, absPath, failOnPrompt)
       } catch (err) {
         entry.setError()
         throw new RuntimeError(`Downloading remote ${sourceType} failed with error: \n\n${err}`, {
@@ -603,12 +609,12 @@ export class GitHandler extends VcsHandler {
     return absPath
   }
 
-  async updateRemoteSource({ url, name, sourceType, log }: RemoteSourceParams) {
+  async updateRemoteSource({ url, name, sourceType, log, failOnPrompt = false }: RemoteSourceParams) {
     const absPath = join(this.gardenDirPath, this.getRemoteSourceRelPath(name, url, sourceType))
-    const git = this.gitCli(log, absPath)
+    const git = this.gitCli(log, absPath, failOnPrompt)
     const { repositoryUrl, hash } = parseGitUrl(url)
 
-    await this.ensureRemoteSource({ url, name, sourceType, log })
+    await this.ensureRemoteSource({ url, name, sourceType, log, failOnPrompt })
 
     const entry = log.info({ section: name, msg: "Getting remote state", status: "active" })
     await git("remote", "update")
@@ -703,8 +709,8 @@ export class GitHandler extends VcsHandler {
     return submodules
   }
 
-  async getPathInfo(log: LogEntry, path: string): Promise<VcsInfo> {
-    const git = this.gitCli(log, path)
+  async getPathInfo(log: LogEntry, path: string, failOnPrompt = false): Promise<VcsInfo> {
+    const git = this.gitCli(log, path, failOnPrompt)
 
     const output: VcsInfo = {
       branch: "",

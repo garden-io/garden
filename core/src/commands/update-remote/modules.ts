@@ -111,6 +111,7 @@ export async function updateRemoteModules({
       url: repositoryUrl,
       sourceType: "module",
       log,
+      failOnPrompt: opts.parallel,
     })
     if (opts.parallel) {
       promises.push(promise)

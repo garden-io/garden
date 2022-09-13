@@ -9,7 +9,7 @@
 import execa = require("execa")
 import { expect } from "chai"
 import tmp from "tmp-promise"
-import { createFile, ensureSymlink, lstat, mkdir, realpath, remove, symlink, writeFile } from "fs-extra"
+import { createFile, ensureSymlink, lstat, mkdir, mkdirp, realpath, remove, symlink, writeFile } from "fs-extra"
 import { basename, join, relative, resolve } from "path"
 
 import { expectError, makeTestGardenA, TestGarden } from "../../../helpers"
@@ -891,6 +891,30 @@ describe("GitHandler", () => {
 
         expect(await getCommitMsg(clonePath)).to.eql("new commit")
       })
+
+      it("should exit on `failOnPrompt` when updating a remote source and prompting for user input", async () => {
+        await mkdirp(clonePath)
+        await execa("git", ["init"], { cwd: clonePath })
+        await execa("git", ["commit", "-m", "commit", "--allow-empty"], { cwd: clonePath })
+        await execa("git", ["remote", "add", "origin", "https://fake@github.com/private/private.git"], {
+          cwd: clonePath,
+        })
+        let error: Error | undefined
+        try {
+          await handler.updateRemoteSource({
+            url: repositoryUrlA,
+            name: "foo",
+            sourceType: "module",
+            log,
+            failOnPrompt: true,
+          })
+        } catch (e) {
+          error = e
+        }
+        expect(error).to.be.instanceOf(Error)
+        expect(error?.message).to.contain("Invalid username or password.")
+      })
+
       it("should update submodules", async () => {
         // Add repo B as a submodule to repo A
         await execa("git", ["submodule", "add", tmpRepoPathB], { cwd: tmpRepoPathA })

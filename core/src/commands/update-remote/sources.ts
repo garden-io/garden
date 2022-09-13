@@ -30,7 +30,8 @@ type Args = typeof updateRemoteSourcesArguments
 
 const updateRemoteSourcesOptions = {
   parallel: new BooleanParameter({
-    help: "Allow git updates to happen in parallel",
+    help:
+      "Allow git updates to happen in parallel. This will automatically reject any Git prompt, such as username / password",
     defaultValue: false,
   }),
 }
@@ -107,6 +108,7 @@ export async function updateRemoteSources({
       url: repositoryUrl,
       sourceType: "project",
       log,
+      failOnPrompt: opts.parallel,
     })
     if (opts.parallel) {
       promises.push(promise)
