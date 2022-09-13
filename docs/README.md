@@ -41,6 +41,7 @@
 * [Hot Reload](./guides/hot-reload.md)
 * [In-Cluster Building](./guides/in-cluster-building.md)
 * [Local Kubernetes](./guides/local-kubernetes.md)
+* [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
 * [Remote Kubernetes](./guides/remote-kubernetes.md)
 * [Using Garden in CI](./guides/using-garden-in-ci.md)
 
