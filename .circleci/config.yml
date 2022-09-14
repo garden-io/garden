@@ -1010,16 +1010,17 @@ workflows:
 
       ### MASTER ONLY ###
 
-      - build-dist-edge:
-          <<: *only-master
-          requires: [build]
-      - release-service-docker:
-          <<: *only-master
-          context: docker
-          requires: [build-dist-edge]
-      - release-service-dist-edge:
-          <<: *only-master
-          requires: [build-dist-edge]
+      # TODO: Re-enable this if we can figure out a way to not spam users who have starred the repo.
+      # - build-dist-edge:
+      #     <<: *only-master
+      #     requires: [build]
+      # - release-service-docker:
+      #     <<: *only-master
+      #     context: docker
+      #     requires: [build-dist-edge]
+      # - release-service-dist-edge:
+      #     <<: *only-master
+      #     requires: [build-dist-edge]
 
   tags:
     jobs:
