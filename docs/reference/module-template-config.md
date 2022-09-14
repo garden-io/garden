@@ -69,8 +69,8 @@ modules:
               source:
 
               # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-              # Defaults to to same as source path.
-              target: ''
+              # Defaults to the same as source path.
+              target:
 
       # Maximum time in seconds to wait for build to finish.
       timeout: 1200
@@ -344,11 +344,11 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 [modules](#modules) > [build](#modulesbuild) > [dependencies](#modulesbuilddependencies) > [copy](#modulesbuilddependenciescopy) > target
 
 POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-Defaults to to same as source path.
+Defaults to the same as source path.
 
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `""`    | No       |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
 
 ### `modules[].build.timeout`
 
