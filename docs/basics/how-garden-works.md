@@ -5,7 +5,7 @@ title: How Garden Works
 
 # How Garden Works
 
-For those that prefer something a bit more visual, we recommend checking out this [short introduction video](https://www.youtube.com/watch?app=desktop&v=3gMJWGV0WE8) to how Garden works:
+For those that prefer something a bit more visual, we recommend checking out this [short introduction video](https://www.youtube.com/watch?app=desktop&v=3gMJWGV0WE8) to how Garden works.
 
 ## **The Stack Graph**
 
@@ -56,7 +56,7 @@ Garden then leverages your existing configuration (Helm charts, Kubernetes manif
 
 ![Configure once, run anywhwere](../how-to-configure-once.png)
 
-The Stack Graph is pluggable design so how these actions (i.e. the graph nodes) are actually run depends on the plugins used (see below).
+The Stack Graph is pluggable so how these actions (i.e. the graph nodes) are actually run depends on the plugins used (see below).
 
 ## **The Garden CLI**
 
@@ -118,7 +118,7 @@ One of the most important features of Garden is its smart caching abilities. Tha
 
 If the end-to-end test in the example above passes, Garden will know not to run it again if the code hasn’t changed. Since Garden factors in dependencies, it will however re-run the test if any of the upstream services under test are modified.
 
-Most tools don’t have this granular understanding of the system and the choice is between running everything or nothing. With Garden you can be confident that tests run when they **need to,** but no more**.**
+Most tools don’t have this granular understanding of the system and the choice is between running everything or nothing. With Garden you can be confident that tests run when they **need to,** but no more.
 
 This alone can speed up your pipelines by orders of magnitude.
 
