@@ -83,12 +83,15 @@ export function detectModuleOverlap({
   gardenDirPath: string
   moduleConfigs: ModuleConfig[]
 }): ModuleOverlap[] {
+  // Don't consider overlap between disabled modules, or where one of the modules is disabled
+  const enabledModules = moduleConfigs.filter((m) => !m.disabled)
+
   let overlaps: ModuleOverlap[] = []
-  for (const config of moduleConfigs) {
+  for (const config of enabledModules) {
     if (!!config.include || !!config.exclude) {
       continue
     }
-    const matches = moduleConfigs
+    const matches = enabledModules
       .filter(
         (compare) =>
           config.name !== compare.name &&

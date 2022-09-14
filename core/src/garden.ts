@@ -1132,11 +1132,18 @@ export class Garden {
       })
       .join("\n\n")
     const message = chalk.red(dedent`
-      Missing ${chalk.bold("include")} and/or ${chalk.bold("exclude")} directives on modules with overlapping paths.
-      Setting includes/excludes is required when modules have the same path (i.e. are in the same garden.yml file),
-      or when one module is nested within another.
+      Found multiple enabled modules that share the same garden.yml file or are nested within another:
 
       ${overlapList}
+
+      If this was intentional, there are two options to resolve this error:
+
+      - You can add ${chalk.bold("include")} and/or ${chalk.bold("exclude")} directives on the affected modules.
+        With explicitly including / encluding files, the modules are actually allowed to overlap in case that is
+        what you want.
+      - You can use the ${chalk.bold("disabled")} directive to make sure that only one of the modules is enabled
+        in any given moment. For example, you can make sure that the modules are enabled only in their exclusive
+        environment.
     `)
     // Sanitize error details
     const overlappingModules = moduleOverlaps.map(({ module, overlaps }) => {
