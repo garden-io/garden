@@ -1132,7 +1132,7 @@ export class Garden {
       })
       .join("\n\n")
     const message = chalk.red(dedent`
-      There are multiple enabled modules that share the same garden.yml file or are nested within another:
+      Found multiple enabled modules that share the same garden.yml file or are nested within another:
 
       ${overlapList}
 
