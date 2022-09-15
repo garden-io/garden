@@ -40,29 +40,37 @@ describe("PreReleaseTests", () => {
   const env = parsedArgs["env"]
   const project = parsedArgs["project"]
 
+  const userId = process.env.CIRCLE_BUILD_NUM ? "ci-" + process.env.CIRCLE_BUILD_NUM : username.sync()
+
   if (!project) {
     throw new Error(`Must specify project name with --project parameter`)
   }
 
   function getProjectNamespaces() {
-    const ns = `${project}-testing-${process.env.CIRCLE_BUILD_NUM || username.sync()}`
+    const ns = `${project}-testing-${userId}`
     return [ns]
+  }
+
+  function getCommand(command: string[]) {
+    command = [...command]
+    if (env) {
+      command.push("--env", env)
+    }
+    // Override the userId variable
+    if (process.env.CIRCLE_BUILD_NUM) {
+      command.push("--var", "userId=" + userId)
+    }
+    return command
   }
 
   async function runWithEnv(command: string[]) {
     const dir = resolve(examplesDir, project)
-    if (env) {
-      command.push("--env", env)
-    }
-    return runGarden(dir, command)
+    return runGarden(dir, getCommand(command))
   }
 
   function watchWithEnv(command: string[]) {
     const dir = resolve(examplesDir, project)
-    if (env) {
-      command.push("--env", env)
-    }
-    return new GardenWatch(dir, command)
+    return new GardenWatch(dir, getCommand(command))
   }
 
   const namespaces = getProjectNamespaces()

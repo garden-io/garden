@@ -2,7 +2,7 @@ kind: Project
 name: remote-local-hybrid
 environments:
   - name: dev
-    defaultNamespace: remote-local-hybrid-${var.userId}
+    defaultNamespace: ${var.userId}
 providers:
   - name: kubernetes
     environments: [dev]
@@ -11,6 +11,15 @@ providers:
     namespace: ${environment.namespace}
     defaultHostname: ${var.userId}-remote-local-hybrid.dev-1.sys.garden
     buildMode: kaniko
+    # Replace the below values as appropriate
+    deploymentRegistry:
+      hostname: eu.gcr.io    # <- set this according to the region your cluster runs in
+      namespace: garden-ci   # <- set this to the project ID of the target cluster
+    imagePullSecrets:
+      # Make sure this matches the name and namespace of the imagePullSecret you've created
+      # to authenticate with your registry (if needed)
+      - name: gcr-config
+        namespace: default
 variables:
-  userId: ${local.env.CIRCLE_BUILD_NUM || local.username}
+  userId: ${local.username}
   remoteContext: gke_garden-ci_europe-west1-b_core-ci

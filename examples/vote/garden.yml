@@ -5,29 +5,29 @@ environments:
     variables:
       baseHostname: vote.local.app.garden
   - name: remote
-    defaultNamespace: ${var.userId}
     variables:
-      baseHostname: vote-${var.userId}.dev-1.sys.garden
-  - name: testing
-    defaultNamespace: testing-${var.userId}
-    variables:
-      baseHostname: vote-testing-${var.userId}.dev-1.sys.garden
+      baseHostname: ${project.name}-testing-${var.userId}.dev-1.sys.garden
 providers:
+  - name: octant
   - name: local-kubernetes
     environments: [local]
   - name: kubernetes
     environments: [remote]
-    # Replace these values as appropriate
-    context: ${var.remoteContext}
+    # Replace the below values as appropriate
+    context: gke_garden-ci_europe-west1-b_core-ci
+    namespace: ${project.name}-testing-${var.userId}
+    defaultHostname: ${var.baseHostname}
     buildMode: kaniko
-  - name: kubernetes
-    environments: [testing]
-    context: ${var.remoteContext}
-    buildMode: cluster-buildkit
-  - name: octant
+    deploymentRegistry:
+      hostname: eu.gcr.io    # <- set this according to the region your cluster runs in
+      namespace: garden-ci   # <- set this to the project ID of the target cluster
+    imagePullSecrets:
+      # Make sure this matches the name and namespace of the imagePullSecret you've created
+      # to authenticate with your registry (if needed)
+      - name: gcr-config
+        namespace: default
 variables:
-  userId: ${local.env.CIRCLE_BUILD_NUM || local.username}
-  remoteContext: gke_garden-ci_europe-west1-b_core-ci
+  userId: ${local.username}
   postgres-database: postgres
   # Only use for testing!
   postgres-username: postgres
