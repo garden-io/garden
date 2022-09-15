@@ -92,6 +92,7 @@ export interface GetFilesParams {
   include?: string[]
   exclude?: string[]
   filter?: (path: string) => boolean
+  failOnPrompt?: boolean
 }
 
 export interface RemoteSourceParams {
@@ -99,6 +100,7 @@ export interface RemoteSourceParams {
   name: string
   sourceType: ExternalSourceType
   log: LogEntry
+  failOnPrompt?: boolean
 }
 
 export interface VcsFile {

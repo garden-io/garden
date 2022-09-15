@@ -18,7 +18,7 @@ import { printHeader } from "../../logger/util"
 import { Garden } from "../../garden"
 import { LogEntry } from "../../logger/log-entry"
 import { joiArray, joi } from "../../config/common"
-import { StringsParameter, ParameterValues } from "../../cli/params"
+import { StringsParameter, ParameterValues, BooleanParameter } from "../../cli/params"
 
 const updateRemoteSourcesArguments = {
   sources: new StringsParameter({
@@ -28,14 +28,25 @@ const updateRemoteSourcesArguments = {
 
 type Args = typeof updateRemoteSourcesArguments
 
+const updateRemoteSourcesOptions = {
+  parallel: new BooleanParameter({
+    help:
+      "Allow git updates to happen in parallel. This will automatically reject any Git prompt, such as username / password",
+    defaultValue: false,
+  }),
+}
+
+type Opts = typeof updateRemoteSourcesOptions
+
 interface Output {
   sources: SourceConfig[]
 }
 
-export class UpdateRemoteSourcesCommand extends Command<Args> {
+export class UpdateRemoteSourcesCommand extends Command<Args, Opts> {
   name = "sources"
   help = "Update remote sources."
   arguments = updateRemoteSourcesArguments
+  opts = updateRemoteSourcesOptions
 
   outputsSchema = () =>
     joi.object().keys({
@@ -55,8 +66,8 @@ export class UpdateRemoteSourcesCommand extends Command<Args> {
     printHeader(headerLog, "Update remote sources", "hammer_and_wrench")
   }
 
-  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<Output>> {
-    return updateRemoteSources({ garden, log, args })
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<Output>> {
+    return updateRemoteSources({ garden, log, args, opts })
   }
 }
 
@@ -64,10 +75,12 @@ export async function updateRemoteSources({
   garden,
   log,
   args,
+  opts,
 }: {
   garden: Garden
   log: LogEntry
   args: ParameterValues<Args>
+  opts: ParameterValues<Opts>
 }) {
   const { sources } = args
 
@@ -88,16 +101,22 @@ export async function updateRemoteSources({
     )
   }
 
-  // TODO Update remotes in parallel. Currently not possible since updating might
-  // trigger a username and password prompt from git.
+  const promises: Promise<void>[] = []
   for (const { name, repositoryUrl } of selectedSources) {
-    await garden.vcs.updateRemoteSource({
+    const promise = garden.vcs.updateRemoteSource({
       name,
       url: repositoryUrl,
       sourceType: "project",
       log,
+      failOnPrompt: opts.parallel,
     })
+    if (opts.parallel) {
+      promises.push(promise)
+    } else {
+      await promise
+    }
   }
+  await Promise.all(promises)
 
   await pruneRemoteSources({
     gardenDirPath: garden.gardenDirPath,
