@@ -11,7 +11,7 @@ name: kaniko
 environments:
   - name: local
   - name: remote
-    defaultNamespace: testing-${local.env.CIRCLE_BUILD_NUM || local.username}
+    defaultNamespace: ${var.userId}
 providers:
   - name: local-kubernetes
     environments: [local]
