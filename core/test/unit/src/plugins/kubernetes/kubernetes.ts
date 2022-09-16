@@ -120,6 +120,7 @@ describe("kubernetes configureProvider", () => {
   it("should set a default deploymentRegistry with projectName as namespace", async () => {
     const result = await configure({
       ...basicConfig,
+      deploymentRegistry: undefined,
       buildMode: "kaniko",
     })
 
