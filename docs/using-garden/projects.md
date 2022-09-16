@@ -143,7 +143,7 @@ providers:
     ...
 ```
 
-... and the [configuration for a module](../../examples/backend/variables/garden.yml) in the same project:
+... and the [configuration for a module](../../examples/variables/backend/garden.yml) in the same project:
 
 ```yaml
 kind: Module
