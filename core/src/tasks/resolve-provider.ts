@@ -145,7 +145,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
   }
 
   async process({ dependencyResults }: TaskProcessParams) {
-    const providerResults = dependencyResults.getResultsByType(ResolveProviderTask).filter(isNotNull)
+    const providerResults = dependencyResults.getResultsByType(this).filter(isNotNull)
     const resolvedProviders: ProviderMap = keyBy(providerResults.map((r) => r.result).filter(isNotNull), "name")
 
     // Return immediately if the provider has been previously resolved
