@@ -2504,15 +2504,10 @@ describe("Garden", () => {
       await expectError(
         () => garden.resolveModules({ log: garden.log }),
         (err) => {
-          expect(stripAnsi(err.message)).to.equal(dedent`
-          Missing include and/or exclude directives on modules with overlapping paths.
-          Setting includes/excludes is required when modules have the same path (i.e. are in the same garden.yml file),
-          or when one module is nested within another.
-
-          Module module-no-include-a overlaps with module(s) module-a1 (nested), module-a2 (nested) and module-no-include-b (same path).
-
+          expect(stripAnsi(err.message)).to.include(dedent`
           Module module-no-include-b overlaps with module(s) module-a1 (nested), module-a2 (nested) and module-no-include-a (same path).
-          `)
+
+          If this was intentional, there are two options to resolve this error`)
         }
       )
     })
