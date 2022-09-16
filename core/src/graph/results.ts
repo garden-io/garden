@@ -62,9 +62,9 @@ export class GraphResults<B extends Task = Task> {
   /**
    * Get results for all tasks with the same type as the given `task`.
    */
-  getResultsByType<T extends new (...args: any) => Task>(type: T): (GraphResultFromTask<InstanceType<T>> | null)[] {
+  getResultsByType<T extends Task>(task: T): (GraphResultFromTask<T> | null)[] {
     return this.getTasks()
-      .filter((t) => t.type === type.prototype.type)
+      .filter((t) => t.type === task.type)
       .map((t) => this.getResult(t))
   }
 
