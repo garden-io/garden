@@ -12,8 +12,6 @@ To the left you'll find all the different documentation sections. Below you'll f
 
 **If you need help as an open source user**, please get in touch via our [community forum](https://community.garden.io/). Our team monitors the forum closely, and we encourage you to reach out with questions about Garden.
 
-**If you'd like to speak to us about Garden Enterprise**, please contact us [here](https://garden.io/contact). Garden Enterprise includes support with SLAs, onboarding assistance, and technical consulting. [Learn more](https://garden.io/product#enterprise).
-
 Here's a rundown of the different sections (the section links point to the first page of each section):
 
 | Section | Description |
