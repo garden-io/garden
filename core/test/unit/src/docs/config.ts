@@ -256,7 +256,7 @@ describe("docs config module", () => {
           - name:
             copy:
               - source:
-                target: ''
+                target:
       `)
     })
 
