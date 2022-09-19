@@ -808,7 +808,9 @@ jobs:
       - run:
           name: Install Deps
           command: |
-            choco upgrade -y rsync gcloudsdk kubernetes-cli
+            choco install -y git
+            choco install -y rsync
+            choco upgrade -y git rsync gcloudsdk kubernetes-cli
             refreshenv
       - run:
           name: Write gcloud credentials to file
