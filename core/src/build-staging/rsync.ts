@@ -14,7 +14,7 @@ import { BuildStaging, SyncParams } from "./build-staging"
 import { validateInstall } from "../util/validateInstall"
 
 const minRsyncVersion = "3.1.0"
-const versionRegex = /rsync  version [v]*([\d\.]+)  /
+const versionRegex = /rsync\s+version\s+v?(\d+.\d+.\d+)/
 
 /**
  * throws if no rsync is installed or version is too old
