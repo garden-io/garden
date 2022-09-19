@@ -770,7 +770,19 @@ jobs:
       #     command: nvm install 14 && nvm alias default 14
       - run:
           name: brew install
-          command: brew install docker kubectl
+          command: brew install docker kubectl git rsync
+      # Garden has 2 main pre-requisites: git and rsync
+      # Upgrade rsync to the latest version.
+      # The default version is too old, Garden requires 3.1.0+.
+      # This step ensures that Garden is always tested to be compatible with the latest rsync.
+      - run:
+          name: Upgrade rsync
+          command: brew upgrade rsync
+      # Upgrade git to the latest version.
+      # This step ensures that Garden is always tested to be compatible with the latest git.
+      - run:
+          name: Upgrade git
+          command: brew upgrade git
       - run:
           name: Install gcloud SDK
           command: |
