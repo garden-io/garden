@@ -18,26 +18,22 @@ type BinaryVersionCheckParams = {
   minVersion: string
 }
 
-const versionDetectFailure = (params: BinaryVersionCheckParams) =>
-  new RuntimeError(
+function versionCheckError(params: BinaryVersionCheckParams, msg: string, detail: object): RuntimeError {
+  return new RuntimeError(
     deline`
-    Could not detect ${params.name} version.
-    Please make sure ${params.name} version ${params.minVersion} or later is installed and on your PATH.
-    `,
-    {}
+      ${msg}
+      Please make sure ${params.name} (version ${params.minVersion} or later) is installed and on your PATH.
+      More about garden installation and requirements can be found in our documentation at https://docs.garden.io/getting-started/1-installation#requirements
+      `,
+    detail
   )
+}
 
 async function execVersionCheck(params: BinaryVersionCheckParams): Promise<string> {
   try {
     return (await exec(params.versionCommand.cmd, params.versionCommand.args)).stdout
   } catch (error) {
-    throw new RuntimeError(
-      deline`
-      Could not find ${params.name} binary.
-      Please make sure ${params.name} (version ${params.minVersion} or later) is installed and on your PATH.
-      `,
-      { error }
-    )
+    throw versionCheckError(params, `Could not find ${params.name} binary.`, { error })
   }
 }
 
@@ -45,7 +41,14 @@ function parseVersionOutput(versionOutput: string, params: BinaryVersionCheckPar
   const versionOutputFirstLine = versionOutput.split("\n")[0]
   const match = versionOutputFirstLine.match(params.versionRegex)
   if (!match || match.length < 2) {
-    throw versionDetectFailure(params)
+    throw versionCheckError(
+      params,
+      `Could not detect ${params.name} binary version in the version command's output: "${versionOutputFirstLine}".`,
+      {
+        versionOutput: versionOutputFirstLine,
+        regex: params.versionRegex,
+      }
+    )
   }
   return match[1]
 }
@@ -53,8 +56,10 @@ function parseVersionOutput(versionOutput: string, params: BinaryVersionCheckPar
 function validateVersionNumber(version: string, params: BinaryVersionCheckParams): boolean {
   try {
     return semver.gte(version, params.minVersion)
-  } catch (_) {
-    throw versionDetectFailure(params)
+  } catch (error) {
+    throw versionCheckError(params, `Could not parse the ${params.name} version ${version} as a valid semver value.`, {
+      error,
+    })
   }
 }
 
@@ -67,12 +72,6 @@ export async function validateInstall(params: BinaryVersionCheckParams): Promise
   const versionGte = validateVersionNumber(version, params)
 
   if (!versionGte) {
-    throw new RuntimeError(
-      deline`
-      Found ${params.name} binary but the version is too old (${version}).
-      Please install version ${params.minVersion} or later.
-      `,
-      { version }
-    )
+    throw versionCheckError(params, `Found ${params.name} binary but the version is too old (${version}).`, { version })
   }
 }
