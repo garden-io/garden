@@ -38,7 +38,7 @@ export const NEW_MODULE_VERSION = "0000000000"
 const fileCountWarningThreshold = 10000
 
 const minGitVersion = "2.14.0"
-export const gitVersionRegex = /git version [v]*([\d\.]+)/
+export const gitVersionRegex = /git\s+version\s+v?(\d+.\d+.\d+)/
 
 /**
  * throws if no git is installed or version is too old
