@@ -25,7 +25,6 @@ Featuring:
 | [Garden Documentation / Getting Started](https://docs.garden.io/?utm_source=github) | Documentation for all editions of Garden, and the best place to get started |
 | [Blog](https://garden.io/blog?utm_source=github) | The Garden blog, where we share product updates, how-to guides, and other resources |
 | The `#garden` channel in the [Kubernetes Slack](https://kubernetes.slack.com) | The best place to ask questions as a user of Garden. Get an invite at [slack.k8s.io](https://slack.k8s.io) |
-| [Garden Enterprise](https://garden.io/product?utm_source=github#enterprise) | Garden Enterprise is built on top of the open source product and includes centralized environment management, secrets and user management, direct integration with VCS, and more. |
 
 > _If you’re using Garden or if you like the project, please ★ star this repository to show your support 💖_
 
@@ -59,7 +58,6 @@ Users typically implement Garden for one or more of the following:
 - **Hardware and platform flexibility:** Run Garden on-prem or in one of several supported cloud providers. Build, test, and deploy Docker containers, [Helm charts](https://docs.garden.io/guides/using-helm-charts), and more. Choose from a variety of Kubernetes platforms and CI tools.
 - **Terraform integration:** Garden includes a [Terraform provider](https://docs.garden.io/advanced/terraform) that you can use to automatically validate and provision infrastructure as part of your project.
 - **Extensible plugin system:** Garden’s plugin system ensures you’ll be able to create custom module types tailored to your needs or take advantage of existing plugins (e.g. conftest, hadolint).
-- **Enterprise edition with support (if you need it):** Garden offers an enterprise edition of the product which provides secrets management, centralized environment management, direct integration with GitHub and other VCS providers, and enterprise security features (e.g. RBAC, SSO). The enterprise product comes with support SLAs and access to technical consulting. To learn more, [check out our website](https://garden.io/product?utm_source=github#enterprise) or [get in touch](https://garden.io/contact?utm_source=github).
 
 ## Documentation
 
@@ -127,8 +125,6 @@ We feel it’s a nice and welcoming name :) And we like the notion that your sof
 ## Project Status
 
 Garden is in active use by a number of teams. Until Garden reaches 1.0, APIs may still change between minor releases (0.x). Patch releases (0.x.y) are guaranteed not to include any breaking changes. We detail all breaking changes in our release notes.
-
-To learn about Garden Enterprise (generally available from November 2020), [please visit the Garden website](https://garden.io/product?utm_source=github#enterprise).
 
 ## Stay in Touch
 
