@@ -16,5 +16,5 @@ output "my-output" {
 }
 
 output "map-output" {
-  value = map("first", "second")
+  value =  tomap({"first" = "second"})
 }
