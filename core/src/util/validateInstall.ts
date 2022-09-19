@@ -11,17 +11,15 @@ import { RuntimeError } from "../exceptions"
 import { deline } from "./string"
 import { exec } from "./util"
 
-/**
- * throws if version check fails or the version is too old
- */
-export async function validateInstall(params: {
+type BinaryVersionCheckParams = {
   name: string
   versionCommand: { cmd: string; args: string[] }
   versionRegex: RegExp
   minVersion: string
-}) {
-  let version: string | undefined = undefined
-  const versionDetectFailure = new RuntimeError(
+}
+
+const versionDetectFailure = (params: BinaryVersionCheckParams) =>
+  new RuntimeError(
     deline`
     Could not detect ${params.name} version.
     Please make sure ${params.name} version ${params.minVersion} or later is installed and on your PATH.
@@ -29,9 +27,9 @@ export async function validateInstall(params: {
     {}
   )
 
+async function execVersionCheck(params: BinaryVersionCheckParams): Promise<string> {
   try {
-    const versionOutput = (await exec(params.versionCommand.cmd, params.versionCommand.args)).stdout
-    version = versionOutput.split("\n")[0].match(params.versionRegex)?.[1]
+    return (await exec(params.versionCommand.cmd, params.versionCommand.args)).stdout
   } catch (error) {
     throw new RuntimeError(
       deline`
@@ -41,18 +39,32 @@ export async function validateInstall(params: {
       { error }
     )
   }
+}
 
-  if (!version) {
-    throw versionDetectFailure
+function parseVersionOutput(versionOutput: string, params: BinaryVersionCheckParams): string {
+  const versionOutputFirstLine = versionOutput.split("\n")[0]
+  const match = versionOutputFirstLine.match(params.versionRegex)
+  if (!match || match.length < 2) {
+    throw versionDetectFailure(params)
   }
+  return match[1]
+}
 
-  let versionGte = true
-
+function validateVersionNumber(version: string, params: BinaryVersionCheckParams): boolean {
   try {
-    versionGte = semver.gte(version, params.minVersion)
+    return semver.gte(version, params.minVersion)
   } catch (_) {
-    throw versionDetectFailure
+    throw versionDetectFailure(params)
   }
+}
+
+/**
+ * throws if version check fails or the version is too old
+ */
+export async function validateInstall(params: BinaryVersionCheckParams): Promise<void> {
+  const versionOutput = await execVersionCheck(params)
+  const version = parseVersionOutput(versionOutput, params)
+  const versionGte = validateVersionNumber(version, params)
 
   if (!versionGte) {
     throw new RuntimeError(
