@@ -141,31 +141,28 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
   })
 
   const cacheTag = "_buildcache"
-  // Prepare the build command (this thing, while an otherwise excellent piece of software, is clearly is not meant for
-  // everyday human usage)
+
   let outputSpec: string
+  let exportSpec: string
   if (useModeMax) {
     outputSpec = `type=image,"name=${deploymentImageId}",push=true`
+    exportSpec = `type=registry,mode=max,ref=${deploymentImageName}:${cacheTag}`
+
+    if (usingInClusterRegistry(provider)) {
+      // The in-cluster registry is not exposed, so we don't configure TLS on it.
+
+      // TODO(steffen): TEST THIS CASE
+      exportSpec += ",registry.insecure=true"
+    }
   } else {
     // for inline
     outputSpec = `type=image,"name=${deploymentImageId},${deploymentImageName}:${cacheTag}",push=true`
+    exportSpec = "type=inline"
   }
 
   if (usingInClusterRegistry(provider)) {
     // The in-cluster registry is not exposed, so we don't configure TLS on it.
     outputSpec += ",registry.insecure=true"
-  }
-
-  let exportSpec: string
-  if (useModeMax) {
-    exportSpec = `type=registry,mode=max,ref=${deploymentImageName}:${cacheTag}`
-
-    if (usingInClusterRegistry(provider)) {
-      // The in-cluster registry is not exposed, so we don't configure TLS on it.
-      exportSpec += ",registry.insecure=true"
-    }
-  } else {
-    exportSpec = "type=inline"
   }
 
   const command = [
